@@ -45,21 +45,21 @@ class DPInfo {
             const string& msName, const string& antennaSet);
 
   void setIsBDAIntervalFactorInteger(bool isIntervalInteger) {
-    itsBDAIntervalFactorInteger = isIntervalInteger;
+    bda_interval_factor_is_integer_ = isIntervalInteger;
   }
 
   /// Set nr of channels.
-  void setNChan(unsigned int nchan) { itsNChan = nchan; }
+  void setNChan(unsigned int nchan) { n_channels_ = nchan; }
 
   /// Set the time interval and the number of time steps.
   void setTimeIntervalAndSteps(double timeInterval, unsigned int ntime) {
-    itsTimeInterval = timeInterval;
-    itsNTime = ntime;
+    time_interval_ = timeInterval;
+    n_times_ = ntime;
   }
 
   /// Set the frequency info.
   /// An empty resolutions or effectiveBW is default to chanWidths.
-  /// itsTotalBW is set to the sum of effectiveBW.
+  /// total_bandwidth_ is set to the sum of effectiveBW.
   /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
   void set(std::vector<double>&& chanFreqs, std::vector<double>&& chanWidths,
            std::vector<double>&& resolutions = std::vector<double>(),
@@ -68,10 +68,9 @@ class DPInfo {
 
   /// Set the frequency info, using different info per baseline.
   /// An empty resolutions or effectiveBW is default to chanWidths.
-  /// itsTotalBW is set to the sum of effectiveBW, which should be equal for
-  /// all baselines.
-  /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
-  /// of the baseline with the most channels.
+  /// total_bandwidth_ is set to the sum of effectiveBW, which should be equal
+  /// for all baselines. If refFreq is 0, it is set to the middle of chanFreqs
+  /// (mean if even). of the baseline with the most channels.
   void set(std::vector<std::vector<double>>&& chanFreqs,
            std::vector<std::vector<double>>&& chanWidths,
            std::vector<std::vector<double>>&& resolutions =
@@ -95,12 +94,12 @@ class DPInfo {
 
   /// Set the name of the data column
   void setDataColName(const std::string& dataColName) {
-    itsDataColName = dataColName;
+    data_column_name_ = dataColName;
   }
 
   /// Set the name of the weight column
   void setWeightColName(const std::string& weightColName) {
-    itsWeightColName = weightColName;
+    weight_column_name_ = weightColName;
   }
 
   /// Update the info for the given average factors.
@@ -123,113 +122,120 @@ class DPInfo {
   /// Set the phase center.
   /// If original=true, it is set to the original phase center.
   void setPhaseCenter(const casacore::MDirection& phaseCenter, bool original) {
-    itsPhaseCenter = phaseCenter;
-    itsPhaseCenterIsOriginal = original;
+    phase_center_ = phaseCenter;
+    phase_center_is_original_ = original;
   }
 
   /// Get the info.
   ///@{
-  const string& msName() const { return itsMSName; }
-  const string& antennaSet() const { return itsAntennaSet; }
-  unsigned int ncorr() const { return itsNCorr; }
-  unsigned int nchan() const { return itsNChan; }
-  unsigned int startchan() const { return itsStartChan; }
-  unsigned int origNChan() const { return itsOrigNChan; }
-  unsigned int nchanAvg() const { return itsChanAvg; }
-  unsigned int nantenna() const { return itsAntNames.size(); }
-  unsigned int nbaselines() const { return itsAnt1.size(); }
-  unsigned int ntime() const { return itsNTime; }
+  const string& msName() const { return ms_name_; }
+  const string& antennaSet() const { return antenna_set_; }
+  unsigned int ncorr() const { return n_correlations_; }
+  unsigned int nchan() const { return n_channels_; }
+  unsigned int startchan() const { return start_channel_; }
+  unsigned int origNChan() const { return original_n_channels_; }
+  unsigned int nchanAvg() const { return channel_averaging_factor_; }
+  unsigned int nantenna() const { return antenna_names_.size(); }
+  unsigned int nbaselines() const { return antenna1_.size(); }
+  unsigned int ntime() const { return n_times_; }
   unsigned int ntimeAvg(unsigned int baseline = 0) const {
-    return itsTimeAvg[baseline];
+    return time_averaging_factors_[baseline];
   }
-  const std::vector<unsigned int>& ntimeAvgs() const { return itsTimeAvg; }
-  double startTime() const { return itsStartTime; }
-  double timeInterval() const { return itsTimeInterval; }
+  const std::vector<unsigned int>& ntimeAvgs() const {
+    return time_averaging_factors_;
+  }
+  double startTime() const { return start_time_; }
+  double timeInterval() const { return time_interval_; }
   bool isBDAIntervalFactorInteger() const {
-    return itsBDAIntervalFactorInteger;
+    return bda_interval_factor_is_integer_;
   }
-  const std::vector<std::size_t>& getAnt1() const { return itsAnt1; }
-  const std::vector<std::size_t>& getAnt2() const { return itsAnt2; }
+  const std::vector<std::size_t>& getAnt1() const { return antenna1_; }
+  const std::vector<std::size_t>& getAnt2() const { return antenna2_; }
   const casacore::Vector<casacore::String>& antennaNames() const {
-    return itsAntNames;
+    return antenna_names_;
   }
   const casacore::Vector<casacore::Double>& antennaDiam() const {
-    return itsAntDiam;
+    return antenna_diameters_;
   }
   const std::vector<casacore::MPosition>& antennaPos() const {
-    return itsAntPos;
+    return antenna_positions_;
   }
-  const casacore::MPosition& arrayPos() const { return itsArrayPos; }
+  const casacore::MPosition& arrayPos() const { return array_position_; }
   const casacore::MPosition arrayPosCopy() const {
-    return copyMeasure(casacore::MeasureHolder(itsArrayPos)).asMPosition();
+    return copyMeasure(casacore::MeasureHolder(array_position_)).asMPosition();
   }
-  const casacore::MDirection& phaseCenter() const { return itsPhaseCenter; }
+  const casacore::MDirection& phaseCenter() const { return phase_center_; }
   const casacore::MDirection phaseCenterCopy() const {
-    return copyMeasure(casacore::MeasureHolder(itsPhaseCenter)).asMDirection();
+    return copyMeasure(casacore::MeasureHolder(phase_center_)).asMDirection();
   }
-  bool phaseCenterIsOriginal() const { return itsPhaseCenterIsOriginal; }
-  const casacore::MDirection& delayCenter() const { return itsDelayCenter; }
+  bool phaseCenterIsOriginal() const { return phase_center_is_original_; }
+  const casacore::MDirection& delayCenter() const { return delay_center_; }
   const casacore::MDirection delayCenterCopy() const {
-    return copyMeasure(casacore::MeasureHolder(itsDelayCenter)).asMDirection();
+    return copyMeasure(casacore::MeasureHolder(delay_center_)).asMDirection();
   }
-  const casacore::MDirection& tileBeamDir() const { return itsTileBeamDir; }
+  const casacore::MDirection& tileBeamDir() const {
+    return tile_beam_direction_;
+  }
   const casacore::MDirection tileBeamDirCopy() const {
-    return copyMeasure(casacore::MeasureHolder(itsTileBeamDir)).asMDirection();
+    return copyMeasure(casacore::MeasureHolder(tile_beam_direction_))
+        .asMDirection();
   }
   const std::vector<double>& chanFreqs(std::size_t baseline = 0) const {
-    return itsChanFreqs[baseline];
+    return channel_frequencies_[baseline];
   }
   const std::vector<std::vector<double>>& BdaChanFreqs() const {
-    return itsChanFreqs;
+    return channel_frequencies_;
   }
   const std::vector<double>& chanWidths(std::size_t baseline = 0) const {
-    return itsChanWidths[baseline];
+    return channel_widths_[baseline];
   }
   const std::vector<double>& resolutions(std::size_t baseline = 0) const {
-    return itsResolutions[baseline];
+    return resolutions_[baseline];
   }
   const std::vector<double>& effectiveBW(std::size_t baseline = 0) const {
-    return itsEffectiveBW[baseline];
+    return effective_bandwidth_[baseline];
   }
-  bool hasBDAChannels() const { return itsChanFreqs.size() == nbaselines(); }
-  const std::string& getDataColName() const { return itsDataColName; }
-  const std::string& getWeightColName() const { return itsWeightColName; }
-  double totalBW() const { return itsTotalBW; }
-  double refFreq() const { return itsRefFreq; }
+  bool hasBDAChannels() const {
+    return channel_frequencies_.size() == nbaselines();
+  }
+  const std::string& getDataColName() const { return data_column_name_; }
+  const std::string& getWeightColName() const { return weight_column_name_; }
+  double totalBW() const { return total_bandwidth_; }
+  double refFreq() const { return reference_frequency_; }
   ///@}
 
   /// Get the antenna numbers actually used in the (selected) baselines.
   /// E.g. [0,2,5,6]
-  const std::vector<int>& antennaUsed() const { return itsAntUsed; }
+  const std::vector<int>& antennaUsed() const { return antennas_used_; }
 
   /// Get the indices of all antennae in the used antenna vector above.
   /// -1 means that the antenna is not used.
   /// E.g. [0,-1,1,-1,-1,2,3] for the example above.
-  const std::vector<int>& antennaMap() const { return itsAntMap; }
+  const std::vector<int>& antennaMap() const { return antenna_map_; }
 
-  /// Are the visibility data needed?
-  bool needVisData() const { return itsNeedVisData; }
+  /// Is the visibility data needed?
+  bool needVisData() const { return need_data_; }
   /// Does the last step need to write data and/or flags?
   bool needWrite() const {
-    return itsWriteData || itsWriteFlags || itsWriteWeights;
+    return write_data_ || write_flags_ || write_weights_;
   }
-  bool writeData() const { return itsWriteData; }
-  bool writeFlags() const { return itsWriteFlags; }
-  bool writeWeights() const { return itsWriteWeights; }
+  bool writeData() const { return write_data_; }
+  bool writeFlags() const { return write_flags_; }
+  bool writeWeights() const { return write_weights_; }
   /// Has the meta data been changed in a step (precluding an update)?
-  bool metaChanged() const { return itsMetaChanged; }
+  bool metaChanged() const { return meta_changed_; }
 
   /// Set if visibility data needs to be read.
-  void setNeedVisData() { itsNeedVisData = true; }
+  void setNeedVisData() { need_data_ = true; }
   /// Set if data needs to be written.
-  void setWriteData() { itsWriteData = true; }
-  void setWriteFlags() { itsWriteFlags = true; }
-  void setWriteWeights() { itsWriteWeights = true; }
+  void setWriteData() { write_data_ = true; }
+  void setWriteFlags() { write_flags_ = true; }
+  void setWriteWeights() { write_weights_ = true; }
   /// Clear all write flags.
-  void clearWrites() { itsWriteData = itsWriteFlags = itsWriteWeights = false; }
+  void clearWrites() { write_data_ = write_flags_ = write_weights_ = false; }
   /// Set change of meta data.
-  void setMetaChanged() { itsMetaChanged = true; }
-  void clearMetaChanged() { itsMetaChanged = false; }
+  void setMetaChanged() { meta_changed_ = true; }
+  void clearMetaChanged() { meta_changed_ = false; }
 
   /// Get the baseline table index of the autocorrelations.
   /// A negative value means there are no autocorrelations for that antenna.
@@ -238,9 +244,9 @@ class DPInfo {
   /// Get the lengths of the baselines (in meters).
   const std::vector<double>& getBaselineLengths() const;
 
-  void setNThreads(unsigned int nThreads) { itsNThreads = nThreads; }
+  void setNThreads(unsigned int nThreads) { n_threads_ = nThreads; }
 
-  unsigned int nThreads() const { return itsNThreads; }
+  unsigned int nThreads() const { return n_threads_; }
 
   /// Convert to a Record.
   /// The names of the fields in the record are the data names without 'its'.
@@ -251,17 +257,17 @@ class DPInfo {
   void fromRecord(const casacore::Record& rec);
 
   everybeam::CorrectionMode beamCorrectionMode() const {
-    return itsBeamCorrectionMode;
+    return beam_correction_mode_;
   };
   void setBeamCorrectionMode(everybeam::CorrectionMode mode) {
-    itsBeamCorrectionMode = mode;
+    beam_correction_mode_ = mode;
   }
 
   const casacore::MDirection& beamCorrectionDir() const {
-    return itsBeamCorrectionDir;
+    return beam_correction_direction_;
   }
   void setBeamCorrectionDir(const casacore::MDirection& dir) {
-    itsBeamCorrectionDir = dir;
+    beam_correction_direction_ = dir;
   }
 
   /// Determine if the channels have a regular layout.
@@ -275,52 +281,55 @@ class DPInfo {
   static casacore::MeasureHolder copyMeasure(
       const casacore::MeasureHolder fromMeas);
 
-  bool itsNeedVisData;   ///< Are the visibility data needed?
-  bool itsWriteData;     ///< Must the data be written?
-  bool itsWriteFlags;    ///< Must the flags be written?
-  bool itsWriteWeights;  ///< Must the weights be written?
-  bool itsMetaChanged;   ///< Are meta data changed? (e.g., by averaging)
-  string itsMSName;
-  std::string itsDataColName;
-  std::string itsWeightColName;
-  string itsAntennaSet;
-  unsigned int itsNCorr;
-  unsigned int itsStartChan;
-  unsigned int itsOrigNChan;
-  unsigned int itsNChan;
-  unsigned int itsChanAvg;
-  unsigned int itsNTime;
-  std::vector<unsigned int> itsTimeAvg;
-  double itsStartTime;
-  double itsTimeInterval;
-  bool itsBDAIntervalFactorInteger;  // INTEGER_INTERVAL_FACTORS in
-                                     // [BDA_TIME_AXIS}
-  casacore::MDirection itsPhaseCenter;
-  bool itsPhaseCenterIsOriginal;
-  casacore::MDirection itsDelayCenter;
-  casacore::MDirection itsTileBeamDir;
-  everybeam::CorrectionMode itsBeamCorrectionMode;
-  casacore::MDirection itsBeamCorrectionDir;
-  casacore::MPosition itsArrayPos;
+  bool need_data_;      ///< Are the visibility data needed?
+  bool write_data_;     ///< Must the data be written?
+  bool write_flags_;    ///< Must the flags be written?
+  bool write_weights_;  ///< Must the weights be written?
+  bool meta_changed_;   ///< Are meta data changed? (e.g., by averaging)
+  std::string ms_name_;
+  std::string data_column_name_;
+  std::string weight_column_name_;
+  std::string antenna_set_;
+  unsigned int n_correlations_;
+  unsigned int start_channel_;
+  unsigned int original_n_channels_;
+  unsigned int n_channels_;
+  unsigned int channel_averaging_factor_;
+  unsigned int n_times_;
+  std::vector<unsigned int> time_averaging_factors_;
+  double start_time_;
+  double time_interval_;
+  bool bda_interval_factor_is_integer_;  // INTEGER_INTERVAL_FACTORS in
+                                         // [BDA_TIME_AXIS}
+  casacore::MDirection phase_center_;
+  bool phase_center_is_original_;
+  casacore::MDirection delay_center_;
+  casacore::MDirection tile_beam_direction_;
+  everybeam::CorrectionMode beam_correction_mode_;
+  casacore::MDirection beam_correction_direction_;
+  casacore::MPosition array_position_;
   /// Channels may differ between baselines when using BDA.
   /// If all baselines have equal channels, the outer vector only holds one
   /// inner vector. When using BDA, each baseline has its own inner vector.
-  std::vector<std::vector<double>> itsChanFreqs;
-  std::vector<std::vector<double>> itsChanWidths;
-  std::vector<std::vector<double>> itsResolutions;
-  std::vector<std::vector<double>> itsEffectiveBW;
-  double itsTotalBW;
-  double itsRefFreq;
-  casacore::Vector<casacore::String> itsAntNames;
-  casacore::Vector<casacore::Double> itsAntDiam;
-  std::vector<casacore::MPosition> itsAntPos;
-  std::vector<int> itsAntUsed;
-  std::vector<int> itsAntMap;
-  std::vector<std::size_t> itsAnt1;           ///< ant1 of all baselines
-  std::vector<std::size_t> itsAnt2;           ///< ant2 of all baselines
-  mutable std::vector<double> itsBLength;     ///< baseline lengths
-  mutable std::vector<int> itsAutoCorrIndex;  ///< autocorr index per ant
-  unsigned int itsNThreads;
+  std::vector<std::vector<double>> channel_frequencies_;
+  std::vector<std::vector<double>> channel_widths_;
+  std::vector<std::vector<double>> resolutions_;
+  std::vector<std::vector<double>> effective_bandwidth_;
+  double total_bandwidth_;
+  double reference_frequency_;
+  casacore::Vector<casacore::String> antenna_names_;
+  casacore::Vector<casacore::Double> antenna_diameters_;
+  std::vector<casacore::MPosition> antenna_positions_;
+  std::vector<int> antennas_used_;
+  std::vector<int> antenna_map_;
+  /// For each baseseline, the index of the first antenna.
+  std::vector<std::size_t> antenna1_;
+  /// For each baseseline, the index of the second antenna.
+  std::vector<std::size_t> antenna2_;
+  mutable std::vector<double> baseline_lengths_;
+  /// For each antenna, the auto correlation index.
+  mutable std::vector<int> auto_correlation_indices_;
+  unsigned int n_threads_;
 };
 
 }  // namespace base
