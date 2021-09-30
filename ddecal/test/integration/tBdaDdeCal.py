@@ -150,10 +150,8 @@ def test_only_predict(create_skymodel):
     assert_taql(taql_check_visibilities)
 
 
-@pytest.mark.parametrize(
-    "nchan",
-    [0, 1, 2, 3]
-)
+# Since this test is very slow on CI, use [3] instead of [0, 1, 2, 3] for now.
+@pytest.mark.parametrize("nchan",  [3])
 
 @pytest.mark.parametrize(
     "caltype",
