@@ -765,8 +765,8 @@ void DemixWorker::applyBeam(double time, const Direction& direction, bool apply,
   const size_t nchan = chanFreqs.size();
   for (size_t ch = 0; ch < nchan; ++ch) {
     for (size_t st = 0; st < itsMix->nstation(); ++st) {
-      itsBeamValues[nchan * st + ch] =
-          point_response->FullBeam(station_indices[st], chanFreqs[ch], srcdir);
+      itsBeamValues[nchan * st + ch] = point_response->FullResponse(
+          station_indices[st], chanFreqs[ch], srcdir);
     }
   }
 
