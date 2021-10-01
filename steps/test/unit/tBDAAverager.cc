@@ -162,6 +162,42 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   return buffer;
 }
 
+std::unique_ptr<DPBuffer> CreateSimpleBuffer(
+    const double time, const double interval, std::size_t n_baselines,
+    const std::vector<std::size_t>& channel_counts, const float base_value,
+    const float weight) {
+  casacore::Cube<casacore::Complex> data(kNCorr, channel_counts.size(),
+                                         n_baselines);
+  casacore::Cube<bool> flags(data.shape(), false);
+  casacore::Cube<float> weights(data.shape(), weight);
+  casacore::Cube<bool> full_res_flags(channel_counts.size(), 1, n_baselines,
+                                      false);
+  casacore::Matrix<double> uvw(3, n_baselines);
+
+  for (std::size_t bl = 0; bl < n_baselines; ++bl) {
+    for (std::size_t chan = 0; chan < channel_counts[bl]; ++chan) {
+      for (unsigned int corr = 0; corr < kNCorr; ++corr) {
+        data(corr, chan, bl) = base_value;
+        weights(corr, chan, bl) = weight;
+      }
+    }
+    uvw(0, bl) = 0.0;
+    uvw(1, bl) = 1.0;
+    uvw(2, bl) = 2.0;
+  }
+
+  auto buffer = boost::make_unique<DPBuffer>();
+  buffer->setTime(time);
+  buffer->setExposure(interval);
+  buffer->setData(data);
+  buffer->setWeights(weights);
+  buffer->setFlags(flags);
+  buffer->setFullResFlags(full_res_flags);
+  buffer->setUVW(uvw);
+
+  return buffer;
+}
+
 void CheckData(const std::complex<float>& expected,
                const std::complex<float>& actual) {
   BOOST_TEST(expected.real() == actual.real());
@@ -359,6 +395,109 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
   BOOST_REQUIRE_EQUAL(1u, mock_step->GetBdaBuffers()[1]->GetRows().size());
   CheckRow(*average01, mock_step->GetBdaBuffers()[0]->GetRows()[0], 0);
   CheckRow(*buffer2, mock_step->GetBdaBuffers()[1]->GetRows()[0], 0);
+}
+
+BOOST_AUTO_TEST_CASE(time_averaging_use_weights) {
+  const std::size_t kTimeAveragingFactor = 2;
+  const std::size_t kNBaselines = 1;
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+  const double averaged_interval = 2 * kInterval;
+  const double averaged_start_time = kStartTime - kInterval / 2;
+  const double averaged_centroid_time =
+      averaged_start_time + averaged_interval / 2;
+  const float weight_1 = 5.0;
+  const float weight_2 = 2.0;
+  const float value_1 = 100.0;
+  const float value_2 = 200.0;
+  float weight_averaged = weight_1 + weight_2;
+  float value_averaged =
+      (value_1 * weight_1 + value_2 * weight_2) / weight_averaged;
+
+  dp3::common::ParameterSet parset;
+  InitParset(parset, baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(mock_input, parset, "");
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
+
+  std::unique_ptr<DPBuffer> buffer0 =
+      CreateSimpleBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
+                         kChannelCounts, value_1, weight_1);
+  std::unique_ptr<DPBuffer> buffer1 =
+      CreateSimpleBuffer(kStartTime + 1.0 * kInterval, kInterval, kNBaselines,
+                         kChannelCounts, value_2, weight_2);
+  std::unique_ptr<DPBuffer> average01 =
+      CreateSimpleBuffer(averaged_centroid_time, averaged_interval, kNBaselines,
+                         kChannelCounts, value_averaged, weight_averaged);
+
+  auto mock_step = std::make_shared<dp3::steps::MockStep>();
+  averager.setNextStep(mock_step);
+
+  BOOST_TEST(averager.process(*buffer0));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(0));
+  BOOST_TEST(averager.process(*buffer1));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(1));
+
+  Finish(averager, *mock_step);
+
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 1u);
+  CheckRow(*average01, mock_step->GetBdaBuffers()[0]->GetRows()[0], 0);
+}
+
+BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
+  const std::size_t kTimeAveragingFactor = 2;
+  const std::size_t kNBaselines = 1;
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+  const double averaged_interval = 2 * kInterval;
+  const double averaged_start_time = kStartTime - kInterval / 2;
+  const double averaged_centroid_time =
+      averaged_start_time + averaged_interval / 2;
+
+  const float weight_1 = 5.0;
+  const float weight_2 = 2.0;
+  const float value_1 = 100.0;
+  const float value_2 = 200.0;
+
+  // when ignoring the weights, the averaged weight only takes into account of
+  // the averaging factor (and not the input weights)
+  float weight_averaged = float(kTimeAveragingFactor);
+  float value_averaged = (value_1 + value_2) / weight_averaged;
+
+  dp3::common::ParameterSet parset;
+  InitParset(parset, baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(mock_input, parset, "", false);
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
+
+  std::unique_ptr<DPBuffer> buffer0 =
+      CreateSimpleBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
+                         kChannelCounts, value_1, weight_1);
+  std::unique_ptr<DPBuffer> buffer1 =
+      CreateSimpleBuffer(kStartTime + 1.0 * kInterval, kInterval, kNBaselines,
+                         kChannelCounts, value_2, weight_2);
+  std::unique_ptr<DPBuffer> average01 =
+      CreateSimpleBuffer(averaged_centroid_time, averaged_interval, kNBaselines,
+                         kChannelCounts, value_averaged, weight_averaged);
+
+  auto mock_step = std::make_shared<dp3::steps::MockStep>();
+  averager.setNextStep(mock_step);
+
+  BOOST_TEST(averager.process(*buffer0));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(0));
+  BOOST_TEST(averager.process(*buffer1));
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == std::size_t(1));
+
+  Finish(averager, *mock_step);
+
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 1u);
+  CheckRow(*average01, mock_step->GetBdaBuffers()[0]->GetRows()[0], 0);
 }
 
 BOOST_AUTO_TEST_CASE(channel_averaging) {
