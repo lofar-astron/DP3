@@ -59,7 +59,8 @@ void BDAAverager::BaselineBuffer::Clear() {
 }
 
 BDAAverager::BDAAverager(InputStep& input, const common::ParameterSet& parset,
-                         const std::string& prefix)
+                         const std::string& prefix,
+                         const bool use_weights_and_flags)
     : input_(input),
       timer_("BDA Averager"),
       bl_threshold_time_(parset.getDouble(prefix + "timebase", 0.0)),
@@ -73,7 +74,8 @@ BDAAverager::BDAAverager(InputStep& input, const common::ParameterSet& parset,
       bda_pool_size_(0),
       bda_buffer_(),
       baseline_buffers_(),
-      expected_input_shape_() {}
+      expected_input_shape_(),
+      use_weights_and_flags_(use_weights_and_flags) {}
 
 BDAAverager::~BDAAverager() {}
 
@@ -211,14 +213,20 @@ bool BDAAverager::process(const DPBuffer& buffer) {
   common::NSTimer::StartStop sstime(timer_);
 
   DPBuffer dummy_buffer;
+
   const casacore::Cube<float>& weights =
-      input_.fetchWeights(buffer, dummy_buffer, timer_);
+      use_weights_and_flags_ ? input_.fetchWeights(buffer, dummy_buffer, timer_)
+                             : casacore::Cube<float>{};
+
+  const casacore::Cube<bool>& flags =
+      use_weights_and_flags_ ? buffer.getFlags() : casacore::Cube<bool>{};
+
   const casacore::Matrix<double>& uvw =
       input_.fetchUVW(buffer, dummy_buffer, timer_);
 
   if (buffer.getData().shape() != expected_input_shape_ ||
-      buffer.getFlags().shape() != expected_input_shape_ ||
-      weights.shape() != expected_input_shape_) {
+      (use_weights_and_flags_ && (flags.shape() != expected_input_shape_ ||
+                                  weights.shape() != expected_input_shape_))) {
     throw std::runtime_error("BDAAverager: Invalid buffer shape");
   }
 
@@ -236,26 +244,38 @@ bool BDAAverager::process(const DPBuffer& buffer) {
 
     std::complex<float>* bb_data = bb.data.data();
     float* bb_weights = bb.weights.data();
-    float total_weight = 0.0f;
 
-    for (std::size_t och = 0; och < bb.input_channel_indices.size() - 1;
-         ++och) {
-      for (std::size_t ich = bb.input_channel_indices[och];
-           ich < bb.input_channel_indices[och + 1]; ++ich) {
-        for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
-          if (!buffer.getFlags()(corr, ich, b)) {
-            const float weight = weights(corr, ich, b);
-
-            bb_data[corr] += buffer.getData()(corr, ich, b) * weight;
-            bb_weights[corr] += weight;
-            total_weight += weight;
+    if (!use_weights_and_flags_) {
+      for (std::size_t och = 0; och < bb.input_channel_indices.size() - 1;
+           ++och) {
+        for (std::size_t ich = bb.input_channel_indices[och];
+             ich < bb.input_channel_indices[och + 1]; ++ich) {
+          for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
+            bb_data[corr] += buffer.getData()(corr, ich, b);
+            bb_weights[corr] += 1.0;
           }
         }
+        bb_data += info().ncorr();
+        bb_weights += info().ncorr();
       }
-      bb_data += info().ncorr();
-      bb_weights += info().ncorr();
-    }
+    } else {
+      for (std::size_t och = 0; och < bb.input_channel_indices.size() - 1;
+           ++och) {
+        for (std::size_t ich = bb.input_channel_indices[och];
+             ich < bb.input_channel_indices[och + 1]; ++ich) {
+          for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
+            if (!flags(corr, ich, b)) {
+              const float weight = weights(corr, ich, b);
 
+              bb_data[corr] += buffer.getData()(corr, ich, b) * weight;
+              bb_weights[corr] += weight;
+            }
+          }
+        }
+        bb_data += info().ncorr();
+        bb_weights += info().ncorr();
+      }
+    }
     bb.uvw[0] += uvw(0, b);
     bb.uvw[1] += uvw(1, b);
     bb.uvw[2] += uvw(2, b);

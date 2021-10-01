@@ -35,9 +35,13 @@ class BDAAverager : public Step {
    * @param input InputStep object, for fetching weights, UVW etc.
    * @param parset A ParameterSet that contains the configuration.
    * @param prefix ParameterSet Prefix for obtaining the configuration.
+   * @param use_weights_and_flags A flag (true by default) which allows the
+   * BdaAverager to ignore the weights and flags. When false, it assumes
+   * unflagged data and a weight of 1.0 for all input data.
    */
   BDAAverager(InputStep& input, const common::ParameterSet& parset,
-              const std::string& prefix);
+              const std::string& prefix,
+              const bool use_weights_and_flags = true);
 
   ~BDAAverager() override;
 
@@ -112,6 +116,8 @@ class BDAAverager : public Step {
   /// Channel width per channel per baseline (temporarily used to store the
   /// arguments of set_averaging_params())
   std::vector<std::vector<double>> widths_;
+
+  const bool use_weights_and_flags_;
 };
 
 }  // namespace steps
