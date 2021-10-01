@@ -40,6 +40,45 @@ const std::vector<double> kAntDiam(kNAntennas, 1.0);
 const std::vector<int> kAnt1_2Bl{0, 0};
 const std::vector<int> kAnt2_2Bl{1, 2};
 
+void CheckData(const DPBuffer& buffer,
+               const std::vector<std::complex<float>>& data, int baseline) {
+  BOOST_CHECK_EQUAL(buffer.getData().size() % data.size(), 0u);
+  for (unsigned int chan = 0; chan < kNChan; ++chan) {
+    for (unsigned int corr = 0; corr < kNCorr; ++corr) {
+      // When frequency averaging is present in the input data, the size of the
+      // data in the bda input buffer is smaller than the size of the expanded
+      // regular buffer. For this reason the indexing of the 'data' variable
+      // should restart from the beginning once it reaches its size.
+      BOOST_CHECK_CLOSE(buffer.getData()(corr, chan, baseline),
+                        data[(chan * kNCorr + corr) % data.size()], 1e-3);
+    }
+  }
+}
+
+void CheckWeights(const std::vector<DPBuffer>& buffers,
+                  const std::vector<std::vector<float>>& weights) {
+  float total_weight_after_expansion = 0.0;
+  float total_weight_before_expansion = 0.0;
+  for (unsigned int i = 0; i < buffers.size(); i++) {
+    for (unsigned int baseline = 0; baseline < kNBaselines; ++baseline) {
+      for (unsigned int chan = 0; chan < kNChan; ++chan) {
+        for (unsigned int corr = 0; corr < kNCorr; ++corr) {
+          total_weight_after_expansion +=
+              buffers[i].getWeights()(corr, chan, baseline);
+        }
+      }
+    }
+  }
+
+  for (const std::vector<float>& row_weights : weights) {
+    total_weight_before_expansion +=
+        std::accumulate(row_weights.begin(), row_weights.end(), 0.0);
+  }
+
+  BOOST_CHECK_CLOSE(total_weight_after_expansion, total_weight_before_expansion,
+                    1e-3);
+}
+
 BOOST_AUTO_TEST_SUITE(bda_expander, *boost::unit_test::tolerance(0.001) *
                                         boost::unit_test::tolerance(0.001f))
 
@@ -60,24 +99,29 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
   const std::vector<std::complex<float>> kData4(kNCorr * kNChan,
                                                 std::complex<float>(4.0, 4.0));
 
-  const std::vector<float> kWeight(kNCorr * kNChan, 1.0);
+  const std::vector<std::vector<float>> kWeights{
+      {std::vector<float>(kNCorr * kNChan, 0.7),
+       std::vector<float>(kNCorr * kNChan, 1.5),
+       std::vector<float>(kNCorr * kNChan, 3.0),
+       std::vector<float>(kNCorr * kNChan, 0.01)}};
 
   // baseline 0, timeslot = 1
   buffer->AddRow(bda_first_time, kInterval, kInterval, baseline_id[0], kNCorr,
-                 kNChan, kData1.data(), nullptr, kWeight.data(), nullptr, kUVW);
+                 kNChan, kData1.data(), nullptr, kWeights[0].data(), nullptr,
+                 kUVW);
   // baseline 0, timeslot = 2
   buffer->AddRow(bda_first_time + kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan, kData2.data(), nullptr,
-                 kWeight.data(), nullptr, kUVW);
+                 kWeights[1].data(), nullptr, kUVW);
   // baseline 0, timeslot = 3
   buffer->AddRow(bda_first_time + 2 * kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan, kData3.data(), nullptr,
-                 kWeight.data(), nullptr, kUVW);
+                 kWeights[2].data(), nullptr, kUVW);
   // baseline 1, timeslot = 1 + 2 + 3
   buffer->AddRow(kStartTime + (kNIntervals * kInterval) / 2,
                  kNIntervals * kInterval, kNIntervals * kInterval,
                  baseline_id[1], kNCorr, kNChan, kData4.data(), nullptr,
-                 kWeight.data(), nullptr, kUVW);
+                 kWeights[3].data(), nullptr, kUVW);
 
   DPInfo info;
   std::vector<std::vector<double>> chan_freqs(kNBaselines);
@@ -122,18 +166,15 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
   BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2].getExposure(), kInterval);
 
   // check if data is correctly copied
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0].getData()(0, 0, 0),
-                    kData1.front());
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1].getData()(0, 0, 0),
-                    kData2.front());
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2].getData()(0, 0, 0),
-                    kData3.front());
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0].getData()(0, 0, 1),
-                    kData4.front());
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1].getData()(0, 0, 1),
-                    kData4.front());
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2].getData()(0, 0, 1),
-                    kData4.front());
+  CheckData(mock_step->GetRegularBuffers()[0], kData1, 0);
+  CheckData(mock_step->GetRegularBuffers()[1], kData2, 0);
+  CheckData(mock_step->GetRegularBuffers()[2], kData3, 0);
+  CheckData(mock_step->GetRegularBuffers()[0], kData4, 1);
+  CheckData(mock_step->GetRegularBuffers()[1], kData4, 1);
+  CheckData(mock_step->GetRegularBuffers()[2], kData4, 1);
+
+  // check if weights are correctly processed
+  CheckWeights(mock_step->GetRegularBuffers(), kWeights);
 }
 
 BOOST_AUTO_TEST_CASE(frequency_expansion) {
@@ -157,31 +198,38 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
   const std::vector<std::complex<float>> kData6(kNCorr * kNChan,
                                                 std::complex<float>(6.0, 6.0));
 
-  const std::vector<float> kWeight(kNCorr * kNChan, 1.0);
+  const std::vector<std::vector<float>> kWeights{
+      {std::vector<float>(kNCorr * kNChan / 2, 0.9),
+       std::vector<float>(kNCorr * kNChan, 1.3),
+       std::vector<float>(kNCorr * kNChan / 2, 9.7),
+       std::vector<float>(kNCorr * kNChan, 0.01),
+       std::vector<float>(kNCorr * kNChan / 2, 2.0),
+       std::vector<float>(kNCorr * kNChan, 4.3)}};
 
   // baseline 0, timeslot = 1
   buffer->AddRow(bda_first_time, kInterval, kInterval, baseline_id[0], kNCorr,
-                 kNChan / 2, kData1.data(), nullptr, kWeight.data(), nullptr,
-                 kUVW);
+                 kNChan / 2, kData1.data(), nullptr, kWeights[0].data(),
+                 nullptr, kUVW);
   // baseline 1, timeslot = 1
   buffer->AddRow(bda_first_time, kInterval, kInterval, baseline_id[1], kNCorr,
-                 kNChan, kData2.data(), nullptr, kWeight.data(), nullptr, kUVW);
+                 kNChan, kData2.data(), nullptr, kWeights[1].data(), nullptr,
+                 kUVW);
   // baseline 0, timeslot = 2
   buffer->AddRow(bda_first_time + kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan / 2, kData3.data(), nullptr,
-                 kWeight.data(), nullptr, kUVW);
+                 kWeights[2].data(), nullptr, kUVW);
   // baseline 1, timeslot = 2
   buffer->AddRow(bda_first_time + kInterval, kInterval, kInterval,
                  baseline_id[1], kNCorr, kNChan, kData4.data(), nullptr,
-                 kWeight.data(), nullptr, kUVW);
+                 kWeights[3].data(), nullptr, kUVW);
   // baseline 0, timeslot = 3
   buffer->AddRow(bda_first_time + 2 * kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan / 2, kData5.data(), nullptr,
-                 kWeight.data(), nullptr, kUVW);
+                 kWeights[4].data(), nullptr, kUVW);
   // baseline 1, timeslot = 3
   buffer->AddRow(bda_first_time + 2 * kInterval, kInterval, kInterval,
                  baseline_id[1], kNCorr, kNChan, kData6.data(), nullptr,
-                 kWeight.data(), nullptr, kUVW);
+                 kWeights[5].data(), nullptr, kUVW);
 
   DPInfo info;
 
@@ -222,28 +270,16 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
                         casacore::IPosition(3, kNCorr, kNChan, kNBaselines));
   }
 
-  for (unsigned int idx_channel = 0; idx_channel < kNChan; ++idx_channel) {
-    for (unsigned int idx_corr = 0; idx_corr < kNCorr; ++idx_corr) {
-      BOOST_CHECK_EQUAL(
-          mock_step->GetRegularBuffers()[0].getData()(idx_corr, idx_channel, 0),
-          kData1.front());
-      BOOST_CHECK_EQUAL(
-          mock_step->GetRegularBuffers()[0].getData()(idx_corr, idx_channel, 1),
-          kData2.front());
-      BOOST_CHECK_EQUAL(
-          mock_step->GetRegularBuffers()[1].getData()(idx_corr, idx_channel, 0),
-          kData3.front());
-      BOOST_CHECK_EQUAL(
-          mock_step->GetRegularBuffers()[1].getData()(idx_corr, idx_channel, 1),
-          kData4.front());
-      BOOST_CHECK_EQUAL(
-          mock_step->GetRegularBuffers()[2].getData()(idx_corr, idx_channel, 0),
-          kData5.front());
-      BOOST_CHECK_EQUAL(
-          mock_step->GetRegularBuffers()[2].getData()(idx_corr, idx_channel, 1),
-          kData6.front());
-    }
-  }
+  // check if data is correctly copied
+  CheckData(mock_step->GetRegularBuffers()[0], kData1, 0);
+  CheckData(mock_step->GetRegularBuffers()[1], kData3, 0);
+  CheckData(mock_step->GetRegularBuffers()[2], kData5, 0);
+  CheckData(mock_step->GetRegularBuffers()[0], kData2, 1);
+  CheckData(mock_step->GetRegularBuffers()[1], kData4, 1);
+  CheckData(mock_step->GetRegularBuffers()[2], kData6, 1);
+
+  // check if weights are correctly processed
+  CheckWeights(mock_step->GetRegularBuffers(), kWeights);
 }
 
 BOOST_AUTO_TEST_CASE(wrong_input_parameters) {

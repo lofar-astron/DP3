@@ -73,20 +73,6 @@ def test_only_expand():
     )
 
 
-def test_average_expand():
-    check_call(
-        [
-            tcf.DP3EXE,
-            f"msin={MSIN_REGULAR}",
-            "msout=.",
-            "msout.overwrite=true",
-            "steps=[bdaaverager, bdaexpander]",
-            "bdaaverager.frequencybase=1000",
-            "bdaaverager.timebase=600",
-        ]
-    )
-
-
 def test_expand_average():
     check_call(
         [
@@ -96,10 +82,13 @@ def test_expand_average():
             "msout.overwrite=true",
             "steps=[bdaexpander, bdaaverager]",
             "bdaaverager.frequencybase=1000",
-            "bdaaverager.timebase=600",
+            "bdaaverager.timebase=100",
             "bda=true",
         ]
     )
+    
+    taql_check_visibilities = f"select from(select gsumsqr(abs(t_in.DATA[isnan(t_in.DATA)]-t_out.DATA[isnan(t_out.DATA)])) as diff from {MSIN_BDA} t_in, out.MS t_out) where diff>1.e-6"
+    assert_taql(taql_check_visibilities)
 
 
 def test_bdaaverager_ddecal_bdaexpander(create_skymodel):
