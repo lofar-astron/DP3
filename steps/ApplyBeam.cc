@@ -291,7 +291,7 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
       case everybeam::CorrectionMode::kFull:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] = point_response->FullBeam(
+          beamValues[nCh * st + ch] = point_response->FullResponse(
               station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
           if (invert) {
             beamValues[nCh * st + ch].Invert();
