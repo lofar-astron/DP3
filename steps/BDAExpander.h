@@ -63,7 +63,8 @@ class BDAExpander : public Step {
   /// bufOut: the regular buffer in which the BDABuffer row is copied
   /// current_bl: the baseline number relative to the BDA_row
   void CopyData(const dp3::base::BDABuffer::Row &bda_row,
-                dp3::base::DPBuffer &buf_out, unsigned int current_bl);
+                dp3::base::DPBuffer &buf_out, unsigned int current_bl,
+                float time_averaging_factor = 1.0);
 
   class RegularBufferElement {
    public:

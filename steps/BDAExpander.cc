@@ -176,7 +176,7 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
         RB_elements.at(timeslot_index).baseline_[rows[row_nr].baseline_nr] =
             true;
         CopyData(rows[row_nr], RB_elements[timeslot_index].regular_buffer,
-                 current_bl);
+                 current_bl, slots_to_fill);
       }
     }
   }
@@ -217,30 +217,41 @@ void BDAExpander::finish() {
 }
 
 void BDAExpander::CopyData(const BDABuffer::Row &bda_row, DPBuffer &buf_out,
-                           unsigned int current_bl) {
+                           unsigned int current_bl,
+                           float time_averaging_factor) {
   casacore::Cube<casacore::Complex> &data = buf_out.getData();
   casacore::Cube<float> &weights = buf_out.getWeights();
   casacore::Cube<bool> &flags = buf_out.getFlags();
   casacore::Matrix<double> &uvw = buf_out.getUVW();
 
-  const std::complex<float> *pointer_to_data = bda_row.data;
-  const float *pointer_to_weights = bda_row.weights;
-  const bool *pointer_to_flags = bda_row.flags;
-
-  int current_channel = -1;
   for (unsigned int chan = 0; chan < info().nchan(); ++chan) {
+    // Set the pointers to the right value: when channel averaging happens, the
+    // pointers will have the same values for multiple loops.
+    const std::complex<float> *pointer_to_data =
+        bda_row.data + channels_mapping_[current_bl][chan] * info().ncorr();
+    const float *pointer_to_weights =
+        bda_row.weights + channels_mapping_[current_bl][chan] * info().ncorr();
+    const bool *pointer_to_flags =
+        bda_row.flags + channels_mapping_[current_bl][chan] * info().ncorr();
+
+    // Calculate the frequency averaging factor for this channel, to adjust the
+    // weight value
+    float channel_averaging_factor =
+        std::count(channels_mapping_[current_bl].begin(),
+                   channels_mapping_[current_bl].end(),
+                   channels_mapping_[current_bl][chan]);
+
     for (unsigned int corr = 0; corr < info().ncorr(); ++corr) {
       data(corr, chan, current_bl) = *pointer_to_data;
-      weights(corr, chan, current_bl) = *pointer_to_weights;
+      weights(corr, chan, current_bl) = *pointer_to_weights /
+                                        time_averaging_factor /
+                                        channel_averaging_factor;
       flags(corr, chan, current_bl) = *pointer_to_flags;
 
-      if (channels_mapping_[current_bl][chan] != current_channel) {
-        ++pointer_to_data;
-        ++pointer_to_weights;
-        ++pointer_to_flags;
-      }
-
-      current_channel = channels_mapping_[current_bl][chan];
+      // increment pointers to loop over correlations
+      ++pointer_to_data;
+      ++pointer_to_weights;
+      ++pointer_to_flags;
     }
   }
 
