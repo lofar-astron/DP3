@@ -304,6 +304,21 @@ void OnePredict::showTimings(std::ostream& os, double duration) const {
   os << "  ";
   base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
   os << " OnePredict " << name_ << '\n';
+
+  /*
+   * The timer_ measures the time in a single thread. Both predict_time_ and
+   * apply_beam_time_ are the sum of time in multiple threads. This makes it
+   * hard to determine the exact time spent in these phases. Instead it shows
+   * the percentage spent in these two parts.
+   */
+  const int64_t time{predict_time_ + apply_beam_time_};
+  os << "          ";
+  base::FlagCounter::showPerc1(os, predict_time_, time);
+  os << " of it spent in predict" << '\n';
+
+  os << "          ";
+  base::FlagCounter::showPerc1(os, apply_beam_time_, time);
+  os << " of it spent in apply beam" << '\n';
 }
 
 bool OnePredict::process(const DPBuffer& bufin) {
@@ -320,8 +335,6 @@ bool OnePredict::process(const DPBuffer& bufin) {
   const size_t nCh = info().nchan();
   const size_t nCr = info().ncorr();
   const size_t nBeamValues = stokes_i_only_ ? nBl * nCh : nBl * nCh * nCr;
-
-  timer_predict_.start();
 
   base::nsplitUVW(uvw_split_index_, baselines_, scratch_buffer.getUVW(),
                   station_uwv_);
@@ -386,6 +399,8 @@ bool OnePredict::process(const DPBuffer& bufin) {
   std::vector<base::Patch::ConstPtr> curPatches(pool->NThreads());
 
   pool->For(0, source_list_.size(), [&](size_t source_index, size_t thread) {
+    const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
+        scoped_time{predict_time_};
     // OnePredict the source model and apply beam when an entire patch is
     // done
     base::Patch::ConstPtr& curPatch = curPatches[thread];
@@ -408,6 +423,8 @@ bool OnePredict::process(const DPBuffer& bufin) {
   // Apply beam to the last patch
   if (apply_beam_) {
     pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
+      const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
+          scoped_time{predict_time_};
       if (curPatches[thread] != nullptr) {
         addBeamToData(curPatches[thread], time, thread, nBeamValues,
                       predict_buffer_->GetPatchModel(thread).data(),
@@ -455,8 +472,6 @@ bool OnePredict::process(const DPBuffer& bufin) {
     }
   }
 
-  timer_predict_.stop();
-
   timer_.stop();
   getNextStep()->process(buffer_);
   return false;
@@ -482,11 +497,15 @@ void OnePredict::addBeamToData(base::Patch::ConstPtr patch, double time,
   everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
   if (stokesIOnly) {
+    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
+        scoped_time{apply_beam_time_};
     ApplyBeam::applyBeamStokesIArrayFactor(
         info(), time, data0, srcdir, telescope_.get(),
         predict_buffer_->GetScalarBeamValues(thread), false, beam_mode_,
         &mutex_);
   } else {
+    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
+        scoped_time{apply_beam_time_};
     float* dummyweight = nullptr;
     ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir,
                          telescope_.get(),

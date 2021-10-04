@@ -27,6 +27,7 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <atomic>
 #include <mutex>
 #include <utility>
 
@@ -163,7 +164,25 @@ class OnePredict : public ModelDataStep {
       source_list_;
 
   common::NSTimer timer_;
-  common::NSTimer timer_predict_;
+
+  /**
+   * The total time [µs] of the prediction phase.
+   *
+   * The total prediction time is the sum of the execution time of all threads
+   * in the predict phase. This time can be more than the time measured by
+   * @ref timer_.
+   *
+   * @note Atomic floating point operations require C++20. The timer has a
+   * microsecond resolution. So by multiplying by 1e6 the result can be
+   * lossless stored in an integral.
+   */
+  std::atomic<int64_t> predict_time_{0};
+  /**
+   * The total time [µs] of the apply beam phase.
+   *
+   * Similar to @ref predict_time_.
+   */
+  std::atomic<int64_t> apply_beam_time_{0};
 
   aocommon::ThreadPool* thread_pool_;
   std::mutex* measures_mutex_;

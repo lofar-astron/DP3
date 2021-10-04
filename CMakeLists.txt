@@ -512,6 +512,7 @@ if(BUILD_TESTING)
 
   set(TEST_FILENAMES
       common/test/unit/tProximityClustering.cc
+      common/test/unit/tTimer.cc
       base/test/runtests.cc
       base/test/unit/tBaselineSelection.cc
       base/test/unit/tBDABuffer.cc

@@ -281,6 +281,42 @@ inline void NSTimer::stop() {
 #endif
 }
 
+/**
+ * Helper class to accumulate the execution time of multiple timers.
+ *
+ * Objects of this class measure duration of their life-time and add that time
+ * to @a accumulator. The class is intended to be used in scope based fashion,
+ * thus it's neither copyable nor movable.
+ *
+ * It's intended the class can be used to accumulate one timer from multiple
+ * threads, so it should be able to use a @ref std::atomic<T>. Unfortunately
+ * @ref std::atomic<T> for floating-point types requires C++20.
+ *
+ * The resolution of the class is based on the µs resolution of the @ref NSTimer
+ * class.
+ */
+template <class T>
+#if __cplusplus > 201703L
+requires requires(T& t, double d) { t += d; }
+#endif
+class ScopedMicroSecondAccumulator {
+ public:
+  explicit ScopedMicroSecondAccumulator(T& accumulator)
+      : accumulator_(accumulator) {
+    timer_.start();
+  }
+  ScopedMicroSecondAccumulator(const ScopedMicroSecondAccumulator&) = delete;
+
+  ~ScopedMicroSecondAccumulator() {
+    timer_.stop();
+    accumulator_ += timer_.getElapsed() * 1e6;
+  }
+
+ private:
+  NSTimer timer_;
+  T& accumulator_;
+};
+
 }  // namespace common
 }  // namespace dp3
 
