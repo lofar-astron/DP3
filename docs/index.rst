@@ -1,16 +1,16 @@
-DPPP 
+DP3 
 ================
 
 `Go to source documentation <https://www.astron.nl/citt/DP3/doxygen/index.html>`_.
 
-DPPP (the Default Preprocessing Pipeline, previously NDPPP for New Preprocessing Pipeline) is the LOFAR data pipelined processing program. It can be used to do all kind of operations on the data in a pipelined way, so the data are read and written only once.
+DP3 (the Default Preprocessing Pipeline, previously NDPPP for New Preprocessing Pipeline) is the LOFAR data pipelined processing program. It can be used to do all kind of operations on the data in a pipelined way, so the data are read and written only once.
 
-DPPP started as a new and faster version of IDPPP.
+DP3 started as a new and faster version of IDPPP.
 The original differences can be seen `here <https://www.astron.nl/lofarwiki/doku.php?id=engineering:software:tools:dppp:diff>`__.
 
-DPPP preprocesses the data of a LOFAR observation by executing steps like flagging or averaging. Such steps can be used for the raw data as well as the calibrated data by defining the data column to use. One or more of the following steps can be defined as a pipeline. DPPP has an implicit input and output step. It is also possible to have intermediate output steps.
+DP3 preprocesses the data of a LOFAR observation by executing steps like flagging or averaging. Such steps can be used for the raw data as well as the calibrated data by defining the data column to use. One or more of the following steps can be defined as a pipeline. DP3 has an implicit input and output step. It is also possible to have intermediate output steps.
 
-DPPP comes with quite some predefined steps, but it is possible to plugin arbitrary steps, either implemented in C++ or Python.
+DP3 comes with quite some predefined steps, but it is possible to plugin arbitrary steps, either implemented in C++ or Python.
 
 .. toctree::
   :maxdepth: 2
@@ -75,17 +75,17 @@ The following steps are possible:
 
 
 The input is one or more (regularly shaped) MeasurementSets (MSs). The data in the given column are piped through the steps defined in the parset file and finally written (if needed). It makes it possible to, say, flag at the full resolution, average, flag on a lower resolution, average further, and finally write the data.
-Regularly shaped means that all time slots in the MS must contain the same baselines and channels. DPPP can handle only one spectral window. If the MS has multiple spectral windows, one has to be selected. 
+Regularly shaped means that all time slots in the MS must contain the same baselines and channels. DP3 can handle only one spectral window. If the MS has multiple spectral windows, one has to be selected. 
 
 If multiple MSs are given as input, their data are combined in frequency. It means that the time, phase direction, etc. of the different MSs have to be the same. Note that other steps (like averaging) can still be used.
 When combining MSs (thus combining subbands), it is possible that one or more of them do not exist. Flagged data will be inserted for them. The missing frequency info is deduced from the other subbands.
-Note that in order to insert missing subbands in the data, the names of the missing MSs have to be given at the right place in the list of MS names. Otherwise DPPP does not know that subbands are missing.
+Note that in order to insert missing subbands in the data, the names of the missing MSs have to be given at the right place in the list of MS names. Otherwise DP3 does not know that subbands are missing.
 
 The output can be a new MeasurementSet, but it is also possible to update the flags if the input is a single MS. If averaging or phase-shifting to another phase center is done, the only option is to create a new MeasurementSet.
 
 At the end the run time is shown. Note that on a multi-core machine the user time can exceed the elapsed time (user time is counted per core). By default the percentage of time each step took is also shown.
 
-The AOFlagger, MADFlagger, and Demixer, by far the most expensive parts of DPPP, can run multi-threaded if DPPP is built with OpenMP. It is possible to define the number of threads to use by the global key `numthreads`. Is that is not set, it uses the environment variable `OMP_NUM_THREADS`. If also that variable is undefined, an DPPP run uses as many threads as there are CPU cores. Thus if multiple DPPP runs are started on a machine, the default total number of threads will exceed the number of CPU cores.
+The AOFlagger, MADFlagger, and Demixer, by far the most expensive parts of DP3, can run multi-threaded if DP3 is built with OpenMP. It is possible to define the number of threads to use by the global key `numthreads`. Is that is not set, it uses the environment variable `OMP_NUM_THREADS`. If also that variable is undefined, an DP3 run uses as many threads as there are CPU cores. Thus if multiple DP3 runs are started on a machine, the default total number of threads will exceed the number of CPU cores.
 
 MeasurementSet Access
 ---------------------
@@ -110,17 +110,17 @@ where WGHT is the weight put in by RTCP (number of samples used / total number o
 
 Flagging
 ---------------------
-It is important to realize that a MeasurementSet contains columns FLAG and FLAG_ROW to indicate if data are flagged. If FLAG_ROW is set, all data in that row are flagged. DPPP will set FLAG_ROW if all FLAG are set (and vice-versa).
+It is important to realize that a MeasurementSet contains columns FLAG and FLAG_ROW to indicate if data are flagged. If FLAG_ROW is set, all data in that row are flagged. DP3 will set FLAG_ROW if all FLAG are set (and vice-versa).
 When clearing the flags manually, it is important to realize that both columns have to be cleared. For example:
 
 .. code-block:: sh
 
   taql 'update my.ms set FLAG=F, FLAG_ROW=F'
 
-DPPP flagging behaviour is as follows.
+DP3 flagging behaviour is as follows.
   * If one correlation is flagged, all correlations will be flagged (e.g. XX,YX,YY are flagged if XY is flagged).
   * The ``msin`` step flags data containing NaNs or infinite numbers or if FLAG_ROW is set.
-  * An :ref:`AOFlagger` step can be used to flag using Andre Offringa's rficonsole code. Because DPPP always reads entire time slots, the flagging can be done on limited time windows only (depending on the available memory). An overlap can be defined to reduce boundary effects. By default QUALITY subtables will be created containing statistical flagging quality information. They can be inspected using tools like `aoqplot`. The default strategy works well for HBA data, but not for LBA data. The strategy `LBAdefault` should be used for it.
+  * An :ref:`AOFlagger` step can be used to flag using Andre Offringa's rficonsole code. Because DP3 always reads entire time slots, the flagging can be done on limited time windows only (depending on the available memory). An overlap can be defined to reduce boundary effects. By default QUALITY subtables will be created containing statistical flagging quality information. They can be inspected using tools like `aoqplot`. The default strategy works well for HBA data, but not for LBA data. The strategy `LBAdefault` should be used for it.
   * A :ref:`Preflagger` step can be used to flag (or unflag) on time, baseline, elevation, azimuth, simple uv-distance, channel, frequency, amplitude, phase, real, and imaginary. Multiple values (or ranges) can be given for one or more of those keywords. A keyword matches if the data matches one of the values. The results of all given keywords are AND-ed. For example, only data matching given channels and baselines are flagged. Keywords can be grouped in a set making it a single (super) keyword. Such sets can be OR-ed or AND-ed. It makes it possible to flag, for example, channel 1-4 for baseline A and channel 34-36 for baseline B. `Here <https://www.astron.nl/lofarwiki/doku.php?id=engineering:software:tools:dppp:preflaggerandor>`__ it is explained in a bit more detail.
   * A :ref:`UVWFlagger` step can be used to flag on UVW coordinates in meters and/or wavelengths. It is possible to base the UVW coordinates on a given phase center. If no phase center is given, the UVW coordinates in the input MS are used.
   * A :ref:`MADFlagger` step can be used to flag on the amplitudes of the data. It flags based on the median of the absolute difference of the amplitudes and the median of the amplitudes. It uses a running median with a box of the given size (number of channels and time slots). It is a rather expensive flagging method with usually good results. The flagging parameters can be given as an expression to make them dependent on baseline length. It is possible to specify which correlations to use in the MADFlagger. Flagging on XX only, can save a factor 4 in performance. Furthermore it is possible to only flag the auto-correlations and apply the results to the cross-correlations with a baseline length within optionally given limits.
@@ -181,7 +181,7 @@ Phase shifting
 
 Upsample
 ---------------------
-  * :ref:`Upsampling <Upsample>` data can be useful for at least one use case. Consider data that has been integrated for two seconds, by a correlator (the AARTFAAC correlator) that sometimes misses one second of data. The times of the visibilities will then look like [0, 2, 4, 7, 9, 12], each having integration time 2 seconds. DPPP will automatically fill missing time slots, which will lead to times [0, 2, 4, 6, 7, 9, 11, 12]. This is still a nonuniform time coverage, which is not desirable. Calling the upsample step with `timestep=2` on this data will create times [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] (it will remove the inserted dummy time slots that overlap, i.e. at 7 and 12). This data is then useful for further processing, e.g. averaging to 10 seconds.
+  * :ref:`Upsampling <Upsample>` data can be useful for at least one use case. Consider data that has been integrated for two seconds, by a correlator (the AARTFAAC correlator) that sometimes misses one second of data. The times of the visibilities will then look like [0, 2, 4, 7, 9, 12], each having integration time 2 seconds. DP3 will automatically fill missing time slots, which will lead to times [0, 2, 4, 6, 7, 9, 11, 12]. This is still a nonuniform time coverage, which is not desirable. Calling the upsample step with `timestep=2` on this data will create times [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] (it will remove the inserted dummy time slots that overlap, i.e. at 7 and 12). This data is then useful for further processing, e.g. averaging to 10 seconds.
 
 Station summation
 ---------------------
@@ -245,13 +245,13 @@ The step `out` can write data to disk at an intermediate stage. It takes the sam
 
 User defined step
 ---------------------
-Besides the predefined DPPP steps like AOFlagger, etc., it
-is possible to use any user-defined DPPP step implemented in C++ or Python.
+Besides the predefined DP3 steps like AOFlagger, etc., it
+is possible to use any user-defined DP3 step implemented in C++ or Python.
 
 If implemented in C++ such a step has to
 reside in a shared library, that will dynamically be loaded by
-DPPP.
-The name of such a shared library has to be the step type name. DPPP will try to load the
+DP3.
+The name of such a shared library has to be the step type name. DP3 will try to load the
 library libdppp_xxx.so (or .dylib on OS-X) for a step type xxx.
 
 To make this a bit more flexible it is possible to define multiple
@@ -269,22 +269,22 @@ For example:
 
   defines two user steps. Both step implementations reside in library libmystep.so.
   A description and example of a dynamically loaded step can be found in the source
-  code repository in DPPP/TestDynDPPP.
+  code repository in DP3/TestDynDP3.
 
 Python defined step
 ---------------------
 The mechanism described above is used to make it possible to implement a user
-step in Python. The step type has to be `pythondppp` and the name of the Python module and class containing the code have to be given. DPPP will start an embedded Python shell, load the module, and instantiate an object of the class. See the documention of :ref:`PythonStep`.
+step in Python. The step type has to be `pythondppp` and the name of the Python module and class containing the code have to be given. DP3 will start an embedded Python shell, load the module, and instantiate an object of the class. See the documention of :ref:`PythonStep`.
 
 ParSet File
 ---------------------
-Similar to most LOFAR programs, the parameters for the DPPP program are given in a so-called parset file.
+Similar to most LOFAR programs, the parameters for the DP3 program are given in a so-called parset file.
 Note that it is possible to add parameters or overwrite parameters, defined in the parset file, using command line arguments.
 For example:
 
 .. code-block:: sh
 
-  DPPP DPPP.pset parm1=value1 parm2=value2 ...
+  DP3 DP3.pset parm1=value1 parm2=value2 ...
 
 
 The steps to perform have to be defined in the parset file. They are executed in the given order, where the data are piped from one step to the other until all data are processed. Each step has a name to be used thereafter as a prefix in the keyword names specifying the type and parameters of the step.
@@ -294,7 +294,7 @@ The most basic parset is as follows. It copies the DATA column of the MS and fla
 .. code-block:: sh
 
   msin = ~/SB0.MS
-  msout = SB0_DPPP.MS
+  msout = SB0-preprocessed.MS
   steps=[]
 
 
@@ -308,8 +308,8 @@ Note that 'msin' and 'msout' can be seen as an implicit first and last step.
   msin.nchan = 240
   msin.datacolumn = DATA     # is the default
 
-  msout = "SB0_DPPP.MS"      # if empty, the input MS is updated and
-                           #  no averaging steps can be done
+  msout = "SB0-averaged.MS"  # if empty, the input MS is updated and
+                             #  no averaging steps can be done
   msout.datacolumn = DATA    # is the default
 
   steps = [flag1,count,avg1,flag2,avg2,count]
