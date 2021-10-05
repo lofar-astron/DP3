@@ -81,6 +81,12 @@ class BdaGroupPredict::BaselineGroup {
     } while (step = step->getNextStep());
   }
 
+  void ShowTimings(std::ostream &os, const double duration) const {
+    for (Step::ShPtr step = predict_step_; step; step = step->getNextStep()) {
+      step->showTimings(os, duration);
+    }
+  }
+
   /// Process one row if BDA data
   /// requests are buffered until the baseline group is complete
   void ProcessRow(const base::BDABuffer::Row &row, std::size_t &row_counter,
@@ -208,6 +214,8 @@ void BdaGroupPredict::showTimings(std::ostream &os, double duration) const {
   os << "  ";
   base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
   os << " BdaGroupPredict " << name_ << '\n';
+  os << " Predict for first baseline group\n";
+  averaging_to_baseline_group_map_.begin()->second.ShowTimings(os, duration);
 }
 
 bool BdaGroupPredict::process(std::unique_ptr<base::BDABuffer> buffer) {

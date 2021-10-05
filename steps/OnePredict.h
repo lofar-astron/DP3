@@ -27,6 +27,7 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <atomic>
 #include <mutex>
 #include <utility>
 
@@ -72,14 +73,14 @@ class OnePredict : public ModelDataStep {
   /// otherwise they will synchronize needlessly.
   ///
   /// It is also possible to make the predict steps share the same threadpool
-  /// without further synchronisation, by setting measuresMutex to nullptr.
-  void SetThreadData(aocommon::ThreadPool& pool, std::mutex* measuresMutex) {
-    itsThreadPool = &pool;
-    itsMeasuresMutex = measuresMutex;
+  /// without further synchronisation, by setting measures_mutex to nullptr.
+  void SetThreadData(aocommon::ThreadPool& pool, std::mutex* measures_mutex) {
+    thread_pool_ = &pool;
+    measures_mutex_ = measures_mutex;
   }
 
-  void SetPredictBuffer(std::shared_ptr<base::PredictBuffer> predictBuffer) {
-    itsPredictBuffer = std::move(predictBuffer);
+  void SetPredictBuffer(std::shared_ptr<base::PredictBuffer> predict_buffer) {
+    predict_buffer_ = std::move(predict_buffer);
   }
 
   /// Process the data.
@@ -116,57 +117,75 @@ class OnePredict : public ModelDataStep {
   void addBeamToData(base::Patch::ConstPtr patch, double time, size_t thread,
                      size_t nBeamValues, std::complex<double>* data0,
                      bool stokesIOnly);
-  InputStep* itsInput;
-  std::string itsName;
-  base::DPBuffer itsBuffer;
-  std::string itsSourceDBName;
-  bool itsCorrectFreqSmearing;
-  std::string itsOperation;
-  bool itsApplyBeam;
-  bool itsUseChannelFreq;
-  bool itsOneBeamPerPatch;
+  InputStep* input_;
+  std::string name_;
+  base::DPBuffer buffer_;
+  std::string source_db_name_;
+  bool correct_freq_smearing_;
+  std::string operation_;
+  bool apply_beam_;
+  bool use_channel_freq_;
+  bool one_beam_per_patch_;
   /// If two sources are closer together than given by this setting, they
   /// will be grouped into one patch. Value is in arcsec; zero means don't
   /// group.
-  double itsBeamProximityLimit;
-  bool itsStokesIOnly;
-  base::Direction itsPhaseRef;
-  bool itsMovingPhaseRef;
+  double beam_proximity_limit_;
+  bool stokes_i_only_;
+  base::Direction phase_ref_;
+  bool moving_phase_ref_;
 
-  bool itsDoApplyCal;
-  ApplyCal itsApplyCalStep;
+  bool do_apply_cal_;
+  ApplyCal apply_cal_step_;
   std::shared_ptr<ResultStep>
-      itsResultStep;  ///< For catching results from ApplyCal
+      result_step_;  ///< For catching results from ApplyCal
 
-  unsigned int itsDebugLevel;
+  unsigned int debug_level_;
 
-  std::vector<std::pair<size_t, size_t>> itsBaselines;
+  std::vector<std::pair<size_t, size_t>> baselines_;
 
   /// Vector containing info on converting baseline uvw to station uvw
-  std::vector<int> itsUVWSplitIndex;
+  std::vector<int> uvw_split_index_;
 
   /// UVW coordinates per station (3 coordinates per station)
-  casacore::Matrix<double> itsStationUVW;
+  casacore::Matrix<double> station_uwv_;
 
   /// The info needed to calculate the station beams.
-  std::shared_ptr<base::PredictBuffer> itsPredictBuffer;
-  everybeam::CorrectionMode itsBeamMode;
-  everybeam::ElementResponseModel itsElementResponseModel;
-  std::vector<casacore::MeasFrame> itsMeasFrames;
-  std::vector<casacore::MDirection::Convert> itsMeasConverters;
+  std::shared_ptr<base::PredictBuffer> predict_buffer_;
+  everybeam::CorrectionMode beam_mode_;
+  everybeam::ElementResponseModel element_response_model_;
+  std::vector<casacore::MeasFrame> meas_frame_;
+  std::vector<casacore::MDirection::Convert> meas_convertors_;
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;
 
-  std::string itsDirectionsStr;  ///< Definition of patches, to pass to applycal
-  std::vector<base::Patch::ConstPtr> itsPatchList;
+  std::string direction_str_;  ///< Definition of patches, to pass to applycal
+  std::vector<base::Patch::ConstPtr> patch_list_;
 
   std::vector<std::pair<base::ModelComponent::ConstPtr, base::Patch::ConstPtr>>
-      itsSourceList;
+      source_list_;
 
-  common::NSTimer itsTimer;
-  common::NSTimer itsTimerPredict;
+  common::NSTimer timer_;
 
-  aocommon::ThreadPool* itsThreadPool;
-  std::mutex* itsMeasuresMutex;
+  /**
+   * The total time [µs] of the prediction phase.
+   *
+   * The total prediction time is the sum of the execution time of all threads
+   * in the predict phase. This time can be more than the time measured by
+   * @ref timer_.
+   *
+   * @note Atomic floating point operations require C++20. The timer has a
+   * microsecond resolution. So by multiplying by 1e6 the result can be
+   * lossless stored in an integral.
+   */
+  std::atomic<int64_t> predict_time_{0};
+  /**
+   * The total time [µs] of the apply beam phase.
+   *
+   * Similar to @ref predict_time_.
+   */
+  std::atomic<int64_t> apply_beam_time_{0};
+
+  aocommon::ThreadPool* thread_pool_;
+  std::mutex* measures_mutex_;
   std::mutex mutex_;
 };
 
