@@ -12,7 +12,7 @@ inputs:
   parmdb:
     type: string
     doc: >-
-      Path of parmdb in which the computed parameters are to be stored. If the parmdb already exists, it will be overwritten. **Note**: You cannot use this parmdb in an applycal step in the same run of DPPP. To apply the solutions of the gaincal directly, use 'gaincal.applysolution' (see below).  **New in LOFAR 3.1:** if the parmdb name ends in ``.h5`` , an H5Parm will be written `.`
+      Path of parmdb in which the computed parameters are to be stored. If the parmdb already exists, it will be overwritten. **Note**: You cannot use this parmdb in an applycal step in the same run of DP3. To apply the solutions of the gaincal directly, use 'gaincal.applysolution' (see below).  **New in LOFAR 3.1:** if the parmdb name ends in ``.h5`` , an H5Parm will be written `.`
   blrange:
     type: vector
     doc: >-

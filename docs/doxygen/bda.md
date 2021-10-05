@@ -7,14 +7,14 @@ Shorter baselines can be averaged more in both the time and frequency direction.
 
 ## Current situation
 
-- A [RegularBuffer](@ref DP3::DPPP::DPBuffer) has a regular multidimensional
+- A [RegularBuffer](@ref dp3::base::DPBuffer) has a regular multidimensional
   cube structure:
   - Main layout: 
   - The length of a time step is equal for all baselines.
   - A RegularBuffer contains the measurements for a single time step.
   - The amount of frequency channels is equal for all baselines.
     All channels have the same size.
-- The [process()](@ref DP3::DPPP::DPStep::process) function of a step has a
+- The [process()](@ref dp3::steps::Step::process) function of a step has a
   single RegularBuffer argument. It processes
   the measurements for a single time step.
 
@@ -41,7 +41,7 @@ DP3 should support the following:
    use in later iterations. These steps include:
    - Calibrate
    - DDECal
-6. The DPPP input should allow specifying the BDA operations above.
+6. The DP3 input should allow specifying the BDA operations above.
 
 ### Non-requirements
 
@@ -54,13 +54,13 @@ since it is not necessary:
 
 ## Design
 
-The current [DPStep](@ref DP3::DPPP::DPStep) class can be reused for supporting
+The current [DPStep](@ref dp3::steps::Step) class can be reused for supporting
 BDA operations, by extending the process() method with support for BDA data.
 This approach supports all requirements: A step can perform a BDA process()
 call sending BDA data to its next step and implement the BDA process()
 method for receiving BDA data from its previous step.
 
-With this approach, the DPPP input format can remain the same: The steps
+With this approach, the DP3 input format can remain the same: The steps
 will receive and send data in the requested format.
 
 ### DPStep structure

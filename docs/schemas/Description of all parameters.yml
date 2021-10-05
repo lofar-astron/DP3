@@ -35,4 +35,4 @@ inputs:
     default: false
     type: bool
     doc: >-
-      If false, all DPPP messages are written on stdout. If true, the logging framework is used `.`
+      If false, all DP3 messages are written on stdout. If true, the logging framework is used `.`
