@@ -203,14 +203,21 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
 
   bda_pool_size_ = _info.ncorr() * bda_channels;
 
-  bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
-
   info().update(std::move(baseline_factors));
   info().set(std::move(freqs), std::move(widths));
 }
 
 bool BDAAverager::process(const DPBuffer& buffer) {
   common::NSTimer::StartStop sstime(timer_);
+
+  if (!bda_buffer_) {
+    if (!fixed_size_bdabuffers_.empty()) {
+      bda_buffer_ = std::move(fixed_size_bdabuffers_.front());
+      fixed_size_bdabuffers_.pop();
+    } else {
+      bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+    }
+  }
 
   DPBuffer dummy_buffer;
 
@@ -290,7 +297,12 @@ bool BDAAverager::process(const DPBuffer& buffer) {
   // with detecting that there's no space left.
   if (0 == bda_buffer_->GetRemainingCapacity()) {
     getNextStep()->process(std::move(bda_buffer_));
-    bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+    if (fixed_size_bdabuffers_.empty()) {
+      bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+    } else {
+      bda_buffer_ = std::move(fixed_size_bdabuffers_.front());
+      fixed_size_bdabuffers_.pop();
+    }
   }
 
   return true;
@@ -339,12 +351,22 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
   if (bda_buffer_->GetRemainingCapacity() < nchan * info().ncorr()) {
     getNextStep()->process(std::move(bda_buffer_));
-    bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+    if (fixed_size_bdabuffers_.empty()) {
+      bda_buffer_ = boost::make_unique<BDABuffer>(bda_pool_size_);
+    } else {
+      bda_buffer_ = std::move(fixed_size_bdabuffers_.front());
+      fixed_size_bdabuffers_.pop();
+    }
   }
 
   bda_buffer_->AddRow(bb.starttime + bb.interval / 2, bb.interval, bb.exposure,
                       baseline_nr, nchan, info().ncorr(), bb.data.data(),
                       nullptr, bb.weights.data(), nullptr, bb.uvw);
+}
+
+void BDAAverager::set_next_desired_buffersize(unsigned int buffersize) {
+  fixed_size_bdabuffers_.push(boost::make_unique<BDABuffer>(
+      buffersize * info().nchan() * info().ncorr()));
 }
 
 void BDAAverager::show(std::ostream& os) const {

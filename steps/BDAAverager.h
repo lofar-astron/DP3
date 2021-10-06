@@ -13,6 +13,7 @@
 #include <casacore/casa/Arrays/IPosition.h>
 
 #include <vector>
+#include <queue>
 
 namespace dp3 {
 namespace common {
@@ -60,6 +61,15 @@ class BDAAverager : public Step {
   void set_averaging_params(std::vector<unsigned int> baseline_factors,
                             std::vector<std::vector<double>> freqs,
                             std::vector<std::vector<double>> widths);
+
+  /**
+   * Public method, which sets a desired output size (number of rows).
+   * @param buffersize Number of rows in the output buffer: these should be
+   * given in the order one wishes to see in the output. If the BDAAverager is
+   * ready to output a bdabuffer but no size is available, the default value
+   * will be used.
+   */
+  void set_next_desired_buffersize(unsigned int buffersize);
 
  private:
   struct BaselineBuffer {
@@ -118,6 +128,8 @@ class BDAAverager : public Step {
   std::vector<std::vector<double>> widths_;
 
   const bool use_weights_and_flags_;
+
+  std::queue<std::unique_ptr<base::BDABuffer>> fixed_size_bdabuffers_;
 };
 
 }  // namespace steps

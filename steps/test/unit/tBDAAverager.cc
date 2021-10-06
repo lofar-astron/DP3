@@ -876,4 +876,131 @@ BOOST_AUTO_TEST_CASE(zero_values_weight) {
   BOOST_TEST(bda_buffers[0]->GetData()[0].imag() == 0);
 }
 
+BOOST_AUTO_TEST_CASE(force_buffersize) {
+  const std::size_t kTimeAveragingFactor = 2;
+  const std::size_t kNBaselines = 1;
+  const int kNInputBuffers = 20;
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  dp3::common::ParameterSet parset;
+  InitParset(parset, baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(mock_input, parset, "");
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+
+  std::vector<std::unique_ptr<DPBuffer>> input_buffers;
+  for (int i = 0; i < kNInputBuffers; i++) {
+    input_buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                         kNBaselines, kChannelCounts, 0.0));
+  }
+
+  auto mock_step = std::make_shared<dp3::steps::MockStep>();
+  averager.setNextStep(mock_step);
+
+  std::vector<unsigned int> output_size{3, 2, 5};
+  for (unsigned int i = 0; i < output_size.size(); i++) {
+    averager.set_next_desired_buffersize(output_size[i]);
+  }
+
+  for (int i = 0; i < kNInputBuffers; i++) {
+    BOOST_TEST(averager.process(*input_buffers[i]));
+  }
+
+  Finish(averager, *mock_step);
+
+  // With the given input, we expect a total of 10 rows in the output. In this
+  // test we want to split the 10 rows in 3 buffers of sizes 3, 2 and 5
+  BOOST_TEST(mock_step->GetBdaBuffers().size() == output_size.size());
+  for (unsigned int i = 0; i < output_size.size(); i++) {
+    BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[i]->GetRows().size(),
+                        output_size[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(force_buffersize_smaller_than_output) {
+  const std::size_t kTimeAveragingFactor = 2;
+  const std::size_t kNBaselines = 1;
+  const int kNInputBuffers = 20;
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  dp3::common::ParameterSet parset;
+  InitParset(parset, baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(mock_input, parset, "");
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+
+  std::vector<std::unique_ptr<DPBuffer>> input_buffers;
+  for (int i = 0; i < kNInputBuffers; i++) {
+    input_buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                         kNBaselines, kChannelCounts, 0.0));
+  }
+
+  auto mock_step = std::make_shared<dp3::steps::MockStep>();
+  averager.setNextStep(mock_step);
+
+  std::vector<unsigned int> output_size{1, 2};
+  for (unsigned int i = 0; i < output_size.size(); i++) {
+    averager.set_next_desired_buffersize(output_size[i]);
+  }
+
+  for (int i = 0; i < kNInputBuffers; i++) {
+    BOOST_TEST(averager.process(*input_buffers[i]));
+  }
+
+  Finish(averager, *mock_step);
+
+  // With the given input, we expect a total of 10 rows in the output. In this
+  // test we force the size of the first two output buffers to be 1 and 2. The
+  // remaining output buffers will have the default size.
+  for (unsigned int i = 0; i < output_size.size(); i++) {
+    BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[i]->GetRows().size(),
+                        output_size[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
+  const std::size_t kTimeAveragingFactor = 2;
+  const std::size_t kNBaselines = 1;
+  const int kNInputBuffers = 20;
+
+  DPInfo info;
+  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const double baseline_length = info.getBaselineLengths()[0];
+
+  dp3::common::ParameterSet parset;
+  InitParset(parset, baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(mock_input, parset, "");
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+
+  std::vector<std::unique_ptr<DPBuffer>> input_buffers;
+  for (int i = 0; i < kNInputBuffers; i++) {
+    input_buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                         kNBaselines, kChannelCounts, 0.0));
+  }
+
+  auto mock_step = std::make_shared<dp3::steps::MockStep>();
+  averager.setNextStep(mock_step);
+
+  std::vector<unsigned int> output_size{100};
+  for (unsigned int i = 0; i < output_size.size(); i++) {
+    averager.set_next_desired_buffersize(output_size[i]);
+  }
+
+  for (int i = 0; i < kNInputBuffers; i++) {
+    BOOST_TEST(averager.process(*input_buffers[i]));
+  }
+
+  Finish(averager, *mock_step);
+
+  // With the given input, we expect a total of 10 rows in the output. In this
+  // test we want to check that the otput size equals 10 in case we force the
+  // output buffersize to a value higher than the maximum.
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 10u);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
