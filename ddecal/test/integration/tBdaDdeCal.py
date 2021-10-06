@@ -78,7 +78,8 @@ def create_corrupted_data():
             "msout=corrupted.MS",
             "steps=[predict]",
             "predict.sourcedb=corrupted.sourcedb",
-            "bda=true"
+            "bda=true",
+            "numthreads=1",
         ]
     )
 
@@ -97,6 +98,7 @@ def test_only_predict(create_skymodel):
         f"msin={MSIN}",
         "msout.overwrite=true",
         "bda=true",
+        "numthreads=1",
     ]
 
     predict_args = [
@@ -150,20 +152,22 @@ def test_only_predict(create_skymodel):
     assert_taql(taql_check_visibilities)
 
 
-# Since this test is very slow on CI, use [3] instead of [0, 1, 2, 3] for now.
-@pytest.mark.parametrize("nchan",  [3])
-
+# Only test a limited set of caltype + nchannels combinations, since testing
+# all combinations does not have much extra value.
+# The beginning # of the caltype_nchan string is the caltype.
+# The number at the end is the number of channels.
 @pytest.mark.parametrize(
-    "caltype",
+    "caltype_nchan",
     [
-        "scalar",
-        "scalarphase",
-        "scalaramplitude",
-        "diagonal",
-        "diagonalphase",
-        "diagonalamplitude",
-        "tec",
-        "tecandphase",
+        "scalar0",
+        "scalarphase3",
+        "scalaramplitude1",
+        "diagonal2",
+        "diagonalphase3",
+        "diagonalamplitude2",
+        "tec0",
+        "tec3",
+        "tecandphase1",
         # "tecscreen", # Requires Armadillo
         # "fulljones", # not implemented for BDA
         # "rotation", # part of fulljones -> not implemented
@@ -171,8 +175,11 @@ def test_only_predict(create_skymodel):
     ],
 )
 
-def test_caltype(create_skymodel, create_corrupted_data, caltype, nchan):
+def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
     """Test calibration for different calibration types"""
+    caltype = caltype_nchan[:-1]
+    nchan = int(caltype_nchan[-1])
+
     check_call(
         [
             tcf.DP3EXE,
@@ -186,6 +193,7 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype, nchan):
             "ddecal.solint=2",
             f"ddecal.nchan={nchan}",
             "bda=true",
+            "numthreads=1",
         ]
     )
 
@@ -242,6 +250,7 @@ def test_subtract(create_skymodel, create_corrupted_data):
             "ddecal.nchan=3",
             "ddecal.subtract=true",
             "bda=true",
+            "numthreads=1",
         ]
     )
 
