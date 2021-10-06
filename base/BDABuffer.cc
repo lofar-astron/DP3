@@ -225,5 +225,39 @@ void BDABuffer::SetBaseRowNr(common::rownr_t row_nr) {
   }
 }
 
+bool BDABuffer::Row::IsMetadataEqual(const BDABuffer::Row& other) const {
+  for (std::size_t i = 0; i < 3; ++i) {
+    if (std::isnan(uvw[i])) {
+      if (!std::isnan(other.uvw[i])) return false;
+    } else {
+      if (!BDABuffer::TimeIsEqual(uvw[i], other.uvw[i])) return false;
+    }
+  }
+
+  return ((BDABuffer::TimeIsEqual(time, other.time)) &&
+          (BDABuffer::TimeIsEqual(interval, other.interval)) &&
+          (BDABuffer::TimeIsEqual(exposure, other.exposure)) &&
+          (row_nr == other.row_nr) && (baseline_nr == other.baseline_nr) &&
+          (n_channels == other.n_channels) &&
+          (n_correlations == other.n_correlations));
+}
+
+bool BDABuffer::IsMetadataEqual(const BDABuffer& other) const {
+  if (GetRows().size() == other.GetRows().size()) {
+    auto this_row = GetRows().begin();
+    auto other_row = other.GetRows().begin();
+    while (this_row != GetRows().end()) {
+      if (!this_row->IsMetadataEqual(*other_row)) {
+        return false;
+      }
+      ++this_row;
+      ++other_row;
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
+
 }  // namespace base
 }  // namespace dp3

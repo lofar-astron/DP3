@@ -508,4 +508,65 @@ BOOST_AUTO_TEST_CASE(time_is_equal) {
   BOOST_CHECK_EQUAL(BDABuffer::TimeIsEqual(10. - kTwoEpsilon, 10.), false);
 }
 
+BOOST_AUTO_TEST_CASE(metadata_comparison) {
+  BDABuffer buffer(kBaselineNr * kNChannels * kNCorrelations);
+  buffer.AddRow(1.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
+  buffer.AddRow(1.0, 2.0, 2.0, 2, kNChannels, kNCorrelations);
+
+  BDABuffer buffer_different_n_rows(kBaselineNr * kNChannels * kNCorrelations);
+  buffer_different_n_rows.AddRow(1.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
+
+  BDABuffer buffer_different_baseline_ordering(kBaselineNr * kNChannels *
+                                               kNCorrelations);
+  buffer_different_baseline_ordering.AddRow(1.0, 2.0, 2.0, 2, kNChannels,
+                                            kNCorrelations);
+  buffer_different_baseline_ordering.AddRow(1.0, 2.0, 2.0, 1, kNChannels,
+                                            kNCorrelations);
+
+  BDABuffer buffer_different_time(kBaselineNr * kNChannels * kNCorrelations);
+  buffer_different_time.AddRow(2.0, 2.0, 2.0, 2, kNChannels, kNCorrelations);
+  buffer_different_time.AddRow(2.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
+
+  BDABuffer buffer_different_interval(kBaselineNr * kNChannels *
+                                      kNCorrelations);
+  buffer_different_interval.AddRow(1.0, 3.0, 2.0, 2, kNChannels,
+                                   kNCorrelations);
+  buffer_different_interval.AddRow(1.0, 3.0, 2.0, 1, kNChannels,
+                                   kNCorrelations);
+
+  BDABuffer buffer_different_exposure(kBaselineNr * kNChannels *
+                                      kNCorrelations);
+  buffer_different_exposure.AddRow(1.0, 2.0, 3.0, 2, kNChannels,
+                                   kNCorrelations);
+  buffer_different_exposure.AddRow(1.0, 2.0, 3.0, 1, kNChannels,
+                                   kNCorrelations);
+
+  BDABuffer buffer_different_nchan(kBaselineNr * (kNChannels + 1) *
+                                   kNCorrelations);
+  buffer_different_nchan.AddRow(1.0, 2.0, 2.0, 2, kNChannels + 1,
+                                kNCorrelations);
+  buffer_different_nchan.AddRow(1.0, 2.0, 2.0, 1, kNChannels + 1,
+                                kNCorrelations);
+
+  BDABuffer buffer_different_ncorr(kBaselineNr * kNChannels *
+                                   (kNCorrelations + 1));
+  buffer_different_ncorr.AddRow(1.0, 2.0, 2.0, 2, kNChannels,
+                                kNCorrelations + 1);
+  buffer_different_ncorr.AddRow(1.0, 2.0, 2.0, 1, kNChannels,
+                                kNCorrelations + 1);
+
+  BDABuffer buffer_equal(kBaselineNr * kNChannels * kNCorrelations);
+  buffer_equal.AddRow(1.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
+  buffer_equal.AddRow(1.0, 2.0, 2.0, 2, kNChannels, kNCorrelations);
+
+  BOOST_CHECK(!buffer.IsMetadataEqual(buffer_different_n_rows));
+  BOOST_CHECK(!buffer.IsMetadataEqual(buffer_different_baseline_ordering));
+  BOOST_CHECK(!buffer.IsMetadataEqual(buffer_different_time));
+  BOOST_CHECK(!buffer.IsMetadataEqual(buffer_different_interval));
+  BOOST_CHECK(!buffer.IsMetadataEqual(buffer_different_exposure));
+  BOOST_CHECK(!buffer.IsMetadataEqual(buffer_different_nchan));
+  BOOST_CHECK(!buffer.IsMetadataEqual(buffer_different_ncorr));
+  BOOST_CHECK(buffer.IsMetadataEqual(buffer_equal));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

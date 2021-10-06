@@ -46,6 +46,7 @@ class BDABuffer {
         std::size_t n_correlations, std::complex<float>* data, bool* flags,
         float* weights, bool* fullResFlags, const double* uvw);
     std::size_t GetDataSize() const { return n_channels * n_correlations; }
+    bool IsMetadataEqual(const BDABuffer::Row& other) const;
     const double time;  ///< Centroid time for the measurements in MJD seconds.
     const double interval;  ///< Duration time for the measurements in seconds.
     const double exposure;  ///< Exposure time for the measurements in seconds.
@@ -201,6 +202,8 @@ class BDABuffer {
     // Don't use std::fabs, since it is not a constexpr.
     return ((x > y) ? (x - y) : (y - x)) < kTimeEpsilon;
   }
+
+  bool IsMetadataEqual(const BDABuffer& other) const;
 
  private:
   /**
