@@ -74,6 +74,7 @@ def create_corrupted_data():
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=1",
             f"msin={MSIN}",
             "msout=corrupted.MS",
             "steps=[predict]",
@@ -95,6 +96,7 @@ def test_only_predict(create_skymodel):
     """Test that the right patches are summed with predict_only"""
 
     common_args = [
+        "checkparset=1",
         f"msin={MSIN}",
         "msout.overwrite=true",
         "bda=true",
@@ -201,6 +203,7 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=1",
             f"msin=corrupted.MS",
             "msout=out.MS",
             "steps=[ddecal]",
@@ -257,6 +260,7 @@ def test_subtract(create_skymodel, create_corrupted_data):
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=1",
             f"msin=corrupted.MS",
             "msout=out.MS",
             "steps=[ddecal]",
