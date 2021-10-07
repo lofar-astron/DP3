@@ -148,9 +148,27 @@ def test_only_predict(create_skymodel):
         + predict_args
     )
 
-    taql_check_visibilities = "select from(select gsumsqr(abs(t_all.DATA[isnan(t_all.DATA)]-(t_1.DATA[isnan(t_1.DATA)]+t_2.DATA[isnan(t_2.DATA)]+t_3.DATA[isnan(t_3.DATA)]))) as diff from BDADDECal_onlypredict.MS t_all, PREDICT_DIR_1.MS t_1,  PREDICT_DIR_2.MS t_2,  PREDICT_DIR_3.MS t_3) where diff>1.e-6"
+    taql_check_visibilities = (
+        "select from ("
+        "select gsumsqr(abs("
+        "t_all.DATA[isnan(t_all.DATA)] - "
+        "(t_1.DATA[isnan(t_1.DATA)] + t_2.DATA[isnan(t_2.DATA)] + t_3.DATA[isnan(t_3.DATA)])"
+        ")) as diff from BDADDECal_onlypredict.MS t_all,"
+        "PREDICT_DIR_1.MS t_1, PREDICT_DIR_2.MS t_2, PREDICT_DIR_3.MS t_3 )"
+        "where diff > 1.e-6"
+    )
     assert_taql(taql_check_visibilities)
 
+    # ddecal should output the same weights it received
+    taql_check_weights = (
+        "select from"
+        "(select gsumsqr(abs("
+        "t_all.WEIGHT_SPECTRUM[isnan(t_all.WEIGHT_SPECTRUM)] - "
+        "t_1.WEIGHT_SPECTRUM[isnan(t_1.WEIGHT_SPECTRUM)]"
+        ")) as diff from BDADDECal_onlypredict.MS t_all, PREDICT_DIR_1.MS t_1)"
+        "where diff > 1.e-6"
+    )
+    assert_taql(taql_check_weights)
 
 # Only test a limited set of caltype + nchannels combinations, since testing
 # all combinations does not have much extra value.
@@ -264,3 +282,14 @@ def test_subtract(create_skymodel, create_corrupted_data):
     ))
 
     assert residual < 0.01
+
+    # ddecal should output the same weights it received
+    taql_check_weights = (
+        "select from"
+        "(select gsumsqr(abs("
+        "corrupted.WEIGHT_SPECTRUM[isnan(corrupted.WEIGHT_SPECTRUM)] - "
+        "out.WEIGHT_SPECTRUM[isnan(out.WEIGHT_SPECTRUM)]"
+        ")) as diff from corrupted.MS corrupted, out.MS out)"
+        " where diff > 0"
+    )
+    assert_taql(taql_check_weights)

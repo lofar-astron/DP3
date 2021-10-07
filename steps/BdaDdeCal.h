@@ -117,9 +117,8 @@ class BdaDdeCal : public Step {
 
   /**
    * Stores the data buffers received from the process() function.
-   * This member is not used when only_predict is true.
    */
-  std::deque<std::unique_ptr<base::BDABuffer>> data_buffers_;
+  std::deque<std::unique_ptr<base::BDABuffer>> input_buffers_;
 
   /**
    * Stores the result buffers from the sub steps. Each queue item holds
