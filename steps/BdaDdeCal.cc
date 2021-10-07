@@ -34,7 +34,7 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
       steps_(),
       result_steps_(),
       patches_(),
-      data_buffers_(),
+      input_buffers_(),
       model_buffers_(),
       solver_buffer_(),
       solver_(),
@@ -223,23 +223,24 @@ std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
 bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
   timer_.start();
 
-  BDABuffer::Fields fields(true);
+  // Feed metadata-only copies of the buffer to the steps. Only allocate room
+  // for 'data' in the buffers, since the steps should only produce data.
+  BDABuffer::Fields fields(false);
+  fields.data = true;
   BDABuffer::Fields copyfields(false);
-  copyfields.full_res_flags = true;
-  copyfields.flags = true;
 
-  // Feed metadata-only copies of the buffer to the steps.
   predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
     step->process(boost::make_unique<BDABuffer>(*buffer, fields, copyfields));
   }
   predict_timer_.stop();
 
-  if (!settings_.only_predict) {
-    // Store the input buffer. When all predict sub-steps have completed a model
-    // buffer, give the input buffer and model buffers to the solver_buffer_.
-    data_buffers_.push_back(std::move(buffer));
-  }
+  // Always store the input buffer, since BdaDdeCal should forward the
+  // unmodified weights and flags to its next step.
+
+  // When only_predict is false and all predict sub-steps have completed a model
+  // buffer, solver_buffer_ will receive the input buffer and all model buffers.
+  input_buffers_.push_back(std::move(buffer));
 
   ExtractResults();
 
@@ -282,28 +283,33 @@ void BdaDdeCal::ProcessCompleteDirections() {
   while (!model_buffers_.empty() &&
          std::all_of(model_buffers_.front().begin(),
                      model_buffers_.front().end(), pointer_is_set)) {
+    assert(!input_buffers_.empty() && input_buffers_.front());
     std::vector<std::unique_ptr<base::BDABuffer>>& direction_buffers =
         model_buffers_.front();
     if (settings_.only_predict) {
-      // Add all model buffers and use that as the result.
-      std::complex<float> restrict* data = direction_buffers.front()->GetData();
-      const size_t data_size = direction_buffers.front()->GetNumberOfElements();
+      // Sum all model buffers into the saved data buffer.
+      std::complex<float> restrict* data = input_buffers_.front()->GetData();
+      const size_t data_size = input_buffers_.front()->GetNumberOfElements();
 
-      for (size_t dir = 1; dir < direction_buffers.size(); dir++) {
+      assert(direction_buffers.front()->GetNumberOfElements() == data_size);
+      std::copy_n(direction_buffers.front()->GetData(), data_size, data);
+      direction_buffers.front().reset();
+
+      for (size_t dir = 1; dir < direction_buffers.size(); ++dir) {
         assert(direction_buffers[dir]->GetNumberOfElements() == data_size);
         const std::complex<float> restrict* other_data =
             direction_buffers[dir]->GetData();
         for (size_t j = 0; j < data_size; ++j) data[j] += other_data[j];
         direction_buffers[dir].reset();
       }
-      getNextStep()->process(std::move(direction_buffers.front()));
+
+      getNextStep()->process(std::move(input_buffers_.front()));
     } else {
       // Send data buffer and model_buffers to solver_buffer_.
-      assert(!data_buffers_.empty() && data_buffers_.front());
-      solver_buffer_->AppendAndWeight(std::move(data_buffers_.front()),
+      solver_buffer_->AppendAndWeight(std::move(input_buffers_.front()),
                                       std::move(direction_buffers));
-      data_buffers_.pop_front();
     }
+    input_buffers_.pop_front();
     model_buffers_.pop_front();
   }
 
@@ -461,7 +467,7 @@ void BdaDdeCal::finish() {
 
   ExtractResults();
   ProcessCompleteDirections();
-  assert(data_buffers_.empty());
+  assert(input_buffers_.empty());
 
   if (!settings_.only_predict) {
     while (solver_buffer_->BufferCount() > 0) {
