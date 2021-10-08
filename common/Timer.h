@@ -6,6 +6,7 @@
 #ifndef LOFAR_COMMON_TIMER_H
 #define LOFAR_COMMON_TIMER_H
 
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -20,15 +21,13 @@ namespace common {
 
 /// \brief Very accurate timer for elapsed times.
 
-/// Low-overhead and high-resolution interval timer for use on i386, x86_64,
-/// ia64, and powerpc platforms, using the processor's timestamp counter that
-/// is incremented each cycle.
 /// Put timer.start() and timer.stop() calls around the piece of
 /// code to be timed; make sure that start() and stop() calls alternate.
 /// A timer can be started and stopped multiple times; both the average and
 /// total time, as well as the number of iterations are printed.
 /// The measured time is real time (as opposed to user or system time).
-/// The timer can be used to measure from 10 nanosecond to a century interval.
+/// The timer can be used to measure from 1 nanosecond to a century interval.
+/// The accuracy of the timer depends on the platform.
 ///
 /// The internal class NSTimer::StartStop can be used to do the start/stop.
 /// The constructor starts the timer, while the destructor stops it. It has
@@ -60,13 +59,15 @@ class NSTimer {
   /// @}
 
   /// Get the elapsed time (in seconds).
-  double getElapsed() const;
+  double getElapsed() const {
+    return std::chrono::duration<double>{duration_}.count();
+  }
 
   /// Get the average time (in seconds) between start/stop.
   double getAverage() const;
 
   /// Get the total number of times start/stop is done.
-  unsigned long long getCount() const;
+  uint64_t getCount() const;
 
   /// Accumulate timer statistics.
   NSTimer& operator+=(const NSTimer& other);
@@ -84,67 +85,48 @@ class NSTimer {
     NSTimer& itsTimer;
   };
 
- protected:
-  void print_time(std::ostream&, const char* which, double time) const;
+ private:
+  std::string name_;
+  bool print_on_destruction_;
+  bool log_on_destruction_;
 
-  union {
-    long long full;
-    struct {
-#if defined __PPC__
-      int high, low;
-#else
-      int low, high;
-#endif
-    } parts;
-  } total_time;
+  /// The number of times the timing has been stopped.
+  uint64_t count_{0};
 
-#if defined __i386__ && defined __INTEL_COMPILER && defined _OPENMP
-  union {
-    unsigned long long count;
-    struct {
-      int count_low, count_high;
-    };
-  };
-#else
-  unsigned long long count;
-#endif
+  /// The total duration of all start/stop cycles.
+  std::chrono::steady_clock::duration duration_;
 
-  std::string itsName;
-  bool print_on_destruction;
-  bool log_on_destruction;
-
-  static double CPU_speed_in_MHz;
-
-  static double get_CPU_speed_in_MHz();
+  /// The timestamp of the most recent call to @rer start().
+  std::chrono::steady_clock::time_point start_;
 };
 
 inline void NSTimer::reset() {
-  total_time.full = 0;
-  count = 0;
+  count_ = 0;
+  duration_ = std::chrono::seconds{0};
 }
 
 inline double NSTimer::getAverage() const { return getElapsed() / getCount(); }
 
-inline unsigned long long NSTimer::getCount() const { return count; }
+inline uint64_t NSTimer::getCount() const { return count_; }
 
 inline NSTimer& NSTimer::operator+=(const NSTimer& other) {
-  total_time.full += other.total_time.full;
-  count += other.count;
+  duration_ += other.duration_;
+  count_ += other.count_;
 
   return *this;
 }
 
 inline NSTimer::NSTimer(const std::string& name, bool print_on_destruction,
                         bool log_on_destruction)
-    : itsName(name),
-      print_on_destruction(print_on_destruction),
-      log_on_destruction(log_on_destruction) {
+    : name_(name),
+      print_on_destruction_(print_on_destruction),
+      log_on_destruction_(log_on_destruction) {
   reset();
 }
 
 inline NSTimer::~NSTimer() {
-  if (print_on_destruction) {
-    if (log_on_destruction) {
+  if (print_on_destruction_) {
+    if (log_on_destruction_) {
       std::stringstream logStr;
       print(logStr);
       std::clog << logStr.str() << '\n';
@@ -157,128 +139,11 @@ inline std::ostream& operator<<(std::ostream& str, const NSTimer& timer) {
   return timer.print(str);
 }
 
-inline void NSTimer::start() {
-#if defined __x86_64__ && defined __INTEL_COMPILER && defined _OPENMP
-  asm volatile(
-      "rdtsc\n\t"
-      "shlq $32,%%rdx\n\t"
-      "leaq (%%rax,%%rdx),%%rax\n\t"
-      "lock;subq %%rax,%0"
-      : "+m"(total_time.full)
-      :
-      : "rax", "rdx");
-#elif defined __i386__ && defined __INTEL_COMPILER && defined _OPENMP
-  asm volatile(
-      "rdtsc\n\t"
-      "lock;subl %%eax,%0\n\t"
-      "lock;sbbl %%edx,%1"
-      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
-      :
-      : "eax", "edx");
-#elif (defined __i386__ || defined __x86_64__) && \
-    (defined __GNUC__ || defined __INTEL_COMPILER)
-  asm volatile(
-      "rdtsc\n\t"
-      "subl %%eax, %0\n\t"
-      "sbbl %%edx, %1"
-      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
-      :
-      : "eax", "edx");
-#elif (defined __i386__ || defined __x86_64__) && defined __PATHSCALE__
-  unsigned eax, edx;
-
-  asm volatile("rdtsc" : "=a"(eax), "=d"(edx));
-
-  total_time.full -= ((unsigned long long)edx << 32) + eax;
-#elif defined __ia64__ && defined __INTEL_COMPILER
-  total_time.full -= __getReg(_IA64_REG_AR_ITC);
-#elif defined __ia64__ && defined __GNUC__
-  long long time;
-  asm volatile("mov %0=ar.itc" : "=r"(time));
-  total_time.full -= time;
-#elif defined __PPC__ && (defined __GNUC__ || defined __xlC__)
-  int high, low, retry;
-
-  asm("0:\n\t"
-      "mfspr %0,269\n\t"
-      "mfspr %1,268\n\t"
-      "mfspr %2,269\n\t"
-      "cmpw %2,%0\n\t"
-      "bne 0b\n\t"
-      "subfc %3,%1,%3\n\t"
-      "subfe %4,%0,%4"
-      : "=r"(high), "=r"(low), "=r"(retry), "=r"(total_time.parts.low),
-        "=r"(total_time.parts.high)
-      : "3"(total_time.parts.low), "4"(total_time.parts.high)
-      : "cc");
-#endif
-}
+inline void NSTimer::start() { start_ = std::chrono::steady_clock::now(); }
 
 inline void NSTimer::stop() {
-#if defined __x86_64__ && defined __INTEL_COMPILER && defined _OPENMP
-  asm volatile(
-      "rdtsc\n\t"
-      "shlq $32,%%rdx\n\t"
-      "leaq (%%rax,%%rdx),%%rax\n\t"
-      "lock;addq %%rax,%0"
-      : "+m"(total_time.full)
-      :
-      : "rax", "rdx");
-#elif defined __i386__ && defined __INTEL_COMPILER && defined _OPENMP
-  asm volatile(
-      "rdtsc\n\t"
-      "lock;addl %%eax, %0\n\t"
-      "lock;adcl %%edx, %1"
-      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
-      :
-      : "eax", "edx");
-#elif (defined __i386__ || defined __x86_64__) && \
-    (defined __GNUC__ || defined __INTEL_COMPILER)
-  asm volatile(
-      "rdtsc\n\t"
-      "addl %%eax, %0\n\t"
-      "adcl %%edx, %1"
-      : "+m"(total_time.parts.low), "+m"(total_time.parts.high)
-      :
-      : "eax", "edx");
-#elif (defined __i386__ || defined __x86_64__) && defined __PATHSCALE__
-  unsigned eax, edx;
-
-  asm volatile("rdtsc\n\t" : "=a"(eax), "=d"(edx));
-  total_time.full += ((unsigned long long)edx << 32) + eax;
-#elif defined __ia64__ && defined __INTEL_COMPILER
-  total_time.full += __getReg(_IA64_REG_AR_ITC);
-#elif defined __ia64__ && defined __GNUC__
-  long long time;
-  asm volatile("mov %0=ar.itc" : "=r"(time));
-  total_time.full += time;
-#elif defined __PPC__ && (defined __GNUC__ || defined __xlC__)
-  int high, low, retry;
-
-  asm("0:\n\t"
-      "mfspr %0,269\n\t"
-      "mfspr %1,268\n\t"
-      "mfspr %2,269\n\t"
-      "cmpw %2,%0\n\t"
-      "bne 0b\n\t"
-      "addc %3,%3,%1\n\t"
-      "adde %4,%4,%0"
-      : "=r"(high), "=r"(low), "=r"(retry), "=r"(total_time.parts.low),
-        "=r"(total_time.parts.high)
-      : "3"(total_time.parts.low), "4"(total_time.parts.high)
-      : "cc");
-#endif
-
-#if defined __x86_64__ && defined __INTEL_COMPILER && defined _OPENMP
-  asm volatile("lock;addq $1,%0" : "+m"(count));
-#elif defined __i386__ && defined __INTEL_COMPILER && defined _OPENMP
-  asm volatile(
-      "lock;addl $1,%0\n\t"
-      "lock;adcl $0,%1"
-      : "+m"(count_low), "+m"(count_high));
-#else
-  ++count;
-#endif
+  duration_ += std::chrono::steady_clock::now() - start_;
+  ++count_;
 }
 
 /**
