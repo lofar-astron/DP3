@@ -520,6 +520,7 @@ if(BUILD_TESTING)
       # base/test/unit/tDemixer.cc # Parset is no longer valid in this test
       base/test/unit/tDP3.cc
       base/test/unit/tMirror.cc
+      base/test/unit/tSimulate.cc
       base/test/unit/tSolutionInterval.cc
       base/test/unit/tSourceDBUtil.cc
       base/test/unit/tUvwCalculator.cc
