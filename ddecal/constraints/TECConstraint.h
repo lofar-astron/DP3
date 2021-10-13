@@ -43,7 +43,7 @@ class TECConstraintBase : public Constraint {
   virtual void initializeChild() {}
 
   void applyReferenceAntenna(
-      std::vector<std::vector<dcomplex> >& solutions) const;
+      std::vector<std::vector<dcomplex>>& solutions) const;
 
   Mode _mode;
   bool _doPhaseReference;
@@ -56,7 +56,7 @@ class TECConstraint : public TECConstraintBase {
   TECConstraint(Mode mode) : TECConstraintBase(mode) {}
 
   virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex> >& solutions, double time,
+      std::vector<std::vector<dcomplex>>& solutions, double time,
       std::ostream* statStream) override;
 };
 
@@ -85,7 +85,7 @@ class ApproximateTECConstraint : public TECConstraint {
   }
 
   virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex> >& solutions, double time,
+      std::vector<std::vector<dcomplex>>& solutions, double time,
       std::ostream* statStream) final override;
 
   void SetFittingChunkSize(size_t fittingChunkSize) {
@@ -102,9 +102,9 @@ class ApproximateTECConstraint : public TECConstraint {
  private:
   bool _finishedApproximateStage;
   std::vector<PieceWisePhaseFitter> _pwFitters;
-  std::vector<std::vector<double> > _threadData;
-  std::vector<std::vector<double> > _threadFittedData;
-  std::vector<std::vector<double> > _threadWeights;
+  std::vector<std::vector<double>> _threadData;
+  std::vector<std::vector<double>> _threadFittedData;
+  std::vector<std::vector<double>> _threadWeights;
   size_t _fittingChunkSize, _maxApproxIters;
 };
 

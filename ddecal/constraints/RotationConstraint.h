@@ -17,7 +17,7 @@ class RotationConstraint : public Constraint {
   RotationConstraint(){};
 
   virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex> >& solutions, double time,
+      std::vector<std::vector<dcomplex>>& solutions, double time,
       std::ostream* statStream);
 
   void Initialize(size_t nAntennas, size_t nDirections,

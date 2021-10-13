@@ -57,25 +57,25 @@ DPInfo makeInfo(int nbl) {
   vals[1] = 442449;
   vals[2] = 5064923;
   antPos[0] = casacore::MPosition(
-      casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+      casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vals[0] = 3828746;
   vals[1] = 442592;
   vals[2] = 5064924;
   antPos[1] = casacore::MPosition(
-      casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+      casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vals[0] = 3828729;
   vals[1] = 442735;
   vals[2] = 5064925;
   antPos[2] = casacore::MPosition(
-      casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+      casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vals[0] = 3828713;
   vals[1] = 442878;
   vals[2] = 5064926;
   antPos[3] = casacore::MPosition(
-      casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+      casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vector<double> antDiam(4, 70.);
   info.set(antNames, antDiam, antPos, ant1, ant2);

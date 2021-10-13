@@ -143,13 +143,13 @@ class GainCal final : public Step {
 
   bool itsApplySolution;
 
-  std::vector<casacore::Cube<casacore::Complex> >
+  std::vector<casacore::Cube<casacore::Complex>>
       itsSols;  ///< for every timeslot, nCr x nSt x nFreqCells
-  std::vector<casacore::Matrix<double> >
+  std::vector<casacore::Matrix<double>>
       itsTECSols;  ///< for every timeslot, 2 x nSt (alpha and beta)
   std::vector<double> itsFreqData;  ///< Mean frequency for every freqcell
 
-  std::vector<std::unique_ptr<PhaseFitter> > itsPhaseFitters;  ///< Length nSt
+  std::vector<std::unique_ptr<PhaseFitter>> itsPhaseFitters;  ///< Length nSt
 
   std::vector<base::GainCalAlgorithm> iS;
 

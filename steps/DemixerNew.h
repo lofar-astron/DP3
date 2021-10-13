@@ -108,7 +108,7 @@ class DemixerNew : public Step {
   std::vector<base::DemixWorker> itsWorkers;
   std::vector<base::DPBuffer> itsBufIn;
   std::vector<base::DPBuffer> itsBufOut;
-  std::vector<std::vector<double> >
+  std::vector<std::vector<double>>
       itsSolutions;                         ///< all solutions in a time window
   std::map<std::string, int> itsParmIdMap;  ///< -1 = new parm name
   unsigned int itsNTime;

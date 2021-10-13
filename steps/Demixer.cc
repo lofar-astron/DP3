@@ -326,7 +326,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   // Store phase center direction in J2000.
   MDirection dirJ2000(
       MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-  Quantum<casacore::Vector<double> > angles = dirJ2000.getAngle();
+  Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
   itsPhaseRef =
       base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
 
@@ -808,7 +808,7 @@ namespace {
 struct ThreadPrivateStorage {
   std::vector<double> unknowns;
   casacore::Matrix<double> uvw;
-  std::vector<casacore::Cube<dcomplex> > model;
+  std::vector<casacore::Cube<dcomplex>> model;
   casacore::Cube<dcomplex> model_subtr;
   size_t count_converged;
 };
@@ -906,8 +906,8 @@ void Demixer::demix() {
         base::casa_const_cursor(itsFactors[ts]);
     /// cout << "demixfactor "<<ts<<" = "<<itsFactors[ts]<<'\n';
 
-    std::vector<base::const_cursor<fcomplex> > cr_data(nDr);
-    std::vector<base::const_cursor<dcomplex> > cr_model(nDr);
+    std::vector<base::const_cursor<fcomplex>> cr_data(nDr);
+    std::vector<base::const_cursor<dcomplex>> cr_model(nDr);
     for (size_t dr = 0; dr < nDr; ++dr) {
       cr_data[dr] =
           base::casa_const_cursor(itsAvgResults[dr]->get()[ts].getData());

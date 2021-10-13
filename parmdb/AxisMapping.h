@@ -91,7 +91,7 @@ class AxisCache {
   }
 
  private:
-  std::map<int64_t, std::vector<std::pair<int, int> > > itsGridCache;
+  std::map<int64_t, std::vector<std::pair<int, int>>> itsGridCache;
   std::map<int, Axis::ShPtr> itsAxisCache;
 };
 

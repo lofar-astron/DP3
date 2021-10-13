@@ -1145,8 +1145,8 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
       std::cout << "demixfactor " << ts << " = " << itsFactors[ts] << '\n';
     }
     // Create a cursor per source.
-    std::vector<const_cursor<fcomplex> > cr_data(itsNModel);
-    std::vector<const_cursor<dcomplex> > cr_model(itsNModel);
+    std::vector<const_cursor<fcomplex>> cr_data(itsNModel);
+    std::vector<const_cursor<dcomplex>> cr_model(itsNModel);
     for (size_t dr = 0; dr < itsNModel; ++dr) {
       unsigned int drOrig = itsSrcSet[dr];
       cr_data[dr] =

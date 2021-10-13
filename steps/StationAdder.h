@@ -92,9 +92,9 @@ class StationAdder : public Step {
   base::DPBuffer itsBuf;
   base::DPBuffer itsBufTmp;
   common::ParameterRecord itsStatRec;  ///< stations definitions
-  std::vector<casacore::Vector<int> >
+  std::vector<casacore::Vector<int>>
       itsParts;  ///< the stations in each superstation
-  std::vector<std::vector<int> >
+  std::vector<std::vector<int>>
       itsBufRows;             ///< old baseline rows in each new baseline
   unsigned int itsMinNPoint;  ///< flag data if too few unflagged data
   bool itsMakeAutoCorr;       ///< also form new auto-correlations?

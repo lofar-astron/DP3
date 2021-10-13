@@ -201,7 +201,7 @@ vector<SourceInfo> SourceDBBlob::getPatchSources(const string& patchName) {
   // If not done yet, read all data from the file.
   readAll();
   vector<SourceInfo> info;
-  map<string, vector<SourceData> >::const_iterator iter =
+  map<string, vector<SourceData>>::const_iterator iter =
       itsSources.find(patchName);
   if (iter != itsSources.end()) {
     const vector<SourceData>& sources = iter->second;

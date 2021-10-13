@@ -33,7 +33,7 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
     : itsAddedToMS(false) {
   itsReplaceParms = parset.getStringVector(prefix + "replaceparms");
   // For each of the parameters, the values for each substep
-  std::vector<std::vector<string> > replaceParmValues(itsReplaceParms.size());
+  std::vector<std::vector<string>> replaceParmValues(itsReplaceParms.size());
 
   // numSplits, the number of 'new streams' that the data are split into is
   // determined from the replaced parameters.

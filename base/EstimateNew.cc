@@ -40,7 +40,7 @@ void EstimateNew::update(size_t maxndir, size_t nBaseline, size_t nStation,
 
 // Initialize the solution to the defaultGain for sources/stations not to solve.
 // Set to 0 and diagonal to defaultGaib for solvable ones if no propagation.
-void EstimateNew::initSolution(const vector<vector<int> >& unknownsIndex,
+void EstimateNew::initSolution(const vector<vector<int>>& unknownsIndex,
                                const vector<unsigned int>& srcSet,
                                double defaultGain) {
   unsigned int dr = 0;
@@ -74,7 +74,7 @@ void EstimateNew::initSolution(const vector<vector<int> >& unknownsIndex,
 
 // Clear the solution for unsolvable stations
 // (essentially changing defaultGain to 0).
-void EstimateNew::clearNonSolvable(const vector<vector<int> >& unknownsIndex,
+void EstimateNew::clearNonSolvable(const vector<vector<int>>& unknownsIndex,
                                    const vector<unsigned int>& srcSet) {
   unsigned int dr = 0;
   double* solution = &(itsSolution[0]);
@@ -96,7 +96,7 @@ void EstimateNew::clearNonSolvable(const vector<vector<int> >& unknownsIndex,
   }
 }
 
-void EstimateNew::fillSolution(const vector<vector<int> >& unknownsIndex,
+void EstimateNew::fillSolution(const vector<vector<int>>& unknownsIndex,
                                const vector<unsigned int>& srcSet) {
   // Copy the solution for the direction-stations to solve.
   // Note that the solution vector contains all possible sources/stations.
@@ -126,7 +126,7 @@ void EstimateNew::fillSolution(const vector<vector<int> >& unknownsIndex,
 // unknowns the value of the partial derivative of the model with respect
 // to the unknown has to be computed.
 unsigned int EstimateNew::fillDerivIndex(
-    size_t ndir, const vector<vector<int> >& unknownsIndex,
+    size_t ndir, const vector<vector<int>>& unknownsIndex,
     const Baseline& baseline) {
   // Per direction a baseline has 32 equations with information about
   // 16 unknowns: real and imag part of p00,p01,p10,p11,q00,q01,q10,q11
@@ -157,11 +157,11 @@ unsigned int EstimateNew::fillDerivIndex(
 
 // Note that the cursors are passed by value, so a copy is made.
 // In this way no explicit reset of the cursor is needed on a next call.
-bool EstimateNew::estimate(const vector<vector<int> >& unknownsIndex,
+bool EstimateNew::estimate(const vector<vector<int>>& unknownsIndex,
                            const vector<unsigned int>& srcSet,
                            const_cursor<Baseline> baselines,
-                           vector<const_cursor<fcomplex> > data,
-                           vector<const_cursor<dcomplex> > model,
+                           vector<const_cursor<fcomplex>> data,
+                           vector<const_cursor<dcomplex>> model,
                            const_cursor<bool> flag, const_cursor<float> weight,
                            const_cursor<dcomplex> mix, double defaultGain,
                            bool solveBoth, unsigned int verbose) {

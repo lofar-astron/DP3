@@ -448,7 +448,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
 void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
   unsigned int numAnts = info().antennaNames().size();
 
-  vector<vector<vector<double> > > parmvalues;
+  vector<vector<vector<double>>> parmvalues;
   parmvalues.resize(itsParmExprs.size());
   for (size_t i = 0; i < parmvalues.size(); ++i) {
     parmvalues[i].resize(numAnts);
@@ -472,8 +472,8 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     numTimes = info().ntime() % itsTimeSlotsPerParmUpdate;
   }
 
-  std::map<std::string, std::vector<double> > parmMap;
-  std::map<std::string, std::vector<double> >::iterator parmIt;
+  std::map<std::string, std::vector<double>> parmMap;
+  std::map<std::string, std::vector<double>>::iterator parmIt;
 
   unsigned int tfDomainSize = numTimes * numFreqs;
 

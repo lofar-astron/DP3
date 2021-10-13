@@ -57,8 +57,8 @@ namespace base {
 /// A pointer to a buffer of unknowns of size nDirection * nStation * 8.
 bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
               size_t nChannel, const_cursor<Baseline> baselines,
-              std::vector<const_cursor<fcomplex> > data,
-              std::vector<const_cursor<dcomplex> > model,
+              std::vector<const_cursor<fcomplex>> data,
+              std::vector<const_cursor<dcomplex>> model,
               const_cursor<bool> flag, const_cursor<float> weight,
               const_cursor<dcomplex> mix, double* unknowns,
               size_t maxiter = 50);
@@ -66,8 +66,8 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 /// Estimate for a variable nr of stations per source.
 bool estimateSel(size_t nDirection, size_t nStation, size_t nBaseline,
                  size_t nChannel, const_cursor<Baseline> baselines,
-                 std::vector<const_cursor<fcomplex> > data,
-                 std::vector<const_cursor<dcomplex> > model,
+                 std::vector<const_cursor<fcomplex>> data,
+                 std::vector<const_cursor<dcomplex>> model,
                  const_cursor<bool> flag, const_cursor<float> weight,
                  const_cursor<dcomplex> mix, double* unknowns, size_t nUnknowns,
                  std::vector<dcomplex>& M, std::vector<dcomplex>& dM,

@@ -43,7 +43,7 @@ double RotationConstraint::get_rotation(std::complex<double>* data) {
 }
 
 std::vector<Constraint::Result> RotationConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::vector<std::vector<dcomplex>>& solutions, double,
     std::ostream* /*statStream*/) {
   for (unsigned int ch = 0; ch < NChannelBlocks(); ++ch) {
     for (unsigned int ant = 0; ant < NAntennas(); ++ant) {

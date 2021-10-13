@@ -7,7 +7,7 @@ namespace dp3 {
 namespace ddecal {
 
 std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::vector<std::vector<dcomplex>>& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
   for (size_t ch = 0; ch < solutions.size(); ++ch) {
     for (size_t solIndex = 0; solIndex < solutions[ch].size(); ++solIndex) {
@@ -19,7 +19,7 @@ std::vector<Constraint::Result> PhaseOnlyConstraint::Apply(
 }
 
 std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::vector<std::vector<dcomplex>>& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
   for (size_t ch = 0; ch < solutions.size(); ++ch) {
     for (size_t solIndex = 0; solIndex < solutions[ch].size(); ++solIndex) {
@@ -31,7 +31,7 @@ std::vector<Constraint::Result> AmplitudeOnlyConstraint::Apply(
 }
 
 std::vector<Constraint::Result> DiagonalConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double, std::ostream*) {
+    std::vector<std::vector<dcomplex>>& solutions, double, std::ostream*) {
   if (_polsPerSolution == 4) {
     for (size_t ch = 0; ch < solutions.size(); ++ch) {
       for (size_t solIndex = 0; solIndex < solutions[ch].size();
@@ -46,7 +46,7 @@ std::vector<Constraint::Result> DiagonalConstraint::Apply(
 }
 
 std::vector<Constraint::Result> AntennaConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::vector<std::vector<dcomplex>>& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
   // nSols is nPol x nDirections (i.e., nr of sols per antenna)
   size_t nSols = solutions.front().size() / NAntennas();

@@ -196,7 +196,7 @@ void Parm::calcPerturbations() {
   }
 }
 
-void Parm::getResult(vector<Array<double> >& result, const Grid& predictGrid,
+void Parm::getResult(vector<Array<double>>& result, const Grid& predictGrid,
                      bool perturb) {
   if (!perturb || itsPerturbations.empty()) {
     // No perturbed values need to be calculated.

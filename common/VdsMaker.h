@@ -56,8 +56,8 @@ class VdsMaker {
   /// Get the frequency info for each spectral window in the MS.
   /// The vectors get the start and end frequency of each channel.
   static void getFreqInfo(casacore::MS& ms, std::vector<int>& nrchan,
-                          std::vector<casacore::Vector<double> >& startFreq,
-                          std::vector<casacore::Vector<double> >& endFreq);
+                          std::vector<casacore::Vector<double>>& startFreq,
+                          std::vector<casacore::Vector<double>>& endFreq);
 
   /// Get the directions of the fields.
   static void getFields(casacore::MS& ms, std::vector<double>& ra,

@@ -67,7 +67,7 @@ class ClusterDesc {
   const std::vector<NodeDesc>& getNodes() const { return itsNodes; }
 
   /// Get the map of file system to node index.
-  const std::map<std::string, std::vector<int> >& getMap() const {
+  const std::map<std::string, std::vector<int>>& getMap() const {
     return itsFS2Nodes;
   }
 
@@ -95,7 +95,7 @@ class ClusterDesc {
   std::string itsName;
   std::vector<NodeDesc> itsNodes;
   std::map<std::string, int> itsNodeMap;
-  std::map<std::string, std::vector<int> > itsFS2Nodes;
+  std::map<std::string, std::vector<int>> itsFS2Nodes;
 };
 
 }  // namespace common

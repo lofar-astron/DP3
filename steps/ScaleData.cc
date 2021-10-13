@@ -85,7 +85,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
   // Get the frequencies.
   const casacore::Vector<double>& freqs = infoIn.chanFreqs();
   // Convert the coefficients to scale factors per freq per station regex.
-  std::vector<std::vector<double> > scaleVec(itsStationExp.size());
+  std::vector<std::vector<double>> scaleVec(itsStationExp.size());
   std::vector<Regex> stationRegex(itsStationExp.size());
   for (unsigned int i = 0; i < scaleVec.size(); ++i) {
     // Convert the station string to a proper Regex object.
