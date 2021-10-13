@@ -5,9 +5,11 @@
 
 #include "BDAResultStep.h"
 #include "BdaGroupPredict.h"
+#include "Predict.h"
 #include "Version.h"
 
 #include "../base/DPInfo.h"
+#include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"
 #include "../common/StreamUtil.h"
 #include "../ddecal/gain_solvers/SolveData.h"
@@ -70,8 +72,14 @@ void BdaDdeCal::InitializePredictSteps(InputStep* input,
     const std::vector<std::string> source_patterns =
         common::ParameterValue(direction).getStringVector();
 
-    steps_.push_back(std::make_shared<BdaGroupPredict>(*input, parset, prefix,
-                                                       source_patterns));
+    bool bda_group_predict = parset.getBool(prefix + "grouppredict", false);
+    if (bda_group_predict) {
+      steps_.push_back(std::make_shared<BdaGroupPredict>(*input, parset, prefix,
+                                                         source_patterns));
+    } else {
+      steps_.push_back(std::make_shared<Predict>(
+          *input, parset, prefix, source_patterns, Step::MsType::kBda));
+    }
     result_steps_.push_back(std::make_shared<BDAResultStep>());
     steps_.back()->setNextStep(result_steps_.back());
 
@@ -291,7 +299,8 @@ void BdaDdeCal::ProcessCompleteDirections() {
       std::complex<float> restrict* data = input_buffers_.front()->GetData();
       const size_t data_size = input_buffers_.front()->GetNumberOfElements();
 
-      assert(direction_buffers.front()->GetNumberOfElements() == data_size);
+      assert(
+          direction_buffers.front()->IsMetadataEqual(*input_buffers_.front()));
       std::copy_n(direction_buffers.front()->GetData(), data_size, data);
       direction_buffers.front().reset();
 

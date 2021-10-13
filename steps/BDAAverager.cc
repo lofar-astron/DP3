@@ -365,8 +365,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 }
 
 void BDAAverager::set_next_desired_buffersize(unsigned int buffersize) {
-  fixed_size_bdabuffers_.push(boost::make_unique<BDABuffer>(
-      buffersize * info().nchan() * info().ncorr()));
+  fixed_size_bdabuffers_.push(boost::make_unique<BDABuffer>(buffersize));
 }
 
 void BDAAverager::show(std::ostream& os) const {
