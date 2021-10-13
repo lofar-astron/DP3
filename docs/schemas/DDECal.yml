@@ -176,3 +176,9 @@ inputs:
       If the first antenna has no valid data, the second antenna will be the
       reference antenna, and so on.
       This setting is only effective when ``mode=rotation+diagonal`` `.`
+  grouppredict:
+    default: false
+    type: bool
+    doc: >-
+      Alternative predict step for BDA data, which groups the input data into similarly averaged baselines and uses a regular Predict step for each group. Due to the overhead of having different groups, the normal predict step processes BDA data faster. This step is therefore mainly used for benchmarking `.`
+

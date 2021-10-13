@@ -899,9 +899,10 @@ BOOST_AUTO_TEST_CASE(force_buffersize) {
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
 
-  std::vector<unsigned int> output_size{3, 2, 5};
-  for (unsigned int i = 0; i < output_size.size(); i++) {
-    averager.set_next_desired_buffersize(output_size[i]);
+  // The output sizes must be multiples of kNCorr * kNChan (4 * 5 = 20).
+  std::vector<unsigned int> output_sizes{80, 20, 100};
+  for (unsigned int output_size : output_sizes) {
+    averager.set_next_desired_buffersize(output_size);
   }
 
   for (int i = 0; i < kNInputBuffers; i++) {
@@ -910,12 +911,13 @@ BOOST_AUTO_TEST_CASE(force_buffersize) {
 
   Finish(averager, *mock_step);
 
-  // With the given input, we expect a total of 10 rows in the output. In this
-  // test we want to split the 10 rows in 3 buffers of sizes 3, 2 and 5
-  BOOST_TEST(mock_step->GetBdaBuffers().size() == output_size.size());
-  for (unsigned int i = 0; i < output_size.size(); i++) {
-    BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[i]->GetRows().size(),
-                        output_size[i]);
+  // With the given input, we expect a total of 200 elements in the output. In
+  // this test we want to split the 200 elements in 3 buffers of sizes 80, 20
+  // and 100
+  BOOST_TEST_REQUIRE(mock_step->GetBdaBuffers().size() == output_sizes.size());
+  for (unsigned int i = 0; i < output_sizes.size(); i++) {
+    BOOST_CHECK_EQUAL(mock_step->GetBdaBuffers()[i]->GetNumberOfElements(),
+                      output_sizes[i]);
   }
 }
 
@@ -942,9 +944,10 @@ BOOST_AUTO_TEST_CASE(force_buffersize_smaller_than_output) {
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
 
-  std::vector<unsigned int> output_size{1, 2};
-  for (unsigned int i = 0; i < output_size.size(); i++) {
-    averager.set_next_desired_buffersize(output_size[i]);
+  // The output sizes must be multiples of kNCorr * kNChan (4 * 5 = 20).
+  std::vector<unsigned int> output_sizes{20, 40};
+  for (unsigned int output_size : output_sizes) {
+    averager.set_next_desired_buffersize(output_size);
   }
 
   for (int i = 0; i < kNInputBuffers; i++) {
@@ -953,12 +956,13 @@ BOOST_AUTO_TEST_CASE(force_buffersize_smaller_than_output) {
 
   Finish(averager, *mock_step);
 
-  // With the given input, we expect a total of 10 rows in the output. In this
-  // test we force the size of the first two output buffers to be 1 and 2. The
-  // remaining output buffers will have the default size.
-  for (unsigned int i = 0; i < output_size.size(); i++) {
-    BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[i]->GetRows().size(),
-                        output_size[i]);
+  // With the given input, we expect a total of 200 elements in the output. In
+  // this test we force the number of elements in the first two output buffers
+  // to be 20 and 40. The remaining output buffers will have the default size.
+  BOOST_REQUIRE(mock_step->GetBdaBuffers().size() >= output_sizes.size());
+  for (unsigned int i = 0; i < output_sizes.size(); i++) {
+    BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[i]->GetNumberOfElements(),
+                        output_sizes[i]);
   }
 }
 
@@ -985,9 +989,10 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
 
-  std::vector<unsigned int> output_size{100};
-  for (unsigned int i = 0; i < output_size.size(); i++) {
-    averager.set_next_desired_buffersize(output_size[i]);
+  std::vector<unsigned int> output_sizes{1000};
+
+  for (unsigned int output_size : output_sizes) {
+    averager.set_next_desired_buffersize(output_size);
   }
 
   for (int i = 0; i < kNInputBuffers; i++) {
@@ -996,11 +1001,13 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
 
   Finish(averager, *mock_step);
 
-  // With the given input, we expect a total of 10 rows in the output. In this
-  // test we want to check that the otput size equals 10 in case we force the
-  // output buffersize to a value higher than the maximum.
+  // With the given input, we expect a total of 200 elements in the output. In
+  // this test we check that output has 200 elements in case we force
+  // the output buffersize to a value higher than the maximum (all the elements
+  // are forced into one single bdabuffer).
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
-  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 10u);
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetNumberOfElements(),
+                      200u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

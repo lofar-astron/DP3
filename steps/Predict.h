@@ -21,9 +21,8 @@ class ParameterSet;
 }
 
 namespace steps {
-class Averager;
+class BDAAverager;
 class OnePredict;
-class Upsample;
 
 /**
  * @brief DP3 step class that predicts visibilities from a source model.
@@ -71,6 +70,8 @@ class Predict : public ModelDataStep {
 
   void SetOperation(const std::string& operation);
 
+  void updateInfo(const base::DPInfo&) override;
+
   bool accepts(MsType dt) const override { return dt == ms_type_; }
 
   MsType outputs() const override { return ms_type_; }
@@ -95,6 +96,7 @@ class Predict : public ModelDataStep {
   const MsType ms_type_;
 
   std::vector<std::shared_ptr<Step>> steps_before_predict_;
+  std::shared_ptr<BDAAverager> bda_averager_;
   std::shared_ptr<OnePredict> predict_step_;
   std::vector<std::shared_ptr<Step>> steps_after_predict_;
 };

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "Predict.h"
-
 #include "Averager.h"
 #include "BDAAverager.h"
 #include "BDAExpander.h"
@@ -17,6 +16,7 @@
 #include <string>
 
 using dp3::base::BDABuffer;
+using dp3::base::DPInfo;
 
 namespace dp3 {
 namespace steps {
@@ -56,8 +56,9 @@ void Predict::Initialize(InputStep& input_step,
   }
 
   if (input_type == MsType::kBda) {
-    steps_after_predict_.push_back(
-        std::make_shared<BDAAverager>(input_step, parset, prefix));
+    bda_averager_ =
+        std::make_shared<BDAAverager>(input_step, parset, prefix, false);
+    steps_after_predict_.push_back(bda_averager_);
   }
 
   if (!steps_before_predict_.empty()) {
@@ -68,7 +69,6 @@ void Predict::Initialize(InputStep& input_step,
     for (size_t i = 1; i < steps_before_predict_.size(); ++i) {
       steps_before_predict_[i - 1]->setNextStep(steps_before_predict_[i]);
     }
-
     steps_before_predict_.back()->setNextStep(steps_after_predict_.front());
 
     for (size_t i = 1; i < steps_after_predict_.size(); ++i) {
@@ -79,6 +79,17 @@ void Predict::Initialize(InputStep& input_step,
     // Without time smearing or bda, extra steps are not needed.
     Step::setNextStep(predict_step_);
   }
+}
+
+void Predict::updateInfo(const DPInfo& infoIn) {
+  Step::updateInfo(infoIn);
+
+  if (bda_averager_) {
+    bda_averager_->set_averaging_params(
+        info().ntimeAvgs(), info().BdaChanFreqs(), info().BdaChanWidths());
+  }
+  info().setNeedVisData();
+  info().setWriteData();
 }
 
 base::Direction Predict::GetFirstDirection() const {
@@ -113,6 +124,7 @@ bool Predict::process(const base::DPBuffer& buffer) {
 }
 
 bool Predict::process(std::unique_ptr<BDABuffer> bda_buffer) {
+  bda_averager_->set_next_desired_buffersize(bda_buffer->GetNumberOfElements());
   return getNextStep()->process(std::move(bda_buffer));
 }
 

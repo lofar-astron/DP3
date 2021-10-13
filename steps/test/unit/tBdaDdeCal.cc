@@ -7,6 +7,8 @@
 #include "../../BdaDdeCal.h"
 #include "../../InputStep.h"
 
+#include <aocommon/threadpool.h>
+
 BOOST_AUTO_TEST_SUITE(bdaddecal)
 
 /// Helper forwarder to improve test failure output.
@@ -42,11 +44,30 @@ BOOST_AUTO_TEST_CASE(show_default) {
   detect stalling:     true
   step size:           0.2
 Model steps for direction [center]
-BdaGroupPredict prefix.
-Using a regular predict per baseline group
+Predict
+BDAExpander prefix.
+OnePredict prefix.
+  sourcedb:           tDDECal.MS/sky
+   number of patches: 1
+   number of sources: 1
+   all unpolarized:   true
+   correct freq smearing: false
+  apply beam:         false
+  operation:          replace
+  threads:            )" +
+          std::to_string(aocommon::ThreadPool::NCPUs()) + R"(
+BDAAverager prefix.
+  timebase:        0s
+  max interval:    0s
+  frequencybase:   0
+  min channels:    1
+  max time factor: 1
+  max freq factor: 1
 
 )",
-      {{"msin", "tDDECal.MS"}, {"prefix.directions", "[[center]]"}});
+      {{"msin", "tDDECal.MS"},
+       {"prefix.directions", "[[center]]"},
+       {"prefix.sourcedb", "tDDECal.MS/sky"}});
 }
 
 BOOST_AUTO_TEST_CASE(show_modified) {
@@ -74,8 +95,25 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   smoothnessrefdistance:48.123
   tecscreen.coreconstraint:49.123
 Model steps for direction [center]
-BdaGroupPredict prefix.
-Using a regular predict per baseline group
+Predict
+BDAExpander prefix.
+OnePredict prefix.
+  sourcedb:           tDDECal.MS/sky
+   number of patches: 1
+   number of sources: 1
+   all unpolarized:   true
+   correct freq smearing: false
+  apply beam:         false
+  operation:          replace
+  threads:            )" +
+          std::to_string(aocommon::ThreadPool::NCPUs()) + R"(
+BDAAverager prefix.
+  timebase:        0s
+  max interval:    0s
+  frequencybase:   0
+  min channels:    1
+  max time factor: 1
+  max freq factor: 1
 
 )",
       {{"msin", "tDDECal.MS"},
@@ -86,6 +124,7 @@ Using a regular predict per baseline group
        {"prefix.flagdivergedonly", "true"},
        {"prefix.subtract", "true"},
        {"prefix.solveralgorithm", "hybrid"},
+       {"prefix.sourcedb", "tDDECal.MS/sky"},
        {"prefix.nchan", "44"},
        {"prefix.coreconstraint", "45.123"},
        {"prefix.smoothnessconstraint", "46.123"},

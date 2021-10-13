@@ -372,12 +372,10 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
   } else if (type == "applycal" || type == "correct") {
     step = std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
   } else if (type == "predict") {
-    if (inputType == Step::MsType::kRegular) {
-      step = std::make_shared<steps::Predict>(*inputStep, parset, prefix);
-    } else if (inputType == Step::MsType::kBda) {
-      step =
-          std::make_shared<steps::BdaGroupPredict>(*inputStep, parset, prefix);
-    }
+    step =
+        std::make_shared<steps::Predict>(*inputStep, parset, prefix, inputType);
+  } else if (type == "grouppredict") {
+    step = std::make_shared<steps::BdaGroupPredict>(*inputStep, parset, prefix);
   } else if (type == "idgpredict") {
     step = std::make_shared<steps::IDGPredict>(*inputStep, parset, prefix);
   } else if (type == "h5parmpredict") {

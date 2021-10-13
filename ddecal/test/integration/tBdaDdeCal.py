@@ -165,9 +165,9 @@ def test_only_predict(create_skymodel):
     taql_check_weights = (
         "select from"
         "(select gsumsqr(abs("
-        "t_all.WEIGHT_SPECTRUM[isnan(t_all.WEIGHT_SPECTRUM)] - "
-        "t_1.WEIGHT_SPECTRUM[isnan(t_1.WEIGHT_SPECTRUM)]"
-        ")) as diff from BDADDECal_onlypredict.MS t_all, PREDICT_DIR_1.MS t_1)"
+        "t_out.WEIGHT_SPECTRUM[isnan(t_out.WEIGHT_SPECTRUM)] - "
+        "t_in.WEIGHT_SPECTRUM[isnan(t_in.WEIGHT_SPECTRUM)]"
+        f")) as diff from BDADDECal_onlypredict.MS t_out, {MSIN} t_in)"
         "where diff > 1.e-6"
     )
     assert_taql(taql_check_weights)

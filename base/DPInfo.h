@@ -189,6 +189,9 @@ class DPInfo {
   const std::vector<double>& chanWidths(std::size_t baseline = 0) const {
     return channel_widths_[baseline];
   }
+  const std::vector<std::vector<double>>& BdaChanWidths() const {
+    return channel_widths_;
+  }
   const std::vector<double>& resolutions(std::size_t baseline = 0) const {
     return resolutions_[baseline];
   }
