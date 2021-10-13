@@ -48,7 +48,7 @@ void testAdd() {
       ++inx;
     }
   }
-  vector<casacore::Vector<int> > itsParts(2);
+  vector<casacore::Vector<int>> itsParts(2);
   itsParts[0].resize(2);
   itsParts[0][0] = 0;
   itsParts[0][1] = 1;
@@ -57,7 +57,7 @@ void testAdd() {
   itsParts[1][1] = 4;
 
   vector<int> newbl(nrnew);
-  vector<vector<int> > itsBufRows;
+  vector<vector<int>> itsBufRows;
   bool itsMakeAutoCorr = true;
   // Loop over the superstations.
   // Note that by making this the outer loop, the baselines between

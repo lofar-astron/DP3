@@ -251,7 +251,7 @@ void DemixInfo::update(const DPInfo& infoSel, DPInfo& info, size_t nThreads) {
   // Store phase center direction in J2000.
   MDirection dirJ2000(
       MDirection::Convert(infoSel.phaseCenter(), MDirection::J2000)());
-  Quantum<Vector<Double> > angles = dirJ2000.getAngle();
+  Quantum<Vector<Double>> angles = dirJ2000.getAngle();
   itsPhaseRef = Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
 
   // Determine if the minimum distance (scaled with freq) of A-sources

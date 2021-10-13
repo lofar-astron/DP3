@@ -83,11 +83,11 @@ class ParmFacade {
   /// and time. If freqStep and timeStep are not given (or given as <=0), the
   /// default freq and time step from the ParmDB will be used.
   ///@{
-  std::map<std::string, std::vector<double> > getValuesMap(
+  std::map<std::string, std::vector<double>> getValuesMap(
       const std::string& parmNamePattern, double freqv1, double freqv2,
       double freqStep, double timev1, double timev2, double timeStep,
       bool asStartEnd = false, bool includeDefaults = false);
-  std::map<std::string, std::vector<double> > getValuesMap(
+  std::map<std::string, std::vector<double>> getValuesMap(
       const std::string& parmNamePattern, double freqv1, double freqv2,
       double timev1, double timev2, bool asStartEnd = false,
       bool includeDefaults = false) {
@@ -216,7 +216,7 @@ class ParmFacade {
 
  private:
   /// Convert a record to a map.
-  std::map<std::string, std::vector<double> > record2Map(
+  std::map<std::string, std::vector<double>> record2Map(
       const casacore::Record& rec) const;
 
   ParmFacadeRep::ShPtr itsRep;

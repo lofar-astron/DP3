@@ -162,7 +162,9 @@ inline void NSTimer::stop() {
  */
 template <class T>
 #if __cplusplus > 201703L
-requires requires(T& t, double d) { t += d; }
+requires requires(T& t, double d) {
+  t += d;
+}
 #endif
 class ScopedMicroSecondAccumulator {
  public:

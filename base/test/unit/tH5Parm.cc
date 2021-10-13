@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_gridinterpolate) {
       // Add some metadata
       vector<string> antNames;
       vector<double> oneAntPos(3);
-      vector<vector<double> > antPositions;
+      vector<vector<double>> antPositions;
       for (unsigned int i = 0; i < 5; ++i) {
         std::stringstream antNameStr;
         antNameStr << "Antenna" << i;

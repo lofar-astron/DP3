@@ -64,25 +64,25 @@ class TestInput : public dp3::steps::InputStep {
     vals[1] = 442449;
     vals[2] = 5064923;
     antPos[0] = casacore::MPosition(
-        casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vals[0] = 3828746;
     vals[1] = 442592;
     vals[2] = 5064924;
     antPos[1] = casacore::MPosition(
-        casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vals[0] = 3828729;
     vals[1] = 442735;
     vals[2] = 5064925;
     antPos[2] = casacore::MPosition(
-        casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vals[0] = 3828713;
     vals[1] = 442878;
     vals[2] = 5064926;
     antPos[3] = casacore::MPosition(
-        casacore::Quantum<casacore::Vector<double> >(vals, "m"),
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vector<double> antDiam(4, 70.);
     info().set(antNames, antDiam, antPos, ant1, ant2);
@@ -176,7 +176,7 @@ class TestOutput : public Step {
     }
 
     // The same gain corrections as in tApplyCal_tmp.parmdb
-    vector<casacore::Cube<casacore::Complex> > gains(4);  // cube for every corr
+    vector<casacore::Cube<casacore::Complex>> gains(4);  // cube for every corr
     for (int corr = 0; corr < 4; ++corr) {
       gains[corr].resize(casacore::IPosition(3, 2, 2, 3));  // freq,time,ant;
     }

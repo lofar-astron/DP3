@@ -63,7 +63,7 @@ Record ParmFacade::getValues(const string& parmNamePattern, double freqv1,
 }
 
 // Get the parameter values for the given parameters and domain.
-map<string, vector<double> > ParmFacade::getValuesMap(
+map<string, vector<double>> ParmFacade::getValuesMap(
     const string& parmNamePattern, double freqv1, double freqv2,
     double freqStep, double timev1, double timev2, double timeStep,
     bool asStartEnd, bool includeDefaults) {
@@ -71,8 +71,8 @@ map<string, vector<double> > ParmFacade::getValuesMap(
                               timev2, timeStep, asStartEnd, includeDefaults));
 }
 
-map<string, vector<double> > ParmFacade::record2Map(const Record& rec) const {
-  map<string, vector<double> > out;
+map<string, vector<double>> ParmFacade::record2Map(const Record& rec) const {
+  map<string, vector<double>> out;
   // Copy all values from the record to the map.
   for (unsigned int i = 0; i < rec.nfields(); ++i) {
     const String& name = rec.name(i);

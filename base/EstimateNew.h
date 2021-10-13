@@ -53,11 +53,11 @@ class EstimateNew {
   //
   /// <br>Note that the cursors are passed by value, so a copy is made.
   /// In this way no reset of the cursor is needed.
-  bool estimate(const std::vector<std::vector<int> >& unknownsIndex,
+  bool estimate(const std::vector<std::vector<int>>& unknownsIndex,
                 const std::vector<unsigned int>& srcSet,
                 const_cursor<Baseline> baselines,
-                std::vector<const_cursor<fcomplex> > data,
-                std::vector<const_cursor<dcomplex> > model,
+                std::vector<const_cursor<fcomplex>> data,
+                std::vector<const_cursor<dcomplex>> model,
                 const_cursor<bool> flag, const_cursor<float> weight,
                 const_cursor<dcomplex> mix, double defaultGain, bool solveBoth,
                 unsigned int verbose);
@@ -72,24 +72,24 @@ class EstimateNew {
  private:
   /// Initialize the solution. Nr must be a multiple of 8.
   /// The diagonal is set to (diag,0) or (1e-8,0), off-diagonal to (0,0).
-  void initSolution(const std::vector<std::vector<int> >& unknownsIndex,
+  void initSolution(const std::vector<std::vector<int>>& unknownsIndex,
                     const std::vector<unsigned int>& srcSet,
                     double defaultGain);
 
   /// Clear the solution for unsolvable stations
   /// (essentially changing 1e-8 to 0).
-  void clearNonSolvable(const std::vector<std::vector<int> >& unknownsIndex,
+  void clearNonSolvable(const std::vector<std::vector<int>>& unknownsIndex,
                         const std::vector<unsigned int>& srcSet);
 
   /// Update itsSolution from itsUnknowns for the unknowns to be used.
-  void fillSolution(const std::vector<std::vector<int> >& unknownsIndex,
+  void fillSolution(const std::vector<std::vector<int>>& unknownsIndex,
                     const std::vector<unsigned int>& srcSet);
 
   /// Fill itsDerivIndex for the unknowns of the given baseline
   /// to be able to pass the equations to LSQFit::makeNorm.
   /// It returns the number of unknowns.
   unsigned int fillDerivIndex(
-      size_t ndir, const std::vector<std::vector<int> >& unknownsIndex,
+      size_t ndir, const std::vector<std::vector<int>>& unknownsIndex,
       const Baseline& baseline);
 
   size_t itsNrBaselines;

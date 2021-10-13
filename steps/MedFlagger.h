@@ -123,7 +123,7 @@ class MedFlagger : public Step {
   double itsMaxBLength;            ///< maximum baseline length
   std::vector<double> itsBLength;  ///< length of each baseline
   std::vector<base::DPBuffer> itsBuf;
-  std::vector<casacore::Cube<float> > itsAmpl;  ///< amplitudes of the data
+  std::vector<casacore::Cube<float>> itsAmpl;  ///< amplitudes of the data
   base::FlagCounter itsFlagCounter;
   common::NSTimer itsTimer;
   common::NSTimer itsComputeTimer;  ///< move/median timer

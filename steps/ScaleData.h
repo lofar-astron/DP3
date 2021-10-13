@@ -84,7 +84,7 @@ class ScaleData : public Step {
   bool itsScaleSize;
   std::vector<string> itsStationExp;  ///< station regex strings
   std::vector<string> itsCoeffStr;    ///< coeff per station regex
-  std::vector<std::vector<double> >
+  std::vector<std::vector<double>>
       itsStationFactors;              ///< scale factor per station,freq
   casacore::Cube<double> itsFactors;  ///< scale factor per baseline,freq,pol
   common::NSTimer itsTimer;

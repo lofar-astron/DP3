@@ -27,7 +27,7 @@ std::vector<Patch::ConstPtr> makePatches(
 
 /// Create a source list (with patch name) from a patchlist
 /// Needed for efficient multithreading
-std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr> >
+std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr>>
 makeSourceList(const std::vector<Patch::ConstPtr> &patchList);
 
 /// From a given PatchList, create a new one with one patch per component

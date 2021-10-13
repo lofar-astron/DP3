@@ -46,7 +46,7 @@ void ApproximateTECConstraint::initializeChild() {
 }
 
 void TECConstraintBase::applyReferenceAntenna(
-    std::vector<std::vector<dcomplex> >& solutions) const {
+    std::vector<std::vector<dcomplex>>& solutions) const {
   // Choose reference antenna that has at least 20% channels unflagged
   size_t refAntenna = 0;
   for (; refAntenna != NAntennas(); ++refAntenna) {
@@ -80,7 +80,7 @@ void TECConstraintBase::applyReferenceAntenna(
 }
 
 std::vector<Constraint::Result> TECConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double,
+    std::vector<std::vector<dcomplex>>& solutions, double,
     std::ostream* /*statStream*/) {
   size_t nRes = 3;
   if (_mode == TECOnlyMode) {
@@ -155,7 +155,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 }
 
 std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
-    std::vector<std::vector<dcomplex> >& solutions, double time,
+    std::vector<std::vector<dcomplex>>& solutions, double time,
     std::ostream* statStream) {
   if (_finishedApproximateStage)
     return TECConstraint::Apply(solutions, time, statStream);

@@ -153,7 +153,7 @@ void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
   const Vector<Int>& ant2 = itsInfo->getAnt2();
   const Vector<String>& antNames = itsInfo->antennaNames();
   // Keep track of fully flagged baselines.
-  std::vector<std::pair<int, int> > fullyFlagged;
+  std::vector<std::pair<int, int>> fullyFlagged;
   int64_t nPoints = ntimes * itsChanCounts.size();
   os << std::endl
      << "Percentage of visibilities flagged per baseline"

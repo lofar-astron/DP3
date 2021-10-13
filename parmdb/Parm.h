@@ -117,7 +117,7 @@ class Parm {
   /// Otherwise only the first array in the vector is filled in.
   /// As above, the shape of the array is normally [nx,ny],
   /// but can be [1,1] if constant.
-  void getResult(std::vector<casacore::Array<double> >& result,
+  void getResult(std::vector<casacore::Array<double>>& result,
                  const Grid& predictGrid, bool perturb);
 
   /// Form the vector from values and mask.
