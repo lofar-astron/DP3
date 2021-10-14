@@ -137,7 +137,7 @@ find_package(
   Boost
   COMPONENTS filesystem program_options system unit_test_framework
   REQUIRED)
-include_directories(${Boost_INCLUDE_DIR})
+include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
 
