@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <atomic>
 #include <numeric>
+#include <regex>
 #include <thread>
 #include <type_traits>
 
@@ -62,29 +63,25 @@ static std::string print(const dp3::common::NSTimer& timer) {
 }
 
 BOOST_AUTO_TEST_CASE(timer_print, *boost::unit_test::label("timer")) {
-  /*
-   * The timer seems accurate and the exact value can be checked. When it turns
-   * out the test is flaky the values should be tested with a regex.
-   */
   dp3::common::NSTimer timer;
   {
     Delay(timer, 250);
-    BOOST_CHECK_EQUAL(
-        print(timer),
-        "timer: avg =  250 ms, total =  250 ms, count =         1");
+    BOOST_CHECK(std::regex_match(
+        print(timer), std::regex{"timer: avg =  25[0-9] ms, total =  "
+                                 "25[0-9] ms, count =         1"}));
   }
 
   {
     Delay(timer, 50);
-    BOOST_CHECK_EQUAL(
-        print(timer),
-        "timer: avg =  150 ms, total =  300 ms, count =         2");
+    BOOST_CHECK(std::regex_match(
+        print(timer), std::regex{"timer: avg =  1[5-6][0-9] ms, total =  "
+                                 "3[0-1][0-9] ms, count =         2"}));
   }
   {
     Delay(timer, 300);
-    BOOST_CHECK_EQUAL(
-        print(timer),
-        "timer: avg =  200 ms, total =  600 ms, count =         3");
+    BOOST_CHECK(std::regex_match(
+        print(timer), std::regex{"timer: avg =  2[0-1][0-9] ms, total =  "
+                                 "6[0-2][0-9] ms, count =         3"}));
   }
 }
 
@@ -96,9 +93,9 @@ BOOST_AUTO_TEST_CASE(timer_print_unused, *boost::unit_test::label("timer")) {
 BOOST_AUTO_TEST_CASE(timer_print_named, *boost::unit_test::label("timer")) {
   dp3::common::NSTimer timer{"foo"};
   Delay(timer, 100);
-  BOOST_CHECK_EQUAL(print(timer),
-                    "foo                      : avg =  100 ms, total =  100 "
-                    "ms, count =         1");
+  BOOST_CHECK(std::regex_match(
+      print(timer), std::regex{"foo                      : avg =  10[0-9] ms, "
+                               "total =  10[0-9] ms, count =         1"}));
 }
 
 template <class T>
