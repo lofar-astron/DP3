@@ -492,7 +492,7 @@ install(
   DESTINATION bin
   RENAME DPPP)
 
-include(docs/CMakeLists.txt)
+add_subdirectory(docs)
 
 if(BUILD_TESTING)
   include(CTest)

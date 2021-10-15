@@ -24,8 +24,7 @@ if(NOT DP3_VERSION)
 endif()
 
 if(DOXYGEN_FOUND)
-  configure_file(${CMAKE_CURRENT_LIST_DIR}/doxygen/Doxyfile.in
-                 ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+  configure_file(doxygen/Doxyfile.in Doxyfile @ONLY)
   add_custom_target(
     doc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
@@ -43,10 +42,8 @@ find_program(
 if(SPHINX_FOUND AND JSONSCHEMA2RST_EXECUTABLE)
   set(SPHINX_SOURCE ${CMAKE_CURRENT_BINARY_DIR})
   set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/docs/)
-  configure_file(${CMAKE_CURRENT_LIST_DIR}/index.rst
-                 ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-  configure_file(${CMAKE_CURRENT_LIST_DIR}/conf.py ${CMAKE_CURRENT_BINARY_DIR}
-                 COPYONLY)
+  configure_file(index.rst index.rst COPYONLY)
+  configure_file(conf.py.in conf.py)
   add_custom_target(
     userdoc
     COMMAND ${SPHINX_EXECUTABLE} -b html ${SPHINX_SOURCE} ${SPHINX_BUILD}
