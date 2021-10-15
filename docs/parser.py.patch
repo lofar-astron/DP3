@@ -1,0 +1,11 @@
+--- parser.py.orig	2021-10-15 08:27:37.465586804 +0200
++++ parser.py	2021-10-15 08:27:49.092751193 +0200
+@@ -70,7 +70,7 @@
+         change_extension(schema_file.name, JSON_EXTENSION)))
+ 
+     rst = RST_DIRECTIVES
+-    TreeNode.dict2tree(yaml.load(schema_file), tree, excluded_key)
++    TreeNode.dict2tree(yaml.full_load(schema_file), tree, excluded_key)
+     rst += _traverse_bfs(tree, _node2rst)
+     return rst
+ 

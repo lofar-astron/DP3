@@ -125,10 +125,12 @@ build-doc:
   extends: .failable
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   needs: ["build-base"]
+  before_script:
+    - patch -p0 /usr/local/lib/python3.8/dist-packages/jsonschema2rst/parser.py < docs/parser.py.patch
   script:
-  - mkdir build && cd build
-  - cmake -G Ninja ../docs
-  - ninja doc userdoc
+    - mkdir build && cd build
+    - cmake -G Ninja ../docs
+    - ninja doc userdoc
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
