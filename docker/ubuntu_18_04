@@ -18,6 +18,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     gfortran flex bison wcslib-dev \
     liblua5.3-dev \
     casacore-dev casacore-tools pybind11-dev python3-pip ninja-build \
+# BUILD_TESTING=On requires pytest
+    && pip3 install pytest \
 # Build aoflagger3.
 # Use make, since ninja in Ubuntu 18 does not support Fortran.
     && mkdir /aoflagger && cd /aoflagger \

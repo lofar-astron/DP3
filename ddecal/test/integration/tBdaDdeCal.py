@@ -6,7 +6,6 @@ import os
 import shutil
 import uuid
 import numpy as np
-import h5py
 from subprocess import check_call, check_output, run
 
 # Append current directory to system path in order to import testconfig
@@ -218,6 +217,7 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
         ]
     )
 
+    import h5py # Don't import h5py when pytest is only collecting tests.
     h5 = h5py.File("solutions.h5", "r")
 
     if caltype in ["scalar", "diagonal", "scalaramplitude", "diagonalamplitude" ]:

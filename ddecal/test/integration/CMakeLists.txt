@@ -2,26 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 configure_file(testInit.sh.in testInit.sh)
+add_sh_integration_tests(tIDGPredict)
 
-# The 'source' symbolic link simplifies running the tests manually inside
-# ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'source/tApplyBeam.sh' instead of
-# '../../../../DP3/steps/test/integration/tApplyBeam.sh. (Using 'RESULT', fatal
-# errors won't occur on systems without symlink support.)
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
-  file(
-    CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/source
-    RESULT DUMMY_RESULT
-    SYMBOLIC)
-endif()
-
-set(INTEGRATION_TESTS tIDGPredict)
-
-foreach(TEST ${INTEGRATION_TESTS})
-  # Use ${CMAKE_CURRENT_SOURCE_DIR} instead of 'source' since not all systems
-  # support symbolic links.
-  add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
-  set_tests_properties(${TEST} PROPERTIES LABELS "integration")
-endforeach()
-
-# Parallel execution works since since each subtest uses its own directory.
-add_parallel_pyintegrationtests(tBdaDdeCal tDDECal)
+add_python_integrationtests(tBdaDdeCal tDDECal)

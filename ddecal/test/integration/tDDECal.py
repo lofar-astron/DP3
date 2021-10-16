@@ -6,7 +6,6 @@ import os
 import shutil
 import uuid
 from subprocess import check_call, check_output
-import h5py
 import numpy as np
 
 # Append current directory to system path in order to import testconfig
@@ -53,6 +52,7 @@ def copy_data_to_model_data():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
@@ -71,6 +71,7 @@ def create_corrupted_visibilities():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -82,6 +83,7 @@ def create_corrupted_visibilities():
     )
 
     # Modify h5 file for multiple solution intervals
+    import h5py # Don't import h5py when pytest is only collecting tests.
     h5file = h5py.File("instrumentcorrupted.h5", "r+")
     sol = h5file["sol000/amplitude000/val"]
     sol[:4, ..., 0, :] = np.sqrt(5)
@@ -97,6 +99,7 @@ def create_corrupted_visibilities():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=DATA",
@@ -121,6 +124,7 @@ def test(
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -138,6 +142,7 @@ def test(
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
@@ -176,6 +181,7 @@ def test_h5parm_predict():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -191,6 +197,7 @@ def test_h5parm_predict():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
@@ -218,6 +225,7 @@ def test_h5parm_predict():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA_H5PARM",
@@ -240,6 +248,7 @@ def test_pre_apply():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -254,6 +263,7 @@ def test_pre_apply():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
@@ -281,9 +291,9 @@ def test_pre_apply():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
-            "numthreads=4",
             "steps=[ddecal]",
             f"ddecal.sourcedb={MSIN}/sky",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
@@ -301,9 +311,9 @@ def test_check_tec():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
-            "numthreads=4",
             "steps=[ddecal]",
             f"ddecal.sourcedb={MSIN}/sky",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
@@ -318,9 +328,9 @@ def test_check_tec_and_phase():
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
-            "numthreads=4",
             "msin.baseline='!CS001HBA0'",
             "steps=[ddecal]",
             f"ddecal.sourcedb={MSIN}/sky",
@@ -339,6 +349,7 @@ def test_modelnextsteps(copy_data_to_model_data):
         [
             tcf.DP3EXE,
             "checkparset=1",
+            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",

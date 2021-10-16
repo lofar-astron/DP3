@@ -53,6 +53,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     && tar xfz /WSRT_Measures.ztar \
     && rm /WSRT_Measures.ztar \
 # Install pip dependencies
-    && pip3 install gcovr cmake-format h5py pytest-parallel \
+    && pip3 install gcovr cmake-format h5py \
     # build-doc dependencies
     autosemver==0.5.5 jsonschema2rst==0.1.0 sphinx sphinx-rtd-theme
