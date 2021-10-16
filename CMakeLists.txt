@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires CMake 3.9.
-cmake_minimum_required(VERSION 3.9)
+# The RESULTS_VARIABLE argument of execute_process() requires CMake 3.10.
+cmake_minimum_required(VERSION 3.10)
 
-# CMake >= 3.19.1 gives a warning when this policy is not 'NEW'.
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19.1")
+# CMake >= 3.19 gives warnings when these policies are not 'NEW'.
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19")
   cmake_policy(SET CMP0074 NEW)
+  cmake_policy(SET CMP0110 NEW)
 endif()
 
 # Set version number and project name.
@@ -681,64 +683,104 @@ if(BUILD_TESTING)
     set(XMLNAME "unittest_${XMLNAME}.xml")
     add_test(NAME ${TEST} COMMAND unittests -t ${TEST} -f JUNIT -k ${XMLNAME}
                                   --catch_system_error=yes)
+    # The COST indicators are merely very rough indicators of the relative run
+    # times, where one COST unit (originally) represents 10 seconds of run time.
+    # On the gitlab runners on CI, these times may vary a lot between runs.
     set(COST $<IF:${TEST} MATCHES solver,10,1>)
     set_tests_properties(
       ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED
                          "unittests;extract_resources" COST ${COST})
   endforeach()
 
-  # Notes:
-  # - the collection of python-based integration tests can be invoked with ctest -L pyintegration
-  # - see tPredict.py docstring how the tPredict.py tests can be invoked stand-alone
-  function(add_sequential_pyintegrationtests)
+  function(add_sh_integration_tests)
     foreach(TEST ${ARGN})
-      add_test(
-        NAME ${TEST}
-        COMMAND
-          python3 -m pytest --exitfirst -v
-          --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
-          "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
-      set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration" COST 2)
+      # Even if the 'source' symbolic link exists (see below), use
+      # ${CMAKE_CURRENT_SOURCE_DIR} instead since not all systems
+      # support symbolic links.
+      add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
+      set_tests_properties(${TEST} PROPERTIES LABELS "integration")
     endforeach()
   endfunction()
 
-  #Supports running pytest with multiple workers
-  #Use #cores / 4 workers for each test, with a minimum of 1.
-  include(ProcessorCount)
-  ProcessorCount(PYTEST_WORKERS)
-  math(EXPR PYTEST_WORKERS ${PYTEST_WORKERS}/4)
-  if(PYTEST_WORKERS EQUAL 0)
-    set(PYTEST_WORKERS 1)
+  execute_process(COMMAND python3 -m pytest OUTPUT_VARIABLE PYTEST_OUTPUT)
+  if(NOT ${PYTEST_OUTPUT} MATCHES "no tests ran")
+    message(
+      FATAL_ERROR
+        "Could not run pytest.\n"
+        "Please install pytest or disable testing using -DBUILD_TESTING=Off")
   endif()
 
-  #Since the parallel tests are slow (otherwise they would run sequentially),
-  #and use many cores, assign a high COST value to this test type.
-  function(add_parallel_pyintegrationtests)
+  # Adds python tests using a separate ctest test for each python test function.
+  # The python tests should thus support parallel runs, e.g., each test function
+  # should use its own directory.
+  # Notes:
+  # - The collection of python-based integration tests can be invoked with ctest -L pyintegration
+  # - The tPredict.py docstring describes how the tests can be invoked stand-alone.
+  function(add_python_integrationtests)
     foreach(TEST ${ARGN})
-      add_test(
-        NAME ${TEST}
-        COMMAND
-          python3 -m pytest --exitfirst -v --workers ${PYTEST_WORKERS}
-          --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}.xml
-          "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py")
-      set_tests_properties(${TEST} PROPERTIES LABELS "pyintegration" PROCESSORS
-                                              ${PYTEST_WORKERS} COST 10)
+      # Extract a list of sub-tests using "pytest --co -q".
+      # The last two output lines are an empty line followed by
+      # "no tests ran in 0.18s" -> Strip those using "head -n -2".
+      execute_process(
+        COMMAND python3 -m pytest --co -q ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py
+        COMMAND head -n -2
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} RESULTS_VARIABLE
+                          LIST_RESULTS
+        OUTPUT_VARIABLE LIST_OUTPUT)
+      foreach(LIST_RESULT ${LIST_RESULTS})
+        if(LIST_RESULT)
+          message(
+            FATAL_ERROR
+              "Could not determine pytest functions in ${TEST}. Result: ${LIST_RESULT} Output:\n${LIST_OUTPUT}"
+          )
+        endif()
+      endforeach()
+
+      # LIST_OUTPUT has one test name at each line.
+      # Convert newlines into CMake list separators (";").
+      string(REPLACE "\n" ";" PYTESTS ${LIST_OUTPUT})
+
+      foreach(PYTEST ${PYTESTS})
+        # PYTEST is of the form: tDDECal.py::test[1-0-complexgain]
+        # Recent pytest versions also add the path before tDDECal.py.
+        # Remove everything up to and including "::".
+        string(REGEX REPLACE ".*${TEST}.py::" "" PYTEST ${PYTEST})
+        add_test(
+          NAME ${TEST}::${PYTEST}
+          COMMAND
+            python3 -m pytest --exitfirst -v -k ${PYTEST}
+            --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}_${PYTEST}.xml
+            ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py)
+        set_tests_properties(${TEST}::${PYTEST} PROPERTIES LABELS
+                                                           "pyintegration")
+      endforeach()
     endforeach()
   endfunction()
 
-  add_subdirectory(steps/test/integration)
-  add_subdirectory(ddecal/test/integration)
+  # Add integration tests in the "steps" and "ddecal" folder
+  foreach(DIR steps ddecal)
+    set(INTEGRATION_DIR ${DIR}/test/integration)
+    set(BINARY_INTEGRATION_DIR ${CMAKE_BINARY_DIR}/${INTEGRATION_DIR})
 
-  # Copy files for integration tests in the "steps" folder
-  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
-                 ${CMAKE_BINARY_DIR}/steps/test/integration/testconfig.py)
-  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in
-                 ${CMAKE_BINARY_DIR}/steps/test/integration/utils.py)
+    file(MAKE_DIRECTORY ${BINARY_INTEGRATION_DIR})
+    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
+                   ${BINARY_INTEGRATION_DIR}/testconfig.py)
+    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in
+                   ${BINARY_INTEGRATION_DIR}/utils.py)
 
-  # Copy files for integration tests in the "ddecal" folder
-  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
-                 ${CMAKE_BINARY_DIR}/ddecal/test/integration/testconfig.py)
-  configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in
-                 ${CMAKE_BINARY_DIR}/ddecal/test/integration/utils.py)
+    # The 'source' symbolic link simplifies running the tests manually inside
+    # ${BINARY_INTEGRATION_DIR}: It allows using 'source/tApplyBeam.sh' instead
+    # of '../../../../DP3/steps/test/integration/tApplyBeam.sh. (Using 'RESULT',
+    # fatal errors won't occur on systems without symlink support.)
+    if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
+      file(
+        CREATE_LINK ${CMAKE_SOURCE_DIR}/${INTEGRATION_DIR}
+        ${BINARY_INTEGRATION_DIR}/source
+        RESULT DUMMY_RESULT
+        SYMBOLIC)
+    endif()
+
+    add_subdirectory(${INTEGRATION_DIR})
+  endforeach()
 
 endif() # BUILD_TESTING

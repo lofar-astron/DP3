@@ -87,6 +87,8 @@ build-debug:
   stage: build
   extends: .failable
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  before_script:
+    - pip3 install pytest
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DUSE_LSMR=TRUE ..
@@ -200,7 +202,6 @@ integration-test:
   needs: ["build-debug"]
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   script:
-    - pip3 install pytest h5py
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
     - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L integration |& tee ctest.out
