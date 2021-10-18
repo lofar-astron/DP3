@@ -6,11 +6,12 @@
 #ifndef LOFAR_COMMON_TIMER_H
 #define LOFAR_COMMON_TIMER_H
 
+#include "PrettyUnits.h"
+
 #include <chrono>
-#include <cstdlib>
-#include <cstring>
+#include <iomanip>
 #include <iostream>
-#include <sstream>
+#include <string>
 
 #if defined __ia64__ && defined __INTEL_COMPILER
 #include <ia64regs.h>
@@ -29,34 +30,55 @@ namespace common {
 /// The timer can be used to measure from 1 nanosecond to a century interval.
 /// The accuracy of the timer depends on the platform.
 ///
-/// The internal class NSTimer::StartStop can be used to do the start/stop.
+/// The internal RAII class StartStop can be used to do the start/stop.
 /// The constructor starts the timer, while the destructor stops it. It has
 /// the advantage that no explicit stop has to be given.
 /// Moreover, it makes the start/stop exception-safe.
-class NSTimer {
+///
+/// @tparam Clock Clock type, which meets the
+/// <a href="https://en.cppreference.com/w/cpp/named_req/Clock">Clock named
+/// requirements</a>. This argument allows using a mocked clock.
+template <class Clock>
+class BaseTimer {
  public:
-  /// Construct.
-  /// The given name will be used when the timer is printed.
-  NSTimer(const std::string& name = std::string(),
-          bool print_on_destruction = false, bool log_on_destruction = false);
+  /// Constructor.
+  /// @param name The name that will be used when printing the timer.
+  explicit BaseTimer(const std::string& name = std::string())
+      : name_(name), count_(0), duration_(std::chrono::seconds{0}) {}
 
-  /// Destruct.
-  /// The time is printed on stderr if print_on_destruction is true.
-  ~NSTimer();
+  /// Starts the timer.
+  void start() { start_ = Clock::now(); }
+  /// Stops the timer
+  void stop() {
+    duration_ += Clock::now() - start_;
+    ++count_;
+  }
 
-  /// Start the timer.
-  void start();
-  /// Stop the timer
-  void stop();
+  /// Resets the timer to zero.
+  void reset() {
+    count_ = 0;
+    duration_ = std::chrono::seconds{0};
+  }
 
-  /// Reset the timer to zero.
-  void reset();
-
-  /// Print the timer.
-  /// @{
-  std::ostream& print(std::ostream&) const;
-  friend std::ostream& operator<<(std::ostream&, const NSTimer&);
-  /// @}
+  /// Prints the timer.
+  std::ostream& print(std::ostream& str) const {
+    if (name_.empty()) {
+      str << "timer: ";
+    } else {
+      str << std::left << std::setw(25) << name_ << ": " << std::right;
+    }
+    if (count_ == 0) {
+      str << "not used";
+    } else {
+      const double total = getElapsed();
+      // clang-format off
+      str << "avg = " << PrettyTime(total / count_)
+          << ", total = " << PrettyTime(total)
+          << ", count = " << std::setw(9) << count_;
+      // clang-format on
+    }
+    return str;
+  }
 
   /// Get the elapsed time (in seconds).
   double getElapsed() const {
@@ -64,87 +86,47 @@ class NSTimer {
   }
 
   /// Get the average time (in seconds) between start/stop.
-  double getAverage() const;
+  double getAverage() const { return getElapsed() / getCount(); }
 
   /// Get the total number of times start/stop is done.
-  uint64_t getCount() const;
+  uint64_t getCount() const { return count_; }
 
   /// Accumulate timer statistics.
-  NSTimer& operator+=(const NSTimer& other);
+  BaseTimer& operator+=(const BaseTimer& other) {
+    duration_ += other.duration_;
+    count_ += other.count_;
+
+    return *this;
+  }
 
   /// Internal class to do an automatic start/stop.
   class StartStop {
    public:
-    StartStop(NSTimer& timer) : itsTimer(timer) { itsTimer.start(); }
-    ~StartStop() { itsTimer.stop(); }
+    StartStop(BaseTimer<Clock>& timer) : timer_(timer) { timer_.start(); }
+    ~StartStop() { timer_.stop(); }
+
+    /// Forbid copy.
+    StartStop(const StartStop&) = delete;
+    StartStop& operator=(const StartStop&) = delete;
 
    private:
-    /// Forbid copy.
-    StartStop(const StartStop&);
-    StartStop& operator=(StartStop&);
-    NSTimer& itsTimer;
+    BaseTimer<Clock>& timer_;
   };
 
  private:
   std::string name_;
-  bool print_on_destruction_;
-  bool log_on_destruction_;
 
   /// The number of times the timing has been stopped.
-  uint64_t count_{0};
+  uint64_t count_;
 
   /// The total duration of all start/stop cycles.
-  std::chrono::steady_clock::duration duration_;
+  typename Clock::duration duration_;
 
   /// The timestamp of the most recent call to @rer start().
-  std::chrono::steady_clock::time_point start_;
+  typename Clock::time_point start_;
 };
 
-inline void NSTimer::reset() {
-  count_ = 0;
-  duration_ = std::chrono::seconds{0};
-}
-
-inline double NSTimer::getAverage() const { return getElapsed() / getCount(); }
-
-inline uint64_t NSTimer::getCount() const { return count_; }
-
-inline NSTimer& NSTimer::operator+=(const NSTimer& other) {
-  duration_ += other.duration_;
-  count_ += other.count_;
-
-  return *this;
-}
-
-inline NSTimer::NSTimer(const std::string& name, bool print_on_destruction,
-                        bool log_on_destruction)
-    : name_(name),
-      print_on_destruction_(print_on_destruction),
-      log_on_destruction_(log_on_destruction) {
-  reset();
-}
-
-inline NSTimer::~NSTimer() {
-  if (print_on_destruction_) {
-    if (log_on_destruction_) {
-      std::stringstream logStr;
-      print(logStr);
-      std::clog << logStr.str() << '\n';
-    } else
-      std::clog << *this << std::endl;
-  }
-}
-
-inline std::ostream& operator<<(std::ostream& str, const NSTimer& timer) {
-  return timer.print(str);
-}
-
-inline void NSTimer::start() { start_ = std::chrono::steady_clock::now(); }
-
-inline void NSTimer::stop() {
-  duration_ += std::chrono::steady_clock::now() - start_;
-  ++count_;
-}
+using NSTimer = BaseTimer<std::chrono::steady_clock>;
 
 /**
  * Helper class to accumulate the execution time of multiple timers.
@@ -160,7 +142,7 @@ inline void NSTimer::stop() {
  * The resolution of the class is based on the µs resolution of the @ref NSTimer
  * class.
  */
-template <class T>
+template <class T, class Clock = std::chrono::steady_clock>
 #if __cplusplus > 201703L
 requires requires(T& t, double d) {
   t += d;
@@ -180,7 +162,7 @@ class ScopedMicroSecondAccumulator {
   }
 
  private:
-  NSTimer timer_;
+  BaseTimer<Clock> timer_;
   T& accumulator_;
 };
 

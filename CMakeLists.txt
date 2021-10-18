@@ -304,7 +304,6 @@ add_library(
   common/PrettyUnits.cc
   common/ProximityClustering.cc
   common/StringTools.cc
-  common/Timer.cc
   common/TypeNames.cc
   common/VdsDesc.cc
   common/VdsMaker.cc
@@ -632,27 +631,11 @@ if(BUILD_TESTING)
 
   # unittests.sh adjusts the PYTHONPATH to make tPyStep working.
   configure_file(scripts/unittests.sh.in unittests.sh)
-  add_test(NAME unittests COMMAND unittests.sh -t !@slow -t !@timer -f JUNIT -k
+  add_test(NAME unittests COMMAND unittests.sh -t !@slow -f JUNIT -k
                                   unittests.xml --catch_system_error=yes)
   set_tests_properties(
     unittests PROPERTIES LABELS unit FIXTURES_REQUIRED
                          "unittests;extract_resources" COST 1)
-
-  # For accuracy of the timers these tests need 12 processors, this is the
-  # number of threads spawned by these tests.
-  add_test(NAME unittest-timer
-           COMMAND unittests.sh -t @timer -f JUNIT -k unittest-timer.xml
-                   --catch_system_error=yes)
-  set_tests_properties(
-    unittest-timer
-    PROPERTIES LABELS
-               unit
-               FIXTURES_REQUIRED
-               "unittests;extract_resources"
-               COST
-               1
-               PROCESSORS
-               12)
 
   # Long running tests are labeled 'slow' and use a separate add_test call, so
   # ctest can run them in parallel. Unfortunately there is no easy means of
