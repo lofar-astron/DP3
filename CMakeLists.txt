@@ -145,7 +145,7 @@ find_package(Threads REQUIRED)
 
 # === Load astron packages ===
 
-find_package(AOFlagger 3.0.1 REQUIRED)
+find_package(AOFlagger 3.1 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
 # We could use find_package(EveryBeam 0.1.1 REQUIRED), however conditions below
