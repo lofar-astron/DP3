@@ -81,8 +81,6 @@ class BDAExpander : public Step {
 
   std::map<unsigned int, RegularBufferElement> RB_elements;
 
-  std::vector<RegularBufferElement> regular_buffer_;
-
   /**
    * This variable has size nbaselines x nchan (without averaging). For each
    * baseline and each non-averaged output channel index, it contains the

@@ -180,22 +180,18 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
 
   // checks if the DPBuffer for the next time slot has data for each baseline
   // If true, sends the DPBuffer to the next processing step
+  auto RB = RB_elements.find(next_time_slot_to_process_);
+  while (RB != RB_elements.end()) {
+    auto it =
+        find(RB->second.baseline_.begin(), RB->second.baseline_.end(), false);
+    if (it == RB->second.baseline_.end()) {
+      getNextStep()->process(std::move(RB->second.regular_buffer));
 
-  if (RB_elements.find(next_time_slot_to_process_) != RB_elements.end()) {
-    bool bufferIsReady = true;
-    while (bufferIsReady && (RB_elements.size() > 0)) {
-      auto it =
-          find(RB_elements[next_time_slot_to_process_].baseline_.begin(),
-               RB_elements[next_time_slot_to_process_].baseline_.end(), false);
-      if (it == RB_elements[next_time_slot_to_process_].baseline_.end()) {
-        getNextStep()->process(
-            std::move(RB_elements[next_time_slot_to_process_].regular_buffer));
-
-        RB_elements.erase(next_time_slot_to_process_);
-        next_time_slot_to_process_++;
-      } else {
-        bufferIsReady = false;
-      }
+      RB_elements.erase(next_time_slot_to_process_);
+      next_time_slot_to_process_++;
+      RB = RB_elements.find(next_time_slot_to_process_);
+    } else {
+      break;
     }
   }
   timer_.stop();

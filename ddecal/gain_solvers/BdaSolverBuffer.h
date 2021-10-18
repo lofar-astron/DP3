@@ -24,12 +24,13 @@ class BdaSolverBuffer {
    * @param start Start time of the first solution interval.
    * @param interval Length of a solution interval. Should be > 0.0.
    */
-  BdaSolverBuffer(size_t n_directions, double start, double interval)
+  BdaSolverBuffer(size_t n_directions, double start, double interval,
+                  size_t n_baselines)
       : data_(),
         time_start_(start),
         time_interval_(interval),
         current_interval_(0),
-        last_complete_interval_(-1),
+        last_complete_interval_per_baseline_(n_baselines, -1),
         data_rows_() {
     assert(interval >= 0.0);
     AddInterval(
@@ -61,7 +62,10 @@ class BdaSolverBuffer {
    * is complete if the solver buffer contains a BDA row with a start time
    * greater or equal to the end time of the current solution interval.
    */
-  bool IntervalIsComplete() const { return last_complete_interval_ >= 0; }
+  bool IntervalIsComplete() const {
+    return *std::min_element(last_complete_interval_per_baseline_.begin(),
+                             last_complete_interval_per_baseline_.end()) >= 0;
+  }
 
   /**
    * Advances the current solution interval to the next interval.
@@ -176,9 +180,10 @@ class BdaSolverBuffer {
   const double time_interval_;  ///< Solution interval length (seconds).
   int current_interval_;  ///< Absolute index of the current solution interval.
 
-  /// Index of the last complete solution interval, relative to the current
-  /// solution interval. The value is negative if no interval is complete.
-  int last_complete_interval_;
+  /// Index of the last complete solution interval per each baseline, relative
+  /// to the current solution interval. The value is negative if no interval is
+  /// complete.
+  std::vector<int> last_complete_interval_per_baseline_;
 
   struct IntervalRows {
     std::vector<base::BDABuffer::Row*> unweighted;
