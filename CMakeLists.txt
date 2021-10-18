@@ -462,12 +462,15 @@ set(DP3_LIBRARIES
     ${CFITSIO_LIBRARY}
     ${EVERYBEAM_LIB}
     ${HDF5_LIBRARIES}
-    ${HDF5_CXX_LIBRARIES}
     ${IDGAPI_LIBRARIES}
     ${Python3_LIBRARIES}
     schaapcommon
     Threads::Threads
     pybind11::embed)
+
+# Perform the BLAS check from aocommon
+include("${CMAKE_SOURCE_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
+check_blas(LIBRARIES ${DP3_LIBRARIES})
 
 add_subdirectory(base)
 
