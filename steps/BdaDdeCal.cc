@@ -118,8 +118,19 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
           settings_.solution_interval;
     }
 
+    double max_bda_interval = *std::max_element(info().ntimeAvgs().begin(),
+                                                info().ntimeAvgs().end()) *
+                              info().timeInterval();
+    if (solution_interval_ < max_bda_interval) {
+      throw std::runtime_error(
+          "Using BDA rows that are longer than the solution interval is not "
+          "supported. Use less BDA time averaging or a larger solution "
+          "interval.");
+    }
+
     solver_buffer_ = boost::make_unique<ddecal::BdaSolverBuffer>(
-        settings_.directions.size(), _info.startTime(), solution_interval_);
+        settings_.directions.size(), _info.startTime(), solution_interval_,
+        _info.nbaselines());
 
     DetermineChannelBlocks();
 

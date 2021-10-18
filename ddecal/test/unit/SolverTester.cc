@@ -73,7 +73,7 @@ SolverTester::SolverTester()
       solver_buffer_(),
 
       // Set the solution interval so that all data is in the first interval.
-      bda_solver_buffer_(kNDirections, -1.0, kNBDATimes + 1.0) {
+      bda_solver_buffer_(kNDirections, -1.0, kNBDATimes + 1.0, kNBaselines) {
   antennas1_.reserve(kNBaselines);
   antennas2_.reserve(kNBaselines);
   for (size_t ant1 = 0; ant1 != kNAntennas; ++ant1) {

@@ -41,18 +41,10 @@ void BdaSolverBuffer::AppendAndWeight(
 
   const size_t n_rows = weighted_buffer->GetRows().size();
 
-  // Maximum start time of the row intervals.
-  double max_start = std::numeric_limits<double>::min();
-
   for (size_t row = 0; row < n_rows; ++row) {
     const BDABuffer::Row& weighted_row = weighted_buffer->GetRows()[row];
 
-    if (weighted_row.interval > time_interval_) {
-      throw std::runtime_error(
-          "Using BDA rows that are longer than the solution interval is not "
-          "supported. Use less BDA time averaging or a larger solution "
-          "interval.");
-    }
+    assert(weighted_row.interval <= time_interval_);
     assert(kNCorrelations == weighted_row.n_correlations);
 
     for (size_t ch = 0; ch < weighted_row.n_channels; ++ch) {
@@ -111,18 +103,22 @@ void BdaSolverBuffer::AppendAndWeight(
           &model_buffers[dir]->GetRows()[row]);
     }
 
-    max_start =
-        std::max(max_start, weighted_row.time - weighted_row.interval / 2);
+    int current_start_interval =
+        RelativeIndex(weighted_row.time - weighted_row.interval / 2);
+    assert(weighted_row.baseline_nr <
+           last_complete_interval_per_baseline_.size());
+    if (current_start_interval <
+        last_complete_interval_per_baseline_[weighted_row.baseline_nr]) {
+      throw std::invalid_argument(
+          "Invalid input MS: BDA rows are not properly ordered.");
+    }
+    last_complete_interval_per_baseline_[weighted_row.baseline_nr] =
+        current_start_interval - 1;
   }
 
   data_.PushBack(InputData{std::move(unweighted_buffer),
                            std::move(weighted_buffer),
                            std::move(model_buffers)});
-
-  // Update last_complete_interval_.
-  int max_start_interval = RelativeIndex(max_start);
-  assert(max_start_interval > last_complete_interval_);
-  last_complete_interval_ = max_start_interval - 1;
 }
 
 void BdaSolverBuffer::Clear() {
@@ -145,7 +141,7 @@ void BdaSolverBuffer::AdvanceInterval() {
   if (data_rows_.Empty()) AddInterval(n_directions);
 
   ++current_interval_;
-  --last_complete_interval_;
+  for (int& bl_interval : last_complete_interval_per_baseline_) --bl_interval;
 
   // Remove old BDABuffers.
   while (!data_.Empty()) {

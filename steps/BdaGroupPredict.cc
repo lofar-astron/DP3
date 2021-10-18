@@ -203,7 +203,8 @@ base::Direction BdaGroupPredict::GetFirstDirection() const {
 
 void BdaGroupPredict::show(std::ostream &os) const {
   os << "BdaGroupPredict " << name_ << '\n';
-  os << "Using a regular predict per baseline group\n";
+  os << "Using a regular predict per baseline group. Baseline groups total: "
+     << averaging_to_baseline_group_map_.size() << "\n";
   if (!averaging_to_baseline_group_map_.empty()) {
     os << "Predict for first baseline group\n";
     averaging_to_baseline_group_map_.begin()->second.Show(os);
