@@ -708,7 +708,8 @@ if(BUILD_TESTING)
       # The last two output lines are an empty line followed by
       # "no tests ran in 0.18s" -> Strip those using "head -n -2".
       execute_process(
-        COMMAND python3 -m pytest --co -q ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py
+        COMMAND python3 -m pytest --collect-only -q
+                ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py
         COMMAND head -n -2
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} RESULTS_VARIABLE
                           LIST_RESULTS
