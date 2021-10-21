@@ -52,7 +52,7 @@ inputs:
       the actual number of channels. It defaults to the averaging used for the
       subtract `.`
   ntimechunk:
-    default: null
+    default: 0
     type: int
     doc: >-
       Number of demix time slots (after averaging) that are processed jointly in
@@ -69,7 +69,7 @@ inputs:
       The name of the ParmDB to use. The ParmDB does not need to exist. If it
       does not exist it will be created `.`
   subtractsources:
-    default: null
+    default: "[]"
     type: string[]?
     doc: >-
       Names of the sources to subtract. If none are given, demixing comes down
