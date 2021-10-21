@@ -19,7 +19,7 @@ inputs:
       The maximum time interval will be clipped to maxinterval `.`
     default: 0.0
   frequencybase:
-    type: int
+    type: double
     doc: >-
       The baseline length (in meters) after which the averager does not perform
       any averaging over frequencies. The number of channels for a baseline
