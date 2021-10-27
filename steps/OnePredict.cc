@@ -74,31 +74,6 @@ OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
   init(input, parset, prefix, copied_patterns);
 }
 
-static parmdb::SourceDB GetSourceDB(const std::string& source_db_name) {
-  bool is_sourcedb = true;
-  if (source_db_name.find_last_of(".") != std::string::npos) {
-    std::string extension =
-        source_db_name.substr(source_db_name.find_last_of(".") + 1);
-    if (extension == "skymodel") {
-      is_sourcedb = false;
-    }
-  }
-  std::string format = "";
-  if (!is_sourcedb) {
-    format = dp3::parmdb::skymodel_to_source_db::ReadFormat("", source_db_name);
-  }
-  parmdb::SourceDB sourceDB =
-      is_sourcedb
-          ? parmdb::SourceDB(parmdb::ParmDBMeta("", source_db_name), true,
-                             false)
-          : dp3::parmdb::skymodel_to_source_db::MakeSourceDb(
-                source_db_name, "", std::string(), format, "", "", false, true,
-                false,
-                dp3::parmdb::skymodel_to_source_db::GetSearchInfo("", "", ""),
-                true);
-  return sourceDB;
-}
-
 void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
                       const string& prefix,
                       const std::vector<string>& sourcePatterns) {
@@ -110,19 +85,16 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   SetOperation(parset.getString(prefix + "operation", "replace"));
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
-  patch_list_ = std::vector<base::Patch::ConstPtr>();
-
-  parmdb::SourceDB sourceDB = GetSourceDB(source_db_name_);
+  patch_list_.clear();
 
   // Save directions specifications to pass to applycal
   std::stringstream ss;
   ss << sourcePatterns;
   direction_str_ = ss.str();
 
-  std::vector<string> patchNames;
+  base::SourceDB source_db{source_db_name_, sourcePatterns};
   try {
-    patchNames = base::makePatchList(sourceDB, sourcePatterns);
-    patch_list_ = base::makePatches(sourceDB, patchNames, patchNames.size());
+    patch_list_ = source_db.MakePatchList();
     if (patch_list_.empty()) {
       throw Exception("Couldn't find patch for direction " + direction_str_);
     }
@@ -188,8 +160,7 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   if (apply_beam_ && beam_mode_ != everybeam::CorrectionMode::kArrayFactor) {
     stokes_i_only_ = false;
   } else {
-    stokes_i_only_ =
-        !base::checkPolarized(sourceDB, patchNames, patchNames.size());
+    stokes_i_only_ = !source_db.CheckPolarized();
   }
 }
 

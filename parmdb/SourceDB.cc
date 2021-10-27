@@ -22,10 +22,8 @@ void SourceDBRep::lock(bool) {}
 
 void SourceDBRep::unlock() {}
 
-SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew,
-                   bool deleteSourceDB)
-    : itsDeleteSourceDB(deleteSourceDB),
-      itsSourceDBPath(boost::filesystem::path(ptm.getTableName())) {
+SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew)
+    : itsSourceDBPath(boost::filesystem::path(ptm.getTableName())) {
   if (mustExist && !casacore::File(ptm.getTableName()).exists())
     throw std::runtime_error("The sourcedb '" + ptm.getTableName() +
                              "' does not exist");
@@ -53,12 +51,7 @@ SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew,
   itsRep->link();
 }
 
-SourceDB::~SourceDB() {
-  decrCount();
-  if (itsDeleteSourceDB) {
-    boost::filesystem::remove_all(itsSourceDBPath);
-  }
-}
+SourceDB::~SourceDB() { decrCount(); }
 
 SourceDB::SourceDB(SourceDBRep* rep) : itsRep(rep) { itsRep->link(); }
 

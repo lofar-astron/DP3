@@ -435,6 +435,7 @@ add_library(
   parmdb/SourceDB.cc
   parmdb/SourceDBBlob.cc
   parmdb/SourceDBCasa.cc
+  parmdb/SourceDBSkymodel.cc
   parmdb/SourceInfo.cc)
 
 add_library(PythonDP3 OBJECT pythondp3/PyStep.cc)
@@ -485,12 +486,10 @@ set(SOURCEDB_OBJECTS $<TARGET_OBJECTS:Blob> $<TARGET_OBJECTS:Common>
 set(SOURCEDB_LIBRARIES ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
 
 add_executable(makesourcedb parmdb/makesourcedb.cc ${SOURCEDB_OBJECTS})
-target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES}
-                      ${Boost_FILESYSTEM_LIBRARIES})
+target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
 
 add_executable(showsourcedb parmdb/showsourcedb.cc ${SOURCEDB_OBJECTS})
-target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES}
-                      ${Boost_FILESYSTEM_LIBRARIES})
+target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 
 add_executable(msoverview base/msoverview.cc)
 target_link_libraries(msoverview ${CASACORE_LIBRARIES})
@@ -522,6 +521,7 @@ if(BUILD_TESTING)
   endif()
 
   set(TEST_FILENAMES
+      common/test/unit/fixtures/fSkymodel.cc
       common/test/unit/tProximityClustering.cc
       common/test/unit/tTimer.cc
       base/test/runtests.cc

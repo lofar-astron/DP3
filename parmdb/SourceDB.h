@@ -150,8 +150,43 @@ class SourceDBRep {
   ParmDB itsParmDB;
 };
 
+class SourceDBBase {
+ public:
+  virtual ~SourceDBBase() = default;
+
+  /// Add a source to a patch.
+  /// Its ra and dec and default parameters will be stored as default
+  /// values in the associated ParmDB tables. The names of the parameters
+  /// will be succeeded by a colon and the source name.
+  /// The map should contain the parameters belonging to the source type.
+  /// Not all parameters need to be present. The ParmDB classes will
+  /// use a default of 0 for missing ones.
+  ///@{
+  virtual void addSource(const SourceInfo& source_info,
+                         const string& patch_name, int cat_type,
+                         double apparent_brightness,
+                         const ParmMap& default_parameters, double ra,
+                         double dec, bool check) = 0;
+
+  virtual void addSource(const SourceInfo& source_info,
+                         const string& patch_name,
+                         const ParmMap& default_parameters, double ra,
+                         double dec, bool check) = 0;
+  ///@}
+
+  /// Add a patch and return its patch_id.
+  ///
+  /// Optionally it is checked if the patch already exists.
+  virtual unsigned addPatch(const string& patch_name, int cat_type,
+                            double apparent_brightness, double ra, double dec,
+                            bool check) = 0;
+
+  virtual void updatePatch(unsigned patch_id, double apparent_brightness,
+                           double ra, double dec) = 0;
+};
+
 /// @brief Envelope class for a table holding source parameters
-class SourceDB {
+class SourceDB final : public SourceDBBase {
  public:
   /// Create the SourceDB object for the given database type.
   /// It gets added to the map of open sourceDBs.
@@ -159,8 +194,7 @@ class SourceDB {
   /// thrown
   /// @param forceNew if true, an empty file will be created even if the file
   /// exists.
-  explicit SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew,
-                    bool deleteSourceDB = false);
+  explicit SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew);
 
   /// Copy contructor has reference semantics.
   SourceDB(const SourceDB&);
@@ -211,15 +245,15 @@ class SourceDB {
   /// (e.g. sun) this is not needed.
   /// <br>Optionally it is checked if the patch already exists.
   unsigned int addPatch(const string& patchName, int catType,
-                        double apparentBrightness, double ra = -1e9,
-                        double dec = -1e9, bool check = true) {
+                        double apparentBrightness, double ra, double dec,
+                        bool check) override {
     return itsRep->addPatch(patchName, catType, apparentBrightness, ra, dec,
                             check);
   }
 
   /// Update the ra/dec and apparent brightness of a patch.
   void updatePatch(unsigned int patchId, double apparentBrightness, double ra,
-                   double dec) {
+                   double dec) override {
     itsRep->updatePatch(patchId, apparentBrightness, ra, dec);
   }
 
@@ -232,8 +266,8 @@ class SourceDB {
   /// use a default of 0 for missing ones.
   ///@{
   void addSource(const SourceInfo& sourceInfo, const string& patchName,
-                 const ParmMap& defaultParameters, double ra = -1e9,
-                 double dec = -1e9, bool check = true) {
+                 const ParmMap& defaultParameters, double ra, double dec,
+                 bool check) override {
     itsRep->addSource(sourceInfo, patchName, defaultParameters, ra, dec, check);
   }
   void addSource(const SourceData& source, bool check = true) {
@@ -244,8 +278,8 @@ class SourceDB {
   /// Add a source which forms a patch in itself (with the same name).
   void addSource(const SourceInfo& sourceInfo, const string& patchName,
                  int catType, double apparentBrightness,
-                 const ParmMap& defaultParameters, double ra = -1e9,
-                 double dec = -1e9, bool check = true) {
+                 const ParmMap& defaultParameters, double ra, double dec,
+                 bool check) override {
     itsRep->addSource(sourceInfo, patchName, catType, apparentBrightness,
                       defaultParameters, ra, dec, check);
   }
@@ -318,10 +352,6 @@ class SourceDB {
   void decrCount();
 
   SourceDBRep* itsRep;
-
-  /// Flag which indicates whether or not the sourceDB file should be deleted
-  /// outside the object's lifetime (false by default)
-  bool itsDeleteSourceDB;
 
   /// Path to SourceDB
   boost::filesystem::path itsSourceDBPath;
