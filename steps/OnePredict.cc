@@ -15,6 +15,7 @@
 
 #include "../parmdb/ParmDBMeta.h"
 #include "../parmdb/PatchInfo.h"
+#include "../parmdb/SkymodelToSourceDB.h"
 
 #include "../base/DPInfo.h"
 #include "../base/Exceptions.h"
@@ -73,6 +74,31 @@ OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
   init(input, parset, prefix, copied_patterns);
 }
 
+static parmdb::SourceDB GetSourceDB(const std::string& source_db_name) {
+  bool is_sourcedb = true;
+  if (source_db_name.find_last_of(".") != std::string::npos) {
+    std::string extension =
+        source_db_name.substr(source_db_name.find_last_of(".") + 1);
+    if (extension == "skymodel") {
+      is_sourcedb = false;
+    }
+  }
+  std::string format = "";
+  if (!is_sourcedb) {
+    format = dp3::parmdb::skymodel_to_source_db::ReadFormat("", source_db_name);
+  }
+  parmdb::SourceDB sourceDB =
+      is_sourcedb
+          ? parmdb::SourceDB(parmdb::ParmDBMeta("", source_db_name), true,
+                             false)
+          : dp3::parmdb::skymodel_to_source_db::MakeSourceDb(
+                source_db_name, "", std::string(), format, "", "", false, true,
+                false,
+                dp3::parmdb::skymodel_to_source_db::GetSearchInfo("", "", ""),
+                true);
+  return sourceDB;
+}
+
 void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
                       const string& prefix,
                       const std::vector<string>& sourcePatterns) {
@@ -86,8 +112,7 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
   patch_list_ = std::vector<base::Patch::ConstPtr>();
 
-  parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", source_db_name_), true,
-                            false);
+  parmdb::SourceDB sourceDB = GetSourceDB(source_db_name_);
 
   // Save directions specifications to pass to applycal
   std::stringstream ss;

@@ -22,11 +22,13 @@ void SourceDBRep::lock(bool) {}
 
 void SourceDBRep::unlock() {}
 
-SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew) {
+SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew,
+                   bool deleteSourceDB)
+    : itsDeleteSourceDB(deleteSourceDB),
+      itsSourceDBPath(boost::filesystem::path(ptm.getTableName())) {
   if (mustExist && !casacore::File(ptm.getTableName()).exists())
     throw std::runtime_error("The sourcedb '" + ptm.getTableName() +
                              "' does not exist");
-
   ParmDBMeta pm(ptm);
   // Determine type if not given.
   // Default is casa, but an existing regular file is blob.
@@ -49,6 +51,13 @@ SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew) {
     throw std::runtime_error("unknown sourceTableType: " + pm.getType());
   }
   itsRep->link();
+}
+
+SourceDB::~SourceDB() {
+  decrCount();
+  if (itsDeleteSourceDB) {
+    boost::filesystem::remove_all(itsSourceDBPath);
+  }
 }
 
 SourceDB::SourceDB(SourceDBRep* rep) : itsRep(rep) { itsRep->link(); }

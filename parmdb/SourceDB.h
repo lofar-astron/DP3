@@ -15,6 +15,8 @@
 #include "ParmDBMeta.h"
 #include "ParmDB.h"
 
+#include <boost/filesystem.hpp>
+
 namespace dp3 {
 namespace parmdb {
 
@@ -157,13 +159,14 @@ class SourceDB {
   /// thrown
   /// @param forceNew if true, an empty file will be created even if the file
   /// exists.
-  explicit SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew);
+  explicit SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew,
+                    bool deleteSourceDB = false);
 
   /// Copy contructor has reference semantics.
   SourceDB(const SourceDB&);
 
   /// Delete underlying object if no more references to it.
-  ~SourceDB() { decrCount(); }
+  ~SourceDB();
 
   /// Assignment has reference semantics.
   SourceDB& operator=(const SourceDB&);
@@ -315,6 +318,13 @@ class SourceDB {
   void decrCount();
 
   SourceDBRep* itsRep;
+
+  /// Flag which indicates whether or not the sourceDB file should be deleted
+  /// outside the object's lifetime (false by default)
+  bool itsDeleteSourceDB;
+
+  /// Path to SourceDB
+  boost::filesystem::path itsSourceDBPath;
 };
 
 /// @}

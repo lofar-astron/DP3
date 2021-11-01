@@ -117,6 +117,7 @@ class OnePredict : public ModelDataStep {
   void addBeamToData(base::Patch::ConstPtr patch, double time, size_t thread,
                      size_t nBeamValues, std::complex<double>* data0,
                      bool stokesIOnly);
+
   InputStep* input_;
   std::string name_;
   base::DPBuffer buffer_;
