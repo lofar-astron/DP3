@@ -55,20 +55,16 @@ def create_skymodel():
         f.write("ra_off, POINT, 16:58:28.205000, +63.44.34.314000, 1, , , , , \r\n")
         f.write("radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 1, , , , , \r\n")
 
-    check_call(["pwd"])
-    check_call([tcf.MAKESOURCEDBEXE, "in=test.skymodel", "out=test.sourcedb"])
 
 @pytest.fixture()
 def create_corrupted_data():
-    with open("test.skymodel", "w") as f:
+    with open("test_corrupted.skymodel", "w") as f:
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
         )
         f.write(f"center, POINT, 16:38:28.205000, +63.44.34.314000, {CORRUPTIONS[0] * CORRUPTIONS[0]}, , , , , \r\n")
         f.write(f"ra_off, POINT, 16:58:28.205000, +63.44.34.314000, {CORRUPTIONS[1] * CORRUPTIONS[1]}, , , , , \r\n")
         f.write(f"radec_off, POINT, 16:38:28.205000, +65.44.34.314000, {CORRUPTIONS[2] * CORRUPTIONS[2]}, , , , , \r\n")
-
-    check_call([tcf.MAKESOURCEDBEXE, "in=test.skymodel", "out=corrupted.sourcedb"])
 
     check_call(
         [
@@ -77,7 +73,7 @@ def create_corrupted_data():
             f"msin={MSIN}",
             "msout=corrupted.MS",
             "steps=[predict]",
-            "predict.sourcedb=corrupted.sourcedb",
+            "predict.sourcedb=test_corrupted.skymodel",
             "bda=true",
             "numthreads=1",
         ]
@@ -104,7 +100,7 @@ def test_only_predict(create_skymodel):
 
     predict_args = [
         "steps=[predict]",
-        "predict.sourcedb=test.sourcedb",
+        "predict.sourcedb=test.skymodel",
     ]
 
     check_call(
@@ -114,7 +110,7 @@ def test_only_predict(create_skymodel):
             "steps=[ddecal]",
             "ddecal.onlypredict=true",
             "ddecal.directions=[[center, dec_off],[ra_off],[radec_off]]",
-            "ddecal.sourcedb=test.sourcedb",
+            "ddecal.sourcedb=test.skymodel",
         ]
         + common_args
     )
@@ -123,7 +119,7 @@ def test_only_predict(create_skymodel):
         [
             tcf.DP3EXE,
             "msout=PREDICT_DIR_1.MS",
-            "predict.sources=[center, dec_off]",
+            "predict.sources=[center, dec_off]"
         ]
         + common_args
         + predict_args
@@ -133,7 +129,7 @@ def test_only_predict(create_skymodel):
         [
             tcf.DP3EXE,
             "msout=PREDICT_DIR_2.MS",
-            "predict.sources=[ra_off]",
+            "predict.sources=[ra_off]"
         ]
         + common_args
         + predict_args
@@ -208,7 +204,7 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
             "steps=[ddecal]",
             "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
-            "ddecal.sourcedb=test.sourcedb",
+            "ddecal.sourcedb=test.skymodel",
             f"ddecal.mode={caltype}",
             "ddecal.solint=2",
             f"ddecal.nchan={nchan}",
@@ -266,7 +262,7 @@ def test_subtract(create_skymodel, create_corrupted_data):
             "steps=[ddecal]",
             "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
-            "ddecal.sourcedb=test.sourcedb",
+            "ddecal.sourcedb=test.skymodel",
             "ddecal.mode=diagonal",
             "ddecal.solint=2",
             "ddecal.nchan=3",

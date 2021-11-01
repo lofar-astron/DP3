@@ -429,6 +429,7 @@ add_library(
   parmdb/ParmSet.cc
   parmdb/ParmValue.cc
   parmdb/PatchInfo.cc
+  parmdb/SkymodelToSourceDB.cc
   parmdb/SourceData.cc
   parmdb/SourceDB.cc
   parmdb/SourceDBBlob.cc
@@ -483,10 +484,12 @@ set(SOURCEDB_OBJECTS $<TARGET_OBJECTS:Blob> $<TARGET_OBJECTS:Common>
 set(SOURCEDB_LIBRARIES ${CASACORE_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
 
 add_executable(makesourcedb parmdb/makesourcedb.cc ${SOURCEDB_OBJECTS})
-target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
+target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES}
+                      ${Boost_FILESYSTEM_LIBRARIES})
 
 add_executable(showsourcedb parmdb/showsourcedb.cc ${SOURCEDB_OBJECTS})
-target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
+target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES}
+                      ${Boost_FILESYSTEM_LIBRARIES})
 
 install(TARGETS makesourcedb showsourcedb DESTINATION bin)
 
@@ -577,6 +580,7 @@ if(BUILD_TESTING)
       common/test/unit/tStringTools.cc
       base/test/unit/tDPInfo.cc
       base/test/unit/tSimulator.cc
+      parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBDAExpander.cc
