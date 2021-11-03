@@ -491,7 +491,10 @@ add_executable(showsourcedb parmdb/showsourcedb.cc ${SOURCEDB_OBJECTS})
 target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES}
                       ${Boost_FILESYSTEM_LIBRARIES})
 
-install(TARGETS makesourcedb showsourcedb DESTINATION bin)
+add_executable(msoverview base/msoverview.cc)
+target_link_libraries(msoverview ${CASACORE_LIBRARIES})
+
+install(TARGETS makesourcedb showsourcedb msoverview DESTINATION bin)
 
 # Install a script that warns users that DP3 is the new name of the executable
 install(
