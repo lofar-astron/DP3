@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
   BOOST_TEST(readers.first[0].PixelSizeY() == 0.000174533);
 }
 
-BOOST_AUTO_TEST_CASE(getfacets) {
+BOOST_AUTO_TEST_CASE(getfacets, *boost::unit_test::tolerance(1e-6)) {
   std::pair<std::vector<aocommon::FitsReader>,
             std::vector<aocommon::UVector<float>>>
       readers = IDGPredict::GetReaders({"sources-model.fits"});
@@ -153,8 +153,8 @@ BOOST_AUTO_TEST_CASE(getfacets) {
       IDGPredict::GetFacets("sources.reg", readers.first.front());
 
   BOOST_TEST(facets.size() == 4u);
-  BOOST_TEST(facets[0].RA() == 0.);
-  BOOST_TEST(facets[0].Dec() == 0.);
+  BOOST_TEST(facets[0].RA() == 0.3877368);
+  BOOST_TEST(facets[0].Dec() == 0.5417391);
 
   const std::vector<schaapcommon::facets::Pixel>& p0 = facets[0].GetPixels();
   BOOST_TEST_REQUIRE(p0.size() == 4u);
@@ -279,15 +279,29 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
 
 BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
                                        boost::unit_test::label("slow")) {
-  dp3::common::ParameterSet parset = CreateParset();
+  dp3::common::ParameterSet parset;
   parset.add("msin", "tNDPPP-generic.MS");
   parset.add("aterms", "beam");
   parset.add("beam.element_response_model", "hamaker");
 
+  std::pair<std::vector<aocommon::FitsReader>,
+            std::vector<aocommon::UVector<float>>>
+      fitsreaders = IDGPredict::GetReaders({"sources-model.fits"});
+  std::vector<Facet> facets =
+      IDGPredict::GetFacets("sources.reg", fitsreaders.first.front());
+
+  // Set RA and Dec pointing attached to the facets to 0, since kExpectedData
+  // was generated for these facet pointings - rather than the facet centroids.
+  for (auto& facet : facets) {
+    facet.SetRA(0.0);
+    facet.SetDec(0.0);
+  }
+
   // This test needs a real reader, since IDGPredict passes a MeasurementSet to
   // Everybeam::Load when using aterms. MockInput does not suffice.
   std::unique_ptr<InputStep> reader = InputStep::CreateReader(parset, "");
-  auto predict = std::make_shared<IDGPredict>(*reader, parset, "");
+  auto predict = std::make_shared<IDGPredict>(*reader, parset, "", fitsreaders,
+                                              std::move(facets));
   predict->SetBufferSize(kTimeSteps);
   auto result_step = std::make_shared<MultiResultStep>(kTimeSteps);
 
