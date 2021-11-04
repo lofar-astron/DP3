@@ -146,14 +146,15 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
 
   for (size_t i = 0; i < facets.size(); ++i) {
     std::string dir_name = "dir" + std::to_string(i);
-    if (!facets[i].Direction().empty()) {
-      dir_name = facets[i].Direction();
+    if (!facets[i].DirectionLabel().empty()) {
+      dir_name = facets[i].DirectionLabel();
     }
     itsDirections.emplace_back(1, dir_name);
 
     itsSteps.push_back(std::make_shared<IDGPredict>(
         itsInput, parset, prefix, readers, std::vector<Facet>{facets[i]}));
-    setModelNextSteps(*itsSteps.back(), facets[i].Direction(), parset, prefix);
+    setModelNextSteps(*itsSteps.back(), facets[i].DirectionLabel(), parset,
+                      prefix);
   }
 }
 
