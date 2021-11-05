@@ -13,8 +13,7 @@
 #include "../../MSBDAWriter.h"
 #include "../../MSReader.h"
 #include "../../../common/ParameterSet.h"
-
-#include "fixtures/fDirectory.cc"
+#include "../../../common/test/unit/fixtures/fDirectory.h"
 
 using dp3::base::BDABuffer;
 using dp3::base::DPInfo;

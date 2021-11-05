@@ -544,7 +544,6 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolvers.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
-      steps/test/unit/fixtures/fDirectory.cc
       steps/test/unit/tAOFlaggerStep.cc
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
