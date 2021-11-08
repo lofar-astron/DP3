@@ -322,6 +322,7 @@ add_library(
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
   ddecal/gain_solvers/BdaDiagonalSolver.cc
+  ddecal/gain_solvers/BdaFullJonesSolver.cc
   ddecal/gain_solvers/BdaSolverBuffer.cc
   ddecal/gain_solvers/BdaIterativeDiagonalSolver.cc
   ddecal/gain_solvers/BdaIterativeScalarSolver.cc
@@ -648,6 +649,7 @@ if(BUILD_TESTING)
   # retreiving a list of all slow tests.
   set(SLOW_TESTS
       bda_solvers/diagonal
+      bda_solvers/full_jones
       bda_solvers/hybrid
       bda_solvers/iterative_diagonal
       bda_solvers/iterative_scalar
