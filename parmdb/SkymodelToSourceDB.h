@@ -12,6 +12,7 @@
 #define DP3_SKYMODEL_TO_SOURCEDB_H
 
 #include "SourceDB.h"
+#include "SourceDBSkymodel.h"
 
 #include "../common/StringTools.h"
 #include "../common/StreamUtil.h"
@@ -48,12 +49,15 @@ namespace dp3 {
 namespace parmdb {
 
 namespace skymodel_to_source_db {
+
 SourceDB MakeSourceDb(const std::string& in, const std::string& out,
                       const std::string& outType, const std::string& format,
                       const std::string& prefix, const std::string& suffix,
                       bool append, bool average, bool check,
-                      const SearchInfo& search_info,
-                      bool delete_source_db = false);
+                      const SearchInfo& search_info);
+
+SourceDBSkymodel MakeSourceDBSkymodel(const std::string& filename,
+                                      const std::string& format);
 
 SearchInfo GetSearchInfo(const std::string& center, const std::string& radius,
                          const std::string& width);

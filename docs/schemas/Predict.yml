@@ -6,7 +6,7 @@ inputs:
     doc: Case-insensitive step type; must be 'predict' `.`
   sourcedb:
     type: string
-    doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb) `.`
+    doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb) `.` When the path ends with ``.skymodel`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.
   sources:
     default: "[]"
     type: array

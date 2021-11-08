@@ -723,9 +723,10 @@ void calcRMParam(double& polfrac, double& polang, double fluxi0, double fluxq,
   }
 }
 
-void process(const std::string& line, SourceDB& pdb, const SdbFormat& sdbf,
-             const std::string& prefix, const std::string& suffix, bool check,
-             int& nrpatch, int& nrsource, int& nrpatchfnd, int& nrsourcefnd,
+void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
+             const SdbFormat& sdbf, const std::string& prefix,
+             const std::string& suffix, bool check, int& nrpatch, int& nrsource,
+             int& nrpatchfnd, int& nrsourcefnd,
              std::map<std::string, PatchSumInfo>& patchSumInfo,
              const SearchInfo& searchInfo) {
   //  cout << line << endl;
@@ -898,17 +899,53 @@ void process(const std::string& line, SourceDB& pdb, const SdbFormat& sdbf,
   }
 }
 
+static void ParseSkyModel(dp3::parmdb::SourceDBBase& pdb, std::istream& input,
+                          const SdbFormat& sdbf, const std::string& prefix,
+                          const std::string& suffix, bool check, int& nrpatch,
+                          int& nrsource, int& nrpatchfnd, int& nrsourcefnd,
+                          std::map<std::string, PatchSumInfo>& patchSumInfo,
+                          const SearchInfo& searchInfo) {
+  casacore::Regex regexf("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=.*");
+  std::string line;
+  // Read first line.
+  getInLine(input, line);
+  while (input) {
+    // Remove comment lines, empty lines, and possible format line.
+    bool skip = true;
+    for (unsigned int i = 0; i < line.size(); ++i) {
+      if (line[i] == '#') {
+        break;
+      }
+      if (line[i] != ' ' && line[i] != '\t') {
+        if (line[i] == 'f' || line[i] == 'F') {
+          casacore::String sline(line);
+          if (sline.matches(regexf)) {
+            break;
+          }
+        }
+        // Empty nor format line, thus use it.
+        skip = false;
+        break;
+      }
+    }
+    if (!skip) {
+      process(line, pdb, sdbf, prefix, suffix, check, nrpatch, nrsource,
+              nrpatchfnd, nrsourcefnd, patchSumInfo, searchInfo);
+    }
+    // Read next line
+    getInLine(input, line);
+  }
+}
+
 SourceDB MakeSourceDb(const std::string& in, const std::string& out,
                       const std::string& outType, const std::string& format,
                       const std::string& prefix, const std::string& suffix,
                       bool append, bool average, bool check,
-                      const SearchInfo& search_info, bool delete_source_db) {
+                      const SearchInfo& search_info) {
   SdbFormat sdbf = getFormat(format);
   // Create/open the sourcedb and lock it for write.
-  std::string outPath =
-      delete_source_db ? boost::filesystem::unique_path().string() : out;
-  ParmDBMeta ptm(outType, outPath);
-  SourceDB pdb(ptm, false, !append, delete_source_db);
+  ParmDBMeta ptm(outType, out);
+  SourceDB pdb(ptm, false, !append);
   pdb.lock(true);
   int nrpatch = 0;
   int nrsource = 0;
@@ -919,36 +956,9 @@ SourceDB MakeSourceDb(const std::string& in, const std::string& out,
     std::ifstream infile(in.c_str());
     if (!infile)
       throw std::runtime_error("File " + in + " could not be opened");
-    casacore::Regex regexf("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=.*");
-    std::string line;
-    // Read first line.
-    getInLine(infile, line);
-    while (infile) {
-      // Remove comment lines, empty lines, and possible format line.
-      bool skip = true;
-      for (unsigned int i = 0; i < line.size(); ++i) {
-        if (line[i] == '#') {
-          break;
-        }
-        if (line[i] != ' ' && line[i] != '\t') {
-          if (line[i] == 'f' || line[i] == 'F') {
-            casacore::String sline(line);
-            if (sline.matches(regexf)) {
-              break;
-            }
-          }
-          // Empty nor format line, thus use it.
-          skip = false;
-          break;
-        }
-      }
-      if (!skip) {
-        process(line, pdb, sdbf, prefix, suffix, check, nrpatch, nrsource,
-                nrpatchfnd, nrsourcefnd, patchSumInfo, search_info);
-      }
-      // Read next line
-      getInLine(infile, line);
-    }
+
+    ParseSkyModel(pdb, infile, sdbf, prefix, suffix, check, nrpatch, nrsource,
+                  nrpatchfnd, nrsourcefnd, patchSumInfo, search_info);
   }
   // Write the calculated ra/dec/flux of the patches.
   if (average) {
@@ -975,6 +985,40 @@ SourceDB MakeSourceDb(const std::string& in, const std::string& out,
   }
 
   return pdb;
+}
+
+SourceDBSkymodel MakeSourceDBSkymodel(const std::string& filename,
+                                      const std::string& format) {
+  SdbFormat sdb_format = getFormat(format);
+  SourceDBSkymodel source_db;
+  if (filename.empty()) {
+    return source_db;
+  }
+  int nrpatch = 0;
+  int nrsource = 0;
+  int nrpatchfnd = 0;
+  int nrsourcefnd = 0;
+  std::map<std::string, PatchSumInfo> patchSumInfo;
+
+  std::ifstream file(filename);
+  if (!file)
+    throw std::runtime_error("File " + filename +
+                             " could not be opened for reading.");
+
+  ParseSkyModel(source_db, file, sdb_format, /*prefix*/ "", /*suffix*/ "",
+                /*check*/ false, nrpatch, nrsource, nrpatchfnd, nrsourcefnd,
+                patchSumInfo, GetSearchInfo("", "", ""));
+
+  // Write the calculated ra/dec/flux of the patches.
+  for (const auto& patch : patchSumInfo) {
+    const auto& info = patch.second;
+    if (info.getFlux() != 0) {
+      source_db.updatePatch(info.getPatchId(), info.getFlux(), info.getRa(),
+                            info.getDec());
+    }
+  }
+
+  return source_db;
 }
 
 // Read the format from the file.
