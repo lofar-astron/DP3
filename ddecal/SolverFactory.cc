@@ -6,6 +6,7 @@
 #include "Settings.h"
 
 #include "gain_solvers/BdaDiagonalSolver.h"
+#include "gain_solvers/BdaFullJonesSolver.h"
 #include "gain_solvers/BdaHybridSolver.h"
 #include "gain_solvers/BdaIterativeDiagonalSolver.h"
 #include "gain_solvers/BdaIterativeScalarSolver.h"
@@ -42,6 +43,7 @@ struct SolverTypes<RegularSolverBase> {
   using IterativeScalar = IterativeScalarSolver;
   using Diagonal = DiagonalSolver;
   using IterativeDiagonal = IterativeDiagonalSolver;
+  using FullJones = FullJonesSolver;
   using Hybrid = HybridSolver;
 };
 
@@ -51,6 +53,7 @@ struct SolverTypes<BdaSolverBase> {
   using IterativeScalar = BdaIterativeScalarSolver;
   using Diagonal = BdaDiagonalSolver;
   using IterativeDiagonal = BdaIterativeDiagonalSolver;
+  using FullJones = BdaFullJonesSolver;
   using Hybrid = BdaHybridSolver;
 };
 
@@ -75,24 +78,14 @@ std::unique_ptr<SolverBaseType> CreateDiagonalSolver(
 
 template <class SolverBaseType>
 std::unique_ptr<SolverBaseType> CreateFullJonesSolver(
-    SolverAlgorithm algorithm);
-
-template <>
-std::unique_ptr<RegularSolverBase> CreateFullJonesSolver(
     SolverAlgorithm algorithm) {
   if (SolverAlgorithm::kDirectionIterative == algorithm)
     throw std::runtime_error(
         "The direction-iterating algorithm is not available for the "
         "specified solving mode");
   else
-    return boost::make_unique<FullJonesSolver>();
-}
-
-template <>
-std::unique_ptr<BdaSolverBase> CreateFullJonesSolver(
-    [[maybe_unused]] SolverAlgorithm algorithm) {
-  throw std::runtime_error(
-      "FullJones calibration not implemented in combination with BDA");
+    return boost::make_unique<
+        typename SolverTypes<SolverBaseType>::FullJones>();
 }
 
 void AddConstraints(SolverBase& solver, const Settings& settings,

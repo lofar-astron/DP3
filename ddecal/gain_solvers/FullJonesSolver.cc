@@ -196,12 +196,12 @@ void FullJonesSolver::PerformIteration(const SolverBuffer& solver_buffer,
         const Complex* dataPtr =
             solver_buffer.DataPointer(timeIndex, baseline, channel_index_start);
         for (size_t ch = channel_index_start; ch != channel_index_end; ++ch) {
-          const size_t data_index1 = 2 * (ch - channel_index_start +
-                                          (timeIndex + antenna1 * n_times) *
-                                              cur_channel_block_size),
-                       data_index2 = 2 * (ch - channel_index_start +
-                                          (timeIndex + antenna2 * n_times) *
-                                              cur_channel_block_size);
+          const size_t data_index1 =
+              2 * (ch - channel_index_start +
+                   (timeIndex + antenna1 * n_times) * cur_channel_block_size);
+          const size_t data_index2 =
+              2 * (ch - channel_index_start +
+                   (timeIndex + antenna2 * n_times) * cur_channel_block_size);
 
           for (size_t d = 0; d != n_directions_; ++d) {
             aocommon::MC2x2 modelMat(model_ptrs[d]), gTimesC1Mat, gTimesC2Mat;

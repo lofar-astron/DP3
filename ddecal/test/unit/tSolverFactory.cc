@@ -14,6 +14,7 @@
 #include "../../constraints/SmoothnessConstraint.h"
 #include "../../constraints/TECConstraint.h"
 #include "../../gain_solvers/BdaDiagonalSolver.h"
+#include "../../gain_solvers/BdaFullJonesSolver.h"
 #include "../../gain_solvers/BdaIterativeScalarSolver.h"
 #include "../../gain_solvers/BdaIterativeDiagonalSolver.h"
 #include "../../gain_solvers/BdaScalarSolver.h"
@@ -133,11 +134,8 @@ BOOST_DATA_TEST_CASE(fulljones_type,
   // available, since they now skip those tests.
 
   dp3::common::ParameterSet parset = ParsetForMode(mode);
-  const Settings settings_plain(parset, "");
   CheckRegularSolverType<dp3::ddecal::FullJonesSolver>(parset);
-
-  BOOST_CHECK_THROW(dp3::ddecal::CreateBdaSolver(settings_plain, parset, ""),
-                    std::runtime_error);
+  CheckBdaSolverType<dp3::ddecal::BdaFullJonesSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
   const Settings settings_iterative(parset, "");
