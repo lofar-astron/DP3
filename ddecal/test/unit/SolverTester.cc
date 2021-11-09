@@ -67,9 +67,6 @@ SolverTester::SolverTester()
       antennas2_(),
       input_solutions_(kNAntennas * kNDirections * 2),
       solver_solutions_(kNChannelBlocks),
-
-      data_store_(kNRegularTimes),
-      weight_store_(kNRegularTimes),
       solver_buffer_(),
 
       // Set the solution interval so that all data is in the first interval.
@@ -84,12 +81,12 @@ SolverTester::SolverTester()
   }
 }
 
-const SolverBuffer& SolverTester::FillData() {
+const SolverBuffer& SolverTester::FillData(size_t n_times) {
   std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   std::mt19937 mt(0);
   std::vector<std::vector<DPBuffer>> model_buffers;
 
-  for (size_t timestep = 0; timestep != kNRegularTimes; ++timestep) {
+  for (size_t timestep = 0; timestep != n_times; ++timestep) {
     data_buffers_.emplace_back();
     data_buffers_.back().setData(casacore::Cube<std::complex<float>>(
         kNPolarizations, kNChannels, kNBaselines, 0));
@@ -165,18 +162,24 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
   std::vector<std::complex<float>> data;
   const std::vector<float> weights(kNChannels * kNPolarizations, 1.0f);
 
+  // For each block of 8 baselines, the averaged data size corresponds to
+  // 1 + 1/2 + 1/2 + 1/3 + 1/3 + 1/6 + 1/6 + 1/16 = 3 + 1/16
+  // non-averaged baselines. -> Divide the non-averaged data by two.
+  const size_t bda_buffer_size =
+      kNBDATimes * kNBaselines * kNChannels * kNPolarizations / 2;
+
   // Initialize the data buffers. The solvers only need the data field.
   BDABuffer::Fields bda_fields(false);
   bda_fields.data = true;
   bda_fields.weights = true;
   auto bda_data_buffer =
-      boost::make_unique<BDABuffer>(kBDABufferSize, bda_fields);
+      boost::make_unique<BDABuffer>(bda_buffer_size, bda_fields);
   std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers;
   bda_model_buffers.reserve(kNDirections);
   bda_fields.weights = false;
   for (size_t dir = 0; dir < kNDirections; ++dir) {
     bda_model_buffers.push_back(
-        boost::make_unique<BDABuffer>(kBDABufferSize, bda_fields));
+        boost::make_unique<BDABuffer>(bda_buffer_size, bda_fields));
   }
 
   // Do the outer loop over time, since the BDA rows should be ordered.

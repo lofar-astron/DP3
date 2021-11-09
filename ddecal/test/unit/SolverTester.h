@@ -32,9 +32,10 @@ class SolverTester {
 
   /**
    * Creates regular data, for testing regular solvers.
+   * @param n_times Number of time steps to generate.
    * @return The internal solver buffer that contains the data.
    */
-  const ddecal::SolverBuffer& FillData();
+  const ddecal::SolverBuffer& FillData(size_t n_times = kNRegularTimes);
 
   /**
    * Creates BDA data, for testing BDA solvers.
@@ -78,31 +79,33 @@ class SolverTester {
   void CheckScalarResults(double tolerance);
   void CheckDiagonalResults(double tolerance);
 
-  const size_t kNPolarizations = 4;
-  const size_t kNAntennas = 50;
-  const size_t kNDirections = 3;
-  const size_t kNChannels = 10;
-  const size_t kNChannelBlocks = 4;
-  const size_t kNRegularTimes = 50;
+  /**
+   * @return The first antennas for the generated baselines.
+   */
+  const std::vector<int>& Antennas1() const { return antennas1_; }
+
+  /**
+   * @return The second antennas for the generated baselines.
+   */
+  const std::vector<int>& Antennas2() const { return antennas2_; }
+
+  static constexpr size_t kNPolarizations = 4;
+  static constexpr size_t kNAntennas = 50;
+  static constexpr size_t kNDirections = 3;
+  static constexpr size_t kNChannels = 10;
+  static constexpr size_t kNChannelBlocks = 4;
+  static constexpr size_t kNRegularTimes = 50;
   // Use more times with BDA so the number of visibilities is similar to the
   // regular data.
-  const size_t kNBDATimes = 128;
-  const size_t kNBaselines = kNAntennas * (kNAntennas - 1) / 2;
-  // For each block of 8 baselines, the averaged data size corresponds to
-  // 1 + 1/2 + 1/2 + 1/3 + 1/3 + 1/6 + 1/6 + 1/16 = 3 + 1/16
-  // non-averaged baselines. -> Divide the non-averaged data by two.
-  const size_t kBDABufferSize =
-      kNBDATimes * kNBaselines * kNChannels * kNPolarizations / 2;
+  static constexpr size_t kNBDATimes = 128;
+  static constexpr size_t kNBaselines = kNAntennas * (kNAntennas - 1) / 2;
 
   // Default solver settings:
-  const size_t kMaxIterations = 100;
-  const double kAccuracy = 1e-8;
-  const double kStepSize = 0.2;
-  const size_t kNThreads = 4;
-  const bool kPhaseOnly = false;
-
-  const std::vector<int>& Antennas1() const { return antennas1_; }
-  const std::vector<int>& Antennas2() const { return antennas2_; }
+  static constexpr size_t kMaxIterations = 100;
+  static constexpr double kAccuracy = 1e-8;
+  static constexpr double kStepSize = 0.2;
+  static constexpr size_t kNThreads = 4;
+  static constexpr bool kPhaseOnly = false;
 
  private:
   void InitializeSolverSettings(dp3::ddecal::SolverBase& solver) const;
@@ -114,8 +117,6 @@ class SolverTester {
 
   std::vector<base::DPBuffer> data_buffers_;
   std::vector<std::vector<base::DPBuffer>> model_buffer_store_;
-  std::vector<aocommon::UVector<std::complex<float>>> data_store_;
-  std::vector<aocommon::UVector<float>> weight_store_;
   SolverBuffer solver_buffer_;
 
   BdaSolverBuffer bda_solver_buffer_;
