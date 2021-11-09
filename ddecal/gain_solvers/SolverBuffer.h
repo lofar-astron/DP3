@@ -45,6 +45,16 @@ class SolverBuffer {
   size_t NTimes() const { return data_.size(); };
 
   /**
+   * @return The number of baselines in the buffer.
+   */
+  size_t NBaselines() const { return n_baselines_; }
+
+  /**
+   * @return The number of channels in the buffer.
+   */
+  size_t NChannels() const { return n_channels_; }
+
+  /**
    * Get a pointer to the weighted data for a channel.
    * @param time_index The time step index.
    * @param baseline The baseline index in the data.

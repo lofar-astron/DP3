@@ -12,6 +12,7 @@ namespace dp3 {
 namespace ddecal {
 
 class BdaSolverBuffer;
+class SolverBuffer;
 
 /**
  * Contains exactly the data required for solving: (weighted) data, model_data
@@ -72,18 +73,43 @@ class SolveData {
     std::vector<size_t> antenna_visibility_counts_;
   };
 
+  /**
+   * Constructor for regular data.
+   * @param buffer Buffer with regular data for the current solution interval.
+   * @param n_channel_blocks Number of channel blocks / groups.
+   * @param n_directions Number of solver directions.
+   * @param n_antennas Number of antennas.
+   * @param antennas1 For each baseline, the index of the first antenna.
+   * @param antennas2 For each baseline, the index of the second antenna.
+   */
+  SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
+            size_t n_directions, size_t n_antennas,
+            const std::vector<int>& antennas1,
+            const std::vector<int>& antennas2);
+
+  /**
+   * Constructor for BDA data.
+   * @param buffer Buffer with BDA data for the current solution interval.
+   * @param n_channel_blocks Number of channel blocks / groups.
+   * @param n_directions Number of solver directions.
+   * @param n_antennas Number of antennas.
+   * @param antennas1 For each baseline, the index of the first antenna.
+   * @param antennas2 For each baseline, the index of the second antenna.
+   */
   SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
             size_t n_directions, size_t n_antennas,
-            const std::vector<int>& ant1, const std::vector<int>& ant2);
+            const std::vector<int>& antennas1,
+            const std::vector<int>& antennas2);
 
   size_t NChannelBlocks() const { return channel_blocks_.size(); }
 
-  ChannelBlockData& ChannelBlock(size_t i) { return channel_blocks_[i]; }
   const ChannelBlockData& ChannelBlock(size_t i) const {
     return channel_blocks_[i];
   }
 
  private:
+  void CountAntennaVisibilities(size_t n_antennas);
+
   std::vector<ChannelBlockData> channel_blocks_;
 };
 

@@ -583,6 +583,7 @@ if(BUILD_TESTING)
       common/test/unit/tStringTools.cc
       base/test/unit/tDPInfo.cc
       base/test/unit/tSimulator.cc
+      ddecal/test/unit/tSolveData.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc
       steps/test/unit/tBDAAverager.cc
