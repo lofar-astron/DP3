@@ -538,11 +538,11 @@ if(BUILD_TESTING)
       ddecal/test/unit/SolverTester.cc
       ddecal/test/unit/tBdaSolverBuffer.cc
       ddecal/test/unit/tBdaSolvers.cc
+      ddecal/test/unit/tLinearSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc
       ddecal/test/unit/tSolverFactory.cc
-      ddecal/test/unit/tSolvers.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
       steps/test/unit/tAOFlaggerStep.cc
@@ -649,28 +649,21 @@ if(BUILD_TESTING)
   # ctest can run them in parallel. Unfortunately there is no easy means of
   # retreiving a list of all slow tests.
   set(SLOW_TESTS
+      bda_solvers/scalar
+      bda_solvers/scalar_normaleq
       bda_solvers/diagonal
+      bda_solvers/iterative_scalar
+      bda_solvers/iterative_diagonal
       bda_solvers/full_jones
       bda_solvers/hybrid
-      bda_solvers/iterative_diagonal
-      bda_solvers/iterative_scalar
-      bda_solvers/scalar
+      bda_solvers/min_iterations
       idgpredict/process
       idgpredict/process_beam
       msbdawriter/process_simple
       msbdawriter/create_default_subtables
-      msbdawriter/different_bda_intervals
-      solvers/scalar_solver
-      solvers/iterative_scalar_solver
-      solvers/scalar_solver_normaleq
-      solvers/diagonal_solver
-      solvers/iterative_diagonal_solver
-      solvers/hybrid_solver
-      solvers/full_jones_solver
-      solvers/min_iterations)
+      msbdawriter/different_bda_intervals)
   if(USE_LSMR)
-    list(APPEND SLOW_TESTS solvers/scalar_solver_lsmr
-         solvers/diagonal_solver_lsmr)
+    list(APPEND SLOW_TESTS bda_solvers/scalar_lsmr bda_solvers/diagonal_lsmr)
   endif()
 
   foreach(TEST ${SLOW_TESTS})
