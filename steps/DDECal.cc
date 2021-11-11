@@ -25,6 +25,7 @@
 #include "../ddecal/constraints/ScreenConstraint.h"
 #endif
 #include "../ddecal/constraints/SmoothnessConstraint.h"
+#include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/gain_solvers/SolverBuffer.h"
 #include "../ddecal/linear_solvers/LLSSolver.h"
 
@@ -94,7 +95,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsBufferedSolInts(0),
       itsNChan(itsSettings.n_channels),
       itsUVWFlagStep(input, parset, prefix),
-      itsSolver(ddecal::CreateRegularSolver(itsSettings, parset, prefix)),
+      itsSolver(ddecal::CreateBdaSolver(itsSettings, parset, prefix)),
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
     itsStatStream =
@@ -257,13 +258,13 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     itsNChan = info().nchan();
   }
 
-  // Convert from casacore::Vector to std::vector, pass only used antennas to
-  // multidirsolver
-  std::vector<int> ant1(info().getAnt1().size());
-  std::vector<int> ant2(info().getAnt2().size());
-  for (unsigned int i = 0; i < ant1.size(); ++i) {
-    ant1[i] = info().antennaMap()[info().getAnt1()[i]];
-    ant2[i] = info().antennaMap()[info().getAnt2()[i]];
+  // Create lists with used antenna indices, similarly to
+  // DPInfo::removeUnusedAnt.
+  itsAntennas1.resize(info().getAnt1().size());
+  itsAntennas2.resize(info().getAnt2().size());
+  for (size_t i = 0; i < itsAntennas1.size(); ++i) {
+    itsAntennas1[i] = info().antennaMap()[info().getAnt1()[i]];
+    itsAntennas2[i] = info().antennaMap()[info().getAnt2()[i]];
   }
 
   // Fill antenna info in H5Parm, need to convert from casa types to std types
@@ -331,8 +332,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   size_t nSt = info().antennaUsed().size();
   // Give renumbered antennas to solver
-  itsSolver->Initialize(nSt, itsDirections.size(), info().nchan(),
-                        nChannelBlocks, ant1, ant2);
+  itsSolver->Initialize(nSt, itsDirections.size(), nChannelBlocks);
 
   for (size_t i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
@@ -557,7 +557,7 @@ void DDECal::doSolve() {
     solver_buffer.AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
                                   std::move(model_buffers[i]));
 
-    ddecal::RegularSolverBase::SolveResult solveResult;
+    ddecal::SolverBase::SolveResult solveResult;
     if (!itsSettings.only_predict) {
       checkMinimumVisibilities(i);
 
@@ -575,8 +575,14 @@ void DDECal::doSolve() {
 
       itsTimerSolve.start();
 
+      const size_t n_channel_blocks = itsChanBlockFreqs.size();
+      const size_t n_antennas = info().antennaUsed().size();
+      const ddecal::SolveData solve_data(solver_buffer, n_channel_blocks,
+                                         itsDirections.size(), n_antennas,
+                                         itsAntennas1, itsAntennas2);
+
       solveResult = itsSolver->Solve(
-          solver_buffer, itsSols[itsSolIntBuffers[i].NSolution()],
+          solve_data, itsSols[itsSolIntBuffers[i].NSolution()],
           itsAvgTime / itsRequestedSolInt, itsStatStream.get());
 
       itsTimerSolve.stop();
