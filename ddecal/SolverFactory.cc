@@ -59,33 +59,52 @@ struct SolverTypes<BdaSolverBase> {
 
 template <class SolverBaseType>
 std::unique_ptr<SolverBaseType> CreateScalarSolver(SolverAlgorithm algorithm) {
-  if (SolverAlgorithm::kDirectionIterative == algorithm)
-    return boost::make_unique<
-        typename SolverTypes<SolverBaseType>::IterativeScalar>();
-  else
-    return boost::make_unique<typename SolverTypes<SolverBaseType>::Scalar>();
+  switch (algorithm) {
+    case SolverAlgorithm::kDirectionIterative:
+      return boost::make_unique<
+          typename SolverTypes<SolverBaseType>::IterativeScalar>();
+    case SolverAlgorithm::kDirectionSolve:
+      return boost::make_unique<typename SolverTypes<SolverBaseType>::Scalar>();
+    case SolverAlgorithm::kHybrid:
+      break;  // CreateSolver should have handled this case.
+  }
+  assert(false);
+  return nullptr;
 }
 
 template <class SolverBaseType>
 std::unique_ptr<SolverBaseType> CreateDiagonalSolver(
     SolverAlgorithm algorithm) {
-  if (SolverAlgorithm::kDirectionIterative == algorithm)
-    return boost::make_unique<
-        typename SolverTypes<SolverBaseType>::IterativeDiagonal>();
-  else
-    return boost::make_unique<typename SolverTypes<SolverBaseType>::Diagonal>();
+  switch (algorithm) {
+    case SolverAlgorithm::kDirectionIterative:
+      return boost::make_unique<
+          typename SolverTypes<SolverBaseType>::IterativeDiagonal>();
+    case SolverAlgorithm::kDirectionSolve:
+      return boost::make_unique<
+          typename SolverTypes<SolverBaseType>::Diagonal>();
+    case SolverAlgorithm::kHybrid:
+      break;  // CreateSolver should have handled this case.
+  }
+  assert(false);
+  return nullptr;
 }
 
 template <class SolverBaseType>
 std::unique_ptr<SolverBaseType> CreateFullJonesSolver(
     SolverAlgorithm algorithm) {
-  if (SolverAlgorithm::kDirectionIterative == algorithm)
-    throw std::runtime_error(
-        "The direction-iterating algorithm is not available for the "
-        "specified solving mode");
-  else
-    return boost::make_unique<
-        typename SolverTypes<SolverBaseType>::FullJones>();
+  switch (algorithm) {
+    case SolverAlgorithm::kDirectionIterative:
+      throw std::runtime_error(
+          "The direction-iterating algorithm is not available for the "
+          "specified solving mode");
+    case SolverAlgorithm::kDirectionSolve:
+      return boost::make_unique<
+          typename SolverTypes<SolverBaseType>::FullJones>();
+    case SolverAlgorithm::kHybrid:
+      break;  // CreateSolver should have handled this case.
+  }
+  assert(false);
+  return nullptr;
 }
 
 void AddConstraints(SolverBase& solver, const Settings& settings,
@@ -167,40 +186,41 @@ void InitializeSolver(SolverBase& solver, const Settings& settings) {
 }
 
 template <class SolverBaseType>
-std::unique_ptr<SolverBaseType> CreateSolver(
-    const Settings& settings, const common::ParameterSet& parset,
-    const std::string& prefix, [[maybe_unused]] SolverAlgorithm algorithm) {
+std::unique_ptr<SolverBaseType> CreateSolver(const Settings& settings,
+                                             const common::ParameterSet& parset,
+                                             const std::string& prefix,
+                                             SolverAlgorithm algorithm) {
   std::unique_ptr<SolverBaseType> solver;
   switch (settings.mode) {
     case base::CalType::kScalar:
     case base::CalType::kScalarAmplitude:
-      solver = CreateScalarSolver<SolverBaseType>(settings.solver_algorithm);
+      solver = CreateScalarSolver<SolverBaseType>(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kScalarPhase:
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase:
-      solver = CreateScalarSolver<SolverBaseType>(settings.solver_algorithm);
+      solver = CreateScalarSolver<SolverBaseType>(algorithm);
       solver->SetPhaseOnly(true);
       break;
     case base::CalType::kDiagonal:
     case base::CalType::kDiagonalAmplitude:
-      solver = CreateDiagonalSolver<SolverBaseType>(settings.solver_algorithm);
+      solver = CreateDiagonalSolver<SolverBaseType>(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kDiagonalPhase:
-      solver = CreateDiagonalSolver<SolverBaseType>(settings.solver_algorithm);
+      solver = CreateDiagonalSolver<SolverBaseType>(algorithm);
       solver->SetPhaseOnly(true);
       break;
     case base::CalType::kFullJones:
     case base::CalType::kRotationAndDiagonal:
     case base::CalType::kRotation:
-      solver = CreateFullJonesSolver<SolverBaseType>(settings.solver_algorithm);
+      solver = CreateFullJonesSolver<SolverBaseType>(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kTecScreen:
 #ifdef HAVE_ARMADILLO
-      solver = CreateScalarSolver<SolverBaseType>(settings.solver_algorithm);
+      solver = CreateScalarSolver<SolverBaseType>(algorithm);
       solver->SetPhaseOnly(true);
 #else
       throw std::runtime_error(
