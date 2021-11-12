@@ -59,7 +59,7 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
   InitializePredictSteps(input, parset, prefix);
 
   if (!settings_.only_predict) {
-    solver_ = ddecal::CreateBdaSolver(settings_, parset, prefix);
+    solver_ = ddecal::CreateSolver(settings_, parset, prefix);
     solution_writer_ =
         boost::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
   }

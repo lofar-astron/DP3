@@ -95,7 +95,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsBufferedSolInts(0),
       itsNChan(itsSettings.n_channels),
       itsUVWFlagStep(input, parset, prefix),
-      itsSolver(ddecal::CreateBdaSolver(itsSettings, parset, prefix)),
+      itsSolver(ddecal::CreateSolver(itsSettings, parset, prefix)),
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
     itsStatStream =

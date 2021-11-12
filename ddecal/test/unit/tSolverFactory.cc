@@ -18,11 +18,6 @@
 #include "../../gain_solvers/BdaIterativeScalarSolver.h"
 #include "../../gain_solvers/BdaIterativeDiagonalSolver.h"
 #include "../../gain_solvers/BdaScalarSolver.h"
-#include "../../gain_solvers/DiagonalSolver.h"
-#include "../../gain_solvers/FullJonesSolver.h"
-#include "../../gain_solvers/IterativeScalarSolver.h"
-#include "../../gain_solvers/IterativeDiagonalSolver.h"
-#include "../../gain_solvers/ScalarSolver.h"
 
 #include "../../../common/ParameterSet.h"
 
@@ -31,12 +26,12 @@
 
 using dp3::ddecal::AntennaConstraint;
 using dp3::ddecal::Constraint;
-using dp3::ddecal::CreateBdaSolver;
-using dp3::ddecal::CreateRegularSolver;
+using dp3::ddecal::CreateSolver;
 using dp3::ddecal::InitializeSolverConstraints;
 using dp3::ddecal::PhaseOnlyConstraint;
 using dp3::ddecal::Settings;
 using dp3::ddecal::SmoothnessConstraint;
+using dp3::ddecal::SolverBase;
 
 namespace {
 
@@ -48,23 +43,14 @@ dp3::common::ParameterSet ParsetForMode(const std::string& mode) {
 }
 
 template <class ExpectedType>
-void CheckRegularSolverType(const dp3::common::ParameterSet& parset) {
+void CheckSolverType(const dp3::common::ParameterSet& parset) {
   const Settings settings(parset, "");
-  std::unique_ptr<dp3::ddecal::RegularSolverBase> solver =
-      CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   BOOST_CHECK(dynamic_cast<ExpectedType*>(solver.get()));
 }
 
 template <class ExpectedType>
-void CheckBdaSolverType(const dp3::common::ParameterSet& parset) {
-  const Settings settings(parset, "");
-  std::unique_ptr<dp3::ddecal::BdaSolverBase> solver =
-      CreateBdaSolver(settings, parset, "");
-  BOOST_CHECK(dynamic_cast<ExpectedType*>(solver.get()));
-}
-
-template <class ExpectedType>
-const ExpectedType& CheckConstraintType(dp3::ddecal::SolverBase& solver) {
+const ExpectedType& CheckConstraintType(SolverBase& solver) {
   const std::vector<std::unique_ptr<Constraint>>& constraints =
       solver.GetConstraints();
   BOOST_REQUIRE_EQUAL(constraints.size(), 1u);
@@ -78,11 +64,8 @@ template <class ExpectedType>
 void CheckConstraintType(const dp3::common::ParameterSet& parset) {
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   CheckConstraintType<ExpectedType>(*solver);
-
-  auto bda_solver = CreateBdaSolver(settings, parset, "");
-  CheckConstraintType<ExpectedType>(*bda_solver);
 }
 
 }  // namespace
@@ -103,12 +86,10 @@ BOOST_DATA_TEST_CASE(scalar_type,
                      mode) {
 #endif
   dp3::common::ParameterSet parset = ParsetForMode(mode);
-  CheckRegularSolverType<dp3::ddecal::ScalarSolver>(parset);
-  CheckBdaSolverType<dp3::ddecal::BdaScalarSolver>(parset);
+  CheckSolverType<dp3::ddecal::BdaScalarSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
-  CheckRegularSolverType<dp3::ddecal::IterativeScalarSolver>(parset);
-  CheckBdaSolverType<dp3::ddecal::BdaIterativeScalarSolver>(parset);
+  CheckSolverType<dp3::ddecal::BdaIterativeScalarSolver>(parset);
 }
 
 BOOST_DATA_TEST_CASE(diagonal_type,
@@ -116,12 +97,10 @@ BOOST_DATA_TEST_CASE(diagonal_type,
                          {"diagonal", "diagonalamplitude", "diagonalphase"}),
                      mode) {
   dp3::common::ParameterSet parset = ParsetForMode(mode);
-  CheckRegularSolverType<dp3::ddecal::DiagonalSolver>(parset);
-  CheckBdaSolverType<dp3::ddecal::BdaDiagonalSolver>(parset);
+  CheckSolverType<dp3::ddecal::BdaDiagonalSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
-  CheckRegularSolverType<dp3::ddecal::IterativeDiagonalSolver>(parset);
-  CheckBdaSolverType<dp3::ddecal::BdaIterativeDiagonalSolver>(parset);
+  CheckSolverType<dp3::ddecal::BdaIterativeDiagonalSolver>(parset);
 }
 
 BOOST_DATA_TEST_CASE(fulljones_type,
@@ -134,14 +113,11 @@ BOOST_DATA_TEST_CASE(fulljones_type,
   // available, since they now skip those tests.
 
   dp3::common::ParameterSet parset = ParsetForMode(mode);
-  CheckRegularSolverType<dp3::ddecal::FullJonesSolver>(parset);
-  CheckBdaSolverType<dp3::ddecal::BdaFullJonesSolver>(parset);
+  CheckSolverType<dp3::ddecal::BdaFullJonesSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
   const Settings settings_iterative(parset, "");
-  BOOST_CHECK_THROW(CreateRegularSolver(settings_iterative, parset, ""),
-                    std::runtime_error);
-  BOOST_CHECK_THROW(CreateBdaSolver(settings_iterative, parset, ""),
+  BOOST_CHECK_THROW(CreateSolver(settings_iterative, parset, ""),
                     std::runtime_error);
 }
 
@@ -154,20 +130,8 @@ BOOST_DATA_TEST_CASE(
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   BOOST_CHECK(!solver->GetPhaseOnly());
-}
-
-BOOST_DATA_TEST_CASE(no_phase_only_bda,
-                     boost::unit_test::data::make({"scalar", "scalaramplitude",
-                                                   "diagonal",
-                                                   "diagonalamplitude"}),
-                     mode) {
-  dp3::common::ParameterSet parset = ParsetForMode(mode);
-  const Settings settings(parset, "");
-
-  auto bda_solver = CreateBdaSolver(settings, parset, "");
-  BOOST_CHECK(!bda_solver->GetPhaseOnly());
 }
 
 #ifndef HAVE_ARMADILLO
@@ -186,11 +150,8 @@ BOOST_DATA_TEST_CASE(phase_only,
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   BOOST_CHECK(solver->GetPhaseOnly());
-
-  auto bda_solver = CreateBdaSolver(settings, parset, "");
-  BOOST_CHECK(bda_solver->GetPhaseOnly());
 }
 
 BOOST_DATA_TEST_CASE(no_constraints,
@@ -199,13 +160,8 @@ BOOST_DATA_TEST_CASE(no_constraints,
                      mode) {
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   const Settings settings(parset, "");
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   BOOST_CHECK(solver->GetConstraints().empty());
-
-  if (mode != std::string("fulljones")) {
-    auto bda_solver = CreateBdaSolver(settings, parset, "");
-    BOOST_CHECK(bda_solver->GetConstraints().empty());
-  }
 }
 
 BOOST_DATA_TEST_CASE(phase_constraint,
@@ -235,9 +191,9 @@ BOOST_DATA_TEST_CASE(tec_constraint,
   dp3::common::ParameterSet parset = ParsetForMode(mode);
 
   {
-    // Test a regular solver with default settings.
+    // Test a solver with default settings.
     const Settings settings(parset, "");
-    auto solver = CreateRegularSolver(settings, parset, "");
+    std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                                 kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -251,10 +207,10 @@ BOOST_DATA_TEST_CASE(tec_constraint,
   }
 
   {
-    // Test a BDA solver with custom settings.
+    // Test a solver with custom settings.
     parset.add("approximatetec", "true");
     const Settings settings(parset, "");
-    auto solver = CreateBdaSolver(settings, parset, "");
+    std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                                 kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -285,7 +241,7 @@ BOOST_AUTO_TEST_CASE(screen_constraint) {
   parset.add("tecscreen.height", std::to_string(kHeight));
   const Settings settings(parset, "");
 
-  auto solver = CreateBdaSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -321,7 +277,7 @@ BOOST_AUTO_TEST_CASE(rotation_constraint) {
   dp3::common::ParameterSet parset = ParsetForMode("rotation");
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   CheckConstraintType<dp3::ddecal::RotationConstraint>(*solver);
 }
 
@@ -329,7 +285,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_diagonal_constraint) {
   dp3::common::ParameterSet parset = ParsetForMode("rotation+diagonal");
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   CheckConstraintType<dp3::ddecal::RotationAndDiagonalConstraint>(*solver);
 }
 
@@ -346,7 +302,7 @@ BOOST_AUTO_TEST_CASE(core_constraint) {
   parset.add("coreconstraint", "42");
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -371,7 +327,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
   parset.add("antennaconstraint", "[[foo,bar,7TiMeS6],[Piet,foo],[bar,Jan]]");
   const Settings settings(parset, "");
 
-  auto solver = CreateBdaSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -395,7 +351,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint_invalid) {
   parset.add("antennaconstraint", "[[foo, bar, missing]]");
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   CheckConstraintType<AntennaConstraint>(*solver);
 
   BOOST_CHECK_THROW(InitializeSolverConstraints(
@@ -418,7 +374,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
   parset.add("smoothnessreffrequency", "200");
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -444,7 +400,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_with_ref_distance) {
   parset.add("smoothnessrefdistance", "42");
   const Settings settings(parset, "");
 
-  auto solver = CreateBdaSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -462,7 +418,7 @@ BOOST_AUTO_TEST_CASE(multiple_constraints) {
   parset.add("smoothnessconstraint", "0.42");
   const Settings settings(parset, "");
 
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   const std::vector<std::unique_ptr<dp3::ddecal::Constraint>>& constraints =
       solver->GetConstraints();
   BOOST_REQUIRE_EQUAL(constraints.size(), 3u);
@@ -475,7 +431,7 @@ BOOST_AUTO_TEST_CASE(solver_settings_default) {
   dp3::common::ParameterSet parset = ParsetForMode("tec");
   parset.add("approximatetec", "true");
   const Settings settings(parset, "");
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
 
   BOOST_CHECK(solver->GetLLSSolverType() == dp3::ddecal::LLSSolverType::QR);
   std::pair<double, double> tolerance = solver->GetLLSSolverTolerance();
@@ -502,7 +458,7 @@ BOOST_AUTO_TEST_CASE(solver_settings_custom) {
   parset.add("stepsize", "0.42");
   parset.add("detectstalling", "false");
   const Settings settings(parset, "");
-  auto solver = CreateRegularSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
 
   BOOST_CHECK(solver->GetLLSSolverType() == dp3::ddecal::LLSSolverType::LSMR);
   std::pair<double, double> tolerance = solver->GetLLSSolverTolerance();

@@ -12,13 +12,6 @@
 #include "gain_solvers/BdaIterativeScalarSolver.h"
 #include "gain_solvers/BdaScalarSolver.h"
 
-#include "gain_solvers/DiagonalSolver.h"
-#include "gain_solvers/FullJonesSolver.h"
-#include "gain_solvers/HybridSolver.h"
-#include "gain_solvers/IterativeDiagonalSolver.h"
-#include "gain_solvers/IterativeScalarSolver.h"
-#include "gain_solvers/ScalarSolver.h"
-
 #include "constraints/RotationConstraint.h"
 #include "constraints/RotationAndDiagonalConstraint.h"
 #ifdef HAVE_ARMADILLO
@@ -34,37 +27,12 @@ namespace ddecal {
 
 namespace {
 
-template <class SolverBaseType>
-struct SolverTypes {};
-
-template <>
-struct SolverTypes<RegularSolverBase> {
-  using Scalar = ScalarSolver;
-  using IterativeScalar = IterativeScalarSolver;
-  using Diagonal = DiagonalSolver;
-  using IterativeDiagonal = IterativeDiagonalSolver;
-  using FullJones = FullJonesSolver;
-  using Hybrid = HybridSolver;
-};
-
-template <>
-struct SolverTypes<BdaSolverBase> {
-  using Scalar = BdaScalarSolver;
-  using IterativeScalar = BdaIterativeScalarSolver;
-  using Diagonal = BdaDiagonalSolver;
-  using IterativeDiagonal = BdaIterativeDiagonalSolver;
-  using FullJones = BdaFullJonesSolver;
-  using Hybrid = BdaHybridSolver;
-};
-
-template <class SolverBaseType>
-std::unique_ptr<SolverBaseType> CreateScalarSolver(SolverAlgorithm algorithm) {
+std::unique_ptr<BdaSolverBase> CreateScalarSolver(SolverAlgorithm algorithm) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      return boost::make_unique<
-          typename SolverTypes<SolverBaseType>::IterativeScalar>();
+      return boost::make_unique<BdaIterativeScalarSolver>();
     case SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<typename SolverTypes<SolverBaseType>::Scalar>();
+      return boost::make_unique<BdaScalarSolver>();
     case SolverAlgorithm::kHybrid:
       break;  // CreateSolver should have handled this case.
   }
@@ -72,25 +40,20 @@ std::unique_ptr<SolverBaseType> CreateScalarSolver(SolverAlgorithm algorithm) {
   return nullptr;
 }
 
-template <class SolverBaseType>
-std::unique_ptr<SolverBaseType> CreateDiagonalSolver(
-    SolverAlgorithm algorithm) {
+std::unique_ptr<BdaSolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      return boost::make_unique<
-          typename SolverTypes<SolverBaseType>::IterativeDiagonal>();
+      return boost::make_unique<BdaIterativeDiagonalSolver>();
     case SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<
-          typename SolverTypes<SolverBaseType>::Diagonal>();
+      return boost::make_unique<BdaDiagonalSolver>();
     case SolverAlgorithm::kHybrid:
-      break;  // CreateSolver should have handled this case.
+      break;  // CreateSolver should have handled this case
   }
   assert(false);
   return nullptr;
 }
 
-template <class SolverBaseType>
-std::unique_ptr<SolverBaseType> CreateFullJonesSolver(
+std::unique_ptr<BdaSolverBase> CreateFullJonesSolver(
     SolverAlgorithm algorithm) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
@@ -98,8 +61,7 @@ std::unique_ptr<SolverBaseType> CreateFullJonesSolver(
           "The direction-iterating algorithm is not available for the "
           "specified solving mode");
     case SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<
-          typename SolverTypes<SolverBaseType>::FullJones>();
+      return boost::make_unique<BdaFullJonesSolver>();
     case SolverAlgorithm::kHybrid:
       break;  // CreateSolver should have handled this case.
   }
@@ -185,42 +147,41 @@ void InitializeSolver(SolverBase& solver, const Settings& settings) {
   solver.SetDetectStalling(settings.detect_stalling);
 }
 
-template <class SolverBaseType>
-std::unique_ptr<SolverBaseType> CreateSolver(const Settings& settings,
-                                             const common::ParameterSet& parset,
-                                             const std::string& prefix,
-                                             SolverAlgorithm algorithm) {
-  std::unique_ptr<SolverBaseType> solver;
+std::unique_ptr<BdaSolverBase> CreateSolver(const Settings& settings,
+                                            const common::ParameterSet& parset,
+                                            const std::string& prefix,
+                                            SolverAlgorithm algorithm) {
+  std::unique_ptr<BdaSolverBase> solver;
   switch (settings.mode) {
     case base::CalType::kScalar:
     case base::CalType::kScalarAmplitude:
-      solver = CreateScalarSolver<SolverBaseType>(algorithm);
+      solver = CreateScalarSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kScalarPhase:
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase:
-      solver = CreateScalarSolver<SolverBaseType>(algorithm);
+      solver = CreateScalarSolver(algorithm);
       solver->SetPhaseOnly(true);
       break;
     case base::CalType::kDiagonal:
     case base::CalType::kDiagonalAmplitude:
-      solver = CreateDiagonalSolver<SolverBaseType>(algorithm);
+      solver = CreateDiagonalSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kDiagonalPhase:
-      solver = CreateDiagonalSolver<SolverBaseType>(algorithm);
+      solver = CreateDiagonalSolver(algorithm);
       solver->SetPhaseOnly(true);
       break;
     case base::CalType::kFullJones:
     case base::CalType::kRotationAndDiagonal:
     case base::CalType::kRotation:
-      solver = CreateFullJonesSolver<SolverBaseType>(algorithm);
+      solver = CreateFullJonesSolver(algorithm);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kTecScreen:
 #ifdef HAVE_ARMADILLO
-      solver = CreateScalarSolver<SolverBaseType>(algorithm);
+      solver = CreateScalarSolver(algorithm);
       solver->SetPhaseOnly(true);
 #else
       throw std::runtime_error(
@@ -237,34 +198,6 @@ std::unique_ptr<SolverBaseType> CreateSolver(const Settings& settings,
 
   InitializeSolver(*solver, settings);
 
-  return solver;
-}
-
-template <class SolverBaseType>
-std::unique_ptr<SolverBaseType> CreateSolver(const Settings& settings,
-                                             const common::ParameterSet& parset,
-                                             const std::string& prefix) {
-  std::unique_ptr<SolverBaseType> solver;
-
-  if (settings.solver_algorithm == SolverAlgorithm::kHybrid) {
-    auto a = CreateSolver<SolverBaseType>(settings, parset, prefix,
-                                          SolverAlgorithm::kDirectionSolve);
-    // The max_iterations is divided by 6 to use at most 1/6th of the iterations
-    // in the first solver.
-    a->SetMaxIterations(std::max<size_t>(1u, settings.max_iterations / 6u));
-    auto b = CreateSolver<SolverBaseType>(settings, parset, prefix,
-                                          SolverAlgorithm::kDirectionIterative);
-
-    auto hybrid_solver =
-        boost::make_unique<typename SolverTypes<SolverBaseType>::Hybrid>();
-    hybrid_solver->SetMaxIterations(settings.max_iterations);
-    hybrid_solver->AddSolver(std::move(a));
-    hybrid_solver->AddSolver(std::move(b));
-    solver = std::move(hybrid_solver);
-  } else {
-    solver = CreateSolver<SolverBaseType>(settings, parset, prefix,
-                                          settings.solver_algorithm);
-  }
   return solver;
 }
 
@@ -375,16 +308,29 @@ void InitializeSmoothnessConstraint(
 
 }  // namespace
 
-std::unique_ptr<RegularSolverBase> CreateRegularSolver(
-    const Settings& settings, const common::ParameterSet& parset,
-    const std::string& prefix) {
-  return CreateSolver<RegularSolverBase>(settings, parset, prefix);
-}
+std::unique_ptr<BdaSolverBase> CreateSolver(const Settings& settings,
+                                            const common::ParameterSet& parset,
+                                            const std::string& prefix) {
+  std::unique_ptr<BdaSolverBase> solver;
 
-std::unique_ptr<BdaSolverBase> CreateBdaSolver(
-    const Settings& settings, const common::ParameterSet& parset,
-    const std::string& prefix) {
-  return CreateSolver<BdaSolverBase>(settings, parset, prefix);
+  if (settings.solver_algorithm == SolverAlgorithm::kHybrid) {
+    std::unique_ptr<BdaSolverBase> a = CreateSolver(
+        settings, parset, prefix, SolverAlgorithm::kDirectionSolve);
+    // The max_iterations is divided by 6 to use at most 1/6th of the iterations
+    // in the first solver.
+    a->SetMaxIterations(std::max<size_t>(1u, settings.max_iterations / 6u));
+    std::unique_ptr<BdaSolverBase> b = CreateSolver(
+        settings, parset, prefix, SolverAlgorithm::kDirectionIterative);
+
+    auto hybrid_solver = boost::make_unique<BdaHybridSolver>();
+    hybrid_solver->SetMaxIterations(settings.max_iterations);
+    hybrid_solver->AddSolver(std::move(a));
+    hybrid_solver->AddSolver(std::move(b));
+    solver = std::move(hybrid_solver);
+  } else {
+    solver = CreateSolver(settings, parset, prefix, settings.solver_algorithm);
+  }
+  return solver;
 }
 
 void InitializeSolverConstraints(
