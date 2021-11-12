@@ -103,7 +103,7 @@ class DPBuffer {
   using Complex = std::complex<float>;
 
   /// Construct object with empty arrays.
-  DPBuffer();
+  explicit DPBuffer(double time = 0.0, double exposure = 0.0);
 
   /// The copy constructor uses reference copies.
   DPBuffer(const DPBuffer&);

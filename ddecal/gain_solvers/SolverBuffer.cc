@@ -27,6 +27,7 @@ void SolverBuffer::AssignAndWeight(
     const std::vector<DPBuffer>& unweighted_data_buffers,
     std::vector<std::vector<DPBuffer>>&& model_buffers) {
   const size_t n_times = model_buffers.size();
+  assert(unweighted_data_buffers.size() >= n_times);
   data_.resize(n_times);
   model_buffers_ = std::move(model_buffers);
 
