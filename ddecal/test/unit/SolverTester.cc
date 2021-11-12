@@ -67,7 +67,6 @@ SolverTester::SolverTester()
       antennas2_(),
       input_solutions_(kNAntennas * kNDirections * 2),
       solver_solutions_(kNChannelBlocks),
-      solver_buffer_(),
 
       // Set the solution interval so that all data is in the first interval.
       bda_solver_buffer_(kNDirections, -1.0, kNBDATimes + 1.0, kNBaselines) {
@@ -79,78 +78,6 @@ SolverTester::SolverTester()
       antennas2_.push_back(ant2);
     }
   }
-}
-
-const SolverBuffer& SolverTester::FillData(size_t n_times) {
-  std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
-  std::mt19937 mt(0);
-  std::vector<std::vector<DPBuffer>> model_buffers;
-
-  for (size_t timestep = 0; timestep != n_times; ++timestep) {
-    data_buffers_.emplace_back();
-    data_buffers_.back().setData(casacore::Cube<std::complex<float>>(
-        kNPolarizations, kNChannels, kNBaselines, 0));
-    data_buffers_.back().setWeights(
-        casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 0));
-
-    casacore::Cube<std::complex<float>>& time_data =
-        data_buffers_.back().getData();
-    casacore::Cube<float> time_weights = data_buffers_.back().getWeights();
-
-    model_buffers.emplace_back();
-    std::vector<DPBuffer>& model_time_buffers = model_buffers.back();
-
-    for (size_t d = 0; d != kNDirections; ++d) {
-      model_time_buffers.emplace_back();
-      model_time_buffers.back().setData(casacore::Cube<std::complex<float>>(
-          kNPolarizations, kNChannels, kNBaselines));
-      std::complex<float>* this_direction =
-          model_time_buffers.back().getData().data();
-
-      for (size_t bl = 0; bl != kNBaselines; ++bl) {
-        for (size_t ch = 0; ch != kNChannels; ++ch) {
-          const size_t matrix_index = (bl * kNChannels + ch) * 4;
-          this_direction[matrix_index + 0] =
-              std::complex<float>(uniform_data(mt), uniform_data(mt));
-          this_direction[matrix_index + 1] =
-              std::complex<float>(uniform_data(mt), uniform_data(mt)) * 0.1f;
-          this_direction[matrix_index + 2] =
-              std::complex<float>(uniform_data(mt), uniform_data(mt)) * 0.1f;
-          this_direction[matrix_index + 3] =
-              std::complex<float>(uniform_data(mt), uniform_data(mt)) * 1.5f;
-        }
-      }
-    }
-    size_t baseline_index = 0;
-    for (size_t a1 = 0; a1 != kNAntennas; ++a1) {
-      for (size_t a2 = a1 + 1; a2 != kNAntennas; ++a2) {
-        for (size_t ch = 0; ch != kNChannels; ++ch) {
-          MC2x2 perturbed_model = MC2x2::Zero();
-          for (size_t d = 0; d != kNDirections; ++d) {
-            MC2x2 val(&model_time_buffers[d].getData()(0, ch, baseline_index));
-            MC2x2 left(input_solutions_[(a1 * kNDirections + d) * 2 + 0], 0.0,
-                       0.0, input_solutions_[(a1 * kNDirections + d) * 2 + 1]);
-            MC2x2 right(input_solutions_[(a2 * kNDirections + d) * 2 + 0], 0.0,
-                        0.0, input_solutions_[(a2 * kNDirections + d) * 2 + 1]);
-            MC2x2 res;
-            MC2x2::ATimesB(res, left, val);
-            // Use 'left' as scratch for the result.
-            MC2x2::ATimesHermB(left, res, right);
-            perturbed_model += left;
-          }
-          for (size_t p = 0; p != 4; ++p) {
-            time_data(p, ch, baseline_index) = perturbed_model[p];
-            time_weights(p, ch, baseline_index) = 1.0;
-          }
-        }
-        ++baseline_index;
-      }
-    }
-  }
-
-  solver_buffer_.AssignAndWeight(data_buffers_, std::move(model_buffers));
-
-  return solver_buffer_;
 }
 
 const BdaSolverBuffer& SolverTester::FillBDAData() {

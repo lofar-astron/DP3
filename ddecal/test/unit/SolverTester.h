@@ -6,7 +6,6 @@
 
 #include "../../../base/DPBuffer.h"
 #include "../../../ddecal/gain_solvers/BdaSolverBuffer.h"
-#include "../../../ddecal/gain_solvers/SolverBuffer.h"
 
 #include <aocommon/uvector.h>
 
@@ -29,13 +28,6 @@ namespace test {
 class SolverTester {
  public:
   SolverTester();
-
-  /**
-   * Creates regular data, for testing regular solvers.
-   * @param n_times Number of time steps to generate.
-   * @return The internal solver buffer that contains the data.
-   */
-  const ddecal::SolverBuffer& FillData(size_t n_times = kNRegularTimes);
 
   /**
    * Creates BDA data, for testing BDA solvers.
@@ -94,9 +86,6 @@ class SolverTester {
   static constexpr size_t kNDirections = 3;
   static constexpr size_t kNChannels = 10;
   static constexpr size_t kNChannelBlocks = 4;
-  static constexpr size_t kNRegularTimes = 50;
-  // Use more times with BDA so the number of visibilities is similar to the
-  // regular data.
   static constexpr size_t kNBDATimes = 128;
   static constexpr size_t kNBaselines = kNAntennas * (kNAntennas - 1) / 2;
 
@@ -114,10 +103,6 @@ class SolverTester {
   std::vector<int> antennas2_;
   std::vector<std::complex<float>> input_solutions_;
   std::vector<std::vector<std::complex<double>>> solver_solutions_;
-
-  std::vector<base::DPBuffer> data_buffers_;
-  std::vector<std::vector<base::DPBuffer>> model_buffer_store_;
-  SolverBuffer solver_buffer_;
 
   BdaSolverBuffer bda_solver_buffer_;
 };

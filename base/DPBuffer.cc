@@ -18,7 +18,8 @@
 namespace dp3 {
 namespace base {
 
-DPBuffer::DPBuffer() : itsTime(0), itsExposure(0) {}
+DPBuffer::DPBuffer(double time, double exposure)
+    : itsTime(time), itsExposure(exposure) {}
 
 DPBuffer::DPBuffer(const DPBuffer& that) { operator=(that); }
 
