@@ -323,17 +323,11 @@ add_library(
   ddecal/constraints/TECConstraint.cc
   ddecal/gain_solvers/BdaDiagonalSolver.cc
   ddecal/gain_solvers/BdaFullJonesSolver.cc
+  ddecal/gain_solvers/BdaHybridSolver.cc
   ddecal/gain_solvers/BdaSolverBuffer.cc
   ddecal/gain_solvers/BdaIterativeDiagonalSolver.cc
   ddecal/gain_solvers/BdaIterativeScalarSolver.cc
   ddecal/gain_solvers/BdaScalarSolver.cc
-  ddecal/gain_solvers/DiagonalSolver.cc
-  ddecal/gain_solvers/FullJonesSolver.cc
-  ddecal/gain_solvers/HybridSolver.cc
-  ddecal/gain_solvers/IterativeDiagonalSolver.cc
-  ddecal/gain_solvers/IterativeScalarSolver.cc
-  ddecal/gain_solvers/RegularSolverBase.cc
-  ddecal/gain_solvers/ScalarSolver.cc
   ddecal/gain_solvers/SolveData.cc
   ddecal/gain_solvers/SolverBase.cc
   ddecal/gain_solvers/SolverBuffer.cc
