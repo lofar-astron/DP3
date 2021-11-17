@@ -1,10 +1,10 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DDECAL_BDA_HYBRID_SOLVER_H
-#define DDECAL_BDA_HYBRID_SOLVER_H
+#ifndef DDECAL_HYBRID_SOLVER_H
+#define DDECAL_HYBRID_SOLVER_H
 
-#include "BdaSolverBase.h"
+#include "SolverBase.h"
 
 namespace dp3 {
 namespace ddecal {
@@ -21,14 +21,14 @@ namespace ddecal {
  * values are quite off, and switches to faster solvers when approaching the
  * correct solutions.
  */
-class BdaHybridSolver final : public BdaSolverBase {
+class HybridSolver final : public SolverBase {
  public:
-  BdaHybridSolver() : stop_on_convergence_(false) {}
+  HybridSolver() : stop_on_convergence_(false) {}
 
   void Initialize(size_t n_antennas, size_t n_directions,
                   size_t n_channel_blocks) override {
-    BdaSolverBase::Initialize(n_antennas, n_directions, n_channel_blocks);
-    for (const std::pair<std::unique_ptr<BdaSolverBase>, size_t>& solver_info :
+    SolverBase::Initialize(n_antennas, n_directions, n_channel_blocks);
+    for (const std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
          solvers_) {
       solver_info.first->Initialize(n_antennas, n_directions, n_channel_blocks);
     }
@@ -40,8 +40,8 @@ class BdaHybridSolver final : public BdaSolverBase {
   }
 
   void SetNThreads(size_t n_threads) override {
-    BdaSolverBase::SetNThreads(n_threads);
-    for (std::pair<std::unique_ptr<BdaSolverBase>, size_t>& solver_info :
+    SolverBase::SetNThreads(n_threads);
+    for (std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
          solvers_) {
       solver_info.first->SetNThreads(n_threads);
     }
@@ -52,7 +52,7 @@ class BdaHybridSolver final : public BdaSolverBase {
    * be called, and each solver should have its maximum number of iterations set
    * before adding it.
    */
-  void AddSolver(std::unique_ptr<BdaSolverBase> solver);
+  void AddSolver(std::unique_ptr<SolverBase> solver);
 
   /**
    * List of solvers that need constraint initialization. This
@@ -82,13 +82,13 @@ class BdaHybridSolver final : public BdaSolverBase {
                     std::ostream* stat_stream) override;
 
  private:
-  bool RunSolver(BdaSolverBase& solver, size_t& available_iterations,
+  bool RunSolver(SolverBase& solver, size_t& available_iterations,
                  SolveResult& result, const SolveData& solve_data,
                  std::vector<std::vector<DComplex>>& solutions, double time,
                  std::ostream* stat_stream);
 
   // List of solvers with their maximum number of iterations
-  std::vector<std::pair<std::unique_ptr<BdaSolverBase>, size_t>> solvers_;
+  std::vector<std::pair<std::unique_ptr<SolverBase>, size_t>> solvers_;
   bool stop_on_convergence_;
 };
 

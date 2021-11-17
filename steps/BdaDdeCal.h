@@ -8,7 +8,7 @@
 #include "../ddecal/Settings.h"
 #include "../ddecal/SolutionWriter.h"
 #include "../ddecal/gain_solvers/BdaSolverBuffer.h"
-#include "../ddecal/gain_solvers/BdaSolverBase.h"
+#include "../ddecal/gain_solvers/SolverBase.h"
 
 namespace dp3 {
 namespace steps {
@@ -136,7 +136,7 @@ class BdaDdeCal : public Step {
    */
   std::unique_ptr<ddecal::BdaSolverBuffer> solver_buffer_;
 
-  std::unique_ptr<ddecal::BdaSolverBase> solver_;
+  std::unique_ptr<ddecal::SolverBase> solver_;
 
   /** The solution interval, in seconds. */
   double solution_interval_;

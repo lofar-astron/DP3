@@ -24,7 +24,7 @@
 #include "../ddecal/Settings.h"
 #include "../ddecal/SolutionWriter.h"
 #include "../ddecal/constraints/Constraint.h"
-#include "../ddecal/gain_solvers/BdaSolverBase.h"
+#include "../ddecal/gain_solvers/SolverBase.h"
 
 #include "../parmdb/Parm.h"
 
@@ -177,7 +177,7 @@ class DDECal : public Step {
   common::NSTimer itsTimerSolve;
   common::NSTimer itsTimerWrite;
   std::mutex itsMeasuresMutex;
-  std::unique_ptr<ddecal::BdaSolverBase> itsSolver;
+  std::unique_ptr<ddecal::SolverBase> itsSolver;
   std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;
 };

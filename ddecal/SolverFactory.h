@@ -21,12 +21,10 @@ namespace ddecal {
 
 class Settings;
 class SolverBase;
-class RegularSolverBase;
-class BdaSolverBase;
 
-std::unique_ptr<BdaSolverBase> CreateSolver(const Settings& settings,
-                                            const common::ParameterSet& parset,
-                                            const std::string& prefix);
+std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
+                                         const common::ParameterSet& parset,
+                                         const std::string& prefix);
 
 /**
  * Initializes all constraints for a given solver.

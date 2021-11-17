@@ -13,11 +13,11 @@
 
 #include "../../constraints/SmoothnessConstraint.h"
 #include "../../constraints/TECConstraint.h"
-#include "../../gain_solvers/BdaDiagonalSolver.h"
-#include "../../gain_solvers/BdaFullJonesSolver.h"
-#include "../../gain_solvers/BdaIterativeScalarSolver.h"
-#include "../../gain_solvers/BdaIterativeDiagonalSolver.h"
-#include "../../gain_solvers/BdaScalarSolver.h"
+#include "../../gain_solvers/DiagonalSolver.h"
+#include "../../gain_solvers/FullJonesSolver.h"
+#include "../../gain_solvers/IterativeScalarSolver.h"
+#include "../../gain_solvers/IterativeDiagonalSolver.h"
+#include "../../gain_solvers/ScalarSolver.h"
 
 #include "../../../common/ParameterSet.h"
 
@@ -86,10 +86,10 @@ BOOST_DATA_TEST_CASE(scalar_type,
                      mode) {
 #endif
   dp3::common::ParameterSet parset = ParsetForMode(mode);
-  CheckSolverType<dp3::ddecal::BdaScalarSolver>(parset);
+  CheckSolverType<dp3::ddecal::ScalarSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
-  CheckSolverType<dp3::ddecal::BdaIterativeScalarSolver>(parset);
+  CheckSolverType<dp3::ddecal::IterativeScalarSolver>(parset);
 }
 
 BOOST_DATA_TEST_CASE(diagonal_type,
@@ -97,23 +97,21 @@ BOOST_DATA_TEST_CASE(diagonal_type,
                          {"diagonal", "diagonalamplitude", "diagonalphase"}),
                      mode) {
   dp3::common::ParameterSet parset = ParsetForMode(mode);
-  CheckSolverType<dp3::ddecal::BdaDiagonalSolver>(parset);
+  CheckSolverType<dp3::ddecal::DiagonalSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
-  CheckSolverType<dp3::ddecal::BdaIterativeDiagonalSolver>(parset);
+  CheckSolverType<dp3::ddecal::IterativeDiagonalSolver>(parset);
 }
 
 BOOST_DATA_TEST_CASE(fulljones_type,
                      boost::unit_test::data::make(
                          {"fulljones", "rotation+diagonal", "rotation"}),
                      mode) {
-  // Currently, only the regular non-iterative full-jones solver is implemented.
-  // Requesting other full jones solvers (bda / iterative) raises an exception.
-  // Please also update other tests below when more full jones solvers become
-  // available, since they now skip those tests.
+  // Currently, only the non-iterative full-jones solver is implemented.
+  // Requesting the iterative full jones solver raises an exception.
 
   dp3::common::ParameterSet parset = ParsetForMode(mode);
-  CheckSolverType<dp3::ddecal::BdaFullJonesSolver>(parset);
+  CheckSolverType<dp3::ddecal::FullJonesSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
   const Settings settings_iterative(parset, "");

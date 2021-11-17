@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "BdaScalarSolver.h"
+#include "ScalarSolver.h"
 #include "SolveData.h"
 
 #include "../linear_solvers/LLSSolver.h"
@@ -16,7 +16,7 @@
 namespace dp3 {
 namespace ddecal {
 
-BdaScalarSolver::SolveResult BdaScalarSolver::Solve(
+ScalarSolver::SolveResult ScalarSolver::Solve(
     const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   assert(solutions.size() == NChannelBlocks());
@@ -110,11 +110,13 @@ BdaScalarSolver::SolveResult BdaScalarSolver::Solve(
   return result;
 }
 
-void BdaScalarSolver::PerformIteration(
-    const SolveData::ChannelBlockData& cb_data, std::vector<Matrix>& g_times_cs,
-    std::vector<Matrix>& vs, const std::vector<DComplex>& solutions,
-    std::vector<DComplex>& next_solutions, double iteration_fraction,
-    double solver_precision) {
+void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
+                                    std::vector<Matrix>& g_times_cs,
+                                    std::vector<Matrix>& vs,
+                                    const std::vector<DComplex>& solutions,
+                                    std::vector<DComplex>& next_solutions,
+                                    double iteration_fraction,
+                                    double solver_precision) {
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     g_times_cs[ant].SetZero();
     vs[ant].SetZero();

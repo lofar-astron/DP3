@@ -1,7 +1,7 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "BdaFullJonesSolver.h"
+#include "FullJonesSolver.h"
 
 #include "../linear_solvers/QRSolver.h"
 
@@ -15,7 +15,7 @@
 namespace dp3 {
 namespace ddecal {
 
-BdaFullJonesSolver::SolveResult BdaFullJonesSolver::Solve(
+FullJonesSolver::SolveResult FullJonesSolver::Solve(
     const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   // This algorithm is basically the same as the scalar algorithm,
@@ -135,7 +135,7 @@ BdaFullJonesSolver::SolveResult BdaFullJonesSolver::Solve(
   return result;
 }
 
-void BdaFullJonesSolver::PerformIteration(
+void FullJonesSolver::PerformIteration(
     const SolveData::ChannelBlockData& cb_data, std::vector<Matrix>& g_times_cs,
     std::vector<Matrix>& vs, const std::vector<DComplex>& solutions,
     std::vector<DComplex>& next_solutions) {
@@ -161,7 +161,7 @@ void BdaFullJonesSolver::PerformIteration(
 
   // Using a single loop that fills both vs and g_times_cs is possible and it
   // would remove the duplicate code for ant1_positions and ant2_positions.
-  // However, a performance test using the bda_solvers/full_jones unit test
+  // However, a performance test using the solvers/full_jones unit test
   // showed that using separate loops for each set of visibilities is slightly
   // faster. Using 1 thread (by adjusting kNThreads in SolverTester.h), the
   // total time spent in these loops was as follows:

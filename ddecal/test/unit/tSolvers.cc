@@ -3,12 +3,12 @@
 
 #include "SolverTester.h"
 
-#include "../../gain_solvers/BdaDiagonalSolver.h"
-#include "../../gain_solvers/BdaFullJonesSolver.h"
-#include "../../gain_solvers/BdaHybridSolver.h"
-#include "../../gain_solvers/BdaIterativeDiagonalSolver.h"
-#include "../../gain_solvers/BdaIterativeScalarSolver.h"
-#include "../../gain_solvers/BdaScalarSolver.h"
+#include "../../gain_solvers/DiagonalSolver.h"
+#include "../../gain_solvers/FullJonesSolver.h"
+#include "../../gain_solvers/HybridSolver.h"
+#include "../../gain_solvers/IterativeDiagonalSolver.h"
+#include "../../gain_solvers/IterativeScalarSolver.h"
+#include "../../gain_solvers/ScalarSolver.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
@@ -17,13 +17,13 @@
 using dp3::ddecal::LLSSolverType;
 using dp3::ddecal::test::SolverTester;
 
-// The BDA solvers test suite contains tests that run using a separate
+// The solver test suite contains tests that run using a separate
 // ctest test, since they take much time. These tests have the 'slow' label.
-BOOST_AUTO_TEST_SUITE(bda_solvers)
+BOOST_AUTO_TEST_SUITE(solvers)
 
 BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaDiagonalSolver solver;
+  dp3::ddecal::DiagonalSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
 
@@ -46,7 +46,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaScalarSolver solver;
+  dp3::ddecal::ScalarSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
 
@@ -69,7 +69,7 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaIterativeScalarSolver solver;
+  dp3::ddecal::IterativeScalarSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
 
@@ -94,14 +94,14 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
                         *boost::unit_test::label("slow")) {
-  auto direction_solver = boost::make_unique<dp3::ddecal::BdaScalarSolver>();
+  auto direction_solver = boost::make_unique<dp3::ddecal::ScalarSolver>();
   direction_solver->SetMaxIterations(kMaxIterations / 10);
 
   auto iterative_solver =
-      boost::make_unique<dp3::ddecal::BdaIterativeScalarSolver>();
+      boost::make_unique<dp3::ddecal::IterativeScalarSolver>();
   iterative_solver->SetMaxIterations(kMaxIterations);
 
-  dp3::ddecal::BdaHybridSolver solver;
+  dp3::ddecal::HybridSolver solver;
   solver.AddSolver(std::move(iterative_solver));
   solver.AddSolver(std::move(direction_solver));
   InitializeSolver(solver);
@@ -126,7 +126,7 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaIterativeDiagonalSolver solver;
+  dp3::ddecal::IterativeDiagonalSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
 
@@ -151,7 +151,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaFullJonesSolver solver;
+  dp3::ddecal::FullJonesSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR, 0.0, 0.0);
   solver.AddConstraint(boost::make_unique<dp3::ddecal::DiagonalConstraint>(4));
@@ -201,7 +201,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaScalarSolver solver;
+  dp3::ddecal::ScalarSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::NORMAL_EQUATIONS, 0.0, 0.0);
 
@@ -225,7 +225,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
 #ifdef USE_LSMR
 BOOST_FIXTURE_TEST_CASE(scalar_lsmr, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaScalarSolver solver;
+  dp3::ddecal::ScalarSolver solver;
   InitializeSolver(solver);
   solver.SetAccuracy(1e-9);
   solver.SetLLSSolverType(LLSSolverType::LSMR, 1.0E-2, 1.0E-2);
@@ -249,7 +249,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_lsmr, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(diagonal_lsmr, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaDiagonalSolver solver;
+  dp3::ddecal::DiagonalSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::LSMR, 1.0E-7, 1.0E-2);
 
@@ -273,7 +273,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_lsmr, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(min_iterations, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::BdaIterativeScalarSolver solver;
+  dp3::ddecal::IterativeScalarSolver solver;
   InitializeSolver(solver);
   solver.SetMinIterations(10);
   // very large tolerance on purpose to stop directly once min iters are reached
