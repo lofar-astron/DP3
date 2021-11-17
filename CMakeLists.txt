@@ -321,13 +321,13 @@ add_library(
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
-  ddecal/gain_solvers/BdaDiagonalSolver.cc
-  ddecal/gain_solvers/BdaFullJonesSolver.cc
-  ddecal/gain_solvers/BdaHybridSolver.cc
   ddecal/gain_solvers/BdaSolverBuffer.cc
-  ddecal/gain_solvers/BdaIterativeDiagonalSolver.cc
-  ddecal/gain_solvers/BdaIterativeScalarSolver.cc
-  ddecal/gain_solvers/BdaScalarSolver.cc
+  ddecal/gain_solvers/DiagonalSolver.cc
+  ddecal/gain_solvers/FullJonesSolver.cc
+  ddecal/gain_solvers/HybridSolver.cc
+  ddecal/gain_solvers/IterativeDiagonalSolver.cc
+  ddecal/gain_solvers/IterativeScalarSolver.cc
+  ddecal/gain_solvers/ScalarSolver.cc
   ddecal/gain_solvers/SolveData.cc
   ddecal/gain_solvers/SolverBase.cc
   ddecal/gain_solvers/SolverBuffer.cc
@@ -531,12 +531,12 @@ if(BUILD_TESTING)
       base/test/unit/tUvwCalculator.cc
       ddecal/test/unit/SolverTester.cc
       ddecal/test/unit/tBdaSolverBuffer.cc
-      ddecal/test/unit/tBdaSolvers.cc
       ddecal/test/unit/tLinearSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc
       ddecal/test/unit/tSolverFactory.cc
+      ddecal/test/unit/tSolvers.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
       steps/test/unit/tAOFlaggerStep.cc
@@ -643,21 +643,21 @@ if(BUILD_TESTING)
   # ctest can run them in parallel. Unfortunately there is no easy means of
   # retreiving a list of all slow tests.
   set(SLOW_TESTS
-      bda_solvers/scalar
-      bda_solvers/scalar_normaleq
-      bda_solvers/diagonal
-      bda_solvers/iterative_scalar
-      bda_solvers/iterative_diagonal
-      bda_solvers/full_jones
-      bda_solvers/hybrid
-      bda_solvers/min_iterations
       idgpredict/process
       idgpredict/process_beam
       msbdawriter/process_simple
       msbdawriter/create_default_subtables
-      msbdawriter/different_bda_intervals)
+      msbdawriter/different_bda_intervals
+      solvers/scalar
+      solvers/scalar_normaleq
+      solvers/diagonal
+      solvers/iterative_scalar
+      solvers/iterative_diagonal
+      solvers/full_jones
+      solvers/hybrid
+      solvers/min_iterations)
   if(USE_LSMR)
-    list(APPEND SLOW_TESTS bda_solvers/scalar_lsmr bda_solvers/diagonal_lsmr)
+    list(APPEND SLOW_TESTS solvers/scalar_lsmr solvers/diagonal_lsmr)
   endif()
 
   foreach(TEST ${SLOW_TESTS})

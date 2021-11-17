@@ -1,18 +1,18 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DDECAL_BDA_DIAGONAL_SOLVER_H
-#define DDECAL_BDA_DIAGONAL_SOLVER_H
+#ifndef DDECAL_DIAGONAL_SOLVER_H
+#define DDECAL_DIAGONAL_SOLVER_H
 
-#include "BdaSolverBase.h"
+#include "SolverBase.h"
 #include "SolveData.h"
 
 namespace dp3 {
 namespace ddecal {
 
-class BdaDiagonalSolver final : public BdaSolverBase {
+class DiagonalSolver final : public SolverBase {
  public:
-  BdaDiagonalSolver() : BdaSolverBase() {}
+  DiagonalSolver() : SolverBase() {}
 
   SolveResult Solve(const SolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,

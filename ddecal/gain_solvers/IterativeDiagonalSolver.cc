@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "BdaIterativeScalarSolver.h"
+#include "IterativeDiagonalSolver.h"
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
@@ -12,7 +12,7 @@
 namespace dp3 {
 namespace ddecal {
 
-BdaIterativeScalarSolver::SolveResult BdaIterativeScalarSolver::Solve(
+IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
     const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
@@ -22,11 +22,10 @@ BdaIterativeScalarSolver::SolveResult BdaIterativeScalarSolver::Solve(
   SolveResult result;
 
   // Visibility vector ch_block x Nvis
-  constexpr size_t n_solution_pols = 1;
   std::vector<std::vector<aocommon::MC2x2F>> v_residual(n_channel_blocks_);
   // The following loop allocates all structures
   for (size_t ch_block = 0; ch_block != n_channel_blocks_; ++ch_block) {
-    next_solutions[ch_block].resize(n_directions_ * n_antennas_);
+    next_solutions[ch_block].resize(NDirections() * NAntennas() * 2);
     v_residual[ch_block].resize(data.ChannelBlock(ch_block).NVisibilities());
   }
 
@@ -42,7 +41,7 @@ BdaIterativeScalarSolver::SolveResult BdaIterativeScalarSolver::Solve(
   step_magnitudes.reserve(max_iterations_);
 
   do {
-    MakeSolutionsFinite1Pol(solutions);
+    MakeSolutionsFinite2Pol(solutions);
 
     aocommon::ParallelFor<size_t> loop(n_threads_);
     loop.Run(0, n_channel_blocks_, [&](size_t ch_block, size_t /*thread*/) {
@@ -57,6 +56,7 @@ BdaIterativeScalarSolver::SolveResult BdaIterativeScalarSolver::Solve(
                          next_solutions, stat_stream);
 
     double avg_squared_diff;
+    constexpr size_t n_solution_pols = 2;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
                         avg_squared_diff, step_magnitudes, n_solution_pols);
@@ -76,7 +76,7 @@ BdaIterativeScalarSolver::SolveResult BdaIterativeScalarSolver::Solve(
   return result;
 }
 
-void BdaIterativeScalarSolver::PerformIteration(
+void IterativeDiagonalSolver::PerformIteration(
     const SolveData::ChannelBlockData& cb_data,
     std::vector<aocommon::MC2x2F>& v_residual,
     const std::vector<DComplex>& solutions,
@@ -85,12 +85,12 @@ void BdaIterativeScalarSolver::PerformIteration(
   std::copy(cb_data.DataBegin(), cb_data.DataEnd(), v_residual.begin());
 
   // Subtract all directions with their current solutions
-  for (size_t direction = 0; direction != n_directions_; ++direction)
+  for (size_t direction = 0; direction != NDirections(); ++direction)
     AddOrSubtractDirection<false>(cb_data, v_residual, direction, solutions);
 
   const std::vector<aocommon::MC2x2F> v_copy = v_residual;
 
-  for (size_t direction = 0; direction != n_directions_; ++direction) {
+  for (size_t direction = 0; direction != NDirections(); ++direction) {
     // Be aware that we purposely still use the subtraction with 'old'
     // solutions, because the new solutions have not been constrained yet. Add
     // this direction back before solving
@@ -101,7 +101,7 @@ void BdaIterativeScalarSolver::PerformIteration(
   }
 }
 
-void BdaIterativeScalarSolver::SolveDirection(
+void IterativeDiagonalSolver::SolveDirection(
     const SolveData::ChannelBlockData& cb_data,
     const std::vector<aocommon::MC2x2F>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions,
@@ -112,8 +112,9 @@ void BdaIterativeScalarSolver::SolveDirection(
   // sol_a =  ----------------------------------------
   //             sum_b norm(model_ab * solutions_b)
 
-  std::vector<std::complex<double>> numerator(n_antennas_, 0.0);
-  std::vector<double> denominator(n_antennas_, 0.0);
+  std::vector<aocommon::MC2x2FDiag> numerator(NAntennas(),
+                                              aocommon::MC2x2FDiag::Zero());
+  std::vector<float> denominator(NAntennas() * 2, 0.0);
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
@@ -122,37 +123,58 @@ void BdaIterativeScalarSolver::SolveDirection(
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const size_t antenna1 = cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = cb_data.Antenna2Index(vis_index);
-    const Complex solution_ant1 =
-        Complex(solutions[antenna1 * n_directions_ + direction]);
-    const Complex solution_ant2 =
-        Complex(solutions[antenna2 * n_directions_ + direction]);
+    const DComplex* solution_ant1 =
+        &solutions[(antenna1 * NDirections() + direction) * 2];
+    const DComplex* solution_ant2 =
+        &solutions[(antenna2 * NDirections() + direction) * 2];
     const aocommon::MC2x2F& data = v_residual[vis_index];
     const aocommon::MC2x2F& model = model_vector[vis_index];
 
     // Calculate the contribution of this baseline for antenna1
-    const aocommon::MC2x2F cor_model_herm1(HermTranspose(model) *
-                                           solution_ant2);
-    numerator[antenna1] += Trace(data * cor_model_herm1);
-    denominator[antenna1] += Norm(cor_model_herm1);
+    const aocommon::MC2x2FDiag solution1{Complex(solution_ant2[0]),
+                                         Complex(solution_ant2[1])};
+    const aocommon::MC2x2F cor_model_transp1(solution1 * HermTranspose(model));
+    numerator[antenna1] += Diagonal(data * cor_model_transp1);
+    // The indices (0, 2 / 1, 3) are following from the fact that we want
+    // the contribution of antenna2's "X" polarization, and the matrix is
+    // ordered [ XX XY / YX YY ].
+    denominator[antenna1 * 2] +=
+        std::norm(cor_model_transp1[0]) + std::norm(cor_model_transp1[2]);
+    denominator[antenna1 * 2 + 1] +=
+        std::norm(cor_model_transp1[1]) + std::norm(cor_model_transp1[3]);
 
     // Calculate the contribution of this baseline for antenna2
-    const aocommon::MC2x2F cor_model2(model * solution_ant1);
-    numerator[antenna2] += Trace(HermTranspose(data) * cor_model2);
-    denominator[antenna2] += Norm(cor_model2);
+    // data_ba = data_ab^H, etc., therefore, numerator and denominator
+    // become:
+    // - num = data_ab^H * solutions_a * model_ab
+    // - den = norm(model_ab^H * solutions_a)
+    const aocommon::MC2x2FDiag solution2{Complex(solution_ant1[0]),
+                                         Complex(solution_ant1[1])};
+    const aocommon::MC2x2F cor_model2(solution2 * model);
+
+    numerator[antenna2] += Diagonal(HermTranspose(data) * cor_model2);
+    denominator[antenna2 * 2] +=
+        std::norm(cor_model2[0]) + std::norm(cor_model2[2]);
+    denominator[antenna2 * 2 + 1] +=
+        std::norm(cor_model2[1]) + std::norm(cor_model2[3]);
   }
 
-  for (size_t ant = 0; ant != n_antennas_; ++ant) {
-    DComplex& destination = next_solutions[ant * n_directions_ + direction];
+  for (size_t ant = 0; ant != NAntennas(); ++ant) {
+    DComplex* destination =
+        &next_solutions[(ant * NDirections() + direction) * 2];
 
-    if (denominator[ant] == 0.0)
-      destination = std::numeric_limits<float>::quiet_NaN();
-    else
-      destination = numerator[ant] / denominator[ant];
+    for (size_t pol = 0; pol != 2; ++pol) {
+      if (denominator[ant * 2 + pol] == 0.0)
+        destination[pol] = std::numeric_limits<double>::quiet_NaN();
+      else
+        destination[pol] =
+            DComplex(numerator[ant][pol]) / double(denominator[ant * 2 + pol]);
+    }
   }
 }
 
 template <bool Add>
-void BdaIterativeScalarSolver::AddOrSubtractDirection(
+void IterativeDiagonalSolver::AddOrSubtractDirection(
     const SolveData::ChannelBlockData& cb_data,
     std::vector<aocommon::MC2x2F>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions) {
@@ -162,22 +184,26 @@ void BdaIterativeScalarSolver::AddOrSubtractDirection(
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const size_t antenna1 = cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = cb_data.Antenna2Index(vis_index);
-    const Complex solution1(solutions[antenna1 * n_directions_ + direction]);
-    const Complex solution2Conj =
-        std::conj(Complex(solutions[antenna2 * n_directions_ + direction]));
+    const DComplex* solution1 =
+        &solutions[(antenna1 * NDirections() + direction) * 2];
+    const DComplex* solution2 =
+        &solutions[(antenna2 * NDirections() + direction) * 2];
+    const Complex solution1_0(solution1[0]);
+    const Complex solution1_1(solution1[1]);
+    const Complex solution2_0_conj(std::conj(solution2[0]));
+    const Complex solution2_1_conj(std::conj(solution2[1]));
+
     aocommon::MC2x2F& data = v_residual[vis_index];
     const aocommon::MC2x2F& model = model_vector[vis_index];
-    if (Add) {
-      data[0] += solution1 * model[0] * solution2Conj;
-      data[1] += solution1 * model[1] * solution2Conj;
-      data[2] += solution1 * model[2] * solution2Conj;
-      data[3] += solution1 * model[3] * solution2Conj;
-    } else {
-      data[0] -= solution1 * model[0] * solution2Conj;
-      data[1] -= solution1 * model[1] * solution2Conj;
-      data[2] -= solution1 * model[2] * solution2Conj;
-      data[3] -= solution1 * model[3] * solution2Conj;
-    }
+    const aocommon::MC2x2F contribution(
+        solution1_0 * model[0] * solution2_0_conj,
+        solution1_0 * model[1] * solution2_1_conj,
+        solution1_1 * model[2] * solution2_0_conj,
+        solution1_1 * model[3] * solution2_1_conj);
+    if (Add)
+      data += contribution;
+    else
+      data -= contribution;
   }
 }
 

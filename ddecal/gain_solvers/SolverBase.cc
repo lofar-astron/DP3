@@ -5,6 +5,8 @@
 
 #include <aocommon/parallelfor.h>
 #include <aocommon/matrix2x2.h>
+
+#include <algorithm>
 #include <iostream>
 
 using aocommon::ParallelFor;

@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "BdaDiagonalSolver.h"
+#include "DiagonalSolver.h"
 #include "SolveData.h"
 
 #include "../linear_solvers/LLSSolver.h"
@@ -18,7 +18,7 @@ using aocommon::ParallelFor;
 namespace dp3 {
 namespace ddecal {
 
-BdaDiagonalSolver::SolveResult BdaDiagonalSolver::Solve(
+DiagonalSolver::SolveResult DiagonalSolver::Solve(
     const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   assert(solutions.size() == NChannelBlocks());
@@ -112,7 +112,7 @@ BdaDiagonalSolver::SolveResult BdaDiagonalSolver::Solve(
   return result;
 }
 
-void BdaDiagonalSolver::PerformIteration(
+void DiagonalSolver::PerformIteration(
     const SolveData::ChannelBlockData& cb_data, std::vector<Matrix>& g_times_cs,
     std::vector<std::vector<Complex>>& vs,
     const std::vector<DComplex>& solutions,
