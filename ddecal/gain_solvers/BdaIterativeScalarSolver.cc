@@ -3,8 +3,6 @@
 
 #include "BdaIterativeScalarSolver.h"
 
-#include "SolverBuffer.h"
-
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/parallelfor.h>

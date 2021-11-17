@@ -3,7 +3,6 @@
 
 #include "SolverTester.h"
 
-#include "../../../ddecal/gain_solvers/RegularSolverBase.h"
 #include "../../../ddecal/gain_solvers/BdaSolverBase.h"
 
 #include <aocommon/matrix2x2.h>
@@ -174,12 +173,6 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
                       bda_data_buffer_rows);
 
   return bda_solver_buffer_;
-}
-
-void SolverTester::InitializeSolver(RegularSolverBase& solver) const {
-  InitializeSolverSettings(solver);
-  solver.Initialize(kNAntennas, kNDirections, kNChannels, kNChannelBlocks,
-                    antennas1_, antennas2_);
 }
 
 void SolverTester::InitializeSolver(BdaSolverBase& solver) const {

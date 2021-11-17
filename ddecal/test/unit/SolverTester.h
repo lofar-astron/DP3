@@ -16,7 +16,6 @@ namespace dp3 {
 namespace ddecal {
 
 class BdaSolverBase;
-class RegularSolverBase;
 class SolverBase;
 
 namespace test {
@@ -39,7 +38,6 @@ class SolverTester {
    * Initializes a solver using default values. After using this function, a
    * test can adjust the default values.
    */
-  void InitializeSolver(dp3::ddecal::RegularSolverBase& solver) const;
   void InitializeSolver(dp3::ddecal::BdaSolverBase& solver) const;
 
   /**
