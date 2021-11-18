@@ -10,6 +10,9 @@
 namespace dp3 {
 namespace ddecal {
 
+/**
+ * Iterative scalar solver supporting direction-dependent solution intervals.
+ */
 class IterativeScalarSolver final : public SolverBase {
  public:
   SolveResult Solve(const SolveData& data,
@@ -17,6 +20,8 @@ class IterativeScalarSolver final : public SolverBase {
                     std::ostream* stat_stream) override;
 
   size_t NSolutionPolarizations() const override { return 1; }
+
+  bool SupportsDdSolutionIntervals() const override { return true; }
 
  private:
   void PerformIteration(const SolveData::ChannelBlockData& cb_data,
@@ -39,4 +44,4 @@ class IterativeScalarSolver final : public SolverBase {
 }  // namespace ddecal
 }  // namespace dp3
 
-#endif  // DDECAL_BDA_ITERATIVE_SCALAR_SOLVER_H
+#endif  // DDECAL_ITERATIVE_SCALAR_SOLVER_H

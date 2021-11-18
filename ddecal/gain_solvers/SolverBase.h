@@ -171,6 +171,14 @@ class SolverBase {
   }
 
   /**
+   * True if this solver supports direction-dependent solution intervals. In
+   * that case, the solver can solve different directions with different
+   * solution intervals. More specific, each timestep of each direction can
+   * individually be set to belong to a specific solution.
+   */
+  virtual bool SupportsDdSolutionIntervals() const { return false; }
+
+  /**
    * Returns a list of solvers that this solver uses and for which
    * constraints should be set up. The @ref HybridSolver overrides
    * this function to make it possible to initialize the solvers it
@@ -242,6 +250,12 @@ class SolverBase {
   size_t NAntennas() const { return n_antennas_; }
   size_t NDirections() const { return n_directions_; }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
+  /**
+   * Total number of solutions over all directions
+   * This might be different from n_directions_ when using direction-dependent
+   * intervals.
+   */
+  size_t NSolutions() const { return n_solutions_; }
 
   /**
    * Create an LLSSolver with the given matrix dimensions.
@@ -254,6 +268,7 @@ class SolverBase {
   size_t n_antennas_;
   size_t n_directions_;
   size_t n_channel_blocks_;
+  size_t n_solutions_;
 
   /**
    * Calibration setup

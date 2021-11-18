@@ -40,11 +40,31 @@ class SolveData {
     size_t NAntennaVisibilities(size_t antenna_index) const {
       return antenna_visibility_counts_[antenna_index];
     }
-    size_t Antenna1Index(size_t visibility_index) const {
+    uint32_t Antenna1Index(size_t visibility_index) const {
       return antenna_indices_[visibility_index].first;
     }
-    size_t Antenna2Index(size_t visibility_index) const {
+    uint32_t Antenna2Index(size_t visibility_index) const {
       return antenna_indices_[visibility_index].second;
+    }
+    /**
+     * Absolute solution index for a direction and visibility combination.
+     * When using direction-dependent intervals, a single direction might
+     * have multiple solutions. The solution index is absolute, meaning that
+     * direction zero starts counting at zero and indices of subsequent
+     * directions start after the previous direction. For every direction, the
+     * first solution index is also the lowest value, i.e. SolutionIndex(D, 0)
+     * <= SolutionIndex(D, i) for any i,D
+     */
+    uint32_t SolutionIndex(size_t direction_index,
+                           size_t visibility_index) const {
+      return solution_map_[direction_index][visibility_index];
+    }
+    /**
+     * Returns a vector that maps visibility indices to solution indices (see
+     * @ref SolutionIndex())
+     */
+    const std::vector<uint32_t>& SolutionMap(size_t direction_index) const {
+      return solution_map_[direction_index];
     }
 
     const aocommon::MC2x2F& Visibility(size_t index) const {
@@ -62,8 +82,15 @@ class SolveData {
     const_iterator DataBegin() const { return data_.begin(); }
     const_iterator DataEnd() const { return data_.end(); }
 
+    const uint32_t NSolutionsForDirection(size_t direction_index) const {
+      return n_solutions_[direction_index];
+    }
+
    private:
     friend class SolveData;
+
+    void InitializeSolutionIndices();
+
     std::vector<aocommon::MC2x2F> data_;
     // _modelData[D] is the model data for direction D
     std::vector<std::vector<aocommon::MC2x2F>> model_data_;
@@ -71,6 +98,11 @@ class SolveData {
     // _data[i] and _modelData[D][i]
     std::vector<std::pair<uint32_t, uint32_t>> antenna_indices_;
     std::vector<size_t> antenna_visibility_counts_;
+    /// number of solutions, indexed by direction
+    std::vector<uint32_t> n_solutions_;
+    /// solution_map_[D][i] is the solution associated to
+    /// direction D, visibility index i.
+    std::vector<std::vector<uint32_t>> solution_map_;
   };
 
   /**
@@ -110,6 +142,7 @@ class SolveData {
  private:
   void CountAntennaVisibilities(size_t n_antennas);
 
+  /// The data, indexed by channel block index
   std::vector<ChannelBlockData> channel_blocks_;
 };
 
