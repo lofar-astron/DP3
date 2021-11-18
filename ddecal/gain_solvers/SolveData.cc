@@ -79,6 +79,8 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
   }
 
   CountAntennaVisibilities(n_antennas);
+  for (ChannelBlockData& cb_data : channel_blocks_)
+    cb_data.InitializeSolutionIndices();
 }
 
 SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
@@ -153,6 +155,8 @@ SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
   }
 
   CountAntennaVisibilities(n_antennas);
+  for (ChannelBlockData& cb_data : channel_blocks_)
+    cb_data.InitializeSolutionIndices();
 }
 
 void SolveData::CountAntennaVisibilities(size_t n_antennas) {
@@ -162,6 +166,16 @@ void SolveData::CountAntennaVisibilities(size_t n_antennas) {
       ++cb_data.antenna_visibility_counts_[a.first];
       ++cb_data.antenna_visibility_counts_[a.second];
     }
+  }
+}
+
+void SolveData::ChannelBlockData::InitializeSolutionIndices() {
+  // This initializes the solution indices for direction-independent intervals
+  // TODO support DD intervals
+  n_solutions_.assign(NDirections(), 1);
+  solution_map_.reserve(NDirections());
+  for (size_t i = 0; i != NDirections(); ++i) {
+    solution_map_.emplace_back(NVisibilities(), i);
   }
 }
 

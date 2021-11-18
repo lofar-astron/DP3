@@ -41,6 +41,8 @@ void SolverBase::Initialize(size_t n_antennas, size_t n_directions,
   n_antennas_ = n_antennas;
   n_directions_ = n_directions;
   n_channel_blocks_ = n_channel_blocks;
+  n_solutions_ =
+      n_directions;  // TODO count sum nr of solutions over directions
 }
 
 bool SolverBase::DetectStall(size_t iteration,
