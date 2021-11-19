@@ -25,8 +25,7 @@ class DiagonalSolver final : public SolverBase {
                         std::vector<Matrix>& g_times_cs,
                         std::vector<std::vector<Complex>>& vs,
                         const std::vector<DComplex>& solutions,
-                        std::vector<DComplex>& next_solutions,
-                        double iteration_fraction, double solver_precision);
+                        std::vector<DComplex>& next_solutions);
 };
 
 }  // namespace ddecal

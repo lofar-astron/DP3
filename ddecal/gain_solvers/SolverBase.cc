@@ -32,9 +32,7 @@ SolverBase::SolverBase()
       step_size_(0.2),
       detect_stalling_(true),
       phase_only_(false),
-      lls_solver_type_(LLSSolverType::QR),
-      lls_min_tolerance_(1.0E-7),
-      lls_max_tolerance_(1.0E-2) {}
+      lls_solver_type_(LLSSolverType::QR) {}
 
 void SolverBase::Initialize(size_t n_antennas, size_t n_directions,
                             size_t n_channel_blocks) {
@@ -286,29 +284,13 @@ void SolverBase::GetTimings(std::ostream& os, double duration) const {
   }
 }
 
-void SolverBase::SetLLSSolverType(const LLSSolverType solver_type,
-                                  double min_tolerance, double max_tolerance) {
+void SolverBase::SetLLSSolverType(const LLSSolverType solver_type) {
   lls_solver_type_ = solver_type;
-  lls_min_tolerance_ = min_tolerance;
-  lls_max_tolerance_ = max_tolerance;
 }
 
 std::unique_ptr<LLSSolver> SolverBase::CreateLLSSolver(
-    const size_t m, const size_t n, const size_t nrhs,
-    const double iteration_fraction, const double solver_precision) const {
-  std::unique_ptr<LLSSolver> solver =
-      LLSSolver::Make(lls_solver_type_, m, n, nrhs);
-
-  double tolerance = lls_max_tolerance_;
-  if (lls_max_tolerance_ != lls_min_tolerance_) {
-    const double iteration_fraction3 =
-        iteration_fraction * iteration_fraction * iteration_fraction;
-    tolerance = std::min({solver_precision / 10.0, lls_max_tolerance_,
-                          lls_min_tolerance_ / iteration_fraction3});
-  }
-  solver->SetTolerance(tolerance);
-
-  return solver;
+    const size_t m, const size_t n, const size_t nrhs) const {
+  return LLSSolver::Make(lls_solver_type_, m, n, nrhs);
 }
 
 }  // namespace ddecal

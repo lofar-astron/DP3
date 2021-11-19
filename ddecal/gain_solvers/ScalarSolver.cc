@@ -71,9 +71,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
       const SolveData::ChannelBlockData& channelBlock =
           data.ChannelBlock(chBlock);
       PerformIteration(channelBlock, g_times_cs[chBlock], vs[chBlock],
-                       solutions[chBlock], next_solutions[chBlock],
-                       double(iteration + 1) / GetMaxIterations(),
-                       avg_squared_diff);
+                       solutions[chBlock], next_solutions[chBlock]);
     });
 
     Step(solutions, next_solutions);
@@ -114,9 +112,7 @@ void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
                                     std::vector<Matrix>& g_times_cs,
                                     std::vector<Matrix>& vs,
                                     const std::vector<DComplex>& solutions,
-                                    std::vector<DComplex>& next_solutions,
-                                    double iteration_fraction,
-                                    double solver_precision) {
+                                    std::vector<DComplex>& next_solutions) {
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     g_times_cs[ant].SetZero();
     vs[ant].SetZero();
@@ -183,8 +179,7 @@ void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
     const size_t m = cb_data.NAntennaVisibilities(ant) * 4;
     // TODO it would be nice to have a solver resize function to avoid too many
     // reallocations
-    std::unique_ptr<LLSSolver> solver =
-        CreateLLSSolver(m, n, nrhs, iteration_fraction, solver_precision);
+    std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
     // solve x^H in [g C] x^H  = v
     std::vector<Complex> x0(NDirections());
     for (size_t d = 0; d != NDirections(); ++d) {

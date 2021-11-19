@@ -27,11 +27,6 @@ include(CheckCXXCompilerFlag)
 
 option(BUILD_TESTING "" OFF)
 
-option(USE_LSMR "use LSMR solver instead of QR solver" OFF)
-if(USE_LSMR)
-  enable_language(Fortran)
-endif()
-
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 add_compile_options(-Wall -O3)
@@ -262,24 +257,6 @@ if("${isSystemDir}" STREQUAL "-1")
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
 endif("${isSystemDir}" STREQUAL "-1")
 
-if(USE_LSMR)
-  add_definitions(-DUSE_LSMR)
-  add_library(
-    LSMR OBJECT
-    external/clsmr/lsmrblas.f90
-    external/clsmr/lsmrblasInterface.f90
-    external/clsmr/lsmrCheckModule.f90
-    external/clsmr/lsmrDataModule.f90
-    external/clsmr/lsmrModule.f90
-    external/clsmr/lsmrReadMtxModule.f90
-    external/clsmr/mm_io.f90
-    external/clsmr/mm_ioModule.f90
-    external/clsmr/clsmrblas.f90
-    external/clsmr/clsmrblasInterface.f90
-    external/clsmr/clsmrDataModule.f90
-    external/clsmr/clsmrModule.f90)
-endif()
-
 add_library(
   Blob OBJECT
   blob/BlobAipsIO.cc
@@ -332,7 +309,6 @@ add_library(
   ddecal/gain_solvers/SolveData.cc
   ddecal/gain_solvers/SolverBase.cc
   ddecal/gain_solvers/SolverBuffer.cc
-  ddecal/linear_solvers/LSMRSolver.cc
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 
@@ -438,18 +414,11 @@ add_library(PythonDP3 OBJECT pythondp3/PyStep.cc)
 # dp3_testdyndp3 requires using position independent code.
 set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB PythonDP3
              PROPERTY POSITION_INDEPENDENT_CODE ON)
-if(USE_LSMR)
-  set_property(TARGET LSMR PROPERTY POSITION_INDEPENDENT_CODE ON)
-endif()
 
 set(DP3_OBJECTS
     $<TARGET_OBJECTS:Blob> $<TARGET_OBJECTS:Common> $<TARGET_OBJECTS:DDECal>
     $<TARGET_OBJECTS:DP3_OBJ> $<TARGET_OBJECTS:ParmDB>
     $<TARGET_OBJECTS:PythonDP3>)
-
-if(USE_LSMR)
-  list(APPEND DP3_OBJECTS $<TARGET_OBJECTS:LSMR>)
-endif()
 
 set(DP3_LIBRARIES
     ${AOFLAGGER_LIB}
@@ -657,9 +626,6 @@ if(BUILD_TESTING)
       solvers/full_jones
       solvers/hybrid
       solvers/min_iterations)
-  if(USE_LSMR)
-    list(APPEND SLOW_TESTS solvers/scalar_lsmr solvers/diagonal_lsmr)
-  endif()
 
   foreach(TEST ${SLOW_TESTS})
     string(REPLACE "/" "_" XMLNAME ${TEST})

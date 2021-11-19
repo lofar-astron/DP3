@@ -432,9 +432,6 @@ BOOST_AUTO_TEST_CASE(solver_settings_default) {
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
 
   BOOST_CHECK(solver->GetLLSSolverType() == dp3::ddecal::LLSSolverType::QR);
-  std::pair<double, double> tolerance = solver->GetLLSSolverTolerance();
-  BOOST_CHECK_CLOSE(tolerance.first, 1.0e-7, 1.0e-8);
-  BOOST_CHECK_CLOSE(tolerance.second, 1.0e-7, 1.0e-8);
 
   BOOST_CHECK_EQUAL(solver->GetMaxIterations(), 50u);
   BOOST_CHECK_CLOSE(solver->GetAccuracy(), 1.0e-4, 1.0e-8);
@@ -447,7 +444,7 @@ BOOST_AUTO_TEST_CASE(solver_settings_custom) {
   dp3::common::ParameterSet parset = ParsetForMode("tec");
   parset.add("approximatetec", "true");
 
-  parset.add("llssolver", "lsmr");
+  parset.add("llssolver", "normalequations");
   parset.add("llsstarttolerance", "41e-6");
   parset.add("llstolerance", "42e-6");
   parset.add("maxiter", "42");
@@ -458,10 +455,8 @@ BOOST_AUTO_TEST_CASE(solver_settings_custom) {
   const Settings settings(parset, "");
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
 
-  BOOST_CHECK(solver->GetLLSSolverType() == dp3::ddecal::LLSSolverType::LSMR);
-  std::pair<double, double> tolerance = solver->GetLLSSolverTolerance();
-  BOOST_CHECK_CLOSE(tolerance.first, 41e-6, 1.0e-8);
-  BOOST_CHECK_CLOSE(tolerance.second, 42e-6, 1.0e-8);
+  BOOST_CHECK(solver->GetLLSSolverType() ==
+              dp3::ddecal::LLSSolverType::NORMAL_EQUATIONS);
 
   BOOST_CHECK_EQUAL(solver->GetMaxIterations(), 42u);
   BOOST_CHECK_CLOSE(solver->GetAccuracy(), 0.042, 1.0e-8);

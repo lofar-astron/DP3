@@ -163,12 +163,8 @@ class SolverBase {
    */
   void GetTimings(std::ostream& os, double duration) const;
 
-  void SetLLSSolverType(LLSSolverType solver_type, double min_tolerance,
-                        double max_tolerance);
+  void SetLLSSolverType(LLSSolverType solver_type);
   LLSSolverType GetLLSSolverType() const { return lls_solver_type_; }
-  std::pair<double, double> GetLLSSolverTolerance() const {
-    return std::make_pair(lls_min_tolerance_, lls_max_tolerance_);
-  }
 
   /**
    * True if this solver supports direction-dependent solution intervals. In
@@ -261,9 +257,8 @@ class SolverBase {
    * Create an LLSSolver with the given matrix dimensions.
    * Set the tolerance using 'iteration_fraction' and 'solver_precision'.
    */
-  std::unique_ptr<LLSSolver> CreateLLSSolver(size_t m, size_t n, size_t nrhs,
-                                             double iteration_fraction,
-                                             double solver_precision) const;
+  std::unique_ptr<LLSSolver> CreateLLSSolver(size_t m, size_t n,
+                                             size_t nrhs) const;
 
   size_t n_antennas_;
   size_t n_directions_;
@@ -287,8 +282,6 @@ class SolverBase {
   std::vector<std::unique_ptr<Constraint>> constraints_;
 
   LLSSolverType lls_solver_type_;
-  double lls_min_tolerance_;
-  double lls_max_tolerance_;
   /** @} */
 };
 
