@@ -1,13 +1,13 @@
 // InputStep.h: Abstract base class for a Step generating input
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief Abstract base class for a Step generating input
 /// @author Ger van Diepen
 
-#ifndef DPPP_DPINPUT_H
-#define DPPP_DPINPUT_H
+#ifndef DP3_INPUTSTEP_H
+#define DP3_INPUTSTEP_H
 
 #include "Step.h"
 #include "../base/DPBuffer.h"
@@ -17,14 +17,14 @@
 #include <EveryBeam/telescope/phasedarray.h>
 #include <EveryBeam/elementresponse.h>
 
-#include <casacore/tables/Tables/TableIter.h>
-#include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Vector.h>
-#include <casacore/casa/Arrays/Slicer.h>
-#include <casacore/measures/Measures/MDirection.h>
-#include <casacore/measures/Measures/MPosition.h>
 
 #include <memory>
+
+namespace casacore {
+class MeasurementSet;
+class RefRows;
+}  // namespace casacore
 
 namespace dp3 {
 namespace common {
@@ -51,8 +51,6 @@ namespace steps {
 
 class InputStep : public Step {
  public:
-  typedef std::shared_ptr<InputStep> ShPtr;
-
   virtual ~InputStep();
 
   /// Read the UVW at the given row numbers into the buffer.
@@ -138,10 +136,14 @@ class InputStep : public Step {
                                            base::DPBuffer& bufout,
                                            common::NSTimer& timer);
 
+  /// Check if a measurement set contains Baseline Dependent Averaged data.
+  /// @param ms A casacore measurement set.
+  /// @return true if the measurement set has BDA data, false if it is regular.
+  static bool HasBda(const casacore::MeasurementSet& ms);
+
   /// Creates an MS reader.
   /// Based on the MS it will create either a BDAMSReader or a regular
-  static std::unique_ptr<InputStep> CreateReader(const common::ParameterSet&,
-                                                 const std::string&);
+  static std::unique_ptr<InputStep> CreateReader(const common::ParameterSet&);
 };
 
 }  // namespace steps

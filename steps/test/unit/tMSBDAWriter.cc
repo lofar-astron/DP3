@@ -46,7 +46,8 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
   const std::string kMsName = "bda_simple.MS";
 
   // TODO: Remove reader, when the writer can create subtables etc.
-  MSReader reader("../tNDPPP_tmp.MS", ParameterSet(), "");
+  const casacore::MeasurementSet ms_in("../tNDPPP_tmp.MS");
+  MSReader reader(ms_in, ParameterSet(), "");
   MSBDAWriter writer(&reader, kMsName, ParameterSet(), "");
 
   DPInfo info;
@@ -212,7 +213,8 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory,
   info.set(std::vector<std::vector<double>>{{1.}, {1.}},
            std::vector<std::vector<double>>{{5000.}, {5000.}});
   info.update(std::vector<unsigned int>{kMinTimeInterval, kMaxTimeInterval});
-  MSReader reader("../tNDPPP_tmp.MS", parset, prefix);
+  casacore::MeasurementSet ms_in("../tNDPPP_tmp.MS");
+  MSReader reader(ms_in, parset, prefix);
   MSBDAWriter writer(&reader, msOutName, parset, prefix);
 
   // Execute

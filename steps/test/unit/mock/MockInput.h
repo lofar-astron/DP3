@@ -18,6 +18,8 @@ class MockInput : public dp3::steps::InputStep {
   void getUVW(const casacore::RefRows&, double,
               base::DPBuffer& buffer) override;
   void getWeights(const casacore::RefRows&, base::DPBuffer& buffer) override;
+  bool getFullResFlags(const casacore::RefRows& rowNrs,
+                       base::DPBuffer&) override;
   void finish() override;
   void show(std::ostream&) const override;
 };

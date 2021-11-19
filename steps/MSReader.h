@@ -1,13 +1,12 @@
-// MSReader.h: DPPP step reading from an MS
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step reading from an MS
+/// @brief DP3 step reading from an MS
 /// @author Ger van Diepen
 
-#ifndef DPPP_MSREADER_H
-#define DPPP_MSREADER_H
+#ifndef DP3_MSREADER_H
+#define DP3_MSREADER_H
 
 #include "InputStep.h"
 
@@ -15,18 +14,12 @@
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
 
-#include <casacore/tables/Tables/TableIter.h>
-#include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
+#include <casacore/tables/Tables/TableIter.h>
 
 namespace dp3 {
-
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
-/// @brief DPPP step reading from an MS
+/// @brief DP3 step reading from an MS
 
 /// This class is a InputStep step reading the data from a MeasurementSet.
 /// At the beginning it finds out the shape of the data; i.e., the
@@ -114,13 +107,10 @@ namespace steps {
 
 class MSReader : public InputStep {
  public:
-  /// Default constructor.
-  MSReader();
-
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
   /// The missingData argument is for MultiMSReader.
-  MSReader(const std::string& msName, const common::ParameterSet&,
+  MSReader(const casacore::MeasurementSet& ms, const common::ParameterSet&,
            const std::string& prefix, bool missingData = false);
 
   virtual ~MSReader();
@@ -191,7 +181,7 @@ class MSReader : public InputStep {
   }
 
   /// Get the name of the MS.
-  virtual std::string msName() const;
+  std::string msName() const override;
 
   /// Get the time information.
   double firstTime() const override { return itsFirstTime; }
@@ -225,6 +215,10 @@ class MSReader : public InputStep {
                          casacore::Cube<bool>& flagsCube,
                          base::FlagCounter& flagCounter);
 
+ protected:
+  /// Default constructor.
+  MSReader();
+
  private:
   /// Prepare the access to the MS.
   /// Return the first and last time and the interval.
@@ -244,8 +238,7 @@ class MSReader : public InputStep {
   void autoWeight(casacore::Cube<float>& weights, const base::DPBuffer& buf);
 
  protected:
-  std::string itsMSName;
-  casacore::Table itsMS;
+  casacore::MeasurementSet itsMS;
   casacore::Table itsSelMS;  ///< possible selection of spw, baseline
   casacore::TableIterator itsIter;
   std::string itsDataColName;

@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
 
   // This test needs a real reader, since IDGPredict passes a MeasurementSet to
   // Everybeam::Load when using aterms. MockInput does not suffice.
-  std::unique_ptr<InputStep> reader = InputStep::CreateReader(parset, "");
+  std::unique_ptr<InputStep> reader = InputStep::CreateReader(parset);
   auto predict = std::make_shared<IDGPredict>(*reader, parset, "", fitsreaders,
                                               std::move(facets));
   predict->SetBufferSize(kTimeSteps);

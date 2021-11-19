@@ -4,21 +4,20 @@
 //
 // @author Ger van Diepen
 
-#include "../base/Exceptions.h"
-
 #include "InputStep.h"
 #include "MultiMSReader.h"
 #include "MSReader.h"
 #include "MSBDAReader.h"
 
+#include "../base/Exceptions.h"
+#include "../base/MS.h"
 #include "../common/ParameterSet.h"
 
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>
-#include <casacore/measures/Measures/MeasConvert.h>
-#include <casacore/measures/Measures/MPosition.h>
-#include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Utilities/Copy.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/Tables/TableRecord.h>
 
 #include <boost/make_unique.hpp>
 
@@ -113,8 +112,8 @@ bool InputStep::getFullResFlags(const RefRows&, DPBuffer&) {
 }
 
 std::unique_ptr<everybeam::telescope::Telescope> InputStep::GetTelescope(
-    const everybeam::ElementResponseModel element_response_model,
-    bool use_channel_frequency) const {
+    const everybeam::ElementResponseModel /*element_response_model*/,
+    bool /*use_channel_frequency*/) const {
   throw Exception("InputStep::GetTelescope not implemented");
 }
 
@@ -181,8 +180,13 @@ unsigned int InputStep::ntimeAvgFullRes() const {
   throw Exception("InputStep::ntimeAvgFullRes not implemented");
 }
 
+bool InputStep::HasBda(const casacore::MeasurementSet& ms) {
+  return ms.keywordSet().isDefined(base::DP3MS::kBDAFactorsTable) &&
+         (ms.keywordSet().asTable(base::DP3MS::kBDAFactorsTable).nrow() > 0);
+}
+
 std::unique_ptr<InputStep> InputStep::CreateReader(
-    const common::ParameterSet& parset, const std::string& prefix) {
+    const common::ParameterSet& parset) {
   // Get input and output MS name.
   // Those parameters were always called msin and msout.
   // However, SAS/MAC cannot handle a parameter and a group with the same
@@ -192,7 +196,7 @@ std::unique_ptr<InputStep> InputStep::CreateReader(
   if (inNames.empty()) {
     inNames = parset.getStringVector("msin");
   }
-  if (inNames.size() == 0) throw Exception("No input MeasurementSets given");
+  if (inNames.empty()) throw Exception("No input MeasurementSets given");
   // Find all file names matching a possibly wildcarded input name.
   // This is only possible if a single name is given.
   if (inNames.size() == 1) {
@@ -215,22 +219,20 @@ std::unique_ptr<InputStep> InputStep::CreateReader(
     }
   }
 
-  if (!parset.getBool(prefix + "bda", false)) {
-    // Get the steps.
-    // Currently the input MS must be given.
-    // In the future it might be possible to have a simulation step instead.
-    // Create MSReader step if input ms given.
-    if (inNames.size() == 1) {
-      return boost::make_unique<MSReader>(inNames[0], parset, "msin.");
+  if (inNames.size() == 1) {
+    if (!casacore::Table::isReadable(inNames.front())) {
+      throw std::invalid_argument("No such MS: " + inNames.front());
+    }
+    const casacore::MeasurementSet ms(inNames.front(),
+                                      casacore::TableLock::AutoNoReadLocking);
+    if (HasBda(ms)) {
+      return boost::make_unique<MSBDAReader>(ms, parset, "msin.");
     } else {
-      return boost::make_unique<MultiMSReader>(inNames, parset, "msin.");
+      return boost::make_unique<MSReader>(ms, parset, "msin.");
     }
   } else {
-    if (inNames.size() > 1) {
-      throw std::invalid_argument(
-          "DP3 does not support multiple in MS for BDA data.");
-    }
-    return boost::make_unique<MSBDAReader>(inNames[0], parset, "msin.");
+    // MultiMSReader checks that all MS's have regular (non-BDA) data.
+    return boost::make_unique<MultiMSReader>(inNames, parset, "msin.");
   }
 }
 

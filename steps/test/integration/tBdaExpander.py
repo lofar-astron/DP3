@@ -65,10 +65,10 @@ def test_only_expand():
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_BDA}",
             "msout=out.MS",
             "steps=[bdaexpander]",
-            "bda=true",
         ]
     )
 
@@ -77,16 +77,16 @@ def test_expand_average():
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_BDA}",
             "msout=out.MS",
             "msout.overwrite=true",
             "steps=[bdaexpander, bdaaverager]",
             "bdaaverager.frequencybase=1000",
             "bdaaverager.timebase=100",
-            "bda=true",
         ]
     )
-    
+
     taql_check_visibilities = f"select from(select gsumsqr(abs(t_in.DATA[isnan(t_in.DATA)]-t_out.DATA[isnan(t_out.DATA)])) as diff from {MSIN_BDA} t_in, out.MS t_out) where diff>1.e-6"
     assert_taql(taql_check_visibilities)
 
@@ -95,6 +95,7 @@ def test_bdaaverager_ddecal_bdaexpander(create_skymodel):
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_REGULAR}",
             "msout=out.MS",  # works with "msout=." OR "msout.writefullresflag=false" -> documented
             "msout.overwrite=true",
@@ -111,6 +112,7 @@ def test_bdaexpander_ddecal(create_skymodel):
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_BDA}",
             "msout=out.MS",  # msout=. does not work -> documented
             "msout.overwrite=true",
@@ -118,27 +120,27 @@ def test_bdaexpander_ddecal(create_skymodel):
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
             "ddecal.sourcedb=test.sourcedb",
             "msout.writefullresflag=false",
-            "bda=true",
         ]
     )
 
 
 def test_regular_buffer_writing():
-    # Checks that after writing a regular MS after the 
+    # Checks that after writing a regular MS after the
     # bdaexpander step, DP3 can read that regular MS.
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_BDA}",
             "msout=regular_buffer.MS",
             "steps=[bdaexpander]",
-            "bda=true",
         ]
     )
 
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             "msin=regular_buffer.MS",
             "msout=out.MS",
             "steps=[]"

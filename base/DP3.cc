@@ -138,7 +138,7 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   unsigned int numThreads = parset.getInt("numthreads", 0);
 
   // Create the steps, link them together
-  InputStep::ShPtr firstStep = makeMainSteps(parset);
+  std::shared_ptr<InputStep> firstStep = makeMainSteps(parset);
 
   Step::ShPtr step = firstStep;
   Step::ShPtr lastStep;
@@ -241,8 +241,9 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   // The destructors are called automatically at this point.
 }
 
-InputStep::ShPtr DP3::makeMainSteps(const common::ParameterSet& parset) {
-  InputStep::ShPtr inputStep = InputStep::CreateReader(parset, "");
+std::shared_ptr<InputStep> DP3::makeMainSteps(
+    const common::ParameterSet& parset) {
+  std::shared_ptr<InputStep> inputStep = InputStep::CreateReader(parset);
   Step::ShPtr step = makeStepsFromParset(parset, "", "steps", *inputStep, false,
                                          inputStep->outputs());
   if (step) inputStep->setNextStep(step);

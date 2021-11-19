@@ -45,7 +45,7 @@ class DP3 {
   /// Create a chain of step objects that are connected together.
   /// A writer will be added to the steps if it is not defined,
   /// and a terminating NullStep is added.
-  static steps::InputStep::ShPtr makeMainSteps(
+  static std::shared_ptr<steps::InputStep> makeMainSteps(
       const common::ParameterSet& parset);
 
   /// Create a chain of step objects that are connected together.

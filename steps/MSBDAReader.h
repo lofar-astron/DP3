@@ -101,12 +101,9 @@ namespace steps {
 
 class MSBDAReader : public InputStep {
  public:
-  /// Default constructor.
-  MSBDAReader();
-
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  MSBDAReader(const std::string& msName, const common::ParameterSet&,
+  MSBDAReader(const casacore::MeasurementSet& ms, const common::ParameterSet&,
               const std::string& prefix);
 
   virtual ~MSBDAReader();
@@ -166,8 +163,7 @@ class MSBDAReader : public InputStep {
   /// Reads the BDA subtables from an MS and stores the values that are required
   void FillInfoMetaData();
 
-  casacore::MeasurementSet ms_;
-  std::string ms_name_;
+  const casacore::MeasurementSet ms_;
   std::string data_col_name_;
   std::string weight_col_name_;
   bool read_vis_data_;  ///< read visibility data?

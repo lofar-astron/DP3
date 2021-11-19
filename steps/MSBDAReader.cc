@@ -71,30 +71,10 @@ using std::vector;
 namespace dp3 {
 namespace steps {
 
-MSBDAReader::MSBDAReader()
-    : ms_(),
-      ms_name_(),
-      data_col_name_(),
-      weight_col_name_(),
-      read_vis_data_(false),
-      last_ms_time_(0),
-      last_ms_interval_(0),
-      interval_(0),
-      is_interval_integer_(false),
-      spw_(0),
-      nread_(0),
-      timer_(),
-      pool_size_(0),
-      desc_id_to_nchan_(),
-      bl_to_id_(),
-      first_time_(0),
-      last_time_(0) {}
-
-MSBDAReader::MSBDAReader(const std::string& msName,
+MSBDAReader::MSBDAReader(const casacore::MeasurementSet& ms,
                          const common::ParameterSet& parset,
                          const std::string& prefix)
-    : ms_(),
-      ms_name_(msName),
+    : ms_(ms),
       data_col_name_(
           parset.getString(prefix + "data_column", MS::columnName(MS::DATA))),
       weight_col_name_(parset.getString(prefix + "weightcolumn",
@@ -110,6 +90,10 @@ MSBDAReader::MSBDAReader(const std::string& msName,
       bl_to_id_(),
       first_time_(0),
       last_time_(0) {
+  // InputStep::CreateReader only creates MSBDAReader's for BDA MS's, so it's
+  // a programming error, and not a user error, if the MS doesn't have BDA data.
+  assert(HasBda(ms));
+
   int spwInt = parset.getInt(prefix + "band", -1);
   if (spwInt > 0) {
     throw std::invalid_argument(
@@ -142,19 +126,6 @@ MSBDAReader::~MSBDAReader() {}
 
 void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   InputStep::updateInfo(dpInfo);
-
-  if (!Table::isReadable(ms_name_)) {
-    throw std::invalid_argument("No such MS: " + ms_name_);
-  }
-
-  ms_ = MeasurementSet(ms_name_, TableLock::AutoNoReadLocking);
-
-  if (!ms_.keywordSet().isDefined(base::DP3MS::kBDAFactorsTable) ||
-      ms_.keywordSet().asTable(base::DP3MS::kBDAFactorsTable).nrow() == 0) {
-    throw std::domain_error(
-        "Input MS does not contain BDA data. Table BDA_FACTORS is missing "
-        "or not filled");
-  }
 
   // Find the nr of correlations, channels, and baselines.
 
@@ -378,7 +349,7 @@ void MSBDAReader::FillInfoMetaData() {
 
 void MSBDAReader::show(std::ostream& os) const {
   os << "MSBDAReader\n";
-  os << "  input MS:       " << ms_name_ << '\n';
+  os << "  input MS:       " << msName() << '\n';
   if (ms_.isNull()) {
     os << "    *** MS does not exist ***\n";
   } else {

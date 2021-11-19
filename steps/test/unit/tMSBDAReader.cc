@@ -6,9 +6,8 @@
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
 
+#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
-#include "boost/iostreams/stream.hpp"
-#include "boost/iostreams/device/null.hpp"
 
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
@@ -16,40 +15,24 @@ using dp3::steps::MSBDAReader;
 
 namespace {
 const std::string kPrefix = "";
+const dp3::common::ParameterSet kParset;
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(msbdareader)
 
-BOOST_AUTO_TEST_CASE(step_output_is_bda) {
-  DPInfo info;
-  ParameterSet parset;
-  MSBDAReader reader("does_not_exist.MS", parset, kPrefix);
+BOOST_AUTO_TEST_CASE(constructor) {
+  const casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
+  MSBDAReader reader(ms, kParset, kPrefix);
+  BOOST_TEST(reader.table().isRootTable());
+  BOOST_TEST(reader.table().isSameRoot(ms));
 
   BOOST_TEST((reader.outputs() == dp3::steps::Step::MsType::kBda));
 }
 
-BOOST_AUTO_TEST_CASE(empty_input) {
-  DPInfo info;
-  ParameterSet parset;
-  MSBDAReader reader("does_not_exist.MS", parset, kPrefix);
-  reader.setReadVisData(true);
-
-  BOOST_CHECK_THROW(reader.setInfo(info), std::invalid_argument);
-}
-
-BOOST_AUTO_TEST_CASE(wrong_input_format) {
-  DPInfo info;
-  ParameterSet parset;
-  MSBDAReader reader("tNDPPP_tmp.MS", parset, kPrefix);
-
-  BOOST_CHECK_THROW(reader.setInfo(info), std::domain_error);
-}
-
 BOOST_AUTO_TEST_CASE(set_info) {
-  const std::string kMSName = "tNDPPP_bda_tmp.MS";
+  casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
   DPInfo info;
-  ParameterSet parset;
-  MSBDAReader reader(kMSName, parset, kPrefix);
+  MSBDAReader reader(ms, kParset, kPrefix);
 
   reader.setInfo(info);
   const double start_time =
@@ -57,9 +40,6 @@ BOOST_AUTO_TEST_CASE(set_info) {
                    // (2000/08/03 13h22m05.000) into seconds
 
   info = reader.getInfo();
-  BOOST_TEST(reader.table().tableName().compare(
-                 reader.table().tableName().length() - kMSName.length(),
-                 kMSName.length(), kMSName) == 0);
   BOOST_TEST(reader.spectralWindow() == 0U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
@@ -75,9 +55,9 @@ BOOST_AUTO_TEST_CASE(set_info) {
 
 BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
                                   boost::unit_test::tolerance(0.0001f)) {
+  casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
   DPInfo info;
-  ParameterSet parset;
-  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, kPrefix);
+  MSBDAReader reader(ms, kParset, kPrefix);
   reader.setReadVisData(true);
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
@@ -113,9 +93,9 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
 }
 
 BOOST_AUTO_TEST_CASE(process_nan) {
+  casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
   DPInfo info;
-  ParameterSet parset;
-  MSBDAReader reader("tNDPPP_bda_tmp.MS", parset, kPrefix);
+  MSBDAReader reader(ms, kParset, kPrefix);
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
   reader.setInfo(info);
