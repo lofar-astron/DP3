@@ -3,13 +3,14 @@
 
 configure_file(testInit.sh.in testInit.sh)
 
-add_sh_integration_tests(tDemix tGainCal)
+add_sh_integration_tests(tGainCal)
 
 add_python_integrationtests(
   tApplyBeam
   tApplyCal2
   tBdaExpander
   tBdaPredict
+  tDemix
   tGainCalH5Parm
   tMultiApplyCal
   tPredict
