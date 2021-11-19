@@ -4,6 +4,7 @@
 
 #include "Settings.h"
 #include "../base/CalType.h"
+#include "../base/DPLogger.h"
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
@@ -167,9 +168,13 @@ std::vector<std::string> Settings::ReadModelDataColumns() const {
   std::vector<std::string> columns = GetStringVector("modeldatacolumns");
 
   // The statement below allows DDECal to be backwards compatible, e.g.
-  // DPPP msin.modelcolumn=MY_MODEL_DATA ddecal.usemodelcolumn=true
+  // DP3 msin.modelcolumn=MY_MODEL_DATA ddecal.usemodelcolumn=true
   // msin=tDDECal.MS msout=.
   if (columns.empty() && GetBool("usemodelcolumn", false)) {
+    DPLOG_WARN_STR("Warning: The input contains the deprecated " + name +
+                   "usemodelcolumn setting, possibly combined with the "
+                   "deprecated msin.modelcolumn setting. Please use " +
+                   name + "modeldatacolumns instead.");
     columns.push_back(parset->getString("msin.modelcolumn", "MODEL_DATA"));
   }
 

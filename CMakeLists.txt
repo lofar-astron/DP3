@@ -518,6 +518,7 @@ if(BUILD_TESTING)
       steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tDDECal.cc
       steps/test/unit/tFilter.cc
+      steps/test/unit/tGainCal.cc
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMedFlagger.cc
       steps/test/unit/tMSReader.cc

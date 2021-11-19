@@ -6,7 +6,7 @@
 
 #include "GainCal.h"
 #include "ApplyCal.h"
-#include "MSReader.h"
+#include "ColumnReader.h"
 
 #include <Version.h>
 
@@ -66,18 +66,22 @@ using schaapcommon::h5parm::SolTab;
 namespace dp3 {
 namespace steps {
 
-GainCal::GainCal(InputStep* input, const common::ParameterSet& parset,
+GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
                  const string& prefix)
     : itsInput(input),
       itsName(prefix),
       itsUseModelColumn(parset.getBool(prefix + "usemodelcolumn", false)),
+      itsModelColumnName(),
       itsParmDBName(parset.getString(prefix + "parmdb", "")),
       itsUseH5Parm(itsParmDBName.find(".h5") != string::npos),
       itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)),
       itsDetectStalling(parset.getBool(prefix + "detectstalling", true)),
       itsApplySolution(parset.getBool(prefix + "applysolution", false)),
-      itsUVWFlagStep(input, parset, prefix),
+      itsUVWFlagStep(&input, parset, prefix),
       itsParallelFor(1),
+      itsThreadPool(1),
+      itsFirstSubStep(),
+      itsResultStep(std::make_shared<ResultStep>()),
       itsBaselineSelection(parset, prefix),
       itsMaxIter(parset.getInt(prefix + "maxiter", 50)),
       itsTolerance(parset.getDouble(prefix + "tolerance", 1.e-5)),
@@ -112,17 +116,44 @@ GainCal::GainCal(InputStep* input, const common::ParameterSet& parset,
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   if (!itsUseModelColumn) {
-    itsPredictStep = boost::make_unique<Predict>(*input, parset, prefix);
-    itsResultStep = std::make_shared<ResultStep>();
-    itsPredictStep->setNextStep(itsResultStep);
+    auto predict_step = boost::make_unique<Predict>(input, parset, prefix);
+    predict_step->SetThreadData(itsThreadPool, nullptr);
+    predict_step->setNextStep(itsResultStep);
+    itsFirstSubStep = std::move(predict_step);
   } else {
+    // Remain compatible with the old situation, where the input step read the
+    // model data and the input step had the model column name.
+    const std::string column_key = prefix + "modelcolumn";
+    if (parset.isDefined("msin.modelcolumn")) {
+      if (parset.isDefined(column_key)) {
+        throw std::runtime_error(
+            "The input contains both the deprecated msin.modelcolumn setting "
+            "and the " +
+            column_key +
+            " setting. Please remove the deprecated setting from the input.");
+      }
+      DPLOG_WARN_STR(
+          "Warning: The input contains the deprecated msin.modelcolumn "
+          "setting. Please use " +
+          column_key + " instead.");
+      itsModelColumnName = parset.getString("msin.modelcolumn");
+    } else {
+      itsModelColumnName = parset.getString(column_key, "MODEL_DATA");
+    }
     itsApplyBeamToModelColumn =
         parset.getBool(prefix + "applybeamtomodelcolumn", false);
+
+    auto column_reader_step = boost::make_unique<ColumnReader>(
+        input, parset, prefix, itsModelColumnName);
     if (itsApplyBeamToModelColumn) {
-      itsApplyBeamStep = ApplyBeam(input, parset, prefix, true);
-      itsResultStep = std::make_shared<ResultStep>();
-      itsApplyBeamStep.setNextStep(itsResultStep);
+      auto apply_beam_step =
+          std::make_shared<ApplyBeam>(&input, parset, prefix, true);
+      column_reader_step->setNextStep(apply_beam_step);
+      apply_beam_step->setNextStep(itsResultStep);
+    } else {
+      column_reader_step->setNextStep(itsResultStep);
     }
+    itsFirstSubStep = std::move(column_reader_step);
   }
 
   itsNIter.resize(4, 0);
@@ -159,23 +190,17 @@ void GainCal::setAntennaUsed() {
 }
 
 void GainCal::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  Step::updateInfo(infoIn);
   info().setNeedVisData();
 
   // By giving a thread pool to the predicter, the threads are
   // sustained.
-  itsThreadPool = boost::make_unique<aocommon::ThreadPool>(info().nThreads());
+  itsThreadPool.SetNThreads(info().nThreads());
   itsParallelFor.SetNThreads(info().nThreads());
   itsUVWFlagStep.updateInfo(infoIn);
 
-  if (itsUseModelColumn) {
-    if (itsApplyBeamToModelColumn) {
-      itsApplyBeamStep.updateInfo(infoIn);
-    }
-  } else {
-    itsPredictStep->setInfo(infoIn);
-    itsPredictStep->SetThreadData(*itsThreadPool, nullptr);
-  }
+  itsFirstSubStep->setInfo(infoIn);
+
   if (itsApplySolution) {
     info().setWriteData();
     info().setWriteFlags();
@@ -310,11 +335,11 @@ void GainCal::show(std::ostream& os) const {
      << '\n';
   os << "  use model column:    " << std::boolalpha << itsUseModelColumn
      << '\n';
+  os << "  model column name:   " << itsModelColumnName << '\n';
   itsBaselineSelection.show(os);
-  if (!itsUseModelColumn) {
-    itsPredictStep->show(os);
-  } else if (itsApplyBeamToModelColumn) {
-    itsApplyBeamStep.show(os);
+  for (Step* step = itsFirstSubStep.get(); step != nullptr;
+       step = step->getNextStep().get()) {
+    step->show(os);
   }
   itsUVWFlagStep.show(os);
 }
@@ -373,16 +398,15 @@ bool GainCal::process(const DPBuffer& bufin) {
     // We'll read the necessary info from the buffer and pass it on
     itsBuf[bufIndex].referenceFilled(bufin);
   }
-  itsInput->fetchUVW(bufin, itsBuf[bufIndex], itsTimer);
-  itsInput->fetchWeights(bufin, itsBuf[bufIndex], itsTimer);
-  itsInput->fetchFullResFlags(bufin, itsBuf[bufIndex], itsTimer);
+  itsInput.fetchUVW(bufin, itsBuf[bufIndex], itsTimer);
+  itsInput.fetchWeights(bufin, itsBuf[bufIndex], itsTimer);
+  itsInput.fetchFullResFlags(bufin, itsBuf[bufIndex], itsTimer);
 
   // UVW flagging happens on a copy of the buffer, so these flags are not
   // written
   itsUVWFlagStep.process(itsBuf[bufIndex]);
 
-  Cube<casacore::Complex> dataCube = itsBuf[bufIndex].getData();
-  casacore::Complex* data = dataCube.data();
+  casacore::Complex* data = itsBuf[bufIndex].getData().data();
   float* weight = itsBuf[bufIndex].getWeights().data();
   const bool* flag = itsBuf[bufIndex].getFlags().data();
 
@@ -392,21 +416,7 @@ bool GainCal::process(const DPBuffer& bufin) {
   // and stored.
 
   itsTimerPredict.start();
-
-  if (itsUseModelColumn) {
-    itsInput->getModelData(itsBuf[bufIndex].getRowNrs(), itsModelData);
-    if (itsApplyBeamToModelColumn) {  // TODO: double check this
-      // Temporarily put model data in data column for applybeam step
-      // ApplyBeam step will copy the buffer so no harm is done
-      itsBuf[bufIndex].getData() = itsModelData;
-      itsApplyBeamStep.process(itsBuf[bufIndex]);
-      // Put original data back in data column
-      itsBuf[bufIndex].getData() = dataCube;
-    }
-  } else {  // Predict
-    itsPredictStep->process(itsBuf[bufIndex]);
-  }
-
+  itsFirstSubStep->process(itsBuf[bufIndex]);
   itsTimerPredict.stop();
 
   itsTimerFill.start();
@@ -421,11 +431,7 @@ bool GainCal::process(const DPBuffer& bufin) {
   }
 
   // Store data in the GainCalAlgorithm object
-  if (itsUseModelColumn && !itsApplyBeamToModelColumn) {
-    fillMatrices(itsModelData.data(), data, weight, flag);
-  } else {
-    fillMatrices(itsResultStep->get().getData().data(), data, weight, flag);
-  }
+  fillMatrices(itsResultStep->get().getData().data(), data, weight, flag);
   itsTimerFill.stop();
 
   ++itsStepInSolInt;

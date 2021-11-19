@@ -55,16 +55,14 @@ class ParameterSet;
 
 namespace steps {
 
-typedef std::vector<base::Patch::ConstPtr> PatchList;
-typedef std::pair<size_t, size_t> Baseline;
-
 /// @brief This class is a Step class to calibrate (direction independent)
 /// gains.
 class GainCal final : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  GainCal(InputStep*, const common::ParameterSet&, const std::string& prefix);
+  GainCal(InputStep& input, const common::ParameterSet& parset,
+          const std::string& prefix);
 
   virtual ~GainCal();
 
@@ -126,11 +124,11 @@ class GainCal final : public Step {
   /// (timeslotsperparmupdate) Variant for writing H5Parm
   void writeSolutionsH5Parm(double startTime);
 
-  InputStep* itsInput;
+  InputStep& itsInput;
   std::string itsName;
   std::vector<base::DPBuffer> itsBuf;
   bool itsUseModelColumn;
-  casacore::Cube<casacore::Complex> itsModelData;
+  std::string itsModelColumnName;
   std::string itsParmDBName;
   bool itsUseH5Parm;
   std::shared_ptr<parmdb::ParmDB> itsParmDB;
@@ -154,15 +152,15 @@ class GainCal final : public Step {
   std::vector<base::GainCalAlgorithm> iS;
 
   UVWFlagger itsUVWFlagStep;
-  ResultStep::ShPtr
+  std::shared_ptr<ResultStep>
       itsDataResultStep;  ///< Result step for data after UV-flagging
 
-  std::unique_ptr<Predict> itsPredictStep;
   aocommon::ParallelFor<size_t> itsParallelFor;
-  std::unique_ptr<class aocommon::ThreadPool> itsThreadPool;
-  ApplyBeam itsApplyBeamStep;  ///< Beam step for applying beam to modelcol
-  ResultStep::ShPtr
-      itsResultStep;  ///< For catching results from Predict or Beam
+  aocommon::ThreadPool itsThreadPool;
+
+  /// The series of sub-steps ends with itsResultStep.
+  std::unique_ptr<Step> itsFirstSubStep;
+  std::shared_ptr<ResultStep> itsResultStep;
   bool itsApplyBeamToModelColumn;
 
   base::BaselineSelection itsBaselineSelection;  ///< Filter

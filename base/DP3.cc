@@ -381,7 +381,7 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
   } else if (type == "h5parmpredict") {
     step = std::make_shared<steps::H5ParmPredict>(inputStep, parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
-    step = std::make_shared<steps::GainCal>(inputStep, parset, prefix);
+    step = std::make_shared<steps::GainCal>(*inputStep, parset, prefix);
   } else if (type == "upsample") {
     step = std::make_shared<steps::Upsample>(parset, prefix);
   } else if (type == "split" || type == "explode") {

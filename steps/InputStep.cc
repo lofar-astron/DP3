@@ -112,10 +112,6 @@ bool InputStep::getFullResFlags(const RefRows&, DPBuffer&) {
   throw Exception("InputStep::getFullResFlags not implemented");
 }
 
-void InputStep::getModelData(const RefRows&, Cube<casacore::Complex>&) {
-  throw Exception("InputStep::getModelData not implemented");
-}
-
 std::unique_ptr<everybeam::telescope::Telescope> InputStep::GetTelescope(
     const everybeam::ElementResponseModel element_response_model,
     bool use_channel_frequency) const {
