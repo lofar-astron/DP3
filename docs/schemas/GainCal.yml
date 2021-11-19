@@ -45,7 +45,12 @@ inputs:
     default: false
     type: bool
     doc: >-
-      Use model column. The model column name can be specified with msin.modelcolumn (default MODEL_DATA) `.`
+      Use model column. The modelcolumn setting contains the model column name `.`
+  modelcolumn:
+    default: MODEL_DATA
+    type: string
+    doc: >-
+      Name of the model data column in the input measurement set `.`
   applybeamtomodelcolumn:
     default: false
     type: bool

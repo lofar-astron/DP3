@@ -71,11 +71,6 @@ class InputStep : public Step {
   virtual bool getFullResFlags(const casacore::RefRows& rowNrs,
                                base::DPBuffer&);
 
-  /// Read the model data at the given row numbers into the array.
-  /// The default implementation throws an exception.
-  virtual void getModelData(const casacore::RefRows& rowNrs,
-                            casacore::Cube<casacore::Complex>&);
-
   /// Get the MS name.
   /// The default implementation returns an empty string.
   virtual std::string msName() const;

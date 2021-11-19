@@ -26,7 +26,7 @@ class DPLogger {
 /// Log an informational message.
 #define DPLOG_INFO_STR(stream) std::cout << stream << std::endl;
 
-/// Log a fatal message.
+/// Log a warning message.
 #define DPLOG_WARN_STR(stream) std::cerr << stream << std::endl;
 
 /// Log an informational message.

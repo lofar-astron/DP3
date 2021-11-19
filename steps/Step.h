@@ -167,7 +167,6 @@ class NullStep : public Step {
 
 class ResultStep : public Step {
  public:
-  typedef std::shared_ptr<ResultStep> ShPtr;
   /// Create the object. By default it sets its next step to the NullStep.
   ResultStep();
 
@@ -201,9 +200,6 @@ class ResultStep : public Step {
 
 class MultiResultStep : public Step {
  public:
-  /// Define the shared pointer for this type.
-  typedef std::shared_ptr<MultiResultStep> ShPtr;
-
   /// Create the object. By default it sets its next step to the NullStep.
   MultiResultStep(unsigned int size);
 

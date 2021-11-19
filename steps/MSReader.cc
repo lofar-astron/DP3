@@ -933,22 +933,6 @@ bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   return true;
 }
 
-void MSReader::getModelData(const casacore::RefRows& rowNrs,
-                            casacore::Cube<casacore::Complex>& arr) {
-  common::NSTimer::StartStop sstime(itsTimer);
-  if (rowNrs.rowVector().empty()) {
-    arr.resize(itsNrCorr, itsNrChan, itsNrBl);
-    arr = casacore::Complex();
-  } else {
-    ArrayColumn<casacore::Complex> modelCol(itsMS, itsModelColName);
-    if (itsUseAllChan) {
-      modelCol.getColumnCells(rowNrs, arr);
-    } else {
-      modelCol.getColumnCells(rowNrs, itsColSlicer, arr);
-    }
-  }
-}
-
 std::unique_ptr<everybeam::telescope::Telescope> MSReader::GetTelescope(
     const everybeam::ElementResponseModel element_response_model,
     bool use_channel_frequency) const {

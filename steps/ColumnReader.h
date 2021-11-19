@@ -1,4 +1,4 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -6,8 +6,8 @@
 /// buffer data with it.
 /// @author Lars Krombeen
 
-#ifndef DPPP_COLUMNREADER_H
-#define DPPP_COLUMNREADER_H
+#ifndef DP3_COLUMNREADER_H
+#define DP3_COLUMNREADER_H
 
 #include "../common/ParameterSet.h"
 #include "Step.h"

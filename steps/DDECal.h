@@ -167,10 +167,10 @@ class DDECal : public Step {
 
   UVWFlagger itsUVWFlagStep;
   /// Result step for data after UV-flagging
-  ResultStep::ShPtr itsDataResultStep;
+  std::shared_ptr<ResultStep> itsDataResultStep;
   std::vector<std::shared_ptr<ModelDataStep>> itsSteps;
   /// For each directions, a multiresultstep with all times.
-  std::vector<MultiResultStep::ShPtr> itsResultSteps;
+  std::vector<std::shared_ptr<MultiResultStep>> itsResultSteps;
 
   common::NSTimer itsTimer;
   common::NSTimer itsTimerPredict;

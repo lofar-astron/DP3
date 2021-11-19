@@ -163,10 +163,6 @@ class MSReader : public InputStep {
   virtual bool getFullResFlags(const casacore::RefRows& rowNrs,
                                base::DPBuffer&);
 
-  /// Read the model data at the given row numbers into the array.
-  virtual void getModelData(const casacore::RefRows& rowNrs,
-                            casacore::Cube<casacore::Complex>&);
-
   std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
       const everybeam::ElementResponseModel element_response_model,
       bool use_channel_frequency) const final override;
