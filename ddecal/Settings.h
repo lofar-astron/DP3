@@ -104,8 +104,6 @@ struct Settings {
 
   // Solver settings.
   const ddecal::LLSSolverType lls_solver_type;
-  const double lls_max_tolerance;
-  const double lls_min_tolerance;
   const size_t max_iterations;
   const double tolerance;
   const double step_size;

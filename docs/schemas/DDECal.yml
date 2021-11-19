@@ -139,15 +139,7 @@ inputs:
   llssolver:
     default: qr
     type: string
-    doc: Select which linear least-squares solver to use. Supported are ``qr``, ``svd``, ``normalequations``, or ``lsmr`` `.`
-  llstolerance:
-     default: 1.0E-7
-     type: double
-     doc: Tolerance for linear least-squares solver `.`
-  llsstarttolerance:
-     default: equal to llstolerance
-     type: double
-     doc: Used to decrease the linear least-squares solver tolerance in each solver iteration. If this variable is set, llstolerance is the final tolerance, reached after maxiter iterations, and llsstarttolerance the (larger) initial tolerance, used in the first iteration. If this variable is not set, a constant linear least-squares tolerance is used `.`
+    doc: Select which linear least-squares solver to use. Supported are ``qr``, ``svd`` or ``normalequations`` `.`
   solveralgorithm:
     default: directionsolve
     type: string

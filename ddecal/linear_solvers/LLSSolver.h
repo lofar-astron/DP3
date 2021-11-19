@@ -15,7 +15,7 @@ namespace ddecal {
 /**
  * Linear least-squares solver to use.
  */
-enum class LLSSolverType { QR, SVD, LSMR, NORMAL_EQUATIONS };
+enum class LLSSolverType { QR, SVD, NORMAL_EQUATIONS };
 
 /**
  * Base class for linear least-square solvers. These are used by
@@ -35,22 +35,10 @@ class LLSSolver {
     return Solve(a, b);
   }  // can use initial guess x
 
-  virtual void SetTolerance([[maybe_unused]] double tolerance) {}
-
   static std::unique_ptr<LLSSolver> Make(LLSSolverType lss_type, int m, int n,
                                          int nrhs);
 
   static LLSSolverType ParseType(const std::string& solver);
-
-  static std::pair<double, double> ParseTolerances(double min_tolerance,
-                                                   double max_tolerance) {
-    double result_min = min_tolerance;
-    double result_max = max_tolerance;
-    if (result_max < result_min) {
-      result_max = result_min;
-    }
-    return std::pair<double, double>(result_min, result_max);
-  }
 
  protected:
   int m_;     // number of rows in matrix A

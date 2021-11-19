@@ -73,9 +73,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
       const SolveData::ChannelBlockData& channelBlock =
           data.ChannelBlock(ch_block);
       PerformIteration(channelBlock, g_times_cs[ch_block], vs[ch_block],
-                       solutions[ch_block], next_solutions[ch_block],
-                       double(iteration + 1) / GetMaxIterations(),
-                       avg_squared_diff);
+                       solutions[ch_block], next_solutions[ch_block]);
     });
 
     Step(solutions, next_solutions);
@@ -116,8 +114,7 @@ void DiagonalSolver::PerformIteration(
     const SolveData::ChannelBlockData& cb_data, std::vector<Matrix>& g_times_cs,
     std::vector<std::vector<Complex>>& vs,
     const std::vector<DComplex>& solutions,
-    std::vector<DComplex>& next_solutions, double iteration_fraction,
-    double solver_precision) {
+    std::vector<DComplex>& next_solutions) {
   for (size_t ant_and_pol = 0; ant_and_pol != NAntennas() * 2; ++ant_and_pol) {
     g_times_cs[ant_and_pol].SetZero();
     vs[ant_and_pol].assign(vs[ant_and_pol].size(), 0);
@@ -189,8 +186,7 @@ void DiagonalSolver::PerformIteration(
       const size_t m = x.size();
       // TODO it would be nice to have a solver resize function to avoid too
       // many reallocations
-      std::unique_ptr<LLSSolver> solver =
-          CreateLLSSolver(m, n, nrhs, iteration_fraction, solver_precision);
+      std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
       // solve x^H in [g C] x^H  = v
       for (size_t d = 0; d != NDirections(); ++d) {
         x0[d] = solutions[(ant * NDirections() + d) * 2 + pol];

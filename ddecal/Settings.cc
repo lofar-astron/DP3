@@ -80,8 +80,6 @@ Settings::Settings(const common::ParameterSet& _parset,
       // Solver settings
       lls_solver_type(
           ddecal::LLSSolver::ParseType(GetString("llssolver", "qr"))),
-      lls_max_tolerance(GetDouble("llstolerance", 1.0E-7)),
-      lls_min_tolerance(GetDouble("llsstarttolerance", lls_max_tolerance)),
       max_iterations(GetUint("maxiter", 50)),
       tolerance(GetDouble("tolerance", 1.e-4)),
       step_size(GetDouble("stepsize", 0.2)),
