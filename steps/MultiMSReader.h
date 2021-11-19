@@ -109,49 +109,53 @@ namespace steps {
 ///  </tr>
 /// </table>
 
-class MultiMSReader : public MSReader {
+class MultiMSReader final : public MSReader {
  public:
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
   MultiMSReader(const std::vector<string>& msNames, const common::ParameterSet&,
                 const string& prefix);
 
-  virtual ~MultiMSReader();
+  ~MultiMSReader() override;
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info (by initializing it).
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// If needed, show the flag counts.
-  virtual void showCounts(std::ostream&) const;
+  void showCounts(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Read the UVW at the given row numbers.
-  virtual void getUVW(const casacore::RefRows& rowNrs, double time,
-                      base::DPBuffer& buf);
+  void getUVW(const casacore::RefRows& rowNrs, double time,
+              base::DPBuffer& buf) override;
 
   /// Read the weights at the given row numbers.
-  virtual void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer& buf);
+  void getWeights(const casacore::RefRows& rowNrs,
+                  base::DPBuffer& buf) override;
 
   /// Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
   /// It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
   /// If undefined, false is returned.
-  virtual bool getFullResFlags(const casacore::RefRows& rowNrs,
-                               base::DPBuffer& buf);
+  bool getFullResFlags(const casacore::RefRows& rowNrs,
+                       base::DPBuffer& buf) override;
 
   /// Tell if the visibility data are to be read.
   void setReadVisData(bool readVisData) override;
+
+  /// Get the name of the first MS.
+  std::string msName() const override;
 
  private:
   /// Handle the info for all bands.

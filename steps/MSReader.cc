@@ -81,8 +81,9 @@ namespace steps {
 MSReader::MSReader()
     : itsReadVisData(false), itsLastMSTime(0), itsNrRead(0), itsNrInserted(0) {}
 
-MSReader::MSReader(const string& msName, const common::ParameterSet& parset,
-                   const string& prefix, bool missingData)
+MSReader::MSReader(const casacore::MeasurementSet& ms,
+                   const common::ParameterSet& parset, const string& prefix,
+                   bool missingData)
     : itsReadVisData(false),
       itsMissingData(missingData),
       itsLastMSTime(0),
@@ -109,14 +110,13 @@ MSReader::MSReader(const string& msName, const common::ParameterSet& parset,
   itsNeedSort = parset.getBool(prefix + "sort", false);
   itsSelBL = parset.getString(prefix + "baseline", string());
   // Try to open the MS and get its full name.
-  if (itsMissingData && !Table::isReadable(msName)) {
-    DPLOG_WARN_STR("MeasurementSet " << msName
-                                     << " not found; dummy data used");
+  if (itsMissingData && ms.isNull()) {
+    DPLOG_WARN_STR("MeasurementSet is empty; dummy data used");
     return;
   }
-  itsMS = MeasurementSet(msName, TableLock::AutoNoReadLocking);
+  assert(!HasBda(ms));
+  itsMS = ms;
   itsSelMS = itsMS;
-  itsMSName = itsMS.tableName();
   // See if a selection on band needs to be done.
   // We assume that DATA_DESC_ID and SPW_ID map 1-1.
   if (itsSpw >= 0) {
@@ -127,7 +127,7 @@ MSReader::MSReader(const string& msName, const common::ParameterSet& parset,
     if (subset.nrow() < itsSelMS.nrow()) {
       if (subset.nrow() <= 0)
         throw Exception("Band " + std::to_string(itsSpw) + " not found in " +
-                        itsMSName);
+                        msName());
       itsSelMS = subset;
     }
   } else {
@@ -166,8 +166,7 @@ MSReader::MSReader(const string& msName, const common::ParameterSet& parset,
       // If not all is selected, use the selection.
       if (subset.nrow() < itsSelMS.nrow()) {
         if (subset.nrow() <= 0)
-          throw Exception("Baselines " + itsSelBL + "not found in " +
-                          itsMSName);
+          throw Exception("Baselines " + itsSelBL + "not found in " + msName());
         itsSelMS = subset;
       }
       MSAntennaParse::thisMSAErrorHandler = curHandler;
@@ -284,17 +283,10 @@ MSReader::MSReader(const string& msName, const common::ParameterSet& parset,
 MSReader::~MSReader() {}
 
 void MSReader::updateInfo(const DPInfo& dpInfo) {
-  if (itsMS.keywordSet().isDefined("BDA_FACTORS") &&
-      itsMS.keywordSet().asTable("BDA_FACTORS").nrow() > 0) {
-    throw std::invalid_argument(
-        "Input MS contains BDA data. Table BDA_FACTORS is present and "
-        "filled. Use bda=true instead.");
-  }
-
   info().setNThreads(dpInfo.nThreads());
 }
 
-std::string MSReader::msName() const { return itsMSName; }
+std::string MSReader::msName() const { return itsMS.tableName(); }
 
 void MSReader::setReadVisData(bool readVisData) {
   itsReadVisData = (itsReadVisData || readVisData);
@@ -308,11 +300,9 @@ bool MSReader::process(const DPBuffer&) {
     if (itsUseFlags) {
       itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
     }
-    /// cout<<(void*)(itsBuffer.getData().data())<<" upd"<<'\n';
   }
   {
     common::NSTimer::StartStop sstime(itsTimer);
-    ///        itsBuffer.clear();
     // Use time from the current time slot in the MS.
     bool useIter = false;
     while (!itsIter.pastEnd()) {
@@ -322,7 +312,7 @@ bool MSReader::process(const DPBuffer&) {
       if (mstime < itsLastMSTime) {
         DPLOG_WARN_STR("Time at rownr " +
                        std::to_string(itsIter.table().rowNumbers(itsMS)[0]) +
-                       " of MS " + itsMSName +
+                       " of MS " + msName() +
                        " is less than previous time slot");
       } else {
         // Use the time slot if near or < nexttime, but > starttime.
@@ -353,7 +343,6 @@ bool MSReader::process(const DPBuffer&) {
     }
     // Fill the buffer.
     itsBuffer.setTime(itsNextTime);
-    /// cout << "read time " <<itsBuffer.getTime() - 4472025855.0<<'\n';
     if (!useIter) {
       // Need to insert a fully flagged time slot.
       itsBuffer.setRowNrs(casacore::Vector<common::rownr_t>());
@@ -377,10 +366,6 @@ bool MSReader::process(const DPBuffer&) {
         itsBuffer.setExposure(
             ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
         // Get data and flags from the MS.
-        ///            if (itsNrRead%50 < 4) {
-        ///              cout<<(void*)(itsBuffer.getData().data())<<"
-        ///              rd1"<<'\n';
-        ///}
         if (itsReadVisData) {
           ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
                                                  itsDataColName);
@@ -390,9 +375,6 @@ bool MSReader::process(const DPBuffer&) {
             dataCol.getColumn(itsColSlicer, itsBuffer.getData());
           }
         }
-        /// if (itsNrRead%50 < 4) {
-        /// cout<<(void*)(itsBuffer.getData().data())<<" rd2"<<'\n';
-        ///}
         if (itsUseFlags) {
           ArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
           if (itsUseAllChan) {
@@ -427,7 +409,6 @@ bool MSReader::process(const DPBuffer&) {
   }  // end of scope stops the timer.
   // Let the next step in the pipeline process this time slot.
   getNextStep()->process(itsBuffer);
-  ///      cout << "Reader: " << itsNextTime-4.75e9<<'\n';
   // Do not add to previous time, because it introduces round-off errors.
   itsNextTime = itsFirstTime + (itsNrRead + itsNrInserted) * itsTimeInterval;
   return true;
@@ -462,7 +443,7 @@ void MSReader::finish() { getNextStep()->finish(); }
 
 void MSReader::show(std::ostream& os) const {
   os << "MSReader\n";
-  os << "  input MS:       " << itsMSName << '\n';
+  os << "  input MS:       " << msName() << '\n';
   if (itsMS.isNull()) {
     os << "    *** MS does not exist ***\n";
   } else {
@@ -553,10 +534,10 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
     if (itsMissingData) {
       // Only give warning if a missing data column is allowed.
       DPLOG_WARN_STR("Data column " + itsDataColName + " is missing in " +
-                     itsMSName);
+                     msName());
     } else {
       throw Exception("Data column " + itsDataColName + " is missing in " +
-                      itsMSName);
+                      msName());
     }
   }
 
@@ -694,7 +675,7 @@ void MSReader::prepare2() {
     antennaSet = ScalarColumn<casacore::String>(obstab, "LOFAR_ANTENNA_SET")(0);
   }
   info().init(itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
-              itsTimeInterval, itsMSName, antennaSet);
+              itsTimeInterval, msName(), antennaSet);
   info().setDataColName(itsDataColName);
   info().setWeightColName(itsWeightColName);
   // Read the center frequencies of all channels.
@@ -733,8 +714,7 @@ void MSReader::skipFirstTimes() {
     if (mstime < itsLastMSTime) {
       DPLOG_WARN_STR("Time at rownr " +
                      std::to_string(itsIter.table().rowNumbers(itsMS)[0]) +
-                     " of MS " + itsMSName +
-                     " is less than previous time slot");
+                     " of MS " + msName() + " is less than previous time slot");
     } else {
       // Stop skipping if time equal to itsFirstTime.
       if (casacore::near(mstime, itsFirstTime)) {
@@ -942,7 +922,7 @@ std::unique_ptr<everybeam::telescope::Telescope> MSReader::GetTelescope(
   std::unique_ptr<everybeam::telescope::Telescope> telescope =
       everybeam::Load(itsMS, options);
   return telescope;
-};
+}
 
 }  // namespace steps
 }  // namespace dp3

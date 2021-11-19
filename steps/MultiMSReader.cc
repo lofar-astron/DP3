@@ -47,8 +47,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
       itsNMissing(0),
       itsMSNames(msNames),
       itsRegularChannels(true) {
-  if (msNames.size() <= 0) throw Exception("No names of MeasurementSets given");
-  itsMSName = itsMSNames[0];
+  if (msNames.empty()) throw Exception("No names of MeasurementSets given");
   itsStartChanStr = parset.getString(prefix + "startchan", "0");
   itsNrChanStr = parset.getString(prefix + "nchan", "0");
   itsUseFlags = parset.getBool(prefix + "useflag", true);
@@ -62,19 +61,28 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
   // Open all MSs.
   auto nullStep = std::make_shared<NullStep>();
   itsReaders.reserve(msNames.size());
-  for (unsigned int i = 0; i < msNames.size(); ++i) {
-    auto reader =
-        std::make_shared<MSReader>(msNames[i], parset, prefix, itsMissingData);
-    // Add a null step for the reader.
-    reader->setNextStep(nullStep);
-    // Ignore if the MS is missing.
-    if (reader->table().isNull()) {
-      reader.reset();
+  for (const std::string& name : msNames) {
+    if (!casacore::Table::isReadable(name)) {
+      // Ignore if the MS is missing.
+      itsReaders.push_back(nullptr);
       itsNMissing++;
-    } else if (itsFirst < 0) {
-      itsFirst = i;
+    } else {
+      const casacore::MeasurementSet ms(name,
+                                        casacore::TableLock::AutoNoReadLocking);
+      if (HasBda(ms)) {
+        throw std::invalid_argument(name +
+                                    " contains BDA data. DP3 does not support "
+                                    "multiple input MS with BDA data.");
+      }
+      auto reader =
+          std::make_shared<MSReader>(ms, parset, prefix, itsMissingData);
+      // Add a null step for the reader.
+      reader->setNextStep(nullStep);
+      itsReaders.push_back(std::move(reader));
+      if (itsFirst < 0) {
+        itsFirst = itsReaders.size() - 1;
+      }
     }
-    itsReaders.push_back(std::move(reader));
   }
 
   // TODO: check if frequencies are regular, insert some empy readers
@@ -93,6 +101,10 @@ void MultiMSReader::setReadVisData(bool readVisData) {
       itsReaders[i]->setReadVisData(readVisData);
     }
   }
+}
+
+std::string MultiMSReader::msName() const {
+  return itsReaders.front()->msName();
 }
 
 void MultiMSReader::handleBands() {

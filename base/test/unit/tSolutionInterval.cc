@@ -5,8 +5,8 @@
 
 #include "../../SolutionInterval.h"
 #include "../../DPBuffer.h"
-#include "../../../steps/MSReader.h"
 #include "../../../common/Timer.h"
+#include "../../../steps/test/unit/mock/MockInput.h"
 
 #include <boost/make_unique.hpp>
 #include <boost/optional.hpp>
@@ -14,7 +14,7 @@
 using dp3::base::DPBuffer;
 using dp3::base::SolutionInterval;
 using dp3::common::NSTimer;
-using dp3::steps::MSReader;
+using dp3::steps::MockInput;
 
 namespace {
 const int kNBL = 2;
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_SUITE(solutioninterval)
 
 /// Test if buffer inserted is the same
 BOOST_AUTO_TEST_CASE(insertion) {
-  MSReader input;
+  MockInput input;
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(insertion) {
 
 /// Test that the limit cannot be exceeded
 BOOST_AUTO_TEST_CASE(limit) {
-  MSReader input;
+  MockInput input;
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(limit) {
 
 /// Test if buffer is a copy and can be changed
 BOOST_AUTO_TEST_CASE(copy) {
-  MSReader input;
+  MockInput input;
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(copy) {
 
 /// Copy a buffer, change a weight and test if it is restored
 BOOST_AUTO_TEST_CASE(restore) {
-  MSReader input;
+  MockInput input;
   NSTimer timer;
   size_t n_solution = 0;
   size_t buffer_size = 1;

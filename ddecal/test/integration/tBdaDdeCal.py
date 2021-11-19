@@ -74,7 +74,6 @@ def create_corrupted_data():
             "msout=corrupted.MS",
             "steps=[predict]",
             "predict.sourcedb=test_corrupted.skymodel",
-            "bda=true",
             "numthreads=1",
         ]
     )
@@ -94,7 +93,6 @@ def test_only_predict(create_skymodel):
         "checkparset=1",
         f"msin={MSIN}",
         "msout.overwrite=true",
-        "bda=true",
         "numthreads=1",
     ]
 
@@ -208,7 +206,6 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
             f"ddecal.mode={caltype}",
             "ddecal.solint=2",
             f"ddecal.nchan={nchan}",
-            "bda=true",
             "numthreads=1",
         ]
     )
@@ -267,7 +264,6 @@ def test_subtract(create_skymodel, create_corrupted_data):
             "ddecal.solint=2",
             "ddecal.nchan=3",
             "ddecal.subtract=true",
-            "bda=true",
             "numthreads=1",
         ]
     )

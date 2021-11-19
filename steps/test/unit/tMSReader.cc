@@ -18,9 +18,9 @@ BOOST_AUTO_TEST_SUITE(msreader)
 
 // Test reading a LOFAR measurement set
 BOOST_AUTO_TEST_CASE(read_lofar) {
-  std::string msname = "tNDPPP-generic.MS";
+  const casacore::MeasurementSet ms("tNDPPP-generic.MS");
   dp3::common::ParameterSet parset;
-  MSReader msreader(msname, parset, "");
+  MSReader msreader(ms, parset, "");
 
   std::vector<std::string> ant_vec = {"CS001HBA0", "CS002HBA0"};
   casacore::Vector<casacore::String> ant_names(ant_vec.size());
@@ -44,9 +44,9 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
 
 // Reading an OSKAR measurement set
 BOOST_AUTO_TEST_CASE(read_oskar) {
-  std::string msname = "tOSKAR.in_MS";
+  const casacore::MeasurementSet ms("tOSKAR.in_MS");
   dp3::common::ParameterSet parset;
-  MSReader msreader(msname, parset, "");
+  MSReader msreader(ms, parset, "");
 
   std::vector<std::string> ant_vec = {"s0012", "s0013", "s0015"};
   casacore::Vector<casacore::String> ant_names(ant_vec.size());

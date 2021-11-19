@@ -81,10 +81,11 @@ def test_bdapredict(create_skymodel):
         "predict.sourcedb=test.sourcedb",
         "predict.usebeammodel=F",
     ]
-    
+
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_REGULAR}",
             "msout=bdapredict0.MS",
             "steps=[predict,bdaaverager]",
@@ -94,6 +95,7 @@ def test_bdapredict(create_skymodel):
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_REGULAR}",
             "msout=bdapredict1.MS",
             "steps=[bdaaverager, predict]",
@@ -114,6 +116,7 @@ def test_predicted_values_regular_input(create_skymodel_in_phase_center):
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_REGULAR}",
             "msout=bdapredict.MS",
             "msout.overwrite=true",
@@ -139,13 +142,13 @@ def test_predicted_values_bda_input(create_skymodel_in_phase_center):
     check_call(
         [
             tcf.DP3EXE,
+            "checkparset=true",
             f"msin={MSIN_BDA}",
             "msout=bdapredict.MS",
             "msout.overwrite=true",
             "steps=[predict]",
             "predict.sourcedb=test.sourcedb",
             "predict.usebeammodel=F",
-            "bda=true",
         ]
     )
 

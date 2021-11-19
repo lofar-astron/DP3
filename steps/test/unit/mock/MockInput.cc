@@ -16,6 +16,11 @@ void MockInput::getUVW(const casacore::RefRows&, double,
 void MockInput::getWeights(const casacore::RefRows&, base::DPBuffer& buffer) {
   BOOST_TEST(!buffer.getWeights().empty());
 }
+bool MockInput::getFullResFlags(const casacore::RefRows&,
+                                base::DPBuffer& buffer) {
+  BOOST_TEST(!buffer.getFullResFlags().empty());
+  return true;
+}
 void MockInput::finish() { BOOST_ERROR("Unexpected finish() call"); }
 void MockInput::show(std::ostream&) const {
   BOOST_ERROR("Unexpected show() call");
