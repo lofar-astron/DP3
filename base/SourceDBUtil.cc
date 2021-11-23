@@ -347,9 +347,13 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
 
 static bool HasSkymodelExtension(const std::string& source_db_name) {
   static const boost::string_view kSymodelExtension = ".skymodel";
-  return source_db_name.size() >= kSymodelExtension.size() &&
-         std::equal(kSymodelExtension.rbegin(), kSymodelExtension.rend(),
-                    source_db_name.rbegin());
+  static const boost::string_view kTxtExtension = ".txt";
+  return (source_db_name.size() >= kSymodelExtension.size() &&
+          std::equal(kSymodelExtension.rbegin(), kSymodelExtension.rend(),
+                     source_db_name.rbegin())) ||
+         (source_db_name.size() >= kTxtExtension.size() &&
+          std::equal(kTxtExtension.rbegin(), kTxtExtension.rend(),
+                     source_db_name.rbegin()));
 }
 
 SourceDB::SourceDB(const std::string& source_db_name,

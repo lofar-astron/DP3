@@ -61,7 +61,7 @@ inputs:
   skymodel:
     default: sky
     type: File, Directory, string
-    doc: The name of the SourceDB to use (i.e., the output of `makesourcedb`).
+    doc: The name of the SourceDB to use (i.e., the output of `makesourcedb`) `.` 
   instrumentmodel:
     default: instrument
     type: string
