@@ -6,7 +6,7 @@ inputs:
     doc: Case-insensitive step type; must be 'h5parmpredict' `.`
   sourcedb:
     type: string
-    doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb) `.`
+    doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb) `.` When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.
   applycal&#46;parmdb:
     type: string
     doc: Path of the h5parm in which the corruptions are stored `.`

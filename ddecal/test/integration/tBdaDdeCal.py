@@ -58,7 +58,7 @@ def create_skymodel():
 
 @pytest.fixture()
 def create_corrupted_data():
-    with open("test_corrupted.skymodel", "w") as f:
+    with open("test_corrupted.txt", "w") as f:
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
         )
@@ -73,7 +73,7 @@ def create_corrupted_data():
             f"msin={MSIN}",
             "msout=corrupted.MS",
             "steps=[predict]",
-            "predict.sourcedb=test_corrupted.skymodel",
+            "predict.sourcedb=test_corrupted.txt",
             "numthreads=1",
         ]
     )
