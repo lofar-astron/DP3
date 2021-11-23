@@ -86,7 +86,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
-                        avg_squared_diff, step_magnitudes, 2);
+                        avg_squared_diff, step_magnitudes, 1);
 
     if (stat_stream) {
       (*stat_stream) << step_magnitudes.back() << '\t' << avg_squared_diff
