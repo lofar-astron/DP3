@@ -105,6 +105,9 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
       itsNChanOut(0),
       itsNTimeOut(0),
       itsTimeIntervalAvg(0),
+      itsUseLBFGS(parset.getBool(prefix + "uselbfgssolver", false)),
+      itsLBFGShistory(parset.getUint(prefix + "lbfgs.historysize", 10)),
+      itsLBFGSrobustdof(parset.getDouble(prefix + "lbfgs.robustdof", 2.0)),
       itsTimeIndex(0),
       itsNConverged(0) {
   // Get and set solver options.
@@ -132,6 +135,11 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
         "An empty name is given for the sky and/or instrument model");
   if (itsIgnoreTarget && !itsTargetSource.empty())
     throw Exception("Target source name cannot be given if ignoretarget=true");
+
+#ifndef HAVE_LIBDIRAC
+  if (itsUseLBFGS)
+    throw Exception("uselbfgssolver=true but libdirac is not available");
+#endif
   // Add a null step as last step in the filter.
   Step::ShPtr nullStep(new NullStep());
   itsFilter.setNextStep(nullStep);
@@ -915,9 +923,20 @@ void Demixer::demix() {
                                                   stride_model);
     }
 
-    bool converged =
+    const bool converged =
+#ifdef HAVE_LIBDIRAC
+        (itsUseLBFGS
+             ? estimate(nDr, nSt, nBl, nCh, cr_baseline, cr_data, cr_model,
+                        cr_flag, cr_weight, cr_mix, &(storage.unknowns[0]),
+                        itsLBFGShistory, itsLBFGSrobustdof, itsMaxIter)
+             : estimate(nDr, nSt, nBl, nCh, cr_baseline, cr_data, cr_model,
+                        cr_flag, cr_weight, cr_mix, &(storage.unknowns[0]),
+                        itsMaxIter));
+#else
         estimate(nDr, nSt, nBl, nCh, cr_baseline, cr_data, cr_model, cr_flag,
                  cr_weight, cr_mix, &(storage.unknowns[0]), itsMaxIter);
+#endif /* HAVE_LIBDIRAC */
+
     if (converged) {
       ++storage.count_converged;
     }

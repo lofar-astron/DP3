@@ -63,15 +63,34 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
               const_cursor<dcomplex> mix, double* unknowns,
               size_t maxiter = 50);
 
-/// Estimate for a variable nr of stations per source.
-bool estimateSel(size_t nDirection, size_t nStation, size_t nBaseline,
-                 size_t nChannel, const_cursor<Baseline> baselines,
-                 std::vector<const_cursor<fcomplex>> data,
-                 std::vector<const_cursor<dcomplex>> model,
-                 const_cursor<bool> flag, const_cursor<float> weight,
-                 const_cursor<dcomplex> mix, double* unknowns, size_t nUnknowns,
-                 std::vector<dcomplex>& M, std::vector<dcomplex>& dM,
-                 std::vector<double>& dR, std::vector<double>& dI);
+#ifdef HAVE_LIBDIRAC
+/// method for LBFGS (robust) solver, with extra input variables:
+///  \param[in] lbfgs_mem
+///  LBFGS history size, as a multiple of the size of parameters (unknowns)
+///  \param[in] robust_nu
+///  Robust noise model degrees of freedom, when >30, it is almost Gaussian
+/// The remaining input variables are similar to estimate() method above.
+bool estimate(std::size_t n_direction, std::size_t n_station,
+              std::size_t n_baseline, std::size_t n_channel,
+              const_cursor<Baseline> baselines,
+              std::vector<const_cursor<fcomplex>> data,
+              std::vector<const_cursor<dcomplex>> model,
+              const_cursor<bool> flag, const_cursor<float> weight,
+              const_cursor<dcomplex> mix, double* unknowns,
+              std::size_t lbfgs_mem, double robust_nu,
+              std::size_t max_iter = 50);
+#endif /* HAVE_LIBDIRAC */
+
+/// Compute a map that contains the index of the unknowns related to the
+/// specified baseline in the list of all unknowns.
+/// \param[in] n_direction
+/// \param[in] n_station
+/// \param[in] baseline
+///    A tuple of baseline station ids
+/// \param[out] index
+///    A vector of size 4*8*n_direction to store the indices
+void makeIndex(std::size_t n_direction, std::size_t n_station,
+               const Baseline& baseline, unsigned int* index);
 
 }  // namespace base
 }  // namespace dp3
