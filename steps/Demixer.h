@@ -152,6 +152,14 @@ class Demixer : public Step {
   unsigned int itsNTimeOut;
   double itsTimeIntervalAvg;
 
+  bool itsUseLBFGS;  ///< if this is not false, use LBFGS solver instead of
+                     ///< LSQfit.
+  unsigned int
+      itsLBFGShistory;       ///< the size of LBFGS memory(history), specified
+                             ///< as a multiple of the size of parameter vector.
+  double itsLBFGSrobustdof;  ///< the degrees of freedom used in robust noise
+                             ///< model.
+
   /// Accumulator used for computing the demixing weights at the demix
   /// resolution. The shape of this buffer is #correlations x #channels
   /// x #baselines x #directions x #directions (fastest axis first).

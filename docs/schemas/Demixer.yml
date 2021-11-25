@@ -120,3 +120,21 @@ inputs:
     default: 50
     type: int
     doc: Maximum number of iterations used in the LM solve `.`
+  uselbfgssolver:
+    default: false
+    type: boolean 
+    doc: >-
+      If true, use LBFGS solver instead of the LM solver (or LSQfit) `.`
+  lbfgs.historysize:
+    default: 10
+    type: int
+    doc: >-
+      If using the LBFGS solver, the history size, specified as a multiple of the 
+      parameter vector, to use to approximate the inverse Hessian `.`
+  lbfgs.robustdof:
+    default: 2.0
+    type: double
+    doc: >-
+      If using the LBFGS solver, the degrees of freedom given to the noise model.
+      The larger this becomes (more than 30), the noise model behaves as a Gaussian.
+      The smaller values make the noise model more robust to outliers in the data `.`

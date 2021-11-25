@@ -325,6 +325,7 @@ add_library(
   base/DPLogger.cc
   base/DP3.cc
   base/EstimateMixed.cc
+  base/EstimateMixedLBFGS.cc
   base/EstimateNew.cc
   base/FlagCounter.cc
   base/GainCalAlgorithm.cc
@@ -420,6 +421,21 @@ set(DP3_OBJECTS
     $<TARGET_OBJECTS:DP3_OBJ> $<TARGET_OBJECTS:ParmDB>
     $<TARGET_OBJECTS:PythonDP3>)
 
+set(LIBDIRAC_PREFIX
+    ""
+    CACHE FILEPATH "Path to libdirac install root")
+if(NOT "${LIBDIRAC_PREFIX}" STREQUAL "")
+  #Find pkg-config and try to find libdirac (only if -DLIBDIRAC_PREFIX given)
+  find_package(PkgConfig REQUIRED)
+  # Set search path to install directory of libdirac
+  set(ENV{PKG_CONFIG_PATH} "${LIBDIRAC_PREFIX}/lib/pkgconfig")
+  pkg_search_module(LIBDIRAC libdirac)
+endif()
+if(LIBDIRAC_FOUND)
+  message("-- Found libdirac: ${LIBDIRAC_INCLUDE_DIRS}")
+  include_directories(${LIBDIRAC_INCLUDE_DIRS})
+endif()
+
 set(DP3_LIBRARIES
     ${AOFLAGGER_LIB}
     ${ARMADILLO_LIBRARIES}
@@ -433,6 +449,14 @@ set(DP3_LIBRARIES
     schaapcommon
     Threads::Threads
     pybind11::embed)
+
+# If  libdirac is found, use it
+if(LIBDIRAC_FOUND)
+  # add preprocessor def
+  add_definitions(-DHAVE_LIBDIRAC)
+  # add link flags
+  set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LIBRARIES} ${LIBDIRAC_LDFLAGS})
+endif()
 
 # Perform the BLAS check from aocommon
 include("${CMAKE_SOURCE_DIR}/external/aocommon/CMake/CheckBLAS.cmake")

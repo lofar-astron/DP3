@@ -15,24 +15,22 @@
 #include "../common/StreamUtil.h"  ///
 
 #include <iostream>
-
 using dp3::common::operator<<;
 
 namespace dp3 {
 namespace base {
 
-namespace {
 // Compute a map that contains the index of the unknowns related to the
 // specified baseline in the list of all unknowns.
-void makeIndex(size_t nDirection, size_t nStation, const Baseline &baseline,
-               unsigned int *index) {
-  const size_t nCorrelation = 4;
-  for (size_t cr = 0; cr < nCorrelation; ++cr) {
-    size_t idx0 = baseline.first * 8 + (cr / 2) * 4;  // row of P
-    size_t idx1 =
+void makeIndex(std::size_t n_direction, std::size_t n_station,
+               const Baseline &baseline, unsigned int *index) {
+  const std::size_t n_correlation = 4;
+  for (std::size_t cr = 0; cr < n_correlation; ++cr) {
+    std::size_t idx0 = baseline.first * 8 + (cr / 2) * 4;  // row of P
+    std::size_t idx1 =
         baseline.second * 8 + (cr % 2) * 4;  // column of Q (row of Q^H)
 
-    for (size_t dr = 0; dr < nDirection; ++dr) {
+    for (std::size_t dr = 0; dr < n_direction; ++dr) {
       *index++ = idx0;
       *index++ = idx0 + 1;
       *index++ = idx0 + 2;
@@ -43,12 +41,11 @@ void makeIndex(size_t nDirection, size_t nStation, const Baseline &baseline,
       *index++ = idx1 + 2;
       *index++ = idx1 + 3;
 
-      idx0 += nStation * 8;
-      idx1 += nStation * 8;
+      idx0 += n_station * 8;
+      idx1 += n_station * 8;
     }
   }
 }
-}  // Unnamed namespace.
 
 bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
               size_t nChannel, const_cursor<Baseline> baselines,
@@ -57,7 +54,6 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
               const_cursor<float> weight, const_cursor<dcomplex> mix,
               double *unknowns, size_t maxiter) {
   assert(data.size() == nDirection && model.size() == nDirection);
-  bool sh = false;
 
   // Initialize LSQ solver.
   const size_t nUnknowns = nDirection * nStation * 4 * 2;
@@ -80,7 +76,6 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
   // Iterate until convergence.
   size_t nIterations = 0;
   while (!solver.isReady() && nIterations < maxiter) {
-    if (sh) std::cout << "\niteration " << nIterations << endl;
     for (size_t bl = 0; bl < nBaseline; ++bl) {
       const size_t p = baselines->first;
       const size_t q = baselines->second;
@@ -88,7 +83,6 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
       if (p != q) {
         // Create partial derivative index for current baseline.
         makeIndex(nDirection, nStation, *baselines, &(dIndex[0]));
-        if (sh) cout << "derinx=" << dIndex << endl;
 
         for (size_t ch = 0; ch < nChannel; ++ch) {
           for (size_t dr = 0; dr < nDirection; ++dr) {
@@ -152,10 +146,6 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
             dM[dr * 16 + 13] = dM[dr * 16 + 5];   // dM_11/dJp_11
             dM[dr * 16 + 14] = dM[dr * 16 + 10];  // dM_11/dJq_10
             dM[dr * 16 + 15] = dM[dr * 16 + 11];  // dM_11/dJq_11
-          }
-          if (sh) {
-            cout << "M=" << M << endl;
-            cout << "dM=" << dM << endl;
           }
 
           for (size_t cr = 0; cr < 4; ++cr)  // correlation: 00,01,10,11
@@ -225,14 +215,6 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
                 solver.makeNorm(nPartial, &(dIndex[cr * nPartial]), &(dI[0]),
                                 static_cast<double>(weight[cr]),
                                 imag(residual));
-                if (sh) {
-                  cout << "makeres " << real(residual) << ' ' << weight[cr]
-                       << ' ' << nPartial;
-                  for (unsigned int i = 0; i < nPartial; ++i) {
-                    cout << ' ' << dIndex[cr * nPartial + i] << ' ' << dR[i];
-                  }
-                  cout << endl;
-                }
 
                 // Move to next target direction.
                 mix.backward(1, nDirection);
@@ -294,13 +276,6 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     casacore::uInt rank;
     [[maybe_unused]] bool status = solver.solveLoop(rank, unknowns, true);
     assert(status);
-    if (sh) {
-      cout << "solution=[";
-      for (unsigned int i = 0; i < nUnknowns; ++i) {
-        cout << unknowns[i] << ',';
-      }
-      cout << endl;
-    }
 
     // Update iteration count.
     ++nIterations;
