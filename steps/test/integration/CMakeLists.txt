@@ -12,6 +12,7 @@ add_python_integrationtests(
   tBdaPredict
   tDemix
   tGainCalH5Parm
+  tMsIn
   tMultiApplyCal
   tPredict
   tReadOnly

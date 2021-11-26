@@ -16,7 +16,7 @@ using dp3::steps::MSBDAReader;
 using dp3::steps::MSReader;
 using dp3::steps::MultiMSReader;
 
-BOOST_AUTO_TEST_SUITE(dpinput)
+BOOST_AUTO_TEST_SUITE(inputstep)
 
 BOOST_AUTO_TEST_CASE(reader_initialization_regular) {
   ParameterSet parset;
@@ -46,6 +46,14 @@ BOOST_AUTO_TEST_CASE(reader_initialization_multiple_bda) {
   ParameterSet parset;
   parset.add("msin", "[tNDPPP_bda_tmp.MS, tNDPPP_bda_tmp.MS]");
   BOOST_CHECK_THROW(InputStep::CreateReader(parset), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(missing) {
+  ParameterSet parset;
+  parset.add("msin", "[missing.ms, tNDPPP_tmp.MS]");
+  std::unique_ptr<InputStep> reader = InputStep::CreateReader(parset);
+
+  BOOST_TEST(dynamic_cast<MultiMSReader*>(reader.get()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
