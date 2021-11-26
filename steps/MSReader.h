@@ -117,41 +117,41 @@ class MSReader : public InputStep {
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Add some data to the MeasurementSet written/updated.
   /// Do nothing.
-  virtual void addToMS(const string&){};
+  void addToMS(const string&) override{};
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// If needed, show the flag counts.
-  virtual void showCounts(std::ostream&) const;
+  void showCounts(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Read the UVW at the given row numbers into the buffer.
-  virtual void getUVW(const casacore::RefRows& rowNrs, double time,
-                      base::DPBuffer&);
+  void getUVW(const casacore::RefRows& rowNrs, double time,
+              base::DPBuffer&) override;
 
   /// Read the weights at the given row numbers into the buffer.
   /// Note: the buffer must contain DATA if autoweighting is in effect.
-  virtual void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
+  void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&) override;
 
   /// Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
   /// into the buffer.
   /// If there is no such column, the flags are set to false and false is
   /// returned.
-  virtual bool getFullResFlags(const casacore::RefRows& rowNrs,
-                               base::DPBuffer&);
+  bool getFullResFlags(const casacore::RefRows& rowNrs,
+                       base::DPBuffer&) override;
 
   std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
       const everybeam::ElementResponseModel element_response_model,

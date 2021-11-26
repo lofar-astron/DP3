@@ -103,9 +103,7 @@ void MultiMSReader::setReadVisData(bool readVisData) {
   }
 }
 
-std::string MultiMSReader::msName() const {
-  return itsReaders.front()->msName();
-}
+std::string MultiMSReader::msName() const { return itsMSNames.front(); }
 
 void MultiMSReader::handleBands() {
   if (itsNMissing > 0) {
@@ -289,7 +287,7 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   itsFullResNTimeAvg = itsReaders[itsFirst]->ntimeAvgFullRes();
   itsHasFullResFlags = itsReaders[itsFirst]->hasFullResFlags();
   itsBaseRowNrs = itsReaders[itsFirst]->getBaseRowNrs();
-  for (unsigned int i = 0; i < itsMSNames.size(); ++i) {
+  for (std::size_t i = 0; i < itsMSNames.size(); ++i) {
     if (itsReaders[i]) {
       const DPInfo& rdinfo = itsReaders[i]->getInfo();
       if (!casacore::near(itsStartTime, rdinfo.startTime()))
@@ -343,7 +341,7 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
 void MultiMSReader::show(std::ostream& os) const {
   os << "MultiMSReader" << '\n';
   os << "  input MSs:      " << itsMSNames[0] << '\n';
-  for (unsigned int i = 1; i < itsMSNames.size(); ++i) {
+  for (std::size_t i = 1; i < itsMSNames.size(); ++i) {
     os << "                  " << itsMSNames[i] << '\n';
   }
   if (!itsSelBL.empty()) {
