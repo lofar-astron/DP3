@@ -25,6 +25,8 @@ class Constraint {
   typedef std::complex<double> dcomplex;
   struct Result {
    public:
+    /// Both vals and weights are nAntenna x nChannelBlocks x nPol, pol is
+    /// fastest changing
     std::vector<double> vals;
     std::vector<double> weights;
     std::string

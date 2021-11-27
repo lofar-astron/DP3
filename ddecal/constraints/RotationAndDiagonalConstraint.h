@@ -12,18 +12,17 @@
 namespace dp3 {
 namespace ddecal {
 
-class RotationAndDiagonalConstraint : public Constraint {
+class RotationAndDiagonalConstraint final : public Constraint {
  public:
   RotationAndDiagonalConstraint();
 
-  virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* statStream);
+  std::vector<Result> Apply(std::vector<std::vector<dcomplex>>& solutions,
+                            double time, std::ostream* statStream) override;
 
   void Initialize(size_t nAntennas, size_t nDirections,
                   const std::vector<double>& frequencies) override;
 
-  virtual void SetWeights(const std::vector<double>& weights);
+  void SetWeights(const std::vector<double>& weights) override;
 
   void SetDoRotationReference(bool doRotationReference);
 

@@ -122,8 +122,7 @@ void DiagonalSolver::PerformIteration(
   const size_t n_visibilities = cb_data.NVisibilities();
 
   // The following loop fills vs (for all antennas)
-  std::vector<size_t> ant1_positions(n_antennas_ * 2, 0);
-  std::vector<size_t> ant2_positions(n_antennas_ * 2, 0);
+  std::vector<size_t> ant_positions(n_antennas_ * 2, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const aocommon::MC2x2F d = cb_data.Visibility(vis_index);
     const size_t antenna1 = cb_data.Antenna1Index(vis_index);
@@ -133,8 +132,8 @@ void DiagonalSolver::PerformIteration(
       const size_t p2 = p % 2;
       std::vector<Complex>& v1 = vs[antenna1 * 2 + p1];
       std::vector<Complex>& v2 = vs[antenna2 * 2 + p2];
-      size_t& a1pos = ant1_positions[antenna1 * 2 + p1];
-      size_t& a2pos = ant2_positions[antenna2 * 2 + p2];
+      size_t& a1pos = ant_positions[antenna1 * 2 + p1];
+      size_t& a2pos = ant_positions[antenna2 * 2 + p2];
 
       v1[a1pos] = d[p];
       v2[a2pos] = std::conj(d[p]);
@@ -145,8 +144,7 @@ void DiagonalSolver::PerformIteration(
 
   // The following loop fills g_times_cs (for all antennas)
   for (size_t d = 0; d != NDirections(); ++d) {
-    ant1_positions.assign(n_antennas_ * 2, 0);
-    ant2_positions.assign(n_antennas_ * 2, 0);
+    ant_positions.assign(n_antennas_ * 2, 0);
 
     for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
       size_t antenna1 = cb_data.Antenna1Index(vis_index);
@@ -159,8 +157,8 @@ void DiagonalSolver::PerformIteration(
 
         Matrix& g_times_c1 = g_times_cs[antenna1 * 2 + p1];
         Matrix& g_times_c2 = g_times_cs[antenna2 * 2 + p2];
-        size_t& a1pos = ant1_positions[antenna1 * 2 + p1];
-        size_t& a2pos = ant2_positions[antenna2 * 2 + p2];
+        size_t& a1pos = ant_positions[antenna1 * 2 + p1];
+        size_t& a2pos = ant_positions[antenna2 * 2 + p2];
         const size_t sol_index1 = (antenna1 * NDirections() + d) * 2 + p1;
         const size_t sol_index2 = (antenna2 * NDirections() + d) * 2 + p2;
 
