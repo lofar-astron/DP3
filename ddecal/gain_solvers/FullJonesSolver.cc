@@ -169,15 +169,14 @@ void FullJonesSolver::PerformIteration(
   // Separate loops: 24,6 seconds.
 
   // The following loop fills vs (for all antennas)
-  std::vector<size_t> ant1_positions(n_antennas_, 0);
-  std::vector<size_t> ant2_positions(n_antennas_, 0);
+  std::vector<size_t> ant_positions(n_antennas_, 0);
   for (size_t vis_index = 0; vis_index != cb_data.NVisibilities();
        ++vis_index) {
     const aocommon::MC2x2F& data = cb_data.Visibility(vis_index);
     const size_t antenna1 = cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = cb_data.Antenna2Index(vis_index);
-    size_t& a1pos = ant1_positions[antenna1];
-    size_t& a2pos = ant2_positions[antenna2];
+    size_t& a1pos = ant_positions[antenna1];
+    size_t& a2pos = ant_positions[antenna2];
 
     Matrix& v1 = vs[antenna1];
     Matrix& v2 = vs[antenna2];
@@ -194,14 +193,13 @@ void FullJonesSolver::PerformIteration(
 
   // The following loop fills g_times_cs (for all antennas)
   for (size_t d = 0; d != NDirections(); ++d) {
-    ant1_positions.assign(n_antennas_, 0);
-    ant2_positions.assign(n_antennas_, 0);
+    ant_positions.assign(n_antennas_, 0);
     for (size_t vis_index = 0; vis_index != cb_data.NVisibilities();
          ++vis_index) {
       const size_t antenna1 = cb_data.Antenna1Index(vis_index);
       const size_t antenna2 = cb_data.Antenna2Index(vis_index);
-      size_t& a1pos = ant1_positions[antenna1];
-      size_t& a2pos = ant2_positions[antenna2];
+      size_t& a1pos = ant_positions[antenna1];
+      size_t& a2pos = ant_positions[antenna2];
 
       Matrix& g_times_c1 = g_times_cs[antenna1];
       Matrix& g_times_c2 = g_times_cs[antenna2];
