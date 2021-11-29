@@ -1,20 +1,22 @@
-// tDPPP.cc: test program for DPPP
+// tDP3.cc: test program for DPPP
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
+
+#include "../../DP3.h"
+
+#include "../../../common/test/unit/fixtures/fDirectory.h"
 
 #include <casacore/tables/Tables.h>
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayPartMath.h>
-#include <iostream>
-#include <stdexcept>
-
 #include <boost/test/unit_test.hpp>
 
-#include "../../DP3.h"
+#include <iostream>
+#include <stdexcept>
 
 using casacore::ArrayColumn;
 using casacore::Block;
@@ -37,10 +39,19 @@ BOOST_AUTO_TEST_SUITE(dppp)
 // The MS contains 4 corr, 16 freq, 6 baselines, 18 time slots of 30 sec.
 // Two time slots are missing between time slot 2 and 3.
 
+namespace {
+const std::string kInputMS = "../tNDPPP_tmp.MS";
+const std::string kParsetFile = "tDP3.parset";
+const std::size_t kNBaselines = 6;
+
 void checkCopy(const std::string& in, const std::string& out, int nms) {
   Table tin(in);
   Table tout(out);
-  BOOST_CHECK_EQUAL(tout.nrow(), size_t{6 * 24});
+  // The output has six extra time slots:
+  // - Two slots are added since the input has two missing time slots.
+  // - One time slot is prepended to the ms. See the test_copy test.
+  // - Three time slots are appended to the ms. See the test_copy test.
+  BOOST_CHECK_EQUAL(tout.nrow(), tin.nrow() + 6 * kNBaselines);
   for (int j = 0; j < nms; ++j) {
     // A few dummy time slots were inserted, so ignore those.
     Table t1 = tableCommand(
@@ -147,65 +158,94 @@ void checkCopy(const std::string& in, const std::string& out, int nms) {
   casacore::Vector<double> timeRange(
       ArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
   BOOST_CHECK(near(timeRange(0), ScalarColumn<double>(tout, "TIME")(0) - 15));
-  BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(tout, "TIME")(143) + 15));
+  // The end time is the start time plus a multiple of the time interval.
+  // The start time is 13:22:20, the (rounded) end time is 13:33:20 so the time
+  // range ends at 13:33:35.
+  // The last time slot has time 13:33:15 and is thus 20 seconds before that.
+  BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(tout, "TIME")(143) + 20));
 }
 
-void checkCopyColumn(const std::string& in) {
-  Table tin(in);
-  BOOST_CHECK_EQUAL(tin.nrow(), size_t{6 * 24});
-  ArrayColumn<Complex> data1(tin, "DATA");
-  ArrayColumn<Complex> data2(tin, "COPY_DATA");
-  ArrayColumn<float> weight1(tin, "NEW_WEIGHT_SPECTRUM");
-  ArrayColumn<float> weight2(tin, "COPY_NEW_WEIGHT_SPECTRUM");
-  BOOST_CHECK(allEQ(data1.getColumn(), data2.getColumn()));
-  BOOST_CHECK(allEQ(weight1.getColumn(), weight2.getColumn()));
-}
+}  // namespace
 
-void testCopy() {
+BOOST_FIXTURE_TEST_CASE(test_copy, FixtureDirectory) {
+  const std::string kCopyMS = "tNDPPP_tmp.copy.MS";
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
-    ostr << "msin=tNDPPP_tmp.MS\n";
-    // Give starttime 35 sec before actual, hence 1 missing timeslot.
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kInputMS << '\n';
+    // Give starttime 35 sec before the first time, hence 1 missing timeslot.
     ostr << "msin.starttime=03-Aug-2000/13:21:45\n";
-    // Give endtime 90 sec after actual, hence 3 missing timeslots.
-    ostr << "msin.endtime=03-Aug-2000/13:33:15\n";
-    ostr << "msout=tNDPPP_tmp.MS1\n";
+    // Give endtime 120 sec after the last time. MSReader rounds the end time
+    // to the start time of the MS + a multiple of the time interval, downwards.
+    // The start time is 13:22:20, so the rounded time becomes 13:33:20,
+    // hence 3 missing timeslots, and not 4!
+    ostr << "msin.endtime=03-Aug-2000/13:33:45\n";
+    ostr << "msout=" << kCopyMS << '\n';
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
-  checkCopy("tNDPPP_tmp.MS", "tNDPPP_tmp.MS1", 1);
+  dp3::base::DP3::execute(kParsetFile);
+  checkCopy(kInputMS, kCopyMS, 1);
 }
 
-void testCopyColumn() {
+BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
+  const std::string kCopyMS = "tNDPPP_tmp.copy_column.MS";
+
+  // Copying columns is only possible when updating an MS, not when creating
+  // a new MS. -> First copy the MS, then copy columns.
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
-    ostr << "msin=tNDPPP_tmp.MS1\n";
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kInputMS << '\n';
+    ostr << "msout=" << kCopyMS << '\n';
+    ostr << "steps=[]\n";
+  }
+  dp3::base::DP3::execute(kParsetFile);
+
+  // First copy standard data and weight columns
+  {
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kCopyMS << '\n';
     ostr << "msout=.\n";
     ostr << "msout.datacolumn=COPY_DATA\n";
-    ostr << "msout.weightcolumn=NEW_WEIGHT_SPECTRUM\n";
+    ostr << "msout.weightcolumn=COPY_WEIGHT\n";
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
 
+  // Copy custom data and weight columns.
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
-    ostr << "msin=tNDPPP_tmp.MS1\n";
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kCopyMS << '\n';
     ostr << "msin.datacolumn=COPY_DATA\n";
-    ostr << "msin.weightcolumn=NEW_WEIGHT_SPECTRUM\n";
+    ostr << "msin.weightcolumn=COPY_WEIGHT\n";
     ostr << "msout=.\n";
-    ostr << "msout.datacolumn=DATA\n";
-    ostr << "msout.weightcolumn=COPY_NEW_WEIGHT_SPECTRUM\n";
+    ostr << "msout.datacolumn=COPY2_DATA\n";
+    ostr << "msout.weightcolumn=COPY2_WEIGHT\n";
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
 
-  checkCopyColumn("tNDPPP_tmp.MS1");
+  Table table_copy(kCopyMS);
+  BOOST_CHECK_GT(table_copy.nrow(), 0u);
+  const ArrayColumn<std::complex<float>> data(table_copy, "DATA");
+  const ArrayColumn<std::complex<float>> data_copy(table_copy, "COPY_DATA");
+  const ArrayColumn<std::complex<float>> data_copy2(table_copy, "COPY2_DATA");
+  const ArrayColumn<float> weight(table_copy, "WEIGHT_SPECTRUM");
+  const ArrayColumn<float> weight_copy(table_copy, "COPY_WEIGHT");
+  const ArrayColumn<float> weight_copy2(table_copy, "COPY2_WEIGHT");
+  BOOST_CHECK(allEQ(data.getColumn(), data_copy.getColumn()));
+  BOOST_CHECK(allEQ(data.getColumn(), data_copy2.getColumn()));
+  BOOST_CHECK(allEQ(weight.getColumn(), weight_copy.getColumn()));
+  BOOST_CHECK(allEQ(weight.getColumn(), weight_copy2.getColumn()));
 }
 
-void testMultiIn() {
+BOOST_AUTO_TEST_CASE(test_multi_in, *utf::disabled()) {
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=[tNDPPP_tmp.MS1, tNDPPP_tmp.MS1]\n";
     ostr << "msout=tNDPPP_tmp.MS1a\n";
     ostr << "msout.overwrite=true\n";
@@ -215,6 +255,7 @@ void testMultiIn() {
   checkCopy("tNDPPP_tmp.MS", "tNDPPP_tmp.MS1a", 2);
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=[tNDPPP_tmp.MS1, tNDPPP_tmp.MS1]\n";
     ostr << "msin.datacolumn=CORRECTED_DATA\n";
     ostr << "msin.weightcolumn=NEW_WEIGHT_SPECTRUM\n";
@@ -233,6 +274,7 @@ void testMultiIn() {
   BOOST_CHECK(allEQ(ScalarColumn<int>(tab, "ANTENNA2").getColumn(), 6));
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=[notexist, tNDPPP_tmp.MS1, notexist, notexist]\n";
     ostr << "msin.datacolumn=CORRECTED_DATA\n";
     ostr << "msin.missingdata=true\n";
@@ -326,10 +368,11 @@ void checkAvg(const std::string& outName) {
   BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(tout, "TIME")(0) + 295));
 }
 
-void testAvg1() {
+BOOST_AUTO_TEST_CASE(test_avg1, *utf::depends_on("dppp/test_multi_in")) {
   {
     // Average in a single step.
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin.name=tNDPPP_tmp.MS\n";
     // Give start and end time as actual, hence no missing timeslots.
     ostr << "msin.starttime=03-Aug-2000/13:22:20\n";
@@ -345,10 +388,11 @@ void testAvg1() {
   checkAvg("tNDPPP_tmp.MS2");
 }
 
-void testAvg2() {
-  // Averaging in multiple steps should be the same as above.
+BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dppp/test_avg1")) {
   {
+    // Averaging in multiple steps should be the same as above.
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MS3\n";
     ostr << "msout.overwrite=true\n";
@@ -370,7 +414,7 @@ void testAvg2() {
   checkAvg("tNDPPP_tmp.MS3");
 }
 
-void testAvg3() {
+BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dppp/test_avg2")) {
   // Averaging in multiple steps with multiple outputs should be the same
   // as above.
   {
@@ -378,6 +422,7 @@ void testAvg3() {
     std::ofstream ostr2("tNDPPP_tmp.parset2");
     std::ofstream ostr3("tNDPPP_tmp.parset3");
     std::ofstream ostr4("tNDPPP_tmp.parset4");
+    ostr1 << "checkparset=1\n";
     ostr1 << "msin=tNDPPP_tmp.MS\n";
     ostr1 << "msout=tNDPPP_tmp.MS4a\n";
     ostr1 << "msout.overwrite=true\n";
@@ -385,6 +430,7 @@ void testAvg3() {
     ostr1 << "avg1.type=average\n";
     ostr1 << "avg1.timestep=5\n";
     ostr1 << "avg1.freqstep=2\n";
+    ostr2 << "checkparset=1\n";
     ostr2 << "msin=tNDPPP_tmp.MS4a\n";
     ostr2 << "msout=tNDPPP_tmp.MS4b\n";
     ostr2 << "msout.overwrite=true\n";
@@ -392,6 +438,7 @@ void testAvg3() {
     ostr2 << "avg2.type=average\n";
     ostr2 << "avg2.timestep=1\n";
     ostr2 << "avg2.freqstep=2\n";
+    ostr3 << "checkparset=1\n";
     ostr3 << "msin=tNDPPP_tmp.MS4b\n";
     ostr3 << "msout=tNDPPP_tmp.MS4c\n";
     ostr3 << "msout.overwrite=true\n";
@@ -399,6 +446,7 @@ void testAvg3() {
     ostr3 << "avg3.type=average\n";
     ostr3 << "avg3.timestep=2\n";
     ostr3 << "avg3.freqstep=1\n";
+    ostr4 << "checkparset=1\n";
     ostr4 << "msin=tNDPPP_tmp.MS4c\n";
     ostr4 << "msout=tNDPPP_tmp.MS4d\n";
     ostr4 << "msout.overwrite=true\n";
@@ -415,10 +463,11 @@ void testAvg3() {
 }
 
 // This function tests if the correct start time is used when selecting times.
-void testAvg4() {
+BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dppp/test_avg3")) {
   {
     // Average in a single step.
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     // Give start a few seconds after first one, hence skip first time slot.
     ostr << "msin.starttime=03-Aug-2000/13:22:25\n";
@@ -445,7 +494,7 @@ void testAvg4() {
   }
 }
 
-void testUpdate1() {
+BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dppp/test_avg4")) {
   // Test if update works fine.
   // In fact, it does not do anything apart from rewriting the current flags.
   // However, it should ignore the inserted time slots.
@@ -454,6 +503,7 @@ void testUpdate1() {
     Table tab("tNDPPP_tmp.MS");
     flags = ArrayColumn<bool>(tab, "FLAG").getColumn();
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=''\n";
     ostr << "steps=[]\n";
@@ -466,12 +516,13 @@ void testUpdate1() {
   }
 }
 
-void testUpdate2() {
+BOOST_AUTO_TEST_CASE(test_update2, *utf::depends_on("dppp/test_update1")) {
   // Test if update all flags works fine.
   {
     Table tab("tNDPPP_tmp.MS");
     tab.deepCopy("tNDPPP_tmp.MS_copy1", Table::New);
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS_copy1\n";
     ostr << "msout=.\n";
     ostr << "steps=[preflag]\n";
@@ -485,7 +536,7 @@ void testUpdate2() {
   }
 }
 
-void testUpdateScale() {
+BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dppp/test_update2")) {
   // Test if update data works fine.
   casacore::Array<Complex> data;
   casacore::Array<bool> flags;
@@ -495,6 +546,7 @@ void testUpdateScale() {
     flags = ArrayColumn<bool>(tab, "FLAG").getColumn();
     tab.deepCopy("tNDPPP_tmp.MS_copy1", Table::New);
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS_copy1\n";
     ostr << "msout=tNDPPP_tmp.MS_copy1\n";  // same name means update
     ostr << "steps=[scaledata]\n";
@@ -595,11 +647,12 @@ void checkFlags(const std::string& outName) {
   }
 }
 
-void testFlags1() {
+BOOST_AUTO_TEST_CASE(test_flags1, *utf::depends_on("dppp/test_update_scale")) {
   {
     // Most simple case.
     // Just flag some channels and time stamps.
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msin.startchan=1\n";
     ostr << "msin.nchan=12\n";
@@ -615,7 +668,7 @@ void testFlags1() {
   checkFlags("tNDPPP_tmp.MS5");
 }
 
-void testFlags2() {
+BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dppp/test_flags1")) {
   {
     // A more advanced case in two NDPPP steps.
     // Flag the channels, but shifted 2. In the next step the first 2 channels
@@ -623,6 +676,7 @@ void testFlags2() {
     // An averaged time slot is flagged, so the original time slots should
     // come out flagged.
     std::ofstream ostr1("tNDPPP_tmp.parset1");
+    ostr1 << "checkparset=1\n";
     ostr1 << "msin=tNDPPP_tmp.MS\n";
     ostr1 << "msin.nchan=15\n";
     ostr1 << "msout=tNDPPP_tmp.MS6a\n";
@@ -631,6 +685,7 @@ void testFlags2() {
     ostr1 << "preflag.chan=[2,4,8..10]\n";
     ostr1 << "average.timestep=2\n";
     std::ofstream ostr2("tNDPPP_tmp.parset2");
+    ostr2 << "checkparset=1\n";
     ostr2 << "msin=tNDPPP_tmp.MS6a\n";
     ostr2 << "msin.startchan=2*1\n";  // output chan 0,2 are now flagged
     ostr2 << "msin.nchan=nchan-3\n";
@@ -646,13 +701,14 @@ void testFlags2() {
   checkFlags("tNDPPP_tmp.MS6b");
 }
 
-void testFlags3() {
+BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dppp/test_flags2")) {
   {
     // Even a bit more advanced, also in two NDPPP runs.
     // Input channels 6,7,8 are flagged by flagging their averaged channel.
     // This is done at the end of run 1, so the averager of run 2 should pick
     // up those flags.
     std::ofstream ostr1("tNDPPP_tmp.parset1");
+    ostr1 << "checkparset=1\n";
     ostr1 << "msin=tNDPPP_tmp.MS\n";
     ostr1 << "msin.nchan=15\n";
     ostr1 << "msout=tNDPPP_tmp.MS7a\n";
@@ -664,6 +720,7 @@ void testFlags3() {
     ostr1 << "pre2.type=preflag\n";
     ostr1 << "pre2.chan=2\n";  // is input channel 6,7,8
     std::ofstream ostr2("tNDPPP_tmp.parset2");
+    ostr2 << "checkparset=1\n";
     ostr2 << "msin=tNDPPP_tmp.MS7a\n";
     ostr2 << "msin.nchan=4\n";
     ostr2 << "msout=tNDPPP_tmp.MS7b\n";
@@ -678,10 +735,11 @@ void testFlags3() {
   checkFlags("tNDPPP_tmp.MS7b");
 }
 
-void testStationAdd() {
+BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dppp/test_flags3")) {
   // Add station RT0, 1 and 2.
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MSa\n";
     ostr << "msout.overwrite=true\n";
@@ -706,10 +764,11 @@ void testStationAdd() {
                     t1.nrow() + 40 + 12);  // 2 baselines and 2 time slots added
 }
 
-void testFilter1() {
+BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dppp/test_station_add")) {
   // Remove all baselines containing station RT1 or 6.
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MSa\n";
     ostr << "msout.overwrite=true\n";
@@ -757,7 +816,7 @@ void testFilter1() {
   BOOST_CHECK(allEQ(ScalarColumn<int>(t2s, "ANTENNA2").getColumn(), 2));
 }
 
-void testFilter2() {
+BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dppp/test_filter1")) {
   // Keep all baselines.
   // First by not specifying baseline selection, second by all baselines.
   // Also alter between remove and !remove.
@@ -827,11 +886,12 @@ void testFilter2() {
   }
 }
 
-void testFilter3() {
+BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dppp/test_filter2")) {
   // Remove some baselines, update original file with different data column
   // This test justs tests if it runs without throwing exceptions
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=.\n";
     ostr << "msout.datacolumn=DATA_FILTER\n";
@@ -842,10 +902,10 @@ void testFilter3() {
   dp3::base::DP3::execute("tNDPPP_tmp.parset");
 }
 
-void testClear() {
+BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
   casacore::Array<bool> flags;
-  // First flag in the same way as testFlags1.
-  testFlags1();
+  // First flag in the same way as test_flags1.
+  test_flags1();
   // Get the resulting flags.
   {
     Table tab("tNDPPP_tmp.MS5");
@@ -854,6 +914,7 @@ void testClear() {
   // Flag all data.
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS5\n";
     ostr << "msout=tNDPPP_tmp.MS5a\n";
     ostr << "msout.overwrite=true\n";
@@ -869,6 +930,7 @@ void testClear() {
   // Clear the flags.
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS5a\n";
     ostr << "msout=tNDPPP_tmp.MS5b\n";
     ostr << "msout.overwrite=true\n";
@@ -884,10 +946,11 @@ void testClear() {
   }
 }
 
-void testMultiOut() {
+BOOST_AUTO_TEST_CASE(test_multi_out, *utf::depends_on("dppp/test_clear")) {
   {
     // First make the reference output MS.
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MS_copy\n";
     ostr << "msout.overwrite=true\n";
@@ -900,6 +963,7 @@ void testMultiOut() {
   casacore::Array<bool> flags;
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "steps=[scaledata,out1,scaledata,out2]\n";
     ostr << "scaledata.coeffs=2\n";
@@ -954,9 +1018,10 @@ void tryErr(const std::string& parsetName) {
   BOOST_CHECK(err);
 }
 
-void testErrorOut() {
+BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dppp/test_multi_out")) {
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "steps=[filter,out1,average,out2]\n";
     ostr << "out1.type=out\n";
@@ -968,6 +1033,7 @@ void testErrorOut() {
   }
   {
     std::ofstream ostr("tNDPPP_tmp.parset");
+    ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "steps=[average,out1,filter,out2]\n";
     ostr << "out1.type=out\n";
@@ -980,84 +1046,6 @@ void testErrorOut() {
     ostr << "msout=''\n";
     tryErr("tNDPPP_tmp.parset");
   }
-}
-
-BOOST_AUTO_TEST_CASE(test_copy, *utf::disabled()) { testCopy(); }
-
-BOOST_AUTO_TEST_CASE(test_copy_column, *utf::depends_on("dppp/test_copy")) {
-  testCopyColumn();
-}
-
-BOOST_AUTO_TEST_CASE(test_multi_in, *utf::depends_on("dppp/test_copy_column")) {
-  testMultiIn();
-}
-
-BOOST_AUTO_TEST_CASE(test_avg1, *utf::depends_on("dppp/test_multi_in")) {
-  testAvg1();
-}
-
-BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dppp/test_avg1")) {
-  testAvg2();
-}
-
-BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dppp/test_avg2")) {
-  testAvg3();
-}
-
-BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dppp/test_avg3")) {
-  testAvg4();
-}
-
-BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dppp/test_avg4")) {
-  testUpdate1();
-}
-
-BOOST_AUTO_TEST_CASE(test_update2, *utf::depends_on("dppp/test_update1")) {
-  testUpdate2();
-}
-
-BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dppp/test_update2")) {
-  testUpdateScale();
-}
-
-BOOST_AUTO_TEST_CASE(test_flags1, *utf::depends_on("dppp/test_update_scale")) {
-  testFlags1();
-}
-
-BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dppp/test_flags1")) {
-  testFlags2();
-}
-
-BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dppp/test_flags2")) {
-  testFlags3();
-}
-
-BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dppp/test_flags3")) {
-  testStationAdd();
-}
-
-BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dppp/test_station_add")) {
-  testFilter1();
-}
-
-BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dppp/test_filter1")) {
-  testFilter2();
-}
-
-BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dppp/test_filter2")) {
-  testFilter3();
-}
-
-BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
-  testClear();
-}
-
-BOOST_AUTO_TEST_CASE(test_multi_out, *utf::depends_on("dppp/test_clear")) {
-  testMultiOut();
-}
-
-BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dppp/test_multi_out")) {
-  testErrorOut();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
