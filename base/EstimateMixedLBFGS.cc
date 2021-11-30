@@ -39,14 +39,12 @@ struct LBFGSData {
   const_cursor<float> weight;
   const_cursor<dcomplex> mix;
   double robust_nu;
-  bool robust_mode;
   LBFGSData(std::size_t n_dir_, std::size_t n_st_, std::size_t n_base_,
             std::size_t n_chan_, const_cursor<Baseline> baselines_,
             std::vector<const_cursor<fcomplex>> data_,
             std::vector<const_cursor<dcomplex>> model_,
             const_cursor<bool> flag_, const_cursor<float> weight_,
-            const_cursor<dcomplex> mix_, double robust_nu_ = 2.0,
-            bool robust_mode_ = true)
+            const_cursor<dcomplex> mix_, double robust_nu_ = 2.0)
       : n_direction(n_dir_),
         n_station(n_st_),
         n_baseline(n_base_),
@@ -57,8 +55,7 @@ struct LBFGSData {
         flag(flag_),
         weight(weight_),
         mix(mix_),
-        robust_nu(robust_nu_),
-        robust_mode(robust_mode_){};
+        robust_nu(robust_nu_){};
 };
 
 // cost function
@@ -71,11 +68,9 @@ double cost_func(double *unknowns, int m, void *adata) {
 
   const std::size_t n_unknowns = t->n_direction * t->n_station * 4 * 2;
   assert(static_cast<std::size_t>(m) == n_unknowns);
-  const std::size_t n_partial = t->n_direction * 8;
 
   // Allocate space for intermediate results.
   std::vector<dcomplex> M(t->n_direction * 4);
-  std::vector<unsigned int> dIndex(4 * n_partial);
 
   double fcost = 0.0;
 
@@ -85,9 +80,6 @@ double cost_func(double *unknowns, int m, void *adata) {
     const std::size_t q = t->baselines->second;
 
     if (p != q) {
-      // Create partial derivative index for current baseline.
-      makeIndex(t->n_direction, t->n_station, *(t->baselines), &(dIndex[0]));
-
       for (std::size_t ch = 0; ch < t->n_channel; ++ch) {
         for (std::size_t dr = 0; dr < t->n_direction; ++dr) {
           // Jones matrix for station P.
@@ -150,17 +142,14 @@ double cost_func(double *unknowns, int m, void *adata) {
                   static_cast<dcomplex>(t->data[tg][cr]) - visibility;
 
               // sum up cost
-              if (t->robust_mode) {
-                // Robust cost
-                fcost += std::log(1.0 + mwt * real(residual) * real(residual) /
-                                            t->robust_nu);
-                fcost += std::log(1.0 + mwt * imag(residual) * imag(residual) /
-                                            t->robust_nu);
-              } else {
-                // Gaussian cost
-                fcost += mwt * (real(residual) * real(residual) +
-                                imag(residual) * imag(residual));
-              }
+              // For reference: Gaussian cost is
+              // fcost += mwt * (real(residual) * real(residual) +
+              //                  imag(residual) * imag(residual));
+              // Robust cost function
+              fcost += std::log(1.0 + mwt * real(residual) * real(residual) /
+                                          t->robust_nu);
+              fcost += std::log(1.0 + mwt * imag(residual) * imag(residual) /
+                                          t->robust_nu);
 
               // Move to next target direction.
               t->mix.backward(1, t->n_direction);
@@ -391,20 +380,18 @@ void grad_func(double *unknowns, double *grad, int m, void *adata) {
                   static_cast<dcomplex>(t->data[tg][cr]) - visibility;
 
               // accumulate gradient (for this correlation 'cr')
+              // For reference, gradient for Gaussian noise is:
+              //  grad[dIndex[cr * n_partial + ci]] +=
+              //      2.0 * dR[ci] * mwt * real(residual);
+              //  grad[dIndex[cr * n_partial + ci]] +=
+              //      2.0 * dI[ci] * mwt * imag(residual);
               for (std::size_t ci = 0; ci < n_partial; ci++) {
-                if (t->robust_mode) {
-                  grad[dIndex[cr * n_partial + ci]] -=
-                      2.0 * dR[ci] * mwt * real(residual) /
-                      (t->robust_nu + mwt * real(residual) * real(residual));
-                  grad[dIndex[cr * n_partial + ci]] -=
-                      2.0 * dI[ci] * mwt * imag(residual) /
-                      (t->robust_nu + mwt * imag(residual) * imag(residual));
-                } else {
-                  grad[dIndex[cr * n_partial + ci]] +=
-                      2.0 * dR[ci] * mwt * real(residual);
-                  grad[dIndex[cr * n_partial + ci]] +=
-                      2.0 * dI[ci] * mwt * imag(residual);
-                }
+                grad[dIndex[cr * n_partial + ci]] -=
+                    2.0 * dR[ci] * mwt * real(residual) /
+                    (t->robust_nu + mwt * real(residual) * real(residual));
+                grad[dIndex[cr * n_partial + ci]] -=
+                    2.0 * dI[ci] * mwt * imag(residual) /
+                    (t->robust_nu + mwt * imag(residual) * imag(residual));
               }
 
               // Move to next target direction.
@@ -476,7 +463,7 @@ bool estimate(std::size_t n_direction, std::size_t n_station,
               const_cursor<dcomplex> mix, double *unknowns,
               std::size_t lbfgs_mem, double robust_nu, std::size_t max_iter) {
   LBFGSData t(n_direction, n_station, n_baseline, n_channel, baselines, data,
-              model, flag, weight, mix, robust_nu, true);
+              model, flag, weight, mix, robust_nu);
 
   /* for full batch mode, last argument is NULL */
   /* LBFGS memory size lbfgs_mem */
