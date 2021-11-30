@@ -125,13 +125,13 @@ inputs:
     type: boolean 
     doc: >-
       If true, use LBFGS solver instead of the LM solver (or LSQfit) `.`
-  lbfgs.historysize:
+  lbfgs`.`historysize:
     default: 10
     type: int
     doc: >-
       If using the LBFGS solver, the history size, specified as a multiple of the 
       parameter vector, to use to approximate the inverse Hessian `.`
-  lbfgs.robustdof:
+  lbfgs`.`robustdof:
     default: 2.0
     type: double
     doc: >-
