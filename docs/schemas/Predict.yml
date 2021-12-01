@@ -36,9 +36,13 @@ inputs:
     doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
   correcttimesmearing:
     type: int
+    default: 1
     doc: >-
       Apply time smearing correction by upsampling the uvw values before
       predicting and averaging the predicted data afterwards.
       The value is the upsampling and averaging factor.
       A value of 0 or 1 disables time smearing.
-    default: 1
+  correctfreqsmearing:
+    type: boolean
+    doc: Simulate frequency smearing based on the channel width, by multiplying the visibility with a sinc function `.`
+    default: false

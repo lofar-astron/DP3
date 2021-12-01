@@ -173,4 +173,12 @@ inputs:
     type: bool
     doc: >-
       Alternative predict step for BDA data, which groups the input data into similarly averaged baselines and uses a regular Predict step for each group. Due to the overhead of having different groups, the normal predict step processes BDA data faster. This step is therefore mainly used for benchmarking `.`
+  modelnextsteps:
+    type: list
+    default: "[]"
+    doc: Defines the steps that will be applied to the model in every direction before using the output for calibration. 
+  modelnextsteps.<direction>:
+    type: string
+    doc: >-
+      Allows steps to be defined for a specific direction. These directions, (given in the `<direction>` placeholder) can be specified by their model column name, the name of a DS9 region, or the first patch name in the direction if using a sky model. For example: `modelnextsteps.MODEL_DATA_2=[applyextrabeam], applyextrabeam.type=applybeam` `.`
 
