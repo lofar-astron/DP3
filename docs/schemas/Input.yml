@@ -74,6 +74,11 @@ inputs:
     type: string
     doc: >-
       Weight column to use. Defaults to WEIGHT_SPECTRUM if this exists, otherwise the WEIGHT column is used `.`
+  msin&#46;flagcolumn:
+    default: FLAG
+    type: string
+    doc: >-
+      Flag column to use, i.e. the name of the column in which the flags are written `.`
   msin&#46;autoweight:
     default: false
     type: bool

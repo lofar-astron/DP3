@@ -160,6 +160,7 @@ class MSWriter : public Step {
   casacore::Table itsMS;
   common::ParameterSet itsParset;  ///< parset for writing history
   casacore::String itsDataColName;
+  casacore::String itsFlagColName;
   casacore::String itsWeightColName;
   double itsInterval;
   bool itsOverwrite;  ///< Overwrite an existing output MS?

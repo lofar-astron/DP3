@@ -104,6 +104,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   itsDataColName = parset.getString(prefix + "datacolumn", "DATA");
   itsWeightColName =
       parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
+  itsFlagColName = parset.getString(prefix + "flagcolumn", "FLAG");
   itsModelColName = parset.getString(prefix + "modelcolumn", "MODEL_DATA");
   itsAutoWeight = parset.getBool(prefix + "autoweight", false);
   itsAutoWeightForce = parset.getBool(prefix + "forceautoweight", false);
@@ -376,7 +377,7 @@ bool MSReader::process(const DPBuffer&) {
           }
         }
         if (itsUseFlags) {
-          ArrayColumn<bool> flagCol(itsIter.table(), "FLAG");
+          ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
           if (itsUseAllChan) {
             flagCol.getColumn(itsBuffer.getFlags());
           } else {
@@ -471,6 +472,7 @@ void MSReader::show(std::ostream& os) const {
     }
     os << '\n';
     os << "  WEIGHT column:  " << itsWeightColName << '\n';
+    os << "  FLAG column:    " << itsFlagColName << '\n';
     os << "  autoweight:     " << std::boolalpha << itsAutoWeight << '\n';
   }
 }
@@ -677,6 +679,7 @@ void MSReader::prepare2() {
   info().init(itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
               itsTimeInterval, msName(), antennaSet);
   info().setDataColName(itsDataColName);
+  info().setFlagColName(itsFlagColName);
   info().setWeightColName(itsWeightColName);
   // Read the center frequencies of all channels.
   Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));

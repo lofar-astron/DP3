@@ -82,6 +82,7 @@ MSWriter::MSWriter(InputStep* reader, const std::string& outName,
   itsCopyModelData = parset.getBool(prefix + "copymodeldata", false);
   itsWriteFullResFlags = parset.getBool(prefix + "writefullresflag", true);
   itsDataColName = parset.getString(prefix + "datacolumn", "DATA");
+  itsFlagColName = parset.getString(prefix + "flagcolumn", "FLAG");
   itsWeightColName =
       parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
   itsVdsDir = parset.getString(prefix + "vdsdir", string());
@@ -90,6 +91,10 @@ MSWriter::MSWriter(InputStep* reader, const std::string& outName,
     throw Exception(
         "Currently only the DATA column"
         " can be used as output when writing a new MS");
+  if (itsFlagColName != "FLAG")
+    throw Exception(
+        "Currently only the FLAG column can be used as output for flags when "
+        "writing a new MS");
   if (itsWeightColName != "WEIGHT_SPECTRUM")
     throw Exception(
         "Currently only the "
@@ -190,6 +195,7 @@ void MSWriter::show(std::ostream& os) const {
   os << "  ntimes:         " << itsNrTimes << '\n';
   os << "  time interval:  " << itsInterval << '\n';
   os << "  DATA column:    " << itsDataColName << '\n';
+  os << "  FLAG column:    " << itsFlagColName << '\n';
   os << "  WEIGHT column:  " << itsWeightColName << '\n';
   if (itsStManKeys.stManName == "dysco") {
     os << "  Compressed:     yes\n"

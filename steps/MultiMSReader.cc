@@ -52,6 +52,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
   itsNrChanStr = parset.getString(prefix + "nchan", "0");
   itsUseFlags = parset.getBool(prefix + "useflag", true);
   itsDataColName = parset.getString(prefix + "datacolumn", "DATA");
+  itsFlagColName = parset.getString(prefix + "flagcolumn", "FLAG");
   itsWeightColName =
       parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM"),
   itsMissingData = parset.getBool(prefix + "missingdata", false);

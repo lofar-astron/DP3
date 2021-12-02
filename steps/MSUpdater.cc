@@ -58,9 +58,11 @@ MSUpdater::MSUpdater(InputStep* reader, casacore::String msName,
       itsWriteFlags(false),
       itsNrDone(0),
       itsDataColAdded(false),
+      itsFlagColAdded(false),
       itsWeightColAdded(false),
       itsWriteHistory(writeHistory) {
   itsDataColName = parset.getString(prefix + "datacolumn", "");
+  itsFlagColName = parset.getString(prefix + "flagcolumn", "");
   itsWeightColName = parset.getString(prefix + "weightcolumn", "");
   itsNrTimesFlush = parset.getUint(prefix + "flush", 0);
   itsTileSize = parset.getUint(prefix + "tilesize", 1024);
@@ -75,12 +77,34 @@ bool MSUpdater::addColumn(const string& colName,
   if (itsMS.tableDesc().isColumn(colName)) {
     const ColumnDesc& cd = itsMS.tableDesc().columnDesc(colName);
     if (cd.dataType() != dataType || !cd.isArray())
-      "Column " + itsDataColName +
-          " already exists, but is not of the right type";
+      throw std::runtime_error("Column " + colName +
+                               " already exists, but is not of the right type");
     return false;
   }
 
-  if (itsStManKeys.stManName == "dysco" && itsStManKeys.dyscoDataBitRate != 0) {
+  if (dataType == casacore::TpBool) {
+    // Dysco should never be used for the FLAG column. Use the same storage
+    // manager used for the FLAG column. To do so, get the data manager info and
+    // find the FLAG column in it.
+    Record dminfo = itsMS.dataManagerInfo();
+    Record colinfo;
+    for (size_t i = 0; i < dminfo.nfields(); ++i) {
+      const Record& subrec = dminfo.subRecord(i);
+      if (linearSearch1(casacore::Vector<casacore::String>(
+                            subrec.asArrayString("COLUMNS")),
+                        "FLAG") >= 0) {
+        colinfo = subrec;
+        break;
+      }
+    }
+    if (colinfo.nfields() == 0)
+      throw std::runtime_error("Could not obtain column info");
+    TableDesc td;
+    td.addColumn(cd, colName);
+    colinfo.define("NAME", colName + "_dm");
+    itsMS.addColumn(td, colinfo);
+  } else if (itsStManKeys.stManName == "dysco" &&
+             itsStManKeys.dyscoDataBitRate != 0) {
     casacore::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
     DataManagerCtor dyscoConstructor = DataManager::getCtor("DyscoStMan");
     std::unique_ptr<DataManager> dyscoStMan(
@@ -193,7 +217,6 @@ void MSUpdater::finish() {}
 
 void MSUpdater::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
-  itsWriteFlags = getInfo().writeFlags();
 
   if (itsReader->outputs() != this->outputs()) {
     throw Exception(
@@ -227,6 +250,15 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   }
   itsWriteWeights = getInfo().writeWeights();
 
+  std::string origFlagColName = getInfo().getFlagColName();
+  if (itsFlagColName.empty()) {
+    itsFlagColName = origFlagColName;
+  } else if (itsFlagColName != origFlagColName) {
+    info().setWriteFlags();
+  }
+
+  itsWriteFlags = getInfo().writeFlags();
+
   if (getInfo().metaChanged()) {
     throw Exception("Update step " + itsName +
                     " is not possible because meta data changes"
@@ -237,11 +269,17 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
     common::NSTimer::StartStop sstime(itsTimer);
     itsMS =
         MeasurementSet(itsMSName, TableLock::AutoNoReadLocking, Table::Update);
-    // Add the data + weight column if needed and if it does not exist yet.
+    // Add the data + flag + weight column if needed and if it does not exist
+    // yet.
     if (itsWriteData) {
       // use same layout as DATA column
       ColumnDesc cd = itsMS.tableDesc().columnDesc("DATA");
       itsDataColAdded = addColumn(itsDataColName, casacore::TpComplex, cd);
+    }
+    if (itsWriteFlags) {
+      // use same layout as FLAG column
+      ColumnDesc cd = itsMS.tableDesc().columnDesc("FLAG");
+      itsFlagColAdded = addColumn(itsFlagColName, casacore::TpBool, cd);
     }
     if (itsWriteWeights) {
       IPosition dataShape = itsMS.tableDesc().columnDesc("DATA").shape();
@@ -269,6 +307,11 @@ void MSUpdater::show(std::ostream& os) const {
   os << "  MS:             " << itsMSName << '\n';
   os << "  datacolumn:     " << itsDataColName;
   if (itsDataColAdded) {
+    os << "  (has been added to the MS)";
+  }
+  os << '\n';
+  os << "  flagcolumn:     " << itsFlagColName;
+  if (itsFlagColAdded) {
     os << "  (has been added to the MS)";
   }
   os << '\n';
@@ -309,7 +352,7 @@ void MSUpdater::putFlags(const RefRows& rowNrs, const Cube<bool>& flags) {
   if (!rowNrs.rowVector().empty()) {
     Slicer colSlicer(IPosition(2, 0, info().startchan()),
                      IPosition(2, info().ncorr(), info().nchan()));
-    ArrayColumn<bool> flagCol(itsMS, "FLAG");
+    ArrayColumn<bool> flagCol(itsMS, itsFlagColName);
     ScalarColumn<bool> flagRowCol(itsMS, "FLAG_ROW");
     // Loop over all rows of this subset.
     // (it also avoids StandardStMan putCol with RefRows problem).

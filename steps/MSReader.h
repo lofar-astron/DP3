@@ -167,6 +167,8 @@ class MSReader : public InputStep {
   /// Get the name of the data column to be used.
   const std::string& dataColumnName() const { return itsDataColName; }
 
+  const std::string& flagColumnName() const { return itsFlagColName; }
+
   const std::string& weightColumnName() const { return itsWeightColName; }
 
   const std::string& modelColumnName() const { return itsModelColName; }
@@ -242,6 +244,7 @@ class MSReader : public InputStep {
   casacore::Table itsSelMS;  ///< possible selection of spw, baseline
   casacore::TableIterator itsIter;
   std::string itsDataColName;
+  std::string itsFlagColName;
   std::string itsWeightColName;
   std::string itsModelColName;
   std::string itsStartChanStr;  ///< startchan expression
