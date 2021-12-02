@@ -2,6 +2,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 configure_file(testInit.sh.in testInit.sh)
-add_sh_integration_tests(tIDGPredict)
 
-add_python_integrationtests(tBdaDdeCal tDDECal)
+add_python_integrationtests(tBdaDdeCal tDDECal tIDGPredict)
