@@ -97,6 +97,7 @@ class MSUpdater : public Step {
   const common::ParameterSet& itsParset;
   base::DPBuffer itsBuffer;
   std::string itsDataColName;
+  std::string itsFlagColName;
   std::string itsWeightColName;
   unsigned int itsNrTimesFlush;  ///< flush every N time slots (0=no flush)
   bool itsWriteData;
@@ -104,6 +105,7 @@ class MSUpdater : public Step {
   bool itsWriteFlags;
   unsigned int itsNrDone;  ///< nr of time slots written
   bool itsDataColAdded;    ///< has data column been added?
+  bool itsFlagColAdded;    ///< has weight column been added?
   bool itsWeightColAdded;  ///< has weight column been added?
   bool itsWriteHistory;    ///< Should history be written?
   common::NSTimer itsTimer;

@@ -97,6 +97,11 @@ class DPInfo {
     data_column_name_ = dataColName;
   }
 
+  /// Set the name of the flag column
+  void setFlagColName(const std::string& flagColName) {
+    flag_column_name_ = flagColName;
+  }
+
   /// Set the name of the weight column
   void setWeightColName(const std::string& weightColName) {
     weight_column_name_ = weightColName;
@@ -202,6 +207,7 @@ class DPInfo {
     return channel_frequencies_.size() == nbaselines();
   }
   const std::string& getDataColName() const { return data_column_name_; }
+  const std::string& getFlagColName() const { return flag_column_name_; }
   const std::string& getWeightColName() const { return weight_column_name_; }
   double totalBW() const { return total_bandwidth_; }
   double refFreq() const { return reference_frequency_; }
@@ -291,6 +297,7 @@ class DPInfo {
   bool meta_changed_;   ///< Are meta data changed? (e.g., by averaging)
   std::string ms_name_;
   std::string data_column_name_;
+  std::string flag_column_name_;
   std::string weight_column_name_;
   std::string antenna_set_;
   unsigned int n_correlations_;
