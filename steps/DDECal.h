@@ -151,6 +151,8 @@ class DDECal : public Step {
   std::vector<double> itsChanBlockFreqs;
   /// For each direction, a vector of patches.
   std::vector<std::vector<std::string>> itsDirections;
+  /// For each direction, a number of solutions per solution interval
+  std::vector<size_t> itsSolutionsPerDirection;
   /// Maps direction indices to the cluster central direction.
   std::vector<base::Direction> itsSourceDirections;
   /// Normally, the solver takes the model data and modifies it, thereby

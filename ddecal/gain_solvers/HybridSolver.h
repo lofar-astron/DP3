@@ -25,12 +25,15 @@ class HybridSolver final : public SolverBase {
  public:
   HybridSolver() : stop_on_convergence_(false) {}
 
-  void Initialize(size_t n_antennas, size_t n_directions,
+  void Initialize(size_t n_antennas,
+                  const std::vector<size_t>& n_solutions_per_direction,
                   size_t n_channel_blocks) override {
-    SolverBase::Initialize(n_antennas, n_directions, n_channel_blocks);
+    SolverBase::Initialize(n_antennas, n_solutions_per_direction,
+                           n_channel_blocks);
     for (const std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
          solvers_) {
-      solver_info.first->Initialize(n_antennas, n_directions, n_channel_blocks);
+      solver_info.first->Initialize(n_antennas, n_solutions_per_direction,
+                                    n_channel_blocks);
     }
   }
 

@@ -107,6 +107,9 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
   initializeIDG(parset, prefix);
   initializePredictSteps(parset, prefix);
 
+  // TODO: should be read from parset
+  itsSolutionsPerDirection.assign(itsDirections.size(), 1);
+
   if (itsDirections.size() == 0)
     throw std::runtime_error(
         "DDECal initialized with 0 directions: something is wrong with your "
@@ -332,7 +335,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   size_t nSt = info().antennaUsed().size();
   // Give renumbered antennas to solver
-  itsSolver->Initialize(nSt, itsDirections.size(), nChannelBlocks);
+  itsSolver->Initialize(nSt, itsSolutionsPerDirection, nChannelBlocks);
 
   for (size_t i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
@@ -347,7 +350,8 @@ void DDECal::show(std::ostream& os) const {
      << "  H5Parm:              " << itsSettings.h5parm_name << '\n'
      << "  solint:              " << itsRequestedSolInt << '\n'
      << "  nchan:               " << itsNChan << '\n'
-     << "  directions:          " << itsDirections << '\n';
+     << "  directions:          " << itsDirections << '\n'
+     << "  sols per direction:  " << itsSolutionsPerDirection << '\n';
   if (itsSettings.min_vis_ratio != 0.0) {
     os << "  min visib. ratio:    " << itsSettings.min_vis_ratio << '\n';
   }
@@ -425,7 +429,9 @@ void DDECal::InitializeScalarOrDiagonalSolutions(size_t bufferIndex) {
             itsSolver->GetMaxIterations() &&
         itsSettings.propagate_converged_only) {
       // initialize solutions with 1.
-      const size_t n = itsDirections.size() * info().antennaUsed().size() *
+      const size_t n_solutions = std::accumulate(
+          itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+      const size_t n = n_solutions * info().antennaUsed().size() *
                        itsSolver->NSolutionPolarizations();
       for (std::vector<casacore::DComplex>& solvec :
            itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
@@ -438,7 +444,9 @@ void DDECal::InitializeScalarOrDiagonalSolutions(size_t bufferIndex) {
     }
   } else {
     // initialize solutions with 1.
-    const size_t n = itsDirections.size() * info().antennaUsed().size() *
+    const size_t n_solutions = std::accumulate(
+        itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+    const size_t n = n_solutions * info().antennaUsed().size() *
                      itsSolver->NSolutionPolarizations();
     for (std::vector<casacore::DComplex>& solvec :
          itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
@@ -577,9 +585,9 @@ void DDECal::doSolve() {
 
       const size_t n_channel_blocks = itsChanBlockFreqs.size();
       const size_t n_antennas = info().antennaUsed().size();
-      const ddecal::SolveData solve_data(solver_buffer, n_channel_blocks,
-                                         itsDirections.size(), n_antennas,
-                                         itsAntennas1, itsAntennas2);
+      const ddecal::SolveData solve_data(
+          solver_buffer, n_channel_blocks, itsDirections.size(), n_antennas,
+          itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
 
       solveResult = itsSolver->Solve(
           solve_data, itsSols[itsSolIntBuffers[i].NSolution()],

@@ -15,6 +15,7 @@ namespace ddecal {
 
 SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
                      size_t n_directions, size_t n_antennas,
+                     const std::vector<size_t>& n_solutions_per_direction,
                      const std::vector<int>& antennas1,
                      const std::vector<int>& antennas2)
     : channel_blocks_(n_channel_blocks) {
@@ -26,6 +27,14 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
     assert(size_t(antennas1[baseline]) < n_antennas &&
            size_t(antennas2[baseline]) < n_antennas);
     if (antennas1[baseline] != antennas2[baseline]) ++n_baselines;
+  }
+
+  // Initialize n_solutions_ of the first channel block as template
+  // for the other channel blocks
+  channel_blocks_.front().n_solutions_.reserve(n_directions);
+  for (size_t direction = 0; direction != n_directions; ++direction) {
+    channel_blocks_.front().n_solutions_.emplace_back(
+        std::min(n_solutions_per_direction[direction], buffer.NTimes()));
   }
 
   // Count nr of visibilities per channel block and allocate memory.
@@ -40,6 +49,17 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
 
     cb_data.Resize(buffer.NTimes() * n_baselines * channel_block_size,
                    n_directions);
+
+    cb_data.n_solutions_ = channel_blocks_.front().n_solutions_;
+  }
+
+  // Construct an array that identifies the start solution index per direction
+  std::vector<size_t> solution_start_indices;
+  solution_start_indices.reserve(n_directions);
+  size_t solution_start_counter = 0;
+  for (size_t direction = 0; direction != n_directions; ++direction) {
+    solution_start_indices.emplace_back(solution_start_counter);
+    solution_start_counter += channel_blocks_.front().n_solutions_[direction];
   }
 
   // Fill all channel blocks with data.
@@ -65,10 +85,19 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
           }
 
           for (size_t direction = 0; direction < n_directions; ++direction) {
+            const size_t n_solutions =
+                channel_blocks_.front().n_solutions_[direction];
+            // Calculate the absolute index as required for solution_map_
+            const size_t solution_index =
+                time_index * n_solutions / buffer.NTimes() +
+                solution_start_indices[direction];
+
             for (size_t i = 0; i < channel_block_size; ++i) {
               cb_data.model_data_[direction][vis_index + i] =
                   aocommon::MC2x2F(buffer.ModelDataPointer(
                       time_index, direction, baseline, first_channel + i));
+
+              cb_data.solution_map_[direction][vis_index + i] = solution_index;
             }
           }
 
@@ -79,8 +108,6 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
   }
 
   CountAntennaVisibilities(n_antennas);
-  for (ChannelBlockData& cb_data : channel_blocks_)
-    cb_data.InitializeSolutionIndices();
 }
 
 SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
@@ -156,7 +183,7 @@ SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
 
   CountAntennaVisibilities(n_antennas);
   for (ChannelBlockData& cb_data : channel_blocks_)
-    cb_data.InitializeSolutionIndices();
+    cb_data.InitializeSolutionIndices();  // TODO replace!
 }
 
 void SolveData::CountAntennaVisibilities(size_t n_antennas) {
@@ -173,9 +200,8 @@ void SolveData::ChannelBlockData::InitializeSolutionIndices() {
   // This initializes the solution indices for direction-independent intervals
   // TODO support DD intervals
   n_solutions_.assign(NDirections(), 1);
-  solution_map_.reserve(NDirections());
   for (size_t i = 0; i != NDirections(); ++i) {
-    solution_map_.emplace_back(NVisibilities(), i);
+    solution_map_[i].assign(NVisibilities(), i);
   }
 }
 

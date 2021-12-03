@@ -31,6 +31,9 @@ class SolveData {
       for (std::vector<aocommon::MC2x2F>& v : model_data_)
         v.resize(n_visibilities);
       antenna_indices_.resize(n_visibilities);
+      n_solutions_.resize(n_directions);
+      solution_map_.resize(n_directions);
+      for (std::vector<uint32_t>& m : solution_map_) m.resize(n_visibilities);
     }
     size_t NDirections() const { return model_data_.size(); }
     size_t NVisibilities() const { return data_.size(); }
@@ -89,6 +92,9 @@ class SolveData {
    private:
     friend class SolveData;
 
+    /**
+     * Initialize n_solutions_ and solution_map_.
+     */
     void InitializeSolutionIndices();
 
     std::vector<aocommon::MC2x2F> data_;
@@ -111,11 +117,17 @@ class SolveData {
    * @param n_channel_blocks Number of channel blocks / groups.
    * @param n_directions Number of solver directions.
    * @param n_antennas Number of antennas.
+   * @param n_solutions_per_direction For each direction, the number of
+   * solutions for this direction. The timesteps in the buffer are split evenly
+   * over the solutions. This allows direction-dependent solution intervals. If
+   * n_solutions_per_direction[i] is larger than the number of available
+   * timesteps, it is truncated.
    * @param antennas1 For each baseline, the index of the first antenna.
    * @param antennas2 For each baseline, the index of the second antenna.
    */
   SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
             size_t n_directions, size_t n_antennas,
+            const std::vector<size_t>& n_solutions_per_direction,
             const std::vector<int>& antennas1,
             const std::vector<int>& antennas2);
 

@@ -23,7 +23,6 @@ namespace {
 
 const size_t kNPolarizations = 4;
 const size_t kNChannelBlocks = 2;
-const size_t kNDirections = 1;
 const size_t kNBaselines = 3;
 const size_t kNAntennas = 3;
 const std::vector<int> kAntennas1 = {0, 0, 0};
@@ -86,6 +85,8 @@ BOOST_AUTO_TEST_CASE(regular) {
   const size_t kNTimes = 2;
   const size_t kNChannels = 7;
   const size_t kNSolveDataBaselines = kNBaselines - 1;
+  const size_t kNDirections = 1;
+  const std::vector<size_t> kNSolutionsPerDirection(kNDirections, 1);
   const std::vector<size_t> kExpectedChannelBlockSizes{3, 4};
 
   std::vector<DPBuffer> data_buffers;
@@ -108,10 +109,10 @@ BOOST_AUTO_TEST_CASE(regular) {
   dp3::ddecal::SolverBuffer solver_buffer;
   solver_buffer.AssignAndWeight(data_buffers, std::move(model_buffers));
 
-  const dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks,
-                                    kNDirections, kNAntennas, kAntennas1,
-                                    kAntennas2);
-  BOOST_REQUIRE(data.NChannelBlocks() == kNChannelBlocks);
+  const dp3::ddecal::SolveData data(
+      solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+      kNSolutionsPerDirection, kAntennas1, kAntennas2);
+  BOOST_TEST_REQUIRE(data.NChannelBlocks() == kNChannelBlocks);
 
   for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {
     const ChannelBlockData& cb_data = data.ChannelBlock(ch_block);
@@ -154,11 +155,84 @@ BOOST_AUTO_TEST_CASE(regular) {
         const aocommon::MC2x2F& model_vector_data =
             cb_data.ModelVisibilityVector(direction)[v];
 
+        BOOST_TEST_REQUIRE(cb_data.SolutionMap(direction).size() ==
+                           cb_data.NVisibilities());
+        BOOST_TEST(cb_data.SolutionIndex(direction, v) == direction);
+
         for (size_t pol = 0; pol < kNPolarizations; ++pol) {
           BOOST_TEST(expected_model_data[pol] == model_data[pol]);
           BOOST_TEST(expected_model_data[pol] == model_vector_data[pol]);
         }
       }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
+  // Test that all data from a SolverBuffer ends up in a SolveData structure.
+  // The test uses three baselines. The third baseline contains
+  // auto-correlations, which SolveData should ignore.
+  const size_t kNTimes = 2;
+  const size_t kNChannels = 7;
+  const size_t kNSolveDataBaselines = kNBaselines - 1;
+  const size_t kNDirections = 2;
+  const std::vector<size_t> kNSolutionsPerDirection{1, 2};
+  const std::vector<size_t> kExpectedChannelBlockSizes{3, 4};
+
+  std::vector<DPBuffer> data_buffers;
+  std::vector<std::vector<DPBuffer>> model_buffers(kNTimes);
+
+  for (size_t time = 0; time < kNTimes; ++time) {
+    data_buffers.emplace_back(time, 1.0);
+    data_buffers.back().setData(casacore::Cube<std::complex<float>>(
+        kNPolarizations, kNChannels, kNBaselines));
+    FillRegularBuffer(data_buffers.back());
+    data_buffers.back().setWeights(
+        casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0f));
+
+    for (size_t direction = 0; direction != kNDirections; ++direction) {
+      model_buffers[time].emplace_back(time, 1.0);
+      model_buffers[time].back().setData(casacore::Cube<std::complex<float>>(
+          kNPolarizations, kNChannels, kNBaselines));
+      FillRegularBuffer(model_buffers[time].back());
+    }
+  }
+
+  dp3::ddecal::SolverBuffer solver_buffer;
+  solver_buffer.AssignAndWeight(data_buffers, std::move(model_buffers));
+
+  const dp3::ddecal::SolveData data(
+      solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+      kNSolutionsPerDirection, kAntennas1, kAntennas2);
+  BOOST_TEST_REQUIRE(data.NChannelBlocks() == kNChannelBlocks);
+
+  for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {
+    const ChannelBlockData& cb_data = data.ChannelBlock(ch_block);
+    BOOST_TEST_REQUIRE(cb_data.NDirections() == kNDirections);
+    // SolveData does not include baselines with auto-correlations,
+    // so it should not contain the last baseline.
+    BOOST_TEST_REQUIRE(cb_data.NVisibilities() ==
+                       kNTimes * kNSolveDataBaselines *
+                           kExpectedChannelBlockSizes[ch_block]);
+    for (size_t ant = 0; ant < kNAntennas; ++ant) {
+      BOOST_TEST(cb_data.NAntennaVisibilities(ant) ==
+                 kNTimes * ((ant == 0) ? 2 : 1) *
+                     kExpectedChannelBlockSizes[ch_block]);
+    }
+
+    BOOST_TEST_REQUIRE(cb_data.SolutionMap(0).size() ==
+                       cb_data.NVisibilities());
+    BOOST_TEST_REQUIRE(cb_data.SolutionMap(1).size() ==
+                       cb_data.NVisibilities());
+    BOOST_TEST(cb_data.NSolutionsForDirection(0) == 1);
+    BOOST_TEST(cb_data.NSolutionsForDirection(1) == 2);
+    BOOST_TEST(cb_data.SolutionIndex(0, 0) == 0);
+    BOOST_TEST(cb_data.SolutionIndex(1, 0) == 1);
+    BOOST_TEST(cb_data.SolutionIndex(1, cb_data.NVisibilities() - 1) == 2);
+    for (size_t v = 1; v < cb_data.NVisibilities(); ++v) {
+      BOOST_TEST(cb_data.SolutionIndex(0, v) == 0);
+      BOOST_TEST(cb_data.SolutionIndex(1, v) >=
+                 cb_data.SolutionIndex(1, v - 1));
     }
   }
 }
@@ -176,6 +250,7 @@ BOOST_AUTO_TEST_CASE(bda) {
   const size_t kNAveragedChannels = 4;
   const size_t kBdaBufferSize =
       (2 * kNAveragedChannels + 2 * kNAllChannels) * kNPolarizations;
+  const size_t kNDirections = 1;
 
   // Outer index: channel block index; inner index: baseline index.
   const std::vector<std::vector<size_t>> kNVisibilitiesPerBaseline{{2, 3},
@@ -198,18 +273,18 @@ BOOST_AUTO_TEST_CASE(bda) {
                                              kNBaselines);
   solver_buffer.AppendAndWeight(std::move(bda_data_buffer),
                                 std::move(bda_model_buffers));
-  BOOST_REQUIRE(solver_buffer.GetDataRows().size() == kNRowsPerBaseline[0] +
-                                                          kNRowsPerBaseline[1] +
-                                                          kNRowsPerBaseline[2]);
+  BOOST_TEST_REQUIRE(solver_buffer.GetDataRows().size() ==
+                     kNRowsPerBaseline[0] + kNRowsPerBaseline[1] +
+                         kNRowsPerBaseline[2]);
 
   const dp3::ddecal::SolveData solve_data(solver_buffer, kNChannelBlocks,
                                           kNDirections, kNAntennas, kAntennas1,
                                           kAntennas2);
-  BOOST_REQUIRE(solve_data.NChannelBlocks() == kNChannelBlocks);
+  BOOST_TEST_REQUIRE(solve_data.NChannelBlocks() == kNChannelBlocks);
 
   for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {
     const ChannelBlockData& cb_data = solve_data.ChannelBlock(ch_block);
-    BOOST_REQUIRE(cb_data.NDirections() == kNDirections);
+    BOOST_TEST_REQUIRE(cb_data.NDirections() == kNDirections);
 
     // SolveData does not include baselines with auto-correlations,
     // so it should not contain the last baseline, with index 2.

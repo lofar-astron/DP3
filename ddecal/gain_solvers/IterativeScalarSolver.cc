@@ -130,9 +130,9 @@ void IterativeScalarSolver::SolveDirection(
     const size_t antenna2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = solution_map[vis_index];
     const Complex solution_ant1(
-        solutions[antenna1 * n_directions_ + solution_index]);
+        solutions[antenna1 * NSolutions() + solution_index]);
     const Complex solution_ant2(
-        solutions[antenna2 * n_directions_ + solution_index]);
+        solutions[antenna2 * NSolutions() + solution_index]);
     const aocommon::MC2x2F& data = v_residual[vis_index];
     const aocommon::MC2x2F& model = model_vector[vis_index];
 
