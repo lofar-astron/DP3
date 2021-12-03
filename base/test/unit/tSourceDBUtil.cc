@@ -165,4 +165,12 @@ BOOST_AUTO_TEST_CASE(source_db_check_polarised) {
   TestPolarized(dp3::base::SourceDB{kSourceDBName, source_patterns});
 }
 
+BOOST_AUTO_TEST_CASE(source_db_empty_source_pattern_string) {
+  const std::vector<std::string> source_patterns{""};
+  BOOST_CHECK_THROW((dp3::base::SourceDB{kSkymodelName, source_patterns}),
+                    std::runtime_error);
+  BOOST_CHECK_THROW((dp3::base::SourceDB{kSourceDBName, source_patterns}),
+                    std::runtime_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

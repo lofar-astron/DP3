@@ -358,6 +358,11 @@ static bool HasSkymodelExtension(const std::string& source_db_name) {
 
 SourceDB::SourceDB(const std::string& source_db_name,
                    const std::vector<std::string>& source_patterns) {
+  if (std::find(source_patterns.cbegin(), source_patterns.cend(), "") !=
+      source_patterns.end()) {
+    throw std::runtime_error("Empty source pattern not allowed");
+  }
+
   if (HasSkymodelExtension(source_db_name)) {
     source_db_ = parmdb::skymodel_to_source_db::MakeSourceDBSkymodel(
         source_db_name,
