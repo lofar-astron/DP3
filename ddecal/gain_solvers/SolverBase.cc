@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <numeric>
 
 using aocommon::ParallelFor;
 
@@ -34,13 +35,14 @@ SolverBase::SolverBase()
       phase_only_(false),
       lls_solver_type_(LLSSolverType::QR) {}
 
-void SolverBase::Initialize(size_t n_antennas, size_t n_directions,
-                            size_t n_channel_blocks) {
+void SolverBase::Initialize(
+    size_t n_antennas, const std::vector<size_t>& n_solutions_per_direction,
+    size_t n_channel_blocks) {
   n_antennas_ = n_antennas;
-  n_directions_ = n_directions;
+  n_directions_ = n_solutions_per_direction.size();
   n_channel_blocks_ = n_channel_blocks;
-  n_solutions_ =
-      n_directions;  // TODO count sum nr of solutions over directions
+  n_solutions_ = std::accumulate(n_solutions_per_direction.begin(),
+                                 n_solutions_per_direction.end(), 0u);
 }
 
 bool SolverBase::DetectStall(size_t iteration,

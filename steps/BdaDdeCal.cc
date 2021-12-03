@@ -165,7 +165,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     }
 
     solver_->Initialize(info().antennaUsed().size(),
-                        settings_.directions.size(),
+                        std::vector<size_t>(settings_.directions.size(), 1),
                         chan_block_start_freqs_.size() - 1);
 
     // SolveCurrentInterval will add solution intervals to the solutions.

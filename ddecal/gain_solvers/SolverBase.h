@@ -53,7 +53,8 @@ class SolverBase {
    * and antenna mapping.
    * The antenna arrays map the data provided in @Solve to the antennas.
    */
-  virtual void Initialize(size_t n_antennas, size_t n_directions,
+  virtual void Initialize(size_t n_antennas,
+                          const std::vector<size_t>& n_solutions_per_direction,
                           size_t n_channel_blocks);
 
   /**

@@ -31,6 +31,7 @@ BOOST_AUTO_TEST_CASE(show_default) {
   solint:              1
   nchan:               1
   directions:          [[center]]
+  sols per direction:  [1]
   tolerance:           0.0001
   max iter:            50
   flag unconverged:    false
@@ -70,6 +71,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   solint:              42
   nchan:               44
   directions:          [[center]]
+  sols per direction:  [1]
   min visib. ratio:    43.123
   tolerance:           1e-05
   max iter:            49

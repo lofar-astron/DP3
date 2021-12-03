@@ -177,7 +177,8 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
 
 void SolverTester::InitializeSolver(SolverBase& solver) const {
   InitializeSolverSettings(solver);
-  solver.Initialize(kNAntennas, kNDirections, kNChannelBlocks);
+  solver.Initialize(kNAntennas, std::vector<size_t>(kNDirections, 1),
+                    kNChannelBlocks);
 }
 
 void SolverTester::InitializeSolverSettings(SolverBase& solver) const {
