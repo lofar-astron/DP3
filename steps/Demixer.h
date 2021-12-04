@@ -112,6 +112,8 @@ class Demixer : public Step {
   base::BaselineSelection itsSelBL;
   Filter itsFilter;
   std::vector<std::shared_ptr<PhaseShift>> itsPhaseShifts;
+  bool itsMovingPhaseRef;
+  casacore::MeasFrame itsMeasFrame;
   /// Phase shift and average steps for demix.
   std::vector<Step::ShPtr> itsFirstSteps;
   /// Result of phase shifting and averaging the directions of interest

@@ -46,6 +46,8 @@ using casacore::Cube;
 using casacore::IPosition;
 using casacore::Matrix;
 using casacore::MDirection;
+using casacore::MEpoch;
+using casacore::MVEpoch;
 using casacore::Quantum;
 
 using dp3::base::DPBuffer;
@@ -75,7 +77,8 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
       itsAvgResultSubtr(0),
       itsIgnoreTarget(parset.getBool(prefix + "ignoretarget", false)),
       itsTargetSource(parset.getString(prefix + "targetsource", string())),
-      itsSubtrSources(parset.getStringVector(prefix + "subtractsources")),
+      itsSubtrSources(parset.getStringVector(prefix + "subtractsources",
+                                             std::vector<std::string>())),
       itsModelSources(parset.getStringVector(prefix + "modelsources",
                                              std::vector<std::string>())),
       itsExtraSources(parset.getStringVector(prefix + "othersources",
@@ -332,11 +335,19 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   itsFreqSubtr = getInfo().chanFreqs();
 
   // Store phase center direction in J2000.
-  MDirection dirJ2000(
-      MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-  Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
-  itsPhaseRef =
-      base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
+  try {
+    MDirection dirJ2000(
+        MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
+    Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
+    itsPhaseRef =
+        base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
+    itsMovingPhaseRef = false;
+  } catch (casacore::AipsError&) {
+    // Phase direction (in J2000) is time dependent
+    itsMovingPhaseRef = true;
+    std::cout
+        << "WARNING: Demixing with moving phase reference is not tested.\n";
+  }
 
   // Intialize the unknowns.
   itsUnknowns.resize(itsNTimeDemix * itsNModel * itsNStation * 8);
@@ -963,6 +974,17 @@ void Demixer::demix() {
                           itsAvgResultSubtr->get()[ts_subtr].getUVW(),
                           storage.uvw);
 
+          if (itsMovingPhaseRef) {
+            // Convert phase reference to J2000
+            itsMeasFrame.set(
+                MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
+            MDirection dirJ2000(MDirection::Convert(
+                info().phaseCenter(),
+                MDirection::Ref(MDirection::J2000, itsMeasFrame))());
+            Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
+            itsPhaseRef = base::Direction(angles.getBaseValue()[0],
+                                          angles.getBaseValue()[1]);
+          }
           // Rotate the UVW coordinates for the target direction to the
           // direction of source to subtract. This is required because at
           // the resolution of the residual the UVW coordinates for
