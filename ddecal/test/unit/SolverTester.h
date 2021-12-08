@@ -6,6 +6,7 @@
 
 #include "../../../base/DPBuffer.h"
 #include "../../../ddecal/gain_solvers/BdaSolverBuffer.h"
+#include "../../../ddecal/gain_solvers/SolverBuffer.h"
 
 #include <aocommon/uvector.h>
 
@@ -28,6 +29,11 @@ class SolverTester {
   SolverTester();
 
   /**
+   * Creates regular data with direction-dependent solution intervals.
+   */
+  const ddecal::SolverBuffer& FillDdIntervalData();
+
+  /**
    * Creates BDA data, for testing BDA solvers.
    * @return The internal solver buffer that contains the data.
    */
@@ -35,7 +41,9 @@ class SolverTester {
 
   /**
    * Initializes a solver using default values. After using this function, a
-   * test can adjust the default values.
+   * test can adjust the default values. Before calling this function,
+   * the solutions should be initialized with @ref SetScalarSolutions() or
+   * @ref SetDiagonalSolutions().
    */
   void InitializeSolver(dp3::ddecal::SolverBase& solver) const;
 
@@ -46,8 +54,8 @@ class SolverTester {
    * The solver can then use these values as initial values.
    * @{
    */
-  void SetScalarSolutions();
-  void SetDiagonalSolutions();
+  void SetScalarSolutions(bool use_dd_intervals);
+  void SetDiagonalSolutions(bool use_dd_intervals);
   /** @} */
 
   /**
@@ -78,11 +86,18 @@ class SolverTester {
    */
   const std::vector<int>& Antennas2() const { return antennas2_; }
 
+  const std::vector<size_t>& NSolutionsPerDirection() const {
+    return n_solutions_per_direction_;
+  }
+
   static constexpr size_t kNPolarizations = 4;
   static constexpr size_t kNAntennas = 50;
   static constexpr size_t kNDirections = 3;
   static constexpr size_t kNChannels = 10;
   static constexpr size_t kNChannelBlocks = 4;
+  static constexpr size_t kNRegularTimes = 50;
+  // Use more times with BDA so the number of visibilities is similar to the
+  // regular data.
   static constexpr size_t kNBDATimes = 128;
   static constexpr size_t kNBaselines = kNAntennas * (kNAntennas - 1) / 2;
 
@@ -92,14 +107,21 @@ class SolverTester {
   static constexpr double kStepSize = 0.2;
   static constexpr size_t kNThreads = 4;
   static constexpr bool kPhaseOnly = false;
+  static constexpr size_t kDDSolutionsPerDirection[kNDirections] = {1, 2, 5};
 
  private:
   void InitializeSolverSettings(dp3::ddecal::SolverBase& solver) const;
+  void InitializeNSolutions(bool use_dd_intervals);
 
   std::vector<int> antennas1_;
   std::vector<int> antennas2_;
   std::vector<std::complex<float>> input_solutions_;
   std::vector<std::vector<std::complex<double>>> solver_solutions_;
+  std::vector<size_t> n_solutions_per_direction_;
+  size_t n_solutions_;
+
+  std::vector<base::DPBuffer> data_buffers_;
+  SolverBuffer solver_buffer_;
 
   BdaSolverBuffer bda_solver_buffer_;
 };

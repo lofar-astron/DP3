@@ -43,6 +43,8 @@ void SolverBase::Initialize(
   n_channel_blocks_ = n_channel_blocks;
   n_solutions_ = std::accumulate(n_solutions_per_direction.begin(),
                                  n_solutions_per_direction.end(), 0u);
+  assert(n_solutions_ != 0);
+  assert(n_directions_ != 0);
 }
 
 bool SolverBase::DetectStall(size_t iteration,

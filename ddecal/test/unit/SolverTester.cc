@@ -61,11 +61,13 @@ std::pair<size_t, size_t> GetAveragingFactors(size_t baseline_index) {
 
 }  // namespace
 
+constexpr size_t SolverTester::kDDSolutionsPerDirection[];
+
 SolverTester::SolverTester()
     : antennas1_(),
       antennas2_(),
-      input_solutions_(kNAntennas * kNDirections * 2),
       solver_solutions_(kNChannelBlocks),
+      n_solutions_(0),
 
       // Set the solution interval so that all data is in the first interval.
       bda_solver_buffer_(kNDirections, -1.0, kNBDATimes + 1.0, kNBaselines) {
@@ -77,6 +79,94 @@ SolverTester::SolverTester()
       antennas2_.push_back(ant2);
     }
   }
+}
+
+const SolverBuffer& SolverTester::FillDdIntervalData() {
+  std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
+  std::mt19937 mt(0);
+  std::vector<std::vector<DPBuffer>> model_buffers;
+
+  std::vector<std::vector<size_t>> solution_indices(kNDirections);
+  size_t first_solution_index = 0;
+  for (size_t d = 0; d != kNDirections; ++d) {
+    solution_indices[d].resize(kNRegularTimes);
+    for (size_t t = 0; t != kNRegularTimes; ++t) {
+      solution_indices[d][t] =
+          first_solution_index +
+          t * n_solutions_per_direction_[d] / kNRegularTimes;
+    }
+    first_solution_index += n_solutions_per_direction_[d];
+  }
+
+  for (size_t timestep = 0; timestep != kNRegularTimes; ++timestep) {
+    data_buffers_.emplace_back();
+    data_buffers_.back().setData(casacore::Cube<std::complex<float>>(
+        kNPolarizations, kNChannels, kNBaselines, 0));
+    data_buffers_.back().setWeights(
+        casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0));
+
+    casacore::Cube<std::complex<float>>& time_data =
+        data_buffers_.back().getData();
+
+    model_buffers.emplace_back();
+    std::vector<DPBuffer>& model_time_buffers = model_buffers.back();
+
+    for (size_t d = 0; d != kNDirections; ++d) {
+      model_time_buffers.emplace_back();
+      model_time_buffers.back().setData(casacore::Cube<std::complex<float>>(
+          kNPolarizations, kNChannels, kNBaselines));
+      std::complex<float>* this_direction =
+          model_time_buffers.back().getData().data();
+
+      for (size_t bl = 0; bl != kNBaselines; ++bl) {
+        for (size_t ch = 0; ch != kNChannels; ++ch) {
+          const size_t matrix_index = (bl * kNChannels + ch) * 4;
+          this_direction[matrix_index + 0] =
+              std::complex<float>(uniform_data(mt), uniform_data(mt));
+          this_direction[matrix_index + 1] =
+              std::complex<float>(uniform_data(mt), uniform_data(mt)) * 0.1f;
+          this_direction[matrix_index + 2] =
+              std::complex<float>(uniform_data(mt), uniform_data(mt)) * 0.1f;
+          this_direction[matrix_index + 3] =
+              std::complex<float>(uniform_data(mt), uniform_data(mt)) * 1.5f;
+        }
+      }
+    }
+    size_t baseline_index = 0;
+    for (size_t a1 = 0; a1 != kNAntennas; ++a1) {
+      for (size_t a2 = a1 + 1; a2 != kNAntennas; ++a2) {
+        for (size_t ch = 0; ch != kNChannels; ++ch) {
+          MC2x2 perturbed_model = MC2x2::Zero();
+          for (size_t d = 0; d != kNDirections; ++d) {
+            const size_t solution_index = solution_indices[d][timestep];
+            const MC2x2 val(
+                &model_time_buffers[d].getData()(0, ch, baseline_index));
+            MC2x2 left(
+                input_solutions_[(a1 * n_solutions_ + solution_index) * 2 + 0],
+                0.0, 0.0,
+                input_solutions_[(a1 * n_solutions_ + solution_index) * 2 + 1]);
+            const MC2x2 right(
+                input_solutions_[(a2 * n_solutions_ + solution_index) * 2 + 0],
+                0.0, 0.0,
+                input_solutions_[(a2 * n_solutions_ + solution_index) * 2 + 1]);
+            MC2x2 res;
+            MC2x2::ATimesB(res, left, val);
+            // Use 'left' as scratch for the result.
+            MC2x2::ATimesHermB(left, res, right);
+            perturbed_model += left;
+          }
+          for (size_t p = 0; p != 4; ++p) {
+            time_data(p, ch, baseline_index) = perturbed_model[p];
+          }
+        }
+        ++baseline_index;
+      }
+    }
+  }
+
+  solver_buffer_.AssignAndWeight(data_buffers_, std::move(model_buffers));
+
+  return solver_buffer_;
 }
 
 const BdaSolverBuffer& SolverTester::FillBDAData() {
@@ -177,8 +267,7 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
 
 void SolverTester::InitializeSolver(SolverBase& solver) const {
   InitializeSolverSettings(solver);
-  solver.Initialize(kNAntennas, std::vector<size_t>(kNDirections, 1),
-                    kNChannelBlocks);
+  solver.Initialize(kNAntennas, n_solutions_per_direction_, kNChannelBlocks);
 }
 
 void SolverTester::InitializeSolverSettings(SolverBase& solver) const {
@@ -197,54 +286,70 @@ void SolverTester::InitializeSolverSettings(SolverBase& solver) const {
   solver.SetMaxIterations(kMaxIterations);
 }
 
-void SolverTester::SetScalarSolutions() {
+void SolverTester::InitializeNSolutions(bool use_dd_intervals) {
+  if (use_dd_intervals) {
+    n_solutions_per_direction_.assign(std::begin(kDDSolutionsPerDirection),
+                                      std::end(kDDSolutionsPerDirection));
+    n_solutions_ = std::accumulate(std::begin(kDDSolutionsPerDirection),
+                                   std::end(kDDSolutionsPerDirection), 0.0);
+  } else {
+    n_solutions_per_direction_.assign(kNDirections, 1);
+    n_solutions_ = kNDirections;
+  }
+}
+
+void SolverTester::SetScalarSolutions(bool use_dd_intervals) {
+  InitializeNSolutions(use_dd_intervals);
+  input_solutions_.resize(kNAntennas * n_solutions_ * 2);
   std::mt19937 mt;
   std::uniform_real_distribution<float> uniform_sols(1.0, 2.0);
   for (size_t ant = 0; ant != kNAntennas; ++ant) {
-    for (size_t dir = 0; dir != kNDirections; ++dir) {
-      const size_t index = (ant * kNDirections + dir) * 2;
+    for (size_t s = 0; s != n_solutions_; ++s) {
+      const size_t index = (ant * n_solutions_ + s) * 2;
       input_solutions_[index] = {uniform_sols(mt), uniform_sols(mt)};
-      if (dir != 0) input_solutions_[index] *= 0.5f;
+      if (s != 0) input_solutions_[index] *= 0.5f;
       input_solutions_[index + 1] = input_solutions_[index];
     }
   }
 
   // Initialize unit-matrices as initial solver solution values.
   for (auto& vec : solver_solutions_) {
-    vec.assign(kNDirections * kNAntennas, 1.0);
+    vec.assign(n_solutions_ * kNAntennas, 1.0);
   }
 }
 
-void SolverTester::SetDiagonalSolutions() {
+void SolverTester::SetDiagonalSolutions(bool use_dd_intervals) {
+  InitializeNSolutions(use_dd_intervals);
+  input_solutions_.resize(kNAntennas * n_solutions_ * 2);
   std::mt19937 mt;
   std::uniform_real_distribution<float> uniform_sols(1.0, 2.0);
   for (size_t ant = 0; ant != kNAntennas; ++ant) {
     for (size_t pol = 0; pol != 2; ++pol) {
-      for (size_t dir = 0; dir != kNDirections; ++dir) {
-        const size_t index = (ant * kNDirections + dir) * 2 + pol;
+      for (size_t s = 0; s != n_solutions_; ++s) {
+        const size_t index = (ant * n_solutions_ + s) * 2 + pol;
         input_solutions_[index] = {uniform_sols(mt), uniform_sols(mt)};
-        if (dir != 0) input_solutions_[index] *= 0.5f;
+        if (s != 0) input_solutions_[index] *= 0.5f;
       }
     }
   }
 
   // Initialize unit-matrices as initial solver solution values.
   for (auto& vec : solver_solutions_) {
-    vec.assign(kNDirections * kNAntennas * 2, 1.0);
+    vec.assign(n_solutions_ * kNAntennas * 2, 1.0);
   }
 }
 
 void SolverTester::CheckScalarResults(double tolerance) {
   for (size_t ch = 0; ch != kNChannelBlocks; ++ch) {
     for (size_t ant = 0; ant != kNAntennas; ++ant) {
-      for (size_t d = 0; d != kNDirections; ++d) {
-        const std::complex<double> sol0 = solver_solutions_[ch][d];
-        const std::complex<double> inp0 = input_solutions_[d * 2];
+      for (size_t s = 0; s != n_solutions_; ++s) {
+        const std::complex<double> sol0 = solver_solutions_[ch][s];
+        const std::complex<double> inp0 = input_solutions_[s * 2];
 
         const std::complex<double> sol =
-            solver_solutions_[ch][d + ant * kNDirections];
+            solver_solutions_[ch][s + ant * n_solutions_];
         const std::complex<double> inp =
-            input_solutions_[(d + ant * kNDirections) * 2];
+            input_solutions_[(s + ant * n_solutions_) * 2];
 
         // Compare the squared quantities, because the phase has an ambiguity
         BOOST_CHECK_CLOSE(std::norm(sol), std::norm(inp), tolerance);
@@ -264,20 +369,20 @@ void SolverTester::CheckScalarResults(double tolerance) {
 void SolverTester::CheckDiagonalResults(double tolerance) {
   for (size_t ch = 0; ch != kNChannelBlocks; ++ch) {
     for (size_t ant = 0; ant != kNAntennas; ++ant) {
-      for (size_t d = 0; d != kNDirections; ++d) {
-        std::complex<double> solX0 = solver_solutions_[ch][d * 2];
-        std::complex<double> solY0 = solver_solutions_[ch][d * 2 + 1];
-        std::complex<double> inpX0 = input_solutions_[d * 2];
-        std::complex<double> inpY0 = input_solutions_[d * 2 + 1];
+      for (size_t s = 0; s != n_solutions_; ++s) {
+        std::complex<double> solX0 = solver_solutions_[ch][s * 2];
+        std::complex<double> solY0 = solver_solutions_[ch][s * 2 + 1];
+        std::complex<double> inpX0 = input_solutions_[s * 2];
+        std::complex<double> inpY0 = input_solutions_[s * 2 + 1];
 
         std::complex<double> solX =
-            solver_solutions_[ch][(d + ant * kNDirections) * 2];
+            solver_solutions_[ch][(s + ant * n_solutions_) * 2];
         std::complex<double> solY =
-            solver_solutions_[ch][(d + ant * kNDirections) * 2 + 1];
+            solver_solutions_[ch][(s + ant * n_solutions_) * 2 + 1];
         std::complex<double> inpX =
-            input_solutions_[(d + ant * kNDirections) * 2];
+            input_solutions_[(s + ant * n_solutions_) * 2];
         std::complex<double> inpY =
-            input_solutions_[(d + ant * kNDirections) * 2 + 1];
+            input_solutions_[(s + ant * n_solutions_) * 2 + 1];
 
         // Compare the squared quantities, because the phase has an ambiguity
         BOOST_CHECK_CLOSE(std::norm(solX), std::norm(inpX), tolerance);
