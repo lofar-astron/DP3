@@ -164,10 +164,11 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
                        itsModelSources.end());
   itsAllSources.insert(itsAllSources.end(), itsExtraSources.begin(),
                        itsExtraSources.end());
-  itsAllSources.push_back(itsTargetSource);
+  if (!itsTargetSource.empty()) {
+    itsAllSources.push_back(itsTargetSource);
+  }
 
   // Get the source info of all patches from the SourceDB table.
-  parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", itsSkyName), false, false);
   std::vector<std::string> patchNames(itsAllSources);
   // If the target source is given, add it to the model.
   // Because the target source has to be the last direction, it means
@@ -182,7 +183,7 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
           "Currently no extrasources can "
           "be given if the targetsource is given");
   }
-  itsPatchList = base::makePatches(sourceDB, patchNames, itsNModel);
+  itsPatchList = base::SourceDB(itsSkyName, patchNames).MakePatchList();
   assert(itsPatchList.size() == itsNModel);
 
   // Size buffers.
