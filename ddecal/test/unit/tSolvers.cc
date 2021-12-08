@@ -15,6 +15,8 @@
 #include <boost/make_unique.hpp>
 
 using dp3::ddecal::LLSSolverType;
+using dp3::ddecal::SolveData;
+using dp3::ddecal::SolverBuffer;
 using dp3::ddecal::test::SolverTester;
 
 // The solver test suite contains tests that run using a separate
@@ -23,6 +25,7 @@ BOOST_AUTO_TEST_SUITE(solvers)
 
 BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
                         *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
   dp3::ddecal::DiagonalSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR);
@@ -31,11 +34,9 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
   BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
 
-  SetDiagonalSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -46,6 +47,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
                         *boost::unit_test::label("slow")) {
+  SetScalarSolutions(false);
   dp3::ddecal::ScalarSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR);
@@ -54,11 +56,9 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
   BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
 
-  SetScalarSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -69,6 +69,7 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
                         *boost::unit_test::label("slow")) {
+  SetScalarSolutions(false);
   dp3::ddecal::IterativeScalarSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR);
@@ -77,11 +78,9 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
   BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
 
-  SetScalarSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -90,6 +89,22 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
   // The iterative solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(iterative_scalar_dd_intervals, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetScalarSolutions(true);
+  dp3::ddecal::IterativeScalarSolver solver;
+  InitializeSolver(solver);
+
+  const SolverBuffer& buffer = FillDdIntervalData();
+  const SolveData data(buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       NSolutionsPerDirection(), Antennas1(), Antennas2());
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckScalarResults(1.0e-3);
 }
 
 BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
@@ -101,6 +116,7 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
       boost::make_unique<dp3::ddecal::IterativeScalarSolver>();
   iterative_solver->SetMaxIterations(kMaxIterations);
 
+  SetScalarSolutions(false);
   dp3::ddecal::HybridSolver solver;
   solver.AddSolver(std::move(iterative_solver));
   solver.AddSolver(std::move(direction_solver));
@@ -111,11 +127,9 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
   BOOST_CHECK_NE(solver.ConstraintSolvers()[0], &solver);
   BOOST_CHECK_NE(solver.ConstraintSolvers()[1], &solver);
 
-  SetScalarSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -126,6 +140,7 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
                         *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
   dp3::ddecal::IterativeDiagonalSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR);
@@ -134,11 +149,9 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
   BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
 
-  SetDiagonalSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -151,6 +164,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
                         *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
   dp3::ddecal::FullJonesSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR);
@@ -160,11 +174,9 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
   BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
 
-  SetDiagonalSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   // The full jones test uses full matrices as solutions and copies the
   // diagonals into the solver solutions from the SolverTester fixture. This
@@ -201,6 +213,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
                         *boost::unit_test::label("slow")) {
+  SetScalarSolutions(false);
   dp3::ddecal::ScalarSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::NORMAL_EQUATIONS);
@@ -209,11 +222,9 @@ BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
   BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
 
-  SetScalarSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -224,17 +235,16 @@ BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
 
 BOOST_FIXTURE_TEST_CASE(min_iterations, SolverTester,
                         *boost::unit_test::label("slow")) {
+  SetScalarSolutions(false);
   dp3::ddecal::IterativeScalarSolver solver;
   InitializeSolver(solver);
   solver.SetMinIterations(10);
   // very large tolerance on purpose to stop directly once min iters are reached
   solver.SetAccuracy(1e8);
 
-  SetScalarSolutions();
-
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
