@@ -649,6 +649,7 @@ if(BUILD_TESTING)
       solvers/iterative_scalar
       solvers/iterative_scalar_dd_intervals
       solvers/iterative_diagonal
+      solvers/iterative_diagonal_dd_intervals
       solvers/full_jones
       solvers/hybrid
       solvers/min_iterations)

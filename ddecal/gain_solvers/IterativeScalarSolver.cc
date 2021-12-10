@@ -3,8 +3,6 @@
 
 #include "IterativeScalarSolver.h"
 
-#include "SolverBuffer.h"
-
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/parallelfor.h>
@@ -23,12 +21,11 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
 
   SolveResult result;
 
-  constexpr size_t n_solution_pols = 1;
-  // Visibility vector v_residual[cb][vis] of size n_channel_blocks_ x
+  // Visibility vector v_residual[cb][vis] of size NChannelBlocks() x
   // n_visibilities
-  std::vector<std::vector<aocommon::MC2x2F>> v_residual(n_channel_blocks_);
+  std::vector<std::vector<aocommon::MC2x2F>> v_residual(NChannelBlocks());
   // The following loop allocates all structures
-  for (size_t ch_block = 0; ch_block != n_channel_blocks_; ++ch_block) {
+  for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
     next_solutions[ch_block].resize(NSolutions() * NAntennas());
     v_residual[ch_block].resize(data.ChannelBlock(ch_block).NVisibilities());
   }
@@ -42,13 +39,13 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
   bool constraints_satisfied = false;
 
   std::vector<double> step_magnitudes;
-  step_magnitudes.reserve(max_iterations_);
+  step_magnitudes.reserve(GetMaxIterations());
 
   do {
     MakeSolutionsFinite1Pol(solutions);
 
-    aocommon::ParallelFor<size_t> loop(n_threads_);
-    loop.Run(0, n_channel_blocks_, [&](size_t ch_block, size_t /*thread*/) {
+    aocommon::ParallelFor<size_t> loop(GetNThreads());
+    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
       PerformIteration(data.ChannelBlock(ch_block), v_residual[ch_block],
                        solutions[ch_block], next_solutions[ch_block]);
     });
@@ -60,6 +57,7 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
                          next_solutions, stat_stream);
 
     double avg_squared_diff;
+    constexpr size_t n_solution_pols = 1;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
                         avg_squared_diff, step_magnitudes, n_solution_pols);
@@ -88,12 +86,12 @@ void IterativeScalarSolver::PerformIteration(
   std::copy(cb_data.DataBegin(), cb_data.DataEnd(), v_residual.begin());
 
   // Subtract all directions with their current solutions
-  for (size_t direction = 0; direction != n_directions_; ++direction)
+  for (size_t direction = 0; direction != NDirections(); ++direction)
     AddOrSubtractDirection<false>(cb_data, v_residual, direction, solutions);
 
   const std::vector<aocommon::MC2x2F> v_copy = v_residual;
 
-  for (size_t direction = 0; direction != n_directions_; ++direction) {
+  for (size_t direction = 0; direction != NDirections(); ++direction) {
     // Be aware that we purposely still use the subtraction with 'old'
     // solutions, because the new solutions have not been constrained yet. Add
     // this direction back before solving
@@ -116,9 +114,9 @@ void IterativeScalarSolver::SolveDirection(
   //             sum_b norm(model_ab * solutions_b)
 
   const size_t n_dir_solutions = cb_data.NSolutionsForDirection(direction);
-  std::vector<std::complex<double>> numerator(n_antennas_ * n_dir_solutions,
+  std::vector<std::complex<double>> numerator(NAntennas() * n_dir_solutions,
                                               0.0);
-  std::vector<double> denominator(n_antennas_ * n_dir_solutions, 0.0);
+  std::vector<double> denominator(NAntennas() * n_dir_solutions, 0.0);
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
@@ -136,10 +134,10 @@ void IterativeScalarSolver::SolveDirection(
     const aocommon::MC2x2F& data = v_residual[vis_index];
     const aocommon::MC2x2F& model = model_vector[vis_index];
 
-    const uint32_t rel_solution_index = solution_index - solution_map[0];
     // Calculate the contribution of this baseline for antenna1
     const aocommon::MC2x2F cor_model_herm1(HermTranspose(model) *
                                            solution_ant2);
+    const uint32_t rel_solution_index = solution_index - solution_map[0];
     const size_t full_solution1_index =
         antenna1 * n_dir_solutions + rel_solution_index;
     numerator[full_solution1_index] += Trace(data * cor_model_herm1);
@@ -153,7 +151,7 @@ void IterativeScalarSolver::SolveDirection(
     denominator[full_solution2_index] += Norm(cor_model2);
   }
 
-  for (size_t ant = 0; ant != n_antennas_; ++ant) {
+  for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (size_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
       const uint32_t solution_index = rel_sol + solution_map[0];
       DComplex& destination =

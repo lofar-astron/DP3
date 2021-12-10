@@ -121,7 +121,7 @@ void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
   const size_t p1_to_p2[4] = {0, 2, 1, 3};
 
   // The following loop fills vs (for all antennas)
-  std::vector<size_t> ant_positions(n_antennas_, 0);
+  std::vector<size_t> ant_positions(NAntennas(), 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     size_t antenna1 = cb_data.Antenna1Index(vis_index);
     size_t antenna2 = cb_data.Antenna2Index(vis_index);
@@ -141,7 +141,7 @@ void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
 
   // The following loop fills g_times_cs (for all antennas)
   for (size_t d = 0; d != NDirections(); ++d) {
-    ant_positions.assign(n_antennas_, 0);
+    ant_positions.assign(NAntennas(), 0);
     for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
       size_t antenna1 = cb_data.Antenna1Index(vis_index);
       size_t antenna2 = cb_data.Antenna2Index(vis_index);

@@ -261,6 +261,7 @@ class SolverBase {
   std::unique_ptr<LLSSolver> CreateLLSSolver(size_t m, size_t n,
                                              size_t nrhs) const;
 
+ private:
   size_t n_antennas_;
   size_t n_directions_;
   size_t n_channel_blocks_;
@@ -278,7 +279,6 @@ class SolverBase {
   double step_size_;
   bool detect_stalling_;
 
- private:
   bool phase_only_;
   std::vector<std::unique_ptr<Constraint>> constraints_;
 
