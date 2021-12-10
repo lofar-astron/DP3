@@ -43,7 +43,8 @@ class ScaleData : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  ScaleData(InputStep*, const common::ParameterSet&, const string& prefix);
+  ScaleData(InputStep*, const common::ParameterSet&, const string& prefix,
+            MsType input_type);
 
   virtual ~ScaleData();
 
@@ -69,21 +70,20 @@ class ScaleData : public Step {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
-  bool accepts(MsType dt) const override {
-    return dt == MsType::kRegular || dt == MsType::kBda;
-  }
+  bool accepts(MsType dt) const override { return dt == itsInputType; }
 
-  MsType outputs() const override { return getPrevStep()->outputs(); }
+  MsType outputs() const override { return itsInputType; }
 
  private:
   /// Fill the scale factors for stations having different nr of tiles.
   void fillSizeScaleFactors(unsigned int nNominal, std::vector<double>& fact);
 
-  string itsName;
+  std::string itsName;
+  const MsType itsInputType;
   bool itsScaleSizeGiven;
   bool itsScaleSize;
-  std::vector<string> itsStationExp;  ///< station regex strings
-  std::vector<string> itsCoeffStr;    ///< coeff per station regex
+  std::vector<std::string> itsStationExp;  ///< station regex strings
+  std::vector<std::string> itsCoeffStr;    ///< coeff per station regex
   std::vector<std::vector<double>>
       itsStationFactors;              ///< scale factor per station,freq
   casacore::Cube<double> itsFactors;  ///< scale factor per baseline,freq,pol

@@ -39,8 +39,9 @@ namespace dp3 {
 namespace steps {
 
 ScaleData::ScaleData(InputStep*, const common::ParameterSet& parset,
-                     const string& prefix)
+                     const string& prefix, MsType inputType)
     : itsName(prefix),
+      itsInputType(inputType),
       itsScaleSizeGiven(false),
       itsScaleSize(false),
       itsStationExp(parset.getStringVector(prefix + "stations",
