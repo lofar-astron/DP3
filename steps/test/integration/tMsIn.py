@@ -43,19 +43,6 @@ def source_env():
     shutil.rmtree(tmpdir)
 
 
-def test_missing_data():
-    check_call(
-        [
-            tcf.DP3EXE,
-            f"msin=[non_existing_ms.ms,{MSIN}]",
-            "msin.missingdata=T",
-            "msin.orderms=F",
-            "steps=[]",
-            "msout=out.MS",
-        ]
-    )
-
-
 def test_update_flags():
     """Assert that the column FLAG is written in / read from the right flagcolumn, if specified"""
 

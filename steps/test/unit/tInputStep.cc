@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(reader_initialization_multiple_bda) {
   BOOST_CHECK_THROW(InputStep::CreateReader(parset), std::invalid_argument);
 }
 
-BOOST_AUTO_TEST_CASE(missing) {
+BOOST_AUTO_TEST_CASE(reader_initialization_multiple_one_missing) {
   ParameterSet parset;
   parset.add("msin", "[missing.ms, tNDPPP_tmp.MS]");
   std::unique_ptr<InputStep> reader = InputStep::CreateReader(parset);
