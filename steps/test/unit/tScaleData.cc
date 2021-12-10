@@ -23,7 +23,6 @@ using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::InputStep;
 using dp3::steps::ScaleData;
-using dp3::steps::Step;
 using std::vector;
 
 namespace {
@@ -134,7 +133,7 @@ class TestInput : public InputStep {
 };
 
 // Class to check result of TestInput run by TestScaling.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::Step {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr)
       : itsCount(0),
@@ -222,7 +221,8 @@ void TestScaling(int ntime, int nbl, int nchan, int ncorr) {
   parset.add("stations", "[rs01.s01, *]");
   parset.add("coeffs", "[[2,0.5],[3,2,1]]");
   parset.add("scalesize", "false");
-  auto step2 = std::make_shared<ScaleData>(step1.get(), parset, "");
+  auto step2 = std::make_shared<ScaleData>(step1.get(), parset, "",
+                                           ScaleData::MsType::kRegular);
   auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
   dp3::steps::test::Execute({step1, step2, step3});
 }

@@ -25,7 +25,6 @@ using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::InputStep;
 using dp3::steps::ScaleData;
-using dp3::steps::Step;
 using std::vector;
 
 namespace {
@@ -35,7 +34,7 @@ const float kFreq = 10.5;  // MHz
 BOOST_AUTO_TEST_SUITE(scaledata_bda)
 
 // Class to check result of TestInput run by test1.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::Step {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr)
       : count_(0), ntime_(ntime), nbl_(nbl), nchan_(nchan), ncorr_(ncorr) {}
@@ -115,7 +114,8 @@ BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
 
   DPInfo info = GenerateDPInfo(ntime, nbl, nchan, ncorr);
 
-  auto step_scale_data = std::make_shared<ScaleData>(nullptr, parset, "");
+  auto step_scale_data =
+      std::make_shared<ScaleData>(nullptr, parset, "", ScaleData::MsType::kBda);
   auto step_test_output =
       std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
   step_scale_data->setNextStep(step_test_output);

@@ -989,66 +989,53 @@ BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dp3/test_filter3")) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_multi_out, *utf::depends_on("dp3/test_clear")) {
+BOOST_FIXTURE_TEST_CASE(test_multi_out, FixtureDirectory) {
   {
-    // First make the reference output MS.
+    // First create an MS with the reference output.
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
-    ostr << "msout=tNDPPP_tmp.MS_copy\n";
+    ostr << "msin=" << kInputMs << '\n';
+    ostr << "msout=tNDPPP_tmp.MS_ref\n";
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[]\n";
   }
   dp3::base::DP3::execute(kParsetFile);
+
   // Test if update data works fine with multiple outputs:
-  // read from tNDPPP_tmp.MS, write to copy3, update to copy3
-  casacore::Array<Complex> data;
-  casacore::Array<bool> flags;
+  // Read from tNDPPP_tmp.MS, write to MS_out, update to MS_out.
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
+    ostr << "msin=" << kInputMs << '\n';
     ostr << "steps=[scaledata,out1,scaledata,out2]\n";
     ostr << "scaledata.coeffs=2\n";
     ostr << "scaledata.stations=*\n";
     ostr << "scaledata.scalesize=false\n";
     ostr << "out1.type=out\n";
-    ostr << "out1.name=tNDPPP_tmp.MS_copy3\n";
+    ostr << "out1.name=tNDPPP_tmp.MS_out\n";
     ostr << "out1.overwrite=true\n";
     ostr << "out2.type=out\n";
-    ostr << "out2.name=.\n";  // Defaults to the previous out, so _copy3
+    ostr << "out2.name=.\n";  // Defaults to the previous out, so .MS_out.
     ostr << "out2.datacolumn=DATA_2\n";
-    ostr << "msout=tNDPPP_tmp.MS_copy4\n";  // same name means update
-    ostr << "msout.overwrite=true\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  // Check that tables exist, contain the specified columns
-  {
-    Table tab1("tNDPPP_tmp.MS_copy");
-    Table tab2("tNDPPP_tmp.MS_copy3");
-    /// cout<<ArrayColumn<Complex>(tab2,"DATA_2").getColumn();
-    /// cout<<Complex(2,0)*ArrayColumn<Complex>(tab1,"DATA").getColumn();
-    BOOST_CHECK(allNear(
-        ArrayColumn<Complex>(tab2, "DATA").getColumn(),
-        Complex(2, 0) * ArrayColumn<Complex>(tab1, "DATA").getColumn(), 1e-5));
-    BOOST_CHECK(allNear(
-        ArrayColumn<Complex>(tab2, "DATA_2").getColumn(),
-        Complex(4, 0) * ArrayColumn<Complex>(tab1, "DATA").getColumn(), 1e-5));
-    BOOST_CHECK(allNear(ArrayColumn<float>(tab2, "WEIGHT_SPECTRUM").getColumn(),
-                        ArrayColumn<float>(tab1, "WEIGHT_SPECTRUM").getColumn(),
-                        1e-5));
-    BOOST_CHECK(allEQ(ArrayColumn<bool>(tab2, "FLAG").getColumn(),
-                      ArrayColumn<bool>(tab1, "FLAG").getColumn()));
-    Table tab3("tNDPPP_tmp.MS_copy4");
-    BOOST_CHECK(allNear(
-        ArrayColumn<Complex>(tab3, "DATA").getColumn(),
-        Complex(4, 0) * ArrayColumn<Complex>(tab1, "DATA").getColumn(), 1e-5));
-    BOOST_CHECK(allNear(ArrayColumn<float>(tab3, "WEIGHT_SPECTRUM").getColumn(),
-                        ArrayColumn<float>(tab1, "WEIGHT_SPECTRUM").getColumn(),
-                        1e-5));
-    BOOST_CHECK(allEQ(ArrayColumn<bool>(tab3, "FLAG").getColumn(),
-                      ArrayColumn<bool>(tab1, "FLAG").getColumn()));
-  }
+
+  // Check that the tables exist and that they contain the specified columns.
+  Table table_ref("tNDPPP_tmp.MS_ref");
+  Table table_out1("tNDPPP_tmp.MS_out");
+  BOOST_CHECK(allNear(
+      ArrayColumn<Complex>(table_out1, "DATA").getColumn(),
+      Complex(2, 0) * ArrayColumn<Complex>(table_ref, "DATA").getColumn(),
+      1e-5));
+  BOOST_CHECK(allNear(
+      ArrayColumn<Complex>(table_out1, "DATA_2").getColumn(),
+      Complex(4, 0) * ArrayColumn<Complex>(table_ref, "DATA").getColumn(),
+      1e-5));
+  BOOST_CHECK(allNear(
+      ArrayColumn<float>(table_out1, "WEIGHT_SPECTRUM").getColumn(),
+      ArrayColumn<float>(table_ref, "WEIGHT_SPECTRUM").getColumn(), 1e-5));
+  BOOST_CHECK(allEQ(ArrayColumn<bool>(table_out1, "FLAG").getColumn(),
+                    ArrayColumn<bool>(table_ref, "FLAG").getColumn()));
 }
 
 void tryErr(const std::string& parsetName) {

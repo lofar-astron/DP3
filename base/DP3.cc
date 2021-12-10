@@ -365,7 +365,8 @@ std::shared_ptr<Step> DP3::makeSingleStep(const std::string& type,
   } else if (type == "stationadder" || type == "stationadd") {
     step = std::make_shared<steps::StationAdder>(inputStep, parset, prefix);
   } else if (type == "scaledata") {
-    step = std::make_shared<steps::ScaleData>(inputStep, parset, prefix);
+    step = std::make_shared<steps::ScaleData>(inputStep, parset, prefix,
+                                              inputType);
   } else if (type == "setbeam") {
     step = std::make_shared<steps::SetBeam>(inputStep, parset, prefix);
   } else if (type == "filter") {
