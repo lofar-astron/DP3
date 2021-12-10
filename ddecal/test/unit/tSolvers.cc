@@ -162,6 +162,22 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
 }
 
+BOOST_FIXTURE_TEST_CASE(iterative_diagonal_dd_intervals, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(true);
+  dp3::ddecal::IterativeDiagonalSolver solver;
+  InitializeSolver(solver);
+
+  const SolverBuffer& buffer = FillDdIntervalData();
+  const SolveData data(buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       NSolutionsPerDirection(), Antennas1(), Antennas2());
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckDiagonalResults(1.0e-2);
+}
+
 BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
                         *boost::unit_test::label("slow")) {
   SetDiagonalSolutions(false);

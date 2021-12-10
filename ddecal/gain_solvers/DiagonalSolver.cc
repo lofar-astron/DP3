@@ -122,7 +122,7 @@ void DiagonalSolver::PerformIteration(
   const size_t n_visibilities = cb_data.NVisibilities();
 
   // The following loop fills vs (for all antennas)
-  std::vector<size_t> ant_positions(n_antennas_ * 2, 0);
+  std::vector<size_t> ant_positions(NAntennas() * 2, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const aocommon::MC2x2F d = cb_data.Visibility(vis_index);
     const size_t antenna1 = cb_data.Antenna1Index(vis_index);
@@ -144,7 +144,7 @@ void DiagonalSolver::PerformIteration(
 
   // The following loop fills g_times_cs (for all antennas)
   for (size_t d = 0; d != NDirections(); ++d) {
-    ant_positions.assign(n_antennas_ * 2, 0);
+    ant_positions.assign(NAntennas() * 2, 0);
 
     for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
       size_t antenna1 = cb_data.Antenna1Index(vis_index);

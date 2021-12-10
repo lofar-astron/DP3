@@ -18,6 +18,8 @@ class IterativeDiagonalSolver final : public SolverBase {
 
   size_t NSolutionPolarizations() const override { return 2; }
 
+  bool SupportsDdSolutionIntervals() const override { return true; }
+
  private:
   void PerformIteration(const SolveData::ChannelBlockData& cb_data,
                         std::vector<aocommon::MC2x2F>& v_residual,

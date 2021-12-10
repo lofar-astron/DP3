@@ -370,18 +370,18 @@ void SolverTester::CheckDiagonalResults(double tolerance) {
   for (size_t ch = 0; ch != kNChannelBlocks; ++ch) {
     for (size_t ant = 0; ant != kNAntennas; ++ant) {
       for (size_t s = 0; s != n_solutions_; ++s) {
-        std::complex<double> solX0 = solver_solutions_[ch][s * 2];
-        std::complex<double> solY0 = solver_solutions_[ch][s * 2 + 1];
-        std::complex<double> inpX0 = input_solutions_[s * 2];
-        std::complex<double> inpY0 = input_solutions_[s * 2 + 1];
+        const std::complex<double> solX0 = solver_solutions_[ch][s * 2];
+        const std::complex<double> solY0 = solver_solutions_[ch][s * 2 + 1];
+        const std::complex<double> inpX0 = input_solutions_[s * 2];
+        const std::complex<double> inpY0 = input_solutions_[s * 2 + 1];
 
-        std::complex<double> solX =
+        const std::complex<double> solX =
             solver_solutions_[ch][(s + ant * n_solutions_) * 2];
-        std::complex<double> solY =
+        const std::complex<double> solY =
             solver_solutions_[ch][(s + ant * n_solutions_) * 2 + 1];
-        std::complex<double> inpX =
+        const std::complex<double> inpX =
             input_solutions_[(s + ant * n_solutions_) * 2];
-        std::complex<double> inpY =
+        const std::complex<double> inpY =
             input_solutions_[(s + ant * n_solutions_) * 2 + 1];
 
         // Compare the squared quantities, because the phase has an ambiguity

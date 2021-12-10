@@ -169,7 +169,7 @@ void FullJonesSolver::PerformIteration(
   // Separate loops: 24,6 seconds.
 
   // The following loop fills vs (for all antennas)
-  std::vector<size_t> ant_positions(n_antennas_, 0);
+  std::vector<size_t> ant_positions(NAntennas(), 0);
   for (size_t vis_index = 0; vis_index != cb_data.NVisibilities();
        ++vis_index) {
     const aocommon::MC2x2F& data = cb_data.Visibility(vis_index);
@@ -193,7 +193,7 @@ void FullJonesSolver::PerformIteration(
 
   // The following loop fills g_times_cs (for all antennas)
   for (size_t d = 0; d != NDirections(); ++d) {
-    ant_positions.assign(n_antennas_, 0);
+    ant_positions.assign(NAntennas(), 0);
     for (size_t vis_index = 0; vis_index != cb_data.NVisibilities();
          ++vis_index) {
       const size_t antenna1 = cb_data.Antenna1Index(vis_index);
