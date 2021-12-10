@@ -33,58 +33,74 @@ using Complex = std::complex<float>;
 
 namespace utf = boost::unit_test;
 
-BOOST_AUTO_TEST_SUITE(dppp)
+BOOST_AUTO_TEST_SUITE(dp3)
 
 // This test program uses the MS in tNDPPP.in_MS.tgz.
 // The MS contains 4 corr, 16 freq, 6 baselines, 18 time slots of 30 sec.
 // Two time slots are missing between time slot 2 and 3.
 
 namespace {
-const std::string kInputMS = "../tNDPPP_tmp.MS";
+const std::string kInputMs = "../tNDPPP_tmp.MS";
+const std::string kCopyMs = "tNDPPP_tmp.copy.MS";
 const std::string kParsetFile = "tDP3.parset";
 const std::size_t kNBaselines = 6;
 
-void checkCopy(const std::string& in, const std::string& out, int nms) {
-  Table tin(in);
-  Table tout(out);
-  // The output has six extra time slots:
-  // - Two slots are added since the input has two missing time slots.
-  // - One time slot is prepended to the ms. See the test_copy test.
-  // - Three time slots are appended to the ms. See the test_copy test.
-  BOOST_CHECK_EQUAL(tout.nrow(), tin.nrow() + 6 * kNBaselines);
-  for (int j = 0; j < nms; ++j) {
+// The copy has six extra time slots:
+// - Two slots are added since the input has two missing time slots.
+// - One time slot is prepended to the ms. See the test_copy test.
+// - Three time slots are appended to the ms. See the test_copy test.
+const size_t kInputMsTimeSlots = 18;
+const size_t kNCopyMsTimeSlots = kInputMsTimeSlots + 6;
+
+void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
+  const std::size_t n_ms = ms_flagged.size();
+  Table table_in{kInputMs};
+  Table table_out{out_ms};
+  BOOST_CHECK_EQUAL(table_out.nrow(), kNCopyMsTimeSlots * kNBaselines);
+  for (std::size_t j = 0; j < n_ms; ++j) {
     // A few dummy time slots were inserted, so ignore those.
     Table t1 = tableCommand(
         "using style python "
         "select from $1 where rownumber() not in [0:6, 4*6:6*6, 21*6:24*6]",
-        tout);
+        table_out);
     ArrayColumn<Complex> data(t1, "DATA");
     ArrayColumn<bool> flag(t1, "FLAG");
     ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
+    ArrayColumn<float> weight(t1, "WEIGHT_SPECTRUM");
     IPosition dshape(2, 4, 16);
     IPosition dst(2, 0, j * 16);
     Slicer dslicer(dst, dshape);
-    BOOST_CHECK_EQUAL(data(0).shape(), IPosition(2, 4, 16 * nms));
-    BOOST_CHECK_EQUAL(flag(0).shape(), IPosition(2, 4, 16 * nms));
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 16 * nms / 8, 1));
-    BOOST_CHECK(allEQ(data.getColumn(dslicer),
-                      ArrayColumn<Complex>(tin, "DATA").getColumn()));
-    BOOST_CHECK(allEQ(flag.getColumn(), false));
-    BOOST_CHECK(allEQ(oflag.getColumn(), (unsigned char)(0)));
-    BOOST_CHECK(
-        allEQ(ArrayColumn<float>(t1, "WEIGHT_SPECTRUM").getColumn(), float(1)));
-    //    cout<<ArrayColumn<double>(t1,"UVW").getColumn()<<
-    //                  ArrayColumn<double>(tin,"UVW").getColumn();
-    //    BOOST_CHECK (allEQ(ArrayColumn<double>(t1,"UVW").getColumn(),
-    //                  ArrayColumn<double>(tin,"UVW").getColumn()));
+    IPosition oflag_shape(2, 16 / 8, 1);
+    IPosition oflag_dst(2, j * 16 / 8, 0);
+    Slicer oflag_slicer(oflag_dst, oflag_shape);
+    BOOST_CHECK_EQUAL(data(0).shape(), IPosition(2, 4, 16 * n_ms));
+    BOOST_CHECK_EQUAL(flag(0).shape(), IPosition(2, 4, 16 * n_ms));
+    BOOST_CHECK_EQUAL(weight(0).shape(), IPosition(2, 4, 16 * n_ms));
+    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 16 * n_ms / 8, 1));
+    if (ms_flagged[j]) {
+      BOOST_CHECK(allEQ(data.getColumn(dslicer), Complex()));
+      BOOST_CHECK(allEQ(flag.getColumn(dslicer), true));
+      BOOST_CHECK(allEQ(oflag.getColumn(oflag_slicer), (unsigned char)(255)));
+      BOOST_CHECK(allEQ(weight.getColumn(dslicer), 0.0f));
+    } else {
+      BOOST_CHECK(allEQ(data.getColumn(dslicer),
+                        ArrayColumn<Complex>(table_in, "DATA").getColumn()));
+      BOOST_CHECK(allEQ(flag.getColumn(dslicer), false));
+      BOOST_CHECK(allEQ(oflag.getColumn(oflag_slicer), (unsigned char)(0)));
+      BOOST_CHECK(allEQ(weight.getColumn(dslicer), 1.0f));
+    }
+
     BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "TIME").getColumn(),
-                      ScalarColumn<double>(tin, "TIME").getColumn()));
-    BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "TIME_CENTROID").getColumn(),
-                      ScalarColumn<double>(tin, "TIME_CENTROID").getColumn()));
+                      ScalarColumn<double>(table_in, "TIME").getColumn()));
+    BOOST_CHECK(
+        allEQ(ScalarColumn<double>(t1, "TIME_CENTROID").getColumn(),
+              ScalarColumn<double>(table_in, "TIME_CENTROID").getColumn()));
     BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "INTERVAL").getColumn(),
-                      ScalarColumn<double>(tin, "INTERVAL").getColumn()));
+                      ScalarColumn<double>(table_in, "INTERVAL").getColumn()));
     BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "EXPOSURE").getColumn(),
-                      ScalarColumn<double>(tin, "EXPOSURE").getColumn()));
+                      ScalarColumn<double>(table_in, "EXPOSURE").getColumn()));
+    BOOST_CHECK(allEQ(ArrayColumn<double>(t1, "UVW").getColumn(),
+                      ArrayColumn<double>(table_in, "UVW").getColumn()));
   }
   {
     // Check the inserted time slots.
@@ -92,13 +108,13 @@ void checkCopy(const std::string& in, const std::string& out, int nms) {
     Table t1 = tableCommand(
         "using style python "
         "select from $1 where rownumber() in [0:6, 4*6:6*6, 21*6:24*6]",
-        tout);
+        table_out);
     ArrayColumn<Complex> data(t1, "DATA");
     ArrayColumn<bool> flag(t1, "FLAG");
     ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
-    BOOST_CHECK_EQUAL(data(0).shape(), IPosition(2, 4, 16 * nms));
-    BOOST_CHECK_EQUAL(flag(0).shape(), IPosition(2, 4, 16 * nms));
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 16 * nms / 8, 1));
+    BOOST_CHECK_EQUAL(data(0).shape(), IPosition(2, 4, 16 * n_ms));
+    BOOST_CHECK_EQUAL(flag(0).shape(), IPosition(2, 4, 16 * n_ms));
+    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 16 * n_ms / 8, 1));
     BOOST_CHECK(allEQ(data.getColumn(), Complex()));
     BOOST_CHECK(allEQ(flag.getColumn(), true));
     BOOST_CHECK(allEQ(oflag.getColumn(), (unsigned char)(0xff)));
@@ -106,19 +122,19 @@ void checkCopy(const std::string& in, const std::string& out, int nms) {
         allEQ(ArrayColumn<float>(t1, "WEIGHT_SPECTRUM").getColumn(), float(0)));
     BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "INTERVAL").getColumn(), 30.));
     BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "EXPOSURE").getColumn(), 30.));
-    double time = ScalarColumn<double>(tin, "TIME")(0);
+    double time = ScalarColumn<double>(table_in, "TIME")(0);
     for (unsigned int i = 0; i < 6; ++i) {
       double timec = time - 30;
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME")(i), timec));
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME_CENTROID")(i), timec));
     }
-    time = ScalarColumn<double>(tin, "TIME")(2 * 6);
+    time = ScalarColumn<double>(table_in, "TIME")(2 * 6);
     for (unsigned int i = 6; i < 18; ++i) {
       double timec = time + (i / 6) * 30.;
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME")(i), timec));
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME_CENTROID")(i), timec));
     }
-    time = ScalarColumn<double>(tin, "TIME")(17 * 6);
+    time = ScalarColumn<double>(table_in, "TIME")(17 * 6);
     for (unsigned int i = 18; i < 36; ++i) {
       double timec = time + (i / 6 - 2) * 30.;
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME")(i), timec));
@@ -126,15 +142,17 @@ void checkCopy(const std::string& in, const std::string& out, int nms) {
     }
   }
   // Now check if the SPECTRAL_WINDOW table is fine.
-  Table spwin(tin.keywordSet().asTable("SPECTRAL_WINDOW"));
-  Table spwout(tout.keywordSet().asTable("SPECTRAL_WINDOW"));
-  for (int j = 0; j < nms; ++j) {
+  Table spwin(table_in.keywordSet().asTable("SPECTRAL_WINDOW"));
+  Table spwout(table_out.keywordSet().asTable("SPECTRAL_WINDOW"));
+  for (std::size_t j = 0; j < n_ms; ++j) {
     IPosition dshape(1, 16);
     IPosition dst(1, j * 16);
     Slicer dslicer(dst, dshape);
-    BOOST_CHECK(
-        allEQ(ArrayColumn<double>(spwin, "CHAN_FREQ").getColumn(),
-              ArrayColumn<double>(spwout, "CHAN_FREQ").getColumn(dslicer)));
+    if (!ms_flagged[j]) {
+      BOOST_CHECK(
+          allEQ(ArrayColumn<double>(spwin, "CHAN_FREQ").getColumn(),
+                ArrayColumn<double>(spwout, "CHAN_FREQ").getColumn(dslicer)));
+    }
     BOOST_CHECK(
         allEQ(ArrayColumn<double>(spwin, "CHAN_WIDTH").getColumn(),
               ArrayColumn<double>(spwout, "CHAN_WIDTH").getColumn(dslicer)));
@@ -146,33 +164,40 @@ void checkCopy(const std::string& in, const std::string& out, int nms) {
               ArrayColumn<double>(spwout, "RESOLUTION").getColumn(dslicer)));
   }
   BOOST_CHECK(allEQ(
-      double(nms) * ScalarColumn<double>(spwin, "TOTAL_BANDWIDTH").getColumn(),
+      double(n_ms) * ScalarColumn<double>(spwin, "TOTAL_BANDWIDTH").getColumn(),
       ScalarColumn<double>(spwout, "TOTAL_BANDWIDTH").getColumn()));
-  if (nms == 1) {
+  if (n_ms == 1) {
     BOOST_CHECK(
         allEQ(ScalarColumn<double>(spwin, "REF_FREQUENCY").getColumn(),
               ScalarColumn<double>(spwout, "REF_FREQUENCY").getColumn()));
   }
   // Check the TIME_RANGE in the OBSERVATION table.
-  Table obsout(tout.keywordSet().asTable("OBSERVATION"));
+  Table obsout(table_out.keywordSet().asTable("OBSERVATION"));
   casacore::Vector<double> timeRange(
       ArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
-  BOOST_CHECK(near(timeRange(0), ScalarColumn<double>(tout, "TIME")(0) - 15));
-  // The end time is the start time plus a multiple of the time interval.
-  // The start time is 13:22:20, the (rounded) end time is 13:33:20 so the time
-  // range ends at 13:33:35.
+  BOOST_CHECK(
+      near(timeRange(0), ScalarColumn<double>(table_out, "TIME")(0) - 15));
+
+  // In test_copy (when n_ms == 1), the end time is the start time plus a
+  // multiple of the time interval. The start time is 13:22:20, the (rounded)
+  // end time is 13:33:20 so the time range ends at 13:33:35.
   // The last time slot has time 13:33:15 and is thus 20 seconds before that.
-  BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(tout, "TIME")(143) + 20));
+  // In test_multi_in (when n_ms == 2), the parset does not specify an end time.
+  // No rounding occurs then and the end time is the last time plus half an
+  // interval, which is 30/2 = 15 seconds.
+  const size_t end_time_increment = (n_ms == 1) ? 20 : 15;
+  BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(table_out, "TIME")(143) +
+                                     end_time_increment));
 }
 
 }  // namespace
 
-BOOST_FIXTURE_TEST_CASE(test_copy, FixtureDirectory) {
-  const std::string kCopyMS = "tNDPPP_tmp.copy.MS";
+// Common part of test_copy and test_multi_in, which allows reusing CheckCopy().
+void CreateCopyMs() {
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=" << kInputMS << '\n';
+    ostr << "msin=" << kInputMs << '\n';
     // Give starttime 35 sec before the first time, hence 1 missing timeslot.
     ostr << "msin.starttime=03-Aug-2000/13:21:45\n";
     // Give endtime 120 sec after the last time. MSReader rounds the end time
@@ -180,24 +205,28 @@ BOOST_FIXTURE_TEST_CASE(test_copy, FixtureDirectory) {
     // The start time is 13:22:20, so the rounded time becomes 13:33:20,
     // hence 3 missing timeslots, and not 4!
     ostr << "msin.endtime=03-Aug-2000/13:33:45\n";
-    ostr << "msout=" << kCopyMS << '\n';
+    ostr << "msout=" << kCopyMs << '\n';
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[]\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  checkCopy(kInputMS, kCopyMS, 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_copy, FixtureDirectory) {
+  CreateCopyMs();
+  CheckCopy(kCopyMs, {false});
 }
 
 BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
-  const std::string kCopyMS = "tNDPPP_tmp.copy_column.MS";
+  const std::string kCopyColumnMS = "tNDPPP_tmp.copy_column.MS";
 
   // Copying columns is only possible when updating an MS, not when creating
   // a new MS. -> First copy the MS, then copy columns.
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=" << kInputMS << '\n';
-    ostr << "msout=" << kCopyMS << '\n';
+    ostr << "msin=" << kInputMs << '\n';
+    ostr << "msout=" << kCopyColumnMS << '\n';
     ostr << "steps=[]\n";
   }
   dp3::base::DP3::execute(kParsetFile);
@@ -206,7 +235,7 @@ BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=" << kCopyMS << '\n';
+    ostr << "msin=" << kCopyColumnMS << '\n';
     ostr << "msout=.\n";
     ostr << "msout.datacolumn=COPY_DATA\n";
     ostr << "msout.weightcolumn=COPY_WEIGHT\n";
@@ -218,7 +247,7 @@ BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=" << kCopyMS << '\n';
+    ostr << "msin=" << kCopyColumnMS << '\n';
     ostr << "msin.datacolumn=COPY_DATA\n";
     ostr << "msin.weightcolumn=COPY_WEIGHT\n";
     ostr << "msout=.\n";
@@ -228,7 +257,7 @@ BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
   }
   dp3::base::DP3::execute(kParsetFile);
 
-  Table table_copy(kCopyMS);
+  Table table_copy(kCopyColumnMS);
   BOOST_CHECK_GT(table_copy.nrow(), 0u);
   const ArrayColumn<std::complex<float>> data(table_copy, "DATA");
   const ArrayColumn<std::complex<float>> data_copy(table_copy, "COPY_DATA");
@@ -242,54 +271,68 @@ BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
   BOOST_CHECK(allEQ(weight.getColumn(), weight_copy2.getColumn()));
 }
 
-BOOST_AUTO_TEST_CASE(test_multi_in, *utf::disabled()) {
+BOOST_FIXTURE_TEST_CASE(test_multi_in_basic, FixtureDirectory) {
+  const std::string kMultiMS = "tNDPPP_tmp.plaincopy.MS";
+
+  // Creating the same MS as test_copy allows re-using CheckCopy here.
+  // Copying is necessary anyway, since the MultiMSReader cannot handle
+  // missing time slots.
+  CreateCopyMs();
+
+  // Test basic reading of two inputs MS's into one output MS.
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=[tNDPPP_tmp.MS1, tNDPPP_tmp.MS1]\n";
-    ostr << "msout=tNDPPP_tmp.MS1a\n";
-    ostr << "msout.overwrite=true\n";
+    ostr << "msin=[" << kCopyMs << ", " << kCopyMs << "]\n";
+    ostr << "msout=" << kMultiMS << '\n';
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
-  checkCopy("tNDPPP_tmp.MS", "tNDPPP_tmp.MS1a", 2);
+  dp3::base::DP3::execute(kParsetFile);
+  CheckCopy(kMultiMS, {false, false});
+}
+
+BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_data, FixtureDirectory) {
+  const std::string kMissingDataMS = "tNDPPP_tmp.missingdata.MS";
+  const size_t kNBaselinesRemaining = 2;
+
+  CreateCopyMs();
+
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=[tNDPPP_tmp.MS1, tNDPPP_tmp.MS1]\n";
-    ostr << "msin.datacolumn=CORRECTED_DATA\n";
-    ostr << "msin.weightcolumn=NEW_WEIGHT_SPECTRUM\n";
+    ostr << "msin=[" << kCopyMs << ", " << kCopyMs << "]\n";
+    ostr << "msin.datacolumn=MISSING_DATA\n";
+    ostr << "msin.weightcolumn=MISSING_WEIGHT_SPECTRUM\n";
     ostr << "msin.missingdata=true\n";
     ostr << "msin.baseline=0,2&6\n";
-    ostr << "msout=tNDPPP_tmp.MS1a\n";
-    ostr << "msout.overwrite=true\n";
+    ostr << "msout=" << kMissingDataMS << '\n';
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
-  Table tab("tNDPPP_tmp.MS1a");
-  BOOST_CHECK_EQUAL(tab.nrow(), size_t{48});
+  dp3::base::DP3::execute(kParsetFile);
+  const Table tab(kMissingDataMS);
+  BOOST_CHECK_EQUAL(tab.nrow(), kNCopyMsTimeSlots * kNBaselinesRemaining);
   BOOST_CHECK(allEQ(ArrayColumn<Complex>(tab, "DATA").getColumn(), Complex()));
-  BOOST_CHECK(tab.tableDesc().isColumn("WEIGHT_SPECTRUM"));
+  BOOST_CHECK(
+      allEQ(ArrayColumn<float>(tab, "WEIGHT_SPECTRUM").getColumn(), 1.0f));
   BOOST_CHECK(allEQ(ArrayColumn<bool>(tab, "FLAG").getColumn(), true));
   BOOST_CHECK(allEQ(ScalarColumn<int>(tab, "ANTENNA2").getColumn(), 6));
+}
+
+BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_ms, FixtureDirectory) {
+  const std::string kMultiMS = "tNDPPP_tmp.multi.MS";
+
+  CreateCopyMs();
+
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=[notexist, tNDPPP_tmp.MS1, notexist, notexist]\n";
-    ostr << "msin.datacolumn=CORRECTED_DATA\n";
-    ostr << "msin.missingdata=true\n";
+    ostr << "msin=[notexist, " << kCopyMs << ", notexist, notexist]\n";
     ostr << "msin.orderms=false\n";
-    ostr << "msin.baseline=0,2&6\n";
-    ostr << "msout=tNDPPP_tmp.MS1b\n";
-    ostr << "msout.overwrite=true\n";
+    ostr << "msout=" << kMultiMS << '\n';
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
-  tab = Table("tNDPPP_tmp.MS1b");
-  BOOST_CHECK_EQUAL(tab.nrow(), size_t{48});
-  BOOST_CHECK(allEQ(ArrayColumn<Complex>(tab, "DATA").getColumn(), Complex()));
-  BOOST_CHECK(allEQ(ArrayColumn<bool>(tab, "FLAG").getColumn(), true));
-  BOOST_CHECK(allEQ(ScalarColumn<int>(tab, "ANTENNA2").getColumn(), 6));
+  dp3::base::DP3::execute(kParsetFile);
+  CheckCopy(kMultiMS, {true, false, true, true});
 }
 
 void checkAvg(const std::string& outName) {
@@ -368,10 +411,10 @@ void checkAvg(const std::string& outName) {
   BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(tout, "TIME")(0) + 295));
 }
 
-BOOST_AUTO_TEST_CASE(test_avg1, *utf::depends_on("dppp/test_multi_in")) {
+BOOST_AUTO_TEST_CASE(test_avg1, *utf::disabled()) {
   {
     // Average in a single step.
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin.name=tNDPPP_tmp.MS\n";
     // Give start and end time as actual, hence no missing timeslots.
@@ -384,14 +427,14 @@ BOOST_AUTO_TEST_CASE(test_avg1, *utf::depends_on("dppp/test_multi_in")) {
     ostr << "avg.timestep=20\n";
     ostr << "avg.freqstep=100\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   checkAvg("tNDPPP_tmp.MS2");
 }
 
-BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dppp/test_avg1")) {
+BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dp3/test_avg1")) {
   {
     // Averaging in multiple steps should be the same as above.
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MS3\n";
@@ -410,11 +453,11 @@ BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dppp/test_avg1")) {
     ostr << "avg4.timestep=2\n";
     ostr << "avg4.freqstep=4\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   checkAvg("tNDPPP_tmp.MS3");
 }
 
-BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dppp/test_avg2")) {
+BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dp3/test_avg2")) {
   // Averaging in multiple steps with multiple outputs should be the same
   // as above.
   {
@@ -463,10 +506,10 @@ BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dppp/test_avg2")) {
 }
 
 // This function tests if the correct start time is used when selecting times.
-BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dppp/test_avg3")) {
+BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dp3/test_avg3")) {
   {
     // Average in a single step.
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     // Give start a few seconds after first one, hence skip first time slot.
@@ -478,7 +521,7 @@ BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dppp/test_avg3")) {
     ostr << "avg.timestep=2\n";
     ostr << "avg.freqstep=100\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   {
     // Only check the times;
     Table tab("tNDPPP_tmp.MS");
@@ -494,7 +537,7 @@ BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dppp/test_avg3")) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dppp/test_avg4")) {
+BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dp3/test_avg4")) {
   // Test if update works fine.
   // In fact, it does not do anything apart from rewriting the current flags.
   // However, it should ignore the inserted time slots.
@@ -502,13 +545,13 @@ BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dppp/test_avg4")) {
   {
     Table tab("tNDPPP_tmp.MS");
     flags = ArrayColumn<bool>(tab, "FLAG").getColumn();
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=''\n";
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   // Check that the flags did not change.
   {
     Table tab("tNDPPP_tmp.MS");
@@ -516,19 +559,19 @@ BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dppp/test_avg4")) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_update2, *utf::depends_on("dppp/test_update1")) {
+BOOST_AUTO_TEST_CASE(test_update2, *utf::depends_on("dp3/test_update1")) {
   // Test if update all flags works fine.
   {
     Table tab("tNDPPP_tmp.MS");
     tab.deepCopy("tNDPPP_tmp.MS_copy1", Table::New);
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS_copy1\n";
     ostr << "msout=.\n";
     ostr << "steps=[preflag]\n";
     ostr << "preflag.blmin=1e6\n";  // should flag all data
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   // Check that all flags are true.
   {
     Table tab("tNDPPP_tmp.MS_copy1");
@@ -536,7 +579,7 @@ BOOST_AUTO_TEST_CASE(test_update2, *utf::depends_on("dppp/test_update1")) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dppp/test_update2")) {
+BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dp3/test_update2")) {
   // Test if update data works fine.
   casacore::Array<Complex> data;
   casacore::Array<bool> flags;
@@ -545,7 +588,7 @@ BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dppp/test_update2")) {
     data = ArrayColumn<Complex>(tab, "DATA").getColumn();
     flags = ArrayColumn<bool>(tab, "FLAG").getColumn();
     tab.deepCopy("tNDPPP_tmp.MS_copy1", Table::New);
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS_copy1\n";
     ostr << "msout=tNDPPP_tmp.MS_copy1\n";  // same name means update
@@ -554,7 +597,7 @@ BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dppp/test_update2")) {
     ostr << "scaledata.stations=*\n";
     ostr << "scaledata.scalesize=false\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   // Check that all data is doubled.
   {
     Table tab("tNDPPP_tmp.MS_copy1");
@@ -647,11 +690,11 @@ void checkFlags(const std::string& outName) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_flags1, *utf::depends_on("dppp/test_update_scale")) {
+BOOST_AUTO_TEST_CASE(test_flags1, *utf::depends_on("dp3/test_update_scale")) {
   {
     // Most simple case.
     // Just flag some channels and time stamps.
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msin.startchan=1\n";
@@ -664,11 +707,11 @@ BOOST_AUTO_TEST_CASE(test_flags1, *utf::depends_on("dppp/test_update_scale")) {
     ostr << "preflag.flag2.chan=[0,2,6..8]\n";
     ostr << "average.timestep=6\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   checkFlags("tNDPPP_tmp.MS5");
 }
 
-BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dppp/test_flags1")) {
+BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dp3/test_flags1")) {
   {
     // A more advanced case in two NDPPP steps.
     // Flag the channels, but shifted 2. In the next step the first 2 channels
@@ -701,7 +744,7 @@ BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dppp/test_flags1")) {
   checkFlags("tNDPPP_tmp.MS6b");
 }
 
-BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dppp/test_flags2")) {
+BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dp3/test_flags2")) {
   {
     // Even a bit more advanced, also in two NDPPP runs.
     // Input channels 6,7,8 are flagged by flagging their averaged channel.
@@ -735,10 +778,10 @@ BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dppp/test_flags2")) {
   checkFlags("tNDPPP_tmp.MS7b");
 }
 
-BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dppp/test_flags3")) {
+BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dp3/test_flags3")) {
   // Add station RT0, 1 and 2.
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MSa\n";
@@ -746,7 +789,7 @@ BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dppp/test_flags3")) {
     ostr << "steps=[stationadd]\n";
     ostr << "stationadd.stations={RTnew:[RT0..2]}\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   Table t1("tNDPPP_tmp.MS/ANTENNA");
   Table t2("tNDPPP_tmp.MSa/ANTENNA");
   BOOST_CHECK_EQUAL(t2.nrow(), t1.nrow() + 1);  // 1 antenna has been added
@@ -764,10 +807,10 @@ BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dppp/test_flags3")) {
                     t1.nrow() + 40 + 12);  // 2 baselines and 2 time slots added
 }
 
-BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dppp/test_station_add")) {
+BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dp3/test_station_add")) {
   // Remove all baselines containing station RT1 or 6.
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MSa\n";
@@ -776,7 +819,7 @@ BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dppp/test_station_add")) {
     ostr << "filter.baseline=!RT[16]&&*\n";
     ostr << "filter.remove=true\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   Table t1("tNDPPP_tmp.MS/ANTENNA");
   Table t2("tNDPPP_tmp.MSa/ANTENNA");
   // Note: the ANTENNA table also contained RT8, RT9, etc., but they do not
@@ -816,13 +859,13 @@ BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dppp/test_station_add")) {
   BOOST_CHECK(allEQ(ScalarColumn<int>(t2s, "ANTENNA2").getColumn(), 2));
 }
 
-BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dppp/test_filter1")) {
+BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dp3/test_filter1")) {
   // Keep all baselines.
   // First by not specifying baseline selection, second by all baselines.
   // Also alter between remove and !remove.
   for (int iter = 0; iter < 4; ++iter) {
     {
-      std::ofstream ostr("tNDPPP_tmp.parset");
+      std::ofstream ostr(kParsetFile);
       ostr << "msin=tNDPPP_tmp.MS\n";
       ostr << "msout=tNDPPP_tmp.MSa\n";
       ostr << "msout.overwrite=true\n";
@@ -834,7 +877,7 @@ BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dppp/test_filter1")) {
         ostr << "filter.remove=true\n";
       }
     }
-    dp3::base::DP3::execute("tNDPPP_tmp.parset");
+    dp3::base::DP3::execute(kParsetFile);
     // cout << "check ANTENNA"<<'\n';
     Table t1("tNDPPP_tmp.MS/ANTENNA");
     Table t2("tNDPPP_tmp.MSa/ANTENNA");
@@ -886,11 +929,11 @@ BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dppp/test_filter1")) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dppp/test_filter2")) {
+BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dp3/test_filter2")) {
   // Remove some baselines, update original file with different data column
   // This test justs tests if it runs without throwing exceptions
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=.\n";
@@ -899,10 +942,10 @@ BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dppp/test_filter2")) {
     ostr << "filter.baseline=!RT[16]&&*\n";
     ostr << "filter.remove=False\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
 }
 
-BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
+BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dp3/test_filter3")) {
   casacore::Array<bool> flags;
   // First flag in the same way as test_flags1.
   test_flags1();
@@ -913,7 +956,7 @@ BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
   }
   // Flag all data.
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS5\n";
     ostr << "msout=tNDPPP_tmp.MS5a\n";
@@ -921,7 +964,7 @@ BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
     ostr << "steps=[preflag]\n";
     ostr << "preflag.baseline=[[*]]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   checkFlags("tNDPPP_tmp.MS5a");
   {
     Table tab("tNDPPP_tmp.MS5a");
@@ -929,7 +972,7 @@ BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
   }
   // Clear the flags.
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS5a\n";
     ostr << "msout=tNDPPP_tmp.MS5b\n";
@@ -938,7 +981,7 @@ BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
     ostr << "preflag.mode=clear\n";
     ostr << "preflag.baseline=[[*]]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   checkFlags("tNDPPP_tmp.MS5b");
   {
     Table tab("tNDPPP_tmp.MS5b");
@@ -946,23 +989,23 @@ BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dppp/test_filter3")) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_multi_out, *utf::depends_on("dppp/test_clear")) {
+BOOST_AUTO_TEST_CASE(test_multi_out, *utf::depends_on("dp3/test_clear")) {
   {
     // First make the reference output MS.
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "msout=tNDPPP_tmp.MS_copy\n";
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[]\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   // Test if update data works fine with multiple outputs:
   // read from tNDPPP_tmp.MS, write to copy3, update to copy3
   casacore::Array<Complex> data;
   casacore::Array<bool> flags;
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "steps=[scaledata,out1,scaledata,out2]\n";
@@ -978,7 +1021,7 @@ BOOST_AUTO_TEST_CASE(test_multi_out, *utf::depends_on("dppp/test_clear")) {
     ostr << "msout=tNDPPP_tmp.MS_copy4\n";  // same name means update
     ostr << "msout.overwrite=true\n";
   }
-  dp3::base::DP3::execute("tNDPPP_tmp.parset");
+  dp3::base::DP3::execute(kParsetFile);
   // Check that tables exist, contain the specified columns
   {
     Table tab1("tNDPPP_tmp.MS_copy");
@@ -1018,9 +1061,9 @@ void tryErr(const std::string& parsetName) {
   BOOST_CHECK(err);
 }
 
-BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dppp/test_multi_out")) {
+BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dp3/test_multi_out")) {
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "steps=[filter,out1,average,out2]\n";
@@ -1029,10 +1072,10 @@ BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dppp/test_multi_out")) {
     ostr << "out2.type=out\n";
     ostr << "out2.name=.\n";  // update not possible when avg
     ostr << "msout=''\n";
-    tryErr("tNDPPP_tmp.parset");
+    tryErr(kParsetFile);
   }
   {
-    std::ofstream ostr("tNDPPP_tmp.parset");
+    std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
     ostr << "msin=tNDPPP_tmp.MS\n";
     ostr << "steps=[average,out1,filter,out2]\n";
@@ -1044,7 +1087,7 @@ BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dppp/test_multi_out")) {
     ostr << "out2.name=./tNDPPP_tmp.MSx"
          << '\n';  // update not possible (filter)
     ostr << "msout=''\n";
-    tryErr("tNDPPP_tmp.parset");
+    tryErr(kParsetFile);
   }
 }
 
