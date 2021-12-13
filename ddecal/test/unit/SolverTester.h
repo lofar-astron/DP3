@@ -86,6 +86,8 @@ class SolverTester {
    */
   const std::vector<int>& Antennas2() const { return antennas2_; }
 
+  const size_t NSolutions() const { return n_solutions_; }
+
   const std::vector<size_t>& NSolutionsPerDirection() const {
     return n_solutions_per_direction_;
   }

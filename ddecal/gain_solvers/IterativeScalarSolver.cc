@@ -9,6 +9,9 @@
 
 #include <algorithm>
 
+using aocommon::MC2x2;
+using aocommon::MC2x2F;
+
 namespace dp3 {
 namespace ddecal {
 
@@ -23,7 +26,7 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
 
   // Visibility vector v_residual[cb][vis] of size NChannelBlocks() x
   // n_visibilities
-  std::vector<std::vector<aocommon::MC2x2F>> v_residual(NChannelBlocks());
+  std::vector<std::vector<MC2x2F>> v_residual(NChannelBlocks());
   // The following loop allocates all structures
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
     next_solutions[ch_block].resize(NSolutions() * NAntennas());
@@ -45,10 +48,12 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
     MakeSolutionsFinite1Pol(solutions);
 
     aocommon::ParallelFor<size_t> loop(GetNThreads());
-    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
-      PerformIteration(data.ChannelBlock(ch_block), v_residual[ch_block],
-                       solutions[ch_block], next_solutions[ch_block]);
-    });
+    loop.Run(0, NChannelBlocks(),
+             [&](size_t ch_block, [[maybe_unused]] size_t thread) {
+               PerformIteration(data.ChannelBlock(ch_block),
+                                v_residual[ch_block], solutions[ch_block],
+                                next_solutions[ch_block]);
+             });
 
     Step(solutions, next_solutions);
 
@@ -57,10 +62,9 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
                          next_solutions, stat_stream);
 
     double avg_squared_diff;
-    constexpr size_t n_solution_pols = 1;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
-                        avg_squared_diff, step_magnitudes, n_solution_pols);
+                        avg_squared_diff, step_magnitudes);
     iteration++;
 
     has_previously_converged = has_converged || has_previously_converged;
@@ -78,8 +82,7 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
 }
 
 void IterativeScalarSolver::PerformIteration(
-    const SolveData::ChannelBlockData& cb_data,
-    std::vector<aocommon::MC2x2F>& v_residual,
+    const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
     const std::vector<DComplex>& solutions,
     std::vector<DComplex>& next_solutions) {
   // Fill v_residual
@@ -89,7 +92,7 @@ void IterativeScalarSolver::PerformIteration(
   for (size_t direction = 0; direction != NDirections(); ++direction)
     AddOrSubtractDirection<false>(cb_data, v_residual, direction, solutions);
 
-  const std::vector<aocommon::MC2x2F> v_copy = v_residual;
+  const std::vector<MC2x2F> v_copy = v_residual;
 
   for (size_t direction = 0; direction != NDirections(); ++direction) {
     // Be aware that we purposely still use the subtraction with 'old'
@@ -104,7 +107,7 @@ void IterativeScalarSolver::PerformIteration(
 
 void IterativeScalarSolver::SolveDirection(
     const SolveData::ChannelBlockData& cb_data,
-    const std::vector<aocommon::MC2x2F>& v_residual, size_t direction,
+    const std::vector<MC2x2F>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions,
     std::vector<DComplex>& next_solutions) {
   // Calculate this equation, given ant a:
@@ -121,34 +124,34 @@ void IterativeScalarSolver::SolveDirection(
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
   const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
-  const std::vector<aocommon::MC2x2F>& model_vector =
+  const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const size_t antenna1 = cb_data.Antenna1Index(vis_index);
-    const size_t antenna2 = cb_data.Antenna2Index(vis_index);
+    const size_t antenna_1 = cb_data.Antenna1Index(vis_index);
+    const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = solution_map[vis_index];
-    const Complex solution_ant1(
-        solutions[antenna1 * NSolutions() + solution_index]);
-    const Complex solution_ant2(
-        solutions[antenna2 * NSolutions() + solution_index]);
-    const aocommon::MC2x2F& data = v_residual[vis_index];
-    const aocommon::MC2x2F& model = model_vector[vis_index];
+    const Complex solution_ant_1(
+        solutions[antenna_1 * NSolutions() + solution_index]);
+    const Complex solution_ant_2(
+        solutions[antenna_2 * NSolutions() + solution_index]);
+    const MC2x2F& data = v_residual[vis_index];
+    const MC2x2F& model = model_vector[vis_index];
 
-    // Calculate the contribution of this baseline for antenna1
-    const aocommon::MC2x2F cor_model_herm1(HermTranspose(model) *
-                                           solution_ant2);
     const uint32_t rel_solution_index = solution_index - solution_map[0];
-    const size_t full_solution1_index =
-        antenna1 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution1_index] += Trace(data * cor_model_herm1);
-    denominator[full_solution1_index] += Norm(cor_model_herm1);
+    // Calculate the contribution of this baseline for antenna_1
+    const MC2x2F cor_model_herm_1(HermTranspose(model) * solution_ant_2);
+    const size_t full_solution_1_index =
+        antenna_1 * n_dir_solutions + rel_solution_index;
+    numerator[full_solution_1_index] += Trace(data * cor_model_herm_1);
+    denominator[full_solution_1_index] += Norm(cor_model_herm_1);
 
     // Calculate the contribution of this baseline for antenna2
-    const aocommon::MC2x2F cor_model2(model * solution_ant1);
-    const size_t full_solution2_index =
-        antenna2 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution2_index] += Trace(HermTranspose(data) * cor_model2);
-    denominator[full_solution2_index] += Norm(cor_model2);
+    const MC2x2F cor_model_2(model * solution_ant_1);
+    const size_t full_solution_2_index =
+        antenna_2 * n_dir_solutions + rel_solution_index;
+    numerator[full_solution_2_index] +=
+        Trace(HermTranspose(data) * cor_model_2);
+    denominator[full_solution_2_index] += Norm(cor_model_2);
   }
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
@@ -167,27 +170,26 @@ void IterativeScalarSolver::SolveDirection(
 
 template <bool Add>
 void IterativeScalarSolver::AddOrSubtractDirection(
-    const SolveData::ChannelBlockData& cb_data,
-    std::vector<aocommon::MC2x2F>& v_residual, size_t direction,
-    const std::vector<DComplex>& solutions) {
-  const std::vector<aocommon::MC2x2F>& model_vector =
+    const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
+    size_t direction, const std::vector<DComplex>& solutions) {
+  const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
   const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const uint32_t antenna1 = cb_data.Antenna1Index(vis_index);
-    const uint32_t antenna2 = cb_data.Antenna2Index(vis_index);
+    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
+    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = solution_map[vis_index];
-    const Complex solution1(
-        solutions[antenna1 * NSolutions() + solution_index]);
-    const Complex solution2Conj =
-        std::conj(Complex(solutions[antenna2 * NSolutions() + solution_index]));
-    aocommon::MC2x2F& data = v_residual[vis_index];
-    const aocommon::MC2x2F& model = model_vector[vis_index];
+    const Complex solution_1(
+        solutions[antenna_1 * NSolutions() + solution_index]);
+    const Complex solution_2_conj = std::conj(
+        Complex(solutions[antenna_2 * NSolutions() + solution_index]));
+    MC2x2F& data = v_residual[vis_index];
+    const MC2x2F& model = model_vector[vis_index];
     if (Add) {
-      data.AddWithFactorAndAssign(model, solution1 * solution2Conj);
+      data.AddWithFactorAndAssign(model, solution_1 * solution_2_conj);
     } else {
-      data.AddWithFactorAndAssign(model, -solution1 * solution2Conj);
+      data.AddWithFactorAndAssign(model, -solution_1 * solution_2_conj);
     }
   }
 }

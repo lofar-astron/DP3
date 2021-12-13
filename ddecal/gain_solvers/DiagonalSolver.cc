@@ -69,12 +69,14 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
     MakeSolutionsFinite2Pol(solutions);
 
     ParallelFor<size_t> loop(GetNThreads());
-    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
-      const SolveData::ChannelBlockData& channelBlock =
-          data.ChannelBlock(ch_block);
-      PerformIteration(channelBlock, g_times_cs[ch_block], vs[ch_block],
-                       solutions[ch_block], next_solutions[ch_block]);
-    });
+    loop.Run(0, NChannelBlocks(),
+             [&](size_t ch_block, [[maybe_unused]] size_t thread) {
+               const SolveData::ChannelBlockData& channelBlock =
+                   data.ChannelBlock(ch_block);
+               PerformIteration(channelBlock, g_times_cs[ch_block],
+                                vs[ch_block], solutions[ch_block],
+                                next_solutions[ch_block]);
+             });
 
     Step(solutions, next_solutions);
 
@@ -88,7 +90,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
-                        avg_squared_diff, step_magnitudes, 2);
+                        avg_squared_diff, step_magnitudes);
 
     if (stat_stream) {
       (*stat_stream) << step_magnitudes.back() << '\t' << avg_squared_diff

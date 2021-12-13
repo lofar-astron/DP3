@@ -15,8 +15,9 @@
 #include "../../constraints/TECConstraint.h"
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
-#include "../../gain_solvers/IterativeScalarSolver.h"
 #include "../../gain_solvers/IterativeDiagonalSolver.h"
+#include "../../gain_solvers/IterativeFullJonesSolver.h"
+#include "../../gain_solvers/IterativeScalarSolver.h"
 #include "../../gain_solvers/ScalarSolver.h"
 
 #include "../../../common/ParameterSet.h"
@@ -103,20 +104,15 @@ BOOST_DATA_TEST_CASE(diagonal_type,
   CheckSolverType<dp3::ddecal::IterativeDiagonalSolver>(parset);
 }
 
-BOOST_DATA_TEST_CASE(fulljones_type,
+BOOST_DATA_TEST_CASE(full_jones_type,
                      boost::unit_test::data::make(
                          {"fulljones", "rotation+diagonal", "rotation"}),
                      mode) {
-  // Currently, only the non-iterative full-jones solver is implemented.
-  // Requesting the iterative full jones solver raises an exception.
-
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   CheckSolverType<dp3::ddecal::FullJonesSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
-  const Settings settings_iterative(parset, "");
-  BOOST_CHECK_THROW(CreateSolver(settings_iterative, parset, ""),
-                    std::runtime_error);
+  CheckSolverType<dp3::ddecal::IterativeFullJonesSolver>(parset);
 }
 
 BOOST_DATA_TEST_CASE(
