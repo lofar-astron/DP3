@@ -229,7 +229,7 @@ class SolverBase {
   bool AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
                        const std::vector<std::vector<DComplex>>& new_solutions,
                        bool use_constraint_accuracy, double& avg_abs_diff,
-                       std::vector<double>& step_magnitudes, size_t nPol) const;
+                       std::vector<double>& step_magnitudes) const;
 
   bool ReachedStoppingCriterion(
       size_t iteration, bool has_converged, bool constraints_satisfied,

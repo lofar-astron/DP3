@@ -304,6 +304,7 @@ add_library(
   ddecal/gain_solvers/FullJonesSolver.cc
   ddecal/gain_solvers/HybridSolver.cc
   ddecal/gain_solvers/IterativeDiagonalSolver.cc
+  ddecal/gain_solvers/IterativeFullJonesSolver.cc
   ddecal/gain_solvers/IterativeScalarSolver.cc
   ddecal/gain_solvers/ScalarSolver.cc
   ddecal/gain_solvers/SolveData.cc
@@ -646,11 +647,13 @@ if(BUILD_TESTING)
       solvers/scalar
       solvers/scalar_normaleq
       solvers/diagonal
+      solvers/full_jones
       solvers/iterative_scalar
       solvers/iterative_scalar_dd_intervals
       solvers/iterative_diagonal
       solvers/iterative_diagonal_dd_intervals
-      solvers/full_jones
+      solvers/iterative_full_jones
+      solvers/iterative_full_jones_dd_intervals
       solvers/hybrid
       solvers/min_iterations)
 

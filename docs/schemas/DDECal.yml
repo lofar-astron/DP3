@@ -143,7 +143,7 @@ inputs:
   solveralgorithm:
     default: directionsolve
     type: string
-    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative`` and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. Currently, only scalar and diagonal solves are supported; setting solveralgorithm to directioniterative in full Jones mode will result in an error. The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating. This is still experimental `.`
+    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative`` and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating `.`
   savefacets:
     default: false
     type: bool

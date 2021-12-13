@@ -94,11 +94,12 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
     MakeSolutionsFinite4Pol(solutions);
 
     aocommon::ParallelFor<size_t> loop(GetNThreads());
-    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
-      PerformIteration(data.ChannelBlock(ch_block), g_times_cs[ch_block],
-                       vs[ch_block], solutions[ch_block],
-                       next_solutions[ch_block]);
-    });
+    loop.Run(0, NChannelBlocks(),
+             [&](size_t ch_block, [[maybe_unused]] size_t thread) {
+               PerformIteration(data.ChannelBlock(ch_block),
+                                g_times_cs[ch_block], vs[ch_block],
+                                solutions[ch_block], next_solutions[ch_block]);
+             });
 
     Step(solutions, next_solutions);
 
@@ -113,7 +114,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
     double avg_squared_diff;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
-                        avg_squared_diff, step_magnitudes, 4);
+                        avg_squared_diff, step_magnitudes);
 
     if (stat_stream) {
       (*stat_stream) << step_magnitudes.back() << '\t' << avg_squared_diff

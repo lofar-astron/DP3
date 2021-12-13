@@ -67,12 +67,13 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
     MakeSolutionsFinite1Pol(solutions);
 
     aocommon::ParallelFor<size_t> loop(GetNThreads());
-    loop.Run(0, NChannelBlocks(), [&](size_t chBlock, size_t /*thread*/) {
-      const SolveData::ChannelBlockData& channelBlock =
-          data.ChannelBlock(chBlock);
-      PerformIteration(channelBlock, g_times_cs[chBlock], vs[chBlock],
-                       solutions[chBlock], next_solutions[chBlock]);
-    });
+    loop.Run(0, NChannelBlocks(),
+             [&](size_t chBlock, [[maybe_unused]] size_t thread) {
+               const SolveData::ChannelBlockData& channelBlock =
+                   data.ChannelBlock(chBlock);
+               PerformIteration(channelBlock, g_times_cs[chBlock], vs[chBlock],
+                                solutions[chBlock], next_solutions[chBlock]);
+             });
 
     Step(solutions, next_solutions);
 
@@ -86,7 +87,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
-                        avg_squared_diff, step_magnitudes, 1);
+                        avg_squared_diff, step_magnitudes);
 
     if (stat_stream) {
       (*stat_stream) << step_magnitudes.back() << '\t' << avg_squared_diff

@@ -123,12 +123,13 @@ bool SolverBase::AssignSolutions(
     std::vector<std::vector<DComplex>>& solutions,
     const std::vector<std::vector<DComplex>>& newSolutions,
     bool useConstraintAccuracy, double& avgAbsDiff,
-    std::vector<double>& stepMagnitudes, size_t nPol) const {
+    std::vector<double>& stepMagnitudes) const {
   avgAbsDiff = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
+  const size_t n_solution_pols = NSolutionPolarizations();
   size_t n = 0;
   for (size_t chBlock = 0; chBlock < n_channel_blocks_; ++chBlock) {
-    for (size_t i = 0; i != solutions[chBlock].size(); i += nPol) {
+    for (size_t i = 0; i != solutions[chBlock].size(); i += n_solution_pols) {
       // A normalized squared difference is calculated between the solutions of
       // this and the previous step:
       //   sqrt { 1/n sum over | (t1 - t0) t0^(-1) |_2 }
@@ -136,7 +137,7 @@ bool SolverBase::AssignSolutions(
       // without affecting the number of iterations. Also, when the polarized
       // version is given scalar matrices, it will use the same number of
       // iterations as the scalar version.
-      if (nPol == 1) {
+      if (n_solution_pols == 1) {
         if (solutions[chBlock][i] != 0.0) {
           double a =
               std::abs((newSolutions[chBlock][i] - solutions[chBlock][i]) /
@@ -147,7 +148,7 @@ bool SolverBase::AssignSolutions(
           }
         }
         solutions[chBlock][i] = newSolutions[chBlock][i];
-      } else if (nPol == 2) {
+      } else if (n_solution_pols == 2) {
         DComplex s[2] = {solutions[chBlock][i], solutions[chBlock][i + 1]};
         DComplex sInv[2] = {1.0 / s[0], 1.0 / s[1]};
         if (IsFinite(sInv[0]) && IsFinite(sInv[1])) {
@@ -156,7 +157,7 @@ bool SolverBase::AssignSolutions(
           ns[0] = (ns[0] - s[0]) * sInv[0];
           ns[1] = (ns[1] - s[1]) * sInv[1];
           double sumabs = 0.0;
-          for (size_t p = 0; p != nPol; ++p) {
+          for (size_t p = 0; p != n_solution_pols; ++p) {
             sumabs += std::abs(ns[p]);
           }
           if (std::isfinite(sumabs)) {
@@ -164,7 +165,7 @@ bool SolverBase::AssignSolutions(
             n += 2;
           }
         }
-        for (size_t p = 0; p != nPol; ++p) {
+        for (size_t p = 0; p != n_solution_pols; ++p) {
           solutions[chBlock][i + p] = newSolutions[chBlock][i + p];
         }
       } else {  // NPol == 4
@@ -174,7 +175,7 @@ bool SolverBase::AssignSolutions(
           ns -= s;
           ns *= sInv;
           double sumabs = 0.0;
-          for (size_t p = 0; p != nPol; ++p) {
+          for (size_t p = 0; p != n_solution_pols; ++p) {
             sumabs += std::abs(ns[p]);
           }
           if (std::isfinite(sumabs)) {
@@ -182,7 +183,7 @@ bool SolverBase::AssignSolutions(
             n += 4;
           }
         }
-        for (size_t p = 0; p != nPol; ++p) {
+        for (size_t p = 0; p != n_solution_pols; ++p) {
           solutions[chBlock][i + p] = newSolutions[chBlock][i + p];
         }
       }

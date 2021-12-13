@@ -9,6 +9,7 @@
 #include "gain_solvers/FullJonesSolver.h"
 #include "gain_solvers/HybridSolver.h"
 #include "gain_solvers/IterativeDiagonalSolver.h"
+#include "gain_solvers/IterativeFullJonesSolver.h"
 #include "gain_solvers/IterativeScalarSolver.h"
 #include "gain_solvers/ScalarSolver.h"
 
@@ -56,9 +57,7 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm) {
 std::unique_ptr<SolverBase> CreateFullJonesSolver(SolverAlgorithm algorithm) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      throw std::runtime_error(
-          "The direction-iterating algorithm is not available for the "
-          "specified solving mode");
+      return boost::make_unique<IterativeFullJonesSolver>();
     case SolverAlgorithm::kDirectionSolve:
       return boost::make_unique<FullJonesSolver>();
     case SolverAlgorithm::kHybrid:

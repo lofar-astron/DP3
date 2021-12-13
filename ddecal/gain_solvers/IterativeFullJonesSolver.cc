@@ -1,7 +1,7 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "IterativeDiagonalSolver.h"
+#include "IterativeFullJonesSolver.h"
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
@@ -10,12 +10,11 @@
 #include <algorithm>
 
 using aocommon::MC2x2F;
-using aocommon::MC2x2FDiag;
 
 namespace dp3 {
 namespace ddecal {
 
-IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
+IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
     const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
@@ -29,7 +28,8 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
   std::vector<std::vector<MC2x2F>> v_residual(NChannelBlocks());
   // The following loop allocates all structures
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
-    next_solutions[ch_block].resize(NSolutions() * NAntennas() * 2);
+    next_solutions[ch_block].resize(NSolutions() * NAntennas() *
+                                    NSolutionPolarizations());
     v_residual[ch_block].resize(data.ChannelBlock(ch_block).NVisibilities());
   }
 
@@ -45,7 +45,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
   step_magnitudes.reserve(GetMaxIterations());
 
   do {
-    MakeSolutionsFinite2Pol(solutions);
+    MakeSolutionsFinite4Pol(solutions);
 
     aocommon::ParallelFor<size_t> loop(GetNThreads());
     loop.Run(0, NChannelBlocks(),
@@ -81,7 +81,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
   return result;
 }
 
-void IterativeDiagonalSolver::PerformIteration(
+void IterativeFullJonesSolver::PerformIteration(
     const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
     const std::vector<DComplex>& solutions,
     std::vector<DComplex>& next_solutions) {
@@ -105,7 +105,7 @@ void IterativeDiagonalSolver::PerformIteration(
   }
 }
 
-void IterativeDiagonalSolver::SolveDirection(
+void IterativeFullJonesSolver::SolveDirection(
     const SolveData::ChannelBlockData& cb_data,
     const std::vector<MC2x2F>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions,
@@ -116,10 +116,10 @@ void IterativeDiagonalSolver::SolveDirection(
   // sol_a =  ----------------------------------------
   //             sum_b norm(model_ab * solutions_b)
 
+  constexpr size_t n_solution_pols = 4;
   const size_t n_dir_solutions = cb_data.NSolutionsForDirection(direction);
-  std::vector<MC2x2FDiag> numerator(NAntennas() * n_dir_solutions,
-                                    MC2x2FDiag::Zero());
-  std::vector<float> denominator(NAntennas() * n_dir_solutions * 2, 0.0);
+  std::vector<MC2x2F> numerator(NAntennas() * n_dir_solutions);
+  std::vector<MC2x2F> denominator(NAntennas() * n_dir_solutions);
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
@@ -130,70 +130,55 @@ void IterativeDiagonalSolver::SolveDirection(
     const size_t antenna_1 = cb_data.Antenna1Index(vis_index);
     const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = solution_map[vis_index];
-    const DComplex* solution_ant_1 =
-        &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
-    const DComplex* solution_ant_2 =
-        &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
+    const MC2x2F solution_ant_1(
+        &solutions[(antenna_1 * NSolutions() + solution_index) *
+                   n_solution_pols]);
+    const MC2x2F solution_ant_2(
+        &solutions[(antenna_2 * NSolutions() + solution_index) *
+                   n_solution_pols]);
     const MC2x2F& data = v_residual[vis_index];
     const MC2x2F& model = model_vector[vis_index];
 
     const uint32_t rel_solution_index = solution_index - solution_map[0];
     // Calculate the contribution of this baseline for antenna_1
-    const MC2x2FDiag solution_1{Complex(solution_ant_2[0]),
-                                Complex(solution_ant_2[1])};
-    const MC2x2F cor_model_transp_1(solution_1 * HermTranspose(model));
+    const MC2x2F cor_model_herm_1(solution_ant_2 * HermTranspose(model));
     const size_t full_solution_1_index =
         antenna_1 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution_1_index] += Diagonal(data * cor_model_transp_1);
-    // The indices (0, 2 / 1, 3) are following from the fact that we want
-    // the contribution of antenna2's "X" polarization, and the matrix is
-    // ordered [ XX XY / YX YY ].
-    denominator[full_solution_1_index * 2] +=
-        std::norm(cor_model_transp_1[0]) + std::norm(cor_model_transp_1[2]);
-    denominator[full_solution_1_index * 2 + 1] +=
-        std::norm(cor_model_transp_1[1]) + std::norm(cor_model_transp_1[3]);
+    // sum(D^H J M) [ sum(M^H J^H J M) ]^-1
+    numerator[full_solution_1_index] += data * cor_model_herm_1;
+    denominator[full_solution_1_index] +=
+        HermTranspose(cor_model_herm_1) * cor_model_herm_1;
 
     // Calculate the contribution of this baseline for antenna_2
-    // data_ba = data_ab^H, etc., therefore, numerator and denominator
-    // become:
-    // - num = data_ab^H * solutions_a * model_ab
-    // - den = norm(model_ab^H * solutions_a)
-    const MC2x2FDiag solution_2{Complex(solution_ant_1[0]),
-                                Complex(solution_ant_1[1])};
-    const MC2x2F cor_model_2(solution_2 * model);
-
+    const MC2x2F cor_model_2(solution_ant_1 * model);
     const size_t full_solution_2_index =
         antenna_2 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution_2_index] +=
-        Diagonal(HermTranspose(data) * cor_model_2);
-    denominator[full_solution_2_index * 2] +=
-        std::norm(cor_model_2[0]) + std::norm(cor_model_2[2]);
-    denominator[full_solution_2_index * 2 + 1] +=
-        std::norm(cor_model_2[1]) + std::norm(cor_model_2[3]);
+    // sum(D^H J M) [ sum(M^H J^H J M) ]^-1
+    numerator[full_solution_2_index] += HermTranspose(data) * cor_model_2;
+    denominator[full_solution_2_index] +=
+        HermTranspose(cor_model_2) * cor_model_2;
   }
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (size_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
       const uint32_t solution_index = rel_sol + solution_map[0];
-      DComplex* destination =
-          &next_solutions[(ant * NSolutions() + solution_index) * 2];
       const size_t index = ant * n_dir_solutions + rel_sol;
-
-      for (size_t pol = 0; pol != 2; ++pol) {
-        if (denominator[index * 2 + pol] == 0.0)
-          destination[pol] = std::numeric_limits<double>::quiet_NaN();
-        else
-          destination[pol] = DComplex(numerator[index][pol]) /
-                             double(denominator[index * 2 + pol]);
-      }
+      MC2x2F result;
+      if (denominator[index].Invert())
+        result = numerator[index] * denominator[index];
+      else
+        result = MC2x2F::NaN();
+      result.AssignTo(&next_solutions[(ant * NSolutions() + solution_index) *
+                                      n_solution_pols]);
     }
   }
 }
 
 template <bool Add>
-void IterativeDiagonalSolver::AddOrSubtractDirection(
+void IterativeFullJonesSolver::AddOrSubtractDirection(
     const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
     size_t direction, const std::vector<DComplex>& solutions) {
+  constexpr size_t n_solution_polarizations = 4;
   const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
@@ -202,25 +187,18 @@ void IterativeDiagonalSolver::AddOrSubtractDirection(
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
     const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = solution_map[vis_index];
-    const DComplex* solution_1 =
-        &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
-    const DComplex* solution_2 =
-        &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
-    const Complex solution_1_0(solution_1[0]);
-    const Complex solution_1_1(solution_1[1]);
-    const Complex solution_2_0_conj(std::conj(solution_2[0]));
-    const Complex solution_2_1_conj(std::conj(solution_2[1]));
-
-    MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = model_vector[vis_index];
-    const MC2x2F contribution(solution_1_0 * model[0] * solution_2_0_conj,
-                              solution_1_0 * model[1] * solution_2_1_conj,
-                              solution_1_1 * model[2] * solution_2_0_conj,
-                              solution_1_1 * model[3] * solution_2_1_conj);
-    if (Add)
-      data += contribution;
-    else
-      data -= contribution;
+    const MC2x2F solution_1(
+        &solutions[(antenna_1 * NSolutions() + solution_index) *
+                   n_solution_polarizations]);
+    const MC2x2F solution_2_herm = HermTranspose(
+        MC2x2F(&solutions[(antenna_2 * NSolutions() + solution_index) *
+                          n_solution_polarizations]));
+    const MC2x2F& term = solution_1 * model_vector[vis_index] * solution_2_herm;
+    if (Add) {
+      v_residual[vis_index] += term;
+    } else {
+      v_residual[vis_index] -= term;
+    }
   }
 }
 
