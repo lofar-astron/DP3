@@ -1038,44 +1038,36 @@ BOOST_FIXTURE_TEST_CASE(test_multi_out, FixtureDirectory) {
                     ArrayColumn<bool>(table_ref, "FLAG").getColumn()));
 }
 
-void tryErr(const std::string& parsetName) {
-  bool err = false;
-  try {
-    dp3::base::DP3::execute(parsetName);
-  } catch (const std::exception& x) {
-    err = true;
-  }
-  BOOST_CHECK(err);
-}
-
-BOOST_AUTO_TEST_CASE(test_error_out, *utf::depends_on("dp3/test_multi_out")) {
+BOOST_FIXTURE_TEST_CASE(test_error_out_avg, FixtureDirectory) {
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
+    ostr << "msin=" << kInputMs << '\n';
     ostr << "steps=[filter,out1,average,out2]\n";
     ostr << "out1.type=out\n";
     ostr << "out1.name=''\n";
     ostr << "out2.type=out\n";
     ostr << "out2.name=.\n";  // update not possible when avg
     ostr << "msout=''\n";
-    tryErr(kParsetFile);
   }
+  BOOST_CHECK_THROW(dp3::base::DP3::execute(kParsetFile), std::runtime_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_error_out_filter, FixtureDirectory) {
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
+    ostr << "msin=" << kInputMs << '\n';
     ostr << "steps=[average,out1,filter,out2]\n";
     ostr << "out1.type=out\n";
     ostr << "out1.name=tNDPPP_tmp.MSx\n";
     ostr << "out1.overwrite=true\n";
     ostr << "filter.remove=true\n";
     ostr << "out2.type=out\n";
-    ostr << "out2.name=./tNDPPP_tmp.MSx"
-         << '\n';  // update not possible (filter)
+    ostr << "out2.name=./tNDPPP_tmp.MSx\n";  // update not possible (filter)
     ostr << "msout=''\n";
-    tryErr(kParsetFile);
   }
+  BOOST_CHECK_THROW(dp3::base::DP3::execute(kParsetFile), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

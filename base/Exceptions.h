@@ -1,11 +1,15 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DPPP_EXCEPTION_H
-#define DPPP_EXCEPTION_H
+#ifndef DP3_EXCEPTIONS_H
+#define DP3_EXCEPTIONS_H
 
 #include <stdexcept>
 
-typedef std::runtime_error Exception;
+// Note: This Exception should be phased out in the future.
+// Please use std::runtime_error in new code instead.
+namespace dp3 {
+using Exception = std::runtime_error;
+}
 
 #endif
