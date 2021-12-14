@@ -42,6 +42,7 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/Measures/MeasureHolder.h>
 
+#include <EveryBeam/beammode.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
 
 #include <sstream>
@@ -765,8 +766,9 @@ void DemixWorker::applyBeam(double time, const Direction& direction, bool apply,
   const size_t nchan = chanFreqs.size();
   for (size_t ch = 0; ch < nchan; ++ch) {
     for (size_t st = 0; st < itsMix->nstation(); ++st) {
-      itsBeamValues[nchan * st + ch] = point_response->FullResponse(
-          station_indices[st], chanFreqs[ch], srcdir);
+      itsBeamValues[nchan * st + ch] =
+          point_response->Response(everybeam::BeamMode::kFull,
+                                   station_indices[st], chanFreqs[ch], srcdir);
     }
   }
 
