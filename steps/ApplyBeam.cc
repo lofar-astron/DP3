@@ -289,40 +289,31 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
   for (size_t ch = 0; ch < nCh; ++ch) {
     switch (mode) {
       case everybeam::CorrectionMode::kFull:
+      case everybeam::CorrectionMode::kElement:
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] = point_response->FullResponse(
-              station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+          beamValues[nCh * st + ch] = point_response->Response(
+              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
           if (invert) {
             beamValues[nCh * st + ch].Invert();
           }
         }
         break;
       case everybeam::CorrectionMode::kArrayFactor: {
-        aocommon::MC2x2Diag af_tmp;
+        aocommon::MC2x2 af_tmp;
         // Fill beamValues for channel ch
         for (size_t st = 0; st < nSt; ++st) {
-          af_tmp = point_response->ArrayFactor(
-              station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+          af_tmp = point_response->Response(
+              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
 
           if (invert) {
             af_tmp[0] = 1. / af_tmp[0];
-            af_tmp[1] = 1. / af_tmp[1];
+            af_tmp[3] = 1. / af_tmp[3];
           }
-          beamValues[nCh * st + ch] = aocommon::MC2x2(af_tmp);
+          beamValues[nCh * st + ch] = af_tmp;
         }
         break;
       }
-      case everybeam::CorrectionMode::kElement:
-        // Fill beamValues for channel ch
-        for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] =
-              point_response->ElementResponse(st, info.chanFreqs()[ch], srcdir);
-          if (invert) {
-            beamValues[nCh * st + ch].Invert();
-          }
-        }
-        break;
       case everybeam::CorrectionMode::kNone:  // this should not happen
         for (size_t st = 0; st < nSt; ++st) {
           beamValues[nCh * st + ch] = aocommon::MC2x2::Unity();
@@ -381,8 +372,9 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
   for (size_t ch = 0; ch < nCh; ++ch) {
     // Fill beamValues for channel ch
     for (size_t st = 0; st < nSt; ++st) {
-      beamValues[nCh * st + ch] = point_response->ArrayFactor(
-          station_indices[st], info.chanFreqs()[ch], srcdir, mutex)[0];
+      beamValues[nCh * st + ch] = point_response->Response(
+          everybeam::BeamMode::kArrayFactor, station_indices[st],
+          info.chanFreqs()[ch], srcdir, mutex)[0];
       if (invert) {
         beamValues[nCh * st + ch] = 1. / beamValues[nCh * st + ch];
       }
