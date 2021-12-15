@@ -19,7 +19,6 @@
 #include <stdexcept>
 
 using casacore::ArrayColumn;
-using casacore::Block;
 using casacore::IPosition;
 using casacore::Matrix;
 using casacore::near;
@@ -44,6 +43,7 @@ const std::string kInputMs = "../tNDPPP_tmp.MS";
 const std::string kCopyMs = "tNDPPP_tmp.copy.MS";
 const std::string kParsetFile = "tDP3.parset";
 const std::size_t kNBaselines = 6;
+const double kInterval = 30;
 
 // The copy has six extra time slots:
 // - Two slots are added since the input has two missing time slots.
@@ -120,23 +120,25 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
     BOOST_CHECK(allEQ(oflag.getColumn(), (unsigned char)(0xff)));
     BOOST_CHECK(
         allEQ(ArrayColumn<float>(t1, "WEIGHT_SPECTRUM").getColumn(), float(0)));
-    BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "INTERVAL").getColumn(), 30.));
-    BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "EXPOSURE").getColumn(), 30.));
+    BOOST_CHECK(
+        allEQ(ScalarColumn<double>(t1, "INTERVAL").getColumn(), kInterval));
+    BOOST_CHECK(
+        allEQ(ScalarColumn<double>(t1, "EXPOSURE").getColumn(), kInterval));
     double time = ScalarColumn<double>(table_in, "TIME")(0);
-    for (unsigned int i = 0; i < 6; ++i) {
-      double timec = time - 30;
+    for (unsigned int i = 0; i < kNBaselines; ++i) {
+      double timec = time - kInterval;
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME")(i), timec));
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME_CENTROID")(i), timec));
     }
     time = ScalarColumn<double>(table_in, "TIME")(2 * 6);
-    for (unsigned int i = 6; i < 18; ++i) {
-      double timec = time + (i / 6) * 30.;
+    for (unsigned int i = kNBaselines; i < kNBaselines * 3; ++i) {
+      double timec = time + (i / kNBaselines) * kInterval;
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME")(i), timec));
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME_CENTROID")(i), timec));
     }
     time = ScalarColumn<double>(table_in, "TIME")(17 * 6);
-    for (unsigned int i = 18; i < 36; ++i) {
-      double timec = time + (i / 6 - 2) * 30.;
+    for (unsigned int i = kNBaselines * 3; i < kNBaselines * 6; ++i) {
+      double timec = time + (i / kNBaselines - 2) * kInterval;
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME")(i), timec));
       BOOST_CHECK(near(ScalarColumn<double>(t1, "TIME_CENTROID")(i), timec));
     }
@@ -175,8 +177,8 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
   Table obsout(table_out.keywordSet().asTable("OBSERVATION"));
   casacore::Vector<double> timeRange(
       ArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
-  BOOST_CHECK(
-      near(timeRange(0), ScalarColumn<double>(table_out, "TIME")(0) - 15));
+  BOOST_CHECK(near(timeRange(0), ScalarColumn<double>(table_out, "TIME")(0) -
+                                     (kInterval / 2)));
 
   // In test_copy (when n_ms == 1), the end time is the start time plus a
   // multiple of the time interval. The start time is 13:22:20, the (rounded)
@@ -185,7 +187,7 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
   // In test_multi_in (when n_ms == 2), the parset does not specify an end time.
   // No rounding occurs then and the end time is the last time plus half an
   // interval, which is 30/2 = 15 seconds.
-  const size_t end_time_increment = (n_ms == 1) ? 20 : 15;
+  const size_t end_time_increment = (n_ms == 1) ? 20 : (kInterval / 2);
   BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(table_out, "TIME")(143) +
                                      end_time_increment));
 }
@@ -335,17 +337,17 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_ms, FixtureDirectory) {
   CheckCopy(kMultiMS, {true, false, true, true});
 }
 
-void checkAvg(const std::string& outName) {
-  Table tin("tNDPPP_tmp.MS");
-  Table tout(outName);
-  ScalarColumn<double> timeCol(tin, "TIME");
-  double time = 0.5 * (timeCol(tin.nrow() - 1) + timeCol(0));
-  BOOST_CHECK_EQUAL(tout.nrow(), size_t{6});
-  Block<casacore::String> colNames(2);
+void CheckAvg(const std::string& out_ms) {
+  Table table_in{kInputMs};
+  Table table_out{out_ms};
+  ScalarColumn<double> timeCol(table_in, "TIME");
+  double time = 0.5 * (timeCol(table_in.nrow() - 1) + timeCol(0));
+  BOOST_CHECK_EQUAL(table_out.nrow(), kNBaselines);
+  casacore::Block<casacore::String> colNames(2);
   colNames[0] = "ANTENNA1";
   colNames[1] = "ANTENNA2";
-  TableIterator iterin(tin, colNames);
-  TableIterator iterout(tout, colNames);
+  TableIterator iterin(table_in, colNames);
+  TableIterator iterout(table_out, colNames);
   // Iterate over baseline to be able to average the input in an easy way.
   while (!iterin.pastEnd()) {
     Table t2(iterin.table());
@@ -368,10 +370,10 @@ void checkAvg(const std::string& outName) {
         allNear(ScalarColumn<double>(t1, "TIME").getColumn(), time, 1e-5));
     BOOST_CHECK(allNear(ScalarColumn<double>(t1, "TIME_CENTROID").getColumn(),
                         time, 1e-5));
-    BOOST_CHECK(
-        allEQ(ScalarColumn<double>(t1, "INTERVAL").getColumn(), 20 * 30.));
-    BOOST_CHECK(
-        allEQ(ScalarColumn<double>(t1, "EXPOSURE").getColumn(), 20 * 30.));
+    BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "INTERVAL").getColumn(),
+                      20 * kInterval));
+    BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "EXPOSURE").getColumn(),
+                      20 * kInterval));
     // Two time entries should be flagged.
     casacore::Array<unsigned char> of = oflag.getColumn();
     BOOST_CHECK(allEQ(of(Slicer(IPosition(3, 0, 0, 0), IPosition(3, 2, 3, 1))),
@@ -384,8 +386,8 @@ void checkAvg(const std::string& outName) {
     iterout.next();
   }
   // Now check if the SPECTRAL_WINDOW table is fine.
-  Table spwin(tin.keywordSet().asTable("SPECTRAL_WINDOW"));
-  Table spwout(tout.keywordSet().asTable("SPECTRAL_WINDOW"));
+  Table spwin(table_in.keywordSet().asTable("SPECTRAL_WINDOW"));
+  Table spwout(table_out.keywordSet().asTable("SPECTRAL_WINDOW"));
   Matrix<double> cw = ArrayColumn<double>(spwout, "CHAN_WIDTH").getColumn();
   BOOST_CHECK_EQUAL(cw.size(), size_t{1});
   BOOST_CHECK(near(cw(0, 0),
@@ -404,23 +406,22 @@ void checkAvg(const std::string& outName) {
   BOOST_CHECK(allEQ(ScalarColumn<double>(spwin, "REF_FREQUENCY").getColumn(),
                     ScalarColumn<double>(spwout, "REF_FREQUENCY").getColumn()));
   // Check the TIME_RANGE in the OBSERVATION table.
-  Table obsout(tout.keywordSet().asTable("OBSERVATION"));
+  Table obsout(table_out.keywordSet().asTable("OBSERVATION"));
   Vector<double> timeRange(
       ArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
-  BOOST_CHECK(near(timeRange(0), ScalarColumn<double>(tout, "TIME")(0) - 300));
-  BOOST_CHECK(near(timeRange(1), ScalarColumn<double>(tout, "TIME")(0) + 295));
+  BOOST_CHECK(
+      near(timeRange(0), ScalarColumn<double>(table_out, "TIME")(0) - 300));
+  BOOST_CHECK(
+      near(timeRange(1), ScalarColumn<double>(table_out, "TIME")(0) + 295));
 }
 
-BOOST_AUTO_TEST_CASE(test_avg1, *utf::disabled()) {
+// Test averaging in a single step.
+BOOST_FIXTURE_TEST_CASE(test_avg_single, FixtureDirectory) {
   {
-    // Average in a single step.
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin.name=tNDPPP_tmp.MS\n";
-    // Give start and end time as actual, hence no missing timeslots.
-    ostr << "msin.starttime=03-Aug-2000/13:22:20\n";
-    ostr << "msin.endtime=03-Aug-2000/13:31:45\n";
-    ostr << "msout.name=tNDPPP_tmp.MS2\n";
+    ostr << "msin.name=" << kInputMs << '\n';
+    ostr << "msout.name=tNDPPP_tmp.avg.MS\n";
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[avg,count]\n";
     ostr << "avg.type=average\n";
@@ -428,16 +429,16 @@ BOOST_AUTO_TEST_CASE(test_avg1, *utf::disabled()) {
     ostr << "avg.freqstep=100\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  checkAvg("tNDPPP_tmp.MS2");
+  CheckAvg("tNDPPP_tmp.avg.MS");
 }
 
-BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dp3/test_avg1")) {
+// Averaging in multiple steps should be the same as above.
+BOOST_FIXTURE_TEST_CASE(test_avg_multiple, FixtureDirectory) {
   {
-    // Averaging in multiple steps should be the same as above.
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
-    ostr << "msout=tNDPPP_tmp.MS3\n";
+    ostr << "msin=" << kInputMs << '\n';
+    ostr << "msout=tNDPPP_tmp.avg.MS\n";
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[avg1,avg2,avg3,avg4]\n";
     ostr << "avg1.type=average\n";
@@ -454,44 +455,46 @@ BOOST_AUTO_TEST_CASE(test_avg2, *utf::depends_on("dp3/test_avg1")) {
     ostr << "avg4.freqstep=4\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  checkAvg("tNDPPP_tmp.MS3");
+  CheckAvg("tNDPPP_tmp.avg.MS");
 }
 
-BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dp3/test_avg2")) {
-  // Averaging in multiple steps with multiple outputs should be the same
-  // as above.
+// Averaging in multiple steps with multiple outputs should be the same, too.
+BOOST_FIXTURE_TEST_CASE(test_avg_multiple_outputs, FixtureDirectory) {
   {
     std::ofstream ostr1("tNDPPP_tmp.parset1");
     std::ofstream ostr2("tNDPPP_tmp.parset2");
     std::ofstream ostr3("tNDPPP_tmp.parset3");
     std::ofstream ostr4("tNDPPP_tmp.parset4");
     ostr1 << "checkparset=1\n";
-    ostr1 << "msin=tNDPPP_tmp.MS\n";
-    ostr1 << "msout=tNDPPP_tmp.MS4a\n";
+    ostr1 << "msin=" << kInputMs << '\n';
+    ostr1 << "msout=tNDPPP_tmp.avg1.MS\n";
     ostr1 << "msout.overwrite=true\n";
     ostr1 << "steps=[avg1]\n";
     ostr1 << "avg1.type=average\n";
     ostr1 << "avg1.timestep=5\n";
     ostr1 << "avg1.freqstep=2\n";
+
     ostr2 << "checkparset=1\n";
-    ostr2 << "msin=tNDPPP_tmp.MS4a\n";
-    ostr2 << "msout=tNDPPP_tmp.MS4b\n";
+    ostr2 << "msin=tNDPPP_tmp.avg1.MS\n";
+    ostr2 << "msout=tNDPPP_tmp.avg2.MS\n";
     ostr2 << "msout.overwrite=true\n";
     ostr2 << "steps=[avg2]\n";
     ostr2 << "avg2.type=average\n";
     ostr2 << "avg2.timestep=1\n";
     ostr2 << "avg2.freqstep=2\n";
+
     ostr3 << "checkparset=1\n";
-    ostr3 << "msin=tNDPPP_tmp.MS4b\n";
-    ostr3 << "msout=tNDPPP_tmp.MS4c\n";
+    ostr3 << "msin=tNDPPP_tmp.avg2.MS\n";
+    ostr3 << "msout=tNDPPP_tmp.avg3.MS\n";
     ostr3 << "msout.overwrite=true\n";
     ostr3 << "steps=[avg3]\n";
     ostr3 << "avg3.type=average\n";
     ostr3 << "avg3.timestep=2\n";
     ostr3 << "avg3.freqstep=1\n";
+
     ostr4 << "checkparset=1\n";
-    ostr4 << "msin=tNDPPP_tmp.MS4c\n";
-    ostr4 << "msout=tNDPPP_tmp.MS4d\n";
+    ostr4 << "msin=tNDPPP_tmp.avg3.MS\n";
+    ostr4 << "msout=tNDPPP_tmp.avg4.MS\n";
     ostr4 << "msout.overwrite=true\n";
     ostr4 << "steps=[avg4]\n";
     ostr4 << "avg4.type=average\n";
@@ -502,19 +505,19 @@ BOOST_AUTO_TEST_CASE(test_avg3, *utf::depends_on("dp3/test_avg2")) {
   dp3::base::DP3::execute("tNDPPP_tmp.parset2");
   dp3::base::DP3::execute("tNDPPP_tmp.parset3");
   dp3::base::DP3::execute("tNDPPP_tmp.parset4");
-  checkAvg("tNDPPP_tmp.MS4d");
+  CheckAvg("tNDPPP_tmp.avg4.MS");
 }
 
 // This function tests if the correct start time is used when selecting times.
-BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dp3/test_avg3")) {
+BOOST_FIXTURE_TEST_CASE(test_avg_start_time, FixtureDirectory) {
   {
     // Average in a single step.
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
+    ostr << "msin=" << kInputMs << '\n';
     // Give start a few seconds after first one, hence skip first time slot.
     ostr << "msin.starttime=03-Aug-2000/13:22:25\n";
-    ostr << "msout=tNDPPP_tmp.MS5\n";
+    ostr << "msout=tNDPPP_tmp.avg.MS\n";
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[avg]\n";
     ostr << "avg.type=average\n";
@@ -522,22 +525,27 @@ BOOST_AUTO_TEST_CASE(test_avg4, *utf::depends_on("dp3/test_avg3")) {
     ostr << "avg.freqstep=100\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  {
-    // Only check the times;
-    Table tab("tNDPPP_tmp.MS");
-    // First time to be used.
-    double time = ScalarColumn<double>(tab, "TIME")(6) + 15;
-    Table t2("tNDPPP_tmp.MS5");
-    BOOST_CHECK_EQUAL(t2.nrow(), size_t{6 * 10});
-    ScalarColumn<double> timeCol(t2, "TIME");
-    for (unsigned int i = 0; i < t2.nrow(); ++i) {
-      BOOST_CHECK(near(timeCol(i), time));
-      if (i % 6 == 5) time += 60;
-    }
+
+  // Only check the times in the averaged MS.
+  Table table_input(kInputMs);
+  // Take the first time to be used from the second time slot.
+  double expected_time =
+      ScalarColumn<double>(table_input, "TIME")(kNBaselines) + kInterval / 2;
+  Table table_avg("tNDPPP_tmp.avg.MS");
+
+  // -1: Because this test skips the first time slot.
+  // +1: For rounding (kInputMsTimeSlots - 1) / 2 up.
+  const std::size_t kExpectedTimeSlots = (kInputMsTimeSlots - 1 + 1) / 2;
+  BOOST_CHECK_EQUAL(table_avg.nrow(), kNBaselines * kExpectedTimeSlots);
+
+  ScalarColumn<double> time_column(table_avg, "TIME");
+  for (unsigned int i = 0; i < table_avg.nrow(); ++i) {
+    BOOST_CHECK_CLOSE(time_column(i), expected_time, 1e-6);
+    if ((i % kNBaselines) == (kNBaselines - 1)) expected_time += kInterval * 2;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_update1, *utf::depends_on("dp3/test_avg4")) {
+BOOST_AUTO_TEST_CASE(test_update1, *utf::disabled()) {
   // Test if update works fine.
   // In fact, it does not do anything apart from rewriting the current flags.
   // However, it should ignore the inserted time slots.

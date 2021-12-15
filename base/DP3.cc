@@ -264,7 +264,8 @@ std::shared_ptr<InputStep> DP3::makeMainSteps(
                                   dynamic_cast<Split*>(step.get());
 
   if (!endsWithOutputStep) {
-    const std::string msOutName = parset.getString("msout");
+    const std::string msOutName = parset.getString(
+        parset.isDefined("msout.name") ? "msout.name" : "msout");
     if (needsOutputStep || !msOutName.empty()) {
       std::string msName = casacore::Path(inputStep->msName()).absoluteName();
       Step::ShPtr outputStep = makeOutputStep(inputStep.get(), parset, "msout.",
