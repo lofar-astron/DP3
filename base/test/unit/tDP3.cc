@@ -545,75 +545,88 @@ BOOST_FIXTURE_TEST_CASE(test_avg_start_time, FixtureDirectory) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_update1, *utf::disabled()) {
-  // Test if update works fine.
-  // In fact, it does not do anything apart from rewriting the current flags.
-  // However, it should ignore the inserted time slots.
-  casacore::Array<bool> flags;
+namespace {
+
+/**
+ * Fixture for update tests.
+ *
+ * Besides creating a temporary directory, it also copies kInputMs into the
+ * temporary directory as kCopyMs
+ */
+class FixtureCopyInput : public FixtureDirectory {
+ public:
+  FixtureCopyInput() : FixtureDirectory() {
+    Table(kInputMs).deepCopy(kCopyMs, Table::New);
+  }
+};
+
+}  // namespace
+
+// Test if updating works fine.
+// In fact, it does not do anything apart from rewriting the current flags.
+// However, it should ignore the inserted time slots.
+BOOST_FIXTURE_TEST_CASE(test_update_basic, FixtureCopyInput) {
   {
-    Table tab("tNDPPP_tmp.MS");
-    flags = ArrayColumn<bool>(tab, "FLAG").getColumn();
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
+    ostr << "msin=" << kCopyMs << '\n';
     ostr << "msout=''\n";
     ostr << "steps=[]\n";
   }
   dp3::base::DP3::execute(kParsetFile);
+
   // Check that the flags did not change.
-  {
-    Table tab("tNDPPP_tmp.MS");
-    BOOST_CHECK(allEQ(ArrayColumn<bool>(tab, "FLAG").getColumn(), flags));
-  }
+  const Table table_input(kInputMs);
+  const Table table_copy(kCopyMs);
+  const ArrayColumn<bool> expected_flags(table_input, "FLAG");
+  const ArrayColumn<bool> flags(table_copy, "FLAG");
+  BOOST_CHECK(allEQ(flags.getColumn(), expected_flags.getColumn()));
 }
 
-BOOST_AUTO_TEST_CASE(test_update2, *utf::depends_on("dp3/test_update1")) {
-  // Test if update all flags works fine.
+// Test if updating all flags works fine.
+BOOST_FIXTURE_TEST_CASE(test_update_flags, FixtureCopyInput) {
   {
-    Table tab("tNDPPP_tmp.MS");
-    tab.deepCopy("tNDPPP_tmp.MS_copy1", Table::New);
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS_copy1\n";
+    ostr << "msin=" << kCopyMs << '\n';
     ostr << "msout=.\n";
     ostr << "steps=[preflag]\n";
     ostr << "preflag.blmin=1e6\n";  // should flag all data
   }
   dp3::base::DP3::execute(kParsetFile);
+
   // Check that all flags are true.
-  {
-    Table tab("tNDPPP_tmp.MS_copy1");
-    BOOST_CHECK(allEQ(ArrayColumn<bool>(tab, "FLAG").getColumn(), true));
-  }
+  const Table table_copy(kCopyMs);
+  const ArrayColumn<bool> flags(table_copy, "FLAG");
+  BOOST_CHECK(allEQ(flags.getColumn(), true));
 }
 
-BOOST_AUTO_TEST_CASE(test_update_scale, *utf::depends_on("dp3/test_update2")) {
-  // Test if update data works fine.
-  casacore::Array<Complex> data;
-  casacore::Array<bool> flags;
+// Test if updating data works fine.
+BOOST_FIXTURE_TEST_CASE(test_update_scale, FixtureCopyInput) {
   {
-    Table tab("tNDPPP_tmp.MS");
-    data = ArrayColumn<Complex>(tab, "DATA").getColumn();
-    flags = ArrayColumn<bool>(tab, "FLAG").getColumn();
-    tab.deepCopy("tNDPPP_tmp.MS_copy1", Table::New);
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS_copy1\n";
-    ostr << "msout=tNDPPP_tmp.MS_copy1\n";  // same name means update
+    ostr << "msin=" << kCopyMs << '\n';
+    ostr << "msout=" << kCopyMs << '\n';  // same name means update
     ostr << "steps=[scaledata]\n";
     ostr << "scaledata.coeffs=2\n";
     ostr << "scaledata.stations=*\n";
     ostr << "scaledata.scalesize=false\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  // Check that all data is doubled.
-  {
-    Table tab("tNDPPP_tmp.MS_copy1");
-    data *= Complex(2, 0);
-    BOOST_CHECK(
-        allNear(ArrayColumn<Complex>(tab, "DATA").getColumn(), data, 1e-5));
-    BOOST_CHECK(allEQ(ArrayColumn<bool>(tab, "FLAG").getColumn(), flags));
-  }
+
+  // Check that all data is doubled and that the flags remain equal.
+  const Table table_input(kInputMs);
+  const ArrayColumn<Complex> data_input(table_input, "DATA");
+  const ArrayColumn<bool> flags_input(table_input, "FLAG");
+
+  const Table table_output(kCopyMs);
+  const ArrayColumn<Complex> data_output(table_output, "DATA");
+  const ArrayColumn<bool> flags_output(table_output, "FLAG");
+
+  BOOST_CHECK(allNear(data_input.getColumn() * Complex(2, 0),
+                      data_output.getColumn(), 1e-6));
+  BOOST_CHECK(allEQ(flags_input.getColumn(), flags_output.getColumn()));
 }
 
 void checkFlags(const std::string& outName) {
@@ -698,7 +711,7 @@ void checkFlags(const std::string& outName) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_flags1, *utf::depends_on("dp3/test_update_scale")) {
+BOOST_AUTO_TEST_CASE(test_flags1, *utf::disabled()) {
   {
     // Most simple case.
     // Just flag some channels and time stamps.
