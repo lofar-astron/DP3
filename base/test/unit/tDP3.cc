@@ -41,6 +41,7 @@ BOOST_AUTO_TEST_SUITE(dp3)
 namespace {
 const std::string kInputMs = "../tNDPPP_tmp.MS";
 const std::string kCopyMs = "tNDPPP_tmp.copy.MS";
+const std::string kFlaggedMs = "tNDPPP_tmp.flag.MS";
 const std::string kParsetFile = "tDP3.parset";
 const std::size_t kNBaselines = 6;
 const double kInterval = 30;
@@ -629,21 +630,24 @@ BOOST_FIXTURE_TEST_CASE(test_update_scale, FixtureCopyInput) {
   BOOST_CHECK(allEQ(flags_input.getColumn(), flags_output.getColumn()));
 }
 
-void checkFlags(const std::string& outName) {
+namespace {
+
+void CheckFullResFlags(const std::string& out_ms) {
   // Only check the FULL_RES_FLAGS and table size.
   // The flags are created in various ways, but should be the same in all cases.
   // 3 time slots are averaged to 1.
-  Table tout(outName);
-  BOOST_CHECK_EQUAL(tout.nrow(), size_t{6 * 4});
+  const std::size_t kNOutputTimeSlots = 4;
+  Table table_out(out_ms);
+  BOOST_CHECK_EQUAL(table_out.nrow(), kNBaselines * kNOutputTimeSlots);
   // Check the full-res-flags.
   // Channels 0,2,6,7,8 are flagged everywhere.
   {
     // Input time slots 3,4 are inserted, thus flagged.
-    Table t1 = tableCommand(
+    Table table = tableCommand(
         "using style python "
         "select from $1 where rownumber() in [0:6]",
-        tout);
-    ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
+        table_out);
+    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
     BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 2, 5)),
@@ -661,11 +665,11 @@ void checkFlags(const std::string& outName) {
   }
   {
     // Input time slots 10,11 are flagged.
-    Table t1 = tableCommand(
+    Table table = tableCommand(
         "using style python "
         "select from $1 where rownumber() in [6:12]",
-        tout);
-    ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
+        table_out);
+    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
     BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 3, 5)),
@@ -679,11 +683,11 @@ void checkFlags(const std::string& outName) {
   }
   {
     // Input time slots 12-17 are not flagged.
-    Table t1 = tableCommand(
+    Table table = tableCommand(
         "using style python "
         "select from $1 where rownumber() in [12:18]",
-        tout);
-    ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
+        table_out);
+    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
     BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 5, 5)),
@@ -693,11 +697,11 @@ void checkFlags(const std::string& outName) {
   }
   {
     // Input time slot 20-23 did not exist, thus flagged in average.
-    Table t1 = tableCommand(
+    Table table = tableCommand(
         "using style python "
         "select from $1 where rownumber() in [18:24]",
-        tout);
-    ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
+        table_out);
+    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
     BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 1, 5)),
@@ -711,16 +715,16 @@ void checkFlags(const std::string& outName) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_flags1, *utf::disabled()) {
+// Common part of test_flags_basic() and test_clear().
+void CreateFlaggedMs() {
+  // Just flag some channels and time stamps.
   {
-    // Most simple case.
-    // Just flag some channels and time stamps.
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
+    ostr << "msin=" << kInputMs << '\n';
     ostr << "msin.startchan=1\n";
     ostr << "msin.nchan=12\n";
-    ostr << "msout=tNDPPP_tmp.MS5\n";
+    ostr << "msout=" << kFlaggedMs << '\n';
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[preflag,average]\n";
     ostr << "preflag.expr='flag1 or flag2'\n";
@@ -729,31 +733,38 @@ BOOST_AUTO_TEST_CASE(test_flags1, *utf::disabled()) {
     ostr << "average.timestep=6\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  checkFlags("tNDPPP_tmp.MS5");
 }
 
-BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dp3/test_flags1")) {
+}  // namespace
+
+BOOST_FIXTURE_TEST_CASE(test_flags_basic, FixtureDirectory) {
+  CreateFlaggedMs();
+  CheckFullResFlags(kFlaggedMs);
+}
+
+BOOST_FIXTURE_TEST_CASE(test_flags_shifted, FixtureDirectory) {
+  const std::string kIntermediateMs = "tNDPPP_tmp.intermediate.MS";
   {
-    // A more advanced case in two NDPPP steps.
+    // A more advanced case in two DP3 executions.
     // Flag the channels, but shifted 2. In the next step the first 2 channels
     // are skipped, thus the channel numbers shift back 2.
     // An averaged time slot is flagged, so the original time slots should
     // come out flagged.
     std::ofstream ostr1("tNDPPP_tmp.parset1");
     ostr1 << "checkparset=1\n";
-    ostr1 << "msin=tNDPPP_tmp.MS\n";
+    ostr1 << "msin=" << kInputMs << '\n';
     ostr1 << "msin.nchan=15\n";
-    ostr1 << "msout=tNDPPP_tmp.MS6a\n";
+    ostr1 << "msout=" << kIntermediateMs << '\n';
     ostr1 << "msout.overwrite=true\n";
     ostr1 << "steps=[preflag,average]\n";
     ostr1 << "preflag.chan=[2,4,8..10]\n";
     ostr1 << "average.timestep=2\n";
     std::ofstream ostr2("tNDPPP_tmp.parset2");
     ostr2 << "checkparset=1\n";
-    ostr2 << "msin=tNDPPP_tmp.MS6a\n";
+    ostr2 << "msin=" << kIntermediateMs << '\n';
     ostr2 << "msin.startchan=2*1\n";  // output chan 0,2 are now flagged
     ostr2 << "msin.nchan=nchan-3\n";
-    ostr2 << "msout=tNDPPP_tmp.MS6b\n";
+    ostr2 << "msout=" << kFlaggedMs << '\n';
     ostr2 << "msout.overwrite=true\n";
     ostr2 << "steps=[preflag,average]\n";
     ostr2 << "preflag.timeslot=5\n";  // is 10,11 in input
@@ -762,20 +773,21 @@ BOOST_AUTO_TEST_CASE(test_flags2, *utf::depends_on("dp3/test_flags1")) {
   }
   dp3::base::DP3::execute("tNDPPP_tmp.parset1");
   dp3::base::DP3::execute("tNDPPP_tmp.parset2");
-  checkFlags("tNDPPP_tmp.MS6b");
+  CheckFullResFlags(kFlaggedMs);
 }
 
-BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dp3/test_flags2")) {
+BOOST_FIXTURE_TEST_CASE(test_flags_averaged_channel, FixtureDirectory) {
+  const std::string kIntermediateMs = "tNDPPP_tmp.intermediate.MS";
   {
-    // Even a bit more advanced, also in two NDPPP runs.
+    // Even a bit more advanced, also in two DP3 executions.
     // Input channels 6,7,8 are flagged by flagging their averaged channel.
     // This is done at the end of run 1, so the averager of run 2 should pick
     // up those flags.
     std::ofstream ostr1("tNDPPP_tmp.parset1");
     ostr1 << "checkparset=1\n";
-    ostr1 << "msin=tNDPPP_tmp.MS\n";
+    ostr1 << "msin=" << kInputMs << '\n';
     ostr1 << "msin.nchan=15\n";
-    ostr1 << "msout=tNDPPP_tmp.MS7a\n";
+    ostr1 << "msout=" << kIntermediateMs << '\n';
     ostr1 << "msout.overwrite=true\n";
     ostr1 << "steps=[preflag,average,pre2]\n";
     ostr1 << "preflag.chan=[0,2]\n";
@@ -785,9 +797,9 @@ BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dp3/test_flags2")) {
     ostr1 << "pre2.chan=2\n";  // is input channel 6,7,8
     std::ofstream ostr2("tNDPPP_tmp.parset2");
     ostr2 << "checkparset=1\n";
-    ostr2 << "msin=tNDPPP_tmp.MS7a\n";
+    ostr2 << "msin=" << kIntermediateMs << '\n';
     ostr2 << "msin.nchan=4\n";
-    ostr2 << "msout=tNDPPP_tmp.MS7b\n";
+    ostr2 << "msout=" << kFlaggedMs << '\n';
     ostr2 << "msout.overwrite=true\n";
     ostr2 << "steps=[preflag,average]\n";
     ostr2 << "preflag.timeslot=5\n";  // is 10,11 in input
@@ -796,10 +808,53 @@ BOOST_AUTO_TEST_CASE(test_flags3, *utf::depends_on("dp3/test_flags2")) {
   }
   dp3::base::DP3::execute("tNDPPP_tmp.parset1");
   dp3::base::DP3::execute("tNDPPP_tmp.parset2");
-  checkFlags("tNDPPP_tmp.MS7b");
+  CheckFullResFlags(kFlaggedMs);
 }
 
-BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dp3/test_flags3")) {
+BOOST_FIXTURE_TEST_CASE(test_flags_set_clear, FixtureDirectory) {
+  const std::string kAllFlaggedMs = "tNDPPP_tmp.allflagged.MS";
+  const std::string kAllClearMs = "tNDPPP_tmp.allclear.MS";
+
+  // First flag in the same way as test_flags_basic.
+  CreateFlaggedMs();
+
+  // Check that the flags are not already set.
+  BOOST_CHECK(
+      !allEQ(ArrayColumn<bool>(Table(kFlaggedMs), "FLAG").getColumn(), true));
+
+  // Flag all data.
+  {
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kFlaggedMs << '\n';
+    ostr << "msout=" << kAllFlaggedMs << '\n';
+    ostr << "msout.overwrite=true\n";
+    ostr << "steps=[preflag]\n";
+    ostr << "preflag.baseline=[[*]]\n";
+  }
+  dp3::base::DP3::execute(kParsetFile);
+  CheckFullResFlags(kAllFlaggedMs);  // Full res flags shouldn't change.
+  BOOST_CHECK(
+      allEQ(ArrayColumn<bool>(Table(kAllFlaggedMs), "FLAG").getColumn(), true));
+
+  // Clear the flags.
+  {
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kAllFlaggedMs << '\n';
+    ostr << "msout=" << kAllClearMs << '\n';
+    ostr << "msout.overwrite=true\n";
+    ostr << "steps=[preflag]\n";
+    ostr << "preflag.mode=clear\n";
+    ostr << "preflag.baseline=[[*]]\n";
+  }
+  dp3::base::DP3::execute(kParsetFile);
+  CheckFullResFlags(kAllClearMs);  // Full res flags shouldn't change.
+  BOOST_CHECK(
+      allEQ(ArrayColumn<bool>(Table(kAllClearMs), "FLAG").getColumn(), false));
+}
+
+BOOST_AUTO_TEST_CASE(test_station_add, *utf::disabled()) {
   // Add station RT0, 1 and 2.
   {
     std::ofstream ostr(kParsetFile);
@@ -828,7 +883,7 @@ BOOST_AUTO_TEST_CASE(test_station_add, *utf::depends_on("dp3/test_flags3")) {
                     t1.nrow() + 40 + 12);  // 2 baselines and 2 time slots added
 }
 
-BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dp3/test_station_add")) {
+BOOST_AUTO_TEST_CASE(test_filter1, *utf::disabled()) {
   // Remove all baselines containing station RT1 or 6.
   {
     std::ofstream ostr(kParsetFile);
@@ -880,7 +935,7 @@ BOOST_AUTO_TEST_CASE(test_filter1, *utf::depends_on("dp3/test_station_add")) {
   BOOST_CHECK(allEQ(ScalarColumn<int>(t2s, "ANTENNA2").getColumn(), 2));
 }
 
-BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dp3/test_filter1")) {
+BOOST_AUTO_TEST_CASE(test_filter2, *utf::disabled()) {
   // Keep all baselines.
   // First by not specifying baseline selection, second by all baselines.
   // Also alter between remove and !remove.
@@ -950,7 +1005,7 @@ BOOST_AUTO_TEST_CASE(test_filter2, *utf::depends_on("dp3/test_filter1")) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dp3/test_filter2")) {
+BOOST_AUTO_TEST_CASE(test_filter3, *utf::disabled()) {
   // Remove some baselines, update original file with different data column
   // This test justs tests if it runs without throwing exceptions
   {
@@ -964,50 +1019,6 @@ BOOST_AUTO_TEST_CASE(test_filter3, *utf::depends_on("dp3/test_filter2")) {
     ostr << "filter.remove=False\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-}
-
-BOOST_AUTO_TEST_CASE(test_clear, *utf::depends_on("dp3/test_filter3")) {
-  casacore::Array<bool> flags;
-  // First flag in the same way as test_flags1.
-  test_flags1();
-  // Get the resulting flags.
-  {
-    Table tab("tNDPPP_tmp.MS5");
-    flags.reference(ArrayColumn<bool>(tab, "FLAG").getColumn());
-  }
-  // Flag all data.
-  {
-    std::ofstream ostr(kParsetFile);
-    ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS5\n";
-    ostr << "msout=tNDPPP_tmp.MS5a\n";
-    ostr << "msout.overwrite=true\n";
-    ostr << "steps=[preflag]\n";
-    ostr << "preflag.baseline=[[*]]\n";
-  }
-  dp3::base::DP3::execute(kParsetFile);
-  checkFlags("tNDPPP_tmp.MS5a");
-  {
-    Table tab("tNDPPP_tmp.MS5a");
-    BOOST_CHECK(allEQ(ArrayColumn<bool>(tab, "FLAG").getColumn(), true));
-  }
-  // Clear the flags.
-  {
-    std::ofstream ostr(kParsetFile);
-    ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS5a\n";
-    ostr << "msout=tNDPPP_tmp.MS5b\n";
-    ostr << "msout.overwrite=true\n";
-    ostr << "steps=[preflag]\n";
-    ostr << "preflag.mode=clear\n";
-    ostr << "preflag.baseline=[[*]]\n";
-  }
-  dp3::base::DP3::execute(kParsetFile);
-  checkFlags("tNDPPP_tmp.MS5b");
-  {
-    Table tab("tNDPPP_tmp.MS5b");
-    BOOST_CHECK(allEQ(ArrayColumn<bool>(tab, "FLAG").getColumn(), false));
-  }
 }
 
 BOOST_FIXTURE_TEST_CASE(test_multi_out, FixtureDirectory) {
