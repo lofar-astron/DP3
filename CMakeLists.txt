@@ -12,7 +12,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19")
 endif()
 
 # Set version number and project name.
-set(DP3_VERSION 5.1.0)
+set(DP3_VERSION 5.2.0)
 if(DP3_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)")
   set(DP3_VERSION_MAJOR "${CMAKE_MATCH_1}")
   set(DP3_VERSION_MINOR "${CMAKE_MATCH_2}")
@@ -147,11 +147,11 @@ include_directories(${AOFLAGGER_INCLUDE_DIR})
 # make it somewhat more explicit
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
-  if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.2" OR ${EVERYBEAM_VERSION}
-                                                  VERSION_GREATER "0.3.0")
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.3.0" OR ${EVERYBEAM_VERSION}
+                                                  VERSION_GREATER_EQUAL "0.4.0")
     message(
       FATAL_ERROR
-        "DP3 needs EveryBeam version 0.2.x - with x >= 2 - but found version ${EveryBeam_VERSION}"
+        "DP3 needs EveryBeam version 0.3.x - with x >= 0 - but found version ${EveryBeam_VERSION}"
     )
   endif()
   include_directories(${EVERYBEAM_INCLUDE_DIR})
