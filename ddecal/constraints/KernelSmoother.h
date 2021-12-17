@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef KERNEL_SMOOTHER_H
-#define KERNEL_SMOOTHER_H
+#ifndef DP3_DDECAL_KERNEL_SMOOTHER_H_
+#define DP3_DDECAL_KERNEL_SMOOTHER_H_
 
 #include <cmath>
 #include <complex>

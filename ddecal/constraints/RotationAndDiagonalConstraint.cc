@@ -25,9 +25,9 @@ RotationAndDiagonalConstraint::RotationAndDiagonalConstraint()
     : _res(), _doRotationReference(false) {}
 
 void RotationAndDiagonalConstraint::Initialize(
-    size_t nAntennas, size_t nDirections,
+    size_t nAntennas, const std::vector<uint32_t>& solutions_per_direction,
     const std::vector<double>& frequencies) {
-  Constraint::Initialize(nAntennas, nDirections, frequencies);
+  Constraint::Initialize(nAntennas, solutions_per_direction, frequencies);
 
   if (NDirections() != 1)  // TODO directions!
     throw std::runtime_error(
@@ -59,17 +59,19 @@ void RotationAndDiagonalConstraint::Initialize(
 
 void RotationAndDiagonalConstraint::SetWeights(
     const std::vector<double>& weights) {
-  _res[0].weights = weights;  // TODO should be nDir times
+  // weights is nAntennas * nChannelBlocks
+  _res[0].weights = weights;  // TODO should be nInterval times
 
   // Duplicate weights for two polarizations
-  _res[1].weights.resize(NAntennas() * NDirections() * NChannelBlocks() * 2);
+  _res[1].weights.resize(weights.size() * 2);
   size_t indexInWeights = 0;
-  for (auto weight : weights) {
-    _res[1].weights[indexInWeights++] = weight;  // TODO directions!
-    _res[1].weights[indexInWeights++] = weight;
+  for (double weight : weights) {
+    _res[1].weights[indexInWeights] = weight;  // TODO directions / intervals!
+    _res[1].weights[indexInWeights + 1] = weight;
+    indexInWeights += 2;
   }
 
-  _res[2].weights = _res[1].weights;  // TODO directions!
+  _res[2].weights = _res[1].weights;  // TODO directions / intervals!
 }
 
 void RotationAndDiagonalConstraint::SetDoRotationReference(
@@ -79,12 +81,9 @@ void RotationAndDiagonalConstraint::SetDoRotationReference(
 
 std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     std::vector<std::vector<std::complex<double>>>& solutions, double,
-    std::ostream* statStream) {
-  if (statStream) *statStream << "[";  // begin channel
+    [[maybe_unused]] std::ostream* statStream) {
   double angle0 = std::nan("");
   for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
-    if (statStream) *statStream << "[";  // begin antenna
-
     // First iterate over all antennas to find mean amplitudes, needed for
     // maxratio constraint below
     double amean = 0.0;
@@ -98,7 +97,7 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       }
 
       // Compute rotation
-      double angle = RotationConstraint::get_rotation(data);
+      double angle = RotationConstraint::GetRotation(data);
       // Restrict angle between -pi/2 and pi/2
       // Add 2pi to make sure that fmod doesn't see negative numbers
       angle = std::fmod(angle + 3.5 * M_PI, M_PI) - 0.5 * M_PI;
@@ -106,8 +105,10 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       // Right multiply solution with inverse rotation,
       // save only the diagonal
       // Use sin(-phi) == -sin(phi)
-      std::complex<double> a = data[0] * cos(angle) - data[1] * sin(angle);
-      std::complex<double> b = data[3] * cos(angle) + data[2] * sin(angle);
+      std::complex<double> a =
+          data[0] * std::cos(angle) - data[1] * std::sin(angle);
+      std::complex<double> b =
+          data[3] * std::cos(angle) + data[2] * std::sin(angle);
 
       double absa = std::abs(a);
       if (isfinite(absa)) {
@@ -132,17 +133,19 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       }
 
       // Compute rotation
-      double angle = RotationConstraint::get_rotation(data);
+      double angle = RotationConstraint::GetRotation(data);
 
       // Restrict angle between -pi/2 and pi/2
       // Add 2pi to make sure that fmod doesn't see negative numbers
-      angle = fmod(angle + 3.5 * M_PI, M_PI) - 0.5 * M_PI;
+      angle = std::fmod(angle + 3.5 * M_PI, M_PI) - 0.5 * M_PI;
 
       // Right multiply solution with inverse rotation,
       // save only the diagonal
       // Use sin(-phi) == -sin(phi)
-      std::complex<double> a = data[0] * cos(angle) - data[1] * sin(angle);
-      std::complex<double> b = data[3] * cos(angle) + data[2] * sin(angle);
+      std::complex<double> a =
+          data[0] * std::cos(angle) - data[1] * std::sin(angle);
+      std::complex<double> b =
+          data[3] * std::cos(angle) + data[2] * std::sin(angle);
 
       // Constrain amplitudes to 1/maxratio < amp < maxratio
       double maxratio = 5.0;
@@ -190,23 +193,16 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       _res[2].vals[ant * NChannelBlocks() * 2 + 2 * ch + 1] = std::arg(b);
 
       // Do the actual constraining
-      data[0] = a * cos(angle);
-      data[1] = -a * sin(angle);
-      data[2] = b * sin(angle);
-      data[3] = b * cos(angle);
-      if (statStream)
-        *statStream << "[" << a.real() << "+" << a.imag() << "j," << b.real()
-                    << "+" << b.imag() << "j," << angle << "]";
-      // if (pd) cout<<angle;
-      if (statStream && ant < NAntennas() - 1) *statStream << ",";
+      data[0] = a * std::cos(angle);
+      data[1] = -a * std::sin(angle);
+      data[2] = b * std::sin(angle);
+      data[3] = b * std::cos(angle);
     }
-    if (statStream) *statStream << "]";  // end antenna
-    if (statStream && ch < NChannelBlocks() - 1) *statStream << ",";
 
     // If the maxratio constraint above was enforced for any antenna, set
     // weights of all antennas to a negative value for flagging later if desired
     if (diverged) {
-      for (unsigned int ant = 0; ant < NAntennas(); ++ant) {
+      for (size_t ant = 0; ant < NAntennas(); ++ant) {
         _res[0].weights[ant * NChannelBlocks() + ch] = -1.0;
         _res[1].weights[ant * NChannelBlocks() * 2 + 2 * ch] = -1.0;
         _res[1].weights[ant * NChannelBlocks() * 2 + 2 * ch + 1] = -1.0;
@@ -215,7 +211,6 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
       }
     }
   }
-  if (statStream) *statStream << "]\t";  // end channel
 
   return _res;
 }

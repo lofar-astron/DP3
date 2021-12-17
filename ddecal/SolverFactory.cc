@@ -13,6 +13,9 @@
 #include "gain_solvers/IterativeScalarSolver.h"
 #include "gain_solvers/ScalarSolver.h"
 
+#include "constraints/AmplitudeOnlyConstraint.h"
+#include "constraints/AntennaConstraint.h"
+#include "constraints/PhaseOnlyConstraint.h"
 #include "constraints/RotationConstraint.h"
 #include "constraints/RotationAndDiagonalConstraint.h"
 #ifdef HAVE_ARMADILLO
@@ -333,13 +336,17 @@ void InitializeSolverConstraints(
     SolverBase& solver, const Settings& settings,
     const std::vector<std::array<double, 3>>& antenna_positions,
     const std::vector<std::string>& antenna_names,
+    const std::vector<size_t>& solutions_per_direction,
     const std::vector<base::Direction>& source_directions,
     const std::vector<double>& frequencies) {
   for (const std::unique_ptr<Constraint>& constraint :
        solver.GetConstraints()) {
     // Initialize the constraint with some common metadata.
-    constraint->Initialize(antenna_positions.size(), source_directions.size(),
-                           frequencies);
+    constraint->Initialize(
+        antenna_positions.size(),
+        std::vector<uint32_t>(solutions_per_direction.begin(),
+                              solutions_per_direction.end()),
+        frequencies);
 
     // Different constraints need different information. Determine if the
     // constraint is of a type that needs more information, and if so

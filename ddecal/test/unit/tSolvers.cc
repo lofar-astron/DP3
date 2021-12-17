@@ -3,6 +3,8 @@
 
 #include "SolverTester.h"
 
+#include "../../constraints/DiagonalConstraint.h"
+
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/HybridSolver.h"

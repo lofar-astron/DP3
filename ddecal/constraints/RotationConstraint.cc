@@ -9,9 +9,10 @@
 namespace dp3 {
 namespace ddecal {
 
-void RotationConstraint::Initialize(size_t nAntennas, size_t nDirections,
-                                    const std::vector<double>& frequencies) {
-  Constraint::Initialize(nAntennas, nDirections, frequencies);
+void RotationConstraint::Initialize(
+    size_t nAntennas, const std::vector<uint32_t>& solutions_per_direction,
+    const std::vector<double>& frequencies) {
+  Constraint::Initialize(nAntennas, solutions_per_direction, frequencies);
 
   if (NDirections() != 1)  // TODO directions!
     throw std::runtime_error(
@@ -31,7 +32,7 @@ void RotationConstraint::SetWeights(const std::vector<double>& weights) {
   _res[0].weights = weights;  // TODO directions!
 }
 
-double RotationConstraint::get_rotation(std::complex<double>* data) {
+double RotationConstraint::GetRotation(std::complex<double>* data) {
   // Convert to circular
   dcomplex i(0, 1.);
 
@@ -49,7 +50,7 @@ std::vector<Constraint::Result> RotationConstraint::Apply(
     for (unsigned int ant = 0; ant < NAntennas(); ++ant) {
       // Compute rotation
       dcomplex* data = &(solutions[ch][4 * ant]);
-      double angle = get_rotation(data);
+      double angle = GetRotation(data);
       _res[0].vals[ant * NChannelBlocks() + ch] = angle;  // TODO directions!
 
       // Constrain the data

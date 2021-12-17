@@ -159,9 +159,10 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     const std::vector<double> channel_block_frequencies =
         GetChannelBlockFrequencies();
     for (ddecal::SolverBase* solver : solver_->ConstraintSolvers()) {
-      InitializeSolverConstraints(*solver, settings_, used_antenna_positions,
-                                  used_antenna_names, source_directions,
-                                  channel_block_frequencies);
+      InitializeSolverConstraints(
+          *solver, settings_, used_antenna_positions, used_antenna_names,
+          std::vector<size_t>(source_directions.size(), 1), source_directions,
+          channel_block_frequencies);
     }
 
     solver_->Initialize(info().antennaUsed().size(),

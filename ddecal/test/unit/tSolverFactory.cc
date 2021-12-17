@@ -4,6 +4,10 @@
 #include "../../SolverFactory.h"
 
 #include "../../Settings.h"
+
+#include "../../constraints/AntennaConstraint.h"
+#include "../../constraints/AmplitudeOnlyConstraint.h"
+#include "../../constraints/PhaseOnlyConstraint.h"
 #include "../../constraints/RotationAndDiagonalConstraint.h"
 #include "../../constraints/RotationConstraint.h"
 
@@ -179,7 +183,9 @@ BOOST_DATA_TEST_CASE(tec_constraint,
   // For this test, only the size of these vectors matters.
   const std::vector<std::array<double, 3>> kAntennaPositions(5);
   const std::vector<std::string> kAntennaNames(kAntennaPositions.size());
-  const std::vector<dp3::base::Direction> kSourceDirections(4);
+  const size_t kNDirections = 4;
+  const std::vector<dp3::base::Direction> kSourceDirections(kNDirections);
+  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
   const std::vector<double> kFrequencies(10);
 
   dp3::common::ParameterSet parset = ParsetForMode(mode);
@@ -189,7 +195,8 @@ BOOST_DATA_TEST_CASE(tec_constraint,
     const Settings settings(parset, "");
     std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                                kAntennaNames, kSourceDirections, kFrequencies);
+                                kAntennaNames, kSolutionsPerDirecton,
+                                kSourceDirections, kFrequencies);
 
     const Constraint& constraint =
         CheckConstraintType<dp3::ddecal::TECConstraint>(*solver);
@@ -206,7 +213,8 @@ BOOST_DATA_TEST_CASE(tec_constraint,
     const Settings settings(parset, "");
     std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                                kAntennaNames, kSourceDirections, kFrequencies);
+                                kAntennaNames, kSolutionsPerDirecton,
+                                kSourceDirections, kFrequencies);
 
     const Constraint& constraint =
         CheckConstraintType<dp3::ddecal::ApproximateTECConstraint>(*solver);
@@ -224,6 +232,8 @@ BOOST_AUTO_TEST_CASE(screen_constraint) {
   const std::vector<std::array<double, 3>> kAntennaPositions{
       {1.0, 1.0, 1.0}, {100.0, 1.0, 1.0}, {1.0, 1.0, 2.0}};
   const std::vector<std::string> kAntennaNames(3);
+  const size_t kNDirections = 2;
+  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
   const std::vector<dp3::base::Direction> kSourceDirections{{0.1, 0.1},
                                                             {0.3, 0.3}};
   const std::vector<double> kFrequencies{42.0, 43.0, 44.0, 45.0};
@@ -237,7 +247,8 @@ BOOST_AUTO_TEST_CASE(screen_constraint) {
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourceDirections, kFrequencies);
+                              kAntennaNames, kSolutionsPerDirecton,
+                              kSourceDirections, kFrequencies);
 
   const ScreenConstraint& constraint =
       CheckConstraintType<ScreenConstraint>(*solver);
@@ -289,7 +300,9 @@ BOOST_AUTO_TEST_CASE(core_constraint) {
       {1.0, 1.0, 1.0}, {100.0, 1.0, 1.0}, {1.0, 1.0, 2.0}};
   const std::vector<std::set<size_t>> kExpectedAntennaSets{{0, 2}};
   const std::vector<std::string> kAntennaNames(3);
-  const std::vector<dp3::base::Direction> kSourceDirections(5);
+  const size_t kNDirections = 5;
+  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
+  const std::vector<dp3::base::Direction> kSourceDirections(kNDirections);
   const std::vector<double> kFrequencies{42.0, 43.0, 44.0, 45.0};
 
   dp3::common::ParameterSet parset = ParsetForMode("diagonal");
@@ -298,7 +311,8 @@ BOOST_AUTO_TEST_CASE(core_constraint) {
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourceDirections, kFrequencies);
+                              kAntennaNames, kSolutionsPerDirecton,
+                              kSourceDirections, kFrequencies);
 
   const AntennaConstraint& constraint =
       CheckConstraintType<AntennaConstraint>(*solver);
@@ -314,7 +328,9 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
                                                "bar", "Piet", "7TiMeS6"};
   const std::vector<std::set<size_t>> kExpectedAntennaSets{
       {1, 3, 5}, {1, 4}, {0, 3}};
-  const std::vector<dp3::base::Direction> kSourceDirections(5);
+  const size_t kNDirections = 5;
+  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
+  const std::vector<dp3::base::Direction> kSourceDirections(kNDirections);
   const std::vector<double> kFrequencies{42.0};
 
   dp3::common::ParameterSet parset = ParsetForMode("scalar");
@@ -323,7 +339,8 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourceDirections, kFrequencies);
+                              kAntennaNames, kSolutionsPerDirecton,
+                              kSourceDirections, kFrequencies);
 
   const AntennaConstraint& constraint =
       CheckConstraintType<AntennaConstraint>(*solver);
@@ -336,8 +353,10 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
 BOOST_AUTO_TEST_CASE(antenna_constraint_invalid) {
   const std::vector<std::array<double, 3>> kAntennaPositions(2);
   const std::vector<std::string> kAntennaNames{"foo", "bar"};
-  const std::vector<dp3::base::Direction> kSourceDirections(5);
+  const size_t kNDirections = 5;
+  const std::vector<dp3::base::Direction> kSourceDirections(kNDirections);
   const std::vector<double> kFrequencies{42.0};
+  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
 
   // Settings::ReadAntennaConstraint already catches syntax errors in the parset
   // value. The SolverFactory catches semantic errors, such as invalid names.
@@ -350,7 +369,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint_invalid) {
 
   BOOST_CHECK_THROW(InitializeSolverConstraints(
                         *solver, settings, kAntennaPositions, kAntennaNames,
-                        kSourceDirections, kFrequencies),
+                        kSolutionsPerDirecton, kSourceDirections, kFrequencies),
                     std::runtime_error);
 }
 
@@ -358,10 +377,12 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
   const std::vector<std::array<double, 3>> kAntennaPositions{
       {1, 1, 1}, {2, 1, 1}, {1, 3, 1}, {1, 1, 4}};
   const std::vector<std::string> kAntennaNames(kAntennaPositions.size());
+  const size_t kNDirections = 1;
   const std::vector<dp3::base::Direction> kSourceDirections(1);
   const std::vector<double> kFrequencies{42.0};
   const std::vector<double> kExpectedDistanceFactors(kAntennaPositions.size(),
                                                      1.0);
+  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
 
   dp3::common::ParameterSet parset = ParsetForMode("scalar");
   parset.add("smoothnessconstraint", "1");
@@ -370,7 +391,8 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourceDirections, kFrequencies);
+                              kAntennaNames, kSolutionsPerDirecton,
+                              kSourceDirections, kFrequencies);
 
   const SmoothnessConstraint& constraint =
       CheckConstraintType<SmoothnessConstraint>(*solver);
@@ -385,8 +407,10 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_with_ref_distance) {
       {1, 1, 1}, {2, 1, 1}, {1, 7, 1}, {1, 1, 8}};
   const std::vector<std::string> kAntennaNames(kAntennaPositions.size());
   const std::vector<dp3::base::Direction> kSourceDirections(1);
+  const size_t kNDirections = 1;
   const std::vector<double> kFrequencies{142.0};
   const std::vector<double> kExpectedDistanceFactors{42, 42, 7, 6};
+  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
 
   dp3::common::ParameterSet parset = ParsetForMode("diagonal");
   parset.add("smoothnessconstraint", "1");
@@ -396,7 +420,8 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_with_ref_distance) {
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
-                              kAntennaNames, kSourceDirections, kFrequencies);
+                              kAntennaNames, kSolutionsPerDirecton,
+                              kSourceDirections, kFrequencies);
 
   const SmoothnessConstraint& constraint =
       CheckConstraintType<SmoothnessConstraint>(*solver);

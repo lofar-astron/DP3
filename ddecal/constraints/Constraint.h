@@ -1,12 +1,10 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef CONSTRAINT_H
-#define CONSTRAINT_H
+#ifndef DP3_DDECAL_CONSTRAINT_H_
+#define DP3_DDECAL_CONSTRAINT_H_
 
 #include <complex>
-#include <memory>
-#include <set>
 #include <vector>
 #include <ostream>
 
@@ -36,7 +34,10 @@ class Constraint {
   };
 
   Constraint()
-      : n_antennas_(0), n_directions_(0), n_channel_blocks_(0), n_threads_(1) {}
+      : n_antennas_(0),
+        n_channel_blocks_(0),
+        n_threads_(1),
+        solutions_per_direction_() {}
 
   virtual ~Constraint() {}
 
@@ -85,10 +86,11 @@ class Constraint {
    * something more than assigning dimensions is needed (e.g. resizing vectors).
    * @param frequencies For each channel block, the mean frequency.
    */
-  virtual void Initialize(size_t nAntennas, size_t nDirections,
+  virtual void Initialize(size_t n_antennas,
+                          const std::vector<uint32_t>& solutions_per_direction,
                           const std::vector<double>& frequencies) {
-    n_antennas_ = nAntennas;
-    n_directions_ = nDirections;
+    n_antennas_ = n_antennas;
+    solutions_per_direction_ = solutions_per_direction;
     n_channel_blocks_ = frequencies.size();
   }
 
@@ -111,7 +113,7 @@ class Constraint {
                           [[maybe_unused]] double duration) const {}
 
   size_t NAntennas() const { return n_antennas_; }
-  size_t NDirections() const { return n_directions_; }
+  size_t NDirections() const { return solutions_per_direction_.size(); }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
   size_t NThreads() const { return n_threads_; }
 
@@ -120,76 +122,8 @@ class Constraint {
   }
 
  private:
-  size_t n_antennas_, n_directions_, n_channel_blocks_, n_threads_;
-};
-
-/**
- * @brief This class constraints the amplitudes of the solution to be unity, but
- * keeps the phase.
- */
-class PhaseOnlyConstraint : public Constraint {
- public:
-  PhaseOnlyConstraint(){};
-
-  virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* statStream);
-};
-
-/**
- * @brief This class constraints the phases of the solution to be zero, but
- * keeps the amplitude information.
- */
-class AmplitudeOnlyConstraint : public Constraint {
- public:
-  AmplitudeOnlyConstraint(){};
-
-  virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* statStream) final override;
-};
-
-class DiagonalConstraint : public Constraint {
- public:
-  DiagonalConstraint(size_t polsPerSolution)
-      : _polsPerSolution(polsPerSolution){};
-
-  virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* statStream) final override;
-
- private:
-  const size_t _polsPerSolution;
-};
-
-/**
- * @brief This constraint averages the solutions of several groups of antennas,
- * so that antennas within the same group have equal solutions.
- *
- * The DDE solver can use this constraint e.g. to average the solutions of
- * the core antennas. Core antennas are determined by a given maximum distance
- * from a reference antenna. The reference antenna is by default the first
- * antenna. This constraint is meant to force all core stations to
- * have the same solution, thereby decreasing the noise in their solutions.
- */
-class AntennaConstraint : public Constraint {
- public:
-  AntennaConstraint() {}
-
-  void SetAntennaSets(std::vector<std::set<size_t>>&& antenna_sets) {
-    antenna_sets_ = std::move(antenna_sets);
-  }
-
-  const std::vector<std::set<size_t>>& GetAntennaSets() const {
-    return antenna_sets_;
-  }
-
-  virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* statStream) final override;
-
- private:
-  std::vector<std::set<size_t>> antenna_sets_;
+  size_t n_antennas_, n_channel_blocks_, n_threads_;
+  std::vector<uint32_t> solutions_per_direction_;
 };
 
 }  // namespace ddecal

@@ -295,7 +295,6 @@ add_library(
   ddecal/SolutionResampler.cc
   ddecal/SolutionWriter.cc
   ddecal/SolverFactory.cc
-  ddecal/constraints/Constraint.cc
   ddecal/constraints/RotationAndDiagonalConstraint.cc
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
