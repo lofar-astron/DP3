@@ -47,29 +47,37 @@ class Simulator : public ModelComponentVisitor {
             casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
             bool stokesIOnly);
 
+  // Note DuoMatrix is actually two T matrices
+  // T: floating point type, ideally float, double, or long double.
   template <typename T>
-  class Matrix {
+  class DuoMatrix {
    public:
-    Matrix() : itsNRows(0){};
+    DuoMatrix() : itsNRows(0){};
 
-    Matrix(size_t nrows, size_t ncols) { resize(nrows, ncols); }
+    DuoMatrix(size_t nrows, size_t ncols) { resize(nrows, ncols); }
 
     void resize(size_t nrows, size_t ncols) {
       itsNRows = nrows;
-      itsData.resize(nrows * ncols);
+      itsData_real.resize(nrows * ncols);
+      itsData_imag.resize(nrows * ncols);
     }
 
     size_t nRows() { return itsNRows; }
-    size_t nCols() { return itsData.size() / itsNRows; }
+    size_t nCols() { return itsData_real.size() / itsNRows; }
 
-    T& operator()(size_t row, size_t col) {
-      return itsData[col * itsNRows + row];
+    T& real(size_t row, size_t col) {
+      return itsData_real[col * itsNRows + row];
     }
-
-    T* data() { return &itsData[0]; }
+    T& imag(size_t row, size_t col) {
+      return itsData_imag[col * itsNRows + row];
+    }
+    T* realdata() { return &itsData_real[0]; }
+    T* imagdata() { return &itsData_imag[0]; }
 
    private:
-    std::vector<T> itsData;
+    // Use separate storage for real/imag parts
+    std::vector<T> itsData_real;
+    std::vector<T> itsData_imag;
     size_t itsNRows;
   };
 
@@ -89,9 +97,9 @@ class Simulator : public ModelComponentVisitor {
   const casacore::Vector<double> itsChanWidths;
   const casacore::Matrix<double> itsStationUVW;
   casacore::Cube<dcomplex> itsBuffer;
-  Matrix<dcomplex> itsShiftBuffer;
   std::vector<double> itsStationPhases;
-  Matrix<dcomplex> itsSpectrumBuffer;
+  DuoMatrix<double> itsShiftBuffer;
+  DuoMatrix<double> itsSpectrumBuffer;
 };
 
 /// @}
