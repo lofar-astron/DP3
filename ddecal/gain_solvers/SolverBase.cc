@@ -38,11 +38,18 @@ SolverBase::SolverBase()
 void SolverBase::Initialize(
     size_t n_antennas, const std::vector<size_t>& n_solutions_per_direction,
     size_t n_channel_blocks) {
-  n_antennas_ = n_antennas;
   n_directions_ = n_solutions_per_direction.size();
-  n_channel_blocks_ = n_channel_blocks;
   n_solutions_ = std::accumulate(n_solutions_per_direction.begin(),
                                  n_solutions_per_direction.end(), 0u);
+  if (!SupportsDdSolutionIntervals() && (n_solutions_ != n_directions_)) {
+    throw std::runtime_error(
+        "DD interval solutions not supported for selected Solver. Please "
+        "select a different solver algorithm or remove "
+        "ddecal.solutions_per_direction from your parset.");
+  }
+
+  n_antennas_ = n_antennas;
+  n_channel_blocks_ = n_channel_blocks;
   assert(n_solutions_ != 0);
   assert(n_directions_ != 0);
 }
@@ -88,8 +95,9 @@ void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
 }
 
 void SolverBase::PrepareConstraints() {
-  for (std::unique_ptr<Constraint>& c : constraints_)
+  for (std::unique_ptr<Constraint>& c : constraints_) {
     c->PrepareIteration(false, 0, false);
+  }
 }
 
 bool SolverBase::ApplyConstraints(

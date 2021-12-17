@@ -34,7 +34,11 @@ inputs:
   solint:
     default: 1
     type: int
-    doc: Solution interval in timesteps `.`
+    doc: Solution interval in timesteps. If a value of 0 is specified, the solver will use a single solution interval that covers the entire observation `.`
+  solutions_per_direction:
+    default: "[1,1,...,1]"
+    type: list
+    doc: List of number of subsolutions per solution interval per direction. Defaults to a single solution per solution interval per direction. Entries in provided list should be integer divisors of solint. If not all directions are specified, missing directions are solved with one solution per solution interval. `.`
   usebeammodel:
     default: false
     type: bool
@@ -176,9 +180,8 @@ inputs:
   modelnextsteps:
     type: list
     default: "[]"
-    doc: Defines the steps that will be applied to the model in every direction before using the output for calibration. 
+    doc: Defines the steps that will be applied to the model in every direction before using the output for calibration.
   modelnextsteps.<direction>:
     type: string
     doc: >-
       Allows steps to be defined for a specific direction. These directions, (given in the `<direction>` placeholder) can be specified by their model column name, the name of a DS9 region, or the first patch name in the direction if using a sky model. For example: `modelnextsteps.MODEL_DATA_2=[applyextrabeam], applyextrabeam.type=applybeam` `.`
-

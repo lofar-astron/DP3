@@ -5,7 +5,7 @@ import pytest
 import os
 import shutil
 import uuid
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError, STDOUT
 import numpy as np
 
 # Append current directory to system path in order to import testconfig
@@ -83,7 +83,8 @@ def create_corrupted_visibilities():
     )
 
     # Modify h5 file for multiple solution intervals
-    import h5py # Don't import h5py when pytest is only collecting tests.
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
     h5file = h5py.File("instrumentcorrupted.h5", "r+")
     sol = h5file["sol000/amplitude000/val"]
     sol[:4, ..., 0, :] = np.sqrt(5)
@@ -338,6 +339,47 @@ def test_check_tec_and_phase():
             "ddecal.h5parm=instrument-tecandphase.h5 ddecal.mode=tecandphase",
         ]
     )
+
+
+@pytest.mark.parametrize(
+    "solutions_per_direction", [None, [1], [2, 3, 1], [5, 5, 5], [2, 0]]
+)
+def test_dd_solution_intervals(solutions_per_direction):
+    base_command = [
+        tcf.DP3EXE,
+        "checkparset=1",
+        "numthreads=1",
+        f"msin={MSIN}",
+        "msout=.",
+        "steps=[ddecal]",
+        f"ddecal.sourcedb={MSIN}/sky",
+        "ddecal.solint=6",
+        "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+        "ddecal.h5parm=instrument-tec.h5",
+        "ddecal.mode=scalaramplitude",
+        "ddecal.solveralgorithm=directioniterative",
+    ]
+    try:
+        check_output(
+            base_command
+            if solutions_per_direction is None
+            else base_command
+            + [f"ddecal.solutions_per_direction={solutions_per_direction}"],
+            stderr=STDOUT,
+        )
+    except CalledProcessError as e:
+        if solutions_per_direction == [5, 5, 5]:
+            if not e.output.decode().startswith(
+                "\nstd exception detected: Values in ddecal"
+            ):
+                raise e
+        elif solutions_per_direction == [2, 0]:
+            if not e.output.decode().startswith(
+                "\nstd exception detected: All entries in ddecal"
+            ):
+                raise e
+        else:
+            raise (e)
 
 
 def test_modelnextsteps(copy_data_to_model_data):

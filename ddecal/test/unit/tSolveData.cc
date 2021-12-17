@@ -224,8 +224,8 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
                        cb_data.NVisibilities());
     BOOST_TEST_REQUIRE(cb_data.SolutionMap(1).size() ==
                        cb_data.NVisibilities());
-    BOOST_TEST(cb_data.NSolutionsForDirection(0) == 1);
-    BOOST_TEST(cb_data.NSolutionsForDirection(1) == 2);
+    BOOST_TEST(cb_data.NSolutionsForDirection(0) == 1u);
+    BOOST_TEST(cb_data.NSolutionsForDirection(1) == 2u);
     BOOST_TEST(cb_data.SolutionIndex(0, 0) == 0);
     BOOST_TEST(cb_data.SolutionIndex(1, 0) == 1);
     BOOST_TEST(cb_data.SolutionIndex(1, cb_data.NVisibilities() - 1) == 2);

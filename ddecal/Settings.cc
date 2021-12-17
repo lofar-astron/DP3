@@ -111,7 +111,28 @@ Settings::Settings(const common::ParameterSet& _parset,
       idg_image_filenames(GetStringVector("idg.images")),
 
       directions(GetStringVector("directions")),
+      n_solutions_per_direction(
+          GetSizeTVector("solutions_per_direction",
+                         std::vector<size_t>(directions.size(), 1u))),
       source_db(GetString("sourcedb", "")) {
+  if (!directions.empty()) {
+    if (n_solutions_per_direction.size() < directions.size()) {
+      // Append ones to match number of directions
+      const size_t count = directions.size() - n_solutions_per_direction.size();
+      n_solutions_per_direction.insert(n_solutions_per_direction.end(), count,
+                                       1u);
+    } else if (n_solutions_per_direction.size() > directions.size()) {
+      throw std::runtime_error(
+          "The size of ddecal.solutions_per_direction should be less or equal "
+          "than the number of directions.");
+    }
+
+    if (*std::min_element(n_solutions_per_direction.begin(),
+                          n_solutions_per_direction.end()) == 0) {
+      throw std::runtime_error(
+          "All entries in ddecal.solutions_per_direction should be > 0.");
+    }
+  }
   // After construction, the parset object will become invalid at some point.
   parset = nullptr;
 }
@@ -123,6 +144,14 @@ bool Settings::GetBool(const std::string& key, bool default_value) const {
 unsigned int Settings::GetUint(const std::string& key,
                                unsigned int default_value) const {
   return parset->getUint(name + key, default_value);
+}
+
+std::vector<size_t> Settings::GetSizeTVector(
+    const std::string& key, const std::vector<size_t>& default_value) const {
+  std::vector<unsigned int> uint_vector = parset->getUintVector(
+      name + key,
+      std::vector<unsigned int>(default_value.begin(), default_value.end()));
+  return std::vector<size_t>(uint_vector.begin(), uint_vector.end());
 }
 
 double Settings::GetDouble(const std::string& key, double default_value) const {

@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to apply a calibration correction to the data.
+/// @brief DP3 step class to apply a calibration correction to the data.
 /// @author Tammo Jan Dijkema
 
-#ifndef DPPP_DDECAL_H
-#define DPPP_DDECAL_H
+#ifndef DP3_DDECAL_H
+#define DP3_DDECAL_H
 
 #include "ApplyBeam.h"
 #include "GainCal.h"
@@ -122,7 +122,8 @@ class DDECal : public Step {
   double itsAvgTime;
 
   /// For each time, for each channel block, a vector of size nAntennas *
-  /// nDirections
+  /// SolverBase::NSolutions() * nPolarizations, with nPolarizations changing
+  /// fastest.
   std::vector<std::vector<std::vector<casacore::DComplex>>> itsSols;
   std::vector<size_t> itsNIter,  // Number of iterations taken
       itsNApproxIter;
@@ -138,6 +139,8 @@ class DDECal : public Step {
   /// Number of timeslots to store per solution interval as requested
   /// by the user in the parset.
   size_t itsRequestedSolInt;
+  /// For each direction, a number of solutions per solution interval
+  std::vector<size_t> itsSolutionsPerDirection;
   size_t itsSolIntCount;  ///< Number of solution intervals to buffer
   size_t itsNSolInts;     ///< Total number of created solution intervals
   /// The current amount of solution intervals in itsSolInts
@@ -151,8 +154,6 @@ class DDECal : public Step {
   std::vector<double> itsChanBlockFreqs;
   /// For each direction, a vector of patches.
   std::vector<std::vector<std::string>> itsDirections;
-  /// For each direction, a number of solutions per solution interval
-  std::vector<size_t> itsSolutionsPerDirection;
   /// Maps direction indices to the cluster central direction.
   std::vector<base::Direction> itsSourceDirections;
   /// Normally, the solver takes the model data and modifies it, thereby

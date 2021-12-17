@@ -24,6 +24,7 @@
 #ifdef HAVE_ARMADILLO
 #include "../ddecal/constraints/ScreenConstraint.h"
 #endif
+#include "../ddecal/SolutionResampler.h"
 #include "../ddecal/constraints/SmoothnessConstraint.h"
 #include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/gain_solvers/SolverBuffer.h"
@@ -90,6 +91,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsSolutionWriter(itsSettings.h5parm_name),
       itsTimeStep(0),
       itsRequestedSolInt(itsSettings.solution_interval),
+      itsSolutionsPerDirection(itsSettings.n_solutions_per_direction),
       itsSolIntCount(1),
       itsNSolInts(0),
       itsBufferedSolInts(0),
@@ -107,13 +109,43 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
   initializeIDG(parset, prefix);
   initializePredictSteps(parset, prefix);
 
-  // TODO: should be read from parset
-  itsSolutionsPerDirection.assign(itsDirections.size(), 1);
-
-  if (itsDirections.size() == 0)
+  if (itsDirections.size() == 0) {
     throw std::runtime_error(
         "DDECal initialized with 0 directions: something is wrong with your "
         "parset or your sourcedb");
+  }
+
+  // To be compatible with IDGPredict and a predict with a
+  // provided source_db, fill itsSolutionPerDirection if it's
+  // empty at this stage.
+  if (itsSolutionsPerDirection.empty()) {
+    itsSolutionsPerDirection.assign(itsDirections.size(), 1);
+  }
+
+  const size_t max_n_solutions_per_direction = *std::max_element(
+      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end());
+
+  for (const size_t val : itsSolutionsPerDirection) {
+    if (itsRequestedSolInt % val) {
+      throw std::runtime_error(
+          "Values in ddecal.nsoltuionsperdirection should be integer divisors "
+          "of solint");
+    }
+  }
+
+  // Since info().ntime() might not be set at this stage, also throw an error
+  // in case itsRequestedSolInt equals 0, and any of the solves per direction >
+  // 1
+  const size_t actual_solution_interval =
+      (max_n_solutions_per_direction > 1)
+          ? itsRequestedSolInt / max_n_solutions_per_direction
+          : max_n_solutions_per_direction;
+  if (actual_solution_interval == 0) {
+    throw std::runtime_error(
+        "Maximum value in ddecal.solutions_per_direction is larger than "
+        "dde.solint value OR provided dde.solint equals 0 in combination with "
+        "dde.solutions_per_direction entries > 1.");
+  }
 }
 
 DDECal::~DDECal() {}
@@ -462,7 +494,9 @@ void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
             itsSolver->GetMaxIterations() &&
         itsSettings.propagate_converged_only) {
       // initialize solutions with unity matrix [1 0 ; 0 1].
-      size_t n = itsDirections.size() * info().antennaUsed().size();
+      const size_t n_solutions = std::accumulate(
+          itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+      const size_t n = n_solutions * info().antennaUsed().size();
       for (std::vector<casacore::DComplex>& solvec :
            itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
         solvec.resize(n * 4);
@@ -480,7 +514,9 @@ void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
     }
   } else {
     // initialize solutions with unity matrix [1 0 ; 0 1].
-    size_t n = itsDirections.size() * info().antennaUsed().size();
+    const size_t n_solutions = std::accumulate(
+        itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+    const size_t n = n_solutions * info().antennaUsed().size();
     for (std::vector<casacore::DComplex>& solvec :
          itsSols[itsSolIntBuffers[bufferIndex].NSolution()]) {
       solvec.resize(n * 4);
@@ -775,11 +811,31 @@ void DDECal::WriteSolutions() {
                               "step " + itsSettings.name + " in parset: \n" +
                               itsSettings.parset_string;
 
-  itsSolutionWriter.Write(itsSols, itsConstraintSols, info().startTime(),
-                          info().timeInterval() * itsSettings.solution_interval,
-                          itsSettings.mode, used_antenna_names,
-                          itsSourceDirections, itsDirections,
-                          info().chanFreqs(), itsChanBlockFreqs, history);
+  const size_t n_directions = itsSolutionsPerDirection.size();
+  const size_t n_solutions = std::accumulate(
+      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+  if (n_solutions == n_directions) {
+    itsSolutionWriter.Write(itsSols, itsConstraintSols, info().startTime(),
+                            info().timeInterval() * itsRequestedSolInt,
+                            itsSettings.mode, used_antenna_names,
+                            itsSourceDirections, itsDirections,
+                            info().chanFreqs(), itsChanBlockFreqs, history);
+  } else {
+    const size_t n_antennas = used_antenna_names.size();
+    ddecal::SolutionResampler resampler(itsSolutionsPerDirection, n_antennas,
+                                        itsSolver->NSolutionPolarizations(),
+                                        itsRequestedSolInt);
+    const size_t solution_interval =
+        itsRequestedSolInt / resampler.GetNrSubSteps();
+
+    std::vector<std::vector<std::vector<casacore::DComplex>>>
+        upsampled_solutions = resampler.Upsample(itsSols);
+    itsSolutionWriter.Write(
+        upsampled_solutions, itsConstraintSols, info().startTime(),
+        info().timeInterval() * solution_interval, itsSettings.mode,
+        used_antenna_names, itsSourceDirections, itsDirections,
+        info().chanFreqs(), itsChanBlockFreqs, history);
+  }
 
   itsTimerWrite.stop();
   itsTimer.stop();

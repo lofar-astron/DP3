@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <numeric>
+#include <algorithm>
 
 using dp3::base::CalType;
 using dp3::common::operator<<;
