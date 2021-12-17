@@ -292,6 +292,7 @@ add_library(
   steps/BdaDdeCal.cc
   steps/DDECal.cc
   ddecal/Settings.cc
+  ddecal/SolutionResampler.cc
   ddecal/SolutionWriter.cc
   ddecal/SolverFactory.cc
   ddecal/constraints/Constraint.cc
@@ -573,6 +574,7 @@ if(BUILD_TESTING)
       common/test/unit/tStringTools.cc
       base/test/unit/tDPInfo.cc
       base/test/unit/tSimulator.cc
+      ddecal/test/unit/tSolutionResampler.cc
       ddecal/test/unit/tSolveData.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc

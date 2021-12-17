@@ -47,6 +47,13 @@ struct Settings {
                        unsigned int default_value) const;
 
   /**
+   * @brief Retrieve unsigned integer vector from the parset. If not found,
+   * the default vector is returned.
+   */
+  std::vector<size_t> GetSizeTVector(
+      const std::string& key, const std::vector<size_t>& default_value) const;
+
+  /**
    * Retrieve an optional double from the parset.
    */
   double GetDouble(const std::string& key, double default_value) const;
@@ -121,6 +128,7 @@ struct Settings {
   const std::vector<std::string> idg_image_filenames;
 
   const std::vector<std::string> directions;
+  std::vector<size_t> n_solutions_per_direction;
   const std::string source_db;
 };
 
