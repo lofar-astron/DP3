@@ -8,8 +8,8 @@
  * @date 2017-02-01
  */
 
-#ifndef SCREEN_FITTER_H
-#define SCREEN_FITTER_H
+#ifndef DP3_DDECAL_SCREEN_FITTER_H_
+#define DP3_DDECAL_SCREEN_FITTER_H_
 
 #include <armadillo>
 #include <vector>

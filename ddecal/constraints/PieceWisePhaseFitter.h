@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef PIECE_WISE_PHASE_FITTER_H
-#define PIECE_WISE_PHASE_FITTER_H
+#ifndef DP3_DDECAL_PIECE_WISE_PHASE_FITTER_H_
+#define DP3_DDECAL_PIECE_WISE_PHASE_FITTER_H_
 
 #include <algorithm>
 #include <iterator>

@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef ROTATIONANDDIAGONAL_CONSTRAINT_H
-#define ROTATIONANDDIAGONAL_CONSTRAINT_H
+#ifndef DP3_DDECAL_ROTATIONANDDIAGONAL_CONSTRAINT_H_
+#define DP3_DDECAL_ROTATIONANDDIAGONAL_CONSTRAINT_H_
 
 #include "Constraint.h"
 
@@ -19,7 +19,8 @@ class RotationAndDiagonalConstraint final : public Constraint {
   std::vector<Result> Apply(std::vector<std::vector<dcomplex>>& solutions,
                             double time, std::ostream* statStream) override;
 
-  void Initialize(size_t nAntennas, size_t nDirections,
+  void Initialize(size_t nAntennas,
+                  const std::vector<uint32_t>& solutions_per_direction,
                   const std::vector<double>& frequencies) override;
 
   void SetWeights(const std::vector<double>& weights) override;

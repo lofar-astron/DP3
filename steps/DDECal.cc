@@ -360,9 +360,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
 
   for (ddecal::SolverBase* solver : itsSolver->ConstraintSolvers()) {
-    InitializeSolverConstraints(*solver, itsSettings, used_antenna_positions,
-                                used_antenna_names, itsSourceDirections,
-                                itsChanBlockFreqs);
+    InitializeSolverConstraints(
+        *solver, itsSettings, used_antenna_positions, used_antenna_names,
+        std::vector<size_t>(itsSourceDirections.size(),
+                            1),  // TODO support dd intervals
+        itsSourceDirections, itsChanBlockFreqs);
   }
 
   size_t nSt = info().antennaUsed().size();

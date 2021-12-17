@@ -6,8 +6,8 @@
 
 #include <aocommon/parallelfor.h>
 
-#ifndef SMOOTHNESS_CONSTRAINT_H
-#define SMOOTHNESS_CONSTRAINT_H
+#ifndef DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
+#define DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
 
 namespace dp3 {
 namespace ddecal {
@@ -21,17 +21,18 @@ class SmoothnessConstraint : public Constraint {
    * @param bandwidthRefFrequencyHz may be zero to have a constant kernel size
    * over frequency.
    */
-  SmoothnessConstraint(double bandwidthHz, double bandwidthRefFrequencyHz);
+  SmoothnessConstraint(double bandwidth_hz, double bandwidth_ref_frequency_hz);
 
   std::vector<Constraint::Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double,
-      std::ostream* statStream) final override;
+      std::vector<std::vector<dcomplex>>& solutions, double time,
+      std::ostream* stat_stream) final override;
 
   void SetWeights(const std::vector<double>& weights) final override {
-    _weights = weights;
+    weights_ = weights;
   }
 
-  void Initialize(size_t nAntennas, size_t nDirections,
+  void Initialize(size_t nAntennas,
+                  const std::vector<uint32_t>& solutions_per_direction,
                   const std::vector<double>& frequencies) final override;
 
   /**
@@ -43,15 +44,15 @@ class SmoothnessConstraint : public Constraint {
   void SetDistanceFactors(std::vector<double>&& antennaDistanceFactors);
 
   const std::vector<double>& GetDistanceFactors() const {
-    return _antennaDistanceFactors;
+    return antenna_distance_factors_;
   }
 
   struct FitData {
     FitData(const std::vector<double>& frequencies,
-            Smoother::KernelType kernelType, double kernelBandwidth,
-            double bandwidthRefFrequencyHz)
-        : smoother(frequencies, kernelType, kernelBandwidth,
-                   bandwidthRefFrequencyHz),
+            Smoother::KernelType kernel_type, double kernel_bandwidth,
+            double bandwidth_ref_frequency_hz)
+        : smoother(frequencies, kernel_type, kernel_bandwidth,
+                   bandwidth_ref_frequency_hz),
           data(frequencies.size()),
           weight(frequencies.size()) {}
 
@@ -59,14 +60,14 @@ class SmoothnessConstraint : public Constraint {
     std::vector<dcomplex> data;
     std::vector<double> weight;
   };
-  std::vector<FitData> _fitData;
-  std::vector<double> _frequencies;
-  std::vector<double> _antennaDistanceFactors;
-  std::vector<double> _weights;
-  Smoother::KernelType _kernelType;
-  double _bandwidth;
-  double _bandwidthRefFrequencyHz;
-  std::unique_ptr<aocommon::ParallelFor<size_t>> _loop;
+  std::vector<FitData> fit_data_;
+  std::vector<double> frequencies_;
+  std::vector<double> antenna_distance_factors_;
+  std::vector<double> weights_;
+  Smoother::KernelType kernel_type_;
+  double bandwidth_;
+  double bandwidth_ref_frequency_;
+  std::unique_ptr<aocommon::ParallelFor<size_t>> loop_;
 };
 
 }  // namespace ddecal

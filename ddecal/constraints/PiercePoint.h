@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef PIERCEPOINT_H
-#define PIERCEPOINT_H
+#ifndef DP3_DDECAL_PIERCEPOINT_H_
+#define DP3_DDECAL_PIERCEPOINT_H_
 
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>

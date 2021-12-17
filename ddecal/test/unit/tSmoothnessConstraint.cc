@@ -29,7 +29,7 @@ SmoothnessConstraint makeConstraint() {
 
   SmoothnessConstraint c(bandwidth_hz, bandwidth_ref_frequency_hz);
   c.SetNThreads(1);
-  c.Initialize(n_antennas, n_directions, frequencies);
+  c.Initialize(n_antennas, std::vector<uint32_t>(n_directions, 1), frequencies);
   c.SetDistanceFactors(std::move(antenna_distance_factors));
   c.SetWeights(weights);
   return c;

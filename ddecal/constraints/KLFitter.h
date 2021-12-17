@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef KLFITTER_H
-#define KLFITTER_H
+#ifndef DP3_DDECAL_KLFITTER_H_
+#define DP3_DDECAL_KLFITTER_H_
 
 #include <vector>
 
