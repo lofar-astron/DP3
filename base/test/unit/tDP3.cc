@@ -1,4 +1,4 @@
-// tDP3.cc: test program for DPPP
+// tDP3.cc: test program for DP3
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
@@ -19,6 +19,7 @@
 #include <stdexcept>
 
 using casacore::ArrayColumn;
+using casacore::Complex;
 using casacore::IPosition;
 using casacore::Matrix;
 using casacore::near;
@@ -26,9 +27,6 @@ using casacore::ScalarColumn;
 using casacore::Slicer;
 using casacore::Table;
 using casacore::TableIterator;
-using casacore::Vector;
-
-using Complex = std::complex<float>;
 
 namespace utf = boost::unit_test;
 
@@ -408,7 +406,7 @@ void CheckAvg(const std::string& out_ms) {
                     ScalarColumn<double>(spwout, "REF_FREQUENCY").getColumn()));
   // Check the TIME_RANGE in the OBSERVATION table.
   Table obsout(table_out.keywordSet().asTable("OBSERVATION"));
-  Vector<double> timeRange(
+  casacore::Vector<double> timeRange(
       ArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
   BOOST_CHECK(
       near(timeRange(0), ScalarColumn<double>(table_out, "TIME")(0) - 300));
@@ -883,142 +881,170 @@ BOOST_AUTO_TEST_CASE(test_station_add, *utf::disabled()) {
                     t1.nrow() + 40 + 12);  // 2 baselines and 2 time slots added
 }
 
-BOOST_AUTO_TEST_CASE(test_filter1, *utf::disabled()) {
+BOOST_FIXTURE_TEST_CASE(test_filter_baseline, FixtureDirectory) {
+  const std::string kOutputMs = "tNDPPP_tmp.filtered.MS";
+
   // Remove all baselines containing station RT1 or 6.
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
-    ostr << "msout=tNDPPP_tmp.MSa\n";
+    ostr << "msin=" << kInputMs << '\n';
+    ostr << "msout=" << kOutputMs << '\n';
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[filter]\n";
     ostr << "filter.baseline=!RT[16]&&*\n";
     ostr << "filter.remove=true\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  Table t1("tNDPPP_tmp.MS/ANTENNA");
-  Table t2("tNDPPP_tmp.MSa/ANTENNA");
+
   // Note: the ANTENNA table also contained RT8, RT9, etc., but they do not
   // have baselines. So these were removed as well meaning only 0,2,7 are left.
-  Vector<unsigned> rownrs(3);
+  casacore::Vector<dp3::common::rownr_t> rownrs(3);
   rownrs[0] = 0;
   rownrs[1] = 2;
   rownrs[2] = 7;
-  Table t1s = t1(rownrs);
-  BOOST_CHECK_EQUAL(t2.nrow(), t1s.nrow());
-  BOOST_CHECK(allEQ(ScalarColumn<casacore::String>(t2, "NAME").getColumn(),
-                    ScalarColumn<casacore::String>(t1s, "NAME").getColumn()));
-  t1 = Table("tNDPPP_tmp.MS/FEED");
-  t2 = Table("tNDPPP_tmp.MSa/FEED");
-  t1s = t1(rownrs);
-  BOOST_CHECK_EQUAL(t2.nrow(), t1s.nrow());
+
+  Table antenna_in(kInputMs + "/ANTENNA");
+  Table antenna_out(kOutputMs + "/ANTENNA");
+  antenna_in = antenna_in(rownrs);
+  BOOST_CHECK_EQUAL(antenna_out.nrow(), antenna_in.nrow());
+  BOOST_CHECK(
+      allEQ(ScalarColumn<casacore::String>(antenna_out, "NAME").getColumn(),
+            ScalarColumn<casacore::String>(antenna_in, "NAME").getColumn()));
+
+  Table feed_in(kInputMs + "/FEED");
+  Table feed_out(kOutputMs + "/FEED");
+  feed_in = feed_in(rownrs);
+  BOOST_CHECK_EQUAL(feed_out.nrow(), feed_in.nrow());
   // The ANTENNA_IDs in the FEED table must be 0,1,2.
-  Vector<int> ids(t2.nrow());
+  casacore::Vector<int> ids(feed_out.nrow());
   indgen(ids);
-  BOOST_CHECK(allEQ(ScalarColumn<int>(t2, "ANTENNA_ID").getColumn(), ids));
+  BOOST_CHECK(
+      allEQ(ScalarColumn<int>(feed_out, "ANTENNA_ID").getColumn(), ids));
+
   // Check the main table.
-  t1 = Table("tNDPPP_tmp.MS");
-  t2 = Table("tNDPPP_tmp.MSa");
-  BOOST_CHECK_EQUAL(
-      t2.nrow(), t1.nrow() - 72 + 4);  // 4 baselines removed, 2 timeslots added
-  t1s = t1((t1.col("ANTENNA1") == 0 || t1.col("ANTENNA1") == 2) &&
-           t1.col("ANTENNA2") == 7);
-  // A few dummy time slots were inserted, so ignore those.
-  Table t2s = t2(t2.nodeRownr() < 6 || t2.nodeRownr() >= 10);
-  BOOST_CHECK(allEQ(ArrayColumn<Complex>(t2s, "DATA").getColumn(),
-                    ArrayColumn<Complex>(t1s, "DATA").getColumn()));
-  t2s = t2(t2.nodeRownr() % 2 == 0);
-  BOOST_CHECK(allEQ(ScalarColumn<int>(t2s, "ANTENNA1").getColumn(), 0));
-  BOOST_CHECK(allEQ(ScalarColumn<int>(t2s, "ANTENNA2").getColumn(), 2));
-  t2s = t2(t2.nodeRownr() % 2 == 1);
-  BOOST_CHECK(allEQ(ScalarColumn<int>(t2s, "ANTENNA1").getColumn(), 1));
-  BOOST_CHECK(allEQ(ScalarColumn<int>(t2s, "ANTENNA2").getColumn(), 2));
+  Table table_in(kInputMs);
+  Table table_out(kOutputMs);
+  // This test removes 4 baselines, thus kInputMsTimeSlots * 4 rows.
+  // It adds 2 missing timeslots to the ms. Since there are 2 remaining
+  // baselines, it thus adds 2 * 2 rows.
+  BOOST_CHECK_EQUAL(table_out.nrow(),
+                    table_in.nrow() - kInputMsTimeSlots * 4 + 2 * 2);
+
+  Table table_in_rows = table_in(
+      (table_in.col("ANTENNA1") == 0 || table_in.col("ANTENNA1") == 2) &&
+      table_in.col("ANTENNA2") == 7);
+  // The test inserts a few dummy time slots, so ignore those.
+  Table table_out_rows =
+      table_out(table_out.nodeRownr() < 6 || table_out.nodeRownr() >= 10);
+  BOOST_CHECK(allEQ(ArrayColumn<Complex>(table_out_rows, "DATA").getColumn(),
+                    ArrayColumn<Complex>(table_in_rows, "DATA").getColumn()));
+
+  Table table_out_even = table_out(table_out.nodeRownr() % 2 == 0);
+  BOOST_CHECK(
+      allEQ(ScalarColumn<int>(table_out_even, "ANTENNA1").getColumn(), 0));
+  BOOST_CHECK(
+      allEQ(ScalarColumn<int>(table_out_even, "ANTENNA2").getColumn(), 2));
+
+  Table table_out_odd = table_out(table_out.nodeRownr() % 2 == 1);
+  BOOST_CHECK(
+      allEQ(ScalarColumn<int>(table_out_odd, "ANTENNA1").getColumn(), 1));
+  BOOST_CHECK(
+      allEQ(ScalarColumn<int>(table_out_odd, "ANTENNA2").getColumn(), 2));
 }
 
-BOOST_AUTO_TEST_CASE(test_filter2, *utf::disabled()) {
+BOOST_FIXTURE_TEST_CASE(test_filter_keep_baselines, FixtureDirectory) {
   // Keep all baselines.
   // First by not specifying baseline selection, second by all baselines.
   // Also alter between remove and !remove.
   for (int iter = 0; iter < 4; ++iter) {
+    const std::string kOutputMs =
+        "tNDPPP_tmp.filtered." + std::to_string(iter) + ".MS";
+    const bool filter_baseline = (iter % 2) == 1;
+    const bool filter_remove = (iter / 2) == 1;
     {
       std::ofstream ostr(kParsetFile);
-      ostr << "msin=tNDPPP_tmp.MS\n";
-      ostr << "msout=tNDPPP_tmp.MSa\n";
+      ostr << "msin=" << kInputMs << '\n';
+      ostr << "msout=" << kOutputMs << '\n';
       ostr << "msout.overwrite=true\n";
       ostr << "steps=[filter]\n";
-      if (iter % 2 == 1) {
+      if (filter_baseline) {
         ostr << "filter.baseline=*&&*\n";
       }
-      if (iter / 2 == 1) {
+      if (filter_remove) {
         ostr << "filter.remove=true\n";
       }
     }
     dp3::base::DP3::execute(kParsetFile);
-    // cout << "check ANTENNA"<<'\n';
-    Table t1("tNDPPP_tmp.MS/ANTENNA");
-    Table t2("tNDPPP_tmp.MSa/ANTENNA");
+
     // Note: the ANTENNA table also contained RT8, RT9, etc., but they do not
     // have baselines. So these were removed meaning only 0,1,2,6,7 are left.
-    Vector<unsigned> rownrs(5);
+    casacore::Vector<dp3::common::rownr_t> rownrs(5);
     rownrs[0] = 0;
     rownrs[1] = 1;
     rownrs[2] = 2;
     rownrs[3] = 6;
     rownrs[4] = 7;
-    Table t1s(t1);
-    if (iter / 2 == 1) {
-      t1s = t1(rownrs);
+
+    Table antenna_in(kInputMs + "/ANTENNA");
+    Table antenna_out(kOutputMs + "/ANTENNA");
+    if (filter_remove) {
+      antenna_in = antenna_in(rownrs);
     }
-    BOOST_CHECK_EQUAL(t2.nrow(), t1s.nrow());
-    BOOST_CHECK(allEQ(ScalarColumn<casacore::String>(t2, "NAME").getColumn(),
-                      ScalarColumn<casacore::String>(t1s, "NAME").getColumn()));
-    // cout << "check FEED"<<'\n';
-    t1 = Table("tNDPPP_tmp.MS/FEED");
-    t2 = Table("tNDPPP_tmp.MSa/FEED");
-    t1s = t1;
-    if (iter / 2 == 1) {
-      t1s = t1(rownrs);
+    BOOST_CHECK_EQUAL(antenna_out.nrow(), antenna_in.nrow());
+    BOOST_CHECK(
+        allEQ(ScalarColumn<casacore::String>(antenna_out, "NAME").getColumn(),
+              ScalarColumn<casacore::String>(antenna_in, "NAME").getColumn()));
+
+    Table feed_in(kInputMs + "/FEED");
+    Table feed_out(kOutputMs + "/FEED");
+    if (filter_remove) {
+      feed_in = feed_in(rownrs);
     }
-    BOOST_CHECK_EQUAL(t2.nrow(), t1s.nrow());
+    BOOST_CHECK_EQUAL(feed_out.nrow(), feed_in.nrow());
     // The ANTENNA_IDs in the FEED table must be 0,1,2.
-    Vector<int> ids(t2.nrow());
+    casacore::Vector<int> ids(feed_out.nrow());
     indgen(ids);
-    BOOST_CHECK(allEQ(ScalarColumn<int>(t2, "ANTENNA_ID").getColumn(), ids));
+    BOOST_CHECK(
+        allEQ(ScalarColumn<int>(feed_out, "ANTENNA_ID").getColumn(), ids));
+
     // Check the main table.
-    t1 = Table("tNDPPP_tmp.MS");
-    t2 = Table("tNDPPP_tmp.MSa");
-    BOOST_CHECK_EQUAL(t2.nrow(), t1.nrow() + 12);  // 2 timeslots added
+    Table main_in(kInputMs);
+    Table main_out(kOutputMs);
+    // The input MS has two missing timeslots, which should be added.
+    BOOST_CHECK_EQUAL(main_out.nrow(), main_in.nrow() + 2 * kNBaselines);
     // A few dummy time slots were inserted, so ignore those.
-    Table t2s = t2(t2.nodeRownr() < 18 || t2.nodeRownr() >= 30);
-    BOOST_CHECK(allEQ(ArrayColumn<Complex>(t2s, "DATA").getColumn(),
-                      ArrayColumn<Complex>(t1, "DATA").getColumn()));
+    Table main_rows =
+        main_out(main_out.nodeRownr() < 18 || main_out.nodeRownr() >= 30);
+    BOOST_CHECK(allEQ(ArrayColumn<Complex>(main_rows, "DATA").getColumn(),
+                      ArrayColumn<Complex>(main_in, "DATA").getColumn()));
     int ant1[] = {0, 0, 1, 1, 2, 2};
     int ant2[] = {6, 7, 6, 7, 6, 7};
-    int sub = (iter / 2 == 0 ? 0 : 3);  // if remove, ant2 6->3 and 7->4
+    int sub = (filter_remove ? 3 : 0);  // if remove, ant2 6->3 and 7->4
     for (int i = 0; i < 6; ++i) {
-      t2s = t2(t2.nodeRownr() % 6 == i);
+      main_rows = main_out(main_out.nodeRownr() % 6 == i);
       BOOST_CHECK(
-          allEQ(ScalarColumn<int>(t2s, "ANTENNA1").getColumn(), ant1[i]));
-      BOOST_CHECK(
-          allEQ(ScalarColumn<int>(t2s, "ANTENNA2").getColumn(), ant2[i] - sub));
+          allEQ(ScalarColumn<int>(main_rows, "ANTENNA1").getColumn(), ant1[i]));
+      BOOST_CHECK(allEQ(ScalarColumn<int>(main_rows, "ANTENNA2").getColumn(),
+                        ant2[i] - sub));
     }
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_filter3, *utf::disabled()) {
+BOOST_FIXTURE_TEST_CASE(test_filter_different_data_column, FixtureCopyInput) {
   // Remove some baselines, update original file with different data column
   // This test justs tests if it runs without throwing exceptions
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
+    ostr << "msin=" << kCopyMs << '\n';
     ostr << "msout=.\n";
     ostr << "msout.datacolumn=DATA_FILTER\n";
     ostr << "steps=[filter]\n";
     ostr << "filter.baseline=!RT[16]&&*\n";
     ostr << "filter.remove=False\n";
   }
-  dp3::base::DP3::execute(kParsetFile);
+  BOOST_CHECK_NO_THROW(dp3::base::DP3::execute(kParsetFile));
 }
 
 BOOST_FIXTURE_TEST_CASE(test_multi_out, FixtureDirectory) {
