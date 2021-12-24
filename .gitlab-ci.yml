@@ -24,6 +24,7 @@ variables:
   if: '$CI_SERVER_HOST != "git.astron.nl"'
 
 stages:
+  - versioning
   - prepare
   - build
   - linting
@@ -31,44 +32,56 @@ stages:
   - publish
   - pages
 
-# Build the base image for git.astron
-build-base:
-  stage: prepare
-  extends: .failable
-  image: docker:stable
+# The 'IMAGE' variables allow reusing docker images between different pipelines.
+# See https://confluence.skatelescope.org/display/SE/Caching+Docker+images+using+GitLab+CI+registry
+versioning:
+  stage: versioning
+  image: bitnami/git
   script:
-  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
-  rules:
-    # Always run this job. Note that a duplicate pipeline is triggered when pushing commits to
-    # a branch that has an open MR, see https://gitlab.com/gitlab-org/gitlab/-/issues/201845
-    - <<: *if_astron_repo
+    # Unshallowing ensures that 'git log' works
+    - git fetch --unshallow
+    - echo BASE_IMAGE=${CI_REGISTRY_IMAGE}/base:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_20_04_base) > versions.env
+    - cat versions.env
+  artifacts:
+    reports:
+      dotenv: versions.env
 
-# On the SKA repo - which does not have a docker cache - we need to push it to the gitlab registry which requires docker:dind
-build-base-ska:
+.prepare:
+  extends: .failable
   stage: prepare
-  image: docker:stable
+  needs: ["versioning"]
+  image: docker:20.10
   services:
-  - docker:dind
+    - docker:20.10-dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
-  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  - docker build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA -f ./docker/ubuntu_20_04_base .
-  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  rules:
-    - <<: *if_not_astron_repo
+    - |
+      if ! docker manifest inspect $DOCKER_IMAGE > /dev/null; then
+        docker build $DOCKER_BUILD_ARG --tag $DOCKER_IMAGE -f $DOCKER_FILE .
+        docker push $DOCKER_IMAGE
+      fi
+
+# Create and push the base image to the gitlab registry, if it does not exist.
+prepare-base:
+  extends: .prepare
+  variables:
+    DOCKER_IMAGE: $BASE_IMAGE
+    DOCKER_FILE: ./docker/ubuntu_20_04_base
 
 build-ubuntu18:
   stage: build
   extends: .failable
   needs: []
+  image: docker:20.10
   script:
-  - docker build -f ./docker/ubuntu_18_04 .
-  rules:
-    - <<: *if_astron_repo
+    - docker build -f ./docker/ubuntu_18_04 .
 
 build-no-idg:
   stage: build
   extends: .failable
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["versioning","prepare-base"]
+  image: $BASE_IMAGE
   before_script:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
@@ -78,15 +91,14 @@ build-no-idg:
     - cd build
     - cmake -G Ninja ..
     - ninja
-  rules:
-    - <<: *if_astron_repo
 
 # Build debug has no needs entry because it can have either a base
 # image from build-base or build-base-ska which is determined on runtime
 build-debug:
   stage: build
   extends: .failable
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["versioning","prepare-base"]
+  image: $BASE_IMAGE
   before_script:
     - pip3 install pytest
   script:
@@ -99,34 +111,21 @@ build-debug:
       - build
 
 build-release:
+  extends: .prepare
   stage: build
-  extends: .failable
-  image: docker:stable
-  needs: ["build-base"]
-  script:
-    - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
+  needs: ["versioning","prepare-base"]
+  variables:
+    DOCKER_IMAGE: ${CI_REGISTRY_IMAGE}/dp3:${CI_COMMIT_SHORT_SHA}
+    DOCKER_FILE: ./docker/ubuntu_20_04_dp3
+    DOCKER_BUILD_ARG: --build-arg BASE_TAG=$BASE_IMAGE
   rules:
-    - <<: *if_not_astron_repo
-      when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
-
-# On the SKA repo - which does not have a docker cache - we need to push it to the gitlab registry which requires docker:dind
-build-release-ska:
-  stage: build
-  image: docker:stable
-  services:
-    - docker:dind
-  needs: ["build-base-ska"]
-  script:
-    - docker build --build-arg BASE_TAG=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --tag dppp_lofar:${CI_COMMIT_SHORT_SHA} -f ./docker/ubuntu_20_04_dppp .
-  rules:
-    - <<: *if_not_astron_repo
 
 build-doc:
   stage: build
   extends: .failable
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  needs: ["build-base"]
+  needs: ["versioning","prepare-base"]
+  image: $BASE_IMAGE
   before_script:
     - patch -p0 /usr/local/lib/python3.8/dist-packages/jsonschema2rst/parser.py < docs/parser.py.patch
   script:
@@ -141,7 +140,9 @@ build-doc:
 
 build-package:
   stage: build
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  extends: .failable
+  needs: ["versioning","prepare-base"]
+  image: $BASE_IMAGE
   script:
     - mkdir dp3_package
     - mkdir build && cd build
@@ -164,16 +165,16 @@ build-package:
 linting:
   stage: linting
   extends: .failable
-  needs: ["build-base"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["versioning","prepare-base"]
+  image: $BASE_IMAGE
   script:
     - ./scripts/run-format.sh
 
 unit-test:
   stage: test
   extends: .failable
-  needs: ["build-debug"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["versioning","build-debug"]
+  image: $BASE_IMAGE
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
@@ -199,8 +200,8 @@ unit-test:
 integration-test:
   stage: test
   extends: .failable
-  needs: ["build-debug"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["versioning","build-debug"]
+  image: $BASE_IMAGE
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
@@ -255,8 +256,8 @@ publish-doc:
 
 deploy-package:
   stage: publish
-  needs: ["build-package"]
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  needs: ["versioning","build-package"]
+  image: $BASE_IMAGE
   script:
     - pip3 install aptly-api-client
     - chmod -R 700 external/schaap-packaging
@@ -274,8 +275,8 @@ deploy-package:
 
 pages:
   stage: pages
-  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  needs: ["build-debug", "unit-test", "integration-test"]
+  needs: ["versioning","build-debug","unit-test","integration-test"]
+  image: $BASE_IMAGE
   before_script:
     - apt-get update
     - apt-get -y install curl
