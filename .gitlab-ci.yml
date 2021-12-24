@@ -41,6 +41,7 @@ versioning:
     # Unshallowing ensures that 'git log' works
     - git fetch --unshallow
     - echo BASE_IMAGE=${CI_REGISTRY_IMAGE}/base:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_20_04_base) > versions.env
+    - echo BASE_IMAGE_UBUNTU18=${CI_REGISTRY_IMAGE}/base_ubuntu18:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_18_04_base) >> versions.env
     - cat versions.env
   artifacts:
     reports:
@@ -69,13 +70,25 @@ prepare-base:
     DOCKER_IMAGE: $BASE_IMAGE
     DOCKER_FILE: ./docker/ubuntu_20_04_base
 
+prepare-ubuntu18:
+  extends: .prepare
+  variables:
+    DOCKER_IMAGE: $BASE_IMAGE_UBUNTU18
+    DOCKER_FILE: ./docker/ubuntu_18_04_base
+
+# This job verifies that DP3 works with Ubuntu 18.04.
 build-ubuntu18:
   stage: build
   extends: .failable
-  needs: []
-  image: docker:20.10
+  needs: ["versioning","prepare-ubuntu18"]
+  image: $BASE_IMAGE_UBUNTU18
   script:
-    - docker build -f ./docker/ubuntu_18_04 .
+    # Build and run DP3
+    - mkdir build
+    - cd build
+    - cmake -G Ninja -DBUILD_TESTING=On ..
+    - ninja install
+    - DP3
 
 build-no-idg:
   stage: build
