@@ -175,7 +175,8 @@ PYBIND11_MODULE(pydp3, m) {
       .def("nchan", &DPInfo::nchan, "Get the number of channels")
       .def("start_time", &DPInfo::startTime, "Get the start time")
       .def("time_interval", &DPInfo::timeInterval, "Get the time interval")
-      .def("ntime", &DPInfo::ntime, "Get the total number of time slots");
+      .def("ntime", &DPInfo::ntime, "Get the total number of time slots")
+      .def("ms_name", &DPInfo::msName, "Get name of measurement set");
 }
 
 void test() {}
