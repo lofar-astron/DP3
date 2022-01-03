@@ -62,6 +62,12 @@ versioning:
         docker build $DOCKER_BUILD_ARG --tag $DOCKER_IMAGE -f $DOCKER_FILE .
         docker push $DOCKER_IMAGE
       fi
+  # Skip the job if there are no changes to the Docker file. This shortcut only
+  # works for push and merge request jobs.
+  # A manual pipeline run will thus create missing docker images.
+  rules:
+    - changes:
+      - $DOCKER_FILE
 
 # Create and push the base image to the gitlab registry, if it does not exist.
 prepare-base:
@@ -69,6 +75,14 @@ prepare-base:
   variables:
     DOCKER_IMAGE: $BASE_IMAGE
     DOCKER_FILE: ./docker/ubuntu_20_04_base
+
+# Template for jobs that depend on the optional prepare-base job.
+.needs-base:
+  needs:
+    - job: versioning
+    - job: prepare-base
+      optional: true
+  image: $BASE_IMAGE
 
 prepare-ubuntu18:
   extends: .prepare
@@ -80,7 +94,10 @@ prepare-ubuntu18:
 build-ubuntu18:
   stage: build
   extends: .failable
-  needs: ["versioning","prepare-ubuntu18"]
+  needs:
+    - job: versioning
+    - job: prepare-ubuntu18
+      optional: true
   image: $BASE_IMAGE_UBUNTU18
   script:
     # Build and run DP3
@@ -92,9 +109,7 @@ build-ubuntu18:
 
 build-no-idg:
   stage: build
-  extends: .failable
-  needs: ["versioning","prepare-base"]
-  image: $BASE_IMAGE
+  extends: [".failable",".needs-base"]
   before_script:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
@@ -109,9 +124,7 @@ build-no-idg:
 # image from build-base or build-base-ska which is determined on runtime
 build-debug:
   stage: build
-  extends: .failable
-  needs: ["versioning","prepare-base"]
-  image: $BASE_IMAGE
+  extends: [".failable",".needs-base"]
   before_script:
     - pip3 install pytest
   script:
@@ -124,21 +137,19 @@ build-debug:
       - build
 
 build-release:
-  extends: .prepare
+  # .prepare should be last, since it overwrites "image:".
+  extends: [".needs-base",".prepare"]
   stage: build
-  needs: ["versioning","prepare-base"]
   variables:
     DOCKER_IMAGE: ${CI_REGISTRY_IMAGE}/dp3:${CI_COMMIT_SHORT_SHA}
     DOCKER_FILE: ./docker/ubuntu_20_04_dp3
     DOCKER_BUILD_ARG: --build-arg BASE_TAG=$BASE_IMAGE
-  rules:
+  rules: # This job should always overwrite the rules: from .prepare!
     - if: '$CI_COMMIT_BRANCH == "master"'
 
 build-doc:
   stage: build
-  extends: .failable
-  needs: ["versioning","prepare-base"]
-  image: $BASE_IMAGE
+  extends: [".failable",".needs-base"]
   before_script:
     - patch -p0 /usr/local/lib/python3.8/dist-packages/jsonschema2rst/parser.py < docs/parser.py.patch
   script:
@@ -153,9 +164,7 @@ build-doc:
 
 build-package:
   stage: build
-  extends: .failable
-  needs: ["versioning","prepare-base"]
-  image: $BASE_IMAGE
+  extends: [".failable",".needs-base"]
   script:
     - mkdir dp3_package
     - mkdir build && cd build
@@ -177,9 +186,7 @@ build-package:
 
 linting:
   stage: linting
-  extends: .failable
-  needs: ["versioning","prepare-base"]
-  image: $BASE_IMAGE
+  extends: [".failable",".needs-base"]
   script:
     - ./scripts/run-format.sh
 
