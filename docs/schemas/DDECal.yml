@@ -147,7 +147,7 @@ inputs:
   solveralgorithm:
     default: directionsolve
     type: string
-    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative`` and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating `.`
+    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative``, ``lbfgs``, and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating `.`
   savefacets:
     default: false
     type: bool
@@ -185,3 +185,19 @@ inputs:
     type: string
     doc: >-
       Allows steps to be defined for a specific direction. These directions, (given in the `<direction>` placeholder) can be specified by their model column name, the name of a DS9 region, or the first patch name in the direction if using a sky model. For example: `modelnextsteps.MODEL_DATA_2=[applyextrabeam], applyextrabeam.type=applybeam` `.`
+  solverlbfgs&#46;dof:
+    default: 200.0
+    type: double
+    doc: The degrees of freedom of the robust noise model `.`
+  solverlbfgs&#46;iter:
+    default: 4
+    type: int
+    doc: Iterations per each minibatch of data. This is the inner iterations and ``maxiter`` is the outer iterations. Therefore, the total number iterations is the product of these two values `.`
+  solverlbfgs&#46;minibatches:
+    default: 1
+    type: int
+    doc: Divide the data into minibatches equal to this number at each iteration. If this value is greater than one, less data is used at each iteration (without losing the final solution accuracy) making the iterations faster `.`
+  solverlbfgs&#46;history:
+    default: 10
+    type: int
+    doc: LBFGS solver history size. This is the memory (as a multiple of the number of parameters) used to store information pertaining to previous iterations `.`
