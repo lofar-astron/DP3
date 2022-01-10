@@ -852,33 +852,43 @@ BOOST_FIXTURE_TEST_CASE(test_flags_set_clear, FixtureDirectory) {
       allEQ(ArrayColumn<bool>(Table(kAllClearMs), "FLAG").getColumn(), false));
 }
 
-BOOST_AUTO_TEST_CASE(test_station_add, *utf::disabled()) {
+BOOST_FIXTURE_TEST_CASE(test_station_add, FixtureDirectory) {
+  const std::string kOutputMs = "tNDPPP_tmp.stationadd.MS";
   // Add station RT0, 1 and 2.
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=tNDPPP_tmp.MS\n";
-    ostr << "msout=tNDPPP_tmp.MSa\n";
+    ostr << "msin=" << kInputMs << '\n';
+    ostr << "msout=" << kOutputMs << '\n';
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[stationadd]\n";
     ostr << "stationadd.stations={RTnew:[RT0..2]}\n";
   }
   dp3::base::DP3::execute(kParsetFile);
-  Table t1("tNDPPP_tmp.MS/ANTENNA");
-  Table t2("tNDPPP_tmp.MSa/ANTENNA");
-  BOOST_CHECK_EQUAL(t2.nrow(), t1.nrow() + 1);  // 1 antenna has been added
-  BOOST_CHECK_EQUAL(ScalarColumn<casacore::String>(t2, "NAME")(t2.nrow() - 1),
+
+  Table antenna_in(kInputMs + "/ANTENNA");
+  Table antenna_out(kOutputMs + "/ANTENNA");
+  // Check that DP3 added 1 antenna.
+  BOOST_CHECK_EQUAL(antenna_out.nrow(), antenna_in.nrow() + 1);
+  BOOST_CHECK_EQUAL(ScalarColumn<casacore::String>(
+                        antenna_out, "NAME")(antenna_out.nrow() - 1),
                     "RTnew");
-  int oldNant = t1.nrow();
-  t1 = Table("tNDPPP_tmp.MS/FEED");
-  t2 = Table("tNDPPP_tmp.MSa/FEED");
-  BOOST_CHECK_EQUAL(t2.nrow(), t1.nrow() + 1);  // 1 antenna has been added
-  BOOST_CHECK_EQUAL(ScalarColumn<int>(t2, "ANTENNA_ID")(t2.nrow() - 1),
-                    oldNant);
-  t1 = Table("tNDPPP_tmp.MS");
-  t2 = Table("tNDPPP_tmp.MSa");
-  BOOST_CHECK_EQUAL(t2.nrow(),
-                    t1.nrow() + 40 + 12);  // 2 baselines and 2 time slots added
+  const int old_n_antennas = antenna_in.nrow();
+
+  Table feed_in(kInputMs + "/FEED");
+  Table feed_out(kOutputMs + "/FEED");
+  BOOST_CHECK_EQUAL(feed_out.nrow(), feed_in.nrow() + 1);  // 1 antenna added
+  BOOST_CHECK_EQUAL(
+      ScalarColumn<int>(feed_out, "ANTENNA_ID")(feed_out.nrow() - 1),
+      old_n_antennas);
+
+  // Check that DP3 added:
+  // - For each existing time slot, 2 baselines (kInputMsTimeSlots * 2).
+  // - For each of the the two missing time slots in the MS, (kNBaselines + 2)
+  //   baselines.
+  BOOST_CHECK_EQUAL(
+      Table(kOutputMs).nrow(),
+      Table(kInputMs).nrow() + (kInputMsTimeSlots * 2) + (kNBaselines + 2) * 2);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_filter_baseline, FixtureDirectory) {
