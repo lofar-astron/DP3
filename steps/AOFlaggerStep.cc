@@ -41,6 +41,7 @@ AOFlaggerStep::AOFlaggerStep(InputStep* input,
       move_time_(0),
       flag_time_(0),
       stats_time_(0),
+      has_qstats_(false),
       qstats_() {
   strategy_name_ = parset.getString(prefix + "strategy", string());
   if (strategy_name_.empty())
@@ -318,10 +319,11 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     if (collect_statistics_) {
       quality_timer_.stop();
       // Add the rfi statistics to the global object.
-      if (t == 0) {
-        qstats_ = std::move(threadData[t].qstats);
-      } else {
+      if (has_qstats_) {
         qstats_ += threadData[t].qstats;
+      } else {
+        qstats_ = std::move(threadData[t].qstats);
+        has_qstats_ = true;
       }
       quality_timer_.start();
     }

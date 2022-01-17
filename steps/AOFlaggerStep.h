@@ -127,6 +127,7 @@ class AOFlaggerStep : public Step {
   casacore::Vector<double> frequencies_;
   aoflagger::AOFlagger aoflagger_;
   std::mutex mutex_;
+  bool has_qstats_;
   aoflagger::QualityStatistics qstats_;
 };
 
