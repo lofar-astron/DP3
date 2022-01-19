@@ -10,7 +10,3 @@ set_target_properties(DP3 PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                      ${CMAKE_BINARY_DIR})
 
 install(TARGETS DP3 DESTINATION bin)
-
-# Data files
-install(FILES share/LOFAR-LBA-default.rfis share/LOFAR-HBA-default.rfis
-        DESTINATION share/rfistrategies)
