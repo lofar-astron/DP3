@@ -20,7 +20,12 @@ class ParameterSet;
 
 namespace ddecal {
 
-enum class SolverAlgorithm { kDirectionSolve, kDirectionIterative, kHybrid };
+enum class SolverAlgorithm {
+  kDirectionSolve,
+  kDirectionIterative,
+  kHybrid,
+  kLBFGS
+};
 
 std::string ToString(SolverAlgorithm algorithm);
 
@@ -121,6 +126,14 @@ struct Settings {
   const size_t max_approx_iterations;
   const size_t approx_chunk_size;
   const bool rotation_reference;
+  // LBFGS robust parameter (aka degrees of freedom)
+  const double lbfgs_robust_nu;
+  // LBFGS max iterations per mini-batch
+  const size_t lbfgs_max_iter;
+  // LBFGS history size
+  const size_t lbfgs_history_size;
+  // LBFGS minibatches
+  const size_t lbfgs_minibatches;
 
   const std::vector<std::string> model_data_columns;
 
