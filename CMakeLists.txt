@@ -307,6 +307,7 @@ add_library(
   ddecal/gain_solvers/IterativeFullJonesSolver.cc
   ddecal/gain_solvers/IterativeScalarSolver.cc
   ddecal/gain_solvers/ScalarSolver.cc
+  ddecal/gain_solvers/LBFGSSolver.cc
   ddecal/gain_solvers/SolveData.cc
   ddecal/gain_solvers/SolverBase.cc
   ddecal/gain_solvers/SolverBuffer.cc

@@ -32,6 +32,8 @@ SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
     return SolverAlgorithm::kDirectionIterative;
   else if (lowercase == "hybrid")
     return SolverAlgorithm::kHybrid;
+  else if (lowercase == "lbfgs")
+    return SolverAlgorithm::kLBFGS;
   else
     throw std::runtime_error("Unknown solver algorithm specified: " + str);
 }
@@ -46,6 +48,8 @@ std::string ToString(SolverAlgorithm algorithm) {
       return "directioniterative";
     case SolverAlgorithm::kHybrid:
       return "hybrid";
+    case SolverAlgorithm::kLBFGS:
+      return "LBFGS";
   }
   return "invalid algorithm";
 }
@@ -102,6 +106,18 @@ Settings::Settings(const common::ParameterSet& _parset,
       rotation_reference((mode == CalType::kRotationAndDiagonal)
                              ? GetBool("rotationreference", false)
                              : false),
+      lbfgs_robust_nu((solver_algorithm == SolverAlgorithm::kLBFGS)
+                          ? GetDouble("solverlbfgs.dof", 200.0)
+                          : 200.0),
+      lbfgs_max_iter((solver_algorithm == SolverAlgorithm::kLBFGS)
+                         ? GetUint("solverlbfgs.iter", 4)
+                         : 4),
+      lbfgs_history_size((solver_algorithm == SolverAlgorithm::kLBFGS)
+                             ? GetUint("solverlbfgs.history", 10)
+                             : 10),
+      lbfgs_minibatches((solver_algorithm == SolverAlgorithm::kLBFGS)
+                            ? GetUint("solverlbfgs.minibatches", 1)
+                            : 1),
 
       // Column reader settings
       model_data_columns(ReadModelDataColumns()),
