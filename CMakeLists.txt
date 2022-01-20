@@ -25,12 +25,24 @@ project(DP3 VERSION ${DP3_VERSION})
 
 include(CheckCXXCompilerFlag)
 
-option(BUILD_TESTING "" OFF)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message(STATUS "Debug build selected: setting linking flag --no-undefined")
+  string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
+endif()
+
+option(BUILD_TESTING "Include tests in the build" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-add_compile_options(-Wall -O3)
-string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
+add_compile_options(-Wall)
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+  add_compile_options(-O3)
+endif()
 
 option(PORTABLE "Generate portable code" OFF)
 if(PORTABLE)
