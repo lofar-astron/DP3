@@ -170,37 +170,5 @@ void SourceData::print(ostream& os) const {
   }
 }
 
-static ostream& operator<<(std::ostream& output, SourceInfo::Type type) {
-  switch (type) {
-    case SourceInfo::POINT:
-      return output << "POINT";
-    case SourceInfo::GAUSSIAN:
-      return output << "GAUSSIAN";
-    default:
-      return output;
-  }
-}
-
-void toSkymodel(std::ostream& output, const SourceData& source) {
-  const SourceInfo& info = source.getInfo();
-  output << info.getName() << ", " << info.getType() << ", "
-         << source.getPatchName() << ", ";
-  MVAngle(source.getRa()).print(output, MVAngle::Format(MVAngle::TIME, 9));
-  output << ", ";
-  MVAngle(source.getDec()).print(output, MVAngle::Format(MVAngle::ANGLE, 9));
-  output << ", " << source.getI() << ", " << info.getSpectralTermsRefFreq()
-         << ", [";
-  const std::vector<double> spectral_terms = source.getSpectralTerms();
-  for (size_t i = 0, e = spectral_terms.size(); i != e; ++i) {
-    if (i) output << ", ";
-    output << spectral_terms[i];
-  }
-  if (info.getType() == SourceInfo::GAUSSIAN)
-    output << "], " << source.getMajorAxis() << ", " << source.getMinorAxis()
-           << ", " << source.getOrientation() << '\n';
-  else
-    output << "]\n";
-}
-
 }  // namespace parmdb
 }  // namespace dp3

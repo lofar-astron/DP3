@@ -64,13 +64,5 @@ blob::BlobIStream operator>>(blob::BlobIStream& bis, PatchInfo& info) {
   return bis;
 }
 
-void toSkymodel(std::ostream& output, const PatchInfo& patch) {
-  output << ", , " << patch.getName() << ", ";
-  MVAngle(patch.getRa()).print(output, MVAngle::Format(MVAngle::TIME, 9));
-  output << ", ";
-  MVAngle(patch.getDec()).print(output, MVAngle::Format(MVAngle::ANGLE, 9));
-  output << '\n';
-}
-
 }  // namespace parmdb
 }  // namespace dp3

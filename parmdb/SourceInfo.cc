@@ -117,6 +117,5 @@ void SourceInfo::read(blob::BlobIStream& bis) {
   }
 }
 
-void toSkymodel(std::ostream& output, const SourceInfo& source);
 }  // namespace parmdb
 }  // namespace dp3
