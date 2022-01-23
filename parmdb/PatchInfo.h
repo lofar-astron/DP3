@@ -119,11 +119,6 @@ class PatchSumInfo {
   unsigned int itsPatchId;
 };
 
-/// Output a patch to a skymodel text file.
-///
-/// The output format is used for @code showsourcedb mode=skymodel @endcode
-void toSkymodel(std::ostream& output, const PatchInfo& patch);
-
 /// @}
 
 }  // namespace parmdb

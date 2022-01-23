@@ -124,11 +124,6 @@ class SourceData {
   std::vector<double> itsSpTerms;
 };
 
-/// Output a source to a skymodel text file.
-///
-/// The output format is used for @code showsourcedb mode=skymodel @endcode
-void toSkymodel(std::ostream& output, const SourceData& source);
-
 /// @}
 
 }  // namespace parmdb
