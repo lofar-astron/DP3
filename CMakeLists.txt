@@ -694,7 +694,10 @@ if(BUILD_TESTING)
     endforeach()
   endfunction()
 
-  execute_process(COMMAND python3 -m pytest OUTPUT_VARIABLE PYTEST_OUTPUT)
+  execute_process(
+    COMMAND python3 -m pytest
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    OUTPUT_VARIABLE PYTEST_OUTPUT)
   if(NOT ${PYTEST_OUTPUT} MATCHES "no tests ran")
     message(
       FATAL_ERROR
