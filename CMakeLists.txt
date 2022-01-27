@@ -78,16 +78,15 @@ endif()
 # === Load external packages ===
 
 # DDECal dependencies
-find_package(Armadillo)
+find_package(Armadillo QUIET)
 if(${ARMADILLO_FOUND})
   add_definitions(-DHAVE_ARMADILLO)
   include_directories(${ARMADILLO_INCLUDE_DIRS})
   set(DDE_ARMADILLO_FILES
       ddecal/constraints/KLFitter.cc ddecal/constraints/PiercePoint.cc
       ddecal/constraints/ScreenConstraint.cc)
+  message(STATUS "Armadillo found: including screenfitter inside DDECal")
 else()
-  message(
-    WARNING "Armadillo was not found, not including screenfitter inside DDECal")
   set(DDE_ARMADILLO_FILES)
 endif()
 
