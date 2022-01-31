@@ -66,8 +66,7 @@ double cost_func(double *unknowns, int m, void *adata) {
   assert(t && t->data.size() == t->n_direction &&
          t->model.size() == t->n_direction);
 
-  const std::size_t n_unknowns = t->n_direction * t->n_station * 4 * 2;
-  assert(static_cast<std::size_t>(m) == n_unknowns);
+  assert(static_cast<std::size_t>(m) == t->n_direction * t->n_station * 4 * 2);
 
   // Allocate space for intermediate results.
   std::vector<dcomplex> M(t->n_direction * 4);
