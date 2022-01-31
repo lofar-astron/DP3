@@ -160,11 +160,10 @@ void PerformIteration(const SolveData::ChannelBlockData& cb_data,
                       std::size_t history_size, std::size_t minibatches,
                       persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
-  const std::size_t n_data = cb_data.NVisibilities() * 8;
   const std::size_t n_solutions_2 = n_antennas * n_directions * 4;
   const std::size_t n_solutions = n_solutions_2 * 2;
   assert(n_solutions == static_cast<std::size_t>(pt.m));
-  assert(n_data == static_cast<std::size_t>(pt.nlen) * 8);
+  assert(cb_data.NVisibilities() == static_cast<std::size_t>(pt.nlen));
 
   std::vector<double> d_storage(n_solutions);
   std::transform(solutions.begin(), solutions.end(), d_storage.begin(),
