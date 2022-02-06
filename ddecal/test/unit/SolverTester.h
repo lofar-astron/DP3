@@ -111,6 +111,12 @@ class SolverTester {
   static constexpr bool kPhaseOnly = false;
   static constexpr size_t kDDSolutionsPerDirection[kNDirections] = {1, 2, 5};
 
+  // Default LBFGS solver settings
+  static constexpr size_t kBatchIterations = 4;
+  static constexpr size_t kMinibatches = 14;
+  static constexpr double kRobustDOF = 200.0;
+  static constexpr size_t kHistory = 10;
+
  private:
   void InitializeSolverSettings(dp3::ddecal::SolverBase& solver) const;
   void InitializeNSolutions(bool use_dd_intervals);

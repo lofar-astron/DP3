@@ -32,14 +32,22 @@ namespace ddecal {
 
 namespace {
 
-std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm) {
+std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
+                                               const Settings& settings) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
       return boost::make_unique<IterativeScalarSolver>();
     case SolverAlgorithm::kDirectionSolve:
       return boost::make_unique<ScalarSolver>();
     case SolverAlgorithm::kLBFGS:
-      throw std::runtime_error("LBFGS not supported yet for scalar solving");
+#ifdef HAVE_LIBDIRAC
+      return boost::make_unique<LBFGSSolver>(
+          settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
+          settings.lbfgs_history_size, settings.lbfgs_minibatches,
+          LBFGSSolver::kScalar);
+#else
+      throw std::runtime_error("LIBDIRAC for LBFGS not built");
+#endif
     case SolverAlgorithm::kHybrid:
       break;  // CreateSolver should have handled this case.
   }
@@ -47,14 +55,22 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm) {
   return nullptr;
 }
 
-std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm) {
+std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
+                                                 const Settings& settings) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
       return boost::make_unique<IterativeDiagonalSolver>();
     case SolverAlgorithm::kDirectionSolve:
       return boost::make_unique<DiagonalSolver>();
     case SolverAlgorithm::kLBFGS:
-      throw std::runtime_error("LBFGS not supported yet for diagonal solving");
+#ifdef HAVE_LIBDIRAC
+      return boost::make_unique<LBFGSSolver>(
+          settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
+          settings.lbfgs_history_size, settings.lbfgs_minibatches,
+          LBFGSSolver::kDiagonal);
+#else
+      throw std::runtime_error("LIBDIRAC for LBFGS not built");
+#endif
     case SolverAlgorithm::kHybrid:
       break;  // CreateSolver should have handled this case
   }
@@ -73,7 +89,8 @@ std::unique_ptr<SolverBase> CreateFullJonesSolver(SolverAlgorithm algorithm,
 #ifdef HAVE_LIBDIRAC
       return boost::make_unique<LBFGSSolver>(
           settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
-          settings.lbfgs_history_size, settings.lbfgs_minibatches);
+          settings.lbfgs_history_size, settings.lbfgs_minibatches,
+          LBFGSSolver::kFull);
 #else
       throw std::runtime_error("LIBDIRAC for LBFGS not built");
 #endif
@@ -168,22 +185,22 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
   switch (settings.mode) {
     case base::CalType::kScalar:
     case base::CalType::kScalarAmplitude:
-      solver = CreateScalarSolver(algorithm);
+      solver = CreateScalarSolver(algorithm, settings);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kScalarPhase:
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase:
-      solver = CreateScalarSolver(algorithm);
+      solver = CreateScalarSolver(algorithm, settings);
       solver->SetPhaseOnly(true);
       break;
     case base::CalType::kDiagonal:
     case base::CalType::kDiagonalAmplitude:
-      solver = CreateDiagonalSolver(algorithm);
+      solver = CreateDiagonalSolver(algorithm, settings);
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kDiagonalPhase:
-      solver = CreateDiagonalSolver(algorithm);
+      solver = CreateDiagonalSolver(algorithm, settings);
       solver->SetPhaseOnly(true);
       break;
     case base::CalType::kFullJones:
@@ -194,7 +211,7 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
       break;
     case base::CalType::kTecScreen:
 #ifdef HAVE_ARMADILLO
-      solver = CreateScalarSolver(algorithm);
+      solver = CreateScalarSolver(algorithm, settings);
       solver->SetPhaseOnly(true);
 #else
       throw std::runtime_error(
