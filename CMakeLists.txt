@@ -670,6 +670,11 @@ if(BUILD_TESTING)
       solvers/hybrid
       solvers/min_iterations)
 
+  if(LIBDIRAC_FOUND)
+    list(APPEND SLOW_TESTS solvers/lbfgs_scalar solvers/lbfgs_diagonal
+         solvers/lbfgs_full_jones)
+  endif()
+
   foreach(TEST ${SLOW_TESTS})
     string(REPLACE "/" "_" XMLNAME ${TEST})
     set(XMLNAME "unittest_${XMLNAME}.xml")
