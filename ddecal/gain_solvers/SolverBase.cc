@@ -43,7 +43,8 @@ void SolverBase::Initialize(
                                  n_solutions_per_direction.end(), 0u);
   if (!SupportsDdSolutionIntervals() && (n_solutions_ != n_directions_)) {
     throw std::runtime_error(
-        "DD interval solutions not supported for selected Solver. Please "
+        "DD interval solutions not supported for the selected solver "
+        "algorithm. Please "
         "select a different solver algorithm or remove "
         "ddecal.solutions_per_direction from your parset.");
   }

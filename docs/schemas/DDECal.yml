@@ -140,14 +140,14 @@ inputs:
     default: Based on memory
     type: int
     doc: Set the amount of timesteps that are to be used for each IDG buffer `.`
-  llssolver:
-    default: qr
-    type: string
-    doc: Select which linear least-squares solver to use. Supported are ``qr``, ``svd`` or ``normalequations`` `.`
   solveralgorithm:
     default: directionsolve
     type: string
     doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative``, ``lbfgs``, and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating `.`
+  llssolver:
+    default: qr
+    type: string
+    doc: Select which linear least-squares solver to use for the direction-solving algorithm. When ``solveralgorithm`` is not ``directionsolve``, this parameter has no effect. Supported least-squares solvers are ``qr``, ``svd`` and ``normalequations`` `.`
   savefacets:
     default: false
     type: bool
