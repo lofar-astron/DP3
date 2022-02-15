@@ -10,6 +10,7 @@
 #define DPPP_DPSTEP_H
 
 #include "../base/DPBuffer.h"
+#include "../base/BDABuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/Direction.h"
 
@@ -19,9 +20,6 @@
 #include <memory>
 
 namespace dp3 {
-namespace base {
-class BDABuffer;
-}
 namespace steps {
 
 /// @brief Abstract base class for a DPPP step
@@ -149,8 +147,11 @@ class NullStep : public Step {
  public:
   virtual ~NullStep();
 
-  /// Process the data. It does nothing.
+  /// Process regular data. It does nothing.
   virtual bool process(const base::DPBuffer&);
+
+  /// Process bda data. It does nothing.
+  bool process(std::unique_ptr<base::BDABuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
   /// It does nothing.
@@ -159,6 +160,11 @@ class NullStep : public Step {
   /// Show the step parameters.
   /// It does nothing.
   virtual void show(std::ostream&) const;
+
+  /// Accept BDA and regular data
+  bool accepts(MsType t) const override {
+    return t == MsType::kRegular || t == MsType::kBda;
+  }
 };
 
 /// @brief This class defines step in the DPPP pipeline that keeps the result

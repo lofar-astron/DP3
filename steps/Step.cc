@@ -40,6 +40,8 @@ NullStep::~NullStep() {}
 
 bool NullStep::process(const DPBuffer&) { return true; }
 
+bool NullStep::process(std::unique_ptr<base::BDABuffer> buffer) { return true; }
+
 void NullStep::finish() {}
 
 void NullStep::show(std::ostream&) const {}

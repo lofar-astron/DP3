@@ -214,6 +214,8 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     step = makeOutputStep(inputStep, parset, prefix, msName, inputType);
   } else if (type == "python" || type == "pythondppp") {
     step = pythondp3::PyStep::create_instance(inputStep, parset, prefix);
+  } else if (type == "null") {
+    step = std::make_shared<steps::NullStep>();
   } else {
     // Maybe the step is defined in a dynamic library.
     step = DP3::findStepCtor(type)(inputStep, parset, prefix);
@@ -412,7 +414,8 @@ std::shared_ptr<InputStep> DP3::makeMainSteps(
   // Add an output step if not explicitly added as the last step
   const bool endsWithOutputStep = dynamic_cast<MSWriter*>(step.get()) ||
                                   dynamic_cast<MSUpdater*>(step.get()) ||
-                                  dynamic_cast<Split*>(step.get());
+                                  dynamic_cast<Split*>(step.get()) ||
+                                  dynamic_cast<NullStep*>(step.get());
 
   if (!endsWithOutputStep) {
     const std::string msOutName = parset.getString(
