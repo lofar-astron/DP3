@@ -187,7 +187,9 @@ def test_h5parm_predict():
             "msout=.",
             "steps=[ddecal]",
             f"ddecal.sourcedb={MSIN}/sky",
-            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            # By omitting the direction, the directions are determined from the
+            # sourcedb. This gives the same results as:
+            # "ddecal.directions=[[center],[dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrument.h5",
             f"ddecal.mode=diagonal",
         ]
@@ -202,22 +204,27 @@ def test_h5parm_predict():
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
-            "steps=[predict1,predict2,predict3]",
+            "steps=[predict1,predict2,predict3,predict4]",
             f"predict1.sourcedb={MSIN}/sky",
             "predict1.applycal.parmdb=instrument.h5",
-            "predict1.sources=[center,dec_off]",
+            "predict1.sources=[center]",
             "predict1.operation=subtract",
             "predict1.applycal.correction=amplitude000",
             f"predict2.sourcedb={MSIN}/sky",
             "predict2.applycal.parmdb=instrument.h5",
-            "predict2.sources=[radec_off]",
+            "predict2.sources=[dec_off]",
             "predict2.operation=subtract",
             "predict2.applycal.correction=amplitude000",
             f"predict3.sourcedb={MSIN}/sky",
             "predict3.applycal.parmdb=instrument.h5",
-            "predict3.sources=[ra_off]",
+            "predict3.sources=[radec_off]",
             "predict3.operation=subtract",
             "predict3.applycal.correction=amplitude000",
+            f"predict4.sourcedb={MSIN}/sky",
+            "predict4.applycal.parmdb=instrument.h5",
+            "predict4.sources=[ra_off]",
+            "predict4.operation=subtract",
+            "predict4.applycal.correction=amplitude000",
         ]
     )
 
