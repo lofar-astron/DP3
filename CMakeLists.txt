@@ -758,8 +758,8 @@ if(BUILD_TESTING)
     endforeach()
   endfunction()
 
-  # Add integration tests in the "steps" and "ddecal" folder
-  foreach(DIR steps ddecal)
+  # Add integration tests
+  foreach(DIR ddecal parmdb steps)
     set(INTEGRATION_DIR ${DIR}/test/integration)
     set(BINARY_INTEGRATION_DIR ${CMAKE_BINARY_DIR}/${INTEGRATION_DIR})
 

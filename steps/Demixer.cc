@@ -164,7 +164,9 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
                        itsModelSources.end());
   itsAllSources.insert(itsAllSources.end(), itsExtraSources.begin(),
                        itsExtraSources.end());
-  itsAllSources.push_back(itsTargetSource);
+  if (!itsTargetSource.empty()) {
+    itsAllSources.push_back(itsTargetSource);
+  }
 
   // Get the source info of all patches from the SourceDB table.
   parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", itsSkyName), false, false);
