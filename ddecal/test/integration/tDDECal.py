@@ -75,7 +75,7 @@ def create_corrupted_visibilities():
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            "ddecal.sourcedb=tDDECal.MS/sky",
+            f"ddecal.sourcedb={MSIN}/sky",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrumentcorrupted.h5",
             "ddecal.mode=complexgain",
