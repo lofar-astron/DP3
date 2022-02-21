@@ -200,13 +200,13 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
 
   // Default directions are all patches
   if (itsSettings.directions.empty() && !itsSettings.source_db.empty()) {
-    parmdb::SourceDB sourceDB(parmdb::ParmDBMeta("", itsSettings.source_db),
-                              true, false);
-    std::vector<string> patchNames =
-        base::makePatchList(sourceDB, std::vector<string>());
-    for (const string& patch : patchNames) {
-      itsDirections.emplace_back(1, patch);
-    }
+    const std::vector<base::Patch::ConstPtr> patches =
+        base::SourceDB(itsSettings.source_db, std::vector<std::string>{})
+            .MakePatchList();
+
+    for (const auto& patch : patches)
+      itsDirections.emplace_back(1, patch->name());
+
   } else {
     for (const string& direction : itsSettings.directions) {
       common::ParameterValue dirStr(direction);
