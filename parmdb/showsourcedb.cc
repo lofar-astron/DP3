@@ -9,9 +9,10 @@
 // The program can be run as:
 //    showsourcedb  in=inname mode=all|patch|source
 // in            name of the SourceDB.
-// mode          all    = show patches and sources
-//               patch  = only show patches
-//               source = only show sources
+// mode          all      = show patches and sources
+//               patch    = only show patches
+//               source   = only show sources
+//               skymodel = show the output in a skymodel format
 
 #include "SourceDB.h"
 
@@ -46,6 +47,23 @@ void show(const string& name, const string& mode, const string& patt) {
   }
 }
 
+static void showSkymodel(const std::string& name, const std::string& patches) {
+  dp3::parmdb::SourceDB source_db(dp3::parmdb::ParmDBMeta("", name), false,
+                                  false);
+  std::cout
+      << "# (Name, Type, Patch, Ra, Dec, I, ReferenceFrequency, "
+         "SpectralIndex='[]', MajorAxis, MinorAxis, Orientation) = format\n";
+
+  for (const auto& patch : source_db.getPatchInfo(-1, patches)) {
+    dp3::parmdb::toSkymodel(std::cout, patch);
+
+    for (const dp3::parmdb::SourceData& source :
+         source_db.getPatchSourceData(patch.getName())) {
+      dp3::parmdb::toSkymodel(std::cout, source);
+    }
+  }
+}
+
 int main(int argc, char* argv[]) {
   try {
     // Define the input parameters.
@@ -55,7 +73,8 @@ int main(int argc, char* argv[]) {
     inputs.create("mode", "all",
                   "patch=show all patches, "
                   "source=show all sources, "
-                  "all=show patches and sources",
+                  "all=show patches and sources, "
+                  "skymodel=show data as skymodel file",
                   "string");
     inputs.create("patches", "*", "Pattern for names of patches to show",
                   "string");
@@ -64,10 +83,14 @@ int main(int argc, char* argv[]) {
     string in = inputs.getString("in");
     if (in.empty()) throw std::runtime_error("no input sourcedb name given");
     string mode = boost::to_lower_copy(inputs.getString("mode"));
-    if (mode != "patch" && mode != "source" && mode != "all")
+    if (mode != "patch" && mode != "source" && mode != "all" &&
+        mode != "skymodel")
       throw std::runtime_error("incorrect mode given");
     string patt = inputs.getString("patches");
-    show(in, mode, patt);
+    if (mode == "skymodel")
+      showSkymodel(in, patt);
+    else
+      show(in, mode, patt);
   } catch (AipsError& x) {
     cerr << "Caught AIPS error: " << x.what() << endl;
     return 1;
