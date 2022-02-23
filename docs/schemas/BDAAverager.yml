@@ -16,7 +16,8 @@ inputs:
       The baseline length (in meters) after which the averager does not perform
       any averaging over time. The BDA time averaging factor for a baseline becomes
       timebase / baseline length, rounded down.
-      The maximum time interval will be clipped to maxinterval `.`
+      The maximum time interval will be clipped to maxinterval.
+      A value of 0.0 indicates that no time averaging is performed `.`
     default: 0.0
   frequencybase:
     type: double
@@ -26,7 +27,8 @@ inputs:
       becomes baseline length / frequencybase * original number of
       channels, rounded up.
       The minchannels setting specifies the minimum number of channels.
-      The maximum numbef of channels is the original number of channels `.`
+      The maximum numbef of channels is the original number of channels.
+      A value of 0.0 indicates that no frequency averaging is performed `.`
     default: 0.0
   maxinterval:
     type: int
