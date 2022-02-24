@@ -248,7 +248,7 @@ def test_h5parm_predict(skymodel):
     )
 
     # echo "Check that h5parmpredict creates the same output as multiple predict steps"
-    taql_command = f"select from (select abs(gsumsqr(SUBTRACTED_DATA-SUBTRACTED_DATA)) as diff from {MSIN}) where diff>1.e-6"
+    taql_command = f"select from (select abs(gsumsqr(SUBTRACTED_DATA-SUBTRACTED_DATA_H5PARM)) as diff from {MSIN}) where diff>1.e-6"
     assert_taql(taql_command)
 
 
