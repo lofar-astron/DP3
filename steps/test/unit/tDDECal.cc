@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(show_default) {
 Model steps for direction center
 Predict
 OnePredict prefix.
-  sourcedb:           tDDECal.MS/sky
+  sourcedb:           tDDECal.MS/sky.txt
    number of patches: 1
    number of sources: 1
    all unpolarized:   true
@@ -59,7 +59,7 @@ OnePredict prefix.
 )",
       {{"msin", "tDDECal.MS"},
        {"prefix.directions", "[[center]]"},
-       {"prefix.sourcedb", "tDDECal.MS/sky"}});
+       {"prefix.sourcedb", "tDDECal.MS/sky.txt"}});
 }
 
 BOOST_AUTO_TEST_CASE(show_modified) {
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
 Model steps for direction center
 Predict
 OnePredict prefix.
-  sourcedb:           tDDECal.MS/sky
+  sourcedb:           tDDECal.MS/sky.txt
    number of patches: 1
    number of sources: 1
    all unpolarized:   true
@@ -105,7 +105,7 @@ OnePredict prefix.
 )",
       {{"msin", "tDDECal.MS"},
        {"prefix.directions", "[[center]]"},
-       {"prefix.sourcedb", "tDDECal.MS/sky"},
+       {"prefix.sourcedb", "tDDECal.MS/sky.txt"},
        {"prefix.propagatesolutions", "true"},
        {"prefix.propagateconvergedonly", "true"},
        {"prefix.flagunconverged", "true"},

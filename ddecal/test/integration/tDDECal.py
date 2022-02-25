@@ -37,6 +37,7 @@ def source_env():
     os.chdir(tmpdir)
 
     untar_ms(f"{tcf.RESOURCEDIR}/{MSINTGZ}")
+    check_call([tcf.MAKESOURCEDBEXE, f"in={MSIN}/sky.txt", f"out={MSIN}/sky"])
 
     # Tests are executed here
     yield
@@ -75,7 +76,7 @@ def create_corrupted_visibilities():
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            "ddecal.sourcedb=tDDECal.MS/sky",
+            f"ddecal.sourcedb={MSIN}/sky",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrumentcorrupted.h5",
             "ddecal.mode=complexgain",
@@ -176,7 +177,8 @@ def test(
     assert_taql(taql_command)
 
 
-def test_h5parm_predict():
+@pytest.mark.parametrize("skymodel", ["sky", "sky.txt"])
+def test_h5parm_predict(skymodel):
     # make calibration solutions
     check_call(
         [
@@ -186,8 +188,10 @@ def test_h5parm_predict():
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
-            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            f"ddecal.sourcedb={MSIN}/{skymodel}",
+            # By omitting the direction, the directions are determined from the
+            # sourcedb. This gives the same results as:
+            # "ddecal.directions=[[center],[dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrument.h5",
             f"ddecal.mode=diagonal",
         ]
@@ -202,22 +206,27 @@ def test_h5parm_predict():
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
-            "steps=[predict1,predict2,predict3]",
-            f"predict1.sourcedb={MSIN}/sky",
+            "steps=[predict1,predict2,predict3,predict4]",
+            f"predict1.sourcedb={MSIN}/{skymodel}",
             "predict1.applycal.parmdb=instrument.h5",
-            "predict1.sources=[center,dec_off]",
+            "predict1.sources=[center]",
             "predict1.operation=subtract",
             "predict1.applycal.correction=amplitude000",
-            f"predict2.sourcedb={MSIN}/sky",
+            f"predict2.sourcedb={MSIN}/{skymodel}",
             "predict2.applycal.parmdb=instrument.h5",
-            "predict2.sources=[radec_off]",
+            "predict2.sources=[dec_off]",
             "predict2.operation=subtract",
             "predict2.applycal.correction=amplitude000",
-            f"predict3.sourcedb={MSIN}/sky",
+            f"predict3.sourcedb={MSIN}/{skymodel}",
             "predict3.applycal.parmdb=instrument.h5",
-            "predict3.sources=[ra_off]",
+            "predict3.sources=[radec_off]",
             "predict3.operation=subtract",
             "predict3.applycal.correction=amplitude000",
+            f"predict4.sourcedb={MSIN}/{skymodel}",
+            "predict4.applycal.parmdb=instrument.h5",
+            "predict4.sources=[ra_off]",
+            "predict4.operation=subtract",
+            "predict4.applycal.correction=amplitude000",
         ]
     )
 
@@ -231,7 +240,7 @@ def test_h5parm_predict():
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA_H5PARM",
             "steps=[h5parmpredict]",
-            f"h5parmpredict.sourcedb={MSIN}/sky",
+            f"h5parmpredict.sourcedb={MSIN}/{skymodel}",
             "h5parmpredict.applycal.parmdb=instrument.h5",
             "h5parmpredict.operation=subtract",
             "h5parmpredict.applycal.correction=amplitude000",
@@ -239,7 +248,7 @@ def test_h5parm_predict():
     )
 
     # echo "Check that h5parmpredict creates the same output as multiple predict steps"
-    taql_command = f"select from (select abs(gsumsqr(SUBTRACTED_DATA-SUBTRACTED_DATA)) as diff from {MSIN}) where diff>1.e-6"
+    taql_command = f"select from (select abs(gsumsqr(SUBTRACTED_DATA-SUBTRACTED_DATA_H5PARM)) as diff from {MSIN}) where diff>1.e-6"
     assert_taql(taql_command)
 
 
