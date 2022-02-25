@@ -60,8 +60,8 @@ inputs:
       averaging, it has to fit integrally `.`
   skymodel:
     default: sky
-    type: File, Directory, string
-    doc: The name of the SourceDB to use (i.e., the output of `makesourcedb`) `.` 
+    type: string
+    doc: Sourcedb (created with `makesourcedb`) with the sky model to calibrate on `.` When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.
   instrumentmodel:
     default: instrument
     type: string
