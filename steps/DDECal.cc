@@ -201,7 +201,8 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
   // Default directions are all patches
   if (itsSettings.directions.empty() && !itsSettings.source_db.empty()) {
     const std::vector<base::Patch::ConstPtr> patches =
-        base::SourceDB(itsSettings.source_db, std::vector<std::string>{})
+        base::SourceDB(itsSettings.source_db, std::vector<std::string>{},
+                       base::SourceDB::FilterMode::kPattern)
             .MakePatchList();
 
     for (const auto& patch : patches)

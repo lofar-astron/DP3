@@ -357,23 +357,16 @@ static bool HasSkymodelExtension(const std::string& source_db_name) {
 }
 
 SourceDB::SourceDB(const std::string& source_db_name,
-                   const std::vector<std::string>& source_patterns) {
-  if (std::find(source_patterns.cbegin(), source_patterns.cend(), "") !=
-      source_patterns.end()) {
+                   const std::vector<std::string>& filter,
+                   FilterMode filter_mode) {
+  if (std::find(filter.cbegin(), filter.cend(), "") != filter.end()) {
     throw std::runtime_error("Empty source pattern not allowed");
   }
 
   if (HasSkymodelExtension(source_db_name)) {
-    source_db_ = parmdb::skymodel_to_source_db::MakeSourceDBSkymodel(
-        source_db_name,
-        parmdb::skymodel_to_source_db::ReadFormat("", source_db_name));
-    patch_names_ =
-        base::MakePatchList(Get<parmdb::SourceDBSkymodel>(), source_patterns);
+    InitialiseUsingSkymodel(source_db_name, filter, filter_mode);
   } else {
-    source_db_ =
-        parmdb::SourceDB(parmdb::ParmDBMeta("", source_db_name), true, false);
-    patch_names_ =
-        base::makePatchList(Get<parmdb::SourceDB>(), source_patterns);
+    InitialiseUsingSourceDb(source_db_name, filter, filter_mode);
   }
 }
 
@@ -396,6 +389,44 @@ bool SourceDB::CheckPolarized() {
 
   return base::checkPolarized(Get<parmdb::SourceDB>(), patch_names_,
                               patch_names_.size());
+}
+
+void SourceDB::InitialiseUsingSkymodel(const std::string& source_db_name,
+                                       const std::vector<std::string>& filter,
+                                       FilterMode filter_mode) {
+  assert(HasSkymodelExtension(source_db_name) &&
+         "Use InitialiseUsingSourceDb instead.");
+
+  source_db_ = parmdb::skymodel_to_source_db::MakeSourceDBSkymodel(
+      source_db_name,
+      parmdb::skymodel_to_source_db::ReadFormat("", source_db_name));
+  switch (filter_mode) {
+    case FilterMode::kPattern:
+      patch_names_ =
+          base::MakePatchList(Get<parmdb::SourceDBSkymodel>(), filter);
+      break;
+    case FilterMode::kValue:
+      patch_names_ = filter;
+      break;
+  }
+}
+
+void SourceDB::InitialiseUsingSourceDb(const std::string& source_db_name,
+                                       const std::vector<std::string>& filter,
+                                       FilterMode filter_mode) {
+  assert(!HasSkymodelExtension(source_db_name) &&
+         "Use InitialiseUsingSourceSkymodel instead.");
+
+  source_db_ =
+      parmdb::SourceDB(parmdb::ParmDBMeta("", source_db_name), true, false);
+  switch (filter_mode) {
+    case FilterMode::kPattern:
+      patch_names_ = base::makePatchList(Get<parmdb::SourceDB>(), filter);
+      break;
+    case FilterMode::kValue:
+      patch_names_ = filter;
+      break;
+  }
 }
 
 }  // namespace base
