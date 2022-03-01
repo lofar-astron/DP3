@@ -616,12 +616,32 @@ if(BUILD_TESTING)
   add_custom_target(
     extract_test_resources
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tApplyCal_tmp.parmdb.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tDDECal.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tIDGPredict.sources.tgz
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tDDECal.in_MS.tgz)
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz)
+
+  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15")
+    # Removes the extracted resources. When a resource is updated the version
+    # in the build directory is stale and needs updating. Adding the generated
+    # resources to the clean target makes it possible to remove them with
+    # `ninja clean`.
+    # The command needs a ;-list so use a helper variable to improve readability.
+    set(extract_test_resources_directories
+        ${CMAKE_BINARY_DIR}/sources-model.fits
+        ${CMAKE_BINARY_DIR}/sources.reg
+        ${CMAKE_BINARY_DIR}/tApplyCal_tmp.parmdb
+        ${CMAKE_BINARY_DIR}/tDDECal.MS
+        ${CMAKE_BINARY_DIR}/tNDPPP-generic.MS
+        ${CMAKE_BINARY_DIR}/tNDPPP_bda_tmp.MS
+        ${CMAKE_BINARY_DIR}/tNDPPP_tmp.MS
+        ${CMAKE_BINARY_DIR}/tOSKAR.in_MS)
+    set_target_properties(
+      extract_test_resources PROPERTIES ADDITIONAL_CLEAN_FILES
+                                        "${extract_test_resources_directories}")
+  endif()
 
   add_test(NAME extract_resources
            COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target
