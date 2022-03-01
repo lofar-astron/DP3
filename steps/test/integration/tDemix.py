@@ -34,8 +34,6 @@ common_args = [
     "demix.type=demixer",
     "demix.corrtype=cross",
     "demix.baseline='CS00[0-9]HBA0&'",
-    "demix.freqstep=64",
-    "demix.timestep=10",
     "demix.demixfreqstep=64",
     "demix.demixtimestep=10",
     "demix.skymodel='tDemix_tmp/sky.sourcedb'",
@@ -62,8 +60,16 @@ def source_env():
 
 
 def test_without_target():
+    check_call(
+        [
+            tcf.DP3EXE,
+            "demix.ignoretarget=true",
+            "demix.freqstep=64",
+            "demix.timestep=10",
+        ]
+        + common_args
+    )
 
-    check_call([tcf.DP3EXE, "demix.ignoretarget=true"] + common_args)
 
     # Compare some columns of the output MS with the reference output.
     taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref1.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
@@ -71,7 +77,16 @@ def test_without_target():
 
 
 def test_with_target_projected_away():
-    check_call([tcf.DP3EXE, "demix.ignoretarget=false"] + common_args)
+    check_call(
+        [
+            tcf.DP3EXE,
+            "demix.ignoretarget=false",
+            "demix.freqstep=64",
+            "demix.timestep=10",
+        ]
+        + common_args
+    )
+
 
     # Compare some columns of the output MS with the reference output.
     taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref2.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
@@ -82,13 +97,14 @@ def test_with_target():
     check_call(
         [
             tcf.DP3EXE,
-            "demix.target=CIZA.SP1A.FITS.pbcor_patch_s537",
+            "demix.targetsource=CIZA.SP1A.FITS.pbcor_patch_s537",
             "demix.freqstep=32",
             "demix.timestep=5",
+            "demix.maxiter=100",
         ]
         + common_args
     )
 
     # Compare some columns of the output MS with the reference output.
-    taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref2.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
+    taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref3.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
     assert_taql(taql_command)
