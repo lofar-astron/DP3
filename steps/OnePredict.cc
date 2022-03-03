@@ -92,7 +92,8 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   ss << sourcePatterns;
   direction_str_ = ss.str();
 
-  base::SourceDB source_db{source_db_name_, sourcePatterns};
+  base::SourceDB source_db{source_db_name_, sourcePatterns,
+                           base::SourceDB::FilterMode::kPattern};
   try {
     patch_list_ = source_db.MakePatchList();
     if (patch_list_.empty()) {

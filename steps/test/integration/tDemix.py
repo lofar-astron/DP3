@@ -36,11 +36,11 @@ common_args = [
     "demix.baseline='CS00[0-9]HBA0&'",
     "demix.demixfreqstep=64",
     "demix.demixtimestep=10",
-    "demix.skymodel='tDemix_tmp/sky.sourcedb'",
     "demix.instrumentmodel='tDemix_tmp/instrument'",
     "demix.subtractsources=[CasA]",
 ]
 
+skymodel_arg="demix.skymodel='tDemix_tmp/{}'"
 
 @pytest.fixture(autouse=True)
 def source_env():
@@ -50,6 +50,7 @@ def source_env():
     os.chdir(tmpdir)
 
     untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
+    check_call([tcf.MAKESOURCEDBEXE, "in=tDemix_tmp/sky.txt", "out=tDemix_tmp/sourcedb"])
 
     # Tests are executed here
     yield
@@ -59,13 +60,15 @@ def source_env():
     shutil.rmtree(tmpdir)
 
 
-def test_without_target():
+@pytest.mark.parametrize("skymodel", ['sky.txt', 'sourcedb'])
+def test_without_target(skymodel):
     check_call(
         [
             tcf.DP3EXE,
             "demix.ignoretarget=true",
             "demix.freqstep=64",
             "demix.timestep=10",
+            skymodel_arg.format(skymodel),
         ]
         + common_args
     )
@@ -76,13 +79,15 @@ def test_without_target():
     assert_taql(taql_command)
 
 
-def test_with_target_projected_away():
+@pytest.mark.parametrize("skymodel", ['sky.txt', 'sourcedb'])
+def test_with_target_projected_away(skymodel):
     check_call(
         [
             tcf.DP3EXE,
             "demix.ignoretarget=false",
             "demix.freqstep=64",
             "demix.timestep=10",
+            skymodel_arg.format(skymodel),
         ]
         + common_args
     )
@@ -93,7 +98,8 @@ def test_with_target_projected_away():
     assert_taql(taql_command)
 
 
-def test_with_target():
+@pytest.mark.parametrize("skymodel", ['sky.txt', 'sourcedb'])
+def test_with_target(skymodel):
     check_call(
         [
             tcf.DP3EXE,
@@ -101,6 +107,7 @@ def test_with_target():
             "demix.freqstep=32",
             "demix.timestep=5",
             "demix.maxiter=100",
+            skymodel_arg.format(skymodel),
         ]
         + common_args
     )
