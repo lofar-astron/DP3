@@ -7,8 +7,9 @@ inputs:
       Case-insensitive step type; must be 'gaincal' or 'calibrate' `.`
   caltype:
     type: string
+    default: diagonal
     doc: >-
-      The type of calibration that needs to be performed, can be one of 'fulljones', 'diagonal', 'phaseonly', 'scalarphase'. Experimental values are 'amplitude' or 'scalaramplitude', 'tec', 'tecandphase' `.`
+      The type of calibration that needs to be performed. Options are `scalar`, `scalarphase`, `scalaramplitude`, `diagonal`, `diagonalphase`, `diagonalamplitude`, `fulljones`, 'tec' and 'tecandphase' `.`
   parmdb:
     type: string
     doc: >-
