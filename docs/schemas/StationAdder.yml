@@ -1,5 +1,10 @@
 description: >-
-  Flag based on UVW coordinates, possibly in the direction of another source.
+  Combine multiple stations together into one larger station by adding the visibilities together.
+  A common use case for this is to add the core stations on the superterp station together.
+  It decreases the number of visibilities and therefore the computational cost of subsequent
+  processing, and for some calibration approaches it may also be
+  useful to have a station with a larger signal to noise.
+  Be aware that the new station has a smaller beam than the original stations.
 inputs:
   step_name:
     type: string
