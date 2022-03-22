@@ -418,3 +418,67 @@ def test_modelnextsteps(copy_data_to_model_data):
     )
     taql_command = f"select from (select abs(sumsqr(SUBTRACTED_DATA)/sumsqr(DATA)) as diff from {MSIN}) where diff>1.e-6"
     assert_taql(taql_command)
+
+
+def test_bda_constaints():
+
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
+    common = [
+        f"msin={MSIN}",
+        "msout.overwrite=true",
+        "msin.datacolumn=DATA",
+        "solve.type=ddecal",
+        "solve.mode=complexgain",
+        "solve.usebeammodel=True",
+        "solve.beammode=array_factor",
+        "solve.maxiter=150",
+        "solve.directions=[[center,dec_off],[ra_off],[radec_off]]",
+        "numthreads=6",
+        "solve.onebeamperpatch=False",
+        "solve.propagatesolutions=True",
+        "solve.smoothnessconstraint=4000000.0",
+        "solve.solint=37",
+        "solve.nchan=10",
+        "solve.solveralgorithm=hybrid",
+        f"solve.sourcedb={MSIN}/sky",
+        "solve.stepsize=0.2",
+        "solve.tolerance=0.005",
+    ]
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            "msout=tmp_bda.ms",
+            "steps=[avg,solve]",
+            "avg.type=bdaaverager",
+            "avg.timebase=20000",
+            "avg.frequencybase=10000",
+            "avg.maxinterval=37",
+            "solve.h5parm=test_bda.h5parm",
+        ]
+        + common
+    )
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            "msout=tmp_no_bda.ms",
+            "steps=[solve]",
+            "solve.h5parm=test_no_bda.h5parm",
+        ]
+        + common
+    )
+
+    f_bda = h5py.File("test_bda.h5parm", "r")
+    f_no_bda = h5py.File("test_no_bda.h5parm", "r")
+
+    ampl_bda = f_bda["sol000/amplitude000/val"]
+    ampl_no_bda = f_no_bda["sol000/amplitude000/val"]
+    phase_bda = f_bda["sol000/phase000/val"]
+    phase_no_bda = f_no_bda["sol000/phase000/val"]
+
+    np.testing.assert_allclose(ampl_bda, ampl_no_bda, rtol=0.05, atol=0, equal_nan=True)
+    np.testing.assert_allclose(
+        phase_bda, phase_no_bda, rtol=0.3, atol=0, equal_nan=True
+    )

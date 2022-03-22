@@ -12,6 +12,7 @@ namespace test {
 
 /// MS name for the predict tests.
 const std::string kPredictSourceDB = "tNDPPP-generic.MS/sky";
+const std::string kPredictDirections = "[[0002.2+3139]]";
 
 /// Expected first direction when using tNDPPP-generic.MS.
 /// Multiple predict tests use this value.

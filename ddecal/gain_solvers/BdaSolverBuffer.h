@@ -90,6 +90,15 @@ class BdaSolverBuffer {
   }
 
   /**
+   * Get the unweighted data, weights and flags for the current solution
+   * interval. SolveData uses this function to retrieve the antenna weights.
+   * @return Rows with unweighted visibilities.
+   */
+  const std::vector<base::BDABuffer::Row*>& GetUnweightedDataRows() const {
+    return data_rows_[0].unweighted;
+  }
+
+  /**
    * @return The absolute index of the current solution interval.
    */
   int GetCurrentInterval() const { return current_interval_; }

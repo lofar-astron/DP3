@@ -122,10 +122,33 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
                                                 info().ntimeAvgs().end()) *
                               info().timeInterval();
     if (solution_interval_ < max_bda_interval) {
-      throw std::runtime_error(
+      throw std::invalid_argument(
           "Using BDA rows that are longer than the solution interval is not "
           "supported. Use less BDA time averaging or a larger solution "
           "interval.");
+    }
+
+    double max_chan_avg = 1.0;
+    for (size_t i = 0; i < info().nbaselines(); i++) {
+      double chan_avg =
+          static_cast<double>(info().origNChan()) / info().chanWidths(i).size();
+      if (chan_avg > max_chan_avg) {
+        max_chan_avg = chan_avg;
+      }
+    }
+
+    int channels_per_chan_block =
+        (settings_.n_channels == 0) ? info().origNChan() : settings_.n_channels;
+    if (max_chan_avg > channels_per_chan_block) {
+      throw std::invalid_argument(
+          "BDA frequency averaging scheme gives a maximum amount of channel "
+          "averaged of " +
+          std::to_string(max_chan_avg) +
+          ", which is higher than the number of channels in each channel block "
+          "set for BdaDdeCal of " +
+          std::to_string(channels_per_chan_block) +
+          ". Please adjust the BDA settings to have a lower frequency "
+          "averaging factor.");
     }
 
     solver_buffer_ = boost::make_unique<ddecal::BdaSolverBuffer>(
@@ -368,6 +391,66 @@ void BdaDdeCal::SolveCurrentInterval() {
     block_solution.assign(block_solution_size, 1.0);
   }
 
+  // The variables below hold the count of the number of time intervals present
+  // in current solution interval per each antenna: this is needed for a correct
+  // normalization, as different antennas may have different averaging schemes.
+  std::vector<double> antenna1_interval_count(n_antennas, 0);
+  std::vector<double> antenna2_interval_count(n_antennas, 0);
+
+  // Get antenna weights
+  std::vector<double> weights_per_antenna(n_channel_blocks * n_antennas, 0.0);
+  for (const BDABuffer::Row* data_row :
+       solver_buffer_->GetUnweightedDataRows()) {
+    const size_t antenna1 = antennas1_[data_row->baseline_nr];
+    const size_t antenna2 = antennas2_[data_row->baseline_nr];
+    ++antenna1_interval_count[antenna1];
+    ++antenna2_interval_count[antenna2];
+
+    if (antenna1 != antenna2) {
+      for (size_t ch = 0; ch < data_row->n_channels; ++ch) {
+        const size_t index = ch * data_row->n_correlations;
+        const bool* const flag_ptr = data_row->flags + index;
+        const float* const weights_ptr = data_row->weights + index;
+
+        const double normalization_factor =
+            1.0 /
+            (data_row->n_correlations * data_row->n_channels * n_antennas);
+
+        // Add the weights for current antenna and channel block
+        const size_t channel_block_index =
+            GetChanBlockIndex(ch, data_row->n_channels, n_channel_blocks);
+
+        for (size_t corr = 0; corr < data_row->n_correlations; ++corr) {
+          if (!(flag_ptr[corr])) {
+            weights_per_antenna[antenna1 * n_channel_blocks +
+                                channel_block_index] +=
+                weights_ptr[corr] * normalization_factor;
+            weights_per_antenna[antenna2 * n_channel_blocks +
+                                channel_block_index] +=
+                weights_ptr[corr] * normalization_factor;
+          }
+        }
+      }
+    }
+  }
+
+  // Normalize the weigths to the number of intervals contained in current
+  // solution interval, per antenna
+  for (size_t k = 0; k < antenna1_interval_count.size(); ++k) {
+    for (size_t i = 0; i < n_channel_blocks; ++i) {
+      weights_per_antenna[k * n_channel_blocks + i] /=
+          (antenna1_interval_count[k] + antenna2_interval_count[k]);
+    }
+  }
+
+  std::vector<ddecal::SolverBase*> solvers = solver_->ConstraintSolvers();
+  for (ddecal::SolverBase* solver : solvers) {
+    for (const std::unique_ptr<ddecal::Constraint>& constraint :
+         solver->GetConstraints()) {
+      constraint->SetWeights(weights_per_antenna);
+    }
+  }
+
   InitializeCurrentSolutions();
 
   ddecal::SolverBase::SolveResult result =
@@ -590,6 +673,20 @@ void BdaDdeCal::showTimings(std::ostream& os, double duration) const {
     base::FlagCounter::showPerc1(os, write_timer_.getElapsed(), total_time);
     os << " of it spent in writing gain solutions to disk\n";
   }
+}
+
+size_t BdaDdeCal::GetChanBlockIndex(const size_t channel,
+                                    const size_t n_channels,
+                                    size_t n_channel_blocks) const {
+  // Assert that the channel averaging schema is compatible with the channel
+  // block division. One channel should be mapped to one single channel block.
+  if (n_channels < n_channel_blocks) {
+    throw std::runtime_error(
+        "Number of BDA channels smaller than numbner of channel blocks");
+  }
+
+  return std::floor(static_cast<double>(channel) / n_channels *
+                    n_channel_blocks);
 }
 
 }  // namespace steps

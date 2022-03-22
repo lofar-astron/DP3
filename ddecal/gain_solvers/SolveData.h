@@ -56,7 +56,7 @@ class SolveData {
      * direction zero starts counting at zero and indices of subsequent
      * directions start after the previous direction. For every direction, the
      * first solution index is also the lowest value, i.e. SolutionIndex(D, 0)
-     * <= SolutionIndex(D, i) for any i,D
+     * <= SolutionIndex(D, i) for any i,D.
      */
     uint32_t SolutionIndex(size_t direction_index,
                            size_t visibility_index) const {
@@ -64,7 +64,7 @@ class SolveData {
     }
     /**
      * Returns a vector that maps visibility indices to solution indices (see
-     * @ref SolutionIndex())
+     * @ref SolutionIndex()).
      */
     const std::vector<uint32_t>& SolutionMap(size_t direction_index) const {
       return solution_map_[direction_index];

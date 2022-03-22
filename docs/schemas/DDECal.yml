@@ -34,7 +34,7 @@ inputs:
   solint:
     default: 1
     type: int
-    doc: Solution interval in timesteps. If a value of 0 is specified, the solver will use a single solution interval that covers the entire observation `.`
+    doc: Solution interval in timesteps. If a value of 0 is specified, the solver will use a single solution interval that covers the entire observation. When using BDA, the solint should be bigger than or equal to the maximum averaged time interval `.` 
   solutions_per_direction:
     default: "[1,1,...,1]"
     type: list
@@ -91,7 +91,7 @@ inputs:
   nchan:
     default: 1
     type: int
-    doc: Number of channels in each channel block, for which the solution is assumed to be constant. The default is 1, meaning one solution per channel (or in the case of constraints, fitting the constraint over all channels individually). 0 means one solution for the whole channel range. If the total number of channels is not divisable by nchan, some channelblocks will become slightly larger `.`
+    doc: Number of channels in each channel block, for which the solution is assumed to be constant. The default is 1, meaning one solution per channel (or in the case of constraints, fitting the constraint over all channels individually). 0 means one solution for the whole channel range. If the total number of channels is not divisable by nchan, some channelblocks will become slightly larger. When using BDA, the value of nchan should be bigger than or equal to the maximum number of averaged frequency channels `.` 
   coreconstraint:
     default: 0
     type: double

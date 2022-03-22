@@ -256,9 +256,9 @@ BOOST_AUTO_TEST_CASE(bda) {
   const std::vector<std::vector<size_t>> kNVisibilitiesPerBaseline{{2, 3},
                                                                    {2, 4}};
 
-  BDABuffer::Fields bda_fields(false);
-  bda_fields.data = true;
-  bda_fields.weights = true;
+  BDABuffer::Fields bda_fields(true);
+  bda_fields.full_res_flags = false;
+
   auto bda_data_buffer =
       boost::make_unique<BDABuffer>(kBdaBufferSize, bda_fields);
   bda_fields.weights = false;
