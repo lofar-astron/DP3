@@ -185,9 +185,8 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
       kNBDATimes * kNBaselines * kNChannels * kNPolarizations / 2;
 
   // Initialize the data buffers. The solvers only need the data field.
-  BDABuffer::Fields bda_fields(false);
-  bda_fields.data = true;
-  bda_fields.weights = true;
+  BDABuffer::Fields bda_fields(true);
+  bda_fields.full_res_flags = false;
   auto bda_data_buffer =
       boost::make_unique<BDABuffer>(bda_buffer_size, bda_fields);
   std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers;

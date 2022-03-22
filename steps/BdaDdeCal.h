@@ -76,6 +76,13 @@ class BdaDdeCal : public Step {
 
   MsType outputs() const override { return MsType::kBda; };
 
+  /**
+   * Get the channel block index for a given channel.
+   * @return Index of the channel block.
+   */
+  size_t GetChanBlockIndex(size_t channel, size_t n_channels,
+                           size_t n_channel_blocks) const;
+
  private:
   void InitializePredictSteps(InputStep* input,
                               const common::ParameterSet& parset,

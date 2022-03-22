@@ -95,7 +95,7 @@ class SolverTester {
   static constexpr size_t kNPolarizations = 4;
   static constexpr size_t kNAntennas = 50;
   static constexpr size_t kNDirections = 3;
-  static constexpr size_t kNChannels = 10;
+  static constexpr size_t kNChannels = 16;
   static constexpr size_t kNChannelBlocks = 4;
   static constexpr size_t kNRegularTimes = 50;
   // Use more times with BDA so the number of visibilities is similar to the

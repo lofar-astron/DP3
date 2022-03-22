@@ -6,7 +6,7 @@ import os
 import shutil
 import uuid
 import numpy as np
-from subprocess import check_call, check_output, run
+from subprocess import check_call, check_output, run, CalledProcessError
 
 # Append current directory to system path in order to import testconfig
 import sys
@@ -24,8 +24,9 @@ Script can be invoked in two ways:
 """
 
 MSIN = "tNDPPP-bda.MS"
+MSIN_REGULAR = "tNDPPP-generic.MS"
 CWD = os.getcwd()
-CORRUPTIONS = 3, 4, 7 # Corruption gain factors per antenna
+CORRUPTIONS = 3, 4, 7  # Corruption gain factors per antenna
 
 
 @pytest.fixture(autouse=True)
@@ -36,6 +37,7 @@ def source_env():
     os.chdir(tmpdir)
 
     untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
+    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN_REGULAR}.tgz")
 
     # Tests are executed here
     yield
@@ -62,9 +64,15 @@ def create_corrupted_data():
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
         )
-        f.write(f"center, POINT, 16:38:28.205000, +63.44.34.314000, {CORRUPTIONS[0] * CORRUPTIONS[0]}, , , , , \r\n")
-        f.write(f"ra_off, POINT, 16:58:28.205000, +63.44.34.314000, {CORRUPTIONS[1] * CORRUPTIONS[1]}, , , , , \r\n")
-        f.write(f"radec_off, POINT, 16:38:28.205000, +65.44.34.314000, {CORRUPTIONS[2] * CORRUPTIONS[2]}, , , , , \r\n")
+        f.write(
+            f"center, POINT, 16:38:28.205000, +63.44.34.314000, {CORRUPTIONS[0] * CORRUPTIONS[0]}, , , , , \r\n"
+        )
+        f.write(
+            f"ra_off, POINT, 16:58:28.205000, +63.44.34.314000, {CORRUPTIONS[1] * CORRUPTIONS[1]}, , , , , \r\n"
+        )
+        f.write(
+            f"radec_off, POINT, 16:38:28.205000, +65.44.34.314000, {CORRUPTIONS[2] * CORRUPTIONS[2]}, , , , , \r\n"
+        )
 
     check_call(
         [
@@ -78,12 +86,46 @@ def create_corrupted_data():
         ]
     )
 
+    check_call([tcf.TAQLEXE, "update corrupted.MS set WEIGHT_SPECTRUM=1"])
+
+
+@pytest.fixture()
+def create_corrupted_data_from_regular():
+
+    """
+    Use a lower frequency averaging to ensure the condition on the frequency
+    channels is satisfied: channels per chan block >= max averaged channels
+    """
+
+    with open("test_corrupted.txt", "w") as f:
+        f.write(
+            "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
+        )
+        f.write(
+            f"center, POINT, 16:38:28.205000, +63.44.34.314000, {CORRUPTIONS[0] * CORRUPTIONS[0]}, , , , , \r\n"
+        )
+        f.write(
+            f"ra_off, POINT, 16:58:28.205000, +63.44.34.314000, {CORRUPTIONS[1] * CORRUPTIONS[1]}, , , , , \r\n"
+        )
+        f.write(
+            f"radec_off, POINT, 16:38:28.205000, +65.44.34.314000, {CORRUPTIONS[2] * CORRUPTIONS[2]}, , , , , \r\n"
+        )
+
     check_call(
         [
-            tcf.TAQLEXE,
-            "update corrupted.MS set WEIGHT_SPECTRUM=1"
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN_REGULAR}",
+            "msout=corrupted.MS",
+            "steps=[bdaaverager, predict]",
+            "bdaaverager.frequencybase=40",
+            "bdaaverager.timebase=100",
+            "predict.sourcedb=test_corrupted.txt",
+            "numthreads=1",
         ]
     )
+
+    check_call([tcf.TAQLEXE, "update corrupted.MS set WEIGHT_SPECTRUM=1"])
 
 
 def test_only_predict(create_skymodel):
@@ -114,21 +156,13 @@ def test_only_predict(create_skymodel):
     )
 
     check_call(
-        [
-            tcf.DP3EXE,
-            "msout=PREDICT_DIR_1.MS",
-            "predict.sources=[center, dec_off]"
-        ]
+        [tcf.DP3EXE, "msout=PREDICT_DIR_1.MS", "predict.sources=[center, dec_off]"]
         + common_args
         + predict_args
     )
 
     check_call(
-        [
-            tcf.DP3EXE,
-            "msout=PREDICT_DIR_2.MS",
-            "predict.sources=[ra_off]"
-        ]
+        [tcf.DP3EXE, "msout=PREDICT_DIR_2.MS", "predict.sources=[ra_off]"]
         + common_args
         + predict_args
     )
@@ -165,6 +199,7 @@ def test_only_predict(create_skymodel):
     )
     assert_taql(taql_check_weights)
 
+
 # Only test a limited set of caltype + nchannels combinations, since testing
 # all combinations does not have much extra value.
 # The beginning # of the caltype_nchan string is the caltype.
@@ -187,11 +222,11 @@ def test_only_predict(create_skymodel):
         # "rotation+diagonal", # part of fulljones -> not implemented
     ],
 )
-
-def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
+def test_caltype(create_skymodel, create_corrupted_data_from_regular, caltype_nchan):
     """Test calibration for different calibration types"""
     caltype = caltype_nchan[:-1]
     nchan = int(caltype_nchan[-1])
+    print(nchan)
 
     check_call(
         [
@@ -210,16 +245,17 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
         ]
     )
 
-    import h5py # Don't import h5py when pytest is only collecting tests.
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
     h5 = h5py.File("solutions.h5", "r")
 
-    if caltype in ["scalar", "diagonal", "scalaramplitude", "diagonalamplitude" ]:
-        amplitude_solutions = h5['sol000/amplitude000/val']
+    if caltype in ["scalar", "diagonal", "scalaramplitude", "diagonalamplitude"]:
+        amplitude_solutions = h5["sol000/amplitude000/val"]
 
-        if caltype.startswith('scalar'):
-            assert amplitude_solutions.attrs['AXES'] == b'time,freq,ant,dir'
+        if caltype.startswith("scalar"):
+            assert amplitude_solutions.attrs["AXES"] == b"time,freq,ant,dir"
         else:
-            assert amplitude_solutions.attrs['AXES'] == b'time,freq,ant,dir,pol'
+            assert amplitude_solutions.attrs["AXES"] == b"time,freq,ant,dir,pol"
 
         if nchan == 0:
             assert amplitude_solutions.shape[1] == 1
@@ -228,25 +264,24 @@ def test_caltype(create_skymodel, create_corrupted_data, caltype_nchan):
 
         for corruption_num in range(3):
             np.testing.assert_array_almost_equal(
-                amplitude_solutions[:,:,:,corruption_num],
+                amplitude_solutions[:, :, :, corruption_num],
                 CORRUPTIONS[corruption_num],
-                decimal=3
+                decimal=3,
             )
 
     if caltype in ["scalar", "diagonal", "scalarphase", "diagonalphase"]:
         np.testing.assert_array_almost_equal(
-            h5['sol000/phase000/val'][:,:,:,:],
-            0.,
-            decimal=5
+            h5["sol000/phase000/val"][:, :, :, :], 0.0, decimal=5
         )
 
     if caltype in ["tec", "tecandphase"]:
-        tec = h5['sol000/tec000/val']
-        assert tec.attrs['AXES'] == b'time,ant,dir,freq'
+        tec = h5["sol000/tec000/val"]
+        assert tec.attrs["AXES"] == b"time,ant,dir,freq"
 
     if caltype in ["tecandphase"]:
-        phase = h5['sol000/phase000/val']
-        assert phase.attrs['AXES'] == b'time,ant,dir,freq'
+        phase = h5["sol000/phase000/val"]
+        assert phase.attrs["AXES"] == b"time,ant,dir,freq"
+
 
 def test_subtract(create_skymodel, create_corrupted_data):
     """Test subtraction"""
@@ -262,20 +297,17 @@ def test_subtract(create_skymodel, create_corrupted_data):
             "ddecal.sourcedb=test.skymodel",
             "ddecal.mode=diagonal",
             "ddecal.solint=2",
-            "ddecal.nchan=3",
+            "ddecal.nchan=8",
             "ddecal.subtract=true",
             "numthreads=1",
         ]
     )
 
-    residual = float(check_output(
-        [
-            tcf.TAQLEXE,
-            "-nopr",
-            "-noph",
-            "select gmax(abs(DATA)) from out.MS"
-        ]
-    ))
+    residual = float(
+        check_output(
+            [tcf.TAQLEXE, "-nopr", "-noph", "select gmax(abs(DATA)) from out.MS"]
+        )
+    )
 
     assert residual < 0.01
 
@@ -289,3 +321,40 @@ def test_subtract(create_skymodel, create_corrupted_data):
         " where diff > 0"
     )
     assert_taql(taql_check_weights)
+
+
+def test_invalid_input(create_skymodel):
+    """Assert that exception is thrown when an incompatible value of solint or nchan is given"""
+
+    common_args = [
+        "checkparset=1",
+        f"msin={MSIN}",
+        "msout=out.MS",
+        "steps=[ddecal]",
+        "ddecal.directions=[[center], [ra_off], [radec_off]]",
+        "ddecal.h5parm=solutions.h5",
+        "ddecal.sourcedb=test.skymodel",
+        "ddecal.mode=diagonal",
+        "ddecal.subtract=true",
+        "numthreads=1",
+    ]
+
+    with pytest.raises(CalledProcessError):
+        check_call(
+            [
+                tcf.DP3EXE,
+                "ddecal.solint=1",
+                "ddecal.nchan=4",
+            ]
+            + common_args
+        )
+
+    with pytest.raises(CalledProcessError):
+        check_call(
+            [
+                tcf.DP3EXE,
+                "ddecal.solint=2",
+                "ddecal.nchan=1",
+            ]
+            + common_args
+        )

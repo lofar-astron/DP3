@@ -2,12 +2,35 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <boost/test/unit_test.hpp>
-
-#include "tStepCommon.h"
-#include "../../BdaDdeCal.h"
-#include "../../InputStep.h"
-
 #include <aocommon/threadpool.h>
+
+#include "mock/MockInput.h"
+
+#include "tPredict.h"
+#include "tStepCommon.h"
+
+#include "../../BdaDdeCal.h"
+#include "../../../common/ParameterSet.h"
+
+namespace {
+
+class BdaDdeCalFixture {
+  // Fixture to create a minimal working BdaDdeCal step
+ public:
+  BdaDdeCalFixture() : input_() {
+    dp3::common::ParameterSet parset;
+    parset.add("msin", "");
+    parset.add("directions", dp3::steps::test::kPredictDirections);
+    parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+    parset.add("h5parm", "test.h5");
+    bdaddecal_ = std::make_shared<dp3::steps::BdaDdeCal>(&input_, parset, "");
+  }
+
+  dp3::steps::MockInput input_;
+  std::shared_ptr<dp3::steps::BdaDdeCal> bdaddecal_;
+};
+
+}  // namespace
 
 BOOST_AUTO_TEST_SUITE(bdaddecal)
 
@@ -22,6 +45,21 @@ static void TestShow(
 
   BOOST_CHECK_MESSAGE(parset.unusedKeys().empty(),
                       "Not all keys are used, is there a typo?");
+}
+
+void CheckChannelBlockIndex(std::shared_ptr<dp3::steps::BdaDdeCal>& bdaddecal,
+                            size_t n_channels, size_t n_channel_blocks,
+                            const std::vector<size_t>& expected_result) {
+  for (size_t i = 0; i < n_channels; ++i) {
+    if (n_channels >= n_channel_blocks) {
+      BOOST_TEST(bdaddecal->GetChanBlockIndex(
+                     i, n_channels, n_channel_blocks) == expected_result[i]);
+    } else {
+      BOOST_REQUIRE_THROW(
+          bdaddecal->GetChanBlockIndex(i, n_channels, n_channel_blocks),
+          std::runtime_error);
+    }
+  }
 }
 
 BOOST_AUTO_TEST_CASE(show_default) {
@@ -132,6 +170,40 @@ BDAAverager prefix.
        {"prefix.smoothnessrefdistance", "48.123"},
        {"prefix.tecscreen.coreconstraint", "49.123"},
        {"prefix.maxiter", "49"}});
+}
+
+BOOST_FIXTURE_TEST_CASE(channel_block_mapping_16_channels, BdaDdeCalFixture) {
+  size_t n_channel_blocks = 4;
+  size_t n_channels = 16;
+  std::vector<size_t> expected_result = {0, 0, 0, 0, 1, 1, 1, 1,
+                                         2, 2, 2, 2, 3, 3, 3, 3};
+  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+                         expected_result);
+}
+
+BOOST_FIXTURE_TEST_CASE(channel_block_mapping_10_channels, BdaDdeCalFixture) {
+  size_t n_channel_blocks = 4;
+  size_t n_channels = 10;
+  std::vector<size_t> expected_result = {0, 0, 0, 1, 1, 2, 2, 2, 3, 3};
+
+  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+                         expected_result);
+}
+
+BOOST_FIXTURE_TEST_CASE(channel_block_mapping_4_channels, BdaDdeCalFixture) {
+  size_t n_channel_blocks = 4;
+  size_t n_channels = 4;
+  std::vector<size_t> expected_result = {0, 1, 2, 3};
+  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+                         expected_result);
+}
+
+BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
+  size_t n_channel_blocks = 4;
+  size_t n_channels = 3;
+  std::vector<size_t> expected_result = {};
+  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+                         expected_result);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

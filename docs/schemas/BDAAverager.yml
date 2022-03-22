@@ -28,7 +28,10 @@ inputs:
       channels, rounded up.
       The minchannels setting specifies the minimum number of channels.
       The maximum numbef of channels is the original number of channels.
-      A value of 0.0 indicates that no frequency averaging is performed `.`
+      A value of 0.0 indicates that no frequency averaging is performed.
+      When using BDA in combination with DdeCal, the maximum number of channels 
+      averaged should be smaller than or equal to the number of channels in 
+      one channel block `.`
     default: 0.0
   maxinterval:
     type: int
@@ -36,7 +39,9 @@ inputs:
       The maximum interval duration (in seconds), when averaging over time.
       This setting allows limiting the time averaging factor for short baselines.
       This value is rounded down to the nearest multiple of the integration time.
-      When this value is 0.0, there is no limit on the interval duration `.`
+      When this value is 0.0, there is no limit on the interval duration.
+      When using BDA in combination with DdeCal, the maximum number of averaged
+      intervals should be smaller than or equal to the solution interval `.`
     default: 0.0
   minchannels:
     type: int
