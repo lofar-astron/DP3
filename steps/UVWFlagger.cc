@@ -6,7 +6,6 @@
 
 #include "UVWFlagger.h"
 
-#include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/Exceptions.h"
 
@@ -32,6 +31,7 @@ using casacore::MDirection;
 using casacore::MVAngle;
 using casacore::Quantity;
 
+using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::operator<<;
@@ -40,8 +40,9 @@ namespace dp3 {
 namespace steps {
 
 UVWFlagger::UVWFlagger(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix)
+                       const string& prefix, MsType inputType)
     : itsInput(input),
+      itsInputType(inputType),
       itsName(prefix),
       itsNTimes(0),
       itsRecWavel(),
@@ -118,10 +119,13 @@ void UVWFlagger::updateInfo(const DPInfo& infoIn) {
   info().setWriteFlags();
   // Convert the given frequencies to possibly averaged frequencies.
   // Divide it by speed of light to get reciproke of wavelengths.
-  itsRecWavel = infoIn.chanFreqs();
+  itsRecWavel = infoIn.BdaChanFreqs();
   const double inv_c = 1.0 / casacore::C::c;
-  for (double& wl : itsRecWavel) {
-    wl *= inv_c;
+
+  for (std::vector<double>& baseline_channel_frequencies : itsRecWavel) {
+    for (double& wavelength : baseline_channel_frequencies) {
+      wavelength *= inv_c;
+    }
   }
   // Handle the phase center (if given).
   if (!itsCenter.empty()) {
@@ -144,11 +148,10 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   Cube<bool>& flags = itsBuffer.getFlags();
   // Loop over the baselines and flag as needed.
   const IPosition& shape = flags.shape();
-  unsigned int nrcorr = shape[0];
-  unsigned int nrchan = shape[1];
-  unsigned int nrbl = shape[2];
-  unsigned int nr = nrcorr * nrchan;
-  assert(nrchan == itsRecWavel.size());
+  unsigned int n_correlations = shape[0];
+  unsigned int n_channels = shape[1];
+  unsigned int n_baselines = shape[2];
+  assert(n_channels == itsRecWavel[0].size());
   // Input uvw coordinates are only needed if no new phase center is used.
   Matrix<double> uvws;
   if (itsCenter.empty()) {
@@ -157,7 +160,7 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   const double* uvwPtr = uvws.data();
   bool* flagPtr = flags.data();
   const bool* origPtr = buf.getFlags().data();
-  for (unsigned int i = 0; i < nrbl; ++i) {
+  for (unsigned int i = 0; i < n_baselines; ++i) {
     std::array<double, 3> uvw{0.0, 0.0, 0.0};
     if (!itsCenter.empty()) {
       // A different phase center is given, so calculate UVW for it.
@@ -167,48 +170,17 @@ bool UVWFlagger::process(const DPBuffer& buf) {
       uvwPtr = uvw.data();
       /// cout << "uvw = " << uvw << '\n';
     }
-    double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
-    bool flagBL = false;
-    if (!itsRangeUVm.empty()) {
-      // UV-distance is sqrt(u^2 + v^2).
-      // The sqrt is not needed because itsRangeUVm is squared.
-      flagBL = testUVWm(uvdist, itsRangeUVm);
-    }
-    if (!(flagBL || itsRangeUm.empty())) {
-      flagBL = testUVWm(uvwPtr[0], itsRangeUm);
-    }
-    if (!(flagBL || itsRangeVm.empty())) {
-      flagBL = testUVWm(uvwPtr[1], itsRangeVm);
-    }
-    if (!(flagBL || itsRangeWm.empty())) {
-      flagBL = testUVWm(uvwPtr[2], itsRangeWm);
-    }
-    if (flagBL) {
-      // Flag entire baseline.
-      std::fill(flagPtr, flagPtr + nr, true);
-    } else {
-      if (!itsRangeUVl.empty()) {
-        // UV-distance is sqrt(u^2 + v^2).
-        testUVWl(sqrt(uvdist), itsRangeUVl, flagPtr, nrcorr);
-      }
-      if (!itsRangeUl.empty()) {
-        testUVWl(uvwPtr[0], itsRangeUl, flagPtr, nrcorr);
-      }
-      if (!itsRangeVl.empty()) {
-        testUVWl(uvwPtr[1], itsRangeVl, flagPtr, nrcorr);
-      }
-      if (!itsRangeWl.empty()) {
-        testUVWl(uvwPtr[2], itsRangeWl, flagPtr, nrcorr);
-      }
-    }
+
+    doFlag(uvwPtr, flagPtr, n_correlations, n_channels);
+
     // Count the flags set newly.
-    for (unsigned int j = 0; j < nrchan; ++j) {
+    for (unsigned int j = 0; j < n_channels; ++j) {
       if (*flagPtr && !*origPtr) {
         itsFlagCounter.incrBaseline(i);
         itsFlagCounter.incrChannel(j);
       }
-      flagPtr += nrcorr;
-      origPtr += nrcorr;
+      flagPtr += n_correlations;
+      origPtr += n_correlations;
     }
     uvwPtr += 3;
   }
@@ -217,6 +189,94 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   itsNTimes++;
   getNextStep()->process(itsBuffer);
   return true;
+}
+
+bool UVWFlagger::process(std::unique_ptr<BDABuffer> buf) {
+  if (itsIsDegenerate) {
+    getNextStep()->process(std::move(buf));
+    return true;
+  }
+  itsTimer.start();
+
+  bool* flagPtr = buf->GetFlags();
+
+  for (auto& row : buf->GetRows()) {
+    // Loop over the baselines and flag as needed.
+    unsigned int n_correlations = row.n_correlations;
+    unsigned int n_channels = row.n_channels;
+    unsigned int baseline_id = row.baseline_nr;
+
+    assert(n_channels == itsRecWavel[baseline_id].size());
+
+    // Input uvw coordinates are only needed if no new phase center is used.
+    auto uvwPtr = row.uvw;
+    if (!itsCenter.empty()) {
+      // A different phase center is given, so calculate UVW for it.
+      common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
+      std::array<double, 3> uvw{0.0, 0.0, 0.0};
+      uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[baseline_id],
+                               getInfo().getAnt2()[baseline_id], row.time);
+      uvwPtr = uvw.data();
+    }
+
+    // Copy original flags to calculate flagged visibilities
+    BDABuffer::Row originalRow = row;
+    const bool* origPtr = originalRow.flags;
+    doFlag(uvwPtr, flagPtr, n_correlations, n_channels, baseline_id);
+    // Count the flags set newly.
+    for (unsigned int j = 0; j < n_channels; ++j) {
+      if (*flagPtr && !*origPtr) {
+        itsFlagCounter.incrBaseline(baseline_id);
+        itsFlagCounter.incrChannel(j);
+      }
+      flagPtr += n_correlations;
+      origPtr += n_correlations;
+    }
+  }
+
+  itsTimer.stop();
+  itsNTimes++;
+  getNextStep()->process(std::move(buf));
+  return true;
+}
+
+void UVWFlagger::doFlag(const double* uvwPtr, bool* flagPtr,
+                        unsigned int n_correlations, unsigned int n_channels,
+                        unsigned int baseline_id) {
+  double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
+  bool flagBL = false;
+  if (!itsRangeUVm.empty()) {
+    // UV-distance is sqrt(u^2 + v^2).
+    // The sqrt is not needed because itsRangeUVm is squared.
+    flagBL = testUVWm(uvdist, itsRangeUVm);
+  }
+  if (!(flagBL || itsRangeUm.empty())) {
+    flagBL = testUVWm(uvwPtr[0], itsRangeUm);
+  }
+  if (!(flagBL || itsRangeVm.empty())) {
+    flagBL = testUVWm(uvwPtr[1], itsRangeVm);
+  }
+  if (!(flagBL || itsRangeWm.empty())) {
+    flagBL = testUVWm(uvwPtr[2], itsRangeWm);
+  }
+  if (flagBL) {
+    // Flag entire baseline.
+    std::fill_n(flagPtr, n_correlations * n_channels, true);
+  } else {
+    if (!itsRangeUVl.empty()) {
+      // UV-distance is sqrt(u^2 + v^2).
+      testUVWl(sqrt(uvdist), itsRangeUVl, flagPtr, n_correlations, baseline_id);
+    }
+    if (!itsRangeUl.empty()) {
+      testUVWl(uvwPtr[0], itsRangeUl, flagPtr, n_correlations, baseline_id);
+    }
+    if (!itsRangeVl.empty()) {
+      testUVWl(uvwPtr[1], itsRangeVl, flagPtr, n_correlations, baseline_id);
+    }
+    if (!itsRangeWl.empty()) {
+      testUVWl(uvwPtr[2], itsRangeWl, flagPtr, n_correlations, baseline_id);
+    }
+  }
 }
 
 void UVWFlagger::finish() {
@@ -234,20 +294,21 @@ bool UVWFlagger::testUVWm(double uvw, const std::vector<double>& ranges) {
 }
 
 void UVWFlagger::testUVWl(double uvw, const std::vector<double>& ranges,
-                          bool* flagPtr, unsigned int nrcorr) {
+                          bool* flagPtr, unsigned int n_correlations,
+                          unsigned int baseline_id) {
   // This loop could be made more efficient if it is guaranteed that
   // itsRecWavel is in strict ascending or descending order.
   // It is expected that the nr of ranges is so small that it is not
   // worth the trouble, but it could be done if ever needed.
-  for (unsigned int j = 0; j < itsRecWavel.size(); ++j) {
-    double uvwl = uvw * itsRecWavel[j];
+  for (unsigned int j = 0; j < itsRecWavel[baseline_id].size(); ++j) {
+    double uvwl = uvw * itsRecWavel[baseline_id][j];
     for (size_t i = 0; i < ranges.size(); i += 2) {
       if (uvwl > ranges[i] && uvwl < ranges[i + 1]) {
-        std::fill(flagPtr, flagPtr + nrcorr, true);
+        std::fill_n(flagPtr, n_correlations, true);
         break;
       }
     }
-    flagPtr += nrcorr;
+    flagPtr += n_correlations;
   }
 }
 

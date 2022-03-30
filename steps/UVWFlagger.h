@@ -11,6 +11,7 @@
 
 #include "InputStep.h"
 
+#include "../base/BDABuffer.h"
 #include "../base/DPBuffer.h"
 #include "../base/UVWCalculator.h"
 
@@ -41,13 +42,16 @@ class UVWFlagger : public Step {
   /// The antenna names are used to find antenna numbers.
   /// The channel frequencies as they are in the input step must be given
   /// starting at the start-channel.
-  UVWFlagger(InputStep*, const common::ParameterSet&, const string& prefix);
+  UVWFlagger(InputStep*, const common::ParameterSet&, const string& prefix,
+             MsType inputType);
 
   virtual ~UVWFlagger();
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);
+
+  virtual bool process(std::unique_ptr<base::BDABuffer>);
 
   /// Finish the processing of this step and subsequent steps.
   virtual void finish();
@@ -65,13 +69,21 @@ class UVWFlagger : public Step {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
+  bool accepts(MsType dt) const override { return dt == itsInputType; }
+
+  MsType outputs() const override { return itsInputType; }
+
  private:
   /// Test if uvw matches a range in meters.
   bool testUVWm(double uvw, const std::vector<double>& ranges);
 
   /// Set flags for channels where uvw (in m) matches a range in wavelengths.
   void testUVWl(double uvw, const std::vector<double>& ranges, bool* flagPtr,
-                unsigned int nrcorr);
+                unsigned int nrcorr, unsigned int baseline_id);
+
+  // Apply UVW flagging
+  void doFlag(const double* uvwPtr, bool* flagPtr, unsigned int n_correlations,
+              unsigned int n_channels, unsigned int baseline_id = 0);
 
   /// Return a vector with UVW ranges.
   /// It looks for the named parameter suffixed with 'range', 'min', and
@@ -87,12 +99,17 @@ class UVWFlagger : public Step {
   /// It setups the UVWCalculator.
   void handleCenter();
 
-  InputStep* itsInput;
-  string itsName;
   base::DPBuffer itsBuffer;
+  InputStep* itsInput;
+  const MsType itsInputType;
+  string itsName;
   unsigned int itsNTimes;
 
-  std::vector<double> itsRecWavel;        ///< reciprokes of wavelengths
+  /// Wavelengths may differ between baselines when using BDA.
+  /// If all baselines have equal channels (i.e. when the input is a DPBuffer),
+  /// the outer vector only holds one inner vector. When using BDA (i.e. when
+  /// the input is a BDABuffer), each baseline has its own inner vector.
+  std::vector<std::vector<double>> itsRecWavel;  ///< reciprokes of wavelengths
   const std::vector<double> itsRangeUVm;  ///< UV ranges (in m) to be flagged
   const std::vector<double> itsRangeUm;   ///< U  ranges (in m) to be flagged
   const std::vector<double> itsRangeVm;   ///< V  ranges (in m) to be flagged

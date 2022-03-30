@@ -96,7 +96,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsNSolInts(0),
       itsBufferedSolInts(0),
       itsNChan(itsSettings.n_channels),
-      itsUVWFlagStep(input, parset, prefix),
+      itsUVWFlagStep(input, parset, prefix, Step::MsType::kRegular),
       itsSolver(ddecal::CreateSolver(itsSettings, parset, prefix)),
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
