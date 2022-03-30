@@ -8,6 +8,7 @@
 #include <boost/make_unique.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <limits>
 

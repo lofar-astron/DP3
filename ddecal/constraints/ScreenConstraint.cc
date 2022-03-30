@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <array>
 #include <iostream>
 
 namespace dp3 {

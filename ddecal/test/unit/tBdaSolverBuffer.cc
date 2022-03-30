@@ -11,6 +11,8 @@
 
 #include <aocommon/matrix2x2.h>
 
+#include <array>
+
 using dp3::base::BDABuffer;
 using dp3::ddecal::BdaSolverBuffer;
 
