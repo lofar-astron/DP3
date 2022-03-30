@@ -196,29 +196,14 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
 
 void DDECal::initializePredictSteps(const common::ParameterSet& parset,
                                     const string& prefix) {
-  size_t start = itsDirections.size();
+  std::vector<std::vector<std::string>> directions =
+      base::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
 
-  // Default directions are all patches
-  if (itsSettings.directions.empty() && !itsSettings.source_db.empty()) {
-    const std::vector<base::Patch::ConstPtr> patches =
-        base::SourceDB(itsSettings.source_db, std::vector<std::string>{},
-                       base::SourceDB::FilterMode::kPattern)
-            .MakePatchList();
-
-    for (const auto& patch : patches)
-      itsDirections.emplace_back(1, patch->name());
-
-  } else {
-    for (const string& direction : itsSettings.directions) {
-      common::ParameterValue dirStr(direction);
-      itsDirections.emplace_back(dirStr.getStringVector());
-    }
-  }
-
-  for (size_t dir = start; dir < itsDirections.size(); ++dir) {
-    itsSteps.push_back(std::make_shared<Predict>(itsInput, parset, prefix,
-                                                 itsDirections[dir]));
-    setModelNextSteps(*itsSteps.back(), itsDirections[dir][0], parset, prefix);
+  for (std::vector<std::string>& direction : directions) {
+    itsSteps.push_back(
+        std::make_shared<Predict>(itsInput, parset, prefix, direction));
+    setModelNextSteps(*itsSteps.back(), direction.front(), parset, prefix);
+    itsDirections.push_back(std::move(direction));
   }
 }
 

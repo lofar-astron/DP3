@@ -3,21 +3,22 @@
 
 #include "BdaDdeCal.h"
 
-#include "BDAResultStep.h"
-#include "BdaGroupPredict.h"
-#include "Predict.h"
-#include "Version.h"
+#include <algorithm>
+
+#include <boost/make_unique.hpp>
 
 #include "../base/DPInfo.h"
+#include "../base/SourceDBUtil.h"
 #include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"
 #include "../common/StreamUtil.h"
 #include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/SolverFactory.h"
 
-#include <boost/make_unique.hpp>
-
-#include <algorithm>
+#include "BDAResultStep.h"
+#include "BdaGroupPredict.h"
+#include "Predict.h"
+#include "Version.h"
 
 using dp3::base::BDABuffer;
 using dp3::ddecal::BdaSolverBuffer;
@@ -52,10 +53,6 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
       predict_timer_(),
       solve_timer_(),
       write_timer_() {
-  if (settings_.directions.empty()) {
-    throw std::invalid_argument(
-        "Invalid info in input parset: direction(s) must be specified");
-  }
   InitializePredictSteps(input, parset, prefix);
 
   if (!settings_.only_predict) {
@@ -68,22 +65,27 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
 void BdaDdeCal::InitializePredictSteps(InputStep* input,
                                        const common::ParameterSet& parset,
                                        const string& prefix) {
-  for (const std::string& direction : settings_.directions) {
-    const std::vector<std::string> source_patterns =
-        common::ParameterValue(direction).getStringVector();
+  std::vector<std::vector<std::string>> directions =
+      base::MakeDirectionList(settings_.directions, settings_.source_db);
 
-    bool bda_group_predict = parset.getBool(prefix + "grouppredict", false);
+  if (directions.empty()) {
+    throw std::invalid_argument(
+        "Invalid input parset: direction(s) or sourcedb must be specified");
+  }
+
+  const bool bda_group_predict = parset.getBool(prefix + "grouppredict", false);
+  for (std::vector<std::string>& source_patterns : directions) {
+    patches_.push_back(std::move(source_patterns));
+
     if (bda_group_predict) {
       steps_.push_back(std::make_shared<BdaGroupPredict>(*input, parset, prefix,
-                                                         source_patterns));
+                                                         patches_.back()));
     } else {
       steps_.push_back(std::make_shared<Predict>(
-          *input, parset, prefix, source_patterns, Step::MsType::kBda));
+          *input, parset, prefix, patches_.back(), Step::MsType::kBda));
     }
     result_steps_.push_back(std::make_shared<BDAResultStep>());
     steps_.back()->setNextStep(result_steps_.back());
-
-    patches_.push_back(common::ParameterValue(direction).getStringVector());
   }
 }
 
@@ -91,7 +93,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
 
   // Update info for substeps
-  for (unsigned int i = 0; i < settings_.directions.size(); i++) {
+  for (unsigned int i = 0; i < patches_.size(); i++) {
     steps_[i]->setInfo(_info);
   }
 
@@ -152,7 +154,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     }
 
     solver_buffer_ = boost::make_unique<ddecal::BdaSolverBuffer>(
-        settings_.directions.size(), _info.startTime(), solution_interval_,
+        patches_.size(), _info.startTime(), solution_interval_,
         _info.nbaselines());
 
     DetermineChannelBlocks();
@@ -189,7 +191,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     }
 
     solver_->Initialize(info().antennaUsed().size(),
-                        std::vector<size_t>(settings_.directions.size(), 1),
+                        std::vector<size_t>(patches_.size(), 1),
                         chan_block_start_freqs_.size() - 1);
 
     // SolveCurrentInterval will add solution intervals to the solutions.
@@ -376,8 +378,8 @@ void BdaDdeCal::SolveCurrentInterval() {
   const size_t n_antennas = info().antennaUsed().size();
 
   dp3::ddecal::SolveData data(*solver_buffer_, n_channel_blocks,
-                              settings_.directions.size(), n_antennas,
-                              antennas1_, antennas2_);
+                              patches_.size(), n_antennas, antennas1_,
+                              antennas2_);
 
   const int current_interval = solutions_.size();
   assert(current_interval == solver_buffer_->GetCurrentInterval());
@@ -385,8 +387,8 @@ void BdaDdeCal::SolveCurrentInterval() {
       info().startTime() + (current_interval + 0.5) * solution_interval_;
 
   solutions_.emplace_back(n_channel_blocks);
-  const size_t block_solution_size = settings_.directions.size() * n_antennas *
-                                     solver_->NSolutionPolarizations();
+  const size_t block_solution_size =
+      patches_.size() * n_antennas * solver_->NSolutionPolarizations();
   for (std::vector<std::complex<double>>& block_solution : solutions_.back()) {
     block_solution.assign(block_solution_size, 1.0);
   }

@@ -49,6 +49,18 @@ std::vector<std::string> MakePatchList(
     const parmdb::SourceDBSkymodel &source_db,
     const std::vector<std::string> &patterns);
 
+/**
+ * Creates a list of directions, using packed directions and/or a SourceDB file.
+ *
+ * @param packed_directions Packed direction lists. Each string should contain a
+ * list of directions, e.g., "[direction1, direction2, direction3]".
+ * @param source_db_filename A filename of a Source DB file.
+ * @return A list of patches.
+ */
+std::vector<std::vector<std::string>> MakeDirectionList(
+    const std::vector<std::string> &packed_directions,
+    const std::string &source_db_filename);
+
 bool checkPolarized(parmdb::SourceDB &sourceDB,
                     const std::vector<std::string> &patchNames,
                     unsigned int nModel);
