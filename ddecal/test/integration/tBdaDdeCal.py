@@ -235,7 +235,6 @@ def test_caltype(create_skymodel, create_corrupted_data_from_regular, caltype_nc
             f"msin=corrupted.MS",
             "msout=out.MS",
             "steps=[ddecal]",
-            "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
             "ddecal.sourcedb=test.skymodel",
             f"ddecal.mode={caltype}",
@@ -292,6 +291,7 @@ def test_subtract(create_skymodel, create_corrupted_data):
             f"msin=corrupted.MS",
             "msout=out.MS",
             "steps=[ddecal]",
+            # Use explicit directions in this test.
             "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
             "ddecal.sourcedb=test.skymodel",
@@ -331,7 +331,6 @@ def test_invalid_input(create_skymodel):
         f"msin={MSIN}",
         "msout=out.MS",
         "steps=[ddecal]",
-        "ddecal.directions=[[center], [ra_off], [radec_off]]",
         "ddecal.h5parm=solutions.h5",
         "ddecal.sourcedb=test.skymodel",
         "ddecal.mode=diagonal",

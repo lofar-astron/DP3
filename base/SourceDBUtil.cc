@@ -13,6 +13,7 @@
 #include "../parmdb/SourceDB.h"
 #include "../parmdb/SkymodelToSourceDB.h"
 
+#include "../common/ParameterValue.h"
 #include "../common/ProximityClustering.h"
 
 #include <boost/utility/string_view.hpp>
@@ -302,6 +303,30 @@ std::vector<std::string> MakePatchList(
     }
   }
   return std::vector<std::string>(patches.begin(), patches.end());
+}
+
+std::vector<std::vector<std::string>> MakeDirectionList(
+    const std::vector<std::string>& packed_directions,
+    const std::string& source_db_filename) {
+  std::vector<std::vector<std::string>> directions;
+
+  if (packed_directions.empty() && !source_db_filename.empty()) {
+    // Use all patches from the SourceDB if the user did not give directions.
+    const std::vector<Patch::ConstPtr> patches =
+        SourceDB(source_db_filename, std::vector<std::string>{},
+                 SourceDB::FilterMode::kPattern)
+            .MakePatchList();
+
+    for (const auto& patch : patches) {
+      directions.emplace_back(1, patch->name());
+    }
+  } else {
+    for (const std::string& direction : packed_directions) {
+      directions.push_back(common::ParameterValue(direction).getStringVector());
+    }
+  }
+
+  return directions;
 }
 
 bool checkPolarized(parmdb::SourceDB& sourceDB,
