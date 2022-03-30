@@ -11,6 +11,8 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/Measures/Muvw.h>
 
+#include <array>
+
 using namespace casacore;
 
 namespace dp3 {

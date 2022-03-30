@@ -5,6 +5,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <array>
 #include <vector>
 
 using dp3::base::UVWCalculator;

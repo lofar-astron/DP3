@@ -5,6 +5,7 @@
 
 #include "../../base/DPBuffer.h"
 
+#include <array>
 #include <cassert>
 
 using dp3::base::DPBuffer;

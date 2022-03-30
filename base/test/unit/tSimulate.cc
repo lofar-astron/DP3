@@ -6,7 +6,9 @@
 /// @author Sebastiaan van der Tol
 
 #include <boost/test/unit_test.hpp>
+
 #include <algorithm>
+#include <array>
 
 #include "../../Simulate.h"
 
