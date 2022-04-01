@@ -31,7 +31,7 @@ const std::complex<float> kModelDataDiff{100.0, 100.0};
 /**
  * Create successive BDA buffers.
  * The resulting buffers hold values for all fields, including flags, which
- * allows testing if AssignAndWeight discards unnecessary fields.
+ * allows testing if AppendAndWeight discards unnecessary fields.
  * @param data_value Visibility value for the first row. For each next row, the
  *        value is increased with { 1.0, 1.0 }.
  * @param weight_value Weight value for all buffer entries.
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
 BOOST_AUTO_TEST_CASE(append_and_weight) {
   const float kWeight = 0.8;
   const float kWeightSqrt = std::sqrt(kWeight);
-  // AssignAndWeight should ignore the model weight values.
+  // AppendAndWeight should ignore the model weight values.
   const float kModelWeight = 0.0;
 
   std::vector<std::unique_ptr<BDABuffer>> data =
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
     BOOST_REQUIRE(model_row1);
     BOOST_REQUIRE(model_row2);
 
-    // AssignAndWeight should only store the visibilities in the buffer.
+    // AppendAndWeight should only store the visibilities in the buffer.
     BOOST_CHECK(data_row->data);
     BOOST_CHECK(!data_row->flags);
     BOOST_CHECK(!data_row->weights);
@@ -207,6 +207,32 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
 
   buffer.Clear();
   BOOST_CHECK_EQUAL(buffer.GetDataRows().size(), 0u);
+}
+
+BOOST_AUTO_TEST_CASE(append_and_weight_nullptr_flags) {
+  const std::vector<std::complex<float>> data(kNChannels * kNCorrelations, 1.0);
+  const std::vector<float> weights(kNChannels * kNCorrelations, 1.0);
+
+  BDABuffer::Fields fields(false);
+  fields.data = true;
+  fields.weights = true;
+  auto bdabuffer =
+      boost::make_unique<BDABuffer>(kNChannels * kNCorrelations, fields);
+  bdabuffer->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
+                    kNCorrelations, data.data(), nullptr, weights.data(),
+                    nullptr);
+
+  auto model_data = boost::make_unique<BDABuffer>(kRowsPerBuffer * kNChannels *
+                                                  kNCorrelations);
+  model_data->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
+                     kNCorrelations, data.data(), nullptr, weights.data(),
+                     nullptr);
+
+  BdaSolverBuffer buffer(1, 0.0, 100.0, kNBaselines);
+  std::vector<std::unique_ptr<BDABuffer>> model_buffers;
+  model_buffers.push_back(std::move(model_data));
+  BOOST_CHECK_NO_THROW(
+      buffer.AppendAndWeight(std::move(bdabuffer), std::move(model_buffers)));
 }
 
 BOOST_AUTO_TEST_CASE(one_interval_per_buffer) {

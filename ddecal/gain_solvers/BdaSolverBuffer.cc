@@ -11,7 +11,6 @@
 #include <array>
 #include <cassert>
 #include <limits>
-
 using dp3::base::BDABuffer;
 
 namespace {
@@ -52,6 +51,9 @@ void BdaSolverBuffer::AppendAndWeight(
       bool is_flagged = false;
       const size_t index = ch * kNCorrelations;
       const float* weights_ptr = unweighted_buffer->GetWeights(row) + index;
+      const bool* flag_ptr = unweighted_buffer->GetFlags(row);
+      if (flag_ptr) flag_ptr += index;
+
       const std::array<float, kNCorrelations> w_sqrt{
           std::sqrt(weights_ptr[0]), std::sqrt(weights_ptr[1]),
           std::sqrt(weights_ptr[2]), std::sqrt(weights_ptr[3])};
@@ -59,7 +61,8 @@ void BdaSolverBuffer::AppendAndWeight(
       // Weigh the 2x2 data matrix.
       std::complex<float>* data_ptr = weighted_row.data + index;
       for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-        is_flagged = is_flagged || !IsFinite(data_ptr[cr]);
+        is_flagged =
+            is_flagged || !IsFinite(data_ptr[cr]) || (flag_ptr && flag_ptr[cr]);
         data_ptr[cr] *= w_sqrt[cr];
       }
 

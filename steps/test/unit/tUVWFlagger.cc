@@ -440,15 +440,38 @@ void test3(size_t n_times, size_t n_baselines, size_t n_channels,
   parset.add("wmmax", "44.5");
   parset.add("wmmin", "3.5");
   parset.add("phasecenter", "[-1.92653768rad, 1.09220917rad, j2000]");
-  Step::ShPtr step2(new dp3::steps::UVWFlagger(in, parset, "", input_type));
+  auto uvw_flagger_step =
+      new dp3::steps::UVWFlagger(in, parset, "", input_type);
+  BOOST_REQUIRE_EQUAL(uvw_flagger_step->isDegenerate(), false);
+
+  Step::ShPtr step2(uvw_flagger_step);
   Step::ShPtr step3(
       new TestOutput<T>(n_times, n_baselines, n_channels, n_correlations, 3));
   dp3::steps::test::Execute({step1, step2, step3});
 }
 
+// Test flagging a few baselines on UV in m with a different phase center.
+template <class T>
+void test_constructor(size_t n_times, size_t n_baselines, size_t n_channels,
+                      size_t n_correlations, Step::MsType input_type) {
+  // Create the steps.
+  TestInput<T>* in =
+      new TestInput<T>(n_times, n_baselines, n_channels, n_correlations);
+  dp3::common::ParameterSet parset;
+  auto uvw_flagger_step =
+      new dp3::steps::UVWFlagger(in, parset, "", input_type);
+  BOOST_REQUIRE_EQUAL(uvw_flagger_step->isDegenerate(), true);
+}
+
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(uvwflagger)
+
+BOOST_AUTO_TEST_CASE(constructor) {
+  test_constructor<DPBuffer>(10, 16, 32, 4, Step::MsType::kRegular);
+  test_constructor<std::unique_ptr<BDABuffer>>(10, 16, 32, 4,
+                                               Step::MsType::kBda);
+}
 
 BOOST_AUTO_TEST_CASE(test1_regular) {
   test1<DPBuffer>(10, 16, 32, 4, Step::MsType::kRegular);

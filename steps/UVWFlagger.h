@@ -73,6 +73,8 @@ class UVWFlagger : public Step {
 
   MsType outputs() const override { return itsInputType; }
 
+  bool isDegenerate() const { return itsIsDegenerate; }
+
  private:
   /// Test if uvw matches a range in meters.
   bool testUVWm(double uvw, const std::vector<double>& ranges);
