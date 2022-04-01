@@ -200,6 +200,40 @@ def test_only_predict(create_skymodel):
     assert_taql(taql_check_weights)
 
 
+def test_uvwflagger(create_skymodel, create_corrupted_data_from_regular):
+    """Test that uvwflagger settings lead to the right amount of NaNs in the solution file"""
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=out.MS",
+            "steps=[ddecal]",
+            "ddecal.directions=[[center], [ra_off], [radec_off]]",
+            "ddecal.h5parm=solutions.h5",
+            "ddecal.sourcedb=test.skymodel",
+            "ddecal.mode=scalar",
+            "ddecal.solint=2",
+            "ddecal.nchan=10",
+            "numthreads=1",
+            "ddecal.uvlambdamin=12000.0",
+        ]
+    )
+
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
+    h5 = h5py.File("solutions.h5", "r")
+    amplitude_solutions = h5["sol000/amplitude000/val"]
+    phase_solutions = h5["sol000/phase000/val"]
+
+    # When uvw flagging is disabled, the NaNs in the solution file are only 9
+    expected_flagged_solutions = 54
+
+    assert np.count_nonzero(np.isnan(amplitude_solutions)) == expected_flagged_solutions
+    assert np.count_nonzero(np.isnan(phase_solutions)) == expected_flagged_solutions
+
+
 # Only test a limited set of caltype + nchannels combinations, since testing
 # all combinations does not have much extra value.
 # The beginning # of the caltype_nchan string is the caltype.

@@ -15,7 +15,6 @@
 #include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/SolverFactory.h"
 
-#include "BDAResultStep.h"
 #include "BdaGroupPredict.h"
 #include "Predict.h"
 #include "Version.h"
@@ -53,6 +52,10 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
       predict_timer_(),
       solve_timer_(),
       write_timer_() {
+  uvw_flagger_step_ =
+      boost::make_unique<UVWFlagger>(input, parset, prefix, Step::MsType::kBda);
+  uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
+  uvw_flagger_step_->setNextStep(uvw_flagger_result_step_);
   InitializePredictSteps(input, parset, prefix);
 
   if (!settings_.only_predict) {
@@ -91,6 +94,7 @@ void BdaDdeCal::InitializePredictSteps(InputStep* input,
 
 void BdaDdeCal::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
+  uvw_flagger_step_->updateInfo(_info);
 
   // Update info for substeps
   for (unsigned int i = 0; i < patches_.size(); i++) {
@@ -273,6 +277,14 @@ bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
   BDABuffer::Fields fields(false);
   fields.data = true;
   BDABuffer::Fields copyfields(false);
+
+  if (!uvw_flagger_step_->isDegenerate()) {
+    uvw_flagger_step_->process(std::move(buffer));
+    std::vector<std::unique_ptr<base::BDABuffer>> uvw_flagged_buffer =
+        uvw_flagger_result_step_->Extract();
+    assert(1 == uvw_flagged_buffer.size());
+    buffer = std::move(uvw_flagged_buffer.front());
+  }
 
   predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
@@ -652,6 +664,8 @@ void BdaDdeCal::show(std::ostream& stream) const {
     }
     stream << '\n';
   }
+
+  uvw_flagger_step_->show(stream);
 }
 
 void BdaDdeCal::showTimings(std::ostream& os, double duration) const {

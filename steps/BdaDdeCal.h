@@ -4,7 +4,9 @@
 #ifndef DP3_BDADDECAL_H
 #define DP3_BDADDECAL_H
 
+#include "BDAResultStep.h"
 #include "Step.h"
+#include "UVWFlagger.h"
 #include "../ddecal/Settings.h"
 #include "../ddecal/SolutionWriter.h"
 #include "../ddecal/gain_solvers/BdaSolverBuffer.h"
@@ -119,6 +121,11 @@ class BdaDdeCal : public Step {
   std::vector<std::shared_ptr<ModelDataStep>> steps_;
   /// For each direction, a result step.
   std::vector<std::shared_ptr<BDAResultStep>> result_steps_;
+  /// UVWFlagger step.
+  std::unique_ptr<UVWFlagger> uvw_flagger_step_;
+  /// Result step for data after UVW-flagging.
+  std::shared_ptr<BDAResultStep> uvw_flagger_result_step_;
+
   /// For each direction, a list of patch names.
   std::vector<std::vector<std::string>> patches_;
 
