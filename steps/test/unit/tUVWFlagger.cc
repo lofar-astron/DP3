@@ -455,12 +455,10 @@ template <class T>
 void test_constructor(size_t n_times, size_t n_baselines, size_t n_channels,
                       size_t n_correlations, Step::MsType input_type) {
   // Create the steps.
-  TestInput<T>* in =
-      new TestInput<T>(n_times, n_baselines, n_channels, n_correlations);
+  TestInput<T> in(n_times, n_baselines, n_channels, n_correlations);
   dp3::common::ParameterSet parset;
-  auto uvw_flagger_step =
-      new dp3::steps::UVWFlagger(in, parset, "", input_type);
-  BOOST_REQUIRE_EQUAL(uvw_flagger_step->isDegenerate(), true);
+  dp3::steps::UVWFlagger uvw_flagger_step(&in, parset, "", input_type);
+  BOOST_REQUIRE_EQUAL(uvw_flagger_step.isDegenerate(), true);
 }
 
 }  // namespace
