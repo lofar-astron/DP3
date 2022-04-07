@@ -40,8 +40,8 @@ versioning:
   script:
     # Unshallowing ensures that 'git log' works
     - git fetch --unshallow
-    - echo BASE_IMAGE=${CI_REGISTRY_IMAGE}/base:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_20_04_base) > versions.env
-    - echo BASE_IMAGE_UBUNTU18=${CI_REGISTRY_IMAGE}/base_ubuntu18:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_18_04_base) >> versions.env
+    - echo BASE_IMAGE_2004=${CI_REGISTRY_IMAGE}/base_ubuntu20:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_20_04_base) > versions.env
+    - echo BASE_IMAGE_2204=${CI_REGISTRY_IMAGE}/base_ubuntu22:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_22_04_base) >> versions.env
     - cat versions.env
   artifacts:
     reports:
@@ -70,35 +70,34 @@ versioning:
       - $DOCKER_FILE
 
 # Create and push the base image to the gitlab registry, if it does not exist.
-prepare-base:
+prepare-base-2204:
   extends: .prepare
   variables:
-    DOCKER_IMAGE: $BASE_IMAGE
-    DOCKER_FILE: ./docker/ubuntu_20_04_base
+    DOCKER_IMAGE: $BASE_IMAGE_2204
+    DOCKER_FILE: ./docker/ubuntu_22_04_base
 
 # Template for jobs that depend on the optional prepare-base job.
-.needs-base:
+.needs-base-2204:
   needs:
     - job: versioning
-    - job: prepare-base
+    - job: prepare-base-2204
       optional: true
-  image: $BASE_IMAGE
+  image: $BASE_IMAGE_2204
 
-prepare-ubuntu18:
+prepare-2004:
   extends: .prepare
   variables:
-    DOCKER_IMAGE: $BASE_IMAGE_UBUNTU18
-    DOCKER_FILE: ./docker/ubuntu_18_04_base
+    DOCKER_IMAGE: $BASE_IMAGE_2004
+    DOCKER_FILE: ./docker/ubuntu_20_04_base
 
-# This job verifies that DP3 works with Ubuntu 18.04.
-build-ubuntu18:
+build-2004:
   stage: build
   extends: .failable
   needs:
     - job: versioning
-    - job: prepare-ubuntu18
+    - job: prepare-2004
       optional: true
-  image: $BASE_IMAGE_UBUNTU18
+  image: $BASE_IMAGE_2004
   script:
     # Build and run DP3
     - mkdir build
@@ -107,9 +106,9 @@ build-ubuntu18:
     - ninja install
     - DP3
 
-build-no-idg:
+build-no-idg-2204:
   stage: build
-  extends: [".failable",".needs-base"]
+  extends: [".failable",".needs-base-2204"]
   before_script:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
@@ -122,9 +121,9 @@ build-no-idg:
 
 # Build debug has no needs entry because it can have either a base
 # image from build-base or build-base-ska which is determined on runtime
-build-debug:
+build-debug-2204:
   stage: build
-  extends: [".failable",".needs-base"]
+  extends: [".failable",".needs-base-2204"]
   before_script:
     - pip3 install pytest
   script:
@@ -136,22 +135,24 @@ build-debug:
     paths:
       - build
 
-build-release:
+build-release-2204:
   # .prepare should be last, since it overwrites "image:".
-  extends: [".needs-base",".prepare"]
+  extends: [".needs-base-2204",".prepare"]
   stage: build
   variables:
     DOCKER_IMAGE: ${CI_REGISTRY_IMAGE}/dp3:${CI_COMMIT_SHORT_SHA}
     DOCKER_FILE: ./docker/ubuntu_20_04_dp3
-    DOCKER_BUILD_ARG: --build-arg BASE_TAG=$BASE_IMAGE
+    DOCKER_BUILD_ARG: --build-arg BASE_TAG=$BASE_IMAGE_2204
   rules: # This job should always overwrite the rules: from .prepare!
     - if: '$CI_COMMIT_BRANCH == "master"'
 
-build-doc:
+build-doc-2204:
   stage: build
-  extends: [".failable",".needs-base"]
+  extends: [".failable",".needs-base-2204"]
   before_script:
-    - patch -p0 /usr/local/lib/python3.8/dist-packages/jsonschema2rst/parser.py < docs/parser.py.patch
+    # Install here since pytest and these items aren't compatible
+    - pip3 install autosemver jsonschema2rst sphinx sphinx-rtd-theme
+    - patch -p0 /usr/local/lib/python3.10/dist-packages/jsonschema2rst/parser.py < docs/parser.py.patch
   script:
     - mkdir build && cd build
     - cmake -G Ninja ../docs
@@ -162,9 +163,9 @@ build-doc:
   rules:
     - <<: *if_astron_repo
 
-build-package:
+build-package-2204:
   stage: build
-  extends: [".failable",".needs-base"]
+  extends: [".failable",".needs-base-2204"]
   script:
     - mkdir dp3_package
     - mkdir build && cd build
@@ -184,17 +185,19 @@ build-package:
     - if: '$CI_COMMIT_TAG'
     - if: '$UPLOAD_PACKAGE'
 
-linting:
+linting-2204:
   stage: linting
-  extends: [".failable",".needs-base"]
+  extends: [".failable",".needs-base-2204"]
   script:
     - ./scripts/run-format.sh
 
-unit-test:
+unit-test-2204:
   stage: test
   extends: .failable
-  needs: ["versioning","build-debug"]
-  image: $BASE_IMAGE
+  needs: ["versioning","build-debug-2204"]
+  image: $BASE_IMAGE_2204
+  before_script:
+    - pip3 install pytest
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
@@ -217,11 +220,13 @@ unit-test:
       junit: build/unittest*.xml
       cobertura: build/coverage.xml
 
-integration-test:
+integration-test-2204:
   stage: test
   extends: .failable
-  needs: ["versioning","build-debug"]
-  image: $BASE_IMAGE
+  needs: ["versioning","build-debug-2204"]
+  image: $BASE_IMAGE_2204
+  before_script:
+    - pip3 install pytest
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
@@ -256,10 +261,10 @@ check-stack:
     # Only add job for a merge request event on git.astron.nl
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-publish-doc:
+publish-doc-2204:
   stage: publish
   image: docker:stable
-  needs: ["build-doc"]
+  needs: ["build-doc-2204"]
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
     - eval $(ssh-agent -s)
@@ -274,10 +279,10 @@ publish-doc:
       when: never
     - if: '$CI_COMMIT_BRANCH == "master"'
 
-deploy-package:
+deploy-package-2204:
   stage: publish
-  needs: ["versioning","build-package"]
-  image: $BASE_IMAGE
+  needs: ["versioning","build-package-2204"]
+  image: $BASE_IMAGE_2204
   script:
     - pip3 install aptly-api-client
     - chmod -R 700 external/schaap-packaging
@@ -293,10 +298,10 @@ deploy-package:
       when: never
     - if: '$UPLOAD_PACKAGE'
 
-pages:
+pages-2204:
   stage: pages
-  needs: ["versioning","build-debug","unit-test","integration-test"]
-  image: $BASE_IMAGE
+  needs: ["versioning","build-debug-2204","unit-test-2204","integration-test-2204"]
+  image: $BASE_IMAGE_2204
   before_script:
     - apt-get update
     - apt-get -y install curl
