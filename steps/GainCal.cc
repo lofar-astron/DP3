@@ -954,11 +954,11 @@ void GainCal::writeSolutionsH5Parm(double) {
   }
 
   std::vector<AxisInfo> axes;
-  axes.push_back(AxisInfo("time", itsSols.size()));
-  axes.push_back(AxisInfo("freq", nSolFreqs));
-  axes.push_back(AxisInfo("ant", info().antennaUsed().size()));
+  axes.push_back({"time", static_cast<unsigned>(itsSols.size())});
+  axes.push_back({"freq", nSolFreqs});
+  axes.push_back({"ant", static_cast<unsigned>(info().antennaUsed().size())});
   if (nPol > 1) {
-    axes.push_back(AxisInfo("pol", nPol));
+    axes.push_back({"pol", nPol});
   }
 
   std::vector<SolTab> soltabs = makeSolTab(h5parm, itsMode, axes);

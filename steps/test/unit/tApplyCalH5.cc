@@ -351,13 +351,13 @@ void createH5Parm(vector<double> times, vector<double> freqs,
   }
   h5parm.AddAntennas(antNames, antPositions);
 
-  vector<schaapcommon::h5parm::AxisInfo> axes;
-  axes.push_back(schaapcommon::h5parm::AxisInfo("ant", nAntennas));
+  std::vector<schaapcommon::h5parm::AxisInfo> axes;
+  axes.push_back({"ant", static_cast<unsigned>(nAntennas)});
   if (!times.empty()) {
-    axes.push_back(schaapcommon::h5parm::AxisInfo("time", times.size()));
+    axes.push_back({"time", static_cast<unsigned>(times.size())});
   }
   if (!freqs.empty()) {
-    axes.push_back(schaapcommon::h5parm::AxisInfo("freq", freqs.size()));
+    axes.push_back({"freq", static_cast<unsigned>(freqs.size())});
   }
 
   SolTab soltab = h5parm.CreateSolTab("myampl", "amplitude", axes);
