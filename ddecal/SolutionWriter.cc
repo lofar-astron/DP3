@@ -107,12 +107,12 @@ void SolutionWriter::Write(
     assert(contiguous_solutions.size() == n_solutions);
 
     std::vector<schaapcommon::h5parm::AxisInfo> axes;
-    axes.emplace_back(schaapcommon::h5parm::AxisInfo("time", n_times));
-    axes.emplace_back(schaapcommon::h5parm::AxisInfo("freq", n_channel_blocks));
-    axes.emplace_back(schaapcommon::h5parm::AxisInfo("ant", n_antennas));
-    axes.emplace_back(schaapcommon::h5parm::AxisInfo("dir", n_directions));
+    axes.push_back({"time", static_cast<unsigned>(n_times)});
+    axes.push_back({"freq", static_cast<unsigned>(n_channel_blocks)});
+    axes.push_back({"ant", static_cast<unsigned>(n_antennas)});
+    axes.push_back({"dir", static_cast<unsigned>(n_directions)});
     if (n_pol > 1) {
-      axes.emplace_back(schaapcommon::h5parm::AxisInfo("pol", n_pol));
+      axes.push_back({"pol", static_cast<unsigned>(n_pol)});
     }
 
     int n_soltabs = 1;
@@ -182,12 +182,13 @@ void SolutionWriter::Write(
             common::stringtools::tokenize(first_result.axes, ",");
 
         std::vector<schaapcommon::h5parm::AxisInfo> axes;
-        axes.emplace_back(schaapcommon::h5parm::AxisInfo(
-            "time", constraint_solutions.size()));
+        axes.push_back(
+            {"time", static_cast<unsigned>(constraint_solutions.size())});
         for (size_t axis_index = 0; axis_index < firstaxesnames.size();
              ++axis_index) {
-          axes.emplace_back(schaapcommon::h5parm::AxisInfo(
-              firstaxesnames[axis_index], first_result.dims[axis_index]));
+          axes.push_back(
+              {firstaxesnames[axis_index],
+               static_cast<unsigned>(first_result.dims[axis_index])});
         }
 
         // Put solutions in a contiguous piece of memory

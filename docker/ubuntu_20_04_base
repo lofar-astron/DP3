@@ -2,9 +2,9 @@ FROM ubuntu:20.04
 
 # TODO: needs to be bumped before next DP3 release
 # ENV IDG_VERSION=0.8
-ENV EVERYBEAM_VERSION=v0.3.0
-ENV IDG_VERSION=6e9165fa48659485fb41a45220a0a80e70935ad4
-ENV AOFLAGGER_VERSION=0018b06a61ed202fd88dfbf2b4e0dfdfec018d7f
+ENV EVERYBEAM_VERSION=a8ba1fb71d55b7a3afcd71876ad726b779dd0ff9
+ENV IDG_VERSION=6b61c038883ad3f807d20047c4f9e1a1f0b8d98a
+ENV AOFLAGGER_VERSION=65d5fba4f4c12797386d3fd9cd76734956a8b233
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     apt-get install -y \
@@ -13,45 +13,43 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     libboost-filesystem-dev libboost-system-dev libboost-date-time-dev \
     libboost-program-options-dev libboost-test-dev \
     libpng-dev pkg-config \
-    libgtkmm-3.0-dev git libfftw3-dev \
+    libgtkmm-3.0-dev git libfftw3-dev libgsl-dev \
     gfortran flex bison wcslib-dev \
     liblua5.3-dev \
     casacore-dev casacore-tools pybind11-dev python3-pip \
-    doxygen ninja-build clang-format-12 \
-# The formatter needs a binary named 'clang-format', not 'clang-format-12'
-    && ln -sf clang-format-12 /usr/bin/clang-format \
+    doxygen ninja-build
 # Build aoflagger3
-    && mkdir /aoflagger && cd /aoflagger \
+RUN mkdir /aoflagger && cd /aoflagger \
     && git clone https://gitlab.com/aroffringa/aoflagger.git src \
     && ( cd src/ && git checkout ${AOFLAGGER_VERSION} ) \
     && mkdir build && cd build \
     && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
     && ninja install \
-    && cd / && rm -rf aoflagger \
+    && cd / && rm -rf aoflagger
 # Build IDG
-    && mkdir /idg && cd /idg \
+RUN mkdir /idg && cd /idg \
     && git clone https://git.astron.nl/RD/idg.git src \
     && ( cd src/ && git checkout ${IDG_VERSION} ) \
     && mkdir build && cd build \
     && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
     && ninja install \
-    && cd / && rm -rf idg \
+    && cd / && rm -rf idg
 # Build EveryBeam
-    && mkdir /everybeam && cd /everybeam \
+RUN mkdir /everybeam && cd /everybeam \
     && git clone https://git.astron.nl/RD/EveryBeam.git src \
     && ( cd src/ && git checkout ${EVERYBEAM_VERSION} ) \
     && mkdir build && cd build \
     && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
     && ninja install \
-    && cd / && rm -rf everybeam \
+    && cd / && rm -rf everybeam
 # Install WSRT Measures (extra casacore data, for integration tests)
 # Note: The file on the ftp site is updated daily. When warnings regarding leap
 # seconds appear, ignore them or regenerate the docker image.
-    && wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
+RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
     && cd /var/lib/casacore/data \
     && tar xfz /WSRT_Measures.ztar \
-    && rm /WSRT_Measures.ztar \
+    && rm /WSRT_Measures.ztar
 # Install pip dependencies
-    && pip3 install gcovr cmake-format h5py \
+RUN pip3 install gcovr h5py \
     # build-doc dependencies
     autosemver==0.5.5 jsonschema2rst==0.1.0 sphinx sphinx-rtd-theme
