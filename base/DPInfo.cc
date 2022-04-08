@@ -45,7 +45,7 @@ DPInfo::DPInfo()
       time_interval_(0),
       phase_center_is_original_(true),
       beam_correction_mode_(everybeam::CorrectionMode::kNone),
-      n_threads_(aocommon::ThreadPool::NCPUs()) {}
+      n_threads_(aocommon::system::ProcessorCount()) {}
 
 void DPInfo::init(unsigned int ncorr, unsigned int startChan,
                   unsigned int nchan, unsigned int ntime, double startTime,

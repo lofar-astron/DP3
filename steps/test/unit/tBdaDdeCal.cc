@@ -93,7 +93,7 @@ OnePredict prefix.
   apply beam:         false
   operation:          replace
   threads:            )" +
-          std::to_string(aocommon::ThreadPool::NCPUs()) + R"(
+          std::to_string(aocommon::system::ProcessorCount()) + R"(
 BDAAverager prefix.
   timebase:        0s
   max interval:    0s
@@ -144,7 +144,7 @@ OnePredict prefix.
   apply beam:         false
   operation:          replace
   threads:            )" +
-          std::to_string(aocommon::ThreadPool::NCPUs()) + R"(
+          std::to_string(aocommon::system::ProcessorCount()) + R"(
 BDAAverager prefix.
   timebase:        0s
   max interval:    0s
