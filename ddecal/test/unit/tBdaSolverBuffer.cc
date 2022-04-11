@@ -6,7 +6,6 @@
 #include "../../../base/BDABuffer.h"
 #include "../../../base/test/unit/tBDABuffer.h"
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include <aocommon/matrix2x2.h>
@@ -48,8 +47,8 @@ std::vector<std::unique_ptr<BDABuffer>> CreateBDABuffers(
 
   double time = kFirstTime;
   for (std::size_t i = 0; i < 3; ++i) {
-    auto buffer = boost::make_unique<BDABuffer>(kRowsPerBuffer * kNChannels *
-                                                kNCorrelations);
+    auto buffer = std::make_unique<BDABuffer>(kRowsPerBuffer * kNChannels *
+                                              kNCorrelations);
     // Add a non-averaged baseline.
     buffer->AddRow(time, kInterval, kInterval, 0, kNChannels, kNCorrelations,
                    data.data(), flags, weights.data(), flags, nullptr);
@@ -217,13 +216,13 @@ BOOST_AUTO_TEST_CASE(append_and_weight_nullptr_flags) {
   fields.data = true;
   fields.weights = true;
   auto bdabuffer =
-      boost::make_unique<BDABuffer>(kNChannels * kNCorrelations, fields);
+      std::make_unique<BDABuffer>(kNChannels * kNCorrelations, fields);
   bdabuffer->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
                     kNCorrelations, data.data(), nullptr, weights.data(),
                     nullptr);
 
-  auto model_data = boost::make_unique<BDABuffer>(kRowsPerBuffer * kNChannels *
-                                                  kNCorrelations);
+  auto model_data =
+      std::make_unique<BDABuffer>(kRowsPerBuffer * kNChannels * kNCorrelations);
   model_data->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
                      kNCorrelations, data.data(), nullptr, weights.data(),
                      nullptr);
@@ -287,9 +286,9 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
 
   // Create a BDA buffer with successive rows and a single value per row.
-  auto data_buffer = boost::make_unique<BDABuffer>(kNRows * kNCorrelations);
+  auto data_buffer = std::make_unique<BDABuffer>(kNRows * kNCorrelations);
   const BDABuffer& data_ref = *data_buffer;
-  auto model_buffer = boost::make_unique<BDABuffer>(kNRows * kNCorrelations);
+  auto model_buffer = std::make_unique<BDABuffer>(kNRows * kNCorrelations);
 
   std::array<std::complex<float>, kNCorrelations> data_value{kFirstDataValue};
   std::array<std::complex<float>, kNCorrelations> model_value{kFirstDataValue +
@@ -354,9 +353,9 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
 
   double time = kFirstTime;
   for (size_t row = 0; row < kNRows; ++row) {
-    auto data_buffer = boost::make_unique<BDABuffer>(kNCorrelations);
+    auto data_buffer = std::make_unique<BDABuffer>(kNCorrelations);
     data_buffers.push_back(data_buffer.get());
-    auto model_buffer = boost::make_unique<BDABuffer>(kNCorrelations);
+    auto model_buffer = std::make_unique<BDABuffer>(kNCorrelations);
     BOOST_REQUIRE(data_buffer->AddRow(time, kInterval, kInterval, 0, 1,
                                       kNCorrelations, data_value.data(),
                                       nullptr, kWeight.data()));
@@ -451,8 +450,8 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const std::vector<int> kAnt2{1};
 
   // Create BDA input buffer with two intervals.
-  auto data_buffer = boost::make_unique<BDABuffer>(kNRows * kNCorrelations);
-  auto model_buffer = boost::make_unique<BDABuffer>(kNRows * kNCorrelations);
+  auto data_buffer = std::make_unique<BDABuffer>(kNRows * kNCorrelations);
+  auto model_buffer = std::make_unique<BDABuffer>(kNRows * kNCorrelations);
 
   double time = kFirstTime;
   for (size_t row = 0; row < kNRows; ++row) {
@@ -507,7 +506,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
 
   // 1. Add intervals within the first solution interval
   auto buffer_within_first_solint =
-      boost::make_unique<BDABuffer>(6 * kNChannels * kNCorrelations);
+      std::make_unique<BDABuffer>(6 * kNChannels * kNCorrelations);
   // Baseline 0 - 1: [41, 43]
   buffer_within_first_solint->AddRow(time, kInterval, kInterval, 0, kNChannels,
                                      kNCorrelations, data.data(), flags,
@@ -536,7 +535,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
 
   // 2. Add intervals on the edge of the solution interval
   auto buffer_edge_solint =
-      boost::make_unique<BDABuffer>(2 * kNChannels * kNCorrelations);
+      std::make_unique<BDABuffer>(2 * kNChannels * kNCorrelations);
   //  Baseline 0: [49, 51]
   buffer_edge_solint->AddRow(time + 4 * kInterval, kInterval, kInterval, 0,
                              kNChannels, kNCorrelations, data.data(), flags,
@@ -552,7 +551,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   // 2. Add interval completely contained in the next solution interval for
   // baseline 0
   auto buffer_within_second_solint_bl_0 =
-      boost::make_unique<BDABuffer>(1 * kNChannels * kNCorrelations);
+      std::make_unique<BDABuffer>(1 * kNChannels * kNCorrelations);
   // Baseline 0: [51, 53]
   buffer_within_second_solint_bl_0->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 0, kNChannels, kNCorrelations,
@@ -565,7 +564,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   // 3. Add interval completely contained in the next solution interval for
   // baseline 1
   auto buffer_within_second_solint_bl_1 =
-      boost::make_unique<BDABuffer>(1 * kNChannels * kNCorrelations);
+      std::make_unique<BDABuffer>(1 * kNChannels * kNCorrelations);
   // Baseline 1: [51, 53]
   buffer_within_second_solint_bl_1->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 1, kNChannels, kNCorrelations,

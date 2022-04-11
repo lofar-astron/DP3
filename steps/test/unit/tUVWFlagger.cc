@@ -19,7 +19,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BDABuffer;
@@ -150,7 +149,7 @@ DPBuffer TestInput<DPBuffer>::CreateInputBuffer() {
 template <>
 std::unique_ptr<BDABuffer>
 TestInput<std::unique_ptr<BDABuffer>>::CreateInputBuffer() {
-  std::unique_ptr<BDABuffer> buffer = boost::make_unique<BDABuffer>(
+  std::unique_ptr<BDABuffer> buffer = std::make_unique<BDABuffer>(
       n_correlations_ * n_channels_ * n_baselines_ * n_times_);
 
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();

@@ -13,7 +13,6 @@ using aocommon::ParallelFor;
 
 #include <iomanip>
 #include <iostream>
-#include <boost/make_unique.hpp>
 
 namespace dp3 {
 namespace ddecal {

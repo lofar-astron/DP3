@@ -41,7 +41,6 @@
 #include <EveryBeam/telescope/phasedarray.h>
 
 #include <iostream>
-#include <boost/make_unique.hpp>
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;
@@ -171,7 +170,7 @@ bool MSBDAReader::process(const DPBuffer&) {
   common::NSTimer::StartStop sstime(timer_);
 
   // TODO: Pre-calculate actual required pool size beforehand.
-  auto buffer = boost::make_unique<base::BDABuffer>(
+  auto buffer = std::make_unique<base::BDABuffer>(
       info().nbaselines() * info().nchan() * info().ncorr());
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));

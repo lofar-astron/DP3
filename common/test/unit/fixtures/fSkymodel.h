@@ -22,24 +22,6 @@ class FixtureSkymodel {
   /// A fixture can have only one argument. Using this helper struct works
   /// around the limitation.
   struct Arguments {
-#if __cplusplus < 201402L
-    // Prior to C++14 the class isn't considered an aggregate. This work-around
-    // can be removed once C++14 or newer is required to build DP3.
-    explicit Arguments(const std::string& skymodel_name)
-        : skymodel_name(skymodel_name) {}
-
-    explicit Arguments(const std::string& skymodel_name,
-                       const std::string& source_db_name)
-        : skymodel_name(skymodel_name), source_db_name(source_db_name) {}
-
-    explicit Arguments(const std::string& skymodel_name,
-                       const std::string& source_db_name,
-                       const std::string& skymodel_contents)
-        : skymodel_name(skymodel_name),
-          source_db_name(source_db_name),
-          skymodel_contents(skymodel_contents) {}
-#endif
-
     /// The filename of the skymodel file.
     ///
     /// This argument must contain an non-empty string.

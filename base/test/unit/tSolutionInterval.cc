@@ -8,9 +8,6 @@
 #include "../../../common/Timer.h"
 #include "../../../steps/test/unit/mock/MockInput.h"
 
-#include <boost/make_unique.hpp>
-#include <boost/optional.hpp>
-
 using dp3::base::DPBuffer;
 using dp3::base::SolutionInterval;
 using dp3::common::NSTimer;

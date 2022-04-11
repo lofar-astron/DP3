@@ -6,7 +6,6 @@
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/TaQL/TableParse.h>
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "../../../base/BDABuffer.h"
@@ -60,7 +59,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
   info.set(std::vector<double>(nchan, 1.), std::vector<double>(nchan, 5000.));
   writer.updateInfo(info);
 
-  auto buffer = boost::make_unique<BDABuffer>(1);
+  auto buffer = std::make_unique<BDABuffer>(1);
   buffer->AddRow(kTime, kInterval, kExposure, 0, 1, 1, &kData, &kFlag, &kWeight,
                  nullptr, kUVW);
   writer.process(std::move(buffer));

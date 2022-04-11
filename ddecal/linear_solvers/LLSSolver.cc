@@ -7,7 +7,6 @@
 #include "SVDSolver.h"
 #include "NormalEquationsSolver.h"
 
-#include <boost/make_unique.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
 namespace dp3 {
@@ -17,11 +16,11 @@ std::unique_ptr<LLSSolver> LLSSolver::Make(LLSSolverType lss_type, int m, int n,
                                            int nrhs) {
   switch (lss_type) {
     case LLSSolverType::SVD:
-      return boost::make_unique<SVDSolver>(m, n, nrhs);
+      return std::make_unique<SVDSolver>(m, n, nrhs);
     case LLSSolverType::QR:
-      return boost::make_unique<QRSolver>(m, n, nrhs);
+      return std::make_unique<QRSolver>(m, n, nrhs);
     case LLSSolverType::NORMAL_EQUATIONS:
-      return boost::make_unique<NormalEquationsSolver>(m, n, nrhs);
+      return std::make_unique<NormalEquationsSolver>(m, n, nrhs);
   }
   return nullptr;
 }

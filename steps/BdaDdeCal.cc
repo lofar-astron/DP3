@@ -5,8 +5,6 @@
 
 #include <algorithm>
 
-#include <boost/make_unique.hpp>
-
 #include "../base/DPInfo.h"
 #include "../base/SourceDBUtil.h"
 #include "../common/ParameterSet.h"
@@ -53,7 +51,7 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
       solve_timer_(),
       write_timer_() {
   uvw_flagger_step_ =
-      boost::make_unique<UVWFlagger>(input, parset, prefix, Step::MsType::kBda);
+      std::make_unique<UVWFlagger>(input, parset, prefix, Step::MsType::kBda);
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
   uvw_flagger_step_->setNextStep(uvw_flagger_result_step_);
   InitializePredictSteps(input, parset, prefix);
@@ -61,7 +59,7 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
   if (!settings_.only_predict) {
     solver_ = ddecal::CreateSolver(settings_, parset, prefix);
     solution_writer_ =
-        boost::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
+        std::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
   }
 }
 
@@ -157,7 +155,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
           "averaging factor.");
     }
 
-    solver_buffer_ = boost::make_unique<ddecal::BdaSolverBuffer>(
+    solver_buffer_ = std::make_unique<ddecal::BdaSolverBuffer>(
         patches_.size(), _info.startTime(), solution_interval_,
         _info.nbaselines());
 
@@ -288,7 +286,7 @@ bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
 
   predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
-    step->process(boost::make_unique<BDABuffer>(*buffer, fields, copyfields));
+    step->process(std::make_unique<BDABuffer>(*buffer, fields, copyfields));
   }
   predict_timer_.stop();
 

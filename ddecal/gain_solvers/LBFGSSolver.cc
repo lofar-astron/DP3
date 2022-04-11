@@ -10,8 +10,6 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
 
-#include <boost/make_unique.hpp>
-
 #include <iostream>
 #include <algorithm>
 

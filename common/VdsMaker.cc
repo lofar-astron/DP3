@@ -33,8 +33,6 @@
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/casa/Exceptions/Error.h>
 
-#include <boost/make_unique.hpp>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -316,7 +314,7 @@ void VdsMaker::combine(const string& gdsName, const vector<string>& vdsNames) {
   vpds.reserve(vdsNames.size());
   for (unsigned int j = 0; j < vdsNames.size(); ++j) {
     auto vpd =
-        boost::make_unique<dp3::common::VdsPartDesc>(ParameterSet(vdsNames[j]));
+        std::make_unique<dp3::common::VdsPartDesc>(ParameterSet(vdsNames[j]));
     // Skip a VDS with an empty time (it has no data).
     casacore::Path path(vdsNames[j]);
     // File name gets the original MS name.

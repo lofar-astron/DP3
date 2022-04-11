@@ -10,7 +10,6 @@
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Quanta/MVTime.h>
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 using dp3::steps::PreFlagger;
@@ -103,8 +102,7 @@ class TestPSet {
   dp3::common::ParameterSet parset_;
 };
 
-TestPSet::TestPSet()
-    : in_(boost::make_unique<TestInput>(16, 8, 4)), parset_() {}
+TestPSet::TestPSet() : in_(std::make_unique<TestInput>(16, 8, 4)), parset_() {}
 
 void TestPSet::testNone() {
   PreFlagger::PSet pset(in_.get(), parset_, "");
@@ -178,7 +176,7 @@ void TestPSet::testBLError3() {
 }
 
 void TestPSet::testChan1() {
-  in_ = boost::make_unique<TestInput>(16, 32, 4);
+  in_ = std::make_unique<TestInput>(16, 32, 4);
   parset_.add("chan", "[11..13, 4]");
   PreFlagger::PSet pset(in_.get(), parset_, "");
   pset.updateInfo(in_->getInfo());
@@ -198,7 +196,7 @@ void TestPSet::testChan1() {
 }
 
 void TestPSet::testChan2() {
-  in_ = boost::make_unique<TestInput>(16, 32, 4);
+  in_ = std::make_unique<TestInput>(16, 32, 4);
   parset_.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   PreFlagger::PSet pset(in_.get(), parset_, "");
   pset.updateInfo(in_->getInfo());
@@ -209,7 +207,7 @@ void TestPSet::testChan2() {
 }
 
 void TestPSet::testChan3() {
-  in_ = boost::make_unique<TestInput>(16, 32, 4);
+  in_ = std::make_unique<TestInput>(16, 32, 4);
   parset_.add("chan", "[11..13, 4]");
   parset_.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   PreFlagger::PSet pset(in_.get(), parset_, "");

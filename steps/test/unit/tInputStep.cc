@@ -1,7 +1,6 @@
 // Copyright (C) 2020
 // ASTRON (Netherlands Institute for Radio Astronomy)
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "../../MSBDAReader.h"

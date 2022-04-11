@@ -15,7 +15,7 @@
 #include "ParmDBMeta.h"
 #include "ParmDB.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 namespace dp3 {
 namespace parmdb {
@@ -354,7 +354,7 @@ class SourceDB final : public SourceDBBase {
   SourceDBRep* itsRep;
 
   /// Path to SourceDB
-  boost::filesystem::path itsSourceDBPath;
+  std::filesystem::path itsSourceDBPath;
 };
 
 /// @}

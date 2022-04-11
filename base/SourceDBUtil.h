@@ -14,9 +14,8 @@
 #include "../parmdb/SourceDB.h"
 #include "../parmdb/SourceDBSkymodel.h"
 
-#include <boost/variant.hpp>
-
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace dp3 {
@@ -108,25 +107,18 @@ class SourceDB {
   bool CheckPolarized();
 
  private:
-  /// The type of an "empty" variant.
-  ///
-  /// The original version of this code used boost::variant2, which is modelled
-  /// after C++17's variant. However that's not available at Ubuntu 18.04. The
-  /// naming used in the code still models the C++17 naming to make porting to
-  /// std::variant easier.
-  using monostate = int;
   std::vector<std::string> patch_names_;
-  boost::variant<monostate, parmdb::SourceDB, parmdb::SourceDBSkymodel>
+  std::variant<std::monostate, parmdb::SourceDB, parmdb::SourceDBSkymodel>
       source_db_;
 
   template <class T>
   T &Get() {
-    return boost::get<T>(source_db_);
+    return std::get<T>(source_db_);
   }
 
   template <class T>
   bool HoldsAlternative() const {
-    return boost::get<T>(&source_db_);
+    return std::holds_alternative<T>(source_db_);
   }
 
   /// Helper for the constructor.

@@ -45,8 +45,6 @@
 
 #include <aocommon/threadpool.h>
 
-#include <boost/make_unique.hpp>
-
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/measures/Measures/MEpoch.h>
@@ -100,8 +98,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsSolver(ddecal::CreateSolver(itsSettings, parset, prefix)),
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
-    itsStatStream =
-        boost::make_unique<std::ofstream>(itsSettings.stat_filename);
+    itsStatStream = std::make_unique<std::ofstream>(itsSettings.stat_filename);
   }
 
   // Initialize steps
@@ -232,8 +229,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   if (itsSettings.subtract) info().setWriteData();
 
   itsUVWFlagStep.updateInfo(infoIn);
-  itsThreadPool =
-      boost::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
+  itsThreadPool = std::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
 
   // Update info for substeps and set other required parameters
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {

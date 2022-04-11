@@ -23,7 +23,7 @@ void SourceDBRep::lock(bool) {}
 void SourceDBRep::unlock() {}
 
 SourceDB::SourceDB(const ParmDBMeta& ptm, bool mustExist, bool forceNew)
-    : itsSourceDBPath(boost::filesystem::path(ptm.getTableName())) {
+    : itsSourceDBPath(std::filesystem::path(ptm.getTableName())) {
   if (mustExist && !casacore::File(ptm.getTableName()).exists())
     throw std::runtime_error("The sourcedb '" + ptm.getTableName() +
                              "' does not exist");

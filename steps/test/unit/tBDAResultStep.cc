@@ -4,7 +4,6 @@
 #include "../../BDAResultStep.h"
 #include "../../../base/BDABuffer.h"
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BDABuffer;
@@ -20,8 +19,8 @@ BOOST_AUTO_TEST_CASE(constructor) {
 BOOST_AUTO_TEST_CASE(process_and_extract) {
   BDAResultStep step;
 
-  auto buffer1 = boost::make_unique<BDABuffer>(0, BDABuffer::Fields(false));
-  auto buffer2 = boost::make_unique<BDABuffer>(0, BDABuffer::Fields(false));
+  auto buffer1 = std::make_unique<BDABuffer>(0, BDABuffer::Fields(false));
+  auto buffer2 = std::make_unique<BDABuffer>(0, BDABuffer::Fields(false));
   BDABuffer* const buffer1_ptr = buffer1.get();
   BDABuffer* const buffer2_ptr = buffer2.get();
 

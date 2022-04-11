@@ -9,7 +9,6 @@
 
 #include <schaapcommon/facets/facet.h>
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <memory>
