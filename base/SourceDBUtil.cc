@@ -16,10 +16,9 @@
 #include "../common/ParameterValue.h"
 #include "../common/ProximityClustering.h"
 
-#include <boost/utility/string_view.hpp>
-
 #include <cassert>
 #include <set>
+#include <string_view>
 #include <vector>
 
 namespace dp3 {
@@ -371,8 +370,8 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
 }
 
 static bool HasSkymodelExtension(const std::string& source_db_name) {
-  static const boost::string_view kSymodelExtension = ".skymodel";
-  static const boost::string_view kTxtExtension = ".txt";
+  static const std::string_view kSymodelExtension = ".skymodel";
+  static const std::string_view kTxtExtension = ".txt";
   return (source_db_name.size() >= kSymodelExtension.size() &&
           std::equal(kSymodelExtension.rbegin(), kSymodelExtension.rend(),
                      source_db_name.rbegin())) ||
@@ -396,7 +395,7 @@ SourceDB::SourceDB(const std::string& source_db_name,
 }
 
 std::vector<Patch::ConstPtr> SourceDB::MakePatchList() {
-  assert(!HoldsAlternative<monostate>() &&
+  assert(!HoldsAlternative<std::monostate>() &&
          "The constructor should have properly initialized the source_db_");
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
     return base::MakePatches(Get<parmdb::SourceDBSkymodel>(), patch_names_);
@@ -406,7 +405,7 @@ std::vector<Patch::ConstPtr> SourceDB::MakePatchList() {
 }
 
 bool SourceDB::CheckPolarized() {
-  assert(!HoldsAlternative<monostate>() &&
+  assert(!HoldsAlternative<std::monostate>() &&
          "The constructor should have properly initialized the source_db_");
 
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())

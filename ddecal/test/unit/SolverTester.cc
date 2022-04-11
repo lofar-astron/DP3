@@ -7,7 +7,6 @@
 
 #include <aocommon/matrix2x2.h>
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include <random>
@@ -188,13 +187,13 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
   BDABuffer::Fields bda_fields(true);
   bda_fields.full_res_flags = false;
   auto bda_data_buffer =
-      boost::make_unique<BDABuffer>(bda_buffer_size, bda_fields);
+      std::make_unique<BDABuffer>(bda_buffer_size, bda_fields);
   std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers;
   bda_model_buffers.reserve(kNDirections);
   bda_fields.weights = false;
   for (size_t dir = 0; dir < kNDirections; ++dir) {
     bda_model_buffers.push_back(
-        boost::make_unique<BDABuffer>(bda_buffer_size, bda_fields));
+        std::make_unique<BDABuffer>(bda_buffer_size, bda_fields));
   }
 
   // Do the outer loop over time, since the BDA rows should be ordered.

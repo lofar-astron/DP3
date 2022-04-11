@@ -38,8 +38,6 @@
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/tables/Tables/RefRows.h>
 
-#include <boost/make_unique.hpp>
-
 #include <stddef.h>
 #include <string>
 #include <sstream>
@@ -371,8 +369,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
   if (pool == nullptr) {
     // If no ThreadPool was specified, we create a temporary one just
     // for executation of this part.
-    localThreadPool =
-        boost::make_unique<aocommon::ThreadPool>(info().nThreads());
+    localThreadPool = std::make_unique<aocommon::ThreadPool>(info().nThreads());
     pool = localThreadPool.get();
   } else {
     if (pool->NThreads() != info().nThreads())

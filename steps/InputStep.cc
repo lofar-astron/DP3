@@ -19,8 +19,6 @@
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/TableRecord.h>
 
-#include <boost/make_unique.hpp>
-
 using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -226,13 +224,13 @@ std::unique_ptr<InputStep> InputStep::CreateReader(
     const casacore::MeasurementSet ms(inNames.front(),
                                       casacore::TableLock::AutoNoReadLocking);
     if (HasBda(ms)) {
-      return boost::make_unique<MSBDAReader>(ms, parset, "msin.");
+      return std::make_unique<MSBDAReader>(ms, parset, "msin.");
     } else {
-      return boost::make_unique<MSReader>(ms, parset, "msin.");
+      return std::make_unique<MSReader>(ms, parset, "msin.");
     }
   } else {
     // MultiMSReader checks that all MS's have regular (non-BDA) data.
-    return boost::make_unique<MultiMSReader>(inNames, parset, "msin.");
+    return std::make_unique<MultiMSReader>(inNames, parset, "msin.");
   }
 }
 

@@ -26,8 +26,6 @@
 #include <casacore/casa/Utilities/LinearSearch.h>
 #include <casacore/casa/Utilities/Regex.h>
 
-#include <boost/make_unique.hpp>
-
 #include <iostream>
 #include <iomanip>
 
@@ -249,7 +247,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   // Set the new info.
   info().set(antennaNames, antennaDiam, antennaPos, ant1, ant2);
   // Setup the UVW calculator (for new baselines).
-  itsUVWCalc = boost::make_unique<base::UVWCalculator>(
+  itsUVWCalc = std::make_unique<base::UVWCalculator>(
       infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);
   // Size the buffer to cater for the new baselines.
   IPosition dataShp(3, getInfo().ncorr(), getInfo().nchan(),

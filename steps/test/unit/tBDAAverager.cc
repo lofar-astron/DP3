@@ -10,9 +10,7 @@
 #include "mock/MockStep.h"
 #include "mock/MockInput.h"
 
-#include <boost/make_unique.hpp>
-#include <boost/optional.hpp>
-
+#include <optional>
 #include <string>
 
 using dp3::base::BDABuffer;
@@ -41,10 +39,10 @@ const std::vector<int> kAnt1_3Bl{0, 0, 0};
 const std::vector<int> kAnt2_3Bl{3, 1, 2};
 
 void InitParset(dp3::common::ParameterSet& parset,
-                boost::optional<double> timebase = boost::none,
-                boost::optional<double> frequencybase = boost::none,
-                boost::optional<double> maxinterval = boost::none,
-                boost::optional<int> minchannels = boost::none) {
+                std::optional<double> timebase = {},
+                std::optional<double> frequencybase = {},
+                std::optional<double> maxinterval = {},
+                std::optional<int> minchannels = {}) {
   if (timebase) {
     parset.add("timebase", std::to_string(*timebase));
   }
@@ -150,7 +148,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
     uvw(2, bl) = bl_value + 2.0;
   }
 
-  auto buffer = boost::make_unique<DPBuffer>();
+  auto buffer = std::make_unique<DPBuffer>();
   buffer->setTime(time);
   buffer->setExposure(interval);
   buffer->setData(data);
@@ -186,7 +184,7 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
     uvw(2, bl) = 2.0;
   }
 
-  auto buffer = boost::make_unique<DPBuffer>();
+  auto buffer = std::make_unique<DPBuffer>();
   buffer->setTime(time);
   buffer->setExposure(interval);
   buffer->setData(data);
@@ -513,7 +511,7 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;
-  InitParset(parset, boost::none, baseline_length * kFactor);
+  InitParset(parset, std::nullopt, baseline_length * kFactor);
   BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
@@ -784,7 +782,7 @@ BOOST_AUTO_TEST_CASE(max_interval) {
   // The threshold implies an averaging factor of 42, however, kMaxInterval
   // should limit the averaging to a factor of 3.
   dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * 42.0, boost::none, kMaxInterval);
+  InitParset(parset, baseline_length * 42.0, std::nullopt, kMaxInterval);
   BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
@@ -821,7 +819,7 @@ BOOST_AUTO_TEST_CASE(min_channels) {
   dp3::common::ParameterSet parset;
   // The threshold implies that all channels should be averaged into one
   // channel, however, we specify a minimum of three channels per baseline.
-  InitParset(parset, boost::none, baseline_length * kNChan, boost::none,
+  InitParset(parset, std::nullopt, baseline_length * kNChan, std::nullopt,
              kMinChannels);
   BDAAverager averager(mock_input, parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
@@ -854,7 +852,7 @@ BOOST_AUTO_TEST_CASE(zero_values_weight) {
   dp3::common::ParameterSet parset;
   // The threshold implies that all channels should be averaged into one
   // channel, however, we specify a minimum of three channels per baseline.
-  InitParset(parset, boost::none, baseline_length * kNChan, boost::none,
+  InitParset(parset, std::nullopt, baseline_length * kNChan, std::nullopt,
              kMinChannels);
   BDAAverager averager(mock_input, parset, "");
   averager.updateInfo(info);

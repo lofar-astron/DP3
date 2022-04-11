@@ -3,7 +3,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -13,6 +12,7 @@
 #include "mock/MockInput.h"
 
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 
 using dp3::base::DPBuffer;
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   counter.showCounts(os);
 
   // assert that file exists
-  BOOST_REQUIRE(boost::filesystem::exists(test_filename));
+  BOOST_REQUIRE(std::filesystem::exists(test_filename));
 
   // assert that values are correct
   boost::property_tree::ptree root;
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   }
 
   // delete file
-  boost::filesystem::remove(test_filename);
+  std::filesystem::remove(test_filename);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

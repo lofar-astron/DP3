@@ -10,8 +10,7 @@
 
 #include <aocommon/checkblas.h>
 
-#include <boost/filesystem/operations.hpp>
-
+#include <filesystem>
 #include <iostream>
 #include <stdexcept>
 
@@ -58,11 +57,11 @@ int main(int argc, char* argv[]) {
       parsetName = argv[1];
     } else if (argc == 1) {
       // No arguments given: try to load [N]DPPP.parset
-      if (boost::filesystem::exists("DP3.parset")) {
+      if (std::filesystem::exists("DP3.parset")) {
         parsetName = "DP3.parset";
-      } else if (boost::filesystem::exists("DPPP.parset")) {
+      } else if (std::filesystem::exists("DPPP.parset")) {
         parsetName = "DPPP.parset";
-      } else if (boost::filesystem::exists("NDPPP.parset")) {
+      } else if (std::filesystem::exists("NDPPP.parset")) {
         parsetName = "NDPPP.parset";
       } else {  // No default file, show usage and exit
         showUsage();

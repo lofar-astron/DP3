@@ -6,7 +6,6 @@
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::DPInfo;

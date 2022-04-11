@@ -12,7 +12,6 @@
 #include "../common/Timer.h"
 #include "../common/Types.h"
 
-#include <boost/make_unique.hpp>
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>

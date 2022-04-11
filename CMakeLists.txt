@@ -68,6 +68,16 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # GCC 8.x requires linking with stdc++fs for the filesystem library
+  # https://gcc.gnu.org/onlinedocs/gcc-9.1.0/libstdc++/manual/manual/status.html#status.iso.2017
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+    link_libraries(stdc++fs)
+  elseif(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
+    message(
+      FATAL_ERROR "The GCC version is too old, upgrade to GCC 8.0 or newer")
+  endif()
+endif()
 
 # Add CPack directory if user want to generate Debian packages
 option(BUILD_PACKAGES "Build Debian packages" OFF)

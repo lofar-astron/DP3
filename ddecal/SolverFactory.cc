@@ -25,8 +25,6 @@
 #include "constraints/SmoothnessConstraint.h"
 #include "constraints/TECConstraint.h"
 
-#include <boost/make_unique.hpp>
-
 namespace dp3 {
 namespace ddecal {
 
@@ -36,12 +34,12 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
                                                const Settings& settings) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      return boost::make_unique<IterativeScalarSolver>();
+      return std::make_unique<IterativeScalarSolver>();
     case SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<ScalarSolver>();
+      return std::make_unique<ScalarSolver>();
     case SolverAlgorithm::kLBFGS:
 #ifdef HAVE_LIBDIRAC
-      return boost::make_unique<LBFGSSolver>(
+      return std::make_unique<LBFGSSolver>(
           settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
           settings.lbfgs_history_size, settings.lbfgs_minibatches,
           LBFGSSolver::kScalar);
@@ -59,12 +57,12 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
                                                  const Settings& settings) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      return boost::make_unique<IterativeDiagonalSolver>();
+      return std::make_unique<IterativeDiagonalSolver>();
     case SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<DiagonalSolver>();
+      return std::make_unique<DiagonalSolver>();
     case SolverAlgorithm::kLBFGS:
 #ifdef HAVE_LIBDIRAC
-      return boost::make_unique<LBFGSSolver>(
+      return std::make_unique<LBFGSSolver>(
           settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
           settings.lbfgs_history_size, settings.lbfgs_minibatches,
           LBFGSSolver::kDiagonal);
@@ -82,12 +80,12 @@ std::unique_ptr<SolverBase> CreateFullJonesSolver(SolverAlgorithm algorithm,
                                                   const Settings& settings) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      return boost::make_unique<IterativeFullJonesSolver>();
+      return std::make_unique<IterativeFullJonesSolver>();
     case SolverAlgorithm::kDirectionSolve:
-      return boost::make_unique<FullJonesSolver>();
+      return std::make_unique<FullJonesSolver>();
     case SolverAlgorithm::kLBFGS:
 #ifdef HAVE_LIBDIRAC
-      return boost::make_unique<LBFGSSolver>(
+      return std::make_unique<LBFGSSolver>(
           settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
           settings.lbfgs_history_size, settings.lbfgs_minibatches,
           LBFGSSolver::kFull);
@@ -105,10 +103,10 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
                     const common::ParameterSet& parset,
                     const std::string& prefix) {
   if (settings.core_constraint != 0.0 || !settings.antenna_constraint.empty()) {
-    solver.AddConstraint(boost::make_unique<AntennaConstraint>());
+    solver.AddConstraint(std::make_unique<AntennaConstraint>());
   }
   if (settings.smoothness_constraint != 0.0) {
-    solver.AddConstraint(boost::make_unique<SmoothnessConstraint>(
+    solver.AddConstraint(std::make_unique<SmoothnessConstraint>(
         settings.smoothness_constraint, settings.smoothness_ref_frequency));
   }
 
@@ -120,11 +118,11 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       break;
     case base::CalType::kScalarPhase:
     case base::CalType::kDiagonalPhase:
-      solver.AddConstraint(boost::make_unique<PhaseOnlyConstraint>());
+      solver.AddConstraint(std::make_unique<PhaseOnlyConstraint>());
       break;
     case base::CalType::kScalarAmplitude:
     case base::CalType::kDiagonalAmplitude:
-      solver.AddConstraint(boost::make_unique<AmplitudeOnlyConstraint>());
+      solver.AddConstraint(std::make_unique<AmplitudeOnlyConstraint>());
       break;
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase: {
@@ -135,13 +133,13 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
 
       if (settings.approximate_tec) {
         auto approxConstraint =
-            boost::make_unique<ApproximateTECConstraint>(tec_mode);
+            std::make_unique<ApproximateTECConstraint>(tec_mode);
         approxConstraint->SetMaxApproximatingIterations(
             settings.max_approx_iterations);
         approxConstraint->SetFittingChunkSize(settings.approx_chunk_size);
         constraint = std::move(approxConstraint);
       } else {
-        constraint = boost::make_unique<TECConstraint>(tec_mode);
+        constraint = std::make_unique<TECConstraint>(tec_mode);
       }
       constraint->setDoPhaseReference(settings.phase_reference);
       solver.AddConstraint(std::move(constraint));
@@ -150,17 +148,17 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
 #ifdef HAVE_ARMADILLO
     case base::CalType::kTecScreen:
       solver.AddConstraint(
-          boost::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
+          std::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
       break;
 #endif
     case base::CalType::kRotationAndDiagonal: {
-      auto constraint = boost::make_unique<RotationAndDiagonalConstraint>();
+      auto constraint = std::make_unique<RotationAndDiagonalConstraint>();
       constraint->SetDoRotationReference(settings.rotation_reference);
       solver.AddConstraint(std::move(constraint));
       break;
     }
     case base::CalType::kRotation:
-      solver.AddConstraint(boost::make_unique<RotationConstraint>());
+      solver.AddConstraint(std::make_unique<RotationConstraint>());
       break;
     default:
       throw std::runtime_error("Unexpected solving mode: " +
@@ -352,7 +350,7 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
     std::unique_ptr<SolverBase> b = CreateSolver(
         settings, parset, prefix, SolverAlgorithm::kDirectionIterative);
 
-    auto hybrid_solver = boost::make_unique<HybridSolver>();
+    auto hybrid_solver = std::make_unique<HybridSolver>();
     hybrid_solver->SetMaxIterations(settings.max_iterations);
     hybrid_solver->AddSolver(std::move(a));
     hybrid_solver->AddSolver(std::move(b));

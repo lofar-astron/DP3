@@ -19,7 +19,6 @@
 #include <casacore/casa/Utilities/GenSort.h>
 
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/make_unique.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -405,7 +404,7 @@ void UVWFlagger::handleCenter() {
     phaseCenter = MDirection(q0, q1, type);
   }
   // Create the UVW calculator.
-  itsUVWCalc = boost::make_unique<base::UVWCalculator>(
+  itsUVWCalc = std::make_unique<base::UVWCalculator>(
       phaseCenter, getInfo().arrayPos(), getInfo().antennaPos());
 }
 

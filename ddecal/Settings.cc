@@ -9,7 +9,6 @@
 #include "../common/StreamUtil.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/make_unique.hpp>
 #include <sstream>
 
 using dp3::base::CalType;

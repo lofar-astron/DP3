@@ -5,8 +5,6 @@
 
 #include <aocommon/matrix2x2.h>
 
-#include <boost/make_unique.hpp>
-
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -37,7 +35,7 @@ void BdaSolverBuffer::AppendAndWeight(
   bda_fields.data = true;
 
   auto weighted_buffer =
-      boost::make_unique<BDABuffer>(*unweighted_buffer, bda_fields);
+      std::make_unique<BDABuffer>(*unweighted_buffer, bda_fields);
 
   const size_t n_rows = weighted_buffer->GetRows().size();
 

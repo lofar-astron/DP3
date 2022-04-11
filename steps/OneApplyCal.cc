@@ -27,7 +27,6 @@
 #include <iomanip>
 
 #include <boost/algorithm/string/case_conv.hpp>
-#include <boost/make_unique.hpp>
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -439,7 +438,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
     ant_names.push_back(name);
   }
 
-  itsJonesParameters = boost::make_unique<JonesParameters>(
+  itsJonesParameters = std::make_unique<JonesParameters>(
       info().chanFreqs(), times, ant_names, itsCorrectType,
       itsInterpolationType, itsDirection, &itsSolTab, &itsSolTab2, itsInvert,
       itsSigmaMMSE, itsParmExprs.size(), itsMissingAntennaBehavior);
@@ -574,7 +573,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     ant_names.push_back(name);
   }
 
-  itsJonesParameters = boost::make_unique<JonesParameters>(
+  itsJonesParameters = std::make_unique<JonesParameters>(
       info().chanFreqs(), times, ant_names, ct, itsInterpolationType,
       itsDirection, std::move(parmvalues), itsInvert, itsSigmaMMSE);
 }

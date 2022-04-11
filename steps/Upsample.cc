@@ -14,8 +14,6 @@
 #include <casacore/casa/BasicMath/Math.h>       // nearAbs
 #include <casacore/casa/Arrays/ArrayLogical.h>  // anyTrue
 
-#include <boost/make_unique.hpp>
-
 #include <iomanip>
 #include <stddef.h>
 #include <string>
@@ -61,7 +59,7 @@ void Upsample::updateInfo(const DPInfo& info_in) {
   info().setMetaChanged();
 
   if (update_uvw_) {
-    uvw_calculator_ = boost::make_unique<base::UVWCalculator>(
+    uvw_calculator_ = std::make_unique<base::UVWCalculator>(
         info().phaseCenter(), info().arrayPos(), info().antennaPos());
   }
 }

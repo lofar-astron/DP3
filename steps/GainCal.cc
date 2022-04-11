@@ -39,8 +39,6 @@
 #include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/casa/OS/File.h>
 
-#include <boost/make_unique.hpp>
-
 #include <vector>
 #include <algorithm>
 
@@ -116,7 +114,7 @@ GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   if (!itsUseModelColumn) {
-    auto predict_step = boost::make_unique<Predict>(input, parset, prefix);
+    auto predict_step = std::make_unique<Predict>(input, parset, prefix);
     predict_step->SetThreadData(itsThreadPool, nullptr);
     predict_step->setNextStep(itsResultStep);
     itsFirstSubStep = std::move(predict_step);
@@ -143,7 +141,7 @@ GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
     itsApplyBeamToModelColumn =
         parset.getBool(prefix + "applybeamtomodelcolumn", false);
 
-    auto column_reader_step = boost::make_unique<ColumnReader>(
+    auto column_reader_step = std::make_unique<ColumnReader>(
         input, parset, prefix, itsModelColumnName);
     if (itsApplyBeamToModelColumn) {
       auto apply_beam_step =
@@ -252,7 +250,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
     unsigned int nSt = info().antennaUsed().size();
     for (unsigned int st = 0; st < nSt; ++st) {
-      itsPhaseFitters.push_back(boost::make_unique<PhaseFitter>());
+      itsPhaseFitters.push_back(std::make_unique<PhaseFitter>());
       itsPhaseFitters[st]->Initialize(itsFreqData);
     }
   }
