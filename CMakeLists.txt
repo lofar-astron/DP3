@@ -417,7 +417,8 @@ add_library(
   steps/Upsample.cc
   steps/UVWFlagger.cc
   steps/ApplyBeam.cc
-  steps/DemixerNew.cc)
+  steps/DemixerNew.cc
+  steps/NullStokes.cc)
 
 add_library(
   ParmDB OBJECT
