@@ -37,6 +37,7 @@
 #include "../steps/MSUpdater.h"
 #include "../steps/MSWriter.h"
 #include "../steps/MultiMSReader.h"
+#include "../steps/NullStokes.h"
 #include "../steps/PhaseShift.h"
 #include "../steps/Predict.h"
 #include "../steps/PreFlagger.h"
@@ -186,6 +187,8 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     step = std::make_shared<steps::Filter>(inputStep, parset, prefix);
   } else if (type == "applycal" || type == "correct") {
     step = std::make_shared<steps::ApplyCal>(inputStep, parset, prefix);
+  } else if (type == "nullstokes") {
+    step = std::make_shared<steps::NullStokes>(*inputStep, parset, prefix);
   } else if (type == "predict") {
     step =
         std::make_shared<steps::Predict>(*inputStep, parset, prefix, inputType);
