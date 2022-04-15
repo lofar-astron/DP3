@@ -56,15 +56,15 @@ description: |
   Filtering out some stations
   ###########################
   
-  7. ``baseline=!CS401HBA0,CS401HBA1,RS205HBA`` filters out all baselines involving CS401HBA0, CS401HBA1 or RS205HBA
+  7. ``baseline=!CS401HBA0,CS401HBA1,RS205HBA`` filters out all baselines involving ``CS401HBA0``, ``CS401HBA1`` or ``RS205HBA``.
 
   Full examples
   #############
   
-  Say we have a measurement set containing `CS001HBA0`, `CS001HBA1`, `RS007HBA`, `IT509HBA`. Then the following examples yield the given baselines:
+  Say we have a measurement set containing ``CS001HBA0``, ``CS001HBA1``, ``RS307HBA``, ``IT509HBA``. Then the following examples yield the given baselines:
 
-  8. ``baselines=[CR]S&&``: keeps all baselines (also autocorrelations) with CS001HBA0, CS001HBA1, RS307HBA. So discard international stations.
-  9. ``baselines=^CS001HBA0,RS307HBA&&``: keeps all baselines (also autocorrelations) with CS001HBA0, RS307HBA and IT509HBA. So discard CS001HBA0 and RS307HBA.
+  8. ``baseline=[CR]S*&&``: keeps all baselines (also autocorrelations) with ``CS001HBA0``, ``CS001HBA1``, ``RS307HBA``. So discard international stations.
+  9. ``baseline=^CS001HBA0,RS307HBA&&``: keeps all baselines (also autocorrelations) with ``CS001HBA1`` and ``IT509HBA``. So discard ``CS001HBA0`` and ``RS307HBA``.
 
   If you want to debug your baseline selection syntax, you can query the baselines in a measurement set with ``taql select distinct mscal.ant1name(), mscal.ant2name() from bla.MS``
 
