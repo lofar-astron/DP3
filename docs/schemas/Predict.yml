@@ -1,5 +1,5 @@
 description: >-
-  ""
+  Simulate visibilities for a given sky model `.`
 inputs:
   type:
     type: string
