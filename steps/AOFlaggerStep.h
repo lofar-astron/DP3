@@ -118,7 +118,7 @@ class AOFlaggerStep : public Step {
   bool collect_statistics_;
   std::vector<base::DPBuffer> buffer_;
   base::FlagCounter flag_counter_;
-  common::NSTimer timer_;
+  common::NSTimer total_timer_;
   common::NSTimer quality_timer_;
   common::NSTimer compute_timer_;
   double move_time_;   ///< data move timer (sum of all threads)

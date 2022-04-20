@@ -191,14 +191,14 @@ void AOFlaggerStep::showCounts(std::ostream& os) const {
 }
 
 void AOFlaggerStep::showTimings(std::ostream& os, double duration) const {
-  double flagDur = timer_.getElapsed();
+  const double flagDur = total_timer_.getElapsed();
   os << "  ";
   FlagCounter::showPerc1(os, flagDur, duration);
   os << " AOFlaggerStep " << name_ << '\n';
   os << "          ";
   // move time and flag time are sum of all threads.
   // Scale them to a single elapsed time.
-  double factor =
+  const double factor =
       (compute_timer_.getElapsed() / (move_time_ + flag_time_ + stats_time_));
   FlagCounter::showPerc1(os, move_time_ * factor, flagDur);
   os << " of it spent in shuffling data" << '\n';
@@ -207,6 +207,9 @@ void AOFlaggerStep::showTimings(std::ostream& os, double duration) const {
   os << " of it spent in calculating flags" << '\n';
   if (collect_statistics_) {
     os << "          ";
+    // stats_time_ * factor is the time taken during multi-thread processing
+    // quality_timer_ holds the timing for further quality statistics tasks
+    // that are performed single threadedly.
     FlagCounter::showPerc1(
         os, stats_time_ * factor + quality_timer_.getElapsed(), flagDur);
     os << " of it spent in making quality statistics" << '\n';
@@ -219,7 +222,7 @@ void AOFlaggerStep::showTimings(std::ostream& os, double duration) const {
 // 2n .. 3n+2m  etc.
 // and also update the flags in the overlaps
 bool AOFlaggerStep::process(const DPBuffer& buf) {
-  timer_.start();
+  total_timer_.start();
   // Accumulate in the time window until the window and overlap are full.
   n_times_++;
   buffer_[buffer_index_].copy(buf);
@@ -227,14 +230,14 @@ bool AOFlaggerStep::process(const DPBuffer& buf) {
   if (buffer_index_ == window_size_ + 2 * overlap_) {
     flag(2 * overlap_);
   }
-  timer_.stop();
+  total_timer_.stop();
   return true;
 }
 
 void AOFlaggerStep::finish() {
   std::cerr << "  " << buffer_index_
             << " time slots to finish in AOFlaggerStep ...\n";
-  timer_.start();
+  total_timer_.start();
   // Set window size to all entries left.
   window_size_ = buffer_index_;
   if (window_size_ > 0) {
@@ -242,19 +245,19 @@ void AOFlaggerStep::finish() {
     flag(0);
   }
   buffer_.clear();
-  timer_.stop();
+  total_timer_.stop();
   // Let the next step finish its processing.
   getNextStep()->finish();
 }
 
 void AOFlaggerStep::addToMS(const string& msName) {
-  timer_.start();
+  total_timer_.start();
   if (collect_statistics_) {
     quality_timer_.start();
     qstats_.WriteStatistics(msName);
     quality_timer_.stop();
   }
-  timer_.stop();
+  total_timer_.stop();
   getPrevStep()->addToMS(msName);
 }
 
@@ -317,7 +320,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   for (size_t t = 0; t != getInfo().nThreads(); ++t) {
     flag_counter_.add(threadData[t].counter);
     if (collect_statistics_) {
-      quality_timer_.stop();
+      quality_timer_.start();
       // Add the rfi statistics to the global object.
       if (has_qstats_) {
         qstats_ += threadData[t].qstats;
@@ -325,26 +328,23 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
         qstats_ = std::move(threadData[t].qstats);
         has_qstats_ = true;
       }
-      quality_timer_.start();
+      quality_timer_.stop();
     }
   }
 
   compute_timer_.stop();
-  timer_.stop();
+  total_timer_.stop();
   // Let the next step process the buffers.
   // If possible, discard the buffer processed to minimize memory usage.
   for (unsigned int i = 0; i < window_size_; ++i) {
     getNextStep()->process(buffer_[i]);
-    ///        itsBuf[i] = DPBuffer();
-    /// cout << "cleared buffer " << i << '\n';
   }
-  timer_.start();
+  total_timer_.start();
   // Shift the buffers still needed to the beginning of the vector.
   // This is a bit easier than keeping a wrapped vector.
   // Note it is a cheap operation, because shallow copies are made.
   for (unsigned int i = 0; i < rightOverlap; ++i) {
     buffer_[i].copy(buffer_[i + window_size_]);
-    /// cout << "moved buffer " <<i+itsWindowSize<<" to "<< i << '\n';
   }
   buffer_index_ = rightOverlap;
 }
