@@ -521,6 +521,10 @@ void MSWriter::updatePhaseCentre(const string& outName, const DPInfo& info) {
   Table outField = Table(outName + "/FIELD", Table::Update);
   // Write new phase center.
   ArrayMeasColumn<MDirection> phaseCol(outField, "PHASE_DIR");
+  // If a moving reference type like AZELGEO was used in the original MS, and
+  // the phase centre is changed (with a phaseshift), the ref frame of the
+  // column must be reset:
+  phaseCol.setDescRefCode(info.phaseCenter().getRefPtr()->getType(), false);
   casacore::Vector<MDirection> dir(1, info.phaseCenter());
   phaseCol.put(0, dir);
 }
