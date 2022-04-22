@@ -172,3 +172,22 @@ def test_without_and_with_time_smearing(use_time_smearing):
             " and all(near(abs(DATA[,3]),9.34,5e-4))"
         )
         assert_taql(taql_command, 2)
+
+@pytest.mark.parametrize("use_beam", [False, True])
+def test_without_and_with_beam_parallelbaseline(use_beam):
+    predict_column = "PREDICT_beam" if use_beam else "PREDICT_nobeam"
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=MODEL_DATA",
+            "steps=[predict]",
+            f"predict.sourcedb={MSIN}/sky",
+            f"predict.usebeammodel={'true' if use_beam else 'false'}",
+            "predict.parallelbaselines=true",
+        ]
+    )
+    taql_command = f"select from {MSIN} t1, {MSPREDICT} t2 where not all(near(t1.MODEL_DATA,t2.{predict_column},5e-2) || (isnan(t1.MODEL_DATA) && isnan(t2.{predict_column})))"
+    assert_taql(taql_command)

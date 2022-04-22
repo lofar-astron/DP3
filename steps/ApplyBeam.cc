@@ -349,6 +349,96 @@ template void ApplyBeam::applyBeam(
     std::vector<aocommon::MC2x2>& beamValues, bool invert,
     everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
 
+void ApplyBeam::applyBeam(const DPInfo& info, double time,
+                          std::complex<double>* data0, float* weight0,
+                          const everybeam::vector3r_t& srcdir,
+                          const everybeam::telescope::Telescope* telescope,
+                          std::vector<aocommon::MC2x2>& beam_values,
+                          const std::pair<size_t, size_t>& baseline_range,
+                          const std::pair<size_t, size_t>& station_range,
+                          aocommon::Barrier& barrier, bool invert,
+                          everybeam::CorrectionMode mode,
+                          bool do_update_weights, std::mutex* mutex) {
+  // Get the beam values for each station.
+  const size_t n_channels = info.chanFreqs().size();
+  const size_t n_stations = beam_values.size() / n_channels;
+
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope->GetPointResponse(time);
+
+  const std::vector<size_t> station_indices =
+      InputStep::SelectStationIndices(telescope, info.antennaNames());
+
+  // Apply the beam values of both stations to the ApplyBeamed data.
+
+  if (station_range.first < n_stations) {
+    for (size_t ch = 0; ch < n_channels; ++ch) {
+      switch (mode) {
+        case everybeam::CorrectionMode::kFull:
+        case everybeam::CorrectionMode::kElement:
+          // Fill beam_values for channel ch,
+          // only for stations used by this thread
+          for (size_t st = station_range.first; st < station_range.second;
+               ++st) {
+            beam_values[n_channels * st + ch] = point_response->Response(
+                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+            if (invert) {
+              beam_values[n_channels * st + ch].Invert();
+            }
+          }
+          break;
+        case everybeam::CorrectionMode::kArrayFactor: {
+          aocommon::MC2x2 af_tmp;
+          // Fill beam_values for channel ch
+          // only for stations used by this thread
+          for (size_t st = station_range.first; st < station_range.second;
+               ++st) {
+            af_tmp = point_response->Response(
+                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+
+            if (invert) {
+              af_tmp[0] = 1. / af_tmp[0];
+              af_tmp[3] = 1. / af_tmp[3];
+            }
+            beam_values[n_channels * st + ch] = af_tmp;
+          }
+          break;
+        }
+        case everybeam::CorrectionMode::kNone:  // this should not happen
+          for (size_t st = station_range.first; st < station_range.second;
+               ++st) {
+            beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+          }
+          break;
+      }
+    }
+  }
+
+  barrier.wait();
+  for (size_t ch = 0; ch < n_channels; ++ch) {
+    // Apply beam for channel ch on the baselines handeled by this thread
+    // For mode=ARRAY_FACTOR, too much work is done here because we know
+    // that r and l are diagonal
+    for (size_t bl = baseline_range.first; bl < baseline_range.second; ++bl) {
+      std::complex<double>* data = data0 + bl * 4 * n_channels + ch * 4;
+      const aocommon::MC2x2F mat(data);
+      //
+      const aocommon::MC2x2F left(
+          beam_values[n_channels * info.getAnt1()[bl] + ch].Data());
+      const aocommon::MC2x2F right(
+          beam_values[n_channels * info.getAnt2()[bl] + ch].Data());
+      const aocommon::MC2x2F result = left.Multiply(mat).MultiplyHerm(right);
+      result.AssignTo(data);
+      if (do_update_weights) {
+        ApplyCal::applyWeights(left.Data(), right.Data(),
+                               weight0 + bl * 4 * n_channels + ch * 4);
+      }
+    }
+  }
+
+  barrier.wait();
+}
+
 template <typename T>
 void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, T* data0,
@@ -398,6 +488,58 @@ template void ApplyBeam::applyBeamStokesIArrayFactor(
     const everybeam::telescope::Telescope* telescope,
     std::vector<everybeam::complex_t>& beamValues, bool invert,
     everybeam::CorrectionMode mode, std::mutex* mutex);
+
+void ApplyBeam::applyBeamStokesIArrayFactor(
+    const DPInfo& info, double time, std::complex<double>* data0,
+    const everybeam::vector3r_t& srcdir,
+    const everybeam::telescope::Telescope* telescope,
+    std::vector<everybeam::complex_t>& beam_values,
+    const std::pair<size_t, size_t>& baseline_range,
+    const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
+    bool invert, everybeam::CorrectionMode mode, std::mutex* mutex) {
+  assert(mode == everybeam::CorrectionMode::kArrayFactor);
+  // Get the beam values for each station.
+  const size_t n_channels = info.chanFreqs().size();
+  const size_t n_stations = beam_values.size() / n_channels;
+
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope->GetPointResponse(time);
+
+  const std::vector<size_t> station_indices =
+      InputStep::SelectStationIndices(telescope, info.antennaNames());
+
+  // Apply the beam values of both stations to the ApplyBeamed data.
+  if (station_range.first < n_stations) {
+    for (size_t ch = 0; ch < n_channels; ++ch) {
+      // Fill beam_values for channel ch
+      // only for stations used by this thread
+      for (size_t st = station_range.first; st < station_range.second; ++st) {
+        beam_values[n_channels * st + ch] = point_response->Response(
+            everybeam::BeamMode::kArrayFactor, station_indices[st],
+            info.chanFreqs()[ch], srcdir, mutex)[0];
+        if (invert) {
+          beam_values[n_channels * st + ch] =
+              1. / beam_values[n_channels * st + ch];
+        }
+      }
+    }
+  }
+  barrier.wait();
+  for (size_t ch = 0; ch < n_channels; ++ch) {
+    // Apply beam for channel ch on the baselines handeled by this thread
+    for (size_t bl = baseline_range.first; bl < baseline_range.second; ++bl) {
+      std::complex<double>* data = data0 + bl * n_channels + ch;
+      everybeam::complex_t* left =
+          &(beam_values[n_channels * info.getAnt1()[bl]]);
+      everybeam::complex_t* right =
+          &(beam_values[n_channels * info.getAnt2()[bl]]);
+      data[0] = left[ch] * std::complex<double>(data[0]) * conj(right[ch]);
+
+      // TODO: update weights?
+    }
+  }
+  barrier.wait();
+}
 
 }  // namespace steps
 }  // namespace dp3

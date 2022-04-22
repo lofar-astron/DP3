@@ -117,6 +117,12 @@ class OnePredict : public ModelDataStep {
   void addBeamToData(std::shared_ptr<const base::Patch> patch, double time,
                      size_t thread, size_t nBeamValues,
                      std::complex<double>* data0, bool stokesIOnly);
+  void addBeamToData(std::shared_ptr<const base::Patch> patch, double time,
+                     size_t thread, size_t nBeamValues,
+                     std::complex<double>* data0,
+                     const std::pair<size_t, size_t>& baseline_range,
+                     const std::pair<size_t, size_t>& station_range,
+                     aocommon::Barrier& barrier, bool stokesIOnly);
 
   InputStep* input_;
   std::string name_;
@@ -127,6 +133,7 @@ class OnePredict : public ModelDataStep {
   bool apply_beam_;
   bool use_channel_freq_;
   bool one_beam_per_patch_;
+  bool thread_over_baselines_;
   /// If two sources are closer together than given by this setting, they
   /// will be grouped into one patch. Value is in arcsec; zero means don't
   /// group.
@@ -148,7 +155,7 @@ class OnePredict : public ModelDataStep {
   std::vector<int> uvw_split_index_;
 
   /// UVW coordinates per station (3 coordinates per station)
-  casacore::Matrix<double> station_uwv_;
+  casacore::Matrix<double> station_uvw_;
 
   /// The info needed to calculate the station beams.
   std::shared_ptr<base::PredictBuffer> predict_buffer_;

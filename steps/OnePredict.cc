@@ -29,6 +29,8 @@
 #include "../parmdb/SourceDB.h"
 
 #include <aocommon/threadpool.h>
+#include <aocommon/parallelfor.h>
+#include <aocommon/barrier.h>
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -43,6 +45,9 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+
+#include <numeric>
+#include <algorithm>
 
 #include <boost/algorithm/string/case_conv.hpp>
 
@@ -82,6 +87,7 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
       parset.getBool(prefix + "correctfreqsmearing", false);
   SetOperation(parset.getString(prefix + "operation", "replace"));
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
+  thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
   patch_list_.clear();
 
@@ -185,7 +191,7 @@ void OnePredict::initializeThreadData() {
   const size_t nCr = stokes_i_only_ ? 1 : info().ncorr();
   const size_t nThreads = getInfo().nThreads();
 
-  station_uwv_.resize(3, nSt);
+  station_uvw_.resize(3, nSt);
 
   std::vector<std::array<double, 3>> antenna_pos(info().antennaPos().size());
   for (unsigned int i = 0; i < info().antennaPos().size(); ++i) {
@@ -332,7 +338,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
   const size_t nBeamValues = stokes_i_only_ ? nBl * nCh : nBl * nCh * nCr;
 
   base::nsplitUVW(uvw_split_index_, baselines_, scratch_buffer.getUVW(),
-                  station_uwv_);
+                  station_uvw_);
 
   double time = scratch_buffer.getTime();
   // Set up directions for beam evaluation
@@ -378,60 +384,196 @@ bool OnePredict::process(const DPBuffer& bufin) {
   }
   std::vector<base::Simulator> simulators;
   simulators.reserve(pool->NThreads());
-  for (size_t thread = 0; thread != pool->NThreads(); ++thread) {
-    predict_buffer_->GetModel(thread) = dcomplex();
-    if (apply_beam_) predict_buffer_->GetPatchModel(thread) = dcomplex();
 
-    // When applying beam, simulate into patch vector
-    Cube<dcomplex>& simulatedest =
-        (apply_beam_ ? predict_buffer_->GetPatchModel(thread)
-                     : predict_buffer_->GetModel(thread));
-    simulators.emplace_back(phase_ref_, nSt, baselines_, info().chanFreqs(),
-                            info().chanWidths(), station_uwv_, simulatedest,
-                            correct_freq_smearing_, stokes_i_only_);
+  std::vector<std::pair<size_t, size_t>> baseline_range;
+  std::vector<Cube<dcomplex>> sim_buffer;
+  std::vector<std::vector<std::pair<size_t, size_t>>> baselines_split;
+  std::vector<std::pair<size_t, size_t>> station_range;
+  const size_t actual_nCr = (stokes_i_only_ ? 1 : nCr);
+  size_t n_threads = pool->NThreads();
+  if (thread_over_baselines_) {
+    // make sure each thread has enough baselines to work
+    if (nBl < n_threads) {
+      n_threads = nBl;
+    }
+    baseline_range.resize(n_threads);
+    sim_buffer.resize(n_threads);
+    baselines_split.resize(n_threads);
+    if (apply_beam_) {
+      station_range.resize(n_threads);
+    }
+
+    const size_t baselines_thread = (nBl + n_threads - 1) / n_threads;
+    size_t end_index = 0;
+    size_t start_index = 0;
+    for (size_t thread_index = 0;
+         thread_index != n_threads && end_index < baselines_.size();
+         ++thread_index) {
+      auto start_bline =
+          std::next(baselines_.cbegin(), thread_index * baselines_thread);
+      end_index = (thread_index * baselines_thread + baselines_thread >
+                           baselines_.size()
+                       ? baselines_.size()
+                       : thread_index * baselines_thread + baselines_thread);
+      baseline_range[thread_index] = std::make_pair(start_index, end_index);
+      auto end_bline = std::next(baselines_.cbegin(), end_index);
+      baselines_split[thread_index].resize(end_index -
+                                           thread_index * baselines_thread);
+      sim_buffer[thread_index].resize(
+          actual_nCr, nCh, end_index - thread_index * baselines_thread);
+      start_index += baselines_split[thread_index].size();
+      std::copy(start_bline, end_bline, baselines_split[thread_index].begin());
+    }
+    // find min,max station indices for this thread
+    if (apply_beam_) {
+      const size_t stations_thread = (nSt + n_threads - 1) / n_threads;
+      for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
+        const size_t station_start = thread_index * stations_thread;
+        const size_t station_end = station_start + stations_thread < nSt
+                                       ? station_start + stations_thread
+                                       : nSt;
+        if (station_start < nSt) {
+          station_range[thread_index] =
+              std::make_pair(station_start, station_end);
+        } else {
+          // fill an invalid station range
+          // so that station_start<nSt for valid range
+          station_range[thread_index] = std::make_pair(nSt + 1, nSt + 1);
+        }
+      }
+    }
+    for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
+      predict_buffer_->GetModel(thread_index) = dcomplex();
+      if (apply_beam_)
+        predict_buffer_->GetPatchModel(thread_index) = dcomplex();
+
+      // When applying beam, simulate into patch vector
+      Cube<dcomplex>& simulatedest = sim_buffer[thread_index];
+      simulatedest = dcomplex();
+      simulators.emplace_back(phase_ref_, nSt, baselines_split[thread_index],
+                              info().chanFreqs(), info().chanWidths(),
+                              station_uvw_, simulatedest,
+                              correct_freq_smearing_, stokes_i_only_);
+    }
+  } else {
+    for (size_t thread_index = 0; thread_index != pool->NThreads();
+         ++thread_index) {
+      predict_buffer_->GetModel(thread_index) = dcomplex();
+      if (apply_beam_)
+        predict_buffer_->GetPatchModel(thread_index) = dcomplex();
+
+      // When applying beam, simulate into patch vector
+      Cube<dcomplex>& simulatedest =
+          (apply_beam_ ? predict_buffer_->GetPatchModel(thread_index)
+                       : predict_buffer_->GetModel(thread_index));
+      simulators.emplace_back(phase_ref_, nSt, baselines_, info().chanFreqs(),
+                              info().chanWidths(), station_uvw_, simulatedest,
+                              correct_freq_smearing_, stokes_i_only_);
+    }
   }
   std::vector<std::shared_ptr<const base::Patch>> curPatches(pool->NThreads());
 
-  pool->For(0, source_list_.size(), [&](size_t source_index, size_t thread) {
-    const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
-        scoped_time{predict_time_};
-    // OnePredict the source model and apply beam when an entire patch is
-    // done
-    std::shared_ptr<const base::Patch>& curPatch = curPatches[thread];
-    const bool patchIsFinished =
-        curPatch != source_list_[source_index].second && curPatch != nullptr;
-    if (apply_beam_ && patchIsFinished) {
-      // Apply the beam and add PatchModel to Model
-      addBeamToData(curPatch, time, thread, nBeamValues,
-                    predict_buffer_->GetPatchModel(thread).data(),
-                    stokes_i_only_);
-      // Initialize patchmodel to zero for the next patch
-      predict_buffer_->GetPatchModel(thread) = dcomplex();
-    }
-    // Depending on apply_beam_, the following call will add to either
-    // the Model or the PatchModel of the predict buffer
-    simulators[thread].simulate(source_list_[source_index].first);
-
-    curPatch = source_list_[source_index].second;
-  });
-  // Apply beam to the last patch
-  if (apply_beam_) {
-    pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
+  if (thread_over_baselines_) {
+    aocommon::Barrier barrier(n_threads);
+    aocommon::ParallelFor<size_t> loop(n_threads);
+    loop.Run(0, n_threads, [&](size_t thread_index) {
       const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
           scoped_time{predict_time_};
-      if (curPatches[thread] != nullptr) {
-        addBeamToData(curPatches[thread], time, thread, nBeamValues,
-                      predict_buffer_->GetPatchModel(thread).data(),
-                      stokes_i_only_);
+      // OnePredict the source model and apply beam when an entire patch is
+      // done
+      std::shared_ptr<const base::Patch>& curPatch = curPatches[thread_index];
+      casacore::Slicer slicer_dest(
+          casacore::IPosition(3, 0, 0, baseline_range[thread_index].first),
+          casacore::IPosition(3, actual_nCr, nCh,
+                              baseline_range[thread_index].second -
+                                  baseline_range[thread_index].first));
+
+      for (size_t source_index = 0; source_index < source_list_.size();
+           ++source_index) {
+        const bool patchIsFinished =
+            curPatch != source_list_[source_index].second &&
+            curPatch != nullptr;
+
+        if (apply_beam_ && patchIsFinished) {
+          // PatchModel <- SimulBuffer
+          Cube<dcomplex>& simulatedest =
+              predict_buffer_->GetPatchModel(thread_index);
+          simulatedest(slicer_dest) = sim_buffer[thread_index];
+
+          // Apply the beam and add PatchModel to Model
+          addBeamToData(curPatch, time, thread_index, nBeamValues,
+                        predict_buffer_->GetPatchModel(thread_index).data(),
+                        baseline_range[thread_index],
+                        station_range[thread_index], barrier, stokes_i_only_);
+          // Initialize patchmodel to zero for the next patch
+          sim_buffer[thread_index] = dcomplex();
+        }
+        // Depending on apply_beam_, the following call will add to either
+        // the Model or the PatchModel of the predict buffer
+        simulators[thread_index].simulate(source_list_[source_index].first);
+
+        curPatch = source_list_[source_index].second;
+      }
+      // catch last source
+      if (apply_beam_ && curPatch != nullptr) {
+        // PatchModel <- SimulBuffer
+        Cube<dcomplex>& simulatedest =
+            predict_buffer_->GetPatchModel(thread_index);
+        simulatedest(slicer_dest) = sim_buffer[thread_index];
+
+        addBeamToData(curPatch, time, thread_index, nBeamValues,
+                      predict_buffer_->GetPatchModel(thread_index).data(),
+                      baseline_range[thread_index], station_range[thread_index],
+                      barrier, stokes_i_only_);
+      }
+      if (!apply_beam_) {
+        Cube<dcomplex>& simulatedest = predict_buffer_->GetModel(thread_index);
+        simulatedest(slicer_dest) = sim_buffer[thread_index];
       }
     });
+  } else {
+    pool->For(0, source_list_.size(), [&](size_t source_index, size_t thread) {
+      const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
+          scoped_time{predict_time_};
+      // OnePredict the source model and apply beam when an entire patch is
+      // done
+      std::shared_ptr<const base::Patch>& curPatch = curPatches[thread];
+      const bool patchIsFinished =
+          curPatch != source_list_[source_index].second && curPatch != nullptr;
+      if (apply_beam_ && patchIsFinished) {
+        // Apply the beam and add PatchModel to Model
+        addBeamToData(curPatch, time, thread, nBeamValues,
+                      predict_buffer_->GetPatchModel(thread).data(),
+                      stokes_i_only_);
+        // Initialize patchmodel to zero for the next patch
+        predict_buffer_->GetPatchModel(thread) = dcomplex();
+      }
+      // Depending on apply_beam_, the following call will add to either
+      // the Model or the PatchModel of the predict buffer
+      simulators[thread].simulate(source_list_[source_index].first);
+
+      curPatch = source_list_[source_index].second;
+    });
+    // Apply beam to the last patch
+    if (apply_beam_) {
+      pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
+        const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
+            scoped_time{predict_time_};
+        if (curPatches[thread] != nullptr) {
+          addBeamToData(curPatches[thread], time, thread, nBeamValues,
+                        predict_buffer_->GetPatchModel(thread).data(),
+                        stokes_i_only_);
+        }
+      });
+    }
   }
 
   // Add all thread model data to one buffer
   scratch_buffer.getData() = casacore::Complex();
   casacore::Complex* tdata = scratch_buffer.getData().data();
   const size_t nVisibilities = nBl * nCh * nCr;
-  for (size_t thread = 0; thread < pool->NThreads(); ++thread) {
+  for (size_t thread = 0; thread < std::min(pool->NThreads(), n_threads);
+       ++thread) {
     if (stokes_i_only_) {
       for (size_t i = 0, j = 0; i < nVisibilities; i += nCr, j++) {
         tdata[i] += predict_buffer_->GetModel(thread).data()[j];
@@ -505,6 +647,43 @@ void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
                          telescope_.get(),
                          predict_buffer_->GetFullBeamValues(thread), false,
                          beam_mode_, false, &mutex_);
+  }
+
+  // Add temporary buffer to Model
+  std::transform(predict_buffer_->GetModel(thread).data(),
+                 predict_buffer_->GetModel(thread).data() + nBeamValues, data0,
+                 predict_buffer_->GetModel(thread).data(),
+                 std::plus<dcomplex>());
+}
+
+void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
+                               double time, size_t thread, size_t nBeamValues,
+                               dcomplex* data0,
+                               const std::pair<size_t, size_t>& baseline_range,
+                               const std::pair<size_t, size_t>& station_range,
+                               aocommon::Barrier& barrier, bool stokesIOnly) {
+  // Apply beam for a patch, add result to Model
+  MDirection dir(MVDirection(patch->direction().ra, patch->direction().dec),
+                 MDirection::J2000);
+  everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
+
+  // We use a common buffer to calculate beam values
+  const size_t common_thread = 0;
+  if (stokesIOnly) {
+    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
+        scoped_time{apply_beam_time_};
+    ApplyBeam::applyBeamStokesIArrayFactor(
+        info(), time, data0, srcdir, telescope_.get(),
+        predict_buffer_->GetScalarBeamValues(common_thread), baseline_range,
+        station_range, barrier, false, beam_mode_, &mutex_);
+  } else {
+    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
+        scoped_time{apply_beam_time_};
+    float* dummyweight = nullptr;
+    ApplyBeam::applyBeam(
+        info(), time, data0, dummyweight, srcdir, telescope_.get(),
+        predict_buffer_->GetFullBeamValues(common_thread), baseline_range,
+        station_range, barrier, false, beam_mode_, false, &mutex_);
   }
 
   // Add temporary buffer to Model
