@@ -15,6 +15,7 @@
 
 #include <EveryBeam/telescope/telescope.h>
 #include <aocommon/matrix2x2.h>
+#include <aocommon/barrier.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -76,6 +77,20 @@ class ApplyBeam : public Step {
                         everybeam::CorrectionMode mode,
                         bool doUpdateWeights = false,
                         std::mutex* mutex = nullptr);
+  // This method applies the beam for processing when parallelizing over
+  // baselines. Because the beam is a per-antenna effect, this requires
+  // synchronisation, which is performed with the provided barrier.
+  static void applyBeam(const base::DPInfo& info, double time,
+                        std::complex<double>* data0, float* weight0,
+                        const everybeam::vector3r_t& srcdir,
+                        const everybeam::telescope::Telescope* telescope,
+                        std::vector<aocommon::MC2x2>& beam_values,
+                        const std::pair<size_t, size_t>& baseline_range,
+                        const std::pair<size_t, size_t>& station_range,
+                        aocommon::Barrier& barrier, bool invert,
+                        everybeam::CorrectionMode mode,
+                        bool do_update_weights = false,
+                        std::mutex* mutex = nullptr);
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
@@ -84,6 +99,19 @@ class ApplyBeam : public Step {
       const everybeam::telescope::Telescope* telescope,
       std::vector<everybeam::complex_t>& beamValues, bool invert,
       everybeam::CorrectionMode mode, std::mutex* mutex = nullptr);
+
+  // This method applies the Stokes I Array factor for processing when
+  // parallelizing over baselines and uses a barrier for synchronisation,
+  // similar to the corresponding @ref applyBeam() overload.
+  static void applyBeamStokesIArrayFactor(
+      const base::DPInfo& info, double time, std::complex<double>* data0,
+      const everybeam::vector3r_t& srcdir,
+      const everybeam::telescope::Telescope* telescope,
+      std::vector<everybeam::complex_t>& beam_values,
+      const std::pair<size_t, size_t>& baseline_range,
+      const std::pair<size_t, size_t>& station_range,
+      aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
+      std::mutex* mutex = nullptr);
 
  private:
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,

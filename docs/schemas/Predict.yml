@@ -46,3 +46,7 @@ inputs:
     type: boolean
     doc: Simulate frequency smearing based on the channel width, by multiplying the visibility with a sinc function `.`
     default: false
+  parallelbaselines:
+    type: boolean
+    doc: Parallelize sky model prediction over baselines instead of sources. Will speed up performance in certain cases `.`
+    default: false
