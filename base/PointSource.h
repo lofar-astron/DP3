@@ -43,7 +43,7 @@ class PointSource : public ModelComponent {
 
   Stokes stokes(double freq) const;
 
-  virtual void accept(ModelComponentVisitor &visitor) const;
+  void accept(ModelComponentVisitor &visitor) const override;
 
  private:
   bool hasSpectralTerms() const;

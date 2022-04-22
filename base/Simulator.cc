@@ -89,7 +89,8 @@ Simulator::Simulator(const Direction& reference, size_t nStation,
   }
 }
 
-void Simulator::simulate(const ModelComponent::ConstPtr& component) {
+void Simulator::simulate(
+    const std::shared_ptr<const ModelComponent>& component) {
   component->accept(*this);
 }
 

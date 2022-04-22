@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(make_source_db) {
   BOOST_REQUIRE_EQUAL(patches[1], "ra_off");
   BOOST_REQUIRE_EQUAL(patches[2], "radec_off");
 
-  std::vector<dp3::base::Patch::ConstPtr> foo =
+  std::vector<std::shared_ptr<dp3::base::Patch>> foo =
       dp3::base::makePatches(sourceDB, patches, patches.size());
 
   BOOST_REQUIRE_EQUAL(foo.size(), 3u);
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(read_skymodel) {
     BOOST_CHECK_EQUAL(patch_list[1], "ra_off");
     BOOST_CHECK_EQUAL(patch_list[2], "radec_off");
 
-    const std::vector<dp3::base::Patch::ConstPtr> patches =
+    const std::vector<std::shared_ptr<dp3::base::Patch>> patches =
         dp3::base::MakePatches(source_db, patch_list);
     CheckEqual(*patches[0], test_source_db::Expected[0]);
     CheckEqual(*patches[1], test_source_db::Expected[1]);

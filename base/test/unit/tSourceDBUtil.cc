@@ -28,22 +28,22 @@ BOOST_AUTO_TEST_SUITE(
 // clang-format on
 
 BOOST_AUTO_TEST_CASE(cluster_proximate_sources_empty) {
-  std::vector<Patch::ConstPtr> input;
-  std::vector<Patch::ConstPtr> output =
+  std::vector<std::shared_ptr<Patch>> input;
+  std::vector<std::shared_ptr<Patch>> output =
       dp3::base::clusterProximateSources(input, 1.0);
   BOOST_CHECK(output.empty());
 }
 
 BOOST_AUTO_TEST_CASE(cluster_proximate_sources_single) {
-  std::vector<std::shared_ptr<const Patch>> input(1);
-  std::vector<ModelComponent::ConstPtr> components{
+  std::vector<std::shared_ptr<Patch>> input(1);
+  std::vector<std::shared_ptr<ModelComponent>> components{
       std::make_shared<PointSource>(Direction(0.2, 0.4)),
       std::make_shared<PointSource>(Direction(0.2, 0.5)),
       std::make_shared<PointSource>(Direction(0.2, 0.6)),
       std::make_shared<PointSource>(Direction(1.0, 1.1))};
   input[0] = std::make_shared<Patch>("a", components.begin(), components.end());
 
-  std::vector<Patch::ConstPtr> output =
+  std::vector<std::shared_ptr<Patch>> output =
       dp3::base::clusterProximateSources(input, 0.5);
 
   BOOST_REQUIRE_EQUAL(output.size(), 2u);
@@ -70,19 +70,19 @@ BOOST_AUTO_TEST_CASE(cluster_proximate_sources_single) {
 }
 
 BOOST_AUTO_TEST_CASE(cluster_proximate_sources_multi) {
-  std::vector<std::shared_ptr<const Patch>> input(2);
-  std::vector<ModelComponent::ConstPtr> componentsA{
+  std::vector<std::shared_ptr<Patch>> input(2);
+  std::vector<std::shared_ptr<ModelComponent>> componentsA{
       std::make_shared<PointSource>(Direction(0.2, 0.4)),
       std::make_shared<PointSource>(Direction(0.2, 0.6)),
       std::make_shared<PointSource>(Direction(1.0, 1.1))};
-  std::vector<ModelComponent::ConstPtr> componentsB{
+  std::vector<std::shared_ptr<ModelComponent>> componentsB{
       std::make_shared<PointSource>(Direction(0.2, 0.5))};
   input[0] =
       std::make_shared<Patch>("a", componentsA.begin(), componentsA.end());
   input[1] =
       std::make_shared<Patch>("b", componentsB.begin(), componentsB.end());
 
-  std::vector<Patch::ConstPtr> output =
+  std::vector<std::shared_ptr<Patch>> output =
       dp3::base::clusterProximateSources(input, 0.5);
 
   BOOST_REQUIRE_EQUAL(output.size(), 2u);
@@ -110,8 +110,7 @@ BOOST_AUTO_TEST_CASE(cluster_proximate_sources_multi) {
 
 static void TestPatches(dp3::base::SourceDB&& source_db,
                         const std::vector<test_source_db::Patch>& expected) {
-  const std::vector<dp3::base::Patch::ConstPtr> patches =
-      source_db.MakePatchList();
+  const std::vector<std::shared_ptr<Patch>> patches = source_db.MakePatchList();
   BOOST_REQUIRE_EQUAL(patches.size(), expected.size());
   for (size_t i = 0; i < patches.size(); ++i)
     test_source_db::CheckEqual(*patches[i], expected[i]);
@@ -172,8 +171,7 @@ BOOST_AUTO_TEST_CASE(source_db_make_patch_list_non_empty_values) {
 }
 
 static void TestPatchesExplicit(dp3::base::SourceDB&& source_db) {
-  const std::vector<dp3::base::Patch::ConstPtr> patches =
-      source_db.MakePatchList();
+  const std::vector<std::shared_ptr<Patch>> patches = source_db.MakePatchList();
   BOOST_REQUIRE_EQUAL(patches.size(), 2);
   CheckEqual(*patches[0],
              test_source_db::Patch{"HerA", 0.872665, -0.017453, 3.5, 1});

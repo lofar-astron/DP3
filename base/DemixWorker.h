@@ -118,13 +118,13 @@ class DemixWorker {
 
   /// Predict the target StokesI amplitude.
   /// It applies the beam at each target patch.
-  void predictTarget(const std::vector<Patch::ConstPtr>& patchList,
+  void predictTarget(const std::vector<std::shared_ptr<const Patch>>& patchList,
                      unsigned int ntime, double time, double timeStep);
 
   /// Predict the StokesI amplitude of the Ateam patches and determine
   /// which antennae and sources to use when demixing.
   /// It applies the beam at each patch center.
-  void predictAteam(const std::vector<Patch::ConstPtr>& patchList,
+  void predictAteam(const std::vector<std::shared_ptr<const Patch>>& patchList,
                     unsigned int ntime, double time, double timeStep);
 
   /// Add the StokesI of itsPredictVis to ampl.
@@ -197,7 +197,7 @@ class DemixWorker {
   std::shared_ptr<steps::MultiResultStep> itsAvgResultFull;
   std::shared_ptr<steps::MultiResultStep> itsAvgResultSubtr;
   /// The sources to demix (excluding target).
-  std::vector<Patch::ConstPtr> itsDemixList;
+  std::vector<std::shared_ptr<const Patch>> itsDemixList;
   // TODO: unique_ptr?
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;
   /// Measure objects unique to this worker (thread).

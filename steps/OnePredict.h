@@ -114,9 +114,9 @@ class OnePredict : public ModelDataStep {
   void initializeThreadData();
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
-  void addBeamToData(base::Patch::ConstPtr patch, double time, size_t thread,
-                     size_t nBeamValues, std::complex<double>* data0,
-                     bool stokesIOnly);
+  void addBeamToData(std::shared_ptr<const base::Patch> patch, double time,
+                     size_t thread, size_t nBeamValues,
+                     std::complex<double>* data0, bool stokesIOnly);
 
   InputStep* input_;
   std::string name_;
@@ -159,9 +159,10 @@ class OnePredict : public ModelDataStep {
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;
 
   std::string direction_str_;  ///< Definition of patches, to pass to applycal
-  std::vector<base::Patch::ConstPtr> patch_list_;
+  std::vector<std::shared_ptr<base::Patch>> patch_list_;
 
-  std::vector<std::pair<base::ModelComponent::ConstPtr, base::Patch::ConstPtr>>
+  std::vector<std::pair<std::shared_ptr<base::ModelComponent>,
+                        std::shared_ptr<base::Patch>>>
       source_list_;
 
   common::NSTimer timer_;

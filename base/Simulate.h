@@ -111,8 +111,9 @@ void rotateUVW(const Direction& from, const Direction& to, size_t nUVW,
 /// \param[in]   buffer
 /// A cursor for a 3-D buffer of shape (\p nBaseline, \p nChannel, 4) into which
 /// the simulated visibilities will be written.
-void simulate(const Direction& reference, const Patch::ConstPtr& patch,
-              size_t nStation, size_t nBaseline, size_t nChannel,
+void simulate(const Direction& reference,
+              const std::shared_ptr<const Patch>& patch, size_t nStation,
+              size_t nBaseline, size_t nChannel,
               const_cursor<Baseline> baselines, const_cursor<double> freq,
               const_cursor<double> uvw, cursor<dcomplex> buffer);
 

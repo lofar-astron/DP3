@@ -390,14 +390,14 @@ bool OnePredict::process(const DPBuffer& bufin) {
                             info().chanWidths(), station_uwv_, simulatedest,
                             correct_freq_smearing_, stokes_i_only_);
   }
-  std::vector<base::Patch::ConstPtr> curPatches(pool->NThreads());
+  std::vector<std::shared_ptr<const base::Patch>> curPatches(pool->NThreads());
 
   pool->For(0, source_list_.size(), [&](size_t source_index, size_t thread) {
     const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
         scoped_time{predict_time_};
     // OnePredict the source model and apply beam when an entire patch is
     // done
-    base::Patch::ConstPtr& curPatch = curPatches[thread];
+    std::shared_ptr<const base::Patch>& curPatch = curPatches[thread];
     const bool patchIsFinished =
         curPatch != source_list_[source_index].second && curPatch != nullptr;
     if (apply_beam_ && patchIsFinished) {
@@ -482,8 +482,8 @@ everybeam::vector3r_t OnePredict::dir2Itrf(const MDirection& dir,
   return vec;
 }
 
-void OnePredict::addBeamToData(base::Patch::ConstPtr patch, double time,
-                               size_t thread, size_t nBeamValues,
+void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
+                               double time, size_t thread, size_t nBeamValues,
                                dcomplex* data0, bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
   MDirection dir(MVDirection(patch->direction().ra, patch->direction().dec),

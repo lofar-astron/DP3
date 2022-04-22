@@ -81,7 +81,7 @@ class Simulator : public ModelComponentVisitor {
     size_t itsNRows;
   };
 
-  void simulate(const ModelComponent::ConstPtr& component);
+  void simulate(const std::shared_ptr<const ModelComponent>& component);
 
  private:
   virtual void visit(const PointSource& component);

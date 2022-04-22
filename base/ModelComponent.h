@@ -20,9 +20,6 @@ struct Direction;
 
 class ModelComponent {
  public:
-  typedef std::shared_ptr<ModelComponent> Ptr;
-  typedef std::shared_ptr<const ModelComponent> ConstPtr;
-
   virtual ~ModelComponent();
   virtual const Direction &direction() const = 0;
   virtual void accept(ModelComponentVisitor &) const = 0;
