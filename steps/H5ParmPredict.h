@@ -34,7 +34,9 @@ namespace steps {
 /// beam
 
 typedef std::pair<size_t, size_t> Baseline;
-typedef std::pair<base::ModelComponent::ConstPtr, base::Patch::ConstPtr> Source;
+typedef std::pair<std::shared_ptr<const base::ModelComponent>,
+                  std::shared_ptr<const base::Patch>>
+    Source;
 
 /// @brief DPPP step class to H5ParmPredict visibilities from a source model
 class H5ParmPredict : public Step {

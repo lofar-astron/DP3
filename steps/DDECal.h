@@ -51,7 +51,7 @@ namespace steps {
 
 class IDGPredict;
 
-typedef std::vector<base::Patch::ConstPtr> PatchList;
+typedef std::vector<std::shared_ptr<base::Patch>> PatchList;
 typedef std::pair<size_t, size_t> Baseline;
 
 /// @brief This class is a Step class to calibrate (direction independent)

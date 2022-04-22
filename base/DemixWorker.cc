@@ -133,7 +133,8 @@ DemixWorker::DemixWorker(steps::InputStep* input, const string& prefix,
   //   no selection is done.
   // Note that multiple time chunks are handled jointly, so a
   // MultiResultStep is used to catch the results of all time chunks.
-  const std::vector<Patch::ConstPtr>& patchList = itsMix->ateamDemixList();
+  const std::vector<std::shared_ptr<const Patch>>& patchList =
+      itsMix->ateamDemixList();
   std::vector<string> sourceVec(2);
   for (unsigned int i = 0; i < nsrc; ++i) {
     // First make the phaseshift and average steps for each demix source.
@@ -428,9 +429,9 @@ unsigned int DemixWorker::avgSplitUVW(const DPBuffer* bufin,
   return ntime;
 }
 
-void DemixWorker::predictTarget(const std::vector<Patch::ConstPtr>& patchList,
-                                unsigned int ntime, double time,
-                                double timeStep) {
+void DemixWorker::predictTarget(
+    const std::vector<std::shared_ptr<const Patch>>& patchList,
+    unsigned int ntime, double time, double timeStep) {
   // This is only needed for the short baselines, but it takes hardly
   // any time to do it for all selected baselines.
   // So no effort is spent on further selection.
@@ -474,9 +475,9 @@ void DemixWorker::addStokesI(Matrix<float>& ampl) {
   }
 }
 
-void DemixWorker::predictAteam(const std::vector<Patch::ConstPtr>& patchList,
-                               unsigned int ntime, double time,
-                               double timeStep) {
+void DemixWorker::predictAteam(
+    const std::vector<std::shared_ptr<const Patch>>& patchList,
+    unsigned int ntime, double time, double timeStep) {
   itsAteamAmplSel = false;
   itsSolveStation = false;
   for (unsigned int dr = 0; dr < patchList.size(); ++dr) {

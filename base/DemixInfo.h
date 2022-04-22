@@ -82,14 +82,16 @@ class DemixInfo {
   const casacore::Vector<bool> selTarget() const { return itsSelTarget; }
   const casacore::Vector<double>& freqDemix() const { return itsFreqDemix; }
   const casacore::Vector<double>& freqSubtr() const { return itsFreqSubtr; }
-  const std::vector<Patch::ConstPtr>& ateamList() const { return itsAteamList; }
-  const std::vector<Patch::ConstPtr>& targetList() const {
+  const std::vector<std::shared_ptr<const Patch>>& ateamList() const {
+    return itsAteamList;
+  }
+  const std::vector<std::shared_ptr<const Patch>>& targetList() const {
     return itsTargetList;
   }
-  const std::vector<Patch::ConstPtr>& ateamDemixList() const {
+  const std::vector<std::shared_ptr<const Patch>>& ateamDemixList() const {
     return itsAteamDemixList;
   }
-  const std::vector<Patch::ConstPtr>& targetDemixList() const {
+  const std::vector<std::shared_ptr<const Patch>>& targetDemixList() const {
     return itsTargetDemixList;
   }
 
@@ -120,7 +122,7 @@ class DemixInfo {
 
  private:
   /// Create a list of patches (and components).
-  std::vector<Patch::ConstPtr> makePatchList(
+  std::vector<std::shared_ptr<const Patch>> makePatchList(
       const string& sdbName, const std::vector<string>& patchNames);
 
   /// Make the target list for demixing with a detailed model for the
@@ -173,10 +175,10 @@ class DemixInfo {
   casacore::Vector<bool> itsSelTarget;  ///< baselines in target estimate
   casacore::Vector<double> itsFreqDemix;
   casacore::Vector<double> itsFreqSubtr;
-  std::vector<Patch::ConstPtr> itsAteamList;
-  std::vector<Patch::ConstPtr> itsTargetList;
-  std::vector<Patch::ConstPtr> itsAteamDemixList;
-  std::vector<Patch::ConstPtr> itsTargetDemixList;
+  std::vector<std::shared_ptr<const Patch>> itsAteamList;
+  std::vector<std::shared_ptr<const Patch>> itsTargetList;
+  std::vector<std::shared_ptr<const Patch>> itsAteamDemixList;
+  std::vector<std::shared_ptr<const Patch>> itsTargetDemixList;
   std::vector<string> itsAteamRemoved;
   std::vector<string> itsTargetReplaced;
 };

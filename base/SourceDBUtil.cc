@@ -17,6 +17,7 @@
 #include "../common/ProximityClustering.h"
 
 #include <cassert>
+#include <numeric>
 #include <set>
 #include <string_view>
 #include <vector>
@@ -84,11 +85,12 @@ static PointSource::Ptr MakePointSource(const SourceData& src) {
   return source;
 }
 
-std::vector<Patch::ConstPtr> makePatches(parmdb::SourceDB& sourceDB,
-                                         const std::vector<string>& patchNames,
-                                         unsigned int nModel) {
+std::vector<std::shared_ptr<Patch>> makePatches(
+    parmdb::SourceDB& sourceDB, const std::vector<string>& patchNames,
+    unsigned int nModel) {
   // Create a component list for each patch name.
-  std::vector<std::vector<ModelComponent::Ptr>> componentsList(nModel);
+  std::vector<std::vector<std::shared_ptr<ModelComponent>>> componentsList(
+      nModel);
 
   // Loop over all sources.
   sourceDB.lock();
@@ -106,7 +108,7 @@ std::vector<Patch::ConstPtr> makePatches(parmdb::SourceDB& sourceDB,
   }
   sourceDB.unlock();
 
-  std::vector<Patch::ConstPtr> patchList;
+  std::vector<std::shared_ptr<Patch>> patchList;
   patchList.reserve(componentsList.size());
   for (unsigned int i = 0; i < componentsList.size(); ++i) {
     if (componentsList[i].empty())
@@ -128,11 +130,11 @@ std::vector<Patch::ConstPtr> makePatches(parmdb::SourceDB& sourceDB,
   return patchList;
 }
 
-std::vector<Patch::ConstPtr> MakePatches(
+std::vector<std::shared_ptr<Patch>> MakePatches(
     const parmdb::SourceDBSkymodel& source_db,
     const std::vector<std::string>& patch_names) {
   // Create a component list for each patch name.
-  std::vector<std::vector<ModelComponent::Ptr>> componentsList(
+  std::vector<std::vector<std::shared_ptr<ModelComponent>>> componentsList(
       patch_names.size());
 
   for (const auto& source : source_db.GetSources()) {
@@ -145,7 +147,7 @@ std::vector<Patch::ConstPtr> MakePatches(
     }
   }
 
-  std::vector<Patch::ConstPtr> patchList;
+  std::vector<std::shared_ptr<Patch>> patchList;
   patchList.reserve(componentsList.size());
   for (unsigned int i = 0; i < componentsList.size(); ++i) {
     if (componentsList[i].empty())
@@ -164,48 +166,44 @@ std::vector<Patch::ConstPtr> MakePatches(
   return patchList;
 }
 
-std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr>>
-makeSourceList(const std::vector<Patch::ConstPtr>& patchList) {
-  std::vector<Patch::ConstPtr>::const_iterator pIter = patchList.begin();
-  std::vector<Patch::ConstPtr>::const_iterator pEnd = patchList.end();
+std::vector<std::pair<std::shared_ptr<ModelComponent>, std::shared_ptr<Patch>>>
+makeSourceList(std::vector<std::shared_ptr<Patch>>& patchList) {
+  const size_t nSources =
+      std::accumulate(patchList.begin(), patchList.end(), 0,
+                      [](size_t left, const std::shared_ptr<Patch>& right) {
+                        return left + right->nComponents();
+                      });
 
-  unsigned int nSources = 0;
-  for (; pIter != pEnd; ++pIter) {
-    nSources += (*pIter)->nComponents();
-  }
-
-  std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr>> sourceList;
+  std::vector<
+      std::pair<std::shared_ptr<ModelComponent>, std::shared_ptr<Patch>>>
+      sourceList;
   sourceList.reserve(nSources);
 
-  pIter = patchList.begin();
-
-  for (; pIter != pEnd; ++pIter) {
-    Patch::const_iterator sIter = (*pIter)->begin();
-    Patch::const_iterator sEnd = (*pIter)->end();
-    for (; sIter != sEnd; ++sIter) {
-      sourceList.push_back(make_pair(*sIter, *pIter));
+  for (const std::shared_ptr<Patch>& patch : patchList) {
+    for (const std::shared_ptr<ModelComponent>& component : *patch) {
+      sourceList.emplace_back(component, patch);
     }
   }
 
   return sourceList;
 }
 
-std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
-    const std::vector<Patch::ConstPtr>& patchList) {
+std::vector<std::shared_ptr<Patch>> makeOnePatchPerComponent(
+    const std::vector<std::shared_ptr<Patch>>& patchList) {
   size_t numComponents = 0;
 
   for (const auto& patch : patchList) {
     numComponents += patch->nComponents();
   }
 
-  std::vector<Patch::ConstPtr> largePatchList;
+  std::vector<std::shared_ptr<Patch>> largePatchList;
   largePatchList.reserve(numComponents);
 
-  for (const auto& patch : patchList) {
+  for (const std::shared_ptr<Patch>& patch : patchList) {
     size_t compNum = 0;
     for (auto compIt = patch->begin(); compIt != patch->end(); ++compIt) {
-      Patch::Ptr ppatch(new Patch(patch->name() + "_" + std::to_string(compNum),
-                                  compIt, compIt + 1));
+      std::shared_ptr<Patch> ppatch(new Patch(
+          patch->name() + "_" + std::to_string(compNum), compIt, compIt + 1));
       ppatch->setDirection((*compIt)->direction());
       largePatchList.push_back(std::move(ppatch));
       compNum++;
@@ -215,14 +213,15 @@ std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
   return largePatchList;
 }
 
-std::vector<Patch::ConstPtr> clusterProximateSources(
-    const std::vector<Patch::ConstPtr>& patch_list, double proximity_limit) {
+std::vector<std::shared_ptr<Patch>> clusterProximateSources(
+    const std::vector<std::shared_ptr<Patch>>& patch_list,
+    double proximity_limit) {
   // Create a list of all source positions and a lookup table to go from index
   // back to patch & comp
   std::vector<std::pair<double, double>> sources;
   std::vector<std::pair<size_t, size_t>> lookup_table;
   size_t patchIndex = 0;
-  for (const auto& patch : patch_list) {
+  for (const std::shared_ptr<Patch>& patch : patch_list) {
     size_t compIndex = 0;
     for (const auto& comp : *patch) {
       sources.emplace_back(comp->direction().ra, comp->direction().dec);
@@ -237,22 +236,23 @@ std::vector<Patch::ConstPtr> clusterProximateSources(
   std::vector<std::vector<size_t>> clusters = clustering.Group(proximity_limit);
 
   // Make a new patch list according from the results
-  std::vector<Patch::ConstPtr> clusteredPatchList;
+  std::vector<std::shared_ptr<Patch>> clusteredPatchList;
   for (const auto& groups : clusters) {
-    std::vector<ModelComponent::ConstPtr> componentsInPatch;
+    std::vector<std::shared_ptr<ModelComponent>> componentsInPatch;
     double alpha = 0.0;
     double delta = 0.0;
     for (const auto& component : groups) {
       auto lookupIndices = lookup_table[component];
       const auto& patch = patch_list[lookupIndices.first];
-      const ModelComponent::ConstPtr& comp =
+      const std::shared_ptr<ModelComponent>& comp =
           *(patch->begin() + lookupIndices.second);
       alpha += comp->direction().ra;
       delta += comp->direction().dec;
       componentsInPatch.emplace_back(comp);
     }
-    const auto& firstPatch = patch_list[lookup_table[groups.front()].first];
-    Patch::Ptr ppatch(new Patch(
+    const std::shared_ptr<Patch>& firstPatch =
+        patch_list[lookup_table[groups.front()].first];
+    std::shared_ptr<Patch> ppatch(new Patch(
         firstPatch->name() + "_" + std::to_string(clusteredPatchList.size()),
         componentsInPatch.begin(), componentsInPatch.end()));
     ppatch->setDirection(
@@ -311,7 +311,7 @@ std::vector<std::vector<std::string>> MakeDirectionList(
 
   if (packed_directions.empty() && !source_db_filename.empty()) {
     // Use all patches from the SourceDB if the user did not give directions.
-    const std::vector<Patch::ConstPtr> patches =
+    const std::vector<std::shared_ptr<Patch>> patches =
         SourceDB(source_db_filename, std::vector<std::string>{},
                  SourceDB::FilterMode::kPattern)
             .MakePatchList();
@@ -394,7 +394,7 @@ SourceDB::SourceDB(const std::string& source_db_name,
   }
 }
 
-std::vector<Patch::ConstPtr> SourceDB::MakePatchList() {
+std::vector<std::shared_ptr<Patch>> SourceDB::MakePatchList() {
   assert(!HoldsAlternative<std::monostate>() &&
          "The constructor should have properly initialized the source_db_");
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())

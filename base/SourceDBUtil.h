@@ -21,25 +21,26 @@
 namespace dp3 {
 namespace base {
 
-std::vector<Patch::ConstPtr> makePatches(
+std::vector<std::shared_ptr<Patch>> makePatches(
     parmdb::SourceDB &sourceDB, const std::vector<std::string> &patchNames,
     unsigned int nModel);
 
-std::vector<Patch::ConstPtr> MakePatches(
+std::vector<std::shared_ptr<Patch>> MakePatches(
     const parmdb::SourceDBSkymodel &source_db,
     const std::vector<std::string> &patch_names);
 
 /// Create a source list (with patch name) from a patchlist
 /// Needed for efficient multithreading
-std::vector<std::pair<ModelComponent::ConstPtr, Patch::ConstPtr>>
-makeSourceList(const std::vector<Patch::ConstPtr> &patchList);
+std::vector<std::pair<std::shared_ptr<ModelComponent>, std::shared_ptr<Patch>>>
+makeSourceList(std::vector<std::shared_ptr<Patch>> &patchList);
 
 /// From a given PatchList, create a new one with one patch per component
-std::vector<Patch::ConstPtr> makeOnePatchPerComponent(
-    const std::vector<Patch::ConstPtr> &);
+std::vector<std::shared_ptr<Patch>> makeOnePatchPerComponent(
+    const std::vector<std::shared_ptr<Patch>> &);
 
-std::vector<Patch::ConstPtr> clusterProximateSources(
-    const std::vector<Patch::ConstPtr> &patchList, double proximityLimit);
+std::vector<std::shared_ptr<Patch>> clusterProximateSources(
+    const std::vector<std::shared_ptr<Patch>> &patchList,
+    double proximityLimit);
 
 std::vector<std::string> makePatchList(parmdb::SourceDB &sourceDB,
                                        std::vector<std::string> patterns);
@@ -102,7 +103,7 @@ class SourceDB {
                     const std::vector<std::string> &filter,
                     FilterMode filter_mode);
 
-  std::vector<Patch::ConstPtr> MakePatchList();
+  std::vector<std::shared_ptr<Patch>> MakePatchList();
 
   bool CheckPolarized();
 

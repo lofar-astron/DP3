@@ -24,9 +24,9 @@ namespace base {
 
 class Patch {
  public:
-  typedef std::shared_ptr<Patch> Ptr;
-  typedef std::shared_ptr<const Patch> ConstPtr;
-  typedef std::vector<ModelComponent::ConstPtr>::const_iterator const_iterator;
+  typedef std::vector<std::shared_ptr<ModelComponent>>::iterator iterator;
+  typedef std::vector<std::shared_ptr<const ModelComponent>>::const_iterator
+      const_iterator;
 
   template <typename T>
   Patch(const std::string &name, T first, T last);
@@ -38,10 +38,15 @@ class Patch {
   void setBrightness(double);
 
   size_t nComponents() const;
-  ModelComponent::ConstPtr component(size_t i) const;
+  std::shared_ptr<ModelComponent> component(size_t i) {
+    return itsComponents[i];
+  }
+  std::shared_ptr<const ModelComponent> component(size_t i) const {
+    return itsComponents[i];
+  }
 
-  const_iterator begin() const;
-  const_iterator end() const;
+  iterator begin() { return itsComponents.begin(); }
+  iterator end() { return itsComponents.end(); }
 
   /// Compute the direction as the average of the positions of the components.
   void computeDirection();
@@ -50,7 +55,7 @@ class Patch {
   std::string itsName;
   Direction itsDirection;
   double itsBrightness;
-  std::vector<ModelComponent::ConstPtr> itsComponents;
+  std::vector<std::shared_ptr<ModelComponent>> itsComponents;
 };
 
 /// @}
@@ -78,16 +83,6 @@ inline void Patch::setBrightness(double brightness) {
 }
 
 inline size_t Patch::nComponents() const { return itsComponents.size(); }
-
-inline ModelComponent::ConstPtr Patch::component(size_t i) const {
-  return itsComponents[i];
-}
-
-inline Patch::const_iterator Patch::begin() const {
-  return itsComponents.begin();
-}
-
-inline Patch::const_iterator Patch::end() const { return itsComponents.end(); }
 
 }  // namespace base
 }  // namespace dp3

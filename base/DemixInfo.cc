@@ -123,12 +123,12 @@ void DemixInfo::makeTargetDemixList() {
   parmdb::SourceDB sdb(parmdb::ParmDBMeta(string(), itsDemixModelName), false,
                        false);
   sdb.lock();
-  vector<Patch::ConstPtr> patchList =
+  vector<std::shared_ptr<const Patch>> patchList =
       makePatchList(itsDemixModelName, vector<string>());
   // The demix target list is the same as the predict list, but A-team
   // sources must be replaced with their demix model.
   // Also these sources must be removed from the A-team model.
-  vector<Patch::ConstPtr> targetDemixList;
+  vector<std::shared_ptr<const Patch>> targetDemixList;
   unsigned int ncomponent = 0;
   itsTargetDemixList.reserve(itsTargetList.size());
   for (size_t i = 0; i < itsTargetList.size(); ++i) {
@@ -320,7 +320,7 @@ void DemixInfo::show(ostream& os) const {
   itsSelBL.show(os, "    ");
 }
 
-vector<Patch::ConstPtr> DemixInfo::makePatchList(
+vector<std::shared_ptr<const Patch>> DemixInfo::makePatchList(
     const string& sdbName, const vector<string>& patchNames) {
   // Open the SourceDB.
   parmdb::SourceDB sdb(parmdb::ParmDBMeta(string(), sdbName), false, false);
@@ -334,7 +334,7 @@ vector<Patch::ConstPtr> DemixInfo::makePatchList(
     pnamesEnd = names.end();
   }
   // Create a patch component list for each matching patch name.
-  vector<Patch::ConstPtr> patchList;
+  vector<std::shared_ptr<const Patch>> patchList;
   patchList.reserve(patchNames.size());
   for (; pnamesIter != pnamesEnd; ++pnamesIter) {
     if (std::find(names.begin(), names.end(), *pnamesIter) == names.end())
@@ -342,7 +342,7 @@ vector<Patch::ConstPtr> DemixInfo::makePatchList(
                       " not found in SourceDB " + sdbName);
     // Use this patch; get all its sources.
     vector<parmdb::SourceData> patch = sdb.getPatchSourceData(*pnamesIter);
-    vector<ModelComponent::Ptr> componentList;
+    vector<std::shared_ptr<ModelComponent>> componentList;
     componentList.reserve(patch.size());
     for (vector<parmdb::SourceData>::const_iterator iter = patch.begin();
          iter != patch.end(); ++iter) {

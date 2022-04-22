@@ -34,7 +34,7 @@ class ParameterSet;
 
 namespace steps {
 
-typedef std::vector<base::Patch::ConstPtr> PatchList;
+typedef std::vector<std::shared_ptr<base::Patch>> PatchList;
 
 /// @brief DPPP step class to subtract A-team sources
 /// This class is a Step class to subtract the strong A-team sources.
