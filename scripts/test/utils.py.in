@@ -15,3 +15,8 @@ def untar_ms(source):
     if not os.path.isfile(source):
         raise IOError(f"Not able to find {source} containing the reference solutions.")
     check_call(["tar", "xf", source])
+
+def get_taql_result(command):
+    """Get the output of a taql command"""
+    result = check_output([TAQLEXE, "-noph", "-nopr", command]).decode().strip()
+    return result

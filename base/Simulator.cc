@@ -9,7 +9,9 @@
 #include "Simulator.h"
 #include "GaussianSource.h"
 #include "PointSource.h"
+#include "../steps/PhaseShift.h"
 
+#include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/BasicSL/Constants.h>
 
 #include "../common/StreamUtil.h"
@@ -24,7 +26,7 @@ namespace {
 // Reference direction on the celestial sphere.
 // \param[in]   direction
 // Direction of interest on the celestial sphere.
-// \param[in]   lmn
+// \param[out]   lmn
 // Pointer to a buffer of (at least) length three into which the computed LMN
 // coordinates will be written.
 void radec2lmn(const Direction& reference, const Direction& direction,
@@ -269,19 +271,34 @@ void Simulator::visit(const GaussianSource& component) {
 
   // Convert position angle from North over East to the angle used to
   // rotate the right-handed UV-plane.
-  // TODO: Can probably optimize by changing the rotation matrix instead.
   const double phi =
-      casacore::C::pi_2 + component.positionAngle() + casacore::C::pi;
+      casacore::C::pi_2 + component.getPositionAngle() + casacore::C::pi;
   const double cosPhi = cos(phi);
   const double sinPhi = sin(phi);
 
+  // Correct for projection and rotation effects: phase shift u, v, w to the
+  // position of the source for evaluating the gaussian
+  casacore::Matrix<double> euler_matrix_phasecenter(3, 3);
+  casacore::Matrix<double> euler_matrix_source(3, 3);
+  dp3::steps::PhaseShift::fillEulerMatrix(euler_matrix_phasecenter,
+                                          itsReference);
+  dp3::steps::PhaseShift::fillEulerMatrix(euler_matrix_source,
+                                          component.direction());
+  casacore::Matrix<double> euler_matrix = casacore::product(
+      casacore::transpose(euler_matrix_source), euler_matrix_phasecenter);
+  casacore::Matrix<double> uvwShifted;
+
+  if (component.getPositionAngleIsAbsolute()) {
+    uvwShifted = casacore::product(euler_matrix, itsStationUVW);
+  } else {
+    uvwShifted.reference(itsStationUVW);
+  }
+
   // Take care of the conversion of axis lengths from FWHM in radians to
   // sigma.
-  // TODO: Shouldn't the projection from the celestial sphere to the
-  // UV-plane be taken into account here?
   const double fwhm2sigma = 1.0 / (2.0 * std::sqrt(2.0 * std::log(2.0)));
-  const double uScale = component.majorAxis() * fwhm2sigma;
-  const double vScale = component.minorAxis() * fwhm2sigma;
+  const double uScale = component.getMajorAxis() * fwhm2sigma;
+  const double vScale = component.getMinorAxis() * fwhm2sigma;
 
   // Set number of correlations
   int nCorr = 4;
@@ -300,11 +317,11 @@ void Simulator::visit(const GaussianSource& component) {
     if (p == q) {
       buffer += itsNChannel * nCorr;
     } else {
-      double u = itsStationUVW(0, q);
-      double v = itsStationUVW(1, q);
+      double u = uvwShifted(0, q);
+      double v = uvwShifted(1, q);
 
-      u -= itsStationUVW(0, p);
-      v -= itsStationUVW(1, p);
+      u -= uvwShifted(0, p);
+      v -= uvwShifted(1, p);
 
       // Rotate (u, v) by the position angle and scale with the major
       // and minor axis lengths (FWHM in rad).
@@ -407,15 +424,27 @@ void Simulator::visit(const GaussianSource& component) {
 }
 
 namespace {
+/** Compute lmn coordinates
+ *  \f{eqnarray*}{
+ *   \ell &= \cos(\delta) \sin(\alpha - \alpha_0) \\
+ *      m &= \sin(\delta) \cos(\delta_0) - \cos(\delta) \sin(\delta_0)
+ *                                         \cos(\alpha - \alpha_0)
+ * \f}
+ */
 inline void radec2lmn(const Direction& reference, const Direction& direction,
                       double* lmn) {
   const double dRA = direction.ra - reference.ra;
   const double pDEC = direction.dec;
   const double rDEC = reference.dec;
-  const double cDEC = cos(pDEC);
 
-  const double l = cDEC * sin(dRA);
-  const double m = sin(pDEC) * cos(rDEC) - cDEC * sin(rDEC) * cos(dRA);
+  // Naming: [sc] for sin/cos, [dpr] for delta, position, reference
+  double sdRA, cdRA, spDEC, cpDEC, srDEC, crDEC;
+  sincos(dRA, &sdRA, &cdRA);
+  sincos(pDEC, &spDEC, &cpDEC);
+  sincos(rDEC, &srDEC, &crDEC);
+
+  const double l = cpDEC * sdRA;
+  const double m = spDEC * crDEC - cpDEC * srDEC * cdRA;
 
   lmn[0] = l;
   lmn[1] = m;

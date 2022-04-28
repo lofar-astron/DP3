@@ -76,6 +76,7 @@ void SourceDBCasa::createTables(const string& tableName) {
   td.addColumn(ScalarColumnDesc<casacore::String>("REFTYPE"));
   td.addColumn(ScalarColumnDesc<unsigned int>("SPINX_NTERMS"));
   td.addColumn(ScalarColumnDesc<bool>("LOG_SI"));
+  td.addColumn(ScalarColumnDesc<bool>("ORIENTATION_IS_ABSOLUTE"));
   td.addColumn(ScalarColumnDesc<double>("SPINX_REFFREQ"));
   td.addColumn(ScalarColumnDesc<bool>("USE_ROTMEAS"));
   td.addColumn(ScalarColumnDesc<double>("SHAPELET_ISCALE"));
@@ -304,6 +305,8 @@ void SourceDBCasa::addSrc(const SourceInfo& sourceInfo, unsigned int patchId,
   ScalarColumn<casacore::String> reftCol(itsSourceTable, "REFTYPE");
   ScalarColumn<unsigned int> spinxCol(itsSourceTable, "SPINX_NTERMS");
   ScalarColumn<bool> logSICol(itsSourceTable, "LOG_SI");
+  ScalarColumn<bool> orientationIsAbsoluteCol(itsSourceTable,
+                                              "ORIENTATION_IS_ABSOLUTE");
   ScalarColumn<double> sirefCol(itsSourceTable, "SPINX_REFFREQ");
   ScalarColumn<bool> usermCol(itsSourceTable, "USE_ROTMEAS");
   ScalarColumn<double> iscalCol(itsSourceTable, "SHAPELET_ISCALE");
@@ -322,6 +325,7 @@ void SourceDBCasa::addSrc(const SourceInfo& sourceInfo, unsigned int patchId,
   reftCol.put(rownr, sourceInfo.getRefType());
   spinxCol.put(rownr, sourceInfo.getNSpectralTerms());
   logSICol.put(rownr, sourceInfo.getHasLogarithmicSI());
+  orientationIsAbsoluteCol.put(rownr, sourceInfo.getPositionAngleIsAbsolute());
   sirefCol.put(rownr, sourceInfo.getSpectralTermsRefFreq());
   usermCol.put(rownr, sourceInfo.getUseRotationMeasure());
   iscalCol.put(rownr, sourceInfo.getShapeletScaleI());
@@ -540,14 +544,25 @@ std::vector<SourceInfo> SourceDBCasa::readSources(const Table& table) {
     if (hasLogSICol) {
       logSICol = ScalarColumn<bool>(table, "LOG_SI");
     }
+    ScalarColumn<bool> orientationIsAbsoluteCol;
+    bool hasOrientationIsAbsoluteCol =
+        table.tableDesc().isColumn("ORIENTATION_IS_ABSOLUTE");
+    if (hasOrientationIsAbsoluteCol) {
+      orientationIsAbsoluteCol =
+          ScalarColumn<bool>(table, "ORIENTATION_IS_ABSOLUTE");
+    }
     for (common::rownr_t i = 0; i < nm.size(); ++i) {
       SourceInfo::Type type = SourceInfo::Type((tp[i]));
       bool useLogSI = true;
       if (hasLogSICol) {
         useLogSI = logSICol(i);
       }
-      res.push_back(
-          SourceInfo(nm[i], type, rt[i], useLogSI, sd[i], sr[i], rm[i]));
+      bool orientationIsAbsolute = false;
+      if (hasOrientationIsAbsoluteCol) {
+        orientationIsAbsolute = orientationIsAbsoluteCol(i);
+      }
+      res.push_back(SourceInfo(nm[i], type, rt[i], useLogSI, sd[i], sr[i],
+                               rm[i], orientationIsAbsolute));
       if (type == SourceInfo::SHAPELET) {
         if (!icoefCol.isDefined(i))
           throw std::runtime_error(
@@ -578,9 +593,11 @@ std::vector<SourceInfo> SourceDBCasa::readSources(const Table& table) {
               *(parmf.begin()->second.getDefParmValue().getValues().data());
         }
       }
-      res.push_back(
-          SourceInfo(nm[i], SourceInfo::Type(tp[i]), rt[i], true, degree + 1,
-                     refFreq));  // In old format, useLogSI = true always
+      res.push_back(SourceInfo(nm[i], SourceInfo::Type(tp[i]), rt[i], true,
+                               degree + 1,
+                               refFreq));  // In old format, useLogSI = true
+                                           // always, orientationIsAbsolute gets
+                                           // default from SourceInfo default
     }
   }
   return res;

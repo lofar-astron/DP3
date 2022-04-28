@@ -17,6 +17,7 @@
 #include "../common/ProximityClustering.h"
 
 #include <cassert>
+#include <mutex>
 #include <numeric>
 #include <set>
 #include <string_view>
@@ -53,6 +54,8 @@ static PointSource::Ptr MakePointSource(const SourceData& src) {
 
       const double deg2rad = (casacore::C::pi / 180.0);
       gauss->setPositionAngle(src.getOrientation() * deg2rad);
+      gauss->setPositionAngleIsAbsolute(
+          src.getInfo().getPositionAngleIsAbsolute());
 
       const double arcsec2rad = (casacore::C::pi / 3600.0) / 180.0;
       gauss->setMajorAxis(src.getMajorAxis() * arcsec2rad);
@@ -334,7 +337,7 @@ bool checkPolarized(parmdb::SourceDB& sourceDB,
   bool polarized = false;
 
   // Loop over all sources.
-  sourceDB.lock();
+  const std::lock_guard<parmdb::SourceDB> lock{sourceDB};
   sourceDB.rewind();
   SourceData src;
   while (!sourceDB.atEnd()) {
@@ -353,7 +356,6 @@ bool checkPolarized(parmdb::SourceDB& sourceDB,
       break;
     }
   }
-  sourceDB.unlock();
   return polarized;
 }
 
@@ -365,6 +367,43 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
       if (patch_name == source_patch_name)
         if (source.getV() > 0.0 || source.getQ() > 0.0 || source.getU() > 0.0)
           return true;
+  }
+  return false;
+}
+
+bool CheckAnyOrientationIsAbsolute(parmdb::SourceDB& source_db,
+                                   const std::vector<string>& patch_names,
+                                   unsigned int n_model) {
+  bool anyOrientationIsAbsolute = false;
+
+  // Loop over all sources.
+  const std::lock_guard<parmdb::SourceDB> lock{source_db};
+  source_db.rewind();
+  SourceData src;
+  while (!source_db.atEnd()) {
+    source_db.getNextSource(src);
+    // Use the source if its patch matches a patch name.
+    for (unsigned int i = 0; i < n_model; ++i) {
+      if (src.getPatchName() == patch_names[i]) {
+        if (src.getInfo().getPositionAngleIsAbsolute()) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool CheckAnyOrientationIsAbsolute(
+    const parmdb::SourceDBSkymodel& source_db,
+    const std::vector<std::string>& patch_names) {
+  for (const auto& source : source_db.GetSources()) {
+    const std::string& source_patch_name = source.getPatchName();
+    for (const auto& patch_name : patch_names)
+      if (patch_name == source_patch_name)
+        if (source.getInfo().getPositionAngleIsAbsolute()) {
+          return true;
+        }
   }
   return false;
 }
@@ -413,6 +452,18 @@ bool SourceDB::CheckPolarized() {
 
   return base::checkPolarized(Get<parmdb::SourceDB>(), patch_names_,
                               patch_names_.size());
+}
+
+bool SourceDB::CheckAnyOrientationIsAbsolute() {
+  assert(!HoldsAlternative<std::monostate>() &&
+         "The constructor should have properly initialized the source_db_");
+
+  if (HoldsAlternative<parmdb::SourceDBSkymodel>())
+    return base::CheckAnyOrientationIsAbsolute(Get<parmdb::SourceDBSkymodel>(),
+                                               patch_names_);
+
+  return base::CheckAnyOrientationIsAbsolute(Get<parmdb::SourceDB>(),
+                                             patch_names_, patch_names_.size());
 }
 
 void SourceDB::InitialiseUsingSkymodel(const std::string& source_db_name,

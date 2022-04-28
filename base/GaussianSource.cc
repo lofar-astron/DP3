@@ -20,6 +20,7 @@ GaussianSource::GaussianSource(const Direction &direction)
 GaussianSource::GaussianSource(const Direction &direction, const Stokes &stokes)
     : PointSource(direction, stokes),
       itsPositionAngle(0.0),
+      itsPositionAngleIsAbsolute(true),
       itsMajorAxis(0.0),
       itsMinorAxis(0.0) {}
 

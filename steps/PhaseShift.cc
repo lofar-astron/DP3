@@ -74,10 +74,10 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
                                       infoIn.phaseCenter().getValue().get()[1]);
   Matrix<double> oldUVW(3, 3);
   Matrix<double> newUVW(3, 3);
-  fillTransMatrix(oldUVW, old_direction);
-  fillTransMatrix(newUVW, new_direction);
+  fillEulerMatrix(oldUVW, old_direction);
+  fillEulerMatrix(newUVW, new_direction);
 
-  itsMat1.reference(product(transpose(newUVW), oldUVW));
+  itsEulerMatrix.reference(product(transpose(newUVW), oldUVW));
   Matrix<double> wold(oldUVW(IPosition(2, 0, 2), IPosition(2, 2, 2)));
   Matrix<double> wnew(newUVW(IPosition(2, 0, 2), IPosition(2, 2, 2)));
   Matrix<double> tt = product(transpose(Matrix<double>(wold - wnew)), oldUVW);
@@ -115,7 +115,7 @@ bool PhaseShift::process(const DPBuffer& buf) {
   int ncorr = itsBuf.getData().shape()[0];
   int nchan = itsBuf.getData().shape()[1];
   int nbl = itsBuf.getData().shape()[2];
-  const double* mat1 = itsMat1.data();
+  const double* mat1 = itsEulerMatrix.data();
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
   // to process.
@@ -200,7 +200,7 @@ MDirection PhaseShift::handleCenter() {
   return MDirection(q0, q1, type);
 }
 
-void PhaseShift::fillTransMatrix(Matrix<double>& mat,
+void PhaseShift::fillEulerMatrix(Matrix<double>& mat,
                                  const base::Direction& direction) {
   double sinra = sin(direction.ra);
   double cosra = cos(direction.ra);

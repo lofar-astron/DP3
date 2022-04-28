@@ -49,6 +49,7 @@ OnePredict prefix.
   sourcedb:           tDDECal.MS/sky.txt
    number of patches: 1
    number of sources: 1
+   absolute orientation: false
    all unpolarized:   true
    correct freq smearing: false
   apply beam:         false
@@ -95,6 +96,7 @@ OnePredict prefix.
   sourcedb:           tDDECal.MS/sky.txt
    number of patches: 1
    number of sources: 1
+   absolute orientation: false
    all unpolarized:   true
    correct freq smearing: false
   apply beam:         false

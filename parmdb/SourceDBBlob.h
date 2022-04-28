@@ -32,7 +32,7 @@ class SourceDBBlob : public SourceDBRep {
   virtual ~SourceDBBlob();
 
   /// Writelock and unlock the file.
-  /// It does not doanything.
+  /// It does not do anything.
   ///@{
   virtual void lock(bool lockForWrite);
   virtual void unlock();

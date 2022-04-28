@@ -216,8 +216,8 @@ void rotateUVW(const Direction& from, const Direction& to, size_t nUVW,
                double* uvw) {
   casacore::Matrix<double> oldUVW(3, 3);
   casacore::Matrix<double> newUVW(3, 3);
-  PhaseShift::fillTransMatrix(oldUVW, from);
-  PhaseShift::fillTransMatrix(newUVW, to);
+  PhaseShift::fillEulerMatrix(oldUVW, from);
+  PhaseShift::fillEulerMatrix(newUVW, to);
 
   casacore::Matrix<double> tmp(
       casacore::product(casacore::transpose(newUVW), oldUVW));

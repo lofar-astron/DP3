@@ -65,8 +65,8 @@ class PhaseShift : public Step {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
-  /// Fill the transformation matrix for given ra/dec.
-  static void fillTransMatrix(casacore::Matrix<double>& mat,
+  /// Fill the Euler rotation matrix for given ra/dec.
+  static void fillEulerMatrix(casacore::Matrix<double>& mat,
                               const base::Direction& direction);
 
   /// Get the phasors resulting from the last process step.
@@ -87,9 +87,9 @@ class PhaseShift : public Step {
   string itsName;
   base::DPBuffer itsBuf;
   std::vector<string> itsCenter;
-  std::vector<double> itsFreqC;      ///< freq/C
-  casacore::Matrix<double> itsMat1;  ///< TT in phasehift.py
-  double itsXYZ[3];                  ///< numpy.dot((w-w1).T, T)
+  std::vector<double> itsFreqC;  ///< freq/C
+  casacore::Matrix<double> itsEulerMatrix;
+  double itsXYZ[3];  ///< numpy.dot((w-w1).T, T)
   casacore::Matrix<casacore::DComplex>
       itsPhasors;  ///< phase factor per chan,bl
   common::NSTimer itsTimer;

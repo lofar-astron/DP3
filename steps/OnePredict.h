@@ -139,6 +139,8 @@ class OnePredict : public ModelDataStep {
   /// group.
   double beam_proximity_limit_;
   bool stokes_i_only_;
+  bool any_orientation_is_absolute_;  ///< Any of the Gaussian sources has
+                                      ///< absolute orientation
   base::Direction phase_ref_;
   bool moving_phase_ref_;
 

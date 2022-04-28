@@ -148,7 +148,12 @@ void SourceData::print(ostream& os) const {
   os << endl;
   if (itsInfo.getType() == SourceInfo::GAUSSIAN) {
     os << "    major=" << itsMajorAxis << " arcsec  minor=" << itsMinorAxis
-       << " arcsec  orientation=" << itsOrientation << " deg" << endl;
+       << " arcsec  orientation=" << itsOrientation << " deg";
+    if (itsInfo.getPositionAngleIsAbsolute()) {
+      os << " (absolute)" << endl;
+    } else {
+      os << " (w.r.t. North at phase center)" << endl;
+    }
   }
   if (itsInfo.getNSpectralTerms() > 0) {
     os << "    nspinx=" << itsInfo.getNSpectralTerms() << " logSI=" << boolalpha
@@ -195,11 +200,14 @@ void toSkymodel(std::ostream& output, const SourceData& source) {
     if (i) output << ", ";
     output << spectral_terms[i];
   }
-  if (info.getType() == SourceInfo::GAUSSIAN)
-    output << "], " << source.getMajorAxis() << ", " << source.getMinorAxis()
-           << ", " << source.getOrientation() << '\n';
-  else
-    output << "]\n";
+  output << "], ";
+  output << std::boolalpha << source.getInfo().getHasLogarithmicSI();
+  if (info.getType() == SourceInfo::GAUSSIAN) {
+    output << ", " << source.getMajorAxis() << ", " << source.getMinorAxis()
+           << ", " << source.getOrientation() << ", ";
+    output << std::boolalpha << source.getInfo().getPositionAngleIsAbsolute();
+  }
+  output << "\n";
 }
 
 }  // namespace parmdb

@@ -18,6 +18,7 @@
 
 #include "../common/StringTools.h"
 #include "../common/StreamUtil.h"
+#include "../base/Version.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Inputs/Input.h>
@@ -50,9 +51,9 @@ void show(const string& name, const string& mode, const string& patt) {
 static void showSkymodel(const std::string& name, const std::string& patches) {
   dp3::parmdb::SourceDB source_db(dp3::parmdb::ParmDBMeta("", name), false,
                                   false);
-  std::cout
-      << "# (Name, Type, Patch, Ra, Dec, I, ReferenceFrequency, "
-         "SpectralIndex='[]', MajorAxis, MinorAxis, Orientation) = format\n";
+  std::cout << "# (Name, Type, Patch, Ra, Dec, I, ReferenceFrequency, "
+               "SpectralIndex='[]', LogarithmicSI, MajorAxis, MinorAxis, "
+               "Orientation, OrientationIsAbsolute) = format\n";
 
   for (const auto& patch : source_db.getPatchInfo(-1, patches)) {
     dp3::parmdb::toSkymodel(std::cout, patch);
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]) {
   try {
     // Define the input parameters.
     Input inputs(1);
-    inputs.version("GvD 2013-Jun-12");
+    inputs.version(DP3Version::AsString());
     inputs.create("in", "", "Input SourceDB", "string");
     inputs.create("mode", "all",
                   "patch=show all patches, "
