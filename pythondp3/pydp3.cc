@@ -131,7 +131,7 @@ PYBIND11_MODULE(pydp3, m) {
           "antenna_names",
           [](DPInfo &self) -> py::array {
             // Convert casa vector of casa strings to std::vector of strings
-            casacore::Vector<casacore::String> names_casa = self.antennaNames();
+            std::vector<std::string> names_casa = self.antennaNames();
             std::vector<std::string> names;
             for (size_t i = 0; i < names_casa.size(); ++i) {
               names.push_back(names_casa[i]);

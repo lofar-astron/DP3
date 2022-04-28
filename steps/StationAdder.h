@@ -79,7 +79,7 @@ class StationAdder : public Step {
   /// way first a broad pattern can be given, which can be narrowed down.
   /// A warning is given if a pattern does not match any station name.
   static std::vector<int> getMatchingStations(
-      const casacore::Vector<casacore::String>& antennaNames,
+      const std::vector<std::string>& antennaNames,
       const std::vector<string>& patterns);
 
  private:

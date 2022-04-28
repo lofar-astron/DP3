@@ -86,11 +86,10 @@ class DPInfo {
            const casacore::MDirection& tileBeamDir);
 
   /// Set the info for the given antennae and baselines.
-  void set(const casacore::Vector<casacore::String>& antNames,
-           const casacore::Vector<casacore::Double>& antDiam,
+  void set(const std::vector<std::string>& antNames,
+           const std::vector<double>& antDiam,
            const std::vector<casacore::MPosition>& antPos,
-           const casacore::Vector<casacore::Int>& ant1,
-           const casacore::Vector<casacore::Int>& ant2);
+           const std::vector<int>& ant1, const std::vector<int>& ant2);
 
   /// Set the name of the data column
   void setDataColName(const std::string& dataColName) {
@@ -154,14 +153,12 @@ class DPInfo {
   bool isBDAIntervalFactorInteger() const {
     return bda_interval_factor_is_integer_;
   }
-  const std::vector<std::size_t>& getAnt1() const { return antenna1_; }
-  const std::vector<std::size_t>& getAnt2() const { return antenna2_; }
-  const casacore::Vector<casacore::String>& antennaNames() const {
+  const std::vector<int>& getAnt1() const { return antenna1_; }
+  const std::vector<int>& getAnt2() const { return antenna2_; }
+  const std::vector<std::string>& antennaNames() const {
     return antenna_names_;
   }
-  const casacore::Vector<casacore::Double>& antennaDiam() const {
-    return antenna_diameters_;
-  }
+  const std::vector<double>& antennaDiam() const { return antenna_diameters_; }
   const std::vector<casacore::MPosition>& antennaPos() const {
     return antenna_positions_;
   }
@@ -327,15 +324,15 @@ class DPInfo {
   std::vector<std::vector<double>> effective_bandwidth_;
   double total_bandwidth_;
   double reference_frequency_;
-  casacore::Vector<casacore::String> antenna_names_;
-  casacore::Vector<casacore::Double> antenna_diameters_;
+  std::vector<std::string> antenna_names_;
+  std::vector<double> antenna_diameters_;
   std::vector<casacore::MPosition> antenna_positions_;
   std::vector<int> antennas_used_;
   std::vector<int> antenna_map_;
   /// For each baseseline, the index of the first antenna.
-  std::vector<std::size_t> antenna1_;
+  std::vector<int> antenna1_;
   /// For each baseseline, the index of the second antenna.
-  std::vector<std::size_t> antenna2_;
+  std::vector<int> antenna2_;
   mutable std::vector<double> baseline_lengths_;
   /// For each antenna, the auto correlation index.
   mutable std::vector<int> auto_correlation_indices_;

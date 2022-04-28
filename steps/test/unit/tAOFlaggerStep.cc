@@ -54,8 +54,8 @@ class TestInput : public InputStep {
         itsFlag(flag) {
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    casacore::Vector<int> ant1(itsNBl);
-    casacore::Vector<int> ant2(itsNBl);
+    std::vector<int> ant1(itsNBl);
+    std::vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i = 0; i < itsNBl; ++i) {
@@ -68,7 +68,7 @@ class TestInput : public InputStep {
         }
       }
     }
-    casacore::Vector<casacore::String> antNames(4);
+    std::vector<std::string> antNames(4);
     antNames[0] = "rs01.s01";
     antNames[1] = "rs02.s01";
     antNames[2] = "cs01.s01";
@@ -96,7 +96,7 @@ class TestInput : public InputStep {
     vals[2] = 5064926;
     antPos[3] = MPosition(Quantum<casacore::Vector<double>>(vals, "m"),
                           MPosition::ITRF);
-    casacore::Vector<double> antDiam(4, 70.);
+    std::vector<double> antDiam(4, 70.);
     info().set(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanFreqs(nchan);

@@ -168,8 +168,8 @@ void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
   }
   aoflagger_.SetBandList({band});
 
-  const casacore::Vector<casacore::String>& ant_names = infoIn.antennaNames();
-  const casacore::Vector<casacore::MPosition>& ant_pos = infoIn.antennaPos();
+  const std::vector<std::string>& ant_names = infoIn.antennaNames();
+  const std::vector<casacore::MPosition>& ant_pos = infoIn.antennaPos();
   std::vector<aoflagger::Antenna> antennas(ant_names.size());
   for (size_t i = 0; i != ant_names.size(); ++i) {
     antennas[i].id = i;
@@ -269,8 +269,8 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     throw std::runtime_error(
         "AOFlaggerStep can only handle all 4 correlations");
   // Get antenna numbers in case applyautocorr is true.
-  const casacore::Vector<int>& ant1 = getInfo().getAnt1();
-  const casacore::Vector<int>& ant2 = getInfo().getAnt2();
+  const std::vector<int>& ant1 = getInfo().getAnt1();
+  const std::vector<int>& ant2 = getInfo().getAnt2();
   compute_timer_.start();
 
   aoflagger::Interval interval;

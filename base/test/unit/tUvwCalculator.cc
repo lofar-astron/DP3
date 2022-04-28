@@ -33,13 +33,14 @@ void TestRelativeUvw(const casacore::MDirection& phase_direction) {
       {0, 0, 1}, {1, 0, 0}, {0, 2, 3}};
 
   const casacore::MPosition array_position(
-      casacore::Quantum<casacore::Vector<double>>(array_values, "m"),
+      casacore::Quantum<casacore::Vector<double>>(
+          casacore::Vector<double>(array_values), "m"),
       casacore::MPosition::ITRF);
   std::vector<casacore::MPosition> station_positions;
   for (const std::vector<double>& values : station_values) {
-    station_positions.emplace_back(
-        casacore::Quantum<casacore::Vector<double>>(values, "m"),
-        casacore::MPosition::ITRF);
+    station_positions.emplace_back(casacore::Quantum<casacore::Vector<double>>(
+                                       casacore::Vector<double>(values), "m"),
+                                   casacore::MPosition::ITRF);
   }
 
   UVWCalculator calc(phase_direction, array_position, station_positions);

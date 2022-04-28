@@ -693,8 +693,8 @@ void MSWriter::writeMeta(Table& out, const DPBuffer& buf) {
   // Fill ANTENNA1/2.
   ScalarColumn<int> ant1col(out, "ANTENNA1");
   ScalarColumn<int> ant2col(out, "ANTENNA2");
-  ant1col.putColumn(getInfo().getAnt1());
-  ant2col.putColumn(getInfo().getAnt2());
+  ant1col.putColumn(casacore::Vector<int>(getInfo().getAnt1()));
+  ant2col.putColumn(casacore::Vector<int>(getInfo().getAnt2()));
   // Fill all rows that do not change.
   fillSca<double>(buf.getTime(), out, "TIME");
   fillSca<double>(buf.getTime(), out, "TIME_CENTROID");

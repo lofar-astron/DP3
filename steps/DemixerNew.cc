@@ -416,8 +416,8 @@ void DemixerNew::writeSolutions(double startTime, int ntime) {
   }
   /// todo: skip solutions that are all 0.
   // Construct solution grid.
-  const casacore::Vector<double>& freq = getInfo().chanFreqs();
-  const casacore::Vector<double>& freqWidth = getInfo().chanWidths();
+  const std::vector<double>& freq = getInfo().chanFreqs();
+  const std::vector<double>& freqWidth = getInfo().chanWidths();
   parmdb::Axis::ShPtr freqAxis(
       new parmdb::RegularAxis(freq[0] - freqWidth[0] * 0.5, freqWidth[0], 1));
   parmdb::Axis::ShPtr timeAxis(new parmdb::RegularAxis(

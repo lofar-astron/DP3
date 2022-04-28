@@ -47,11 +47,11 @@ class BdaGroupPredict::BaselineGroup {
 
     DPInfo info(info_in);
     std::size_t nr_baselines = baselines_.size();
-    casacore::Vector<casacore::Int> ant1(nr_baselines), ant2(nr_baselines);
+    std::vector<int> ant1(nr_baselines), ant2(nr_baselines);
 
     for (std::size_t bl_idx = 0; bl_idx < nr_baselines; ++bl_idx) {
-      ant1(bl_idx) = info_in.getAnt1()[baselines_[bl_idx]];
-      ant2(bl_idx) = info_in.getAnt2()[baselines_[bl_idx]];
+      ant1[bl_idx] = info_in.getAnt1()[baselines_[bl_idx]];
+      ant2[bl_idx] = info_in.getAnt2()[baselines_[bl_idx]];
     }
 
     write_back_info_.resize(nr_baselines);

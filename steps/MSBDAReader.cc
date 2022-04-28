@@ -300,8 +300,10 @@ void MSBDAReader::FillInfoMetaData() {
   }
 
   // Set antenna/baseline info.
-  info().set(name_col.getColumn(), diam_col.getColumn(), antPos,
-             ant1_col.getColumn(), ant2_col.getColumn());
+  casacore::Vector<casacore::String> names = name_col.getColumn();
+  info().set(std::vector<std::string>(names.begin(), names.end()),
+             diam_col.getColumn().tovector(), antPos,
+             ant1_col.getColumn().tovector(), ant2_col.getColumn().tovector());
 
   const MS_Field& field = ms_.field();
   if (field.nrow() != 1)

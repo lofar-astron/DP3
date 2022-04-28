@@ -216,7 +216,7 @@ class TestInput3 : public InputStep {
     buf.setData(data);
     buf.setWeights(weights);
     buf.setFlags(flags);
-    vector<dp3::common::rownr_t> rownrs(1, itsCount);
+    casacore::Vector<dp3::common::rownr_t> rownrs(1, itsCount);
     buf.setRowNrs(rownrs);
     getNextStep()->process(buf);
     ++itsCount;

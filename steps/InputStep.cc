@@ -117,7 +117,7 @@ std::unique_ptr<everybeam::telescope::Telescope> InputStep::GetTelescope(
 
 std::vector<size_t> InputStep::SelectStationIndices(
     const everybeam::telescope::Telescope* telescope,
-    const casacore::Vector<casacore::String>& station_names) {
+    const std::vector<std::string>& station_names) {
   const everybeam::telescope::PhasedArray* phased_array =
       dynamic_cast<const everybeam::telescope::PhasedArray*>(telescope);
   if (phased_array == nullptr) {
@@ -135,8 +135,7 @@ std::vector<size_t> InputStep::SelectStationIndices(
   size_t station_idx = 0;
   for (size_t i = 0; i < phased_array->GetNrStations(); ++i) {
     if (station_idx < station_names.size() &&
-        casacore::String(phased_array->GetStation(i)->GetName()) ==
-            station_names[station_idx]) {
+        phased_array->GetStation(i)->GetName() == station_names[station_idx]) {
       station_to_msindex.push_back(i);
       station_idx++;
     }

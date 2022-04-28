@@ -84,7 +84,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
         " 4.67920578e-04]");
   }
   // Get the frequencies.
-  const casacore::Vector<double>& freqs = infoIn.chanFreqs();
+  const std::vector<double>& freqs = infoIn.chanFreqs();
   // Convert the coefficients to scale factors per freq per station regex.
   std::vector<std::vector<double>> scaleVec(itsStationExp.size());
   std::vector<Regex> stationRegex(itsStationExp.size());
@@ -125,7 +125,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
   itsStationFactors.reserve(nant);
   for (unsigned int i = 0; i < nant; ++i) {
     for (unsigned int j = 0; j < stationRegex.size(); ++j) {
-      if (infoIn.antennaNames()[i].matches(stationRegex[j])) {
+      if (casacore::String(infoIn.antennaNames()[i]).matches(stationRegex[j])) {
         itsStationFactors.push_back(scaleVec[j]);
         // If needed, scale with the nr of dipoles/tiles actually used.
         // Do that if explicitly told so or if default coeffs are used.

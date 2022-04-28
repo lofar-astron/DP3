@@ -138,8 +138,8 @@ class PreFlagger : public Step {
     /// Test if azimuth or elevation of given antenna mismatches.
     /// If so, clear itsMatchBL for all baselines containing the antenna.
     void testAzEl(casacore::MDirection::Convert& converter, unsigned int blnr,
-                  std::size_t ant, const std::vector<std::size_t>& ant1,
-                  const std::vector<std::size_t>& ant2);
+                  std::size_t ant, const std::vector<int>& ant1,
+                  const std::vector<int>& ant2);
 
     /// Set the flags based on amplitude threshold per correlation.
     void flagAmpl(const casacore::Cube<float>& amplitudes);
@@ -186,7 +186,7 @@ class PreFlagger : public Step {
     /// Handle the frequency ranges given and determine which channels
     /// have to be flagged.
     casacore::Vector<bool> handleFreqRanges(
-        const casacore::Vector<double>& chanFreqs);
+        const std::vector<double>& chanFreqs);
 
     /// Get the value and possible unit.
     /// If no unit is given, the argument is left untouched.

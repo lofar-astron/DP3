@@ -61,7 +61,7 @@ StationAdder::StationAdder(InputStep* input, const common::ParameterSet& parset,
 StationAdder::~StationAdder() {}
 
 std::vector<int> StationAdder::getMatchingStations(
-    const casacore::Vector<casacore::String>& antennaNames,
+    const std::vector<std::string>& antennaNames,
     const std::vector<string>& patterns) {
   casacore::Vector<bool> used(antennaNames.size(), false);
   for (std::vector<string>::const_iterator iter = patterns.begin();
@@ -70,7 +70,7 @@ std::vector<int> StationAdder::getMatchingStations(
     if (iter->size() > 1 && ((*iter)[0] == '!' || (*iter)[0] == '^')) {
       Regex regex(Regex::fromPattern(iter->substr(1)));
       for (unsigned int i = 0; i < antennaNames.size(); ++i) {
-        if (antennaNames[i].matches(regex)) {
+        if (casacore::String(antennaNames[i]).matches(regex)) {
           used[i] = false;
           n++;
         }
@@ -78,7 +78,7 @@ std::vector<int> StationAdder::getMatchingStations(
     } else {
       Regex regex(Regex::fromPattern(*iter));
       for (unsigned int i = 0; i < antennaNames.size(); ++i) {
-        if (antennaNames[i].matches(regex)) {
+        if (casacore::String(antennaNames[i]).matches(regex)) {
           used[i] = true;
           n++;
         }
@@ -108,9 +108,9 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   // They are specified as a ParameterRecord like:
   //    stations = {new1:[s1,s2,s3], new2:[s4,s5,s6]}
   // where s1, etc. can be glob patterns.
-  casacore::Vector<casacore::String> antennaNames(infoIn.antennaNames());
-  casacore::Vector<double> antennaDiam(infoIn.antennaDiam());
-  std::vector<MPosition> antennaPos(info().antennaPos());
+  std::vector<std::string> antennaNames = infoIn.antennaNames();
+  std::vector<double> antennaDiam = infoIn.antennaDiam();
+  std::vector<MPosition> antennaPos = info().antennaPos();
   // For each existing station, give id of new superstation it is used in.
   std::vector<int> newStations(antennaNames.size());
   std::fill(newStations.begin(), newStations.end(), -1);
@@ -119,8 +119,8 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   std::vector<MPosition> newPoss;
   for (common::ParameterRecord::const_iterator iter = itsStatRec.begin();
        iter != itsStatRec.end(); ++iter) {
-    if (std::find(antennaNames.begin(), antennaNames.end(),
-                  casacore::String(iter->first)) != antennaNames.end() ||
+    if (std::find(antennaNames.begin(), antennaNames.end(), iter->first) !=
+            antennaNames.end() ||
         std::find(newNames.begin(), newNames.end(), iter->first) !=
             newNames.end()) {
       throw Exception("StationAdder: new station name " + iter->first +
@@ -167,12 +167,12 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     newDiam.push_back(2 * maxdist);
   }
   // Add the new stations to the info's vectors.
-  casacore::Vector<int> ant1(info().getAnt1());
-  casacore::Vector<int> ant2(info().getAnt2());
+  std::vector<int> ant1(info().getAnt1());
+  std::vector<int> ant2(info().getAnt2());
   unsigned int nrold = antennaNames.size();
   unsigned int nrnew = nrold + newNames.size();
-  antennaNames.resize(nrnew, true);
-  antennaDiam.resize(nrnew, true);
+  antennaNames.resize(nrnew);
+  antennaDiam.resize(nrnew);
   antennaPos.reserve(nrnew);
   for (unsigned int i = 0; i < newNames.size(); ++i) {
     antennaNames[nrold + i] = newNames[i];

@@ -11,16 +11,18 @@
 #include <boost/algorithm/string.hpp>
 
 #include <casacore/casa/Utilities/Regex.h>
+#include <casacore/casa/Arrays/Matrix.h>
 
 #include "../common/BaselineSelect.h"
 #include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"
 #include "../common/StreamUtil.h"
 
-using dp3::common::operator<<;
+#include <vector>
 
-using namespace casacore;
-using namespace std;
+using casacore::IPosition;
+using casacore::Matrix;
+using dp3::common::operator<<;
 
 namespace dp3 {
 namespace base {
@@ -33,7 +35,8 @@ BaselineSelection::BaselineSelection(const common::ParameterSet& parset,
                                      const string& defaultBaseline)
     : itsStrBL(parset.getString(prefix + "baseline", defaultBaseline)),
       itsCorrType(parset.getString(prefix + "corrtype", defaultCorrType)),
-      itsRangeBL(parset.getDoubleVector(prefix + "blrange", vector<double>())) {
+      itsRangeBL(
+          parset.getDoubleVector(prefix + "blrange", std::vector<double>())) {
   if (minmax) {
     double minbl = parset.getDouble(prefix + "blmin", -1);
     double maxbl = parset.getDouble(prefix + "blmax", -1);
@@ -55,7 +58,8 @@ bool BaselineSelection::hasSelection() const {
            itsRangeBL.empty());
 }
 
-void BaselineSelection::show(ostream& os, const string& blanks) const {
+void BaselineSelection::show(std::ostream& os,
+                             const std::string& blanks) const {
   os << "  Baseline selection:" << '\n';
   os << "    baseline:     " << blanks << itsStrBL << '\n';
   os << "    corrtype:     " << blanks << itsCorrType << '\n';
@@ -79,9 +83,9 @@ Matrix<bool> BaselineSelection::apply(const DPInfo& info) const {
   return selectBL;
 }
 
-Vector<bool> BaselineSelection::applyVec(const DPInfo& info) const {
+casacore::Vector<bool> BaselineSelection::applyVec(const DPInfo& info) const {
   Matrix<bool> sel = apply(info);
-  Vector<bool> vec;
+  casacore::Vector<bool> vec;
   vec.resize(info.nbaselines());
   for (unsigned int i = 0; i < info.nbaselines(); ++i) {
     vec[i] = sel(info.getAnt1()[i], info.getAnt2()[i]);
@@ -100,19 +104,21 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
   // another [, it must be a MSSelection string.
   bool mssel = true;
   if (itsStrBL[0] == '[') {
-    String::size_type rb = itsStrBL.find(']');
+    std::string::size_type rb = itsStrBL.find(']');
     if (rb == string::npos)
       throw Exception("Baseline selection " + itsStrBL + " has no ending ]");
     if (rb == itsStrBL.size() - 1) {
       mssel = false;
     } else {
-      String::size_type lb = itsStrBL.find('[', 1);
+      std::string::size_type lb = itsStrBL.find('[', 1);
       mssel = (lb == string::npos || lb > rb);
     }
   }
   if (!mssel) {
     // Specified as a vector of antenna name patterns.
-    selectBL = selectBL && handleBLVector(pvBL, info.antennaNames());
+    selectBL =
+        selectBL && handleBLVector(pvBL, casacore::Vector<casacore::String>(
+                                             info.antennaNames()));
   } else {
     // Specified in casacore's MSSelection format.
     string msName = info.msName();
@@ -121,7 +127,7 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
     Matrix<bool> sel(common::BaselineSelect::convert(msName, itsStrBL, os));
     // Show possible messages about unknown stations.
     if (!os.str().empty()) {
-      vector<string> messages;
+      std::vector<std::string> messages;
       string message_str = os.str();  // Boost<1.68 split wants non-const lvalue
       boost::algorithm::split(messages, message_str, boost::is_any_of("\n"));
       for (size_t i = 0; i < messages.size(); ++i) {
@@ -143,10 +149,10 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
 
 Matrix<bool> BaselineSelection::handleBLVector(
     const common::ParameterValue& pvBL,
-    const Vector<casacore::String>& antNames) const {
-  Matrix<Bool> sel(antNames.size(), antNames.size());
+    const casacore::Vector<casacore::String>& antNames) const {
+  Matrix<bool> sel(antNames.size(), antNames.size());
   sel = false;
-  vector<common::ParameterValue> pairs = pvBL.getVector();
+  std::vector<common::ParameterValue> pairs = pvBL.getVector();
   // Each ParameterValue can be a single value (antenna) or a pair of
   // values (a baseline).
   // Note that [ant1,ant2] is somewhat ambiguous; it means two antennae,
@@ -157,10 +163,10 @@ Matrix<bool> BaselineSelection::handleBLVector(
                    "it's more clear to use [[ant1],[ant2]]");
   }
   for (unsigned int i = 0; i < pairs.size(); ++i) {
-    vector<string> bl = pairs[i].getStringVector();
+    std::vector<string> bl = pairs[i].getStringVector();
     if (bl.size() == 1) {
       // Turn the given antenna name pattern into a regex.
-      Regex regex(Regex::fromPattern(bl[0]));
+      casacore::Regex regex(casacore::Regex::fromPattern(bl[0]));
       int nmatch = 0;
       // Loop through all antenna names and set matrix for matching ones.
       for (unsigned int i2 = 0; i2 < antNames.size(); ++i2) {
@@ -183,8 +189,8 @@ Matrix<bool> BaselineSelection::handleBLVector(
             "PreFlagger baseline "
             " should contain 1 or 2 antenna name patterns");
       // Turn the given antenna name pattern into a regex.
-      Regex regex1(Regex::fromPattern(bl[0]));
-      Regex regex2(Regex::fromPattern(bl[1]));
+      casacore::Regex regex1(casacore::Regex::fromPattern(bl[0]));
+      casacore::Regex regex2(casacore::Regex::fromPattern(bl[1]));
       int nmatch = 0;
       // Loop through all antenna names and set matrix for matching ones.
       for (unsigned int i2 = 0; i2 < antNames.size(); ++i2) {
@@ -215,7 +221,7 @@ void BaselineSelection::handleCorrType(Matrix<bool>& selectBL) const {
     throw Exception("NDPPP corrType " + corrType +
                     " is invalid; must be auto, cross, or empty string");
   if (corrType == "auto") {
-    Vector<bool> diag = selectBL.diagonal().copy();
+    casacore::Vector<bool> diag = selectBL.diagonal().copy();
     selectBL = false;
     selectBL.diagonal() = diag;
   } else {
@@ -226,9 +232,9 @@ void BaselineSelection::handleCorrType(Matrix<bool>& selectBL) const {
 void BaselineSelection::handleLength(Matrix<bool>& selectBL,
                                      const DPInfo& info) const {
   // Get baseline lengths.
-  const vector<double>& blength = info.getBaselineLengths();
-  const Vector<Int>& ant1 = info.getAnt1();
-  const Vector<Int>& ant2 = info.getAnt2();
+  const std::vector<double>& blength = info.getBaselineLengths();
+  const std::vector<int>& ant1 = info.getAnt1();
+  const std::vector<int>& ant2 = info.getAnt2();
   for (unsigned int i = 0; i < ant1.size(); ++i) {
     // Clear selection if no range matches.
     bool match = false;

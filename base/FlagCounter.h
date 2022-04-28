@@ -89,8 +89,7 @@ class FlagCounter {
                    const casacore::Vector<int64_t>& count) const;
 
   /// Save the percentages per channel.
-  void saveChannel(int64_t npoints,
-                   const casacore::Vector<int64_t>& count) const;
+  void saveChannel(int64_t npoints, const std::vector<int64_t>& count) const;
 
   const DPInfo* info_{nullptr};
   std::string save_filename_{};

@@ -52,7 +52,7 @@ DPInfo makeInfo(int nbl) {
   //  1-3  287.904
   //  2-3  143.896
   vector<casacore::MPosition> antPos(4);
-  vector<double> vals(3);
+  casacore::Vector<double> vals(3);
   vals[0] = 3828763;
   vals[1] = 442449;
   vals[2] = 5064923;

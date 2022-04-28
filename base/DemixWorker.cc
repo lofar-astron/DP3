@@ -443,7 +443,8 @@ void DemixWorker::predictTarget(
     for (unsigned int dr = 0; dr < patchList.size(); ++dr) {
       itsPredictVis = dcomplex();
       Simulator simulator(itsMix->phaseRef(), itsMix->nstation(),
-                          itsMix->baselines(), itsMix->freqDemix(),
+                          itsMix->baselines(),
+                          casacore::Vector<double>(itsMix->freqDemix()),
                           casacore::Vector<double>(), uvwiter.matrix(),
                           itsPredictVis, false, false);
       for (size_t i = 0; i < patchList[dr]->nComponents(); ++i) {
@@ -488,7 +489,8 @@ void DemixWorker::predictAteam(
     for (unsigned int j = 0; j < ntime; ++j) {
       itsPredictVis = dcomplex();
       Simulator simulator(itsMix->phaseRef(), itsMix->nstation(),
-                          itsMix->baselines(), itsMix->freqDemix(),
+                          itsMix->baselines(),
+                          casacore::Vector<double>(itsMix->freqDemix()),
                           casacore::Vector<double>(), uvwiter.matrix(),
                           itsPredictVis, false, false);
       for (size_t i = 0; i < patchList[dr]->nComponents(); ++i) {
@@ -740,7 +742,9 @@ void DemixWorker::setupDemix(unsigned int chunkNr) {
 void DemixWorker::applyBeam(double time, const Direction& direction,
                             bool apply) {
   // Get the beam for demix resolution and apply to itsPredictVis.
-  applyBeam(time, direction, apply, itsMix->freqDemix(), itsPredictVis.data());
+  applyBeam(time, direction, apply,
+            casacore::Vector<double>(itsMix->freqDemix()),
+            itsPredictVis.data());
 }
 
 void DemixWorker::applyBeam(double time, const Direction& direction, bool apply,
@@ -1104,8 +1108,9 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
         for (unsigned int i = 0; i < itsMix->targetDemixList().size(); ++i) {
           itsPredictVis = dcomplex();
           Simulator simulator(itsMix->phaseRef(), nSt, itsMix->baselines(),
-                              itsMix->freqDemix(), casacore::Vector<double>(),
-                              itsUVW, itsPredictVis, false, false);
+                              casacore::Vector<double>(itsMix->freqDemix()),
+                              casacore::Vector<double>(), itsUVW, itsPredictVis,
+                              false, false);
           for (size_t j = 0; j < itsMix->targetDemixList()[i]->nComponents();
                ++j) {
             simulator.simulate(itsMix->targetDemixList()[i]->component(j));
@@ -1117,14 +1122,16 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
       } else {
         itsModelVisDemix[dr] = dcomplex();
         Simulator simulator(itsDemixList[dr]->direction(), nSt,
-                            itsMix->baselines(), itsMix->freqDemix(),
+                            itsMix->baselines(),
+                            casacore::Vector<double>(itsMix->freqDemix()),
                             casacore::Vector<double>(), itsUVW,
                             itsModelVisDemix[dr], false, false);
         for (size_t i = 0; i < itsDemixList[dr]->nComponents(); ++i) {
           simulator.simulate(itsDemixList[dr]->component(i));
         }
         applyBeam(time, itsMix->ateamDemixList()[drOrig]->direction(),
-                  itsMix->applyBeam(), itsMix->freqDemix(),
+                  itsMix->applyBeam(),
+                  casacore::Vector<double>(itsMix->freqDemix()),
                   itsModelVisDemix[dr].data());
       }
     }  // end nModel
@@ -1222,7 +1229,8 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
                                               stride_model_subtr);
 
             Simulator simulator(itsMix->ateamList()[drOrig]->direction(), nSt,
-                                itsMix->baselines(), itsMix->freqSubtr(),
+                                itsMix->baselines(),
+                                casacore::Vector<double>(itsMix->freqSubtr()),
                                 casacore::Vector<double>(), itsUVW,
                                 itsModelVisSubtr[0], false, false);
             for (size_t i = 0; i < itsMix->ateamList()[drOrig]->nComponents();
@@ -1231,7 +1239,8 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
             }
 
             applyBeam(subtrTime, itsMix->ateamDemixList()[drOrig]->direction(),
-                      itsMix->applyBeam(), itsMix->freqSubtr(),
+                      itsMix->applyBeam(),
+                      casacore::Vector<double>(itsMix->freqSubtr()),
                       itsModelVisSubtr[0].data());
           }
 

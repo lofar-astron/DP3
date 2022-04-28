@@ -74,7 +74,7 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   ant_names[1] = "rs02.s01";
   // Define their positions (more or less WSRT RT0-3).
   vector<casacore::MPosition> ant_pos(2);
-  vector<double> vals(3);
+  casacore::Vector<double> vals(3);
   vals[0] = 3828763;
   vals[1] = 442449;
   vals[2] = 5064923;

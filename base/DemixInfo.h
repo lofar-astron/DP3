@@ -80,8 +80,8 @@ class DemixInfo {
   const Direction& phaseRef() const { return itsPhaseRef; }
   const std::vector<Baseline>& baselines() const { return itsBaselines; }
   const casacore::Vector<bool> selTarget() const { return itsSelTarget; }
-  const casacore::Vector<double>& freqDemix() const { return itsFreqDemix; }
-  const casacore::Vector<double>& freqSubtr() const { return itsFreqSubtr; }
+  const std::vector<double>& freqDemix() const { return itsFreqDemix; }
+  const std::vector<double>& freqSubtr() const { return itsFreqSubtr; }
   const std::vector<std::shared_ptr<const Patch>>& ateamList() const {
     return itsAteamList;
   }
@@ -96,15 +96,11 @@ class DemixInfo {
   }
 
   /// Get the baselines.
-  const std::vector<std::size_t>& getAnt1() const {
-    return itsInfoSel.getAnt1();
-  }
-  const std::vector<std::size_t>& getAnt2() const {
-    return itsInfoSel.getAnt2();
-  }
+  const std::vector<int>& getAnt1() const { return itsInfoSel.getAnt1(); }
+  const std::vector<int>& getAnt2() const { return itsInfoSel.getAnt2(); }
 
   /// Get the antenna names and used antennas.
-  const casacore::Vector<casacore::String>& antennaNames() const {
+  const std::vector<std::string>& antennaNames() const {
     return itsInfoSel.antennaNames();
   }
 
@@ -173,8 +169,8 @@ class DemixInfo {
   Direction itsPhaseRef;  ///< original phaseref
   std::vector<Baseline> itsBaselines;
   casacore::Vector<bool> itsSelTarget;  ///< baselines in target estimate
-  casacore::Vector<double> itsFreqDemix;
-  casacore::Vector<double> itsFreqSubtr;
+  std::vector<double> itsFreqDemix;
+  std::vector<double> itsFreqSubtr;
   std::vector<std::shared_ptr<const Patch>> itsAteamList;
   std::vector<std::shared_ptr<const Patch>> itsTargetList;
   std::vector<std::shared_ptr<const Patch>> itsAteamDemixList;

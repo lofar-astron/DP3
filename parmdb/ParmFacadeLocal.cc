@@ -274,10 +274,14 @@ void ParmFacadeLocal::addValue(const string& parmName, const Record& rec) {
     Axis::ShPtr freqAxis = grid[0];
     Axis::ShPtr timeAxis = grid[1];
     if (grid.nx() == 1 && nshape[0] > 1) {
-      freqAxis = makeAxis(freqAxis->centers(), freqAxis->widths(), nshape[0]);
+      freqAxis =
+          makeAxis(casacore::Vector<double>(freqAxis->centers()),
+                   casacore::Vector<double>(freqAxis->widths()), nshape[0]);
     }
     if (grid.ny() == 1 && nshape[1] > 1) {
-      timeAxis = makeAxis(timeAxis->centers(), timeAxis->widths(), nshape[1]);
+      timeAxis =
+          makeAxis(casacore::Vector<double>(timeAxis->centers()),
+                   casacore::Vector<double>(timeAxis->widths()), nshape[1]);
     }
     grid = Grid(freqAxis, timeAxis);
     if (int(grid.nx()) != nshape[0] || int(grid.ny()) != nshape[1])
