@@ -290,8 +290,8 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   }
 
   // Prepare conversion from relative to absolute UVW
-  casacore::Vector<casacore::Int> newAnt1(itsNBl);
-  casacore::Vector<casacore::Int> newAnt2(itsNBl);
+  std::vector<int> newAnt1(itsNBl);
+  std::vector<int> newAnt2(itsNBl);
   for (unsigned int i = 0; i < itsNBl; ++i) {
     newAnt1[i] = antennaMap[infoSel.getAnt1()[i]];
     newAnt2[i] = antennaMap[infoSel.getAnt2()[i]];
@@ -901,10 +901,10 @@ void Demixer::demix() {
                       itsAvgResults[dr]->get()[ts].getUVW(), storage.uvw);
       /// cout<<"uvw"<<dr<<'='<<storage.uvw<<'\n';
 
-      base::Simulator simulator(itsPatchList[dr]->direction(), nSt,
-                                itsBaselines, itsFreqDemix,
-                                casacore::Vector<double>(), storage.uvw,
-                                storage.model[dr], false, false);
+      base::Simulator simulator(
+          itsPatchList[dr]->direction(), nSt, itsBaselines,
+          casacore::Vector<double>(itsFreqDemix), casacore::Vector<double>(),
+          storage.uvw, storage.model[dr], false, false);
       for (size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
         simulator.simulate(itsPatchList[dr]->component(i));
       }
@@ -1006,7 +1006,8 @@ void Demixer::demix() {
                                                   stride_model_subtr);
 
           base::Simulator simulator(itsPatchList[dr]->direction(), nSt,
-                                    itsBaselines, itsFreqSubtr,
+                                    itsBaselines,
+                                    casacore::Vector<double>(itsFreqSubtr),
                                     casacore::Vector<double>(), storage.uvw,
                                     storage.model_subtr, false, false);
           for (size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
@@ -1076,8 +1077,8 @@ void Demixer::demix() {
 
 void Demixer::dumpSolutions() {
   // Construct solution grid.
-  const casacore::Vector<double>& freq = getInfo().chanFreqs();
-  const casacore::Vector<double>& freqWidth = getInfo().chanWidths();
+  const std::vector<double>& freq = getInfo().chanFreqs();
+  const std::vector<double>& freqWidth = getInfo().chanWidths();
   parmdb::Axis::ShPtr freqAxis(
       new parmdb::RegularAxis(freq[0] - freqWidth[0] * 0.5, freqWidth[0], 1));
   parmdb::Axis::ShPtr timeAxis(new parmdb::RegularAxis(
@@ -1103,7 +1104,7 @@ void Demixer::dumpSolutions() {
   // than the total number of station available in the observation.
   const DPInfo& info = itsFilter.getInfo();
   const std::vector<int>& antennaUsed = info.antennaUsed();
-  const casacore::Vector<casacore::String>& antennaNames = info.antennaNames();
+  const std::vector<std::string>& antennaNames = info.antennaNames();
 
   std::vector<parmdb::Parm> parms;
   for (size_t dr = 0; dr < itsNModel; ++dr) {

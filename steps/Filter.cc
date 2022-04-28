@@ -88,8 +88,8 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
   // Handle possible baseline selection.
   if (itsBaselines.hasSelection()) {
     Matrix<bool> selbl(itsBaselines.apply(infoIn));
-    const casacore::Vector<int>& ant1 = getInfo().getAnt1();
-    const casacore::Vector<int>& ant2 = getInfo().getAnt2();
+    const std::vector<int>& ant1 = getInfo().getAnt1();
+    const std::vector<int>& ant2 = getInfo().getAnt2();
     itsSelBL.reserve(ant1.size());
     for (unsigned int i = 0; i < ant1.size(); ++i) {
       if (selbl(ant1[i], ant2[i])) {
@@ -240,8 +240,8 @@ void Filter::addToMS(const string& msName) {
   }
   // See if and which stations have been removed.
   casacore::Table antTab(msName + "/ANTENNA", casacore::Table::Update);
-  casacore::Table selTab =
-      antTab(!antTab.col("NAME").in(info().antennaNames()));
+  casacore::Table selTab = antTab(!antTab.col("NAME").in(
+      casacore::Vector<casacore::String>(info().antennaNames())));
   if (selTab.nrow() == 0) {
     return;
   }

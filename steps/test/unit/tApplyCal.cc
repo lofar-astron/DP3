@@ -59,7 +59,7 @@ class TestInput : public dp3::steps::InputStep {
     vector<string> antNames{"ant1", "ant2", "ant3", ""};
     // Define their positions (more or less WSRT RT0-3).
     vector<casacore::MPosition> antPos(4);
-    vector<double> vals(3);
+    casacore::Vector<double> vals(3);
     vals[0] = 3828763;
     vals[1] = 442449;
     vals[2] = 5064923;

@@ -124,7 +124,7 @@ class AOFlaggerStep : public Step {
   double move_time_;   ///< data move timer (sum of all threads)
   double flag_time_;   ///< flag timer (sum of all threads)
   double stats_time_;  ///< quality timer (sum of all threads)
-  casacore::Vector<double> frequencies_;
+  std::vector<double> frequencies_;
   aoflagger::AOFlagger aoflagger_;
   std::mutex mutex_;
   bool has_qstats_;

@@ -31,9 +31,8 @@ namespace base {
 /// are relative to it using the baseline UVWs.
 /// Also note that nr of groups can be derived from the size of the returned
 /// vector (because it contains no entry for the first antenna in a group).
-std::vector<int> nsetupSplitUVW(unsigned int nant,
-                                const casacore::Vector<int>& ant1,
-                                const casacore::Vector<int>& ant2);
+std::vector<int> nsetupSplitUVW(unsigned int nant, const std::vector<int>& ant1,
+                                const std::vector<int>& ant2);
 
 // clang-format off
 // Don't touch this! No spaces or newlines are allowed in doxygen references
@@ -45,8 +44,8 @@ std::vector<int> nsetupSplitUVW(unsigned int nant,
 /// See @ref uvw_splitting_bda for details.
 // clang-format on
 std::vector<int> nsetupSplitUVW(
-    unsigned int nant, const casacore::Vector<int>& ant1,
-    const casacore::Vector<int>& ant2,
+    unsigned int nant, const std::vector<int>& ant1,
+    const std::vector<int>& ant2,
     const std::vector<std::array<double, 3>>& antenna_positions);
 
 /// Do the actual splitting of baseline UVWs into station UVWs using

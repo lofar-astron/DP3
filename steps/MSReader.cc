@@ -619,8 +619,10 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
     antPos.push_back(antcol(i));
   }
   // Set antenna/baseline info.
-  info().set(nameCol.getColumn(), diamCol.getColumn(), antPos,
-             ant1col.getColumn(), ant2col.getColumn());
+  casacore::Vector<casacore::String> names = nameCol.getColumn();
+  info().set(std::vector<std::string>(names.begin(), names.end()),
+             diamCol.getColumn().tovector(), antPos,
+             ant1col.getColumn().tovector(), ant2col.getColumn().tovector());
 
   if (itsAutoWeight) {
     info().setNeedVisData();
@@ -747,8 +749,8 @@ void MSReader::skipFirstTimes() {
 void MSReader::calcUVW(double time, DPBuffer& buf) {
   Matrix<double>& uvws = buf.getUVW();
   uvws.resize(3, itsNrBl);
-  const casacore::Vector<int>& ant1 = getInfo().getAnt1();
-  const casacore::Vector<int>& ant2 = getInfo().getAnt2();
+  const std::vector<int>& ant1 = getInfo().getAnt1();
+  const std::vector<int>& ant2 = getInfo().getAnt2();
   double* uvw_ptr = uvws.data();
   for (unsigned int i = 0; i < itsNrBl; ++i) {
     const std::array<double, 3> uvw =
@@ -827,8 +829,8 @@ void MSReader::autoWeight(Cube<float>& weights, const DPBuffer& buf) {
   // Get the autocorrelations indices.
   const std::vector<int>& autoInx = getInfo().getAutoCorrIndex();
   // Calculate the weight for each cross-correlation data point.
-  const casacore::Vector<int>& ant1 = getInfo().getAnt1();
-  const casacore::Vector<int>& ant2 = getInfo().getAnt2();
+  const std::vector<int>& ant1 = getInfo().getAnt1();
+  const std::vector<int>& ant2 = getInfo().getAnt2();
   const casacore::Complex* data = buf.getData().data();
   float* weight = weights.data();
   for (unsigned int i = 0; i < nbl; ++i) {

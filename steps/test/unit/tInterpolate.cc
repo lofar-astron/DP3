@@ -62,10 +62,14 @@ class TestInput : public dp3::steps::InputStep {
     std::vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
                                       "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    const std::vector<double> vals0{3828763, 442449, 5064923};
-    const std::vector<double> vals1{3828746, 442592, 5064924};
-    const std::vector<double> vals2{3828729, 442735, 5064925};
-    const std::vector<double> vals3{3828713, 442878, 5064926};
+    const casacore::Vector<double> vals0(
+        std::vector<int>{3828763, 442449, 5064923});
+    const casacore::Vector<double> vals1(
+        std::vector<int>{3828746, 442592, 5064924});
+    const casacore::Vector<double> vals2(
+        std::vector<int>{3828729, 442735, 5064925});
+    const casacore::Vector<double> vals3(
+        std::vector<int>{3828713, 442878, 5064926});
     const std::vector<MPosition> antPos{
         MPosition(Quantum<casacore::Vector<double>>(vals0, "m"),
                   MPosition::ITRF),

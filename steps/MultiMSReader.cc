@@ -178,10 +178,8 @@ void MultiMSReader::fillBands() {
       if (itsReaders[i]->getInfo().nchan() != itsFillNChan)
         throw Exception("An MS is missing; the others should have equal nchan");
       // Check if all channels have the same width and are consecutive.
-      const casacore::Vector<double>& freqs =
-          itsReaders[i]->getInfo().chanFreqs();
-      const casacore::Vector<double>& width =
-          itsReaders[i]->getInfo().chanWidths();
+      const std::vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
+      const std::vector<double>& width = itsReaders[i]->getInfo().chanWidths();
       if (freqs[0] < freq && !casacore::near(freqs[0], freq, 1e-5))
         throw Exception(
             "Subbands should be in increasing order of frequency; found " +

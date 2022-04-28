@@ -83,7 +83,7 @@ class InputStep : public Step {
   /// names from a telescope pointer.
   static std::vector<size_t> SelectStationIndices(
       const everybeam::telescope::Telescope* telescope,
-      const casacore::Vector<casacore::String>& station_names);
+      const std::vector<std::string>& station_names);
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.

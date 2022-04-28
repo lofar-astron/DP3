@@ -23,8 +23,8 @@ using dp3::steps::PhaseShift;
 namespace dp3 {
 namespace base {
 
-std::vector<int> nsetupSplitUVW(unsigned int nant, const Vector<int>& ant1,
-                                const Vector<int>& ant2) {
+std::vector<int> nsetupSplitUVW(unsigned int nant, const std::vector<int>& ant1,
+                                const std::vector<int>& ant2) {
   // Get the indices of the baselines needed to split the baseline UVWs into
   // station UVWs. They are in such an order that the UVW of a station is known
   // before used in another baseline to derive the UVW of the other station.
@@ -83,8 +83,8 @@ std::vector<int> nsetupSplitUVW(unsigned int nant, const Vector<int>& ant1,
 }
 
 std::vector<int> nsetupSplitUVW(
-    unsigned int nant, const Vector<int>& antennas1,
-    const Vector<int>& antennas2,
+    unsigned int nant, const std::vector<int>& antennas1,
+    const std::vector<int>& antennas2,
     const std::vector<std::array<double, 3>>& antenna_positions) {
   // sort baselines by length
   std::vector<double> baseline_length_squared(antennas1.size());

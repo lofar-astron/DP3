@@ -454,7 +454,8 @@ bool OnePredict::process(const DPBuffer& bufin) {
       Cube<dcomplex>& simulatedest = sim_buffer[thread_index];
       simulatedest = dcomplex();
       simulators.emplace_back(phase_ref_, nSt, baselines_split[thread_index],
-                              info().chanFreqs(), info().chanWidths(),
+                              casacore::Vector<double>(info().chanFreqs()),
+                              casacore::Vector<double>(info().chanWidths()),
                               station_uvw_, simulatedest,
                               correct_freq_smearing_, stokes_i_only_);
     }
@@ -469,8 +470,10 @@ bool OnePredict::process(const DPBuffer& bufin) {
       Cube<dcomplex>& simulatedest =
           (apply_beam_ ? predict_buffer_->GetPatchModel(thread_index)
                        : predict_buffer_->GetModel(thread_index));
-      simulators.emplace_back(phase_ref_, nSt, baselines_, info().chanFreqs(),
-                              info().chanWidths(), station_uvw_, simulatedest,
+      simulators.emplace_back(phase_ref_, nSt, baselines_,
+                              casacore::Vector<double>(info().chanFreqs()),
+                              casacore::Vector<double>(info().chanWidths()),
+                              station_uvw_, simulatedest,
                               correct_freq_smearing_, stokes_i_only_);
     }
   }

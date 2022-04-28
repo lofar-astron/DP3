@@ -313,8 +313,8 @@ void MSBDAWriter::WriteTimeFactorRows(Int bda_set_id,
   ScalarColumn<Int> col_factor(bda_time_factor, base::DP3MS::kFactor);
   ScalarColumn<Int> col_spw_id(bda_time_factor, base::DP3MS::kSpectralWindowId);
 
-  const Vector<Int>& ant1 = info().getAnt1();
-  const Vector<Int>& ant2 = info().getAnt2();
+  const std::vector<int>& ant1 = info().getAnt1();
+  const std::vector<int>& ant2 = info().getAnt2();
   for (std::size_t i = 0; i < info().nbaselines(); ++i) {
     std::size_t nchan = info().chanFreqs(i).size();
     const int row = bda_time_factor.nrow();

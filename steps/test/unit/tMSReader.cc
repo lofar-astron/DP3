@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
   MSReader msreader(ms, parset, "");
 
   std::vector<std::string> ant_vec = {"CS001HBA0", "CS002HBA0"};
-  casacore::Vector<casacore::String> ant_names(ant_vec.size());
+  std::vector<std::string> ant_names(ant_vec.size());
 
   for (size_t i = 0; i < ant_vec.size(); ++i) {
     ant_names[i] = ant_vec[i];
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(read_oskar) {
   MSReader msreader(ms, parset, "");
 
   std::vector<std::string> ant_vec = {"s0012", "s0013", "s0015"};
-  casacore::Vector<casacore::String> ant_names(ant_vec.size());
+  std::vector<std::string> ant_names(ant_vec.size());
 
   for (size_t i = 0; i < ant_vec.size(); ++i) {
     ant_names[i] = ant_vec[i];

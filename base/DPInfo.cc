@@ -185,20 +185,21 @@ void DPInfo::set(const MPosition& arrayPos, const MDirection& phaseCenter,
   tile_beam_direction_ = tileBeamDir;
 }
 
-void DPInfo::set(const Vector<casacore::String>& antNames,
-                 const Vector<Double>& antDiam, const vector<MPosition>& antPos,
-                 const Vector<Int>& ant1, const Vector<Int>& ant2) {
+void DPInfo::set(const std::vector<std::string>& antNames,
+                 const std::vector<double>& antDiam,
+                 const std::vector<MPosition>& antPos,
+                 const std::vector<int>& ant1, const std::vector<int>& ant2) {
   if (antNames.size() != antDiam.size() || antNames.size() != antPos.size())
     throw std::invalid_argument(
         "The name, diameter and position arrays are not of the same size");
   if (ant1.size() != ant2.size())
     throw std::invalid_argument(
         "The ant1 and ant2 arrays are not of the same size");
-  antenna_names_.reference(antNames);
-  antenna_diameters_.reference(antDiam);
+  antenna_names_ = antNames;
+  antenna_diameters_ = antDiam;
   antenna_positions_ = antPos;
-  antenna1_ = std::vector<std::size_t>(ant1.begin(), ant1.end());
-  antenna2_ = std::vector<std::size_t>(ant2.begin(), ant2.end());
+  antenna1_ = ant1;
+  antenna2_ = ant2;
   // Set which antennae are used.
   setAntUsed();
 }
@@ -303,8 +304,8 @@ void DPInfo::update(unsigned int startChan, unsigned int nchan,
   n_channels_ = nchan;
   // Keep only selected baselines.
   if (!baselines.empty()) {
-    std::vector<std::size_t> ant1(baselines.size());
-    std::vector<std::size_t> ant2(baselines.size());
+    std::vector<int> ant1(baselines.size());
+    std::vector<int> ant2(baselines.size());
     for (unsigned int i = 0; i < baselines.size(); ++i) {
       ant1[i] = antenna1_[baselines[i]];
       ant2[i] = antenna2_[baselines[i]];
@@ -325,9 +326,9 @@ void DPInfo::update(unsigned int startChan, unsigned int nchan,
 void DPInfo::removeUnusedAnt() {
   if (antennas_used_.size() < antenna_map_.size()) {
     // First remove stations.
-    Vector<casacore::String> names(antennas_used_.size());
-    Vector<Double> diameters(antennas_used_.size());
-    vector<MPosition> positions;
+    std::vector<std::string> names(antennas_used_.size());
+    std::vector<double> diameters(antennas_used_.size());
+    std::vector<MPosition> positions;
     positions.reserve(antennas_used_.size());
     for (unsigned int i = 0; i < antennas_used_.size(); ++i) {
       names[i] = antenna_names_[antennas_used_[i]];
@@ -335,9 +336,9 @@ void DPInfo::removeUnusedAnt() {
       positions.push_back(antenna_positions_[antennas_used_[i]]);
     }
     // Use the new vectors.
-    antenna_names_.reference(names);
-    antenna_diameters_.reference(diameters);
-    antenna_positions_.swap(positions);
+    antenna_names_ = std::move(names);
+    antenna_diameters_ = std::move(diameters);
+    antenna_positions_ = std::move(positions);
     // Renumber the baselines.
     for (unsigned int i = 0; i < antenna1_.size(); ++i) {
       antenna1_[i] = antenna_map_[antenna1_[i]];
@@ -419,8 +420,8 @@ Record DPInfo::toRecord() const {
              casacore::Vector<double>(effective_bandwidth_.front()));
   rec.define("TotalBW", total_bandwidth_);
   rec.define("RefFreq", reference_frequency_);
-  rec.define("AntNames", antenna_names_);
-  rec.define("AntDiam", antenna_diameters_);
+  rec.define("AntNames", casacore::Vector<casacore::String>(antenna_names_));
+  rec.define("AntDiam", casacore::Vector<double>(antenna_diameters_));
   rec.define("AntUsed", Vector<int>(antennas_used_));
   rec.define("AntMap", Vector<int>(antenna_map_));
   rec.define("Ant1", Vector<int>(antenna1_));
@@ -502,10 +503,14 @@ void DPInfo::fromRecord(const Record& rec) {
     rec.get("RefFreq", reference_frequency_);
   }
   if (rec.isDefined("AntNames")) {
-    rec.get("AntNames", antenna_names_);
+    casacore::Vector<casacore::String> antennas;
+    rec.get("AntNames", antennas);
+    antenna_names_.assign(antennas.begin(), antennas.end());
   }
   if (rec.isDefined("AntDiam")) {
-    rec.get("AntDiam", antenna_diameters_);
+    casacore::Vector<double> diameters;
+    rec.get("AntDiam", diameters);
+    antenna_diameters_ = diameters.tovector();
   }
   /// if (rec.isDefined ("AntUsed")) {
   /// antennas_used_ = rec.toArrayInt("AntUsed").tovector();
@@ -514,12 +519,12 @@ void DPInfo::fromRecord(const Record& rec) {
   ///  antenna_map_ = rec.toArrayInt("AntMap").tovector();
   ///}
   if (rec.isDefined("Ant1")) {
-    casacore::Vector<casacore::Int> ant1 = rec.toArrayInt("Ant1");
-    antenna1_ = std::vector<std::size_t>(ant1.begin(), ant1.end());
+    casacore::Vector<int> ant1 = rec.toArrayInt("Ant1");
+    antenna1_ = std::vector<int>(ant1.begin(), ant1.end());
   }
   if (rec.isDefined("Ant2")) {
-    casacore::Vector<casacore::Int> ant2 = rec.toArrayInt("Ant2");
-    antenna2_ = std::vector<std::size_t>(ant2.begin(), ant2.end());
+    casacore::Vector<int> ant2 = rec.toArrayInt("Ant2");
+    antenna2_ = std::vector<int>(ant2.begin(), ant2.end());
   }
   /// if (rec.isDefined ("BLength")) {
   ///  baseline_lengths_ = rec.toArrayDouble("BLength").tovector();

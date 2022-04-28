@@ -16,8 +16,6 @@
 
 #include <aocommon/parallelfor.h>
 
-#include <casacore/casa/Arrays/Array.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/Quanta/MVAngle.h>
@@ -88,7 +86,7 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
 
   info().setPhaseCenter(newDir, original);
   // Calculate 2*pi*freq/C to get correct phase term (in wavelengths).
-  const casacore::Vector<double>& freq = infoIn.chanFreqs();
+  const std::vector<double>& freq = infoIn.chanFreqs();
   itsFreqC.reserve(freq.size());
   for (unsigned int i = 0; i < freq.size(); ++i) {
     itsFreqC.push_back(2. * casacore::C::pi * freq[i] / casacore::C::c);

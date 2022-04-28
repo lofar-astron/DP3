@@ -255,8 +255,8 @@ void MedFlagger::flag(unsigned int index,
   /// cout << "flag: " <<itsNTimes<<' '<<itsNTimesDone<<' ' <<index <<
   /// timeEntries << '\n';
   // Get antenna numbers in case applyautocorr is true.
-  const casacore::Vector<int>& ant1 = getInfo().getAnt1();
-  const casacore::Vector<int>& ant2 = getInfo().getAnt2();
+  const std::vector<int>& ant1 = getInfo().getAnt1();
+  const std::vector<int>& ant2 = getInfo().getAnt2();
   // Result is 'copy' of the entry at the given time index.
   DPBuffer buf(itsBuf[index]);
   casacore::IPosition shp = buf.getData().shape();

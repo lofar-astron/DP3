@@ -710,8 +710,8 @@ bool PreFlagger::PSet::flagAzEl(double time) {
 
 void PreFlagger::PSet::testAzEl(MDirection::Convert& converter,
                                 unsigned int blnr, std::size_t ant,
-                                const std::vector<std::size_t>& ant1,
-                                const std::vector<std::size_t>& ant2) {
+                                const std::vector<int>& ant1,
+                                const std::vector<int>& ant2) {
   // Calculate AzEl (n seconds because ranges are in seconds too).
   MVDirection mvAzel(converter().getValue());
   casacore::Vector<double> azel = mvAzel.getAngle("s").getValue();
@@ -1094,7 +1094,7 @@ void PreFlagger::PSet::fillBLMatrix() {
 }
 
 casacore::Vector<bool> PreFlagger::PSet::handleFreqRanges(
-    const casacore::Vector<double>& chanFreqs) {
+    const std::vector<double>& chanFreqs) {
   unsigned int nrchan = chanFreqs.size();
   casacore::Vector<bool> selChan(nrchan, false);
   // A frequency range can be given as  value..value or value+-value.

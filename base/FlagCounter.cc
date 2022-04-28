@@ -97,9 +97,9 @@ void FlagCounter::add(const FlagCounter& that) {
 }
 
 void FlagCounter::showStation(std::ostream& os, int64_t ntimes) const {
-  const Vector<Int>& ant1 = info_->getAnt1();
-  const Vector<Int>& ant2 = info_->getAnt2();
-  const Vector<String>& antNames = info_->antennaNames();
+  const std::vector<int>& ant1 = info_->getAnt1();
+  const std::vector<int>& ant2 = info_->getAnt2();
+  const std::vector<std::string>& antNames = info_->antennaNames();
 
   const int64_t nPoints = ntimes * channel_counts_.size();
   const size_t nrAnt = antNames.size();
@@ -149,16 +149,21 @@ void FlagCounter::showStation(std::ostream& os, int64_t ntimes) const {
 }
 
 void FlagCounter::showBaseline(std::ostream& os, int64_t ntimes) const {
-  const Vector<Int>& ant1 = info_->getAnt1();
-  const Vector<Int>& ant2 = info_->getAnt2();
-  const Vector<String>& antNames = info_->antennaNames();
+  const std::vector<int>& ant1 = info_->getAnt1();
+  const std::vector<int>& ant2 = info_->getAnt2();
+  const std::vector<std::string>& antNames = info_->antennaNames();
   // Keep track of fully flagged baselines.
   std::vector<std::pair<int, int>> fullyFlagged;
   int64_t nPoints = ntimes * channel_counts_.size();
   os << std::endl
      << "Percentage of visibilities flagged per baseline"
         " (antenna pair):";
-  unsigned int nrAnt = 1 + std::max(max(ant1), max(ant2));
+  std::vector<int>::const_iterator ant1_max =
+      std::max_element(ant1.begin(), ant1.end());
+  std::vector<int>::const_iterator ant2_max =
+      std::max_element(ant2.begin(), ant2.end());
+  const unsigned int nrAnt =
+      (ant1_max == ant1.end()) ? 0 : 1 + std::max(*ant1_max, *ant2_max);
   // Collect counts per baseline and antenna.
   Vector<int64_t> nUsedAnt(nrAnt, 0);
   Vector<int64_t> countAnt(nrAnt, 0);
@@ -369,7 +374,7 @@ void FlagCounter::saveStation(int64_t nPoints, const Vector<int64_t>& nused,
   ScalarColumn<Int> statCol(tab, "Station");
   ScalarColumn<String> nameCol(tab, "Name");
   ScalarColumn<float> percCol(tab, "Percentage");
-  const Vector<String>& antNames = info_->antennaNames();
+  const std::vector<std::string>& antNames = info_->antennaNames();
   // Write if an antenna is used.
   for (unsigned int i = 0; i < nused.size(); ++i) {
     if (nused[i] > 0) {
@@ -383,7 +388,7 @@ void FlagCounter::saveStation(int64_t nPoints, const Vector<int64_t>& nused,
 }
 
 void FlagCounter::saveChannel(int64_t nPoints,
-                              const Vector<int64_t>& count) const {
+                              const std::vector<int64_t>& count) const {
   // Create the table.
   TableDesc td;
   td.addColumn(ScalarColumnDesc<double>("Frequency"));
@@ -393,7 +398,7 @@ void FlagCounter::saveChannel(int64_t nPoints,
   ScalarColumn<double> freqCol(tab, "Frequency");
   ScalarColumn<float> percCol(tab, "Percentage");
   // Get the channel frequencies.
-  const Vector<double>& chanFreqs = info_->chanFreqs();
+  const std::vector<double>& chanFreqs = info_->chanFreqs();
   for (unsigned int i = 0; i < count.size(); ++i) {
     int rownr = tab.nrow();
     tab.addRow();

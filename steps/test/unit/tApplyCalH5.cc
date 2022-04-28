@@ -70,7 +70,7 @@ class TestInput : public InputStep {
     vector<string> antNames{"ant1", "ant2", "ant3"};
     // Define their positions (more or less WSRT RT0-3).
     vector<casacore::MPosition> antPos(3);
-    vector<double> vals(3);
+    casacore::Vector<double> vals(3);
     vals[0] = 3828763;
     vals[1] = 442449;
     vals[2] = 5064923;
@@ -89,7 +89,7 @@ class TestInput : public InputStep {
     antPos[2] = casacore::MPosition(
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
-    vector<double> antDiam(3, 70.);
+    std::vector<double> antDiam(3, 70.);
     info().set(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     vector<double> chanWidth(nchan, 100.e6);

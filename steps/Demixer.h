@@ -184,8 +184,8 @@ class Demixer : public Step {
   base::Direction itsPhaseRef;
   std::vector<base::Baseline> itsBaselines;
   std::vector<int> itsUVWSplitIndex;
-  casacore::Vector<double> itsFreqDemix;
-  casacore::Vector<double> itsFreqSubtr;
+  std::vector<double> itsFreqDemix;
+  std::vector<double> itsFreqSubtr;
   std::vector<double> itsUnknowns;
   std::vector<double> itsPrevSolution;
   unsigned int itsTimeIndex;
