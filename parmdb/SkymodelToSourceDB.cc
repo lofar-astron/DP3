@@ -38,6 +38,7 @@ enum FieldNr {
   MajorNr,
   MinorNr,
   OrientNr,
+  OrientationIsAbsoluteNr,
   RotMeasNr,
   PolFracNr,
   PolAngNr,
@@ -86,6 +87,7 @@ std::vector<std::string> fillKnown() {
   names.push_back("MajorAxis");
   names.push_back("MinorAxis");
   names.push_back("Orientation");
+  names.push_back("OrientationIsAbsolute");
   names.push_back("RotationMeasure");
   names.push_back("PolarizedFraction");
   names.push_back("PolarizationAngle");
@@ -793,6 +795,8 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
       0.));
   double refFreq = string2real(values, sdbf.fieldNrs[RefFreqNr], 0);
   bool useLogSI = string2bool(values, sdbf.fieldNrs[LogSINr], true);
+  bool orientationIsAbsolute =
+      string2bool(values, sdbf.fieldNrs[OrientationIsAbsoluteNr], false);
   bool useRM = false;
   double rmRefWavel = 0;
   if (rm.empty()) {
@@ -828,7 +832,7 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
     }
   }
   SourceInfo srcInfo(srcName, srctype, refType, useLogSI, spinx.size(), refFreq,
-                     useRM);
+                     useRM, orientationIsAbsolute);
   if (srctype == SourceInfo::SHAPELET) {
     fillShapelet(srcInfo, shapeletI, shapeletQ, shapeletU, shapeletV);
   }
@@ -864,6 +868,8 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
     add(fieldValues, MajorNr, string2real(values, sdbf.fieldNrs[MajorNr], 1));
     add(fieldValues, MinorNr, string2real(values, sdbf.fieldNrs[MinorNr], 1));
     add(fieldValues, OrientNr, string2real(values, sdbf.fieldNrs[OrientNr], 1));
+    add(fieldValues, OrientationIsAbsoluteNr,
+        string2bool(values, sdbf.fieldNrs[OrientationIsAbsoluteNr], false));
   }
   // Add the source.
   // Do not check for duplicates yet.

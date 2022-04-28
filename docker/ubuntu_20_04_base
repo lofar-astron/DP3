@@ -51,11 +51,12 @@ RUN mkdir /aoflagger && cd /aoflagger \
     && ninja install \
     && cd / && rm -rf aoflagger
 # Build IDG
+# (PORTABLE: it may run on a different node than where it was compiled)
 RUN mkdir /idg && cd /idg \
     && git clone https://git.astron.nl/RD/idg.git src \
     && ( cd src/ && git checkout ${IDG_VERSION} ) \
     && mkdir build && cd build \
-    && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
+    && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
     && ninja install \
     && cd / && rm -rf idg
 # Build EveryBeam

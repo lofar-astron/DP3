@@ -45,7 +45,8 @@ class SourceInfo {
   SourceInfo(const string& name, Type type, const string& refType = "J2000",
              bool useLogarithmicSI = true, unsigned int spectralIndexNTerms = 0,
              double spectralIndexRefFreqHz = 0.,
-             bool useRotationMeasure = false);
+             bool useRotationMeasure = false,
+             bool positionAngleIsAbsolute = false);
 
   /// Copy constructor.
   SourceInfo(const SourceInfo&);
@@ -66,6 +67,11 @@ class SourceInfo {
   /// first terms is thus the SI) or a polynomial spectral function (as used in
   /// e.g. cleaning).
   bool getHasLogarithmicSI() const { return itsHasLogarithmicSI; }
+
+  /// Whether the position angle (rotation) is absolute, i.e. with respect to
+  /// the North Celestial pole. False means that it is given with respect to
+  /// North at the phase center, the default until 2022.
+  bool getPositionAngleIsAbsolute() const { return itsPositionAngleIsAbsolute; }
 
   /// Get the number of terms in the spectral index function.
   /// A value 0 means that the spectral index is not used.
@@ -119,7 +125,11 @@ class SourceInfo {
   bool itsHasLogarithmicSI;  ///< Spectral indices are logarithmic terms (false
                              ///< means as polynomials)
   bool itsUseRotMeas;        ///< true=use RM,PolFrac,PolAngle; false=use Q,U
-  double itsShapeletScaleI;  ///< shapelet scale for I-flux
+  bool itsPositionAngleIsAbsolute;  ///< Position angle (rotation) is with
+                                    ///< respect to NCP (false means with
+                                    ///< respect to North at the phase center,
+                                    ///< the default until 2022)
+  double itsShapeletScaleI;         ///< shapelet scale for I-flux
   double itsShapeletScaleQ;
   double itsShapeletScaleU;
   double itsShapeletScaleV;

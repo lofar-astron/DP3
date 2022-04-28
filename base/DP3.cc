@@ -378,7 +378,7 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   if (DPLogger::useLogger) {
     ostr << "Start timer output" << std::endl;
   }
-  timer.show(ostr, "Total NDPPP time");
+  timer.show(ostr, "Total DP3 time");
   DPLOG_INFO(ostr.str(), true);
   if (showTimings) {
     // Show the timings per step.

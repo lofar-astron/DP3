@@ -26,35 +26,41 @@ class GaussianSource : public PointSource {
   /// Set position angle in radians. The position angle is the smallest angle
   /// between the major axis and North, measured positively North over East.
   void setPositionAngle(double angle);
-  double positionAngle() const;
+  double getPositionAngle() const { return itsPositionAngle; }
+
+  /// Set whether the position angle (orientation) is absolute, see
+  /// documentation of class member)
+  void setPositionAngleIsAbsolute(bool positionAngleIsAbsolute) {
+    itsPositionAngleIsAbsolute = positionAngleIsAbsolute;
+  }
+
+  /// Return whether the position angle (orientation) is absolute, see
+  /// documentation of class member.
+  double getPositionAngleIsAbsolute() const {
+    return itsPositionAngleIsAbsolute;
+  }
 
   /// Set the major axis length (FWHM in radians).
   void setMajorAxis(double fwhm);
-  double majorAxis() const;
+  double getMajorAxis() const { return itsMajorAxis; }
 
   /// Set the minor axis length (FWHM in radians).
   void setMinorAxis(double fwhm);
-  double minorAxis() const;
+  double getMinorAxis() const { return itsMinorAxis; }
 
   virtual void accept(ModelComponentVisitor &visitor) const;
 
  private:
   double itsPositionAngle;
+  /// Whether the position angle (also refered to as orientation) is absolute
+  /// (w.r.t. to the local declination axis) or with respect to the declination
+  /// axis at the phase center (the default until 2022, it was fixed in 5.3.0)
+  bool itsPositionAngleIsAbsolute;
   double itsMajorAxis;
   double itsMinorAxis;
 };
 
 /// @}
-
-// -------------------------------------------------------------------------- //
-// - Implementation: GaussianSource                                         - //
-// -------------------------------------------------------------------------- //
-
-inline double GaussianSource::positionAngle() const { return itsPositionAngle; }
-
-inline double GaussianSource::majorAxis() const { return itsMajorAxis; }
-
-inline double GaussianSource::minorAxis() const { return itsMinorAxis; }
 
 }  // namespace base
 }  // namespace dp3

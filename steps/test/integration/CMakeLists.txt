@@ -13,6 +13,7 @@ add_python_integrationtests(
   tGainCalH5Parm
   tMsIn
   tMultiApplyCal
+  tPhaseshiftPredict
   tPredict
   tReadOnly
   tSplit)

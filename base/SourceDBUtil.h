@@ -68,6 +68,14 @@ bool checkPolarized(parmdb::SourceDB &sourceDB,
 bool CheckPolarized(const parmdb::SourceDBSkymodel &source_db,
                     const std::vector<std::string> &patch_names);
 
+/// Check whether any source in a sourcedb has absolute orientation
+bool CheckAnyOrientationIsAbsolute(const parmdb::SourceDBSkymodel &source_db,
+                                   const std::vector<std::string> &patch_names);
+
+/// Check whether any source in a skymodel-sourcedb has absolute orientation
+bool CheckAnyOrientationIsAbsolute(const parmdb::SourceDBSkymodel &source_db,
+                                   const std::vector<std::string> &patch_names);
+
 /// A SourceDB abstraction layer.
 ///
 /// A SourceDB can be read as a SourceDB database or a .skymodel file. This
@@ -106,6 +114,8 @@ class SourceDB {
   std::vector<std::shared_ptr<Patch>> MakePatchList();
 
   bool CheckPolarized();
+
+  bool CheckAnyOrientationIsAbsolute();
 
  private:
   std::vector<std::string> patch_names_;

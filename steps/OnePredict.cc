@@ -167,6 +167,7 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   } else {
     stokes_i_only_ = !source_db.CheckPolarized();
   }
+  any_orientation_is_absolute_ = source_db.CheckAnyOrientationIsAbsolute();
 }
 
 void OnePredict::SetApplyCal(InputStep* input,
@@ -280,6 +281,8 @@ void OnePredict::show(std::ostream& os) const {
   os << "  sourcedb:           " << source_db_name_ << '\n';
   os << "   number of patches: " << patch_list_.size() << '\n';
   os << "   number of sources: " << source_list_.size() << '\n';
+  os << "   absolute orientation: " << std::boolalpha
+     << any_orientation_is_absolute_ << '\n';
   os << "   all unpolarized:   " << std::boolalpha << stokes_i_only_ << '\n';
   os << "   correct freq smearing: " << std::boolalpha << correct_freq_smearing_
      << '\n';

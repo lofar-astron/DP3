@@ -20,7 +20,8 @@ namespace parmdb {
 
 SourceInfo::SourceInfo(const string& name, Type type, const string& refType,
                        bool useLogarithmicSI, unsigned int nSpectralTerms,
-                       double spectralTermsRefFreqHz, bool useRotationMeasure)
+                       double spectralTermsRefFreqHz, bool useRotationMeasure,
+                       bool positionAngleIsAbsolute)
     : itsName(name),
       itsType(type),
       itsRefType(refType),
@@ -28,6 +29,7 @@ SourceInfo::SourceInfo(const string& name, Type type, const string& refType,
       itsSpTermsRefFreq(spectralTermsRefFreqHz),
       itsHasLogarithmicSI(useLogarithmicSI),
       itsUseRotMeas(useRotationMeasure),
+      itsPositionAngleIsAbsolute(positionAngleIsAbsolute),
       itsShapeletScaleI(0),
       itsShapeletScaleQ(0),
       itsShapeletScaleU(0),
@@ -43,6 +45,7 @@ SourceInfo& SourceInfo::operator=(const SourceInfo& that) {
     itsNSpTerms = that.itsNSpTerms;
     itsSpTermsRefFreq = that.itsSpTermsRefFreq;
     itsHasLogarithmicSI = that.itsHasLogarithmicSI;
+    itsPositionAngleIsAbsolute = that.itsPositionAngleIsAbsolute;
     itsUseRotMeas = that.itsUseRotMeas;
     itsShapeletScaleI = that.itsShapeletScaleI;
     itsShapeletScaleQ = that.itsShapeletScaleQ;
@@ -75,11 +78,11 @@ void SourceInfo::setShapeletScale(double scaleI, double scaleQ, double scaleU,
 }
 
 void SourceInfo::write(blob::BlobOStream& bos) const {
-  int16_t version = 2;
-  // TODO itsHasLogarithmicSI has to be written in new blob version
+  int16_t version = 3;
+
   bos << version << itsName << int16_t(itsType) << itsRefType
       << itsHasLogarithmicSI << itsNSpTerms << itsSpTermsRefFreq
-      << itsUseRotMeas;
+      << itsUseRotMeas << itsPositionAngleIsAbsolute;
   if (itsType == SHAPELET) {
     bos << itsShapeletScaleI << itsShapeletScaleQ << itsShapeletScaleU
         << itsShapeletScaleV << itsShapeletCoeffI << itsShapeletCoeffQ
@@ -87,18 +90,22 @@ void SourceInfo::write(blob::BlobOStream& bos) const {
   }
 }
 
-// If ever version info is needed,
 void SourceInfo::read(blob::BlobIStream& bis) {
   int16_t version, type;
   bis >> version >> itsName >> type >> itsRefType;
-  if (version != 1 && version != 2)
-    throw std::runtime_error("Version of sourcedb must be 1 or 2");
+  if (version < 1 || version > 3)
+    throw std::runtime_error("Version of sourcedb must be <= 3");
   if (version >= 2) {
     bis >> itsHasLogarithmicSI;
   } else {
     itsHasLogarithmicSI = true;
   }
   bis >> itsNSpTerms >> itsSpTermsRefFreq >> itsUseRotMeas;
+  if (version >= 3) {
+    bis >> itsPositionAngleIsAbsolute;
+  } else {
+    itsPositionAngleIsAbsolute = false;
+  }
   // Convert to enum.
   itsType = Type(type);
   if (itsType == SHAPELET) {
