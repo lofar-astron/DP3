@@ -23,13 +23,47 @@ namespace base {
 
 typedef std::complex<double> dcomplex;
 
-/// @brief Simulator for different kinds of model components
+/**
+ * @brief Simulator to compute visibilities given a sky model
+ *
+ * This class computes visibilities given model components in the sky.
+ * Effectively, it evaluates the equation:
+ *
+ * \f[ V(u, v, w) =
+ * \iint I(\ell, m) e^{2\pi i(u,v,w)\cdot(\ell,m,n)}\mathrm{d}\ell\mathrm{d} m
+ * \f]
+ *
+ * where \f$ I(\ell, m) \f$ is the model intensity in the sky.
+ * For a point source, \f$ I(\ell, m) \f$ is a delta function, with given
+ * intensity $\mathrm{I}$, for a Gaussian source oriented along the coordinate
+ * axes $\ell$ and $m$, we have
+ *
+ * \f[
+ * I(\ell, m) = \mathrm{I} \frac{1}{\sqrt{2\pi\sigma_\ell\sigma_m}
+ *              e^{-\frac{\ell^2}{2\sigma_\ell^2}-\frac{m^2}{2\sigma_m^2}},
+ * \]
+ *
+ * where \f$ \sigma_\ell \f$ and \f$ \sigma_m \f$ are computed from the FWHM
+ * major and minor axis in the sky model. The normalization is such that
+ * \mathrm{I} represents the integrated flux of the Gaussian source.
+ * For Gaussian sources, a position angle or orientation can be
+ * given, representing the orientation of the source. Depending on the value
+ * of 'OrientationIsAbsolute' in the model component, this is the orientation
+ * with respect to the declination axis (if OrientationIsAbsolute is true) or
+ * with respect to the m axis for this observation (if OrientationIsAbsolute
+ * is false).
+ * To compute Gausian sources, the coordinate system is rotated to a new
+ * coordinate system where it is oriented along the axes. For the case where
+ * 'OrientationIsAbsolute' is true, the $u,v,w$ coordinates are phase-shifted
+ * to the position of the source.
+ */
+
 class Simulator : public ModelComponentVisitor {
  public:
   /**
    * @brief Construct a new Simulator object
    *
-   * @param reference An existing BDABuffer.
+   * @param reference Reference direction (phase center)
    * @param baselines Vector of Baselines
    * @param freq Channel frequencies (Hz)
    * @param chanWidths Channel widths (Hz)
