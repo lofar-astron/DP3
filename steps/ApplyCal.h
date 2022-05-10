@@ -100,7 +100,7 @@ class ApplyCal : public Step {
                            const casacore::Complex* gainB, float* weight);
 
  private:
-  bool itsIsSubstep;
+  bool itsIsSubstep{false};
   string itsName;
 
   std::vector<OneApplyCal::ShPtr> itsApplyCals;

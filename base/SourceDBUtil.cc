@@ -374,8 +374,6 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
 bool CheckAnyOrientationIsAbsolute(parmdb::SourceDB& source_db,
                                    const std::vector<string>& patch_names,
                                    unsigned int n_model) {
-  bool anyOrientationIsAbsolute = false;
-
   // Loop over all sources.
   const std::lock_guard<parmdb::SourceDB> lock{source_db};
   source_db.rewind();

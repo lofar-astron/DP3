@@ -709,7 +709,7 @@ bool PreFlagger::PSet::flagAzEl(double time) {
 }
 
 void PreFlagger::PSet::testAzEl(MDirection::Convert& converter,
-                                unsigned int blnr, std::size_t ant,
+                                unsigned int blnr, int ant,
                                 const std::vector<int>& ant1,
                                 const std::vector<int>& ant2) {
   // Calculate AzEl (n seconds because ranges are in seconds too).

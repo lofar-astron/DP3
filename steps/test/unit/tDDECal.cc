@@ -46,15 +46,16 @@ BOOST_AUTO_TEST_CASE(show_default) {
 Model steps for direction center
 Predict
 OnePredict prefix.
-  sourcedb:           tDDECal.MS/sky.txt
-   number of patches: 1
-   number of sources: 1
-   absolute orientation: false
-   all unpolarized:   true
-   correct freq smearing: false
-  apply beam:         false
-  operation:          replace
-  threads:            )" +
+  sourcedb:                tDDECal.MS/sky.txt
+   number of patches:      1
+   patches clustered:      false
+   number of components:   1
+   absolute orientation:   false
+   all unpolarized:        true
+   correct freq smearing:  false
+  apply beam:              false
+  operation:               replace
+  threads:                 )" +
           std::to_string(aocommon::system::ProcessorCount()) + R"(
 
 )",
@@ -93,15 +94,16 @@ BOOST_AUTO_TEST_CASE(show_modified) {
 Model steps for direction center
 Predict
 OnePredict prefix.
-  sourcedb:           tDDECal.MS/sky.txt
-   number of patches: 1
-   number of sources: 1
-   absolute orientation: false
-   all unpolarized:   true
-   correct freq smearing: false
-  apply beam:         false
-  operation:          replace
-  threads:            )" +
+  sourcedb:                tDDECal.MS/sky.txt
+   number of patches:      1
+   patches clustered:      false
+   number of components:   1
+   absolute orientation:   false
+   all unpolarized:        true
+   correct freq smearing:  false
+  apply beam:              false
+  operation:               replace
+  threads:                 )" +
           std::to_string(aocommon::system::ProcessorCount()) + R"(
 
 )",
