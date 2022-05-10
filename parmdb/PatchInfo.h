@@ -69,10 +69,10 @@ class PatchInfo {
 
  private:
   std::string itsName;
-  double itsRa;
-  double itsDec;
-  int itsCategory;
-  double itsAppBrightness;
+  double itsRa{0.0};
+  double itsDec{0.0};
+  int itsCategory{0};
+  double itsAppBrightness{0.0};
 };
 
 /// Show the contents of a PatchInfo object.

@@ -86,19 +86,19 @@ class OnePredict : public ModelDataStep {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Prepare the sources
   void setSources(const std::vector<string>& sourcePatterns);
@@ -124,32 +124,32 @@ class OnePredict : public ModelDataStep {
                      const std::pair<size_t, size_t>& station_range,
                      aocommon::Barrier& barrier, bool stokesIOnly);
 
-  InputStep* input_;
+  InputStep* input_{nullptr};
   std::string name_;
   base::DPBuffer buffer_;
   std::string source_db_name_;
-  bool correct_freq_smearing_;
+  bool correct_freq_smearing_{false};
   std::string operation_;
-  bool apply_beam_;
-  bool use_channel_freq_;
-  bool one_beam_per_patch_;
-  bool thread_over_baselines_;
+  bool apply_beam_{false};
+  bool use_channel_freq_{false};
+  bool one_beam_per_patch_{false};
+  bool thread_over_baselines_{false};
   /// If two sources are closer together than given by this setting, they
   /// will be grouped into one patch. Value is in arcsec; zero means don't
   /// group.
-  double beam_proximity_limit_;
-  bool stokes_i_only_;
-  bool any_orientation_is_absolute_;  ///< Any of the Gaussian sources has
-                                      ///< absolute orientation
+  double beam_proximity_limit_{false};
+  bool stokes_i_only_{false};
+  bool any_orientation_is_absolute_{false};  ///< Any of the Gaussian sources
+                                             ///< has absolute orientation
   base::Direction phase_ref_;
-  bool moving_phase_ref_;
+  bool moving_phase_ref_{false};
 
-  bool do_apply_cal_;
+  bool do_apply_cal_{false};
   ApplyCal apply_cal_step_;
   std::shared_ptr<ResultStep>
       result_step_;  ///< For catching results from ApplyCal
 
-  unsigned int debug_level_;
+  unsigned int debug_level_{0};
 
   std::vector<std::pair<size_t, size_t>> baselines_;
 
@@ -161,8 +161,9 @@ class OnePredict : public ModelDataStep {
 
   /// The info needed to calculate the station beams.
   std::shared_ptr<base::PredictBuffer> predict_buffer_;
-  everybeam::CorrectionMode beam_mode_;
-  everybeam::ElementResponseModel element_response_model_;
+  everybeam::CorrectionMode beam_mode_{everybeam::CorrectionMode::kNone};
+  everybeam::ElementResponseModel element_response_model_{
+      everybeam::ElementResponseModel::kDefault};
   std::vector<casacore::MeasFrame> meas_frame_;
   std::vector<casacore::MDirection::Convert> meas_convertors_;
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;

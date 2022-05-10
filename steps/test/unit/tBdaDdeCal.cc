@@ -85,15 +85,16 @@ Model steps for direction [center]
 Predict
 BDAExpander prefix.
 OnePredict prefix.
-  sourcedb:           tDDECal.MS/sky.txt
-   number of patches: 1
-   number of sources: 1
-   absolute orientation: false
-   all unpolarized:   true
-   correct freq smearing: false
-  apply beam:         false
-  operation:          replace
-  threads:            )" +
+  sourcedb:                tDDECal.MS/sky.txt
+   number of patches:      1
+   patches clustered:      false
+   number of components:   1
+   absolute orientation:   false
+   all unpolarized:        true
+   correct freq smearing:  false
+  apply beam:              false
+  operation:               replace
+  threads:                 )" +
           std::to_string(aocommon::system::ProcessorCount()) + R"(
 BDAAverager prefix.
   timebase:        0s
@@ -137,15 +138,16 @@ Model steps for direction [center]
 Predict
 BDAExpander prefix.
 OnePredict prefix.
-  sourcedb:           tDDECal.MS/sky.txt
-   number of patches: 1
-   number of sources: 1
-   absolute orientation: false
-   all unpolarized:   true
-   correct freq smearing: false
-  apply beam:         false
-  operation:          replace
-  threads:            )" +
+  sourcedb:                tDDECal.MS/sky.txt
+   number of patches:      1
+   patches clustered:      false
+   number of components:   1
+   absolute orientation:   false
+   all unpolarized:        true
+   correct freq smearing:  false
+  apply beam:              false
+  operation:               replace
+  threads:                 )" +
           std::to_string(aocommon::system::ProcessorCount()) + R"(
 BDAAverager prefix.
   timebase:        0s

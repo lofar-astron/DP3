@@ -138,7 +138,7 @@ class PreFlagger : public Step {
     /// Test if azimuth or elevation of given antenna mismatches.
     /// If so, clear itsMatchBL for all baselines containing the antenna.
     void testAzEl(casacore::MDirection::Convert& converter, unsigned int blnr,
-                  std::size_t ant, const std::vector<int>& ant1,
+                  int ant, const std::vector<int>& ant1,
                   const std::vector<int>& ant2);
 
     /// Set the flags based on amplitude threshold per correlation.

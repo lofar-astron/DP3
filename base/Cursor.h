@@ -93,7 +93,7 @@ class cursor {
 
   T *itsPointer;
   size_t itsRank;
-  size_t itsStrides[MAX_RANK];
+  size_t itsStrides[MAX_RANK] = {0};
 };
 
 template <typename T>
@@ -169,7 +169,7 @@ class const_cursor {
 
   const T *itsPointer;
   size_t itsRank;
-  size_t itsStrides[MAX_RANK];
+  size_t itsStrides[MAX_RANK] = {0};
 };
 
 /// @}

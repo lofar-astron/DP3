@@ -278,27 +278,30 @@ void OnePredict::SetOperation(const std::string& operation) {
 
 void OnePredict::show(std::ostream& os) const {
   os << "OnePredict " << name_ << '\n';
-  os << "  sourcedb:           " << source_db_name_ << '\n';
-  os << "   number of patches: " << patch_list_.size() << '\n';
-  os << "   number of sources: " << source_list_.size() << '\n';
-  os << "   absolute orientation: " << std::boolalpha
+  os << "  sourcedb:                " << source_db_name_ << '\n';
+  os << "   number of patches:      " << patch_list_.size() << '\n';
+  os << "   patches clustered:      " << std::boolalpha
+     << (!one_beam_per_patch_ && (beam_proximity_limit_ > 0.0)) << '\n';
+  os << "   number of components:   " << source_list_.size() << '\n';
+  os << "   absolute orientation:   " << std::boolalpha
      << any_orientation_is_absolute_ << '\n';
-  os << "   all unpolarized:   " << std::boolalpha << stokes_i_only_ << '\n';
-  os << "   correct freq smearing: " << std::boolalpha << correct_freq_smearing_
+  os << "   all unpolarized:        " << std::boolalpha << stokes_i_only_
      << '\n';
-  os << "  apply beam:         " << std::boolalpha << apply_beam_ << '\n';
+  os << "   correct freq smearing:  " << std::boolalpha
+     << correct_freq_smearing_ << '\n';
+  os << "  apply beam:              " << std::boolalpha << apply_beam_ << '\n';
   if (apply_beam_) {
-    os << "   mode:              " << everybeam::ToString(beam_mode_);
+    os << "   mode:                   " << everybeam::ToString(beam_mode_);
     os << '\n';
-    os << "   use channelfreq:   " << std::boolalpha << use_channel_freq_
+    os << "   use channelfreq:        " << std::boolalpha << use_channel_freq_
        << '\n';
-    os << "   one beam per patch:" << std::boolalpha << one_beam_per_patch_
+    os << "   one beam per patch:     " << std::boolalpha << one_beam_per_patch_
        << '\n';
-    os << "   beam proximity lim:"
+    os << "   beam proximity limit:   "
        << (beam_proximity_limit_ * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
   }
-  os << "  operation:          " << operation_ << '\n';
-  os << "  threads:            " << getInfo().nThreads() << '\n';
+  os << "  operation:               " << operation_ << '\n';
+  os << "  threads:                 " << getInfo().nThreads() << '\n';
   if (do_apply_cal_) {
     apply_cal_step_.show(os);
   }

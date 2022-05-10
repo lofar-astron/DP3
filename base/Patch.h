@@ -54,7 +54,7 @@ class Patch {
  private:
   std::string itsName;
   Direction itsDirection;
-  double itsBrightness;
+  double itsBrightness{0.0};
   std::vector<std::shared_ptr<ModelComponent>> itsComponents;
 };
 

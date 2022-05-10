@@ -86,7 +86,7 @@ class Simulator : public ModelComponentVisitor {
   template <typename T>
   class DuoMatrix {
    public:
-    DuoMatrix() : itsNRows(0){};
+    DuoMatrix() = default;
 
     DuoMatrix(size_t nrows, size_t ncols) { resize(nrows, ncols); }
 
@@ -112,7 +112,7 @@ class Simulator : public ModelComponentVisitor {
     // Use separate storage for real/imag parts
     std::vector<T> itsData_real;
     std::vector<T> itsData_imag;
-    size_t itsNRows;
+    size_t itsNRows{0};
   };
 
   void simulate(const std::shared_ptr<const ModelComponent>& component);

@@ -209,8 +209,8 @@ void DPInfo::setAntUsed() {
   antenna_map_.resize(antenna_names_.size());
   std::fill(antenna_map_.begin(), antenna_map_.end(), -1);
   for (unsigned int i = 0; i < antenna1_.size(); ++i) {
-    if (antenna1_[i] >= antenna_map_.size() ||
-        antenna2_[i] >= antenna_map_.size())
+    if (antenna1_[i] >= static_cast<int>(antenna_map_.size()) ||
+        antenna2_[i] >= static_cast<int>(antenna_map_.size()))
       throw std::runtime_error("Antenna map has an inconsistent size");
     antenna_map_[antenna1_[i]] = 0;
     antenna_map_[antenna2_[i]] = 0;
