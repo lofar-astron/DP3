@@ -46,7 +46,9 @@ void SolverBase::Initialize(
         "DD interval solutions not supported for the selected solver "
         "algorithm. Please "
         "select a different solver algorithm or remove "
-        "ddecal.solutions_per_direction from your parset.");
+        "ddecal.solutions_per_direction from your parset. The most common "
+        "solution for this problem is to set `solveralgorithm` to "
+        "`directioniterative` for the ddecal step in your parset.");
   }
 
   n_antennas_ = n_antennas;
