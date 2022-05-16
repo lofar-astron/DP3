@@ -177,6 +177,267 @@ def test(
     assert_taql(taql_command)
 
 
+@pytest.mark.parametrize(
+    "solutions_per_direction", [[1, 1, 1], [1, 3, 6], [3, 3, 3], [6, 6, 6]]
+)
+@pytest.mark.parametrize(
+    "caltype",
+    ["scalaramplitude", "scalar"],
+)
+def test_calibration_with_dd_intervals(
+    create_corrupted_visibilities,
+    copy_data_to_model_data,
+    solutions_per_direction,
+    caltype,
+):
+    # This test checks that the calibration with different solution intervals per direction gives the same result as the corruption applied in the fixture "create_corrupted_visibilities".
+
+    # Run calibration on corrupted dataset and store solutions in instrument.h5
+    sol_int = 6
+    n_timeslots_in_ms = 6
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.solint={sol_int}",
+            "ddecal.nchan=1",
+            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal.h5parm=instrument.h5",
+            f"ddecal.mode={caltype}",
+            "ddecal.solveralgorithm=directioniterative",
+            f"ddecal.solutions_per_direction={solutions_per_direction}",
+        ]
+    )
+
+    # Verify that he values in instrument.h5 are close to the values in instrumentcorrupted.h5
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
+    ddecal_solutions = h5py.File("instrument.h5", "r")
+    reference_solutions = h5py.File("instrumentcorrupted.h5", "r")
+
+    assert (
+        ddecal_solutions["sol000/amplitude000/val"].attrs["AXES"]
+        == b"time,freq,ant,dir"
+    )
+
+    for direction_index in range(
+        0, len(solutions_per_direction)
+    ):  # loop over number of directions
+        for solint_index in range(
+            0, int(np.ceil(n_timeslots_in_ms / sol_int))
+        ):  # loop over number of solution intervals
+            for interval_in_direction_index in range(
+                0, solutions_per_direction[direction_index]
+            ):  # loop over dd-intervals within one solution interval
+                values_ddecal = ddecal_solutions["sol000/amplitude000/val"][
+                    solint_index * np.max(solutions_per_direction)
+                    + interval_in_direction_index,
+                    :,
+                    :,
+                    direction_index,
+                ]
+                corresponding_index = solint_index * np.max(
+                    solutions_per_direction
+                ) + int(sol_int / solutions_per_direction[direction_index])
+
+                if (
+                    corresponding_index
+                    >= reference_solutions["sol000/amplitude000/val"].shape[0]
+                ):
+                    corresponding_index = (
+                        reference_solutions["sol000/amplitude000/val"].shape[0] - 1
+                    )
+
+                values_reference = reference_solutions["sol000/amplitude000/val"][
+                    corresponding_index, :, :, direction_index, 0
+                ]
+
+                assert (abs(values_ddecal - values_reference) < 1.2).all()
+
+
+@pytest.mark.xfail(reason="Will be fixed in AST-924")
+@pytest.mark.parametrize(
+    "solutions_per_direction",
+    [[1, 1, 1], [1, 2, 4], [2, 2, 2], [4, 4, 4]],
+)
+@pytest.mark.parametrize(
+    "caltype",
+    ["scalaramplitude", "scalar", "diagonal", "diagonalamplitude"],
+)
+def test_bug_ast_924(
+    create_corrupted_visibilities,
+    copy_data_to_model_data,
+    solutions_per_direction,
+    caltype,
+):
+    # This is the same test as "test_calibration_with_dd_intervals" , but with a different solution interval:
+    # In this case sol_int is not an integer divisior of n_timeslots_in_ms
+
+    sol_int = 4
+    n_timeslots_in_ms = 6
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.solint={sol_int}",
+            "ddecal.nchan=1",
+            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal.h5parm=instrument.h5",
+            f"ddecal.mode={caltype}",
+            "ddecal.solveralgorithm=directioniterative",
+            f"ddecal.solutions_per_direction={solutions_per_direction}",
+        ]
+    )
+
+    # Verify that he values in instrument.h5 are close to the values in instrumentcorrupted.h5
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
+    ddecal_solutions = h5py.File("instrument.h5", "r")
+    reference_solutions = h5py.File("instrumentcorrupted.h5", "r")
+
+    for direction_index in range(
+        0, len(solutions_per_direction)
+    ):  # loop over number of directions
+        for solint_index in range(
+            0, int(np.ceil(n_timeslots_in_ms / sol_int))
+        ):  # loop over number of solution intervals
+            for interval_in_direction_index in range(
+                0, solutions_per_direction[direction_index]
+            ):  # loop over dd-intervals within one solution interval
+                values_ddecal = ddecal_solutions["sol000/amplitude000/val"][
+                    solint_index * np.max(solutions_per_direction)
+                    + interval_in_direction_index,
+                    :,
+                    :,
+                    direction_index,
+                ]
+                corresponding_index = solint_index * np.max(
+                    solutions_per_direction
+                ) + int(sol_int / solutions_per_direction[direction_index])
+
+                if (
+                    corresponding_index
+                    >= reference_solutions["sol000/amplitude000/val"].shape[0]
+                ):
+                    corresponding_index = (
+                        reference_solutions["sol000/amplitude000/val"].shape[0] - 1
+                    )
+
+                values_reference = reference_solutions["sol000/amplitude000/val"][
+                    corresponding_index, :, :, direction_index, 0
+                ]
+
+                assert (abs(values_ddecal - values_reference) < 1.2).all()
+
+
+@pytest.mark.xfail(reason="Will be implemented in AST-920")
+@pytest.mark.parametrize(
+    "solutions_per_direction", [[1, 1, 1], [1, 3, 6], [3, 3, 3], [6, 6, 6]]
+)
+@pytest.mark.parametrize(
+    "caltype",
+    ["amplitudeonly", "scalaramplitude", "scalar", "diagonal", "diagonalamplitude"],
+)
+def test_subtract_with_dd_intervals(
+    create_corrupted_visibilities,
+    copy_data_to_model_data,
+    solutions_per_direction,
+    caltype,
+):
+    # This test checks that the subtraction operation works correctly
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=SUBTRACTED_DURING_DDECAL",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.solint=6",
+            "ddecal.nchan=2",
+            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal.h5parm=instrument.h5",
+            f"ddecal.mode={caltype}",
+            "ddecal.solveralgorithm=directioniterative",
+            f"ddecal.solutions_per_direction={solutions_per_direction}",
+            "ddecal.subtract=true",
+        ]
+    )
+
+    common_predict_command = [
+        tcf.DP3EXE,
+        "checkparset=1",
+        "numthreads=1",
+        f"msin={MSIN}",
+        "msout=.",
+        "msout.datacolumn=SUBTRACTED_DURING_PREDICT",
+        "steps=[predict1,predict2,predict3]",
+        f"predict1.sourcedb={MSIN}/sky",
+        "predict1.applycal.parmdb=instrument.h5",
+        "predict1.sources=[center,dec_off]",
+        "predict1.operation=subtract",
+        f"predict2.sourcedb={MSIN}/sky",
+        "predict2.applycal.parmdb=instrument.h5",
+        "predict2.sources=[radec_off]",
+        "predict2.operation=subtract",
+        f"predict3.sourcedb={MSIN}/sky",
+        "predict3.applycal.parmdb=instrument.h5",
+        "predict3.sources=[ra_off]",
+        "predict3.operation=subtract",
+    ]
+    corrections_amplitude_only = [
+        "predict1.applycal.correction=amplitude000",
+        "predict2.applycal.correction=amplitude000",
+        "predict3.applycal.correction=amplitude000",
+    ]
+
+    corrections_amplitude_and_phase = [
+        "predict1.applycal.steps=[amplitude,phase]",
+        "predict1.applycal.amplitude.correction=amplitude000",
+        "predict1.applycal.phase.correction=phase000",
+        "predict2.applycal.steps=[amplitude,phase]",
+        "predict2.applycal.amplitude.correction=amplitude000",
+        "predict2.applycal.phase.correction=phase000",
+        "predict3.applycal.steps=[amplitude,phase]",
+        "predict3.applycal.amplitude.correction=amplitude000",
+        "predict3.applycal.phase.correction=phase000",
+    ]
+
+    if caltype == "scalar" or caltype == "diagonal":
+        check_call(common_predict_command + corrections_amplitude_and_phase)
+
+    else:
+        check_call(common_predict_command + corrections_amplitude_only)
+
+    # Quantify the difference between the subtraction in the DDECal step and in the Predict step
+    predict_residual = float(
+        check_output(
+            [
+                tcf.TAQLEXE,
+                "-nopr",
+                "-noph",
+                f"select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*(SUBTRACTED_DURING_DDECAL- SUBTRACTED_DURING_PREDICT)))) from {MSIN}",
+            ]
+        )
+    )
+
+    tolerance = 2
+    assert predict_residual < tolerance
+
+
 @pytest.mark.parametrize("skymodel", ["sky", "sky.txt"])
 def test_h5parm_predict(skymodel):
     # make calibration solutions

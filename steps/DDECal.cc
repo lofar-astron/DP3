@@ -125,7 +125,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
   for (const size_t val : itsSolutionsPerDirection) {
     if (itsRequestedSolInt % val) {
       throw std::runtime_error(
-          "Values in ddecal.nsoltuionsperdirection should be integer divisors "
+          "Values in ddecal.solutions_per_direction should be integer divisors "
           "of solint");
     }
   }
@@ -863,6 +863,16 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
   // The original data is still in the data buffers (the solver
   // doesn't change those). Here we apply the solutions to all the model data
   // directions and subtract them from the data.
+
+  const size_t n_directions = itsSolutionsPerDirection.size();
+  const size_t n_solutions = std::accumulate(
+      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+  if (n_solutions != n_directions) {
+    throw std::runtime_error(
+        "Subtraction is not implemented for DDECal with direction dependent "
+        "solution intervals");
+  }
+
   std::vector<std::vector<casacore::DComplex>>& solutions =
       itsSols[itsSolIntBuffers[bufferIndex].NSolution()];
   const size_t nBl = info().nbaselines();
