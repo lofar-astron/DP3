@@ -38,7 +38,7 @@ inputs:
   solutions_per_direction:
     default: "[1,1,...,1]"
     type: list
-    doc: List of number of subsolutions per solution interval per direction. Defaults to a single solution per solution interval per direction. Entries in provided list should be integer divisors of solint. If not all directions are specified, missing directions are solved with one solution per solution interval. `.`
+    doc: List of number of subsolutions per solution interval per direction. Defaults to a single solution per solution interval per direction. Entries in provided list should be integer divisors of solint. If not all directions are specified, missing directions are solved with one solution per solution interval. Direction-dependent intervals are only supported when solveralgorithm is set to directioniterative `.`
   usebeammodel:
     default: false
     type: bool
@@ -143,7 +143,7 @@ inputs:
   solveralgorithm:
     default: directionsolve
     type: string
-    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative``, ``lbfgs``, and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating `.`
+    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative``, ``lbfgs``, and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The use of direction-dependent solution intervals (see ``solutions_per_direction``) is only supported for the directioniterative method. The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating `.`
   llssolver:
     default: qr
     type: string
