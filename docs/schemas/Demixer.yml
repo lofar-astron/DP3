@@ -44,6 +44,12 @@ inputs:
       Number of time slots to average when demixing. It is truncated if
       exceeding the actual number of times. It defaults to the averaging used
       for the subtract `.`
+  demixtimeresolution:
+    default: 0
+    type: float
+    doc: >-
+      Time resolution to use when demixing, in seconds. If this is given, and is greater than
+      zero, it overrides `<step>.demixtimestep` `.`
   demixfreqstep:
     default: 0
     type: int
@@ -51,6 +57,13 @@ inputs:
       Number of channels to average when demixing. It is truncated if exceeding
       the actual number of channels. It defaults to the averaging used for the
       subtract `.`
+  demixfreqresolution:
+    default: 0
+    type: float
+    doc: >-
+      Frequency resolution to use when demixing, in Hz (or append "MHz" or "kHz" to specify it
+      in those units). If this is given, and is greater than zero, it overrides
+      ``<step>.demixfreqstep``. This will not exceed the bandwidth of a subband, even if a larger value is given `.`
   ntimechunk:
     default: 0
     type: int

@@ -71,6 +71,20 @@ Averager::Averager(InputStep& input, const string& stepName,
       itsTimeInterval(0),
       itsNoAvg(itsNChanAvg == 1 && itsNTimeAvg == 1) {}
 
+Averager::Averager(InputStep& input, const string& stepName,
+                   double freq_resolution, double time_resolution)
+    : itsInput(input),
+      itsName(stepName),
+      itsFreqResolution(freq_resolution),
+      itsTimeResolution(time_resolution),
+      itsNChanAvg(0),
+      itsNTimeAvg(0),
+      itsMinNPoint(1),
+      itsMinPerc(0),
+      itsNTimes(0),
+      itsTimeInterval(0),
+      itsNoAvg(itsNChanAvg == 1 && itsNTimeAvg == 1) {}
+
 Averager::~Averager() {}
 
 void Averager::updateInfo(const base::DPInfo& infoIn) {

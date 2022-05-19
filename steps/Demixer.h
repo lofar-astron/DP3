@@ -132,7 +132,6 @@ class Demixer : public Step {
   std::vector<string> itsModelSources;
   std::vector<string> itsExtraSources;
   std::vector<string> itsAllSources;
-  //      std::vector<double>                        itsCutOffs;
   bool itsPropagateSolutions;
   unsigned int itsNDir;
   unsigned int itsNModel;
@@ -150,6 +149,8 @@ class Demixer : public Step {
   unsigned int itsNTimeChunkSubtr;
   unsigned int itsNChanAvg;
   unsigned int itsNTimeAvg;
+  double itsFreqResolution;
+  double itsTimeResolution;
   unsigned int itsNChanOut;
   unsigned int itsNTimeOut;
   double itsTimeIntervalAvg;
