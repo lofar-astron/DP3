@@ -46,6 +46,8 @@ class Averager : public Step {
   /// Construct the object using the given parameters.
   Averager(InputStep&, const string& stepname, unsigned int nchanAvg,
            unsigned int ntimeAvg);
+  Averager(InputStep&, const string& stepname, double freq_resolution,
+           double time_resolution);
 
   virtual ~Averager();
 
@@ -66,6 +68,10 @@ class Averager : public Step {
   /// Show the timings.
   virtual void showTimings(std::ostream&, double duration) const;
 
+  /// Get the value in Hertz of a string like "1000 MHz". If unit is
+  /// omitted it defaults to Hertz
+  static double getFreqHz(const string& freqstr);
+
  private:
   /// Average into itsBufOut.
   void average();
@@ -75,10 +81,6 @@ class Averager : public Step {
   /// If a flag is set, set all flags in corresponding FullRes window.
   void copyFullResFlags(const casacore::Cube<bool>& fullResFlags,
                         const casacore::Cube<bool>& flags, int timeIndex);
-
-  /// Get the value in Hertz of a string like "1000 MHz". If unit is
-  /// omitted it defaults to Hertz
-  double getFreqHz(const string& freqstr);
 
   InputStep& itsInput;
   std::string itsName;

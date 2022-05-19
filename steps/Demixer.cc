@@ -83,10 +83,6 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
                                              std::vector<std::string>())),
       itsExtraSources(parset.getStringVector(prefix + "othersources",
                                              std::vector<std::string>())),
-      //        itsCutOffs        (parset.getDoubleVector
-      //        (prefix+"elevationcutoffs",
-      //                                                   vector<double>())),
-      //        itsJointSolve     (parset.getBool  (prefix+"jointsolve", true)),
       itsPropagateSolutions(
           parset.getBool(prefix + "propagatesolutions", false)),
       itsNDir(0),
@@ -103,8 +99,6 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
       itsNTimeOutSubtr(0),
       itsNTimeChunk(parset.getUint(prefix + "ntimechunk", 0)),
       itsNTimeChunkSubtr(0),
-      itsNChanAvg(parset.getUint(prefix + "demixfreqstep", itsNChanAvgSubtr)),
-      itsNTimeAvg(parset.getUint(prefix + "demixtimestep", itsNTimeAvgSubtr)),
       itsNChanOut(0),
       itsNTimeOut(0),
       itsTimeIntervalAvg(0),
@@ -113,31 +107,34 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
       itsLBFGSrobustdof(parset.getDouble(prefix + "lbfgs.robustdof", 2.0)),
       itsTimeIndex(0),
       itsNConverged(0) {
-  // Get and set solver options.
-  //      itsSolveOpt.maxIter =
-  //        parset.getUint  (prefix+"Solve.Options.MaxIter", 300);
-  //      itsSolveOpt.epsValue =
-  //        parset.getDouble(prefix+"Solve.Options.EpsValue", 1e-9);
-  //      itsSolveOpt.epsDerivative =
-  //        parset.getDouble(prefix+"Solve.Options.EpsDerivative", 1e-9);
-  //      itsSolveOpt.colFactor =
-  //        parset.getDouble(prefix+"Solve.Options.ColFactor", 1e-9);
-  //      itsSolveOpt.lmFactor  =
-  //        parset.getDouble(prefix+"Solve.Options.LMFactor", 1.0);
-  //      itsSolveOpt.balancedEq =
-  //        parset.getBool  (prefix+"Solve.Options.BalancedEqs", false);
-  //      itsSolveOpt.useSVD  =
-  //        parset.getBool  (prefix+"Solve.Options.UseSVD", true);
-
-  // Note:
-  // Directions of unknown sources can be given in the PhaseShift step like
-  //       demixstepname.sourcename.phasecenter
-
   if (itsSkyName.empty() || itsInstrumentName.empty())
     throw Exception(
         "An empty name is given for the sky and/or instrument model");
   if (itsIgnoreTarget && !itsTargetSource.empty())
     throw Exception("Target source name cannot be given if ignoretarget=true");
+
+  // Try parsing for demix{time,freq} resolution keys first,
+  // if not demix{time,freq}step parset keys
+  itsFreqResolution = Averager::getFreqHz(
+      parset.getString(prefix + "demixfreqresolution", "0"));
+  if (itsFreqResolution <= 0) {
+    itsNChanAvg = parset.getUint(prefix + "demixfreqstep", itsNChanAvgSubtr);
+  }
+  itsTimeResolution = parset.getFloat(prefix + "demixtimeresolution", 0.);
+  if (itsTimeResolution <= 0) {
+    itsNTimeAvg = parset.getUint(prefix + "demixtimestep", itsNTimeAvgSubtr);
+  }
+  if ((itsFreqResolution > 0 && itsTimeResolution == 0) ||
+      (itsFreqResolution == 0 && itsTimeResolution > 0))
+    throw Exception("Both time and frequency resolutions should be given");
+  const bool use_resolution = (itsFreqResolution > 0 && itsTimeResolution > 0);
+
+  if (itsFreqResolution > 0) {
+    itsNChanAvg = 1;  // will be updated in updateInfo()
+  }
+  if (itsTimeResolution > 0) {
+    itsNTimeAvg = 1;  // will be updated in updateInfo()
+  }
 
 #ifndef HAVE_LIBDIRAC
   if (itsUseLBFGS)
@@ -151,7 +148,8 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
     itsNTimeChunk = getInfo().nThreads();
   }
   // Check that time windows fit integrally.
-  if ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
+  // This check will be done later when using time/freq resolution
+  if (!use_resolution && (itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
     throw Exception("time window should fit final averaging integrally");
   itsNTimeChunkSubtr = (itsNTimeChunk * itsNTimeAvg) / itsNTimeAvgSubtr;
   // Collect all source names.
@@ -228,7 +226,11 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
     itsFirstSteps.push_back(step1);
     itsPhaseShifts.push_back(step1);
     auto step2 =
-        std::make_shared<Averager>(*input, prefix, itsNChanAvg, itsNTimeAvg);
+        (use_resolution
+             ? std::make_shared<Averager>(*input, prefix, itsFreqResolution,
+                                          itsTimeResolution)
+             : std::make_shared<Averager>(*input, prefix, itsNChanAvg,
+                                          itsNTimeAvg));
     step1->setNextStep(step2);
     auto step3 = std::make_shared<MultiResultStep>(itsNTimeChunk);
     step2->setNextStep(step3);
@@ -238,7 +240,11 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
 
   // Now create the step to average the data themselves.
   auto targetAvg =
-      std::make_shared<Averager>(*input, prefix, itsNChanAvg, itsNTimeAvg);
+      (use_resolution
+           ? std::make_shared<Averager>(*input, prefix, itsFreqResolution,
+                                        itsTimeResolution)
+           : std::make_shared<Averager>(*input, prefix, itsNChanAvg,
+                                        itsNTimeAvg));
   itsFirstSteps.push_back(targetAvg);
   auto targetAvgRes = std::make_shared<MultiResultStep>(itsNTimeChunk);
   targetAvg->setNextStep(targetAvgRes);
@@ -256,11 +262,6 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
   itsAvgStepSubtr->setNextStep(itsAvgResultFull);
   itsAvgResultFull->setNextStep(itsFilterSubtr);
   itsFilterSubtr->setNextStep(itsAvgResultSubtr);
-
-  //      while(itsCutOffs.size() < itsNModel) {
-  //        itsCutOffs.push_back(0.0);
-  //      }
-  //      itsCutOffs.resize(itsNModel);
 }
 
 void Demixer::updateInfo(const DPInfo& infoIn) {
@@ -307,10 +308,37 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   // Adapt averaging to available nr of channels and times.
   // Use a copy of the DPInfo, otherwise it is updated multiple times.
   DPInfo infoDemix(infoSel);
+  if (itsTimeResolution > 0) {
+    double time_interval = infoDemix.timeInterval();
+    itsNTimeAvg = std::max(1, (int)(itsTimeResolution / time_interval + 0.5));
+    if ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
+      throw Exception("time window should fit final averaging integrally");
+  }
+
   itsNTimeAvg = std::min(itsNTimeAvg, infoSel.ntime());
+  if (itsFreqResolution > 0) {
+    double chan_width = infoDemix.chanWidths()[0];
+    itsNChanAvg = std::max(1, (int)(itsFreqResolution / chan_width + 0.5));
+  }
   itsNChanAvg = infoDemix.update(itsNChanAvg, itsNTimeAvg);
   itsNChanOut = infoDemix.nchan();
   itsTimeIntervalAvg = infoDemix.timeInterval();
+  itsNTimeDemix = infoDemix.ntime();
+
+  unsigned updated_itsNTimeChunkSubtr =
+      (itsNTimeChunk * itsNTimeAvg) / itsNTimeAvgSubtr;
+
+  if (updated_itsNTimeChunkSubtr != itsNTimeChunkSubtr) {
+    itsNTimeChunkSubtr = updated_itsNTimeChunkSubtr;
+    itsAvgResultFull = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);
+    itsAvgResultSubtr = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);
+    itsAvgStepSubtr->setNextStep(itsAvgResultFull);
+    itsAvgResultFull->setNextStep(itsFilterSubtr);
+    itsFilterSubtr->setNextStep(itsAvgResultSubtr);
+
+    itsFactorsSubtr.resize(itsNTimeChunkSubtr);
+  }
+
   itsNTimeDemix = infoDemix.ntime();
 
   // Let the internal steps update their data.
@@ -401,23 +429,15 @@ void Demixer::show(std::ostream& os) const {
     os << "                        " << itsPhaseShifts[inx++]->getPhaseCenter()
        << '\n';
   }
-  //      os << "  elevationcutoffs: " << itsCutOffs << '\n';
-  //      os << "  jointsolve:     " << itsJointSolve << '\n';
   os << "  propagatesolutions: " << std::boolalpha << itsPropagateSolutions
      << std::noboolalpha << '\n';
   os << "  freqstep:           " << itsNChanAvgSubtr << '\n';
   os << "  timestep:           " << itsNTimeAvgSubtr << '\n';
   os << "  demixfreqstep:      " << itsNChanAvg << '\n';
   os << "  demixtimestep:      " << itsNTimeAvg << '\n';
+  os << "  demixfreqresolution (Hz):      " << itsFreqResolution << '\n';
+  os << "  demixtimeresolution (s):      " << itsTimeResolution << '\n';
   os << "  ntimechunk:         " << itsNTimeChunk << '\n';
-  //      os << "  Solve.Options.MaxIter:       " << itsSolveOpt.maxIter <<
-  //      '\n'; os << "  Solve.Options.EpsValue:      " << itsSolveOpt.epsValue
-  //      << '\n'; os << "  Solve.Options.EpsDerivative: " <<
-  //      itsSolveOpt.epsDerivative << '\n'; os << "  Solve.Options.ColFactor:
-  //      " << itsSolveOpt.colFactor << '\n'; os << "  Solve.Options.LMFactor:
-  //      " << itsSolveOpt.lmFactor << '\n'; os << "  Solve.Options.BalancedEqs:
-  //      " << itsSolveOpt.balancedEq << '\n'; os << "  Solve.Options.UseSVD: "
-  //      << itsSolveOpt.useSVD <<'\n';
 }
 
 void Demixer::showCounts(std::ostream& os) const {

@@ -115,3 +115,23 @@ def test_with_target(skymodel):
     # Compare some columns of the output MS with the reference output.
     taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref3.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
     assert_taql(taql_command)
+
+
+def test_time_freq_resolution():
+    check_call(
+        [
+            tcf.DP3EXE,
+            "demix.ignoretarget=true",
+            "demix.freqstep=64",
+            "demix.timestep=10",
+            "demix.demixfreqresolution=200kHz",
+            "demix.demixtimeresolution=10.0139",
+            "demix.skymodel=tDemix_tmp/sky.txt",
+        ]
+        + common_args
+    )
+
+
+    # Compare some columns of the output MS with the reference output.
+    taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref1.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
+    assert_taql(taql_command)

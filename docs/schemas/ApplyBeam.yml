@@ -18,7 +18,7 @@ inputs:
     type: float
     default: 60
     doc: >-
-      If non-zero, sources that are near each other are clustered and the
+      Specified in arcseconds, and if non-zero, sources that are near each other are clustered and the
       beam is only calculated for each cluster. This trades an increase in
       speed for a very low level of loss in accuracy.
       This parameter is ignored in the ApplyBeam step itself, and should
