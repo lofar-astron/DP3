@@ -164,8 +164,6 @@ build-doc-2204:
   artifacts: # Only for master the docs are published; for branches it may be useful to browse the artifacts
     paths:
     - build/docs
-  rules:
-    - <<: *if_astron_repo
 
 build-package-2204:
   stage: build
@@ -264,24 +262,6 @@ check-stack:
       when: never
     # Only add job for a merge request event on git.astron.nl
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-
-publish-doc-2204:
-  stage: publish
-  image: docker:stable
-  needs: ["build-doc-2204"]
-  before_script:
-    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | base64 -d | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan -H dop810 > ~/.ssh/known_hosts
-  script:
-    - scp -r build/docs/* citt@dop810:DP3/
-  rules:
-    - <<: *if_not_astron_repo
-      when: never
-    - if: '$CI_COMMIT_BRANCH == "master"'
 
 deploy-package-2204:
   stage: publish
