@@ -10,16 +10,20 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.9"
-  # Convert conf.py.in into conf.py using CMake.
   apt_packages:
     - cmake
+    - doxygen
+    - ninja-build
   jobs:
     pre_build:
       # Fix https://github.com/inspirehep/jsonschema2rst/issues/13
       - echo Patching $(find $HOME -path '*/jsonschema2rst/parser.py')...
       - patch -p0 $(find $HOME -path '*/jsonschema2rst/parser.py') < docs/parser.py.patch
       - mkdir build
-      - cmake -S docs/ -B build
+      # CMake converts conf.py.in into conf.py.
+      - cmake -S docs/ -B build -G Ninja
+      # Build doxygen documentation
+      - cd build && ninja doc
 
 sphinx:
   configuration: build/conf.py
