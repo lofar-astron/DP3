@@ -1,12 +1,12 @@
-DP3 
-================
+DP3
+===
 
-`Go to source documentation <https://www.astron.nl/citt/DP3/doxygen/index.html>`_.
+`Go to source documentation <doxygen/>`_.
 
 DP3 (the Default Preprocessing Pipeline, previously NDPPP for New Preprocessing Pipeline) is the LOFAR data pipelined processing program. It can be used to do all kind of operations on the data in a pipelined way, so the data are read and written only once.
 
 DP3 started as a new and faster version of IDPPP.
-The original differences can be seen `here <https://www.astron.nl/lofarwiki/doku.php?id=engineering:software:tools:dppp:diff>`__.
+ASTRON users can see the original differences `here <https://www.astron.nl/lofarwiki/doku.php?id=engineering:software:tools:dppp:diff>`__.
 
 DP3 preprocesses the data of a LOFAR observation by executing steps like flagging or averaging. Such steps can be used for the raw data as well as the calibrated data by defining the data column to use. One or more of the following steps can be defined as a pipeline. DP3 has an implicit input and output step. It is also possible to have intermediate output steps.
 
@@ -75,7 +75,7 @@ The following steps are possible:
 
 
 The input is one or more (regularly shaped) MeasurementSets (MSs). The data in the given column are piped through the steps defined in the parset file and finally written (if needed). It makes it possible to, say, flag at the full resolution, average, flag on a lower resolution, average further, and finally write the data.
-Regularly shaped means that all time slots in the MS must contain the same baselines and channels. DP3 can handle only one spectral window. If the MS has multiple spectral windows, one has to be selected. 
+Regularly shaped means that all time slots in the MS must contain the same baselines and channels. DP3 can handle only one spectral window. If the MS has multiple spectral windows, one has to be selected.
 
 If multiple MSs are given as input, their data are combined in frequency. It means that the time, phase direction, etc. of the different MSs have to be the same. Note that other steps (like averaging) can still be used.
 When combining MSs (thus combining subbands), it is possible that one or more of them do not exist. Flagged data will be inserted for them. The missing frequency info is deduced from the other subbands.
@@ -90,7 +90,7 @@ The AOFlagger, MADFlagger, and Demixer, by far the most expensive parts of DP3, 
 MeasurementSet Access
 ---------------------
   * The :ref:`msin step<Input>` defines which MS and which DATA column to use. It is possible to specify multiple MSs using a glob-pattern or a vector of MS names.
-  * If multiple MSs are given, they will be concatenated in frequency. It means that all MSs must have the same times, baselines, etc. Flagged data can be inserted for MSs that are specified, but do not exist. 
+  * If multiple MSs are given, they will be concatenated in frequency. It means that all MSs must have the same times, baselines, etc. Flagged data can be inserted for MSs that are specified, but do not exist.
   * It is possible to select baselines and/or a band (spectral window) and/or skip leading or trailing channels. This is the same for each input MS.
   * Optionally proper weights can be calculated using the auto-correlation data.
   * It sets flags for invalid data (NaN or infinite).
@@ -160,7 +160,7 @@ It needs three source models, which are made from a text file using
   * A model of the target field. Usually the user can create it from the GSM using `gsm.py <https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:gsm.py>`__.
 
 Smart demixing works as follows:
-  * If an A-team source is at about the same position as a source in the target model, the source is removed from the A-team list and its detailed model replaces the source in the target model used in the solve step (not for the estimate step). 
+  * If an A-team source is at about the same position as a source in the target model, the source is removed from the A-team list and its detailed model replaces the source in the target model used in the solve step (not for the estimate step).
   * Using the coarse A-team model, the visibilities are estimated per baseline for each A-team source. By default the beam model is applied to get the apparent visibilities. The sources and baselines are selected for which the maximum amplitude exceeds a given threshold. A source/station will be solved for if the station appears in at least N of the selected baselines for that source. A detailed source model is used in that step to get as accurate gains as possible.
   * The visibilities of the target are estimated in a similar way using the target model. The target is included in the solve if its maximum amplitude exceeds a threshold or if the amplitude ratio Target/Ateam exceeds a threshold. The target is also included if it is close to an A-team source and the ratio exceeds another (smaller) threshold. Otherwise, the target is ignored (if close) or deprojected.
 
@@ -338,5 +338,3 @@ Plotting the flag percentages, saved by the first MADFlagger step, could be done
 
   import lofar.dppp as ld
   ld.plotflags ('$HOME/SB0_flag1.flagfreq')  # step name was flag1
-
-
