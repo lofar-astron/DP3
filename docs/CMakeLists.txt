@@ -42,6 +42,7 @@ find_program(
 if(SPHINX_FOUND AND JSONSCHEMA2RST_EXECUTABLE)
   set(SPHINX_SOURCE ${CMAKE_CURRENT_BINARY_DIR})
   set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/docs/)
+  # Sphinx needs index.rst in the same directory as conf.py.
   configure_file(index.rst index.rst COPYONLY)
   configure_file(conf.py.in conf.py)
   add_custom_target(

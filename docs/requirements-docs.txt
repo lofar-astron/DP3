@@ -1,3 +1,6 @@
-sphinx == 3.2.1
-sphinx-rtd-theme == 0.5.0
-jsonschema2rst==0.1.4
+# Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Required python packages for building on ReadTheDocs.
+# See .readthedocs.yaml in the root of this repository.
+jsonschema2rst
