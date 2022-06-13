@@ -30,8 +30,7 @@ void showUsage() {
          "\"DP3.parset\",\n"
          "\"NDPPP.parset\" or \"DPPP.parset\" as a default.\n"
          "-v will show version info and exit.\n"
-         "Documentation is at:\n"
-         "https://www.astron.nl/citt/DP3\n";
+         "Documentation is at: https://dp3.readthedocs.io\n";
 }
 
 int main(int argc, char* argv[]) {
