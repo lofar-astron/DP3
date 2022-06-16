@@ -448,14 +448,21 @@ bool OnePredict::process(const DPBuffer& bufin) {
         }
       }
     }
-    for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
+
+    aocommon::ParallelFor<size_t> loop(n_threads);
+    loop.Run(0, n_threads, [&](size_t thread_index) {
       predict_buffer_->GetModel(thread_index) = dcomplex();
       if (apply_beam_)
         predict_buffer_->GetPatchModel(thread_index) = dcomplex();
+      sim_buffer[thread_index] = dcomplex();
+    });
 
+    // Keep this loop single threaded, I'm not sure if Simulator constructor
+    // is thread safe.
+    for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
       // When applying beam, simulate into patch vector
       Cube<dcomplex>& simulatedest = sim_buffer[thread_index];
-      simulatedest = dcomplex();
+
       simulators.emplace_back(phase_ref_, nSt, baselines_split[thread_index],
                               casacore::Vector<double>(info().chanFreqs()),
                               casacore::Vector<double>(info().chanWidths()),
