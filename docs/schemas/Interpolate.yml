@@ -1,5 +1,5 @@
 description: >-
-  The interpolate step replaces flagged values by interpolating them using “neighbouring” 
+  The interpolate step replaces flagged values by interpolating them using "neighbouring" 
   samples (samples close in time and frequency). It calculates the Gaussian weighted sum over 
   non-flagged samples, with a sigma parameter of one timestep/one channel. The flags are removed after interpolation. 
   This is in particular useful in combination with averaging; by replacing flagged values before averaging, the output 
