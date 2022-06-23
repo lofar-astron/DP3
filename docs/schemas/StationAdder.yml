@@ -32,7 +32,7 @@ inputs:
     type: integer
     doc: >-
       Flag a new data point if number of unflagged data points 
-      added is less than `minpoints`` `.`
+      added is less than ``minpoints`` `.`
   useweights:
     default: true
     type: boolean
@@ -54,5 +54,5 @@ inputs:
     default: true
     type: boolean
     doc: >-
-      Sum auto- or cross-correlations to form new auto-correlations `?`
-
+       If ``true``, form new auto-correlations based on existing autocorrelations.
+       If ``false``, use the cross-correlations to form new auto-correlations `.`
