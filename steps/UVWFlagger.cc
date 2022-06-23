@@ -158,7 +158,12 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   }
   const double* uvwPtr = uvws.data();
   bool* flagPtr = flags.data();
-  const bool* origPtr = buf.getFlags().data();
+
+  // A std::vector<bool> doesn't store a contiguous array of bools, instead it
+  // stores 8 bools per byte. Since the code wants to use an array of bools use
+  // a std::unique_ptr instead.
+  const size_t stride = n_correlations * n_channels;
+  std::unique_ptr<bool[]> F{new bool[stride]};
   for (unsigned int i = 0; i < n_baselines; ++i) {
     std::array<double, 3> uvw{0.0, 0.0, 0.0};
     if (!itsCenter.empty()) {
@@ -167,9 +172,12 @@ bool UVWFlagger::process(const DPBuffer& buf) {
       uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[i], getInfo().getAnt2()[i],
                                buf.getTime());
       uvwPtr = uvw.data();
-      /// cout << "uvw = " << uvw << '\n';
     }
 
+    // Copy the original flags so it's possible to count the number of newly
+    // set flags.
+    bool* origPtr = F.get();
+    std::copy_n(flagPtr, stride, origPtr);
     doFlag(uvwPtr, flagPtr, n_correlations, n_channels);
 
     // Count the flags set newly.
