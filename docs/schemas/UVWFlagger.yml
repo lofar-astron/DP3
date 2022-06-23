@@ -161,6 +161,6 @@ inputs:
     type: enum
     symbols: array_factor, element, default
     doc: >-
-      Beam mode to apply, can be “array_factor”, “element” or “default”.
+      Beam mode to apply, can be "array_factor", "element" or "default".
       Default is to apply both the element beam and the array factor `.` 
 

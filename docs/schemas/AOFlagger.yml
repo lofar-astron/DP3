@@ -42,7 +42,7 @@ inputs:
     type: float
     default: 0
     doc: >-
-      Maximum amount of memory (in GB) to use. ⇐0 means no maximum. As stated
+      Maximum amount of memory (in GB) to use. <=0 means no maximum. As stated
       above, this affects flagging accuracy `.`
   timewindow:
     type: int
