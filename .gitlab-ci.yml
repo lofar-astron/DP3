@@ -246,23 +246,6 @@ integration-test-2204:
     reports:
       junit: build/integration_*.xml
 
-check-stack:
-  variables:
-    # Pass commit hash to downstream pipeline
-    DP3_TRIGGER_HASH: $CI_COMMIT_SHA
-  stage: test
-  needs: []
-  trigger:
-    project: RD/schaap-stack
-    branch: master
-    # This will mirror the status of the downstream pipeline
-    strategy: depend
-  rules:
-    - <<: *if_not_astron_repo
-      when: never
-    # Only add job for a merge request event on git.astron.nl
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-
 deploy-package-2204:
   stage: publish
   needs: ["versioning","build-package-2204"]
