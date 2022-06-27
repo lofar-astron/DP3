@@ -83,7 +83,7 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
 
   WriteMetaData();
 
-  MSWriter::writeHistory(ms_, parset_);
+  MSWriter::WriteHistory(ms_, parset_);
   ms_.flush(true, true);
   DPLOG_INFO("Finished preparing output MS", false);
 }
