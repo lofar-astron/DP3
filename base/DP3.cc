@@ -132,7 +132,7 @@ static std::shared_ptr<Step> makeOutputStep(InputStep* reader,
         step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
                                            outName != currentMSName);
       } else {
-        step = std::make_shared<MSWriter>(reader, outName, parset, prefix);
+        step = std::make_shared<MSWriter>(*reader, outName, parset, prefix);
         reader->setReadVisData(true);
       }
       break;

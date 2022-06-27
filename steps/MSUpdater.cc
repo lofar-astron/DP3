@@ -289,7 +289,7 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
       itsWeightColAdded = addColumn(itsWeightColName, casacore::TpFloat, cd);
     }
   }
-  MSWriter::updateBeam(itsMSName, itsDataColName, info());
+  MSWriter::UpdateBeam(itsMSName, itsDataColName, info());
   // Subsequent steps have to set again if writes need to be done.
   info().clearWrites();
   info().clearMetaChanged();
@@ -298,7 +298,7 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
 void MSUpdater::addToMS(const string&) {
   getPrevStep()->addToMS(itsMSName);
   if (itsWriteHistory) {
-    MSWriter::writeHistory(itsMS, itsParset);
+    MSWriter::WriteHistory(itsMS, itsParset);
   }
 }
 
