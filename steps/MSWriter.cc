@@ -107,6 +107,17 @@ MSWriter::~MSWriter() {}
 
 bool MSWriter::process(const DPBuffer& buf) {
   common::NSTimer::StartStop sstime(timer_);
+
+  UpdateInternalBuffer(buf);
+  ProcessBuffer(buffer_);
+
+  getNextStep()->process(buffer_);
+  return true;
+}
+
+void MSWriter::ProcessBuffer(DPBuffer& buffer) {
+  const common::NSTimer::StartStop timer(writer_timer_);
+
   // Form the vector of the output table containing new rows.
   casacore::Vector<common::rownr_t> rownrs(nr_bl_);
   indgen(rownrs, ms_.nrow());
@@ -119,9 +130,9 @@ bool MSWriter::process(const DPBuffer& buf) {
   // the time slot was not missing.
   Table out(ms_(rownrs));
   // Copy the input columns that do not change.
-  WriteMeta(out, buf);
+  WriteMeta(out, buffer);
   // Now write the data and flags.
-  WriteData(out, buf);
+  WriteData(out, buffer);
   // Flush if sufficient time slots are written.
   nr_done_++;
   if (nr_times_flush_ > 0 && nr_done_ % nr_times_flush_ == 0) {
@@ -129,9 +140,7 @@ bool MSWriter::process(const DPBuffer& buf) {
   }
   // Replace the rownrs in the buffer which is needed if in a later
   // step the MS gets updated.
-  buffer_.setRowNrs(rownrs);
-  getNextStep()->process(buffer_);
-  return true;
+  buffer.setRowNrs(rownrs);
 }
 
 void MSWriter::finish() {
@@ -213,6 +222,14 @@ void MSWriter::showTimings(std::ostream& os, double duration) const {
   os << "  ";
   FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
   os << " MSWriter " << name_ << '\n';
+
+  duration = timer_.getElapsed();
+  os << "    ";
+  FlagCounter::showPerc1(os, update_buffer_timer_.getElapsed(), duration);
+  os << " Updating buffer\n";
+  os << "    ";
+  FlagCounter::showPerc1(os, writer_timer_.getElapsed(), duration);
+  os << " Writing\n";
 }
 
 void MSWriter::MakeArrayColumn(ColumnDesc desc, const IPosition& ipos,
@@ -595,6 +612,17 @@ void MSWriter::WriteHistory(Table& ms, const common::ParameterSet& parset) {
   cli.put(rownr, clivec);
 }
 
+void MSWriter::UpdateInternalBuffer(const base::DPBuffer& buffer) {
+  const common::NSTimer::StartStop timer(update_buffer_timer_);
+
+  buffer_.referenceFilled(buffer);
+  reader_.fetchWeights(buffer, buffer_, timer_);
+  reader_.fetchUVW(buffer, buffer_, timer_);
+  if (write_full_res_flags_) {
+    reader_.fetchFullResFlags(buffer, buffer_, timer_);
+  }
+}
+
 void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
   ArrayColumn<casacore::Complex> data_col(out, data_col_name_);
   ArrayColumn<bool> flag_col(out, "FLAG");
@@ -605,9 +633,8 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
   }
 
   // Write WEIGHT_SPECTRUM and DATA
-  ArrayColumn<float> weight_col(out, "WEIGHT_SPECTRUM");
-  buffer_.referenceFilled(buf);
-  const Array<float>& weights = reader_.fetchWeights(buf, buffer_, timer_);
+  ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
+  const Array<float>& weights = buf.getWeights();
 
   // If compressing, flagged values need to be set to NaN, and flagged
   // weights to zero, to decrease the dynamic range
@@ -627,10 +654,10 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
       ++weights_iter;
     }
     data_col.putColumn(data_copy);
-    weight_col.putColumn(weights_copy);
+    weightCol.putColumn(weights_copy);
   } else {
     data_col.putColumn(buf.getData());
-    weight_col.putColumn(weights);
+    weightCol.putColumn(weights);
   }
 
   flag_col.putColumn(buf.getFlags());
@@ -649,8 +676,7 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
 }
 
 void MSWriter::WriteFullResFlags(Table& out, const DPBuffer& buf) {
-  // Get the flags.
-  const Cube<bool>& flags = reader_.fetchFullResFlags(buf, buffer_, timer_);
+  const Cube<bool>& flags = buf.getFullResFlags();
   const IPosition& of_shape = flags.shape();
   if ((unsigned int)(of_shape[0]) != n_chan_avg_ * nr_chan_)
     throw Exception(

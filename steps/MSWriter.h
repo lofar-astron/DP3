@@ -105,13 +105,27 @@ class MSWriter : public Step {
   /// Update the FIELD table with the new phase center.
   void UpdatePhaseCentre(const string& out_name, const base::DPInfo& info);
 
+  /// Update @ref buffer_ with the provided @a buffer.
+  void UpdateInternalBuffer(const base::DPBuffer& buffer);
+
+  /// Process the data in @ref buffer.
+  ///
+  /// This function does not access @ref buffer_.
+  void ProcessBuffer(base::DPBuffer& buffer);
+
   /// Write the data, flags, etc.
+  ///
+  /// This function does not access @ref buffer_.
   void WriteData(casacore::Table& out, const base::DPBuffer& buf);
 
   /// Write the full resolution flags (flags before any averaging).
+  ///
+  /// This function does not access @ref buffer_.
   void WriteFullResFlags(casacore::Table& out, const base::DPBuffer& buf);
 
   /// Write all meta data columns for a time slot (ANTENNA1, etc.)
+  ///
+  /// This function does not access @ref buffer_.
   void WriteMeta(casacore::Table& out, const base::DPBuffer& buf);
 
   /// Copy meta data columns for a time slot (ANTENNA1, etc.)
@@ -179,8 +193,18 @@ class MSWriter : public Step {
   unsigned int nr_done_;         ///< nr of time slots written
   std::string vds_dir_;          ///< directory where to put VDS file
   std::string cluster_desc_;     ///< name of clusterdesc file
-  common::NSTimer timer_;
   base::StManParsetKeys st_man_keys_;
+
+  /// The total time spent in the writer.
+  common::NSTimer timer_;
+
+  /// The time spent updating the buffer.
+  ///
+  /// This update process will spend time reading from the input.
+  common::NSTimer update_buffer_timer_;
+
+  /// The time spent writing data to the output MS.
+  common::NSTimer writer_timer_;
 };
 
 }  // namespace steps
