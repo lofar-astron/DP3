@@ -163,18 +163,18 @@ BOOST_FIXTURE_TEST_CASE(showTimings, OnePredictFixture) {
     // The output percentage is between "  0.x" and "100.x".
     // Percentages above the 100% aren't validated.
     const std::regex regex{
-        R"(  (1[0-9]| [ 0-9])[0-9]\.[0-9]% OnePredict fixture.\n)"
-        R"(          (1[0-9]| [ 0-9])[0-9]\.[0-9]% of it spent in predict\n)"
-        R"(          (1[0-9]| [ 0-9])[0-9]\.[0-9]% of it spent in apply beam\n)"};
+        R"(  (1[0-9]| [ 0-9])[0-9]\.[0-9]% \([ 0-9]{5} [m ]s\) OnePredict fixture.\n)"
+        R"(          (1[0-9]| [ 0-9])[0-9]\.[0-9]% \([ 0-9]{5} [m ]s\) of it spent in predict\n)"
+        R"(          (1[0-9]| [ 0-9])[0-9]\.[0-9]% \([ 0-9]{5} [m ]s\) of it spent in apply beam\n)"};
     BOOST_CHECK(std::regex_match(output.begin(), output.end(), regex));
   }
   {
     // At the moment no beam is applied so the percentages are fixed.
     // TODO Add an additional test to test with a beam applied.
     const std::regex regex{
-        R"(  (1[0-9]| [ 0-9])[0-9]\.[0-9]% OnePredict fixture.\n)"
-        R"(          100\.0% of it spent in predict\n)"
-        R"(            0\.0% of it spent in apply beam\n)"};
+        R"(  (1[0-9]| [ 0-9])[0-9]\.[0-9]% \([ 0-9]{5} [m ]s\) OnePredict fixture.\n)"
+        R"(          100\.0% \([ 0-9]{5} [m ]s\) of it spent in predict\n)"
+        R"(            0\.0% \(    0 ms\) of it spent in apply beam\n)"};
     BOOST_CHECK(std::regex_match(output.begin(), output.end(), regex));
   }
 }
