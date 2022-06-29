@@ -347,9 +347,20 @@ void FlagCounter::showCorrelation(std::ostream& os, int64_t ntimes) const {
   os << ']' << std::endl;
 }
 
+static void WriteDuration(ostream& os, double duration) {
+  if (duration < 10) {
+    duration *= 1000;
+    os << std::setw(5) << int(duration) << " ms";
+  } else {
+    os << std::setw(5) << int(duration) << "  s";
+  }
+}
+
 void FlagCounter::showPerc1(ostream& os, double value, double total) {
   int perc = (total == 0 ? 0 : int(1000.0 * value / total + 0.5));
-  os << std::setw(3) << perc / 10 << '.' << perc % 10 << '%';
+  os << std::setw(3) << perc / 10 << '.' << perc % 10 << "% (";
+  WriteDuration(os, value);
+  os << ')';
 }
 
 void FlagCounter::showPerc3(ostream& os, double value, double total) {
