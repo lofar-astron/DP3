@@ -103,15 +103,19 @@ MSWriter::MSWriter(InputStep& reader, const std::string& out_name,
   st_man_keys_.Set(parset, prefix);
 }
 
-MSWriter::~MSWriter() {}
+MSWriter::~MSWriter() { StopWriteThread(); }
 
 bool MSWriter::process(const DPBuffer& buf) {
   common::NSTimer::StartStop sstime(timer_);
 
   UpdateInternalBuffer(buf);
-  ProcessBuffer(buffer_);
+  if (use_write_thread_) {
+    CreateTask();
+  } else {
+    ProcessBuffer(internal_buffer_);
+    getNextStep()->process(internal_buffer_);
+  }
 
-  getNextStep()->process(buffer_);
   return true;
 }
 
@@ -145,7 +149,10 @@ void MSWriter::ProcessBuffer(DPBuffer& buffer) {
 
 void MSWriter::finish() {
   common::NSTimer::StartStop sstime(timer_);
+
+  StopWriteThread();
   ms_.flush();
+
   /// ROTiledStManAccessor acc1(itsMS, "TiledData");
   /// acc1.showCacheStatistics (cout);
   /// ROTiledStManAccessor acc2(itsMS, "TiledFlag");
@@ -193,6 +200,12 @@ void MSWriter::updateInfo(const DPInfo& info_in) {
   DPLOG_INFO("Finished preparing output MS", false);
   info().clearWrites();
   info().clearMetaChanged();
+
+  use_write_thread_ = dynamic_cast<NullStep*>(getNextStep().get()) != nullptr;
+  if (use_write_thread_) {
+    is_write_thread_active_ = true;
+    write_queue_thread_ = std::thread(&MSWriter::WriteQueueProcess, this);
+  }
 }
 
 void MSWriter::show(std::ostream& os) const {
@@ -216,6 +229,7 @@ void MSWriter::show(std::ostream& os) const {
   } else {
     os << "  Compressed:     no\n";
   }
+  os << "  use thread:     " << std::boolalpha << use_write_thread_ << '\n';
 }
 
 void MSWriter::showTimings(std::ostream& os, double duration) const {
@@ -227,9 +241,14 @@ void MSWriter::showTimings(std::ostream& os, double duration) const {
   os << "    ";
   FlagCounter::showPerc1(os, update_buffer_timer_.getElapsed(), duration);
   os << " Updating buffer\n";
+  if (use_write_thread_) {
+    os << "    ";
+    FlagCounter::showPerc1(os, create_task_timer_.getElapsed(), duration);
+    os << " Creating task\n";
+  }
   os << "    ";
   FlagCounter::showPerc1(os, writer_timer_.getElapsed(), duration);
-  os << " Writing\n";
+  os << (use_write_thread_ ? " Writing (threaded)\n" : " Writing\n");
 }
 
 void MSWriter::MakeArrayColumn(ColumnDesc desc, const IPosition& ipos,
@@ -615,11 +634,11 @@ void MSWriter::WriteHistory(Table& ms, const common::ParameterSet& parset) {
 void MSWriter::UpdateInternalBuffer(const base::DPBuffer& buffer) {
   const common::NSTimer::StartStop timer(update_buffer_timer_);
 
-  buffer_.referenceFilled(buffer);
-  reader_.fetchWeights(buffer, buffer_, timer_);
-  reader_.fetchUVW(buffer, buffer_, timer_);
+  internal_buffer_.referenceFilled(buffer);
+  reader_.fetchWeights(buffer, internal_buffer_, timer_);
+  reader_.fetchUVW(buffer, internal_buffer_, timer_);
   if (write_full_res_flags_) {
-    reader_.fetchFullResFlags(buffer, buffer_, timer_);
+    reader_.fetchFullResFlags(buffer, internal_buffer_, timer_);
   }
 }
 
@@ -671,7 +690,7 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
 
   // Write UVW
   ArrayColumn<double> uvw_col(out, "UVW");
-  const Array<double>& uvws = reader_.fetchUVW(buf, buffer_, timer_);
+  const Array<double>& uvws = reader_.fetchUVW(buf, internal_buffer_, timer_);
   uvw_col.putColumn(uvws);
 }
 
@@ -760,6 +779,31 @@ void MSWriter::CopyMeta(const Table& in, Table& out, bool copy_time_info) {
     CopySca<double>(in, out, "EXPOSURE");
     CopyArr<double>(in, out, "UVW");
   }
+}
+
+void MSWriter::StopWriteThread() {
+  if (!is_write_thread_active_) {
+    return;
+  }
+  write_queue_.write_end();
+  write_queue_.wait_for_empty();
+  write_queue_thread_.join();
+  is_write_thread_active_ = false;
+}
+
+void MSWriter::WriteQueueProcess() {
+  base::DPBuffer buffer;
+  while (write_queue_.read(buffer)) {
+    ProcessBuffer(buffer);
+  }
+}
+
+void MSWriter::CreateTask() {
+  const common::NSTimer::StartStop timer(create_task_timer_);
+
+  base::DPBuffer buffer;
+  buffer.copy(internal_buffer_);
+  write_queue_.write(std::move(buffer));
 }
 
 }  // namespace steps
