@@ -13,9 +13,13 @@
 
 #include "../base/StManParsetKeys.h"
 
+#include <aocommon/lane.h>
+
 #include <casacore/tables/Tables/ColumnDesc.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
+
+#include <thread>
 
 namespace casacore {
 class Table;
@@ -105,27 +109,27 @@ class MSWriter : public Step {
   /// Update the FIELD table with the new phase center.
   void UpdatePhaseCentre(const string& out_name, const base::DPInfo& info);
 
-  /// Update @ref buffer_ with the provided @a buffer.
+  /// Update @ref internal_buffer_ with the provided @a buffer.
   void UpdateInternalBuffer(const base::DPBuffer& buffer);
 
   /// Process the data in @ref buffer.
   ///
-  /// This function does not access @ref buffer_.
+  /// This function does not access @ref internal_buffer_.
   void ProcessBuffer(base::DPBuffer& buffer);
 
   /// Write the data, flags, etc.
   ///
-  /// This function does not access @ref buffer_.
+  /// This function does not access @ref internal_buffer_.
   void WriteData(casacore::Table& out, const base::DPBuffer& buf);
 
   /// Write the full resolution flags (flags before any averaging).
   ///
-  /// This function does not access @ref buffer_.
+  /// This function does not access @ref internal_buffer_.
   void WriteFullResFlags(casacore::Table& out, const base::DPBuffer& buf);
 
   /// Write all meta data columns for a time slot (ANTENNA1, etc.)
   ///
-  /// This function does not access @ref buffer_.
+  /// This function does not access @ref internal_buffer_.
   void WriteMeta(casacore::Table& out, const base::DPBuffer& buf);
 
   /// Copy meta data columns for a time slot (ANTENNA1, etc.)
@@ -170,7 +174,7 @@ class MSWriter : public Step {
   InputStep& reader_;
   string name_;
   string out_name_;
-  base::DPBuffer buffer_;
+  base::DPBuffer internal_buffer_;
   casacore::Table ms_;
   common::ParameterSet parset_;  ///< parset for writing history
   casacore::String data_col_name_;
@@ -204,7 +208,60 @@ class MSWriter : public Step {
   common::NSTimer update_buffer_timer_;
 
   /// The time spent writing data to the output MS.
+  ///
+  /// This timer can either run in the main thread or the dedicated write
+  /// thread. When it is running in the write thread the time may exceed the
+  /// time of \ref timer_.
   common::NSTimer writer_timer_;
+
+  /// The time spent creating a task for the write queue.
+  ///
+  /// Creating a task requires an expensive deep copy. When this measures the
+  /// time the main thread spends in that operation.
+  common::NSTimer create_task_timer_;
+
+  /// The size of the write buffer.
+  ///
+  /// On machines with "fast" I/O the writing is usually done when the next
+  /// write task arrives. On machines with "slow" I/O the writing is never
+  /// finished when the next task arrives. The buffer is optimized for machines
+  /// with faster I/O. When an unrelated process causes temporary I/O the buffer
+  /// can keep the processing to stall on a full buffer.
+  ///
+  /// On the other hand the buffer requires additional memory, so making the
+  /// buffer large takes more memory while the "slow" I/O will just delay the
+  /// final part of the processing. Based on experiments locally and on DAS6 the
+  /// selected size seems a nice trade-off.
+  aocommon::Lane<base::DPBuffer> write_queue_{3};
+
+  /// Creates task for the \ref write_queue_.
+  void CreateTask();
+
+  /// The thread used to process \ref write_queue_.
+  ///
+  /// Note since writing with multiple threads to the same MeasurementSet will
+  /// cause issues in Casacore only one thread is used.
+  std::thread write_queue_thread_;
+
+  /// The task running in \ref write_queue_thread_.
+  void WriteQueueProcess();
+
+  /// Does the writer use a separate thread?
+  ///
+  /// A seperate thread can only be used when the write step in the chain.
+  bool use_write_thread_{false};
+
+  /// Is the write thread running?
+  ///
+  /// There are two places where the write thread can be stopped:
+  /// - finish, there it needs to stop so the finish process can write to the
+  ///   MS.
+  /// - destructor, destroying a non-detached running thread is a contract
+  ///   violation.
+  bool is_write_thread_active_{false};
+
+  /// Stops the write thread when it is active.
+  void StopWriteThread();
 };
 
 }  // namespace steps
