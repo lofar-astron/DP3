@@ -13,6 +13,8 @@
 
 #include "../base/DPBuffer.h"
 
+#include <aocommon/staticfor.h>
+
 #include <casacore/casa/Arrays/Cube.h>
 
 namespace dp3 {
@@ -101,6 +103,7 @@ class Averager : public Step {
   double itsTimeInterval;
   bool itsNoAvg;  ///< No averaging (i.e. both 1)?
   common::NSTimer itsTimer;
+  aocommon::StaticFor<size_t> loop_{0};
 };
 
 }  // namespace steps

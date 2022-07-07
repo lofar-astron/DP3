@@ -118,6 +118,8 @@ void Averager::updateInfo(const base::DPInfo& infoIn) {
   // Adapt averaging to available nr of channels and times.
   itsNTimeAvg = std::min(itsNTimeAvg, infoIn.ntime());
   itsNChanAvg = info().update(itsNChanAvg, itsNTimeAvg);
+
+  if (!itsNoAvg) loop_.SetNThreads(getInfo().nThreads());
 }
 
 void Averager::show(std::ostream& os) const {
@@ -281,46 +283,47 @@ void Averager::average() {
   unsigned int nchan = shp[1];
   unsigned int nbl = shp[2];
   unsigned int npout = ncorr * nchan;
-  aocommon::ParallelFor<unsigned int> loop(getInfo().nThreads());
-  loop.Run(0, nbl, [&](unsigned int k, size_t /*thread*/) {
-    const casacore::Complex* indata = itsBuf.getData().data() + k * npin;
-    const casacore::Complex* inalld = itsAvgAll.data() + k * npin;
-    const float* inwght = itsBuf.getWeights().data() + k * npin;
-    const float* inallw = itsWeightAll.data() + k * npin;
-    const int* innp = itsNPoints.data() + k * npin;
-    casacore::Complex* outdata = itsBufOut.getData().data() + k * npout;
-    float* outwght = itsBufOut.getWeights().data() + k * npout;
-    bool* outflags = itsBufOut.getFlags().data() + k * npout;
-    for (unsigned int i = 0; i < ncorr; ++i) {
-      unsigned int inxi = i;
-      unsigned int inxo = i;
-      for (unsigned int ch = 0; ch < nchan; ++ch) {
-        unsigned int nch = std::min(itsNChanAvg, nchanin - ch * itsNChanAvg);
-        unsigned int navgAll = nch * itsNTimes;
-        casacore::Complex sumd;
-        casacore::Complex sumad;
-        float sumw = 0;
-        float sumaw = 0;
-        unsigned int np = 0;
-        for (unsigned int j = 0; j < nch; ++j) {
-          sumd += indata[inxi];  // Note: weight is accounted for in process
-          sumad += inalld[inxi];
-          sumw += inwght[inxi];
-          sumaw += inallw[inxi];
-          np += innp[inxi];
-          inxi += ncorr;
+  loop_.Run(0, nbl, [&](size_t begin, size_t end) {
+    for (unsigned int k = begin; k != end; ++k) {
+      const casacore::Complex* indata = itsBuf.getData().data() + k * npin;
+      const casacore::Complex* inalld = itsAvgAll.data() + k * npin;
+      const float* inwght = itsBuf.getWeights().data() + k * npin;
+      const float* inallw = itsWeightAll.data() + k * npin;
+      const int* innp = itsNPoints.data() + k * npin;
+      casacore::Complex* outdata = itsBufOut.getData().data() + k * npout;
+      float* outwght = itsBufOut.getWeights().data() + k * npout;
+      bool* outflags = itsBufOut.getFlags().data() + k * npout;
+      for (unsigned int i = 0; i < ncorr; ++i) {
+        unsigned int inxi = i;
+        unsigned int inxo = i;
+        for (unsigned int ch = 0; ch < nchan; ++ch) {
+          unsigned int nch = std::min(itsNChanAvg, nchanin - ch * itsNChanAvg);
+          unsigned int navgAll = nch * itsNTimes;
+          casacore::Complex sumd;
+          casacore::Complex sumad;
+          float sumw = 0;
+          float sumaw = 0;
+          unsigned int np = 0;
+          for (unsigned int j = 0; j < nch; ++j) {
+            sumd += indata[inxi];  // Note: weight is accounted for in process
+            sumad += inalld[inxi];
+            sumw += inwght[inxi];
+            sumaw += inallw[inxi];
+            np += innp[inxi];
+            inxi += ncorr;
+          }
+          // Flag the point if insufficient unflagged data.
+          if (sumw == 0 || np < itsMinNPoint || np < navgAll * itsMinPerc) {
+            outdata[inxo] = (sumaw == 0 ? casacore::Complex() : sumad / sumaw);
+            outflags[inxo] = true;
+            outwght[inxo] = sumaw;
+          } else {
+            outdata[inxo] = sumd / sumw;
+            outflags[inxo] = false;
+            outwght[inxo] = sumw;
+          }
+          inxo += ncorr;
         }
-        // Flag the point if insufficient unflagged data.
-        if (sumw == 0 || np < itsMinNPoint || np < navgAll * itsMinPerc) {
-          outdata[inxo] = (sumaw == 0 ? casacore::Complex() : sumad / sumaw);
-          outflags[inxo] = true;
-          outwght[inxo] = sumaw;
-        } else {
-          outdata[inxo] = sumd / sumw;
-          outflags[inxo] = false;
-          outwght[inxo] = sumw;
-        }
-        inxo += ncorr;
       }
     }
   });
