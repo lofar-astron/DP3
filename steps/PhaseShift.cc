@@ -92,6 +92,8 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
     itsFreqC.push_back(2. * casacore::C::pi * freq[i] / casacore::C::c);
   }
   itsPhasors.resize(infoIn.nchan(), infoIn.nbaselines());
+
+  loop_.SetNThreads(getInfo().nThreads());
 }
 
 void PhaseShift::show(std::ostream& os) const {
@@ -117,33 +119,35 @@ bool PhaseShift::process(const DPBuffer& buf) {
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
   // to process.
-  aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
-  loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
-    casacore::Complex* __restrict__ data =
-        itsBuf.getData().data() + bl * nchan * ncorr;
-    double* __restrict__ uvw = itsBuf.getUVW().data() + bl * 3;
-    casacore::DComplex* __restrict__ phasors = itsPhasors.data() + bl * nchan;
-    double u = uvw[0] * mat1[0] + uvw[1] * mat1[3] + uvw[2] * mat1[6];
-    double v = uvw[0] * mat1[1] + uvw[1] * mat1[4] + uvw[2] * mat1[7];
-    double w = uvw[0] * mat1[2] + uvw[1] * mat1[5] + uvw[2] * mat1[8];
-    double phase = itsXYZ[0] * uvw[0] + itsXYZ[1] * uvw[1] + itsXYZ[2] * uvw[2];
-    for (int j = 0; j < nchan; ++j) {
-      // Shift the phase of the data of this baseline.
-      // Converting the phase term to wavelengths (and applying 2*pi)
-      //      u_wvl = u_m / wvl = u_m * freq / c
-      // has been done once in the beginning (in updateInfo).
-      double phasewvl = phase * itsFreqC[j];
-      casacore::DComplex phasor(cos(phasewvl), sin(phasewvl));
-      *phasors++ = phasor;
-      for (int k = 0; k < ncorr; ++k) {
-        *data = casacore::DComplex(*data) * phasor;
-        data++;
+  loop_.Run(0, nbl, [&](size_t begin, size_t end) {
+    for (unsigned int bl = begin; bl != end; ++bl) {
+      casacore::Complex* __restrict__ data =
+          itsBuf.getData().data() + bl * nchan * ncorr;
+      double* __restrict__ uvw = itsBuf.getUVW().data() + bl * 3;
+      casacore::DComplex* __restrict__ phasors = itsPhasors.data() + bl * nchan;
+      double u = uvw[0] * mat1[0] + uvw[1] * mat1[3] + uvw[2] * mat1[6];
+      double v = uvw[0] * mat1[1] + uvw[1] * mat1[4] + uvw[2] * mat1[7];
+      double w = uvw[0] * mat1[2] + uvw[1] * mat1[5] + uvw[2] * mat1[8];
+      double phase =
+          itsXYZ[0] * uvw[0] + itsXYZ[1] * uvw[1] + itsXYZ[2] * uvw[2];
+      for (int j = 0; j < nchan; ++j) {
+        // Shift the phase of the data of this baseline.
+        // Converting the phase term to wavelengths (and applying 2*pi)
+        //      u_wvl = u_m / wvl = u_m * freq / c
+        // has been done once in the beginning (in updateInfo).
+        double phasewvl = phase * itsFreqC[j];
+        casacore::DComplex phasor(cos(phasewvl), sin(phasewvl));
+        *phasors++ = phasor;
+        for (int k = 0; k < ncorr; ++k) {
+          *data = casacore::DComplex(*data) * phasor;
+          data++;
+        }
       }
+      uvw[0] = u;
+      uvw[1] = v;
+      uvw[2] = w;
+      uvw += 3;
     }
-    uvw[0] = u;
-    uvw[1] = v;
-    uvw[2] = w;
-    uvw += 3;
   });
   itsTimer.stop();
   getNextStep()->process(itsBuf);

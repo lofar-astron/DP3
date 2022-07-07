@@ -12,6 +12,8 @@
 
 #include "../base/DPBuffer.h"
 
+#include <aocommon/staticfor.h>
+
 #include <casacore/casa/Arrays/Matrix.h>
 
 namespace dp3 {
@@ -93,6 +95,8 @@ class PhaseShift : public Step {
   casacore::Matrix<casacore::DComplex>
       itsPhasors;  ///< phase factor per chan,bl
   common::NSTimer itsTimer;
+
+  aocommon::StaticFor<size_t> loop_{0};
 };
 
 }  // namespace steps
