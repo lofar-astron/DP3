@@ -9,7 +9,6 @@
 #include "ApplyCal.h"
 #include "MSReader.h"
 
-#include "../base/Exceptions.h"
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 
@@ -159,7 +158,7 @@ OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
 
   if (itsCorrectType == CorrectType::FULLJONES && itsUpdateWeights) {
     if (!itsInvert)
-      throw Exception(
+      throw std::runtime_error(
           "Updating weights has not been implemented for invert=false and "
           "fulljones");
   }
@@ -220,7 +219,7 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
         // Defvalues with :Ampl present
         itsUseAP = true;
       } else {
-        throw Exception("No gains found in parmdb " + itsParmDBName);
+        throw std::runtime_error("No gains found in parmdb " + itsParmDBName);
       }
     }
   }
@@ -290,16 +289,17 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
     itsParmExprs.push_back("Amplitude:0");
     itsParmExprs.push_back("Amplitude:1");
   } else {
-    throw Exception("Correction type " +
-                    JonesParameters::CorrectTypeToString(itsCorrectType) +
-                    " is unknown");
+    throw std::runtime_error(
+        "Correction type " +
+        JonesParameters::CorrectTypeToString(itsCorrectType) + " is unknown");
   }
 
   itsFlagCounter.init(getInfo());
 
   // Check that channels are evenly spaced
   if (!itsUseH5Parm && !info().channelsAreRegular()) {
-    throw Exception("ApplyCal with parmdb requires evenly spaced channels.");
+    throw std::runtime_error(
+        "ApplyCal with parmdb requires evenly spaced channels.");
   }
 }
 
@@ -538,9 +538,9 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
         } else if (parmExpr.substr(0, 5) == "Gain:") {
           defValue = 0.;
         } else {
-          throw Exception("No parameter value found for " + parmExpr + ":" +
-                          std::string(info().antennaNames()[ant]) +
-                          name_postfix);
+          throw std::runtime_error(
+              "No parameter value found for " + parmExpr + ":" +
+              std::string(info().antennaNames()[ant]) + name_postfix);
         }
 
         parmvalues[parmExprNum][ant].resize(tfDomainSize);

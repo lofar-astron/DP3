@@ -6,8 +6,6 @@
 
 #include "H5ParmPredict.h"
 
-#include "../base/Exceptions.h"
-
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 #include "../common/StringTools.h"
@@ -66,8 +64,8 @@ H5ParmPredict::H5ParmPredict(InputStep* input,
     for (const string& dirStr : itsDirections) {
       if (find(h5directions.begin(), h5directions.end(), dirStr) ==
           h5directions.end()) {
-        throw Exception("Direction " + dirStr + " not found in " +
-                        itsH5ParmName);
+        throw std::runtime_error("Direction " + dirStr + " not found in " +
+                                 itsH5ParmName);
       }
     }
   }

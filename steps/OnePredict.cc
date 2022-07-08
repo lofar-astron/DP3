@@ -18,7 +18,6 @@
 #include "../parmdb/SkymodelToSourceDB.h"
 
 #include "../base/DPInfo.h"
-#include "../base/Exceptions.h"
 #include "../base/FlagCounter.h"
 #include "../base/Simulate.h"
 #include "../base/Simulator.h"
@@ -101,7 +100,8 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   try {
     patch_list_ = source_db.MakePatchList();
     if (patch_list_.empty()) {
-      throw Exception("Couldn't find patch for direction " + direction_str_);
+      throw std::runtime_error("Couldn't find patch for direction " +
+                               direction_str_);
     }
   } catch (std::exception& exception) {
     throw std::runtime_error(std::string("Something went wrong while reading "
@@ -131,7 +131,7 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
     } else if (element_model == "oskardipole") {
       element_response_model_ = everybeam::ElementResponseModel::kOSKARDipole;
     } else {
-      throw Exception(
+      throw std::runtime_error(
           "Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
     }
 

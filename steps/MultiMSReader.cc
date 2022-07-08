@@ -9,7 +9,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPLogger.h"
 #include "../base/DPInfo.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
@@ -47,7 +46,8 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
       itsNMissing(0),
       itsMSNames(msNames),
       itsRegularChannels(true) {
-  if (msNames.empty()) throw Exception("No names of MeasurementSets given");
+  if (msNames.empty())
+    throw std::runtime_error("No names of MeasurementSets given");
   itsStartChanStr = parset.getString(prefix + "startchan", "0");
   itsNrChanStr = parset.getString(prefix + "nchan", "0");
   itsUseFlags = parset.getBool(prefix + "useflag", true);
@@ -89,7 +89,8 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
   // TODO: check if frequencies are regular, insert some empy readers
   // if necessary
 
-  if (itsFirst < 0) throw Exception("All input MeasurementSets do not exist");
+  if (itsFirst < 0)
+    throw std::runtime_error("All input MeasurementSets do not exist");
   itsBuffers.resize(itsReaders.size());
 }
 
@@ -159,7 +160,8 @@ void MultiMSReader::sortBands() {
 }
 
 void MultiMSReader::fillBands() {
-  if (itsOrderMS) throw Exception("Cannot order the MSs if some are missing");
+  if (itsOrderMS)
+    throw std::runtime_error("Cannot order the MSs if some are missing");
   // Get channel width (which should be the same for all bands).
   double chanw = itsReaders[itsFirst]->getInfo().chanWidths().data()[0];
   // Get frequency for first subband.
@@ -176,12 +178,13 @@ void MultiMSReader::fillBands() {
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
       if (itsReaders[i]->getInfo().nchan() != itsFillNChan)
-        throw Exception("An MS is missing; the others should have equal nchan");
+        throw std::runtime_error(
+            "An MS is missing; the others should have equal nchan");
       // Check if all channels have the same width and are consecutive.
       const std::vector<double>& freqs = itsReaders[i]->getInfo().chanFreqs();
       const std::vector<double>& width = itsReaders[i]->getInfo().chanWidths();
       if (freqs[0] < freq && !casacore::near(freqs[0], freq, 1e-5))
-        throw Exception(
+        throw std::runtime_error(
             "Subbands should be in increasing order of frequency; found " +
             std::to_string(freqs[0]) + ", expected " + std::to_string(freq) +
             " (diff=" + std::to_string(freqs[0] - freq) + ')');
@@ -229,7 +232,7 @@ bool MultiMSReader::process(const DPBuffer& buf) {
       }
       const DPBuffer& msBuf = itsReaders[i]->getBuffer();
       if (msBuf.getRowNrs().empty())
-        throw Exception(
+        throw std::runtime_error(
             "When using multiple MSs, the times in all MSs have to be "
             "consecutive; this is not the case for MS " +
             std::to_string(i));
@@ -290,35 +293,38 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
     if (itsReaders[i]) {
       const DPInfo& rdinfo = itsReaders[i]->getInfo();
       if (!casacore::near(itsStartTime, rdinfo.startTime()))
-        throw Exception("Start time of MS " + itsMSNames[i] + " differs from " +
-                        itsMSNames[itsFirst]);
+        throw std::runtime_error("Start time of MS " + itsMSNames[i] +
+                                 " differs from " + itsMSNames[itsFirst]);
       if (!casacore::near(itsLastTime, itsReaders[i]->lastTime()))
-        throw Exception("Last time of MS " + itsMSNames[i] + " differs from " +
-                        itsMSNames[itsFirst]);
+        throw std::runtime_error("Last time of MS " + itsMSNames[i] +
+                                 " differs from " + itsMSNames[itsFirst]);
       if (!casacore::near(itsTimeInterval, rdinfo.timeInterval()))
-        throw Exception("Time interval of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("Time interval of MS " + itsMSNames[i] +
+                                 " differs from " + itsMSNames[itsFirst]);
       if (itsNrCorr != rdinfo.ncorr())
-        throw Exception("Number of correlations of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("Number of correlations of MS " +
+                                 itsMSNames[i] + " differs from " +
+                                 itsMSNames[itsFirst]);
       if (itsNrBl != rdinfo.nbaselines())
-        throw Exception("Number of baselines of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("Number of baselines of MS " + itsMSNames[i] +
+                                 " differs from " + itsMSNames[itsFirst]);
       if (itsFullResNChanAvg != itsReaders[i]->nchanAvgFullRes())
-        throw Exception("FullResNChanAvg of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("FullResNChanAvg of MS " + itsMSNames[i] +
+                                 " differs from " + itsMSNames[itsFirst]);
       if (itsFullResNTimeAvg != itsReaders[i]->ntimeAvgFullRes())
-        throw Exception("FullResNTimeAvg of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("FullResNTimeAvg of MS " + itsMSNames[i] +
+                                 " differs from " + itsMSNames[itsFirst]);
       if (getInfo().antennaSet() != rdinfo.antennaSet())
-        throw Exception("Antenna set of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("Antenna set of MS " + itsMSNames[i] +
+                                 " differs from " + itsMSNames[itsFirst]);
       if (getInfo().getAnt1() != rdinfo.getAnt1())
-        throw Exception("Baseline order (ant1) of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("Baseline order (ant1) of MS " +
+                                 itsMSNames[i] + " differs from " +
+                                 itsMSNames[itsFirst]);
       if (getInfo().getAnt2() != rdinfo.getAnt2())
-        throw Exception("Baseline order (ant2) of MS " + itsMSNames[i] +
-                        " differs from " + itsMSNames[itsFirst]);
+        throw std::runtime_error("Baseline order (ant2) of MS " +
+                                 itsMSNames[i] + " differs from " +
+                                 itsMSNames[itsFirst]);
       itsNrChan += rdinfo.nchan();
       itsHasFullResFlags =
           (itsHasFullResFlags && itsReaders[i]->hasFullResFlags());

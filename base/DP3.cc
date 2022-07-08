@@ -262,9 +262,9 @@ DP3::StepCtor* DP3::findStepCtor(const std::string& type) {
     }
   }
 
-  throw Exception("Step type " + type +
-                  " is unknown and no shared library lib" + libname +
-                  " or libdppp_" + libname + " found in (DY)LD_LIBRARY_PATH");
+  throw std::runtime_error(
+      "Step type " + type + " is unknown and no shared library lib" + libname +
+      " or libdppp_" + libname + " found in (DY)LD_LIBRARY_PATH");
 }
 
 void DP3::execute(const string& parsetName, int argc, char* argv[]) {
@@ -329,7 +329,8 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
           "\n*** WARNING: the following parset keywords were not used ***"
           << "\n             maybe they are misspelled"
           << "\n    " << unused << std::endl);
-      if (checkparset != 0) throw Exception("Unused parset keywords found");
+      if (checkparset != 0)
+        throw std::runtime_error("Unused parset keywords found");
     }
   }
   // Process until the end.

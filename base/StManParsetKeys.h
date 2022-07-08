@@ -6,8 +6,6 @@
 
 #include "../common/ParameterSet.h"
 
-#include "Exceptions.h"
-
 #include <string>
 
 #include <casacore/casa/Containers/Record.h>

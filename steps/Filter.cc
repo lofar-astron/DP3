@@ -9,7 +9,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 
@@ -75,9 +74,9 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
   unsigned int nrChan = (unsigned int)(result + 0.0001);
   unsigned int nAllChan = getInfo().nchan();
   if (itsStartChan >= nAllChan)
-    throw Exception("startchan " + std::to_string(itsStartChan) +
-                    " exceeds nr of available channels (" +
-                    std::to_string(nAllChan) + ')');
+    throw std::runtime_error("startchan " + std::to_string(itsStartChan) +
+                             " exceeds nr of available channels (" +
+                             std::to_string(nAllChan) + ')');
   unsigned int maxNrChan = nAllChan - itsStartChan;
   if (nrChan == 0) {
     nrChan = maxNrChan;

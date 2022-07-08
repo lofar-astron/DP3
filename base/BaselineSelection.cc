@@ -6,7 +6,6 @@
 
 #include "BaselineSelection.h"
 #include "DPLogger.h"
-#include "Exceptions.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -50,7 +49,8 @@ BaselineSelection::BaselineSelection(const common::ParameterSet& parset,
     }
   }
   if (itsRangeBL.size() % 2 != 0)
-    throw Exception("NDPPP error: uneven number of lengths in baseline range");
+    throw std::runtime_error(
+        "NDPPP error: uneven number of lengths in baseline range");
 }
 
 bool BaselineSelection::hasSelection() const {
@@ -106,7 +106,8 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
   if (itsStrBL[0] == '[') {
     std::string::size_type rb = itsStrBL.find(']');
     if (rb == string::npos)
-      throw Exception("Baseline selection " + itsStrBL + " has no ending ]");
+      throw std::runtime_error("Baseline selection " + itsStrBL +
+                               " has no ending ]");
     if (rb == itsStrBL.size() - 1) {
       mssel = false;
     } else {
@@ -185,7 +186,7 @@ Matrix<bool> BaselineSelection::handleBLVector(
       }
     } else {
       if (bl.size() != 2)
-        throw Exception(
+        throw std::runtime_error(
             "PreFlagger baseline "
             " should contain 1 or 2 antenna name patterns");
       // Turn the given antenna name pattern into a regex.
@@ -218,8 +219,9 @@ void BaselineSelection::handleCorrType(Matrix<bool>& selectBL) const {
   // Process corrtype if given.
   string corrType = boost::to_lower_copy(itsCorrType);
   if (corrType != "auto" && corrType != "cross")
-    throw Exception("NDPPP corrType " + corrType +
-                    " is invalid; must be auto, cross, or empty string");
+    throw std::runtime_error(
+        "DP3 corrType " + corrType +
+        " is invalid; must be auto, cross, or empty string");
   if (corrType == "auto") {
     casacore::Vector<bool> diag = selectBL.diagonal().copy();
     selectBL = false;

@@ -9,7 +9,6 @@
 #include "MSReader.h"
 #include "MSBDAReader.h"
 
-#include "../base/Exceptions.h"
 #include "../base/MS.h"
 #include "../common/ParameterSet.h"
 
@@ -98,21 +97,21 @@ const Matrix<double>& InputStep::fetchUVW(const DPBuffer& bufin,
 }
 
 void InputStep::getUVW(const RefRows&, double, DPBuffer&) {
-  throw Exception("InputStep::getUVW not implemented");
+  throw std::runtime_error("InputStep::getUVW not implemented");
 }
 
 void InputStep::getWeights(const RefRows&, DPBuffer&) {
-  throw Exception("InputStep::getWeights not implemented");
+  throw std::runtime_error("InputStep::getWeights not implemented");
 }
 
 bool InputStep::getFullResFlags(const RefRows&, DPBuffer&) {
-  throw Exception("InputStep::getFullResFlags not implemented");
+  throw std::runtime_error("InputStep::getFullResFlags not implemented");
 }
 
 std::unique_ptr<everybeam::telescope::Telescope> InputStep::GetTelescope(
     const everybeam::ElementResponseModel /*element_response_model*/,
     bool /*use_channel_frequency*/) const {
-  throw Exception("InputStep::GetTelescope not implemented");
+  throw std::runtime_error("InputStep::GetTelescope not implemented");
 }
 
 std::vector<size_t> InputStep::SelectStationIndices(
@@ -121,7 +120,7 @@ std::vector<size_t> InputStep::SelectStationIndices(
   const everybeam::telescope::PhasedArray* phased_array =
       dynamic_cast<const everybeam::telescope::PhasedArray*>(telescope);
   if (phased_array == nullptr) {
-    throw Exception(
+    throw std::runtime_error(
         "Currently, only PhasedArray telescopes accepted as input, i.e. "
         "OSKAR or LOFAR. Support for other telescope may become available "
         "soon.");
@@ -142,7 +141,7 @@ std::vector<size_t> InputStep::SelectStationIndices(
   }
 
   if (station_idx != station_names.size()) {
-    throw Exception(
+    throw std::runtime_error(
         "InputStep::SelectStationIndices -"
         " some stations miss the beam info");
   }
@@ -150,31 +149,31 @@ std::vector<size_t> InputStep::SelectStationIndices(
 }
 
 void InputStep::setReadVisData(bool) {
-  throw Exception("InputStep::setReadVisData not implemented");
+  throw std::runtime_error("InputStep::setReadVisData not implemented");
 }
 
 const casacore::Table& InputStep::table() const {
-  throw Exception("InputStep::table not implemented");
+  throw std::runtime_error("InputStep::table not implemented");
 }
 
 double InputStep::firstTime() const {
-  throw Exception("InputStep::firstTime not implemented");
+  throw std::runtime_error("InputStep::firstTime not implemented");
 }
 
 double InputStep::lastTime() const {
-  throw Exception("InputStep::lastTime not implemented");
+  throw std::runtime_error("InputStep::lastTime not implemented");
 }
 
 unsigned int InputStep::spectralWindow() const {
-  throw Exception("InputStep::spectralWindow not implemented");
+  throw std::runtime_error("InputStep::spectralWindow not implemented");
 }
 
 unsigned int InputStep::nchanAvgFullRes() const {
-  throw Exception("InputStep::nchanAvgFullRes not implemented");
+  throw std::runtime_error("InputStep::nchanAvgFullRes not implemented");
 }
 
 unsigned int InputStep::ntimeAvgFullRes() const {
-  throw Exception("InputStep::ntimeAvgFullRes not implemented");
+  throw std::runtime_error("InputStep::ntimeAvgFullRes not implemented");
 }
 
 bool InputStep::HasBda(const casacore::MeasurementSet& ms) {
@@ -193,7 +192,8 @@ std::unique_ptr<InputStep> InputStep::CreateReader(
   if (inNames.empty()) {
     inNames = parset.getStringVector("msin");
   }
-  if (inNames.empty()) throw Exception("No input MeasurementSets given");
+  if (inNames.empty())
+    throw std::runtime_error("No input MeasurementSets given");
   // Find all file names matching a possibly wildcarded input name.
   // This is only possible if a single name is given.
   if (inNames.size() == 1) {
@@ -211,7 +211,8 @@ std::unique_ptr<InputStep> InputStep::CreateReader(
         dirIter++;
       }
       if (names.empty())
-        throw Exception("No datasets found matching msin " + inNames[0]);
+        throw std::runtime_error("No datasets found matching msin " +
+                                 inNames[0]);
       inNames = names;
     }
   }

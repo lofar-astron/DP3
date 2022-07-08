@@ -219,7 +219,7 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
 
   if (itsReader->outputs() != this->outputs()) {
-    throw Exception(
+    throw std::runtime_error(
         "Update step is not possible because input/output types are "
         "incompatible (BDA buffer - Regular buffer).\nSpecify a name in the "
         "parset for \"msout\"");
@@ -260,9 +260,9 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   itsWriteFlags = getInfo().writeFlags();
 
   if (getInfo().metaChanged()) {
-    throw Exception("Update step " + itsName +
-                    " is not possible because meta data changes"
-                    " (by averaging, adding/removing stations, etc.)");
+    throw std::runtime_error("Update step " + itsName +
+                             " is not possible because meta data changes"
+                             " (by averaging, adding/removing stations, etc.)");
   }
 
   if (itsWriteData || itsWriteFlags || itsWriteWeights) {

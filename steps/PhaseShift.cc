@@ -9,7 +9,6 @@
 #include "../base/Direction.h"
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
@@ -168,7 +167,8 @@ MDirection PhaseShift::handleCenter() {
   // The phase center must be given in J2000 as two values (ra,dec).
   // In the future time dependent frames can be done as in UVWFlagger.
   if (itsCenter.size() != 2)
-    throw Exception("2 values must be given in PhaseShift phasecenter");
+    throw std::runtime_error(
+        "2 values must be given in PhaseShift phasecenter");
   /// ASSERTSTR (itsCenter.size() < 4,
   ///"Up to 3 values can be given in PhaseShift phasecenter");
   casacore::MDirection phaseCenter;
@@ -176,28 +176,28 @@ MDirection PhaseShift::handleCenter() {
     string str = boost::to_upper_copy(itsCenter[0]);
     MDirection::Types tp;
     if (!MDirection::getType(tp, str))
-      throw Exception(str +
-                      " is an invalid source type"
-                      " in PhaseShift phasecenter");
+      throw std::runtime_error(str +
+                               " is an invalid source type"
+                               " in PhaseShift phasecenter");
     return MDirection(tp);
   }
   casacore::Quantity q0, q1;
   if (!casacore::MVAngle::read(q0, itsCenter[0]))
-    throw Exception(itsCenter[0] +
-                    " is an invalid RA or longitude"
-                    " in PhaseShift phasecenter");
+    throw std::runtime_error(itsCenter[0] +
+                             " is an invalid RA or longitude"
+                             " in PhaseShift phasecenter");
   if (!casacore::MVAngle::read(q1, itsCenter[1]))
-    throw Exception(itsCenter[1] +
-                    " is an invalid DEC or latitude"
-                    " in PhaseShift phasecenter");
+    throw std::runtime_error(itsCenter[1] +
+                             " is an invalid DEC or latitude"
+                             " in PhaseShift phasecenter");
   MDirection::Types type = MDirection::J2000;
   if (itsCenter.size() > 2) {
     string str = boost::to_upper_copy(itsCenter[2]);
     MDirection::Types tp;
     if (!MDirection::getType(tp, str))
-      throw Exception(str +
-                      " is an invalid direction type"
-                      " in PhaseShift phasecenter");
+      throw std::runtime_error(str +
+                               " is an invalid direction type"
+                               " in PhaseShift phasecenter");
   }
   return MDirection(q0, q1, type);
 }

@@ -9,7 +9,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/BDABuffer.h"
 #include "../base/DPInfo.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"
@@ -49,7 +48,8 @@ ScaleData::ScaleData(InputStep*, const common::ParameterSet& parset,
       itsCoeffStr(parset.getStringVector(prefix + "coeffs",
                                          std::vector<std::string>())) {
   if (itsStationExp.size() != itsCoeffStr.size())
-    throw Exception("ScaleData parameters stations and coeffs differ in size");
+    throw std::runtime_error(
+        "ScaleData parameters stations and coeffs differ in size");
   // Determine if scaling for size is explicitly given.
   if (parset.isDefined(prefix + "scalesize")) {
     itsScaleSizeGiven = true;
@@ -95,7 +95,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
     common::ParameterValue coeffPar(itsCoeffStr[i]);
     std::vector<double> coeff(coeffPar.getDoubleVector());
     if (coeff.size() <= 0)
-      throw Exception("A ScaleData coeffs vector is empty");
+      throw std::runtime_error("A ScaleData coeffs vector is empty");
     std::vector<double>& scales = scaleVec[i];
     scales.reserve(freqs.size());
     // Evaluate the polynomial for each frequency giving the scale factors.
@@ -115,7 +115,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
   if (itsScaleSize || !itsScaleSizeGiven) {
     fillSizeScaleFactors(nNominal, extraFactors);
     if (extraFactors.size() != nant)
-      throw Exception(
+      throw std::runtime_error(
           "Maybe stations have been added before doing the scaling; "
           "that should not be done");
   }
@@ -234,7 +234,7 @@ void ScaleData::fillSizeScaleFactors(unsigned int nNominal,
                                      std::vector<double>& fact) {
   casacore::Table ms(getInfo().msName());
   if (!ms.keywordSet().isDefined("LOFAR_ANTENNA_FIELD"))
-    throw Exception(
+    throw std::runtime_error(
         "ScaleData: subtable LOFAR_ANTENNA_FIELD is missing, but "
         "is needed unless scalesize=false is given");
   casacore::Table tab(ms.keywordSet().asTable("LOFAR_ANTENNA_FIELD"));

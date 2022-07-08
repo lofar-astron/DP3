@@ -17,7 +17,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
-#include "../base/Exceptions.h"
 #include "../base/SourceDBUtil.h"
 
 #include "../parmdb/ParmDB.h"
@@ -282,7 +281,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
         smode = GainCalAlgorithm::AMPLITUDEONLY;
         break;
       default:
-        throw Exception("Unhandled mode");
+        throw std::runtime_error("Unhandled mode");
     }
 
     iS.emplace_back(GainCalAlgorithm(
@@ -765,7 +764,7 @@ void GainCal::calibrate() {
         break;
       }
       default:
-        throw Exception("Unknown converged status");
+        throw std::runtime_error("Unknown converged status");
     }
   }
 
@@ -1100,8 +1099,8 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
         }
         break;
       default:
-        throw Exception("Unhandled mode in writing H5Parm output: " +
-                        ToString(caltype));
+        throw std::runtime_error("Unhandled mode in writing H5Parm output: " +
+                                 ToString(caltype));
     }
     soltabs.push_back(soltab);
   }
@@ -1249,7 +1248,7 @@ void GainCal::writeSolutionsParmDB(double startTime) {
                     realim, st);  // TODO: why is there a minus here?
               }
             } else {
-              throw Exception("Unhandled mode");
+              throw std::runtime_error("Unhandled mode");
             }
           }
         }

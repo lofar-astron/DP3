@@ -13,7 +13,6 @@
 #include "ApplyCal.h"
 // for matrix inversion
 #include "../base/DPInfo.h"
-#include "../base/Exceptions.h"
 #include "../base/FlagCounter.h"
 
 #include <EveryBeam/telescope/phasedarray.h>
@@ -83,7 +82,7 @@ ApplyBeam::ApplyBeam(InputStep* input, const common::ParameterSet& parset,
   } else if (element_model == "oskardipole") {
     itsElementResponseModel = everybeam::ElementResponseModel::kOSKARDipole;
   } else {
-    throw Exception(
+    throw std::runtime_error(
         "Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
   }
 }
@@ -110,11 +109,13 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     casacore::MDirection phaseCenter;
     Quantity q0, q1;
     if (!MVAngle::read(q0, itsDirectionStr[0]))
-      throw Exception(itsDirectionStr[0] +
-                      " is an invalid RA or longitude in ApplyBeam direction");
+      throw std::runtime_error(
+          itsDirectionStr[0] +
+          " is an invalid RA or longitude in ApplyBeam direction");
     if (!MVAngle::read(q1, itsDirectionStr[1]))
-      throw Exception(itsDirectionStr[1] +
-                      " is an invalid DEC or latitude in ApplyBeam direction");
+      throw std::runtime_error(
+          itsDirectionStr[1] +
+          " is an invalid DEC or latitude in ApplyBeam direction");
     MDirection::Types type = MDirection::J2000;
     itsDirection = MDirection(q0, q1, type);
   }

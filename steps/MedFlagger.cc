@@ -9,7 +9,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
@@ -114,7 +113,7 @@ void MedFlagger::updateInfo(const DPInfo& infoIn) {
     }
   }
   if (itsApplyAutoCorr && itsNrAutoCorr <= 0)
-    throw Exception(
+    throw std::runtime_error(
         "applyautocorr=True cannot be used if "
         "the data does not contain autocorrelations");
   // Calculate the baseline lengths.

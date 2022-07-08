@@ -6,7 +6,6 @@
 
 #include "Split.h"
 
-#include "../base/Exceptions.h"
 #include "../base/DP3.h"
 
 #include "../common/ParameterSet.h"
@@ -47,7 +46,7 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
       numSplits = parmValues.size();
     } else {
       if (parmValues.size() != numSplits)
-        throw Exception(
+        throw std::runtime_error(
             "Each parameter in replaceparms should have the same number of "
             "items (expected " +
             std::to_string(numSplits) + ", got " +

@@ -9,7 +9,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
-#include "../base/Exceptions.h"
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
@@ -125,8 +124,8 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
     // If not all is selected, use the selection.
     if (subset.nrow() < itsSelMS.nrow()) {
       if (subset.nrow() <= 0)
-        throw Exception("Band " + std::to_string(itsSpw) + " not found in " +
-                        msName());
+        throw std::runtime_error("Band " + std::to_string(itsSpw) +
+                                 " not found in " + msName());
       itsSelMS = subset;
     }
   } else {
@@ -165,7 +164,8 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
       // If not all is selected, use the selection.
       if (subset.nrow() < itsSelMS.nrow()) {
         if (subset.nrow() <= 0)
-          throw Exception("Baselines " + itsSelBL + "not found in " + msName());
+          throw std::runtime_error("Baselines " + itsSelBL + "not found in " +
+                                   msName());
         itsSelMS = subset;
       }
       MSAntennaParse::thisMSAErrorHandler = curHandler;
@@ -254,9 +254,9 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   unsigned int nrChan = (unsigned int)(result + 0.0001);
   unsigned int nAllChan = itsNrChan;
   if (itsStartChan >= nAllChan)
-    throw Exception("startchan " + std::to_string(itsStartChan) +
-                    " exceeds nr of channels in MS (" +
-                    std::to_string(nAllChan) + ')');
+    throw std::runtime_error("startchan " + std::to_string(itsStartChan) +
+                             " exceeds nr of channels in MS (" +
+                             std::to_string(nAllChan) + ')');
   unsigned int maxNrChan = nAllChan - itsStartChan;
   if (nrChan == 0) {
     itsNrChan = maxNrChan;
@@ -403,7 +403,7 @@ bool MSReader::process(const DPBuffer&) {
       itsIter.next();
     }
     if (itsBuffer.getFlags().shape()[2] != int(itsNrBl))
-      throw Exception(
+      throw std::runtime_error(
           "#baselines is not the same for all time slots in the MS");
   }  // end of scope stops the timer.
   // Let the next step in the pipeline process this time slot.
@@ -536,8 +536,8 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
       DPLOG_WARN_STR("Data column " + itsDataColName + " is missing in " +
                      msName());
     } else {
-      throw Exception("Data column " + itsDataColName + " is missing in " +
-                      msName());
+      throw std::runtime_error("Data column " + itsDataColName +
+                               " is missing in " + msName());
     }
   }
 
@@ -570,7 +570,8 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   if (itsAutoWeightForce) {
     itsAutoWeight = true;
   } else if (!useRaw && itsAutoWeight) {
-    throw Exception("Using autoweight=true cannot be done on DPPP-ed MS");
+    throw std::runtime_error(
+        "Using autoweight=true cannot be done on DPPP-ed MS");
   }
   // If not in order, sort the table selection (also on baseline).
   Table sortms(itsSelMS);
@@ -600,7 +601,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
       sortCols, casacore::Sort::Ascending,
       casacore::Sort::QuickSort + casacore::Sort::NoDuplicates);
   if (sortab.nrow() != itsNrBl)
-    throw Exception("The MS appears to have multiple subbands");
+    throw std::runtime_error("The MS appears to have multiple subbands");
   // Get the baseline columns.
   ScalarColumn<int> ant1col(itsIter.table(), "ANTENNA1");
   ScalarColumn<int> ant2col(itsIter.table(), "ANTENNA2");
