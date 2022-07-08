@@ -31,7 +31,7 @@ class FixtureSkymodel {
     ///
     /// When this name is not-empty the fixture will create a sourceDB based
     /// on the contents of the skymodel file.
-    std::string source_db_name;
+    std::string source_db_name = "";
 
     /// The contents of the skymodel file to be written to the disc.
     std::string skymodel_contents =
