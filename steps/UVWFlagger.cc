@@ -7,7 +7,6 @@
 #include "UVWFlagger.h"
 
 #include "../base/DPInfo.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
@@ -341,8 +340,8 @@ std::vector<double> UVWFlagger::fillUVW(const common::ParameterSet& parset,
       usepm = true;
       pos = str->find("+-");
       if (pos == string::npos)
-        throw Exception("UVWFlagger " + name + "range '" + *str +
-                        "' should be range using .. or +-");
+        throw std::runtime_error("UVWFlagger " + name + "range '" + *str +
+                                 "' should be range using .. or +-");
     }
     string str1 = str->substr(0, pos);
     string str2 = str->substr(pos + 2);
@@ -380,34 +379,35 @@ void UVWFlagger::handleCenter() {
   // The phase center can be given as one, two, or three values.
   // I.e., as source name, ra,dec or ra,dec,frame.
   if (itsCenter.size() >= 4)
-    throw Exception("Up to 3 values can be given in UVWFlagger phasecenter");
+    throw std::runtime_error(
+        "Up to 3 values can be given in UVWFlagger phasecenter");
   MDirection phaseCenter;
   if (itsCenter.size() == 1) {
     string str = boost::to_upper_copy(itsCenter[0]);
     MDirection::Types tp;
     if (!MDirection::getType(tp, str))
-      throw Exception(str +
-                      " is an invalid source type"
-                      " in UVWFlagger phasecenter");
+      throw std::runtime_error(str +
+                               " is an invalid source type"
+                               " in UVWFlagger phasecenter");
     phaseCenter = MDirection(tp);
   } else {
     Quantity q0, q1;
     if (!MVAngle::read(q0, itsCenter[0]))
-      throw Exception(itsCenter[0] +
-                      " is an invalid RA or longitude"
-                      " in UVWFlagger phasecenter");
+      throw std::runtime_error(itsCenter[0] +
+                               " is an invalid RA or longitude"
+                               " in UVWFlagger phasecenter");
     if (!MVAngle::read(q1, itsCenter[1]))
-      throw Exception(itsCenter[1] +
-                      " is an invalid DEC or latitude"
-                      " in UVWFlagger phasecenter");
+      throw std::runtime_error(itsCenter[1] +
+                               " is an invalid DEC or latitude"
+                               " in UVWFlagger phasecenter");
     MDirection::Types type = MDirection::J2000;
     if (itsCenter.size() > 2) {
       string str = boost::to_upper_copy(itsCenter[2]);
       MDirection::Types tp;
       if (!MDirection::getType(tp, str))
-        throw Exception(str +
-                        " is an invalid direction type in UVWFlagger"
-                        " in UVWFlagger phasecenter");
+        throw std::runtime_error(str +
+                                 " is an invalid direction type in UVWFlagger"
+                                 " in UVWFlagger phasecenter");
     }
     phaseCenter = MDirection(q0, q1, type);
   }

@@ -6,7 +6,6 @@
 
 #include "SourceDBUtil.h"
 
-#include "Exceptions.h"
 #include "PointSource.h"
 #include "GaussianSource.h"
 
@@ -64,7 +63,7 @@ static PointSource::Ptr MakePointSource(const SourceData& src) {
     } break;
 
     default: {
-      throw Exception(
+      throw std::runtime_error(
           "Only point sources and Gaussian sources are"
           " supported at this time.");
     }
@@ -115,7 +114,7 @@ std::vector<std::shared_ptr<Patch>> makePatches(
   patchList.reserve(componentsList.size());
   for (unsigned int i = 0; i < componentsList.size(); ++i) {
     if (componentsList[i].empty())
-      throw Exception("No sources found for patch " + patchNames[i]);
+      throw std::runtime_error("No sources found for patch " + patchNames[i]);
     auto ppatch = std::make_shared<Patch>(
         patchNames[i], componentsList[i].begin(), componentsList[i].end());
     std::vector<parmdb::PatchInfo> patchInfo(
@@ -154,7 +153,7 @@ std::vector<std::shared_ptr<Patch>> MakePatches(
   patchList.reserve(componentsList.size());
   for (unsigned int i = 0; i < componentsList.size(); ++i) {
     if (componentsList[i].empty())
-      throw Exception("No sources found for patch " + patch_names[i]);
+      throw std::runtime_error("No sources found for patch " + patch_names[i]);
     auto ppatch = std::make_shared<Patch>(
         patch_names[i], componentsList[i].begin(), componentsList[i].end());
 

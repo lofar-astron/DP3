@@ -9,7 +9,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
@@ -75,7 +74,7 @@ PreFlagger::PreFlagger(InputStep* input, const common::ParameterSet& parset,
     itsMode = ClearComp;
   } else {
     if (mode != "set")
-      throw Exception(
+      throw std::runtime_error(
           "invalid preflagger mode: "
           "only set, clear, and set/clearcomplement/other are valid");
   }
@@ -316,7 +315,7 @@ void PreFlagger::PSet::updateInfo(const DPInfo& info) {
     itsMaxUV = 1e30;
   }
   if (itsMinUV >= itsMaxUV)
-    throw Exception("PreFlagger uvmmin should be < uvmmax");
+    throw std::runtime_error("PreFlagger uvmmin should be < uvmmax");
   // Determine if only flagging on time info is done.
   itsFlagOnTimeOnly =
       (!(itsFlagOnUV || itsFlagOnBL || itsFlagOnAzEl || itsFlagOnAmpl ||
@@ -364,8 +363,9 @@ void PreFlagger::PSet::fillChannels(const DPInfo& info) {
         endch = startch;
       } else {
         if (pos == 0 || pos >= itsStrChan[i].size() - 2)
-          throw Exception("No start or end given in PreFlagger channel range " +
-                          itsStrChan[i]);
+          throw std::runtime_error(
+              "No start or end given in PreFlagger channel range " +
+              itsStrChan[i]);
         TableExprNode node1(
             RecordGram::parse(rec, itsStrChan[i].substr(0, pos)));
         node1.get(rec, result);
@@ -375,9 +375,10 @@ void PreFlagger::PSet::fillChannels(const DPInfo& info) {
         node2.get(rec, result);
         endch = (unsigned int)(result + 0.001);
         if (startch > endch)
-          throw Exception("Start " + std::to_string(startch) +
-                          " must be <= end " + std::to_string(endch) +
-                          " in PreFlagger channel range " + itsStrChan[i]);
+          throw std::runtime_error("Start " + std::to_string(startch) +
+                                   " must be <= end " + std::to_string(endch) +
+                                   " in PreFlagger channel range " +
+                                   itsStrChan[i]);
       }
       if (startch < nrchan) {
         for (unsigned int ch = startch; ch < std::min(endch + 1, nrchan);
@@ -866,8 +867,9 @@ std::vector<string> PreFlagger::PSet::exprToRpn(const string& origExpr) {
       i++;
     } else if (expr[i] == '(') {
       if (hadName)
-        throw Exception("no operator before opening parenthesis at pos. " +
-                        std::to_string(i) + " in expression: " + origExpr);
+        throw std::runtime_error(
+            "no operator before opening parenthesis at pos. " +
+            std::to_string(i) + " in expression: " + origExpr);
       oper = OpParen;
       tokens.push(oper);
       i++;
@@ -912,12 +914,14 @@ std::vector<string> PreFlagger::PSet::exprToRpn(const string& origExpr) {
     } else if (expr[i] == ')') {
       // Closing parenthesis. Push till opening parenthesis found.
       if (!hadName)
-        throw Exception("no set name before closing parenthesis at pos. " +
-                        std::to_string(i) + " in expression: " + origExpr);
+        throw std::runtime_error(
+            "no set name before closing parenthesis at pos. " +
+            std::to_string(i) + " in expression: " + origExpr);
       while (true) {
         if (tokens.empty())
-          throw Exception("mismatched parentheses at pos. " +
-                          std::to_string(i) + " in expression: " + origExpr);
+          throw std::runtime_error("mismatched parentheses at pos. " +
+                                   std::to_string(i) +
+                                   " in expression: " + origExpr);
         if (tokens.top() == OpParen) {
           tokens.pop();
           break;
@@ -930,8 +934,9 @@ std::vector<string> PreFlagger::PSet::exprToRpn(const string& origExpr) {
       // No operator, thus it must be an operand (a set name).
       int st = i;
       if (hadName)
-        throw Exception("No operator between set names at pos. " +
-                        std::to_string(i) + " in expression: " + origExpr);
+        throw std::runtime_error("No operator between set names at pos. " +
+                                 std::to_string(i) +
+                                 " in expression: " + origExpr);
       while (i < expr.size() && expr[i] != ' ' && expr[i] != '\t' &&
              expr[i] != '(' && expr[i] != ')' && expr[i] != '!' &&
              expr[i] != ',' && expr[i] != '&' && expr[i] != '|') {
@@ -942,20 +947,22 @@ std::vector<string> PreFlagger::PSet::exprToRpn(const string& origExpr) {
       casacore::String setName(origExpr.substr(st, i - st));
       // Check the name is valid (no special characters).
       if (!setName.matches(casacore::RXidentifier))
-        throw Exception("Invalid set name " + std::string(setName) +
-                        " used in set expression " + origExpr);
+        throw std::runtime_error("Invalid set name " + std::string(setName) +
+                                 " used in set expression " + origExpr);
       names.push_back(setName);
     }
     if (oper < OpParen) {
       // Check if an operator was preceeded correctly.
       if (oper == OpNot) {
         if (hadName)
-          throw Exception("No set name before operator ! at pos. " +
-                          std::to_string(i) + " in expression: " + origExpr);
+          throw std::runtime_error("No set name before operator ! at pos. " +
+                                   std::to_string(i) +
+                                   " in expression: " + origExpr);
       } else {
         if (!hadName)
-          throw Exception("No set name before operator at pos. " +
-                          std::to_string(i) + " in expression: " + origExpr);
+          throw std::runtime_error("No set name before operator at pos. " +
+                                   std::to_string(i) +
+                                   " in expression: " + origExpr);
       }
       hadName = false;
       // Push till lower precedence found.
@@ -967,11 +974,12 @@ std::vector<string> PreFlagger::PSet::exprToRpn(const string& origExpr) {
     }
   }
   if (!hadName)
-    throw Exception("no set name after last operator in expression: " +
-                    origExpr);
+    throw std::runtime_error("no set name after last operator in expression: " +
+                             origExpr);
   while (!tokens.empty()) {
     if (tokens.top() >= OpParen)
-      throw Exception("mismatched parentheses in expression: " + origExpr);
+      throw std::runtime_error("mismatched parentheses in expression: " +
+                               origExpr);
     itsRpn.push_back(tokens.top());
     tokens.pop();
   }
@@ -993,15 +1001,15 @@ std::vector<double> PreFlagger::PSet::fillTimes(const std::vector<string>& vec,
       usepm = true;
       pos = str->find("+-");
       if (pos == string::npos)
-        throw Exception("PreFlagger time range '" + *str +
-                        "' should be range using .. or +-");
+        throw std::runtime_error("PreFlagger time range '" + *str +
+                                 "' should be range using .. or +-");
     }
     // Get the time or datetime in seconds. The values must be positive.
     double v1 = getSeconds(str->substr(0, pos), asTime, false);
     double v2 = getSeconds(str->substr(pos + 2), asTime, usepm);
     if (v1 < 0 || v2 < 0)
-      throw Exception("PreFlagger time range " + *str +
-                      " must have positive values");
+      throw std::runtime_error("PreFlagger time range " + *str +
+                               " must have positive values");
     if (usepm) {
       double pm = v2;
       v2 = v1 + pm;
@@ -1012,7 +1020,8 @@ std::vector<double> PreFlagger::PSet::fillTimes(const std::vector<string>& vec,
     // They are split in 2 ranges.
     if (!canEndBeforeStart) {
       if (v1 >= v2)
-        throw Exception("PreFlagger time range " + *str + " is invalid");
+        throw std::runtime_error("PreFlagger time range " + *str +
+                                 " is invalid");
     } else {
       if (v1 < 0) {
         v1 += 86400;
@@ -1039,21 +1048,21 @@ double PreFlagger::PSet::getSeconds(const string& str, bool asTime,
   Quantity q;
   if (asTime || usepm) {
     if (!MVAngle::read(q, str, true))
-      throw Exception("PreFlagger time " + str + " is invalid");
+      throw std::runtime_error("PreFlagger time " + str + " is invalid");
   } else {
     // It should be a proper date/time, so MVAngle::read should fail.
     if (MVAngle::read(q, str, true))
-      throw Exception("PreFlagger datetime " + str +
-                      " is not a proper date/time");
+      throw std::runtime_error("PreFlagger datetime " + str +
+                               " is not a proper date/time");
     if (!MVTime::read(q, str, true))
-      throw Exception("PreFlagger datetime " + str + " is invalid" +
-                      " is not a proper date/time");
+      throw std::runtime_error("PreFlagger datetime " + str + " is invalid" +
+                               " is not a proper date/time");
   }
   double v = q.getValue("s");
   if (usepm) {
     if (v <= 0)
-      throw Exception("Preflagger time plusminus value " + str +
-                      " must be positive");
+      throw std::runtime_error("Preflagger time plusminus value " + str +
+                               " must be positive");
   }
   return v;
 }
@@ -1109,8 +1118,8 @@ casacore::Vector<bool> PreFlagger::PSet::handleFreqRanges(
       usepm = true;
       pos = str->find("+-");
       if (pos == string::npos)
-        throw Exception("PreFlagger freqrange '" + *str +
-                        "' should be range using .. or +-");
+        throw std::runtime_error("PreFlagger freqrange '" + *str +
+                                 "' should be range using .. or +-");
     }
     string str1 = str->substr(0, pos);
     string str2 = str->substr(pos + 2);

@@ -9,7 +9,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
-#include "../base/Exceptions.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/ParameterRecord.h"
@@ -123,8 +122,8 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
             antennaNames.end() ||
         std::find(newNames.begin(), newNames.end(), iter->first) !=
             newNames.end()) {
-      throw Exception("StationAdder: new station name " + iter->first +
-                      " already exists");
+      throw std::runtime_error("StationAdder: new station name " + iter->first +
+                               " already exists");
     }
     // Get the ids of the stations forming the new superstation.
     // Expand possible .. in the parameter value.
@@ -139,8 +138,8 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     for (unsigned int i = 0; i < parts.size(); ++i) {
       int inx = parts[i];
       if (newStations[inx] >= 0)
-        throw Exception("Station " + antennaNames[inx] +
-                        " is used in multiple superstations");
+        throw std::runtime_error("Station " + antennaNames[inx] +
+                                 " is used in multiple superstations");
       newStations[inx] = newNames.size();
       newPosition +=
           MPosition::Convert(antennaPos[inx], MPosition::ITRF)().getValue();

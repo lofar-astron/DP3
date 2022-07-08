@@ -10,7 +10,6 @@
 #include "../base/DemixInfo.h"
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
-#include "../base/Exceptions.h"
 
 #include "../parmdb/ParmDB.h"
 #include "../parmdb/ParmValue.h"
@@ -47,7 +46,7 @@ DemixerNew::DemixerNew(InputStep* input, const common::ParameterSet& parset,
       itsNTimeOut(0),
       itsNChunk(0) {
   if (itsInstrumentName.empty())
-    throw Exception("An empty name is given for the instrument model");
+    throw std::runtime_error("An empty name is given for the instrument model");
 }
 
 void DemixerNew::updateInfo(const DPInfo& infoIn) {

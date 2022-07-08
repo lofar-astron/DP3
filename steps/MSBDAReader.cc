@@ -7,7 +7,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
-#include "../base/Exceptions.h"
 #include "../base/MS.h"
 
 #include "../common/ParameterSet.h"

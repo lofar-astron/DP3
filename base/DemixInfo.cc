@@ -5,7 +5,6 @@
 // @author Ger van Diepen
 
 #include "DemixInfo.h"
-#include "Exceptions.h"
 #include "PointSource.h"
 #include "GaussianSource.h"
 #include "Stokes.h"
@@ -69,7 +68,7 @@ DemixInfo::DemixInfo(const common::ParameterSet& parset, const string& prefix)
   double delta = parset.getDouble(prefix + "target.delta", 60.);
   itsCosTargetDelta = cos(delta / 3600. * casacore::C::pi / 180.);
   if (itsTargetModelName.empty() || itsDemixModelName.empty())
-    throw Exception("An empty name is given for a sky model");
+    throw std::runtime_error("An empty name is given for a sky model");
   // If the estimate source model is given, read it.
   if (!itsPredictModelName.empty()) {
     itsAteamList = makePatchList(itsPredictModelName, itsSourceNames);
@@ -106,12 +105,12 @@ DemixInfo::DemixInfo(const common::ParameterSet& parset, const string& prefix)
                      itsAteamDemixList[i]->direction().dec,
                      itsAteamList[i]->direction().ra,
                      itsAteamList[i]->direction().dec, itsCosTargetDelta))
-      throw Exception("Direction mismatch of source " +
-                      itsAteamList[i]->name() + " in A-team SourceDBs ([" +
-                      itsAteamDemixList[i]->direction().ra + ", " +
-                      itsAteamDemixList[i]->direction().dec + "] and [" +
-                      itsAteamList[i]->direction().ra + ", " +
-                      itsAteamList[i]->direction().dec + "])");
+      throw std::runtime_error(
+          "Direction mismatch of source " + itsAteamList[i]->name() +
+          " in A-team SourceDBs ([" + itsAteamDemixList[i]->direction().ra +
+          ", " + itsAteamDemixList[i]->direction().dec + "] and [" +
+          itsAteamList[i]->direction().ra + ", " +
+          itsAteamList[i]->direction().dec + "])");
   }
   makeTargetDemixList();
 }
@@ -175,7 +174,7 @@ void DemixInfo::update(const DPInfo& infoSel, DPInfo& info, size_t nThreads) {
   itsNChanIn = infoSel.nchan();
   itsNCorr = infoSel.ncorr();
   if (itsNCorr != 4)
-    throw Exception("Demixing requires data with 4 polarizations");
+    throw std::runtime_error("Demixing requires data with 4 polarizations");
   // NB. The number of baselines and stations refer to the number of
   // selected baselines and the number of unique stations participating
   // in the selected baselines.
@@ -230,18 +229,20 @@ void DemixInfo::update(const DPInfo& infoSel, DPInfo& info, size_t nThreads) {
   itsNChanAvgSubtr = info.update(itsNChanAvgSubtr, itsNTimeAvgSubtr);
   itsNChanOutSubtr = info.nchan();
   if (itsNChanAvg % itsNChanAvgSubtr != 0)
-    throw Exception("Demix frequency averaging " + std::to_string(itsNChanAvg) +
-                    " must be a multiple of output averaging " +
-                    std::to_string(itsNChanAvgSubtr));
+    throw std::runtime_error("Demix frequency averaging " +
+                             std::to_string(itsNChanAvg) +
+                             " must be a multiple of output averaging " +
+                             std::to_string(itsNChanAvgSubtr));
   if (itsNTimeAvg % itsNTimeAvgSubtr != 0)
-    throw Exception("Demix time averaging " + std::to_string(itsNTimeAvg) +
-                    " must be a multiple of output averaging " +
-                    std::to_string(itsNTimeAvgSubtr));
+    throw std::runtime_error("Demix time averaging " +
+                             std::to_string(itsNTimeAvg) +
+                             " must be a multiple of output averaging " +
+                             std::to_string(itsNTimeAvgSubtr));
   if (itsChunkSize % itsNTimeAvg != 0)
-    throw Exception("Demix predict time chunk size " +
-                    std::to_string(itsChunkSize) +
-                    " must be a multiple of averaging time step " +
-                    std::to_string(itsNTimeAvg));
+    throw std::runtime_error("Demix predict time chunk size " +
+                             std::to_string(itsChunkSize) +
+                             " must be a multiple of averaging time step " +
+                             std::to_string(itsNTimeAvg));
   itsNTimeOut = itsChunkSize / itsNTimeAvg;
   itsNTimeOutSubtr = itsChunkSize / itsNTimeAvgSubtr;
   // Store channel frequencies for the demix and subtract resolutions.
@@ -338,8 +339,8 @@ vector<std::shared_ptr<const Patch>> DemixInfo::makePatchList(
   patchList.reserve(patchNames.size());
   for (; pnamesIter != pnamesEnd; ++pnamesIter) {
     if (std::find(names.begin(), names.end(), *pnamesIter) == names.end())
-      throw Exception("Demixer: sourcename " + *pnamesIter +
-                      " not found in SourceDB " + sdbName);
+      throw std::runtime_error("Demixer: sourcename " + *pnamesIter +
+                               " not found in SourceDB " + sdbName);
     // Use this patch; get all its sources.
     vector<parmdb::SourceData> patch = sdb.getPatchSourceData(*pnamesIter);
     vector<std::shared_ptr<ModelComponent>> componentList;
@@ -375,7 +376,7 @@ vector<std::shared_ptr<const Patch>> DemixInfo::makePatchList(
           source = gauss;
         } break;
         default: {
-          throw Exception(
+          throw std::runtime_error(
               "Only point sources and Gaussian sources are"
               " supported at this time.");
         }

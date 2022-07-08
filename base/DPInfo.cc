@@ -5,7 +5,6 @@
 // @author Ger van Diepen
 
 #include "DPInfo.h"
-#include "Exceptions.h"
 
 #include "../common/Epsilon.h"
 
@@ -108,14 +107,15 @@ void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
   if (chan_freqs.size() != nbaselines() || chan_widths.size() != nbaselines() ||
       resolutions.size() != nbaselines() ||
       effective_bw.size() != nbaselines()) {
-    throw Exception("Invalid baseline count while setting frequency info");
+    throw std::runtime_error(
+        "Invalid baseline count while setting frequency info");
   }
 
   const double total_bw = std::accumulate(effective_bw.front().begin(),
                                           effective_bw.front().end(), 0.0);
   for (std::vector<double>& eff_bw_bl : effective_bw) {
     if (std::accumulate(eff_bw_bl.begin(), eff_bw_bl.end(), 0.0) != total_bw) {
-      throw Exception("Total BW is not equal for all baselines");
+      throw std::runtime_error("Total BW is not equal for all baselines");
     }
   }
 
@@ -237,7 +237,7 @@ MeasureHolder DPInfo::copyMeasure(const MeasureHolder fromMeas) {
 
 unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
   if (channel_frequencies_.size() != 1) {
-    throw Exception("Averaging does not support BDA");
+    throw std::runtime_error("Averaging does not support BDA");
   }
 
   if (chanAvg > n_channels_) {
@@ -247,7 +247,7 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
     timeAvg = n_times_;
   }
   if (n_channels_ % chanAvg != 0)
-    throw Exception(
+    throw std::runtime_error(
         "When averaging, nr of channels must divide integrally; "
         "nr of channels = " +
         std::to_string(n_channels_) +
@@ -287,7 +287,7 @@ void DPInfo::update(std::vector<unsigned int>&& timeAvg) {
 void DPInfo::update(unsigned int startChan, unsigned int nchan,
                     const vector<unsigned int>& baselines, bool removeAnt) {
   if (channel_frequencies_.size() != 1) {
-    throw Exception("Channel selection does not support BDA");
+    throw std::runtime_error("Channel selection does not support BDA");
   }
   start_channel_ = startChan;
   auto freqs_begin = channel_frequencies_.front().begin() + startChan;

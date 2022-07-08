@@ -14,7 +14,6 @@
 #include "../base/DPBuffer.h"
 #include "../base/DPInfo.h"
 #include "../base/EstimateMixed.h"
-#include "../base/Exceptions.h"
 #include "../base/SourceDBUtil.h"
 #include "../base/SubtractMixed.h"
 #include "../base/Simulate.h"
@@ -108,10 +107,11 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
       itsTimeIndex(0),
       itsNConverged(0) {
   if (itsSkyName.empty() || itsInstrumentName.empty())
-    throw Exception(
+    throw std::runtime_error(
         "An empty name is given for the sky and/or instrument model");
   if (itsIgnoreTarget && !itsTargetSource.empty())
-    throw Exception("Target source name cannot be given if ignoretarget=true");
+    throw std::runtime_error(
+        "Target source name cannot be given if ignoretarget=true");
 
   // Try parsing for demix{time,freq} resolution keys first,
   // if not demix{time,freq}step parset keys
@@ -126,7 +126,8 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
   }
   if ((itsFreqResolution > 0 && itsTimeResolution == 0) ||
       (itsFreqResolution == 0 && itsTimeResolution > 0))
-    throw Exception("Both time and frequency resolutions should be given");
+    throw std::runtime_error(
+        "Both time and frequency resolutions should be given");
   const bool use_resolution = (itsFreqResolution > 0 && itsTimeResolution > 0);
 
   if (itsFreqResolution > 0) {
@@ -138,7 +139,8 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
 
 #ifndef HAVE_LIBDIRAC
   if (itsUseLBFGS)
-    throw Exception("uselbfgssolver=true but libdirac is not available");
+    throw std::runtime_error(
+        "uselbfgssolver=true but libdirac is not available");
 #endif
   // Add a null step as last step in the filter.
   Step::ShPtr nullStep(new NullStep());
@@ -150,7 +152,8 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
   // Check that time windows fit integrally.
   // This check will be done later when using time/freq resolution
   if (!use_resolution && (itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
-    throw Exception("time window should fit final averaging integrally");
+    throw std::runtime_error(
+        "time window should fit final averaging integrally");
   itsNTimeChunkSubtr = (itsNTimeChunk * itsNTimeAvg) / itsNTimeAvgSubtr;
   // Collect all source names.
   itsNModel = itsSubtrSources.size() + itsModelSources.size();
@@ -177,7 +180,7 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
     // If it has a source model, there cannot be any extra source
     // because the sources to be predicted have to be a consecutive vector.
     if (!itsExtraSources.empty())
-      throw Exception(
+      throw std::runtime_error(
           "Currently no extrasources can "
           "be given if the targetsource is given");
   }
@@ -271,7 +274,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   itsNChanIn = infoIn.nchan();
   itsNCorr = infoIn.ncorr();
   if (itsNCorr != 4)
-    throw Exception("Demixing requires data with 4 polarizations");
+    throw std::runtime_error("Demixing requires data with 4 polarizations");
 
   // Handle possible data selection.
   itsFilter.setInfo(infoIn);
@@ -312,7 +315,8 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
     double time_interval = infoDemix.timeInterval();
     itsNTimeAvg = std::max(1, (int)(itsTimeResolution / time_interval + 0.5));
     if ((itsNTimeChunk * itsNTimeAvg) % itsNTimeAvgSubtr != 0)
-      throw Exception("time window should fit final averaging integrally");
+      throw std::runtime_error(
+          "time window should fit final averaging integrally");
   }
 
   itsNTimeAvg = std::min(itsNTimeAvg, infoSel.ntime());
@@ -354,13 +358,13 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   itsNChanAvgSubtr = info().update(itsNChanAvgSubtr, itsNTimeAvgSubtr);
   itsNChanOutSubtr = info().nchan();
   if (itsNChanAvg % itsNChanAvgSubtr != 0)
-    throw Exception("Demix averaging " + std::to_string(itsNChanAvg) +
-                    " must be multiple of output averaging " +
-                    std::to_string(itsNChanAvgSubtr));
+    throw std::runtime_error("Demix averaging " + std::to_string(itsNChanAvg) +
+                             " must be multiple of output averaging " +
+                             std::to_string(itsNChanAvgSubtr));
   if (itsNTimeAvg % itsNTimeAvgSubtr != 0)
-    throw Exception("Demix averaging " + std::to_string(itsNTimeAvg) +
-                    " must be multiple of output averaging " +
-                    std::to_string(itsNTimeAvgSubtr));
+    throw std::runtime_error("Demix averaging " + std::to_string(itsNTimeAvg) +
+                             " must be multiple of output averaging " +
+                             std::to_string(itsNTimeAvgSubtr));
   // Store channel frequencies for the demix and subtract resolutions.
   itsFreqDemix = infoDemix.chanFreqs();
   itsFreqSubtr = getInfo().chanFreqs();

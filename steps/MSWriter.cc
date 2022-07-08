@@ -88,15 +88,15 @@ MSWriter::MSWriter(InputStep& reader, const std::string& out_name,
   vds_dir_ = parset.getString(prefix + "vdsdir", string());
   cluster_desc_ = parset.getString(prefix + "clusterdesc", string());
   if (data_col_name_ != "DATA")
-    throw Exception(
+    throw std::runtime_error(
         "Currently only the DATA column"
         " can be used as output when writing a new MS");
   if (flag_col_name_ != "FLAG")
-    throw Exception(
+    throw std::runtime_error(
         "Currently only the FLAG column can be used as output for flags when "
         "writing a new MS");
   if (weight_col_name_ != "WEIGHT_SPECTRUM")
-    throw Exception(
+    throw std::runtime_error(
         "Currently only the "
         "WEIGHT_SPECTRUM column can be used as output when writing a new MS");
 
@@ -371,7 +371,7 @@ void MSWriter::CreateMs(const string& out_name, const DPInfo& info,
       break;
     }
   }
-  // Setup table creation. Exception is thrown if it exists already.
+  // Setup table creation. std::runtime_error is thrown if it exists already.
   Table::TableOption opt = overwrite_ ? Table::New : Table::NewNoReplace;
   SetupNewTable newtab(out_name, newdesc, opt);
 
@@ -698,13 +698,14 @@ void MSWriter::WriteFullResFlags(Table& out, const DPBuffer& buf) {
   const Cube<bool>& flags = buf.getFullResFlags();
   const IPosition& of_shape = flags.shape();
   if ((unsigned int)(of_shape[0]) != n_chan_avg_ * nr_chan_)
-    throw Exception(
+    throw std::runtime_error(
         "Full Res Flags size " + std::to_string(of_shape[0]) +
         " does not equal " + std::to_string(n_chan_avg_) + "*" +
         std::to_string(nr_chan_) +
         ".\nTry setting \"msout.writefullresflag=false\" in input parset");
   if ((unsigned int)(of_shape[1]) != n_time_avg_)
-    throw Exception(std::to_string(of_shape[1]) + std::to_string(n_time_avg_));
+    throw std::runtime_error(std::to_string(of_shape[1]) +
+                             std::to_string(n_time_avg_));
   // Convert the bools to unsigned char bits.
   IPosition ch_shape(of_shape);
   ch_shape[0] = (of_shape[0] + 7) / 8;
