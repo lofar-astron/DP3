@@ -12,6 +12,7 @@ add_python_integrationtests(
   tGainCal
   tGainCalH5Parm
   tMsIn
+  tMsOut
   tMultiApplyCal
   tPhaseshiftPredict
   tPredict

@@ -76,6 +76,7 @@ MSWriter::MSWriter(InputStep& reader, const std::string& out_name,
   // Get tile size (default 1024 KBytes).
   tile_size_ = parset.getUint(prefix + "tilesize", 1024);
   tile_n_chan_ = parset.getUint(prefix + "tilenchan", 0);
+  chunk_duration_ = parset.getDouble(prefix + "chunkduration", 0.0);
   overwrite_ = parset.getBool(prefix + "overwrite", false);
   nr_times_flush_ = parset.getUint(prefix + "flush", 60);
   copy_corr_data_ = parset.getBool(prefix + "copycorrecteddata", false);
@@ -105,7 +106,29 @@ MSWriter::MSWriter(InputStep& reader, const std::string& out_name,
 
 MSWriter::~MSWriter() { StopWriteThread(); }
 
+std::string MSWriter::InsertNumberInFilename(const std::string& name,
+                                             size_t number) {
+  size_t dot = name.find_last_of('.');
+  // If the name doesn't contain an extension, just add the number at the end
+  if (dot == std::string::npos) {
+    dot = name.size();
+  }
+  std::string n = std::to_string(number);
+  n = number < 10 ? "00" + n : number < 100 ? "0" + n : n;
+  return name.substr(0, dot) + '-' + n + name.substr(dot);
+}
+
 bool MSWriter::process(const DPBuffer& buf) {
+  if (chunk_start_time_ == 0.0) chunk_start_time_ = buf.getTime();
+
+  if (chunk_duration_ != 0.0 &&
+      buf.getTime() - chunk_start_time_ >= chunk_duration_) {
+    FinishMs();
+    ++current_chunk_index_;
+    chunk_start_time_ = buf.getTime();
+    StartNewMs();
+  }
+
   common::NSTimer::StartStop sstime(timer_);
 
   UpdateInternalBuffer(buf);
@@ -148,19 +171,40 @@ void MSWriter::ProcessBuffer(DPBuffer& buffer) {
 }
 
 void MSWriter::finish() {
+  FinishMs();
+  getNextStep()->finish();
+}
+
+void MSWriter::addToMS(const string&) { getPrevStep()->addToMS(out_name_); }
+
+void MSWriter::StartNewMs() {
+  // Create the MS.
+  common::NSTimer::StartStop sstime(timer_);
+  const std::string chunk_name =
+      chunk_duration_ == 0.0
+          ? out_name_
+          : InsertNumberInFilename(out_name_, current_chunk_index_);
+  CreateMs(chunk_name, info(), tile_size_, tile_n_chan_);
+  // Write the parset info into the history.
+  WriteHistory(ms_, parset_);
+  ms_.flush(true, true);
+  DPLOG_INFO("Finished preparing output MS", false);
+  info().clearWrites();
+  info().clearMetaChanged();
+
+  use_write_thread_ = dynamic_cast<NullStep*>(getNextStep().get()) != nullptr;
+  if (use_write_thread_) {
+    is_write_thread_active_ = true;
+    write_queue_thread_ = std::thread(&MSWriter::WriteQueueProcess, this);
+  }
+}
+
+void MSWriter::FinishMs() {
   common::NSTimer::StartStop sstime(timer_);
 
   StopWriteThread();
   ms_.flush();
 
-  /// ROTiledStManAccessor acc1(itsMS, "TiledData");
-  /// acc1.showCacheStatistics (cout);
-  /// ROTiledStManAccessor acc2(itsMS, "TiledFlag");
-  /// acc2.showCacheStatistics (cout);
-  /// ROTiledStManAccessor acc3(itsMS, "TiledUVW");
-  /// acc3.showCacheStatistics (cout);
-  /// ROTiledStManAccessor acc4(itsMS, "TiledFullResFlag");
-  /// acc4.showCacheStatistics (cout);
   // Create the VDS file.
   if (!cluster_desc_.empty()) {
     string vds_name = ms_.tableName() + ".vds";
@@ -176,8 +220,6 @@ void MSWriter::finish() {
   }
 }
 
-void MSWriter::addToMS(const string&) { getPrevStep()->addToMS(out_name_); }
-
 void MSWriter::updateInfo(const DPInfo& info_in) {
   info() = info_in;
   interval_ = info().timeInterval();
@@ -188,24 +230,10 @@ void MSWriter::updateInfo(const DPInfo& info_in) {
   // Input can already be averaged, so take that into account.
   n_chan_avg_ = reader_.nchanAvgFullRes() * info().nchanAvg();
   n_time_avg_ = reader_.ntimeAvgFullRes() * info().ntimeAvg();
-  // Create the MS.
   if (tile_n_chan_ <= 0 || tile_n_chan_ > getInfo().nchan()) {
     tile_n_chan_ = getInfo().nchan();
   }
-  common::NSTimer::StartStop sstime(timer_);
-  CreateMs(out_name_, info(), tile_size_, tile_n_chan_);
-  // Write the parset info into the history.
-  WriteHistory(ms_, parset_);
-  ms_.flush(true, true);
-  DPLOG_INFO("Finished preparing output MS", false);
-  info().clearWrites();
-  info().clearMetaChanged();
-
-  use_write_thread_ = dynamic_cast<NullStep*>(getNextStep().get()) != nullptr;
-  if (use_write_thread_) {
-    is_write_thread_active_ = true;
-    write_queue_thread_ = std::thread(&MSWriter::WriteQueueProcess, this);
-  }
+  StartNewMs();
 }
 
 void MSWriter::show(std::ostream& os) const {
@@ -787,8 +815,8 @@ void MSWriter::StopWriteThread() {
     return;
   }
   write_queue_.write_end();
-  write_queue_.wait_for_empty();
   write_queue_thread_.join();
+  write_queue_.clear();
   is_write_thread_active_ = false;
 }
 
