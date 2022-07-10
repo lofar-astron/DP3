@@ -30,6 +30,11 @@ inputs:
     type: bool
     doc: >-
       Write the full resolution flags `?`
+  msout&#46;chunkduration:
+    default: 0.0
+    type: double
+    doc: >-
+      Duration (in seconds) after which to start writing a next measurement set. The new measurement set is named with the number of the chunk (with leading zeros to make it at least contain 3 digits) added in front of the extension, prepended by a dash. For example, if msout is "myobs.ms", the first chunk will be called "myobs-000.ms", the next one "myobs-001.ms", etc. When the values is set to zero (the default), no time chunking is performed. `.`
   msout&#46;tilesize:
     default: 1024
     type: integer

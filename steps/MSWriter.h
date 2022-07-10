@@ -86,7 +86,13 @@ class MSWriter : public Step {
                          const std::string& out_col_name,
                          const base::DPInfo& info);
 
+  static std::string InsertNumberInFilename(const std::string& name,
+                                            size_t number);
+
  private:
+  void StartNewMs();
+  void FinishMs();
+
   /// Create an array column description and add to table with given
   /// stoage manager (if given).
   void MakeArrayColumn(casacore::ColumnDesc desc,
@@ -195,8 +201,15 @@ class MSWriter : public Step {
   unsigned int n_time_avg_;      ///< nr of times in input averaged to 1
   unsigned int nr_times_flush_;  ///< flush every N time slots (0=no flush)
   unsigned int nr_done_;         ///< nr of time slots written
-  std::string vds_dir_;          ///< directory where to put VDS file
-  std::string cluster_desc_;     ///< name of clusterdesc file
+  /// In seconds, split measurement set in chunks with a given maximum size.
+  /// Zero means no chunking.
+  double chunk_duration_ = 0.0;
+  /// Start time of last started chunk, to determine length
+  double chunk_start_time_ = 0.0;
+  size_t current_chunk_index_ = 0;
+
+  std::string vds_dir_;       ///< directory where to put VDS file
+  std::string cluster_desc_;  ///< name of clusterdesc file
   base::StManParsetKeys st_man_keys_;
 
   /// The total time spent in the writer.
