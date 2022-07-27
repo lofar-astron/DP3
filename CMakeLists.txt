@@ -549,8 +549,11 @@ if(BUILD_TESTING)
   endif()
 
   set(TEST_FILENAMES
-      common/test/unit/avx256/tVectorComplexFloat4.cc
+      common/test/unit/avx256/tVectorComplexDouble2.cc
+      common/test/unit/avx256/tMatrixComplexDouble2x2.cc
       common/test/unit/avx256/tMatrixComplexFloat2x2.cc
+      common/test/unit/avx256/tVectorComplexFloat4.cc
+      common/test/unit/avx256/tVectorDouble4.cc
       common/test/unit/avx256/tVectorFloat8.cc
       common/test/unit/fixtures/fSkymodel.cc
       common/test/unit/tProximityClustering.cc
@@ -851,16 +854,18 @@ if(BUILD_BENCHMARKS)
   set(BINARY_BENCHMARK_DIR "${CMAKE_CURRENT_BINARY_DIR}/benchmarks")
   file(MAKE_DIRECTORY "${BINARY_BENCHMARK_DIR}")
 
-  add_executable(MatrixComplextFloat2x2 benchmarks/MatrixComplextFloat2x2.cpp)
-  target_include_directories(MatrixComplextFloat2x2
-                             PRIVATE "${CMAKE_SOURCE_DIR}")
-  target_link_libraries(MatrixComplextFloat2x2 PRIVATE nanobench)
+  function(add_benchmark name)
+    add_executable(${name} benchmarks/${name}.cc)
+    target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}")
+    target_link_libraries(${name} PRIVATE nanobench)
 
-  add_test(
-    NAME benchmark/MatrixComplextFloat2x2
-    COMMAND MatrixComplextFloat2x2
-    WORKING_DIRECTORY "${BINARY_BENCHMARK_DIR}")
-  set_tests_properties(benchmark/MatrixComplextFloat2x2 PROPERTIES LABELS
-                                                                   "benchmark")
+    add_test(
+      NAME benchmark/${name}
+      COMMAND ${name}
+      WORKING_DIRECTORY "${BINARY_BENCHMARK_DIR}")
+    set_tests_properties(benchmark/${name} PROPERTIES LABELS "benchmark")
+  endfunction()
 
+  add_benchmark(MatrixComplexDouble2x2)
+  add_benchmark(MatrixComplexFloat2x2)
 endif()
