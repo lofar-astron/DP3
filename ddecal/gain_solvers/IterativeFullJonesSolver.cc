@@ -133,7 +133,7 @@ void IterativeFullJonesSolver::SolveDirection(
     const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = solution_map[vis_index];
 
-#if defined(__AVX2__) || defined(__x86_64__)
+#if defined(__AVX2__)
     using Matrix = aocommon::Avx256::MaxtrixComplexFloat2x2;
 #else
     using Matrix = aocommon::MC2x2F;

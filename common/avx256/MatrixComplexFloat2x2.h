@@ -23,7 +23,7 @@
 #include <complex>
 #include <ostream>
 
-#if defined(__AVX2__) || defined(__x86_64__)
+#if defined(__AVX2__)
 
 #include <immintrin.h>
 
@@ -117,6 +117,6 @@ inline MaxtrixComplexFloat2x2 HermTranspose(
 
 }  // namespace aocommon::Avx256
 
-#endif  // defined(__AVX2__) || defined(__x86_64__)
+#endif  // defined(__AVX2__)
 
 #endif  // AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2_X_2_H

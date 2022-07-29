@@ -7,6 +7,9 @@
 
 #include <nanobench.h>
 #include <fstream>
+#include <iostream>
+
+#if defined(__AVX2__)
 
 template <class Matrix>
 static void Conjugate(ankerl::nanobench::Bench& bench, const char* name) {
@@ -79,3 +82,13 @@ int main() {
   Generate("html", ankerl::nanobench::templates::htmlBoxplot(), bench);
   Generate("json", ankerl::nanobench::templates::json(), bench);
 }
+
+#else
+int main() {
+  std::cerr << R"(Benchmarking "MC2x2F normal versus AVX" requires AVX support.
+Try rebuilding the benchmark after setting -DPORTABLE=OFF in CMake.
+)";
+
+  return EXIT_FAILURE;
+}
+#endif
