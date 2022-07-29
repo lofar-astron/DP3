@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#if defined(__AVX2__) || defined(__x86_64__)
+#if defined(__AVX2__)
 
 // operator[] is tested in other tests.
 
@@ -344,4 +344,4 @@ BOOST_AUTO_TEST_CASE(herm_transpose) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
-#endif  // defined(__AVX2__) || defined(__x86_64__)
+#endif  // defined(__AVX2__)

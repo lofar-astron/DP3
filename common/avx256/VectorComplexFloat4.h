@@ -22,7 +22,7 @@
 #include <complex>
 #include <ostream>
 
-#if defined(__AVX2__) || defined(__x86_64__)
+#if defined(__AVX2__)
 
 #include <immintrin.h>
 
@@ -139,6 +139,6 @@ class VectorComplexFloat4 {
 
 }  // namespace aocommon::Avx256
 
-#endif  // defined(__AVX2__) || defined(__x86_64__)
+#endif  // defined(__AVX2__)
 
 #endif  // AOCOMMON_AVX256_VECTOR_COMPLEX_FLOAT_4_H
