@@ -106,7 +106,7 @@ build-2004:
     # Build and run DP3
     - mkdir build
     - cd build
-    - cmake -G Ninja -DBUILD_TESTING=On ..
+    - cmake -G Ninja -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON ..
     - ninja install
     - DP3
 
@@ -132,7 +132,21 @@ build-debug-2204:
     - pip3 install pytest
   script:
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - ninja
+    - ninja install
+  artifacts:
+    paths:
+      - build
+
+build-2204:
+  stage: build
+  extends: [".failable",".needs-base-2204"]
+  before_script:
+    - pip3 install pytest
+  script:
+    - mkdir build && cd build
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON ..
     - ninja
     - ninja install
   artifacts:
@@ -247,6 +261,19 @@ integration-test-2204:
       - build/integration_*.xml
     reports:
       junit: build/integration_*.xml
+
+benchmark-2204:
+  stage: test
+  extends: .failable
+  needs: ["versioning","build-2204"]
+  image: $BASE_IMAGE_2204
+  script:
+    - cd build
+    - ninja # Needed when ran on different containers with different timestamps
+    - ctest -V -L benchmark
+  artifacts:
+    paths:
+    - build/benchmarks/*
 
 deploy-package-2204:
   stage: publish
