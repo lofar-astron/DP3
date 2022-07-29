@@ -24,6 +24,7 @@ endif()
 project(DP3 VERSION ${DP3_VERSION})
 
 include(CheckCXXCompilerFlag)
+include(FetchContent)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
@@ -348,6 +349,8 @@ add_library(
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 
+target_include_directories(DDECal PRIVATE "${CMAKE_SOURCE_DIR}")
+
 add_library(
   DP3_OBJ OBJECT
   base/Apply.cc
@@ -546,6 +549,9 @@ if(BUILD_TESTING)
   endif()
 
   set(TEST_FILENAMES
+      common/test/unit/avx256/tVectorComplexFloat4.cc
+      common/test/unit/avx256/tMatrixComplexFloat2x2.cc
+      common/test/unit/avx256/tVectorFloat8.cc
       common/test/unit/fixtures/fSkymodel.cc
       common/test/unit/tProximityClustering.cc
       common/test/unit/tTimer.cc
@@ -677,6 +683,7 @@ if(BUILD_TESTING)
   add_executable(unittests ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
                            ${DP3_OBJECTS})
   set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
+  target_include_directories(unittests PRIVATE "${CMAKE_SOURCE_DIR}")
   target_link_libraries(unittests ${DP3_LIBRARIES})
   add_dependencies(unittests schaapcommon)
 
@@ -830,3 +837,30 @@ if(BUILD_TESTING)
   endforeach()
 
 endif() # BUILD_TESTING
+
+option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
+if(BUILD_BENCHMARKS)
+  # https://nanobench.ankerl.com/index.html
+  FetchContent_Declare(
+    nanobench
+    GIT_REPOSITORY https://github.com/martinus/nanobench.git
+    GIT_TAG v4.1.0
+    GIT_SHALLOW TRUE)
+
+  FetchContent_MakeAvailable(nanobench)
+  set(BINARY_BENCHMARK_DIR "${CMAKE_CURRENT_BINARY_DIR}/benchmarks")
+  file(MAKE_DIRECTORY "${BINARY_BENCHMARK_DIR}")
+
+  add_executable(MatrixComplextFloat2x2 benchmarks/MatrixComplextFloat2x2.cpp)
+  target_include_directories(MatrixComplextFloat2x2
+                             PRIVATE "${CMAKE_SOURCE_DIR}")
+  target_link_libraries(MatrixComplextFloat2x2 PRIVATE nanobench)
+
+  add_test(
+    NAME benchmark/MatrixComplextFloat2x2
+    COMMAND MatrixComplextFloat2x2
+    WORKING_DIRECTORY "${BINARY_BENCHMARK_DIR}")
+  set_tests_properties(benchmark/MatrixComplextFloat2x2 PROPERTIES LABELS
+                                                                   "benchmark")
+
+endif()

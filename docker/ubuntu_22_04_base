@@ -82,4 +82,6 @@ RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_M
 RUN pip3 install \
 		cmake-format \
 		h5py \
+		sphinx \
+		sphinx-rtd-theme \
 	;

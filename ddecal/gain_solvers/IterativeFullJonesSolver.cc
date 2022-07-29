@@ -3,6 +3,8 @@
 
 #include "IterativeFullJonesSolver.h"
 
+#include "common/avx256/MatrixComplexFloat2x2.h"
+
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/parallelfor.h>
@@ -130,33 +132,45 @@ void IterativeFullJonesSolver::SolveDirection(
     const size_t antenna_1 = cb_data.Antenna1Index(vis_index);
     const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = solution_map[vis_index];
-    const MC2x2F solution_ant_1(
+
+#if defined(__AVX2__) || defined(__x86_64__)
+    using Matrix = aocommon::Avx256::MaxtrixComplexFloat2x2;
+#else
+    using Matrix = aocommon::MC2x2F;
+#endif
+
+    const Matrix solution_ant_1(
         &solutions[(antenna_1 * NSolutions() + solution_index) *
                    n_solution_pols]);
-    const MC2x2F solution_ant_2(
+
+    const Matrix solution_ant_2(
         &solutions[(antenna_2 * NSolutions() + solution_index) *
                    n_solution_pols]);
-    const MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = model_vector[vis_index];
+
+    const Matrix data{v_residual[vis_index]};
+    const Matrix model{model_vector[vis_index]};
 
     const uint32_t rel_solution_index = solution_index - solution_map[0];
     // Calculate the contribution of this baseline for antenna_1
-    const MC2x2F cor_model_herm_1(solution_ant_2 * HermTranspose(model));
+    const Matrix cor_model_herm_1(solution_ant_2 * HermTranspose(model));
     const size_t full_solution_1_index =
         antenna_1 * n_dir_solutions + rel_solution_index;
+
     // sum(D^H J M) [ sum(M^H J^H J M) ]^-1
-    numerator[full_solution_1_index] += data * cor_model_herm_1;
+    numerator[full_solution_1_index] +=
+        static_cast<MC2x2F>(data * cor_model_herm_1);
     denominator[full_solution_1_index] +=
-        HermTranspose(cor_model_herm_1) * cor_model_herm_1;
+        static_cast<MC2x2F>(HermTranspose(cor_model_herm_1) * cor_model_herm_1);
 
     // Calculate the contribution of this baseline for antenna_2
-    const MC2x2F cor_model_2(solution_ant_1 * model);
+    const Matrix cor_model_2(solution_ant_1 * model);
     const size_t full_solution_2_index =
         antenna_2 * n_dir_solutions + rel_solution_index;
     // sum(D^H J M) [ sum(M^H J^H J M) ]^-1
-    numerator[full_solution_2_index] += HermTranspose(data) * cor_model_2;
+    numerator[full_solution_2_index] +=
+        static_cast<MC2x2F>(HermTranspose(data) * cor_model_2);
     denominator[full_solution_2_index] +=
-        HermTranspose(cor_model_2) * cor_model_2;
+        static_cast<MC2x2F>(HermTranspose(cor_model_2) * cor_model_2);
   }
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
