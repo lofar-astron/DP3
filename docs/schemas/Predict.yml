@@ -14,7 +14,12 @@ inputs:
   usebeammodel:
     default: false
     type: bool
-    doc: Use the LOFAR beam in the predict part of the calibration `.`
+    doc: Use the beam model in the predict part of the calibration `.`
+  elementmodel:
+    default: hamaker
+    type: enum
+    symbols: hamaker, lobes, oskar, oskardipole
+    doc: Specifies which beam model to use `.`
   operation:
     default: replace
     type: string
