@@ -9,6 +9,11 @@
 
 #if defined(__AVX2__)
 
+// Silences the diagnostic "ignoring attributes on template argument ‘__m256’"
+// This diagnostic is issued on code that's part of libstdc++.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+
 // operator[] is tested in other tests.
 
 BOOST_AUTO_TEST_SUITE(VectorFloat8)
@@ -190,5 +195,7 @@ BOOST_AUTO_TEST_CASE(equal) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+#pragma GCC diagnostic pop
 
 #endif  // defined(__AVX2__)
