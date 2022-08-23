@@ -7,7 +7,7 @@
 [submodule "external/pybind11"]
 	path = external/pybind11
 	url = https://github.com/pybind/pybind11.git
-
 [submodule "external/schaap-packaging"]
 	path = external/schaap-packaging
 	url = https://git.astron.nl/RD/schaap-packaging.git
+	

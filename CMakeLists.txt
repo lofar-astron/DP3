@@ -173,6 +173,66 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
 
+include(ExternalProject)
+
+# Try to find xtl and xtensor from the environment first
+find_path(XTL_INCLUDE_DIR xtl/xtl_config.hpp HINTS ENV ${XTL_ROOT})
+find_path(XTENSOR_INCLUDE_DIR xtensor.hpp HINTS ENV ${XTENSOR_ROOT})
+
+if(${XTL_INCLUDE_DIR} STREQUAL "XTL_INCLUDE_DIR-NOTFOUND"
+   OR ${XTENSOR_INCLUDE_DIR} STREQUAL "XTENSOR_INCLUDE_DIR-NOTFOUND")
+
+  # Try to find locally installed xtl and xtensor
+  set(XTL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/xtl)
+  set(XSIMD_ROOT_DIR ${CMAKE_BINARY_DIR}/external/xsimd)
+  set(XTENSOR_ROOT_DIR ${CMAKE_BINARY_DIR}/external/xtensor)
+  find_path(
+    XTL_INCLUDE_DIR xtl/xtl_config.hpp
+    PATH_SUFFIXES include
+    HINTS ${XTL_ROOT_DIR})
+  find_path(
+    XTENSOR_INCLUDE_DIR xtensor/xtensor.hpp
+    PATH_SUFFIXES include
+    HINTS ${XTENSOR_ROOT_DIR})
+endif()
+
+# If xtl and xtensor are not both found, build them locally
+if(${XTL_INCLUDE_DIR} STREQUAL "XTL_INCLUDE_DIR-NOTFOUND"
+   OR ${XTENSOR_INCLUDE_DIR} STREQUAL "XTENSOR_INCLUDE_DIR-NOTFOUND")
+  set(BUILD_XTENSOR TRUE)
+  ExternalProject_Add(
+    xtl
+    INSTALL_DIR ${XTL_ROOT_DIR}
+    GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
+    GIT_TAG 0.7.4
+    EXCLUDE_FROM_ALL TRUE
+    CMAKE_ARGS -DCMAKE_INSTALL_MESSAGE=LAZY)
+  ExternalProject_Add(
+    xsimd
+    DEPENDS xtl
+    INSTALL_DIR ${XSIMD_ROOT_DIR}
+    GIT_REPOSITORY https://github.com/xtensor-stack/xsimd.git
+    GIT_TAG 8.1.0
+    EXCLUDE_FROM_ALL TRUE
+    CMAKE_ARGS -DCMAKE_INSTALL_MESSAGE=LAZY)
+  ExternalProject_Add(
+    xtensor
+    DEPENDS xsimd
+    INSTALL_DIR ${XTENSOR_ROOT_DIR}
+    GIT_REPOSITORY https://github.com/xtensor-stack/xtensor.git
+    GIT_TAG 0.24.2
+    EXCLUDE_FROM_ALL TRUE
+    CMAKE_ARGS -DXTENSOR_USE_XSIMD=ON
+               -DCMAKE_PREFIX_PATH=${XTL_ROOT_DIR}:${XSIMD_ROOT_DIR}
+               -DCMAKE_INSTALL_MESSAGE=LAZY)
+  set(XTL_INCLUDE_DIR ${XTL_ROOT_DIR}/include)
+  set(XTENSOR_INCLUDE_DIR ${XTENSOR_ROOT_DIR}/include)
+else()
+  # Prevent rebuild of xtensor
+  set(BUILD_XTENSOR FALSE)
+endif()
+include_directories(${XTL_INCLUDE_DIR} ${XTENSOR_INCLUDE_DIR})
+
 # === Load astron packages ===
 
 find_package(AOFlagger 3.1 REQUIRED)
@@ -322,6 +382,9 @@ add_library(
   common/VdsMaker.cc
   common/VdsPartDesc.cc)
 
+add_library(AntennaFlagger OBJECT antennaflagger/Flagger.cc)
+set_property(TARGET AntennaFlagger PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 add_library(
   DDECal OBJECT
   steps/BdaDdeCal.cc
@@ -384,6 +447,7 @@ add_library(
   base/SubtractMixed.cc
   base/SubtractNew.cc
   base/UVWCalculator.cc
+  steps/AntennaFlagger.cc
   steps/AOFlaggerStep.cc
   steps/ApplyCal.cc
   steps/Averager.cc
@@ -423,6 +487,10 @@ add_library(
   steps/DemixerNew.cc
   steps/NullStokes.cc)
 
+if(${BUILD_XTENSOR})
+  add_dependencies(DP3_OBJ xtensor)
+endif()
+
 add_library(
   ParmDB OBJECT
   parmdb/Axis.cc
@@ -457,9 +525,13 @@ set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB PythonDP3
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(DP3_OBJECTS
-    $<TARGET_OBJECTS:Blob> $<TARGET_OBJECTS:Common> $<TARGET_OBJECTS:DDECal>
-    $<TARGET_OBJECTS:DP3_OBJ> $<TARGET_OBJECTS:ParmDB>
-    $<TARGET_OBJECTS:PythonDP3>)
+    $<TARGET_OBJECTS:Blob>
+    $<TARGET_OBJECTS:Common>
+    $<TARGET_OBJECTS:DDECal>
+    $<TARGET_OBJECTS:DP3_OBJ>
+    $<TARGET_OBJECTS:ParmDB>
+    $<TARGET_OBJECTS:PythonDP3>
+    $<TARGET_OBJECTS:AntennaFlagger>)
 
 set(LIBDIRAC_PREFIX
     ""
@@ -579,6 +651,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolvers.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
+      steps/test/unit/tAntennaFlagger.cc
       steps/test/unit/tAOFlaggerStep.cc
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
@@ -615,6 +688,7 @@ if(BUILD_TESTING)
     list(
       APPEND
       TEST_FILENAMES
+      common/test/unit/tBaselineUtils.cc
       common/test/unit/tMemory.cc
       common/test/unit/tStringTools.cc
       base/test/unit/tDPInfo.cc
