@@ -1,0 +1,52 @@
+description: >-
+  Flag all baselines containing containing manually selected or automatically
+  determined antennas. The antennas can be specified by their number (see
+  `selection`), and/or can be determined automatically based on (per time slot)
+  statistics when `detect_outliers=True`. This step is mainly intended for
+  processing of AARTFAAC data.
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: antennaflagger
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'antennaflagger' `.`
+    default: antennaflagger
+  selection:
+    default: "[]"
+    type: string?
+    doc: >-
+      The antenna numbers (not names) to flag, currently the following selection are implemented:
+      Single antennas (e.g. 0,3,15,4), antenna ranges (e.g.  1~15),
+      autocorrelations for a selection (e.g.  0~3&&& flags all autocorrelations of antennas 0, 1, 2, 3).
+      Multiple selections can be separated with a semicolon (;). Using this
+      selection is only relevant for AARTFAAC data, where antennas in a station are
+      processed as seperate receivers `.`
+  detect_outliers:
+    default: false
+    type: boolean
+    doc: >-
+      If true, outlier detection on antenna and station level is enabled and affected baselines are flagged.
+      Flagging is applied to all antennas, regardless of whether they are in `selection` or not `.`
+  antenna_flagging_sigma:
+    default: 3
+    type: float
+    doc: >-
+      Flag an antenna when the statistical properties of its data exceeds this threshold.
+  antenna_flagging_maxiters:
+    default: 5
+    type: int
+    doc: >-
+      Maximum number of iterations to find outliers in the data `.`
+  station_flagging_sigma:
+    default: 2.5
+    type: float
+    doc: >-
+      Flag all antennas for this station when the statistical properties of its
+      data exceeds this threshold `.`
+  station_flagging_maxiters:
+    default: 5
+    type: int
+    doc: >-
+      Maximum number of iterations to find outliers in the data `.`

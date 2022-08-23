@@ -13,6 +13,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "../steps/AntennaFlagger.h"
 #include "../steps/AOFlaggerStep.h"
 #include "../steps/ApplyBeam.h"
 #include "../steps/ApplyCal.h"
@@ -52,6 +53,7 @@
 
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
+#include "../steps/AntennaFlagger.h"
 
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>
@@ -161,6 +163,8 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     step = std::make_shared<steps::MedFlagger>(inputStep, parset, prefix);
   } else if (type == "preflagger" || type == "preflag") {
     step = std::make_shared<steps::PreFlagger>(inputStep, parset, prefix);
+  } else if (type == "antennaflagger") {
+    step = std::make_shared<steps::AntennaFlagger>(inputStep, parset, prefix);
   } else if (type == "uvwflagger" || type == "uvwflag") {
     step = std::make_shared<steps::UVWFlagger>(inputStep, parset, prefix,
                                                inputType);
