@@ -141,7 +141,8 @@ def test_write_thread_enabled():
 
     assert re.search(b"use thread: *true", result)
     assert re.search(
-        b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Creating task\n", result
+        b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Creating task\n",
+        result,
     )
     assert re.search(
         b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Writing \\(threaded\\)\n",
@@ -169,10 +170,12 @@ def test_write_thread_disabled():
     assert re.search(b"use thread: *false", result)
     assert (
         re.search(
-            b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Creating task\n", result
+            b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Creating task\n",
+            result,
         )
         == None
     )
     assert re.search(
-        b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Writing\n", result
+        b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Writing\n",
+        result,
     )

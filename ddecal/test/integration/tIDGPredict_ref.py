@@ -9,31 +9,30 @@ import os
 
 os.system("rm dummy-image.fits dummy-dirty.fits")
 # -channel-range 0 1 ensures the reference frequency is from the first channel.
-os.system("wsclean -size 512 512 -scale 0.01 -channel-range 0 1 -name dummy tDDECal.MS")
+os.system(
+    "wsclean -size 512 512 -scale 0.01 -channel-range 0 1 -name dummy tDDECal.MS"
+)
 
 sources = {
-    "radec": ( 400, 64 ),
-    "ra": ( 400, 256 ),
-    "dec": ( 256, 64 ),
-    "center": ( 256, 256 )
-    }
-brightness = {
-    "radec": 10,
-    "ra": 20,
-    "dec": 20,
-    "center": 10
-    }
-term_brightness = { 0:10, 1:20000, 2:30000 }
+    "radec": (400, 64),
+    "ra": (400, 256),
+    "dec": (256, 64),
+    "center": (256, 256),
+}
+brightness = {"radec": 10, "ra": 20, "dec": 20, "center": 10}
+term_brightness = {0: 10, 1: 20000, 2: 30000}
 
-fits_files=[]
+fits_files = []
 
 hdu = fits.open("dummy-image.fits")[0]
+
 
 def write_fits(name):
     filename = name + "-model.fits"
     os.system("rm -rf " + filename)
     hdu.writeto(filename)
     fits_files.append(filename)
+
 
 # Generate foursources.fits, which has all four sources.
 hdu.data *= 0

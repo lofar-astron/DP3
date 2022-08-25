@@ -54,9 +54,15 @@ def create_skymodel():
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
         )
-        f.write("center, POINT, 16:38:28.205000, + 63.44.34.314000, 10, , , , , \r\n")
-        f.write("ra_off, POINT, 16:38:28.205000, + 64.44.34.314000, 10, , , , , \r\n")
-        f.write("radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 10, , , , , \r\n")
+        f.write(
+            "center, POINT, 16:38:28.205000, + 63.44.34.314000, 10, , , , , \r\n"
+        )
+        f.write(
+            "ra_off, POINT, 16:38:28.205000, + 64.44.34.314000, 10, , , , , \r\n"
+        )
+        f.write(
+            "radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 10, , , , , \r\n"
+        )
 
     check_call([tcf.MAKESOURCEDBEXE, "in=test.skymodel", "out=test.sourcedb"])
 
@@ -143,6 +149,6 @@ def test_regular_buffer_writing():
             "checkparset=true",
             "msin=regular_buffer.MS",
             "msout=out.MS",
-            "steps=[]"
+            "steps=[]",
         ]
     )

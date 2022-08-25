@@ -53,9 +53,15 @@ def create_skymodel():
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
         )
-        f.write("center, POINT, 16:38:28.205000, +63.44.34.314000, 1, , , , , \r\n")
-        f.write("ra_off, POINT, 16:58:28.205000, +63.44.34.314000, 1, , , , , \r\n")
-        f.write("radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 1, , , , , \r\n")
+        f.write(
+            "center, POINT, 16:38:28.205000, +63.44.34.314000, 1, , , , , \r\n"
+        )
+        f.write(
+            "ra_off, POINT, 16:58:28.205000, +63.44.34.314000, 1, , , , , \r\n"
+        )
+        f.write(
+            "radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 1, , , , , \r\n"
+        )
 
 
 @pytest.fixture()
@@ -156,7 +162,11 @@ def test_only_predict(create_skymodel):
     )
 
     check_call(
-        [tcf.DP3EXE, "msout=PREDICT_DIR_1.MS", "predict.sources=[center, dec_off]"]
+        [
+            tcf.DP3EXE,
+            "msout=PREDICT_DIR_1.MS",
+            "predict.sources=[center, dec_off]",
+        ]
         + common_args
         + predict_args
     )
@@ -230,8 +240,14 @@ def test_uvwflagger(create_skymodel, create_corrupted_data_from_regular):
     # When uvw flagging is disabled, the NaNs in the solution file are only 9
     expected_flagged_solutions = 54
 
-    assert np.count_nonzero(np.isnan(amplitude_solutions)) == expected_flagged_solutions
-    assert np.count_nonzero(np.isnan(phase_solutions)) == expected_flagged_solutions
+    assert (
+        np.count_nonzero(np.isnan(amplitude_solutions))
+        == expected_flagged_solutions
+    )
+    assert (
+        np.count_nonzero(np.isnan(phase_solutions))
+        == expected_flagged_solutions
+    )
 
 
 # Only test a limited set of caltype + nchannels combinations, since testing
@@ -256,7 +272,9 @@ def test_uvwflagger(create_skymodel, create_corrupted_data_from_regular):
         # "rotation+diagonal", # part of fulljones -> not implemented
     ],
 )
-def test_caltype(create_skymodel, create_corrupted_data_from_regular, caltype_nchan):
+def test_caltype(
+    create_skymodel, create_corrupted_data_from_regular, caltype_nchan
+):
     """Test calibration for different calibration types"""
     caltype = caltype_nchan[:-1]
     nchan = int(caltype_nchan[-1])
@@ -282,13 +300,20 @@ def test_caltype(create_skymodel, create_corrupted_data_from_regular, caltype_nc
 
     h5 = h5py.File("solutions.h5", "r")
 
-    if caltype in ["scalar", "diagonal", "scalaramplitude", "diagonalamplitude"]:
+    if caltype in [
+        "scalar",
+        "diagonal",
+        "scalaramplitude",
+        "diagonalamplitude",
+    ]:
         amplitude_solutions = h5["sol000/amplitude000/val"]
 
         if caltype.startswith("scalar"):
             assert amplitude_solutions.attrs["AXES"] == b"time,freq,ant,dir"
         else:
-            assert amplitude_solutions.attrs["AXES"] == b"time,freq,ant,dir,pol"
+            assert (
+                amplitude_solutions.attrs["AXES"] == b"time,freq,ant,dir,pol"
+            )
 
         if nchan == 0:
             assert amplitude_solutions.shape[1] == 1
@@ -339,7 +364,12 @@ def test_subtract(create_skymodel, create_corrupted_data):
 
     residual = float(
         check_output(
-            [tcf.TAQLEXE, "-nopr", "-noph", "select gmax(abs(DATA)) from out.MS"]
+            [
+                tcf.TAQLEXE,
+                "-nopr",
+                "-noph",
+                "select gmax(abs(DATA)) from out.MS",
+            ]
         )
     )
 

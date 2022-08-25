@@ -23,7 +23,9 @@ Script can be invoked in two ways:
 """
 
 MSIN = "tNDPPP-generic.MS"
-PARMDB_TGZ = "tApplyCal2.parmdb.tgz"  # Note: This archive contains tApplyCal.parmdb.
+PARMDB_TGZ = (
+    "tApplyCal2.parmdb.tgz"  # Note: This archive contains tApplyCal.parmdb.
+)
 PARMDB = "tApplyCal.parmdb"
 CWD = os.getcwd()
 

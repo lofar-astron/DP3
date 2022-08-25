@@ -101,7 +101,9 @@ def test_input_with_single_sources(source, offset):
     except FileNotFoundError:
         pytest.skip("WSClean not available")
 
-    check_call(["wsclean", "-use-idg", "-predict", "-name", f"{source}", f"{MSIN}"])
+    check_call(
+        ["wsclean", "-use-idg", "-predict", "-name", f"{source}", f"{MSIN}"]
+    )
     check_output(
         [
             tcf.TAQLEXE,
@@ -112,7 +114,10 @@ def test_input_with_single_sources(source, offset):
     )
 
     # Predict source: $source offset: $offset using IDG
-    if "polygon" in open(f"{tcf.DDECAL_RESOURCEDIR}/{source}-{offset}.reg").read():
+    if (
+        "polygon"
+        in open(f"{tcf.DDECAL_RESOURCEDIR}/{source}-{offset}.reg").read()
+    ):
         check_call(
             [
                 tcf.DP3EXE,

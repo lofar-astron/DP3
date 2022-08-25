@@ -37,7 +37,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge
@@ -65,7 +69,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge
@@ -91,7 +99,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge
@@ -117,7 +129,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge
@@ -141,7 +157,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge
@@ -214,7 +234,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge
@@ -240,7 +264,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge
@@ -264,7 +292,11 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
 
     # Create badge
     badge = anybadge.Badge(
-        label=label, value=value, default_color=color, value_prefix=" ", value_suffix=" "
+        label=label,
+        value=value,
+        default_color=color,
+        value_prefix=" ",
+        value_suffix=" ",
     )
 
     # Write badge

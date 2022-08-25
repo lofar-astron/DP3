@@ -56,7 +56,12 @@ def create_skymodel():
         )
 
     check_call(
-        [tcf.MAKESOURCEDBEXE, "in=test.skymodel", "out=test.sourcedb", "append=false"]
+        [
+            tcf.MAKESOURCEDBEXE,
+            "in=test.skymodel",
+            "out=test.sourcedb",
+            "append=false",
+        ]
     )
 
 
@@ -66,10 +71,17 @@ def create_skymodel_in_phase_center():
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
         )
-        f.write(f"center, POINT, 01:37:41.299000, +33.09.35.132000, 10, , , , , \r\n")
+        f.write(
+            f"center, POINT, 01:37:41.299000, +33.09.35.132000, 10, , , , , \r\n"
+        )
 
     check_call(
-        [tcf.MAKESOURCEDBEXE, "in=test.skymodel", "out=test.sourcedb", "append=false"]
+        [
+            tcf.MAKESOURCEDBEXE,
+            "in=test.skymodel",
+            "out=test.sourcedb",
+            "append=false",
+        ]
     )
 
 

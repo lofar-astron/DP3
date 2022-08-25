@@ -80,6 +80,7 @@ RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_M
     && rm /WSRT_Measures.ztar
 # Install pip dependencies
 RUN pip3 install \
+		black \
 		cmake-format \
 		h5py \
 		sphinx \

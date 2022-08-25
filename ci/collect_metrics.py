@@ -87,8 +87,8 @@ def count_junit_metrics(filename):
     log = logging.getLogger(LOGGER_NAME)
     try:
         root_elem = etree.parse(filename).getroot()
-        if root_elem.tag not in ['testsuites', 'testsuite']:
-            raise ValueError('Invalid JUnit XML file.')
+        if root_elem.tag not in ["testsuites", "testsuite"]:
+            raise ValueError("Invalid JUnit XML file.")
         stats = parse_junit_tree(root_elem)
         result = dict(errors=0, failures=0, tests=0, skipped=0)
         for key in result:
@@ -99,12 +99,16 @@ def count_junit_metrics(filename):
                     stats["testcase"][key],
                 )
             else:
-                result[key] = max(stats["testsuite"][key],
-                                  stats["testcase"][key])
+                result[key] = max(
+                    stats["testsuite"][key], stats["testcase"][key]
+                )
         result["total"] = result["tests"]
         del result["tests"]
     except Exception as expt:
-        log.exception("Exception caught parsing '%s', returning 0 since the CI does not allow any linting errors/warnings", filename)
+        log.exception(
+            "Exception caught parsing '%s', returning 0 since the CI does not allow any linting errors/warnings",
+            filename,
+        )
         result = dict(errors=0, failures=0, total=0, skipped=0)
 
     return result
@@ -174,8 +178,9 @@ def main():
                 # latest_pipeline_id = str(pipeline["id"])
                 latest_build_date = pipeline["created_at"]
                 latest_build_timestamp = datetime.timestamp(
-                    datetime.strptime(latest_build_date,
-                                      "%Y-%m-%dT%H:%M:%S.%fZ")
+                    datetime.strptime(
+                        latest_build_date, "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
                 )
                 break
     except Exception as err:
