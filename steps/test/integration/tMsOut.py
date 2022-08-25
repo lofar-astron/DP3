@@ -19,6 +19,7 @@ from utils import untar_ms, get_taql_result, check_output
 MSIN = "tNDPPP-generic.MS"
 CWD = os.getcwd()
 
+
 @pytest.fixture(autouse=True)
 def source_env():
     os.chdir(CWD)
@@ -52,16 +53,22 @@ def test_chunking():
     assert os.path.exists("chunktest-000.ms")
     assert os.path.exists("chunktest-001.ms")
     assert os.path.exists("chunktest-002.ms")
-    
+
     # Each should have two timesteps:
     taql_command = f"select unique TIME from chunktest-000.ms"
     result = get_taql_result(taql_command)
-    assert result == 'Unit: s\n29-Mar-2013/13:59:53.007\n29-Mar-2013/14:00:03.021'
-    
+    assert (
+        result == "Unit: s\n29-Mar-2013/13:59:53.007\n29-Mar-2013/14:00:03.021"
+    )
+
     taql_command = f"select unique TIME from chunktest-001.ms"
     result = get_taql_result(taql_command)
-    assert result == 'Unit: s\n29-Mar-2013/14:00:13.035\n29-Mar-2013/14:00:23.049'
+    assert (
+        result == "Unit: s\n29-Mar-2013/14:00:13.035\n29-Mar-2013/14:00:23.049"
+    )
 
     taql_command = f"select unique TIME from chunktest-002.ms"
     result = get_taql_result(taql_command)
-    assert result == 'Unit: s\n29-Mar-2013/14:00:33.063\n29-Mar-2013/14:00:43.076'
+    assert (
+        result == "Unit: s\n29-Mar-2013/14:00:33.063\n29-Mar-2013/14:00:43.076"
+    )

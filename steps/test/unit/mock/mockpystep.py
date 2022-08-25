@@ -8,8 +8,10 @@ import parameterset
 from pydp3 import Step
 import numpy as np
 
+
 class MockPyStep(Step):
     """Example python DPStep that multiplies DATA and WEIGHT_SPECTRUM"""
+
     def __init__(self, parset, prefix):
         """
         Set up the step (constructor). Read the parset here.

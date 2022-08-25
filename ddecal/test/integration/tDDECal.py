@@ -114,12 +114,17 @@ def create_corrupted_visibilities():
 
 
 @pytest.mark.parametrize(
-    "caltype", ["complexgain", "scalarcomplexgain", "amplitudeonly", "scalaramplitude"]
+    "caltype",
+    ["complexgain", "scalarcomplexgain", "amplitudeonly", "scalaramplitude"],
 )
 @pytest.mark.parametrize("solint", [0, 1, 2, 4])
 @pytest.mark.parametrize("nchan", [1, 2, 5])
 def test(
-    create_corrupted_visibilities, copy_data_to_model_data, caltype, solint, nchan
+    create_corrupted_visibilities,
+    copy_data_to_model_data,
+    caltype,
+    solint,
+    nchan,
 ):
     # Subtract corrupted visibilities using multiple predict steps
     check_call(
@@ -251,12 +256,13 @@ def test_calibration_with_dd_intervals(
                     >= reference_solutions["sol000/amplitude000/val"].shape[0]
                 ):
                     corresponding_index = (
-                        reference_solutions["sol000/amplitude000/val"].shape[0] - 1
+                        reference_solutions["sol000/amplitude000/val"].shape[0]
+                        - 1
                     )
 
-                values_reference = reference_solutions["sol000/amplitude000/val"][
-                    corresponding_index, :, :, direction_index, 0
-                ]
+                values_reference = reference_solutions[
+                    "sol000/amplitude000/val"
+                ][corresponding_index, :, :, direction_index, 0]
 
                 assert (abs(values_ddecal - values_reference) < 1.2).all()
 
@@ -331,12 +337,13 @@ def test_bug_ast_924(
                     >= reference_solutions["sol000/amplitude000/val"].shape[0]
                 ):
                     corresponding_index = (
-                        reference_solutions["sol000/amplitude000/val"].shape[0] - 1
+                        reference_solutions["sol000/amplitude000/val"].shape[0]
+                        - 1
                     )
 
-                values_reference = reference_solutions["sol000/amplitude000/val"][
-                    corresponding_index, :, :, direction_index, 0
-                ]
+                values_reference = reference_solutions[
+                    "sol000/amplitude000/val"
+                ][corresponding_index, :, :, direction_index, 0]
 
                 assert (abs(values_ddecal - values_reference) < 1.2).all()
 
@@ -347,7 +354,13 @@ def test_bug_ast_924(
 )
 @pytest.mark.parametrize(
     "caltype",
-    ["amplitudeonly", "scalaramplitude", "scalar", "diagonal", "diagonalamplitude"],
+    [
+        "amplitudeonly",
+        "scalaramplitude",
+        "scalar",
+        "diagonal",
+        "diagonalamplitude",
+    ],
 )
 def test_subtract_with_dd_intervals(
     create_corrupted_visibilities,
@@ -739,7 +752,9 @@ def test_bda_constaints():
     phase_bda = f_bda["sol000/phase000/val"]
     phase_no_bda = f_no_bda["sol000/phase000/val"]
 
-    np.testing.assert_allclose(ampl_bda, ampl_no_bda, rtol=0.05, atol=0, equal_nan=True)
+    np.testing.assert_allclose(
+        ampl_bda, ampl_no_bda, rtol=0.05, atol=0, equal_nan=True
+    )
     np.testing.assert_allclose(
         phase_bda, phase_no_bda, rtol=0.3, atol=0, equal_nan=True
     )

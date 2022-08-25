@@ -71,14 +71,15 @@ def test_stokes_Qzero(create_model_data):
     assert_taql(taql_command)
 
     # Checking that Stokes I, U, V have not been changed
-    taql_command = f"select from (select mscal.stokes(STOKES_QDATA, 'I') as a, mscal.stokes(DATA, 'I') as b from {MSOUT}) where not all(near(a, b))" 
+    taql_command = f"select from (select mscal.stokes(STOKES_QDATA, 'I') as a, mscal.stokes(DATA, 'I') as b from {MSOUT}) where not all(near(a, b))"
     assert_taql(taql_command)
 
-    taql_command = f"select from (select mscal.stokes(STOKES_QDATA, 'U') as a, mscal.stokes(DATA, 'U') as b from {MSOUT}) where not all(near(a, b))" 
+    taql_command = f"select from (select mscal.stokes(STOKES_QDATA, 'U') as a, mscal.stokes(DATA, 'U') as b from {MSOUT}) where not all(near(a, b))"
     assert_taql(taql_command)
 
-    taql_command = f"select from (select mscal.stokes(STOKES_QDATA, 'V') as a, mscal.stokes(DATA, 'V') as b from {MSOUT}) where not all(near(a, b))" 
+    taql_command = f"select from (select mscal.stokes(STOKES_QDATA, 'V') as a, mscal.stokes(DATA, 'V') as b from {MSOUT}) where not all(near(a, b))"
     assert_taql(taql_command)
+
 
 def test_stokes_Uzero(create_model_data):
     check_call(
@@ -97,11 +98,11 @@ def test_stokes_Uzero(create_model_data):
     assert_taql(taql_command)
 
     # Checking that Stokes I, Q, V have not been changed
-    taql_command = f"select from (select mscal.stokes(STOKES_UDATA, 'I') as a, mscal.stokes(DATA, 'I') as b from {MSOUT}) where not all(near(a, b))" 
+    taql_command = f"select from (select mscal.stokes(STOKES_UDATA, 'I') as a, mscal.stokes(DATA, 'I') as b from {MSOUT}) where not all(near(a, b))"
     assert_taql(taql_command)
 
-    taql_command = f"select from (select mscal.stokes(STOKES_UDATA, 'Q') as a, mscal.stokes(DATA, 'Q') as b from {MSOUT}) where not all(near(a, b))" 
+    taql_command = f"select from (select mscal.stokes(STOKES_UDATA, 'Q') as a, mscal.stokes(DATA, 'Q') as b from {MSOUT}) where not all(near(a, b))"
     assert_taql(taql_command)
 
-    taql_command = f"select from (select mscal.stokes(STOKES_UDATA, 'V') as a, mscal.stokes(DATA, 'V') as b from {MSOUT}) where not all(near(a, b))" 
+    taql_command = f"select from (select mscal.stokes(STOKES_UDATA, 'V') as a, mscal.stokes(DATA, 'V') as b from {MSOUT}) where not all(near(a, b))"
     assert_taql(taql_command)

@@ -139,7 +139,9 @@ def test_without_and_with_time_smearing(use_time_smearing):
         )
 
     shutil.rmtree(sourcedb, ignore_errors=True)
-    check_call([tcf.MAKESOURCEDBEXE, "in=timesmearing.skymodel", f"out={sourcedb}"])
+    check_call(
+        [tcf.MAKESOURCEDBEXE, "in=timesmearing.skymodel", f"out={sourcedb}"]
+    )
     check_call(
         [
             tcf.DP3EXE,
@@ -172,6 +174,7 @@ def test_without_and_with_time_smearing(use_time_smearing):
             " and all(near(abs(DATA[,3]),9.34,5e-4))"
         )
         assert_taql(taql_command, 2)
+
 
 @pytest.mark.parametrize("use_beam", [False, True])
 def test_without_and_with_beam_parallelbaseline(use_beam):

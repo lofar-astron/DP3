@@ -109,7 +109,5 @@ def test_with_updateweights():
             f"applybeam.updateweights=true",
         ]
     )
-    taql_command = (
-        f"select from {MSIN} where all(near(WEIGHT_SPECTRUM, NEW_WEIGHT_SPECTRUM))"
-    )
+    taql_command = f"select from {MSIN} where all(near(WEIGHT_SPECTRUM, NEW_WEIGHT_SPECTRUM))"
     assert_taql(taql_command)

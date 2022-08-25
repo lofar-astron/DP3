@@ -85,7 +85,8 @@ def test_update_flags_inplace():
     )
     utils.assert_taql(count_flags_set, 168)
     assert re.search(
-        b"\nTotal flagged:     0.000%   \\(0 out of 1344 visibilities\\)\n\n\n", result
+        b"\nTotal flagged:     0.000%   \\(0 out of 1344 visibilities\\)\n\n\n",
+        result,
     )
 
 

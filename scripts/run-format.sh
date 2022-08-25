@@ -12,12 +12,6 @@ SOURCE_DIR=$(dirname "$0")/..
 #relative to SOURCE_DIR.
 EXCLUDE_DIRS=(external build CMake)
 
-#The patterns of the C++ source files, which clang-format should format.
-CXX_SOURCES=(*.cc *.h)
-
-#The patterns of the CMake source files, which cmake-format should format.
-CMAKE_SOURCES=(CMakeLists.txt *.cmake)
-
 #End script configuration.
 
 #The common formatting script has further documentation.

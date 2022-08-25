@@ -40,7 +40,8 @@ common_args = [
     "demix.subtractsources=[CasA]",
 ]
 
-skymodel_arg="demix.skymodel='tDemix_tmp/{}'"
+skymodel_arg = "demix.skymodel='tDemix_tmp/{}'"
+
 
 @pytest.fixture(autouse=True)
 def source_env():
@@ -50,7 +51,13 @@ def source_env():
     os.chdir(tmpdir)
 
     untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
-    check_call([tcf.MAKESOURCEDBEXE, "in=tDemix_tmp/sky.txt", "out=tDemix_tmp/sourcedb"])
+    check_call(
+        [
+            tcf.MAKESOURCEDBEXE,
+            "in=tDemix_tmp/sky.txt",
+            "out=tDemix_tmp/sourcedb",
+        ]
+    )
 
     # Tests are executed here
     yield
@@ -60,7 +67,7 @@ def source_env():
     shutil.rmtree(tmpdir)
 
 
-@pytest.mark.parametrize("skymodel", ['sky.txt', 'sourcedb'])
+@pytest.mark.parametrize("skymodel", ["sky.txt", "sourcedb"])
 def test_without_target(skymodel):
     check_call(
         [
@@ -73,13 +80,12 @@ def test_without_target(skymodel):
         + common_args
     )
 
-
     # Compare some columns of the output MS with the reference output.
     taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref1.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
     assert_taql(taql_command)
 
 
-@pytest.mark.parametrize("skymodel", ['sky.txt', 'sourcedb'])
+@pytest.mark.parametrize("skymodel", ["sky.txt", "sourcedb"])
 def test_with_target_projected_away(skymodel):
     check_call(
         [
@@ -92,13 +98,12 @@ def test_with_target_projected_away(skymodel):
         + common_args
     )
 
-
     # Compare some columns of the output MS with the reference output.
     taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref2.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
     assert_taql(taql_command)
 
 
-@pytest.mark.parametrize("skymodel", ['sky.txt', 'sourcedb'])
+@pytest.mark.parametrize("skymodel", ["sky.txt", "sourcedb"])
 def test_with_target(skymodel):
     check_call(
         [
@@ -130,7 +135,6 @@ def test_time_freq_resolution():
         ]
         + common_args
     )
-
 
     # Compare some columns of the output MS with the reference output.
     taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref1.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  not all(t1.LOFAR_FULL_RES_FLAG = t2.LOFAR_FULL_RES_FLAG)  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
