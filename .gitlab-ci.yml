@@ -153,17 +153,6 @@ build-2204:
     paths:
       - build
 
-build-release-2204:
-  # .prepare should be last, since it overwrites "image:".
-  extends: [".needs-base-2204",".prepare"]
-  stage: build
-  variables:
-    DOCKER_IMAGE: ${CI_REGISTRY_IMAGE}/dp3:${CI_COMMIT_SHORT_SHA}
-    DOCKER_FILE: ./docker/ubuntu_20_04_dp3
-    DOCKER_BUILD_ARG: --build-arg BASE_TAG=$BASE_IMAGE_2204
-  rules: # This job should always overwrite the rules: from .prepare!
-    - if: '$CI_COMMIT_BRANCH == "master"'
-
 build-doc-2204:
   stage: build
   extends: [".failable",".needs-base-2204"]
