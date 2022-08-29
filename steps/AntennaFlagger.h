@@ -7,7 +7,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <xtensor.hpp>
+
+#include <xtensor/xtensor.hpp>
 
 #include "../antennaflagger/Flagger.h"
 

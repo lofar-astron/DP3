@@ -3,7 +3,7 @@
 
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires CMake 3.9.
 # The RESULTS_VARIABLE argument of execute_process() requires CMake 3.10.
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 
 # CMake >= 3.19 gives warnings when these policies are not 'NEW'.
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19")
@@ -173,65 +173,22 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
 
-include(ExternalProject)
-
-# Try to find xtl and xtensor from the environment first
-find_path(XTL_INCLUDE_DIR xtl/xtl_config.hpp HINTS ENV ${XTL_ROOT})
-find_path(XTENSOR_INCLUDE_DIR xtensor.hpp HINTS ENV ${XTENSOR_ROOT})
-
-if(${XTL_INCLUDE_DIR} STREQUAL "XTL_INCLUDE_DIR-NOTFOUND"
-   OR ${XTENSOR_INCLUDE_DIR} STREQUAL "XTENSOR_INCLUDE_DIR-NOTFOUND")
-
-  # Try to find locally installed xtl and xtensor
-  set(XTL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/xtl)
-  set(XSIMD_ROOT_DIR ${CMAKE_BINARY_DIR}/external/xsimd)
-  set(XTENSOR_ROOT_DIR ${CMAKE_BINARY_DIR}/external/xtensor)
-  find_path(
-    XTL_INCLUDE_DIR xtl/xtl_config.hpp
-    PATH_SUFFIXES include
-    HINTS ${XTL_ROOT_DIR})
-  find_path(
-    XTENSOR_INCLUDE_DIR xtensor/xtensor.hpp
-    PATH_SUFFIXES include
-    HINTS ${XTENSOR_ROOT_DIR})
-endif()
-
-# If xtl and xtensor are not both found, build them locally
-if(${XTL_INCLUDE_DIR} STREQUAL "XTL_INCLUDE_DIR-NOTFOUND"
-   OR ${XTENSOR_INCLUDE_DIR} STREQUAL "XTENSOR_INCLUDE_DIR-NOTFOUND")
-  set(BUILD_XTENSOR TRUE)
-  ExternalProject_Add(
-    xtl
-    INSTALL_DIR ${XTL_ROOT_DIR}
-    GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
-    GIT_TAG 0.7.4
-    EXCLUDE_FROM_ALL TRUE
-    CMAKE_ARGS -DCMAKE_INSTALL_MESSAGE=LAZY)
-  ExternalProject_Add(
-    xsimd
-    DEPENDS xtl
-    INSTALL_DIR ${XSIMD_ROOT_DIR}
-    GIT_REPOSITORY https://github.com/xtensor-stack/xsimd.git
-    GIT_TAG 8.1.0
-    EXCLUDE_FROM_ALL TRUE
-    CMAKE_ARGS -DCMAKE_INSTALL_MESSAGE=LAZY)
-  ExternalProject_Add(
-    xtensor
-    DEPENDS xsimd
-    INSTALL_DIR ${XTENSOR_ROOT_DIR}
-    GIT_REPOSITORY https://github.com/xtensor-stack/xtensor.git
-    GIT_TAG 0.24.2
-    EXCLUDE_FROM_ALL TRUE
-    CMAKE_ARGS -DXTENSOR_USE_XSIMD=ON
-               -DCMAKE_PREFIX_PATH=${XTL_ROOT_DIR}:${XSIMD_ROOT_DIR}
-               -DCMAKE_INSTALL_MESSAGE=LAZY)
-  set(XTL_INCLUDE_DIR ${XTL_ROOT_DIR}/include)
-  set(XTENSOR_INCLUDE_DIR ${XTENSOR_ROOT_DIR}/include)
-else()
-  # Prevent rebuild of xtensor
-  set(BUILD_XTENSOR FALSE)
-endif()
-include_directories(${XTL_INCLUDE_DIR} ${XTENSOR_INCLUDE_DIR})
+FetchContent_Declare(
+  xtl
+  GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
+  GIT_SHALLOW TRUE
+  GIT_TAG 0.7.4)
+FetchContent_Declare(
+  xsimd
+  GIT_REPOSITORY https://github.com/xtensor-stack/xsimd.git
+  GIT_SHALLOW TRUE
+  GIT_TAG 8.1.0)
+FetchContent_Declare(
+  xtensor
+  GIT_REPOSITORY https://github.com/xtensor-stack/xtensor.git
+  GIT_SHALLOW TRUE
+  GIT_TAG 0.24.2)
+FetchContent_MakeAvailable(xtl xsimd xtensor)
 
 # === Load astron packages ===
 
@@ -486,10 +443,7 @@ add_library(
   steps/ApplyBeam.cc
   steps/DemixerNew.cc
   steps/NullStokes.cc)
-
-if(${BUILD_XTENSOR})
-  add_dependencies(DP3_OBJ xtensor)
-endif()
+target_link_libraries(DP3_OBJ xtensor)
 
 add_library(
   ParmDB OBJECT
@@ -761,7 +715,7 @@ if(BUILD_TESTING)
                            ${DP3_OBJECTS})
   set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
   target_include_directories(unittests PRIVATE "${CMAKE_SOURCE_DIR}")
-  target_link_libraries(unittests ${DP3_LIBRARIES})
+  target_link_libraries(unittests ${DP3_LIBRARIES} xtensor)
   add_dependencies(unittests schaapcommon)
 
   # Automatically (re)build the unit tests on every ctest run.
