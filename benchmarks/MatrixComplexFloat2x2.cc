@@ -80,17 +80,17 @@ int main() {
   bench.minEpochIterations(500'000);
 
   Conjugate<aocommon::MC2x2F>(bench, "    Conjugate");
-  Conjugate<aocommon::Avx256::MaxtrixComplexFloat2x2>(bench, "AVX Conjugate");
+  Conjugate<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "AVX Conjugate");
   Transpose<aocommon::MC2x2F>(bench, "    Transpose");
-  HermitianTranspose<aocommon::Avx256::MaxtrixComplexFloat2x2>(bench,
-                                                               "AVX Transpose");
+  HermitianTranspose<aocommon::Avx256::MatrixComplexFloat2x2>(bench,
+                                                              "AVX Transpose");
   HermitianTranspose<aocommon::MC2x2F>(bench, "    HermitianTranspose");
-  Transpose<aocommon::Avx256::MaxtrixComplexFloat2x2>(bench,
-                                                      "AVX HermitianTranspose");
+  Transpose<aocommon::Avx256::MatrixComplexFloat2x2>(bench,
+                                                     "AVX HermitianTranspose");
   Norm<aocommon::MC2x2F>(bench, "    Norm");
-  Norm<aocommon::Avx256::MaxtrixComplexFloat2x2>(bench, "AVX Norm");
+  Norm<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "AVX Norm");
   Multiply<aocommon::MC2x2F>(bench, "    Multiply");
-  Multiply<aocommon::Avx256::MaxtrixComplexFloat2x2>(bench, "AVX Multiply");
+  Multiply<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "AVX Multiply");
 
   Generate("html", ankerl::nanobench::templates::htmlBoxplot(), bench);
   Generate("json", ankerl::nanobench::templates::json(), bench);

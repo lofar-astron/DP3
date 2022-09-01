@@ -8,7 +8,7 @@
  * @file Implements a Vector with 2 complex double values.
  *
  * This class is an implementation detail of
- * @ref aocommon::Avx256::MaxtrixComplexDouble2x2, but can be used by itself.
+ * @ref aocommon::Avx256::MatrixComplexDouble2x2, but can be used by itself.
  *
  * @note The class only implements a subset of the vector operations. Other
  * operations will be added on a when-needed basis.

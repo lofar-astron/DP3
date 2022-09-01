@@ -209,7 +209,7 @@ void FullJonesSolver::PerformIteration(
       // precision for the computation below, reduced the performance.
       // -> Keep using double precision until 'solutions' uses single precision.
 #if defined(__AVX2__)
-      using Matrix = aocommon::Avx256::MaxtrixComplexDouble2x2;
+      using Matrix = aocommon::Avx256::MatrixComplexDouble2x2;
 #else
       using Matrix = aocommon::MC2x2F;
 #endif

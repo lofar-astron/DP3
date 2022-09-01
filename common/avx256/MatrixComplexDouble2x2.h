@@ -30,29 +30,28 @@
 
 namespace aocommon::Avx256 {
 
-class MaxtrixComplexDouble2x2 {
+class MatrixComplexDouble2x2 {
  public:
-  /* implicit */ MaxtrixComplexDouble2x2(
+  /* implicit */ MatrixComplexDouble2x2(
       std::array<VectorComplexDouble2, 2> data) noexcept
       : data_{data} {}
 
-  explicit MaxtrixComplexDouble2x2(std::complex<double> a,
-                                   std::complex<double> b,
-                                   std::complex<double> c,
-                                   std::complex<double> d) noexcept
+  explicit MatrixComplexDouble2x2(std::complex<double> a,
+                                  std::complex<double> b,
+                                  std::complex<double> c,
+                                  std::complex<double> d) noexcept
       : data_{{VectorComplexDouble2{a, b}, VectorComplexDouble2{c, d}}} {}
 
-  explicit MaxtrixComplexDouble2x2(const std::complex<float> matrix[4]) noexcept
+  explicit MatrixComplexDouble2x2(const std::complex<float> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  explicit MaxtrixComplexDouble2x2(
-      const std::complex<double> matrix[4]) noexcept
+  explicit MatrixComplexDouble2x2(const std::complex<double> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  explicit MaxtrixComplexDouble2x2(const aocommon::MC2x2& matrix) noexcept
-      : MaxtrixComplexDouble2x2(matrix.Data()) {}
+  explicit MatrixComplexDouble2x2(const aocommon::MC2x2& matrix) noexcept
+      : MatrixComplexDouble2x2(matrix.Data()) {}
 
   [[nodiscard]] std::complex<double> operator[](size_t index) const noexcept {
     assert(index < 4 && "Index out of bounds.");
@@ -61,18 +60,18 @@ class MaxtrixComplexDouble2x2 {
     return data_[array][index];
   }
 
-  [[nodiscard]] MaxtrixComplexDouble2x2 Conjugate() const noexcept {
+  [[nodiscard]] MatrixComplexDouble2x2 Conjugate() const noexcept {
     return std::array<VectorComplexDouble2, 2>{data_[0].Conjugate(),
                                                data_[1].Conjugate()};
   }
 
-  [[nodiscard]] MaxtrixComplexDouble2x2 Transpose() const noexcept {
+  [[nodiscard]] MatrixComplexDouble2x2 Transpose() const noexcept {
     // Note the compiler uses intrinsics without assistance.
-    return MaxtrixComplexDouble2x2{(*this)[0], (*this)[2], (*this)[1],
-                                   (*this)[3]};
+    return MatrixComplexDouble2x2{(*this)[0], (*this)[2], (*this)[1],
+                                  (*this)[3]};
   }
 
-  [[nodiscard]] MaxtrixComplexDouble2x2 HermitianTranspose() const noexcept {
+  [[nodiscard]] MatrixComplexDouble2x2 HermitianTranspose() const noexcept {
     return Transpose().Conjugate();
   }
 
@@ -140,30 +139,30 @@ class MaxtrixComplexDouble2x2 {
     return ret[0];
   }
 
-  MaxtrixComplexDouble2x2& operator+=(MaxtrixComplexDouble2x2 value) noexcept {
+  MatrixComplexDouble2x2& operator+=(MatrixComplexDouble2x2 value) noexcept {
     data_[0] += value.data_[0];
     data_[1] += value.data_[1];
     return *this;
   }
 
-  MaxtrixComplexDouble2x2& operator-=(MaxtrixComplexDouble2x2 value) noexcept {
+  MatrixComplexDouble2x2& operator-=(MatrixComplexDouble2x2 value) noexcept {
     data_[0] -= value.data_[0];
     data_[1] -= value.data_[1];
     return *this;
   }
 
-  [[nodiscard]] friend MaxtrixComplexDouble2x2 operator+(
-      MaxtrixComplexDouble2x2 lhs, MaxtrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator+(
+      MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return lhs += rhs;
   }
 
-  [[nodiscard]] friend MaxtrixComplexDouble2x2 operator-(
-      MaxtrixComplexDouble2x2 lhs, MaxtrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator-(
+      MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return lhs -= rhs;
   }
 
-  [[nodiscard]] friend MaxtrixComplexDouble2x2 operator*(
-      MaxtrixComplexDouble2x2 lhs, MaxtrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
+      MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     // The 2x2 matrix multiplication is done using the following algorithm.
 
     // High:
@@ -203,13 +202,13 @@ class MaxtrixComplexDouble2x2 {
     return std::array<VectorComplexDouble2, 2>{hr, lr};
   }
 
-  [[nodiscard]] friend bool operator==(MaxtrixComplexDouble2x2 lhs,
-                                       MaxtrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] friend bool operator==(MatrixComplexDouble2x2 lhs,
+                                       MatrixComplexDouble2x2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
   }
 
   friend std::ostream& operator<<(std::ostream& output,
-                                  MaxtrixComplexDouble2x2 value) {
+                                  MatrixComplexDouble2x2 value) {
     output << "[{" << value[0] << ", " << value[1] << "}, {" << value[2] << ", "
            << value[3] << "}]";
     return output;
@@ -220,8 +219,8 @@ class MaxtrixComplexDouble2x2 {
 };
 
 /// MC2x2Base compatibility wrapper.
-inline MaxtrixComplexDouble2x2 HermTranspose(
-    MaxtrixComplexDouble2x2 matrix) noexcept {
+inline MatrixComplexDouble2x2 HermTranspose(
+    MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
 }
 
@@ -230,7 +229,7 @@ inline MaxtrixComplexDouble2x2 HermTranspose(
  *
  * @returns the Frobenius norm of the matrix.
  */
-inline double Norm(MaxtrixComplexDouble2x2 matrix) noexcept {
+inline double Norm(MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Norm();
 }
 
