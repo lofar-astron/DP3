@@ -53,6 +53,26 @@ class VectorFloat8 {
 
   [[nodiscard]] __m256 Value() const noexcept { return data_; }
 
+  VectorFloat8& operator+=(VectorFloat8 value) noexcept {
+    data_ += value.data_;
+    return *this;
+  }
+
+  VectorFloat8& operator-=(VectorFloat8 value) noexcept {
+    data_ -= value.data_;
+    return *this;
+  }
+
+  [[nodiscard]] friend VectorFloat8 operator+(VectorFloat8 lhs,
+                                              VectorFloat8 rhs) noexcept {
+    return lhs += rhs;
+  }
+
+  [[nodiscard]] friend VectorFloat8 operator-(VectorFloat8 lhs,
+                                              VectorFloat8 rhs) noexcept {
+    return lhs -= rhs;
+  }
+
   [[nodiscard]] friend VectorFloat8 operator*(VectorFloat8 lhs,
                                               VectorFloat8 rhs) noexcept {
     return _mm256_mul_ps(lhs.data_, rhs.data_);

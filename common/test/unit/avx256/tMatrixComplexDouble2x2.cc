@@ -189,6 +189,114 @@ BOOST_AUTO_TEST_CASE(hermitian_transpose) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(norm) {
+  static_assert(noexcept(aocommon::Avx256::MaxtrixComplexDouble2x2{
+      static_cast<const std::complex<double>*>(nullptr)}
+                             .Norm()));
+  const std::vector<aocommon::MC2x2> inputs{
+      aocommon::MC2x2{
+          std::complex<double>{1.0, 2.0}, std::complex<double>{10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<double>{-1.0, 2.0}, std::complex<double>{10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{-100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{-100, -101}, std::complex<double>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{-100, -101}, std::complex<double>{-1000, 1001}},
+      aocommon::MC2x2{std::complex<double>{-1.0, -2.0},
+                      std::complex<double>{-10, -11},
+                      std::complex<double>{-100, -101},
+                      std::complex<double>{-1000, -1001}}};
+
+  for (const auto& input : inputs) {
+    const double expected = aocommon::Norm(input);
+
+    const double result =
+        aocommon::Avx256::MaxtrixComplexDouble2x2{input}.Norm();
+
+    BOOST_CHECK_EQUAL(result, expected);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(operator_plus_equal) {
+  aocommon::Avx256::MaxtrixComplexDouble2x2 r{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 value{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  r += value;
+  static_assert(noexcept(r += value));
+
+  BOOST_TEST(r[0] == (std::complex<double>{5.0, 10.0}));
+  BOOST_TEST(r[1] == (std::complex<double>{50.0, 55.0}));
+  BOOST_TEST(r[2] == (std::complex<double>{500., 505.0}));
+  BOOST_TEST(r[3] == (std::complex<double>{5000., 5005.0}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus_equal) {
+  aocommon::Avx256::MaxtrixComplexDouble2x2 r{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 value{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  r -= value;
+  static_assert(noexcept(r -= value));
+
+  BOOST_TEST(r[0] == (std::complex<double>{-3, -6}));
+  BOOST_TEST(r[1] == (std::complex<double>{-30, -33}));
+  BOOST_TEST(r[2] == (std::complex<double>{-300, -303}));
+  BOOST_TEST(r[3] == (std::complex<double>{-3000, -3003}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_plus) {
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 lhs{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 rhs{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 r = lhs + rhs;
+  static_assert(noexcept(lhs + rhs));
+
+  BOOST_TEST(r[0] == (std::complex<double>{5.0, 10.0}));
+  BOOST_TEST(r[1] == (std::complex<double>{50.0, 55.0}));
+  BOOST_TEST(r[2] == (std::complex<double>{500., 505.0}));
+  BOOST_TEST(r[3] == (std::complex<double>{5000., 5005.0}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus) {
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 lhs{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 rhs{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  const aocommon::Avx256::MaxtrixComplexDouble2x2 r = lhs - rhs;
+  static_assert(noexcept(lhs - rhs));
+
+  BOOST_TEST(r[0] == (std::complex<double>{-3, -6}));
+  BOOST_TEST(r[1] == (std::complex<double>{-30, -33}));
+  BOOST_TEST(r[2] == (std::complex<double>{-300, -303}));
+  BOOST_TEST(r[3] == (std::complex<double>{-3000, -3003}));
+}
+
 BOOST_AUTO_TEST_CASE(multiply) {
   const aocommon::Avx256::MaxtrixComplexDouble2x2 lhs{
       {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
@@ -266,9 +374,9 @@ BOOST_AUTO_TEST_CASE(output) {
                     "[{(-1,1), (3.75,-3.75)}, {(99,-99), (1.5,-1.5)}]");
 }
 
-BOOST_AUTO_TEST_CASE(herm_transpose) {
-  static_assert(
-      noexcept(HermTranspose(aocommon::Avx256::MaxtrixComplexDouble2x2{
+BOOST_AUTO_TEST_CASE(non_member_herm_transpose) {
+  static_assert(noexcept(
+      aocommon::Avx256::HermTranspose(aocommon::Avx256::MaxtrixComplexDouble2x2{
           static_cast<const std::complex<double>*>(nullptr)})));
   const std::vector<aocommon::Avx256::MaxtrixComplexDouble2x2> inputs{
       aocommon::Avx256::MaxtrixComplexDouble2x2{
@@ -301,7 +409,45 @@ BOOST_AUTO_TEST_CASE(herm_transpose) {
           std::complex<double>{-1000, -1001}}};
 
   for (const auto& input : inputs)
-    BOOST_CHECK_EQUAL(input.HermitianTranspose(), HermTranspose(input));
+    BOOST_CHECK_EQUAL(input.HermitianTranspose(),
+                      aocommon::Avx256::HermTranspose(input));
+}
+
+BOOST_AUTO_TEST_CASE(non_member_norm) {
+  static_assert(
+      noexcept(aocommon::Avx256::Norm(aocommon::Avx256::MaxtrixComplexDouble2x2{
+          static_cast<const std::complex<double>*>(nullptr)})));
+  const std::vector<aocommon::Avx256::MaxtrixComplexDouble2x2> inputs{
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{1.0, 2.0}, std::complex<double>{10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, 2.0}, std::complex<double>{10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, 11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{-100, 101}, std::complex<double>{1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{-100, -101}, std::complex<double>{1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{-100, -101}, std::complex<double>{-1000, 1001}},
+      aocommon::Avx256::MaxtrixComplexDouble2x2{
+          std::complex<double>{-1.0, -2.0}, std::complex<double>{-10, -11},
+          std::complex<double>{-100, -101},
+          std::complex<double>{-1000, -1001}}};
+
+  for (const auto& input : inputs) BOOST_CHECK_EQUAL(input.Norm(), 2022428.0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

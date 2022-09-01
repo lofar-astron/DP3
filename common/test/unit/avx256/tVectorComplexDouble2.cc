@@ -73,6 +73,20 @@ BOOST_AUTO_TEST_CASE(constructor_double_pointer) {
   BOOST_TEST(result[1] == (std::complex<double>{3.75, -3.75}));
 }
 
+BOOST_AUTO_TEST_CASE(operator_m256d) {
+  static_assert(
+      noexcept(static_cast<__m256d>(aocommon::Avx256::VectorComplexDouble2{
+          static_cast<const std::complex<double>*>(nullptr)})));
+
+  const aocommon::Avx256::VectorComplexDouble2 input{
+      aocommon::Avx256::VectorDouble4{-1.0, 1.0, 3.75, -3.75}};
+
+  BOOST_TEST(static_cast<__m256d>(input)[0] == -1.0);
+  BOOST_TEST(static_cast<__m256d>(input)[1] == 1.0);
+  BOOST_TEST(static_cast<__m256d>(input)[2] == 3.75);
+  BOOST_TEST(static_cast<__m256d>(input)[3] == -3.75);
+}
+
 BOOST_AUTO_TEST_CASE(conjugate) {
   static_assert(noexcept(aocommon::Avx256::VectorComplexDouble2{
       static_cast<const std::complex<double>*>(nullptr)}
@@ -120,6 +134,54 @@ BOOST_AUTO_TEST_CASE(conjugate) {
       (aocommon::Avx256::VectorComplexDouble2{{-1.0, 2.0}, {-10, 11}}));
 }
 
+BOOST_AUTO_TEST_CASE(operator_plus_minus) {
+  aocommon::Avx256::VectorComplexDouble2 r{{1.0, 2.0}, {10, 11}};
+
+  const aocommon::Avx256::VectorComplexDouble2 value{{4, 8}, {40, 44}};
+
+  r -= value;
+  static_assert(noexcept(r -= value));
+
+  BOOST_TEST(r[0] == (std::complex<double>{-3, -6}));
+  BOOST_TEST(r[1] == (std::complex<double>{-30, -33}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_plus_equal) {
+  aocommon::Avx256::VectorComplexDouble2 r{{1.0, 2.0}, {10, 11}};
+
+  const aocommon::Avx256::VectorComplexDouble2 value{{4, 8}, {40, 44}};
+
+  r += value;
+  static_assert(noexcept(r += value));
+
+  BOOST_TEST(r[0] == (std::complex<double>{5.0, 10.0}));
+  BOOST_TEST(r[1] == (std::complex<double>{50.0, 55.0}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_plus) {
+  const aocommon::Avx256::VectorComplexDouble2 lhs{{1.0, 2.0}, {10, 11}};
+
+  const aocommon::Avx256::VectorComplexDouble2 rhs{{4, 8}, {40, 44}};
+
+  const aocommon::Avx256::VectorComplexDouble2 r = lhs + rhs;
+  static_assert(noexcept(lhs + rhs));
+
+  BOOST_TEST(r[0] == (std::complex<double>{5.0, 10.0}));
+  BOOST_TEST(r[1] == (std::complex<double>{50.0, 55.0}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus) {
+  const aocommon::Avx256::VectorComplexDouble2 lhs{{1.0, 2.0}, {10, 11}};
+
+  const aocommon::Avx256::VectorComplexDouble2 rhs{{4, 8}, {40, 44}};
+
+  const aocommon::Avx256::VectorComplexDouble2 r = lhs - rhs;
+  static_assert(noexcept(lhs - rhs));
+
+  BOOST_TEST(r[0] == (std::complex<double>{-3, -6}));
+  BOOST_TEST(r[1] == (std::complex<double>{-30, -33}));
+}
+
 BOOST_AUTO_TEST_CASE(multiply) {
   const aocommon::Avx256::VectorComplexDouble2 lhs{{1.0, 2.0}, {10, 11}};
 
@@ -130,18 +192,6 @@ BOOST_AUTO_TEST_CASE(multiply) {
 
   BOOST_TEST(r[0] == (std::complex<double>{-12.0, 16.0}));
   BOOST_TEST(r[1] == (std::complex<double>{-84.0, 880.0}));
-}
-
-BOOST_AUTO_TEST_CASE(addition) {
-  const aocommon::Avx256::VectorComplexDouble2 lhs{{1.0, 2.0}, {10, 11}};
-
-  const aocommon::Avx256::VectorComplexDouble2 rhs{{4, 8}, {40, 44}};
-
-  const aocommon::Avx256::VectorComplexDouble2 r = lhs + rhs;
-  static_assert(noexcept(lhs + rhs));
-
-  BOOST_TEST(r[0] == (std::complex<double>{5.0, 10.0}));
-  BOOST_TEST(r[1] == (std::complex<double>{50.0, 55.0}));
 }
 
 BOOST_AUTO_TEST_CASE(equal) {
