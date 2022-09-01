@@ -83,6 +83,25 @@ BOOST_AUTO_TEST_CASE(constructor_double_pointer) {
   BOOST_TEST(result[3] == (std::complex<float>{1.5, -1.5}));
 }
 
+BOOST_AUTO_TEST_CASE(operator_m256) {
+  static_assert(
+      noexcept(static_cast<__m256>(aocommon::Avx256::VectorComplexFloat4{
+          static_cast<const std::complex<float>*>(nullptr)})));
+
+  const aocommon::Avx256::VectorComplexFloat4 input{
+      aocommon::Avx256::VectorFloat8{-1.0, 1.0, 3.75, -3.75, 99.0, -99.0, 1.5,
+                                     -1.5}};
+
+  BOOST_TEST(static_cast<__m256>(input)[0] == -1.0);
+  BOOST_TEST(static_cast<__m256>(input)[1] == 1.0);
+  BOOST_TEST(static_cast<__m256>(input)[2] == 3.75);
+  BOOST_TEST(static_cast<__m256>(input)[3] == -3.75);
+  BOOST_TEST(static_cast<__m256>(input)[4] == 99.0);
+  BOOST_TEST(static_cast<__m256>(input)[5] == -99.0);
+  BOOST_TEST(static_cast<__m256>(input)[6] == 1.5);
+  BOOST_TEST(static_cast<__m256>(input)[7] == -1.5);
+}
+
 BOOST_AUTO_TEST_CASE(conjugate) {
   static_assert(noexcept(aocommon::Avx256::VectorComplexFloat4{
       static_cast<const std::complex<float>*>(nullptr)}
@@ -140,6 +159,70 @@ BOOST_AUTO_TEST_CASE(conjugate) {
                         {-1.0, 2.0}, {-10, 11}, {-100, 101}, {-1000, 1001}}));
 }
 
+BOOST_AUTO_TEST_CASE(operator_plus_equal) {
+  aocommon::Avx256::VectorComplexFloat4 r{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::VectorComplexFloat4 value{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  r += value;
+  static_assert(noexcept(r += value));
+
+  BOOST_TEST(r[0] == (std::complex<float>{5.0, 10.0}));
+  BOOST_TEST(r[1] == (std::complex<float>{50.0, 55.0}));
+  BOOST_TEST(r[2] == (std::complex<float>{500., 505.0}));
+  BOOST_TEST(r[3] == (std::complex<float>{5000., 5005.0}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus_equal) {
+  aocommon::Avx256::VectorComplexFloat4 r{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::VectorComplexFloat4 value{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  r -= value;
+  static_assert(noexcept(r -= value));
+
+  BOOST_TEST(r[0] == (std::complex<float>{-3, -6}));
+  BOOST_TEST(r[1] == (std::complex<float>{-30, -33}));
+  BOOST_TEST(r[2] == (std::complex<float>{-300, -303}));
+  BOOST_TEST(r[3] == (std::complex<float>{-3000, -3003}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_plus) {
+  const aocommon::Avx256::VectorComplexFloat4 lhs{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::VectorComplexFloat4 rhs{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  const aocommon::Avx256::VectorComplexFloat4 r = lhs + rhs;
+  static_assert(noexcept(lhs + rhs));
+
+  BOOST_TEST(r[0] == (std::complex<float>{5.0, 10.0}));
+  BOOST_TEST(r[1] == (std::complex<float>{50.0, 55.0}));
+  BOOST_TEST(r[2] == (std::complex<float>{500., 505.0}));
+  BOOST_TEST(r[3] == (std::complex<float>{5000., 5005.0}));
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus) {
+  const aocommon::Avx256::VectorComplexFloat4 lhs{
+      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  const aocommon::Avx256::VectorComplexFloat4 rhs{
+      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+  const aocommon::Avx256::VectorComplexFloat4 r = lhs - rhs;
+  static_assert(noexcept(lhs - rhs));
+
+  BOOST_TEST(r[0] == (std::complex<float>{-3, -6}));
+  BOOST_TEST(r[1] == (std::complex<float>{-30, -33}));
+  BOOST_TEST(r[2] == (std::complex<float>{-300, -303}));
+  BOOST_TEST(r[3] == (std::complex<float>{-3000, -3003}));
+}
+
 BOOST_AUTO_TEST_CASE(multiply) {
   const aocommon::Avx256::VectorComplexFloat4 lhs{
       {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
@@ -154,22 +237,6 @@ BOOST_AUTO_TEST_CASE(multiply) {
   BOOST_TEST(r[1] == (std::complex<float>{-84.0, 880.0}));
   BOOST_TEST(r[2] == (std::complex<float>{-804.0, 80800.0}));
   BOOST_TEST(r[3] == (std::complex<float>{-8004.0, 8008000.0}));
-}
-
-BOOST_AUTO_TEST_CASE(addition) {
-  const aocommon::Avx256::VectorComplexFloat4 lhs{
-      {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
-
-  const aocommon::Avx256::VectorComplexFloat4 rhs{
-      {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
-
-  const aocommon::Avx256::VectorComplexFloat4 r = lhs + rhs;
-  static_assert(noexcept(lhs + rhs));
-
-  BOOST_TEST(r[0] == (std::complex<float>{5.0, 10.0}));
-  BOOST_TEST(r[1] == (std::complex<float>{50.0, 55.0}));
-  BOOST_TEST(r[2] == (std::complex<float>{500., 505.0}));
-  BOOST_TEST(r[3] == (std::complex<float>{5000., 5005.0}));
 }
 
 BOOST_AUTO_TEST_CASE(equal) {

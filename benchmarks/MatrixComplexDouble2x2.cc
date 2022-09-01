@@ -46,6 +46,17 @@ static void HermitianTranspose(ankerl::nanobench::Bench& bench,
 }
 
 template <class Matrix>
+static void Norm(ankerl::nanobench::Bench& bench, const char* name) {
+  Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  double r = 1.0;
+  bench.run(name, [&] {
+    // assigment needed to avoid optimization.
+    ankerl::nanobench::doNotOptimizeAway(r = Norm(a));
+  });
+}
+
+template <class Matrix>
 static void Multiply(ankerl::nanobench::Bench& bench, const char* name) {
   Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
   Matrix b{{4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
@@ -76,6 +87,8 @@ int main() {
   HermitianTranspose<aocommon::MC2x2>(bench, "    HermitianTranspose");
   Transpose<aocommon::Avx256::MaxtrixComplexDouble2x2>(
       bench, "AVX HermitianTranspose");
+  Norm<aocommon::MC2x2>(bench, "    Norm");
+  Norm<aocommon::Avx256::MaxtrixComplexDouble2x2>(bench, "AVX Norm");
   Multiply<aocommon::MC2x2>(bench, "    Multiply");
   Multiply<aocommon::Avx256::MaxtrixComplexDouble2x2>(bench, "AVX Multiply");
 

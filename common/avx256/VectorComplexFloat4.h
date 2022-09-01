@@ -56,11 +56,35 @@ class VectorComplexFloat4 {
     return {data_[2 * index], data_[2 * index + 1]};
   }
 
+  [[nodiscard]] explicit operator __m256() const noexcept {
+    return data_.Value();
+  }
+
   [[nodiscard]] VectorComplexFloat4 Conjugate() const noexcept {
     // Xor-ing a float with  0.0 will not change the value.
     // Xor-ing a float with -0.0 will change the sign of the value.
     __m256 mask = _mm256_setr_ps(0.0, -0.0, 0.0, -0.0, 0.0, -0.0, 0.0, -0.0);
     return data_ ^ mask;
+  }
+
+  VectorComplexFloat4& operator+=(VectorComplexFloat4 value) noexcept {
+    data_ += value.data_;
+    return *this;
+  }
+
+  VectorComplexFloat4& operator-=(VectorComplexFloat4 value) noexcept {
+    data_ -= value.data_;
+    return *this;
+  }
+
+  [[nodiscard]] friend VectorComplexFloat4 operator+(
+      VectorComplexFloat4 lhs, VectorComplexFloat4 rhs) noexcept {
+    return lhs += rhs;
+  }
+
+  [[nodiscard]] friend VectorComplexFloat4 operator-(
+      VectorComplexFloat4 lhs, VectorComplexFloat4 rhs) noexcept {
+    return lhs -= rhs;
   }
 
   /// Multiplies the elements of 2 vectors on parallel.
@@ -114,11 +138,6 @@ class VectorComplexFloat4 {
         _mm256_shuffle_ps(rhs.data_.Value(), rhs.data_.Value(), 0b10'11'00'01);
     __m256 Rv3 = _mm256_mul_ps(Rv1, Rv2);
     return VectorFloat8{_mm256_fmaddsub_ps(Lv1, rhs.data_.Value(), Rv3)};
-  }
-
-  [[nodiscard]] friend VectorComplexFloat4 operator+(
-      VectorComplexFloat4 lhs, VectorComplexFloat4 rhs) noexcept {
-    return VectorFloat8{_mm256_add_ps(lhs.data_.Value(), rhs.data_.Value())};
   }
 
   [[nodiscard]] friend bool operator==(VectorComplexFloat4 lhs,

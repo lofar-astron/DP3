@@ -124,6 +124,82 @@ BOOST_AUTO_TEST_CASE(value) {
   BOOST_TEST(result[7] == -1.0);
 }
 
+BOOST_AUTO_TEST_CASE(operator_plus_equal) {
+  aocommon::Avx256::VectorFloat8 r{1, 2, 10, 11, 100, 101, 1000, 1001};
+
+  const aocommon::Avx256::VectorFloat8 value{4,   8,   40,   44,
+                                             400, 404, 4000, 4004};
+
+  r += value;
+  static_assert(noexcept(r += value));
+
+  BOOST_TEST(r[0] == 5);
+  BOOST_TEST(r[1] == 10);
+  BOOST_TEST(r[2] == 50);
+  BOOST_TEST(r[3] == 55);
+  BOOST_TEST(r[4] == 500);
+  BOOST_TEST(r[5] == 505);
+  BOOST_TEST(r[6] == 5000);
+  BOOST_TEST(r[7] == 5005);
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus_equal) {
+  aocommon::Avx256::VectorFloat8 r{1, 2, 10, 11, 100, 101, 1000, 1001};
+
+  const aocommon::Avx256::VectorFloat8 value{4,   8,   40,   44,
+                                             400, 404, 4000, 4004};
+
+  r -= value;
+  static_assert(noexcept(r -= value));
+
+  BOOST_TEST(r[0] == -3);
+  BOOST_TEST(r[1] == -6);
+  BOOST_TEST(r[2] == -30);
+  BOOST_TEST(r[3] == -33);
+  BOOST_TEST(r[4] == -300);
+  BOOST_TEST(r[5] == -303);
+  BOOST_TEST(r[6] == -3000);
+  BOOST_TEST(r[7] == -3003);
+}
+
+BOOST_AUTO_TEST_CASE(operator_plus) {
+  const aocommon::Avx256::VectorFloat8 lhs{1.0, 2.0, 10,   11,
+                                           100, 101, 1000, 1001};
+
+  const aocommon::Avx256::VectorFloat8 rhs{4, 8, 40, 44, 400, 404, 4000, 4004};
+
+  const aocommon::Avx256::VectorFloat8 r = lhs + rhs;
+  static_assert(noexcept(lhs + rhs));
+
+  BOOST_TEST(r[0] == 5);
+  BOOST_TEST(r[1] == 10);
+  BOOST_TEST(r[2] == 50);
+  BOOST_TEST(r[3] == 55);
+  BOOST_TEST(r[4] == 500);
+  BOOST_TEST(r[5] == 505);
+  BOOST_TEST(r[6] == 5000);
+  BOOST_TEST(r[7] == 5005);
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus) {
+  const aocommon::Avx256::VectorFloat8 lhs{1.0, 2.0, 10,   11,
+                                           100, 101, 1000, 1001};
+
+  const aocommon::Avx256::VectorFloat8 rhs{4, 8, 40, 44, 400, 404, 4000, 4004};
+
+  const aocommon::Avx256::VectorFloat8 r = lhs - rhs;
+  static_assert(noexcept(lhs - rhs));
+
+  BOOST_TEST(r[0] == -3);
+  BOOST_TEST(r[1] == -6);
+  BOOST_TEST(r[2] == -30);
+  BOOST_TEST(r[3] == -33);
+  BOOST_TEST(r[4] == -300);
+  BOOST_TEST(r[5] == -303);
+  BOOST_TEST(r[6] == -3000);
+  BOOST_TEST(r[7] == -3003);
+}
+
 BOOST_AUTO_TEST_CASE(multiply) {
   const float input[] = {-1.0, 1.0, 3.75, -3.75, 99.0, -99.0, 1.5, -1.5};
   const aocommon::Avx256::VectorFloat8 lhs{input};

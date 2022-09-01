@@ -71,6 +71,66 @@ class MaxtrixComplexFloat2x2 {
     return Transpose().Conjugate();
   }
 
+  /// @returns the Frobenius norm of the matrix.
+  [[nodiscard]] float Norm() const noexcept {
+    // This uses the same basic idea as MaxtrixComplexDouble2x2::Norm except
+    // that the underlaying data is stored in one __m256d value.
+
+    // Note this function seems slower than expected.
+    // MaxtrixComplexDouble2x2::Norm is faster than this function. It is
+    // still faster than the scalare version. It would be nice to improve
+    // this in the future.
+    //
+    //
+    __m256 tmp = static_cast<__m256>(data_);
+    tmp *= tmp;
+
+    // For the addition we deviate from the double version.
+    // | a     | b     | c     | d     |
+    // | e     | f     | g     | h     |
+    // ---------------------------------+
+    // | a + e | b + f | c + g | d + h |
+
+    __m128 ret = _mm256_castps256_ps128(tmp);
+    ret += _mm256_extractf128_ps(tmp, 1);
+
+    // | a + e         | b + f         |
+    // | c + g         | d + h         |
+    // ---------------------------------+
+    // | a + e + c + g | b + f + d + h |
+
+    // ret = _mm_hadd_ps(ret, ret);
+
+    ret += _mm_movehl_ps(ret, ret);
+
+    // | a + e + c + g                 |
+    // | b + f + d + h                 |
+    // ---------------------------------+
+    // | a + e + c + g + b + f + d + h |
+
+    return ret[0] + ret[1];
+  }
+
+  MaxtrixComplexFloat2x2& operator+=(MaxtrixComplexFloat2x2 value) noexcept {
+    data_ += value.data_;
+    return *this;
+  }
+
+  MaxtrixComplexFloat2x2& operator-=(MaxtrixComplexFloat2x2 value) noexcept {
+    data_ -= value.data_;
+    return *this;
+  }
+
+  [[nodiscard]] friend MaxtrixComplexFloat2x2 operator+(
+      MaxtrixComplexFloat2x2 lhs, MaxtrixComplexFloat2x2 rhs) noexcept {
+    return lhs += rhs;
+  }
+
+  [[nodiscard]] friend MaxtrixComplexFloat2x2 operator-(
+      MaxtrixComplexFloat2x2 lhs, MaxtrixComplexFloat2x2 rhs) noexcept {
+    return lhs -= rhs;
+  }
+
   [[nodiscard]] friend MaxtrixComplexFloat2x2 operator*(
       MaxtrixComplexFloat2x2 lhs, MaxtrixComplexFloat2x2 rhs) noexcept {
     // The 2x2 matrix multiplication is done using the following algorithm.
@@ -113,6 +173,15 @@ class MaxtrixComplexFloat2x2 {
 inline MaxtrixComplexFloat2x2 HermTranspose(
     MaxtrixComplexFloat2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
+}
+
+/**
+ * MC2x2Base compatibility wrapper.
+ *
+ * @returns the Frobenius norm of the matrix.
+ */
+inline float Norm(MaxtrixComplexFloat2x2 matrix) noexcept {
+  return matrix.Norm();
 }
 
 }  // namespace aocommon::Avx256

@@ -76,6 +76,92 @@ class MaxtrixComplexDouble2x2 {
     return Transpose().Conjugate();
   }
 
+  /// @returns the Frobenius norm of the matrix.
+  [[nodiscard]] double Norm() const noexcept {
+    // Norm Matrix Complex 2x2
+    // Norm(a) + Norm(b) + Norm(c) + Norm(d)
+    //
+    // Norm is using C++'s definition of std::complex<T>::norm(). This norm is
+    // also known as the 'field norm' or 'absolute square'. Norm is defined as
+    // a.re * a.re + a.im * a.im
+    //
+    // Note if we want to do this accoring to the rules above some shuffing
+    // needs to be done. Instead we can consider the underlaying data an array
+    // of 8 doubles. Then Norm becomes
+    //
+    // -- 7
+    // \.
+    //  .  a[n] * a[n]
+    // /
+    // -- n = 0
+    //
+    // and no shuffling in needed instead use the following algorithm
+    //
+    // hi = data_[0]
+    // lo = data_[1]
+    //
+    // hi = hi * hi
+    // lo = lo * lo
+    //
+    // tmp = hi + lo
+    // ret = std::accumulate(&tmp[0], &tmp[4], 0.0); // not possible in C++
+    //
+    // instead of calculating tmp as described it can be done by
+    // hi = lo * lo + hi
+
+    __m256d hi = static_cast<__m256d>(data_[0]);
+    __m256d lo = static_cast<__m256d>(data_[1]);
+
+    hi *= hi;
+    hi = _mm256_fmadd_pd(lo, lo, hi);
+
+    // Summing the 4 elements in hi can be simply done by
+    // return hi[0] + hi[1] + hi[2] + hi[3]
+    //
+    // however this is slow, it's more efficient to permutate the data and use
+    // vector adding. The instruction set has a hadd operation, but this is
+    // slow too. Instead use register permutations and additons. The entries
+    // marked with - in the table mean we don't care about the contents. The
+    // result will be stored in hi[0]:
+    //
+    // hi | a             | b     | c | d |
+    // lo | c             | d     | - | - |
+    //    --------------------------------- +
+    // hi | a + c         | b + d | - | - |
+    // lo | b + d         | -     | - | - |
+    //    --------------------------------- +
+    // hi | a + c + b + d | -     | - | - |
+
+    lo = _mm256_permute4x64_pd(hi, 0b11'10);
+    hi += lo;
+
+    __m128d ret = _mm256_castpd256_pd128(hi);
+    ret += _mm_permute_pd(ret, 0b01);
+    return ret[0];
+  }
+
+  MaxtrixComplexDouble2x2& operator+=(MaxtrixComplexDouble2x2 value) noexcept {
+    data_[0] += value.data_[0];
+    data_[1] += value.data_[1];
+    return *this;
+  }
+
+  MaxtrixComplexDouble2x2& operator-=(MaxtrixComplexDouble2x2 value) noexcept {
+    data_[0] -= value.data_[0];
+    data_[1] -= value.data_[1];
+    return *this;
+  }
+
+  [[nodiscard]] friend MaxtrixComplexDouble2x2 operator+(
+      MaxtrixComplexDouble2x2 lhs, MaxtrixComplexDouble2x2 rhs) noexcept {
+    return lhs += rhs;
+  }
+
+  [[nodiscard]] friend MaxtrixComplexDouble2x2 operator-(
+      MaxtrixComplexDouble2x2 lhs, MaxtrixComplexDouble2x2 rhs) noexcept {
+    return lhs -= rhs;
+  }
+
   [[nodiscard]] friend MaxtrixComplexDouble2x2 operator*(
       MaxtrixComplexDouble2x2 lhs, MaxtrixComplexDouble2x2 rhs) noexcept {
     // The 2x2 matrix multiplication is done using the following algorithm.
@@ -137,6 +223,15 @@ class MaxtrixComplexDouble2x2 {
 inline MaxtrixComplexDouble2x2 HermTranspose(
     MaxtrixComplexDouble2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
+}
+
+/**
+ * MC2x2Base compatibility wrapper.
+ *
+ * @returns the Frobenius norm of the matrix.
+ */
+inline double Norm(MaxtrixComplexDouble2x2 matrix) noexcept {
+  return matrix.Norm();
 }
 
 }  // namespace aocommon::Avx256

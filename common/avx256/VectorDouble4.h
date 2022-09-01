@@ -47,6 +47,26 @@ class VectorDouble4 {
 
   [[nodiscard]] __m256d Value() const noexcept { return data_; }
 
+  VectorDouble4& operator+=(VectorDouble4 value) noexcept {
+    data_ += value.data_;
+    return *this;
+  }
+
+  VectorDouble4& operator-=(VectorDouble4 value) noexcept {
+    data_ -= value.data_;
+    return *this;
+  }
+
+  [[nodiscard]] friend VectorDouble4 operator+(VectorDouble4 lhs,
+                                               VectorDouble4 rhs) noexcept {
+    return lhs += rhs;
+  }
+
+  [[nodiscard]] friend VectorDouble4 operator-(VectorDouble4 lhs,
+                                               VectorDouble4 rhs) noexcept {
+    return lhs -= rhs;
+  }
+
   [[nodiscard]] friend VectorDouble4 operator*(VectorDouble4 lhs,
                                                VectorDouble4 rhs) noexcept {
     return _mm256_mul_pd(lhs.data_, rhs.data_);

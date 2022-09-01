@@ -100,6 +100,62 @@ BOOST_AUTO_TEST_CASE(value) {
   BOOST_TEST(result[3] == -1.0);
 }
 
+BOOST_AUTO_TEST_CASE(operator_plus_equal) {
+  aocommon::Avx256::VectorDouble4 r{1, 2, 10, 11};
+
+  const aocommon::Avx256::VectorDouble4 value{4, 8, 40, 44};
+
+  r += value;
+  static_assert(noexcept(r += value));
+
+  BOOST_TEST(r[0] == 5);
+  BOOST_TEST(r[1] == 10);
+  BOOST_TEST(r[2] == 50);
+  BOOST_TEST(r[3] == 55);
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus_equal) {
+  aocommon::Avx256::VectorDouble4 r{1, 2, 10, 11};
+
+  const aocommon::Avx256::VectorDouble4 value{4, 8, 40, 44};
+
+  r -= value;
+  static_assert(noexcept(r -= value));
+
+  BOOST_TEST(r[0] == -3);
+  BOOST_TEST(r[1] == -6);
+  BOOST_TEST(r[2] == -30);
+  BOOST_TEST(r[3] == -33);
+}
+
+BOOST_AUTO_TEST_CASE(operator_plus) {
+  const aocommon::Avx256::VectorDouble4 lhs{1.0, 2.0, 10, 11};
+
+  const aocommon::Avx256::VectorDouble4 rhs{4, 8, 40, 44};
+
+  const aocommon::Avx256::VectorDouble4 r = lhs + rhs;
+  static_assert(noexcept(lhs + rhs));
+
+  BOOST_TEST(r[0] == 5);
+  BOOST_TEST(r[1] == 10);
+  BOOST_TEST(r[2] == 50);
+  BOOST_TEST(r[3] == 55);
+}
+
+BOOST_AUTO_TEST_CASE(operator_minus) {
+  const aocommon::Avx256::VectorDouble4 lhs{1.0, 2.0, 10, 11};
+
+  const aocommon::Avx256::VectorDouble4 rhs{4, 8, 40, 44};
+
+  const aocommon::Avx256::VectorDouble4 r = lhs - rhs;
+  static_assert(noexcept(lhs - rhs));
+
+  BOOST_TEST(r[0] == -3);
+  BOOST_TEST(r[1] == -6);
+  BOOST_TEST(r[2] == -30);
+  BOOST_TEST(r[3] == -33);
+}
+
 BOOST_AUTO_TEST_CASE(multiply) {
   const double input[] = {-1.0, 1.0, 4.2, -4.2};
   const aocommon::Avx256::VectorDouble4 lhs{input};
