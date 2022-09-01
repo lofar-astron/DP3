@@ -29,23 +29,23 @@
 
 namespace aocommon::Avx256 {
 
-class MaxtrixComplexFloat2x2 {
+class MatrixComplexFloat2x2 {
  public:
-  /* implicit */ MaxtrixComplexFloat2x2(VectorComplexFloat4 data) noexcept
+  /* implicit */ MatrixComplexFloat2x2(VectorComplexFloat4 data) noexcept
       : data_{data} {}
 
-  explicit MaxtrixComplexFloat2x2(std::complex<float> a, std::complex<float> b,
-                                  std::complex<float> c,
-                                  std::complex<float> d) noexcept
+  explicit MatrixComplexFloat2x2(std::complex<float> a, std::complex<float> b,
+                                 std::complex<float> c,
+                                 std::complex<float> d) noexcept
       : data_{a, b, c, d} {}
 
-  explicit MaxtrixComplexFloat2x2(const std::complex<float> matrix[4]) noexcept
+  explicit MatrixComplexFloat2x2(const std::complex<float> matrix[4]) noexcept
       : data_(matrix) {}
 
-  explicit MaxtrixComplexFloat2x2(const std::complex<double> matrix[4]) noexcept
+  explicit MatrixComplexFloat2x2(const std::complex<double> matrix[4]) noexcept
       : data_(matrix) {}
 
-  explicit MaxtrixComplexFloat2x2(const aocommon::MC2x2F& matrix) noexcept
+  explicit MatrixComplexFloat2x2(const aocommon::MC2x2F& matrix) noexcept
       : data_(matrix.Data()) {}
 
   [[nodiscard]] std::complex<float> operator[](size_t index) const noexcept {
@@ -58,26 +58,26 @@ class MaxtrixComplexFloat2x2 {
     return {data_[0], data_[1], data_[2], data_[3]};
   }
 
-  [[nodiscard]] MaxtrixComplexFloat2x2 Conjugate() const noexcept {
+  [[nodiscard]] MatrixComplexFloat2x2 Conjugate() const noexcept {
     return data_.Conjugate();
   }
 
-  [[nodiscard]] MaxtrixComplexFloat2x2 Transpose() const noexcept {
+  [[nodiscard]] MatrixComplexFloat2x2 Transpose() const noexcept {
     // Note the compiler uses intrinsics without assistance.
-    return MaxtrixComplexFloat2x2{data_[0], data_[2], data_[1], data_[3]};
+    return MatrixComplexFloat2x2{data_[0], data_[2], data_[1], data_[3]};
   }
 
-  [[nodiscard]] MaxtrixComplexFloat2x2 HermitianTranspose() const noexcept {
+  [[nodiscard]] MatrixComplexFloat2x2 HermitianTranspose() const noexcept {
     return Transpose().Conjugate();
   }
 
   /// @returns the Frobenius norm of the matrix.
   [[nodiscard]] float Norm() const noexcept {
-    // This uses the same basic idea as MaxtrixComplexDouble2x2::Norm except
+    // This uses the same basic idea as MatrixComplexDouble2x2::Norm except
     // that the underlaying data is stored in one __m256d value.
 
     // Note this function seems slower than expected.
-    // MaxtrixComplexDouble2x2::Norm is faster than this function. It is
+    // MatrixComplexDouble2x2::Norm is faster than this function. It is
     // still faster than the scalare version. It would be nice to improve
     // this in the future.
     //
@@ -111,28 +111,28 @@ class MaxtrixComplexFloat2x2 {
     return ret[0] + ret[1];
   }
 
-  MaxtrixComplexFloat2x2& operator+=(MaxtrixComplexFloat2x2 value) noexcept {
+  MatrixComplexFloat2x2& operator+=(MatrixComplexFloat2x2 value) noexcept {
     data_ += value.data_;
     return *this;
   }
 
-  MaxtrixComplexFloat2x2& operator-=(MaxtrixComplexFloat2x2 value) noexcept {
+  MatrixComplexFloat2x2& operator-=(MatrixComplexFloat2x2 value) noexcept {
     data_ -= value.data_;
     return *this;
   }
 
-  [[nodiscard]] friend MaxtrixComplexFloat2x2 operator+(
-      MaxtrixComplexFloat2x2 lhs, MaxtrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] friend MatrixComplexFloat2x2 operator+(
+      MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     return lhs += rhs;
   }
 
-  [[nodiscard]] friend MaxtrixComplexFloat2x2 operator-(
-      MaxtrixComplexFloat2x2 lhs, MaxtrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] friend MatrixComplexFloat2x2 operator-(
+      MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     return lhs -= rhs;
   }
 
-  [[nodiscard]] friend MaxtrixComplexFloat2x2 operator*(
-      MaxtrixComplexFloat2x2 lhs, MaxtrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
+      MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     // The 2x2 matrix multiplication is done using the following algorithm.
     // ret.a = lhs.a * rhs.a + lhs.b * rhs.c
     // ret.b = lhs.a * rhs.b + lhs.b * rhs.d
@@ -153,13 +153,13 @@ class MaxtrixComplexFloat2x2 {
     return s1 + s2;
   }
 
-  [[nodiscard]] friend bool operator==(MaxtrixComplexFloat2x2 lhs,
-                                       MaxtrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] friend bool operator==(MatrixComplexFloat2x2 lhs,
+                                       MatrixComplexFloat2x2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
   }
 
   friend std::ostream& operator<<(std::ostream& output,
-                                  MaxtrixComplexFloat2x2 value) {
+                                  MatrixComplexFloat2x2 value) {
     output << "[{" << value[0] << ", " << value[1] << "}, {" << value[2] << ", "
            << value[3] << "}]";
     return output;
@@ -170,8 +170,8 @@ class MaxtrixComplexFloat2x2 {
 };
 
 /// MC2x2Base compatibility wrapper.
-inline MaxtrixComplexFloat2x2 HermTranspose(
-    MaxtrixComplexFloat2x2 matrix) noexcept {
+inline MatrixComplexFloat2x2 HermTranspose(
+    MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
 }
 
@@ -180,7 +180,7 @@ inline MaxtrixComplexFloat2x2 HermTranspose(
  *
  * @returns the Frobenius norm of the matrix.
  */
-inline float Norm(MaxtrixComplexFloat2x2 matrix) noexcept {
+inline float Norm(MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.Norm();
 }
 

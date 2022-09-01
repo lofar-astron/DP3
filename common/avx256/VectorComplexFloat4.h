@@ -8,7 +8,7 @@
  * @file Implements a Vector with 4 complex float values.
  *
  * This class is an implementation detail of
- * @ref aocommon::Avx256::MaxtrixComplexFloat2x2, but can be used by itself.
+ * @ref aocommon::Avx256::MatrixComplexFloat2x2, but can be used by itself.
  *
  * @note The class only implements a subset of the vector operations. Other
  * operations will be added on a when-needed basis.
