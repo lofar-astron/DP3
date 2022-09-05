@@ -27,6 +27,20 @@ using casacore::IPosition;
 using casacore::Matrix;
 using casacore::RefRows;
 
+// Support both old and new return value types of PhasedArray::GetStation().
+// TODO(AST-1001): Remove support for the old type in 2023.
+namespace {
+[[maybe_unused]] const std::string& GetStationName(
+    const std::shared_ptr<const everybeam::Station>& station) {
+  return station->GetName();
+}
+
+[[maybe_unused]] const std::string& GetStationName(
+    const everybeam::Station& station) {
+  return station.GetName();
+}
+}  // namespace
+
 namespace dp3 {
 namespace steps {
 
@@ -134,7 +148,8 @@ std::vector<size_t> InputStep::SelectStationIndices(
   size_t station_idx = 0;
   for (size_t i = 0; i < phased_array->GetNrStations(); ++i) {
     if (station_idx < station_names.size() &&
-        phased_array->GetStation(i)->GetName() == station_names[station_idx]) {
+        GetStationName(phased_array->GetStation(i)) ==
+            station_names[station_idx]) {
       station_to_msindex.push_back(i);
       station_idx++;
     }

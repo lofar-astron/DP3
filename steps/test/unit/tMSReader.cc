@@ -14,6 +14,20 @@
 
 using dp3::steps::MSReader;
 
+// Support both old and new return value types of PhasedArray::GetStation().
+// TODO(AST-1001): Remove support for the old type in 2023.
+namespace {
+[[maybe_unused]] const std::string& GetStationName(
+    const std::shared_ptr<const everybeam::Station>& station) {
+  return station->GetName();
+}
+
+[[maybe_unused]] const std::string& GetStationName(
+    const everybeam::Station& station) {
+  return station.GetName();
+}
+}  // namespace
+
 BOOST_AUTO_TEST_SUITE(msreader)
 
 // Test reading a LOFAR measurement set
@@ -37,8 +51,8 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
       static_cast<const everybeam::telescope::PhasedArray&>(*telescope);
 
   for (size_t i = 0; i < station_indices.size(); ++i) {
-    BOOST_CHECK_EQUAL(phasedarray.GetStation(station_indices[i])->GetName(),
-                      ant_vec[i]);
+    BOOST_CHECK_EQUAL(
+        GetStationName(phasedarray.GetStation(station_indices[i])), ant_vec[i]);
   }
 }
 
@@ -64,8 +78,8 @@ BOOST_AUTO_TEST_CASE(read_oskar) {
       MSReader::SelectStationIndices(telescope.get(), ant_names);
 
   for (size_t i = 0; i < station_indices.size(); ++i) {
-    BOOST_CHECK_EQUAL(phasedarray.GetStation(station_indices[i])->GetName(),
-                      ant_vec[i]);
+    BOOST_CHECK_EQUAL(
+        GetStationName(phasedarray.GetStation(station_indices[i])), ant_vec[i]);
   }
 }
 
