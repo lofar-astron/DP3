@@ -12,6 +12,10 @@ SOURCE_DIR=$(dirname "$0")/..
 #relative to SOURCE_DIR.
 EXCLUDE_DIRS=(external build CMake)
 
+# clang-format version 12 and 14 produce slightly different results for
+# pythondp3/parameterset.cc, so hard-code this to 14.
+CLANG_FORMAT_BINARY=clang-format-14
+
 #End script configuration.
 
 #The common formatting script has further documentation.

@@ -20,23 +20,23 @@ PYBIND11_MODULE(parameterset, m) {
              std::shared_ptr<ParameterSet>  // holder type
              >(m, "ParameterSet")
       .def(py::init<>())
-      .def("getBool", (bool (ParameterSet::*)(const std::string&) const) &
+      .def("getBool", (bool(ParameterSet::*)(const std::string&) const) &
                           ParameterSet::getBool)
-      .def("getBool", (bool (ParameterSet::*)(const std::string&, bool) const) &
+      .def("getBool", (bool(ParameterSet::*)(const std::string&, bool) const) &
                           ParameterSet::getBool)
-      .def("getInt", (int (ParameterSet::*)(const std::string&) const) &
+      .def("getInt", (int(ParameterSet::*)(const std::string&) const) &
                          ParameterSet::getInt)
-      .def("getInt", (int (ParameterSet::*)(const std::string&, int) const) &
+      .def("getInt", (int(ParameterSet::*)(const std::string&, int) const) &
                          ParameterSet::getInt)
-      .def("getFloat", (float (ParameterSet::*)(const std::string&) const) &
+      .def("getFloat", (float(ParameterSet::*)(const std::string&) const) &
                            ParameterSet::getFloat)
       .def("getFloat",
-           (float (ParameterSet::*)(const std::string&, float) const) &
+           (float(ParameterSet::*)(const std::string&, float) const) &
                ParameterSet::getFloat)
-      .def("getDouble", (double (ParameterSet::*)(const std::string&) const) &
+      .def("getDouble", (double(ParameterSet::*)(const std::string&) const) &
                             ParameterSet::getDouble)
       .def("getDouble",
-           (double (ParameterSet::*)(const std::string&, double) const) &
+           (double(ParameterSet::*)(const std::string&, double) const) &
                ParameterSet::getDouble)
       .def("getString",
            (std::string(ParameterSet::*)(const std::string&) const) &
