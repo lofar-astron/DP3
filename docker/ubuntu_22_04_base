@@ -13,7 +13,7 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 		build-essential \
 		casacore-dev \
 		casacore-tools \
-		clang-format-12 \
+		clang-format-14 \
 		cmake \
 		doxygen \
 		flex \
@@ -44,8 +44,6 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 		wget \
 	&& \
 	rm -rf /var/lib/apt/lists/*
-# The formatter needs a binary named 'clang-format', not 'clang-format-12'
-RUN ln -sf clang-format-12 /usr/bin/clang-format
 # Build aoflagger3
 RUN mkdir /aoflagger && cd /aoflagger \
     && git clone https://gitlab.com/aroffringa/aoflagger.git src \
