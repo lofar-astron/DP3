@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "common/avx256/MatrixComplexDouble2x2.h"
+#include "common/MatrixComplexDouble2x2.h"
 
 #include <aocommon/matrix2x2.h>
 
@@ -81,16 +81,21 @@ int main() {
 
   Conjugate<aocommon::MC2x2>(bench, "    Conjugate");
   Conjugate<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "AVX Conjugate");
+  Conjugate<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "FMV Conjugate");
   Transpose<aocommon::MC2x2>(bench, "    Transpose");
-  HermitianTranspose<aocommon::Avx256::MatrixComplexDouble2x2>(bench,
-                                                               "AVX Transpose");
+  Transpose<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "AVX Transpose");
+  Transpose<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "FMV Transpose");
   HermitianTranspose<aocommon::MC2x2>(bench, "    HermitianTranspose");
-  Transpose<aocommon::Avx256::MatrixComplexDouble2x2>(bench,
-                                                      "AVX HermitianTranspose");
+  HermitianTranspose<aocommon::Avx256::MatrixComplexDouble2x2>(
+      bench, "AVX HermitianTranspose");
+  HermitianTranspose<aocommon::MatrixComplexDouble2x2>(
+      bench, "FMV HermitianTranspose");
   Norm<aocommon::MC2x2>(bench, "    Norm");
   Norm<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "AVX Norm");
+  Norm<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "FMV Norm");
   Multiply<aocommon::MC2x2>(bench, "    Multiply");
   Multiply<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "AVX Multiply");
+  Multiply<aocommon::MatrixComplexDouble2x2>(bench, "FMV Multiply");
 
   Generate("html", ankerl::nanobench::templates::htmlBoxplot(), bench);
   Generate("json", ankerl::nanobench::templates::json(), bench);
