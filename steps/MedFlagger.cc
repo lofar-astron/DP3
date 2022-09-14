@@ -10,6 +10,7 @@
 #include "../base/DPInfo.h"
 #include "../base/DPLogger.h"
 
+#include "../common/Median.h"
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
@@ -134,10 +135,10 @@ void MedFlagger::updateInfo(const DPInfo& infoIn) {
       flagCorr.push_back(i);
     }
   } else {
-    for (unsigned int i = 0; i < itsFlagCorr.size(); ++i) {
+    for (const unsigned int ip : itsFlagCorr) {
       // Only take valid corrrelations.
-      if (itsFlagCorr[i] < ncorr) {
-        flagCorr.push_back(itsFlagCorr[i]);
+      if (itsFlagCorr[ip] < ncorr) {
+        flagCorr.push_back(itsFlagCorr[ip]);
       }
     }
     // If no valid left, use first one.
@@ -167,7 +168,6 @@ bool MedFlagger::process(const DPBuffer& buf) {
     dbuf.getFlags() = false;
   }
   itsNTimes++;
-  /// cout << "medproc: " << itsNTimes << '\n';
   // Flag if there are enough time entries in the buffer.
   if (itsNTimes > itsTimeWindow / 2) {
     // Fill the vector telling which time entries to use for the medians.
@@ -180,17 +180,6 @@ bool MedFlagger::process(const DPBuffer& buf) {
     // to obtain sufficient time entries.
     std::vector<unsigned int> timeEntries;
     timeEntries.reserve(itsTimeWindow);
-    /// unsigned int rinx = itsNTimesDone % itsTimeWindow;
-    /// timeEntries.push_back (rinx);   // center
-    /// unsigned int linx = rinx;
-    /// for (unsigned int i=1; i<=itsTimeWindow/2; ++i) {
-    /// if (linx == 0) linx = itsTimeWindow;
-    /// linx--;
-    /// rinx++;
-    /// if (rinx == itsTimeWindow) rinx = 0;
-    /// if (i >= itsNTimes) rinx = linx;
-    /// timeEntries.push_back (linx);
-    /// timeEntries.push_back (rinx);
     timeEntries.push_back(itsNTimesDone % itsTimeWindow);  // center
     for (unsigned int i = 1; i <= itsTimeWindow / 2; ++i) {
       timeEntries.push_back(std::abs(int(itsNTimesDone) - int(i)) %
@@ -249,10 +238,59 @@ void MedFlagger::finish() {
   getNextStep()->finish();
 }
 
+void MedFlagger::flagBaseline(
+    const std::vector<int>& ant1, const std::vector<int>& ant2,
+    const std::vector<unsigned int>& timeEntries, unsigned int ib,
+    unsigned int ncorr, unsigned int nchan, const float* bufDataPtr,
+    bool* bufFlagPtr, float& Z1, float& Z2, std::vector<float>& tempBuf,
+    base::FlagCounter& counter, common::NSTimer& moveTimer,
+    common::NSTimer& medianTimer) {
+  unsigned int blsize = ncorr * nchan;
+  float MAD = 1.4826;  ///< constant determined by Pandey
+
+  double threshold = itsThresholdArr[ib];
+  // Do only autocorrelations if told so.
+  // Otherwise do baseline only if length within min-max.
+  if ((!itsApplyAutoCorr && itsBLength[ib] >= itsMinBLength &&
+       itsBLength[ib] <= itsMaxBLength) ||
+      (itsApplyAutoCorr && ant1[ib] == ant2[ib])) {
+    for (unsigned int ic = 0; ic < nchan; ++ic) {
+      size_t offset = ib * blsize + ic * ncorr;
+      bool* flagPtr = &bufFlagPtr[offset];
+      const float* dataPtr = &bufDataPtr[offset];
+      bool corrIsFlagged = false;
+
+      // Iterate over given correlations.
+      for (unsigned int i = 0; i < itsFlagCorr.size(); i++) {
+        unsigned int ip = itsFlagCorr[i];
+        // If one correlation is flagged, all of them will be flagged.
+        // So no need to check others.
+        if (flagPtr[ip]) {
+          corrIsFlagged = true;
+          break;
+        }
+        // Calculate values from the median.
+        computeFactors(timeEntries, ib, ic, ip, nchan, ncorr, Z1, Z2, tempBuf,
+                       moveTimer, medianTimer);
+        if (dataPtr[ip] > Z1 + threshold * Z2 * MAD) {
+          corrIsFlagged = true;
+          counter.incrBaseline(ib);
+          counter.incrChannel(ic);
+          counter.incrCorrelation(ip);
+          break;
+        }
+      }
+      if (corrIsFlagged) {
+        for (unsigned int ip = 0; ip < ncorr; ++ip) {
+          flagPtr[ip] = true;
+        }
+      }
+    }
+  }
+}
+
 void MedFlagger::flag(unsigned int index,
                       const std::vector<unsigned int>& timeEntries) {
-  /// cout << "flag: " <<itsNTimes<<' '<<itsNTimesDone<<' ' <<index <<
-  /// timeEntries << '\n';
   // Get antenna numbers in case applyautocorr is true.
   const std::vector<int>& ant1 = getInfo().getAnt1();
   const std::vector<int>& ant2 = getInfo().getAnt2();
@@ -262,17 +300,15 @@ void MedFlagger::flag(unsigned int index,
   unsigned int ncorr = shp[0];
   unsigned int nchan = shp[1];
   unsigned int blsize = ncorr * nchan;
-  int nrbl = shp[2];  // OpenMP 2.5 needs signed iteration variables
-  unsigned int ntime = timeEntries.size();
+  int nrbl = shp[2];
   // Get pointers to data and flags.
   const float* bufDataPtr = itsAmpl[index].data();
   bool* bufFlagPtr = buf.getFlags().data();
-  float MAD = 1.4826;  ///< constant determined by Pandey
   itsComputeTimer.start();
   // Now flag each baseline, channel and correlation for this time window.
   // This can be done in parallel.
   struct ThreadData {
-    casacore::Block<float> tempBuf;
+    std::vector<float> tempBuf;
     base::FlagCounter counter;
     common::NSTimer moveTimer;
     common::NSTimer medianTimer;
@@ -280,11 +316,9 @@ void MedFlagger::flag(unsigned int index,
   };
   std::vector<ThreadData> threadData(getInfo().nThreads());
 
-  // Create a temporary buffer (per thread) to hold data for determining
-  // the medians.
-  // Also create thread-private counter and timer objects.
+  // Create thread-private counter.
   for (ThreadData& data : threadData) {
-    data.tempBuf.resize(itsFreqWindow * ntime);
+    data.tempBuf.resize(itsFreqWindow * timeEntries.size());
     data.counter.init(getInfo());
   }
 
@@ -293,51 +327,9 @@ void MedFlagger::flag(unsigned int index,
   aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
     ThreadData& data = threadData[thread];
-    const float* dataPtr = bufDataPtr + ib * blsize;
-    bool* flagPtr = bufFlagPtr + ib * blsize;
-    double threshold = itsThresholdArr[ib];
-    // Do only autocorrelations if told so.
-    // Otherwise do baseline only if length within min-max.
-    if ((!itsApplyAutoCorr && itsBLength[ib] >= itsMinBLength &&
-         itsBLength[ib] <= itsMaxBLength) ||
-        (itsApplyAutoCorr && ant1[ib] == ant2[ib])) {
-      for (unsigned int ic = 0; ic < nchan; ++ic) {
-        bool corrIsFlagged = false;
-        // Iterate over given correlations.
-        for (std::vector<unsigned int>::const_iterator iter =
-                 itsFlagCorr.begin();
-             iter != itsFlagCorr.end(); ++iter) {
-          unsigned int ip = *iter;
-          // If one correlation is flagged, all of them will be flagged.
-          // So no need to check others.
-          if (flagPtr[ip]) {
-            corrIsFlagged = true;
-            break;
-          }
-          // Calculate values from the median.
-          computeFactors(timeEntries, ib, ic, ip, nchan, ncorr, data.Z1,
-                         data.Z2, data.tempBuf.storage(), data.moveTimer,
-                         data.medianTimer);
-          if (dataPtr[ip] > data.Z1 + threshold * data.Z2 * MAD) {
-            corrIsFlagged = true;
-            data.counter.incrBaseline(ib);
-            data.counter.incrChannel(ic);
-            data.counter.incrCorrelation(ip);
-            break;
-          }
-        }
-        if (corrIsFlagged) {
-          for (unsigned int ip = 0; ip < ncorr; ++ip) {
-            flagPtr[ip] = true;
-          }
-        }
-        dataPtr += ncorr;
-        flagPtr += ncorr;
-      }
-    } else {
-      dataPtr += nchan * ncorr;
-      flagPtr += nchan * ncorr;
-    }
+    flagBaseline(ant1, ant2, timeEntries, ib, ncorr, nchan, bufDataPtr,
+                 bufFlagPtr, data.Z1, data.Z2, data.tempBuf, data.counter,
+                 data.moveTimer, data.medianTimer);
   });  // end of parallel loop
 
   // Add the counters to the overall object.
@@ -353,7 +345,6 @@ void MedFlagger::flag(unsigned int index,
   // Only to baselines with length within min-max.
   if (itsApplyAutoCorr) {
     for (int ib = 0; ib < nrbl; ++ib) {
-      bool* flagPtr = bufFlagPtr + ib * blsize;
       // Flag crosscorr if at least one autocorr is present.
       // Only if baseline length within min-max.
       if (ant1[ib] != ant2[ib] && itsBLength[ib] >= itsMinBLength &&
@@ -369,10 +360,13 @@ void MedFlagger::flag(unsigned int index,
           } else if (inx2 < 0) {
             inx2 = inx1;
           }
-          bool* flagAnt1 = buf.getFlags().data() + inx1 * nchan * ncorr;
-          bool* flagAnt2 = buf.getFlags().data() + inx2 * nchan * ncorr;
           // Flag if not flagged yet and if one of autocorr is flagged.
           for (unsigned int ic = 0; ic < nchan; ++ic) {
+            bool* flagPtr = &bufFlagPtr[ib * blsize + ic * ncorr];
+            bool* flagAnt1 =
+                &buf.getFlags().data()[inx1 * nchan * ncorr + ic * ncorr];
+            bool* flagAnt2 =
+                &buf.getFlags().data()[inx2 * nchan * ncorr + ic * ncorr];
             if (!*flagPtr && (*flagAnt1 || *flagAnt2)) {
               for (unsigned int ip = 0; ip < ncorr; ++ip) {
                 flagPtr[ip] = true;
@@ -380,13 +374,8 @@ void MedFlagger::flag(unsigned int index,
               itsFlagCounter.incrBaseline(ib);
               itsFlagCounter.incrChannel(ic);
             }
-            flagPtr += ncorr;
-            flagAnt1 += ncorr;
-            flagAnt2 += ncorr;
           }
         }
-      } else {
-        flagPtr += nchan * ncorr;
       }
     }
   }
@@ -398,7 +387,8 @@ void MedFlagger::flag(unsigned int index,
 
 void MedFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
                                 unsigned int bl, int chan, int corr, int nchan,
-                                int ncorr, float& Z1, float& Z2, float* tempBuf,
+                                int ncorr, float& Z1, float& Z2,
+                                std::vector<float>& tempBuf,
                                 common::NSTimer& moveTimer,
                                 common::NSTimer& medianTimer) {
   moveTimer.start();
@@ -451,15 +441,11 @@ void MedFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
   } else {
     medianTimer.start();
     // Get median of data and get median of absolute difference.
-    std::nth_element(tempBuf, tempBuf + np / 2, tempBuf + np);
-    Z1 = tempBuf[np / 2];
-    // Z1 = GenSort<float>::kthLargest (tempBuf, np, np/2);
+    Z1 = dp3::common::Median(tempBuf);
     for (unsigned int i = 0; i < np; ++i) {
       tempBuf[i] = std::abs(tempBuf[i] - Z1);
     }
-    std::nth_element(tempBuf, tempBuf + np / 2, tempBuf + np);
-    Z2 = tempBuf[np / 2];
-    // Z2 = GenSort<float>::kthLargest (tempBuf, np, np/2);
+    Z2 = dp3::common::Median(tempBuf);
     medianTimer.stop();
   }
 }

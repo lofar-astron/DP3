@@ -583,6 +583,7 @@ if(BUILD_TESTING)
       common/test/unit/avx256/tVectorDouble4.cc
       common/test/unit/avx256/tVectorFloat8.cc
       common/test/unit/fixtures/fSkymodel.cc
+      common/test/unit/tMedian.cc
       common/test/unit/tProximityClustering.cc
       common/test/unit/tTimer.cc
       base/test/runtests.cc
