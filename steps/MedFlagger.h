@@ -93,11 +93,20 @@ class MedFlagger : public Step {
   /// correlation.
   void computeFactors(const std::vector<unsigned int>& timeEntries,
                       unsigned int bl, int chan, int corr, int nchan, int ncorr,
-                      float& Z1, float& Z2, float* tempBuf,
+                      float& Z1, float& Z2, std::vector<float>& tempBuf,
                       common::NSTimer& moveTimer, common::NSTimer& medianTimer);
 
   /// Get the values of the expressions for each baseline.
   void getExprValues(int maxNChan, int maxNTime);
+
+ private:
+  void flagBaseline(const std::vector<int>& ant1, const std::vector<int>& ant2,
+                    const std::vector<unsigned int>& timeEntries,
+                    unsigned int ib, unsigned int ncorr, unsigned int nchan,
+                    const float* bufDataPtr, bool* bufFlagPtr, float& Z1,
+                    float& Z2, std::vector<float>& tempBuf,
+                    base::FlagCounter& counter, common::NSTimer& moveTimer,
+                    common::NSTimer& medianTimer);
 
  protected:
   InputStep* itsInput;
