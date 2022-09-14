@@ -1,4 +1,4 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2_X_2_H
@@ -32,25 +32,28 @@ namespace aocommon::Avx256 {
 
 class MatrixComplexDouble2x2 {
  public:
-  /* implicit */ MatrixComplexDouble2x2(
+  [[nodiscard]] /* implicit */ MatrixComplexDouble2x2(
       std::array<VectorComplexDouble2, 2> data) noexcept
       : data_{data} {}
 
-  explicit MatrixComplexDouble2x2(std::complex<double> a,
-                                  std::complex<double> b,
-                                  std::complex<double> c,
-                                  std::complex<double> d) noexcept
+  [[nodiscard]] explicit MatrixComplexDouble2x2(std::complex<double> a,
+                                                std::complex<double> b,
+                                                std::complex<double> c,
+                                                std::complex<double> d) noexcept
       : data_{{VectorComplexDouble2{a, b}, VectorComplexDouble2{c, d}}} {}
 
-  explicit MatrixComplexDouble2x2(const std::complex<float> matrix[4]) noexcept
+  [[nodiscard]] explicit MatrixComplexDouble2x2(
+      const std::complex<float> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  explicit MatrixComplexDouble2x2(const std::complex<double> matrix[4]) noexcept
+  [[nodiscard]] explicit MatrixComplexDouble2x2(
+      const std::complex<double> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  explicit MatrixComplexDouble2x2(const aocommon::MC2x2& matrix) noexcept
+  [[nodiscard]] explicit MatrixComplexDouble2x2(
+      const aocommon::MC2x2& matrix) noexcept
       : MatrixComplexDouble2x2(matrix.Data()) {}
 
   [[nodiscard]] std::complex<double> operator[](size_t index) const noexcept {
@@ -219,7 +222,7 @@ class MatrixComplexDouble2x2 {
 };
 
 /// MC2x2Base compatibility wrapper.
-inline MatrixComplexDouble2x2 HermTranspose(
+[[nodiscard]] inline MatrixComplexDouble2x2 HermTranspose(
     MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
 }

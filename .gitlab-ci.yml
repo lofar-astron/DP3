@@ -196,7 +196,8 @@ linting-2204:
   script:
     - ./scripts/run-format.sh
 
-unit-test-2204:
+
+.unit-test-2204:
   stage: test
   extends: .failable
   needs: ["versioning","build-debug-2204"]
@@ -205,7 +206,9 @@ unit-test-2204:
     - pip3 install pytest
   script:
     - cd build
-    - ninja # Needed when ran on different containers with different timestamps
+    - echo configuring with CMake flags $CMAKE_FLAGS and CXX flags $CXX_FLAGS
+    - cmake $CMAKE_FLAGS -DCMAKE_CXX_FLAGS="-coverage $CXX_FLAGS" .
+    - ninja
     - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L unit |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
@@ -226,6 +229,23 @@ unit-test-2204:
       coverage_report:
         coverage_format: cobertura
         path: build/coverage.xml
+
+unit-test-2204:
+  extends: .unit-test-2204
+  variables:
+    CMAKE_FLAGS: -DPORTABLE=OFF
+
+unit-test-portable-2204:
+  extends: .unit-test-2204
+  variables:
+    CMAKE_FLAGS:  -DPORTABLE=ON
+
+unit-test-portable-no-avx2-2204:
+  extends: .unit-test-2204
+  variables:
+    # TODO Renable coverage
+    CMAKE_FLAGS: -DPORTABLE=ON
+    CXX_FLAGS: -mno-avx2
 
 integration-test-2204:
   stage: test

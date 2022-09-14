@@ -5,7 +5,7 @@
 
 #include "../linear_solvers/QRSolver.h"
 
-#include "common/avx256/MatrixComplexDouble2x2.h"
+#include "common/MatrixComplexDouble2x2.h"
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
@@ -208,11 +208,9 @@ void FullJonesSolver::PerformIteration(
       // Converting the solutions to std::complex<float> and using single
       // precision for the computation below, reduced the performance.
       // -> Keep using double precision until 'solutions' uses single precision.
-#if defined(__AVX2__)
-      using Matrix = aocommon::Avx256::MatrixComplexDouble2x2;
-#else
-      using Matrix = aocommon::MC2x2F;
-#endif
+
+      using Matrix = aocommon::MatrixComplexDouble2x2;
+
       const Matrix model_data(cb_data.ModelVisibility(d, vis_index).Data());
       const Matrix solutions1(&solutions[(antenna1 * NDirections() + d) * 4]);
       const Matrix solutions2(&solutions[(antenna2 * NDirections() + d) * 4]);
