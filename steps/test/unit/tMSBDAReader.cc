@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
   DPInfo info;
   MSBDAReader reader(ms, kParset, kPrefix);
-  reader.setReadVisData(true);
+  reader.setReadData();
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
   reader.setInfo(info);
@@ -100,7 +100,6 @@ BOOST_AUTO_TEST_CASE(process_nan) {
   reader.setInfo(info);
   dp3::base::DPBuffer buf;
 
-  reader.setReadVisData(false);
   reader.process(buf);
   reader.finish();
 

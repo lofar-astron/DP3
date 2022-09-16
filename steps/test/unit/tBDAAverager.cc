@@ -76,7 +76,7 @@ void CheckInfo(
     const DPInfo& info, const std::vector<std::vector<double>>& chan_freqs,
     const std::vector<std::vector<double>>& chan_widths,
     const std::vector<unsigned int>& time_avg = std::vector<unsigned int>()) {
-  BOOST_TEST(info.needVisData());
+  BOOST_TEST(info.needData());
   BOOST_TEST_REQUIRE(info.hasBDAChannels());
   BOOST_TEST_REQUIRE(info.nbaselines() == chan_freqs.size());
   if (!time_avg.empty()) {

@@ -152,7 +152,7 @@ class MultiMSReader final : public MSReader {
                        base::DPBuffer& buf) override;
 
   /// Tell if the visibility data are to be read.
-  void setReadVisData(bool readVisData) override;
+  void setReadData() override;
 
   /// Get the name of the first MS.
   std::string msName() const override;

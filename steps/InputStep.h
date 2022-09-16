@@ -87,7 +87,13 @@ class InputStep : public Step {
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.
-  virtual void setReadVisData(bool);
+  virtual void setReadData();
+
+  /// Set which fields must be read.
+  void setReadNeeds(const dp3::steps::Needs& needs) { read_needs_ = needs; };
+
+  /// Get which fields must be read.
+  const dp3::steps::Needs& getReadNeeds() const { return read_needs_; };
 
   /// Get the main MS table.
   const virtual casacore::Table& table() const;
@@ -144,6 +150,11 @@ class InputStep : public Step {
   /// Creates an MS reader.
   /// Based on the MS it will create either a BDAMSReader or a regular
   static std::unique_ptr<InputStep> CreateReader(const common::ParameterSet&);
+
+ private:
+  /// This variable is used by the inputStep's derived classes to determine
+  /// which fields must be read.
+  dp3::steps::Needs read_needs_;
 };
 
 }  // namespace steps

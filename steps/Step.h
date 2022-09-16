@@ -22,6 +22,39 @@
 namespace dp3 {
 namespace steps {
 
+struct Needs {
+  explicit Needs()
+      : data(false),
+        flags(false),
+        weights(false),
+        full_res_flags(false),
+        uvw(false) {}
+
+  explicit Needs(bool _data, bool _flags, bool _weights, bool _full_res_flags,
+                 bool _uvw)
+      : data(_data),
+        flags(_flags),
+        weights(_weights),
+        full_res_flags(_full_res_flags),
+        uvw(_uvw) {}
+
+  bool data;            ///< Is the visibility data needed?
+  bool flags;           ///< Are the flags needed?
+  bool weights;         ///< Are the weights needed?
+  bool full_res_flags;  ///< Are the full res flags needed?
+  bool uvw;             ///< Are the uvw needed?
+
+  // overload OR operator
+  Needs& operator|=(Needs const& other) {
+    this->data |= other.data;
+    this->flags |= other.flags;
+    this->weights |= other.weights;
+    this->full_res_flags |= other.full_res_flags;
+    this->uvw |= other.uvw;
+    return *this;
+  };
+};
+
 /// @brief Abstract base class for a DPPP step
 
 /// This class defines a step in the DPPP pipeline.
@@ -81,6 +114,9 @@ class Step {
   /// It calls the virtual function updateInfo to do the real work.
   /// It returns the info of the last step.
   const base::DPInfo& setInfo(const base::DPInfo&);
+
+  /// Get the fields needed by the current step
+  virtual dp3::steps::Needs getNeeds() const;
 
   /// Get access to the info.
   const base::DPInfo& getInfo() const { return itsInfo; }
