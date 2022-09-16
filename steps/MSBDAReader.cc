@@ -161,10 +161,6 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
-void MSBDAReader::setReadVisData(bool readVisData) {
-  read_vis_data_ = readVisData || read_vis_data_;
-}
-
 bool MSBDAReader::process(const DPBuffer&) {
   common::NSTimer::StartStop sstime(timer_);
 

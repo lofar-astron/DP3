@@ -122,7 +122,8 @@ static std::shared_ptr<Step> makeOutputStep(InputStep* reader,
         throw std::invalid_argument("No updater for BDA data.");
       } else {
         step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
-        reader->setReadVisData(true);
+        // AST-1020: Move this to MSBDAReader::getNeeds()
+        reader->setReadData();
       }
       break;
     case Step::MsType::kRegular:
@@ -135,7 +136,8 @@ static std::shared_ptr<Step> makeOutputStep(InputStep* reader,
                                            outName != currentMSName);
       } else {
         step = std::make_shared<MSWriter>(*reader, outName, parset, prefix);
-        reader->setReadVisData(true);
+        // AST-1020: Move this to MSReader::getNeeds()
+        reader->setReadData();
       }
       break;
   }
@@ -307,6 +309,15 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
     step = step->getNextStep();
   }
 
+  // Go through the steps to define which fields of the measurement set should
+  // be read by the inputStep
+  dp3::steps::Needs overall_needs;
+  for (step = firstStep; step; step = step->getNextStep()) {
+    overall_needs |= step->getNeeds();
+  }
+  // Tell the reader which fields must be read.
+  firstStep->setReadNeeds(overall_needs);
+
   // Call updateInfo()
   DPInfo dpInfo;
   if (numThreads > 0) {
@@ -314,7 +325,8 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   }
   dpInfo = firstStep->setInfo(dpInfo);
   // Tell the reader if visibility data needs to be read.
-  firstStep->setReadVisData(dpInfo.needVisData());
+  // AST-1014: remove this (will be part of setReadNeeds)
+  if (dpInfo.needData()) firstStep->setReadData();
 
   // Show the steps.
   step = firstStep;

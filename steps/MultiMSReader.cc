@@ -96,11 +96,11 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
 
 MultiMSReader::~MultiMSReader() {}
 
-void MultiMSReader::setReadVisData(bool readVisData) {
-  itsReadVisData = readVisData || itsReadVisData;
+void MultiMSReader::setReadData() {
+  itsReadVisData = true;
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
-      itsReaders[i]->setReadVisData(readVisData);
+      itsReaders[i]->setReadData();
     }
   }
 }

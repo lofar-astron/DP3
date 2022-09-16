@@ -159,7 +159,7 @@ class MSReader : public InputStep {
 
   /// Tell if the visibility data are to be read. If set to true once,
   /// this will stay true.
-  void setReadVisData(bool readVisData) override;
+  void setReadData() override { itsReadVisData = true; };
 
   /// Get the main MS table.
   const casacore::Table& table() const override { return itsMS; }

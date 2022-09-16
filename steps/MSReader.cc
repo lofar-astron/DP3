@@ -287,10 +287,6 @@ void MSReader::updateInfo(const DPInfo& dpInfo) {
 
 std::string MSReader::msName() const { return itsMS.tableName(); }
 
-void MSReader::setReadVisData(bool readVisData) {
-  itsReadVisData = (itsReadVisData || readVisData);
-}
-
 bool MSReader::process(const DPBuffer&) {
   if (itsNrRead == 0) {
     if (itsReadVisData) {

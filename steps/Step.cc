@@ -26,6 +26,8 @@ const DPInfo& Step::setInfo(const DPInfo& info) {
   return getInfo();
 }
 
+Needs Step::getNeeds() const { return dp3::steps::Needs(); };
+
 void Step::updateInfo(const DPInfo& infoIn) { info() = infoIn; }
 
 void Step::addToMS(const string& msName) {

@@ -220,7 +220,8 @@ class DPInfo {
   const std::vector<int>& antennaMap() const { return antenna_map_; }
 
   /// Is the visibility data needed?
-  bool needVisData() const { return need_data_; }
+  bool needData() const { return need_data_; }
+
   /// Does the last step need to write data and/or flags?
   bool needWrite() const {
     return write_data_ || write_flags_ || write_weights_;
@@ -287,7 +288,7 @@ class DPInfo {
   static casacore::MeasureHolder copyMeasure(
       const casacore::MeasureHolder fromMeas);
 
-  bool need_data_;      ///< Are the visibility data needed?
+  bool need_data_;      ///< Is the visibility data needed?
   bool write_data_;     ///< Must the data be written?
   bool write_flags_;    ///< Must the flags be written?
   bool write_weights_;  ///< Must the weights be written?
