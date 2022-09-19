@@ -1,13 +1,17 @@
-// Step.h: Abstract base class for a DPPP step
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Step.h: Abstract base class for a DP3 step
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief Class to hold code for virtual base class for Flaggers in DPPP
 /// @author Ger van Diepen
 
-#ifndef DPPP_DPSTEP_H
-#define DPPP_DPSTEP_H
+#ifndef DP3_STEPS_STEP_H_
+#define DP3_STEPS_STEP_H_
+
+#include <iosfwd>
+#include <memory>
+#include <string>
 
 #include "../base/DPBuffer.h"
 #include "../base/BDABuffer.h"
@@ -16,44 +20,10 @@
 
 #include "../common/Timer.h"
 
-#include <iosfwd>
-#include <memory>
+#include "Needs.h"
 
 namespace dp3 {
 namespace steps {
-
-struct Needs {
-  explicit Needs()
-      : data(false),
-        flags(false),
-        weights(false),
-        full_res_flags(false),
-        uvw(false) {}
-
-  explicit Needs(bool _data, bool _flags, bool _weights, bool _full_res_flags,
-                 bool _uvw)
-      : data(_data),
-        flags(_flags),
-        weights(_weights),
-        full_res_flags(_full_res_flags),
-        uvw(_uvw) {}
-
-  bool data;            ///< Is the visibility data needed?
-  bool flags;           ///< Are the flags needed?
-  bool weights;         ///< Are the weights needed?
-  bool full_res_flags;  ///< Are the full res flags needed?
-  bool uvw;             ///< Are the uvw needed?
-
-  // overload OR operator
-  Needs& operator|=(Needs const& other) {
-    this->data |= other.data;
-    this->flags |= other.flags;
-    this->weights |= other.weights;
-    this->full_res_flags |= other.full_res_flags;
-    this->uvw |= other.uvw;
-    return *this;
-  };
-};
 
 /// @brief Abstract base class for a DPPP step
 
@@ -87,6 +57,13 @@ class Step {
   /// To check compatibility between steps before running.
   enum class MsType { kRegular, kBda };
 
+  // Predefined needs values, that can be OR'd together:
+  static constexpr Needs kNeedsData{Needs::Single::kData};
+  static constexpr Needs kNeedsFlags{Needs::Single::kFlags};
+  static constexpr Needs kNeedsWeights{Needs::Single::kWeights};
+  static constexpr Needs kNeedsFullResFlags{Needs::Single::kFullResFlags};
+  static constexpr Needs kNeedsUvw{Needs::Single::kUvw};
+
   /// Constructor to initialize.
   Step() : itsPrevStep(0) {}
 
@@ -116,14 +93,14 @@ class Step {
   const base::DPInfo& setInfo(const base::DPInfo&);
 
   /// Get the fields needed by the current step
-  virtual dp3::steps::Needs getNeeds() const;
+  virtual Needs getNeeds() const;
 
   /// Get access to the info.
   const base::DPInfo& getInfo() const { return itsInfo; }
 
   /// Add some data to the MeasurementSet written/updated.
   /// The default implementation only calls addToMS from the previous step
-  virtual void addToMS(const string& msName);
+  virtual void addToMS(const std::string& msName);
 
   /// Show the step parameters.
   virtual void show(std::ostream&) const = 0;

@@ -622,6 +622,7 @@ if(BUILD_TESTING)
       steps/test/unit/tMedFlagger.cc
       steps/test/unit/tMSReader.cc
       steps/test/unit/tMSWriter.cc
+      steps/test/unit/tNeeds.cc
       steps/test/unit/tPreFlagger.cc
       steps/test/unit/tPhaseShift.cc
       steps/test/unit/tOnePredict.cc
