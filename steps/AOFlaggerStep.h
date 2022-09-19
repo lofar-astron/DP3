@@ -7,8 +7,8 @@
 /// @file
 /// @author Andre Offringa, Ger van Diepen
 
-#ifndef DPPP_AOFLAGGERSTEP_H
-#define DPPP_AOFLAGGERSTEP_H
+#ifndef DP3_STEPS_AOFLAGGERSTEP_H_
+#define DP3_STEPS_AOFLAGGERSTEP_H_
 
 #include "../steps/InputStep.h"
 
@@ -57,9 +57,12 @@ class AOFlaggerStep : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  AOFlaggerStep(InputStep*, const common::ParameterSet&, const string& prefix);
+  AOFlaggerStep(InputStep*, const common::ParameterSet&,
+                const std::string& prefix);
 
   virtual ~AOFlaggerStep();
+
+  Needs getNeeds() const override { return kNeedsData | kNeedsFlags; }
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
@@ -69,7 +72,7 @@ class AOFlaggerStep : public Step {
   virtual void finish();
 
   /// Write the statistics into the MS.
-  virtual void addToMS(const string& msName);
+  virtual void addToMS(const std::string& msName);
 
   /// Update the general info.
   /// It is used to adjust the parms if needed.
