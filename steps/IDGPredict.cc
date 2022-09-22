@@ -365,12 +365,12 @@ void IDGPredict::InitializeATerms() {
   for (size_t direction = 0; direction < directions_.size(); ++direction) {
     const idg::api::BufferSet& bs = *buffersets_[direction * n_terms];
 
-    everybeam::coords::CoordinateSystem cs;
+    aocommon::CoordinateSystem cs;
     // IDG uses a flipped coordinate cs which is moved by half a pixel:
     cs.dl = -bs.get_subgrid_pixelsize();
     cs.dm = -bs.get_subgrid_pixelsize();
-    cs.phase_centre_dl = meta_data_[direction].dl - 0.5 * cs.dl;
-    cs.phase_centre_dm = meta_data_[direction].dm + 0.5 * cs.dm;
+    cs.l_shift = meta_data_[direction].dl - 0.5 * cs.dl;
+    cs.m_shift = meta_data_[direction].dm + 0.5 * cs.dm;
     cs.width = bs.get_subgridsize();
     cs.height = cs.width;
     cs.ra = directions_[direction].first;
