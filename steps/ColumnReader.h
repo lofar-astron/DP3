@@ -1,4 +1,4 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -6,8 +6,8 @@
 /// buffer data with it.
 /// @author Lars Krombeen
 
-#ifndef DP3_COLUMNREADER_H
-#define DP3_COLUMNREADER_H
+#ifndef DP3_STEPS_COLUMNREADER_H_
+#define DP3_STEPS_COLUMNREADER_H_
 
 #include "../common/ParameterSet.h"
 #include "Step.h"
@@ -23,8 +23,10 @@ class ColumnReader : public ModelDataStep {
 
   Needs getNeeds() const override {
     Needs needs;
-    if ((operation_ == "add") || (operation_ == "subtract"))
+    if ((operation_ == Operation::kAdd) ||
+        (operation_ == Operation::kSubtract)) {
       needs |= kNeedsData;
+    }
     return needs;
   }
 
@@ -44,10 +46,12 @@ class ColumnReader : public ModelDataStep {
   base::Direction GetFirstDirection() const override;
 
  private:
+  enum class Operation { kReplace, kAdd, kSubtract };
+
   InputStep& input_;         ///< Input MS to read the column from
   std::string name_;         ///< The name of the step (or prefix)
   std::string column_name_;  ///< Name of the column to use from the MS
-  std::string operation_;    ///< Operation to use on the DATA column
+  Operation operation_;      ///< Operation to use on the DATA column
   base::DPBuffer buffer_;    ///< Buffer to copy contents into
 };
 

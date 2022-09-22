@@ -20,11 +20,18 @@ ColumnReader::ColumnReader(InputStep& input, const common::ParameterSet& parset,
     : input_(input),
       name_(prefix),
       column_name_(parset.getString(prefix + "column", column)),
-      operation_(parset.getString(prefix + "operation", "replace")),
+      operation_(Operation::kReplace),
       buffer_() {
-  if (operation_ != "subtract" && operation_ != "add" &&
-      operation_ != "replace") {
-    throw std::invalid_argument("Invalid ColumnReader operation " + operation_);
+  const std::string operation =
+      parset.getString(prefix + "operation", "replace");
+  if (operation == "replace") {
+    operation_ = Operation::kReplace;
+  } else if (operation == "add") {
+    operation_ = Operation::kAdd;
+  } else if (operation == "subtract") {
+    operation_ = Operation::kSubtract;
+  } else {
+    throw std::invalid_argument("Invalid ColumnReader operation " + operation);
   }
 }
 
@@ -33,9 +40,9 @@ bool ColumnReader::process(const DPBuffer& buffer) {
   ArrayColumn<casacore::Complex> model_col(input_.table(), column_name_);
   model_col.getColumnCells(buffer.getRowNrs(), buffer_.getData());
 
-  if (operation_ == "add") {
+  if (operation_ == Operation::kAdd) {
     buffer_.setData(buffer.getData() + buffer_.getData());
-  } else if (operation_ == "subtract") {
+  } else if (operation_ == Operation::kSubtract) {
     buffer_.setData(buffer.getData() - buffer_.getData());
   }
 
@@ -55,7 +62,19 @@ void ColumnReader::finish() { getNextStep()->finish(); }
 void ColumnReader::show(std::ostream& os) const {
   os << "ColumnReader " << name_ << '\n';
   os << "  column:      " << column_name_ << '\n';
-  os << "  operation:   " << operation_ << '\n';
+  os << "  operation:   ";
+  switch (operation_) {
+    case Operation::kReplace:
+      os << "replace";
+      break;
+    case Operation::kAdd:
+      os << "add";
+      break;
+    case Operation::kSubtract:
+      os << "subtract";
+      break;
+  }
+  os << '\n';
 }
 
 void ColumnReader::showTimings(std::ostream& os,
