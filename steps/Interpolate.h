@@ -28,6 +28,8 @@ class Interpolate : public Step {
 
   virtual ~Interpolate() = default;
 
+  Needs getNeeds() const override { return kNeedsData | kNeedsFlags; }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

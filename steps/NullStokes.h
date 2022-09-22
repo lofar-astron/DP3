@@ -29,6 +29,8 @@ class NullStokes : public Step {
   explicit NullStokes(InputStep&, const common::ParameterSet&,
                       const std::string& prefix);
 
+  Needs getNeeds() const override { return kNeedsData; }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

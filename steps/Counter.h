@@ -37,6 +37,13 @@ class Counter : public Step {
 
   virtual ~Counter();
 
+  Needs getNeeds() const override {
+    if (itsFlagData)
+      return kNeedsData | kNeedsFlags;
+    else
+      return kNeedsFlags;
+  }
+
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);

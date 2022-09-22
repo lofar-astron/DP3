@@ -21,6 +21,13 @@ class ColumnReader : public ModelDataStep {
   ColumnReader(InputStep& input, const common::ParameterSet&,
                const string& prefix, const string& column = "MODEL_DATA");
 
+  Needs getNeeds() const override {
+    Needs needs;
+    if ((operation_ == "add") || (operation_ == "subtract"))
+      needs |= kNeedsData;
+    return needs;
+  }
+
   /// Reads the given column for the measurementset for the rows of the input
   /// buffer, copies the buffer and change its data.
   bool process(const base::DPBuffer& buffer) override;

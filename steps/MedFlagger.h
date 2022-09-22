@@ -64,6 +64,8 @@ class MedFlagger : public Step {
 
   virtual ~MedFlagger();
 
+  Needs getNeeds() const override { return kNeedsData; }
+
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);

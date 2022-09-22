@@ -58,6 +58,12 @@ class MSWriter : public Step {
 
   ~MSWriter() override;
 
+  Needs getNeeds() const override {
+    Needs needs = kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsUvw;
+    if (write_full_res_flags_) needs |= kNeedsFullResFlags;
+    return needs;
+  }
+
   /// Process the next data chunk.
   /// It returns false when at the end.
   bool process(const base::DPBuffer&) override;
