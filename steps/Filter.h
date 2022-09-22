@@ -118,6 +118,14 @@ class Filter : public Step {
 
   virtual ~Filter();
 
+  Needs getNeeds() const override {
+    // This step only needs to read data if itsDoSelect is true. However, this
+    // variable is only set in updateInfo(). Since getNeeds() may be called
+    // before updateInfo(), we assume here that all fields are required.
+    return kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsFullResFlags |
+           kNeedsUvw;
+  }
+
   /// Process the next data chunk.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);

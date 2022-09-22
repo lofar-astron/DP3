@@ -20,6 +20,9 @@ class AntennaFlagger final : public Step {
  public:
   AntennaFlagger(InputStep* input, const common::ParameterSet& parset,
                  const string& prefix);
+
+  Needs getNeeds() const override { return kNeedsData | kNeedsFlags; }
+
   void finish() override;
   void show(std::ostream& ostream) const override;
   bool process(const base::DPBuffer& buffer) override;

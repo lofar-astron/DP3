@@ -44,6 +44,12 @@ class ApplyBeam : public Step {
 
   virtual ~ApplyBeam();
 
+  Needs getNeeds() const override {
+    Needs needs = kNeedsData;
+    if (itsUpdateWeights) needs |= kNeedsWeights;
+    return needs;
+  }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
