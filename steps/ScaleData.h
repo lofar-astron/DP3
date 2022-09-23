@@ -48,6 +48,8 @@ class ScaleData : public Step {
 
   virtual ~ScaleData();
 
+  Needs getNeeds() const override { return kNeedsData; }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

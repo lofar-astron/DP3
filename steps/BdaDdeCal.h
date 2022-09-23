@@ -64,6 +64,17 @@ class BdaDdeCal : public Step {
   BdaDdeCal(InputStep* input_step, const common::ParameterSet& parset,
             const std::string& prefix);
 
+  Needs getNeeds() const override {
+    Needs needs;
+    // Assumed that all directions have the same substeps, we get the needs for
+    // the first direction only.
+    for (std::shared_ptr<Step> step = steps_.front(); step;
+         step = step->getNextStep()) {
+      needs |= step->getNeeds();
+    }
+    return needs;
+  }
+
   bool process(std::unique_ptr<base::BDABuffer>) override;
 
   void finish() override;

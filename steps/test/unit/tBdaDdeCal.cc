@@ -208,4 +208,33 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
                          expected_result);
 }
 
+BOOST_FIXTURE_TEST_CASE(getNeeds, BdaDdeCalFixture) {
+  dp3::steps::Needs overall_needs = bdaddecal_->getNeeds();
+  BOOST_CHECK(overall_needs.Data() == true);
+  BOOST_CHECK(overall_needs.Flags() == false);
+  BOOST_CHECK(overall_needs.Weights() == false);
+  BOOST_CHECK(overall_needs.FullResFlags() == false);
+  BOOST_CHECK(overall_needs.Uvw() == true);
+}
+
+BOOST_AUTO_TEST_CASE(getNeeds_correct_time_smearing) {
+  dp3::steps::MockInput input_;
+  std::shared_ptr<dp3::steps::BdaDdeCal> bdaddecal;
+
+  dp3::common::ParameterSet parset;
+  parset.add("msin", "");
+  parset.add("directions", dp3::steps::test::kPredictDirections);
+  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  parset.add("h5parm", "test.h5");
+  parset.add("correcttimesmearing", "10");
+  bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input_, parset, "");
+
+  dp3::steps::Needs overall_needs = bdaddecal->getNeeds();
+  BOOST_CHECK(overall_needs.Data() == true);
+  BOOST_CHECK(overall_needs.Flags() == true);
+  BOOST_CHECK(overall_needs.Weights() == true);
+  BOOST_CHECK(overall_needs.FullResFlags() == true);
+  BOOST_CHECK(overall_needs.Uvw() == true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

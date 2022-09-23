@@ -25,6 +25,10 @@ class MSBDAWriter : public Step {
 
   ~MSBDAWriter() override;
 
+  Needs getNeeds() const override {
+    return kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsUvw;
+  }
+
   void updateInfo(const base::DPInfo&) override;
 
   virtual bool process(std::unique_ptr<base::BDABuffer>) override;

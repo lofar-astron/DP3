@@ -46,6 +46,12 @@ class BDAAverager : public Step {
 
   ~BDAAverager() override;
 
+  Needs getNeeds() const override {
+    Needs needs = kNeedsData | kNeedsUvw;
+    if (use_weights_and_flags_) needs |= kNeedsFlags | kNeedsWeights;
+    return needs;
+  }
+
   bool process(const base::DPBuffer&) override;
 
   void finish() override;
