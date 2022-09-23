@@ -4,8 +4,6 @@
 #include <boost/test/unit_test.hpp>
 #include <aocommon/threadpool.h>
 
-#include "mock/MockInput.h"
-
 #include "tPredict.h"
 #include "tStepCommon.h"
 

@@ -1,5 +1,5 @@
 // tApplyCal.cc: Test program for class AORFlagger
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema
@@ -11,7 +11,6 @@
 
 #include "tStepCommon.h"
 #include "../../ApplyCal.h"
-#include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
@@ -28,7 +27,7 @@ BOOST_AUTO_TEST_SUITE(applycal)
 
 // Simple class to generate input arrays.
 // 9 baselines, 3 antennas, 4 correlations
-class TestInput : public dp3::steps::InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nchan)
       : itsCount(0),

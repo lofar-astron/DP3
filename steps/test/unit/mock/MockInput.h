@@ -10,10 +10,14 @@
 namespace dp3 {
 namespace steps {
 
-class MockInput : public dp3::steps::InputStep {
+class MockInput : public InputStep {
  public:
   MockInput();
   ~MockInput() override;
+
+  const std::string& dataColumnName() const override;
+  const std::string& flagColumnName() const override;
+  const std::string& weightColumnName() const override;
 
   void getUVW(const casacore::RefRows&, double,
               base::DPBuffer& buffer) override;

@@ -225,7 +225,7 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
         "parset for \"msout\"");
   }
 
-  std::string origDataColName = getInfo().getDataColName();
+  const std::string& origDataColName = itsReader->dataColumnName();
   if (itsDataColName.empty()) {
     itsDataColName = origDataColName;
   } else if (itsDataColName != origDataColName) {
@@ -234,7 +234,7 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   }
   itsWriteData = getInfo().writeData();
 
-  std::string origWeightColName = getInfo().getWeightColName();
+  const std::string& origWeightColName = itsReader->weightColumnName();
   if (itsWeightColName.empty()) {
     if (origWeightColName == "WEIGHT") {
       itsWeightColName = "WEIGHT_SPECTRUM";
@@ -250,7 +250,7 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   }
   itsWriteWeights = getInfo().writeWeights();
 
-  std::string origFlagColName = getInfo().getFlagColName();
+  const std::string& origFlagColName = itsReader->flagColumnName();
   if (itsFlagColName.empty()) {
     itsFlagColName = origFlagColName;
   } else if (itsFlagColName != origFlagColName) {

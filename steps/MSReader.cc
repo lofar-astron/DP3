@@ -675,9 +675,6 @@ void MSReader::prepare2() {
   }
   info().init(itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
               itsTimeInterval, msName(), antennaSet);
-  info().setDataColName(itsDataColName);
-  info().setFlagColName(itsFlagColName);
-  info().setWeightColName(itsWeightColName);
   // Read the center frequencies of all channels.
   Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
   ArrayColumn<double> freqCol(spwtab, "CHAN_FREQ");

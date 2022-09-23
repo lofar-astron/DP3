@@ -6,10 +6,10 @@
 #ifndef DP3_STEPS_TEST_UNIT_TSTEPCOMMON_H
 #define DP3_STEPS_TEST_UNIT_TSTEPCOMMON_H
 
-#include "../../Step.h"
-#include "../../InputStep.h"
-#include "../../../common/ParameterSet.h"
 #include <vector>
+
+#include "mock/MockInput.h"
+#include "../../../common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {
@@ -30,7 +30,7 @@ dp3::common::ParameterSet CreateParameterSet(
  */
 template <class Step>
 inline std::string Show(const dp3::common::ParameterSet& parset) {
-  class : public dp3::steps::InputStep {
+  class : public dp3::steps::MockInput {
     void finish() override {}
     void show(std::ostream&) const override {}
   } input;

@@ -5,7 +5,6 @@
 
 #include "tStepCommon.h"
 #include "../../DDECal.h"
-#include "../../InputStep.h"
 
 BOOST_AUTO_TEST_SUITE(ddecal)
 

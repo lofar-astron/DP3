@@ -11,7 +11,6 @@
 
 #include "tStepCommon.h"
 #include "../../ScaleData.h"
-#include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
@@ -21,7 +20,6 @@
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
-using dp3::steps::InputStep;
 using dp3::steps::ScaleData;
 using std::vector;
 
@@ -34,7 +32,7 @@ BOOST_AUTO_TEST_SUITE(scaledata)
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nbl, int nchan, int ncorr)
       : itsCount(0),

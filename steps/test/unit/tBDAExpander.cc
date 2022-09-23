@@ -6,7 +6,6 @@
 #include "../../../base/BDABuffer.h"
 #include "../../../common/ParameterSet.h"
 #include "../../BDAExpander.h"
-#include "../../InputStep.h"
 #include "mock/MockInput.h"
 #include "mock/MockStep.h"
 

@@ -7,7 +7,6 @@
 #include "../../Interpolate.h"
 
 #include "tStepCommon.h"
-#include "../../InputStep.h"
 #include "../../../base/DP3.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
@@ -31,7 +30,7 @@ BOOST_AUTO_TEST_SUITE(interpolate)
 // It can only set all flags to true or all to false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public dp3::steps::InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nant, int nchan, int ncorr, bool flag)
       : itsCount(0),

@@ -15,7 +15,6 @@
 #include "tStepCommon.h"
 #include "../../Step.h"
 #include "../../ApplyCal.h"
-#include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
@@ -27,7 +26,6 @@ using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::ApplyCal;
-using dp3::steps::InputStep;
 using dp3::steps::Step;
 using schaapcommon::h5parm::H5Parm;
 using schaapcommon::h5parm::SolTab;
@@ -38,7 +36,7 @@ BOOST_AUTO_TEST_SUITE(applycalh5)
 
 // Simple class to generate input arrays.
 // 9 baselines, 3 antennas, 4 correlations
-class TestInput : public InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(unsigned int ntime, unsigned int nchan)
       : itsCount(0),
