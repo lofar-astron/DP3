@@ -52,6 +52,11 @@ class StationAdder : public Step {
 
   virtual ~StationAdder();
 
+  Needs getNeeds() const override {
+    return kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsFullResFlags |
+           kNeedsUvw;
+  }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

@@ -89,6 +89,9 @@ class IDGPredict : public ModelDataStep {
       const std::string& ds9_regions_file, const aocommon::FitsReader& reader);
 
 #ifdef HAVE_IDG
+ public:
+  Needs getNeeds() const override { return kNeedsUvw; }
+
  private:
   /// Initializes IDG buffersets for all directions and terms.
   void StartIDG();

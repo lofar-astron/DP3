@@ -37,6 +37,13 @@ class Upsample : public Step {
 
   virtual ~Upsample();
 
+  Needs getNeeds() const override {
+    Needs needs = kNeedsFlags;
+    if (update_uvw_) needs |= kNeedsUvw;
+
+    return needs;
+  }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

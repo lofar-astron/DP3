@@ -41,6 +41,8 @@ class BDAExpander : public Step {
 
   ~BDAExpander() override;
 
+  Needs getNeeds() const override { return kNeedsUvw; }
+
   /// Process the data.
   /// Reads the data from a BDABuffer and fills an internal vector of DPBuffer.
   /// Gives regular buffer to the next step once all the baselines are
