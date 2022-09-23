@@ -1,15 +1,11 @@
-// MSWriter.h: DPPP step writing to an MS
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// MSWriter.h: DP3 step writing to an MS
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief DPPP step writing to an MS
-/// @author Ger van Diepen
+#ifndef DP3_STEPS_MSWRITER_H_
+#define DP3_STEPS_MSWRITER_H_
 
-#ifndef DPPP_MSWRITER_H
-#define DPPP_MSWRITER_H
-
-#include "Step.h"
+#include "OutputStep.h"
 
 #include "../base/StManParsetKeys.h"
 
@@ -33,7 +29,7 @@ class ParameterSet;
 namespace steps {
 class InputStep;
 
-/// @brief DPPP step writing to an MS
+/// @brief DP3 step writing to an MS
 
 /// This class is a Step creating a new MeasurementSet and writing
 /// all data in it.
@@ -51,7 +47,7 @@ class InputStep;
 /// The HISTORY table gets an entry containing the parset values and the
 /// DPPP version.
 
-class MSWriter : public Step {
+class MSWriter : public OutputStep {
  public:
   explicit MSWriter(InputStep& reader, const std::string& out_name,
                     const common::ParameterSet&, const std::string& prefix);

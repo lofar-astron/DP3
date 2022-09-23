@@ -1,24 +1,23 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief Step for writing BDA data to an MS.
-/// @author Maik Nijhuis
-
-#ifndef DPPP_MSBDAWRITER_H
-#define DPPP_MSBDAWRITER_H
+#ifndef DP3_STEPS_MSBDAWRITER_H_
+#define DP3_STEPS_MSBDAWRITER_H_
 
 #include <casacore/tables/Tables/Table.h>
 #include <map>
 
-#include "Step.h"
+#include "OutputStep.h"
 #include "MSReader.h"
 #include "../common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {
 
-class MSBDAWriter : public Step {
+/**
+ * @brief Step for writing BDA data to an MS.
+ */
+class MSBDAWriter : public OutputStep {
  public:
   MSBDAWriter(InputStep*, const std::string&, const common::ParameterSet&,
               const std::string&);

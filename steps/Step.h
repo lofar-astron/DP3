@@ -24,12 +24,12 @@
 namespace dp3 {
 namespace steps {
 
-/// @brief Abstract base class for a DPPP step
+/// @brief Abstract base class for a DP3 step
 
-/// This class defines a step in the DPPP pipeline.
+/// This class defines a step in the DP3 pipeline.
 /// It is an abstract class from which all steps should be derived.
 /// A few functions can or must be implemented. They are called by
-/// the NDPPP program in the following order.
+/// the DP3 program in the following order.
 /// <ul>
 ///  <li> 'updateInfo' should update its DPInfo object with the specific
 ///        step information. For example, in this way it is known
