@@ -48,7 +48,9 @@ class PhaseShift : public Step {
   PhaseShift(InputStep*, const common::ParameterSet&, const string& prefix,
              const std::vector<string>& defVal);
 
-  Needs getNeeds() const override { return kNeedsData | kNeedsUvw; }
+  common::Fields getRequiredFields() const override {
+    return kDataField | kUvwField;
+  }
 
   virtual ~PhaseShift();
 

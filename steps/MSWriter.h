@@ -58,10 +58,11 @@ class MSWriter : public Step {
 
   ~MSWriter() override;
 
-  Needs getNeeds() const override {
-    Needs needs = kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsUvw;
-    if (write_full_res_flags_) needs |= kNeedsFullResFlags;
-    return needs;
+  common::Fields getRequiredFields() const override {
+    common::Fields fields =
+        kDataField | kFlagsField | kWeightsField | kUvwField;
+    if (write_full_res_flags_) fields |= kFullResFlagsField;
+    return fields;
   }
 
   /// Process the next data chunk.

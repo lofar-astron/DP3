@@ -53,9 +53,9 @@ class Averager : public Step {
 
   virtual ~Averager();
 
-  Needs getNeeds() const override {
-    return kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsFullResFlags |
-           kNeedsUvw;
+  common::Fields getRequiredFields() const override {
+    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
+           kUvwField;
   }
 
   /// Process the data.

@@ -47,14 +47,14 @@ class UVWFlagger : public Step {
 
   virtual ~UVWFlagger();
 
-  Needs getNeeds() const override {
-    if (itsIsDegenerate) return dp3::steps::Needs();
+  common::Fields getRequiredFields() const override {
+    if (itsIsDegenerate) return common::Fields();
 
-    Needs needs = kNeedsFlags;
+    common::Fields fields = kFlagsField;
 
-    if (itsCenter.empty()) needs |= kNeedsUvw;
+    if (itsCenter.empty()) fields |= kUvwField;
 
-    return needs;
+    return fields;
   }
   /// Process the data.
   /// When processed, it invokes the process function of the next step.

@@ -37,11 +37,11 @@ class Counter : public Step {
 
   virtual ~Counter();
 
-  Needs getNeeds() const override {
+  common::Fields getRequiredFields() const override {
     if (itsFlagData)
-      return kNeedsData | kNeedsFlags;
+      return kDataField | kFlagsField;
     else
-      return kNeedsFlags;
+      return kFlagsField;
   }
 
   /// Process the data.

@@ -44,10 +44,10 @@ class ApplyBeam : public Step {
 
   virtual ~ApplyBeam();
 
-  Needs getNeeds() const override {
-    Needs needs = kNeedsData;
-    if (itsUpdateWeights) needs |= kNeedsWeights;
-    return needs;
+  common::Fields getRequiredFields() const override {
+    common::Fields fields = kDataField;
+    if (itsUpdateWeights) fields |= kWeightsField;
+    return fields;
   }
 
   /// Process the data.

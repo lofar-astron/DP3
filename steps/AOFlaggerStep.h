@@ -62,7 +62,9 @@ class AOFlaggerStep : public Step {
 
   virtual ~AOFlaggerStep();
 
-  Needs getNeeds() const override { return kNeedsData | kNeedsFlags; }
+  common::Fields getRequiredFields() const override {
+    return kDataField | kFlagsField;
+  }
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.

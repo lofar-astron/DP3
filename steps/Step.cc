@@ -10,6 +10,7 @@
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
+using dp3::common::Fields;
 
 namespace dp3 {
 namespace steps {
@@ -26,7 +27,7 @@ const DPInfo& Step::setInfo(const DPInfo& info) {
   return getInfo();
 }
 
-Needs Step::getNeeds() const { return dp3::steps::Needs(); }
+Fields Step::getRequiredFields() const { return Fields(); }
 
 void Step::updateInfo(const DPInfo& infoIn) { info() = infoIn; }
 

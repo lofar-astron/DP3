@@ -41,7 +41,7 @@ class BDAExpander : public Step {
 
   ~BDAExpander() override;
 
-  Needs getNeeds() const override { return kNeedsUvw; }
+  common::Fields getRequiredFields() const override { return kUvwField; }
 
   /// Process the data.
   /// Reads the data from a BDABuffer and fills an internal vector of DPBuffer.

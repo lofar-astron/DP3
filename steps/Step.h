@@ -18,9 +18,8 @@
 #include "../base/DPInfo.h"
 #include "../base/Direction.h"
 
+#include "../common/Fields.h"
 #include "../common/Timer.h"
-
-#include "Needs.h"
 
 namespace dp3 {
 namespace steps {
@@ -57,12 +56,17 @@ class Step {
   /// To check compatibility between steps before running.
   enum class MsType { kRegular, kBda };
 
-  // Predefined needs values, that can be OR'd together:
-  static constexpr Needs kNeedsData{Needs::Single::kData};
-  static constexpr Needs kNeedsFlags{Needs::Single::kFlags};
-  static constexpr Needs kNeedsWeights{Needs::Single::kWeights};
-  static constexpr Needs kNeedsFullResFlags{Needs::Single::kFullResFlags};
-  static constexpr Needs kNeedsUvw{Needs::Single::kUvw};
+  // Predefined fields values, that can be OR'd together:
+  static constexpr dp3::common::Fields kDataField{
+      dp3::common::Fields::Single::kData};
+  static constexpr dp3::common::Fields kFlagsField{
+      dp3::common::Fields::Single::kFlags};
+  static constexpr dp3::common::Fields kWeightsField{
+      dp3::common::Fields::Single::kWeights};
+  static constexpr dp3::common::Fields kFullResFlagsField{
+      dp3::common::Fields::Single::kFullResFlags};
+  static constexpr dp3::common::Fields kUvwField{
+      dp3::common::Fields::Single::kUvw};
 
   /// Constructor to initialize.
   Step() : itsPrevStep(0) {}
@@ -92,8 +96,8 @@ class Step {
   /// It returns the info of the last step.
   const base::DPInfo& setInfo(const base::DPInfo&);
 
-  /// Get the fields needed by the current step
-  virtual Needs getNeeds() const;
+  /// Get the fields required by the current step
+  virtual dp3::common::Fields getRequiredFields() const;
 
   /// Get access to the info.
   const base::DPInfo& getInfo() const { return itsInfo; }

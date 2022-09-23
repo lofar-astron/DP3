@@ -25,8 +25,8 @@ class MSBDAWriter : public Step {
 
   ~MSBDAWriter() override;
 
-  Needs getNeeds() const override {
-    return kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsUvw;
+  common::Fields getRequiredFields() const override {
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
   void updateInfo(const base::DPInfo&) override;

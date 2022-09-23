@@ -28,7 +28,9 @@ class Interpolate : public Step {
 
   virtual ~Interpolate() = default;
 
-  Needs getNeeds() const override { return kNeedsData | kNeedsFlags; }
+  common::Fields getRequiredFields() const override {
+    return kDataField | kFlagsField;
+  }
 
   /// Process the data.
   /// It keeps the data.

@@ -48,7 +48,7 @@ class ScaleData : public Step {
 
   virtual ~ScaleData();
 
-  Needs getNeeds() const override { return kNeedsData; }
+  common::Fields getRequiredFields() const override { return kDataField; }
 
   /// Process the data.
   /// It keeps the data.

@@ -1,18 +1,18 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_STEPS_NEEDS_H_
-#define DP3_STEPS_NEEDS_H_
+#ifndef DP3_COMMON_FIELDS_H_
+#define DP3_COMMON_FIELDS_H_
 
 #include <bitset>
 
 namespace dp3 {
-namespace steps {
+namespace common {
 
 /**
  * Specifies which data types a Step uses.
  */
-class Needs {
+class Fields {
  public:
   /**
    * Values for specifying a single need.
@@ -27,15 +27,16 @@ class Needs {
   };
 
   /**
-   * Creates a Needs object with no set needs.
+   * Creates a Fields object with no set fields.
    */
-  constexpr Needs() : value_() {}
+  constexpr Fields() : value_() {}
 
   /**
-   * Creates a Needs object with a single need.
-   * @param need The single need that must be set. Cannot be Single::kCount.
+   * Creates a Fields object with a single field.
+   * @param field The single field that must be set. Cannot be Single::kCount.
    */
-  constexpr explicit Needs(Single need) : value_(1 << static_cast<int>(need)) {}
+  constexpr explicit Fields(Single field)
+      : value_(1 << static_cast<int>(field)) {}
 
   /**
    * @return True if visibility data is needed, false if not.
@@ -71,32 +72,32 @@ class Needs {
   constexpr bool Uvw() const { return value_[static_cast<int>(Single::kUvw)]; }
 
   /**
-   * Adds the needs of another Needs object to the current object.
-   * @param other Other needs value.
-   * @return A reference to the current Needs object.
+   * Adds the fields of another Fields object to the current object.
+   * @param other Other fields value.
+   * @return A reference to the current Fields object.
    */
-  Needs& operator|=(const Needs& other) {
+  Fields& operator|=(const Fields& other) {
     value_ |= other.value_;
     return *this;
   }
 
   /**
-   * Combines two Needs objects.
-   * @return A Needs object with the needs of both arguments.
+   * Combines two Fields objects.
+   * @return A Fields object with the fields of both arguments.
    */
-  friend Needs operator|(const Needs& left, const Needs& right) {
-    Needs needs(left);
-    needs |= right;
-    return needs;
+  friend Fields operator|(const Fields& left, const Fields& right) {
+    Fields fields(left);
+    fields |= right;
+    return fields;
   }
 
  private:
   // Using a bitset instead of individual booleans simplifies adding more
-  // needs in the future.
+  // fields in the future.
   std::bitset<static_cast<int>(Single::kCount)> value_;
 };
 
-}  // namespace steps
+}  // namespace common
 }  // namespace dp3
 
 #endif
