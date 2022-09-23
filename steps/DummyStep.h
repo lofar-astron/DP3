@@ -33,7 +33,9 @@ class DummyStep : public Step {
 
   ~DummyStep() override;
 
-  Needs getNeeds() const override { return kNeedsWeights | kNeedsUvw; }
+  common::Fields getRequiredFields() const override {
+    return kWeightsField | kUvwField;
+  }
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

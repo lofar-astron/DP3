@@ -28,7 +28,7 @@ class SetBeam final : public Step {
   SetBeam(InputStep* input, const common::ParameterSet& parameters,
           const string& prefix);
 
-  Needs getNeeds() const override { return dp3::steps::Needs(); }
+  common::Fields getRequiredFields() const override { return common::Fields(); }
   bool process(const base::DPBuffer& buffer) override;
 
   void finish() override{};

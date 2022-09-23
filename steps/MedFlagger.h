@@ -64,7 +64,7 @@ class MedFlagger : public Step {
 
   virtual ~MedFlagger();
 
-  Needs getNeeds() const override { return kNeedsData; }
+  common::Fields getRequiredFields() const override { return kDataField; }
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.

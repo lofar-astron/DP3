@@ -51,6 +51,7 @@
 
 #include "../pythondp3/PyStep.h"
 
+#include "../common/Fields.h"
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
 #include "../steps/AntennaFlagger.h"
@@ -122,7 +123,8 @@ static std::shared_ptr<Step> makeOutputStep(InputStep* reader,
         throw std::invalid_argument("No updater for BDA data.");
       } else {
         step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
-        // AST-1020: Move this to MSBDAReader::getNeeds()
+        // AST-1014: Remove as it is automaticaaly handled in
+        // MSBDAReader::getRequiredFields()
         reader->setReadData();
       }
       break;
@@ -136,7 +138,8 @@ static std::shared_ptr<Step> makeOutputStep(InputStep* reader,
                                            outName != currentMSName);
       } else {
         step = std::make_shared<MSWriter>(*reader, outName, parset, prefix);
-        // AST-1020: Move this to MSReader::getNeeds()
+        // AST-1014: Remove as it is automaticaaly handled in
+        // MSReader::getRequiredFields()
         reader->setReadData();
       }
       break;
@@ -311,12 +314,15 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
 
   // Go through the steps to define which fields of the measurement set should
   // be read by the inputStep
-  dp3::steps::Needs overall_needs;
+  dp3::common::Fields overall_required_fields;
   for (step = firstStep; step; step = step->getNextStep()) {
-    overall_needs |= step->getNeeds();
+    overall_required_fields |= step->getRequiredFields();
   }
   // Tell the reader which fields must be read.
-  firstStep->setReadNeeds(overall_needs);
+  firstStep->setFieldsToRead(overall_required_fields);
+
+  // TODO AST-1014: call the getProvidedFields() per each step and combine the
+  // fields so that the reader/writer knows which field must be read/written
 
   // Call updateInfo()
   DPInfo dpInfo;
@@ -325,7 +331,7 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   }
   dpInfo = firstStep->setInfo(dpInfo);
   // Tell the reader if visibility data needs to be read.
-  // AST-1014: remove this (will be part of setReadNeeds)
+  // AST-1014: remove this (will be part of setFieldsToRead)
   if (dpInfo.needData()) firstStep->setReadData();
 
   // Show the steps.

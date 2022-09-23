@@ -90,7 +90,7 @@ class IDGPredict : public ModelDataStep {
 
 #ifdef HAVE_IDG
  public:
-  Needs getNeeds() const override { return kNeedsUvw; }
+  common::Fields getRequiredFields() const override { return kUvwField; }
 
  private:
   /// Initializes IDG buffersets for all directions and terms.

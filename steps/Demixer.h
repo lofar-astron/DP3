@@ -58,9 +58,9 @@ class Demixer : public Step {
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);
 
-  Needs getNeeds() const override {
-    return kNeedsData | kNeedsFlags | kNeedsWeights | kNeedsFullResFlags |
-           kNeedsUvw;
+  common::Fields getRequiredFields() const override {
+    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
+           kUvwField;
   }
 
   /// Finish the processing of this step and subsequent steps.

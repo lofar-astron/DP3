@@ -8,6 +8,7 @@
 #include "tStepCommon.h"
 
 #include "../../BdaDdeCal.h"
+#include "../../../common/Fields.h"
 #include "../../../common/ParameterSet.h"
 
 namespace {
@@ -209,12 +210,12 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(getNeeds, BdaDdeCalFixture) {
-  dp3::steps::Needs overall_needs = bdaddecal_->getNeeds();
-  BOOST_CHECK(overall_needs.Data() == true);
-  BOOST_CHECK(overall_needs.Flags() == false);
-  BOOST_CHECK(overall_needs.Weights() == false);
-  BOOST_CHECK(overall_needs.FullResFlags() == false);
-  BOOST_CHECK(overall_needs.Uvw() == true);
+  dp3::common::Fields overall_fields = bdaddecal_->getRequiredFields();
+  BOOST_CHECK(overall_fields.Data() == true);
+  BOOST_CHECK(overall_fields.Flags() == false);
+  BOOST_CHECK(overall_fields.Weights() == false);
+  BOOST_CHECK(overall_fields.FullResFlags() == false);
+  BOOST_CHECK(overall_fields.Uvw() == true);
 }
 
 BOOST_AUTO_TEST_CASE(getNeeds_correct_time_smearing) {
@@ -229,12 +230,12 @@ BOOST_AUTO_TEST_CASE(getNeeds_correct_time_smearing) {
   parset.add("correcttimesmearing", "10");
   bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input_, parset, "");
 
-  dp3::steps::Needs overall_needs = bdaddecal->getNeeds();
-  BOOST_CHECK(overall_needs.Data() == true);
-  BOOST_CHECK(overall_needs.Flags() == true);
-  BOOST_CHECK(overall_needs.Weights() == true);
-  BOOST_CHECK(overall_needs.FullResFlags() == true);
-  BOOST_CHECK(overall_needs.Uvw() == true);
+  dp3::common::Fields overall_fields = bdaddecal->getRequiredFields();
+  BOOST_CHECK(overall_fields.Data() == true);
+  BOOST_CHECK(overall_fields.Flags() == true);
+  BOOST_CHECK(overall_fields.Weights() == true);
+  BOOST_CHECK(overall_fields.FullResFlags() == true);
+  BOOST_CHECK(overall_fields.Uvw() == true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

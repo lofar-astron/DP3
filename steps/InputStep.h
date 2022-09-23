@@ -90,10 +90,14 @@ class InputStep : public Step {
   virtual void setReadData();
 
   /// Set which fields must be read.
-  void setReadNeeds(const dp3::steps::Needs& needs) { read_needs_ = needs; };
+  void setFieldsToRead(const dp3::common::Fields& fields) {
+    fields_to_read_ = fields;
+  };
 
   /// Get which fields must be read.
-  const dp3::steps::Needs& getReadNeeds() const { return read_needs_; };
+  const dp3::common::Fields& getFieldsToRead() const {
+    return fields_to_read_;
+  };
 
   /// Get the main MS table.
   virtual const casacore::Table& table() const;
@@ -161,7 +165,7 @@ class InputStep : public Step {
  private:
   /// This variable is used by the inputStep's derived classes to determine
   /// which fields must be read.
-  dp3::steps::Needs read_needs_;
+  dp3::common::Fields fields_to_read_;
 };
 
 }  // namespace steps

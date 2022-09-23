@@ -37,11 +37,11 @@ class Upsample : public Step {
 
   virtual ~Upsample();
 
-  Needs getNeeds() const override {
-    Needs needs = kNeedsFlags;
-    if (update_uvw_) needs |= kNeedsUvw;
+  common::Fields getRequiredFields() const override {
+    common::Fields fields = kFlagsField;
+    if (update_uvw_) fields |= kUvwField;
 
-    return needs;
+    return fields;
   }
 
   /// Process the data.
