@@ -1,15 +1,11 @@
 // MSUpdater.h: DPPP step writing to an MS
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief DPPP step writing to an MS
-/// @author Ger van Diepen
+#ifndef DP3_STEPS_MSUPDATER_H_
+#define DP3_STEPS_MSUPDATER_H_
 
-#ifndef DPPP_MSUPDATER_H
-#define DPPP_MSUPDATER_H
-
-#include "Step.h"
+#include "OutputStep.h"
 
 #include "../base/StManParsetKeys.h"
 
@@ -28,7 +24,7 @@ class ParameterSet;
 namespace steps {
 class InputStep;
 
-/// @brief DPPP step writing to an MS
+/// @brief DP3 step writing to an MS
 
 /// This class updates the flags in an existing MeasurementSet.
 /// Hardly anything is done in this class.
@@ -37,7 +33,7 @@ class InputStep;
 /// Like MSWriter it adds an entry to the HISTORY table of the MS
 /// containing the parset values and DPPP version.
 
-class MSUpdater : public Step {
+class MSUpdater : public OutputStep {
  public:
   MSUpdater(InputStep* reader, casacore::String msName,
             const common::ParameterSet& parset, const std::string& prefix,
