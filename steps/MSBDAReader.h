@@ -141,6 +141,18 @@ class MSBDAReader : public InputStep {
   /// Get the main MS table.
   const casacore::Table& table() const override { return ms_; }
 
+  const std::string& dataColumnName() const override {
+    return data_column_name_;
+  }
+
+  const std::string& flagColumnName() const override {
+    throw std::runtime_error("MSBDAReader does not support reading flags.");
+  }
+
+  const std::string& weightColumnName() const override {
+    return weight_column_name_;
+  }
+
   /// Get the selected spectral window.
   unsigned int spectralWindow() const override { return spw_; }
 
@@ -164,8 +176,8 @@ class MSBDAReader : public InputStep {
   void FillInfoMetaData();
 
   const casacore::MeasurementSet ms_;
-  std::string data_col_name_;
-  std::string weight_col_name_;
+  std::string data_column_name_;
+  std::string weight_column_name_;
   bool read_vis_data_;  ///< read visibility data?
   double last_ms_time_;
   double last_ms_interval_;

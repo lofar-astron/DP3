@@ -15,13 +15,11 @@
 #include "../../../pythondp3/PyStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
-#include "../../InputStep.h"
 #include "../../../common/ParameterSet.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
-using dp3::steps::InputStep;
 using dp3::steps::Step;
 using std::vector;
 
@@ -33,7 +31,7 @@ BOOST_AUTO_TEST_SUITE(pystep)
 // Simple class to generate input arrays.
 // Weights are 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput final : public InputStep {
+class TestInput final : public steps::MockInput {
  public:
   TestInput(int ntime, int nbl, int nchan, int ncorr)
       : count_(0),

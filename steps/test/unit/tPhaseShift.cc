@@ -6,6 +6,11 @@
 
 #include "../../PhaseShift.h"
 
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+
+#include <boost/test/unit_test.hpp>
+
 #include "tStepCommon.h"
 
 #include "../../../base/DPBuffer.h"
@@ -14,15 +19,9 @@
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-
-#include <boost/test/unit_test.hpp>
-
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
-using dp3::steps::InputStep;
 using dp3::steps::PhaseShift;
 using dp3::steps::Step;
 using std::vector;
@@ -33,7 +32,7 @@ BOOST_AUTO_TEST_SUITE(phaseshift)
 // It can only set all flags to true or all false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nbl, int nchan, int ncorr, bool flag)
       : itsCount(0),

@@ -73,10 +73,10 @@ MSBDAReader::MSBDAReader(const casacore::MeasurementSet& ms,
                          const common::ParameterSet& parset,
                          const std::string& prefix)
     : ms_(ms),
-      data_col_name_(
+      data_column_name_(
           parset.getString(prefix + "data_column", MS::columnName(MS::DATA))),
-      weight_col_name_(parset.getString(prefix + "weightcolumn",
-                                        MS::columnName(MS::WEIGHT_SPECTRUM))),
+      weight_column_name_(parset.getString(
+          prefix + "weightcolumn", MS::columnName(MS::WEIGHT_SPECTRUM))),
       read_vis_data_(false),
       last_ms_time_(0),
       last_ms_interval_(0),
@@ -155,8 +155,6 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
   info().init(ncorr, start_chan, info().nchan(), ntime,
               first_time_ - interval_ / 2, interval_, msName(), antenna_set);
   info().setIsBDAIntervalFactorInteger(is_interval_integer_);
-  info().setDataColName(data_col_name_);
-  info().setWeightColName(weight_col_name_);
 }
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
@@ -170,8 +168,8 @@ bool MSBDAReader::process(const DPBuffer&) {
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
-  ArrayColumn<float> weights_col(ms_, MS::columnName(MS::WEIGHT_SPECTRUM));
-  ArrayColumn<casacore::Complex> data_col(ms_, MS::columnName(MS::DATA));
+  ArrayColumn<float> weights_col(ms_, weight_column_name_);
+  ArrayColumn<casacore::Complex> data_col(ms_, data_column_name_);
   ArrayColumn<double> uvw_col(ms_, MS::columnName(MS::UVW));
   ScalarColumn<double> time_col(ms_, MS::columnName(MS::TIME));
   ScalarColumn<double> interval_col(ms_, MS::columnName(MS::INTERVAL));
@@ -360,9 +358,9 @@ void MSBDAReader::show(std::ostream& os) const {
        << MVTime(last_time_ / (24 * 3600.)) << '\n';
     os << "  ntimes:         " << getInfo().ntime() << '\n';
     os << "  time interval:  " << getInfo().timeInterval() << '\n';
-    os << "  DATA column:    " << data_col_name_;
+    os << "  DATA column:    " << data_column_name_;
     os << '\n';
-    os << "  WEIGHT column:  " << weight_col_name_ << '\n';
+    os << "  WEIGHT column:  " << weight_column_name_ << '\n';
   }
 }
 

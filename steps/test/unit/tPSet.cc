@@ -1,16 +1,17 @@
 // tPSet.cc: Test program for class PreFlagger::PSet
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
-
-#include "../../PreFlagger.h"
-#include "../../../common/ParameterSet.h"
 
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Quanta/MVTime.h>
 
 #include <boost/test/unit_test.hpp>
+
+#include "mock/MockInput.h"
+#include "../../PreFlagger.h"
+#include "../../../common/ParameterSet.h"
 
 using dp3::steps::PreFlagger;
 
@@ -20,7 +21,7 @@ namespace {
 // It can only set all flags to true or all to false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public dp3::steps::InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int nbl, int nchan, int ncorr) : itsNChan(nchan), itsNCorr(ncorr) {
     info().init(itsNCorr, 0, itsNChan, 0, 0, 50, string(), string());

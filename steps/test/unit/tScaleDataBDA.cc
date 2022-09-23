@@ -11,7 +11,6 @@
 #include <boost/test/data/test_case.hpp>
 
 #include "../../ScaleData.h"
-#include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/BDABuffer.h"
 #include "../../../base/DPInfo.h"
@@ -23,7 +22,6 @@ using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
-using dp3::steps::InputStep;
 using dp3::steps::ScaleData;
 using std::vector;
 

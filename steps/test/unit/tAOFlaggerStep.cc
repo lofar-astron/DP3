@@ -1,14 +1,18 @@
 // tAOFlaggerStep.cc: Test program for class AOFlaggerStep
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
 #include "tStepCommon.h"
 
+#include <boost/test/unit_test.hpp>
+
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+
 #include "../../AOFlaggerStep.h"
-#include "../../InputStep.h"
 
 #include "../../../base/DP3.h"
 #include "../../../base/DPBuffer.h"
@@ -17,18 +21,9 @@
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
-#include <boost/test/unit_test.hpp>
-
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-
-#include <cassert>
-#include <iostream>
-
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::steps::AOFlaggerStep;
-using dp3::steps::InputStep;
 using dp3::steps::Step;
 
 using dp3::common::ParameterSet;
@@ -43,7 +38,7 @@ BOOST_AUTO_TEST_SUITE(aoflaggerstep)
 // It can only set all flags to true or all to false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nant, int nchan, int ncorr, bool flag)
       : itsCount(0),
@@ -171,8 +166,8 @@ class TestOutput : public Step {
     }
     // Check the result.
     /// cout << buf.getData()<< result;
-    assert(allNear(real(buf.getData()), real(result), 1e-10));
-    assert(allNear(imag(buf.getData()), imag(result), 1e-10));
+    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-10));
+    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-10));
     BOOST_CHECK_CLOSE(buf.getTime(), 2 + 5.0 * itsCount, 1e-8);
     ++itsCount;
     return true;
@@ -181,16 +176,16 @@ class TestOutput : public Step {
   virtual void finish() {}
   virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
-    assert(int(info.origNChan()) == itsNChan);
-    assert(int(info.nchan()) == itsNChan);
-    assert(int(info.ntime()) == itsNTime);
-    assert(info.startTime() == 100);
-    assert(info.timeInterval() == 5);
-    assert(int(info.nchanAvg()) == 1);
-    assert(int(info.ntimeAvg()) == 1);
-    assert(int(info.chanFreqs().size()) == itsNChan);
-    assert(int(info.chanWidths().size()) == itsNChan);
-    assert(info.msName().empty());
+    BOOST_CHECK(int(info.origNChan()) == itsNChan);
+    BOOST_CHECK(int(info.nchan()) == itsNChan);
+    BOOST_CHECK(int(info.ntime()) == itsNTime);
+    BOOST_CHECK(info.startTime() == 100);
+    BOOST_CHECK(info.timeInterval() == 5);
+    BOOST_CHECK(int(info.nchanAvg()) == 1);
+    BOOST_CHECK(int(info.ntimeAvg()) == 1);
+    BOOST_CHECK(int(info.chanFreqs().size()) == itsNChan);
+    BOOST_CHECK(int(info.chanWidths().size()) == itsNChan);
+    BOOST_CHECK(info.msName().empty());
   }
 
   int itsCount;

@@ -165,11 +165,13 @@ class MSReader : public InputStep {
   const casacore::Table& table() const override { return itsMS; }
 
   /// Get the name of the data column to be used.
-  const std::string& dataColumnName() const { return itsDataColName; }
+  const std::string& dataColumnName() const override { return itsDataColName; }
 
-  const std::string& flagColumnName() const { return itsFlagColName; }
+  const std::string& flagColumnName() const override { return itsFlagColName; }
 
-  const std::string& weightColumnName() const { return itsWeightColName; }
+  const std::string& weightColumnName() const override {
+    return itsWeightColName;
+  }
 
   const std::string& modelColumnName() const { return itsModelColName; }
 

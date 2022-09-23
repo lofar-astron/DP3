@@ -10,7 +10,6 @@
 #include "tStepCommon.h"
 #include "../../AntennaFlagger.h"
 #include "../../Counter.h"
-#include "../../InputStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
@@ -21,7 +20,6 @@ using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::AntennaFlagger;
 using dp3::steps::Counter;
-using dp3::steps::InputStep;
 using dp3::steps::Step;
 
 BOOST_AUTO_TEST_SUITE(antennaflagger)
@@ -30,7 +28,7 @@ BOOST_AUTO_TEST_SUITE(antennaflagger)
 // It can only set all flags to true or all to false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput final : public InputStep {
+class TestInput final : public dp3::steps::MockInput {
  public:
   TestInput(int n_time, int n_baselines, int n_channels, int n_correlations,
             bool flag)

@@ -1,15 +1,10 @@
 // tAverager.cc: Test program for class Averager
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
 #include "../../Upsample.h"
-#include "../../../base/DPBuffer.h"
-#include "../../../base/DPInfo.h"
-#include "../../../base/UVWCalculator.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
@@ -17,6 +12,13 @@
 #include <casacore/casa/Quanta/Quantum.h>
 
 #include <boost/test/unit_test.hpp>
+
+#include "mock/MockInput.h"
+#include "../../../base/DPBuffer.h"
+#include "../../../base/DPInfo.h"
+#include "../../../base/UVWCalculator.h"
+#include "../../../common/ParameterSet.h"
+#include "../../../common/StringTools.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -32,7 +34,7 @@ const std::size_t kNBaselines = 3;
 // It can only set all flags to true or all false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public dp3::steps::InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(const std::vector<double>& times, const std::vector<bool>& flags,
             const std::vector<double>& uvws, double time_interval)

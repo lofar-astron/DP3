@@ -75,7 +75,7 @@ namespace {
 string toString(double value);
 }  // end unnamed namespace
 
-DemixWorker::DemixWorker(steps::InputStep* input, const string& prefix,
+DemixWorker::DemixWorker(InputStep* input, const string& prefix,
                          const DemixInfo& mixInfo, const DPInfo& info,
                          int workerNr)
     : itsWorkerNr(workerNr),

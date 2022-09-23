@@ -5,7 +5,6 @@
 
 #include "../../BDAAverager.h"
 #include "../../../base/BDABuffer.h"
-#include "../../InputStep.h"
 #include "../../../common/ParameterSet.h"
 #include "mock/MockStep.h"
 #include "mock/MockInput.h"
