@@ -12,7 +12,7 @@
 namespace dp3 {
 namespace ddecal {
 
-class SmoothnessConstraint : public Constraint {
+class SmoothnessConstraint final : public Constraint {
  public:
   typedef std::complex<double> dcomplex;
   typedef KernelSmoother<dcomplex, double> Smoother;
@@ -25,15 +25,15 @@ class SmoothnessConstraint : public Constraint {
 
   std::vector<Constraint::Result> Apply(
       std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* stat_stream) final override;
+      std::ostream* stat_stream) override;
 
-  void SetWeights(const std::vector<double>& weights) final override {
+  void SetWeights(const std::vector<double>& weights) override {
     weights_ = weights;
   }
 
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,
-                  const std::vector<double>& frequencies) final override;
+                  const std::vector<double>& frequencies) override;
 
   /**
    * Should be called after calling @ref Initialize().
