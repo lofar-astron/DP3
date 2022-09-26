@@ -5,8 +5,9 @@
 #define DP3_DDECAL_CONSTRAINT_H_
 
 #include <complex>
-#include <vector>
+#include <numeric>
 #include <ostream>
+#include <vector>
 
 namespace dp3 {
 namespace ddecal {
@@ -32,12 +33,6 @@ class Constraint {
     std::vector<size_t> dims;
     std::string name;
   };
-
-  Constraint()
-      : n_antennas_(0),
-        n_channel_blocks_(0),
-        n_threads_(1),
-        solutions_per_direction_() {}
 
   virtual ~Constraint() {}
 
@@ -72,8 +67,8 @@ class Constraint {
   /**
    * This method applies the constraints to the solutions.
    * @param solutions is an array of array, such that:
-   * - solutions[ch] is a pointer for channelblock ch to antenna x directions x
-   * pol solutions.
+   * - solutions[ch] is a pointer for channelblock ch to n_antennas x
+   * n_solutions x n_pol solutions.
    * - pol is the dimension with the fastest changing index.
    * @param time Central time of interval.
    */
@@ -92,6 +87,8 @@ class Constraint {
     n_antennas_ = n_antennas;
     solutions_per_direction_ = solutions_per_direction;
     n_channel_blocks_ = frequencies.size();
+    n_solutions_ = std::accumulate(solutions_per_direction.begin(),
+                                   solutions_per_direction.end(), 0u);
   }
 
   /**
@@ -114,6 +111,11 @@ class Constraint {
 
   size_t NAntennas() const { return n_antennas_; }
   size_t NDirections() const { return solutions_per_direction_.size(); }
+  /**
+   * Number of solutions over all directions, i.e. the sum over
+   * solutions_per_direction_.
+   */
+  size_t NSolutions() const { return n_solutions_; }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
   size_t NThreads() const { return n_threads_; }
 
@@ -122,7 +124,10 @@ class Constraint {
   }
 
  private:
-  size_t n_antennas_, n_channel_blocks_, n_threads_;
+  size_t n_antennas_ = 0;
+  size_t n_channel_blocks_ = 0;
+  size_t n_threads_ = 1;
+  size_t n_solutions_ = 0;
   std::vector<uint32_t> solutions_per_direction_;
 };
 

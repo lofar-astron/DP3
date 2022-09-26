@@ -19,12 +19,6 @@ void SmoothnessConstraint::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
   frequencies_ = frequencies;
-  for (int32_t v : solutions_per_direction) {
-    if (v != 1)
-      throw std::runtime_error(
-          "The smoothness constraint does not yet support direction-dependent "
-          "intervals");
-  }
 }
 
 void SmoothnessConstraint::SetDistanceFactors(
@@ -41,34 +35,31 @@ void SmoothnessConstraint::SetDistanceFactors(
 std::vector<Constraint::Result> SmoothnessConstraint::Apply(
     std::vector<std::vector<dcomplex>>& solutions, [[maybe_unused]] double time,
     [[maybe_unused]] std::ostream* stat_stream) {
-  const size_t n_pol = solutions.front().size() / (NAntennas() * NDirections());
+  const size_t n_pol = solutions.front().size() / (NAntennas() * NSolutions());
 
-  loop_->Run(
-      0, NAntennas() * NDirections(), [&](size_t ant_dir_index, size_t thread) {
-        size_t ant_index = ant_dir_index / NDirections();
-        for (size_t pol = 0; pol != n_pol; ++pol) {
-          size_t solution_index = ant_dir_index * n_pol + pol;
-          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-            // Flag channels where calibration yielded inf or nan
-            if (isfinite(solutions[ch][solution_index])) {
-              fit_data_[thread].data[ch] = solutions[ch][solution_index];
-              fit_data_[thread].weight[ch] =
-                  weights_[ant_index * NChannelBlocks() + ch];
-            } else {
-              fit_data_[thread].data[ch] = 0.0;
-              fit_data_[thread].weight[ch] = 0.0;
-            }
-          }
+  const size_t n_smoothed = NAntennas() * NSolutions() * n_pol;
+  loop_->Run(0, n_smoothed, [&](size_t solution_index, size_t thread) {
+    size_t ant_index = solution_index / (NSolutions() * n_pol);
+    for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+      // Flag channels where calibration yielded inf or nan
+      if (isfinite(solutions[ch][solution_index])) {
+        fit_data_[thread].data[ch] = solutions[ch][solution_index];
+        fit_data_[thread].weight[ch] =
+            weights_[ant_index * NChannelBlocks() + ch];
+      } else {
+        fit_data_[thread].data[ch] = 0.0;
+        fit_data_[thread].weight[ch] = 0.0;
+      }
+    }
 
-          fit_data_[thread].smoother.Smooth(
-              fit_data_[thread].data.data(), fit_data_[thread].weight.data(),
-              antenna_distance_factors_[ant_index]);
+    fit_data_[thread].smoother.Smooth(fit_data_[thread].data.data(),
+                                      fit_data_[thread].weight.data(),
+                                      antenna_distance_factors_[ant_index]);
 
-          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-            solutions[ch][solution_index] = fit_data_[thread].data[ch];
-          }
-        }
-      });
+    for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+      solutions[ch][solution_index] = fit_data_[thread].data[ch];
+    }
+  });
 
   return std::vector<Constraint::Result>();
 }
