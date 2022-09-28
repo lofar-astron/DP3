@@ -53,6 +53,10 @@ class InputStep : public Step {
  public:
   virtual ~InputStep();
 
+  common::Fields getRequiredFields() const override { return {}; }
+
+  common::Fields getProvidedFields() const override { return fields_to_read_; }
+
   /// Read the UVW at the given row numbers into the buffer.
   /// The default implementation throws an exception.
   virtual void getUVW(const casacore::RefRows& rowNrs, double time,

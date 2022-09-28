@@ -90,6 +90,19 @@ void BdaDdeCal::InitializePredictSteps(InputStep* input,
   }
 }
 
+common::Fields BdaDdeCal::getRequiredFields() const {
+  common::Fields fields = uvw_flagger_step_->getRequiredFields();
+  for (std::shared_ptr<Step> direction_first_step : steps_) {
+    // TODO (AST-1032): Combine required fields using a generic function, that
+    // also takes the provided fields into account.
+    for (std::shared_ptr<Step> step = direction_first_step; step;
+         step = step->getNextStep()) {
+      fields |= step->getRequiredFields();
+    }
+  }
+  return fields;
+}
+
 void BdaDdeCal::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
   uvw_flagger_step_->updateInfo(_info);

@@ -48,11 +48,15 @@ class PhaseShift : public Step {
   PhaseShift(InputStep*, const common::ParameterSet&, const string& prefix,
              const std::vector<string>& defVal);
 
+  virtual ~PhaseShift();
+
   common::Fields getRequiredFields() const override {
     return kDataField | kUvwField;
   }
 
-  virtual ~PhaseShift();
+  common::Fields getProvidedFields() const override {
+    return kDataField | kUvwField;
+  }
 
   /// Process the data.
   /// It keeps the data.

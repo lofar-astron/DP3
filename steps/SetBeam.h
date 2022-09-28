@@ -1,11 +1,11 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief DPPP step class to set the beam keywords in a ms
 
-#ifndef DPPP_SETBEAM_H
-#define DPPP_SETBEAM_H
+#ifndef DP3_STEPS_SETBEAM_H_
+#define DP3_STEPS_SETBEAM_H_
 
 #include "InputStep.h"
 
@@ -28,7 +28,10 @@ class SetBeam final : public Step {
   SetBeam(InputStep* input, const common::ParameterSet& parameters,
           const string& prefix);
 
-  common::Fields getRequiredFields() const override { return common::Fields(); }
+  common::Fields getRequiredFields() const override { return {}; }
+
+  common::Fields getProvidedFields() const override { return {}; }
+
   bool process(const base::DPBuffer& buffer) override;
 
   void finish() override{};

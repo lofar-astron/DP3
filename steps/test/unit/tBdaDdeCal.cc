@@ -209,7 +209,7 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
                          expected_result);
 }
 
-BOOST_FIXTURE_TEST_CASE(getNeeds, BdaDdeCalFixture) {
+BOOST_FIXTURE_TEST_CASE(get_required_fields, BdaDdeCalFixture) {
   dp3::common::Fields overall_fields = bdaddecal_->getRequiredFields();
   BOOST_CHECK(overall_fields.Data() == true);
   BOOST_CHECK(overall_fields.Flags() == false);
@@ -218,7 +218,7 @@ BOOST_FIXTURE_TEST_CASE(getNeeds, BdaDdeCalFixture) {
   BOOST_CHECK(overall_fields.Uvw() == true);
 }
 
-BOOST_AUTO_TEST_CASE(getNeeds_correct_time_smearing) {
+BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {
   dp3::steps::MockInput input_;
   std::shared_ptr<dp3::steps::BdaDdeCal> bdaddecal;
 

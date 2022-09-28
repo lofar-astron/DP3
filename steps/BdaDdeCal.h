@@ -64,15 +64,10 @@ class BdaDdeCal : public Step {
   BdaDdeCal(InputStep* input_step, const common::ParameterSet& parset,
             const std::string& prefix);
 
-  common::Fields getRequiredFields() const override {
-    common::Fields fields;
-    // Assumed that all directions have the same substeps, we get the needs for
-    // the first direction only.
-    for (std::shared_ptr<Step> step = steps_.front(); step;
-         step = step->getNextStep()) {
-      fields |= step->getRequiredFields();
-    }
-    return fields;
+  common::Fields getRequiredFields() const override;
+
+  common::Fields getProvidedFields() const override {
+    return settings_.subtract ? kDataField : common::Fields();
   }
 
   bool process(std::unique_ptr<base::BDABuffer>) override;

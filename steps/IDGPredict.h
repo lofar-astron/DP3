@@ -42,6 +42,8 @@ class IDGPredict : public ModelDataStep {
   IDGPredict(InputStep& input, const common::ParameterSet&,
              const string& prefix);
 
+  common::Fields getRequiredFields() const override { return kUvwField; }
+
   void updateInfo(const base::DPInfo& info) override;
 
   /// Add a buffer to the IDG predictor, for use in Predict(), later. Calls
@@ -89,9 +91,6 @@ class IDGPredict : public ModelDataStep {
       const std::string& ds9_regions_file, const aocommon::FitsReader& reader);
 
 #ifdef HAVE_IDG
- public:
-  common::Fields getRequiredFields() const override { return kUvwField; }
-
  private:
   /// Initializes IDG buffersets for all directions and terms.
   void StartIDG();

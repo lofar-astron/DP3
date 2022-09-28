@@ -56,6 +56,18 @@ class Predict : public ModelDataStep {
 
   virtual ~Predict() {}
 
+  common::Fields getRequiredFields() const override {
+    // The actual work occurs in sub-steps, which come after Predict in the
+    // step list.
+    return {};
+  }
+
+  common::Fields getProvidedFields() const override {
+    // The actual work occurs in sub-steps, which come after Predict in the
+    // step list.
+    return {};
+  }
+
   bool process(const base::DPBuffer& buffer) override;
 
   bool process(std::unique_ptr<base::BDABuffer>) override;

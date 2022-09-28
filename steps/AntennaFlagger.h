@@ -25,6 +25,8 @@ class AntennaFlagger final : public Step {
     return kDataField | kFlagsField;
   }
 
+  common::Fields getProvidedFields() const override { return kFlagsField; }
+
   void finish() override;
   void show(std::ostream& ostream) const override;
   bool process(const base::DPBuffer& buffer) override;

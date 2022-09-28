@@ -28,6 +28,8 @@ class MSBDAWriter : public OutputStep {
     return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
+  common::Fields getProvidedFields() const override { return {}; }
+
   void updateInfo(const base::DPInfo&) override;
 
   virtual bool process(std::unique_ptr<base::BDABuffer>) override;

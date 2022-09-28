@@ -56,6 +56,11 @@ class UVWFlagger : public Step {
 
     return fields;
   }
+
+  common::Fields getProvidedFields() const override {
+    return itsIsDegenerate ? common::Fields() : kFlagsField;
+  }
+
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);
