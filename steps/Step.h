@@ -96,8 +96,15 @@ class Step {
   /// It returns the info of the last step.
   const base::DPInfo& setInfo(const base::DPInfo&);
 
-  /// Get the fields required by the current step
+  /// Get the fields required by the current step.
+  /// TODO: Make this function abstract once all Steps implement it.
   virtual dp3::common::Fields getRequiredFields() const;
+
+  /// Get the fields provided (modified and/or created) by the current step.
+  /// The returned fields thus should not include (required) fields that are
+  /// forwarded without modifications.
+  /// TODO: Make this function abstract once all Steps implement it.
+  virtual dp3::common::Fields getProvidedFields() const { return {}; }
 
   /// Get access to the info.
   const base::DPInfo& getInfo() const { return itsInfo; }
@@ -164,6 +171,10 @@ class NullStep : public Step {
  public:
   virtual ~NullStep();
 
+  common::Fields getRequiredFields() const override { return {}; }
+
+  common::Fields getProvidedFields() const override { return {}; }
+
   /// Process regular data. It does nothing.
   virtual bool process(const base::DPBuffer&);
 
@@ -184,7 +195,7 @@ class NullStep : public Step {
   }
 };
 
-/// @brief This class defines step in the DPPP pipeline that keeps the result
+/// @brief This class defines step in the DP3 pipeline that keeps the result
 /// to make it possible to get the result of another step.
 /// It keeps the result and calls process of the next step.
 
@@ -194,6 +205,10 @@ class ResultStep : public Step {
   ResultStep();
 
   virtual ~ResultStep();
+
+  common::Fields getRequiredFields() const override { return {}; }
+
+  common::Fields getProvidedFields() const override { return {}; }
 
   /// Keep the buffer.
   virtual bool process(const base::DPBuffer&);
@@ -216,7 +231,7 @@ class ResultStep : public Step {
   base::DPBuffer itsBuffer;
 };
 
-/// @brief This class defines step in the DPPP pipeline that keeps the result
+/// @brief This class defines step in the DP3 pipeline that keeps the result
 /// to make it possible to get the result of another step.
 /// It keeps the result and calls process of the next step.
 /// Buffers are accumulated until cleared.
@@ -227,6 +242,10 @@ class MultiResultStep : public Step {
   MultiResultStep(unsigned int size);
 
   virtual ~MultiResultStep();
+
+  common::Fields getRequiredFields() const override { return {}; }
+
+  common::Fields getProvidedFields() const override { return {}; }
 
   /// Add the buffer to the vector of kept buffers.
   virtual bool process(const base::DPBuffer&);
@@ -256,6 +275,8 @@ class MultiResultStep : public Step {
 /// Common interface for steps that produce model data.
 class ModelDataStep : public Step {
  public:
+  common::Fields getProvidedFields() const override { return kDataField; }
+
   /// @return The direction of the first patch.
   virtual base::Direction GetFirstDirection() const = 0;
 };

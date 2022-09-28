@@ -6,8 +6,8 @@
 /// @brief DPPP step class to apply the beam model (optionally inverted)
 /// @author Tammo Jan Dijkema
 
-#ifndef DPPP_APPLYBEAM_H
-#define DPPP_APPLYBEAM_H
+#ifndef DP3_STEPS_APPLYBEAM_H
+#define DP3_STEPS_APPLYBEAM_H
 
 #include "InputStep.h"
 
@@ -45,6 +45,12 @@ class ApplyBeam : public Step {
   virtual ~ApplyBeam();
 
   common::Fields getRequiredFields() const override {
+    common::Fields fields = kDataField;
+    if (itsUpdateWeights) fields |= kWeightsField;
+    return fields;
+  }
+
+  common::Fields getProvidedFields() const override {
     common::Fields fields = kDataField;
     if (itsUpdateWeights) fields |= kWeightsField;
     return fields;

@@ -50,6 +50,8 @@ class ScaleData : public Step {
 
   common::Fields getRequiredFields() const override { return kDataField; }
 
+  common::Fields getProvidedFields() const override { return kDataField; }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

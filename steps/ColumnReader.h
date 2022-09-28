@@ -30,6 +30,8 @@ class ColumnReader : public ModelDataStep {
     return fields;
   }
 
+  common::Fields getProvidedFields() const override { return kDataField; }
+
   /// Reads the given column for the measurementset for the rows of the input
   /// buffer, copies the buffer and change its data.
   bool process(const base::DPBuffer& buffer) override;

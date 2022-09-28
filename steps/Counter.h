@@ -44,6 +44,8 @@ class Counter : public Step {
       return kFlagsField;
   }
 
+  common::Fields getProvidedFields() const override { return {}; }
+
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);

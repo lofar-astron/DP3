@@ -43,6 +43,12 @@ class BDAExpander : public Step {
 
   common::Fields getRequiredFields() const override { return kUvwField; }
 
+  common::Fields getProvidedFields() const override {
+    // The BdaExpander only provides fields that are already present in the
+    // input BdaBuffer -> return an empty Fields object.
+    return {};
+  }
+
   /// Process the data.
   /// Reads the data from a BDABuffer and fills an internal vector of DPBuffer.
   /// Gives regular buffer to the next step once all the baselines are

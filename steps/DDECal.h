@@ -65,6 +65,14 @@ class DDECal : public Step {
 
   virtual ~DDECal();
 
+  common::Fields getRequiredFields() const override {
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
+  }
+
+  common::Fields getProvidedFields() const override {
+    return itsSettings.subtract ? kDataField : common::Fields();
+  }
+
   virtual bool process(const base::DPBuffer&);
 
   void checkMinimumVisibilities(size_t bufferIndex);

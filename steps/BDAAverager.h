@@ -52,6 +52,11 @@ class BDAAverager : public Step {
     return fields;
   }
 
+  common::Fields getProvidedFields() const override {
+    // BDAAverager always creates BDABuffers with all fields.
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
+  }
+
   bool process(const base::DPBuffer&) override;
 
   void finish() override;

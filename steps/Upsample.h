@@ -40,8 +40,11 @@ class Upsample : public Step {
   common::Fields getRequiredFields() const override {
     common::Fields fields = kFlagsField;
     if (update_uvw_) fields |= kUvwField;
-
     return fields;
+  }
+
+  common::Fields getProvidedFields() const override {
+    return update_uvw_ ? kUvwField : common::Fields();
   }
 
   /// Process the data.

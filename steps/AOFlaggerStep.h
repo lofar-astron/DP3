@@ -66,6 +66,8 @@ class AOFlaggerStep : public Step {
     return kDataField | kFlagsField;
   }
 
+  common::Fields getProvidedFields() const override { return kFlagsField; }
+
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);
