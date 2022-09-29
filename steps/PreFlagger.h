@@ -62,6 +62,12 @@ class PreFlagger : public Step {
 
   virtual ~PreFlagger();
 
+  common::Fields getRequiredFields() const override {
+    return itsPSet.getRequiredFields();
+  }
+
+  common::Fields getProvidedFields() const override { return kFlagsField; }
+
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&);
@@ -102,6 +108,20 @@ class PreFlagger : public Step {
 
     /// Construct from the parset parameters.
     PSet(InputStep*, const common::ParameterSet& parset, const string& prefix);
+
+    common::Fields getRequiredFields() const {
+      common::Fields fields;
+      if (itsFlagOnAmpl || itsFlagOnPhase || itsFlagOnReal || itsFlagOnImag) {
+        fields |= kDataField;
+      }
+      if (itsFlagOnUV) {
+        fields |= kUvwField;
+      }
+      for (const std::shared_ptr<PSet>& sub_pset : itsPSets) {
+        fields |= sub_pset->getRequiredFields();
+      }
+      return fields;
+    }
 
     /// Set and return the flags.
     casacore::Cube<bool>* process(const base::DPBuffer&, base::DPBuffer&,

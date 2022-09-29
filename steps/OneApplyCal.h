@@ -48,6 +48,16 @@ class OneApplyCal : public Step {
 
   virtual ~OneApplyCal();
 
+  common::Fields getRequiredFields() const override {
+    return kDataField | kWeightsField | kFlagsField;
+  }
+
+  common::Fields getProvidedFields() const override {
+    common::Fields fields = kDataField | kFlagsField;
+    if (itsUpdateWeights) fields |= kWeightsField;
+    return fields;
+  }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

@@ -246,6 +246,7 @@ PreFlagger::PSet::PSet(InputStep* input, const common::ParameterSet& parset,
       parset.getStringVector(prefix + "elevation", std::vector<string>());
   itsMinUV = parset.getDouble(prefix + "uvmmin", -1);
   itsMaxUV = parset.getDouble(prefix + "uvmmax", -1);
+  itsFlagOnUV = (itsMinUV >= 0) || (itsMaxUV > 0);
   itsStrFreq =
       parset.getStringVector(prefix + "freqrange", std::vector<string>());
   itsStrChan = parset.getStringVector(prefix + "chan", std::vector<string>());
@@ -304,11 +305,9 @@ void PreFlagger::PSet::updateInfo(const DPInfo& info) {
   // Determine if to flag on UV distance.
   // If so, square the distances to avoid having to take the sqrt in flagUV.
   if (itsMinUV >= 0) {
-    itsFlagOnUV = true;
     itsMinUV *= itsMinUV;
   }
   if (itsMaxUV > 0) {
-    itsFlagOnUV = true;
     itsMaxUV *= itsMaxUV;
   } else {
     // Make it a very high number.

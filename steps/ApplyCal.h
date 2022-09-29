@@ -40,6 +40,16 @@ class ApplyCal : public Step {
 
   virtual ~ApplyCal() = default;
 
+  common::Fields getRequiredFields() const override {
+    // ApplyCal is a dummy step, which is followed by OneApplyStep steps.
+    return {};
+  }
+
+  common::Fields getProvidedFields() const override {
+    // ApplyCal is a dummy step, which is followed by OneApplyStep steps.
+    return {};
+  }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

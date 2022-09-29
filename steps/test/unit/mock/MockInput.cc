@@ -9,6 +9,14 @@ namespace steps {
 MockInput::MockInput() {}
 MockInput::~MockInput() {}
 
+common::Fields MockInput::getRequiredFields() const {
+  throw std::runtime_error("Unexpected getRequiredFields call");
+}
+
+common::Fields MockInput::getProvidedFields() const {
+  throw std::runtime_error("Unexpected getProvidedFields call");
+}
+
 const std::string& MockInput::dataColumnName() const {
   throw std::runtime_error("Unexpected dataColumnName call");
 }

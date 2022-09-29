@@ -90,12 +90,7 @@ void ApplyCal::showTimings(std::ostream& os, double duration) const {
 }
 
 bool ApplyCal::process(const DPBuffer& bufin) {
-  const Step::ShPtr& step = getNextStep();
-  auto oneApplyCalPtr = std::dynamic_pointer_cast<OneApplyCal>(step);
-  if (oneApplyCalPtr == nullptr)
-    step->process(bufin);
-  else
-    oneApplyCalPtr->process(bufin);
+  getNextStep()->process(bufin);
   return true;
 }
 
