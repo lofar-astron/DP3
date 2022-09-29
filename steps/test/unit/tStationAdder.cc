@@ -12,6 +12,7 @@
 #include <boost/test/data/test_case.hpp>
 
 #include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../StationAdder.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
@@ -130,14 +131,13 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {}
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 // Class to check result of TestInput run by test1.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr, bool sumauto)
       : itsCount(0),
@@ -234,7 +234,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
@@ -271,18 +270,8 @@ class TestOutput : public Step {
   bool itsSumAuto;
 };
 
-// Class that throws an error when process() is called
-class ThrowStep : public Step {
-  virtual void finish() {}
-  virtual void show(std::ostream&) const {}
-  virtual bool process(const DPBuffer&) {
-    BOOST_FAIL("Previous step should have thrown an error!");
-    return true;
-  }
-};
-
 // Class to check result of flagged, unaveraged TestInput run by test2.
-class TestOutput2 : public Step {
+class TestOutput2 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput2(int ntime, int nbl, int nchan, int ncorr)
       : itsCount(0),
@@ -425,7 +414,6 @@ class TestOutput2 : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
@@ -453,7 +441,7 @@ class TestOutput2 : public Step {
 };
 
 // Class to check result of TestInput run by test4.
-class TestOutput4 : public Step {
+class TestOutput4 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput4(int ntime, int nbl, int nchan, int /*ncorr*/)
       : itsNTime(ntime), itsNBl(nbl), itsNChan(nchan) {}
@@ -462,7 +450,6 @@ class TestOutput4 : public Step {
   virtual bool process(const DPBuffer&) { return true; }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
@@ -539,7 +526,7 @@ BOOST_DATA_TEST_CASE(
   parset.add("autocorr", "true");
   parset.add("average", "false");
   auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
-  auto step3 = std::make_shared<ThrowStep>();
+  auto step3 = std::make_shared<dp3::steps::test::ThrowStep>();
   BOOST_CHECK_THROW(dp3::steps::test::Execute({step1, step2, step3}),
                     std::exception);
 }

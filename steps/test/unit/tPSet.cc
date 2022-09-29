@@ -57,7 +57,6 @@ class TestInput : public dp3::steps::MockInput {
  private:
   virtual bool process(const dp3::base::DPBuffer&) { return false; }
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
 
   int itsNChan, itsNCorr;
 };

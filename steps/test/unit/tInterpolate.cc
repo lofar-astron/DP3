@@ -7,6 +7,7 @@
 #include "../../Interpolate.h"
 
 #include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../../base/DP3.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
@@ -122,7 +123,6 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {
     // Use startchan=0 and timeInterval=5
     info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
@@ -133,7 +133,7 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 // Class to check result.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nant, int nchan, int ncorr)
       : itsCount(0),
@@ -160,7 +160,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
     BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(info.nchan()), itsNChan);

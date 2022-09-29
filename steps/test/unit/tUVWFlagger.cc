@@ -4,21 +4,20 @@
 //
 // @author Ger van Diepen
 
-#include "tStepCommon.h"
-
 #include "../../UVWFlagger.h"
-
-#include "../../../base/BDABuffer.h"
-#include "../../../base/DPBuffer.h"
-#include "../../../base/DPInfo.h"
-
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
 #include <boost/test/unit_test.hpp>
+
+#include "tStepCommon.h"
+#include "mock/ThrowStep.h"
+#include "../../../base/BDABuffer.h"
+#include "../../../base/DPBuffer.h"
+#include "../../../base/DPInfo.h"
+#include "../../../common/ParameterSet.h"
+#include "../../../common/StringTools.h"
 
 using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;
@@ -111,7 +110,6 @@ class TestInput : public dp3::steps::MockInput {
     return t;
   };
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {}
 
   size_t count_, n_times_, n_baselines_, n_channels_, n_correlations_;
@@ -215,7 +213,7 @@ void TestInput<std::unique_ptr<BDABuffer>>::updateInfo(const DPInfo&) {
 
 // Class to check result of flagged, unaveraged TestInput run by test1.
 template <class T>
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(size_t n_times, size_t n_baselines, size_t n_channels,
              size_t n_correlations, size_t test_id)
@@ -333,7 +331,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(infoIn.origNChan(), n_channels_);

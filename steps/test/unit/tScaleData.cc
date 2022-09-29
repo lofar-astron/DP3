@@ -10,6 +10,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../ScaleData.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
@@ -124,14 +125,13 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {}
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 // Class to check result of TestInput run by TestScaling.
-class TestOutput : public dp3::steps::Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr)
       : itsCount(0),
@@ -197,7 +197,6 @@ class TestOutput : public dp3::steps::Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);

@@ -8,6 +8,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../AntennaFlagger.h"
 #include "../../Counter.h"
 #include "../../../base/DPBuffer.h"
@@ -119,7 +120,7 @@ class TestInput final : public dp3::steps::MockInput {
 };
 
 // Class to check result of flagged, unaveraged TestInput run by test1.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int n_time, int n_baselines, int n_channels, int n_correlations)
       : n_time_processed_(0),
@@ -148,7 +149,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(static_cast<int>(infoIn.origNChan()), n_channels_);

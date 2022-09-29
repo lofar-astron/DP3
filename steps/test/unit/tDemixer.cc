@@ -9,6 +9,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../Demixer.h"
 #include "../../DPBuffer.h"
 #include "../../DPInfo.h"
@@ -18,7 +20,6 @@
 using dp3::base::Demixer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
-using dp3::base::InputStep;
 using dp3::base::Step;
 using dp3::common::ParameterSet;
 using std::vector;
@@ -29,7 +30,7 @@ BOOST_AUTO_TEST_SUITE(demixer)
 // It can only set all flags to true or all false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nbl, int nchan, int ncorr, bool flag)
       : itsCount(0),
@@ -73,7 +74,6 @@ class TestInput : public InputStep {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(DPInfo& info)
   // Use startchan=8 and timeInterval=5
   {
@@ -85,7 +85,7 @@ class TestInput : public InputStep {
 };
 
 // Class to check result of averaging TestInput.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr, int navgtime,
              int navgchan, bool flag)
@@ -156,7 +156,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(DPInfo& info) {
     BOOST_CHECK_EQUAL(size_t{8}, info.startchan());
     BOOST_CHECK_EQUAL(itsNChan, int(info.origNChan()));

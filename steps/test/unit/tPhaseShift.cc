@@ -12,10 +12,9 @@
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
-
+#include "mock/ThrowStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
-
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
@@ -143,7 +142,6 @@ class TestInput : public dp3::steps::MockInput {
 
   virtual void updateInfo(const DPInfo&) {}
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
@@ -151,7 +149,7 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 // Class to check result of null phase-shifted TestInput.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(TestInput* input, int ntime, int nbl, int nchan, int ncorr,
              bool flag)
@@ -187,7 +185,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();
@@ -202,7 +199,7 @@ class TestOutput : public Step {
 };
 
 // Class to check result of null phase-shifted TestInput.
-class TestOutput1 : public Step {
+class TestOutput1 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput1(TestInput* input, int ntime, int nbl, int nchan, int ncorr,
               bool flag)
@@ -240,7 +237,6 @@ class TestOutput1 : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();

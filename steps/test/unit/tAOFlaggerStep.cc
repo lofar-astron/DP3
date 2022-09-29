@@ -6,6 +6,7 @@
 // @author Ger van Diepen
 
 #include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -133,7 +134,6 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&)
   // Use startchan=0 and timeInterval=5
   {
@@ -145,7 +145,7 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 // Class to check result.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nant, int nchan, int ncorr)
       : itsCount(0),
@@ -174,7 +174,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
     BOOST_CHECK(int(info.origNChan()) == itsNChan);
     BOOST_CHECK(int(info.nchan()) == itsNChan);

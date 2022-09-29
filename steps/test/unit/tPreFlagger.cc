@@ -4,13 +4,15 @@
 //
 // @author Ger van Diepen
 
+#include "../../PreFlagger.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
-#include "../../PreFlagger.h"
+#include "mock/ThrowStep.h"
 #include "../../Counter.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
@@ -135,7 +137,6 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {}
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
@@ -143,7 +144,7 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 // Class to check result of flagged, unaveraged TestInput run by test1/3.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr, bool flag, bool clear,
              bool useComplement)
@@ -197,7 +198,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
@@ -238,7 +238,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag, bool clear,
 }
 
 // Class to check result of flagged, unaveraged TestInput run by test2.
-class TestOutput2 : public Step {
+class TestOutput2 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput2(int ntime, int nbl, int nchan, int ncorr)
       : itsCount(0),
@@ -270,7 +270,6 @@ class TestOutput2 : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
@@ -316,7 +315,7 @@ void test3(int ntime, int nbl, int nchan, int ncorr, bool flag) {
 }
 
 // Class to check result of flagged, unaveraged TestInput run by test4.
-class TestOutput4 : public Step {
+class TestOutput4 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput4(int ntime, int nbl, int nchan, int ncorr, bool flag)
       : itsCount(0),
@@ -349,7 +348,6 @@ class TestOutput4 : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
@@ -384,7 +382,7 @@ typedef bool CheckFunc(casacore::Complex value, double time, int ant1, int ant2,
                        const double* uvw);
 
 // Class to check result of flagged, unaveraged TestInput run by test5.
-class TestOutput5 : public Step {
+class TestOutput5 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput5(CheckFunc* cfunc) : itsCount(0), itsCFunc(cfunc) {}
 
@@ -414,7 +412,6 @@ class TestOutput5 : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {}
 
   int itsCount;

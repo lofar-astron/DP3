@@ -608,6 +608,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolvers.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
+      steps/test/unit/mock/ThrowStep.cc
       steps/test/unit/tAntennaFlagger.cc
       steps/test/unit/tAOFlaggerStep.cc
       steps/test/unit/tApplyCal.cc
