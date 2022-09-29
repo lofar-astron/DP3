@@ -128,8 +128,6 @@ build-no-idg-2204:
 build-debug-2204:
   stage: build
   extends: [".failable",".needs-base-2204"]
-  before_script:
-    - pip3 install pytest
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
@@ -142,8 +140,6 @@ build-debug-2204:
 build-2204:
   stage: build
   extends: [".failable",".needs-base-2204"]
-  before_script:
-    - pip3 install pytest
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON ..
@@ -202,8 +198,6 @@ linting-2204:
   extends: .failable
   needs: ["versioning","build-debug-2204"]
   image: $BASE_IMAGE_2204
-  before_script:
-    - pip3 install pytest
   script:
     - cd build
     - echo configuring with CMake flags $CMAKE_FLAGS and CXX flags $CXX_FLAGS
@@ -252,8 +246,6 @@ integration-test-2204:
   extends: .failable
   needs: ["versioning","build-debug-2204"]
   image: $BASE_IMAGE_2204
-  before_script:
-    - pip3 install pytest
   script:
     - cd build
     - ninja # Needed when ran on different containers with different timestamps
