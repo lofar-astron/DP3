@@ -81,6 +81,7 @@ RUN pip3 install \
 		black \
 		cmake-format \
 		h5py \
+		pytest \
 		sphinx \
 		sphinx-rtd-theme \
 	;
