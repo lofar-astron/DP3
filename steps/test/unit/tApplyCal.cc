@@ -10,6 +10,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../ApplyCal.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
@@ -130,14 +131,13 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {}
 
   int itsCount, itsNTime, itsNChan, itsNBl, itsNCorr, itsTimeInterval;
 };
 
 // Class to check result of TestInput run by tests.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   enum tests {
     WeightsNotChanged = 1,
@@ -250,7 +250,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     BOOST_CHECK_EQUAL(itsNChan, int(infoIn.origNChan()));

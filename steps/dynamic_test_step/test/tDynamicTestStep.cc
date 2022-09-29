@@ -9,6 +9,7 @@
 // Average is used underneath TestDynStep.
 
 #include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../base/DPBuffer.h"
 #include "../../base/DPInfo.h"
 #include "../../base/InputStep.h"
@@ -32,7 +33,7 @@ BOOST_AUTO_TEST_SUITE(dyn_step)
 // It can only set all flags to true or all false.
 // Weights are always 1.
 // It can be used with different nr of times, channels, etc.
-class TestInput : public InputStep {
+class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nbl, int nchan, int ncorr, bool flag)
       : itsCount(0),
@@ -75,7 +76,6 @@ class TestInput : public InputStep {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {
     // Use timeInterval=5
     info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string(),
@@ -93,7 +93,7 @@ class TestInput : public InputStep {
 };
 
 // Class to check result of averaging TestInput.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr, int navgtime,
              int navgchan, bool flag)
@@ -162,7 +162,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
     BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(info.nchan()), 1 + (itsNChan - 1) / itsNAvgChan);
@@ -178,7 +177,7 @@ class TestOutput : public Step {
 };
 
 // More elaborate class which can set different flags and weights.
-class TestInput3 : public InputStep {
+class TestInput3 : public dp3::steps::MockInput {
  public:
   TestInput3(int nrtime, int nrbl, int nrchan, int nrcorr)
       : itsCount(0),
@@ -232,7 +231,6 @@ class TestInput3 : public InputStep {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {
     // Use timeInterval=5
     info().init(itsNrCorr, 0, itsNrChan, itsNrTime, 100, 5, std::string(),
@@ -252,7 +250,7 @@ class TestInput3 : public InputStep {
 // Class to check result of averaging TestInput3.
 // All input must be averaged (in one or more steps) to a single value
 // per corr/baseline.
-class TestOutput3 : public Step {
+class TestOutput3 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput3(int nrtime, int nrbl, int nrchan, int nrcorr)
       : itsNrTime(nrtime),
@@ -309,7 +307,6 @@ class TestOutput3 : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
     BOOST_CHECK_EQUAL(int(info.origNChan()), itsNrChan);
     BOOST_CHECK_EQUAL(info.nchan(), 1);
@@ -323,12 +320,11 @@ class TestOutput3 : public Step {
 };
 
 // Simple class to flag every step-th XX point.
-class TestFlagger : public Step {
+class TestFlagger : public dp3::steps::test::ThrowStep {
  public:
   TestFlagger(int step) : itsCount(0), itsStep(step) {}
 
- private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     DPBuffer buf2(buf);
     int ncorr = buf2.getFlags().shape()[0];
     int np = buf2.getFlags().size() / ncorr;
@@ -346,16 +342,17 @@ class TestFlagger : public Step {
     return true;
   }
 
-  virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
+  void updateInfo(const DPInfo& info) { Step::updateInfo(info); }
+  void finish() override { getNextStep()->finish(); }
 
+ private:
   int itsCount, itsStep;
 };
 
 // Class to check result of averaging and flagging TestInput3.
 // First the data are averaged from 8,4 to 4,2, then every step-th point
 // is flagged, and finally it is averaged to 1,1.
-class TestOutput4 : public Step {
+class TestOutput4 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput4(int nrtime, int nrbl, int nrchan, int nrcorr, int step)
       : itsNrTime(nrtime),
@@ -422,7 +419,6 @@ class TestOutput4 : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
     BOOST_CHECK_EQUAL(int(info.origNChan()), itsNrChan);
     BOOST_CHECK_EQUAL(info.nchan(), 1);

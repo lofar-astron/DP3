@@ -13,7 +13,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "mock/MockInput.h"
+#include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 #include "../../../base/UVWCalculator.h"
@@ -111,7 +112,7 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 // Class to check result of upsampling TestInput
-class TestOutput : public dp3::steps::Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(const std::vector<double>& times, const std::vector<bool>& flags,
              const std::vector<double>& uvws, double time_interval,
@@ -159,7 +160,6 @@ class TestOutput : public dp3::steps::Step {
   }
 
   void finish() override {}
-  void show(std::ostream&) const override {}
   void updateInfo(const DPInfo& info) override {
     Step::updateInfo(info);
     BOOST_CHECK(casacore::near(info.timeInterval(), time_interval_));
@@ -204,15 +204,7 @@ void TestUpsample(bool update_uvw) {
   auto out_step = std::make_shared<TestOutput>(new_times, new_flags, new_uvws,
                                                0.5 * kTimeInterval, update_uvw);
 
-  in_step->setNextStep(upsample);
-  upsample->setNextStep(out_step);
-
-  in_step->setInfo(DPInfo());
-
-  DPBuffer buf;
-  while (in_step->process(buf)) {
-  }
-  in_step->finish();
+  dp3::steps::test::Execute({in_step, upsample, out_step});
 }
 
 }  // namespace

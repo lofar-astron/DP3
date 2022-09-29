@@ -10,6 +10,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+#include "mock/ThrowStep.h"
 #include "../../ScaleData.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/BDABuffer.h"
@@ -32,23 +33,17 @@ const float kFreq = 10.5;  // MHz
 BOOST_AUTO_TEST_SUITE(scaledata_bda)
 
 // Class to check result of TestInput run by test1.
-class TestOutput : public dp3::steps::Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr)
       : count_(0), ntime_(ntime), nbl_(nbl), nchan_(nchan), ncorr_(ncorr) {}
 
- public:
-  std::unique_ptr<BDABuffer> results_;
-
- private:
-  virtual bool process(const DPBuffer&) { return true; }
-  virtual bool process(std::unique_ptr<BDABuffer> results) {
+  bool process(std::unique_ptr<BDABuffer> results) override {
     results_ = std::move(results);
     return true;
   }
-  virtual void finish() {}
-  virtual void show(std::ostream&) const {}
-  virtual void updateInfo(const DPInfo&) {}
+
+  std::unique_ptr<BDABuffer> results_;
 
  private:
   int count_;
@@ -117,7 +112,7 @@ BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
   auto step_test_output =
       std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
   step_scale_data->setNextStep(step_test_output);
-  step_scale_data->setInfo(info);
+  step_scale_data->updateInfo(info);
 
   // Initialize buffer
   std::unique_ptr<BDABuffer> bda_buffer{new BDABuffer(datasize)};

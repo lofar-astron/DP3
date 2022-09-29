@@ -4,6 +4,8 @@
 //
 // @author Ger van Diepen
 
+#include "../../Filter.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/BasicMath/Math.h>
@@ -11,7 +13,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
-#include "../../Filter.h"
+#include "mock/ThrowStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
@@ -140,7 +142,6 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo&) {
     // Use timeInterval=5
     info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
@@ -157,7 +158,7 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 // Class to check result of averaging TestInput.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nbl, int nchan, int ncorr, int nblout, int stchan,
              int nchanOut, bool flag)
@@ -228,7 +229,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
     BOOST_CHECK_EQUAL(itsNChan, int(info.origNChan()));
     BOOST_CHECK_EQUAL(itsNChanOut, int(info.nchan()));

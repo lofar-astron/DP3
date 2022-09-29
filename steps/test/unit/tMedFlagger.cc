@@ -4,6 +4,8 @@
 //
 // @author Ger van Diepen
 
+#include "../../MedFlagger.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/BasicMath/Math.h>
@@ -12,7 +14,7 @@
 #include <boost/test/data/test_case.hpp>
 
 #include "tStepCommon.h"
-#include "../../MedFlagger.h"
+#include "mock/ThrowStep.h"
 #include "../../../base/DPBuffer.h"
 #include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
@@ -72,7 +74,6 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& infoIn) {
     info() = infoIn;
     // Use timeInterval=5
@@ -137,7 +138,7 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 // Class to check result.
-class TestOutput : public Step {
+class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nant, int nchan, int ncorr, bool flag,
              bool useAutoCorr, bool shortbl)
@@ -187,7 +188,6 @@ class TestOutput : public Step {
   }
 
   virtual void finish() {}
-  virtual void show(std::ostream&) const {}
   virtual void updateInfo(const DPInfo& info) {
     BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(info.nchan()), itsNChan);
