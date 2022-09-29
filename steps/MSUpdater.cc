@@ -215,6 +215,15 @@ bool MSUpdater::process(const DPBuffer& buf) {
 
 void MSUpdater::finish() {}
 
+common::Fields MSUpdater::getRequiredFields() const {
+  common::Fields fields;
+  if (itsDataColName != itsReader->dataColumnName()) fields |= kDataField;
+  if (itsFlagColName != itsReader->flagColumnName()) fields |= kFlagsField;
+  if (itsWeightColName != itsReader->weightColumnName())
+    fields |= kWeightsField;
+  return fields;
+}
+
 void MSUpdater::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
 

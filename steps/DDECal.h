@@ -70,7 +70,9 @@ class DDECal : public Step {
   }
 
   common::Fields getProvidedFields() const override {
-    return itsSettings.subtract ? kDataField : common::Fields();
+    return (itsSettings.subtract || itsSettings.only_predict)
+               ? kDataField
+               : common::Fields();
   }
 
   virtual bool process(const base::DPBuffer&);

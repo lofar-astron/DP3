@@ -27,6 +27,10 @@ class BDAResultStep : public Step {
 
   ~BDAResultStep() override {}
 
+  common::Fields getRequiredFields() const override { return {}; }
+
+  common::Fields getProvidedFields() const override { return {}; }
+
   /// Adds a buffer to the internal queue.
   bool process(std::unique_ptr<base::BDABuffer> buffer) override {
     assert(!getNextStep());  // The result step should be the last step.

@@ -15,6 +15,9 @@ class MockInput : public InputStep {
   MockInput();
   ~MockInput() override;
 
+  common::Fields getRequiredFields() const override;
+  common::Fields getProvidedFields() const override;
+
   const std::string& dataColumnName() const override;
   const std::string& flagColumnName() const override;
   const std::string& weightColumnName() const override;
