@@ -118,13 +118,9 @@ class Filter : public Step {
 
   virtual ~Filter();
 
-  common::Fields getRequiredFields() const override {
-    // This step only needs to read data if itsDoSelect is true. However, this
-    // variable is only set in updateInfo(). Since getNeeds() may be called
-    // before updateInfo(), we assume here that all fields are required.
-    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
-           kUvwField;
-  }
+  common::Fields getRequiredFields() const override;
+
+  common::Fields getProvidedFields() const override;
 
   /// Process the next data chunk.
   /// When processed, it invokes the process function of the next step.

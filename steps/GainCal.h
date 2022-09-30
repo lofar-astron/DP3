@@ -66,6 +66,17 @@ class GainCal final : public Step {
 
   virtual ~GainCal();
 
+  common::Fields getRequiredFields() const override {
+    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
+           kUvwField;
+  }
+
+  common::Fields getProvidedFields() const override {
+    common::Fields fields;
+    if (itsApplySolution) fields |= kDataField | kFlagsField;
+    return fields;
+  }
+
   /// Process the data. It keeps the data.
   /// When processed, it invokes the process function of the next step.
   virtual bool process(const base::DPBuffer&) override;
@@ -104,8 +115,8 @@ class GainCal final : public Step {
       const casacore::Cube<casacore::Complex>& sol);
 
   /// Fills the matrices itsVis and itsMVis
-  void fillMatrices(casacore::Complex* model, casacore::Complex* data,
-                    float* weight, const casacore::Bool* flag);
+  void fillMatrices(casacore::Complex* model, const casacore::Complex* data,
+                    const float* weight, const casacore::Bool* flag);
 
   /// Initialize the parmdb
   void initParmDB();

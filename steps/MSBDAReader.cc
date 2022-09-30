@@ -159,7 +159,9 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
-bool MSBDAReader::process(const DPBuffer&) {
+bool MSBDAReader::process(const base::DPBuffer&) { return process(nullptr); }
+
+bool MSBDAReader::process(std::unique_ptr<base::BDABuffer>) {
   common::NSTimer::StartStop sstime(timer_);
 
   // TODO: Pre-calculate actual required pool size beforehand.

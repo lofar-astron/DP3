@@ -61,7 +61,7 @@ bool PyStepImpl::process(const DPBuffer& bufin) {
     m_input->fetchWeights(bufin, *dpbuffer, m_timer);
   }
 
-  PYBIND11_OVERLOAD_PURE(
+  PYBIND11_OVERRIDE_PURE(
       bool,        /* Return type */
       StepWrapper, /* Parent class */
       process,     /* Name of function in C++ (must match Python name) */
@@ -69,8 +69,20 @@ bool PyStepImpl::process(const DPBuffer& bufin) {
   );
 }
 
+// TODO(AST-1046): Create python wrapper for Fields
+common::Fields PyStepImpl::getRequiredFields() const {
+  PYBIND11_OVERRIDE_PURE_NAME(common::Fields, StepWrapper,
+                              "get_required_fields", getRequiredFields, );
+}
+
+// TODO(AST-1046): Create python wrapper for Fields
+common::Fields PyStepImpl::getProvidedFields() const {
+  PYBIND11_OVERRIDE_PURE_NAME(common::Fields, StepWrapper,
+                              "get_provided_fields", getProvidedFields, );
+}
+
 void PyStepImpl::updateInfo(const DPInfo& dpinfo) {
-  PYBIND11_OVERLOAD_NAME(void,          /* Return type */
+  PYBIND11_OVERRIDE_NAME(void,          /* Return type */
                          StepWrapper,   /* Parent class */
                          "update_info", /* Name of function in Python  */
                          updateInfo,    /* Name of function in C++  */

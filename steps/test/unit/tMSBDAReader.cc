@@ -30,15 +30,14 @@ BOOST_AUTO_TEST_CASE(constructor) {
 
 BOOST_AUTO_TEST_CASE(set_info) {
   casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
-  DPInfo info;
   MSBDAReader reader(ms, kParset, kPrefix);
 
-  reader.setInfo(info);
+  reader.setInfo(DPInfo());
   const double start_time =
       4472025725;  // conversion of start time for tNDPPP_bda_tmp.MS
                    // (2000/08/03 13h22m05.000) into seconds
 
-  info = reader.getInfo();
+  const DPInfo& info = reader.getInfo();
   BOOST_TEST(reader.spectralWindow() == 0U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
@@ -55,14 +54,13 @@ BOOST_AUTO_TEST_CASE(set_info) {
 BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
                                   boost::unit_test::tolerance(0.0001f)) {
   casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
-  DPInfo info;
   MSBDAReader reader(ms, kParset, kPrefix);
   reader.setReadData();
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
-  reader.setInfo(info);
-  dp3::base::DPBuffer buf;
+  reader.updateInfo(DPInfo());
 
+  dp3::base::DPBuffer buf;
   reader.process(buf);
   reader.finish();
 
@@ -83,29 +81,32 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   for (unsigned i = 0; i < kExpectedWeights.size(); ++i) {
     BOOST_TEST(*(rows[0].weights + i) == kExpectedWeights[i]);
   }
-
-  // Check that the print methods do not throw any error
-  std::ostream nullout(nullptr);
-  BOOST_CHECK_NO_THROW(reader.show(nullout));
-  BOOST_CHECK_NO_THROW(reader.showCounts(nullout));
-  BOOST_CHECK_NO_THROW(reader.showTimings(nullout, 10));
 }
 
 BOOST_AUTO_TEST_CASE(process_nan) {
   casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
-  DPInfo info;
   MSBDAReader reader(ms, kParset, kPrefix);
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
-  reader.setInfo(info);
-  dp3::base::DPBuffer buf;
+  reader.updateInfo(DPInfo());
 
-  reader.process(buf);
+  reader.process(nullptr);
   reader.finish();
 
   std::complex<float>* data = mock_step->GetBdaBuffers()[0]->GetRows()[0].data;
   BOOST_TEST(std::isnan(data->imag()));
   BOOST_TEST(std::isnan(data->real()));
+}
+
+BOOST_AUTO_TEST_CASE(show) {
+  // Check that the show methods do not throw any error.
+  const casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
+  const MSBDAReader reader(ms, kParset, kPrefix);
+
+  std::ostream nullout(nullptr);
+  BOOST_CHECK_NO_THROW(reader.show(nullout));
+  BOOST_CHECK_NO_THROW(reader.showCounts(nullout));
+  BOOST_CHECK_NO_THROW(reader.showTimings(nullout, 10));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

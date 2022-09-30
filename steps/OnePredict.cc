@@ -154,8 +154,6 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   if (parset.isDefined(prefix + "applycal.parmdb") ||
       parset.isDefined(prefix + "applycal.steps")) {
     SetApplyCal(input, parset, prefix + "applycal.");
-  } else {
-    do_apply_cal_ = false;
   }
 
   source_list_ = makeSourceList(patch_list_);
@@ -173,14 +171,14 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
 void OnePredict::SetApplyCal(InputStep* input,
                              const common::ParameterSet& parset,
                              const string& prefix) {
-  do_apply_cal_ = true;
-  apply_cal_step_ = ApplyCal(input, parset, prefix, true, direction_str_);
+  apply_cal_step_ =
+      std::make_shared<ApplyCal>(input, parset, prefix, true, direction_str_);
   if (operation_ != "replace" &&
       parset.getBool(prefix + "applycal.updateweights", false))
     throw std::invalid_argument(
         "Weights cannot be updated when operation is not replace");
   result_step_ = std::make_shared<ResultStep>();
-  apply_cal_step_.setNextStep(result_step_);
+  apply_cal_step_->setNextStep(result_step_);
 }
 
 OnePredict::~OnePredict() {}
@@ -259,8 +257,8 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
 
   initializeThreadData();
 
-  if (do_apply_cal_) {
-    info() = apply_cal_step_.setInfo(info());
+  if (apply_cal_step_) {
+    info() = apply_cal_step_->setInfo(info());
   }
 }
 
@@ -302,8 +300,8 @@ void OnePredict::show(std::ostream& os) const {
   }
   os << "  operation:               " << operation_ << '\n';
   os << "  threads:                 " << getInfo().nThreads() << '\n';
-  if (do_apply_cal_) {
-    apply_cal_step_.show(os);
+  if (apply_cal_step_) {
+    apply_cal_step_->show(os);
   }
 }
 
@@ -333,7 +331,6 @@ bool OnePredict::process(const DPBuffer& bufin) {
   DPBuffer scratch_buffer;
   scratch_buffer.copy(bufin);
   input_->fetchUVW(bufin, scratch_buffer, timer_);
-  input_->fetchWeights(bufin, scratch_buffer, timer_);
 
   // Determine the various sizes.
   // const size_t nDr = patch_list_.size();
@@ -586,27 +583,28 @@ bool OnePredict::process(const DPBuffer& bufin) {
 
   // Add all thread model data to one buffer
   scratch_buffer.getData() = casacore::Complex();
-  casacore::Complex* tdata = scratch_buffer.getData().data();
+  casacore::Complex* scratch_data = scratch_buffer.getData().data();
   const size_t nVisibilities = nBl * nCh * nCr;
   for (size_t thread = 0; thread < std::min(pool->NThreads(), n_threads);
        ++thread) {
     if (stokes_i_only_) {
       for (size_t i = 0, j = 0; i < nVisibilities; i += nCr, j++) {
-        tdata[i] += predict_buffer_->GetModel(thread).data()[j];
-        tdata[i + nCr - 1] += predict_buffer_->GetModel(thread).data()[j];
+        scratch_data[i] += predict_buffer_->GetModel(thread).data()[j];
+        scratch_data[i + nCr - 1] +=
+            predict_buffer_->GetModel(thread).data()[j];
       }
     } else {
-      std::transform(tdata, tdata + nVisibilities,
-                     predict_buffer_->GetModel(thread).data(), tdata,
+      std::transform(scratch_data, scratch_data + nVisibilities,
+                     predict_buffer_->GetModel(thread).data(), scratch_data,
                      std::plus<dcomplex>());
     }
   }
 
   // Call ApplyCal step
-  if (do_apply_cal_) {
-    apply_cal_step_.process(scratch_buffer);
+  if (apply_cal_step_) {
+    apply_cal_step_->process(scratch_buffer);
     scratch_buffer = result_step_->get();
-    tdata = scratch_buffer.getData().data();
+    scratch_data = scratch_buffer.getData().data();
   }
 
   // Put predict result from temp buffer into the 'real' buffer
@@ -616,10 +614,10 @@ bool OnePredict::process(const DPBuffer& bufin) {
     buffer_.copy(bufin);
     casacore::Complex* data = buffer_.getData().data();
     if (operation_ == "add") {
-      std::transform(data, data + nVisibilities, tdata, data,
+      std::transform(data, data + nVisibilities, scratch_data, data,
                      std::plus<dcomplex>());
     } else if (operation_ == "subtract") {
-      std::transform(data, data + nVisibilities, tdata, data,
+      std::transform(data, data + nVisibilities, scratch_data, data,
                      std::minus<dcomplex>());
     }
   }

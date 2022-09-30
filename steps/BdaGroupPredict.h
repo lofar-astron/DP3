@@ -47,6 +47,8 @@ class BdaGroupPredict : public ModelDataStep {
 
   virtual ~BdaGroupPredict();
 
+  common::Fields getRequiredFields() const override;
+
   /// Processes the data.
   /// Buffers incoming BDABuffers in a queue and sends them to the the next step
   /// when all baseline groups are complete.
