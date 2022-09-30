@@ -395,7 +395,8 @@ const vector<int>& DPInfo::getAutoCorrIndex() const {
 }
 
 void DPInfo::setNThreads(const unsigned int n_threads) {
-  n_threads_ = (nThreads == 0) ? aocommon::system::ProcessorCount() : n_threads;
+  n_threads_ =
+      (n_threads == 0) ? aocommon::system::ProcessorCount() : n_threads;
 }
 
 Record DPInfo::toRecord() const {
