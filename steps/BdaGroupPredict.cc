@@ -34,10 +34,22 @@ class BdaGroupPredict::BaselineGroup {
   /// Get the number of baselines in this group
   std::size_t GetSize() const { return baselines_.size(); }
 
+  /// @return The required fields for the sub-steps in this group.
+  common::Fields GetRequiredFields() const {
+    // TODO (AST-1032): Combine required fields using a generic function, that
+    // also takes the provided fields into account.
+    common::Fields fields;
+    for (std::shared_ptr<Step> step = predict_step_; step;
+         step = step->getNextStep()) {
+      fields |= step->getRequiredFields();
+    }
+    return fields;
+  }
+
   /// Create the predict and result step for this group
   /// to be called afer all baselines have been added
-  void MakeSteps(InputStep &input, base::DPInfo &info_in,
-                 const common::ParameterSet &parset, std::string &prefix,
+  void MakeSteps(InputStep& input, base::DPInfo& info_in,
+                 const common::ParameterSet& parset, std::string& prefix,
                  std::vector<std::string> source_patterns) {
     predict_step_ =
         std::make_shared<Predict>(input, parset, prefix, source_patterns);
@@ -74,14 +86,14 @@ class BdaGroupPredict::BaselineGroup {
 
   /// Write information on the predict step for this baseline group to the
   /// output stream os
-  void Show(std::ostream &os) const {
+  void Show(std::ostream& os) const {
     Step::ShPtr step = predict_step_;
     do {
       step->show(os);
     } while (step = step->getNextStep());
   }
 
-  void ShowTimings(std::ostream &os, const double duration) const {
+  void ShowTimings(std::ostream& os, const double duration) const {
     for (Step::ShPtr step = predict_step_; step; step = step->getNextStep()) {
       step->showTimings(os, duration);
     }
@@ -89,7 +101,7 @@ class BdaGroupPredict::BaselineGroup {
 
   /// Process one row if BDA data
   /// requests are buffered until the baseline group is complete
-  void ProcessRow(const base::BDABuffer::Row &row, std::size_t &row_counter,
+  void ProcessRow(const base::BDABuffer::Row& row, std::size_t& row_counter,
                   int bl_idx) {
     double time = row.time + row.interval / 2;
 
@@ -121,7 +133,7 @@ class BdaGroupPredict::BaselineGroup {
     predict_step_->process(dpbuffer_);
 
     // Get the result out of the Result step
-    base::DPBuffer &buf_out = result_step_->get();
+    base::DPBuffer& buf_out = result_step_->get();
 
     // Loop over all baselines in baselinegroup
     std::size_t nr_baselines = baselines_.size();
@@ -146,21 +158,21 @@ class BdaGroupPredict::BaselineGroup {
   std::shared_ptr<ResultStep> result_step_;
   base::DPBuffer dpbuffer_;
   struct WriteBackInfo {
-    std::complex<float> *data;
-    std::size_t *row_counter;
+    std::complex<float>* data;
+    std::size_t* row_counter;
   };
   std::vector<WriteBackInfo> write_back_info_;
   std::size_t nr_baselines_requested_;
 };
 
-BdaGroupPredict::BdaGroupPredict(InputStep &input,
-                                 const common::ParameterSet &parset,
-                                 const string &prefix)
+BdaGroupPredict::BdaGroupPredict(InputStep& input,
+                                 const common::ParameterSet& parset,
+                                 const std::string& prefix)
     : input_(input), parset_(parset), name_(prefix) {}
 
 BdaGroupPredict::BdaGroupPredict(
-    InputStep &input, const common::ParameterSet &parset, const string &prefix,
-    const std::vector<std::string> &source_patterns)
+    InputStep& input, const common::ParameterSet& parset,
+    const std::string& prefix, const std::vector<std::string>& source_patterns)
     : input_(input),
       parset_(parset),
       name_(prefix),
@@ -168,7 +180,16 @@ BdaGroupPredict::BdaGroupPredict(
 
 BdaGroupPredict::~BdaGroupPredict() {}
 
-void BdaGroupPredict::updateInfo(const DPInfo &infoIn) {
+common::Fields BdaGroupPredict::getRequiredFields() const {
+  common::Fields fields;
+  for (const auto& entry : averaging_to_baseline_group_map_) {
+    const BaselineGroup& blg = entry.second;
+    fields |= blg.GetRequiredFields();
+  }
+  return fields;
+}
+
+void BdaGroupPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
   info().setWriteData();
@@ -180,7 +201,7 @@ void BdaGroupPredict::updateInfo(const DPInfo &infoIn) {
         std::make_pair(info().ntimeAvg(bl), info().chanFreqs(bl).size());
     // Get the baselinegroup for this averaging, if needed a new baselinegroup
     // will be created
-    BaselineGroup &blg = averaging_to_baseline_group_map_[averaging_key];
+    BaselineGroup& blg = averaging_to_baseline_group_map_[averaging_key];
     // Baseline will be added to the group, its index in the group will be the
     // current size of the baseline group
     std::size_t idx_in_blg = blg.GetSize();
@@ -188,8 +209,8 @@ void BdaGroupPredict::updateInfo(const DPInfo &infoIn) {
     index_to_baseline_group_map_.push_back(std::make_pair(&blg, idx_in_blg));
   }
 
-  for (auto &entry : averaging_to_baseline_group_map_) {
-    BaselineGroup &blg = entry.second;
+  for (auto& entry : averaging_to_baseline_group_map_) {
+    BaselineGroup& blg = entry.second;
     blg.MakeSteps(input_, info(), parset_, name_, source_patterns_);
   }
 }
@@ -201,7 +222,7 @@ base::Direction BdaGroupPredict::GetFirstDirection() const {
   return index_to_baseline_group_map_.front().first->GetFirstDirection();
 }
 
-void BdaGroupPredict::show(std::ostream &os) const {
+void BdaGroupPredict::show(std::ostream& os) const {
   os << "BdaGroupPredict " << name_ << '\n';
   os << "Using a regular predict per baseline group. Baseline groups total: "
      << averaging_to_baseline_group_map_.size() << "\n";
@@ -211,7 +232,7 @@ void BdaGroupPredict::show(std::ostream &os) const {
   }
 }
 
-void BdaGroupPredict::showTimings(std::ostream &os, double duration) const {
+void BdaGroupPredict::showTimings(std::ostream& os, double duration) const {
   os << "  ";
   base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
   os << " BdaGroupPredict " << name_ << '\n';
@@ -224,12 +245,12 @@ bool BdaGroupPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
 
   buffers_.push({std::move(buffer), 0});
 
-  std::size_t &row_counter = buffers_.back().nr_rows_filled;
+  std::size_t& row_counter = buffers_.back().nr_rows_filled;
 
-  const std::vector<base::BDABuffer::Row> &rows =
+  const std::vector<base::BDABuffer::Row>& rows =
       buffers_.back().buffer->GetRows();
-  for (auto const &row : rows) {
-    BaselineGroup &blg = *index_to_baseline_group_map_[row.baseline_nr].first;
+  for (const auto& row : rows) {
+    BaselineGroup& blg = *index_to_baseline_group_map_[row.baseline_nr].first;
     int bl_in_group_idx = index_to_baseline_group_map_[row.baseline_nr].second;
     blg.ProcessRow(row, row_counter, bl_in_group_idx);
   }

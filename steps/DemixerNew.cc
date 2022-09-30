@@ -1,10 +1,17 @@
-// DemixerNew.cc: DPPP step class to subtract A-team sources in adaptive way
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// DemixerNew.cc: DP3 step class to subtract A-team sources in adaptive way
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
 #include "DemixerNew.h"
+
+#include <algorithm>
+#include <iomanip>
+
+#include <casacore/casa/Arrays/ArrayPartMath.h>
+
+#include <aocommon/parallelfor.h>
 
 #include "../base/DemixWorker.h"
 #include "../base/DemixInfo.h"
@@ -16,12 +23,6 @@
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
-
-#include <aocommon/parallelfor.h>
-
-#include <casacore/casa/Arrays/ArrayPartMath.h>
-
-#include <iomanip>
 
 using casacore::Matrix;
 

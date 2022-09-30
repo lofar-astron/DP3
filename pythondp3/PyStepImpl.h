@@ -67,6 +67,9 @@ class PyStepImpl final : public StepWrapper {
 
   void show(std::ostream& os) const override;
 
+  common::Fields getRequiredFields() const override;
+  common::Fields getProvidedFields() const override;
+
   void updateInfo(const base::DPInfo&) override;
 
   bool process(const base::DPBuffer&) override;

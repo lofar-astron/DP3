@@ -403,8 +403,8 @@ bool GainCal::process(const DPBuffer& bufin) {
   // written
   itsUVWFlagStep.process(itsBuf[bufIndex]);
 
-  casacore::Complex* data = itsBuf[bufIndex].getData().data();
-  float* weight = itsBuf[bufIndex].getWeights().data();
+  const casacore::Complex* data = itsBuf[bufIndex].getData().data();
+  const float* weight = itsBuf[bufIndex].getWeights().data();
   const bool* flag = itsBuf[bufIndex].getFlags().data();
 
   // Simulate.
@@ -534,8 +534,9 @@ void GainCal::applySolution(DPBuffer& buf,
 // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
 // top left, all 11 polarizations in the bottom right, etc.
 // For TEC fitting, it also sets weights for the frequency cells
-void GainCal::fillMatrices(casacore::Complex* model, casacore::Complex* data,
-                           float* weight, const casacore::Bool* flag) {
+void GainCal::fillMatrices(casacore::Complex* model,
+                           const casacore::Complex* data, const float* weight,
+                           const casacore::Bool* flag) {
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nCr = info().ncorr();

@@ -27,8 +27,6 @@ const DPInfo& Step::setInfo(const DPInfo& info) {
   return getInfo();
 }
 
-Fields Step::getRequiredFields() const { return Fields(); }
-
 void Step::updateInfo(const DPInfo& infoIn) { info() = infoIn; }
 
 void Step::addToMS(const string& msName) {

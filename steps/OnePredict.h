@@ -59,6 +59,37 @@ class OnePredict : public ModelDataStep {
 
   virtual ~OnePredict();
 
+  common::Fields getRequiredFields() const override {
+    common::Fields fields = kUvwField;
+    if (operation_ == "add" || operation_ == "subtract") {
+      fields |= kDataField;
+    }
+    if (apply_cal_step_) {
+      // TODO (AST-1032): Combine required fields using a generic function, that
+      // also takes the provided fields into account.
+      std::shared_ptr<Step> step = apply_cal_step_;
+      do {
+        fields |= step->getRequiredFields();
+        step = step->getNextStep();
+      } while (step);
+    }
+    return fields;
+  }
+
+  common::Fields getProvidedFields() const override {
+    // When operation_ == "replace", the output of apply_cal_step_ is passed to
+    // the next step. In all other cases, only kDataField changes.
+    common::Fields fields = kDataField;
+    if (operation_ == "replace" && apply_cal_step_) {
+      std::shared_ptr<Step> step = apply_cal_step_;
+      do {
+        fields |= step->getProvidedFields();
+        step = step->getNextStep();
+      } while (step);
+    }
+    return fields;
+  }
+
   /// Set the applycal substep
   void SetApplyCal(InputStep*, const common::ParameterSet&,
                    const std::string& prefix);
@@ -144,10 +175,8 @@ class OnePredict : public ModelDataStep {
   base::Direction phase_ref_;
   bool moving_phase_ref_{false};
 
-  bool do_apply_cal_{false};
-  ApplyCal apply_cal_step_;
-  std::shared_ptr<ResultStep>
-      result_step_;  ///< For catching results from ApplyCal
+  std::shared_ptr<ApplyCal> apply_cal_step_;  ///< Optional ApplyCal sub step
+  std::shared_ptr<ResultStep> result_step_;   ///< Catches results from ApplyCal
 
   unsigned int debug_level_{0};
 

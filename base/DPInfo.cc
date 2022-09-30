@@ -394,6 +394,10 @@ const vector<int>& DPInfo::getAutoCorrIndex() const {
   return auto_correlation_indices_;
 }
 
+void DPInfo::setNThreads(const unsigned int n_threads) {
+  n_threads_ = (nThreads == 0) ? aocommon::system::ProcessorCount() : n_threads;
+}
+
 Record DPInfo::toRecord() const {
   Record rec;
   rec.define("NeedVisData", need_data_);

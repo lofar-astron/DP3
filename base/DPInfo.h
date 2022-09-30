@@ -233,7 +233,10 @@ class DPInfo {
   /// Get the lengths of the baselines (in meters).
   const std::vector<double>& getBaselineLengths() const;
 
-  void setNThreads(unsigned int nThreads) { n_threads_ = nThreads; }
+  /// Set the number of threads.
+  /// @param n_threads Desired number of threads. If 0, use the number of
+  /// threads supported by the system.
+  void setNThreads(unsigned int n_threads);
 
   unsigned int nThreads() const { return n_threads_; }
 
@@ -316,6 +319,7 @@ class DPInfo {
   mutable std::vector<double> baseline_lengths_;
   /// For each antenna, the auto correlation index.
   mutable std::vector<int> auto_correlation_indices_;
+  /// Number of threads. Is always at least 1.
   unsigned int n_threads_;
 };
 

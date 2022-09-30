@@ -31,8 +31,6 @@ bool MockStep::process(std::unique_ptr<BDABuffer> buffer) {
   return true;
 }
 
-void MockStep::show(std::ostream&) const { BOOST_CHECK(false); }
-
 void MockStep::ClearBdaBuffers() { bda_buffers_.clear(); }
 
 std::size_t MockStep::TotalRowCount() const {

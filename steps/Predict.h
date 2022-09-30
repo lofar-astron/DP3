@@ -76,6 +76,7 @@ class Predict : public ModelDataStep {
 
   void show(std::ostream&) const override;
 
+  /// Ensures that all steps, including internal sub-steps, form a single list.
   void setNextStep(std::shared_ptr<Step> next_step) override;
 
   base::Direction GetFirstDirection() const override;

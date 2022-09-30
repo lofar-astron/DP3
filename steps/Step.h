@@ -97,14 +97,12 @@ class Step {
   const base::DPInfo& setInfo(const base::DPInfo&);
 
   /// Get the fields required by the current step.
-  /// TODO: Make this function abstract once all Steps implement it.
-  virtual dp3::common::Fields getRequiredFields() const;
+  virtual dp3::common::Fields getRequiredFields() const = 0;
 
   /// Get the fields provided (modified and/or created) by the current step.
   /// The returned fields thus should not include (required) fields that are
   /// forwarded without modifications.
-  /// TODO: Make this function abstract once all Steps implement it.
-  virtual dp3::common::Fields getProvidedFields() const { return {}; }
+  virtual dp3::common::Fields getProvidedFields() const = 0;
 
   /// Get access to the info.
   const base::DPInfo& getInfo() const { return itsInfo; }

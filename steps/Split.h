@@ -33,6 +33,10 @@ class Split : public Step {
 
   virtual ~Split();
 
+  common::Fields getRequiredFields() const override;
+
+  common::Fields getProvidedFields() const override { return {}; }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
@@ -57,7 +61,7 @@ class Split : public Step {
 
   std::vector<std::string> itsReplaceParms;  ///< The names of the parameters
                                              ///< that differ along the substeps
-  std::vector<Step::ShPtr> itsSubsteps;
+  std::vector<std::shared_ptr<Step>> itsSubsteps;
   bool itsAddedToMS;  ///< Used in addToMS to prevent recursion
 };
 

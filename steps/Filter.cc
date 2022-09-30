@@ -52,6 +52,26 @@ Filter::Filter(InputStep* input, const base::BaselineSelection& baselines)
 
 Filter::~Filter() {}
 
+common::Fields Filter::getRequiredFields() const {
+  return getProvidedFields();  // A Filter requires the fields it will change.
+}
+
+common::Fields Filter::getProvidedFields() const {
+  // Check if there is any setting that enables filtering. We cannot use
+  // itsDoSelect here, since updateInfo() sets it and getRequiredFields() may be
+  // called before updateInfo().
+  common::Fields fields;
+  if (itsStartChanStr != "0" || itsNrChanStr != "0" || itsRemoveAnt ||
+      itsBaselines.hasSelection()) {
+    fields |= kDataField | kFlagsField | kWeightsField | kFullResFlagsField;
+
+    if (itsRemoveAnt || itsBaselines.hasSelection()) {
+      fields |= kUvwField;
+    }
+  }
+  return fields;
+}
+
 void Filter::updateInfo(const base::DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();

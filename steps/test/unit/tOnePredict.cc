@@ -30,7 +30,7 @@ class OnePredictFixture {
     parset.add("fixture.sourcedb", dp3::steps::test::kPredictSourceDB);
     predict_ = std::make_shared<OnePredict>(&input_, parset, "fixture.",
                                             std::vector<std::string>());
-    predict_->setNextStep(final_);
+    predict_->setNextStep(std::make_shared<dp3::steps::NullStep>());
     SetInfo();
   }
 
@@ -55,14 +55,6 @@ class OnePredictFixture {
  protected:
   dp3::steps::MockInput input_;
   std::shared_ptr<dp3::steps::OnePredict> predict_;
-
- private:
-  class FinalStep final : public dp3::steps::Step {
-    void finish() override {}
-    void show(std::ostream&) const override {}
-    bool process(const dp3::base::DPBuffer&) override { return true; }
-  };
-  std::shared_ptr<FinalStep> final_{std::make_shared<FinalStep>()};
 };
 }  // namespace
 

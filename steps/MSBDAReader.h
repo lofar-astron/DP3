@@ -108,9 +108,13 @@ class MSBDAReader : public InputStep {
 
   virtual ~MSBDAReader();
 
-  /// Process the next data chunk.
-  /// It returns false when at the end.
-  bool process(const base::DPBuffer&) override;
+  /// Reads a BDA buffer from the input and passes it to its next step.
+  /// @param buffer Dummy input buffer, which is ignored.
+  bool process(const base::DPBuffer& buffer) override;
+
+  /// Reads a BDA buffer from the input and passes it to its next step.
+  /// @param buffer Dummy input buffer, which is ignored.
+  bool process(std::unique_ptr<base::BDABuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;

@@ -59,8 +59,15 @@ class Demixer : public Step {
   virtual bool process(const base::DPBuffer&);
 
   common::Fields getRequiredFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
-           kUvwField;
+    // Demixer always runs at least one Averager. There are no substeps with
+    // additional requirements.
+    return itsAvgStepSubtr->getRequiredFields();
+  }
+
+  common::Fields getProvidedFields() const override {
+    // Demixer always runs at least one Averager. There are no substeps that
+    // provide additional fields.
+    return itsAvgStepSubtr->getProvidedFields();
   }
 
   /// Finish the processing of this step and subsequent steps.

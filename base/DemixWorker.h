@@ -54,6 +54,20 @@ class DemixWorker {
   DemixWorker(steps::InputStep*, const string& prefix, const DemixInfo& info,
               const DPInfo& dpinfo, int workernr);
 
+  /// @return The required fields for the DemixWorker.
+  common::Fields getRequiredFields() const {
+    // A DemixWorker always runs at least one Averager. There are no substeps
+    // with additional requirements.
+    return itsAvgStepSubtr->getRequiredFields();
+  }
+
+  /// @return The provided fields for the DemixWorker.
+  common::Fields getProvidedFields() const {
+    // A DemixWorker always runs at least one Averager. There are no substeps
+    // that provide additional fields.
+    return itsAvgStepSubtr->getProvidedFields();
+  }
+
   /// Process the data in the input buffers and store the result in the
   /// output buffers.
   void process(const DPBuffer* bufin, unsigned int nbufin, DPBuffer* bufout,

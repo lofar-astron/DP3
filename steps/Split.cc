@@ -75,10 +75,22 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
 
 Split::~Split() {}
 
+common::Fields Split::getRequiredFields() const {
+  common::Fields fields;
+  for (const std::shared_ptr<Step>& first_step : itsSubsteps) {
+    // TODO (AST-1032) Also use provided fields when combining fields.
+    for (std::shared_ptr<Step> step = first_step; step;
+         step = step->getNextStep()) {
+      fields |= step->getRequiredFields();
+    }
+  }
+  return fields;
+}
+
 void Split::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
 
-  for (Step::ShPtr& step : itsSubsteps) {
+  for (std::shared_ptr<Step>& step : itsSubsteps) {
     step->setInfo(infoIn);
   }
 }
@@ -89,8 +101,8 @@ void Split::show(std::ostream& os) const {
   // Show the steps.
   for (unsigned int i = 0; i < itsSubsteps.size(); ++i) {
     os << "Split substep " << (i + 1) << " of " << itsSubsteps.size() << '\n';
-    Step::ShPtr step = itsSubsteps[i];
-    Step::ShPtr lastStep;
+    std::shared_ptr<Step> step = itsSubsteps[i];
+    std::shared_ptr<Step> lastStep;
     while (step) {
       step->show(os);
       lastStep = step;
@@ -101,7 +113,7 @@ void Split::show(std::ostream& os) const {
 
 void Split::showTimings(std::ostream& os, double duration) const {
   for (unsigned int i = 0; i < itsSubsteps.size(); ++i) {
-    Step::ShPtr step = itsSubsteps[i];
+    std::shared_ptr<Step> step = itsSubsteps[i];
     while (step) {
       step->showTimings(os, duration);
       step = step->getNextStep();
@@ -110,16 +122,16 @@ void Split::showTimings(std::ostream& os, double duration) const {
 }
 
 bool Split::process(const DPBuffer& bufin) {
-  for (unsigned int i = 0; i < itsSubsteps.size(); ++i) {
-    itsSubsteps[i]->process(bufin);
+  for (std::shared_ptr<Step>& step : itsSubsteps) {
+    step->process(bufin);
   }
   return false;
 }
 
 void Split::finish() {
   // Let the next steps finish.
-  for (unsigned int i = 0; i < itsSubsteps.size(); ++i) {
-    itsSubsteps[i]->finish();
+  for (std::shared_ptr<Step>& step : itsSubsteps) {
+    step->finish();
   }
 }
 
@@ -129,7 +141,7 @@ void Split::addToMS(const string& msName) {
   } else {
     itsAddedToMS = true;
     for (auto& subStep : itsSubsteps) {
-      Step::ShPtr step, lastStep;
+      std::shared_ptr<Step> step, lastStep;
       step = subStep;
       while (step) {
         lastStep = step;

@@ -32,6 +32,10 @@ class Interpolate : public Step {
     return kDataField | kFlagsField;
   }
 
+  common::Fields getProvidedFields() const override {
+    return kDataField | kFlagsField;
+  }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.

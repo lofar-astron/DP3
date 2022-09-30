@@ -1,22 +1,18 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief Step mock, for use in tests.
-/// @author Maik Nijhuis
-
-#ifndef MOCK_STEP_H
-#define MOCK_STEP_H
-
-#include "../../../Step.h"
+#ifndef DP3_STEPS_TEST_UNIT_MOCKSTEP_H_
+#define DP3_STEPS_TEST_UNIT_MOCKSTEP_H_
 
 #include <functional>
 #include <vector>
 
+#include "ThrowStep.h"
+
 namespace dp3 {
 namespace steps {
 
-class MockStep : public Step {
+class MockStep : public test::ThrowStep {
  public:
   /**
    * Constructor.
@@ -44,14 +40,9 @@ class MockStep : public Step {
 
   /**
    * Mocked finish() function, which counts the number of calls.
-   * Use getFinishCount() for accessing the count.
+   * Use FinishCount() for accessing the count.
    */
   void finish() override { ++finish_count_; }
-
-  /**
-   * Mocked show() function. The unit test fails if it is called.
-   */
-  void show(std::ostream &) const override;
 
   const std::vector<std::unique_ptr<base::BDABuffer>> &GetBdaBuffers() const {
     return bda_buffers_;
