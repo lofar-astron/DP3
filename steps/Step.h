@@ -143,10 +143,6 @@ class Step {
   /// Boolean if this step can process this type of data.
   virtual bool accepts(MsType dt) const { return dt == MsType::kRegular; }
 
-  /// True when the step modifies any data (or flags, meta data, etc)
-  /// and therefore requires the step to be followed by a write step.
-  virtual bool modifiesData() const { return true; }
-
  protected:
   base::DPInfo& info() { return itsInfo; }
 
