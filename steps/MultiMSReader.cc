@@ -6,12 +6,7 @@
 
 #include "MultiMSReader.h"
 
-#include "../base/DPBuffer.h"
-#include "../base/DPLogger.h"
-#include "../base/DPInfo.h"
-
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include <iostream>
 
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -27,7 +22,14 @@
 #include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include <iostream>
+#include "../base/DPBuffer.h"
+#include "../base/DPLogger.h"
+#include "../base/DPInfo.h"
+
+#include "../common/ParameterSet.h"
+#include "../common/StreamUtil.h"
+
+#include "NullStep.h"
 
 using casacore::Cube;
 using casacore::IPosition;
@@ -60,7 +62,6 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
   itsNeedSort = parset.getBool(prefix + "sort", false);
   itsOrderMS = parset.getBool(prefix + "orderms", true);
   // Open all MSs.
-  auto nullStep = std::make_shared<NullStep>();
   itsReaders.reserve(msNames.size());
   for (const std::string& name : msNames) {
     if (!casacore::Table::isReadable(name)) {
@@ -78,7 +79,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
       auto reader =
           std::make_shared<MSReader>(ms, parset, prefix, itsMissingData);
       // Add a null step for the reader.
-      reader->setNextStep(nullStep);
+      reader->setNextStep(std::make_shared<NullStep>());
       itsReaders.push_back(std::move(reader));
       if (itsFirst < 0) {
         itsFirst = itsReaders.size() - 1;

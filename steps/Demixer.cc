@@ -5,9 +5,22 @@
 // @author Ger van Diepen
 
 #include "Demixer.h"
+
+#include <iomanip>
+
+#include <aocommon/parallelfor.h>
+
+#include <casacore/casa/Quanta/MVAngle.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/scimath/Mathematics/MatrixMathLA.h>
+
 #include "Averager.h"
-#include "PhaseShift.h"
 #include "MSReader.h"
+#include "NullStep.h"
+#include "PhaseShift.h"
 
 #include "../base/Apply.h"
 #include "../base/CursorUtilCasa.h"
@@ -28,17 +41,6 @@
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
-
-#include <aocommon/parallelfor.h>
-
-#include <casacore/casa/Quanta/MVAngle.h>
-#include <casacore/casa/Arrays/Vector.h>
-#include <casacore/casa/Arrays/Matrix.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/MatrixMath.h>
-#include <casacore/scimath/Mathematics/MatrixMathLA.h>
-
-#include <iomanip>
 
 using casacore::Array;
 using casacore::Cube;
@@ -143,8 +145,7 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
         "uselbfgssolver=true but libdirac is not available");
 #endif
   // Add a null step as last step in the filter.
-  Step::ShPtr nullStep(new NullStep());
-  itsFilter.setNextStep(nullStep);
+  itsFilter.setNextStep(std::make_shared<NullStep>());
   // Default nr of time chunks is maximum number of threads.
   if (itsNTimeChunk == 0) {
     itsNTimeChunk = getInfo().nThreads();

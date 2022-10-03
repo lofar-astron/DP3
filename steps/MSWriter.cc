@@ -5,7 +5,9 @@
 // @author Ger van Diepen
 
 #include "MSWriter.h"
+
 #include "InputStep.h"
+#include "NullStep.h"
 
 #include <Version.h>
 
