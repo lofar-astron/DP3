@@ -3,6 +3,8 @@
 
 #include "MultiResultStep.h"
 
+#include <cassert>
+
 #include "NullStep.h"
 
 namespace dp3 {
@@ -13,6 +15,7 @@ MultiResultStep::MultiResultStep(unsigned int size) : buffers_(size), size_(0) {
 }
 
 bool MultiResultStep::process(const base::DPBuffer& buffer) {
+  assert(size_ < buffers_.size());
   buffers_[size_].copy(buffer);
   ++size_;
   getNextStep()->process(buffer);
