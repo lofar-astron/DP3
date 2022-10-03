@@ -5,6 +5,7 @@
 #define DP3_COMMON_FIELDS_H_
 
 #include <bitset>
+#include <iosfwd>
 
 namespace dp3 {
 namespace common {
@@ -90,6 +91,27 @@ class Fields {
     fields |= right;
     return fields;
   }
+
+  /**
+   * Checks if two Fields objects contain the same fields.
+   * @return true if the objects are equal, false otherwise.
+   */
+  friend bool operator==(const Fields& left, const Fields& right) {
+    return left.value_ == right.value_;
+  }
+
+  /**
+   * Checks if two Fields objects contain different fields.
+   * @return true if the objects differ, false otherwise.
+   */
+  friend bool operator!=(const Fields& left, const Fields& right) {
+    return left.value_ != right.value_;
+  }
+
+  /**
+   * Write a Fields object to an output stream
+   */
+  friend std::ostream& operator<<(std::ostream&, const Fields& fields);
 
  private:
   // Using a bitset instead of individual booleans simplifies adding more

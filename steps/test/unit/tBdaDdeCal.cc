@@ -13,20 +13,24 @@
 
 namespace {
 
-class BdaDdeCalFixture {
-  // Fixture to create a minimal working BdaDdeCal step
- public:
-  BdaDdeCalFixture() : input_() {
-    dp3::common::ParameterSet parset;
-    parset.add("msin", "");
-    parset.add("directions", dp3::steps::test::kPredictDirections);
-    parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
-    parset.add("h5parm", "test.h5");
-    bdaddecal_ = std::make_shared<dp3::steps::BdaDdeCal>(&input_, parset, "");
+dp3::common::ParameterSet CreateMinimalPararameterSet() {
+  dp3::common::ParameterSet parset;
+  parset.add("msin", "");
+  parset.add("directions", dp3::steps::test::kPredictDirections);
+  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  parset.add("h5parm", "test.h5");
+  return parset;
+}
+
+/// Fixture that creates a minimal working BdaDdeCal step.
+struct BdaDdeCalFixture {
+  BdaDdeCalFixture() : input(), bdaddecal() {
+    dp3::common::ParameterSet parset = CreateMinimalPararameterSet();
+    bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input, parset, "");
   }
 
-  dp3::steps::MockInput input_;
-  std::shared_ptr<dp3::steps::BdaDdeCal> bdaddecal_;
+  dp3::steps::MockInput input;
+  std::shared_ptr<dp3::steps::BdaDdeCal> bdaddecal;
 };
 
 }  // namespace
@@ -180,7 +184,7 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_16_channels, BdaDdeCalFixture) {
   size_t n_channels = 16;
   std::vector<size_t> expected_result = {0, 0, 0, 0, 1, 1, 1, 1,
                                          2, 2, 2, 2, 3, 3, 3, 3};
-  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+  CheckChannelBlockIndex(bdaddecal, n_channels, n_channel_blocks,
                          expected_result);
 }
 
@@ -189,7 +193,7 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_10_channels, BdaDdeCalFixture) {
   size_t n_channels = 10;
   std::vector<size_t> expected_result = {0, 0, 0, 1, 1, 2, 2, 2, 3, 3};
 
-  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+  CheckChannelBlockIndex(bdaddecal, n_channels, n_channel_blocks,
                          expected_result);
 }
 
@@ -197,7 +201,7 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_4_channels, BdaDdeCalFixture) {
   size_t n_channel_blocks = 4;
   size_t n_channels = 4;
   std::vector<size_t> expected_result = {0, 1, 2, 3};
-  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+  CheckChannelBlockIndex(bdaddecal, n_channels, n_channel_blocks,
                          expected_result);
 }
 
@@ -205,37 +209,42 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
   size_t n_channel_blocks = 4;
   size_t n_channels = 3;
   std::vector<size_t> expected_result = {};
-  CheckChannelBlockIndex(bdaddecal_, n_channels, n_channel_blocks,
+  CheckChannelBlockIndex(bdaddecal, n_channels, n_channel_blocks,
                          expected_result);
 }
 
 BOOST_FIXTURE_TEST_CASE(get_required_fields, BdaDdeCalFixture) {
-  dp3::common::Fields overall_fields = bdaddecal_->getRequiredFields();
-  BOOST_CHECK(overall_fields.Data() == true);
-  BOOST_CHECK(overall_fields.Flags() == false);
-  BOOST_CHECK(overall_fields.Weights() == false);
-  BOOST_CHECK(overall_fields.FullResFlags() == false);
-  BOOST_CHECK(overall_fields.Uvw() == true);
+  const dp3::common::Fields kExpectedFields =
+      dp3::steps::Step::kDataField | dp3::steps::Step::kUvwField;
+  BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
 }
 
 BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {
-  dp3::steps::MockInput input_;
-  std::shared_ptr<dp3::steps::BdaDdeCal> bdaddecal;
-
-  dp3::common::ParameterSet parset;
-  parset.add("msin", "");
-  parset.add("directions", dp3::steps::test::kPredictDirections);
-  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
-  parset.add("h5parm", "test.h5");
+  using dp3::steps::Step;
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset = CreateMinimalPararameterSet();
   parset.add("correcttimesmearing", "10");
-  bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input_, parset, "");
+  auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input, parset, "");
 
-  dp3::common::Fields overall_fields = bdaddecal->getRequiredFields();
-  BOOST_CHECK(overall_fields.Data() == true);
-  BOOST_CHECK(overall_fields.Flags() == true);
-  BOOST_CHECK(overall_fields.Weights() == true);
-  BOOST_CHECK(overall_fields.FullResFlags() == true);
-  BOOST_CHECK(overall_fields.Uvw() == true);
+  const dp3::common::Fields kExpectedFields =
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
+      Step::kFullResFlagsField | Step::kUvwField;
+  BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
+}
+
+BOOST_FIXTURE_TEST_CASE(get_provided_fields, BdaDdeCalFixture) {
+  const dp3::common::Fields kExpectedFields = {};
+  BOOST_TEST(bdaddecal->getProvidedFields() == kExpectedFields);
+}
+
+BOOST_AUTO_TEST_CASE(get_provided_fields_subtract) {
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset = CreateMinimalPararameterSet();
+  parset.add("subtract", "true");
+  auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input, parset, "");
+
+  const dp3::common::Fields kExpectedFields = dp3::steps::Step::kDataField;
+  BOOST_TEST(bdaddecal->getProvidedFields() == kExpectedFields);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -87,10 +87,6 @@ ApplyBeam::ApplyBeam(InputStep* input, const common::ParameterSet& parset,
   }
 }
 
-ApplyBeam::ApplyBeam() {}
-
-ApplyBeam::~ApplyBeam() {}
-
 void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();

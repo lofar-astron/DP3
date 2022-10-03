@@ -1,5 +1,5 @@
 // ApplyBeam.h: DPPP step class to ApplyBeam visibilities from a source model
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -39,10 +39,6 @@ class ApplyBeam : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   ApplyBeam(InputStep*, const common::ParameterSet&, const string& prefix,
             bool substep = false);
-
-  ApplyBeam();
-
-  virtual ~ApplyBeam();
 
   common::Fields getRequiredFields() const override {
     common::Fields fields = kDataField;

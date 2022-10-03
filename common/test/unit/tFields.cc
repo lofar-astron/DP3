@@ -3,6 +3,8 @@
 
 #include "../../Fields.h"
 
+#include <sstream>
+
 #include <boost/test/unit_test.hpp>
 
 using dp3::common::Fields;
@@ -48,6 +50,50 @@ BOOST_AUTO_TEST_CASE(combine) {
   const Fields data(Fields::Single::kData);
   const Fields uvw(Fields::Single::kUvw);
   CheckFields(data | uvw, true, false, false, false, true);
+}
+
+BOOST_AUTO_TEST_CASE(equality_operators) {
+  const Fields left_empty;
+  const Fields right_empty;
+  const Fields left_three = Fields(Fields::Single::kData) |
+                            Fields(Fields::Single::kFlags) |
+                            Fields(Fields::Single::kUvw);
+  const Fields right_three = Fields(Fields::Single::kData) |
+                             Fields(Fields::Single::kFlags) |
+                             Fields(Fields::Single::kUvw);
+  // Check operator==
+  BOOST_CHECK(left_empty == left_empty);
+  BOOST_CHECK(left_empty == right_empty);
+  BOOST_CHECK(right_three == right_three);
+  BOOST_CHECK(left_three == right_three);
+  BOOST_CHECK(!(left_empty == right_three));
+  BOOST_CHECK(!(right_three == left_empty));
+
+  // Check operator!=
+  BOOST_CHECK(!(left_empty != left_empty));
+  BOOST_CHECK(!(left_empty != right_empty));
+  BOOST_CHECK(!(right_three != right_three));
+  BOOST_CHECK(!(left_three != right_three));
+  BOOST_CHECK(left_empty != right_three);
+  BOOST_CHECK(right_three != left_empty);
+}
+
+BOOST_AUTO_TEST_CASE(outputstream) {
+  std::stringstream stream_empty;
+  stream_empty << Fields();
+  BOOST_CHECK_EQUAL(stream_empty.str(), "[]");
+
+  std::stringstream stream_single;
+  stream_single << Fields(Fields::Single::kData);
+  BOOST_CHECK_EQUAL(stream_single.str(), "[data]");
+
+  std::stringstream stream_all;
+  stream_all << (Fields(Fields::Single::kData) |
+                 Fields(Fields::Single::kWeights) |
+                 Fields(Fields::Single::kFlags) |
+                 Fields(Fields::Single::kFullResFlags) |
+                 Fields(Fields::Single::kUvw));
+  BOOST_CHECK_EQUAL(stream_all.str(), "[data, flags, weights, frf, uvw]");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

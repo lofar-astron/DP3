@@ -252,6 +252,27 @@ dp3::steps::MockInput mock_input;
 BOOST_AUTO_TEST_SUITE(bda_averager, *boost::unit_test::tolerance(0.001) *
                                         boost::unit_test::tolerance(0.001f))
 
+BOOST_AUTO_TEST_CASE(required_fields) {
+  using dp3::steps::Step;
+  dp3::common::ParameterSet parset;
+
+  // By default, BDAAverager uses weights and flags.
+  const dp3::common::Fields kExpectedFieldsWeightsFlags =
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
+      Step::kUvwField;
+  const BDAAverager averager(mock_input, parset, "");
+  BOOST_TEST(averager.getRequiredFields() == kExpectedFieldsWeightsFlags);
+  // Test with an explicit 'true' argument for the constructor.
+  const BDAAverager explicit_weights_flags(mock_input, parset, "", true);
+  BOOST_TEST(explicit_weights_flags.getRequiredFields() ==
+             kExpectedFieldsWeightsFlags);
+
+  // Disabling using weights and flags affects the requirements.
+  const BDAAverager no_weights_flags(mock_input, parset, "", false);
+  BOOST_TEST(no_weights_flags.getRequiredFields() ==
+             (Step::kDataField | Step::kUvwField));
+}
+
 BOOST_AUTO_TEST_CASE(set_averaging_params_invalid) {
   dp3::common::ParameterSet parset;
   BDAAverager averager(mock_input, parset, "");

@@ -325,6 +325,7 @@ add_library(
   common/BaselineSelect.cc
   common/ClusterDesc.cc
   common/DataConvert.cc
+  common/Fields.cc
   common/Memory.cc
   common/NodeDesc.cc
   common/ParameterHandler.cc
@@ -616,7 +617,6 @@ if(BUILD_TESTING)
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
       steps/test/unit/tAverager.cc
-      steps/test/unit/tBdaDdeCal.cc
       steps/test/unit/tBdaPredict.cc
       steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tDDECal.cc
@@ -657,8 +657,11 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolveData.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc
+      steps/test/unit/tApplyBeam.cc
       steps/test/unit/tBDAAverager.cc
+      steps/test/unit/tBdaDdeCal.cc
       steps/test/unit/tBDAExpander.cc
+      steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tCounter.cc
       steps/test/unit/tInputStep.cc
       steps/test/unit/tMSBDAReader.cc
