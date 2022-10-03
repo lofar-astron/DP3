@@ -161,38 +161,6 @@ class Step {
   base::DPInfo itsInfo;
 };
 
-/// @brief This class defines a null step in the DPPP pipeline.
-/// It can be used as the last step in the pipeline, so other steps
-/// do not need to test if there is a next step.
-
-class NullStep : public Step {
- public:
-  virtual ~NullStep();
-
-  common::Fields getRequiredFields() const override { return {}; }
-
-  common::Fields getProvidedFields() const override { return {}; }
-
-  /// Process regular data. It does nothing.
-  virtual bool process(const base::DPBuffer&);
-
-  /// Process bda data. It does nothing.
-  bool process(std::unique_ptr<base::BDABuffer>) override;
-
-  /// Finish the processing of this step and subsequent steps.
-  /// It does nothing.
-  virtual void finish();
-
-  /// Show the step parameters.
-  /// It does nothing.
-  virtual void show(std::ostream&) const;
-
-  /// Accept BDA and regular data
-  bool accepts(MsType t) const override {
-    return t == MsType::kRegular || t == MsType::kBda;
-  }
-};
-
 /// Common interface for steps that produce model data.
 class ModelDataStep : public Step {
  public:

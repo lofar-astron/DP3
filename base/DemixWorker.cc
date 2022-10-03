@@ -15,6 +15,7 @@
 #include "DPLogger.h"
 
 #include "../steps/Averager.h"
+#include "../steps/NullStep.h"
 #include "../steps/PhaseShift.h"
 
 #include "../parmdb/Axis.h"
@@ -90,8 +91,7 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
       itsNrIgnoreTarget(0),
       itsNrDeprojectTarget(0) {
   // Add a null step as the last step in the filter.
-  auto nullStep = std::make_shared<steps::NullStep>();
-  itsFilter.setNextStep(nullStep);
+  itsFilter.setNextStep(std::make_shared<steps::NullStep>());
   // The worker will process up to chunkSize input time slots.
   // Size buffers accordingly.
   unsigned int nsrc = itsMix->ateamList().size();

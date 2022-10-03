@@ -38,6 +38,7 @@
 #include "../steps/MSUpdater.h"
 #include "../steps/MSWriter.h"
 #include "../steps/MultiMSReader.h"
+#include "../steps/NullStep.h"
 #include "../steps/NullStokes.h"
 #include "../steps/PhaseShift.h"
 #include "../steps/Predict.h"

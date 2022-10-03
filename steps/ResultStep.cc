@@ -3,6 +3,8 @@
 
 #include "ResultStep.h"
 
+#include "NullStep.h"
+
 namespace dp3 {
 namespace steps {
 
