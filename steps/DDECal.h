@@ -95,10 +95,6 @@ class DDECal : public Step {
 
   virtual void showTimings(std::ostream&, double duration) const;
 
-  bool modifiesData() const override {
-    return itsSettings.subtract || itsSettings.only_predict;
-  }
-
  private:
   void initializeColumnReaders(const common::ParameterSet&,
                                const string& prefix);

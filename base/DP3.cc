@@ -67,7 +67,6 @@ using dp3::steps::InputStep;
 using dp3::steps::MSBDAWriter;
 using dp3::steps::MSUpdater;
 using dp3::steps::MSWriter;
-using dp3::steps::NullStep;
 using dp3::steps::Split;
 using dp3::steps::Step;
 using dp3::common::operator<<;
@@ -424,42 +423,54 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
 
 std::shared_ptr<InputStep> DP3::makeMainSteps(
     const common::ParameterSet& parset) {
-  std::shared_ptr<InputStep> inputStep = InputStep::CreateReader(parset);
-  Step::ShPtr step = makeStepsFromParset(parset, "", "steps", *inputStep, false,
-                                         inputStep->outputs());
-  if (step) inputStep->setNextStep(step);
+  std::shared_ptr<InputStep> input_step = InputStep::CreateReader(parset);
+  std::shared_ptr<Step> last_step = input_step;
 
-  // Calculate needsOutputStep to be true if one of the steps changes
-  // the visibility stream and therefore requires the output to be rewritten
-  bool needsOutputStep = false;
-  step = inputStep;
-  while (step->getNextStep()) {
-    step = step->getNextStep();
-    needsOutputStep = needsOutputStep || step->modifiesData();
+  std::shared_ptr<Step> step = makeStepsFromParset(
+      parset, "", "steps", *input_step, false, input_step->outputs());
+  if (step) {
+    input_step->setNextStep(step);
+
+    while (step->getNextStep()) step = step->getNextStep();
+    last_step = step;
   }
-  // step now points to the last step in the chain, which is required later on.
 
-  // Add an output step if not explicitly added as the last step
-  const bool endsWithOutputStep = dynamic_cast<MSWriter*>(step.get()) ||
-                                  dynamic_cast<MSUpdater*>(step.get()) ||
-                                  dynamic_cast<Split*>(step.get()) ||
-                                  dynamic_cast<NullStep*>(step.get());
+  // Check if the last step is an output step.
+  const bool ends_with_output_step =
+      dynamic_cast<dp3::steps::OutputStep*>(last_step.get()) ||
+      dynamic_cast<Split*>(last_step.get());
 
-  if (!endsWithOutputStep) {
+  if (!ends_with_output_step) {
+    // Check if an output step is needed because of the parset.
     const std::string msOutName = parset.getString(
         parset.isDefined("msout.name") ? "msout.name" : "msout");
-    if (needsOutputStep || !msOutName.empty()) {
-      std::string msName = casacore::Path(inputStep->msName()).absoluteName();
-      Step::ShPtr outputStep = makeOutputStep(inputStep.get(), parset, "msout.",
-                                              msName, step->outputs());
-      step->setNextStep(outputStep);
-      step = outputStep;
+    bool need_output_step = !msOutName.empty();
+
+    if (!need_output_step) {
+      // Determine the provided fields of the series of steps. When fields are
+      // set, the output should write at least those fields.
+      common::Fields provided_fields;
+      for (step = input_step; step; step = step->getNextStep()) {
+        provided_fields |= step->getProvidedFields();
+      }
+      need_output_step = provided_fields.Data() || provided_fields.Flags() ||
+                         provided_fields.Weights() ||
+                         provided_fields.FullResFlags() ||
+                         provided_fields.Uvw();
+    }
+
+    if (need_output_step) {
+      std::string msName = casacore::Path(input_step->msName()).absoluteName();
+      std::shared_ptr<Step> output_step = makeOutputStep(
+          input_step.get(), parset, "msout.", msName, last_step->outputs());
+      last_step->setNextStep(output_step);
+      last_step = output_step;
     }
   }
 
   // Add a null step, so the last step can use getNextStep->process().
-  step->setNextStep(std::make_shared<NullStep>());
-  return inputStep;
+  last_step->setNextStep(std::make_shared<steps::NullStep>());
+  return input_step;
 }
 
 Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
@@ -506,7 +517,7 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
 
   if (terminateChain) {
     // Add a null step, so the last step can use getNextStep->process().
-    lastStep->setNextStep(std::make_shared<NullStep>());
+    lastStep->setNextStep(std::make_shared<steps::NullStep>());
   }
 
   return firstStep;
