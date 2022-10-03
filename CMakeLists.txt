@@ -429,11 +429,13 @@ add_library(
   steps/MSUpdater.cc
   steps/MSWriter.cc
   steps/MultiMSReader.cc
+  steps/MultiResultStep.cc
   steps/OneApplyCal.cc
+  steps/OnePredict.cc
   steps/PhaseShift.cc
   steps/Predict.cc
   steps/PreFlagger.cc
-  steps/OnePredict.cc
+  steps/ResultStep.cc
   steps/ScaleData.cc
   steps/SetBeam.cc
   steps/Split.cc

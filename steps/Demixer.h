@@ -12,6 +12,7 @@
 #include "InputStep.h"
 #include "PhaseShift.h"
 #include "Filter.h"
+#include "MultiResultStep.h"
 
 #include "../base/Baseline.h"
 #include "../base/DPBuffer.h"

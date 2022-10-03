@@ -8,20 +8,21 @@
 /// @brief DPPP step class to H5ParmPredict visibilities from a source model
 /// @author Tammo Jan Dijkema
 
-#ifndef DPPP_H5ParmPredict_H
-#define DPPP_H5ParmPredict_H
+#ifndef DP3_STEPS_H5PARM_PREDICT_H_
+#define DP3_STEPS_H5PARM_PREDICT_H_
+
+#include <utility>
+
+#include <aocommon/threadpool.h>
 
 #include "InputStep.h"
 #include "Predict.h"
+#include "ResultStep.h"
 
 #include "../base/DPBuffer.h"
 #include "../base/ModelComponent.h"
 #include "../base/Patch.h"
 #include "../base/PredictBuffer.h"
-
-#include <aocommon/threadpool.h>
-
-#include <utility>
 
 namespace dp3 {
 namespace common {

@@ -5,6 +5,7 @@
 #include "../../../base/DPBuffer.h"
 #include "../../../steps/InputStep.h"
 #include "../../../steps/IDGPredict.h"
+#include "../../../steps/MultiResultStep.h"
 #include "mock/MockInput.h"
 
 #include <schaapcommon/facets/facet.h>

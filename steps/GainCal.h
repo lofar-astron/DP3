@@ -12,6 +12,7 @@
 #include "ApplyBeam.h"
 #include "InputStep.h"
 #include "Predict.h"
+#include "ResultStep.h"
 #include "UVWFlagger.h"
 
 #include "../base/DPBuffer.h"
