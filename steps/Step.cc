@@ -47,38 +47,5 @@ void NullStep::finish() {}
 
 void NullStep::show(std::ostream&) const {}
 
-ResultStep::ResultStep() { setNextStep(std::make_shared<NullStep>()); }
-
-ResultStep::~ResultStep() {}
-
-bool ResultStep::process(const DPBuffer& buf) {
-  itsBuffer = buf;
-  getNextStep()->process(buf);
-  return true;
-}
-
-void ResultStep::finish() { getNextStep()->finish(); }
-
-void ResultStep::show(std::ostream&) const {}
-
-MultiResultStep::MultiResultStep(unsigned int size) : itsSize(0) {
-  setNextStep(std::make_shared<NullStep>());
-  itsBuffers.resize(size);
-}
-
-MultiResultStep::~MultiResultStep() {}
-
-bool MultiResultStep::process(const DPBuffer& buf) {
-  assert(itsSize < itsBuffers.size());
-  itsBuffers[itsSize].copy(buf);
-  itsSize++;
-  getNextStep()->process(buf);
-  return true;
-}
-
-void MultiResultStep::finish() { getNextStep()->finish(); }
-
-void MultiResultStep::show(std::ostream&) const {}
-
 }  // namespace steps
 }  // namespace dp3

@@ -17,6 +17,7 @@
 #include "../steps/InputStep.h"
 #include "../steps/PhaseShift.h"
 #include "../steps/Filter.h"
+#include "../steps/MultiResultStep.h"
 
 #include "../parmdb/ParmDB.h"
 

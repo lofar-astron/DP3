@@ -12,6 +12,7 @@
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 #include "InputStep.h"
+#include "ResultStep.h"
 
 #include "../base/DPBuffer.h"
 #include "../base/ModelComponent.h"

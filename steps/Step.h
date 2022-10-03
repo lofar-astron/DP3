@@ -193,83 +193,6 @@ class NullStep : public Step {
   }
 };
 
-/// @brief This class defines step in the DP3 pipeline that keeps the result
-/// to make it possible to get the result of another step.
-/// It keeps the result and calls process of the next step.
-
-class ResultStep : public Step {
- public:
-  /// Create the object. By default it sets its next step to the NullStep.
-  ResultStep();
-
-  virtual ~ResultStep();
-
-  common::Fields getRequiredFields() const override { return {}; }
-
-  common::Fields getProvidedFields() const override { return {}; }
-
-  /// Keep the buffer.
-  virtual bool process(const base::DPBuffer&);
-
-  /// Finish does not do anything.
-  virtual void finish();
-
-  /// Show the step parameters.
-  /// It does nothing.
-  virtual void show(std::ostream&) const;
-
-  /// Get the result.
-  const base::DPBuffer& get() const { return itsBuffer; }
-  base::DPBuffer& get() { return itsBuffer; }
-
-  /// Clear the buffer.
-  void clear() { itsBuffer = base::DPBuffer(); }
-
- private:
-  base::DPBuffer itsBuffer;
-};
-
-/// @brief This class defines step in the DP3 pipeline that keeps the result
-/// to make it possible to get the result of another step.
-/// It keeps the result and calls process of the next step.
-/// Buffers are accumulated until cleared.
-
-class MultiResultStep : public Step {
- public:
-  /// Create the object. By default it sets its next step to the NullStep.
-  MultiResultStep(unsigned int size);
-
-  virtual ~MultiResultStep();
-
-  common::Fields getRequiredFields() const override { return {}; }
-
-  common::Fields getProvidedFields() const override { return {}; }
-
-  /// Add the buffer to the vector of kept buffers.
-  virtual bool process(const base::DPBuffer&);
-
-  /// Finish does not do anything.
-  virtual void finish();
-
-  /// Show the step parameters.
-  /// It does nothing.
-  virtual void show(std::ostream&) const;
-
-  /// Get the result.
-  const std::vector<base::DPBuffer>& get() const { return itsBuffers; }
-  std::vector<base::DPBuffer>& get() { return itsBuffers; }
-
-  /// Get the size of the result.
-  size_t size() const { return itsSize; }
-
-  /// Clear the buffers.
-  void clear() { itsSize = 0; }
-
- private:
-  std::vector<base::DPBuffer> itsBuffers;
-  size_t itsSize;
-};
-
 /// Common interface for steps that produce model data.
 class ModelDataStep : public Step {
  public:
@@ -281,5 +204,4 @@ class ModelDataStep : public Step {
 
 }  // namespace steps
 }  // namespace dp3
-
 #endif

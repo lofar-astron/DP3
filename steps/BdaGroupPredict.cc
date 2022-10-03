@@ -6,6 +6,7 @@
 
 #include "BdaGroupPredict.h"
 #include "Predict.h"
+#include "ResultStep.h"
 
 #include <iostream>
 
