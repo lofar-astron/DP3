@@ -603,13 +603,14 @@ void MSWriter::UpdateBeam(const std::string& out_name,
   Table main_table(out_name, Table::Update);
   ArrayColumn<casacore::Complex> data_column(main_table, out_col_name);
   bool fields_exist = data_column.keywordSet().isDefined(beam_mode_field_name);
-  const std::string mode_str = everybeam::ToString(info.beamCorrectionMode());
+  const std::string mode_str = everybeam::ToString(
+      static_cast<everybeam::CorrectionMode>(info.beamCorrectionMode()));
   // If no beam correction has been applied and the LOFAR beam fields don't
   // exist, we have to do nothing (no fields implies no beam correction).
   // If they do exist, we have to make sure they are set to indicate
   // no beam correction.
-  if (fields_exist ||
-      info.beamCorrectionMode() != everybeam::CorrectionMode::kNone) {
+  if (fields_exist || info.beamCorrectionMode() !=
+                          static_cast<int>(everybeam::CorrectionMode::kNone)) {
     data_column.rwKeywordSet().define(beam_mode_field_name, mode_str);
     Record record;
     MeasureHolder(info.beamCorrectionDir()).toRecord(record);

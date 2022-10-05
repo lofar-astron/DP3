@@ -117,21 +117,24 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   }
 
   if (itsInvert) {
-    itsModeAtStart = info().beamCorrectionMode();
+    itsModeAtStart =
+        static_cast<everybeam::CorrectionMode>(info().beamCorrectionMode());
     itsDirectionAtStart = info().beamCorrectionDir();
-    info().setBeamCorrectionMode(itsMode);
+    info().setBeamCorrectionMode(static_cast<int>(itsMode));
     info().setBeamCorrectionDir(itsDirection);
   } else {
-    if (info().beamCorrectionMode() == everybeam::CorrectionMode::kNone)
+    const auto mode =
+        static_cast<everybeam::CorrectionMode>(info().beamCorrectionMode());
+    if (mode == everybeam::CorrectionMode::kNone)
       throw std::runtime_error(
           "In applying the beam (with invert=false): the metadata of this "
           "observation indicate that the beam has not yet been applied");
-    if (info().beamCorrectionMode() != itsMode)
+    if (mode != itsMode)
       throw std::runtime_error(
           std::string("applybeam step with invert=false has incorrect mode: "
                       "input has ") +
-          everybeam::ToString(info().beamCorrectionMode()) +
-          ", requested to correct for " + everybeam::ToString(itsMode));
+          everybeam::ToString(mode) + ", requested to correct for " +
+          everybeam::ToString(itsMode));
     const double ra1 = info().beamCorrectionDir().getValue().getValue()[0];
     const double dec1 = info().beamCorrectionDir().getValue().getValue()[1];
     const double ra2 = itsDirection.getValue().getValue()[0];
@@ -145,7 +148,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
           << info().beamCorrectionDir() << ", output is for " << itsDirection;
       throw std::runtime_error(str.str());
     }
-    info().setBeamCorrectionMode(everybeam::CorrectionMode::kNone);
+    info().setBeamCorrectionMode(
+        static_cast<int>(everybeam::CorrectionMode::kNone));
   }
 
   const size_t nSt = info().nantenna();

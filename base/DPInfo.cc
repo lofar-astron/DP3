@@ -16,6 +16,8 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/BasicSL/STLIO.h>
 
+#include <EveryBeam/correctionmode.h>
+
 #include <aocommon/threadpool.h>
 
 #include <algorithm>
@@ -43,7 +45,7 @@ DPInfo::DPInfo()
       start_time_(0),
       time_interval_(0),
       phase_center_is_original_(true),
-      beam_correction_mode_(everybeam::CorrectionMode::kNone),
+      beam_correction_mode_(static_cast<int>(everybeam::CorrectionMode::kNone)),
       n_threads_(aocommon::system::ProcessorCount()) {}
 
 void DPInfo::init(unsigned int ncorr, unsigned int startChan,

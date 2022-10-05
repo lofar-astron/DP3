@@ -17,8 +17,6 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
-#include <EveryBeam/correctionmode.h>
-
 namespace dp3 {
 namespace steps {
 class InputStep;
@@ -248,12 +246,14 @@ class DPInfo {
   /// It is possible that only a few fields are defined in the record.
   void fromRecord(const casacore::Record& rec);
 
-  everybeam::CorrectionMode beamCorrectionMode() const {
-    return beam_correction_mode_;
-  };
-  void setBeamCorrectionMode(everybeam::CorrectionMode mode) {
-    beam_correction_mode_ = mode;
-  }
+  /// Get the beam correction mode.
+  /// @return An integer representation of an everybeam::CorrectionMode value.
+  int beamCorrectionMode() const { return beam_correction_mode_; };
+
+  /// Set the beam correction mode.
+  /// @param mode An integer representation of an everybeam::CorrectionMode
+  /// value.
+  void setBeamCorrectionMode(int mode) { beam_correction_mode_ = mode; }
 
   const casacore::MDirection& beamCorrectionDir() const {
     return beam_correction_direction_;
@@ -295,7 +295,9 @@ class DPInfo {
   bool phase_center_is_original_;
   casacore::MDirection delay_center_;
   casacore::MDirection tile_beam_direction_;
-  everybeam::CorrectionMode beam_correction_mode_;
+  /// Correction mode for EveryBeam. Since DPInfo is part of the public DP3
+  /// interface, using an integer avoids a public dependency on EveryBeam.
+  int beam_correction_mode_;
   casacore::MDirection beam_correction_direction_;
   casacore::MPosition array_position_;
   /// Channels may differ between baselines when using BDA.

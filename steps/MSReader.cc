@@ -516,7 +516,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
     if (dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE")) {
       const everybeam::CorrectionMode mode = everybeam::ParseCorrectionMode(
           dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE"));
-      info().setBeamCorrectionMode(mode);
+      info().setBeamCorrectionMode(static_cast<int>(mode));
       if (mode != everybeam::CorrectionMode::kNone) {
         casacore::String error;
         MeasureHolder mHolder;

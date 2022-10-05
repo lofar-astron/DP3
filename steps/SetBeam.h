@@ -7,18 +7,16 @@
 #ifndef DP3_STEPS_SETBEAM_H_
 #define DP3_STEPS_SETBEAM_H_
 
-#include "InputStep.h"
-
-#include "../base/DPBuffer.h"
-#include "../base/Direction.h"
-
 #include <casacore/measures/Measures/MDirection.h>
 
-namespace dp3 {
-namespace common {
-class ParameterSet;
-}
+#include <EveryBeam/correctionmode.h>
 
+#include "InputStep.h"
+#include "../base/DPBuffer.h"
+#include "../base/Direction.h"
+#include "../common/ParameterSet.h"
+
+namespace dp3 {
 namespace steps {
 
 /// @brief DPPP step class to set the beam keywords in a ms

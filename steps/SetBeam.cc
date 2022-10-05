@@ -52,7 +52,7 @@ void SetBeam::updateInfo(const DPInfo& dpInfo) {
     _direction = casacore::MDirection(q0, q1, type);
   }
 
-  info().setBeamCorrectionMode(_mode);
+  info().setBeamCorrectionMode(static_cast<int>(_mode));
   info().setBeamCorrectionDir(_direction);
 }
 

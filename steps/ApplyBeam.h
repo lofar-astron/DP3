@@ -6,25 +6,23 @@
 /// @brief DPPP step class to apply the beam model (optionally inverted)
 /// @author Tammo Jan Dijkema
 
-#ifndef DP3_STEPS_APPLYBEAM_H
-#define DP3_STEPS_APPLYBEAM_H
-
-#include "InputStep.h"
-
-#include "../base/DPBuffer.h"
+#ifndef DP3_STEPS_APPLYBEAM_H_
+#define DP3_STEPS_APPLYBEAM_H_
 
 #include <EveryBeam/telescope/telescope.h>
+
 #include <aocommon/matrix2x2.h>
 #include <aocommon/barrier.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
 
-namespace dp3 {
-namespace common {
-class ParameterSet;
-}
+#include "InputStep.h"
 
+#include "../base/DPBuffer.h"
+#include "../common/ParameterSet.h"
+
+namespace dp3 {
 namespace steps {
 
 /// \brief DPPP step class to ApplyBeam visibilities from a source model
