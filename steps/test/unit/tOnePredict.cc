@@ -6,13 +6,18 @@
 #include <regex>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
-#include "tPredict.h"
-#include "mock/MockInput.h"
 #include "../../../common/ParameterSet.h"
+#include "../../ApplyCal.h"
 #include "../../NullStep.h"
 
+#include "tPredict.h"
+#include "H5ParmFixture.h"
+#include "mock/MockInput.h"
+
 using dp3::steps::OnePredict;
+using dp3::steps::Step;
 
 namespace {
 
@@ -72,6 +77,69 @@ BOOST_FIXTURE_TEST_CASE(getfirstdirection, OnePredictFixture) {
                     dp3::steps::test::kExpectedFirstDirection.ra, 1.0e-3);
   BOOST_CHECK_CLOSE(first_direction.dec,
                     dp3::steps::test::kExpectedFirstDirection.dec, 1.0e-3);
+}
+
+BOOST_FIXTURE_TEST_CASE(fields_defaults, OnePredictFixture) {
+  BOOST_TEST(predict_->getRequiredFields() == Step::kUvwField);
+  BOOST_TEST(predict_->getProvidedFields() == Step::kDataField);
+}
+
+BOOST_DATA_TEST_CASE(fields_add_subtract,
+                     boost::unit_test::data::make({"add", "subtract"}),
+                     operation) {
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset;
+  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  parset.add("operation", operation);
+  const OnePredict predict(&input, parset, "", {});
+  BOOST_TEST(predict.getRequiredFields() ==
+             (Step::kDataField | Step::kUvwField));
+  BOOST_TEST(predict.getProvidedFields() == Step::kDataField);
+}
+
+BOOST_FIXTURE_TEST_CASE(fields_applycal, dp3::steps::test::H5ParmFixture) {
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset;
+  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  parset.add("applycal.parmdb", kParmDb);
+  parset.add("applycal.correction", kSoltabName);
+  const OnePredict predict(&input, parset, "", {});
+
+  // OnePredict uses ApplyCal which has a OneApplyCal sub-step as next step.
+  const dp3::steps::ApplyCal apply_cal(&input, parset, "applycal.", true);
+  // TODO(AST-1032) Determine ApplyCal fields using generic DP3 functions.
+  const dp3::common::Fields apply_cal_required =
+      apply_cal.getNextStep()->getRequiredFields();
+  const dp3::common::Fields apply_cal_provided =
+      apply_cal.getNextStep()->getProvidedFields();
+  BOOST_TEST(predict.getRequiredFields() ==
+             (apply_cal_required | Step::kUvwField));
+  BOOST_TEST(predict.getProvidedFields() ==
+             (apply_cal_provided | Step::kDataField));
+}
+
+BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
+                       fields_applycal_add_subtract,
+                       boost::unit_test::data::make({"add", "subtract"}),
+                       operation) {
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset;
+  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  parset.add("applycal.parmdb", kParmDb);
+  parset.add("applycal.correction", kSoltabName);
+  parset.add("operation", operation);
+  const OnePredict predict(&input, parset, "", {});
+
+  // When operation is "add" or "subtract", OnePredict only combines the
+  // required fields of its ApplyCal sub-step.
+  const dp3::steps::ApplyCal apply_cal(&input, parset, "applycal.", true);
+  // TODO(AST-1032) Determine ApplyCal fields using generic DP3 functions.
+  const dp3::common::Fields apply_cal_required =
+      apply_cal.getNextStep()->getRequiredFields();
+
+  BOOST_TEST(predict.getRequiredFields() ==
+             (apply_cal_required | Step::kUvwField));
+  BOOST_TEST(predict.getProvidedFields() == Step::kDataField);
 }
 
 /**
