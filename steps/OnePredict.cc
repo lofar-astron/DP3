@@ -236,7 +236,8 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   info().setNeedVisData();
   info().setWriteData();
   if (operation_ == "replace")
-    info().setBeamCorrectionMode(everybeam::CorrectionMode::kNone);
+    info().setBeamCorrectionMode(
+        static_cast<int>(everybeam::CorrectionMode::kNone));
 
   const size_t nBl = info().nbaselines();
   for (size_t i = 0; i != nBl; ++i) {
