@@ -28,6 +28,55 @@ using std::vector;
 
 BOOST_AUTO_TEST_SUITE(filter)
 
+BOOST_AUTO_TEST_CASE(fields_default) {
+  dp3::steps::MockInput input;
+  const ParameterSet parset;
+  const Filter filter(&input, parset, "");
+  BOOST_CHECK_EQUAL(filter.getProvidedFields(), dp3::common::Fields());
+  BOOST_CHECK_EQUAL(filter.getRequiredFields(), dp3::common::Fields());
+}
+
+BOOST_AUTO_TEST_CASE(fields_channel_selection) {
+  // Test fields when enabling channel filtering.
+  dp3::steps::MockInput input;
+  ParameterSet parset;
+  parset.add("startchan", "4");
+  parset.add("nchan", "2");
+  const Filter channel_only(&input, parset, "");
+  const dp3::common::Fields kExpectedFields =
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
+      Step::kFullResFlagsField;
+  BOOST_CHECK_EQUAL(channel_only.getRequiredFields(), kExpectedFields);
+  BOOST_CHECK_EQUAL(channel_only.getProvidedFields(), kExpectedFields);
+
+  ParameterSet parset_remove_ant = parset;
+  parset_remove_ant.add("remove", "true");
+  const Filter remove_ant(&input, parset_remove_ant, "");
+  const dp3::common::Fields kExpectedFieldsRemove =
+      kExpectedFields | Step::kUvwField;
+  BOOST_CHECK_EQUAL(remove_ant.getRequiredFields(), kExpectedFieldsRemove);
+  BOOST_CHECK_EQUAL(remove_ant.getProvidedFields(), kExpectedFieldsRemove);
+}
+
+BOOST_AUTO_TEST_CASE(fields_baseline_selection) {
+  dp3::steps::MockInput input;
+  ParameterSet parset;
+  parset.add("baseline", "42");
+  const Filter baseline_only(&input, parset, "");
+
+  const dp3::common::Fields kExpectedFields =
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
+      Step::kFullResFlagsField | Step::kUvwField;
+  BOOST_CHECK_EQUAL(baseline_only.getRequiredFields(), kExpectedFields);
+  BOOST_CHECK_EQUAL(baseline_only.getProvidedFields(), kExpectedFields);
+
+  parset.add("startchan", "4");
+  parset.add("nchan", "2");
+  const Filter baseline_and_channel(&input, parset, "");
+  BOOST_CHECK_EQUAL(baseline_and_channel.getRequiredFields(), kExpectedFields);
+  BOOST_CHECK_EQUAL(baseline_and_channel.getProvidedFields(), kExpectedFields);
+}
+
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
 // Weights are always 1.

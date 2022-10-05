@@ -56,14 +56,13 @@ ApplyCal::ApplyCal(InputStep* input, const common::ParameterSet& parset,
         input, parset, subStepPrefix, prefix, substep, predictDirection));
   }
 
-  unsigned int numSteps = itsApplyCals.size();
-  for (unsigned int step = 0; step < numSteps - 1; ++step) {
+  Step::setNextStep(itsApplyCals.front());
+  for (unsigned int step = 0; step < itsApplyCals.size() - 1; ++step) {
     itsApplyCals[step]->setNextStep(itsApplyCals[step + 1]);
   }
 }
 
-void ApplyCal::setNextStep(Step::ShPtr nextStep) {
-  Step::setNextStep(itsApplyCals.front());
+void ApplyCal::setNextStep(std::shared_ptr<Step> nextStep) {
   itsApplyCals.back()->setNextStep(nextStep);
 }
 

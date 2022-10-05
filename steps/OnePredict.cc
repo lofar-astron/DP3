@@ -68,12 +68,13 @@ OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
                        const string& prefix,
                        const std::vector<string>& source_patterns)
     : thread_pool_(nullptr), measures_mutex_(nullptr) {
-  std::vector<std::string> copied_patterns = source_patterns;
-  if (source_patterns.empty()) {
-    copied_patterns =
+  if (!source_patterns.empty()) {
+    init(input, parset, prefix, source_patterns);
+  } else {
+    const std::vector<std::string> parset_patterns =
         parset.getStringVector(prefix + "sources", std::vector<std::string>());
+    init(input, parset, prefix, parset_patterns);
   }
-  init(input, parset, prefix, copied_patterns);
 }
 
 void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
