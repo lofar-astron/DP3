@@ -265,56 +265,57 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 };
 
 // Test clock + tec, and test two ApplyCals in sequence
-void testclocktec(int ntime, int nchan) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nchan);
-  Step::ShPtr step1(in);
+BOOST_AUTO_TEST_CASE(test_clock_and_tec) {
+  const int kNTimes = 10;
+  const int kNChannels = 32;
+
+  auto input = std::make_shared<TestInput>(kNTimes, kNChannels);
 
   dp3::common::ParameterSet parset1;
   parset1.add("correction", "tec");
   parset1.add("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add("timeslotsperparmupdate", "5");
   parset1.add("updateweights", "true");
-  Step::ShPtr step2(new ApplyCal(in, parset1, ""));
+  auto apply_cal1 = std::make_shared<ApplyCal>(input.get(), parset1, "");
 
   dp3::common::ParameterSet parset2;
   parset2.add("correction", "clock");
   parset2.add("parmdb", "tApplyCal_tmp.parmdb");
   parset2.add("timeslotsperparmupdate", "5");
   parset2.add("updateweights", "true");
-  Step::ShPtr step3(new ApplyCal(in, parset2, ""));
+  auto apply_cal2 = std::make_shared<ApplyCal>(input.get(), parset2, "");
 
   dp3::common::ParameterSet parset3;
   parset3.add("correction", "commonscalarphase");
   parset3.add("parmdb", "tApplyCal_tmp.parmdb");
   parset3.add("timeslotsperparmupdate", "1");
   parset3.add("udpateweights", "true");
-  Step::ShPtr step4(new ApplyCal(in, parset3, ""));
+  auto apply_cal3 = std::make_shared<ApplyCal>(input.get(), parset3, "");
 
-  Step::ShPtr step5(new TestOutput(
-      ntime, nchan, TestOutput::DataChanged | TestOutput::WeightsNotChanged));
+  auto output = std::make_shared<TestOutput>(
+      kNTimes, kNChannels,
+      TestOutput::DataChanged | TestOutput::WeightsNotChanged);
 
-  dp3::steps::test::Execute({step1, step2, step3, step4, step5});
+  dp3::steps::test::Execute(
+      {input, apply_cal1, apply_cal2, apply_cal3, output});
 }
 
-void TestGain(int ntime, int nchan) {
-  auto step1 = std::make_shared<TestInput>(ntime, nchan);
+BOOST_AUTO_TEST_CASE(test_gain) {
+  const int kNTimes = 10;
+  const int kNChannels = 32;
+  auto input = std::make_shared<TestInput>(kNTimes, kNChannels);
 
   dp3::common::ParameterSet parset1;
   parset1.add("correction", "gain");
   parset1.add("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add("timeslotsperparmupdate", "5");
   parset1.add("updateweights", "true");
-  auto step2 = std::make_shared<ApplyCal>(step1.get(), parset1, "");
+  auto apply_cal = std::make_shared<ApplyCal>(input.get(), parset1, "");
 
-  auto step3 =
-      std::make_shared<TestOutput>(ntime, nchan, TestOutput::DataEquals);
+  auto output =
+      std::make_shared<TestOutput>(kNTimes, kNChannels, TestOutput::DataEquals);
 
-  dp3::steps::test::Execute({step1, step2, step3});
+  dp3::steps::test::Execute({input, apply_cal, output});
 }
-
-BOOST_AUTO_TEST_CASE(test_clock_and_tec) { testclocktec(10, 32); }
-
-BOOST_AUTO_TEST_CASE(test_gain) { TestGain(10, 32); }
 
 BOOST_AUTO_TEST_SUITE_END()
