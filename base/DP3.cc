@@ -515,7 +515,7 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
     }
   }
 
-  if (terminateChain) {
+  if (terminateChain && lastStep) {
     // Add a null step, so the last step can use getNextStep->process().
     lastStep->setNextStep(std::make_shared<steps::NullStep>());
   }

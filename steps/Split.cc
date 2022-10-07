@@ -64,12 +64,13 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
     for (size_t j = 0; j != numParameters; ++j) {
       parsetCopy.replace(itsReplaceParms[j], replaceParmValues[j][i]);
     }
-    Step::ShPtr firstStep =
+    std::shared_ptr<Step> firstStep =
         base::DP3::makeStepsFromParset(parsetCopy, prefix, "steps", *input,
                                        true, steps::Step::MsType::kRegular);
-    firstStep->setPrevStep(this);
-
-    itsSubsteps.push_back(std::move(firstStep));
+    if (firstStep) {
+      firstStep->setPrevStep(this);
+      itsSubsteps.push_back(std::move(firstStep));
+    }
   }
 }
 
@@ -102,10 +103,8 @@ void Split::show(std::ostream& os) const {
   for (unsigned int i = 0; i < itsSubsteps.size(); ++i) {
     os << "Split substep " << (i + 1) << " of " << itsSubsteps.size() << '\n';
     std::shared_ptr<Step> step = itsSubsteps[i];
-    std::shared_ptr<Step> lastStep;
     while (step) {
       step->show(os);
-      lastStep = step;
       step = step->getNextStep();
     }
   }

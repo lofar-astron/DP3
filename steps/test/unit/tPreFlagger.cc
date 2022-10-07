@@ -381,7 +381,8 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag) {
 typedef bool CheckFunc(casacore::Complex value, double time, int ant1, int ant2,
                        const double* uvw);
 
-// Class to check result of flagged, unaveraged TestInput run by test5.
+// Class to check result of flagged, unaveraged TestInput run by
+// TestOneParameter.
 class TestOutput5 : public dp3::steps::test::ThrowStep {
  public:
   TestOutput5(CheckFunc* cfunc) : itsCount(0), itsCFunc(cfunc) {}
@@ -419,29 +420,30 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
 };
 
 // Test flagging on a single parameter.
-void test5(const string& key, const string& value, CheckFunc* cfunc) {
-  // Create the steps.
-  TestInput* in = new TestInput(2, 6, 5, 4, false);
-  Step::ShPtr step1(in);
+void TestOneParameter(const string& key, const string& value, CheckFunc* cfunc,
+                      dp3::common::Fields expected_required_fields) {
+  auto in = std::make_shared<TestInput>(2, 6, 5, 4, false);
   ParameterSet parset;
   parset.add(key, value);
-  Step::ShPtr step2(new PreFlagger(in, parset, ""));
-  Step::ShPtr step3(new TestOutput5(cfunc));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto pre_flagger = std::make_shared<PreFlagger>(in.get(), parset, "");
+  BOOST_TEST(pre_flagger->getRequiredFields() == expected_required_fields);
+  auto out = std::make_shared<TestOutput5>(cfunc);
+  dp3::steps::test::Execute({in, pre_flagger, out});
 }
 
 // Test flagging on multiple parameters.
-void test6(const string& key1, const string& value1, const string& key2,
-           const string& value2, CheckFunc* cfunc) {
-  // Create the steps.
-  TestInput* in = new TestInput(6, 10, 8, 4, false);
-  Step::ShPtr step1(in);
+void TestTwoParameters(const string& key1, const string& value1,
+                       const string& key2, const string& value2,
+                       CheckFunc* cfunc,
+                       dp3::common::Fields expected_required_fields) {
+  auto in = std::make_shared<TestInput>(6, 10, 8, 4, false);
   ParameterSet parset;
   parset.add(key1, value1);
   parset.add(key2, value2);
-  Step::ShPtr step2(new PreFlagger(in, parset, ""));
-  Step::ShPtr step3(new TestOutput5(cfunc));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto pre_flagger = std::make_shared<PreFlagger>(in.get(), parset, "");
+  BOOST_TEST(pre_flagger->getRequiredFields() == expected_required_fields);
+  auto out = std::make_shared<TestOutput5>(cfunc);
+  dp3::steps::test::Execute({in, pre_flagger, out});
 }
 
 bool checkBL(casacore::Complex, double, int a1, int a2, const double*) {
@@ -492,44 +494,63 @@ bool checkNone(casacore::Complex, double, int, int, const double*) {
 bool checkAll(casacore::Complex, double, int, int, const double*) {
   return true;
 }
+bool checkAmplMaxUvMin(casacore::Complex data, double time, int a1, int a2,
+                       const double* uvw) {
+  return checkAmplMax(data, time, a1, a2, uvw) &&
+         checkUVMin(data, time, a1, a2, uvw);
+}
 
 // Test flagging on various fields.
-void testMany() {
-  test5("corrtype", "auto", &checkBL);
-  test5("amplmin", "9.5", &checkAmplMin);
-  test5("amplmax", "31.5", &checkAmplMax);
-  test5("phasemin", "1.4", &checkPhaseMin);
-  test5("phasemax", "2.1", &checkPhaseMax);
-  test5("realmin", "5.5", &checkRealMin);
-  test5("realmax", "29.4", &checkRealMax);
-  test5("imagmin", "-1.4", &checkImagMin);
-  test5("imagmax", "20.5", &checkImagMax);
-  test5("uvmmin", "30", &checkUVMin);
-  test6("uvmmax", "30", "baseline", "[rs01.s01]", &checkUVBL);
-  test5("timeslot", "0", &checkTimeSlot);
-  test5("abstime", "17-nov-1858/0:0:2..17nov1858/0:0:4", &checkTimeSlot);
-  test5("abstime", "17-nov-1858/0:0:3+-1s", &checkTimeSlot);
-  test5("reltime", "0:0:0..0:0:6", &checkTimeSlot);
-  test5("reltime", "0:0:2+-1s", &checkTimeSlot);
-  test5("reltime", "0:0:2+-20s", &checkAll);
-  test6("abstime", "17-nov-1858/0:0:20+-19s", "reltime", "0:0:20+-20s",
-        &checkAll);
-  test6("abstime", "17-nov-1858/0:0:3+-2s", "reltime", "0:0:20+-20s",
-        &checkTimeSlot);
-  test6("abstime", "17-nov-1858/0:0:20+-19s", "reltime", "0:0:3+-2s",
-        &checkTimeSlot);
-  test6("abstime", "17-nov-1858/0:0:20+-9s", "reltime", "0:0:3+-2s",
-        &checkNone);
+BOOST_AUTO_TEST_CASE(test_many) {
+  TestOneParameter("corrtype", "auto", &checkBL, dp3::common::Fields());
+  TestOneParameter("amplmin", "9.5", &checkAmplMin, Step::kDataField);
+  TestOneParameter("amplmax", "31.5", &checkAmplMax, Step::kDataField);
+  TestOneParameter("phasemin", "1.4", &checkPhaseMin, Step::kDataField);
+  TestOneParameter("phasemax", "2.1", &checkPhaseMax, Step::kDataField);
+  TestOneParameter("realmin", "5.5", &checkRealMin, Step::kDataField);
+  TestOneParameter("realmax", "29.4", &checkRealMax, Step::kDataField);
+  TestOneParameter("imagmin", "-1.4", &checkImagMin, Step::kDataField);
+  TestOneParameter("imagmax", "20.5", &checkImagMax, Step::kDataField);
+  TestOneParameter("uvmmin", "30", &checkUVMin, Step::kUvwField);
+  TestTwoParameters("uvmmax", "30", "baseline", "[rs01.s01]", &checkUVBL,
+                    Step::kUvwField);
+  TestTwoParameters("amplmax", "31.5", "uvmmin", "30", &checkAmplMaxUvMin,
+                    (Step::kDataField | Step::kUvwField));
+  TestOneParameter("timeslot", "0", &checkTimeSlot, dp3::common::Fields());
+  TestOneParameter("abstime", "17-nov-1858/0:0:2..17nov1858/0:0:4",
+                   &checkTimeSlot, dp3::common::Fields());
+  TestOneParameter("abstime", "17-nov-1858/0:0:3+-1s", &checkTimeSlot,
+                   dp3::common::Fields());
+  TestOneParameter("reltime", "0:0:0..0:0:6", &checkTimeSlot,
+                   dp3::common::Fields());
+  TestOneParameter("reltime", "0:0:2+-1s", &checkTimeSlot,
+                   dp3::common::Fields());
+  TestOneParameter("reltime", "0:0:2+-20s", &checkAll, dp3::common::Fields());
+  TestTwoParameters("abstime", "17-nov-1858/0:0:20+-19s", "reltime",
+                    "0:0:20+-20s", &checkAll, dp3::common::Fields());
+  TestTwoParameters("abstime", "17-nov-1858/0:0:3+-2s", "reltime",
+                    "0:0:20+-20s", &checkTimeSlot, dp3::common::Fields());
+  TestTwoParameters("abstime", "17-nov-1858/0:0:20+-19s", "reltime",
+                    "0:0:3+-2s", &checkTimeSlot, dp3::common::Fields());
+  TestTwoParameters("abstime", "17-nov-1858/0:0:20+-9s", "reltime", "0:0:3+-2s",
+                    &checkNone, dp3::common::Fields());
   // Elevation is 12738s; azimuth=86121s
-  test5("elevation", "180deg..190deg", &checkNone);
-  test5("elevation", "12730s..12740s", &checkAll);
-  test5("azimuth", "180deg..190deg", &checkNone);
-  test5("azimuth", "86120s..86125s", &checkAll);
-  test6("azimuth", "86120s..86125s", "elevation", "180deg..190deg", &checkNone);
-  test6("azimuth", "86120s..86125s", "elevation", "12730s..12740s", &checkAll);
-  test5("lst", "0.154d..0.155d", &checkAll);
-  test5("blmin", "145", &checkBLMin);
-  test6("blmin", "10", "blmax", "145", &checkBLMinMax);
+  TestOneParameter("elevation", "180deg..190deg", &checkNone,
+                   dp3::common::Fields());
+  TestOneParameter("elevation", "12730s..12740s", &checkAll,
+                   dp3::common::Fields());
+  TestOneParameter("azimuth", "180deg..190deg", &checkNone,
+                   dp3::common::Fields());
+  TestOneParameter("azimuth", "86120s..86125s", &checkAll,
+                   dp3::common::Fields());
+  TestTwoParameters("azimuth", "86120s..86125s", "elevation", "180deg..190deg",
+                    &checkNone, dp3::common::Fields());
+  TestTwoParameters("azimuth", "86120s..86125s", "elevation", "12730s..12740s",
+                    &checkAll, dp3::common::Fields());
+  TestOneParameter("lst", "0.154d..0.155d", &checkAll, dp3::common::Fields());
+  TestOneParameter("blmin", "145", &checkBLMin, dp3::common::Fields());
+  TestTwoParameters("blmin", "10", "blmax", "145", &checkBLMinMax,
+                    dp3::common::Fields());
 }
 
 BOOST_AUTO_TEST_CASE(test_1) { test1(10, 16, 32, 4, false, true, false); }
@@ -557,7 +578,5 @@ BOOST_AUTO_TEST_CASE(test_11) { test3(3, 16, 32, 4, false); }
 BOOST_AUTO_TEST_CASE(test_12) { test3(4, 16, 4, 2, true); }
 
 BOOST_AUTO_TEST_CASE(test_13) { test4(3, 16, 32, 4, false); }
-
-BOOST_AUTO_TEST_CASE(test_many) { testMany(); }
 
 BOOST_AUTO_TEST_SUITE_END()

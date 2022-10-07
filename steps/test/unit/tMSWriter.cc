@@ -1,11 +1,14 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <boost/test/unit_test.hpp>
-
 #include "../../MSWriter.h"
 
+#include <boost/test/unit_test.hpp>
+
+#include "mock/MockInput.h"
+
 using dp3::steps::MSWriter;
+using dp3::steps::Step;
 
 BOOST_AUTO_TEST_SUITE(mswriter)
 
@@ -20,6 +23,29 @@ BOOST_AUTO_TEST_CASE(insert_number_in_filename) {
       "file-with-extension-042.ms");
   BOOST_CHECK_EQUAL(MSWriter::InsertNumberInFilename("/and.also/path.ms", 42),
                     "/and.also/path-042.ms");
+}
+
+BOOST_AUTO_TEST_CASE(fields) {
+  const dp3::common::Fields kAlwaysWritten =
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
+      Step::kUvwField;
+
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset;
+
+  {
+    const MSWriter writer(input, "test_mswriter.ms", parset, "");
+    BOOST_TEST(writer.getRequiredFields() ==
+               (kAlwaysWritten | Step::kFullResFlagsField));
+    BOOST_TEST(writer.getProvidedFields() == dp3::common::Fields());
+  }
+
+  {
+    parset.add("writefullresflag", "false");
+    const MSWriter writer(input, "test_mswriter.ms", parset, "");
+    BOOST_TEST(writer.getRequiredFields() == kAlwaysWritten);
+    BOOST_TEST(writer.getProvidedFields() == dp3::common::Fields());
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
