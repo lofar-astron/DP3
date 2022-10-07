@@ -1,5 +1,5 @@
 description: >-
-  "Allows to split the data stream and process each splitted stream with different settings."
+  Allows splitting the data stream and process each splitted stream with different settings \.
 inputs:
   type:
     type: string

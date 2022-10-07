@@ -248,7 +248,7 @@ class DPInfo {
 
   /// Get the beam correction mode.
   /// @return An integer representation of an everybeam::CorrectionMode value.
-  int beamCorrectionMode() const { return beam_correction_mode_; };
+  int beamCorrectionMode() const { return beam_correction_mode_; }
 
   /// Set the beam correction mode.
   /// @param mode An integer representation of an everybeam::CorrectionMode

@@ -52,7 +52,9 @@ class DP3 {
   /// Unlike makeMainSteps(), this does neither add a writer nor
   /// terminate the chain with a NullStep.
   /// @param step_names_key Parset key for getting the step names.
-  static steps::Step::ShPtr makeStepsFromParset(
+  /// @return The first step of the step chain or a null pointer if the chain is
+  /// empty.
+  static std::shared_ptr<steps::Step> makeStepsFromParset(
       const common::ParameterSet& parset, const std::string& prefix,
       const std::string& step_names_key, steps::InputStep& inputStep,
       bool terminateChain, steps::Step::MsType initial_step_output);

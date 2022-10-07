@@ -12,6 +12,7 @@
 #include <casacore/casa/Quanta/Quantum.h>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
@@ -174,7 +175,25 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   const bool update_uvw_;
 };
 
-void TestUpsample(bool update_uvw) {
+}  // namespace
+
+BOOST_AUTO_TEST_SUITE(upsample)
+
+BOOST_AUTO_TEST_CASE(fields) {
+  using dp3::steps::Step;
+
+  const Upsample no_update_uvw("no_update_uvw", 2, false);
+  BOOST_TEST(no_update_uvw.getRequiredFields() == Step::kFlagsField);
+  BOOST_TEST(no_update_uvw.getProvidedFields() == dp3::common::Fields());
+
+  const Upsample updates_uvw("updates_uvw", 2, true);
+  BOOST_TEST(updates_uvw.getRequiredFields() ==
+             (Step::kFlagsField | Step::kUvwField));
+  BOOST_TEST(updates_uvw.getProvidedFields() == Step::kUvwField);
+}
+
+BOOST_DATA_TEST_CASE(execute, boost::unit_test::data::make({true, false}),
+                     update_uvw) {
   const double kTimeInterval = 2.01327;
 
   const std::vector<double> times{5020763030.74, 5020763032.75, 5020763034.76,
@@ -206,13 +225,5 @@ void TestUpsample(bool update_uvw) {
 
   dp3::steps::test::Execute({in_step, upsample, out_step});
 }
-
-}  // namespace
-
-BOOST_AUTO_TEST_SUITE(upsample)
-
-BOOST_AUTO_TEST_CASE(copy_uvw) { TestUpsample(false); }
-
-BOOST_AUTO_TEST_CASE(update_uvw) { TestUpsample(true); }
 
 BOOST_AUTO_TEST_SUITE_END()

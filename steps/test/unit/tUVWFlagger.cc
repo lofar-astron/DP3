@@ -335,8 +335,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     info() = infoIn;
     BOOST_CHECK_EQUAL(infoIn.origNChan(), n_channels_);
     BOOST_CHECK_EQUAL(infoIn.ntime(), n_times_);
-    BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
-    BOOST_CHECK_EQUAL(infoIn.ntimeAvg(), 1);
+    BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5.0);
+    BOOST_CHECK_EQUAL(infoIn.ntimeAvg(), 1u);
   }
 
   size_t count_;
@@ -459,6 +459,28 @@ BOOST_AUTO_TEST_CASE(constructor) {
   test_constructor<DPBuffer>(10, 16, 32, 4, Step::MsType::kRegular);
   test_constructor<std::unique_ptr<BDABuffer>>(10, 16, 32, 4,
                                                Step::MsType::kBda);
+}
+
+BOOST_AUTO_TEST_CASE(fields) {
+  using dp3::steps::Step;
+
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset;
+  const UVWFlagger degenerate(&input, parset, "", Step::MsType::kRegular);
+  BOOST_TEST(degenerate.isDegenerate());
+  BOOST_TEST(degenerate.getRequiredFields() == dp3::common::Fields());
+  BOOST_TEST(degenerate.getProvidedFields() == dp3::common::Fields());
+
+  parset.add("ummax", "42");
+  const UVWFlagger without_center(&input, parset, "", Step::MsType::kBda);
+  BOOST_TEST(without_center.getRequiredFields() ==
+             (Step::kFlagsField | Step::kUvwField));
+  BOOST_TEST(without_center.getProvidedFields() == Step::kFlagsField);
+
+  parset.add("phasecenter", "Jupiter");
+  const UVWFlagger with_center(&input, parset, "", Step::MsType::kRegular);
+  BOOST_TEST(with_center.getRequiredFields() == Step::kFlagsField);
+  BOOST_TEST(with_center.getProvidedFields() == Step::kFlagsField);
 }
 
 BOOST_AUTO_TEST_CASE(test1_regular) {

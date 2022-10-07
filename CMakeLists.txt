@@ -624,10 +624,7 @@ if(BUILD_TESTING)
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMedFlagger.cc
       steps/test/unit/tMSReader.cc
-      steps/test/unit/tMSWriter.cc
-      steps/test/unit/tPreFlagger.cc
       steps/test/unit/tPhaseShift.cc
-      steps/test/unit/tUpsample.cc
       steps/test/unit/tUVWFlagger.cc
       steps/test/unit/tPSet.cc
       steps/test/unit/tScaleData.cc
@@ -667,8 +664,14 @@ if(BUILD_TESTING)
       steps/test/unit/tInputStep.cc
       steps/test/unit/tMSBDAReader.cc
       steps/test/unit/tMSBDAWriter.cc
+      steps/test/unit/tMSUpdater.cc
+      steps/test/unit/tMSWriter.cc
+      steps/test/unit/tOneApplyCal.cc
       steps/test/unit/tOnePredict.cc
-      steps/test/unit/tScaleDataBDA.cc)
+      steps/test/unit/tPreFlagger.cc
+      steps/test/unit/tScaleDataBDA.cc
+      steps/test/unit/tSplit.cc
+      steps/test/unit/tUpsample.cc)
     if(HAVE_IDG)
       list(APPEND TEST_FILENAMES steps/test/unit/tIDGPredict.cc)
     endif()
