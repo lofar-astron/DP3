@@ -80,6 +80,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
       FATAL_ERROR "The GCC version is too old, upgrade to GCC 8.0 or newer")
   endif()
 endif()
+include_directories("${CMAKE_SOURCE_DIR}/include")
 
 # Add CPack directory if user want to generate Debian packages
 option(BUILD_PACKAGES "Build Debian packages" OFF)
@@ -574,6 +575,8 @@ if(BUILD_TESTING)
     )
     add_library(dp3_testdyndp3 SHARED steps/dynamic_test_step/DynamicTestStep.cc
                                       ${DP3_OBJECTS})
+    target_include_directories(dp3_testdyndp3
+                               PRIVATE "${CMAKE_SOURCE_DIR}/include")
     target_link_libraries(dp3_testdyndp3 ${DP3_LIBRARIES})
     add_dependencies(dp3_testdyndp3 schaapcommon)
   endif()

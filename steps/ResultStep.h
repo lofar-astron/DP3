@@ -4,7 +4,7 @@
 #ifndef DP3_STEPS_RESULTSTEP_H_
 #define DP3_STEPS_RESULTSTEP_H_
 
-#include "Step.h"
+#include <dp3/steps/Step.h>
 
 namespace dp3 {
 namespace steps {

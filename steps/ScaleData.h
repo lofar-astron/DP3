@@ -11,8 +11,8 @@
 
 #include "InputStep.h"
 
-#include "../base/DPBuffer.h"
-#include "../base/BDABuffer.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/BDABuffer.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 

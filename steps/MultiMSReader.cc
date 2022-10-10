@@ -22,9 +22,9 @@
 #include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../base/DPLogger.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/DPInfo.h>
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"

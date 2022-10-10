@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "../../../common/ParameterSet.h"
-#include "../../../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../../../steps/InputStep.h"
 #include "../../../steps/IDGPredict.h"
 #include "../../../steps/MultiResultStep.h"

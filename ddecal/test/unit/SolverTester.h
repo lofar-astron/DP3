@@ -4,7 +4,7 @@
 #ifndef DP3_DDECAL_SOLVER_TESTER_H
 #define DP3_DDECAL_SOLVER_TESTER_H
 
-#include "../../../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../../../ddecal/gain_solvers/BdaSolverBuffer.h"
 #include "../../../ddecal/gain_solvers/SolverBuffer.h"
 

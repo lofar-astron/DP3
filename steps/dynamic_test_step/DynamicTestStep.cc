@@ -9,8 +9,8 @@
 
 #include "DynamicTestStep.h"
 
-#include "../../base/DPBuffer.h"
-#include "../../base/DP3.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DP3.h>
 
 namespace dp3 {
 namespace steps {

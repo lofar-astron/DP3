@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include "../base/BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
 

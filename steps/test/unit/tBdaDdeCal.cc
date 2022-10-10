@@ -8,7 +8,7 @@
 #include "tStepCommon.h"
 
 #include "../../BdaDdeCal.h"
-#include "../../../common/Fields.h"
+#include <dp3/common/Fields.h>
 #include "../../../common/ParameterSet.h"
 
 using dp3::steps::BdaDdeCal;

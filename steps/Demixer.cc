@@ -24,8 +24,8 @@
 
 #include "../base/Apply.h"
 #include "../base/CursorUtilCasa.h"
-#include "../base/DPBuffer.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "../base/EstimateMixed.h"
 #include "../base/SourceDBUtil.h"
 #include "../base/SubtractMixed.h"

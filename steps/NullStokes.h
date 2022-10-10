@@ -12,7 +12,7 @@
 #include "InputStep.h"
 #include "../common/ParameterSet.h"
 
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 
 namespace dp3 {
 

@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "DPInfo.h"
+#include <dp3/base/DPInfo.h>
 
 #include "../common/Epsilon.h"
 

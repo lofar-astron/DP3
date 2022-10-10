@@ -1,13 +1,10 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DPPP_DPRUN_H
-#define DPPP_DPRUN_H
+#ifndef DP3_BASE_DP3_H_
+#define DP3_BASE_DP3_H_
 
-#include "../common/Fields.h"
-
-#include "../steps/Step.h"
-#include "../steps/MSReader.h"
+#include <dp3/steps/Step.h>
 
 #include <map>
 
@@ -74,4 +71,4 @@ class DP3 {
 }  // namespace base
 }  // namespace dp3
 
-#endif
+#endif  // DP3_BASE_DP3_H_

@@ -4,7 +4,7 @@
 #ifndef DP3_PREDICT_H
 #define DP3_PREDICT_H
 
-#include "Step.h"
+#include <dp3/steps/Step.h>
 
 #include <mutex>
 

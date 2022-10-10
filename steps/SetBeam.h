@@ -12,9 +12,12 @@
 #include <EveryBeam/correctionmode.h>
 
 #include "InputStep.h"
-#include "../base/DPBuffer.h"
-#include "../base/Direction.h"
 #include "../common/ParameterSet.h"
+
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/Direction.h>
+
+#include <casacore/measures/Measures/MDirection.h>
 
 namespace dp3 {
 namespace steps {

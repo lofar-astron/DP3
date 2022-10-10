@@ -5,7 +5,7 @@
 
 #include "../../Simulator.h"
 #include "../../Stokes.h"
-#include "../../Direction.h"
+#include <dp3/base/Direction.h>
 #include "../../PointSource.h"
 
 #include <sstream>

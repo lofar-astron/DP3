@@ -15,7 +15,7 @@
 #include "ResultStep.h"
 #include "UVWFlagger.h"
 
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../base/PhaseFitter.h"
 #include "../base/BaselineSelection.h"
 #include "../base/GainCalAlgorithm.h"

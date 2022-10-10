@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../../base/BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 #include "../../MSBDAWriter.h"
 #include "../../MSReader.h"
 #include "../../../common/ParameterSet.h"

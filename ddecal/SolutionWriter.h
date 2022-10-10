@@ -4,10 +4,11 @@
 #ifndef DP3_DDECAL_SOLUTIONWRITER_H
 #define DP3_DDECAL_SOLUTIONWRITER_H
 
+#include <dp3/base/Direction.h>
+
 #include "constraints/Constraint.h"
 
 #include "../base/CalType.h"
-#include "../base/Direction.h"
 
 #include <schaapcommon/h5parm/h5parm.h>
 

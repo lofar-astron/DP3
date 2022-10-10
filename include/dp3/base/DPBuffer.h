@@ -6,13 +6,13 @@
 /// @brief Buffer holding the data of a timeslot/band
 /// @author Ger van Diepen
 
-#ifndef DPPP_DPBUFFER_H
-#define DPPP_DPBUFFER_H
+#ifndef DP3_BASE_DPBUFFER_H_
+#define DP3_BASE_DPBUFFER_H_
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>
 
-#include "../common/Types.h"
+#include <dp3/common/Types.h>
 
 namespace dp3 {
 namespace base {
@@ -192,4 +192,4 @@ class DPBuffer {
 }  // namespace base
 }  // namespace dp3
 
-#endif
+#endif  // DP3_BASE_DPBUFFER_H_

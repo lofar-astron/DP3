@@ -9,10 +9,11 @@
 #ifndef DPPP_UVWFLAGGER_H
 #define DPPP_UVWFLAGGER_H
 
+#include <dp3/base/BDABuffer.h>
+#include <dp3/base/DPBuffer.h>
+
 #include "InputStep.h"
 
-#include "../base/BDABuffer.h"
-#include "../base/DPBuffer.h"
 #include "../base/UVWCalculator.h"
 
 namespace dp3 {

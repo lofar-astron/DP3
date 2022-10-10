@@ -11,7 +11,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../../BaselineSelection.h"
-#include "../../DPInfo.h"
+#include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StreamUtil.h"
 

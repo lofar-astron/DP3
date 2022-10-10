@@ -6,7 +6,7 @@
 
 #include "UVWFlagger.h"
 
-#include "../base/DPInfo.h"
+#include <dp3/base/DPInfo.h>
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"

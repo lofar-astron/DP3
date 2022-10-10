@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 
 #include <algorithm>
 #include <limits>

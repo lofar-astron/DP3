@@ -9,10 +9,12 @@
 #ifndef DP3_INPUTSTEP_H
 #define DP3_INPUTSTEP_H
 
-#include "Step.h"
-#include "../base/DPBuffer.h"
+#include <dp3/steps/Step.h>
+#include <dp3/base/DPBuffer.h>
+
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
+#include "../common/Timer.h"
 
 #include <EveryBeam/telescope/phasedarray.h>
 #include <EveryBeam/elementresponse.h>

@@ -23,7 +23,7 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/version.h>
 
-#include "Types.h"
+#include <dp3/common/Types.h>
 
 using casacore::Matrix;
 using casacore::MPosition;

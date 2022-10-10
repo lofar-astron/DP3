@@ -15,8 +15,8 @@
 
 #include "../base/DemixWorker.h"
 #include "../base/DemixInfo.h"
-#include "../base/DPBuffer.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 
 #include "../parmdb/ParmDB.h"
 #include "../parmdb/ParmValue.h"

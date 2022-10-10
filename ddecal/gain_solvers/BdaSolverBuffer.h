@@ -4,7 +4,7 @@
 #ifndef DDECAL_BDA_SOLVER_BUFFER_H
 #define DDECAL_BDA_SOLVER_BUFFER_H
 
-#include "../../base/BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 
 #include <aocommon/queue.h>
 

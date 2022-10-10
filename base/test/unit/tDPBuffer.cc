@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 
 using dp3::base::DPBuffer;
 

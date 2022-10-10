@@ -14,8 +14,8 @@
 #include "../base/PhaseFitter.h"
 #include "../base/CalType.h"
 #include "../base/CursorUtilCasa.h"
-#include "../base/DPBuffer.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "../base/DPLogger.h"
 #include "../base/SourceDBUtil.h"
 

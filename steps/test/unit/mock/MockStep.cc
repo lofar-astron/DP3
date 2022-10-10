@@ -3,7 +3,7 @@
 
 #include "MockStep.h"
 
-#include "../../../../base/BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 
 #include <boost/test/unit_test.hpp>
 

@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "DP3.h"
+#include <dp3/base/DP3.h>
 
 #include <Version.h>
 

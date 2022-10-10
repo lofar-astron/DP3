@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 
 namespace dp3 {
 namespace base {

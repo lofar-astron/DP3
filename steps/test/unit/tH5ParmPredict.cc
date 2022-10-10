@@ -5,8 +5,9 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <dp3/base/DP3.h>
+
 #include "../../Predict.h"
-#include "../../../base/DP3.h"
 #include "../../../common/ParameterSet.h"
 
 #include "mock/MockInput.h"

@@ -8,7 +8,7 @@
 #include <idg-api.h>
 #endif
 
-#include "Step.h"
+#include <dp3/steps/Step.h>
 
 #include <schaapcommon/facets/facetimage.h>
 #include <schaapcommon/facets/facet.h>
@@ -19,6 +19,7 @@
 #include <EveryBeam/aterms/atermbase.h>
 
 #include "../common/ParameterSet.h"
+#include "../common/Timer.h"
 
 #include <complex>
 #include <functional>

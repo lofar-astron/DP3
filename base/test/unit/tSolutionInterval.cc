@@ -4,7 +4,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../../SolutionInterval.h"
-#include "../../DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../../../common/Timer.h"
 #include "../../../steps/test/unit/mock/MockInput.h"
 

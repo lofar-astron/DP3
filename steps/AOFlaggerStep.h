@@ -12,7 +12,7 @@
 
 #include "../steps/InputStep.h"
 
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../base/FlagCounter.h"
 
 #include <memory>

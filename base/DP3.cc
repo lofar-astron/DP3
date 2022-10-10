@@ -4,10 +4,10 @@
 //
 // @author Ger van Diepen
 
-#include "DP3.h"
+#include <dp3/base/DP3.h>
 
-#include "DPBuffer.h"
-#include "DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "DPLogger.h"
 #include "ProgressMeter.h"
 
@@ -52,7 +52,7 @@
 
 #include "../pythondp3/PyStep.h"
 
-#include "../common/Fields.h"
+#include <dp3/common/Fields.h>
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
 #include "../steps/AntennaFlagger.h"

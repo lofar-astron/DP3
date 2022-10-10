@@ -7,8 +7,8 @@
 #ifndef DPPP_PATCH_H
 #define DPPP_PATCH_H
 
+#include <dp3/base/Direction.h>
 #include "ModelComponent.h"
-#include "Direction.h"
 
 #include <memory>
 #include <string>

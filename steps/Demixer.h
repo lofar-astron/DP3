@@ -15,7 +15,7 @@
 #include "MultiResultStep.h"
 
 #include "../base/Baseline.h"
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../base/Patch.h"
 
 #include <casacore/casa/Arrays/Cube.h>

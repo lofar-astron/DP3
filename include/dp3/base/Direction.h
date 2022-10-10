@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_DIRECTION_H
-#define DP3_DIRECTION_H
+#ifndef DP3_BASE_DIRECTION_H_
+#define DP3_BASE_DIRECTION_H_
 
 #include <cstring>
 
@@ -32,4 +32,4 @@ struct Direction {
 }  // namespace base
 }  // namespace dp3
 
-#endif
+#endif  // DP3_BASE_DIRECTION_H_

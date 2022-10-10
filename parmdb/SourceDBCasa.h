@@ -16,7 +16,7 @@
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/casa/version.h>
 
-#include "../common/Types.h"
+#include <dp3/common/Types.h>
 
 #include <set>
 

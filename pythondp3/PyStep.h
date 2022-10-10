@@ -4,7 +4,7 @@
 #ifndef DPPP_PYDPSTEP_H
 #define DPPP_PYDPSTEP_H
 
-#include "../steps/Step.h"
+#include <dp3/steps/Step.h>
 #include "../common/ParameterSet.h"
 
 namespace dp3 {
