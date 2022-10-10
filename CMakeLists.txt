@@ -594,7 +594,6 @@ if(BUILD_TESTING)
       base/test/unit/tBaselineSelection.cc
       base/test/unit/tBDABuffer.cc
       base/test/unit/tDPBuffer.cc
-      # base/test/unit/tDemixer.cc # Parset is no longer valid in this test
       base/test/unit/tDP3.cc
       base/test/unit/tMirror.cc
       base/test/unit/tSimulate.cc
@@ -619,7 +618,6 @@ if(BUILD_TESTING)
       steps/test/unit/tAverager.cc
       steps/test/unit/tBdaPredict.cc
       steps/test/unit/tBDAResultStep.cc
-      steps/test/unit/tDDECal.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMedFlagger.cc
@@ -659,6 +657,8 @@ if(BUILD_TESTING)
       steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tColumnReader.cc
       steps/test/unit/tCounter.cc
+      steps/test/unit/tDDECal.cc
+      steps/test/unit/tDemixer.cc # Parset is no longer valid in this test!
       steps/test/unit/tGainCal.cc
       steps/test/unit/tH5ParmPredict.cc
       steps/test/unit/tInputStep.cc

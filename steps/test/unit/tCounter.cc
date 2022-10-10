@@ -1,12 +1,13 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "../../Counter.h"
 
 #include <boost/test/unit_test.hpp>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include "../../Counter.h"
 #include "../../../common/ParameterSet.h"
 #include "mock/MockStep.h"
 #include "mock/MockInput.h"
@@ -15,11 +16,26 @@
 #include <filesystem>
 #include <fstream>
 
-using dp3::base::DPBuffer;
-using dp3::base::DPInfo;
+using dp3::steps::Counter;
+using dp3::steps::Step;
 
 BOOST_AUTO_TEST_SUITE(counter, *boost::unit_test::tolerance(0.001) *
                                    boost::unit_test::tolerance(0.001f))
+
+BOOST_AUTO_TEST_CASE(fields) {
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset;
+
+  const Counter counter(&input, parset, "");
+  BOOST_TEST(counter.getRequiredFields() == Step::kFlagsField);
+  BOOST_TEST(counter.getProvidedFields() == dp3::common::Fields());
+
+  parset.add("flagdata", "true");
+  const Counter flags_data(&input, parset, "");
+  BOOST_TEST(flags_data.getRequiredFields() ==
+             (Step::kDataField | Step::kFlagsField));
+  BOOST_TEST(flags_data.getProvidedFields() == dp3::common::Fields());
+}
 
 BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   unsigned int n_corr = 4;
@@ -36,7 +52,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   const std::vector<int> ant1{0, 1, 2};
   const std::vector<int> ant2{1, 2, 0};
 
-  DPInfo info;
+  dp3::base::DPInfo info;
   info.init(n_corr, 0, n_chan, 1, 0, 1, "", antenna_set);
   info.set(ant_names, ant_diam, ant_pos, ant1, ant2);
 
@@ -86,7 +102,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   buffer.setData(data);
   buffer.setFlags(flags);
 
-  dp3::steps::Counter counter(&mock_input, parset, "");
+  Counter counter(&mock_input, parset, "");
   counter.setInfo(info);
 
   counter.setNextStep(mock_step);

@@ -268,6 +268,18 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
   itsFilterSubtr->setNextStep(itsAvgResultSubtr);
 }
 
+common::Fields Demixer::getRequiredFields() const {
+  // Demixer always runs at least one Averager. There are no substeps with
+  // additional requirements.
+  return Averager::kRequiredFields;
+}
+
+common::Fields Demixer::getProvidedFields() const {
+  // Demixer always runs at least one Averager. There are no substeps that
+  // provide additional fields.
+  return Averager::kProvidedFields;
+}
+
 void Demixer::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
 

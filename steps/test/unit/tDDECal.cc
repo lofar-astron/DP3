@@ -6,16 +6,47 @@
 #include "tStepCommon.h"
 #include "../../DDECal.h"
 
+using dp3::steps::DDECal;
+
 BOOST_AUTO_TEST_SUITE(ddecal)
+
+BOOST_AUTO_TEST_CASE(provided_fields) {
+  using dp3::steps::Step;
+
+  dp3::steps::MockInput input;
+  dp3::common::ParameterSet parset;
+  parset.add("msin", "tDDECal.MS");
+  parset.add("prefix.directions", "[[center]]");
+  parset.add("prefix.sourcedb", "tDDECal.MS/sky.txt");
+  // Errors occur when creating multiple DDECal's that write the same H5 file.
+  // Putting each DDECal object in a different scope also works.
+  parset.add("prefix.h5parm", "tddecal_fields.h5");
+  const DDECal ddecal(&input, parset, "prefix.");
+  BOOST_TEST(ddecal.getProvidedFields() == dp3::common::Fields());
+
+  dp3::common::ParameterSet parset_only_predict = parset;
+  parset_only_predict.add("prefix.onlypredict", "true");
+  parset_only_predict.replace("prefix.h5parm",
+                              "tddecal_fields_only_predict.h5");
+  const DDECal ddecal_only_predict(&input, parset_only_predict, "prefix.");
+  BOOST_TEST(ddecal_only_predict.getProvidedFields() == Step::kDataField);
+
+  dp3::common::ParameterSet parset_subtract = parset;
+  parset_subtract.add("prefix.subtract", "true");
+  parset_subtract.replace("prefix.h5parm", "tddecal_fields_subtract.h5");
+  const DDECal ddecal_subtract(&input, parset_subtract, "prefix.");
+  BOOST_TEST(ddecal_subtract.getProvidedFields() == Step::kDataField);
+}
 
 /// Helper forwarder to improve test failure output.
 static void TestShow(
     const std::string& expected,
     const std::vector<std::pair<std::string, std::string>>& parameters) {
+  dp3::steps::MockInput input;
   const dp3::common::ParameterSet parset =
       dp3::steps::test::CreateParameterSet(parameters);
-  BOOST_CHECK_EQUAL(expected,
-                    dp3::steps::test::Show<dp3::steps::DDECal>(parset));
+  const DDECal ddecal(&input, parset, "prefix.");
+  BOOST_CHECK_EQUAL(expected, dp3::steps::test::Show(ddecal));
 
   BOOST_CHECK_MESSAGE(parset.unusedKeys().empty(),
                       "Not all keys are used, is there a typo?");

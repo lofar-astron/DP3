@@ -60,13 +60,9 @@ class DemixerNew : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   DemixerNew(InputStep*, const common::ParameterSet&, const string& prefix);
 
-  common::Fields getRequiredFields() const override {
-    return itsWorkers.front().getRequiredFields();
-  }
+  common::Fields getRequiredFields() const override;
 
-  common::Fields getProvidedFields() const override {
-    return itsWorkers.front().getProvidedFields();
-  }
+  common::Fields getProvidedFields() const override;
 
   /// Process the data.
   /// It keeps the data.
