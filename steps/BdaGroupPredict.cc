@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+#include "../base/DP3.h"
+
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
 
@@ -37,14 +39,7 @@ class BdaGroupPredict::BaselineGroup {
 
   /// @return The required fields for the sub-steps in this group.
   common::Fields GetRequiredFields() const {
-    // TODO (AST-1032): Combine required fields using a generic function, that
-    // also takes the provided fields into account.
-    common::Fields fields;
-    for (std::shared_ptr<Step> step = predict_step_; step;
-         step = step->getNextStep()) {
-      fields |= step->getRequiredFields();
-    }
-    return fields;
+    return base::DP3::GetChainRequiredFields(predict_step_);
   }
 
   /// Create the predict and result step for this group

@@ -79,11 +79,7 @@ Split::~Split() {}
 common::Fields Split::getRequiredFields() const {
   common::Fields fields;
   for (const std::shared_ptr<Step>& first_step : itsSubsteps) {
-    // TODO (AST-1032) Also use provided fields when combining fields.
-    for (std::shared_ptr<Step> step = first_step; step;
-         step = step->getNextStep()) {
-      fields |= step->getRequiredFields();
-    }
+    fields |= base::DP3::GetChainRequiredFields(first_step);
   }
   return fields;
 }

@@ -83,6 +83,22 @@ class Fields {
   }
 
   /**
+   * Updates the current object's Fields based on a step's required and provided
+   * Fields The current object's single field is set to false if the step
+   * creates it (provides the field, but does not require it).
+   * @param required Step's required Fields.
+   * @param provided Step's provided Fields.
+   * @return A reference to the current Fields object.
+   */
+  Fields& UpdateRequirements(const Fields& required, const Fields& provided) {
+    std::bitset<static_cast<int>(Single::kCount)> to_reset =
+        provided.value_ & ~required.value_;
+    value_ |= required.value_;
+    value_ &= ~to_reset;
+    return *this;
+  }
+
+  /**
    * Combines two Fields objects.
    * @return A Fields object with the fields of both arguments.
    */

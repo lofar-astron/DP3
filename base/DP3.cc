@@ -276,6 +276,24 @@ DP3::StepCtor* DP3::findStepCtor(const std::string& type) {
       " or libdppp_" + libname + " found in (DY)LD_LIBRARY_PATH");
 }
 
+dp3::common::Fields DP3::GetChainRequiredFields(
+    std::shared_ptr<steps::Step> first_step) {
+  std::shared_ptr<steps::Step> last_step;
+  for (std::shared_ptr<steps::Step> step = first_step; step;
+       step = step->getNextStep()) {
+    last_step = step;
+  }
+
+  dp3::common::Fields overall_required_fields;
+  for (Step* step = last_step.get(); step; step = step->getPrevStep()) {
+    overall_required_fields.UpdateRequirements(step->getRequiredFields(),
+                                               step->getProvidedFields());
+    if (step == first_step.get()) break;
+  }
+
+  return overall_required_fields;
+}
+
 void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   casacore::Timer timer;
   common::NSTimer nstimer;

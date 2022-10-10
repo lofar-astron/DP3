@@ -5,6 +5,7 @@
 
 #include <algorithm>
 
+#include "../base/DP3.h"
 #include "../base/DPInfo.h"
 #include "../base/SourceDBUtil.h"
 #include "../common/ParameterSet.h"
@@ -93,12 +94,7 @@ void BdaDdeCal::InitializePredictSteps(InputStep* input,
 common::Fields BdaDdeCal::getRequiredFields() const {
   common::Fields fields = uvw_flagger_step_->getRequiredFields();
   for (std::shared_ptr<Step> direction_first_step : steps_) {
-    // TODO (AST-1032): Combine required fields using a generic function, that
-    // also takes the provided fields into account.
-    for (std::shared_ptr<Step> step = direction_first_step; step;
-         step = step->getNextStep()) {
-      fields |= step->getRequiredFields();
-    }
+    fields |= base::DP3::GetChainRequiredFields(direction_first_step);
   }
   return fields;
 }
