@@ -29,56 +29,53 @@ namespace steps {
 
 Split::Split(InputStep* input, const common::ParameterSet& parset,
              const string& prefix)
-    : itsAddedToMS(false) {
-  itsReplaceParms = parset.getStringVector(prefix + "replaceparms");
+    : name_(prefix),
+      replace_parameters_(parset.getStringVector(prefix + "replaceparms")),
+      sub_steps_(),
+      added_to_ms_(false) {
   // For each of the parameters, the values for each substep
-  std::vector<std::vector<string>> replaceParmValues(itsReplaceParms.size());
+  std::vector<std::vector<string>> replace_values;
+  replace_values.reserve(replace_parameters_.size());
 
-  // numSplits, the number of 'new streams' that the data are split into is
-  // determined from the replaced parameters.
-  size_t numSplits = 0;
-
-  for (size_t parmIndex = 0; parmIndex != itsReplaceParms.size(); ++parmIndex) {
-    const std::vector<string> parmValues =
-        parset.getStringVector(itsReplaceParms[parmIndex]);
-    replaceParmValues[parmIndex] = parmValues;
-    if (numSplits == 0) {
-      numSplits = parmValues.size();
-    } else {
-      if (parmValues.size() != numSplits)
-        throw std::runtime_error(
-            "Each parameter in replaceparms should have the same number of "
-            "items (expected " +
-            std::to_string(numSplits) + ", got " +
-            std::to_string(parmValues.size()) + " for step " +
-            itsReplaceParms[parmIndex]);
+  for (const std::string& replace_parameter : replace_parameters_) {
+    replace_values.emplace_back(parset.getStringVector(replace_parameter));
+    if (replace_values.back().size() != replace_values.front().size()) {
+      throw std::runtime_error(
+          "Each parameter in replaceparms should have the same number of "
+          "items (expected " +
+          std::to_string(replace_values.front().size()) + ", got " +
+          std::to_string(replace_values.back().size()) + " for step " +
+          replace_parameter);
     }
   }
+
+  // num_splits, the number of 'new streams' that the data are split into is
+  // determined from the replaced parameters.
+  const size_t num_splits =
+      replace_values.empty() ? 0 : replace_values.front().size();
 
   // Make a shallow copy to work around constness of parset
   common::ParameterSet parsetCopy(parset);
 
   // Create the substeps
-  const size_t numParameters = itsReplaceParms.size();
-  for (size_t i = 0; i != numSplits; ++i) {
-    for (size_t j = 0; j != numParameters; ++j) {
-      parsetCopy.replace(itsReplaceParms[j], replaceParmValues[j][i]);
+  const size_t num_parameters = replace_parameters_.size();
+  for (size_t i = 0; i != num_splits; ++i) {
+    for (size_t j = 0; j != num_parameters; ++j) {
+      parsetCopy.replace(replace_parameters_[j], replace_values[j][i]);
     }
-    std::shared_ptr<Step> firstStep =
+    std::shared_ptr<Step> first_step =
         base::DP3::makeStepsFromParset(parsetCopy, prefix, "steps", *input,
                                        true, steps::Step::MsType::kRegular);
-    if (firstStep) {
-      firstStep->setPrevStep(this);
-      itsSubsteps.push_back(std::move(firstStep));
+    if (first_step) {
+      first_step->setPrevStep(this);
+      sub_steps_.push_back(std::move(first_step));
     }
   }
 }
 
-Split::~Split() {}
-
 common::Fields Split::getRequiredFields() const {
   common::Fields fields;
-  for (const std::shared_ptr<Step>& first_step : itsSubsteps) {
+  for (const std::shared_ptr<Step>& first_step : sub_steps_) {
     fields |= base::DP3::GetChainRequiredFields(first_step);
   }
   return fields;
@@ -87,18 +84,18 @@ common::Fields Split::getRequiredFields() const {
 void Split::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
 
-  for (std::shared_ptr<Step>& step : itsSubsteps) {
+  for (std::shared_ptr<Step>& step : sub_steps_) {
     step->setInfo(infoIn);
   }
 }
 
 void Split::show(std::ostream& os) const {
-  os << "Split " << itsName << '\n'
-     << "  replace parameters:" << itsReplaceParms << '\n';
+  os << "Split " << name_ << '\n'
+     << "  replace parameters:" << replace_parameters_ << '\n';
   // Show the steps.
-  for (unsigned int i = 0; i < itsSubsteps.size(); ++i) {
-    os << "Split substep " << (i + 1) << " of " << itsSubsteps.size() << '\n';
-    std::shared_ptr<Step> step = itsSubsteps[i];
+  for (unsigned int i = 0; i < sub_steps_.size(); ++i) {
+    os << "Split substep " << (i + 1) << " of " << sub_steps_.size() << '\n';
+    std::shared_ptr<Step> step = sub_steps_[i];
     while (step) {
       step->show(os);
       step = step->getNextStep();
@@ -107,8 +104,8 @@ void Split::show(std::ostream& os) const {
 }
 
 void Split::showTimings(std::ostream& os, double duration) const {
-  for (unsigned int i = 0; i < itsSubsteps.size(); ++i) {
-    std::shared_ptr<Step> step = itsSubsteps[i];
+  for (unsigned int i = 0; i < sub_steps_.size(); ++i) {
+    std::shared_ptr<Step> step = sub_steps_[i];
     while (step) {
       step->showTimings(os, duration);
       step = step->getNextStep();
@@ -117,7 +114,7 @@ void Split::showTimings(std::ostream& os, double duration) const {
 }
 
 bool Split::process(const DPBuffer& bufin) {
-  for (std::shared_ptr<Step>& step : itsSubsteps) {
+  for (std::shared_ptr<Step>& step : sub_steps_) {
     step->process(bufin);
   }
   return false;
@@ -125,24 +122,24 @@ bool Split::process(const DPBuffer& bufin) {
 
 void Split::finish() {
   // Let the next steps finish.
-  for (std::shared_ptr<Step>& step : itsSubsteps) {
+  for (std::shared_ptr<Step>& step : sub_steps_) {
     step->finish();
   }
 }
 
-void Split::addToMS(const string& msName) {
-  if (itsAddedToMS) {
-    getPrevStep()->addToMS(msName);
+void Split::addToMS(const string& ms_name) {
+  if (added_to_ms_) {
+    getPrevStep()->addToMS(ms_name);
   } else {
-    itsAddedToMS = true;
-    for (auto& subStep : itsSubsteps) {
-      std::shared_ptr<Step> step, lastStep;
-      step = subStep;
+    added_to_ms_ = true;
+    for (std::shared_ptr<Step>& sub_step : sub_steps_) {
+      std::shared_ptr<Step> step = sub_step;
+      std::shared_ptr<Step> last_step;
       while (step) {
-        lastStep = step;
+        last_step = step;
         step = step->getNextStep();
       }
-      lastStep->addToMS(msName);
+      last_step->addToMS(ms_name);
     }
   }
 }
