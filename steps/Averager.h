@@ -41,6 +41,11 @@ namespace steps {
 
 class Averager : public Step {
  public:
+  /// Required and provided fields are fixed. These constants simplify
+  /// get*Fields implementations for steps that have Averagers as sub-step.
+  static const common::Fields kRequiredFields;
+  static const common::Fields kProvidedFields;
+
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   Averager(InputStep&, const common::ParameterSet&, const string& prefix);
@@ -53,15 +58,9 @@ class Averager : public Step {
 
   virtual ~Averager();
 
-  common::Fields getRequiredFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
-           kUvwField;
-  }
+  common::Fields getRequiredFields() const override { return kRequiredFields; }
 
-  common::Fields getProvidedFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
-           kUvwField;
-  }
+  common::Fields getProvidedFields() const override { return kProvidedFields; }
 
   /// Process the data.
   /// It keeps the data.

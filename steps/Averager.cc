@@ -31,6 +31,10 @@ using casacore::IPosition;
 namespace dp3 {
 namespace steps {
 
+const common::Fields Averager::kRequiredFields =
+    kDataField | kFlagsField | kWeightsField | kFullResFlagsField | kUvwField;
+const common::Fields Averager::kProvidedFields = kRequiredFields;
+
 Averager::Averager(InputStep& input, const common::ParameterSet& parset,
                    const string& prefix)
     : itsInput(input),

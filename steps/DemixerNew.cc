@@ -24,6 +24,8 @@
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
+#include "Averager.h"
+
 using casacore::Matrix;
 
 using dp3::base::DPBuffer;
@@ -48,6 +50,21 @@ DemixerNew::DemixerNew(InputStep* input, const common::ParameterSet& parset,
       itsNChunk(0) {
   if (itsInstrumentName.empty())
     throw std::runtime_error("An empty name is given for the instrument model");
+}
+
+common::Fields DemixerNew::getRequiredFields() const {
+  // The DemixWorkers in itsWorkers contain sub-steps, however, since
+  // itsWorkers is initialized in updateInfo, we cannot use it here. Since a
+  // worker contains at least one Averager, and no sub-steps have additional
+  // requirements, return the fields required by the Averager.
+  return Averager::kRequiredFields;
+}
+
+common::Fields DemixerNew::getProvidedFields() const {
+  // We cannot use itsWorkers here (see above, in getRequiredFields).
+  // Since a worker contains at least one Averager, and no sub-steps have
+  // additional provided fields, return the fields provided by the Averager.
+  return Averager::kProvidedFields;
 }
 
 void DemixerNew::updateInfo(const DPInfo& infoIn) {

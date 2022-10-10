@@ -22,13 +22,12 @@ namespace steps {
 Counter::Counter(InputStep* input, const common::ParameterSet& parset,
                  const string& prefix)
     : itsName(prefix),
+      itsFlagData(parset.getBool(prefix + "flagdata", false)),
       itsCount(0),
       itsSaveToJson(parset.getBool(prefix + "savetojson", false)),
       itsJsonFilename(parset.getString(prefix + "jsonfilename",
                                        "FlagPercentagePerStation.JSON")),
-      itsFlagCounter(input->msName(), parset, prefix) {
-  itsFlagData = parset.getBool(prefix + "flagdata", false);
-}
+      itsFlagCounter(input->msName(), parset, prefix) {}
 
 Counter::~Counter() {}
 

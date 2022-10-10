@@ -4,27 +4,31 @@
 //
 // @author Ger van Diepen
 
+#include "../../Demixer.h"
+#include "../../DemixerNew.h"
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
 #include <boost/test/unit_test.hpp>
 
+#include "tPredict.h"
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
-#include "../../Demixer.h"
-#include "../../DPBuffer.h"
-#include "../../DPInfo.h"
+#include "../../Averager.h"
+#include "../../../base/DPBuffer.h"
+#include "../../../base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
-using dp3::base::Demixer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
-using dp3::base::Step;
 using dp3::common::ParameterSet;
-using std::vector;
+using dp3::steps::Demixer;
+using dp3::steps::DemixerNew;
+using dp3::steps::Step;
 
-BOOST_AUTO_TEST_SUITE(demixer)
+namespace {
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -138,13 +142,13 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-5));
+    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1.0e-5));
+    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1.0e-5));
     BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
-    BOOST_CHECK(casacore::near(
+    BOOST_CHECK_CLOSE(
         buf.getTime(),
-        2 + 5 * (itsCount * itsNAvgTime + (itsNAvgTime - 1) / 2.)));
-    BOOST_CHECK(allNear(buf.getWeights(), resultw, 1e-5));
+        2.0 + 5.0 * (itsCount * itsNAvgTime + (itsNAvgTime - 1) / 2.0), 1.0e-3);
+    BOOST_CHECK(allNear(buf.getWeights(), resultw, 1.0e-5));
     if (navgtime == itsNAvgTime) {
       casacore::Matrix<double> uvw(3, itsNBl);
       indgen(uvw, 100 * (itsCount * itsNAvgTime + 0.5 * (itsNAvgTime - 1)));
@@ -172,27 +176,62 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 };
 
 // Test simple averaging without flagged points.
-void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
-           bool flag) {
+void TestDemixer(int ntime, int nbl, int nchan, int ncorr, int navgtime,
+                 int navgchan, bool flag) {
   auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("freqstep", std::to_string(navgchan));
   parset.add("timestep", std::to_string(navgtime));
   parset.add("sources", "CasA");
-  auto step2 = std::make_shared<Demixer>(in, parset, "");
+  auto step2 = std::make_shared<Demixer>(step1.get(), parset, "");
   auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
                                             navgchan, flag);
   dp3::steps::test::Execute({step1, step2, step3});
 }
 
-BOOST_AUTO_TEST_CASE(test_demixer1) { test1(10, 3, 32, 4, 2, 4, false); }
+}  // namespace
 
-BOOST_AUTO_TEST_CASE(test_demixer2) { test1(10, 3, 30, 1, 3, 3, true); }
+BOOST_AUTO_TEST_SUITE(demixer)
 
-BOOST_AUTO_TEST_CASE(test_demixer3) { test1(10, 3, 30, 1, 3, 3, false); }
+// TODO(AST-1050) : Fix the invalid parset in these tests and re-enable them.
+BOOST_AUTO_TEST_CASE(execute_1, *boost::unit_test::disabled()) {
+  TestDemixer(10, 3, 32, 4, 2, 4, false);
+}
 
-BOOST_AUTO_TEST_CASE(test_demixer4) { test1(11, 3, 30, 2, 3, 3, false); }
+BOOST_AUTO_TEST_CASE(execute_2, *boost::unit_test::disabled()) {
+  TestDemixer(10, 3, 30, 1, 3, 3, true);
+}
 
-BOOST_AUTO_TEST_CASE(test_demixer5) { test1(10, 3, 32, 4, 1, 32, false); }
+BOOST_AUTO_TEST_CASE(execute_3, *boost::unit_test::disabled()) {
+  TestDemixer(10, 3, 30, 1, 3, 3, false);
+}
+
+BOOST_AUTO_TEST_CASE(execute_4, *boost::unit_test::disabled()) {
+  TestDemixer(11, 3, 30, 2, 3, 3, false);
+}
+
+BOOST_AUTO_TEST_CASE(execute_5, *boost::unit_test::disabled()) {
+  TestDemixer(10, 3, 32, 4, 1, 32, false);
+}
+
+BOOST_AUTO_TEST_CASE(fields) {
+  using dp3::steps::Averager;
+  dp3::steps::MockInput input;
+
+  ParameterSet parset;
+  parset.add("skymodel", dp3::steps::test::kPredictSourceDB);
+  Demixer demixer(&input, parset, "");
+
+  ParameterSet parset_new;
+  parset_new.add("ateam.skymodel", dp3::steps::test::kPredictSourceDB);
+  parset_new.add("target.skymodel", dp3::steps::test::kPredictSourceDB);
+  parset_new.add("sources", dp3::steps::test::kPredictDirection);
+  DemixerNew demixer_new(&input, parset_new, "");
+
+  BOOST_TEST(demixer.getRequiredFields() == Averager::kRequiredFields);
+  BOOST_TEST(demixer.getProvidedFields() == Averager::kProvidedFields);
+  BOOST_TEST(demixer_new.getRequiredFields() == Averager::kRequiredFields);
+  BOOST_TEST(demixer_new.getProvidedFields() == Averager::kProvidedFields);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

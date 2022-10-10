@@ -24,18 +24,9 @@ dp3::common::ParameterSet CreateParameterSet(
 
 /**
  * Helper function to aid testing @c Step::show.
- *
- * Creates a @a Step using the @a parset and a fixed prefix @c "prefix.". It
- * returns the result of @a Step::show.
+ * @return The result of Step::show, using the C locale.
  */
-template <class Step>
-inline std::string Show(const dp3::common::ParameterSet& parset) {
-  class : public dp3::steps::MockInput {
-    void finish() override {}
-    void show(std::ostream&) const override {}
-  } input;
-
-  const Step step{&input, parset, "prefix."};
+inline std::string Show(const Step& step) {
   std::stringstream output;
   // Ensure the test doesn't depend on the system's locale settings.
   output.imbue(std::locale::classic());

@@ -11,6 +11,8 @@
 #include "../../../common/Fields.h"
 #include "../../../common/ParameterSet.h"
 
+using dp3::steps::BdaDdeCal;
+
 namespace {
 
 dp3::common::ParameterSet CreateMinimalPararameterSet() {
@@ -30,7 +32,7 @@ struct BdaDdeCalFixture {
   }
 
   dp3::steps::MockInput input;
-  std::shared_ptr<dp3::steps::BdaDdeCal> bdaddecal;
+  std::shared_ptr<BdaDdeCal> bdaddecal;
 };
 
 }  // namespace
@@ -41,10 +43,11 @@ BOOST_AUTO_TEST_SUITE(bdaddecal)
 static void TestShow(
     const std::string& expected,
     const std::vector<std::pair<std::string, std::string>>& parameters) {
+  dp3::steps::MockInput input;
   const dp3::common::ParameterSet parset =
       dp3::steps::test::CreateParameterSet(parameters);
-  BOOST_CHECK_EQUAL(expected,
-                    dp3::steps::test::Show<dp3::steps::BdaDdeCal>(parset));
+  const BdaDdeCal bdaddecal(&input, parset, "prefix.");
+  BOOST_CHECK_EQUAL(expected, dp3::steps::test::Show(bdaddecal));
 
   BOOST_CHECK_MESSAGE(parset.unusedKeys().empty(),
                       "Not all keys are used, is there a typo?");
