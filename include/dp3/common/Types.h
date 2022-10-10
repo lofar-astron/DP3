@@ -6,8 +6,8 @@
 /// @brief Define common types.
 /// @author Maik Nijhuis
 
-#ifndef COMMON_TYPES_H
-#define COMMON_TYPES_H
+#ifndef DP3_COMMON_TYPES_H_
+#define DP3_COMMON_TYPES_H_
 
 #include <casacore/casa/version.h>
 
@@ -24,4 +24,4 @@ typedef casacore::rownr_t rownr_t;
 }  // namespace common
 }  // namespace dp3
 
-#endif
+#endif  // DP3_COMMON_TYPES_H_

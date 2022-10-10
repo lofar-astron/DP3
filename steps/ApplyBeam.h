@@ -9,6 +9,10 @@
 #ifndef DP3_STEPS_APPLYBEAM_H_
 #define DP3_STEPS_APPLYBEAM_H_
 
+#include "InputStep.h"
+
+#include <dp3/base/DPBuffer.h>
+
 #include <EveryBeam/telescope/telescope.h>
 
 #include <aocommon/matrix2x2.h>
@@ -17,9 +21,6 @@
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
 
-#include "InputStep.h"
-
-#include "../base/DPBuffer.h"
 #include "../common/ParameterSet.h"
 
 namespace dp3 {
@@ -160,4 +161,4 @@ class ApplyBeam : public Step {
 }  // namespace steps
 }  // namespace dp3
 
-#endif  // HAVE_LOFAR_BEAM
+#endif

@@ -9,7 +9,8 @@
 #ifndef DPPP_DEMIXINFO_H
 #define DPPP_DEMIXINFO_H
 
-#include "DPInfo.h"
+#include <dp3/base/DPInfo.h>
+
 #include "BaselineSelection.h"
 #include "Baseline.h"
 #include "Patch.h"

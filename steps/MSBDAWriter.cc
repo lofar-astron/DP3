@@ -5,7 +5,7 @@
 #include "MSWriter.h"
 
 #include "../common/ParameterSet.h"
-#include "../base/BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 #include "../base/DPLogger.h"
 #include "../base/MS.h"
 

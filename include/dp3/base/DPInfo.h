@@ -6,16 +6,14 @@
 /// @brief General info about DPPP data processing attributes like averaging
 /// @author Ger van Diepen
 
-#ifndef DPPP_DPINFO_H
-#define DPPP_DPINFO_H
+#ifndef DP3_BASE_DPINFO_H_
+#define DP3_BASE_DPINFO_H_
 
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MeasureHolder.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Containers/Record.h>
-
-#include <boost/algorithm/string/case_conv.hpp>
 
 namespace dp3 {
 namespace steps {
@@ -328,4 +326,4 @@ class DPInfo {
 }  // namespace base
 }  // namespace dp3
 
-#endif
+#endif  // DP3_BASE_DPINFO_H_

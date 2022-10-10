@@ -8,6 +8,7 @@
 #include "OutputStep.h"
 
 #include "../base/StManParsetKeys.h"
+#include "../common/Timer.h"
 
 #include <aocommon/lane.h>
 

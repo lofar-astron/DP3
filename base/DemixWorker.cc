@@ -7,8 +7,8 @@
 #include "DemixWorker.h"
 #include "Apply.h"
 #include "CursorUtilCasa.h"
-#include "DPBuffer.h"
-#include "DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "Simulate.h"
 #include "Simulator.h"
 #include "SubtractNew.h"

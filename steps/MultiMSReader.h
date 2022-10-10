@@ -11,7 +11,7 @@
 
 #include "MSReader.h"
 
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
 

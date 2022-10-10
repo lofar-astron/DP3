@@ -15,11 +15,15 @@
 #include "tPredict.h"
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
-#include "../../Averager.h"
-#include "../../../base/DPBuffer.h"
-#include "../../../base/DPInfo.h"
+#include "../../Demixer.h"
+
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
+
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
+
+#include "../../Averager.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

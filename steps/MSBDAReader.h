@@ -10,7 +10,7 @@
 
 #include "InputStep.h"
 
-#include "../base/BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
 

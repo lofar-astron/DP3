@@ -3,7 +3,7 @@
 
 #include "SolverBuffer.h"
 
-#include "../../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 
 #include <array>
 #include <cassert>

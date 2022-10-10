@@ -4,7 +4,7 @@
 #ifndef DP3_STEPS_TEST_UNIT_TPREDICT_H_
 #define DP3_STEPS_TEST_UNIT_TPREDICT_H_
 
-#include "../../../base/Direction.h"
+#include <dp3/base/Direction.h>
 
 #include <string>
 

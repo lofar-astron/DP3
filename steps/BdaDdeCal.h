@@ -4,8 +4,9 @@
 #ifndef DP3_BDADDECAL_H
 #define DP3_BDADDECAL_H
 
+#include <dp3/steps/Step.h>
+
 #include "BDAResultStep.h"
-#include "Step.h"
 #include "UVWFlagger.h"
 #include "../ddecal/Settings.h"
 #include "../ddecal/SolutionWriter.h"

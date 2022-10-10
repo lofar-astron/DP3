@@ -9,7 +9,7 @@
 #ifndef TESTDYNDPPP_TESTDYNSTEP_H
 #define TESTDYNDPPP_TESTDYNSTEP_H
 
-#include "../../steps/Step.h"
+#include <dp3/steps/Step.h>
 #include "../../steps/Averager.h"
 #include "../../steps/InputStep.h"
 #include "../../common/ParameterSet.h"

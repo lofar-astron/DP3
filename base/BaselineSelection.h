@@ -9,7 +9,7 @@
 #ifndef DPPP_BASELINESELECTION_H
 #define DPPP_BASELINESELECTION_H
 
-#include "DPInfo.h"
+#include <dp3/base/DPInfo.h>
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>

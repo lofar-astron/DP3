@@ -5,7 +5,7 @@
 #define DP3_DDECAL_SCREEN_CONSTRAINT_H_
 
 #include "../../base/PhaseFitter.h"
-#include "../../base/Direction.h"
+#include <dp3/base/Direction.h>
 
 #include "Constraint.h"
 #include "PiercePoint.h"

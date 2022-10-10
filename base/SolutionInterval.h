@@ -11,7 +11,7 @@
 #ifndef COMMON_SOLUTION_INTERVAL
 #define COMMON_SOLUTION_INTERVAL
 
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "../steps/InputStep.h"
 
 #include <casacore/casa/Arrays/Cube.h>

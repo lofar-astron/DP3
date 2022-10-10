@@ -3,7 +3,7 @@
 
 #include "mock/MockStep.h"
 #include "../../MSBDAReader.h"
-#include "../../../base/DPInfo.h"
+#include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
 
 #include <boost/test/unit_test.hpp>

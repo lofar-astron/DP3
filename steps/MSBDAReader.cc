@@ -3,9 +3,9 @@
 
 #include "MSBDAReader.h"
 
-#include "../base/BDABuffer.h"
-#include "../base/DPBuffer.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/BDABuffer.h>
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "../base/DPLogger.h"
 #include "../base/MS.h"
 

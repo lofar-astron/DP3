@@ -4,8 +4,8 @@
 /// This file has generic helper routines for testing steps.
 
 #include "tStepCommon.h"
-#include "../../../base/DPBuffer.h"
-#include "../../../base/DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 
 namespace dp3 {
 namespace steps {

@@ -10,7 +10,7 @@
 #define DPPP_DEMIXWORKER_H
 
 #include "DemixInfo.h"
-#include "DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 #include "Patch.h"
 #include "EstimateNew.h"
 

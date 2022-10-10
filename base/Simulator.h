@@ -10,7 +10,7 @@
 #include "Baseline.h"
 #include "ModelComponent.h"
 #include "ModelComponentVisitor.h"
-#include "Direction.h"
+#include <dp3/base/Direction.h>
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>

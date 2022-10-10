@@ -9,10 +9,10 @@
 #define DPPP_BDAEXPANDER_H
 
 #include "InputStep.h"
-#include "Step.h"
+#include <dp3/steps/Step.h>
 
-#include "../base/BDABuffer.h"
-#include "../base/DPBuffer.h"
+#include <dp3/base/BDABuffer.h>
+#include <dp3/base/DPBuffer.h>
 
 #include <map>
 #include <utility>

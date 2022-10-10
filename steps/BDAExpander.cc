@@ -10,7 +10,7 @@
 
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
-#include "../common/Types.h"
+#include <dp3/common/Types.h>
 
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Arrays/Vector.h>

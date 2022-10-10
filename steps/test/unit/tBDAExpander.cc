@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../../base/BDABuffer.h"
+#include <dp3/base/BDABuffer.h>
 #include "../../../common/ParameterSet.h"
 #include "../../BDAExpander.h"
 #include "mock/MockInput.h"

@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "Step.h"
+#include <dp3/steps/Step.h>
 
 #include <assert.h>
 

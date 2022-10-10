@@ -12,9 +12,9 @@
 
 #include "mock/ThrowStep.h"
 #include "../../ScaleData.h"
-#include "../../../base/DPBuffer.h"
-#include "../../../base/BDABuffer.h"
-#include "../../../base/DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/BDABuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 #include "../../../common/StreamUtil.h"

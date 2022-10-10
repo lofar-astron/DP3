@@ -11,7 +11,7 @@
 
 #include "InputStep.h"
 
-#include "../base/DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 
 #include <aocommon/staticfor.h>
 

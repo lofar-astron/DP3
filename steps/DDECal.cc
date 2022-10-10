@@ -9,9 +9,9 @@
 #include <Version.h>
 
 #include "../base/CalType.h"
-#include "../base/DP3.h"
-#include "../base/DPBuffer.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/DP3.h>
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "../base/DPLogger.h"
 #include "../base/Simulate.h"
 #include "../base/SourceDBUtil.h"

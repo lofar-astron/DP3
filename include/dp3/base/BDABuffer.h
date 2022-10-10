@@ -6,10 +6,10 @@
 /// @brief Buffer holding base dependent averaged (BDA) data.
 /// @author Maik Nijhuis and Lars Krombeen
 
-#ifndef DPPP_BDABUFFER_H
-#define DPPP_BDABUFFER_H
+#ifndef DP3_BASE_BDABUFFER_H_
+#define DP3_BASE_BDABUFFER_H_
 
-#include "../common/Types.h"
+#include <dp3/common/Types.h>
 
 #include <aocommon/uvector.h>
 #include <complex>
@@ -232,4 +232,4 @@ class BDABuffer {
 }  // namespace base
 }  // namespace dp3
 
-#endif
+#endif  // DP3_BASE_BDABUFFER_H_

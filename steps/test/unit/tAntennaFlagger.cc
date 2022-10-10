@@ -11,8 +11,8 @@
 #include "mock/ThrowStep.h"
 #include "../../AntennaFlagger.h"
 #include "../../Counter.h"
-#include "../../../base/DPBuffer.h"
-#include "../../../base/DPInfo.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 

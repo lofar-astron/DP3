@@ -10,7 +10,7 @@
 #define DP3_STEPS_COLUMNREADER_H_
 
 #include "../common/ParameterSet.h"
-#include "Step.h"
+#include <dp3/steps/Step.h>
 #include "InputStep.h"
 
 namespace dp3 {

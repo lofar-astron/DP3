@@ -13,13 +13,12 @@
 #include <memory>
 #include <string>
 
-#include "../base/DPBuffer.h"
-#include "../base/BDABuffer.h"
-#include "../base/DPInfo.h"
-#include "../base/Direction.h"
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/BDABuffer.h>
+#include <dp3/base/DPInfo.h>
+#include <dp3/base/Direction.h>
 
-#include "../common/Fields.h"
-#include "../common/Timer.h"
+#include <dp3/common/Fields.h>
 
 namespace dp3 {
 namespace steps {
@@ -168,4 +167,5 @@ class ModelDataStep : public Step {
 
 }  // namespace steps
 }  // namespace dp3
-#endif
+
+#endif  // DP3_STEPS_STEP_H_

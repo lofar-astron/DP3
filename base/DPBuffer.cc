@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "DPBuffer.h"
+#include <dp3/base/DPBuffer.h>
 
 #include <casacore/casa/version.h>
 

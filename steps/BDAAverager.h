@@ -8,7 +8,8 @@
 #ifndef DPPP_BDAAVERAGER_H
 #define DPPP_BDAAVERAGER_H
 
-#include "Step.h"
+#include <dp3/steps/Step.h>
+#include "../common/Timer.h"
 
 #include <casacore/casa/Arrays/IPosition.h>
 

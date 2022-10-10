@@ -5,12 +5,14 @@
 
 #include <algorithm>
 
-#include "../base/DP3.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/DP3.h>
+#include <dp3/base/DPInfo.h>
+
 #include "../base/SourceDBUtil.h"
 #include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"
 #include "../common/StreamUtil.h"
+#include "../common/Timer.h"
 #include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/SolverFactory.h"
 

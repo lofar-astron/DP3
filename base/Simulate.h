@@ -15,7 +15,7 @@
 #include "Baseline.h"
 #include "Cursor.h"
 #include "Patch.h"
-#include "Direction.h"
+#include <dp3/base/Direction.h>
 
 namespace dp3 {
 namespace base {

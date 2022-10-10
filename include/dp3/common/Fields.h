@@ -138,4 +138,4 @@ class Fields {
 }  // namespace common
 }  // namespace dp3
 
-#endif
+#endif  // DP3_COMMON_FIELDS_H_

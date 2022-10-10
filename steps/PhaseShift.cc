@@ -6,9 +6,9 @@
 
 #include "PhaseShift.h"
 
-#include "../base/Direction.h"
-#include "../base/DPBuffer.h"
-#include "../base/DPInfo.h"
+#include <dp3/base/Direction.h>
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
