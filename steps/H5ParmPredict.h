@@ -19,6 +19,7 @@
 #include "Predict.h"
 #include "ResultStep.h"
 
+#include "../base/DP3.h"
 #include "../base/DPBuffer.h"
 #include "../base/ModelComponent.h"
 #include "../base/Patch.h"
@@ -50,14 +51,7 @@ class H5ParmPredict : public Step {
 
   common::Fields getRequiredFields() const override {
     // Combine the result of all sub steps.
-    // TODO (AST-1032): Combine required fields using a generic function, that
-    // also takes the provided fields into account.
-    common::Fields fields;
-    for (std::shared_ptr<Step> step = itsPredictSteps.front(); step;
-         step = step->getNextStep()) {
-      fields |= step->getRequiredFields();
-    }
-    return fields;
+    return base::DP3::GetChainRequiredFields(itsPredictSteps.front());
   }
 
   common::Fields getProvidedFields() const override {

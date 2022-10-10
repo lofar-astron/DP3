@@ -18,6 +18,10 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "../../../steps/NullStep.h"
+#include "../../../steps/test/unit/mock/MockInput.h"
+#include "../../../steps/test/unit/mock/ThrowStep.h"
+
 using casacore::ArrayColumn;
 using casacore::Complex;
 using casacore::IPosition;
@@ -28,6 +32,8 @@ using casacore::Slicer;
 using casacore::Table;
 using casacore::TableIterator;
 
+using dp3::common::Fields;
+
 namespace utf = boost::unit_test;
 
 BOOST_AUTO_TEST_SUITE(dp3)
@@ -37,6 +43,29 @@ BOOST_AUTO_TEST_SUITE(dp3)
 // Two time slots are missing between time slot 2 and 3.
 
 namespace {
+
+// MockInput class with the getRequiredFields() and getProvidedFields() function
+// implementations.
+class TestInput : public steps::MockInput {
+ public:
+  common::Fields getRequiredFields() const override { return {}; };
+  common::Fields getProvidedFields() const override { return {}; };
+};
+
+// Dummy step class where the required/provided fields can be set via the
+// constructor.
+class TestStep : public steps::test::ThrowStep {
+ public:
+  TestStep(Fields required_fields, Fields provided_fields)
+      : required_fields_(required_fields), provided_fields_(provided_fields){};
+  Fields getRequiredFields() const override { return required_fields_; };
+  Fields getProvidedFields() const override { return provided_fields_; };
+
+ private:
+  Fields required_fields_;
+  Fields provided_fields_;
+};
+
 const std::string kInputMs = "../tNDPPP_tmp.MS";
 const std::string kCopyMs = "tNDPPP_tmp.copy.MS";
 const std::string kFlaggedMs = "tNDPPP_tmp.flag.MS";
@@ -1136,6 +1165,46 @@ BOOST_FIXTURE_TEST_CASE(test_error_out_filter, FixtureDirectory) {
     ostr << "msout=''\n";
   }
   BOOST_CHECK_THROW(dp3::base::DP3::execute(kParsetFile), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(test_required_fields) {
+  std::shared_ptr<TestInput> mock_input = std::make_shared<TestInput>();
+
+  // step which requires data, uvw, provides data, uvw,
+  std::shared_ptr<TestStep> step_read_write = std::make_shared<TestStep>(
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kUvw),
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kUvw));
+
+  // step which requires flags, provides none
+  std::shared_ptr<TestStep> step_read =
+      std::make_shared<TestStep>(Fields(Fields::Single::kFlags), Fields());
+
+  // step which requires uvw, provides data
+  std::shared_ptr<TestStep> step_write = std::make_shared<TestStep>(
+      Fields(Fields::Single::kUvw), Fields(Fields::Single::kData));
+
+  // [step_write - step_read - step_read_write]
+  // needs flags, uvw. Data is provided by the step_write step
+  mock_input->setNextStep(step_write);
+  step_write->setNextStep(step_read);
+  step_read->setNextStep(step_read_write);
+  step_read_write->setNextStep(std::make_shared<dp3::steps::NullStep>());
+
+  const Fields kFlagsUvwFields =
+      (Fields(Fields::Single::kFlags) | Fields(Fields::Single::kUvw));
+  Fields overall_fields = dp3::base::DP3::GetChainRequiredFields(mock_input);
+  BOOST_TEST(overall_fields == kFlagsUvwFields);
+
+  // [step_read_write - step_read - step_write]
+  // needs data, flags, uvw
+  mock_input->setNextStep(step_read_write);
+  step_read_write->setNextStep(step_read);
+  step_read->setNextStep(step_write);
+  step_write->setNextStep(std::make_shared<dp3::steps::NullStep>());
+
+  overall_fields = dp3::base::DP3::GetChainRequiredFields(mock_input);
+  BOOST_TEST(overall_fields ==
+             (kFlagsUvwFields | Fields(Fields::Single::kData)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

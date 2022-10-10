@@ -14,6 +14,7 @@
 #include "InputStep.h"
 #include "ResultStep.h"
 
+#include "../base/DP3.h"
 #include "../base/DPBuffer.h"
 #include "../base/ModelComponent.h"
 #include "../base/Patch.h"
@@ -66,13 +67,7 @@ class OnePredict : public ModelDataStep {
       fields |= kDataField;
     }
     if (apply_cal_step_) {
-      // TODO (AST-1032): Combine required fields using a generic function, that
-      // also takes the provided fields into account.
-      std::shared_ptr<Step> step = apply_cal_step_;
-      do {
-        fields |= step->getRequiredFields();
-        step = step->getNextStep();
-      } while (step);
+      fields |= base::DP3::GetChainRequiredFields(apply_cal_step_);
     }
     return fields;
   }

@@ -8,6 +8,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+#include "../../../base/DP3.h"
 #include "../../../common/ParameterSet.h"
 #include "../../ApplyCal.h"
 #include "../../NullStep.h"
@@ -107,9 +108,12 @@ BOOST_FIXTURE_TEST_CASE(fields_applycal, dp3::steps::test::H5ParmFixture) {
 
   // OnePredict uses ApplyCal which has a OneApplyCal sub-step as next step.
   const dp3::steps::ApplyCal apply_cal(&input, parset, "applycal.", true);
-  // TODO(AST-1032) Determine ApplyCal fields using generic DP3 functions.
+
   const dp3::common::Fields apply_cal_required =
-      apply_cal.getNextStep()->getRequiredFields();
+      dp3::base::DP3::GetChainRequiredFields(
+          std::make_shared<dp3::steps::ApplyCal>(apply_cal));
+  // TODO(AST-1033) Determine ApplyCal provided fields using generic DP3
+  // functions.
   const dp3::common::Fields apply_cal_provided =
       apply_cal.getNextStep()->getProvidedFields();
   BOOST_TEST(predict.getRequiredFields() ==
@@ -133,9 +137,10 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
   // When operation is "add" or "subtract", OnePredict only combines the
   // required fields of its ApplyCal sub-step.
   const dp3::steps::ApplyCal apply_cal(&input, parset, "applycal.", true);
-  // TODO(AST-1032) Determine ApplyCal fields using generic DP3 functions.
+
   const dp3::common::Fields apply_cal_required =
-      apply_cal.getNextStep()->getRequiredFields();
+      dp3::base::DP3::GetChainRequiredFields(
+          std::make_shared<dp3::steps::ApplyCal>(apply_cal));
 
   BOOST_TEST(predict.getRequiredFields() ==
              (apply_cal_required | Step::kUvwField));

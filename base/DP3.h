@@ -4,6 +4,8 @@
 #ifndef DPPP_DPRUN_H
 #define DPPP_DPRUN_H
 
+#include "../common/Fields.h"
+
 #include "../steps/Step.h"
 #include "../steps/MSReader.h"
 
@@ -12,7 +14,7 @@
 namespace dp3 {
 namespace common {
 class ParameterSet;
-}
+}  // namespace common
 namespace base {
 
 /// @brief Class to run steps like averaging and flagging on an MS
@@ -58,6 +60,11 @@ class DP3 {
       const common::ParameterSet& parset, const std::string& prefix,
       const std::string& step_names_key, steps::InputStep& inputStep,
       bool terminateChain, steps::Step::MsType initial_step_output);
+
+  /// Go through the steps to define which fields of the measurement set should
+  /// be read by the input step.
+  static dp3::common::Fields GetChainRequiredFields(
+      std::shared_ptr<steps::Step> first_step);
 
  private:
   /// The map to create a step object from its type name.

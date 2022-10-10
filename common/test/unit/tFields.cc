@@ -4,6 +4,7 @@
 #include "../../Fields.h"
 
 #include <sstream>
+#include <string>
 
 #include <boost/test/unit_test.hpp>
 
@@ -12,19 +13,23 @@ using dp3::common::Fields;
 BOOST_AUTO_TEST_SUITE(fields)
 
 namespace {
-void CheckFields(const Fields& fields, bool data, bool flags, bool weights,
-                 bool full_res_flags, bool uvw) {
-  BOOST_CHECK(fields.Data() == data);
-  BOOST_CHECK(fields.Flags() == flags);
-  BOOST_CHECK(fields.Weights() == weights);
-  BOOST_CHECK(fields.FullResFlags() == full_res_flags);
-  BOOST_CHECK(fields.Uvw() == uvw);
+
+void CheckFields(const Fields& fields, std::string set_fields) {
+  BOOST_CHECK(fields.Data() == (set_fields.find("data") != std::string::npos));
+  BOOST_CHECK(fields.Flags() ==
+              (set_fields.find("flags") != std::string::npos));
+  BOOST_CHECK(fields.Weights() ==
+              (set_fields.find("weights") != std::string::npos));
+  BOOST_CHECK(fields.FullResFlags() ==
+              (set_fields.find("fullResFlags") != std::string::npos));
+  BOOST_CHECK(fields.Uvw() == (set_fields.find("uvw") != std::string::npos));
 }
+
 }  // namespace
 
 BOOST_AUTO_TEST_CASE(constructor_default) {
   const Fields fields;
-  CheckFields(fields, false, false, false, false, false);
+  CheckFields(fields, "");
 }
 
 BOOST_AUTO_TEST_CASE(constructor_single_field) {
@@ -33,23 +38,11 @@ BOOST_AUTO_TEST_CASE(constructor_single_field) {
   const Fields weights(Fields::Single::kWeights);
   const Fields full_res_flags(Fields::Single::kFullResFlags);
   const Fields uvw(Fields::Single::kUvw);
-  CheckFields(data, true, false, false, false, false);
-  CheckFields(flags, false, true, false, false, false);
-  CheckFields(weights, false, false, true, false, false);
-  CheckFields(full_res_flags, false, false, false, true, false);
-  CheckFields(uvw, false, false, false, false, true);
-}
-
-BOOST_AUTO_TEST_CASE(combine) {
-  Fields fields;
-  fields |= Fields(Fields::Single::kFlags);
-  CheckFields(fields, false, true, false, false, false);
-  fields |= Fields(Fields::Single::kFullResFlags);
-  CheckFields(fields, false, true, false, true, false);
-
-  const Fields data(Fields::Single::kData);
-  const Fields uvw(Fields::Single::kUvw);
-  CheckFields(data | uvw, true, false, false, false, true);
+  CheckFields(data, "data");
+  CheckFields(flags, "flags");
+  CheckFields(weights, "weights");
+  CheckFields(full_res_flags, "fullResFlags");
+  CheckFields(uvw, "uvw");
 }
 
 BOOST_AUTO_TEST_CASE(equality_operators) {
@@ -94,6 +87,46 @@ BOOST_AUTO_TEST_CASE(outputstream) {
                  Fields(Fields::Single::kFullResFlags) |
                  Fields(Fields::Single::kUvw));
   BOOST_CHECK_EQUAL(stream_all.str(), "[data, flags, weights, frf, uvw]");
+}
+
+BOOST_AUTO_TEST_CASE(update_requirements) {
+  const Fields kDataField(Fields::Single::kData);
+
+  CheckFields(Fields(kDataField)
+                  .UpdateRequirements(Fields(), Fields(Fields::Single::kData)),
+              "");
+  CheckFields(Fields(kDataField)
+                  .UpdateRequirements(Fields(Fields::Single::kData),
+                                      Fields(Fields::Single::kData)),
+              "data");
+  CheckFields(Fields(kDataField)
+                  .UpdateRequirements(Fields(Fields::Single::kData), Fields()),
+              "data");
+  CheckFields(Fields(kDataField).UpdateRequirements(Fields(), Fields()),
+              "data");
+
+  CheckFields(Fields(kDataField)
+                  .UpdateRequirements(Fields(), Fields(Fields::Single::kUvw)),
+              "data");
+  CheckFields(Fields(kDataField)
+                  .UpdateRequirements(Fields(Fields::Single::kUvw),
+                                      Fields(Fields::Single::kUvw)),
+              "data, uvw");
+  CheckFields(Fields(kDataField)
+                  .UpdateRequirements(Fields(Fields::Single::kUvw), Fields()),
+              "data, uvw");
+}
+
+BOOST_AUTO_TEST_CASE(combine) {
+  Fields fields;
+  fields |= Fields(Fields::Single::kFlags);
+  CheckFields(fields, "flags");
+  fields |= Fields(Fields::Single::kFullResFlags);
+  CheckFields(fields, "flags, fullResFlags");
+
+  const Fields data(Fields::Single::kData);
+  const Fields uvw(Fields::Single::kUvw);
+  CheckFields(data | uvw, "data, uvw");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

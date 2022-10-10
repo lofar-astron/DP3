@@ -6,6 +6,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../../Predict.h"
+#include "../../../base/DP3.h"
 #include "../../../common/ParameterSet.h"
 
 #include "mock/MockInput.h"
@@ -30,9 +31,13 @@ BOOST_FIXTURE_TEST_CASE(fields, dp3::steps::test::H5ParmFixture) {
   // sub-steps as next step.
   const dp3::steps::Predict predict(input, parset, "",
                                     {dp3::steps::test::kPredictDirection});
-  // TODO(AST-1032) Determine Predict fields using generic DP3 functions.
+
   const dp3::common::Fields predict_required =
-      predict.getNextStep()->getRequiredFields();
+      dp3::base::DP3::GetChainRequiredFields(
+          std::make_shared<dp3::steps::Predict>(predict));
+
+  // TODO(AST-1033) Determine Predict provided fields using generic DP3
+  // functions.
   const dp3::common::Fields predict_provided =
       predict.getNextStep()->getProvidedFields();
   BOOST_TEST(h5predict.getRequiredFields() == predict_required);

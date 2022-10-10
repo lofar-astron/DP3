@@ -214,8 +214,7 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(get_required_fields, BdaDdeCalFixture) {
-  const dp3::common::Fields kExpectedFields =
-      dp3::steps::Step::kDataField | dp3::steps::Step::kUvwField;
+  const dp3::common::Fields kExpectedFields = dp3::steps::Step::kUvwField;
   BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
 }
 
@@ -227,8 +226,8 @@ BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {
   auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input, parset, "");
 
   const dp3::common::Fields kExpectedFields =
-      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
-      Step::kFullResFlagsField | Step::kUvwField;
+      Step::kFlagsField | Step::kWeightsField | Step::kFullResFlagsField |
+      Step::kUvwField;
   BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
 }
 
