@@ -12,6 +12,9 @@ namespace dp3 {
 namespace common {
 class ParameterSet;
 }  // namespace common
+namespace steps {
+class InputStep;
+}  // namespace steps
 namespace base {
 
 /// @brief Class to run steps like averaging and flagging on an MS

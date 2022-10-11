@@ -16,10 +16,6 @@
 #include <casacore/casa/Containers/Record.h>
 
 namespace dp3 {
-namespace steps {
-class InputStep;
-}
-
 namespace base {
 
 /// @brief General info about DPPP data processing attributes like averaging
