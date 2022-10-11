@@ -6,6 +6,7 @@
 
 #include <dp3/steps/Step.h>
 #include "../common/ParameterSet.h"
+#include "steps/InputStep.h"
 
 namespace dp3 {
 namespace pythondp3 {

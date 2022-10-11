@@ -21,6 +21,8 @@
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
 
+#include "steps/InputStep.h"
+
 #include <complex>
 #include <functional>
 #include <string>

@@ -8,6 +8,8 @@
 
 #include <mutex>
 
+#include "steps/InputStep.h"
+
 namespace aocommon {
 class ThreadPool;
 }

@@ -81,6 +81,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   endif()
 endif()
 include_directories("${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}")
 
 # Add CPack directory if user want to generate Debian packages
 option(BUILD_PACKAGES "Build Debian packages" OFF)
@@ -128,7 +129,6 @@ find_package(
   Casacore
   COMPONENTS casa ms tables fits
   REQUIRED)
-include_directories(${CASACORE_INCLUDE_DIR})
 
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
@@ -533,6 +533,29 @@ endif()
 include("${CMAKE_SOURCE_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
 check_blas(LIBRARIES ${DP3_LIBRARIES})
 
+add_library(Aocommon INTERFACE)
+target_include_directories(
+  Aocommon INTERFACE "${CMAKE_SOURCE_DIR}/external/aocommon/include/")
+add_library(Casacore INTERFACE)
+target_include_directories(Casacore INTERFACE ${CASACORE_INCLUDE_DIR})
+target_link_libraries(Casacore INTERFACE ${CASACORE_LIBRARIES})
+
+add_library(LIBDP3 SHARED ${DP3_OBJECTS})
+
+target_include_directories(
+  LIBDP3 PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
+                $<INSTALL_INTERFACE:include>)
+target_link_libraries(
+  LIBDP3
+  # The public headers of LIBDP3 include casacore and aocommon headers
+  # These targets should therefore be linked as INTERFACE
+  INTERFACE Casacore Aocommon
+  PRIVATE ${DP3_LIBRARIES})
+install(TARGETS LIBDP3 DESTINATION lib)
+# CMake 3.23 has FILE_SETs which are a cleaner solution. But this version
+# is too new to require,
+install(DIRECTORY include DESTINATION include)
+
 add_subdirectory(base)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -575,8 +598,6 @@ if(BUILD_TESTING)
     )
     add_library(dp3_testdyndp3 SHARED steps/dynamic_test_step/DynamicTestStep.cc
                                       ${DP3_OBJECTS})
-    target_include_directories(dp3_testdyndp3
-                               PRIVATE "${CMAKE_SOURCE_DIR}/include")
     target_link_libraries(dp3_testdyndp3 ${DP3_LIBRARIES})
     add_dependencies(dp3_testdyndp3 schaapcommon)
   endif()
@@ -728,11 +749,9 @@ if(BUILD_TESTING)
   set_tests_properties(extract_resources PROPERTIES FIXTURES_SETUP
                                                     extract_resources)
 
-  add_executable(unittests ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS}
-                           ${DP3_OBJECTS})
-  set_target_properties(unittests PROPERTIES ENABLE_EXPORTS ON)
+  add_executable(unittests ${TEST_FILENAMES} ${OS_SPECIFIC_TESTS})
   target_include_directories(unittests PRIVATE "${CMAKE_SOURCE_DIR}")
-  target_link_libraries(unittests ${DP3_LIBRARIES} xtensor)
+  target_link_libraries(unittests LIBDP3 ${DP3_LIBRARIES} xtensor)
   add_dependencies(unittests schaapcommon)
 
   # Automatically (re)build the unit tests on every ctest run.
@@ -859,7 +878,7 @@ if(BUILD_TESTING)
   endfunction()
 
   # Add integration tests
-  foreach(DIR ddecal parmdb steps)
+  foreach(DIR ddecal parmdb pythondp3 steps)
     set(INTEGRATION_DIR ${DIR}/test/integration)
     set(BINARY_INTEGRATION_DIR ${CMAKE_BINARY_DIR}/${INTEGRATION_DIR})
 
@@ -901,7 +920,6 @@ if(BUILD_BENCHMARKS)
 
   function(add_benchmark name)
     add_executable(${name} benchmarks/${name}.cc)
-    target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}")
     target_link_libraries(${name} PRIVATE nanobench)
 
     add_test(
