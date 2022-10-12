@@ -27,7 +27,6 @@ BOOST_AUTO_TEST_CASE(no_sub_steps) {
   parset.add("foo_param", "[foo,bar]");
   parset.add("split.steps", "[]");
   Split no_steps(&input, parset, "split.");
-  no_steps.setNextStep(std::make_shared<dp3::steps::NullStep>());
 
   BOOST_CHECK_NO_THROW(no_steps.updateInfo(dp3::base::DPInfo()));
   BOOST_CHECK_NO_THROW(no_steps.process(dp3::base::DPBuffer()));
