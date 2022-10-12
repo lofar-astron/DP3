@@ -6,19 +6,18 @@
 
 #include "Split.h"
 
-#include <dp3/base/DP3.h>
-
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-#include "../common/StreamUtil.h"
-
-#include <stddef.h>
-
+#include <cstddef>
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <vector>
+
+#include <dp3/base/DP3.h>
+
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
+#include "../common/StreamUtil.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -79,6 +78,13 @@ common::Fields Split::getRequiredFields() const {
     fields |= base::DP3::GetChainRequiredFields(first_step);
   }
   return fields;
+}
+
+void Split::SetFieldsToWrite(const common::Fields& fields) {
+  // Forward the provided fields to each sub-pipeline.
+  for (std::shared_ptr<Step>& first_step : sub_steps_) {
+    base::DP3::SetChainProvidedFields(first_step, fields);
+  }
 }
 
 void Split::updateInfo(const DPInfo& infoIn) {
@@ -143,5 +149,10 @@ void Split::addToMS(const string& ms_name) {
     }
   }
 }
+
+void Split::setNextStep(std::shared_ptr<Step>) {
+  throw std::runtime_error("Split must be the last step in a step chain");
+}
+
 }  // namespace steps
 }  // namespace dp3
