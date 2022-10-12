@@ -16,12 +16,13 @@
 #include "../common/ParameterSet.h"
 
 #include "InputStep.h"
+#include "OutputStep.h"
 
 namespace dp3 {
 namespace steps {
 
 /// @brief DP3 step class to Split visibilities from a source model
-class Split : public Step {
+class Split : public OutputStep {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
@@ -29,7 +30,7 @@ class Split : public Step {
 
   common::Fields getRequiredFields() const override;
 
-  common::Fields getProvidedFields() const override { return {}; }
+  void SetFieldsToWrite(const common::Fields& fields) override;
 
   /// Process the data.
   /// It keeps the data.
@@ -49,6 +50,9 @@ class Split : public Step {
 
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
+
+  /// Override setNextStep, since Split should be the last step.
+  void setNextStep(std::shared_ptr<Step> step) override;
 
  private:
   std::string name_;

@@ -15,10 +15,16 @@ namespace steps {
 class OutputStep : public Step {
  public:
   /**
+   * Common override for all output steps. Since they should output all data,
+   * they never provide any new fields.
+   */
+  common::Fields getProvidedFields() const override { return {}; }
+
+  /**
    * Set which fields the step should write.
    * @param fields A combination of fields. Non-writable fields are ignored.
    */
-  void SetFieldsToWrite(const dp3::common::Fields& fields) {
+  virtual void SetFieldsToWrite(const dp3::common::Fields& fields) {
     fields_to_write_ = fields;
   };
 

@@ -62,8 +62,6 @@ class MSWriter : public OutputStep {
     return fields;
   }
 
-  common::Fields getProvidedFields() const override { return {}; }
-
   /// Process the next data chunk.
   /// It returns false when at the end.
   bool process(const base::DPBuffer&) override;
