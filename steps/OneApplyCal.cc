@@ -169,11 +169,6 @@ OneApplyCal::~OneApplyCal() {}
 void OneApplyCal::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteData();
-  info().setWriteFlags();
-  if (itsUpdateWeights) {
-    info().setWriteWeights();
-  }
   itsTimeInterval = infoIn.timeInterval();
   itsNCorr = infoIn.ncorr();
 

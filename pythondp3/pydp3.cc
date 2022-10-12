@@ -158,12 +158,6 @@ PYBIND11_MODULE(pydp3, m) {
           "Get a list of antenna positions in ITRF XYZ (read only)")
       .def("set_need_vis_data", &DPInfo::setNeedVisData,
            "Set whether data needs to be read before this step")
-      .def("set_write_data", &DPInfo::setWriteData,
-           "Set whether data needs to be written after this step")
-      .def("set_write_flags", &DPInfo::setWriteFlags,
-           "Set whether flags need to be written after this step")
-      .def("set_write_weights", &DPInfo::setWriteWeights,
-           "Set whether weights need to be written after this step")
       .def("get_channel_frequencies", &DPInfo::chanFreqs,
            py::arg("baseline") = 0,
            "Get a list of channel frequencies (read only)")

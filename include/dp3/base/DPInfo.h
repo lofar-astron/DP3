@@ -196,24 +196,11 @@ class DPInfo {
   /// Is the visibility data needed?
   bool needData() const { return need_data_; }
 
-  /// Does the last step need to write data and/or flags?
-  bool needWrite() const {
-    return write_data_ || write_flags_ || write_weights_;
-  }
-  bool writeData() const { return write_data_; }
-  bool writeFlags() const { return write_flags_; }
-  bool writeWeights() const { return write_weights_; }
   /// Has the meta data been changed in a step (precluding an update)?
   bool metaChanged() const { return meta_changed_; }
 
   /// Set if visibility data needs to be read.
   void setNeedVisData() { need_data_ = true; }
-  /// Set if data needs to be written.
-  void setWriteData() { write_data_ = true; }
-  void setWriteFlags() { write_flags_ = true; }
-  void setWriteWeights() { write_weights_ = true; }
-  /// Clear all write flags.
-  void clearWrites() { write_data_ = write_flags_ = write_weights_ = false; }
   /// Set change of meta data.
   void setMetaChanged() { meta_changed_ = true; }
   void clearMetaChanged() { meta_changed_ = false; }
@@ -267,11 +254,8 @@ class DPInfo {
   static casacore::MeasureHolder copyMeasure(
       const casacore::MeasureHolder fromMeas);
 
-  bool need_data_;      ///< Is the visibility data needed?
-  bool write_data_;     ///< Must the data be written?
-  bool write_flags_;    ///< Must the flags be written?
-  bool write_weights_;  ///< Must the weights be written?
-  bool meta_changed_;   ///< Are meta data changed? (e.g., by averaging)
+  bool need_data_;     ///< Is the visibility data needed?
+  bool meta_changed_;  ///< Are meta data changed? (e.g., by averaging)
   std::string ms_name_;
   std::string antenna_set_;
   unsigned int n_correlations_;

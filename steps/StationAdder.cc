@@ -101,7 +101,6 @@ std::vector<int> StationAdder::getMatchingStations(
 void StationAdder::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteData();
   info().setMetaChanged();
   // Check the superstation definition(s).
   // They are specified as a ParameterRecord like:

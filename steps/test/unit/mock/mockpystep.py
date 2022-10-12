@@ -41,9 +41,6 @@ class MockPyStep(Step):
         # Make sure data is read
         self.info().set_need_vis_data()
 
-        # Make sure data will be written
-        self.info().set_write_data()
-
     def show(self):
         """Print a summary of the step and its settings"""
         print("\nMockPyStep")

@@ -75,8 +75,6 @@ common::Fields Filter::getProvidedFields() const {
 void Filter::updateInfo(const base::DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteData();
-  info().setWriteFlags();
   if (itsRemoveAnt) {
     info().setMetaChanged();
   }

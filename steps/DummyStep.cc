@@ -34,7 +34,6 @@ DummyStep::~DummyStep() {}
 void DummyStep::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteData();
 }
 
 void DummyStep::show(std::ostream& os) const {

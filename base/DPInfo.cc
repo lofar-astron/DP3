@@ -32,9 +32,6 @@ namespace base {
 
 DPInfo::DPInfo()
     : need_data_(false),
-      write_data_(false),
-      write_flags_(false),
-      write_weights_(false),
       meta_changed_(false),
       n_correlations_(0),
       start_channel_(0),
@@ -404,9 +401,6 @@ void DPInfo::setNThreads(const unsigned int n_threads) {
 Record DPInfo::toRecord() const {
   Record rec;
   rec.define("NeedVisData", need_data_);
-  rec.define("WriteData", write_data_);
-  rec.define("WriteFlags", write_flags_);
-  rec.define("WriteWeights", write_weights_);
   rec.define("MetaChanged", meta_changed_);
   rec.define("MSName", ms_name_);
   rec.define("AntennaSet", antenna_set_);
@@ -441,15 +435,6 @@ Record DPInfo::toRecord() const {
 void DPInfo::fromRecord(const Record& rec) {
   if (rec.isDefined("NeedVisData")) {
     rec.get("NeedVisData", need_data_);
-  }
-  if (rec.isDefined("WriteData")) {
-    rec.get("WriteData", write_data_);
-  }
-  if (rec.isDefined("WriteFlags")) {
-    rec.get("WriteFlags", write_flags_);
-  }
-  if (rec.isDefined("WriteWeights")) {
-    rec.get("WriteWeights", write_weights_);
   }
   if (rec.isDefined("MetaChanged")) {
     rec.get("MetaChanged", meta_changed_);

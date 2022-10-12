@@ -54,7 +54,6 @@ bool ColumnReader::process(const DPBuffer& buffer) {
 void ColumnReader::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
   info().setNeedVisData();
-  info().setWriteData();
 }
 
 void ColumnReader::finish() { getNextStep()->finish(); }

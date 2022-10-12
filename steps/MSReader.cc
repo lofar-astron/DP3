@@ -281,6 +281,12 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
 
 MSReader::~MSReader() {}
 
+common::Fields MSReader::getProvidedFields() const {
+  common::Fields fields = InputStep::getProvidedFields();
+  if (itsAutoWeight || itsAutoWeightForce) fields |= kWeightsField;
+  return fields;
+}
+
 void MSReader::updateInfo(const DPInfo& dpInfo) {
   info().setNThreads(dpInfo.nThreads());
 }
@@ -623,7 +629,6 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
 
   if (itsAutoWeight) {
     info().setNeedVisData();
-    info().setWriteWeights();
   }
 
   // Read the phase reference position from the FIELD subtable.
