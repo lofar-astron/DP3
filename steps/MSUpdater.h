@@ -44,6 +44,8 @@ class MSUpdater : public OutputStep {
 
   common::Fields getRequiredFields() const override;
 
+  common::Fields getProvidedFields() const override { return {}; }
+
   /// Process the next data chunk.
   /// It returns false when at the end.
   virtual bool process(const base::DPBuffer&);
