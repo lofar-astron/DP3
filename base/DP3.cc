@@ -67,6 +67,7 @@ using dp3::steps::InputStep;
 using dp3::steps::MSBDAWriter;
 using dp3::steps::MSUpdater;
 using dp3::steps::MSWriter;
+using dp3::steps::OutputStep;
 using dp3::steps::Split;
 using dp3::steps::Step;
 using dp3::common::operator<<;
@@ -87,12 +88,11 @@ std::map<std::string, DP3::StepCtor*> DP3::theirStepMap;
 /// If the user specified an output MS name, a writer or updater is always
 /// created If there is a writer, the reader needs to read the visibility
 /// data. reader should be the original reader
-static std::shared_ptr<Step> makeOutputStep(InputStep* reader,
-                                            const common::ParameterSet& parset,
-                                            const std::string& prefix,
-                                            std::string& currentMSName,
-                                            Step::MsType inputType) {
-  std::shared_ptr<Step> step;
+static std::shared_ptr<OutputStep> MakeOutputStep(
+    InputStep* reader, const common::ParameterSet& parset,
+    const std::string& prefix, std::string& currentMSName,
+    Step::MsType inputType) {
+  std::shared_ptr<OutputStep> step;
   std::string outName;
   bool doUpdate = false;
   if (prefix == "msout.") {
@@ -224,7 +224,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "out" || type == "output" || type == "msout") {
     if (msName.empty())
       msName = casacore::Path(inputStep->msName()).absoluteName();
-    step = makeOutputStep(inputStep, parset, prefix, msName, inputType);
+    step = MakeOutputStep(inputStep, parset, prefix, msName, inputType);
   } else if (type == "python" || type == "pythondppp") {
     step = pythondp3::PyStep::create_instance(inputStep, parset, prefix);
   } else if (type == "null") {
@@ -277,9 +277,9 @@ DP3::StepCtor* DP3::findStepCtor(const std::string& type) {
 }
 
 dp3::common::Fields DP3::GetChainRequiredFields(
-    std::shared_ptr<steps::Step> first_step) {
-  std::shared_ptr<steps::Step> last_step;
-  for (std::shared_ptr<steps::Step> step = first_step; step;
+    std::shared_ptr<Step> first_step) {
+  std::shared_ptr<Step> last_step;
+  for (std::shared_ptr<Step> step = first_step; step;
        step = step->getNextStep()) {
     last_step = step;
   }
@@ -292,6 +292,21 @@ dp3::common::Fields DP3::GetChainRequiredFields(
   }
 
   return overall_required_fields;
+}
+
+dp3::common::Fields DP3::SetChainProvidedFields(
+    std::shared_ptr<Step> first_step, common::Fields provided_fields) {
+  for (std::shared_ptr<Step> step = first_step; step;
+       step = step->getNextStep()) {
+    OutputStep* output_step = dynamic_cast<OutputStep*>(step.get());
+    if (output_step) {
+      output_step->SetFieldsToWrite(provided_fields);
+      provided_fields = common::Fields();
+    } else {
+      provided_fields |= step->getProvidedFields();
+    }
+  }
+  return provided_fields;
 }
 
 void DP3::execute(const string& parsetName, int argc, char* argv[]) {
@@ -453,34 +468,25 @@ std::shared_ptr<InputStep> DP3::makeMainSteps(
     last_step = step;
   }
 
+  // Determine the provided fields of the series of steps. When provided
+  // fields is non-empty, create an output step that writes those fields.
+  const common::Fields provided_fields = SetChainProvidedFields(input_step);
+
   // Check if the last step is an output step.
   const bool ends_with_output_step =
-      dynamic_cast<dp3::steps::OutputStep*>(last_step.get()) ||
+      dynamic_cast<OutputStep*>(last_step.get()) ||
       dynamic_cast<Split*>(last_step.get());
 
   if (!ends_with_output_step) {
     // Check if an output step is needed because of the parset.
     const std::string msOutName = parset.getString(
         parset.isDefined("msout.name") ? "msout.name" : "msout");
-    bool need_output_step = !msOutName.empty();
 
-    if (!need_output_step) {
-      // Determine the provided fields of the series of steps. When fields are
-      // set, the output should write at least those fields.
-      common::Fields provided_fields;
-      for (step = input_step; step; step = step->getNextStep()) {
-        provided_fields |= step->getProvidedFields();
-      }
-      need_output_step = provided_fields.Data() || provided_fields.Flags() ||
-                         provided_fields.Weights() ||
-                         provided_fields.FullResFlags() ||
-                         provided_fields.Uvw();
-    }
-
-    if (need_output_step) {
+    if (!msOutName.empty() || provided_fields != common::Fields()) {
       std::string msName = casacore::Path(input_step->msName()).absoluteName();
-      std::shared_ptr<Step> output_step = makeOutputStep(
+      std::shared_ptr<OutputStep> output_step = MakeOutputStep(
           input_step.get(), parset, "msout.", msName, last_step->outputs());
+      output_step->SetFieldsToWrite(provided_fields);
       last_step->setNextStep(output_step);
       last_step = output_step;
     }

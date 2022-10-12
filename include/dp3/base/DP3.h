@@ -63,8 +63,20 @@ class DP3 {
 
   /// Go through the steps to define which fields of the measurement set should
   /// be read by the input step.
+  /// @param first_step The first step of a chain of steps.
+  /// @return The combined required fields of the step chain.
   static dp3::common::Fields GetChainRequiredFields(
       std::shared_ptr<steps::Step> first_step);
+
+  /// Go through a step chain, combine provided fields of non-output steps and
+  /// call SetFieldsToWrite for all output steps.
+  /// @param first_step The first step of a chain of steps.
+  /// @param provided_fields The provided fields before the step chain.
+  /// Steps that have sub-steps should use this argument.
+  /// @return The remaining provided fields after the last step in the chain.
+  static dp3::common::Fields SetChainProvidedFields(
+      std::shared_ptr<steps::Step> first_step,
+      dp3::common::Fields provided_fields = dp3::common::Fields());
 
  private:
   /// The map to create a step object from its type name.

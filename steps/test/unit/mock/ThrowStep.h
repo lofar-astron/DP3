@@ -15,9 +15,6 @@ namespace test {
  */
 class ThrowStep : public Step {
  public:
-  ThrowStep();
-  ~ThrowStep() override;
-
   common::Fields getRequiredFields() const override;
   common::Fields getProvidedFields() const override;
 

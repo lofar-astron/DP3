@@ -9,9 +9,6 @@ namespace dp3 {
 namespace steps {
 namespace test {
 
-ThrowStep::ThrowStep() {}
-ThrowStep::~ThrowStep() {}
-
 common::Fields ThrowStep::getRequiredFields() const {
   throw std::runtime_error("Unexpected getRequiredFields call");
 }

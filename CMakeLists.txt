@@ -618,7 +618,6 @@ if(BUILD_TESTING)
       base/test/unit/tBaselineSelection.cc
       base/test/unit/tBDABuffer.cc
       base/test/unit/tDPBuffer.cc
-      base/test/unit/tDP3.cc
       base/test/unit/tMirror.cc
       base/test/unit/tSimulate.cc
       base/test/unit/tSolutionInterval.cc
@@ -668,6 +667,7 @@ if(BUILD_TESTING)
       common/test/unit/tBaselineUtils.cc
       common/test/unit/tMemory.cc
       common/test/unit/tStringTools.cc
+      base/test/unit/tDP3.cc
       base/test/unit/tDPInfo.cc
       base/test/unit/tSimulator.cc
       ddecal/test/unit/tSolutionResampler.cc
