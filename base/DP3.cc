@@ -68,6 +68,7 @@ using dp3::steps::MSBDAWriter;
 using dp3::steps::MSUpdater;
 using dp3::steps::MSWriter;
 using dp3::steps::OutputStep;
+using dp3::steps::Split;
 using dp3::steps::Step;
 using dp3::common::operator<<;
 
@@ -472,7 +473,9 @@ std::shared_ptr<InputStep> DP3::makeMainSteps(
   const common::Fields provided_fields = SetChainProvidedFields(input_step);
 
   // Check if the last step is an output step.
-  const bool ends_with_output_step = dynamic_cast<OutputStep*>(last_step.get());
+  const bool ends_with_output_step =
+      dynamic_cast<OutputStep*>(last_step.get()) ||
+      dynamic_cast<Split*>(last_step.get());
 
   if (!ends_with_output_step) {
     // Check if an output step is needed because of the parset.
@@ -490,10 +493,7 @@ std::shared_ptr<InputStep> DP3::makeMainSteps(
   }
 
   // Add a null step, so the last step can use getNextStep->process().
-  // Split may not have a next step (Split::setNextStep throws).
-  if (!dynamic_cast<steps::Split*>(last_step.get())) {
-    last_step->setNextStep(std::make_shared<steps::NullStep>());
-  }
+  last_step->setNextStep(std::make_shared<steps::NullStep>());
   return input_step;
 }
 
