@@ -53,8 +53,6 @@ Interpolate::Interpolate(InputStep* /*input*/,
 void Interpolate::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteData();
-  info().setWriteFlags();
 }
 
 void Interpolate::show(std::ostream& os) const {

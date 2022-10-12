@@ -107,7 +107,6 @@ H5ParmPredict::~H5ParmPredict() {}
 void H5ParmPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
-  info().setWriteData();
 
   itsPredictSteps.front()->setInfo(infoIn);
 }

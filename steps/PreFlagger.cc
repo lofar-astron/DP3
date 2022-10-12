@@ -119,7 +119,6 @@ void PreFlagger::showTimings(std::ostream& os, double duration) const {
 void PreFlagger::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteFlags();
   itsPSet.updateInfo(getInfo());
   // Initialize the flag counters.
   itsFlagCounter.init(getInfo());

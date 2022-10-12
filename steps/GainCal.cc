@@ -198,11 +198,6 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
   itsFirstSubStep->setInfo(infoIn);
 
-  if (itsApplySolution) {
-    info().setWriteData();
-    info().setWriteFlags();
-  }
-
   if (itsSolInt == 0) {
     itsSolInt = info().ntime();
   }

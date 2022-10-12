@@ -94,8 +94,6 @@ Averager::~Averager() {}
 void Averager::updateInfo(const base::DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
-  info().setWriteData();
-  info().setWriteFlags();
   info().setMetaChanged();
 
   if (itsNChanAvg <= 0) {

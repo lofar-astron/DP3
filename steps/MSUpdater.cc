@@ -53,9 +53,6 @@ MSUpdater::MSUpdater(InputStep* reader, casacore::String msName,
       itsName(prefix),
       itsMSName(msName),
       itsParset(parset),
-      itsWriteData(false),
-      itsWriteWeights(false),
-      itsWriteFlags(false),
       itsNrDone(0),
       itsDataColAdded(false),
       itsFlagColAdded(false),
@@ -155,10 +152,10 @@ bool MSUpdater::addColumn(const string& colName,
 
 bool MSUpdater::process(const DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
-  if (itsWriteFlags) {
+  if (GetFieldsToWrite().Flags()) {
     putFlags(buf.getRowNrs(), buf.getFlags());
   }
-  if (itsWriteData) {
+  if (GetFieldsToWrite().Data()) {
     // If compressing, flagged values need to be set to NaN to decrease the
     // dynamic range
     if (itsStManKeys.stManName == "dysco") {
@@ -178,7 +175,7 @@ bool MSUpdater::process(const DPBuffer& buf) {
       putData(buf.getRowNrs(), buf.getData());
     }
   }
-  if (itsWriteWeights) {
+  if (GetFieldsToWrite().Weights()) {
     Cube<float> weights;
     if (!buf.getWeights().empty()) {
       // Use weights from buffer
@@ -239,9 +236,9 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
     itsDataColName = origDataColName;
   } else if (itsDataColName != origDataColName) {
     info().setNeedVisData();
-    info().setWriteData();
+    SetFieldsToWrite(GetFieldsToWrite() |
+                     common::Fields(common::Fields::Single::kData));
   }
-  itsWriteData = getInfo().writeData();
 
   const std::string& origWeightColName = itsReader->weightColumnName();
   if (itsWeightColName.empty()) {
@@ -255,18 +252,17 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
     throw std::runtime_error(
         "Can't use WEIGHT column as spectral weights column");
   if (itsWeightColName != origWeightColName) {
-    info().setWriteWeights();
+    SetFieldsToWrite(GetFieldsToWrite() |
+                     common::Fields(common::Fields::Single::kWeights));
   }
-  itsWriteWeights = getInfo().writeWeights();
 
   const std::string& origFlagColName = itsReader->flagColumnName();
   if (itsFlagColName.empty()) {
     itsFlagColName = origFlagColName;
   } else if (itsFlagColName != origFlagColName) {
-    info().setWriteFlags();
+    SetFieldsToWrite(GetFieldsToWrite() |
+                     common::Fields(common::Fields::Single::kFlags));
   }
-
-  itsWriteFlags = getInfo().writeFlags();
 
   if (getInfo().metaChanged()) {
     throw std::runtime_error("Update step " + itsName +
@@ -274,23 +270,24 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
                              " (by averaging, adding/removing stations, etc.)");
   }
 
-  if (itsWriteData || itsWriteFlags || itsWriteWeights) {
+  if (GetFieldsToWrite().Data() || GetFieldsToWrite().Flags() ||
+      GetFieldsToWrite().Weights()) {
     common::NSTimer::StartStop sstime(itsTimer);
     itsMS =
         MeasurementSet(itsMSName, TableLock::AutoNoReadLocking, Table::Update);
     // Add the data + flag + weight column if needed and if it does not exist
     // yet.
-    if (itsWriteData) {
+    if (GetFieldsToWrite().Data()) {
       // use same layout as DATA column
       ColumnDesc cd = itsMS.tableDesc().columnDesc("DATA");
       itsDataColAdded = addColumn(itsDataColName, casacore::TpComplex, cd);
     }
-    if (itsWriteFlags) {
+    if (GetFieldsToWrite().Flags()) {
       // use same layout as FLAG column
       ColumnDesc cd = itsMS.tableDesc().columnDesc("FLAG");
       itsFlagColAdded = addColumn(itsFlagColName, casacore::TpBool, cd);
     }
-    if (itsWriteWeights) {
+    if (GetFieldsToWrite().Weights()) {
       IPosition dataShape = itsMS.tableDesc().columnDesc("DATA").shape();
       casacore::ArrayColumnDesc<float> cd("WEIGHT_SPECTRUM",
                                           "weight per corr/chan", dataShape,
@@ -300,7 +297,6 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
   }
   MSWriter::UpdateBeam(itsMSName, itsDataColName, info());
   // Subsequent steps have to set again if writes need to be done.
-  info().clearWrites();
   info().clearMetaChanged();
 }
 
@@ -329,11 +325,12 @@ void MSUpdater::show(std::ostream& os) const {
     os << "  (has been added to the MS)";
   }
   os << '\n';
-  if (itsWriteData || itsWriteFlags || itsWriteWeights) {
+  if (GetFieldsToWrite().Data() || GetFieldsToWrite().Flags() ||
+      GetFieldsToWrite().Weights()) {
     os << "  writing:       ";
-    if (itsWriteData) os << " data";
-    if (itsWriteFlags) os << " flags";
-    if (itsWriteWeights) os << " weights";
+    if (GetFieldsToWrite().Data()) os << " data";
+    if (GetFieldsToWrite().Flags()) os << " flags";
+    if (GetFieldsToWrite().Weights()) os << " weights";
     os << '\n';
   }
   if (itsStManKeys.stManName == "dysco") {

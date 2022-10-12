@@ -226,7 +226,6 @@ void DDECal::setModelNextSteps(Step& step, const std::string& direction,
 void DDECal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
-  if (itsSettings.subtract) info().setWriteData();
 
   itsUVWFlagStep.updateInfo(infoIn);
   itsThreadPool = std::make_unique<aocommon::ThreadPool>(getInfo().nThreads());

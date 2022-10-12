@@ -90,10 +90,6 @@ ApplyBeam::ApplyBeam(InputStep* input, const common::ParameterSet& parset,
 void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteData();
-  if (itsUpdateWeights) {
-    info().setWriteWeights();
-  }
 
   // Parse direction parset value
   if (itsDirectionStr.empty())

@@ -644,7 +644,6 @@ if(BUILD_TESTING)
       steps/test/unit/tFilter.cc
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMedFlagger.cc
-      steps/test/unit/tMSReader.cc
       steps/test/unit/tPhaseShift.cc
       steps/test/unit/tUVWFlagger.cc
       steps/test/unit/tPSet.cc
@@ -688,6 +687,7 @@ if(BUILD_TESTING)
       steps/test/unit/tInputStep.cc
       steps/test/unit/tMSBDAReader.cc
       steps/test/unit/tMSBDAWriter.cc
+      steps/test/unit/tMSReader.cc
       steps/test/unit/tMSUpdater.cc
       steps/test/unit/tMSWriter.cc
       steps/test/unit/tOneApplyCal.cc

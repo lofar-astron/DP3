@@ -62,7 +62,6 @@ ScaleData::~ScaleData() {}
 void ScaleData::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   info().setNeedVisData();
-  info().setWriteData();
   // Find out if the observation has LBA or HBA data.
   // Add the default factors to itsCoeffStr as being valid for all stations.
   // In that way they will be used if a station matches no others.

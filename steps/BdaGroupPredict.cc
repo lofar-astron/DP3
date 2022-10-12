@@ -188,7 +188,6 @@ common::Fields BdaGroupPredict::getRequiredFields() const {
 void BdaGroupPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
-  info().setWriteData();
 
   // Loop over all baselines, grouping them by averaging parameters
   for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {

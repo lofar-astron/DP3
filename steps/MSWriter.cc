@@ -191,7 +191,6 @@ void MSWriter::StartNewMs() {
   WriteHistory(ms_, parset_);
   ms_.flush(true, true);
   DPLOG_INFO("Finished preparing output MS", false);
-  info().clearWrites();
   info().clearMetaChanged();
 
   use_write_thread_ = dynamic_cast<NullStep*>(getNextStep().get()) != nullptr;

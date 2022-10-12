@@ -30,6 +30,34 @@ namespace {
 
 BOOST_AUTO_TEST_SUITE(msreader)
 
+BOOST_AUTO_TEST_CASE(provided_fields) {
+  const dp3::common::Fields kFieldsToRead(
+      dp3::common::Fields::Single::kFullResFlags);
+  const dp3::common::Fields kWeightsField(
+      dp3::common::Fields::Single::kWeights);
+  // TODO(AST-1061): Use an MS that can be autoweighted, and re-add
+  // 'autoweight' to kAutoweightSettings.
+  const casacore::MeasurementSet ms("tNDPPP_tmp.MS");
+  const dp3::common::ParameterSet parset;
+  const std::vector<std::string> kAutoweightSettings = {/*"autoweight",*/
+                                                        "forceautoweight"};
+
+  MSReader msreader(ms, parset, "");
+  BOOST_TEST(msreader.getProvidedFields() == dp3::common::Fields());
+  msreader.setFieldsToRead(kFieldsToRead);
+  BOOST_TEST(msreader.getProvidedFields() == kFieldsToRead);
+
+  for (const std::string& setting : kAutoweightSettings) {
+    dp3::common::ParameterSet parset_autoweight;
+    parset_autoweight.add(setting, "true");
+    MSReader autoweight(ms, parset_autoweight, "");
+    BOOST_TEST(autoweight.getProvidedFields() == kWeightsField);
+    autoweight.setFieldsToRead(kFieldsToRead);
+    BOOST_TEST(autoweight.getProvidedFields() ==
+               (kFieldsToRead | kWeightsField));
+  }
+}
+
 // Test reading a LOFAR measurement set
 BOOST_AUTO_TEST_CASE(read_lofar) {
   const casacore::MeasurementSet ms("tNDPPP-generic.MS");

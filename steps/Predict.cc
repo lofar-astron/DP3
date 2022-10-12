@@ -89,7 +89,6 @@ void Predict::updateInfo(const DPInfo& infoIn) {
         info().ntimeAvgs(), info().BdaChanFreqs(), info().BdaChanWidths());
   }
   info().setNeedVisData();
-  info().setWriteData();
 }
 
 base::Direction Predict::GetFirstDirection() const {

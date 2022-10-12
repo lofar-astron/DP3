@@ -115,6 +115,10 @@ class MSReader : public InputStep {
 
   virtual ~MSReader();
 
+  /// Override InputStep::getProvidedFields, since autoweight settings may add a
+  /// field.
+  common::Fields getProvidedFields() const override;
+
   /// Process the next data chunk.
   /// It returns false when at the end.
   bool process(const base::DPBuffer&) override;
