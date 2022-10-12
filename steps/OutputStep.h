@@ -14,8 +14,6 @@ namespace steps {
  */
 class OutputStep : public Step {
  public:
-  virtual ~OutputStep() {}
-
   /**
    * Set which fields the step should write.
    * @param fields A combination of fields. Non-writable fields are ignored.
