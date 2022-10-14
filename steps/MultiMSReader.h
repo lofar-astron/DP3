@@ -151,8 +151,8 @@ class MultiMSReader final : public MSReader {
   bool getFullResFlags(const casacore::RefRows& rowNrs,
                        base::DPBuffer& buf) override;
 
-  /// Tell if the visibility data are to be read.
-  void setReadData() override;
+  /// Set which fields must be read.
+  void setFieldsToRead(const dp3::common::Fields& fields) override;
 
   /// Get the name of the first MS.
   std::string msName() const override;

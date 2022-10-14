@@ -221,7 +221,9 @@ void IDGPredict::updateInfo(const dp3::base::DPInfo& info) {
 
 bool IDGPredict::process(const DPBuffer& buffer) {
   buffers_.emplace_back(buffer);
-  input_.fetchUVW(buffer, buffers_.back(), timer_);
+  // Ensure that the buffer copy has its own UVW array. Otherwise, the UVW array
+  // will refer to the UVW array in 'buffer', which may change.
+  buffers_.back().getUVW().unique();
 
   if (buffers_.size() == buffer_size_) {
     flush();
@@ -411,7 +413,8 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   const double max_baseline2 = max_baseline_ * max_baseline_;
 
   for (DPBuffer& buffer : buffers_) {
-    uvws.push_back(input_.fetchUVW(buffer, buffer, timer_).data());
+    assert(buffer.getUVW().size() == (info().nbaselines() * 3));
+    uvws.push_back(buffer.getUVW().data());
 
     const double* uvw = uvws.back();
     for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {

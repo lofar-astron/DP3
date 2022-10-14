@@ -75,14 +75,12 @@ using dp3::base::FlagCounter;
 namespace dp3 {
 namespace steps {
 
-MSReader::MSReader()
-    : itsReadVisData(false), itsLastMSTime(0), itsNrRead(0), itsNrInserted(0) {}
+MSReader::MSReader() : itsLastMSTime(0), itsNrRead(0), itsNrInserted(0) {}
 
 MSReader::MSReader(const casacore::MeasurementSet& ms,
                    const common::ParameterSet& parset, const string& prefix,
                    bool missingData)
-    : itsReadVisData(false),
-      itsMissingData(missingData),
+    : itsMissingData(missingData),
       itsLastMSTime(0),
       itsNrRead(0),
       itsNrInserted(0) {
@@ -295,7 +293,7 @@ std::string MSReader::msName() const { return itsMS.tableName(); }
 
 bool MSReader::process(const DPBuffer&) {
   if (itsNrRead == 0) {
-    if (itsReadVisData) {
+    if (getFieldsToRead().Data()) {
       itsBuffer.getData().resize(itsNrCorr, itsNrChan, itsNrBl);
     }
     if (itsUseFlags) {
@@ -349,7 +347,7 @@ bool MSReader::process(const DPBuffer&) {
       itsBuffer.setRowNrs(casacore::Vector<common::rownr_t>());
       itsBuffer.setExposure(itsTimeInterval);
       itsBuffer.getFlags() = true;
-      if (itsReadVisData) {
+      if (getFieldsToRead().Data()) {
         itsBuffer.getData() = casacore::Complex();
       }
       itsNrInserted++;
@@ -359,7 +357,7 @@ bool MSReader::process(const DPBuffer&) {
         // Data column not present, so fill a fully flagged time slot.
         itsBuffer.setExposure(itsTimeInterval);
         itsBuffer.getFlags() = true;
-        if (itsReadVisData) {
+        if (getFieldsToRead().Data()) {
           itsBuffer.getData() = casacore::Complex();
         }
       } else {
@@ -367,7 +365,7 @@ bool MSReader::process(const DPBuffer&) {
         itsBuffer.setExposure(
             ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
         // Get data and flags from the MS.
-        if (itsReadVisData) {
+        if (getFieldsToRead().Data()) {
           ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
                                                  itsDataColName);
           if (itsUseAllChan) {
@@ -392,6 +390,7 @@ bool MSReader::process(const DPBuffer&) {
                   IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) = true;
             }
           }
+
         } else {
           // Do not use FLAG from the MS.
           itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
@@ -409,6 +408,12 @@ bool MSReader::process(const DPBuffer&) {
           "#baselines is not the same for all time slots in the MS");
   }  // end of scope stops the timer.
   // Let the next step in the pipeline process this time slot.
+
+  if (getFieldsToRead().Uvw())
+    getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(), itsBuffer);
+  if (getFieldsToRead().Weights()) getWeights(itsBuffer.getRowNrs(), itsBuffer);
+  // TODO AST-1047: read fullResFlags when needed
+
   getNextStep()->process(itsBuffer);
   // Do not add to previous time, because it introduces round-off errors.
   itsNextTime = itsFirstTime + (itsNrRead + itsNrInserted) * itsTimeInterval;

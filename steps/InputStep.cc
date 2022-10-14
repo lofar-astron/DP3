@@ -163,10 +163,6 @@ std::vector<size_t> InputStep::SelectStationIndices(
   return station_to_msindex;
 }
 
-void InputStep::setReadData() {
-  throw std::runtime_error("InputStep::setReadData not implemented");
-}
-
 const casacore::Table& InputStep::table() const {
   throw std::runtime_error("InputStep::table not implemented");
 }

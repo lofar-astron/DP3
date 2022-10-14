@@ -583,6 +583,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
   }
 
   // Add all thread model data to one buffer
+  scratch_buffer.getData().resize(nCr, nCh, nBl);
   scratch_buffer.getData() = casacore::Complex();
   casacore::Complex* scratch_data = scratch_buffer.getData().data();
   const size_t nVisibilities = nBl * nCh * nCr;

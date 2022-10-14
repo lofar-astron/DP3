@@ -161,10 +161,6 @@ class MSReader : public InputStep {
       const everybeam::ElementResponseModel element_response_model,
       bool use_channel_frequency) const final override;
 
-  /// Tell if the visibility data are to be read. If set to true once,
-  /// this will stay true.
-  void setReadData() override { itsReadVisData = true; };
-
   /// Get the main MS table.
   const casacore::Table& table() const override { return itsMS; }
 
@@ -256,7 +252,6 @@ class MSReader : public InputStep {
   std::string itsStartChanStr;  ///< startchan expression
   std::string itsNrChanStr;     ///< nchan expression
   std::string itsSelBL;         ///< Baseline selection string
-  bool itsReadVisData;          ///< read visibility data?
   bool itsNeedSort;             ///< sort needed on time,baseline?
   bool itsAutoWeight;           ///< calculate weights from autocorr?
   bool itsAutoWeightForce;      ///< always calculate weights?

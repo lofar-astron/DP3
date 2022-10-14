@@ -91,12 +91,8 @@ class InputStep : public Step {
       const everybeam::telescope::Telescope* telescope,
       const std::vector<std::string>& station_names);
 
-  /// Tell if the visibility data are to be read. If set to true once,
-  /// this will stay true.
-  virtual void setReadData();
-
   /// Set which fields must be read.
-  void setFieldsToRead(const dp3::common::Fields& fields) {
+  virtual void setFieldsToRead(const dp3::common::Fields& fields) {
     fields_to_read_ = fields;
   };
 
