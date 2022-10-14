@@ -16,9 +16,10 @@
 
 static const char* kSkymodelName = "unittest.skymodel";
 
-BOOST_AUTO_TEST_SUITE(skymodeltosourcedb,
-                      // clang-format off
-                      *boost::unit_test::fixture<FixtureDirectory>()
+BOOST_AUTO_TEST_SUITE(
+    skymodeltosourcedb,
+    // clang-format off
+                      *boost::unit_test::fixture<dp3::common::test::FixtureDirectory>()
                       *boost::unit_test::fixture<FixtureSkymodel>(
                               FixtureSkymodel::Arguments{kSkymodelName}))
 // clang-format on

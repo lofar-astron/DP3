@@ -22,7 +22,7 @@ static const std::string kSourceDBName = "unittest.sourcedb";
 BOOST_AUTO_TEST_SUITE(
     source_db_util,
     // clang-format off
-    *boost::unit_test::fixture<FixtureDirectory>()
+    *boost::unit_test::fixture<dp3::common::test::FixtureDirectory>()
     *boost::unit_test::fixture<FixtureSkymodel>(FixtureSkymodel::Arguments{
             kSkymodelName, kSourceDBName}))
 // clang-format on

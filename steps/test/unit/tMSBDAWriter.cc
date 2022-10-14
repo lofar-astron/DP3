@@ -17,6 +17,7 @@
 using dp3::base::BDABuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
+using dp3::common::test::FixtureDirectory;
 using dp3::steps::MSBDAWriter;
 using dp3::steps::MSReader;
 
