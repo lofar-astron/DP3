@@ -1,10 +1,14 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DP3_COMMON_TEST_UNIT_FIXTURES_FDIRECTORY_H
 #define DP3_COMMON_TEST_UNIT_FIXTURES_FDIRECTORY_H
 
 #include <boost/filesystem.hpp>
+
+namespace dp3 {
+namespace common {
+namespace test {
 
 /// Fixture for Boost unit tests.
 /// Creates a temporary directory and set it as working directory.
@@ -34,5 +38,9 @@ class FixtureDirectory {
   const boost::filesystem::path kPath = boost::filesystem::unique_path();
   const boost::filesystem::path kWorkDir = boost::filesystem::current_path();
 };
+
+}  // namespace test
+}  // namespace common
+}  // namespace dp3
 
 #endif

@@ -34,6 +34,7 @@ using casacore::TableIterator;
 
 using dp3::base::DP3;
 using dp3::common::Fields;
+using dp3::common::test::FixtureDirectory;
 
 namespace utf = boost::unit_test;
 
