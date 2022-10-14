@@ -97,16 +97,16 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
 
 MultiMSReader::~MultiMSReader() {}
 
-void MultiMSReader::setReadData() {
-  itsReadVisData = true;
+std::string MultiMSReader::msName() const { return itsMSNames.front(); }
+
+void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
+  InputStep::setFieldsToRead(fields);
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
-      itsReaders[i]->setReadData();
+      itsReaders[i]->setFieldsToRead(fields);
     }
   }
 }
-
-std::string MultiMSReader::msName() const { return itsMSNames.front(); }
 
 void MultiMSReader::handleBands() {
   if (itsNMissing > 0) {
@@ -218,7 +218,7 @@ bool MultiMSReader::process(const DPBuffer& buf) {
   itsBuffer.setRowNrs(buf1.getRowNrs());
   // Size the buffers.
   if (itsBuffer.getFlags().empty()) {
-    if (itsReadVisData) {
+    if (getFieldsToRead().Data()) {
       itsBuffer.getData().resize(IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
     }
     itsBuffer.getFlags().resize(IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
@@ -239,13 +239,13 @@ bool MultiMSReader::process(const DPBuffer& buf) {
             std::to_string(i));
       // Copy data and flags.
       e[1] = s[1] + itsReaders[i]->getInfo().nchan() - 1;
-      if (itsReadVisData) {
+      if (getFieldsToRead().Data()) {
         itsBuffer.getData()(s, e) = msBuf.getData();
       }
       itsBuffer.getFlags()(s, e) = msBuf.getFlags();
     } else {
       e[1] = s[1] + itsFillNChan - 1;
-      if (itsReadVisData) {
+      if (getFieldsToRead().Data()) {
         itsBuffer.getData()(s, e) = casacore::Complex();
       }
       itsBuffer.getFlags()(s, e) = true;

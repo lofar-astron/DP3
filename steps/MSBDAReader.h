@@ -138,10 +138,6 @@ class MSBDAReader : public InputStep {
   /// Get the name of the MS.
   std::string msName() const override;
 
-  /// Tell if the visibility data are to be read. If set to true once,
-  /// this will stay true.
-  void setReadData() override { read_vis_data_ = true; };
-
   /// Get the main MS table.
   const casacore::Table& table() const override { return ms_; }
 
@@ -182,7 +178,6 @@ class MSBDAReader : public InputStep {
   const casacore::MeasurementSet ms_;
   std::string data_column_name_;
   std::string weight_column_name_;
-  bool read_vis_data_;  ///< read visibility data?
   double last_ms_time_;
   double last_ms_interval_;
   double interval_;  ///< original interval of the MS

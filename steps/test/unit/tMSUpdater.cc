@@ -149,7 +149,6 @@ BOOST_DATA_TEST_CASE_F(
     auto adjust = std::make_shared<TestAdjust>(*reader);
     auto updater =
         std::make_shared<MSUpdater>(reader.get(), kCopyMs, parset, "");
-    reader->setReadData();
     reader->setFieldsToRead(Step::kDataField | Step::kFlagsField |
                             Step::kWeightsField);
     updater->SetFieldsToWrite(fields_to_write);

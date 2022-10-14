@@ -77,7 +77,6 @@ MSBDAReader::MSBDAReader(const casacore::MeasurementSet& ms,
           parset.getString(prefix + "data_column", MS::columnName(MS::DATA))),
       weight_column_name_(parset.getString(
           prefix + "weightcolumn", MS::columnName(MS::WEIGHT_SPECTRUM))),
-      read_vis_data_(false),
       last_ms_time_(0),
       last_ms_interval_(0),
       interval_(0),
@@ -205,7 +204,7 @@ bool MSBDAReader::process(std::unique_ptr<base::BDABuffer>) {
     const auto ant12 = std::make_pair(ant1_col(nread_), ant2_col(nread_));
     casacore::Complex* data_ptr = nullptr;
     std::vector<casacore::Complex> data;
-    if (read_vis_data_) {
+    if (getFieldsToRead().Data()) {
       data = data_col.get(nread_).tovector();
       data_ptr = data.data();
     }
