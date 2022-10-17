@@ -92,26 +92,21 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
 }
 
 void DPBuffer::copy(const DPBuffer& that) {
-  if (this != &that) {
-    itsTime = that.itsTime;
-    itsExposure = that.itsExposure;
-    itsRowNrs.assign(that.itsRowNrs);
-    if (!that.itsData.empty()) {
-      itsData.assign(that.itsData);
-    }
-    if (!that.itsFlags.empty()) {
-      itsFlags.assign(that.itsFlags);
-    }
-    if (!that.itsWeights.empty()) {
-      itsWeights.assign(that.itsWeights);
-    }
-    if (!that.itsUVW.empty()) {
-      itsUVW.assign(that.itsUVW);
-    }
-    if (!that.itsFullResFlags.empty()) {
-      itsFullResFlags.assign(that.itsFullResFlags);
-    }
-  }
+  operator=(that);  // 'Copy' the data in 'that', by referencing it.
+
+  // Ensure that this buffer is independent of the data in 'that'.
+  // Do it even if 'this == &that', since this/that may contain references,
+  // and the result of 'copy' should always be an independent object.
+  makeIndependent();
+}
+
+void DPBuffer::makeIndependent() {
+  itsRowNrs.unique();
+  itsData.unique();
+  itsFlags.unique();
+  itsWeights.unique();
+  itsUVW.unique();
+  itsFullResFlags.unique();
 }
 
 void DPBuffer::referenceFilled(const DPBuffer& that) {

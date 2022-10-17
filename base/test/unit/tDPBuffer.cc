@@ -31,6 +31,18 @@ void CompareArray(const casacore::Array<T>& left,
                                 right.end());
 }
 
+/// Verify that two DPBuffers do share the same data, e.g., using
+/// casacore references.
+void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
+  BOOST_CHECK_EQUAL(left.getRowNrs().data(), right.getRowNrs().data());
+  BOOST_CHECK_EQUAL(left.getData().data(), right.getData().data());
+  BOOST_CHECK_EQUAL(left.getFlags().data(), right.getFlags().data());
+  BOOST_CHECK_EQUAL(left.getUVW().data(), right.getUVW().data());
+  BOOST_CHECK_EQUAL(left.getWeights().data(), right.getWeights().data());
+  BOOST_CHECK_EQUAL(left.getFullResFlags().data(),
+                    right.getFullResFlags().data());
+}
+
 /// Verify that two DPBuffers do not share the same data, e.g., using
 /// casacore references.
 void CheckIndependent(const DPBuffer& left, const DPBuffer& right) {
@@ -87,6 +99,15 @@ BOOST_AUTO_TEST_CASE(constructor) {
   BOOST_CHECK(buffer.getFullResFlags().empty());
 }
 
+BOOST_AUTO_TEST_CASE(copy_constructor) {
+  const DPBuffer source = CreateFilledBuffer();
+  CheckFilledBuffer(source);
+
+  const DPBuffer copy_constructed(source);
+  CheckFilledBuffer(copy_constructed);
+  CheckDependent(source, copy_constructed);
+}
+
 BOOST_AUTO_TEST_CASE(move_constructor) {
   DPBuffer source = CreateFilledBuffer();
   CheckFilledBuffer(source);
@@ -104,6 +125,31 @@ BOOST_AUTO_TEST_CASE(move_assignment) {
   move_assigned = std::move(source);
   CheckFilledBuffer(move_assigned);
   CheckIndependent(source, move_assigned);
+}
+
+BOOST_AUTO_TEST_CASE(copy_to_empty) {
+  const DPBuffer source = CreateFilledBuffer();
+  DPBuffer copy;
+  copy.copy(source);
+  CheckFilledBuffer(copy);
+  CheckIndependent(source, copy);
+}
+
+BOOST_AUTO_TEST_CASE(copy_to_reference_copy) {
+  const DPBuffer source = CreateFilledBuffer();
+  DPBuffer copy(source);  // 'copy' gets references (see copy_constructor test).
+  copy.copy(source);      // 'copy' becomes indedependent.
+  CheckFilledBuffer(copy);
+  CheckIndependent(source, copy);
+}
+
+BOOST_AUTO_TEST_CASE(make_independent) {
+  const DPBuffer source = CreateFilledBuffer();
+  DPBuffer copy(source);  // 'copy' gets references (see copy_constructor test).
+  CheckDependent(source, copy);
+  copy.makeIndependent();
+  CheckFilledBuffer(copy);
+  CheckIndependent(source, copy);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
