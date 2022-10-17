@@ -5,7 +5,7 @@
 #define AOCOMMON_AVX256_VECTOR_FLOAT_8_H
 
 /**
- * @file Implements a Vector with 8 float values.
+ * Implements a Vector with 8 float values.
  *
  * This class is an implementation detail of
  * @ref aocommon::Avx256::VectorComplexFloat4, but can be used by itself.

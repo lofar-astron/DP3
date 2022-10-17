@@ -19,13 +19,19 @@ errors as easy as possible.
 * **Tune At** This stage reads metadata, such as the number of channels, and adjusts the steps accordingly.
 * **Process** This stage pipes the data through the steps, one buffer at a time. The steps define the buffer size.
 
+## Reading input
+Internally, DP3 passes all bulk data (visibilities, flags, weights, uvw) as so-called [DPBuffer](@ref dp3::base::DPBuffer)s or [BDABuffer](@ref dp3::base::BDABuffer)s. As output, a new MS can be written (with [MSWriter](@ref dp3::base::MSwriter), or the input MS can be updated (with [MSUpdater](@ref dp3::base::MSUpdater). Updating is currently not implemented for BDA MSs, though. If an MS is updated, and some data from the input MS is not used by any step in the pipeline, the data is not read into the DPBuffer. DP3 implements this mechanism using the [getRequiredFields](@ref dp3::steps::Step::getRequiredFields) and [getProvidedFields](@ref dp3::steps::Step::getProvidedFields) functions of each Step.
+If the first step is an MSReader and a field is not required, it will not read it into the buffer.
+The RequiredFields can also hold metadata about which things need to be read into the metadata, which is stored in the [DPInfo](@ref dp3::base::DPInfo) object. The same logic holds: if a field is not required by the pipeline, the MSReader will not read it into the DPInfo object. An example of an optional metadata object is the beam information.
+
 ## Measurement Set standard
 DP3 adheres to the Measurement Set (MS) standard, which is the common format for radio telescope data. DP3 can
 also create a new MS. When an appropriate input step is in
 place (e.g. a streaming connection to a correlator), MSs can
 be written from scratch.
 
-DP3 supports only regularly shaped MSs with the following restrictions:
+DP3 supports baseline-dependent averaged (BDA) MSs, though not all steps support BDA data.
+For regular MSs the following conditions hold:
 - Every time slot has the same number of antennas.
 - Time slots have the same duration and are equally spaced (missing time slots are allowed).
 - Every integration has the same number of correlations and channels.
@@ -33,7 +39,7 @@ DP3 supports only regularly shaped MSs with the following restrictions:
 
 ## Built-in steps
 DP3 contains built-in steps that are linked together and process one time slot at a time. This way, DP3 is therefore suitable for large measurement sets.
-All the built-in steps derive from the [DPStep](@ref dp3::steps::Step) class. 
+All the built-in steps derive from the [Step](@ref dp3::steps::Step) class. 
 Its inheritance diagram shows all step types, including the built-in steps.
 
 [DPRun](@ref dp3::base::DPRun) initialises and orchestrates the configured steps.
@@ -43,22 +49,14 @@ When processed, it invokes the process function of the next step.
 Once all buffers are processed, DP3 calls the `finish` function of the first step and subsequent steps. 
 This function flushes all remaining data from the steps to their output channel(s).
 Finally, DP3 calls the `addToMS` function on each step for updating the metadata of the MS.
-The figure below gives a graphical overview of the [DPStep](@ref dp3::steps::Step) flow.
+The figure below gives a graphical overview of the [Step](@ref dp3::steps::Step) flow.
 
 ![Process flow of DP3](docs/doxygen/images/flow.png)
 
 ### Calibration
-The DP3 step [GainCal](@ref dp3::steps::GainCal) implements many variants of direction
-independent calibration. It uses [StefCal](https://ieeexplore.ieee.org/abstract/document/6930038), with many
-extra features, such as fitting a function over frequency.
-Also full-Jones calibration is supported. Results are written
-to [ParmDB](https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb); [H5Parm](https://github.com/revoltek/losoto/wiki/H5parm-specifications) support is in development.
-
-### AOFlagger
-DP3 contains a DPStep class which is a shallow wrapper that calls AOFlagger.
-This makes it possible to flag with AOFlagger and immediately
-afterwards average the data, without writing the
-data to disk in between.
+The DP3 steps [GainCal](@ref dp3::steps::GainCal) and [DDECal](@ref dp3::steps::DDECal) implement many variants of direction
+independent and direction dependent calibration. GainCal predates DDECal and can only be used for direction-independent calibration. DDECal is intended for direction-dependent calibration, but it can also be used for direction-independent, because it contains some features that have not been backported to GainCal.
+Calibration results are stored as [H5Parm](https://github.com/revoltek/losoto/wiki/H5parm-specifications) files. GainCal also supports writing to the deprecated [ParmDB](https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb) format.
 
 ### User-defined steps
 Apart from the built-in steps, also custom steps can
@@ -67,11 +65,11 @@ Recompiling DP3 is not necessary: steps are found as shared
 libraries.
 
 A special custom step is the [Python step](@ref dp3::pythondp3::PyStep), which uses a step defined in a Python module. 
-This makes it very easy to implement custom steps even for non C++-wizards. An
-example Python step is bundled with the LOFAR software.
+This should make it easy to implement custom steps even for non C++-wizards. An
+example Python step is included in DP3.
 
 ## Example reduction
-Arguments are given to DP3 as a 'parameter set', a simple
+Arguments are given to DP3 as a 'parameter set' or 'parset', a simple
 key-value format. Optionally, parameters can be overridden
 on the command line. The example also shows that you can 
 use the out step to store intermediate results.
