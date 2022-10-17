@@ -534,6 +534,7 @@ BOOST_AUTO_TEST_CASE(test6_bda) {
   test2<std::unique_ptr<BDABuffer>>(100, 105, 30, 4, Step::MsType::kBda);
 }
 
+// TODO(AST-1075) fix test using ASAN.
 BOOST_AUTO_TEST_CASE(test7_bda) {
   test3<std::unique_ptr<BDABuffer>>(2, 16, 32, 4, Step::MsType::kBda);
 }

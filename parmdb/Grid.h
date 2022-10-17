@@ -54,9 +54,6 @@ class GridRep {
   /// Is it the default grid?
   bool isDefault() const { return itsIsDefault; }
 
-  /// Get the hash value of the grid.
-  int64_t hash() const { return itsHash; }
-
   /// Get the given axis.
   ///@{
   Axis::ShPtr& getAxis(size_t n) { return itsAxes[n]; }
@@ -76,12 +73,8 @@ class GridRep {
   Axis::ShPtr combineAxes(const std::vector<Grid>& grids, unsigned int axis,
                           unsigned int n, unsigned int step) const;
 
-  /// Set the id.
-  void init();
-
   Axis::ShPtr itsAxes[2];
-  /// The hash value of the grid (for faster comparison).
-  int64_t itsHash;
+
   /// Is it the default grid?
   bool itsIsDefault;
 };
@@ -114,13 +107,6 @@ class Grid {
   /// The vector can be empty. In that case a default Grid is created.
   Grid(const std::vector<Box>& domains, bool sort = false)
       : itsRep(new GridRep(domains, sort)) {}
-
-  /// Check if two grids are equal. They are if their axes have the same
-  /// type and values.
-  ///@{
-  bool operator==(const Grid& that) const;
-  bool operator!=(const Grid& that) const { return !operator==(that); }
-  ///@}
 
   /// Check if the corresponding intervals in this and that grid are the same.
   bool checkIntervals(const Grid& that) const;
@@ -208,15 +194,6 @@ class Grid {
 
   /// Convert the grid to domain boxes and append them to the vector.
   void toDomains(std::vector<Box>& domains) const;
-
-  /// Get the hash value of the grid.
-  int64_t hash() const { return itsRep->hash(); }
-
-  /// Calculate the hash value of a set of grids.
-  static int64_t hash(const std::vector<Grid>&);
-
-  /// Calculate the hash value of a set of domains.
-  static int64_t hash(const std::vector<Box>&);
 
   /// Define an ordering functions to be able to sort grids.
   /// The ordering is on startY,startX.

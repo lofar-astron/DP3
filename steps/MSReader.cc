@@ -75,44 +75,38 @@ using dp3::base::FlagCounter;
 namespace dp3 {
 namespace steps {
 
-MSReader::MSReader() : itsLastMSTime(0), itsNrRead(0), itsNrInserted(0) {}
-
 MSReader::MSReader(const casacore::MeasurementSet& ms,
                    const common::ParameterSet& parset, const string& prefix,
                    bool missingData)
-    : itsMissingData(missingData),
-      itsLastMSTime(0),
-      itsNrRead(0),
-      itsNrInserted(0) {
+    : itsMS(ms),
+      itsSelMS(itsMS),
+      itsDataColName(parset.getString(prefix + "datacolumn", "DATA")),
+      itsFlagColName(parset.getString(prefix + "flagcolumn", "FLAG")),
+      itsWeightColName(
+          parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM")),
+      itsModelColName(parset.getString(prefix + "modelcolumn", "MODEL_DATA")),
+      itsStartChanStr(parset.getString(prefix + "startchan", "0")),
+      itsNrChanStr(parset.getString(prefix + "nchan", "0")),
+      itsSelBL(parset.getString(prefix + "baseline", string())),
+      itsNeedSort(parset.getBool(prefix + "sort", false)),
+      itsAutoWeight(parset.getBool(prefix + "autoweight", false)),
+      itsAutoWeightForce(parset.getBool(prefix + "forceautoweight", false)),
+      itsUseFlags(parset.getBool(prefix + "useflag", true)),
+      itsMissingData(missingData),
+      itsSpw(parset.getInt(prefix + "band", -1)),
+      itsTimeTolerance(parset.getDouble(prefix + "timetolerance", 1e-2)) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Get info from parset.
-  itsSpw = parset.getInt(prefix + "band", -1);
-  itsStartChanStr = parset.getString(prefix + "startchan", "0");
-  itsNrChanStr = parset.getString(prefix + "nchan", "0");
   string startTimeStr = parset.getString(prefix + "starttime", "");
   string endTimeStr = parset.getString(prefix + "endtime", "");
   unsigned int nTimes = parset.getInt(prefix + "ntimes", 0);
   int startTimeSlot = parset.getInt(prefix + "starttimeslot", 0);
-  // Can be negative to insert flagged time slots before start
-  itsTimeTolerance = parset.getDouble(prefix + "timetolerance", 1e-2);
-  itsUseFlags = parset.getBool(prefix + "useflag", true);
-  itsDataColName = parset.getString(prefix + "datacolumn", "DATA");
-  itsWeightColName =
-      parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
-  itsFlagColName = parset.getString(prefix + "flagcolumn", "FLAG");
-  itsModelColName = parset.getString(prefix + "modelcolumn", "MODEL_DATA");
-  itsAutoWeight = parset.getBool(prefix + "autoweight", false);
-  itsAutoWeightForce = parset.getBool(prefix + "forceautoweight", false);
-  itsNeedSort = parset.getBool(prefix + "sort", false);
-  itsSelBL = parset.getString(prefix + "baseline", string());
   // Try to open the MS and get its full name.
   if (itsMissingData && ms.isNull()) {
     DPLOG_WARN_STR("MeasurementSet is empty; dummy data used");
     return;
   }
   assert(!HasBda(ms));
-  itsMS = ms;
-  itsSelMS = itsMS;
   // See if a selection on band needs to be done.
   // We assume that DATA_DESC_ID and SPW_ID map 1-1.
   if (itsSpw >= 0) {
@@ -276,8 +270,6 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   // Initialize the flag counters.
   itsFlagCounter.init(getInfo());
 }
-
-MSReader::~MSReader() {}
 
 common::Fields MSReader::getProvidedFields() const {
   common::Fields fields = InputStep::getProvidedFields();

@@ -12,15 +12,10 @@ namespace parmdb {
 
 GridRep::GridRep()
     : itsAxes{std::make_shared<RegularAxis>(), std::make_shared<RegularAxis>()},
-      itsHash(0),
-      itsIsDefault(true) {
-  init();
-}
+      itsIsDefault(true) {}
 
 GridRep::GridRep(Axis::ShPtr first, Axis::ShPtr second)
-    : itsAxes{first, second}, itsHash(0), itsIsDefault(false) {
-  init();
-}
+    : itsAxes{first, second}, itsIsDefault(false) {}
 
 GridRep::GridRep(const std::vector<Box>& domains, bool unsorted)
     : itsIsDefault(false) {
@@ -37,7 +32,6 @@ GridRep::GridRep(const std::vector<Box>& domains, bool unsorted)
       setup(domains);
     }
   }
-  init();
 }
 
 GridRep::GridRep(const std::vector<Grid>& grids, bool unsorted)
@@ -55,7 +49,6 @@ GridRep::GridRep(const std::vector<Grid>& grids, bool unsorted)
       setup(grids);
     }
   }
-  init();
 }
 
 void GridRep::setup(const std::vector<Box>& domains) {
@@ -208,22 +201,6 @@ Axis::ShPtr GridRep::combineAxes(const std::vector<Grid>& grids,
   return std::make_shared<OrderedAxis>(starts, ends, true);
 }
 
-void GridRep::init() {
-  // Calculate the hash value as a set of individual domains.
-  // Thus add up the start and end values of all cells.
-  const Axis& x = *itsAxes[0];
-  const Axis& y = *itsAxes[1];
-  int64_t xval = 0;
-  int64_t yval = 0;
-  for (unsigned int i = 0; i < x.size(); ++i) {
-    xval += int64_t(x.lower(i)) + int64_t(x.upper(i));
-  }
-  for (unsigned int i = 0; i < y.size(); ++i) {
-    yval += int64_t(y.lower(i)) + int64_t(y.upper(i));
-  }
-  itsHash = x.size() * yval + y.size() * xval;
-}
-
 Grid::Grid(const std::vector<Grid>& grids, bool unsorted) {
   // If only one entry, we can simply make a copy.
   if (grids.size() == 1) {
@@ -233,36 +210,10 @@ Grid::Grid(const std::vector<Grid>& grids, bool unsorted) {
   }
 }
 
-bool Grid::operator==(const Grid& that) const {
-  if (&(*itsRep) == &(*that.itsRep)) return true;
-  if (hash() != that.hash()) return false;
-  if (getAxis(0) != that.getAxis(0)) return false;
-  if (getAxis(1) != that.getAxis(1)) return false;
-  return true;
-}
-
 bool Grid::checkIntervals(const Grid& that) const {
   // Check per axis.
   return (getAxis(0)->checkIntervals(*that.getAxis(0)) &&
           getAxis(1)->checkIntervals(*that.getAxis(1)));
-}
-
-int64_t Grid::hash(const std::vector<Grid>& grids) {
-  double val = 0;
-  for (unsigned int i = 0; i < grids.size(); ++i) {
-    val += grids[i].hash();
-  }
-  return val;
-}
-
-int64_t Grid::hash(const std::vector<Box>& domains) {
-  double val = 0;
-  for (unsigned int i = 0; i < domains.size(); ++i) {
-    const Box& box = domains[i];
-    val += int64_t(box.lowerX()) + int64_t(box.upperX()) +
-           int64_t(box.lowerY()) + int64_t(box.upperY());
-  }
-  return val;
 }
 
 Grid Grid::subset(const Box& domain) const {
