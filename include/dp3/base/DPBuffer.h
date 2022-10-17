@@ -118,7 +118,12 @@ class DPBuffer {
   DPBuffer& operator=(DPBuffer&&);
 
   /// Make a deep copy of all arrays in that to this.
+  /// After this call, the buffer is always independent.
   void copy(const DPBuffer& that);
+
+  /// Ensure that this buffer has independent copies of all data items / that
+  /// the data items do not use reference semantices.
+  void makeIndependent();
 
   /// Reference only the arrays that are filled in that.
   void referenceFilled(const DPBuffer& that);

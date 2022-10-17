@@ -30,14 +30,17 @@ void SolutionInterval::PushBack(const DPBuffer& buffer) {
     throw std::runtime_error("SolutionInterval exceeds buffer size");
   }
 
+  buffers_[buffer_index_].copy(buffer);
+
   input_.fetchUVW(buffer, buffers_[buffer_index_], timer_);
   input_.fetchWeights(buffer, buffers_[buffer_index_], timer_);
   input_.fetchFullResFlags(buffer, buffers_[buffer_index_], timer_);
 
-  buffers_[buffer_index_].copy(buffer);
-
   original_flags_[buffer_index_].assign(buffer.getFlags());
   original_weights_[buffer_index_].assign(buffer.getWeights());
+  // Ensure that the copies are independent of the data in 'buffer'..
+  original_flags_[buffer_index_].unique();
+  original_weights_[buffer_index_].unique();
 
   ++buffer_index_;
 }
