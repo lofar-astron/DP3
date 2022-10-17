@@ -288,7 +288,7 @@ bool MSReader::process(const DPBuffer&) {
     if (getFieldsToRead().Data()) {
       itsBuffer.getData().resize(itsNrCorr, itsNrChan, itsNrBl);
     }
-    if (itsUseFlags) {
+    if (itsUseFlags && getFieldsToRead().Flags()) {
       itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
     }
   }
@@ -366,38 +366,42 @@ bool MSReader::process(const DPBuffer&) {
             dataCol.getColumn(itsColSlicer, itsBuffer.getData());
           }
         }
-        if (itsUseFlags) {
-          ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
-          if (itsUseAllChan) {
-            flagCol.getColumn(itsBuffer.getFlags());
-          } else {
-            flagCol.getColumn(itsColSlicer, itsBuffer.getFlags());
-          }
-          // Set flags if FLAG_ROW is set.
-          ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
-          for (unsigned int i = 0; i < itsIter.table().nrow(); ++i) {
-            if (flagrowCol(i)) {
-              itsBuffer.getFlags()(
-                  IPosition(3, 0, 0, i),
-                  IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) = true;
+        if (getFieldsToRead().Flags()) {
+          if (itsUseFlags) {
+            ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
+            if (itsUseAllChan) {
+              flagCol.getColumn(itsBuffer.getFlags());
+            } else {
+              flagCol.getColumn(itsColSlicer, itsBuffer.getFlags());
             }
-          }
+            // Set flags if FLAG_ROW is set.
+            ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
+            for (unsigned int i = 0; i < itsIter.table().nrow(); ++i) {
+              if (flagrowCol(i)) {
+                itsBuffer.getFlags()(
+                    IPosition(3, 0, 0, i),
+                    IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) = true;
+              }
+            }
 
-        } else {
-          // Do not use FLAG from the MS.
-          itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
-          itsBuffer.getFlags() = false;
+          } else {
+            // Do not use FLAG from the MS.
+            itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
+            itsBuffer.getFlags() = false;
+          }
+          // Flag invalid data (NaN, infinite).
+          flagInfNaN(itsBuffer.getData(), itsBuffer.getFlags(), itsFlagCounter);
         }
-        // Flag invalid data (NaN, infinite).
-        flagInfNaN(itsBuffer.getData(), itsBuffer.getFlags(), itsFlagCounter);
       }
       itsLastMSTime = itsNextTime;
       itsNrRead++;
       itsIter.next();
     }
-    if (itsBuffer.getFlags().shape()[2] != int(itsNrBl))
-      throw std::runtime_error(
-          "#baselines is not the same for all time slots in the MS");
+    if (getFieldsToRead().Flags()) {
+      if (itsBuffer.getFlags().shape()[2] != int(itsNrBl))
+        throw std::runtime_error(
+            "#baselines is not the same for all time slots in the MS");
+    }
   }  // end of scope stops the timer.
   // Let the next step in the pipeline process this time slot.
 
