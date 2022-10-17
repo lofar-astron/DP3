@@ -536,7 +536,8 @@ target_link_libraries(
   # These targets should therefore be linked as INTERFACE
   INTERFACE Casacore Aocommon
   PRIVATE ${DP3_LIBRARIES})
-install(TARGETS LIBDP3 DESTINATION lib)
+set_target_properties(LIBDP3 PROPERTIES LIBRARY_OUTPUT_NAME "DP3")
+install(TARGETS LIBDP3)
 # CMake 3.23 has FILE_SETs which are a cleaner solution. But this version
 # is too new to require,
 install(DIRECTORY include DESTINATION include)
