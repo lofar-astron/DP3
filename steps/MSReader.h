@@ -113,8 +113,6 @@ class MSReader : public InputStep {
   MSReader(const casacore::MeasurementSet& ms, const common::ParameterSet&,
            const std::string& prefix, bool missingData = false);
 
-  virtual ~MSReader();
-
   /// Override InputStep::getProvidedFields, since autoweight settings may add a
   /// field.
   common::Fields getProvidedFields() const override;
@@ -221,7 +219,7 @@ class MSReader : public InputStep {
 
  protected:
   /// Default constructor.
-  MSReader();
+  MSReader() = default;
 
  private:
   /// Prepare the access to the MS.
@@ -245,39 +243,42 @@ class MSReader : public InputStep {
   casacore::MeasurementSet itsMS;
   casacore::Table itsSelMS;  ///< possible selection of spw, baseline
   casacore::TableIterator itsIter;
-  std::string itsDataColName;
-  std::string itsFlagColName;
-  std::string itsWeightColName;
-  std::string itsModelColName;
-  std::string itsStartChanStr;  ///< startchan expression
-  std::string itsNrChanStr;     ///< nchan expression
-  std::string itsSelBL;         ///< Baseline selection string
-  bool itsNeedSort;             ///< sort needed on time,baseline?
-  bool itsAutoWeight;           ///< calculate weights from autocorr?
-  bool itsAutoWeightForce;      ///< always calculate weights?
+  std::string itsDataColName{"DATA"};
+  std::string itsFlagColName{"FLAG"};
+  std::string itsWeightColName{"WEIGHT_SPECTRUM"};
+  std::string itsModelColName{"MODEL_DATA"};
+  std::string itsStartChanStr{"0"};  ///< startchan expression
+  std::string itsNrChanStr{"0"};     ///< nchan expression
+  std::string itsSelBL{};            ///< Baseline selection string
+  bool itsNeedSort{false};           ///< sort needed on time,baseline?
+  bool itsAutoWeight{false};         ///< calculate weights from autocorr?
+  bool itsAutoWeightForce{false};    ///< always calculate weights?
   bool itsHasWeightSpectrum;
-  bool itsUseFlags;
-  bool itsUseAllChan;   ///< all channels (i.e. no slicer)?
-  bool itsMissingData;  ///< allow missing data column?
-  int itsSpw;           ///< spw (band) to use (<0 no select)
-  unsigned int itsNrBl;
-  unsigned int itsNrCorr;
-  unsigned int itsNrChan;
-  unsigned int itsStartChan;
-  double itsTimeTolerance;  ///< tolerance for time comparison
-  double itsTimeInterval;
-  double itsStartTime;
-  double itsFirstTime;
-  double itsLastTime;
-  double itsNextTime;
-  double itsLastMSTime;
-  unsigned int itsNrRead;         ///< nr of time slots read from MS
-  unsigned int itsNrInserted;     ///< nr of inserted time slots
+  bool itsUseFlags{true};
+  bool itsUseAllChan{false};   ///< all channels (i.e. no slicer)?
+  bool itsMissingData{false};  ///< allow missing data column?
+  int itsSpw{-1};              ///< spw (band) to use (<0 no select)
+  unsigned int itsNrBl{0};
+  unsigned int itsNrCorr{0};
+  unsigned int itsNrChan{0};
+  unsigned int itsStartChan{0};
+  /// tolerance for time comparison
+  ///
+  /// Can be negative to insert flagged time slots before start.
+  double itsTimeTolerance{1e-2};
+  double itsTimeInterval{0.0};
+  double itsStartTime{0.0};
+  double itsFirstTime{0.0};
+  double itsLastTime{0.0};
+  double itsNextTime{0.0};
+  double itsLastMSTime{0.0};
+  unsigned int itsNrRead{0};      ///< nr of time slots read from MS
+  unsigned int itsNrInserted{0};  ///< nr of inserted time slots
   casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
   casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array
-  bool itsHasFullResFlags;
-  unsigned int itsFullResNChanAvg;
-  unsigned int itsFullResNTimeAvg;
+  bool itsHasFullResFlags{false};
+  unsigned int itsFullResNChanAvg{0};
+  unsigned int itsFullResNTimeAvg{0};
   base::DPBuffer itsBuffer;
   std::unique_ptr<base::UVWCalculator> itsUVWCalc;
   casacore::Vector<common::rownr_t>

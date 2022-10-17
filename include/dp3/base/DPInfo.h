@@ -267,8 +267,8 @@ class DPInfo {
   std::vector<unsigned int> time_averaging_factors_;
   double start_time_;
   double time_interval_;
-  bool bda_interval_factor_is_integer_;  // INTEGER_INTERVAL_FACTORS in
-                                         // [BDA_TIME_AXIS}
+  bool bda_interval_factor_is_integer_{false};  // INTEGER_INTERVAL_FACTORS in
+                                                // [BDA_TIME_AXIS}
   casacore::MDirection phase_center_;
   bool phase_center_is_original_;
   casacore::MDirection delay_center_;

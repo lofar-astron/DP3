@@ -203,7 +203,7 @@ linting-2204:
     - echo configuring with CMake flags $CMAKE_FLAGS and CXX flags $CXX_FLAGS
     - cmake $CMAKE_FLAGS -DCMAKE_CXX_FLAGS="-coverage $CXX_FLAGS" .
     - ninja
-    - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L unit |& tee ctest.out
+    - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) $CTEST_FLAGS |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
@@ -228,11 +228,13 @@ unit-test-2204:
   extends: .unit-test-2204
   variables:
     CMAKE_FLAGS: -DPORTABLE=OFF
+    CTEST_FLAGS: -L unit
 
 unit-test-portable-2204:
   extends: .unit-test-2204
   variables:
     CMAKE_FLAGS:  -DPORTABLE=ON
+    CTEST_FLAGS: -L unit
 
 unit-test-portable-no-avx2-2204:
   extends: .unit-test-2204
@@ -240,6 +242,27 @@ unit-test-portable-no-avx2-2204:
     # TODO Renable coverage
     CMAKE_FLAGS: -DPORTABLE=ON
     CXX_FLAGS: -mno-avx2
+    CTEST_FLAGS: -L unit
+
+unit-test-asan-2204:
+  extends: .unit-test-2204
+  allow_failure: true # TODO(AST-1075) Remove this allow_failure.
+  variables:
+    CMAKE_FLAGS: -DPORTABLE=OFF
+    # The code has a lot of not yet investigated leaks.
+    CXX_FLAGS: -fsanitize=address -fno-sanitize=leak
+    # The overhead of the sanitizer causes slow tests to time out.
+    CTEST_FLAGS: -L unit -LE slow
+
+unit-test-ubsan-2204:
+  extends: .unit-test-2204
+  variables:
+    CMAKE_FLAGS: -DPORTABLE=OFF
+    # There are NULL pointer issues in Casacore which blocks us from testing in
+    # the CI.
+    CXX_FLAGS: -fsanitize=undefined -fno-sanitize=null -fno-sanitize-recover
+    # The overhead of the sanitizer causes slow tests to time out.
+    CTEST_FLAGS: -L unit -LE slow
 
 integration-test-2204:
   stage: test

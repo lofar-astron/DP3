@@ -52,10 +52,12 @@ BOOST_FIXTURE_TEST_CASE(constructor, BdaPredictFixture) {
   // Nothing to do: The fixture calls the constructor.
 }
 
+// TODO(AST-1075) fix test using ASAN.
 BOOST_FIXTURE_TEST_CASE(getfirstdirection_noinfo, BdaPredictFixture) {
   BOOST_CHECK_THROW(predict_->GetFirstDirection(), std::runtime_error);
 }
 
+// TODO(AST-1075) fix test using ASAN.
 BOOST_FIXTURE_TEST_CASE(getfirstdirection, BdaPredictFixture) {
   SetInfo();
 
