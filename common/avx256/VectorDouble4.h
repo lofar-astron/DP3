@@ -5,7 +5,7 @@
 #define AOCOMMON_AVX256_VECTOR_DOUBLE_4_H
 
 /**
- * @file Implements a Vector with 4 double values.
+ * Implements a Vector with 4 double values.
  *
  * This class is an implementation detail of
  * @ref aocommon::Avx256::VectorComplexDouble2, but can be used by itself.
