@@ -129,14 +129,16 @@ bool PreFlagger::process(const DPBuffer& buf) {
   // Because no buffers are kept, we can reference the filled arrays
   // in the input buffer instead of copying them.
   itsBuffer.referenceFilled(buf);
+  unsigned int nrcorr = info().ncorr();
+  unsigned int nrchan = info().nchan();
+  unsigned int nrbl = info().nbaselines();
+  if (itsBuffer.getFlags().empty()) {
+    itsBuffer.getFlags().resize(nrcorr, nrchan, nrbl);
+  }
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.
   Cube<bool>* flags =
       itsPSet.process(buf, itsBuffer, itsCount, Block<bool>(), itsTimer);
-  const IPosition& shape = flags->shape();
-  unsigned int nrcorr = shape[0];
-  unsigned int nrchan = shape[1];
-  unsigned int nrbl = shape[2];
   const bool* inPtr = flags->data();
   bool* outPtr = itsBuffer.getFlags().data();
   switch (itsMode) {

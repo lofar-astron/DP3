@@ -71,14 +71,12 @@ namespace base {
 ///   </td>
 ///  </tr>
 /// </table>
-/// The FLAG data member should always be filled in, so the first Step
-/// (MSReader) will do that. The DATA data member is filled in if any
-/// Step needs DATA. Other data members are filled on demand.
-/// The InputStep::fetch functions should be used to get data for those
-/// members. They take care that the input buffer's data are used if
-/// available, otherwise they get it from the InputStep object.
-/// In that way as little memory as needed is used. Note that e.g. the
-/// AOFlagger can use a lot of memory if a large time window is used.
+/// Each data member (DATA, FLAG, UVW, WEIGHTS, FULLRESFLAGS) is filled in if
+/// any Step needs it (the information about the required fields per each step
+/// can be read with the getRequiredFields() function). The first Step
+/// (MSReader) will read the requested fields from the MS into the DPBuffer. In
+/// that way as little memory as needed is used. Note that e.g. the AOFlagger
+/// can use a lot of memory if a large time window is used.
 ///
 /// Until early 2015 NDPPP used the strategy of shallow data copies.
 /// I.e., a step increased the data reference counter and did not make

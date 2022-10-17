@@ -63,7 +63,12 @@ class PreFlagger : public Step {
   virtual ~PreFlagger();
 
   common::Fields getRequiredFields() const override {
-    return itsPSet.getRequiredFields();
+    common::Fields fields;
+
+    if ((itsMode == SetFlag) || (itsMode == SetComp)) {
+      fields |= kFlagsField;
+    }
+    return fields |= itsPSet.getRequiredFields();
   }
 
   common::Fields getProvidedFields() const override { return kFlagsField; }

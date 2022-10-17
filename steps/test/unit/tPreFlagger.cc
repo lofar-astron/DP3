@@ -9,6 +9,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
+#include <boost/test/data/test_case.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
@@ -421,29 +422,49 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
 
 // Test flagging on a single parameter.
 void TestOneParameter(const string& key, const string& value, CheckFunc* cfunc,
-                      dp3::common::Fields expected_required_fields) {
+                      dp3::common::Fields expected_required_fields,
+                      const std::string& mode) {
   auto in = std::make_shared<TestInput>(2, 6, 5, 4, false);
   ParameterSet parset;
   parset.add(key, value);
+  parset.add("mode", mode);
   auto pre_flagger = std::make_shared<PreFlagger>(in.get(), parset, "");
+
+  if ((mode == "set") || (mode == "setcomplement") || (mode == "setother"))
+    expected_required_fields |= Step::kFlagsField;
+
   BOOST_TEST(pre_flagger->getRequiredFields() == expected_required_fields);
-  auto out = std::make_shared<TestOutput5>(cfunc);
-  dp3::steps::test::Execute({in, pre_flagger, out});
+
+  // TestOutput5 only works in the default "set" mode
+  if (mode == "set") {
+    auto out = std::make_shared<TestOutput5>(cfunc);
+    dp3::steps::test::Execute({in, pre_flagger, out});
+  }
 }
 
 // Test flagging on multiple parameters.
 void TestTwoParameters(const string& key1, const string& value1,
                        const string& key2, const string& value2,
                        CheckFunc* cfunc,
-                       dp3::common::Fields expected_required_fields) {
+                       dp3::common::Fields expected_required_fields,
+                       const std::string& mode) {
   auto in = std::make_shared<TestInput>(6, 10, 8, 4, false);
   ParameterSet parset;
   parset.add(key1, value1);
   parset.add(key2, value2);
+  parset.add("mode", mode);
   auto pre_flagger = std::make_shared<PreFlagger>(in.get(), parset, "");
+
+  if ((mode == "set") || (mode == "setcomplement") || (mode == "setother"))
+    expected_required_fields |= Step::kFlagsField;
+
   BOOST_TEST(pre_flagger->getRequiredFields() == expected_required_fields);
-  auto out = std::make_shared<TestOutput5>(cfunc);
-  dp3::steps::test::Execute({in, pre_flagger, out});
+
+  // TestOutput5 only works in the default "set" mode
+  if (mode == "set") {
+    auto out = std::make_shared<TestOutput5>(cfunc);
+    dp3::steps::test::Execute({in, pre_flagger, out});
+  }
 }
 
 bool checkBL(casacore::Complex, double, int a1, int a2, const double*) {
@@ -501,56 +522,63 @@ bool checkAmplMaxUvMin(casacore::Complex data, double time, int a1, int a2,
 }
 
 // Test flagging on various fields.
-BOOST_AUTO_TEST_CASE(test_many) {
-  TestOneParameter("corrtype", "auto", &checkBL, dp3::common::Fields());
-  TestOneParameter("amplmin", "9.5", &checkAmplMin, Step::kDataField);
-  TestOneParameter("amplmax", "31.5", &checkAmplMax, Step::kDataField);
-  TestOneParameter("phasemin", "1.4", &checkPhaseMin, Step::kDataField);
-  TestOneParameter("phasemax", "2.1", &checkPhaseMax, Step::kDataField);
-  TestOneParameter("realmin", "5.5", &checkRealMin, Step::kDataField);
-  TestOneParameter("realmax", "29.4", &checkRealMax, Step::kDataField);
-  TestOneParameter("imagmin", "-1.4", &checkImagMin, Step::kDataField);
-  TestOneParameter("imagmax", "20.5", &checkImagMax, Step::kDataField);
-  TestOneParameter("uvmmin", "30", &checkUVMin, Step::kUvwField);
+BOOST_DATA_TEST_CASE(
+    test_many,
+    boost::unit_test::data::make({"set", "clear", "setcomplement", "setother",
+                                  "clearcomplement", "clearother"}),
+    mode) {
+  TestOneParameter("corrtype", "auto", &checkBL, dp3::common::Fields(), mode);
+  TestOneParameter("amplmin", "9.5", &checkAmplMin, Step::kDataField, mode);
+  TestOneParameter("amplmax", "31.5", &checkAmplMax, Step::kDataField, mode);
+  TestOneParameter("phasemin", "1.4", &checkPhaseMin, Step::kDataField, mode);
+  TestOneParameter("phasemax", "2.1", &checkPhaseMax, Step::kDataField, mode);
+  TestOneParameter("realmin", "5.5", &checkRealMin, Step::kDataField, mode);
+  TestOneParameter("realmax", "29.4", &checkRealMax, Step::kDataField, mode);
+  TestOneParameter("imagmin", "-1.4", &checkImagMin, Step::kDataField, mode);
+  TestOneParameter("imagmax", "20.5", &checkImagMax, Step::kDataField, mode);
+  TestOneParameter("uvmmin", "30", &checkUVMin, Step::kUvwField, mode);
   TestTwoParameters("uvmmax", "30", "baseline", "[rs01.s01]", &checkUVBL,
-                    Step::kUvwField);
+                    Step::kUvwField, mode);
   TestTwoParameters("amplmax", "31.5", "uvmmin", "30", &checkAmplMaxUvMin,
-                    (Step::kDataField | Step::kUvwField));
-  TestOneParameter("timeslot", "0", &checkTimeSlot, dp3::common::Fields());
+                    Step::kDataField | Step::kUvwField, mode);
+  TestOneParameter("timeslot", "0", &checkTimeSlot, dp3::common::Fields(),
+                   mode);
   TestOneParameter("abstime", "17-nov-1858/0:0:2..17nov1858/0:0:4",
-                   &checkTimeSlot, dp3::common::Fields());
+                   &checkTimeSlot, dp3::common::Fields(), mode);
   TestOneParameter("abstime", "17-nov-1858/0:0:3+-1s", &checkTimeSlot,
-                   dp3::common::Fields());
+                   dp3::common::Fields(), mode);
   TestOneParameter("reltime", "0:0:0..0:0:6", &checkTimeSlot,
-                   dp3::common::Fields());
+                   dp3::common::Fields(), mode);
   TestOneParameter("reltime", "0:0:2+-1s", &checkTimeSlot,
-                   dp3::common::Fields());
-  TestOneParameter("reltime", "0:0:2+-20s", &checkAll, dp3::common::Fields());
+                   dp3::common::Fields(), mode);
+  TestOneParameter("reltime", "0:0:2+-20s", &checkAll, dp3::common::Fields(),
+                   mode);
   TestTwoParameters("abstime", "17-nov-1858/0:0:20+-19s", "reltime",
-                    "0:0:20+-20s", &checkAll, dp3::common::Fields());
+                    "0:0:20+-20s", &checkAll, dp3::common::Fields(), mode);
   TestTwoParameters("abstime", "17-nov-1858/0:0:3+-2s", "reltime",
-                    "0:0:20+-20s", &checkTimeSlot, dp3::common::Fields());
+                    "0:0:20+-20s", &checkTimeSlot, dp3::common::Fields(), mode);
   TestTwoParameters("abstime", "17-nov-1858/0:0:20+-19s", "reltime",
-                    "0:0:3+-2s", &checkTimeSlot, dp3::common::Fields());
+                    "0:0:3+-2s", &checkTimeSlot, dp3::common::Fields(), mode);
   TestTwoParameters("abstime", "17-nov-1858/0:0:20+-9s", "reltime", "0:0:3+-2s",
-                    &checkNone, dp3::common::Fields());
+                    &checkNone, dp3::common::Fields(), mode);
   // Elevation is 12738s; azimuth=86121s
   TestOneParameter("elevation", "180deg..190deg", &checkNone,
-                   dp3::common::Fields());
+                   dp3::common::Fields(), mode);
   TestOneParameter("elevation", "12730s..12740s", &checkAll,
-                   dp3::common::Fields());
+                   dp3::common::Fields(), mode);
   TestOneParameter("azimuth", "180deg..190deg", &checkNone,
-                   dp3::common::Fields());
+                   dp3::common::Fields(), mode);
   TestOneParameter("azimuth", "86120s..86125s", &checkAll,
-                   dp3::common::Fields());
+                   dp3::common::Fields(), mode);
   TestTwoParameters("azimuth", "86120s..86125s", "elevation", "180deg..190deg",
-                    &checkNone, dp3::common::Fields());
+                    &checkNone, dp3::common::Fields(), mode);
   TestTwoParameters("azimuth", "86120s..86125s", "elevation", "12730s..12740s",
-                    &checkAll, dp3::common::Fields());
-  TestOneParameter("lst", "0.154d..0.155d", &checkAll, dp3::common::Fields());
-  TestOneParameter("blmin", "145", &checkBLMin, dp3::common::Fields());
+                    &checkAll, dp3::common::Fields(), mode);
+  TestOneParameter("lst", "0.154d..0.155d", &checkAll, dp3::common::Fields(),
+                   mode);
+  TestOneParameter("blmin", "145", &checkBLMin, dp3::common::Fields(), mode);
   TestTwoParameters("blmin", "10", "blmax", "145", &checkBLMinMax,
-                    dp3::common::Fields());
+                    dp3::common::Fields(), mode);
 }
 
 BOOST_AUTO_TEST_CASE(test_1) { test1(10, 16, 32, 4, false, true, false); }
