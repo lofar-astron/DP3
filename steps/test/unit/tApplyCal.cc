@@ -265,7 +265,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 };
 
 // Test clock + tec, and test two ApplyCals in sequence
-// TODO(AST-1075) fix test using ASAN.
 BOOST_AUTO_TEST_CASE(test_clock_and_tec) {
   const int kNTimes = 10;
   const int kNChannels = 32;
@@ -301,7 +300,6 @@ BOOST_AUTO_TEST_CASE(test_clock_and_tec) {
       {input, apply_cal1, apply_cal2, apply_cal3, output});
 }
 
-// TODO(AST-1075) fix test using ASAN.
 BOOST_AUTO_TEST_CASE(test_gain) {
   const int kNTimes = 10;
   const int kNChannels = 32;

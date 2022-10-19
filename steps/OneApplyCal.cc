@@ -424,6 +424,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
 
   vector<double> times(info().ntime());
   for (size_t t = 0; t < times.size(); ++t) {
+    // TODO(AST-1078) for investigating the 0.5 offset.
     // time centroids
     times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
   }
@@ -464,6 +465,12 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
       !casacore::nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
     itsLastTime = lastMSTime;
     numTimes = info().ntime() % itsTimeSlotsPerParmUpdate;
+  }
+
+  std::vector<double> times(numTimes);
+  for (size_t t = 0; t < times.size(); ++t) {
+    // time centroids
+    times[t] = bufStartTime + (t + 0.5) * itsTimeInterval;
   }
 
   std::map<std::string, std::vector<double>> parmMap;
@@ -555,12 +562,6 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     ct = CorrectType::GAIN_RE_IM;
   } else if (itsCorrectType == CorrectType::FULLJONES && !itsUseAP) {
     ct = CorrectType::FULLJONES_RE_IM;
-  }
-
-  vector<double> times(info().ntime());
-  for (size_t t = 0; t < times.size(); ++t) {
-    // time centroids
-    times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
   }
 
   std::vector<std::string> ant_names;
