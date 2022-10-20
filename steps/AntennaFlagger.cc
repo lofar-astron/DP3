@@ -11,7 +11,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "../common/ParameterSet.h"
+#include "../base/FlagCounter.h"
 
 namespace {
 /**
@@ -27,11 +27,10 @@ namespace {
  *       autocorrelations for the antennas in a selection)
  *  Multiple selections can be separated with a semicolon (;)
  * @param selection the input string to-be parsed.
- * @param n_antennas the total number of antennas
  * @return a vector of pairs in the format (ant1, ant2)
  */
 std::vector<std::pair<int, int>> ConvertSelection(
-    const std::string& selection_string, int n_antennas) {
+    const std::string& selection_string) {
   // The list of all baselines to be flagged
   std::vector<std::pair<int, int>> selection;
 
@@ -114,7 +113,7 @@ xt::xtensor<bool, 2> Convert(const std::string& selection_string,
   xt::xtensor<bool, 2> bl({n_antennas, n_antennas}, false);
 
   std::vector<std::pair<int, int>> selection =
-      ConvertSelection(selection_string, static_cast<int>(n_antennas));
+      ConvertSelection(selection_string);
 
   for (std::pair<int, int> p : selection) {
     bl(p.first, p.second) = true;
@@ -135,54 +134,48 @@ void AntennaFlagger::show(std::ostream& ostream) const {
   ostream << "\n  selection:   " << selection_string_;
 }
 
-AntennaFlagger::AntennaFlagger(InputStep* input,
-                               const common::ParameterSet& parset,
-                               const string& prefix) {
-  initialization_timer_.start();
+AntennaFlagger::AntennaFlagger(const common::ParameterSet& parset,
+                               const std::string& prefix)
+    : name_(prefix),
+      selection_string_(parset.getString(prefix + "selection", std::string())),
+      do_detect_outliers_(parset.getBool(prefix + "detect_outliers", false)),
+      antenna_flagging_sigma_(
+          parset.getFloat(prefix + "antenna_flagging_sigma", 3)),
+      antenna_flagging_maxiters_(
+          parset.getInt(prefix + "antenna_flagging_maxiters", 5)),
+      station_flagging_sigma_(
+          parset.getFloat(prefix + "station_flagging_sigma", 2.5)),
+      station_flagging_maxiters_(
+          parset.getInt(prefix + "station_flagging_maxiters", 5)) {}
 
-  // Parse arguments
-  const std::string selection_string =
-      parset.getString(prefix + "selection", std::string());
-  do_detect_outliers_ = parset.getBool(prefix + "detect_outliers", false);
-  antenna_flagging_sigma_ =
-      parset.getFloat(prefix + "antenna_flagging_sigma", 3);
-  antenna_flagging_maxiters_ =
-      parset.getInt(prefix + "antenna_flagging_maxiters", 5);
-  station_flagging_sigma_ =
-      parset.getFloat(prefix + "station_flagging_sigma", 2.5);
-  station_flagging_maxiters_ =
-      parset.getInt(prefix + "station_flagging_maxiters", 5);
+void AntennaFlagger::updateInfo(const base::DPInfo& info) {
+  common::NSTimer::StartStop scoped_timer(initialization_timer_);
+
+  Step::updateInfo(info);
 
   // Parse our selection string into a matrix of booleans.
-  n_antennas_ = input->getInfo().nantenna();
-  n_correlations_ = input->getInfo().ncorr();
-  n_channels_ = input->getInfo().nchan();
-  selection_string_ = selection_string;
-  selection_ = Convert(selection_string, n_antennas_);
-  name_ = prefix;
+  selection_ = Convert(selection_string_, info.nantenna());
 
   if (do_detect_outliers_) {
-    std::string antenna_set(input->getInfo().antennaSet());
-    std::vector<std::string> antenna_names(input->getInfo().antennaNames());
+    std::string antenna_set(info.antennaSet());
+    std::vector<std::string> antenna_names(info.antennaNames());
     size_t n_receivers_per_station = 0;
     size_t n_stations = 0;
     if (antenna_names[0].substr(0, 3) == "A12") {
       // AARTFAAC-12: all antennas in a station are used as individual receivers
       n_receivers_per_station = 48;
-      const size_t n_antennas = input->getInfo().nantenna();
+      const size_t n_antennas = info.nantenna();
       n_stations = n_antennas / n_receivers_per_station;
     } else {
       // e.g. LOFAR LBA or HBA: all antennas in a station are combined to form
       // one 'receiver'
       n_receivers_per_station = 1;
-      n_stations = input->getInfo().nantenna();
+      n_stations = info.nantenna();
     }
 
     flagger_ = std::make_unique<dp3::antennaflagger::Flagger>(
-        n_stations, n_receivers_per_station, n_channels_, n_correlations_);
+        n_stations, n_receivers_per_station, info.nchan(), info.ncorr());
   }
-
-  initialization_timer_.stop();
 }
 
 bool AntennaFlagger::process(const base::DPBuffer& buffer) {
@@ -217,7 +210,7 @@ bool AntennaFlagger::process(const base::DPBuffer& buffer) {
 
     // Flag all antennas
     for (int antenna : flagged_antennas) {
-      for (size_t i = 0; i < n_antennas_; i++) {
+      for (size_t i = 0; i < info().nantenna(); i++) {
         selection_(antenna, i) = true;
         selection_(i, antenna) = true;
       }
@@ -231,7 +224,7 @@ bool AntennaFlagger::process(const base::DPBuffer& buffer) {
     for (size_t channel = 0; channel < flags.ncolumn(); channel++) {
       for (size_t baseline = 0; baseline < flags.nplane(); baseline++) {
         const std::pair<size_t, size_t> antennas = dp3::common::ComputeBaseline(
-            baseline, n_antennas_, dp3::common::BaselineOrder::kRowMajor);
+            baseline, info().nantenna(), dp3::common::BaselineOrder::kRowMajor);
         flags(correlation, channel, baseline) =
             selection_(antennas.first, antennas.second);
       }

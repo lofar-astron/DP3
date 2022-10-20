@@ -1,8 +1,8 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_ANTENNAFLAGGERSTEP_H
-#define DP3_ANTENNAFLAGGERSTEP_H
+#ifndef DP3_STEPS_ANTENNAFLAGGER_H_
+#define DP3_STEPS_ANTENNAFLAGGER_H_
 
 #include <memory>
 #include <string>
@@ -10,16 +10,18 @@
 
 #include <xtensor/xtensor.hpp>
 
-#include "../antennaflagger/Flagger.h"
+#include <dp3/steps/Step.h>
 
-#include "InputStep.h"
+#include "../antennaflagger/Flagger.h"
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
 
 namespace dp3 {
 namespace steps {
 class AntennaFlagger final : public Step {
  public:
-  AntennaFlagger(InputStep* input, const common::ParameterSet& parset,
-                 const string& prefix);
+  explicit AntennaFlagger(const common::ParameterSet& parset,
+                          const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
     return kDataField | kFlagsField;
@@ -27,17 +29,13 @@ class AntennaFlagger final : public Step {
 
   common::Fields getProvidedFields() const override { return kFlagsField; }
 
+  void updateInfo(const base::DPInfo& info) override;
   void finish() override;
   void show(std::ostream& ostream) const override;
   bool process(const base::DPBuffer& buffer) override;
   void showTimings(std::ostream& ostream, double duration) const override;
 
  private:
-  // Data statistics
-  size_t n_antennas_;
-  size_t n_channels_;
-  size_t n_correlations_;
-
   // Data fields
   base::DPBuffer buffer_;
   xt::xtensor<bool, 2> selection_;
