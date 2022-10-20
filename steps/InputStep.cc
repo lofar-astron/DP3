@@ -122,12 +122,6 @@ bool InputStep::getFullResFlags(const RefRows&, DPBuffer&) {
   throw std::runtime_error("InputStep::getFullResFlags not implemented");
 }
 
-std::unique_ptr<everybeam::telescope::Telescope> InputStep::GetTelescope(
-    const everybeam::ElementResponseModel /*element_response_model*/,
-    bool /*use_channel_frequency*/) const {
-  throw std::runtime_error("InputStep::GetTelescope not implemented");
-}
-
 std::vector<size_t> InputStep::SelectStationIndices(
     const everybeam::telescope::Telescope* telescope,
     const std::vector<std::string>& station_names) {

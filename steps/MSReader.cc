@@ -916,16 +916,5 @@ bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   return true;
 }
 
-std::unique_ptr<everybeam::telescope::Telescope> MSReader::GetTelescope(
-    const everybeam::ElementResponseModel element_response_model,
-    bool use_channel_frequency) const {
-  everybeam::Options options;
-  options.element_response_model = element_response_model;
-  options.use_channel_frequency = use_channel_frequency;
-  std::unique_ptr<everybeam::telescope::Telescope> telescope =
-      everybeam::Load(itsMS, options);
-  return telescope;
-}
-
 }  // namespace steps
 }  // namespace dp3

@@ -371,16 +371,5 @@ void MSBDAReader::showTimings(std::ostream& os, double duration) const {
   os << " MSBDAReader" << '\n';
 }
 
-std::unique_ptr<everybeam::telescope::Telescope> MSBDAReader::GetTelescope(
-    const everybeam::ElementResponseModel element_response_model,
-    bool use_channel_frequency) const {
-  everybeam::Options options;
-  options.element_response_model = element_response_model;
-  options.use_channel_frequency = use_channel_frequency;
-  std::unique_ptr<everybeam::telescope::Telescope> telescope =
-      everybeam::Load(ms_, options);
-  return telescope;
-}
-
 }  // namespace steps
 }  // namespace dp3

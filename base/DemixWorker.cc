@@ -27,6 +27,7 @@
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
+#include "../common/Telescope.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
@@ -113,8 +114,8 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
   // UseChannelFrequency = false here, only raw data is typically  used for
   // demixing
   const bool use_channel_frequency = false;
-  telescope_ =
-      input->GetTelescope(element_response_model, use_channel_frequency);
+  telescope_ = common::GetTelescope(input->msName(), element_response_model,
+                                    use_channel_frequency);
 
   // Create the solve and subtract steps for the sources to be removed.
   // Solving consists of the following steps:
