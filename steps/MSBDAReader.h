@@ -162,10 +162,6 @@ class MSBDAReader : public InputStep {
   /// Get the nr of averaged full resolution timeslots.
   unsigned int ntimeAvgFullRes() const override { return 1; }
 
-  std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
-      const everybeam::ElementResponseModel element_response_model,
-      bool use_channel_frequency) const final override;
-
   /// Get the time information: cetroid of first and last time slots in the
   /// measurement set
   double firstTime() const override { return first_time_; }

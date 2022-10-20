@@ -155,10 +155,6 @@ class MSReader : public InputStep {
   bool getFullResFlags(const casacore::RefRows& rowNrs,
                        base::DPBuffer&) override;
 
-  std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
-      const everybeam::ElementResponseModel element_response_model,
-      bool use_channel_frequency) const final override;
-
   /// Get the main MS table.
   const casacore::Table& table() const override { return itsMS; }
 

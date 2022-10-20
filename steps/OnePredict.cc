@@ -12,6 +12,7 @@
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
+#include "../common/Telescope.h"
 
 #include "../parmdb/ParmDBMeta.h"
 #include "../parmdb/PatchInfo.h"
@@ -209,8 +210,8 @@ void OnePredict::initializeThreadData() {
     predict_buffer_ = std::make_shared<base::PredictBuffer>();
   }
   if (apply_beam_ && predict_buffer_->GetStationList().empty()) {
-    telescope_ =
-        input_->GetTelescope(element_response_model_, use_channel_freq_);
+    telescope_ = common::GetTelescope(info().msName(), element_response_model_,
+                                      use_channel_freq_);
   }
   predict_buffer_->resize(nThreads, nCr, nCh, nBl, nSt, apply_beam_);
   // Create the Measure ITRF conversion info given the array position.

@@ -8,6 +8,7 @@
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
 #include "../common/StringTools.h"
+#include "../common/Telescope.h"
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
@@ -168,8 +169,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     itsMeasConverters[thread].set(
         MDirection::J2000,
         MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-    telescopes_[thread] =
-        itsInput->GetTelescope(itsElementResponseModel, itsUseChannelFreq);
+    telescopes_[thread] = common::GetTelescope(
+        info().msName(), itsElementResponseModel, itsUseChannelFreq);
   }
 }
 

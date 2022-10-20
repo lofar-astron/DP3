@@ -79,12 +79,6 @@ class InputStep : public Step {
   /// The default implementation returns an empty string.
   virtual std::string msName() const;
 
-  /// Retrieve the everybeam telescope from the input source (MS).
-  /// Default implementation throws an exception.
-  virtual std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
-      const everybeam::ElementResponseModel element_response_model,
-      bool use_channel_frequency) const;
-
   /// Select station indices that match the input vector of antenna(aka station)
   /// names from a telescope pointer.
   static std::vector<size_t> SelectStationIndices(

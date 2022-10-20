@@ -5,6 +5,7 @@
 
 #include "../../MSReader.h"
 #include "../../../common/ParameterSet.h"
+#include "../../../common/Telescope.h"
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/telescope/phasedarray.h>
@@ -60,7 +61,8 @@ BOOST_AUTO_TEST_CASE(provided_fields) {
 
 // Test reading a LOFAR measurement set
 BOOST_AUTO_TEST_CASE(read_lofar) {
-  const casacore::MeasurementSet ms("tNDPPP-generic.MS");
+  const std::string kMsName = "tNDPPP-generic.MS";
+  const casacore::MeasurementSet ms(kMsName);
   dp3::common::ParameterSet parset;
   MSReader msreader(ms, parset, "");
 
@@ -72,7 +74,8 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
   }
 
   std::unique_ptr<everybeam::telescope::Telescope> telescope =
-      msreader.GetTelescope(everybeam::ElementResponseModel::kHamaker, false);
+      dp3::common::GetTelescope(
+          kMsName, everybeam::ElementResponseModel::kHamaker, false);
   const std::vector<size_t> station_indices =
       MSReader::SelectStationIndices(telescope.get(), ant_names);
   const everybeam::telescope::PhasedArray& phasedarray =
@@ -86,7 +89,8 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
 
 // Reading an OSKAR measurement set
 BOOST_AUTO_TEST_CASE(read_oskar) {
-  const casacore::MeasurementSet ms("tOSKAR.in_MS");
+  const std::string kMsName = "tOSKAR.in_MS";
+  const casacore::MeasurementSet ms(kMsName);
   dp3::common::ParameterSet parset;
   MSReader msreader(ms, parset, "");
 
@@ -98,8 +102,8 @@ BOOST_AUTO_TEST_CASE(read_oskar) {
   }
 
   std::unique_ptr<everybeam::telescope::Telescope> telescope =
-      msreader.GetTelescope(
-          everybeam::ElementResponseModel::kOSKARSphericalWave, false);
+      dp3::common::GetTelescope(
+          kMsName, everybeam::ElementResponseModel::kOSKARSphericalWave, false);
   const everybeam::telescope::PhasedArray& phasedarray =
       static_cast<const everybeam::telescope::PhasedArray&>(*telescope);
   std::vector<size_t> station_indices =
