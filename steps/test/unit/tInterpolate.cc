@@ -188,8 +188,7 @@ BOOST_AUTO_TEST_CASE(test1) {
       std::make_shared<TestInput>(kNTime, kNAnt, kNChan, kNCorr, kFlag);
   dp3::common::ParameterSet parset;
   parset.add("windowsize", "9");
-  auto step2 =
-      std::make_shared<dp3::steps::Interpolate>(step1.get(), parset, "");
+  auto step2 = std::make_shared<dp3::steps::Interpolate>(parset, "");
   auto step3 = std::make_shared<TestOutput>(kNTime, kNAnt, kNChan, kNCorr);
   dp3::steps::test::Execute({step1, step2, step3});
 }

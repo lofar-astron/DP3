@@ -213,7 +213,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
       step = std::make_shared<steps::BdaDdeCal>(inputStep, parset, prefix);
     }
   } else if (type == "interpolate") {
-    step = std::make_shared<steps::Interpolate>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Interpolate>(parset, prefix);
   } else if (type == "out" || type == "output" || type == "msout") {
     if (msName.empty())
       msName = casacore::Path(inputStep->msName()).absoluteName();
