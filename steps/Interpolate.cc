@@ -26,8 +26,7 @@ using dp3::base::FlagCounter;
 namespace dp3 {
 namespace steps {
 
-Interpolate::Interpolate(InputStep* /*input*/,
-                         const common::ParameterSet& parset,
+Interpolate::Interpolate(const common::ParameterSet& parset,
                          const string& prefix)
     : _name(prefix),
       _interpolatedPos(0),

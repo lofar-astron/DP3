@@ -24,7 +24,7 @@ class Interpolate : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Interpolate(InputStep*, const common::ParameterSet&, const string& prefix);
+  Interpolate(const common::ParameterSet&, const string& prefix);
 
   virtual ~Interpolate() = default;
 
