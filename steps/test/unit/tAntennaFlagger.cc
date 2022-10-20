@@ -7,21 +7,18 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
+
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
 #include "../../AntennaFlagger.h"
-#include "../../Counter.h"
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
-using dp3::common::ParameterSet;
 using dp3::steps::AntennaFlagger;
-using dp3::steps::Counter;
-using dp3::steps::Step;
 
 BOOST_AUTO_TEST_SUITE(antennaflagger)
 
@@ -168,21 +165,21 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   bool clear_;
 };
 
-// Test flagging a few antennae.
-void test1(int ntime, int nbl, int nchan, int ncorr, bool flag) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  std::shared_ptr<TestInput> step1 =
-      std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
-  ParameterSet parset;
-  parset.add("selection", "4,10,11");
-  std::shared_ptr<AntennaFlagger> step2 =
-      std::make_shared<AntennaFlagger>(in, parset, "");
-  std::shared_ptr<TestOutput> step3 =
-      std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
-  dp3::steps::test::Execute({step1, step2, step3});
-}
+BOOST_AUTO_TEST_CASE(execute) {
+  const int kNTimes = 10;
+  const int kNBaselines = 576;
+  const int kNChannels = 8;
+  const int kNCorrelations = 4;
+  const bool kFlag = false;
 
-BOOST_AUTO_TEST_CASE(test_1) { test1(10, 576, 8, 4, false); }
+  auto in = std::make_shared<TestInput>(kNTimes, kNBaselines, kNChannels,
+                                        kNCorrelations, kFlag);
+  dp3::common::ParameterSet parset;
+  parset.add("selection", "4,10,11");
+  auto antenna_flagger = std::make_shared<AntennaFlagger>(parset, "");
+  auto out = std::make_shared<TestOutput>(kNTimes, kNBaselines, kNChannels,
+                                          kNCorrelations);
+  dp3::steps::test::Execute({in, antenna_flagger, out});
+}
 
 BOOST_AUTO_TEST_SUITE_END()
