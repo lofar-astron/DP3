@@ -216,7 +216,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
     parset.add("blmin", "0");
     parset.add("blmax", "145");
   }
-  Step::ShPtr step2(new MedFlagger(in, parset, ""));
+  Step::ShPtr step2(new MedFlagger(parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nant, nchan, ncorr, flag, false, shortbl));
   dp3::steps::test::Execute({step1, step2, step3});
@@ -236,7 +236,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   if (shortbl) {
     parset.add("blmax", "145");
   }
-  Step::ShPtr step2(new MedFlagger(in, parset, ""));
+  Step::ShPtr step2(new MedFlagger(parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nant, nchan, ncorr, flag, true, shortbl));
   dp3::steps::test::Execute({step1, step2, step3});

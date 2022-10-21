@@ -40,10 +40,8 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-MedFlagger::MedFlagger(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+MedFlagger::MedFlagger(const common::ParameterSet& parset, const string& prefix)
+    : itsName(prefix),
       itsThresholdStr(parset.getString(prefix + "threshold", "1")),
       itsFreqWindowStr(parset.getString(prefix + "freqwindow", "1")),
       itsTimeWindowStr(parset.getString(prefix + "timewindow", "1")),

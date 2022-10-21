@@ -60,7 +60,7 @@ class MedFlagger : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  MedFlagger(InputStep*, const common::ParameterSet&, const string& prefix);
+  MedFlagger(const common::ParameterSet&, const string& prefix);
 
   virtual ~MedFlagger();
 
@@ -113,7 +113,6 @@ class MedFlagger : public Step {
                     common::NSTimer& medianTimer);
 
  protected:
-  InputStep* itsInput;
   string itsName;
   string itsThresholdStr;
   string itsFreqWindowStr;

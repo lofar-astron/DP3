@@ -58,7 +58,7 @@ class PreFlagger : public Step {
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  PreFlagger(InputStep*, const common::ParameterSet&, const string& prefix);
+  PreFlagger(const common::ParameterSet&, const string& prefix);
 
   virtual ~PreFlagger();
 
@@ -112,7 +112,7 @@ class PreFlagger : public Step {
     PSet() {}
 
     /// Construct from the parset parameters.
-    PSet(InputStep*, const common::ParameterSet& parset, const string& prefix);
+    PSet(const common::ParameterSet& parset, const string& prefix);
 
     common::Fields getRequiredFields() const {
       common::Fields fields;
@@ -224,7 +224,6 @@ class PreFlagger : public Step {
     /// It returns the names of all PSets.
     std::vector<string> exprToRpn(const string& expr);
 
-    InputStep* itsInput;
     const base::DPInfo* itsInfo;
     string itsName;
     string itsStrExpr;

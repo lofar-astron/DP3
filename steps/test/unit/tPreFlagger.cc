@@ -231,7 +231,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag, bool clear,
   parset.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add("countflag", "true");
-  Step::ShPtr step2(new PreFlagger(in, parset, ""));
+  Step::ShPtr step2(new PreFlagger(parset, ""));
   Step::ShPtr step3(new Counter(in, parset, "cnt"));
   Step::ShPtr step4(
       new TestOutput(ntime, nbl, nchan, ncorr, flag, clear, useComplement));
@@ -294,7 +294,7 @@ void test2(int ntime, int nbl, int nchan, int ncorr) {
   parset.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("chan", "[11..13, 4, 11, nchan/1000+1000..1000*nchan]");
   parset.add("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
-  Step::ShPtr step2(new PreFlagger(in, parset, ""));
+  Step::ShPtr step2(new PreFlagger(parset, ""));
   Step::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
   dp3::steps::test::Execute({step1, step2, step3});
 }
@@ -309,7 +309,7 @@ void test3(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   parset.add("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("s1.expr", "s2");
   parset.add("s1.s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
-  Step::ShPtr step2(new PreFlagger(in, parset, ""));
+  Step::ShPtr step2(new PreFlagger(parset, ""));
   Step::ShPtr step3(
       new TestOutput(ntime, nbl, nchan, ncorr, flag, false, false));
   dp3::steps::test::Execute({step1, step2, step3});
@@ -374,7 +374,7 @@ void test4(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   parset.add("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add("s2.corrtype", "cross");
-  Step::ShPtr step2(new PreFlagger(in, parset, ""));
+  Step::ShPtr step2(new PreFlagger(parset, ""));
   Step::ShPtr step3(new TestOutput4(ntime, nbl, nchan, ncorr, flag));
   dp3::steps::test::Execute({step1, step2, step3});
 }
@@ -428,7 +428,7 @@ void TestOneParameter(const string& key, const string& value, CheckFunc* cfunc,
   ParameterSet parset;
   parset.add(key, value);
   parset.add("mode", mode);
-  auto pre_flagger = std::make_shared<PreFlagger>(in.get(), parset, "");
+  auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
 
   if ((mode == "set") || (mode == "setcomplement") || (mode == "setother"))
     expected_required_fields |= Step::kFlagsField;
@@ -453,7 +453,7 @@ void TestTwoParameters(const string& key1, const string& value1,
   parset.add(key1, value1);
   parset.add(key2, value2);
   parset.add("mode", mode);
-  auto pre_flagger = std::make_shared<PreFlagger>(in.get(), parset, "");
+  auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
 
   if ((mode == "set") || (mode == "setcomplement") || (mode == "setother"))
     expected_required_fields |= Step::kFlagsField;
