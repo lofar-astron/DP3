@@ -105,7 +105,7 @@ class TestPSet {
 TestPSet::TestPSet() : in_(std::make_unique<TestInput>(16, 8, 4)), parset_() {}
 
 void TestPSet::testNone() {
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK(!(pset.itsFlagOnBL || pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
                 pset.itsFlagOnReal || pset.itsFlagOnImag ||
@@ -114,7 +114,7 @@ void TestPSet::testNone() {
 
 void TestPSet::testBL1() {
   parset_.add("baseline", "[rs01.*, rs02.s01]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK(!(pset.itsFlagOnAmpl || pset.itsFlagOnPhase ||
                 pset.itsFlagOnReal || pset.itsFlagOnImag ||
@@ -132,7 +132,7 @@ void TestPSet::testBL1() {
 void TestPSet::testBL2() {
   parset_.add("corrtype", "auto");
   parset_.add("baseline", "[rs01.*, [*s*.*2], rs02.s01]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   // Make sure the matrix is correct.
   const casacore::Matrix<bool>& mat = pset.itsFlagBL;
@@ -146,7 +146,7 @@ void TestPSet::testBL2() {
 void TestPSet::testBL3() {
   parset_.add("corrtype", "CROSS");
   parset_.add("baseline", "[[rs*, *s*.*1], [cs01.s01,cs01.s02]]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   // Make sure the matrix is correct.
   const casacore::Matrix<bool>& mat = pset.itsFlagBL;
@@ -159,26 +159,26 @@ void TestPSet::testBL3() {
 
 void TestPSet::testBLError1() {
   parset_.add("corrtype", "crossx");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   BOOST_CHECK_THROW(pset.updateInfo(in_->getInfo()), std::exception);
 }
 
 void TestPSet::testBLError2() {
   parset_.add("baseline", "[[a,b,c]]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   BOOST_CHECK_THROW(pset.updateInfo(in_->getInfo()), std::exception);
 }
 
 void TestPSet::testBLError3() {
   parset_.add("baseline", "[[a,b], [ ] ]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   BOOST_CHECK_THROW(pset.updateInfo(in_->getInfo()), std::exception);
 }
 
 void TestPSet::testChan1() {
   in_ = std::make_unique<TestInput>(16, 32, 4);
   parset_.add("chan", "[11..13, 4]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK_EQUAL(pset.itsChannels.size(), size_t{4});
   BOOST_CHECK_EQUAL(pset.itsChannels[0], size_t{4});
@@ -198,7 +198,7 @@ void TestPSet::testChan1() {
 void TestPSet::testChan2() {
   in_ = std::make_unique<TestInput>(16, 32, 4);
   parset_.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK_EQUAL(pset.itsChannels.size(), size_t{3});
   BOOST_CHECK_EQUAL(pset.itsChannels[0], size_t{1});
@@ -210,7 +210,7 @@ void TestPSet::testChan3() {
   in_ = std::make_unique<TestInput>(16, 32, 4);
   parset_.add("chan", "[11..13, 4]");
   parset_.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK_EQUAL(pset.itsChannels.size(), size_t{1});
   BOOST_CHECK_EQUAL(pset.itsChannels[0], size_t{4});
@@ -218,7 +218,7 @@ void TestPSet::testChan3() {
 
 void TestPSet::testTime1() {
   parset_.add("abstime", "[1mar2009/12:00:00..2mar2009/13:00:00]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK_EQUAL(pset.itsATimes.size(), size_t{2});
   casacore::Quantity q;
@@ -229,7 +229,7 @@ void TestPSet::testTime1() {
 
 void TestPSet::testTime2() {
   parset_.add("reltime", "[12:00:00..13:00:00, 16:00 +- 2min ]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK_EQUAL(pset.itsRTimes.size(), size_t{4});
   BOOST_CHECK_EQUAL(pset.itsRTimes[0], 12 * 3600);
@@ -240,7 +240,7 @@ void TestPSet::testTime2() {
 
 void TestPSet::testTime3() {
   parset_.add("timeofday", "[22:00:00..2:00:00, 23:30 +- 1h ]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK_EQUAL(pset.itsTimes.size(), size_t{8});
   BOOST_CHECK_EQUAL(pset.itsTimes[0], -1);
@@ -255,7 +255,7 @@ void TestPSet::testTime3() {
 
 void TestPSet::testTime4() {
   parset_.add("timeslot", "[2..4, 10]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK_EQUAL(pset.itsTimeSlot.size(), size_t{4});
   BOOST_CHECK_EQUAL(pset.itsTimeSlot[0], 2u);
@@ -266,26 +266,26 @@ void TestPSet::testTime4() {
 
 void TestPSet::testTime5() {
   parset_.add("reltime", "[12:00:00]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   BOOST_CHECK_THROW(pset.updateInfo(in_->getInfo()), std::exception);
 }
 
 void TestPSet::testTime6() {
   parset_.add("reltime", "[12:00:00..11:00:00]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   BOOST_CHECK_THROW(pset.updateInfo(in_->getInfo()), std::exception);
 }
 
 void TestPSet::testTime7() {
   parset_.add("abstime", "[12:00:00..13:00:00]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   BOOST_CHECK_THROW(pset.updateInfo(in_->getInfo()), std::exception);
 }
 
 void TestPSet::testMinMax1() {
   parset_.add("amplmin", "[23,,,45]");
   parset_.add("amplmax", "112.5");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK(pset.itsFlagOnAmpl);
   BOOST_CHECK_EQUAL(pset.itsAmplMin.size(), size_t{4});
@@ -302,7 +302,7 @@ void TestPSet::testMinMax1() {
 
 void TestPSet::testMinMax2() {
   parset_.add("phasemin", "[23]");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK(pset.itsFlagOnPhase);
   BOOST_CHECK_EQUAL(pset.itsAmplMin.size(), size_t{4});
@@ -319,7 +319,7 @@ void TestPSet::testMinMax2() {
 
 void TestPSet::testMinMax3() {
   parset_.add("uvmmin", "23");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK(pset.itsFlagOnUV);
   BOOST_CHECK(casacore::near(pset.itsMinUV, 23. * 23.));
@@ -328,7 +328,7 @@ void TestPSet::testMinMax3() {
 
 void TestPSet::testMinMax4() {
   parset_.add("uvmmax", "23");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK(pset.itsFlagOnUV);
   BOOST_CHECK(pset.itsMinUV < 0.);
@@ -338,7 +338,7 @@ void TestPSet::testMinMax4() {
 void TestPSet::testMinMax5() {
   parset_.add("uvmmin", "23");
   parset_.add("uvmmax", "123");
-  PreFlagger::PSet pset(in_.get(), parset_, "");
+  PreFlagger::PSet pset(parset_, "");
   pset.updateInfo(in_->getInfo());
   BOOST_CHECK(pset.itsFlagOnUV);
   BOOST_CHECK(casacore::near(pset.itsMinUV, 23. * 23.));

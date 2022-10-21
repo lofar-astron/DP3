@@ -57,12 +57,10 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-PreFlagger::PreFlagger(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix)
+PreFlagger::PreFlagger(const common::ParameterSet& parset, const string& prefix)
     : itsName(prefix),
-      itsInput(input),
       itsMode(SetFlag),
-      itsPSet(input, parset, prefix),
+      itsPSet(parset, prefix),
       itsCount(0),
       itsFlagCounter(parset, prefix + "count.") {
   string mode = boost::to_lower_copy(parset.getString(prefix + "mode", "set"));
@@ -184,7 +182,7 @@ void PreFlagger::clearFlags(const bool* inPtr, bool* outPtr,
                             unsigned int nrcorr, unsigned int nrchan,
                             unsigned int nrbl, bool mode, const DPBuffer& buf) {
   const casacore::Complex* dataPtr = buf.getData().data();
-  Cube<float> weights = itsInput->fetchWeights(buf, itsBuffer, itsTimer);
+  Cube<float> weights = buf.getWeights();
   const float* weightPtr = weights.data();
   for (unsigned int i = 0; i < nrbl; ++i) {
     for (unsigned int j = 0; j < nrchan; ++j) {
@@ -219,10 +217,8 @@ void PreFlagger::finish() {
   getNextStep()->finish();
 }
 
-PreFlagger::PSet::PSet(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+PreFlagger::PSet::PSet(const common::ParameterSet& parset, const string& prefix)
+    : itsName(prefix),
       itsFlagOnUV(false),
       itsFlagOnBL(false),
       itsFlagOnAmpl(false),
@@ -283,7 +279,7 @@ PreFlagger::PSet::PSet(InputStep* input, const common::ParameterSet& parset,
     itsPSets.reserve(names.size());
     for (unsigned int i = 0; i < names.size(); ++i) {
       itsPSets.push_back(
-          std::make_shared<PSet>(itsInput, parset, prefix + names[i] + '.'));
+          std::make_shared<PSet>(parset, prefix + names[i] + '.'));
     }
   }
 }
@@ -511,7 +507,7 @@ Cube<bool>* PreFlagger::PSet::process(const DPBuffer& in, DPBuffer& out,
     return &itsFlags;
   }
   // Flag on UV distance if necessary.
-  if (itsFlagOnUV && !flagUV(itsInput->fetchUVW(in, out, timer))) {
+  if (itsFlagOnUV && !flagUV(out.getUVW())) {
     return &itsFlags;
   }
   // Flag on AzEl is necessary.

@@ -158,9 +158,9 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "bdaexpander") {
     step = std::make_shared<steps::BDAExpander>(prefix);
   } else if (type == "madflagger" || type == "madflag") {
-    step = std::make_shared<steps::MedFlagger>(inputStep, parset, prefix);
+    step = std::make_shared<steps::MedFlagger>(parset, prefix);
   } else if (type == "preflagger" || type == "preflag") {
-    step = std::make_shared<steps::PreFlagger>(inputStep, parset, prefix);
+    step = std::make_shared<steps::PreFlagger>(parset, prefix);
   } else if (type == "antennaflagger") {
     step = std::make_shared<steps::AntennaFlagger>(parset, prefix);
   } else if (type == "uvwflagger" || type == "uvwflag") {
