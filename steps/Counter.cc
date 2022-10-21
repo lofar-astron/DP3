@@ -27,7 +27,7 @@ Counter::Counter(InputStep* input, const common::ParameterSet& parset,
       itsSaveToJson(parset.getBool(prefix + "savetojson", false)),
       itsJsonFilename(parset.getString(prefix + "jsonfilename",
                                        "FlagPercentagePerStation.JSON")),
-      itsFlagCounter(input->msName(), parset, prefix) {}
+      itsFlagCounter(parset, prefix) {}
 
 Counter::~Counter() {}
 

@@ -198,7 +198,7 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag) {
   Step::ShPtr step1(in);
   ParameterSet parset;
   parset.add("timewindow", "1");
-  Step::ShPtr step2(new AOFlaggerStep(in, parset, ""));
+  Step::ShPtr step2(new AOFlaggerStep(parset, ""));
   Step::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
   dp3::steps::test::Execute({step1, step2, step3});
 }
@@ -211,7 +211,7 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag) {
   ParameterSet parset;
   parset.add("timewindow", "4");
   parset.add("overlapmax", "1");
-  Step::ShPtr step2(new AOFlaggerStep(in, parset, ""));
+  Step::ShPtr step2(new AOFlaggerStep(parset, ""));
   Step::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
   dp3::steps::test::Execute({step1, step2, step3});
 }

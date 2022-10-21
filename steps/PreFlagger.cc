@@ -64,7 +64,7 @@ PreFlagger::PreFlagger(InputStep* input, const common::ParameterSet& parset,
       itsMode(SetFlag),
       itsPSet(input, parset, prefix),
       itsCount(0),
-      itsFlagCounter(input->msName(), parset, prefix + "count.") {
+      itsFlagCounter(parset, prefix + "count.") {
   string mode = boost::to_lower_copy(parset.getString(prefix + "mode", "set"));
   if (mode == "clear") {
     itsMode = ClearFlag;

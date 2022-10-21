@@ -58,20 +58,20 @@ static std::string MakeSaveFilename(std::string path,
   return path + '/' + name + '_' + suffix + ".flag";
 }
 
-FlagCounter::FlagCounter(const string& msName,
-                         const common::ParameterSet& parset,
+FlagCounter::FlagCounter(const common::ParameterSet& parset,
                          const string& prefix)
     : warning_percentage_(parset.getDouble(prefix + "warnperc", 0)),
-      show_fully_flagged_(parset.getBool(prefix + "showfullyflagged", false)) {
-  bool save = parset.getBool(prefix + "save", false);
-  if (save)
-    // Percentages have to be saved, so form the table name to use.
-    save_filename_ =
-        MakeSaveFilename(parset.getString(prefix + "path", ""), msName, prefix);
-}
+      show_fully_flagged_(parset.getBool(prefix + "showfullyflagged", false)),
+      save_(parset.getBool(prefix + "save", false)),
+      path_(parset.getString(prefix + "path", "")),
+      name_(prefix) {}
 
 void FlagCounter::init(const DPInfo& info) {
   info_ = &info;
+
+  if (save_)
+    // Percentages have to be saved, so form the table name to use.
+    save_filename_ = MakeSaveFilename(path_, info.msName(), name_);
   base_line_counts_.resize(info.nbaselines());
   channel_counts_.resize(info.nchan());
   correlation_counts_.resize(info.ncorr());

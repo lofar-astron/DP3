@@ -63,7 +63,7 @@ UVWFlagger::UVWFlagger(InputStep* input, const common::ParameterSet& parset,
                                        std::vector<string>())),
       itsTimer(),
       itsUVWTimer(),
-      itsFlagCounter(input->msName(), parset, prefix + "count.") {}
+      itsFlagCounter(parset, prefix + "count.") {}
 
 UVWFlagger::~UVWFlagger() {}
 

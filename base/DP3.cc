@@ -150,7 +150,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
                                             Step::MsType inputType) {
   std::shared_ptr<Step> step;
   if (type == "aoflagger" || type == "aoflag") {
-    step = std::make_shared<steps::AOFlaggerStep>(inputStep, parset, prefix);
+    step = std::make_shared<steps::AOFlaggerStep>(parset, prefix);
   } else if (type == "averager" || type == "average" || type == "squash") {
     step = std::make_shared<steps::Averager>(*inputStep, parset, prefix);
   } else if (type == "bdaaverage" || type == "bdaaverager") {

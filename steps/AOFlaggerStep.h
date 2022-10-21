@@ -57,8 +57,7 @@ class AOFlaggerStep : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  AOFlaggerStep(InputStep*, const common::ParameterSet&,
-                const std::string& prefix);
+  AOFlaggerStep(const common::ParameterSet&, const std::string& prefix);
 
   virtual ~AOFlaggerStep();
 

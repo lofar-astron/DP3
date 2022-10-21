@@ -49,7 +49,7 @@ MedFlagger::MedFlagger(InputStep* input, const common::ParameterSet& parset,
       itsTimeWindowStr(parset.getString(prefix + "timewindow", "1")),
       itsNTimes(0),
       itsNTimesDone(0),
-      itsFlagCounter(input->msName(), parset, prefix + "count."),
+      itsFlagCounter(parset, prefix + "count."),
       itsMoveTime(0),
       itsMedianTime(0) {
   itsFlagCorr = parset.getUintVector(prefix + "correlations",
