@@ -99,8 +99,9 @@ class UVWFlagger : public Step {
                 unsigned int nrcorr, unsigned int baseline_id);
 
   // Apply UVW flagging
-  void doFlag(const double* uvwPtr, bool* flagPtr, unsigned int n_correlations,
-              unsigned int n_channels, unsigned int baseline_id = 0);
+  void doFlag(const std::array<double, 3>& uvw, bool* flagPtr,
+              unsigned int n_correlations, unsigned int n_channels,
+              unsigned int baseline_id = 0);
 
   /// Return a vector with UVW ranges.
   /// It looks for the named parameter suffixed with 'range', 'min', and

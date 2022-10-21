@@ -20,6 +20,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 
 #include <algorithm>
+#include <array>
 #include <iostream>
 
 using casacore::Cube;
@@ -163,20 +164,21 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   const size_t stride = n_correlations * n_channels;
   std::unique_ptr<bool[]> F{new bool[stride]};
   for (unsigned int i = 0; i < n_baselines; ++i) {
-    std::array<double, 3> uvw{0.0, 0.0, 0.0};
-    if (!itsCenter.empty()) {
+    std::array<double, 3> uvw;
+    if (itsCenter.empty()) {
+      std::copy_n(&uvwPtr[3 * i], 3, uvw.data());
+    } else {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
       uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[i], getInfo().getAnt2()[i],
                                buf.getTime());
-      uvwPtr = uvw.data();
     }
 
     // Copy the original flags so it's possible to count the number of newly
     // set flags.
     bool* origPtr = F.get();
     std::copy_n(flagPtr, stride, origPtr);
-    doFlag(uvwPtr, flagPtr, n_correlations, n_channels);
+    doFlag(uvw, flagPtr, n_correlations, n_channels);
 
     // Count the flags set newly.
     for (unsigned int j = 0; j < n_channels; ++j) {
@@ -187,7 +189,6 @@ bool UVWFlagger::process(const DPBuffer& buf) {
       flagPtr += n_correlations;
       origPtr += n_correlations;
     }
-    uvwPtr += 3;
   }
   // Let the next step do its processing.
   itsTimer.stop();
@@ -214,20 +215,20 @@ bool UVWFlagger::process(std::unique_ptr<BDABuffer> buf) {
     assert(n_channels == itsRecWavel[baseline_id].size());
 
     // Input uvw coordinates are only needed if no new phase center is used.
-    auto uvwPtr = row.uvw;
-    if (!itsCenter.empty()) {
+    std::array<double, 3> uvw;
+    if (itsCenter.empty()) {
+      std::copy_n(row.uvw, 3, uvw.data());
+    } else {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-      std::array<double, 3> uvw{0.0, 0.0, 0.0};
       uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[baseline_id],
                                getInfo().getAnt2()[baseline_id], row.time);
-      uvwPtr = uvw.data();
     }
 
     // Copy original flags to calculate flagged visibilities
     BDABuffer::Row originalRow = row;
     const bool* origPtr = originalRow.flags;
-    doFlag(uvwPtr, flagPtr, n_correlations, n_channels, baseline_id);
+    doFlag(uvw, flagPtr, n_correlations, n_channels, baseline_id);
     // Count the flags set newly.
     for (unsigned int j = 0; j < n_channels; ++j) {
       if (*flagPtr && !*origPtr) {
@@ -245,10 +246,10 @@ bool UVWFlagger::process(std::unique_ptr<BDABuffer> buf) {
   return true;
 }
 
-void UVWFlagger::doFlag(const double* uvwPtr, bool* flagPtr,
+void UVWFlagger::doFlag(const std::array<double, 3>& uvw, bool* flagPtr,
                         unsigned int n_correlations, unsigned int n_channels,
                         unsigned int baseline_id) {
-  double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
+  double uvdist = uvw[0] * uvw[0] + uvw[1] * uvw[1];
   bool flagBL = false;
   if (!itsRangeUVm.empty()) {
     // UV-distance is sqrt(u^2 + v^2).
@@ -256,13 +257,13 @@ void UVWFlagger::doFlag(const double* uvwPtr, bool* flagPtr,
     flagBL = testUVWm(uvdist, itsRangeUVm);
   }
   if (!(flagBL || itsRangeUm.empty())) {
-    flagBL = testUVWm(uvwPtr[0], itsRangeUm);
+    flagBL = testUVWm(uvw[0], itsRangeUm);
   }
   if (!(flagBL || itsRangeVm.empty())) {
-    flagBL = testUVWm(uvwPtr[1], itsRangeVm);
+    flagBL = testUVWm(uvw[1], itsRangeVm);
   }
   if (!(flagBL || itsRangeWm.empty())) {
-    flagBL = testUVWm(uvwPtr[2], itsRangeWm);
+    flagBL = testUVWm(uvw[2], itsRangeWm);
   }
   if (flagBL) {
     // Flag entire baseline.
@@ -273,13 +274,13 @@ void UVWFlagger::doFlag(const double* uvwPtr, bool* flagPtr,
       testUVWl(sqrt(uvdist), itsRangeUVl, flagPtr, n_correlations, baseline_id);
     }
     if (!itsRangeUl.empty()) {
-      testUVWl(uvwPtr[0], itsRangeUl, flagPtr, n_correlations, baseline_id);
+      testUVWl(uvw[0], itsRangeUl, flagPtr, n_correlations, baseline_id);
     }
     if (!itsRangeVl.empty()) {
-      testUVWl(uvwPtr[1], itsRangeVl, flagPtr, n_correlations, baseline_id);
+      testUVWl(uvw[1], itsRangeVl, flagPtr, n_correlations, baseline_id);
     }
     if (!itsRangeWl.empty()) {
-      testUVWl(uvwPtr[2], itsRangeWl, flagPtr, n_correlations, baseline_id);
+      testUVWl(uvw[2], itsRangeWl, flagPtr, n_correlations, baseline_id);
     }
   }
 }
