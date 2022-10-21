@@ -85,7 +85,8 @@ def create_skymodel_in_phase_center():
     )
 
 
-def test_bdapredict(create_skymodel):
+@pytest.mark.parametrize("bda_predict_step_type", ["predict", "grouppredict"])
+def test_bdapredict(create_skymodel, bda_predict_step_type):
     common_args = [
         "bdaaverager.timebase=20000",
         "bdaaverager.frequencybase=20000",
@@ -111,6 +112,7 @@ def test_bdapredict(create_skymodel):
             f"msin={MSIN_REGULAR}",
             "msout=bdapredict1.MS",
             "steps=[bdaaverager, predict]",
+            f"predict.type={bda_predict_step_type}",
         ]
         + common_args
     )
@@ -123,7 +125,10 @@ def test_bdapredict(create_skymodel):
     assert_taql(taql_command)
 
 
-def test_predicted_values_regular_input(create_skymodel_in_phase_center):
+@pytest.mark.parametrize("bda_predict_step_type", ["predict", "grouppredict"])
+def test_predicted_values_regular_input(
+    create_skymodel_in_phase_center, bda_predict_step_type
+):
 
     check_call(
         [
@@ -135,6 +140,7 @@ def test_predicted_values_regular_input(create_skymodel_in_phase_center):
             "steps=[bdaaverager, predict]",
             "bdaaverager.timebase=600",
             "bdaaverager.frequencybase=1000",
+            f"predict.type={bda_predict_step_type}",
             "predict.sourcedb=test.sourcedb",
             "predict.usebeammodel=F",
         ]
@@ -150,7 +156,10 @@ def test_predicted_values_regular_input(create_skymodel_in_phase_center):
     assert_taql(taql_command, 153)
 
 
-def test_predicted_values_bda_input(create_skymodel_in_phase_center):
+@pytest.mark.parametrize("bda_predict_step_type", ["predict", "grouppredict"])
+def test_predicted_values_bda_input(
+    create_skymodel_in_phase_center, bda_predict_step_type
+):
     check_call(
         [
             tcf.DP3EXE,
@@ -159,6 +168,7 @@ def test_predicted_values_bda_input(create_skymodel_in_phase_center):
             "msout=bdapredict.MS",
             "msout.overwrite=true",
             "steps=[predict]",
+            f"predict.type={bda_predict_step_type}",
             "predict.sourcedb=test.sourcedb",
             "predict.usebeammodel=F",
         ]

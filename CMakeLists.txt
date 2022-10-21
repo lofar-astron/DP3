@@ -623,7 +623,7 @@ if(BUILD_TESTING)
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
       steps/test/unit/tAverager.cc
-      steps/test/unit/tBdaPredict.cc
+      steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tInterpolate.cc
@@ -661,7 +661,6 @@ if(BUILD_TESTING)
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBdaDdeCal.cc
       steps/test/unit/tBDAExpander.cc
-      steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tColumnReader.cc
       steps/test/unit/tCounter.cc
       steps/test/unit/tDDECal.cc
