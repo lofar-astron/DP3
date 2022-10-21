@@ -30,14 +30,13 @@ using dp3::base::FlagCounter;
 namespace dp3 {
 namespace steps {
 
-AOFlaggerStep::AOFlaggerStep(InputStep* input,
-                             const common::ParameterSet& parset,
+AOFlaggerStep::AOFlaggerStep(const common::ParameterSet& parset,
                              const string& prefix)
     : name_(prefix),
       buffer_index_(0),
       n_times_(0),
       memory_needed_(0),
-      flag_counter_(input->msName(), parset, prefix + "count."),
+      flag_counter_(parset, prefix + "count."),
       move_time_(0),
       flag_time_(0),
       stats_time_(0),

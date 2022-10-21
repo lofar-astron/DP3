@@ -39,8 +39,7 @@ class FlagCounter {
 
   /// This constructor creates an empty object.
   /// It reads info from the parset to see if percentages have to be saved.
-  FlagCounter(const std::string& msName, const common::ParameterSet&,
-              const std::string& prefix);
+  FlagCounter(const common::ParameterSet&, const std::string& prefix);
 
   /// Size all counters and initialize them to zero using the sizes
   /// from the DPInfo object.
@@ -92,6 +91,9 @@ class FlagCounter {
   void saveChannel(int64_t npoints, const std::vector<int64_t>& count) const;
 
   const DPInfo* info_{nullptr};
+  const bool save_{false};
+  const std::string path_{};
+  const std::string name_{};
   std::string save_filename_{};
   double warning_percentage_{0.0};
   bool show_fully_flagged_{false};
