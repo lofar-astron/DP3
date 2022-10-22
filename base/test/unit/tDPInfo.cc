@@ -12,6 +12,41 @@ const std::vector<casacore::MPosition> kAntPos(1);
 
 BOOST_AUTO_TEST_SUITE(dpinfo)
 
+BOOST_AUTO_TEST_CASE(set_array_info) {
+  const casacore::Vector<double> kPositionValues{
+      std::vector<int>{4'200'000, 420'000, 4'200'042}};
+  const casacore::MPosition kArrayPosition(
+      casacore::Quantum(kPositionValues, "m"), casacore::MPosition::ITRF);
+  const casacore::MDirection kPhaseCenter(casacore::Quantity(42, "deg"),
+                                          casacore::Quantity(1, "deg"),
+                                          casacore::MDirection::J2000);
+  const casacore::MDirection kDelayCenter(casacore::Quantity(43, "deg"),
+                                          casacore::Quantity(2, "deg"),
+                                          casacore::MDirection::J2000);
+  const casacore::MDirection kTimeBeamDirection(casacore::Quantity(44, "deg"),
+                                                casacore::Quantity(3, "deg"),
+                                                casacore::MDirection::J2000);
+
+  dp3::base::DPInfo info;
+  BOOST_TEST(info.arrayPos().getValue() == casacore::MPosition().getValue());
+  BOOST_TEST(info.originalPhaseCenter().getValue() ==
+             casacore::MDirection().getValue());
+  BOOST_TEST(info.phaseCenter().getValue() ==
+             casacore::MDirection().getValue());
+  BOOST_TEST(info.delayCenter().getValue() ==
+             casacore::MDirection().getValue());
+  BOOST_TEST(info.tileBeamDir().getValue() ==
+             casacore::MDirection().getValue());
+
+  info.setArrayInformation(kArrayPosition, kPhaseCenter, kDelayCenter,
+                           kTimeBeamDirection);
+  BOOST_TEST(info.arrayPos().getValue() == kArrayPosition.getValue());
+  BOOST_TEST(info.originalPhaseCenter().getValue() == kPhaseCenter.getValue());
+  BOOST_TEST(info.phaseCenter().getValue() == kPhaseCenter.getValue());
+  BOOST_TEST(info.delayCenter().getValue() == kDelayCenter.getValue());
+  BOOST_TEST(info.tileBeamDir().getValue() == kTimeBeamDirection.getValue());
+}
+
 BOOST_AUTO_TEST_CASE(set_frequency_info) {
   const std::vector<double> kFreqs{10.0, 20.0};
   const std::vector<double> kWidths{5.0, 6.0};

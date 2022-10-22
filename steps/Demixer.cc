@@ -226,7 +226,7 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
       sourceVec.push_back(toString(itsPatchList[i]->direction().dec));
     }
     auto step1 = std::make_shared<PhaseShift>(
-        input, parset, prefix + itsAllSources[i] + '.', sourceVec);
+        parset, prefix + itsAllSources[i] + '.', sourceVec);
     itsFirstSteps.push_back(step1);
     itsPhaseShifts.push_back(step1);
     auto step2 =

@@ -336,7 +336,8 @@ void MSBDAReader::FillInfoMetaData() {
     array_pos = antPos[antPos.size() / 2];
   }
 
-  info().set(array_pos, phase_center, delay_center, tile_beam_dir);
+  info().setArrayInformation(array_pos, phase_center, delay_center,
+                             tile_beam_dir);
 
   info().update(std::move(baseline_factors));
   info().set(std::move(freqs), std::move(widths));

@@ -41,7 +41,6 @@ DPInfo::DPInfo()
       time_averaging_factors_({1}),
       start_time_(0),
       time_interval_(0),
-      phase_center_is_original_(true),
       beam_correction_mode_(static_cast<int>(everybeam::CorrectionMode::kNone)),
       n_threads_(aocommon::system::ProcessorCount()) {}
 
@@ -176,9 +175,12 @@ bool DPInfo::channelsAreRegular() const {
   return true;
 }
 
-void DPInfo::set(const MPosition& arrayPos, const MDirection& phaseCenter,
-                 const MDirection& delayCenter, const MDirection& tileBeamDir) {
+void DPInfo::setArrayInformation(const MPosition& arrayPos,
+                                 const MDirection& phaseCenter,
+                                 const MDirection& delayCenter,
+                                 const MDirection& tileBeamDir) {
   array_position_ = arrayPos;
+  original_phase_center_ = phaseCenter;
   phase_center_ = phaseCenter;
   delay_center_ = delayCenter;
   tile_beam_direction_ = tileBeamDir;

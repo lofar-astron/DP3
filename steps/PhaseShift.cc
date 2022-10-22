@@ -37,32 +37,25 @@ using casacore::MDirection;
 namespace dp3 {
 namespace steps {
 
-PhaseShift::PhaseShift(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+PhaseShift::PhaseShift(const common::ParameterSet& parset, const string& prefix)
+    : itsName(prefix),
       itsCenter(parset.getStringVector(prefix + "phasecenter")) {}
 
-PhaseShift::PhaseShift(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix,
+PhaseShift::PhaseShift(const common::ParameterSet& parset, const string& prefix,
                        const std::vector<std::string>& defVal)
-    : itsInput(input),
-      itsName(prefix),
+    : itsName(prefix),
       itsCenter(parset.getStringVector(prefix + "phasecenter", defVal)) {}
 
 PhaseShift::~PhaseShift() {}
 
 void PhaseShift::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  Step::updateInfo(infoIn);
   info().setNeedVisData();
   info().setMetaChanged();
   // Default phase center is the original one.
-  MDirection newDir(itsInput->getInfo().phaseCenter());
-  ////      bool original = true;
-  bool original = false;
+  MDirection newDir(infoIn.originalPhaseCenter());
   if (!itsCenter.empty()) {
     newDir = handleCenter();
-    original = false;
   }
   const base::Direction new_direction(newDir.getValue().get()[0],
                                       newDir.getValue().get()[1]);
@@ -82,7 +75,7 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
   itsXYZ[2] = tt(0, 2);
   ///      cout << itsXYZ[0]<<' '<<itsXYZ[1]<<' '<<itsXYZ[2]<<" ps"<<'\n';
 
-  info().setPhaseCenter(newDir, original);
+  info().setPhaseCenter(newDir);
   // Calculate 2*pi*freq/C to get correct phase term (in wavelengths).
   const std::vector<double>& freq = infoIn.chanFreqs();
   itsFreqC.reserve(freq.size());
@@ -91,7 +84,7 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
   }
   itsPhasors.resize(infoIn.nchan(), infoIn.nbaselines());
 
-  loop_.SetNThreads(getInfo().nThreads());
+  loop_.SetNThreads(infoIn.nThreads());
 }
 
 void PhaseShift::show(std::ostream& os) const {
@@ -107,9 +100,7 @@ void PhaseShift::showTimings(std::ostream& os, double duration) const {
 
 bool PhaseShift::process(const DPBuffer& buf) {
   itsTimer.start();
-  /// itsBuf.referenceFilled (buf);
   itsBuf.copy(buf);
-  itsInput->fetchUVW(buf, itsBuf, itsTimer);
   int ncorr = itsBuf.getData().shape()[0];
   int nchan = itsBuf.getData().shape()[1];
   int nbl = itsBuf.getData().shape()[2];
