@@ -145,11 +145,11 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
     // If found, turn it into a vector of strings.
     sourceVec[0] = toString(patchList[i]->direction().ra);
     sourceVec[1] = toString(patchList[i]->direction().dec);
-    PhaseShift* step1 =
-        new PhaseShift(input, common::ParameterSet(),
-                       prefix + itsMix->sourceNames()[i] + '.', sourceVec);
-    itsOrigFirstSteps.push_back(Step::ShPtr(step1));
-    itsOrigPhaseShifts.push_back(step1);
+    auto step1 = std::make_shared<PhaseShift>(
+        common::ParameterSet(), prefix + itsMix->sourceNames()[i] + '.',
+        sourceVec);
+    itsOrigFirstSteps.push_back(step1);
+    itsOrigPhaseShifts.push_back(step1.get());
     auto step2 = std::make_shared<Averager>(*input, prefix, itsMix->nchanAvg(),
                                             itsMix->ntimeAvg());
     step1->setNextStep(step2);

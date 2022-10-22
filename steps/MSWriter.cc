@@ -517,7 +517,7 @@ void MSWriter::CreateMs(const string& out_name, const DPInfo& info,
   // Adjust the OBSERVATION table as needed.
   UpdateObs(out_name);
   // Adjust the FIELD table as needed.
-  if (!info.phaseCenterIsOriginal()) {
+  if (info.originalPhaseCenter().getValue() != info.phaseCenter().getValue()) {
     UpdatePhaseCentre(out_name, info);
   }
   UpdateBeam(out_name, "DATA", info);

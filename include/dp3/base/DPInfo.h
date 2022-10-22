@@ -71,11 +71,10 @@ class DPInfo {
                std::vector<std::vector<double>>(),
            double refFreq = 0);
 
-  /// Set array info.
-  void set(const casacore::MPosition& arrayPos,
-           const casacore::MDirection& phaseCenter,
-           const casacore::MDirection& delayCenter,
-           const casacore::MDirection& tileBeamDir);
+  void setArrayInformation(const casacore::MPosition& arrayPos,
+                           const casacore::MDirection& phaseCenter,
+                           const casacore::MDirection& delayCenter,
+                           const casacore::MDirection& tileBeamDir);
 
   /// Set the info for the given antennae and baselines.
   void set(const std::vector<std::string>& antNames,
@@ -100,11 +99,8 @@ class DPInfo {
   /// Remove unused stations from the antenna lists.
   void removeUnusedAnt();
 
-  /// Set the phase center.
-  /// If original=true, it is set to the original phase center.
-  void setPhaseCenter(const casacore::MDirection& phaseCenter, bool original) {
-    phase_center_ = phaseCenter;
-    phase_center_is_original_ = original;
+  void setPhaseCenter(const casacore::MDirection& phase_center) {
+    phase_center_ = phase_center;
   }
 
   /// Get the info.
@@ -143,11 +139,13 @@ class DPInfo {
   const casacore::MPosition arrayPosCopy() const {
     return copyMeasure(casacore::MeasureHolder(array_position_)).asMPosition();
   }
+  const casacore::MDirection& originalPhaseCenter() const {
+    return original_phase_center_;
+  }
   const casacore::MDirection& phaseCenter() const { return phase_center_; }
   const casacore::MDirection phaseCenterCopy() const {
     return copyMeasure(casacore::MeasureHolder(phase_center_)).asMDirection();
   }
-  bool phaseCenterIsOriginal() const { return phase_center_is_original_; }
   const casacore::MDirection& delayCenter() const { return delay_center_; }
   const casacore::MDirection delayCenterCopy() const {
     return copyMeasure(casacore::MeasureHolder(delay_center_)).asMDirection();
@@ -269,8 +267,8 @@ class DPInfo {
   double time_interval_;
   bool bda_interval_factor_is_integer_{false};  // INTEGER_INTERVAL_FACTORS in
                                                 // [BDA_TIME_AXIS}
+  casacore::MDirection original_phase_center_;
   casacore::MDirection phase_center_;
-  bool phase_center_is_original_;
   casacore::MDirection delay_center_;
   casacore::MDirection tile_beam_direction_;
   /// Correction mode for EveryBeam. Since DPInfo is part of the public DP3

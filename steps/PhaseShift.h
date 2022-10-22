@@ -5,8 +5,8 @@
 /// @file
 /// @author Ger van Diepen
 
-#ifndef DP3_PHASESHIFT_H
-#define DP3_PHASESHIFT_H
+#ifndef DP3_STEPS_PHASESHIFT_H_
+#define DP3_STEPS_PHASESHIFT_H_
 
 #include "InputStep.h"
 
@@ -27,7 +27,7 @@ class ParameterSet;
 
 namespace steps {
 
-/// @brief DPPP step class to shift the data to another phase center
+/// @brief DP3 step class to shift the data to another phase center
 
 /// This class is a Step class to shift the data and UVW coordinates
 /// to another phase center. If no phase center is given, a shift is
@@ -39,13 +39,13 @@ class PhaseShift : public Step {
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   /// This is the standard constructor where the phasecenter must be given.
-  PhaseShift(InputStep*, const common::ParameterSet&, const string& prefix);
+  PhaseShift(const common::ParameterSet&, const string& prefix);
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   /// This is a constructor for Demixer where the phasecenter has the
   /// given default value.
-  PhaseShift(InputStep*, const common::ParameterSet&, const string& prefix,
+  PhaseShift(const common::ParameterSet&, const string& prefix,
              const std::vector<string>& defVal);
 
   virtual ~PhaseShift();
@@ -93,8 +93,7 @@ class PhaseShift : public Step {
   /// Currently only J2000 RA and DEC can be given.
   casacore::MDirection handleCenter();
 
-  InputStep* itsInput;
-  string itsName;
+  std::string itsName;
   base::DPBuffer itsBuf;
   std::vector<string> itsCenter;
   std::vector<double> itsFreqC;  ///< freq/C

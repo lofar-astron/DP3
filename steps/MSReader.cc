@@ -662,7 +662,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
     // If not found, use the position of the middle antenna.
     arrayPos = antPos[antPos.size() / 2];
   }
-  info().set(arrayPos, phaseCenter, delayCenter, tileBeamDir);
+  info().setArrayInformation(arrayPos, phaseCenter, delayCenter, tileBeamDir);
   // Create the UVW calculator.
   itsUVWCalc =
       std::make_unique<base::UVWCalculator>(phaseCenter, arrayPos, antPos);

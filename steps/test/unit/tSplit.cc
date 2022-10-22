@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(fields) {
   parset.add("phaseshift.phasecenter", "foo_center");
   parset.add("upsample.timestep", "2");
   parset.add("upsample.updateuvw", "true");
-  const dp3::steps::PhaseShift phase_shift(&input, parset, "phaseshift.");
+  const dp3::steps::PhaseShift phase_shift(parset, "phaseshift.");
   const dp3::steps::Upsample upsample(parset, "upsample.");
   BOOST_TEST(phase_shift.getRequiredFields() != dp3::common::Fields());
   BOOST_TEST(upsample.getRequiredFields() != dp3::common::Fields());

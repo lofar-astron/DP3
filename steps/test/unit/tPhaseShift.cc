@@ -44,7 +44,8 @@ class TestInput : public dp3::steps::MockInput {
     casacore::MDirection phaseCenter(casacore::Quantity(45, "deg"),
                                      casacore::Quantity(30, "deg"),
                                      casacore::MDirection::J2000);
-    info().set(casacore::MPosition(), phaseCenter, phaseCenter, phaseCenter);
+    info().setArrayInformation(casacore::MPosition(), phaseCenter, phaseCenter,
+                               phaseCenter);
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 100000.);
     std::vector<double> chanFreqs;
@@ -151,9 +152,9 @@ class TestInput : public dp3::steps::MockInput {
 // Class to check result of null phase-shifted TestInput.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(TestInput* input, int ntime, int nbl, int nchan, int ncorr,
+  TestOutput(TestInput& input, int ntime, int nbl, int nchan, int ncorr,
              bool flag)
-      : itsInput(input),
+      : itsInput(&input),
         itsCount(0),
         itsNTime(ntime),
         itsNBl(nbl),
@@ -201,9 +202,9 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 // Class to check result of null phase-shifted TestInput.
 class TestOutput1 : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput1(TestInput* input, int ntime, int nbl, int nchan, int ncorr,
+  TestOutput1(TestInput& input, int ntime, int nbl, int nchan, int ncorr,
               bool flag)
-      : itsInput(input),
+      : itsInput(&input),
         itsCount(0),
         itsNTime(ntime),
         itsNBl(nbl),
@@ -253,31 +254,30 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
 // Test with a shift to the original center.
 void test1(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   // Keep phase center the same to be able to check if data are correct.
   parset.add("phasecenter", "[45deg, 30deg]");
-  Step::ShPtr step2(new PhaseShift(in, parset, ""));
-  Step::ShPtr step3(new TestOutput(in, ntime, nbl, nchan, ncorr, flag));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto phase_shift = std::make_shared<PhaseShift>(parset, "");
+  auto out = std::make_shared<TestOutput>(*in, ntime, nbl, nchan, ncorr, flag);
+  dp3::steps::test::Execute({in, phase_shift, out});
 }
 
 // Test with a shift to another and then to the original phase center.
 void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   // First shift to another center, then back to original.
-  ParameterSet parset;
-  parset.add("phasecenter", "[50deg, 35deg]");
   ParameterSet parset1;
-  parset1.add("phasecenter", "[]");
-  Step::ShPtr step2(new PhaseShift(in, parset, ""));
-  Step::ShPtr step3(new TestOutput1(in, ntime, nbl, nchan, ncorr, flag));
-  Step::ShPtr step4(new PhaseShift(in, parset1, ""));
-  Step::ShPtr step5(new TestOutput(in, ntime, nbl, nchan, ncorr, flag));
-  dp3::steps::test::Execute({step1, step2, step3, step4, step5});
+  parset1.add("phasecenter", "[50deg, 35deg]");
+  ParameterSet parset2;
+  parset2.add("phasecenter", "[]");
+  auto phase_shift1 = std::make_shared<PhaseShift>(parset1, "");
+  auto out1 =
+      std::make_shared<TestOutput1>(*in, ntime, nbl, nchan, ncorr, flag);
+  auto phase_shift2 = std::make_shared<PhaseShift>(parset2, "");
+  auto out2 = std::make_shared<TestOutput>(*in, ntime, nbl, nchan, ncorr, flag);
+  dp3::steps::test::Execute({in, phase_shift1, out1, phase_shift2, out2});
 }
 
 BOOST_AUTO_TEST_CASE(test1a) { test1(10, 3, 32, 4, false); }
