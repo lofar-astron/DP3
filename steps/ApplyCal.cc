@@ -6,17 +6,15 @@
 
 #include "ApplyCal.h"
 
-#include <iostream>
-
-#include "../common/ParameterSet.h"
-#include "../common/ParameterValue.h"
-#include "../common/Timer.h"
-
 #include <stddef.h>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <vector>
+
+#include "../common/ParameterSet.h"
+#include "../common/ParameterValue.h"
+#include "../common/Timer.h"
 
 inline bool isfinite(casacore::DComplex val) {
   return casacore::isFinite(val.real()) && casacore::isFinite(val.imag());
@@ -28,8 +26,8 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-ApplyCal::ApplyCal(InputStep* input, const common::ParameterSet& parset,
-                   const string& prefix, bool substep, string predictDirection)
+ApplyCal::ApplyCal(const common::ParameterSet& parset, const string& prefix,
+                   bool substep, string predictDirection)
     : itsIsSubstep(substep) {
   std::vector<std::string> subStepNames;
   common::ParameterValue namesPar(parset.getString(prefix + "steps", ""));
@@ -53,7 +51,7 @@ ApplyCal::ApplyCal(InputStep* input, const common::ParameterSet& parset,
       subStepPrefix = prefix + subStepName + ".";
     }
     itsApplyCals.push_back(std::make_shared<OneApplyCal>(
-        input, parset, subStepPrefix, prefix, substep, predictDirection));
+        parset, subStepPrefix, prefix, substep, predictDirection));
   }
 
   Step::setNextStep(itsApplyCals.front());

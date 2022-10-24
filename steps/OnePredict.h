@@ -1,13 +1,13 @@
-// OnePredict.h: DPPP step class to predict visibilities from a source model
+// OnePredict.h: DP3 step class to predict visibilities from a source model
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to predict visibilities from a source model
+/// @brief DP3 step class to predict visibilities from a source model
 /// @author Tammo Jan Dijkema
 
-#ifndef DP3_ONEPREDICT_H
-#define DP3_ONEPREDICT_H
+#ifndef DP3_STEPS_ONEPREDICT_H_
+#define DP3_STEPS_ONEPREDICT_H_
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
@@ -57,7 +57,7 @@ class OnePredict : public ModelDataStep {
    * @param prefix Prefix for reading settings from 'parset'.
    * @param sourceList Direction names. If empty, obtain sources from the parset
    */
-  OnePredict(InputStep*, const common::ParameterSet&, const std::string& prefix,
+  OnePredict(const common::ParameterSet&, const std::string& prefix,
              const std::vector<std::string>& source_patterns);
 
   virtual ~OnePredict();
@@ -88,8 +88,7 @@ class OnePredict : public ModelDataStep {
   }
 
   /// Set the applycal substep
-  void SetApplyCal(InputStep*, const common::ParameterSet&,
-                   const std::string& prefix);
+  void SetApplyCal(const common::ParameterSet&, const std::string& prefix);
 
   /// Set the operation type
   void SetOperation(const std::string& type);
@@ -136,7 +135,7 @@ class OnePredict : public ModelDataStep {
 
  private:
   /// The actual constructor
-  void init(InputStep*, const common::ParameterSet&, const std::string& prefix,
+  void init(const common::ParameterSet&, const std::string& prefix,
             const std::vector<std::string>& sourcePatterns);
 
   void initializeThreadData();
@@ -152,7 +151,6 @@ class OnePredict : public ModelDataStep {
                      const std::pair<size_t, size_t>& station_range,
                      aocommon::Barrier& barrier, bool stokesIOnly);
 
-  InputStep* input_{nullptr};
   std::string name_;
   base::DPBuffer buffer_;
   std::string source_db_name_;

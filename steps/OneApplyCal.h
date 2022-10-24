@@ -1,4 +1,4 @@
-// OneApplyCal.h: DPPP step class to apply a calibration correction to the data
+// OneApplyCal.h: DP3 step class to apply a calibration correction to the data
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -6,25 +6,23 @@
 /// @brief DPPP step class to apply a calibration correction to the data
 /// @author Tammo Jan Dijkema
 
-#ifndef DPPP_ONEAPPLYCAL_H
-#define DPPP_ONEAPPLYCAL_H
+#ifndef DP3_STEPS_ONEAPPLYCAL_H_
+#define DP3_STEPS_ONEAPPLYCAL_H_
 
-#include "InputStep.h"
-
-#include <dp3/base/DPBuffer.h>
-#include "../base/FlagCounter.h"
-
-#include "../parmdb/ParmFacade.h"
-#include "../parmdb/ParmSet.h"
-#include "../parmdb/Parm.h"
+#include <mutex>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
-
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
 
-#include <mutex>
+#include <dp3/steps/Step.h>
+#include <dp3/base/DPBuffer.h>
+#include "../base/FlagCounter.h"
+#include "../common/Timer.h"
+#include "../parmdb/ParmFacade.h"
+#include "../parmdb/ParmSet.h"
+#include "../parmdb/Parm.h"
 
 using schaapcommon::h5parm::JonesParameters;
 
@@ -42,9 +40,9 @@ class OneApplyCal : public Step {
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  OneApplyCal(InputStep*, const common::ParameterSet&,
-              const std::string& prefix, const std::string& defaultPrefix,
-              bool substep = false, std::string predictDirection = "");
+  OneApplyCal(const common::ParameterSet&, const std::string& prefix,
+              const std::string& defaultPrefix, bool substep = false,
+              std::string predictDirection = "");
 
   virtual ~OneApplyCal();
 
@@ -98,7 +96,6 @@ class OneApplyCal : public Step {
   static void applyFlags(std::vector<double>& values,
                          const std::vector<double>& weights);
 
-  InputStep* itsInput;
   base::DPBuffer itsBuffer;
   std::string itsName;
   std::string itsParmDBName;

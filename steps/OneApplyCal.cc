@@ -40,12 +40,11 @@ namespace steps {
 // Initialize private static
 std::mutex OneApplyCal::theirHDF5Mutex;
 
-OneApplyCal::OneApplyCal(InputStep* input, const common::ParameterSet& parset,
+OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
                          const std::string& prefix,
                          const std::string& defaultPrefix, bool substep,
                          std::string predictDirection)
-    : itsInput(input),
-      itsName(prefix),
+    : itsName(prefix),
       itsParmDBName(parset.isDefined(prefix + "parmdb")
                         ? parset.getString(prefix + "parmdb")
                         : parset.getString(defaultPrefix + "parmdb")),
@@ -357,12 +356,8 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
   size_t nbl = itsBuffer.getData().shape()[2];
 
   casacore::Complex* data = itsBuffer.getData().data();
-
-  itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
   float* weight = itsBuffer.getWeights().data();
-
   bool* flag = itsBuffer.getFlags().data();
-
   size_t nchan = itsBuffer.getData().shape()[1];
 
   aocommon::ParallelFor<size_t> loop(getInfo().nThreads());

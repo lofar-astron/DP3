@@ -24,7 +24,7 @@ namespace steps {
 Predict::Predict(InputStep& input_step, const common::ParameterSet& parset,
                  const string& prefix, MsType input_type)
     : ms_type_(input_type),
-      predict_step_(std::make_shared<OnePredict>(&input_step, parset, prefix,
+      predict_step_(std::make_shared<OnePredict>(parset, prefix,
                                                  std::vector<std::string>())) {
   Initialize(input_step, parset, prefix, input_type);
 }
@@ -34,8 +34,8 @@ Predict::Predict(InputStep& input_step, const common::ParameterSet& parset,
                  const std::vector<std::string>& source_patterns,
                  MsType input_type)
     : ms_type_(input_type),
-      predict_step_(std::make_shared<OnePredict>(&input_step, parset, prefix,
-                                                 source_patterns)) {
+      predict_step_(
+          std::make_shared<OnePredict>(parset, prefix, source_patterns)) {
   Initialize(input_step, parset, prefix, input_type);
 }
 
