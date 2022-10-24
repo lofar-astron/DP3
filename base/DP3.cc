@@ -169,7 +169,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "columnreader") {
     step = std::make_shared<steps::ColumnReader>(*inputStep, parset, prefix);
   } else if (type == "counter" || type == "count") {
-    step = std::make_shared<steps::Counter>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Counter>(parset, prefix);
   } else if (type == "phaseshifter" || type == "phaseshift") {
     step = std::make_shared<steps::PhaseShift>(parset, prefix);
   } else if (type == "demixer" || type == "demix") {

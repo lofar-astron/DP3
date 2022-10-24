@@ -10,7 +10,6 @@
 
 #include "../../../common/ParameterSet.h"
 #include "mock/MockStep.h"
-#include "mock/MockInput.h"
 
 #include <iostream>
 #include <filesystem>
@@ -23,15 +22,14 @@ BOOST_AUTO_TEST_SUITE(counter, *boost::unit_test::tolerance(0.001) *
                                    boost::unit_test::tolerance(0.001f))
 
 BOOST_AUTO_TEST_CASE(fields) {
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
 
-  const Counter counter(&input, parset, "");
+  const Counter counter(parset, "");
   BOOST_TEST(counter.getRequiredFields() == Step::kFlagsField);
   BOOST_TEST(counter.getProvidedFields() == dp3::common::Fields());
 
   parset.add("flagdata", "true");
-  const Counter flags_data(&input, parset, "");
+  const Counter flags_data(parset, "");
   BOOST_TEST(flags_data.getRequiredFields() ==
              (Step::kDataField | Step::kFlagsField));
   BOOST_TEST(flags_data.getProvidedFields() == dp3::common::Fields());
@@ -95,14 +93,13 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
     }
   }
 
-  dp3::steps::MockInput mock_input;
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
 
   dp3::base::DPBuffer buffer;
   buffer.setData(data);
   buffer.setFlags(flags);
 
-  Counter counter(&mock_input, parset, "");
+  Counter counter(parset, "");
   counter.setInfo(info);
 
   counter.setNextStep(mock_step);

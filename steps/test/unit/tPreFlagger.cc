@@ -232,7 +232,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, bool flag, bool clear,
   parset.add("baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add("countflag", "true");
   Step::ShPtr step2(new PreFlagger(parset, ""));
-  Step::ShPtr step3(new Counter(in, parset, "cnt"));
+  Step::ShPtr step3(new Counter(parset, "cnt"));
   Step::ShPtr step4(
       new TestOutput(ntime, nbl, nchan, ncorr, flag, clear, useComplement));
   dp3::steps::test::Execute({step1, step2, step3, step4});

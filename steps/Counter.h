@@ -1,25 +1,20 @@
-// Counter.h: DPPP step class to count flags
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Counter.h: DP3 step class to count flags
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to count flags
+/// @brief DP3 step class to count flags
 /// @author Ger van Diepen
 
-#ifndef DPPP_COUNTER_H
-#define DPPP_COUNTER_H
+#ifndef DP3_STEPS_COUNTER_H_
+#define DP3_STEPS_COUNTER_H_
 
-#include "InputStep.h"
+#include <dp3/steps/Step.h>
 
-#include <dp3/base/DPBuffer.h>
 #include "../base/FlagCounter.h"
+#include "../common/ParameterSet.h"
 
 namespace dp3 {
-
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
 
 /// @brief DPPP step class to count flags
@@ -33,12 +28,12 @@ class Counter : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Counter(InputStep*, const common::ParameterSet&, const string& prefix);
+  explicit Counter(const common::ParameterSet&, const string& prefix);
 
   virtual ~Counter();
 
   common::Fields getRequiredFields() const override {
-    if (itsFlagData)
+    if (flag_data_)
       return kDataField | kFlagsField;
     else
       return kFlagsField;
@@ -63,12 +58,12 @@ class Counter : public Step {
   virtual void showCounts(std::ostream&) const;
 
  private:
-  std::string itsName;
-  bool itsFlagData;
-  unsigned int itsCount;
-  bool itsSaveToJson;
-  std::string itsJsonFilename;
-  base::FlagCounter itsFlagCounter;
+  std::string name_;
+  bool flag_data_;
+  unsigned int count_;
+  bool save_to_json_;
+  std::string json_filename_;
+  base::FlagCounter flag_counter_;
 };
 
 }  // namespace steps
