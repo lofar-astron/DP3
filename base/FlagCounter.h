@@ -91,12 +91,12 @@ class FlagCounter {
   void saveChannel(int64_t npoints, const std::vector<int64_t>& count) const;
 
   const DPInfo* info_{nullptr};
-  const bool save_{false};
-  const std::string path_{};
-  const std::string name_{};
   std::string save_filename_{};
   double warning_percentage_{0.0};
   bool show_fully_flagged_{false};
+  bool save_{false};
+  std::string path_{};
+  std::string name_{};
   std::vector<int64_t> base_line_counts_{};
   std::vector<int64_t> channel_counts_{};
   std::vector<int64_t> correlation_counts_{};

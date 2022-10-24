@@ -1,14 +1,10 @@
-// Counter.cc: DPPP step class to count flags
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Counter.cc: DP3 step class to count flags
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
 #include "Counter.h"
-
-#include <dp3/base/DPInfo.h>
-
-#include "../common/ParameterSet.h"
 
 #include <iostream>
 #include <fstream>
@@ -19,46 +15,45 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-Counter::Counter(InputStep* input, const common::ParameterSet& parset,
-                 const string& prefix)
-    : itsName(prefix),
-      itsFlagData(parset.getBool(prefix + "flagdata", false)),
-      itsCount(0),
-      itsSaveToJson(parset.getBool(prefix + "savetojson", false)),
-      itsJsonFilename(parset.getString(prefix + "jsonfilename",
-                                       "FlagPercentagePerStation.JSON")),
-      itsFlagCounter(parset, prefix) {}
+Counter::Counter(const common::ParameterSet& parset, const string& prefix)
+    : name_(prefix),
+      flag_data_(parset.getBool(prefix + "flagdata", false)),
+      count_(0),
+      save_to_json_(parset.getBool(prefix + "savetojson", false)),
+      json_filename_(parset.getString(prefix + "jsonfilename",
+                                      "FlagPercentagePerStation.JSON")),
+      flag_counter_(parset, prefix) {}
 
 Counter::~Counter() {}
 
 void Counter::show(std::ostream& os) const {
-  os << "Counter " << itsName << '\n';
+  os << "Counter " << name_ << '\n';
 }
 
 void Counter::showCounts(std::ostream& os) const {
-  os << "\nCumulative flag counts in Counter " << itsName;
+  os << "\nCumulative flag counts in Counter " << name_;
   os << "\n=================================\n";
-  itsFlagCounter.showBaseline(os, itsCount);
-  itsFlagCounter.showChannel(os, itsCount);
-  if (itsSaveToJson) {
-    os << "\nSaving counts to JSON file " << itsJsonFilename << "\n";
+  flag_counter_.showBaseline(os, count_);
+  flag_counter_.showChannel(os, count_);
+  if (save_to_json_) {
+    os << "\nSaving counts to JSON file " << json_filename_ << "\n";
 
-    std::ostringstream percentagePerStation;
-    itsFlagCounter.showStation(percentagePerStation, itsCount);
-    std::ofstream jsonfile(itsJsonFilename);
-    jsonfile << percentagePerStation.str();
+    std::ostringstream percentage_per_station;
+    flag_counter_.showStation(percentage_per_station, count_);
+    std::ofstream jsonfile(json_filename_);
+    jsonfile << percentage_per_station.str();
     jsonfile.close();
   }
 }
 
-void Counter::updateInfo(const base::DPInfo& infoIn) {
-  info() = infoIn;
+void Counter::updateInfo(const base::DPInfo& info_in) {
+  Step::updateInfo(info_in);
   // Visibility data must be read if needed, so NaNs are flagged.
-  if (itsFlagData) {
+  if (flag_data_) {
     info().setNeedVisData();
   }
   // Initialize the flag counters.
-  itsFlagCounter.init(infoIn);
+  flag_counter_.init(info_in);
 }
 
 bool Counter::process(const base::DPBuffer& buf) {
@@ -66,19 +61,19 @@ bool Counter::process(const base::DPBuffer& buf) {
   unsigned int nrcorr = shape[0];
   unsigned int nrchan = shape[1];
   unsigned int nrbl = shape[2];
-  const bool* flagPtr = buf.getFlags().data();
+  const bool* flag_pointer = buf.getFlags().data();
   for (unsigned int i = 0; i < nrbl; ++i) {
     for (unsigned int j = 0; j < nrchan; ++j) {
-      if (*flagPtr) {
-        itsFlagCounter.incrBaseline(i);
-        itsFlagCounter.incrChannel(j);
+      if (*flag_pointer) {
+        flag_counter_.incrBaseline(i);
+        flag_counter_.incrChannel(j);
       }
-      flagPtr += nrcorr;  // only count 1st corr
+      flag_pointer += nrcorr;  // only count 1st corr
     }
   }
   // Let the next step do its processing.
   getNextStep()->process(buf);
-  itsCount++;
+  ++count_;
   return true;
 }
 
