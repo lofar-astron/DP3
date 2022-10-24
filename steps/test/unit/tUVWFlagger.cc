@@ -162,11 +162,11 @@ TestInput<std::unique_ptr<BDABuffer>>::CreateInputBuffer() {
 
     const double uvw[3]{1.0 + count_ + i, 2.0 + count_ + i, 3.0 + count_ + i};
     const std::vector<float> weights(n_correlations_ * n_channels, 1.0);
-    bool* flags = new bool[n_correlations_ * n_channels];
-    std::fill_n(flags, n_correlations_ * n_channels, false);
-
+    // AddRow requires a contiguous set of bool elements. (std::vector<bool>
+    // does not satisfy this requirement.)
+    auto flags = std::make_unique<bool[]>(n_correlations_ * n_channels);
     buffer->AddRow(bda_first_time, time_interval_, time_interval_, i,
-                   n_channels, n_correlations_, data.data(), flags,
+                   n_channels, n_correlations_, data.data(), flags.get(),
                    weights.data(), nullptr, uvw);
   }
   return buffer;
