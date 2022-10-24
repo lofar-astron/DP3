@@ -65,23 +65,20 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-OnePredict::OnePredict(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix,
+OnePredict::OnePredict(const common::ParameterSet& parset, const string& prefix,
                        const std::vector<string>& source_patterns)
     : thread_pool_(nullptr), measures_mutex_(nullptr) {
   if (!source_patterns.empty()) {
-    init(input, parset, prefix, source_patterns);
+    init(parset, prefix, source_patterns);
   } else {
     const std::vector<std::string> parset_patterns =
         parset.getStringVector(prefix + "sources", std::vector<std::string>());
-    init(input, parset, prefix, parset_patterns);
+    init(parset, prefix, parset_patterns);
   }
 }
 
-void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
-                      const string& prefix,
+void OnePredict::init(const common::ParameterSet& parset, const string& prefix,
                       const std::vector<string>& sourcePatterns) {
-  input_ = input;
   name_ = prefix;
   source_db_name_ = parset.getString(prefix + "sourcedb");
   correct_freq_smearing_ =
@@ -155,7 +152,7 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   // so must not be read from parset
   if (parset.isDefined(prefix + "applycal.parmdb") ||
       parset.isDefined(prefix + "applycal.steps")) {
-    SetApplyCal(input, parset, prefix + "applycal.");
+    SetApplyCal(parset, prefix + "applycal.");
   }
 
   source_list_ = makeSourceList(patch_list_);
@@ -170,11 +167,10 @@ void OnePredict::init(InputStep* input, const common::ParameterSet& parset,
   any_orientation_is_absolute_ = source_db.CheckAnyOrientationIsAbsolute();
 }
 
-void OnePredict::SetApplyCal(InputStep* input,
-                             const common::ParameterSet& parset,
+void OnePredict::SetApplyCal(const common::ParameterSet& parset,
                              const string& prefix) {
   apply_cal_step_ =
-      std::make_shared<ApplyCal>(input, parset, prefix, true, direction_str_);
+      std::make_shared<ApplyCal>(parset, prefix, true, direction_str_);
   if (operation_ != "replace" &&
       parset.getBool(prefix + "applycal.updateweights", false))
     throw std::invalid_argument(
@@ -332,7 +328,6 @@ bool OnePredict::process(const DPBuffer& bufin) {
   timer_.start();
   DPBuffer scratch_buffer;
   scratch_buffer.copy(bufin);
-  input_->fetchUVW(bufin, scratch_buffer, timer_);
 
   // Determine the various sizes.
   // const size_t nDr = patch_list_.size();

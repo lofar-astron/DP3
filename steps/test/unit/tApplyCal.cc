@@ -276,21 +276,21 @@ BOOST_AUTO_TEST_CASE(test_clock_and_tec) {
   parset1.add("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add("timeslotsperparmupdate", "5");
   parset1.add("updateweights", "true");
-  auto apply_cal1 = std::make_shared<ApplyCal>(input.get(), parset1, "");
+  auto apply_cal1 = std::make_shared<ApplyCal>(parset1, "");
 
   dp3::common::ParameterSet parset2;
   parset2.add("correction", "clock");
   parset2.add("parmdb", "tApplyCal_tmp.parmdb");
   parset2.add("timeslotsperparmupdate", "5");
   parset2.add("updateweights", "true");
-  auto apply_cal2 = std::make_shared<ApplyCal>(input.get(), parset2, "");
+  auto apply_cal2 = std::make_shared<ApplyCal>(parset2, "");
 
   dp3::common::ParameterSet parset3;
   parset3.add("correction", "commonscalarphase");
   parset3.add("parmdb", "tApplyCal_tmp.parmdb");
   parset3.add("timeslotsperparmupdate", "1");
   parset3.add("udpateweights", "true");
-  auto apply_cal3 = std::make_shared<ApplyCal>(input.get(), parset3, "");
+  auto apply_cal3 = std::make_shared<ApplyCal>(parset3, "");
 
   auto output = std::make_shared<TestOutput>(
       kNTimes, kNChannels,
@@ -310,7 +310,7 @@ BOOST_AUTO_TEST_CASE(test_gain) {
   parset1.add("parmdb", "tApplyCal_tmp.parmdb");
   parset1.add("timeslotsperparmupdate", "5");
   parset1.add("updateweights", "true");
-  auto apply_cal = std::make_shared<ApplyCal>(input.get(), parset1, "");
+  auto apply_cal = std::make_shared<ApplyCal>(parset1, "");
 
   auto output =
       std::make_shared<TestOutput>(kNTimes, kNChannels, TestOutput::DataEquals);

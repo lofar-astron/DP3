@@ -1,21 +1,18 @@
-// ApplyCal.h: DPPP step class to ApplyCal visibilities from a source model
+// ApplyCal.h: DP3 step class to ApplyCal visibilities from a source model
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to apply multiple calibration solutions
+/// @brief DP3 step class to apply multiple calibration solutions
 /// @author Tammo Jan Dijkema
 
-#ifndef DPPP_ApplyCal_H
-#define DPPP_ApplyCal_H
-
-#include "InputStep.h"
-
-#include <dp3/base/DPBuffer.h>
-
-#include "OneApplyCal.h"
+#ifndef DP3_STEPS_APPLYCAL_H_
+#define DP3_STEPS_APPLYCAL_H_
 
 #include <utility>
+
+#include <dp3/base/DPBuffer.h>
+#include "OneApplyCal.h"
 
 namespace dp3 {
 namespace common {
@@ -33,7 +30,7 @@ class ApplyCal : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  ApplyCal(InputStep*, const common::ParameterSet&, const string& prefix,
+  ApplyCal(const common::ParameterSet&, const string& prefix,
            bool substep = false, std::string predictDirection = "");
 
   ApplyCal() = default;

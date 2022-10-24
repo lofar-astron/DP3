@@ -15,18 +15,17 @@ using dp3::steps::Step;
 BOOST_AUTO_TEST_SUITE(one_apply_cal)
 
 BOOST_AUTO_TEST_CASE(fields) {
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
   parset.add("parmdb", "tApplyCal_tmp.parmdb");
 
-  const OneApplyCal one_apply_cal(&input, parset, "", "");
+  const OneApplyCal one_apply_cal(parset, "", "");
   BOOST_TEST(one_apply_cal.getRequiredFields() ==
              (Step::kDataField | Step::kWeightsField | Step::kFlagsField));
   BOOST_TEST(one_apply_cal.getProvidedFields() ==
              (Step::kDataField | Step::kFlagsField));
 
   parset.add("updateweights", "true");
-  const OneApplyCal updates_weights(&input, parset, "", "");
+  const OneApplyCal updates_weights(parset, "", "");
   BOOST_TEST(updates_weights.getRequiredFields() ==
              (Step::kDataField | Step::kWeightsField | Step::kFlagsField));
   BOOST_TEST(updates_weights.getProvidedFields() ==

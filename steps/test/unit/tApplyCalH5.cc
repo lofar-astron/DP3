@@ -294,7 +294,7 @@ void testampl(int ntime, int nchan, bool freqaxis, bool timeaxis) {
   ParameterSet parset1;
   parset1.add("correction", "myampl");
   parset1.add("parmdb", "tApplyCalH5_tmp.h5");
-  Step::ShPtr step2(new ApplyCal(in, parset1, ""));
+  auto step2 = std::make_shared<ApplyCal>(parset1, "");
 
   Step::ShPtr step3(new TestOutput(ntime, nchan, TestOutput::WeightsNotChanged,
                                    freqaxis, timeaxis));
@@ -314,7 +314,7 @@ void testmissingant(int ntime, int nchan, string missingant,
   parset.add("myapplycal.parmdb", "tApplyCalH5_tmp.h5");
   parset.add("myapplycal.missingantennabehavior", missingant);
 
-  Step::ShPtr step2(new ApplyCal(in, parset, "myapplycal."));
+  auto step2 = std::make_shared<ApplyCal>(parset, "myapplycal.");
   Step::ShPtr step3(new TestOutput(
       ntime, nchan, TestOutput::WeightsNotChanged, solshadfreqaxis,
       solshadtimeaxis,
