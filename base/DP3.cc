@@ -164,8 +164,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "antennaflagger") {
     step = std::make_shared<steps::AntennaFlagger>(parset, prefix);
   } else if (type == "uvwflagger" || type == "uvwflag") {
-    step = std::make_shared<steps::UVWFlagger>(inputStep, parset, prefix,
-                                               inputType);
+    step = std::make_shared<steps::UVWFlagger>(parset, prefix, inputType);
   } else if (type == "columnreader") {
     step = std::make_shared<steps::ColumnReader>(*inputStep, parset, prefix);
   } else if (type == "counter" || type == "count") {

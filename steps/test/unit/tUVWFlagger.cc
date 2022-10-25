@@ -393,7 +393,7 @@ void test1(size_t n_times, size_t n_baselines, size_t n_channels,
   parset.add("vmrange", "[11.5..14.5]");
   parset.add("wmmax", "44.5");
   parset.add("wmmin", "3.5");
-  auto flagger = std::make_shared<UVWFlagger>(in.get(), parset, "", input_type);
+  auto flagger = std::make_shared<UVWFlagger>(parset, "", input_type);
   auto out = std::make_shared<TestOutput<T>>(n_times, n_baselines, n_channels,
                                              n_correlations, 1);
   dp3::steps::test::Execute({in, flagger, out});
@@ -412,7 +412,7 @@ void test2(size_t n_times, size_t n_baselines, size_t n_channels,
   parset.add("vlambdarange", "[0.42..0.53]");
   parset.add("wlambdamax", "1.63");
   parset.add("wlambdamin", "0.12");
-  auto flagger = std::make_shared<UVWFlagger>(in.get(), parset, "", input_type);
+  auto flagger = std::make_shared<UVWFlagger>(parset, "", input_type);
   auto out = std::make_shared<TestOutput<T>>(n_times, n_baselines, n_channels,
                                              n_correlations, 2);
   dp3::steps::test::Execute({in, flagger, out});
@@ -432,7 +432,7 @@ void test3(size_t n_times, size_t n_baselines, size_t n_channels,
   parset.add("wmmax", "44.5");
   parset.add("wmmin", "3.5");
   parset.add("phasecenter", "[-1.92653768rad, 1.09220917rad, j2000]");
-  auto flagger = std::make_shared<UVWFlagger>(in.get(), parset, "", input_type);
+  auto flagger = std::make_shared<UVWFlagger>(parset, "", input_type);
   BOOST_REQUIRE_EQUAL(flagger->isDegenerate(), false);
 
   auto out = std::make_shared<TestOutput<T>>(n_times, n_baselines, n_channels,
@@ -447,7 +447,7 @@ void test_constructor(size_t n_times, size_t n_baselines, size_t n_channels,
   // Create the steps.
   TestInput<T> in(n_times, n_baselines, n_channels, n_correlations);
   dp3::common::ParameterSet parset;
-  UVWFlagger uvw_flagger_step(&in, parset, "", input_type);
+  UVWFlagger uvw_flagger_step(parset, "", input_type);
   BOOST_REQUIRE_EQUAL(uvw_flagger_step.isDegenerate(), true);
 }
 
@@ -466,19 +466,19 @@ BOOST_AUTO_TEST_CASE(fields) {
 
   dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
-  const UVWFlagger degenerate(&input, parset, "", Step::MsType::kRegular);
+  const UVWFlagger degenerate(parset, "", Step::MsType::kRegular);
   BOOST_TEST(degenerate.isDegenerate());
   BOOST_TEST(degenerate.getRequiredFields() == dp3::common::Fields());
   BOOST_TEST(degenerate.getProvidedFields() == dp3::common::Fields());
 
   parset.add("ummax", "42");
-  const UVWFlagger without_center(&input, parset, "", Step::MsType::kBda);
+  const UVWFlagger without_center(parset, "", Step::MsType::kBda);
   BOOST_TEST(without_center.getRequiredFields() ==
              (Step::kFlagsField | Step::kUvwField));
   BOOST_TEST(without_center.getProvidedFields() == Step::kFlagsField);
 
   parset.add("phasecenter", "Jupiter");
-  const UVWFlagger with_center(&input, parset, "", Step::MsType::kRegular);
+  const UVWFlagger with_center(parset, "", Step::MsType::kRegular);
   BOOST_TEST(with_center.getRequiredFields() == Step::kFlagsField);
   BOOST_TEST(with_center.getProvidedFields() == Step::kFlagsField);
 }
@@ -543,8 +543,8 @@ BOOST_AUTO_TEST_CASE(sun_as_phase_center) {
   dp3::common::ParameterSet parset;
   parset.add("uvmrange", "[5.5..8.5]");
   parset.add("phasecenter", "Sun");
-  BOOST_CHECK_NO_THROW(std::make_shared<UVWFlagger>(in.get(), parset, "",
-                                                    Step::MsType::kRegular));
+  BOOST_CHECK_NO_THROW(
+      std::make_shared<UVWFlagger>(parset, "", Step::MsType::kRegular));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

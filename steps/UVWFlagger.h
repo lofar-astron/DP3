@@ -43,7 +43,7 @@ class UVWFlagger : public Step {
   /// The antenna names are used to find antenna numbers.
   /// The channel frequencies as they are in the input step must be given
   /// starting at the start-channel.
-  UVWFlagger(InputStep*, const common::ParameterSet&, const string& prefix,
+  UVWFlagger(const common::ParameterSet&, const string& prefix,
              MsType inputType);
 
   virtual ~UVWFlagger();
@@ -118,7 +118,6 @@ class UVWFlagger : public Step {
   void handleCenter();
 
   base::DPBuffer itsBuffer;
-  InputStep* itsInput;
   const MsType itsInputType;
   string itsName;
   unsigned int itsNTimes;
