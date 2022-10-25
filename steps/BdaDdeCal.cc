@@ -54,7 +54,7 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
       solve_timer_(),
       write_timer_() {
   uvw_flagger_step_ =
-      std::make_unique<UVWFlagger>(input, parset, prefix, Step::MsType::kBda);
+      std::make_unique<UVWFlagger>(parset, prefix, Step::MsType::kBda);
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
   uvw_flagger_step_->setNextStep(uvw_flagger_result_step_);
   InitializePredictSteps(input, parset, prefix);
