@@ -2,24 +2,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "IDGPredict.h"
-#include "InputStep.h"
 
-#ifdef HAVE_IDG
-#include "../base/IDGConfiguration.h"
-#endif
+#include <iostream>
 
-#include "../base/ParsetAterms.h"
-#include "../common/Memory.h"
+#include <casacore/tables/Tables/TableRecord.h>
+
+#include <EveryBeam/aterms/atermconfig.h>
 
 #include <aocommon/uvector.h>
 #include <aocommon/banddata.h>
 #include <aocommon/fits/fitswriter.h>
 
-#include <EveryBeam/aterms/atermconfig.h>
-
 #include <schaapcommon/facets/ds9facetfile.h>
 
-#include <iostream>
+#ifdef HAVE_IDG
+#include "../base/IDGConfiguration.h"
+#endif
+
+#include "../base/FlagCounter.h"
+#include "../base/ParsetAterms.h"
+#include "../common/Memory.h"
 
 using aocommon::FitsReader;
 using aocommon::FitsWriter;
@@ -40,9 +42,8 @@ using dp3::common::ParameterSet;
 namespace dp3 {
 namespace steps {
 
-IDGPredict::IDGPredict(InputStep& input, const ParameterSet& parset,
-                       const string& prefix)
-    : IDGPredict(input, parset, prefix,
+IDGPredict::IDGPredict(const ParameterSet& parset, const string& prefix)
+    : IDGPredict(parset, prefix,
                  GetReaders(parset.getStringVector(prefix + "images",
                                                    std::vector<string>())),
                  std::vector<Facet>(),
@@ -50,7 +51,7 @@ IDGPredict::IDGPredict(InputStep& input, const ParameterSet& parset,
 
 #ifdef HAVE_IDG
 IDGPredict::IDGPredict(
-    InputStep& input, const ParameterSet& parset, const string& prefix,
+    const ParameterSet& parset, const string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
         readers,
     std::vector<Facet>&& facets, const std::string& ds9_regions_file)
@@ -61,7 +62,6 @@ IDGPredict::IDGPredict(
       pixel_size_y_(readers.first.front().PixelSizeY()),
       readers_(std::move(readers.first)),
       buffer_size_(0),
-      input_(input),
       ant1_(),
       ant2_(),
       timer_(),
@@ -209,13 +209,22 @@ void IDGPredict::updateInfo(const dp3::base::DPInfo& info) {
 
   if (!parset_.getStringVector(name_ + "aterms", std::vector<string>())
            .empty()) {
-    if (info.nantenna() != input_.getInfo().nantenna()) {
+    if (info.msName().empty()) {
       throw std::runtime_error(
-          "Number of antennas not matching the number of antennas in the "
-          "original MS. This is as yet unsupported for beam calculations.");
+          "IDGPredict: Aterms are only supported when using a Measurement Set "
+          "as input.");
+    }
+    const casacore::MeasurementSet ms(info.msName());
+    const unsigned int n_antenna = ms.keywordSet().asTable("ANTENNA").nrow();
+
+    if (info.nantenna() != n_antenna) {
+      throw std::runtime_error(
+          "Number of antennas for IDG Predict does not match the number of "
+          "antennas in the input Measurement Set. This is as yet unsupported "
+          "for beam calculations.");
     }
 
-    InitializeATerms();
+    InitializeATerms(ms);
   }
 }
 
@@ -351,7 +360,7 @@ void IDGPredict::StartIDG() {
   }
 }
 
-void IDGPredict::InitializeATerms() {
+void IDGPredict::InitializeATerms(const casacore::MeasurementSet& ms) {
   const size_t n_terms = readers_.size();
   const size_t n_antennas = getInfo().nantenna();
 
@@ -378,9 +387,9 @@ void IDGPredict::InitializeATerms() {
     cs.ra = directions_[direction].first;
     cs.dec = directions_[direction].second;
 
-    auto* aterm = new ATermConfig(n_antennas, cs, settings);
-    aterm->Read(input_.table(), base::ParsetATerms(parset_, name_));
-    aterms_.emplace_back(aterm);
+    auto aterm = std::make_unique<ATermConfig>(n_antennas, cs, settings);
+    aterm->Read(ms, base::ParsetATerms(parset_, name_));
+    aterms_.emplace_back(std::move(aterm));
     aterm_values_.emplace_back(n_antennas * GetSubgridCount(direction));
   }
 }
@@ -648,7 +657,7 @@ void notCompiled() {
 }  // namespace
 
 IDGPredict::IDGPredict(
-    InputStep& input, const ParameterSet& parset, const string& prefix,
+    const ParameterSet& parset, const string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
         readers,
     std::vector<Facet>&& facets, const std::string& ds9_regions_file) {

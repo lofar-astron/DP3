@@ -1,27 +1,8 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef IDG_PREDICT_H
-#define IDG_PREDICT_H
-
-#ifdef HAVE_IDG
-#include <idg-api.h>
-#endif
-
-#include <dp3/steps/Step.h>
-
-#include <schaapcommon/facets/facetimage.h>
-#include <schaapcommon/facets/facet.h>
-
-#include <aocommon/fits/fitsreader.h>
-#include <aocommon/uvector.h>
-
-#include <EveryBeam/aterms/atermbase.h>
-
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-
-#include "steps/InputStep.h"
+#ifndef DP3_STEPS_IDGPREDICT_H_
+#define DP3_STEPS_IDGPREDICT_H_
 
 #include <complex>
 #include <functional>
@@ -29,21 +10,38 @@
 #include <vector>
 #include <utility>
 
+#ifdef HAVE_IDG
+#include <idg-api.h>
+#endif
+
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
+#include <EveryBeam/aterms/atermbase.h>
+
+#include <schaapcommon/facets/facetimage.h>
+#include <schaapcommon/facets/facet.h>
+
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/uvector.h>
+
+#include <dp3/steps/Step.h>
+
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
+
 namespace dp3 {
 namespace steps {
 
 class IDGPredict : public ModelDataStep {
  public:
-  IDGPredict(InputStep& input, const common::ParameterSet& parset,
-             const string& prefix,
+  IDGPredict(const common::ParameterSet& parset, const string& prefix,
              std::pair<std::vector<aocommon::FitsReader>,
                        std::vector<aocommon::UVector<float>>>
                  readers,
              std::vector<schaapcommon::facets::Facet>&& facets,
              const std::string& ds9_regions_file = "");
 
-  IDGPredict(InputStep& input, const common::ParameterSet&,
-             const string& prefix);
+  IDGPredict(const common::ParameterSet&, const string& prefix);
 
   common::Fields getRequiredFields() const override { return kUvwField; }
 
@@ -99,7 +97,7 @@ class IDGPredict : public ModelDataStep {
   void StartIDG();
 
   /// Initializes the aterms_ and aterm_values_ lists.
-  void InitializeATerms();
+  void InitializeATerms(const casacore::MeasurementSet& ms);
 
   /// Calculates the ATerms IDG should use.
   /// @param direction Direction index.
@@ -159,7 +157,6 @@ class IDGPredict : public ModelDataStep {
 
   size_t buffer_size_;  ///< Number of DPBuffers to keep before calling flush
 
-  InputStep& input_;
   std::vector<std::size_t> ant1_;  ///< Contains only the used antennas
   std::vector<std::size_t> ant2_;  ///< Contains only the used antennas
 
