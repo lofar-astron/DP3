@@ -143,8 +143,7 @@ GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
     auto column_reader_step = std::make_unique<ColumnReader>(
         input, parset, prefix, itsModelColumnName);
     if (itsApplyBeamToModelColumn) {
-      auto apply_beam_step =
-          std::make_shared<ApplyBeam>(&input, parset, prefix, true);
+      auto apply_beam_step = std::make_shared<ApplyBeam>(parset, prefix, true);
       column_reader_step->setNextStep(apply_beam_step);
       apply_beam_step->setNextStep(itsResultStep);
     } else {

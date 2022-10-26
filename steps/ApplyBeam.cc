@@ -50,10 +50,9 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-ApplyBeam::ApplyBeam(InputStep* input, const common::ParameterSet& parset,
-                     const string& prefix, bool substep)
-    : itsInput(input),
-      itsName(prefix),
+ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
+                     bool substep)
+    : itsName(prefix),
       itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
       itsDirectionStr(parset.getStringVector(prefix + "direction",
                                              std::vector<std::string>())),
@@ -201,9 +200,6 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
   itsBuffer.copy(bufin);
   casacore::Complex* data = itsBuffer.getData().data();
 
-  if (itsUpdateWeights) {
-    itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
-  }
   float* weight = itsBuffer.getWeights().data();
 
   const double time = itsBuffer.getTime();

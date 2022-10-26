@@ -7,8 +7,6 @@
 
 #include "../../../common/ParameterSet.h"
 
-#include "mock/MockInput.h"
-
 using dp3::steps::ApplyBeam;
 using dp3::steps::Step;
 
@@ -16,8 +14,7 @@ BOOST_AUTO_TEST_SUITE(apply_beam)
 
 BOOST_AUTO_TEST_CASE(fields_defaults) {
   dp3::common::ParameterSet parset;
-  dp3::steps::MockInput input;
-  const ApplyBeam apply_beam(&input, parset, "");
+  const ApplyBeam apply_beam(parset, "");
   BOOST_TEST(apply_beam.getRequiredFields() == Step::kDataField);
   BOOST_TEST(apply_beam.getProvidedFields() == Step::kDataField);
 }
@@ -25,8 +22,7 @@ BOOST_AUTO_TEST_CASE(fields_defaults) {
 BOOST_AUTO_TEST_CASE(fields_updateweights) {
   dp3::common::ParameterSet parset;
   parset.add("updateweights", "true");
-  dp3::steps::MockInput input;
-  const ApplyBeam updates_weights(&input, parset, "");
+  const ApplyBeam updates_weights(parset, "");
 
   const dp3::common::Fields kExpectedFields =
       Step::kDataField | Step::kWeightsField;

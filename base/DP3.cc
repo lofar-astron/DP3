@@ -176,7 +176,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "smartdemixer" || type == "smartdemix") {
     step = std::make_shared<steps::DemixerNew>(inputStep, parset, prefix);
   } else if (type == "applybeam") {
-    step = std::make_shared<steps::ApplyBeam>(inputStep, parset, prefix);
+    step = std::make_shared<steps::ApplyBeam>(parset, prefix);
   } else if (type == "stationadder" || type == "stationadd") {
     step = std::make_shared<steps::StationAdder>(inputStep, parset, prefix);
   } else if (type == "scaledata") {

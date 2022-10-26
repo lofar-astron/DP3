@@ -36,7 +36,7 @@ class ApplyBeam : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  ApplyBeam(InputStep*, const common::ParameterSet&, const string& prefix,
+  ApplyBeam(const common::ParameterSet&, const string& prefix,
             bool substep = false);
 
   common::Fields getRequiredFields() const override {
@@ -124,7 +124,6 @@ class ApplyBeam : public Step {
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
 
-  InputStep* itsInput;
   string itsName;
   base::DPBuffer itsBuffer;
   bool itsInvert;
