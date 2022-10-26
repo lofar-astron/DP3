@@ -161,6 +161,8 @@ bool Averager::process(const base::DPBuffer& buf) {
     itsBuf.getFlags().assign(buf.getFlags());
     itsBuf.getUVW().assign(itsInput.fetchUVW(buf, itsBuf, itsTimer));
     itsBuf.getWeights().assign(itsInput.fetchWeights(buf, itsBuf, itsTimer));
+    itsBuf.makeIndependent();
+    itsBufTmp.setFullResFlags(buf.getFullResFlags());
     IPosition shapeIn = buf.getData().shape();
     itsNPoints.resize(shapeIn);
     itsAvgAll.reference(buf.getData() * itsBuf.getWeights());
@@ -168,13 +170,14 @@ bool Averager::process(const base::DPBuffer& buf) {
     itsWeightAll = itsBuf.getWeights();
     // Take care of the fullRes flags.
     // We have to shape the output array and copy to a part of it.
-    const Cube<bool>& fullResFlags =
-        itsInput.fetchFullResFlags(buf, itsBufTmp, itsTimer);
-    IPosition ofShape = fullResFlags.shape();
+
+    // Make sure the current fullResFlags are up to date with the flags
+    DPBuffer::mergeFullResFlags(itsBufTmp.getFullResFlags(), itsBuf.getFlags());
+    IPosition ofShape = itsBufTmp.getFullResFlags().shape();
     ofShape[1] *= itsNTimeAvg;  // more time entries, same chan and bl
     itsBuf.getFullResFlags().resize(ofShape);
     itsBuf.getFullResFlags() = true;  // initialize for times missing at end
-    copyFullResFlags(fullResFlags, buf.getFlags(), 0);
+    copyFullResFlags(itsBufTmp.getFullResFlags(), itsBuf.getFlags(), 0);
     // Set middle of new interval.
     double time = buf.getTime() + 0.5 * (itsNTimeAvg - 1) * itsTimeInterval;
     itsBuf.setTime(time);
@@ -211,10 +214,14 @@ bool Averager::process(const base::DPBuffer& buf) {
       throw std::runtime_error(
           "Inconsistent buffer sizes in Averager, possibly because of "
           "inconsistent nr of baselines in timeslots");
-    itsBufTmp.referenceFilled(buf);
+    itsBufTmp.copy(buf);
     itsBuf.getUVW() += itsInput.fetchUVW(buf, itsBufTmp, itsTimer);
-    copyFullResFlags(itsInput.fetchFullResFlags(buf, itsBufTmp, itsTimer),
-                     buf.getFlags(), itsNTimes);
+
+    // Make sure the current fullResFlags are up to date with the flags
+    DPBuffer::mergeFullResFlags(itsBufTmp.getFullResFlags(),
+                                itsBufTmp.getFlags());
+    copyFullResFlags(itsBufTmp.getFullResFlags(), itsBufTmp.getFlags(),
+                     itsNTimes);
     const Cube<float>& weights =
         itsInput.fetchWeights(buf, itsBufTmp, itsTimer);
     // Ignore flagged points.

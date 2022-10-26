@@ -214,6 +214,7 @@ class TestInput3 : public dp3::steps::MockInput {
     buf.setData(data);
     buf.setWeights(weights);
     buf.setFlags(flags);
+    buf.setFullResFlags(itsFullResFlags);
     casacore::Vector<dp3::common::rownr_t> rownrs(1, itsCount);
     buf.setRowNrs(rownrs);
     getNextStep()->process(buf);

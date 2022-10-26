@@ -157,6 +157,14 @@ class MSReader : public InputStep {
   bool getFullResFlags(const casacore::RefRows& rowNrs,
                        base::DPBuffer&) override;
 
+  /// Fill the fullResFlags field in the DPBuffer.
+  /// If the LOFAR_FULL_RES_FLAG column is present in the MS
+  /// - the full resolution flags are read from the input.
+  /// Else:
+  /// - the full resolution flags are filled using the flags in the
+  /// buffer.
+  void FillFullResFlags(base::DPBuffer& buf);
+
   /// Get the main MS table.
   const casacore::Table& table() const override { return itsMS; }
 
