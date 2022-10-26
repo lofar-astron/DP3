@@ -1,41 +1,35 @@
-// DummyStep.h: DPPP step class to DummyStep visibilities from a source model
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief DPPP step class to DummyStep visibilities from a source model
-/// @author Tammo Jan Dijkema
+#ifndef DP3_STEPS_DUMMYSTEP_H_
+#define DP3_STEPS_DUMMYSTEP_H_
 
-#ifndef DPPP_DummyStep_H
-#define DPPP_DummyStep_H
+#include <dp3/steps/Step.h>
 
-#include "InputStep.h"
-
-#include <dp3/base/DPBuffer.h>
-
-#include <utility>
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
-/// @brief DPPP step class to DummyStep visibilities from a source model
 
-/// This class is an empty Step subclass to use as implementation template
-
+/// @brief DP3 step class that does nothing.
+/// This class is an empty Step subclass to use as implementation template.
 class DummyStep : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  DummyStep(InputStep*, const common::ParameterSet&, const string& prefix);
+  DummyStep(const common::ParameterSet&, const std::string& prefix);
 
-  ~DummyStep() override;
-
+  /// getRequiredFields should return all fields that process() reads.
+  /// This implementation is merely an example.
   common::Fields getRequiredFields() const override {
     return kWeightsField | kUvwField;
   }
+
+  /// getProvidedFields should return all fields that process() writes.
+  /// This implementation is merely an example.
+  common::Fields getProvidedFields() const override { return kWeightsField; }
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
@@ -57,11 +51,9 @@ class DummyStep : public Step {
   void showTimings(std::ostream&, double duration) const override;
 
  private:
-  InputStep* itsInput;
-  string itsName;
-  base::DPBuffer itsBuffer;
-
-  common::NSTimer itsTimer;
+  std::string name_;
+  base::DPBuffer buffer_;
+  common::NSTimer timer_;
 };
 
 }  // namespace steps
