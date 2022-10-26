@@ -29,7 +29,7 @@ We have identified four key refactors that fulfil the required use cases:
 1. Refactor the creation of ApplyCal steps inside Predict steps. Currently, the DDECal step creates Predict substeps which in turn create ApplyCal subsubsteps. DDECal should be responsible for the creation of ApplyCal, not Predict, so the ApplyCal steps become substeps of DDECal instead of being subsubsteps inside Predict.
 2. Currently, IDGPredict is implemented using a custom interface. We should factor out this code and convert it to the generic DPStep interface, so it can also be used outside of DDECal.
 3. Refactor the nested DDECal model pipeline so that it can be defined separately for every direction instead of one to rule them all. The metadata must not change in any of the nested model steps of DDECal. This requires refactoring the steps setup in the constructor of DDECal.
-4. Remove the model column from the buffer and create a generic ColumnReader that can read any input column, including model columns that can be used in DDECal.
+4. Remove the model column from the buffer and create a generic MsColumnReader that can read any input column, including model columns that can be used in DDECal.
 
 ## Suggested new parset for DDECal
 From a user perspective we propose the following additional parset definitions for DDECal:
@@ -39,7 +39,7 @@ From a user perspective we propose the following additional parset definitions f
 
 An example of a parset for DDECal using different models for different directions is as follows:
 ```
-ddecal.images = [image1.fits, image2.fits]  
+ddecal.images = [image1.fits, image2.fits]
 ddecal.regions = ds9.reg         # Contains regions names Region_1, Region_2
 ddecal.sourcedb = ATeam.sourcedb # Contains patches names CasA, CygA, and PerA (last one is ignored)
 ddecal.modeldatacolumns = [MODEL_DATA_1]

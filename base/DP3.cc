@@ -21,7 +21,6 @@
 #include "../steps/BDAAverager.h"
 #include "../steps/BDAExpander.h"
 #include "../steps/BdaGroupPredict.h"
-#include "../steps/ColumnReader.h"
 #include "../steps/Counter.h"
 #include "../steps/DDECal.h"
 #include "../steps/BdaDdeCal.h"
@@ -34,6 +33,7 @@
 #include "../steps/Interpolate.h"
 #include "../steps/MedFlagger.h"
 #include "../steps/MSBDAWriter.h"
+#include "../steps/MsColumnReader.h"
 #include "../steps/MSReader.h"
 #include "../steps/MSUpdater.h"
 #include "../steps/MSWriter.h"
@@ -166,7 +166,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "uvwflagger" || type == "uvwflag") {
     step = std::make_shared<steps::UVWFlagger>(parset, prefix, inputType);
   } else if (type == "columnreader") {
-    step = std::make_shared<steps::ColumnReader>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::MsColumnReader>(parset, prefix);
   } else if (type == "counter" || type == "count") {
     step = std::make_shared<steps::Counter>(parset, prefix);
   } else if (type == "phaseshifter" || type == "phaseshift") {

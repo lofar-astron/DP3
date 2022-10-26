@@ -414,7 +414,6 @@ add_library(
   steps/BDAAverager.cc
   steps/BDAExpander.cc
   steps/BdaGroupPredict.cc
-  steps/ColumnReader.cc
   steps/Counter.cc
   steps/Demixer.cc
   steps/DummyStep.cc
@@ -427,6 +426,7 @@ add_library(
   steps/MedFlagger.cc
   steps/MSBDAReader.cc
   steps/MSBDAWriter.cc
+  steps/MsColumnReader.cc
   steps/MSReader.cc
   steps/MSUpdater.cc
   steps/MSWriter.cc
@@ -627,7 +627,6 @@ if(BUILD_TESTING)
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
       steps/test/unit/tAverager.cc
-      steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tDummyStep.cc
       steps/test/unit/tFilter.cc
@@ -666,7 +665,7 @@ if(BUILD_TESTING)
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBdaDdeCal.cc
       steps/test/unit/tBDAExpander.cc
-      steps/test/unit/tColumnReader.cc
+      steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tCounter.cc
       steps/test/unit/tDDECal.cc
       steps/test/unit/tDemixer.cc # Parset is no longer valid in this test!
@@ -675,6 +674,7 @@ if(BUILD_TESTING)
       steps/test/unit/tInputStep.cc
       steps/test/unit/tMSBDAReader.cc
       steps/test/unit/tMSBDAWriter.cc
+      steps/test/unit/tMsColumnReader.cc
       steps/test/unit/tMSReader.cc
       steps/test/unit/tMSUpdater.cc
       steps/test/unit/tMSWriter.cc
