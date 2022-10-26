@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
   DPInfo info = GenerateDPInfo(ntime, nbl, nchan, ncorr);
 
   auto step_scale_data =
-      std::make_shared<ScaleData>(nullptr, parset, "", ScaleData::MsType::kBda);
+      std::make_shared<ScaleData>(parset, "", ScaleData::MsType::kBda);
   auto step_test_output =
       std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
   step_scale_data->setNextStep(step_test_output);
