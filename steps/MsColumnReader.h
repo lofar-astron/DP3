@@ -6,20 +6,22 @@
 /// buffer data with it.
 /// @author Lars Krombeen
 
-#ifndef DP3_STEPS_COLUMNREADER_H_
-#define DP3_STEPS_COLUMNREADER_H_
+#ifndef DP3_STEPS_MSCOLUMNREADER_H_
+#define DP3_STEPS_MSCOLUMNREADER_H_
+
+#include <casacore/tables/Tables/Table.h>
+
+#include <dp3/steps/Step.h>
 
 #include "../common/ParameterSet.h"
-#include <dp3/steps/Step.h>
-#include "InputStep.h"
 
 namespace dp3 {
 namespace steps {
 
-class ColumnReader : public ModelDataStep {
+class MsColumnReader : public ModelDataStep {
  public:
-  ColumnReader(InputStep& input, const common::ParameterSet&,
-               const string& prefix, const string& column = "MODEL_DATA");
+  MsColumnReader(const common::ParameterSet&, const std::string& prefix,
+                 const std::string& column = "MODEL_DATA");
 
   common::Fields getRequiredFields() const override {
     common::Fields fields;
@@ -50,7 +52,7 @@ class ColumnReader : public ModelDataStep {
  private:
   enum class Operation { kReplace, kAdd, kSubtract };
 
-  InputStep& input_;         ///< Input MS to read the column from
+  casacore::Table table_;    ///< Input table to read the column from
   std::string name_;         ///< The name of the step (or prefix)
   std::string column_name_;  ///< Name of the column to use from the MS
   Operation operation_;      ///< Operation to use on the DATA column

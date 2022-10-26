@@ -18,7 +18,7 @@
 
 #include "../steps/IDGPredict.h"
 #include "../steps/MSReader.h"
-#include "../steps/ColumnReader.h"
+#include "../steps/MsColumnReader.h"
 
 #include "../ddecal/SolverFactory.h"
 #ifdef HAVE_ARMADILLO
@@ -155,8 +155,7 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
     } else {
       itsDirections.emplace_back(1, col);
     }
-    itsSteps.push_back(
-        std::make_shared<ColumnReader>(itsInput, parset, prefix, col));
+    itsSteps.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
     setModelNextSteps(*itsSteps.back(), col, parset, prefix);
   }
 }
@@ -242,7 +241,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
                    s->GetBufferSize() / itsSteps.size() / itsRequestedSolInt);
       // We increment by one so the IDGPredict will not flush in its process
       s->SetBufferSize(itsRequestedSolInt * itsSolIntCount + 1);
-    } else if (!std::dynamic_pointer_cast<ColumnReader>(itsSteps[dir])) {
+    } else if (!std::dynamic_pointer_cast<MsColumnReader>(itsSteps[dir])) {
       throw std::runtime_error("DDECal received an invalid first model step");
     }
   }

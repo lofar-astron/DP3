@@ -6,7 +6,7 @@
 
 #include "GainCal.h"
 #include "ApplyCal.h"
-#include "ColumnReader.h"
+#include "MsColumnReader.h"
 
 #include <Version.h>
 
@@ -140,8 +140,8 @@ GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
     itsApplyBeamToModelColumn =
         parset.getBool(prefix + "applybeamtomodelcolumn", false);
 
-    auto column_reader_step = std::make_unique<ColumnReader>(
-        input, parset, prefix, itsModelColumnName);
+    auto column_reader_step =
+        std::make_unique<MsColumnReader>(parset, prefix, itsModelColumnName);
     if (itsApplyBeamToModelColumn) {
       auto apply_beam_step = std::make_shared<ApplyBeam>(parset, prefix, true);
       column_reader_step->setNextStep(apply_beam_step);
