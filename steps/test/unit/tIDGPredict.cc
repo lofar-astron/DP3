@@ -6,7 +6,6 @@
 #include "../../../steps/InputStep.h"
 #include "../../../steps/IDGPredict.h"
 #include "../../../steps/MultiResultStep.h"
-#include "mock/MockInput.h"
 
 #include <schaapcommon/facets/facet.h>
 
@@ -123,7 +122,6 @@ dp3::common::ParameterSet CreateParset() {
   return parset;
 }
 
-dp3::steps::MockInput mock_input;
 }  // namespace
 
 using dp3::steps::IDGPredict;
@@ -188,7 +186,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
   std::vector<Facet> facets =
       IDGPredict::GetFacets("sources.reg", readers.first.front());
 
-  IDGPredict predict(mock_input, parset, "", readers, std::move(facets));
+  IDGPredict predict(parset, "", readers, std::move(facets));
   predict.SetBufferSize(42);
 
   BOOST_TEST(predict.IsStarted() == false);
@@ -203,7 +201,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
 BOOST_AUTO_TEST_CASE(lean_constructor) {
   const dp3::common::ParameterSet parset = CreateParset();
 
-  IDGPredict predict(mock_input, parset, "");
+  IDGPredict predict(parset, "");
 
   BOOST_TEST(predict.IsStarted() == false);
   BOOST_TEST(predict.GetBufferSize() == 0u);
@@ -214,14 +212,16 @@ BOOST_AUTO_TEST_CASE(no_regions) {
   parset.add("regions", "im-updside-down.reg");
   parset.add("images", "sources-model.fits");
 
-  BOOST_CHECK_THROW(new IDGPredict(mock_input, parset, ""), std::runtime_error);
+  BOOST_CHECK_THROW(std::make_unique<IDGPredict>(parset, ""),
+                    std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(no_models) {
   dp3::common::ParameterSet parset;
   parset.add("regions", "sources.reg");
 
-  BOOST_CHECK_THROW(new IDGPredict(mock_input, parset, ""), std::runtime_error);
+  BOOST_CHECK_THROW(std::make_unique<IDGPredict>(parset, ""),
+                    std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(update_info_wrong) {
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(update_info_wrong) {
 
   dp3::base::DPInfo info;
 
-  IDGPredict predict(mock_input, parset, "");
+  IDGPredict predict(parset, "");
 
   BOOST_CHECK_THROW(predict.setInfo(info), std::invalid_argument);
 }
@@ -240,7 +240,7 @@ BOOST_AUTO_TEST_CASE(update_info) {
   dp3::base::DPInfo info;
   InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
 
-  IDGPredict predict(mock_input, parset, "");
+  IDGPredict predict(parset, "");
 
   predict.setInfo(info);
 
@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
                                   boost::unit_test::label("slow")) {
   const dp3::common::ParameterSet parset = CreateParset();
 
-  IDGPredict predict(mock_input, parset, "");
+  IDGPredict predict(parset, "");
   predict.SetBufferSize(kTimeSteps);
 
   auto result_step = std::make_shared<MultiResultStep>(kTimeSteps);
@@ -300,8 +300,8 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
   // This test needs a real reader, since IDGPredict passes a MeasurementSet to
   // Everybeam::Load when using aterms. MockInput does not suffice.
   std::shared_ptr<InputStep> reader = InputStep::CreateReader(parset);
-  auto predict = std::make_shared<IDGPredict>(*reader, parset, "", fitsreaders,
-                                              std::move(facets));
+  auto predict =
+      std::make_shared<IDGPredict>(parset, "", fitsreaders, std::move(facets));
   predict->SetBufferSize(kTimeSteps);
   auto result_step = std::make_shared<MultiResultStep>(kTimeSteps);
 
