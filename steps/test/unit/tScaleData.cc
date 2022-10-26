@@ -218,8 +218,8 @@ void TestScaling(int ntime, int nbl, int nchan, int ncorr) {
   parset.add("stations", "[rs01.s01, *]");
   parset.add("coeffs", "[[2,0.5],[3,2,1]]");
   parset.add("scalesize", "false");
-  auto step2 = std::make_shared<ScaleData>(step1.get(), parset, "",
-                                           ScaleData::MsType::kRegular);
+  auto step2 =
+      std::make_shared<ScaleData>(parset, "", ScaleData::MsType::kRegular);
   auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr);
   dp3::steps::test::Execute({step1, step2, step3});
 }

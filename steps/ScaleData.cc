@@ -37,8 +37,8 @@ using casacore::Regex;
 namespace dp3 {
 namespace steps {
 
-ScaleData::ScaleData(InputStep*, const common::ParameterSet& parset,
-                     const string& prefix, MsType inputType)
+ScaleData::ScaleData(const common::ParameterSet& parset, const string& prefix,
+                     MsType inputType)
     : itsName(prefix),
       itsInputType(inputType),
       itsScaleSizeGiven(false),
