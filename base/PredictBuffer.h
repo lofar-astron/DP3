@@ -1,9 +1,8 @@
-// Predict.h: DPPP step class to predict visibilities from a source model
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DPPP_PREDICTBUFFER_H
-#define DPPP_PREDICTBUFFER_H
+#ifndef DP3_BASE_PREDICTBUFFER_H_
+#define DP3_BASE_PREDICTBUFFER_H_
 
 #include <complex>
 #include <vector>
@@ -11,6 +10,9 @@
 #include <aocommon/matrix2x2.h>
 
 #include <casacore/casa/Arrays/Cube.h>
+
+#include <EveryBeam/station.h>
+#include <EveryBeam/telescope/telescope.h>
 
 namespace dp3 {
 namespace base {

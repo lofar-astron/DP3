@@ -322,6 +322,7 @@ add_library(
   blob/BlobOBufStream.cc
   blob/BlobOStream.cc)
 
+# 'Common' files are included in all executables and libraries.
 add_library(
   Common OBJECT
   common/BaselineSelect.cc
@@ -370,6 +371,7 @@ add_library(
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 
+# 'Base' files and steps are only included in DP3.
 add_library(
   DP3_OBJ OBJECT
   antennaflagger/Flagger.cc
@@ -403,6 +405,7 @@ add_library(
   base/Stokes.cc
   base/SubtractMixed.cc
   base/SubtractNew.cc
+  base/Telescope.cc
   base/UVWCalculator.cc
   steps/AntennaFlagger.cc
   steps/AOFlaggerStep.cc
@@ -606,6 +609,7 @@ if(BUILD_TESTING)
       base/test/unit/tSimulate.cc
       base/test/unit/tSolutionInterval.cc
       base/test/unit/tSourceDBUtil.cc
+      base/test/unit/tTelescope.cc
       base/test/unit/tUvwCalculator.cc
       ddecal/test/unit/SolverTester.cc
       ddecal/test/unit/tBdaSolverBuffer.cc

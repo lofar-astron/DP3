@@ -6,6 +6,8 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+#include <casacore/tables/Tables/ArrayColumn.h>
+
 #include "../../MSReader.h"
 #include "../../NullStep.h"
 #include "../../../common/ParameterSet.h"

@@ -1,21 +1,23 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief DP3 step reading from an MS
 /// @author Ger van Diepen
 
-#ifndef DP3_MSREADER_H
-#define DP3_MSREADER_H
+#ifndef DP3_STEPS_MSREADER_H_
+#define DP3_STEPS_MSREADER_H_
+
+#include <casacore/casa/Arrays/Slicer.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/Tables/TableIter.h>
+
+#include <dp3/base/DPBuffer.h>
 
 #include "InputStep.h"
 
-#include <dp3/base/DPBuffer.h>
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
-
-#include <casacore/casa/Arrays/Slicer.h>
-#include <casacore/tables/Tables/TableIter.h>
 
 namespace dp3 {
 namespace steps {

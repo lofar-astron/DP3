@@ -6,22 +6,17 @@
 /// @brief Abstract base class for a Step generating input
 /// @author Ger van Diepen
 
-#ifndef DP3_INPUTSTEP_H
-#define DP3_INPUTSTEP_H
+#ifndef DP3_STEPS_INPUTSTEP_H_
+#define DP3_STEPS_INPUTSTEP_H_
+
+#include <memory>
 
 #include <dp3/steps/Step.h>
-#include <dp3/base/DPBuffer.h>
 
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
+#include "../common/ParameterSet.h"
 #include "../common/Timer.h"
-
-#include <EveryBeam/telescope/phasedarray.h>
-#include <EveryBeam/elementresponse.h>
-
-#include <casacore/casa/Arrays/Vector.h>
-
-#include <memory>
 
 namespace casacore {
 class MeasurementSet;
@@ -29,10 +24,6 @@ class RefRows;
 }  // namespace casacore
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
 
 /// @brief Abstract base class for a Step generating input
@@ -78,12 +69,6 @@ class InputStep : public Step {
   /// Get the MS name.
   /// The default implementation returns an empty string.
   virtual std::string msName() const;
-
-  /// Select station indices that match the input vector of antenna(aka station)
-  /// names from a telescope pointer.
-  static std::vector<size_t> SelectStationIndices(
-      const everybeam::telescope::Telescope* telescope,
-      const std::vector<std::string>& station_names);
 
   /// Set which fields must be read.
   virtual void setFieldsToRead(const dp3::common::Fields& fields) {
