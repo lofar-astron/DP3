@@ -484,7 +484,7 @@ BOOST_DATA_TEST_CASE(test_add_three_stations,
   }
   parset.add("average", "true");
   parset.add("useweights", "false");
-  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step2 = std::make_shared<StationAdder>(parset, "");
   auto step3 =
       std::make_shared<TestOutput>(kNTime, kNBl, kNChan, kNCorr, sumauto);
   dp3::steps::test::Execute({step1, step2, step3});
@@ -502,7 +502,7 @@ BOOST_AUTO_TEST_CASE(test_add_two_groups_of_two_stations) {
              "{ns1:[rs01.s01, rs02.s01], ns2:[cs01.s02, cs01.s01]}");
   parset.add("autocorr", "false");
   parset.add("average", "false");
-  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step2 = std::make_shared<StationAdder>(parset, "");
   auto step3 = std::make_shared<TestOutput2>(kNTime, kNBl, kNChan, kNCorr);
   dp3::steps::test::Execute({step1, step2, step3});
 }
@@ -525,7 +525,7 @@ BOOST_DATA_TEST_CASE(
   parset.add("stations", stations);
   parset.add("autocorr", "true");
   parset.add("average", "false");
-  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step2 = std::make_shared<StationAdder>(parset, "");
   auto step3 = std::make_shared<dp3::steps::test::ThrowStep>();
   BOOST_CHECK_THROW(dp3::steps::test::Execute({step1, step2, step3}),
                     std::exception);
@@ -541,7 +541,7 @@ BOOST_AUTO_TEST_CASE(test_superstation_of_nonexisting_stations) {
   auto step1 = std::make_shared<TestInput>(kNTime, kNBl, kNChan, kNCorr);
   dp3::common::ParameterSet parset;
   parset.add("stations", "{ns1:nonexistingstationpattern}");
-  auto step2 = std::make_shared<StationAdder>(step1.get(), parset, "");
+  auto step2 = std::make_shared<StationAdder>(parset, "");
   auto step3 = std::make_shared<TestOutput4>(kNTime, kNBl, kNChan, kNCorr);
   dp3::steps::test::Execute({step1, step2, step3});
 }
