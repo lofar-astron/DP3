@@ -629,6 +629,7 @@ if(BUILD_TESTING)
       steps/test/unit/tAverager.cc
       steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tBDAResultStep.cc
+      steps/test/unit/tDummyStep.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMedFlagger.cc

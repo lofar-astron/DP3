@@ -1,22 +1,11 @@
-// GainCal.cc: DPPP step class to DummyStep visibilities
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
-//
-// @author Tammo Jan Dijkema
 
 #include "DummyStep.h"
 
 #include <iostream>
 
-#include <dp3/base/BDABuffer.h>
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-
-#include <stddef.h>
-#include <string>
-#include <sstream>
-#include <utility>
-#include <vector>
+#include "../base/FlagCounter.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -24,46 +13,43 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-DummyStep::DummyStep(InputStep* input,
-                     [[maybe_unused]] const common::ParameterSet& parset,
-                     [[maybe_unused]] const string& prefix)
-    : itsInput(input) {}
+DummyStep::DummyStep([[maybe_unused]] const common::ParameterSet& parset,
+                     const std::string& prefix)
+    : name_(prefix) {}
 
-DummyStep::~DummyStep() {}
-
-void DummyStep::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+void DummyStep::updateInfo(const DPInfo& info_in) {
+  Step::updateInfo(info_in);
   info().setNeedVisData();
 }
 
 void DummyStep::show(std::ostream& os) const {
-  os << "DummyStep " << itsName << '\n';
+  os << "DummyStep " << name_ << '\n';
 }
 
 void DummyStep::showTimings(std::ostream& os, double duration) const {
   os << "  ";
-  base::FlagCounter::showPerc1(os, itsTimer.getElapsed(), duration);
-  os << " DummyStep " << itsName << '\n';
+  base::FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " DummyStep " << name_ << '\n';
 }
 
 bool DummyStep::process(const DPBuffer& bufin) {
-  itsTimer.start();
-  itsBuffer.copy(bufin);
-  itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
-  itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
+  timer_.start();
+  buffer_.copy(bufin);
 
-  itsTimer.stop();
-  getNextStep()->process(itsBuffer);
+  // Do the regular processing here. bufin and buffer_ will contain at least
+  // the required fields of the step, as returned from getRequiredFields.
+
+  timer_.stop();
+  getNextStep()->process(buffer_);
   return false;
 }
 
 bool DummyStep::process(std::unique_ptr<base::BDABuffer> buffer) {
+  // Do the BDA processing here.
   return getNextStep()->process(std::move(buffer));
 }
 
-void DummyStep::finish() {
-  // Let the next steps finish.
-  getNextStep()->finish();
-}
+void DummyStep::finish() { getNextStep()->finish(); }
+
 }  // namespace steps
 }  // namespace dp3
