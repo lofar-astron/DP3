@@ -288,7 +288,8 @@ bool MSReader::process(const DPBuffer&) {
     if (getFieldsToRead().Data()) {
       itsBuffer.getData().resize(itsNrCorr, itsNrChan, itsNrBl);
     }
-    if (itsUseFlags && getFieldsToRead().Flags()) {
+    if (itsUseFlags &&
+        (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
       itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
     }
   }
@@ -366,7 +367,7 @@ bool MSReader::process(const DPBuffer&) {
             dataCol.getColumn(itsColSlicer, itsBuffer.getData());
           }
         }
-        if (getFieldsToRead().Flags()) {
+        if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
           if (itsUseFlags) {
             ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
             if (itsUseAllChan) {
@@ -408,7 +409,9 @@ bool MSReader::process(const DPBuffer&) {
   if (getFieldsToRead().Uvw())
     getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(), itsBuffer);
   if (getFieldsToRead().Weights()) getWeights(itsBuffer.getRowNrs(), itsBuffer);
-  // TODO AST-1047: read fullResFlags when needed
+  if (getFieldsToRead().FullResFlags()) {
+    FillFullResFlags(itsBuffer);
+  }
 
   getNextStep()->process(itsBuffer);
   // Do not add to previous time, because it introduces round-off errors.
@@ -864,6 +867,28 @@ void MSReader::autoWeight(Cube<float>& weights, const DPBuffer& buf) {
       // No autocorrelations for this baseline, so skip it.
       weight += nchan * npol;
     }
+  }
+}
+
+void MSReader::FillFullResFlags(DPBuffer& buffer) {
+  bool column_found = getFullResFlags(buffer.getRowNrs(), buffer);
+  Cube<bool>& full_resolution_flags = buffer.getFullResFlags();
+  if (!column_found) {
+    // No fullRes flags in input; form them from the flags in the buffer.
+    // Only use the XX polarization for the flags; no averaging done, thus
+    // navgtime=1. (If any averaging was done, the flags would be in the
+    // buffer).
+    IPosition flags_shape(buffer.getFlags().shape());
+    // The flags have shape (itsNrCorr, itsNrChan, itsNrBl);
+    // The full res flags initialized in the getFullResFlags function (when the
+    // column is not found) have shape (itsNrChan, 1, itsNrBl) If the shapes do
+    // not match, there is an error
+    if (full_resolution_flags.shape() !=
+        IPosition(3, flags_shape[1], 1, flags_shape[2]))
+      throw std::runtime_error("Invalid shape of full res flags");
+    casacore::objcopy(full_resolution_flags.data(), buffer.getFlags().data(),
+                      full_resolution_flags.size(), 1,
+                      flags_shape[0]);  // only copy XX.
   }
 }
 
