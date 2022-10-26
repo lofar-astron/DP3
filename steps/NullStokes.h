@@ -26,8 +26,7 @@ class NullStokes : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  explicit NullStokes(InputStep&, const common::ParameterSet&,
-                      const std::string& prefix);
+  explicit NullStokes(const common::ParameterSet&, const std::string& prefix);
 
   common::Fields getRequiredFields() const override { return kDataField; }
 

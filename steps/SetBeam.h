@@ -11,13 +11,11 @@
 
 #include <EveryBeam/correctionmode.h>
 
-#include "InputStep.h"
-#include "../common/ParameterSet.h"
-
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/Direction.h>
+#include <dp3/steps/Step.h>
 
-#include <casacore/measures/Measures/MDirection.h>
+#include "../common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {
@@ -26,8 +24,8 @@ namespace steps {
 class SetBeam final : public Step {
  public:
   /// Parameters are obtained from the parset using the given prefix.
-  SetBeam(InputStep* input, const common::ParameterSet& parameters,
-          const string& prefix);
+  explicit SetBeam(const common::ParameterSet& parameters,
+                   const string& prefix);
 
   common::Fields getRequiredFields() const override { return {}; }
 
@@ -42,10 +40,10 @@ class SetBeam final : public Step {
   void show(std::ostream&) const override;
 
  private:
-  string _name;
-  std::vector<string> _directionStr;
-  casacore::MDirection _direction;
-  everybeam::CorrectionMode _mode;
+  std::string name_;
+  std::vector<std::string> direction_strings_;
+  casacore::MDirection direction_;
+  everybeam::CorrectionMode mode_;
 };
 
 }  // namespace steps

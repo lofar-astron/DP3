@@ -20,46 +20,45 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-SetBeam::SetBeam(InputStep*, const common::ParameterSet& parset,
-                 const string& prefix)
-    : _name(prefix),
-      _directionStr(parset.getStringVector(prefix + "direction",
-                                           std::vector<std::string>())),
-      _mode(everybeam::ParseCorrectionMode(
+SetBeam::SetBeam(const common::ParameterSet& parset, const string& prefix)
+    : name_(prefix),
+      direction_strings_(parset.getStringVector(prefix + "direction",
+                                                std::vector<std::string>())),
+      mode_(everybeam::ParseCorrectionMode(
           parset.getString(prefix + "beammode", "default"))) {}
 
-void SetBeam::updateInfo(const DPInfo& dpInfo) {
-  info() = dpInfo;
+void SetBeam::updateInfo(const DPInfo& _info) {
+  Step::updateInfo(_info);
 
   // Parse direction parset value
-  if (_directionStr.empty())
-    _direction = info().phaseCenter();
+  if (direction_strings_.empty())
+    direction_ = info().phaseCenter();
   else {
-    if (_directionStr.size() != 2)
+    if (direction_strings_.size() != 2)
       throw std::runtime_error(
           "2 values must be given in direction option of SetBeam");
     casacore::MDirection phaseCenter;
     casacore::Quantity q0, q1;
-    if (!casacore::MVAngle::read(q0, _directionStr[0]))
+    if (!casacore::MVAngle::read(q0, direction_strings_[0]))
       throw std::runtime_error(
-          _directionStr[0] +
+          direction_strings_[0] +
           " is an invalid RA or longitude in SetBeam direction");
-    if (!casacore::MVAngle::read(q1, _directionStr[1]))
+    if (!casacore::MVAngle::read(q1, direction_strings_[1]))
       throw std::runtime_error(
-          _directionStr[1] +
+          direction_strings_[1] +
           " is an invalid DEC or latitude in SetBeam direction");
     casacore::MDirection::Types type = casacore::MDirection::J2000;
-    _direction = casacore::MDirection(q0, q1, type);
+    direction_ = casacore::MDirection(q0, q1, type);
   }
 
-  info().setBeamCorrectionMode(static_cast<int>(_mode));
-  info().setBeamCorrectionDir(_direction);
+  info().setBeamCorrectionMode(static_cast<int>(mode_));
+  info().setBeamCorrectionDir(direction_);
 }
 
 void SetBeam::show(std::ostream& os) const {
-  os << "SetBeam " << _name << '\n'
-     << "  mode:              " << everybeam::ToString(_mode) << '\n'
-     << "  direction:         " << _directionStr << '\n';
+  os << "SetBeam " << name_ << '\n'
+     << "  mode:              " << everybeam::ToString(mode_) << '\n'
+     << "  direction:         " << direction_strings_ << '\n';
 }
 
 bool SetBeam::process(const DPBuffer& buffer) {

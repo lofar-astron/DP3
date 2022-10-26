@@ -18,7 +18,7 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-NullStokes::NullStokes(InputStep& input, const common::ParameterSet& parset,
+NullStokes::NullStokes(const common::ParameterSet& parset,
                        const std::string& prefix)
     : name_(prefix),
       modify_q_(parset.getBool(prefix + "modify_q", false)),
