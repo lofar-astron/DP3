@@ -1,26 +1,25 @@
-// BDAExpander.cc: DPPP step class to expand a BDABuffer to a DPBuffer (BDA data
-// to regular data) Copyright (C) 2021 ASTRON (Netherlands Institute for Radio
-// Astronomy) SPDX-License-Identifier: GPL-3.0-or-later
+// BDAExpander.cc: DP3 step class to expand a BDABuffer to a DPBuffer (BDA data
+// to regular data)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Chiara Salvoni
 
 #include "BDAExpander.h"
 
+#include <cassert>
 #include <iostream>
-
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-#include <dp3/common/Types.h>
+#include <utility>
+#include <vector>
 
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>
 
-#include <sstream>
-#include <stddef.h>
-#include <string>
-#include <utility>
-#include <vector>
+#include <dp3/common/Types.h>
+
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
 
 using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;

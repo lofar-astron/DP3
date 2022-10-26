@@ -14,6 +14,8 @@
 #include "SubtractNew.h"
 #include "DPLogger.h"
 
+#include "../base/Telescope.h"
+
 #include "../steps/Averager.h"
 #include "../steps/NullStep.h"
 #include "../steps/PhaseShift.h"
@@ -27,7 +29,6 @@
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
-#include "../common/Telescope.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Quanta/MVEpoch.h>
@@ -114,8 +115,8 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
   // UseChannelFrequency = false here, only raw data is typically  used for
   // demixing
   const bool use_channel_frequency = false;
-  telescope_ = common::GetTelescope(input->msName(), element_response_model,
-                                    use_channel_frequency);
+  telescope_ = base::GetTelescope(input->msName(), element_response_model,
+                                  use_channel_frequency);
 
   // Create the solve and subtract steps for the sources to be removed.
   // Solving consists of the following steps:
@@ -763,7 +764,7 @@ void DemixWorker::applyBeam(double time, const Direction& direction, bool apply,
   everybeam::vector3r_t srcdir = dir2Itrf(dir);
 
   const std::vector<size_t> station_indices =
-      InputStep::SelectStationIndices(telescope_.get(), itsMix->antennaNames());
+      base::SelectStationIndices(*telescope_, itsMix->antennaNames());
 
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
       telescope_->GetPointResponse(time);

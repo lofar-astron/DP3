@@ -6,6 +6,11 @@
 
 #include "MSWriter.h"
 
+#include <iostream>
+#include <limits>
+
+#include <EveryBeam/correctionmode.h>
+
 #include "InputStep.h"
 #include "NullStep.h"
 
@@ -34,9 +39,6 @@
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/version.h>
-
-#include <iostream>
-#include <limits>
 
 using casacore::Array;
 using casacore::ArrayColumn;

@@ -21,7 +21,8 @@
 
 #include "../parmdb/ParmDB.h"
 
-#include <EveryBeam/station.h>
+#include <EveryBeam/telescope/telescope.h>
+
 #include <aocommon/matrix2x2.h>
 
 #include <casacore/casa/Arrays/Cube.h>

@@ -8,13 +8,13 @@
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
 #include "../common/StringTools.h"
-#include "../common/Telescope.h"
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 // for matrix inversion
 #include <dp3/base/DPInfo.h>
 #include "../base/FlagCounter.h"
+#include "../base/Telescope.h"
 
 #include <EveryBeam/telescope/phasedarray.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
@@ -169,7 +169,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     itsMeasConverters[thread].set(
         MDirection::J2000,
         MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-    telescopes_[thread] = common::GetTelescope(
+    telescopes_[thread] = base::GetTelescope(
         info().msName(), itsElementResponseModel, itsUseChannelFreq);
   }
 }
@@ -281,7 +281,7 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
       telescope->GetPointResponse(time);
 
   const std::vector<size_t> station_indices =
-      InputStep::SelectStationIndices(telescope, info.antennaNames());
+      base::SelectStationIndices(*telescope, info.antennaNames());
 
   // Apply the beam values of both stations to the ApplyBeamed data.
   for (size_t ch = 0; ch < nCh; ++ch) {
@@ -365,7 +365,7 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
       telescope->GetPointResponse(time);
 
   const std::vector<size_t> station_indices =
-      InputStep::SelectStationIndices(telescope, info.antennaNames());
+      base::SelectStationIndices(*telescope, info.antennaNames());
 
   // Apply the beam values of both stations to the ApplyBeamed data.
 
@@ -454,7 +454,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
       telescope->GetPointResponse(time);
 
   const std::vector<size_t> station_indices =
-      InputStep::SelectStationIndices(telescope, info.antennaNames());
+      base::SelectStationIndices(*telescope, info.antennaNames());
 
   // Apply the beam values of both stations to the ApplyBeamed data.
   for (size_t ch = 0; ch < nCh; ++ch) {
@@ -504,7 +504,7 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
       telescope->GetPointResponse(time);
 
   const std::vector<size_t> station_indices =
-      InputStep::SelectStationIndices(telescope, info.antennaNames());
+      base::SelectStationIndices(*telescope, info.antennaNames());
 
   // Apply the beam values of both stations to the ApplyBeamed data.
   if (station_range.first < n_stations) {
