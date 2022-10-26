@@ -1,30 +1,28 @@
-// StationAdder.h: DPPP step class to add stations as a superstation
+// StationAdder.h: DP3 step class to add stations as a superstation
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to add stations as a superstation
+/// @brief DP3 step class to add stations as a superstation
 /// @author Ger van Diepen
 
-#ifndef DPPP_STATIONADDER_H
-#define DPPP_STATIONADDER_H
-
-#include "InputStep.h"
-
-#include <dp3/base/DPBuffer.h>
-#include "../base/UVWCalculator.h"
-
-#include "../common/ParameterRecord.h"
+#ifndef DP3_STEPS_STATIONADDER_H_
+#define DP3_STEPS_STATIONADDER_H_
 
 #include <casacore/measures/Measures/MPosition.h>
 
-namespace dp3 {
-namespace common {
-class ParameterSet;
-}
+#include <dp3/base/DPBuffer.h>
+#include <dp3/steps/Step.h>
 
+#include "../base/UVWCalculator.h"
+
+#include "../common/ParameterRecord.h"
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
+
+namespace dp3 {
 namespace steps {
-/// @brief DPPP step class to add stations as a superstation
+/// @brief DP3 step class to add stations as a superstation
 
 /// This class is a Step class summing stations to a superstation.
 ///
@@ -48,7 +46,7 @@ class StationAdder : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  StationAdder(InputStep*, const common::ParameterSet&, const string& prefix);
+  StationAdder(const common::ParameterSet&, const std::string& prefix);
 
   virtual ~StationAdder();
 
@@ -97,10 +95,8 @@ class StationAdder : public Step {
   void updateBeamInfo(const string& msName, unsigned int origNant,
                       casacore::Table& antTab);
 
-  InputStep* itsInput;
-  string itsName;
+  std::string itsName;
   base::DPBuffer itsBuf;
-  base::DPBuffer itsBufTmp;
   common::ParameterRecord itsStatRec;  ///< stations definitions
   std::vector<casacore::Vector<int>>
       itsParts;  ///< the stations in each superstation

@@ -6,12 +6,8 @@
 
 #include "StationAdder.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
-
-#include "../common/ParameterSet.h"
-#include "../common/ParameterRecord.h"
+#include <iomanip>
+#include <iostream>
 
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
@@ -25,8 +21,11 @@
 #include <casacore/casa/Utilities/LinearSearch.h>
 #include <casacore/casa/Utilities/Regex.h>
 
-#include <iostream>
-#include <iomanip>
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
+
+#include "../base/DPLogger.h"
+#include "../base/FlagCounter.h"
 
 using casacore::ArrayColumn;
 using casacore::IPosition;
@@ -44,10 +43,9 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-StationAdder::StationAdder(InputStep* input, const common::ParameterSet& parset,
+StationAdder::StationAdder(const common::ParameterSet& parset,
                            const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+    : itsName(prefix),
       itsStatRec(parset.getRecord(prefix + "stations")),
       itsMinNPoint(parset.getUint(prefix + "minpoints", 1)),
       itsMakeAutoCorr(parset.getBool(prefix + "autocorr", false)),
@@ -286,15 +284,11 @@ void StationAdder::showTimings(std::ostream& os, double duration) const {
 bool StationAdder::process(const DPBuffer& buf) {
   itsTimer.start();
   // Get the various data arrays.
-  itsBufTmp.referenceFilled(buf);
   const casacore::Array<casacore::Complex>& data = buf.getData();
   const casacore::Array<bool>& flags = buf.getFlags();
-  const casacore::Array<float>& weights =
-      itsInput->fetchWeights(buf, itsBufTmp, itsTimer);
-  const casacore::Array<double>& uvws =
-      itsInput->fetchUVW(buf, itsBufTmp, itsTimer);
-  const casacore::Array<bool>& frFlags =
-      itsInput->fetchFullResFlags(buf, itsBufTmp, itsTimer);
+  const casacore::Array<float>& weights = buf.getWeights();
+  const casacore::Array<double>& uvws = buf.getUVW();
+  const casacore::Array<bool>& frFlags = buf.getFullResFlags();
   // Size fullResFlags if not done yet.
   if (itsBuf.getFullResFlags().empty()) {
     IPosition frfShp = frFlags.shape();

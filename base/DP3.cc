@@ -178,7 +178,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "applybeam") {
     step = std::make_shared<steps::ApplyBeam>(parset, prefix);
   } else if (type == "stationadder" || type == "stationadd") {
-    step = std::make_shared<steps::StationAdder>(inputStep, parset, prefix);
+    step = std::make_shared<steps::StationAdder>(parset, prefix);
   } else if (type == "scaledata") {
     step = std::make_shared<steps::ScaleData>(parset, prefix, inputType);
   } else if (type == "setbeam") {
