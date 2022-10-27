@@ -92,7 +92,7 @@ void SetTestFlags(casacore::Array<bool>& flags) {
  */
 class TestAdjust : public dp3::steps::test::ThrowStep {
  public:
-  TestAdjust(MSReader& reader) : reader_(reader) {}
+  TestAdjust() = default;
 
   void updateInfo(const dp3::base::DPInfo& info) override {
     Step::updateInfo(info);
@@ -101,7 +101,6 @@ class TestAdjust : public dp3::steps::test::ThrowStep {
   bool process(const dp3::base::DPBuffer& buffer) override {
     dp3::base::DPBuffer adjusted = buffer;
     dp3::common::NSTimer timer;
-    reader_.fetchWeights(buffer, adjusted, timer);
 
     adjusted.getData() += kDataAdjustment;
     SetTestFlags(adjusted.getFlags());
@@ -112,9 +111,6 @@ class TestAdjust : public dp3::steps::test::ThrowStep {
   }
 
   void finish() override {}  // do nothing
-
- private:
-  MSReader& reader_;
 };
 
 }  // namespace
@@ -148,7 +144,7 @@ BOOST_DATA_TEST_CASE_F(
   // Read, adjust and write data using the MSUpdater.
   {
     auto reader = std::make_shared<MSReader>(updated_ms, parset, "");
-    auto adjust = std::make_shared<TestAdjust>(*reader);
+    auto adjust = std::make_shared<TestAdjust>();
     auto updater =
         std::make_shared<MSUpdater>(reader.get(), kCopyMs, parset, "");
     reader->setFieldsToRead(Step::kDataField | Step::kFlagsField |

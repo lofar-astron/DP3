@@ -176,14 +176,7 @@ bool MSUpdater::process(const DPBuffer& buf) {
     }
   }
   if (GetFieldsToWrite().Weights()) {
-    Cube<float> weights;
-    if (!buf.getWeights().empty()) {
-      // Use weights from buffer
-      weights = buf.getWeights();
-    } else {
-      itsBuffer.referenceFilled(buf);
-      weights = itsReader->fetchWeights(buf, itsBuffer, itsTimer);
-    }
+    const Cube<float>& weights = buf.getWeights();
 
     // If compressing, set weights of flagged points to zero to decrease the
     // dynamic range

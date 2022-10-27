@@ -665,13 +665,7 @@ void MSWriter::WriteHistory(Table& ms, const common::ParameterSet& parset) {
 
 void MSWriter::UpdateInternalBuffer(const base::DPBuffer& buffer) {
   const common::NSTimer::StartStop timer(update_buffer_timer_);
-
   internal_buffer_.referenceFilled(buffer);
-  reader_.fetchWeights(buffer, internal_buffer_, timer_);
-  reader_.fetchUVW(buffer, internal_buffer_, timer_);
-  if (write_full_res_flags_) {
-    reader_.fetchFullResFlags(buffer, internal_buffer_, timer_);
-  }
 }
 
 void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
@@ -722,7 +716,7 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
 
   // Write UVW
   ArrayColumn<double> uvw_col(out, "UVW");
-  const Array<double>& uvws = reader_.fetchUVW(buf, internal_buffer_, timer_);
+  const Array<double>& uvws = buf.getUVW();
   uvw_col.putColumn(uvws);
 }
 
