@@ -1,60 +1,35 @@
-// DDE.h: DPPP step class to calibrate direction dependent gains
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// DDE.h: DP3 step class to calibrate direction dependent gains
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief DP3 step class to apply a calibration correction to the data.
 /// @author Tammo Jan Dijkema
 
-#ifndef DP3_DDECAL_H
-#define DP3_DDECAL_H
+#ifndef DP3_STEPS_DDECAL_H_
+#define DP3_STEPS_DDECAL_H_
 
-#include "ApplyBeam.h"
-#include "GainCal.h"
-#include "InputStep.h"
-#include "MultiResultStep.h"
-#include "Predict.h"
-#include "ResultStep.h"
-#include "UVWFlagger.h"
+#include <fstream>
+#include <string>
+#include <vector>
 
-#include <dp3/base/DPBuffer.h>
-#include "../base/BaselineSelection.h"
-#include "../base/Patch.h"
-#include "../base/SourceDBUtil.h"
+#include <aocommon/threadpool.h>
+
 #include "../base/SolutionInterval.h"
+
+#include "../common/ParameterSet.h"
 
 #include "../ddecal/Settings.h"
 #include "../ddecal/SolutionWriter.h"
 #include "../ddecal/constraints/Constraint.h"
 #include "../ddecal/gain_solvers/SolverBase.h"
 
-#include "../parmdb/Parm.h"
-
-#include <schaapcommon/h5parm/h5parm.h>
-
-#include <casacore/casa/Arrays/Cube.h>
-#include <casacore/casa/Quanta/MVEpoch.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
-
-#include <string>
-#include <vector>
-
-namespace aocommon {
-class ThreadPool;
-}  // namespace aocommon
+#include "MultiResultStep.h"
+#include "ResultStep.h"
+#include "UVWFlagger.h"
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
-
-class IDGPredict;
-
-typedef std::vector<std::shared_ptr<base::Patch>> PatchList;
-typedef std::pair<size_t, size_t> Baseline;
 
 /// @brief This class is a Step class to calibrate (direction independent)
 /// gains.
@@ -64,8 +39,6 @@ class DDECal : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   DDECal(InputStep*, const common::ParameterSet& parameterSet,
          const std::string& prefix);
-
-  virtual ~DDECal();
 
   common::Fields getRequiredFields() const override {
     return kDataField | kFlagsField | kWeightsField | kUvwField;

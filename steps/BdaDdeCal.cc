@@ -1,4 +1,4 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "BdaDdeCal.h"
@@ -6,13 +6,9 @@
 #include <algorithm>
 
 #include <dp3/base/DP3.h>
-#include <dp3/base/DPInfo.h>
 
 #include "../base/SourceDBUtil.h"
-#include "../common/ParameterSet.h"
-#include "../common/ParameterValue.h"
 #include "../common/StreamUtil.h"
-#include "../common/Timer.h"
 #include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/SolverFactory.h"
 
@@ -21,11 +17,11 @@
 #include "Version.h"
 
 using dp3::base::BDABuffer;
+using dp3::base::DPInfo;
 using dp3::ddecal::BdaSolverBuffer;
 using dp3::ddecal::SolveData;
 using dp3::steps::BdaGroupPredict;
 using dp3::common::operator<<;
-using dp3::base::DPInfo;
 
 namespace dp3 {
 namespace steps {

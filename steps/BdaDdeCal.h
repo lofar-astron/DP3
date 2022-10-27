@@ -6,18 +6,19 @@
 
 #include <dp3/steps/Step.h>
 
-#include "BDAResultStep.h"
-#include "UVWFlagger.h"
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
+
 #include "../ddecal/Settings.h"
 #include "../ddecal/SolutionWriter.h"
 #include "../ddecal/gain_solvers/BdaSolverBuffer.h"
 #include "../ddecal/gain_solvers/SolverBase.h"
 
+#include "BDAResultStep.h"
+#include "UVWFlagger.h"
+
 namespace dp3 {
 namespace steps {
-
-class BDAResultStep;
-class ModelDataStep;
 
 /**
  * Direction-dependent calibration steps that supports Baseline Dependent

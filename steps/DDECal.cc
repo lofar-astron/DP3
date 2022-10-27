@@ -6,19 +6,25 @@
 
 #include "DDECal.h"
 
+#include <algorithm>
+#include <array>
+#include <iomanip>
+#include <iostream>
+#include <utility>
+
+#include <casacore/casa/Quanta/Quantum.h>
+
+#include <aocommon/matrix2x2.h>
+
+#include <schaapcommon/facets/facet.h>
+
 #include <Version.h>
 
-#include "../base/CalType.h"
 #include <dp3/base/DP3.h>
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
-#include "../base/Simulate.h"
+
 #include "../base/SourceDBUtil.h"
 
-#include "../steps/IDGPredict.h"
-#include "../steps/MSReader.h"
-#include "../steps/MsColumnReader.h"
+#include "../common/StreamUtil.h"
 
 #include "../ddecal/SolverFactory.h"
 #ifdef HAVE_ARMADILLO
@@ -30,46 +36,14 @@
 #include "../ddecal/gain_solvers/SolverBuffer.h"
 #include "../ddecal/linear_solvers/LLSSolver.h"
 
-#include <schaapcommon/facets/facet.h>
-
-#include <aocommon/matrix2x2.h>
-
-#include "../parmdb/ParmDB.h"
-#include "../parmdb/ParmValue.h"
-#include "../parmdb/SourceDB.h"
-
-#include "../common/Memory.h"
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
-#include "../common/StringTools.h"
-
-#include <aocommon/threadpool.h>
-
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/MatrixMath.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/measures/Measures/MeasConvert.h>
-#include <casacore/casa/Quanta/Quantum.h>
-#include <casacore/casa/OS/File.h>
-
-#include <algorithm>
-#include <cassert>
-#include <ctime>
-#include <fstream>
-#include <functional>
-#include <iomanip>
-#include <iostream>
-#include <limits>
-#include <sstream>
-#include <utility>
-#include <vector>
+#include "IDGPredict.h"
+#include "MsColumnReader.h"
+#include "Predict.h"
 
 using aocommon::FitsReader;
 
 using schaapcommon::facets::Facet;
-using schaapcommon::h5parm::SolTab;
 
-using dp3::base::CalType;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
@@ -81,7 +55,7 @@ namespace dp3 {
 namespace steps {
 
 DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
-               const string& prefix)
+               const std::string& prefix)
     : itsInput(*input),
       itsSettings(parset, prefix),
       itsAvgTime(0),
@@ -144,8 +118,6 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
         "dde.solutions_per_direction entries > 1.");
   }
 }
-
-DDECal::~DDECal() {}
 
 void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
                                      const string& prefix) {
