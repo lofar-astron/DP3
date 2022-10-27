@@ -1,8 +1,8 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_CALTYPE_H
-#define DP3_CALTYPE_H
+#ifndef DP3_BASE_CALTYPE_H_
+#define DP3_BASE_CALTYPE_H_
 
 #include <string>
 
