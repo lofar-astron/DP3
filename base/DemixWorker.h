@@ -2,24 +2,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief DPPP step class to average in time and/or freq
-/// @author Ger van Diepen
-
-#ifndef DPPP_DEMIXWORKER_H
-#define DPPP_DEMIXWORKER_H
-
-#include "DemixInfo.h"
-#include <dp3/base/DPBuffer.h>
-#include "Patch.h"
-#include "EstimateNew.h"
-
-#include "../steps/InputStep.h"
-#include "../steps/PhaseShift.h"
-#include "../steps/Filter.h"
-#include "../steps/MultiResultStep.h"
-
-#include "../parmdb/ParmDB.h"
+#ifndef DP3_BASE_DEMIXWORKER_H_
+#define DP3_BASE_DEMIXWORKER_H_
 
 #include <EveryBeam/telescope/telescope.h>
 
@@ -34,8 +18,19 @@
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
 
-namespace dp3 {
+#include <dp3/base/DPBuffer.h>
 
+#include "DemixInfo.h"
+#include "Patch.h"
+#include "EstimateNew.h"
+
+#include "../steps/PhaseShift.h"
+#include "../steps/Filter.h"
+#include "../steps/MultiResultStep.h"
+
+#include "../parmdb/ParmDB.h"
+
+namespace dp3 {
 namespace base {
 
 /// @brief Demixer helper class processing a time chunk
@@ -53,7 +48,7 @@ class DemixWorker {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  DemixWorker(steps::InputStep*, const string& prefix, const DemixInfo& info,
+  DemixWorker(const std::string& prefix, const DemixInfo& info,
               const DPInfo& dpinfo, int workernr);
 
   /// @return The required fields for the DemixWorker.

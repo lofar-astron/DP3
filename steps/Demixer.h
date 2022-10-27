@@ -1,41 +1,24 @@
-// Demixer.h: DPPP step class to subtract A-team sources
+// Demixer.h: DP3 step class to subtract A-team sources
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief DPPP step class to average in time and/or freq
-/// @author Ger van Diepen
+#ifndef DP3_STEPS_DEMIXER_H_
+#define DP3_STEPS_DEMIXER_H_
 
-#ifndef DPPP_DEMIXER_H
-#define DPPP_DEMIXER_H
+#include <casacore/measures/Measures/MeasFrame.h>
 
-#include "InputStep.h"
-#include "PhaseShift.h"
 #include "Filter.h"
 #include "MultiResultStep.h"
+#include "PhaseShift.h"
 
 #include "../base/Baseline.h"
-#include <dp3/base/DPBuffer.h>
+#include "../base/FlagCounter.h"
 #include "../base/Patch.h"
-
-#include <casacore/casa/Arrays/Cube.h>
-#include <casacore/casa/Quanta/Quantum.h>
-#include <casacore/measures/Measures/MDirection.h>
-#include <casacore/measures/Measures/MPosition.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/measures/Measures/MeasFrame.h>
-#include <casacore/measures/Measures/MeasConvert.h>
-#include <casacore/measures/Measures/MCDirection.h>
-#include <casacore/measures/Measures/MCPosition.h>
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
-
-typedef std::vector<std::shared_ptr<base::Patch>> PatchList;
 
 /// @brief DPPP step class to subtract A-team sources
 /// This class is a Step class to subtract the strong A-team sources.
@@ -52,7 +35,7 @@ class Demixer : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Demixer(InputStep*, const common::ParameterSet&, const string& prefix);
+  Demixer(const common::ParameterSet&, const std::string& prefix);
 
   /// Process the data.
   /// It keeps the data.
@@ -107,11 +90,10 @@ class Demixer : public Step {
   /// into the full buffer.
   void mergeSubtractResult();
 
-  InputStep* itsInput;
-  string itsName;
+  std::string itsName;
   base::DPBuffer itsBufTmp;
-  string itsSkyName;
-  string itsInstrumentName;
+  std::string itsSkyName;
+  std::string itsInstrumentName;
   double itsDefaultGain;
   size_t itsMaxIter;
   base::BaselineSelection itsSelBL;
@@ -120,7 +102,7 @@ class Demixer : public Step {
   bool itsMovingPhaseRef;
   casacore::MeasFrame itsMeasFrame;
   /// Phase shift and average steps for demix.
-  std::vector<Step::ShPtr> itsFirstSteps;
+  std::vector<std::shared_ptr<Step>> itsFirstSteps;
   /// Result of phase shifting and averaging the directions of interest
   /// at the demix resolution.
   std::vector<std::shared_ptr<MultiResultStep>> itsAvgResults;
@@ -132,11 +114,11 @@ class Demixer : public Step {
   /// Ignore target in demixing?
   bool itsIgnoreTarget;
   /// Name of the target. Empty if no model is available for the target.
-  string itsTargetSource;
-  std::vector<string> itsSubtrSources;
-  std::vector<string> itsModelSources;
-  std::vector<string> itsExtraSources;
-  std::vector<string> itsAllSources;
+  std::string itsTargetSource;
+  std::vector<std::string> itsSubtrSources;
+  std::vector<std::string> itsModelSources;
+  std::vector<std::string> itsExtraSources;
+  std::vector<std::string> itsAllSources;
   bool itsPropagateSolutions;
   unsigned int itsNDir;
   unsigned int itsNModel;
@@ -186,7 +168,7 @@ class Demixer : public Step {
   /// shape #directions x #directions.
   std::vector<casacore::Array<casacore::DComplex>> itsFactorsSubtr;
 
-  PatchList itsPatchList;
+  std::vector<std::shared_ptr<base::Patch>> itsPatchList;
   base::Direction itsPhaseRef;
   std::vector<base::Baseline> itsBaselines;
   std::vector<int> itsUVWSplitIndex;

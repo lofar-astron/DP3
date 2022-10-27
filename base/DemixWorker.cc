@@ -66,7 +66,6 @@ using dp3::common::operator<<;
 
 using dp3::steps::Averager;
 using dp3::steps::Filter;
-using dp3::steps::InputStep;
 using dp3::steps::MultiResultStep;
 using dp3::steps::PhaseShift;
 using dp3::steps::Step;
@@ -78,9 +77,8 @@ namespace {
 string toString(double value);
 }  // end unnamed namespace
 
-DemixWorker::DemixWorker(InputStep* input, const string& prefix,
-                         const DemixInfo& mixInfo, const DPInfo& info,
-                         int workerNr)
+DemixWorker::DemixWorker(const std::string& prefix, const DemixInfo& mixInfo,
+                         const DPInfo& info, int workerNr)
     : itsWorkerNr(workerNr),
       itsMix(&mixInfo),
       itsFilter(mixInfo.selBL()),
@@ -115,7 +113,7 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
   // UseChannelFrequency = false here, only raw data is typically  used for
   // demixing
   const bool use_channel_frequency = false;
-  telescope_ = base::GetTelescope(input->msName(), element_response_model,
+  telescope_ = base::GetTelescope(info.msName(), element_response_model,
                                   use_channel_frequency);
 
   // Create the solve and subtract steps for the sources to be removed.
@@ -764,7 +762,7 @@ void DemixWorker::applyBeam(double time, const Direction& direction, bool apply,
   everybeam::vector3r_t srcdir = dir2Itrf(dir);
 
   const std::vector<size_t> station_indices =
-      base::SelectStationIndices(*telescope_, itsMix->antennaNames());
+      SelectStationIndices(*telescope_, itsMix->antennaNames());
 
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
       telescope_->GetPointResponse(time);
