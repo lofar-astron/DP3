@@ -11,44 +11,27 @@
 #ifndef DP3_STEPS_H5PARM_PREDICT_H_
 #define DP3_STEPS_H5PARM_PREDICT_H_
 
-#include <utility>
-
 #include <aocommon/threadpool.h>
 
-#include "InputStep.h"
+#include <dp3/base/DP3.h>
+#include <dp3/steps/Step.h>
+
+#include "../base/PredictBuffer.h"
+#include "../common/Timer.h"
+
 #include "Predict.h"
 #include "ResultStep.h"
 
-#include <dp3/base/DP3.h>
-#include <dp3/base/DPBuffer.h>
-
-#include "../base/ModelComponent.h"
-#include "../base/Patch.h"
-#include "../base/PredictBuffer.h"
-
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
 
-/// This class is a Step class to H5ParmPredict visibilities with optionally
-/// beam
-
-typedef std::pair<size_t, size_t> Baseline;
-typedef std::pair<std::shared_ptr<const base::ModelComponent>,
-                  std::shared_ptr<const base::Patch>>
-    Source;
-
-/// @brief DPPP step class to H5ParmPredict visibilities from a source model
+/// @brief DP3 step class to predict visibilities using an H5Parm file
+/// with a source model.
 class H5ParmPredict : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  H5ParmPredict(InputStep*, const common::ParameterSet&, const string& prefix);
-
-  ~H5ParmPredict() override;
+  H5ParmPredict(const common::ParameterSet&, const string& prefix);
 
   common::Fields getRequiredFields() const override {
     // Combine the result of all sub steps.
@@ -83,7 +66,6 @@ class H5ParmPredict : public Step {
   void showTimings(std::ostream&, double duration) const override;
 
  private:
-  InputStep* itsInput;
   std::string itsName;
   base::DPBuffer itsBuffer;
 
