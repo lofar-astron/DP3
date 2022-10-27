@@ -192,7 +192,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "predict") {
     step = std::make_shared<steps::Predict>(parset, prefix, inputType);
   } else if (type == "grouppredict") {
-    step = std::make_shared<steps::BdaGroupPredict>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::BdaGroupPredict>(parset, prefix);
   } else if (type == "idgpredict") {
     step = std::make_shared<steps::IDGPredict>(parset, prefix);
   } else if (type == "h5parmpredict") {
