@@ -6,19 +6,15 @@
 
 #include "H5ParmPredict.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
-#include "../common/StringTools.h"
-#include "../common/Timer.h"
-
-#include <stddef.h>
-#include <string>
-#include <sstream>
+#include <iostream>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include <schaapcommon/h5parm/h5parm.h>
+
+#include "../base/FlagCounter.h"
+#include "../common/ParameterSet.h"
+#include "../common/StreamUtil.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -33,11 +29,9 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-H5ParmPredict::H5ParmPredict(InputStep* input,
-                             const common::ParameterSet& parset,
+H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
                              const string& prefix)
-    : itsInput(input),
-      itsName(),
+    : itsName(),
       itsPredictSteps(),
       itsPredictBuffer(std::make_shared<PredictBuffer>()),
       itsResultStep(),
@@ -101,11 +95,11 @@ H5ParmPredict::H5ParmPredict(InputStep* input,
   itsPredictSteps.back()->setNextStep(itsResultStep);
 }
 
-H5ParmPredict::~H5ParmPredict() {}
-
 void H5ParmPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   info().setNeedVisData();
+
+  itsThreadPool.SetNThreads(infoIn.nThreads());
 
   itsPredictSteps.front()->setInfo(infoIn);
 }
@@ -128,12 +122,8 @@ void H5ParmPredict::showTimings(std::ostream& os, double duration) const {
 }
 
 bool H5ParmPredict::process(const DPBuffer& bufin) {
-  itsThreadPool.SetNThreads(getInfo().nThreads());
-
   itsTimer.start();
   itsBuffer.copy(bufin);
-  itsInput->fetchUVW(bufin, itsBuffer, itsTimer);
-  itsInput->fetchWeights(bufin, itsBuffer, itsTimer);
 
   itsPredictSteps.front()->process(itsBuffer);
   itsBuffer = itsResultStep->get();

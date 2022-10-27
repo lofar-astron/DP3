@@ -10,7 +10,6 @@
 #include "../../Predict.h"
 #include "../../../common/ParameterSet.h"
 
-#include "mock/MockInput.h"
 #include "H5ParmFixture.h"
 #include "tPredict.h"
 
@@ -21,12 +20,11 @@ using schaapcommon::h5parm::H5Parm;
 BOOST_AUTO_TEST_SUITE(h5parm_predict)
 
 BOOST_FIXTURE_TEST_CASE(fields, dp3::steps::test::H5ParmFixture) {
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
   parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
-  const H5ParmPredict h5predict(&input, parset, "");
+  const H5ParmPredict h5predict(parset, "");
 
   // H5ParmPredict creates Predict steps which have internal OnePredict
   // sub-steps as next step.
