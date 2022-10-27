@@ -2,16 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "BDAAverager.h"
-#include "InputStep.h"
-
-#include <dp3/base/BDABuffer.h>
-#include "../common/Epsilon.h"
-#include "../common/ParameterSet.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <numeric>
+
+#include <dp3/base/BDABuffer.h>
+#include "../common/Epsilon.h"
+#include "../common/ParameterSet.h"
 
 using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;
@@ -56,11 +55,10 @@ void BDAAverager::BaselineBuffer::Clear() {
   std::fill(uvw, uvw + 3, 0.0);
 }
 
-BDAAverager::BDAAverager(InputStep& input, const common::ParameterSet& parset,
+BDAAverager::BDAAverager(const common::ParameterSet& parset,
                          const std::string& prefix,
                          const bool use_weights_and_flags)
-    : input_(input),
-      timer_("BDA Averager"),
+    : timer_("BDA Averager"),
       bl_threshold_time_(parset.getDouble(prefix + "timebase", 0.0)),
       bl_threshold_channel_(parset.getDouble(prefix + "frequencybase", 0.0)),
       max_interval_(parset.getDouble(prefix + "maxinterval", 0.0)),
@@ -220,14 +218,12 @@ bool BDAAverager::process(const DPBuffer& buffer) {
   DPBuffer dummy_buffer;
 
   const casacore::Cube<float>& weights =
-      use_weights_and_flags_ ? input_.fetchWeights(buffer, dummy_buffer, timer_)
-                             : casacore::Cube<float>{};
+      use_weights_and_flags_ ? buffer.getWeights() : casacore::Cube<float>{};
 
   const casacore::Cube<bool>& flags =
       use_weights_and_flags_ ? buffer.getFlags() : casacore::Cube<bool>{};
 
-  const casacore::Matrix<double>& uvw =
-      input_.fetchUVW(buffer, dummy_buffer, timer_);
+  const casacore::Matrix<double>& uvw = buffer.getUVW();
 
   if (buffer.getData().shape() != expected_input_shape_ ||
       (use_weights_and_flags_ && (flags.shape() != expected_input_shape_ ||

@@ -217,6 +217,9 @@ class TestInput3 : public dp3::steps::MockInput {
     buf.setFullResFlags(itsFullResFlags);
     casacore::Vector<dp3::common::rownr_t> rownrs(1, itsCount);
     buf.setRowNrs(rownrs);
+    casacore::Matrix<double> uvw(3, itsNrBl);
+    indgen(uvw);
+    buf.setUVW(uvw);
     getNextStep()->process(buf);
     ++itsCount;
     return true;
@@ -430,7 +433,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
   ParameterSet parset;
   parset.add("freqstep", std::to_string(navgchan));
   parset.add("timestep", std::to_string(navgtime));
-  auto step2 = std::make_shared<Averager>(*step1, parset, "");
+  auto step2 = std::make_shared<Averager>(parset, "");
   auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
                                             navgchan, flag);
   dp3::steps::test::Execute({step1, step2, step3});
@@ -444,7 +447,7 @@ void test1resolution(int ntime, int nbl, int nchan, int ncorr,
   ParameterSet parset;
   parset.add("freqresolution", std::to_string(freqresolution) + frequnit);
   parset.add("timeresolution", std::to_string(timeresolution));
-  auto step2 = std::make_shared<Averager>(*step1, parset, "");
+  auto step2 = std::make_shared<Averager>(parset, "");
 
   if (!frequnit.empty()) {
     casacore::Quantity q(freqresolution, frequnit);
@@ -466,8 +469,8 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
   ParameterSet parset1, parset2;
   parset1.add("freqstep", "4");
   parset2.add("timestep", "2");
-  auto step2a = std::make_shared<Averager>(*step1, parset1, "");
-  auto step2b = std::make_shared<Averager>(*step1, parset2, "");
+  auto step2a = std::make_shared<Averager>(parset1, "");
+  auto step2b = std::make_shared<Averager>(parset2, "");
   auto step3 =
       std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, 2, 4, flag);
   dp3::steps::test::Execute({step1, step2a, step2b, step3});
@@ -481,7 +484,7 @@ void test3(int nrbl, int nrcorr) {
     ParameterSet parset1;
     parset1.add("freqstep", "2");
     parset1.add("timestep", "2");
-    auto step2 = std::make_shared<Averager>(*step1, parset1, "");
+    auto step2 = std::make_shared<Averager>(parset1, "");
     auto step3 = std::make_shared<TestOutput3>(2, nrbl, 2, nrcorr);
     dp3::steps::test::Execute({step1, step2, step3});
   }
@@ -493,8 +496,8 @@ void test3(int nrbl, int nrcorr) {
     parset1.add("timestep", "2");
     parset2.add("freqstep", "2");
     parset2.add("timestep", "2");
-    auto step2a = std::make_shared<Averager>(*step1, parset1, "");
-    auto step2b = std::make_shared<Averager>(*step1, parset2, "");
+    auto step2a = std::make_shared<Averager>(parset1, "");
+    auto step2b = std::make_shared<Averager>(parset2, "");
     auto step3 = std::make_shared<TestOutput3>(4, nrbl, 8, nrcorr);
     dp3::steps::test::Execute({step1, step2a, step2b, step3});
   }
@@ -511,9 +514,9 @@ void test4(int nrbl, int nrcorr, int flagstep) {
     parset1.add("timestep", "2");
     parset2.add("freqstep", "4");
     parset2.add("timestep", "2");
-    auto step2a = std::make_shared<Averager>(*step1, parset1, "");
+    auto step2a = std::make_shared<Averager>(parset1, "");
     auto step2b = std::make_shared<TestFlagger>(flagstep);
-    auto step2c = std::make_shared<Averager>(*step1, parset2, "");
+    auto step2c = std::make_shared<Averager>(parset2, "");
     auto step3 = std::make_shared<TestOutput4>(4, nrbl, 8, nrcorr, flagstep);
     dp3::steps::test::Execute({step1, step2a, step2b, step2c, step3});
   }

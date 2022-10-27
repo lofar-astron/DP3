@@ -86,7 +86,7 @@ void BdaDdeCal::InitializePredictSteps(InputStep* input,
                                                          patches_.back()));
     } else {
       steps_.push_back(std::make_shared<Predict>(
-          *input, parset, prefix, patches_.back(), Step::MsType::kBda));
+          parset, prefix, patches_.back(), Step::MsType::kBda));
     }
     result_steps_.push_back(std::make_shared<BDAResultStep>());
     steps_.back()->setNextStep(result_steps_.back());

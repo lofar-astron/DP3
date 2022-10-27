@@ -196,8 +196,7 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
       base::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
 
   for (std::vector<std::string>& direction : directions) {
-    itsSteps.push_back(
-        std::make_shared<Predict>(itsInput, parset, prefix, direction));
+    itsSteps.push_back(std::make_shared<Predict>(parset, prefix, direction));
     setModelNextSteps(*itsSteps.back(), direction.front(), parset, prefix);
     itsDirections.push_back(std::move(direction));
   }

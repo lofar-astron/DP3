@@ -151,7 +151,7 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
         sourceVec);
     itsOrigFirstSteps.push_back(step1);
     itsOrigPhaseShifts.push_back(step1.get());
-    auto step2 = std::make_shared<Averager>(*input, prefix, itsMix->nchanAvg(),
+    auto step2 = std::make_shared<Averager>(prefix, itsMix->nchanAvg(),
                                             itsMix->ntimeAvg());
     step1->setNextStep(step2);
     auto step3 = std::make_shared<MultiResultStep>(itsMix->ntimeOut());
@@ -161,8 +161,8 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
   }
 
   // Now create the step to average the data themselves.
-  auto targetAvg = std::make_shared<Averager>(
-      *input, prefix, itsMix->nchanAvg(), itsMix->ntimeAvg());
+  auto targetAvg = std::make_shared<Averager>(prefix, itsMix->nchanAvg(),
+                                              itsMix->ntimeAvg());
   itsOrigFirstSteps.push_back(targetAvg);
   auto targetAvgRes = std::make_shared<MultiResultStep>(itsMix->ntimeOut());
   targetAvg->setNextStep(targetAvgRes);
@@ -172,8 +172,8 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
   // The entire average result is needed for the next NDPPP step.
   // Only the selected baselines need to be subtracted, so add a
   // filter step as the last one.
-  itsAvgStepSubtr = std::make_shared<Averager>(
-      *input, prefix, itsMix->nchanAvgSubtr(), itsMix->ntimeAvgSubtr());
+  itsAvgStepSubtr = std::make_shared<Averager>(prefix, itsMix->nchanAvgSubtr(),
+                                               itsMix->ntimeAvgSubtr());
   itsAvgResultFull = std::make_shared<MultiResultStep>(itsMix->ntimeOutSubtr());
   itsFilterSubtr = std::make_shared<Filter>(input, itsMix->selBL());
   itsAvgResultSubtr =

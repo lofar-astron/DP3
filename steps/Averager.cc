@@ -1,4 +1,4 @@
-// Averager.cc: DPPP step class to average in time and/or freq
+// Averager.cc: DP3 step class to average in time and/or freq
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
@@ -6,21 +6,18 @@
 
 #include "Averager.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
-
-#include "../common/ParameterSet.h"
-#include "../common/StringTools.h"
+#include <iomanip>
 
 #include <aocommon/parallelfor.h>
-
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Utilities/Regex.h>
-
 #include <boost/algorithm/string/trim.hpp>
 
-#include <iostream>
-#include <iomanip>
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
+#include "../base/FlagCounter.h"
+#include "../common/ParameterSet.h"
+#include "../common/StringTools.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -35,10 +32,8 @@ const common::Fields Averager::kRequiredFields =
     kDataField | kFlagsField | kWeightsField | kFullResFlagsField | kUvwField;
 const common::Fields Averager::kProvidedFields = kRequiredFields;
 
-Averager::Averager(InputStep& input, const common::ParameterSet& parset,
-                   const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+Averager::Averager(const common::ParameterSet& parset, const string& prefix)
+    : itsName(prefix),
       itsMinNPoint(parset.getUint(prefix + "minpoints", 1)),
       itsMinPerc(parset.getFloat(prefix + "minperc", 0.) / 100.),
       itsNTimes(0),
@@ -61,10 +56,9 @@ Averager::Averager(InputStep& input, const common::ParameterSet& parset,
   }
 }
 
-Averager::Averager(InputStep& input, const string& stepName,
-                   unsigned int nchanAvg, unsigned int ntimeAvg)
-    : itsInput(input),
-      itsName(stepName),
+Averager::Averager(const string& stepName, unsigned int nchanAvg,
+                   unsigned int ntimeAvg)
+    : itsName(stepName),
       itsFreqResolution(0),
       itsTimeResolution(0),
       itsNChanAvg(nchanAvg == 0 ? 1 : nchanAvg),
@@ -75,10 +69,9 @@ Averager::Averager(InputStep& input, const string& stepName,
       itsTimeInterval(0),
       itsNoAvg(itsNChanAvg == 1 && itsNTimeAvg == 1) {}
 
-Averager::Averager(InputStep& input, const string& stepName,
-                   double freq_resolution, double time_resolution)
-    : itsInput(input),
-      itsName(stepName),
+Averager::Averager(const string& stepName, double freq_resolution,
+                   double time_resolution)
+    : itsName(stepName),
       itsFreqResolution(freq_resolution),
       itsTimeResolution(time_resolution),
       itsNChanAvg(0),
@@ -159,8 +152,8 @@ bool Averager::process(const base::DPBuffer& buf) {
     // and adding thereafter.
     itsBuf.getData().assign(buf.getData());
     itsBuf.getFlags().assign(buf.getFlags());
-    itsBuf.getUVW().assign(itsInput.fetchUVW(buf, itsBuf, itsTimer));
-    itsBuf.getWeights().assign(itsInput.fetchWeights(buf, itsBuf, itsTimer));
+    itsBuf.getUVW().assign(buf.getUVW());
+    itsBuf.getWeights().assign(buf.getWeights());
     itsBuf.makeIndependent();
     itsBufTmp.setFullResFlags(buf.getFullResFlags());
     IPosition shapeIn = buf.getData().shape();
@@ -215,15 +208,14 @@ bool Averager::process(const base::DPBuffer& buf) {
           "Inconsistent buffer sizes in Averager, possibly because of "
           "inconsistent nr of baselines in timeslots");
     itsBufTmp.copy(buf);
-    itsBuf.getUVW() += itsInput.fetchUVW(buf, itsBufTmp, itsTimer);
+    itsBuf.getUVW() += buf.getUVW();
 
     // Make sure the current fullResFlags are up to date with the flags
     DPBuffer::mergeFullResFlags(itsBufTmp.getFullResFlags(),
                                 itsBufTmp.getFlags());
     copyFullResFlags(itsBufTmp.getFullResFlags(), itsBufTmp.getFlags(),
                      itsNTimes);
-    const Cube<float>& weights =
-        itsInput.fetchWeights(buf, itsBufTmp, itsTimer);
+    const Cube<float>& weights = buf.getWeights();
     // Ignore flagged points.
     casacore::Array<casacore::Complex>::const_contiter indIter =
         buf.getData().cbegin();
