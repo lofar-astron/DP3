@@ -15,7 +15,6 @@
 #include "tPredict.h"
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
-#include "../../Demixer.h"
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
@@ -187,7 +186,7 @@ void TestDemixer(int ntime, int nbl, int nchan, int ncorr, int navgtime,
   parset.add("freqstep", std::to_string(navgchan));
   parset.add("timestep", std::to_string(navgtime));
   parset.add("sources", "CasA");
-  auto step2 = std::make_shared<Demixer>(step1.get(), parset, "");
+  auto step2 = std::make_shared<Demixer>(parset, "");
   auto step3 = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
                                             navgchan, flag);
   dp3::steps::test::Execute({step1, step2, step3});
@@ -220,17 +219,16 @@ BOOST_AUTO_TEST_CASE(execute_5, *boost::unit_test::disabled()) {
 
 BOOST_AUTO_TEST_CASE(fields) {
   using dp3::steps::Averager;
-  dp3::steps::MockInput input;
 
   ParameterSet parset;
   parset.add("skymodel", dp3::steps::test::kPredictSourceDB);
-  Demixer demixer(&input, parset, "");
+  Demixer demixer(parset, "");
 
   ParameterSet parset_new;
   parset_new.add("ateam.skymodel", dp3::steps::test::kPredictSourceDB);
   parset_new.add("target.skymodel", dp3::steps::test::kPredictSourceDB);
   parset_new.add("sources", dp3::steps::test::kPredictDirection);
-  DemixerNew demixer_new(&input, parset_new, "");
+  DemixerNew demixer_new(parset_new, "");
 
   BOOST_TEST(demixer.getRequiredFields() == Averager::kRequiredFields);
   BOOST_TEST(demixer.getProvidedFields() == Averager::kProvidedFields);

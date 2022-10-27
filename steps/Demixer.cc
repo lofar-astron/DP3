@@ -10,22 +10,14 @@
 
 #include <aocommon/parallelfor.h>
 
-#include <casacore/casa/Quanta/MVAngle.h>
-#include <casacore/casa/Arrays/Vector.h>
-#include <casacore/casa/Arrays/Matrix.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/casa/Quanta/MVAngle.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/scimath/Mathematics/MatrixMathLA.h>
-
-#include "Averager.h"
-#include "MSReader.h"
-#include "NullStep.h"
-#include "PhaseShift.h"
 
 #include "../base/Apply.h"
 #include "../base/CursorUtilCasa.h"
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
 #include "../base/EstimateMixed.h"
 #include "../base/SourceDBUtil.h"
 #include "../base/SubtractMixed.h"
@@ -39,8 +31,12 @@
 #include "../parmdb/ParmCache.h"
 #include "../parmdb/Parm.h"
 
-#include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
+
+#include "Averager.h"
+#include "MSReader.h"
+#include "NullStep.h"
+#include "PhaseShift.h"
 
 using casacore::Array;
 using casacore::Cube;
@@ -64,10 +60,8 @@ namespace {
 string toString(double value);
 }  // end unnamed namespace
 
-Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
-                 const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
+    : itsName(prefix),
       itsSkyName(parset.getString(prefix + "skymodel", "sky")),
       itsInstrumentName(
           parset.getString(prefix + "instrumentmodel", "instrument")),
@@ -489,9 +483,6 @@ bool Demixer::process(const DPBuffer& buf) {
   // Make sure all required data arrays are filled in.
   ///      itsBufTmp.referenceFilled (buf);
   itsBufTmp.copy(buf);
-  itsInput->fetchUVW(buf, itsBufTmp, itsTimer);
-  itsInput->fetchWeights(buf, itsBufTmp, itsTimer);
-  itsInput->fetchFullResFlags(buf, itsBufTmp, itsTimer);
 
   // Do the filter step first.
   itsFilter.process(itsBufTmp);

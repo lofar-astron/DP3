@@ -1,32 +1,27 @@
-// DemixerNew.h: DPPP step class to subtract A-team sources in adaptive way
+// DemixerNew.h: DP3 step class to subtract A-team sources in adaptive way
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to subtract A-team sources in adaptive way
+/// @brief DP3 step class to subtract A-team sources in adaptive way
 /// @author Ger van Diepen
 
-#ifndef DPPP_DEMIXERNEW_H
-#define DPPP_DEMIXERNEW_H
+#ifndef DP3_STEPS_DEMIXERNEW_H_
+#define DP3_STEPS_DEMIXERNEW_H_
 
-#include "InputStep.h"
+#include <ostream>
+
 #include "Filter.h"
 
 #include "../base/DemixInfo.h"
 #include "../base/DemixWorker.h"
-
+#include "../common/ParameterSet.h"
 #include "../parmdb/ParmDB.h"
 
-#include <ostream>
-
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
 
-/// @brief DPPP step class to subtract A-team sources in adaptive way
+/// @brief DP3 step class to subtract A-team sources in adaptive way
 
 /// This class is a Step class to subtract the strong A-team sources
 /// in a smart way (algorithm developed by Reinout van Weeren).
@@ -58,7 +53,7 @@ class DemixerNew : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  DemixerNew(InputStep*, const common::ParameterSet&, const string& prefix);
+  DemixerNew(const common::ParameterSet&, const string& prefix);
 
   common::Fields getRequiredFields() const override;
 
@@ -103,10 +98,9 @@ class DemixerNew : public Step {
   /// Show a percentage with 1 decimal.
   void showPerc1(std::ostream& os, float perc) const;
 
-  InputStep* itsInput;
-  string itsName;
+  std::string itsName;
   base::DemixInfo itsDemixInfo;
-  string itsInstrumentName;
+  std::string itsInstrumentName;
   std::shared_ptr<parmdb::ParmDB> itsParmDB;
   Filter itsFilter;  ///< only used for getInfo()
   std::vector<base::DemixWorker> itsWorkers;

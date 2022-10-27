@@ -1,22 +1,23 @@
 // SourceDBUtil.h: Helper functions to extract patch and source information
 // from a SourceDB.
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// \file
 /// Helper functions to extract patch and source information from a SourceDB.
 
-#ifndef DPPP_SOURCEDBUTIL_H
-#define DPPP_SOURCEDBUTIL_H
-
-#include "Patch.h"
-#include "../parmdb/SourceDB.h"
-#include "../parmdb/SourceDBSkymodel.h"
+#ifndef DP3_BASE_SOURCEDBUTIL_H_
+#define DP3_BASE_SOURCEDBUTIL_H_
 
 #include <string>
 #include <variant>
 #include <vector>
+
+#include "../parmdb/SourceDB.h"
+#include "../parmdb/SourceDBSkymodel.h"
+
+#include "Patch.h"
 
 namespace dp3 {
 namespace base {
@@ -34,7 +35,7 @@ std::vector<std::shared_ptr<Patch>> MakePatches(
 std::vector<std::pair<std::shared_ptr<ModelComponent>, std::shared_ptr<Patch>>>
 makeSourceList(std::vector<std::shared_ptr<Patch>> &patchList);
 
-/// From a given PatchList, create a new one with one patch per component
+/// From a given patch list, create a new one with one patch per component
 std::vector<std::shared_ptr<Patch>> makeOnePatchPerComponent(
     const std::vector<std::shared_ptr<Patch>> &);
 

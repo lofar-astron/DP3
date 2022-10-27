@@ -13,15 +13,15 @@
 
 #include <aocommon/parallelfor.h>
 
-#include "../base/DemixWorker.h"
-#include "../base/DemixInfo.h"
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
+
+#include "../base/DemixWorker.h"
+#include "../base/DemixInfo.h"
 
 #include "../parmdb/ParmDB.h"
 #include "../parmdb/ParmValue.h"
 
-#include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
 #include "Averager.h"
@@ -37,10 +37,8 @@ namespace steps {
 
 using dp3::common::operator<<;
 
-DemixerNew::DemixerNew(InputStep* input, const common::ParameterSet& parset,
-                       const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+DemixerNew::DemixerNew(const common::ParameterSet& parset, const string& prefix)
+    : itsName(prefix),
       itsDemixInfo(parset, prefix),
       itsInstrumentName(
           parset.getString(prefix + "instrumentmodel", "instrument")),
@@ -68,7 +66,7 @@ common::Fields DemixerNew::getProvidedFields() const {
 }
 
 void DemixerNew::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  Step::updateInfo(infoIn);
   // Update the info of this object.
   info().setNeedVisData();
   // Handle possible data selection.
@@ -83,7 +81,7 @@ void DemixerNew::updateInfo(const DPInfo& infoIn) {
   size_t nthread = getInfo().nThreads();
   itsWorkers.reserve(nthread);
   for (size_t i = 0; i < nthread; ++i) {
-    itsWorkers.emplace_back(itsInput, itsName, itsDemixInfo, infoIn, i);
+    itsWorkers.emplace_back(itsName, itsDemixInfo, infoIn, i);
   }
 }
 
@@ -336,9 +334,6 @@ bool DemixerNew::process(const DPBuffer& buf) {
   // Make sure all required data arrays are filled in.
   DPBuffer& newBuf = itsBufIn[itsNTime];
   newBuf.copy(buf);
-  itsInput->fetchUVW(buf, newBuf, itsTimer);
-  itsInput->fetchWeights(buf, newBuf, itsTimer);
-  itsInput->fetchFullResFlags(buf, newBuf, itsTimer);
   // Process the data if entire buffer is filled.
   if (++itsNTime >= itsBufIn.size()) {
     processData();

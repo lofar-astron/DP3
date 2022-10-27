@@ -172,9 +172,9 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "phaseshifter" || type == "phaseshift") {
     step = std::make_shared<steps::PhaseShift>(parset, prefix);
   } else if (type == "demixer" || type == "demix") {
-    step = std::make_shared<steps::Demixer>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Demixer>(parset, prefix);
   } else if (type == "smartdemixer" || type == "smartdemix") {
-    step = std::make_shared<steps::DemixerNew>(inputStep, parset, prefix);
+    step = std::make_shared<steps::DemixerNew>(parset, prefix);
   } else if (type == "applybeam") {
     step = std::make_shared<steps::ApplyBeam>(parset, prefix);
   } else if (type == "stationadder" || type == "stationadd") {
