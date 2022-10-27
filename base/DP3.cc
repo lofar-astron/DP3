@@ -198,7 +198,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "h5parmpredict") {
     step = std::make_shared<steps::H5ParmPredict>(parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
-    step = std::make_shared<steps::GainCal>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::GainCal>(parset, prefix);
   } else if (type == "upsample") {
     step = std::make_shared<steps::Upsample>(parset, prefix);
   } else if (type == "split" || type == "explode") {

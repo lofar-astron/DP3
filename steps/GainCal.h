@@ -41,10 +41,7 @@ class GainCal final : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  GainCal(InputStep& input, const common::ParameterSet& parset,
-          const std::string& prefix);
-
-  virtual ~GainCal();
+  GainCal(const common::ParameterSet& parset, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
     return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
@@ -113,7 +110,6 @@ class GainCal final : public Step {
   /// (timeslotsperparmupdate) Variant for writing H5Parm
   void writeSolutionsH5Parm(double startTime);
 
-  InputStep& itsInput;
   std::string itsName;
   std::vector<base::DPBuffer> itsBuf;
   bool itsUseModelColumn;

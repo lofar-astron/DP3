@@ -42,10 +42,8 @@ using schaapcommon::h5parm::SolTab;
 namespace dp3 {
 namespace steps {
 
-GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
-                 const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
+    : itsName(prefix),
       itsUseModelColumn(parset.getBool(prefix + "usemodelcolumn", false)),
       itsModelColumnName(),
       itsParmDBName(parset.getString(prefix + "parmdb", "")),
@@ -148,8 +146,6 @@ GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
     throw std::runtime_error("Can't solve with mode TECSCREEN");
   itsNChan = parset.getInt(prefix + "nchan", defaultNChan);
 }
-
-GainCal::~GainCal() {}
 
 void GainCal::setAntennaUsed() {
   Matrix<bool> selbl(itsBaselineSelection.apply(info()));
@@ -368,9 +364,6 @@ bool GainCal::process(const DPBuffer& bufin) {
     // We'll read the necessary info from the buffer and pass it on
     itsBuf[bufIndex].referenceFilled(bufin);
   }
-  itsInput.fetchUVW(bufin, itsBuf[bufIndex], itsTimer);
-  itsInput.fetchWeights(bufin, itsBuf[bufIndex], itsTimer);
-  itsInput.fetchFullResFlags(bufin, itsBuf[bufIndex], itsTimer);
 
   // UVW flagging happens on a copy of the buffer, so these flags are not
   // written
