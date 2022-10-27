@@ -409,9 +409,7 @@ bool MSReader::process(const DPBuffer&) {
   if (getFieldsToRead().Uvw())
     getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(), itsBuffer);
   if (getFieldsToRead().Weights()) getWeights(itsBuffer.getRowNrs(), itsBuffer);
-  if (getFieldsToRead().FullResFlags()) {
-    FillFullResFlags(itsBuffer);
-  }
+  if (getFieldsToRead().FullResFlags()) FillFullResFlags(itsBuffer);
 
   getNextStep()->process(itsBuffer);
   // Do not add to previous time, because it introduces round-off errors.

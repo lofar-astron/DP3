@@ -101,9 +101,15 @@ std::string MultiMSReader::msName() const { return itsMSNames.front(); }
 
 void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
   InputStep::setFieldsToRead(fields);
+
+  // Only read Data and Flags fields in the MSReader. UVW, Weights and
+  // FullResFlags are read in the MultiMSReader.
+  dp3::common::Fields reader_fields;
+  if (fields.Data()) reader_fields |= kDataField;
+  if (fields.Flags()) reader_fields |= kFlagsField;
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
-      itsReaders[i]->setFieldsToRead(fields);
+      itsReaders[i]->setFieldsToRead(reader_fields);
     }
   }
 }
@@ -216,11 +222,12 @@ bool MultiMSReader::process(const DPBuffer& buf) {
   itsBuffer.setTime(buf1.getTime());
   itsBuffer.setExposure(buf1.getExposure());
   itsBuffer.setRowNrs(buf1.getRowNrs());
-  // Size the buffers.
-  if (itsBuffer.getFlags().empty()) {
-    if (getFieldsToRead().Data()) {
-      itsBuffer.getData().resize(IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
-    }
+  // Size the buffers if they should be read.
+  if (itsBuffer.getData().empty() && getFieldsToRead().Data()) {
+    itsBuffer.getData().resize(IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
+  }
+  if (itsBuffer.getFlags().empty() &&
+      (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
     itsBuffer.getFlags().resize(IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
   }
   // Loop through all readers and get data and flags.
@@ -242,16 +249,27 @@ bool MultiMSReader::process(const DPBuffer& buf) {
       if (getFieldsToRead().Data()) {
         itsBuffer.getData()(s, e) = msBuf.getData();
       }
-      itsBuffer.getFlags()(s, e) = msBuf.getFlags();
+      if (getFieldsToRead().Flags()) {
+        itsBuffer.getFlags()(s, e) = msBuf.getFlags();
+      }
     } else {
       e[1] = s[1] + itsFillNChan - 1;
       if (getFieldsToRead().Data()) {
         itsBuffer.getData()(s, e) = casacore::Complex();
       }
-      itsBuffer.getFlags()(s, e) = true;
+      if (getFieldsToRead().Flags()) {
+        itsBuffer.getFlags()(s, e) = true;
+      }
     }
     s[1] = e[1] + 1;
   }
+
+  if (getFieldsToRead().Uvw())
+    getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(), itsBuffer);
+  if (getFieldsToRead().Weights()) getWeights(itsBuffer.getRowNrs(), itsBuffer);
+  if (getFieldsToRead().FullResFlags())
+    getFullResFlags(itsBuffer.getRowNrs(), itsBuffer);
+
   getNextStep()->process(itsBuffer);
   return true;
 }
