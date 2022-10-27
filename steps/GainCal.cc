@@ -1,49 +1,28 @@
-// GainCal.cc: DPPP step class to do a gain calibration
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// GainCal.cc: DP3 step class to do a gain calibration
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema
 
 #include "GainCal.h"
-#include "ApplyCal.h"
-#include "MsColumnReader.h"
+
+#include <algorithm>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
 #include <Version.h>
 
-#include "../base/Simulate.h"
-#include "../base/PhaseFitter.h"
-#include "../base/CalType.h"
-#include "../base/CursorUtilCasa.h"
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
 #include "../base/DPLogger.h"
 #include "../base/SourceDBUtil.h"
 
-#include "../parmdb/ParmDB.h"
 #include "../parmdb/ParmValue.h"
-#include "../parmdb/SourceDB.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/StringTools.h"
-
-#include <aocommon/threadpool.h>
-
-#include <fstream>
-#include <ctime>
-
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/MatrixMath.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/measures/Measures/MeasConvert.h>
-#include <casacore/measures/Measures/MCDirection.h>
-#include <casacore/casa/OS/File.h>
-
-#include <vector>
-#include <algorithm>
-
-#include <limits>
-#include <iostream>
-#include <iomanip>
+#include "ApplyBeam.h"
+#include "ApplyCal.h"
+#include "MsColumnReader.h"
+#include "Predict.h"
 
 using casacore::Cube;
 using casacore::IPosition;
@@ -800,8 +779,8 @@ void GainCal::calibrate() {
 }  // End calibrate()
 
 void GainCal::initParmDB() {
-  itsParmDB = std::shared_ptr<parmdb::ParmDB>(
-      new parmdb::ParmDB(parmdb::ParmDBMeta("casa", itsParmDBName), false));
+  itsParmDB = std::make_shared<parmdb::ParmDB>(
+      parmdb::ParmDBMeta("casa", itsParmDBName), false);
   itsParmDB->lock();
   // Store the (freq, time) resolution of the solutions.
 

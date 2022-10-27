@@ -1,41 +1,16 @@
-// GainCal.h: DPPP step class to calibrate (direction independent) gains
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// GainCal.h: DP3 step class to calibrate (direction independent) gains
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to apply a calibration correction to the data
+/// @brief DP3 step class to apply a calibration correction to the data
 /// @author Tammo Jan Dijkema
 
-#ifndef DPPP_GAINCAL_H
-#define DPPP_GAINCAL_H
-
-#include "ApplyBeam.h"
-#include "InputStep.h"
-#include "Predict.h"
-#include "ResultStep.h"
-#include "UVWFlagger.h"
-
-#include <dp3/base/DPBuffer.h>
-#include "../base/PhaseFitter.h"
-#include "../base/BaselineSelection.h"
-#include "../base/GainCalAlgorithm.h"
-#include "../base/Patch.h"
-#include "../base/SourceDBUtil.h"
-
-#include "../parmdb/Parm.h"
-#include "../parmdb/ParmFacade.h"
-#include "../parmdb/ParmSet.h"
+#ifndef DP3_STEPS_GAINCAL_H_
+#define DP3_STEPS_GAINCAL_H_
 
 #include <aocommon/parallelfor.h>
 #include <aocommon/threadpool.h>
-
-#include <EveryBeam/station.h>
-#include <EveryBeam/common/types.h>
-
-#include <casacore/casa/Arrays/Cube.h>
-#include <casacore/casa/Quanta/MVEpoch.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
 
@@ -46,14 +21,18 @@
 #define H5Gcreate_vers 2
 #include <H5Cpp.h>
 
-namespace dp3 {
-namespace base {
-enum class CalType;
-}
-namespace common {
-class ParameterSet;
-}
+#include "../base/BaselineSelection.h"
+#include "../base/CalType.h"
+#include "../base/GainCalAlgorithm.h"
+#include "../base/PhaseFitter.h"
+#include "../common/ParameterSet.h"
+#include "../parmdb/ParmDB.h"
 
+#include "InputStep.h"
+#include "ResultStep.h"
+#include "UVWFlagger.h"
+
+namespace dp3 {
 namespace steps {
 
 /// @brief This class is a Step class to calibrate (direction independent)
