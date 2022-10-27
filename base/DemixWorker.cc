@@ -83,7 +83,7 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
                          int workerNr)
     : itsWorkerNr(workerNr),
       itsMix(&mixInfo),
-      itsFilter(input, mixInfo.selBL()),
+      itsFilter(mixInfo.selBL()),
       itsNrSolves(0),
       itsNrConverged(0),
       itsNrIter(0),
@@ -175,7 +175,7 @@ DemixWorker::DemixWorker(InputStep* input, const string& prefix,
   itsAvgStepSubtr = std::make_shared<Averager>(prefix, itsMix->nchanAvgSubtr(),
                                                itsMix->ntimeAvgSubtr());
   itsAvgResultFull = std::make_shared<MultiResultStep>(itsMix->ntimeOutSubtr());
-  itsFilterSubtr = std::make_shared<Filter>(input, itsMix->selBL());
+  itsFilterSubtr = std::make_shared<Filter>(itsMix->selBL());
   itsAvgResultSubtr =
       std::make_shared<MultiResultStep>(itsMix->ntimeOutSubtr());
   itsAvgStepSubtr->setNextStep(itsAvgResultFull);

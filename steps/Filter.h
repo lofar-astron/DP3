@@ -1,26 +1,23 @@
-// Filter.h: DPPP step to filter out baselines and channels
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Filter.h: DP3 step to filter out baselines and channels
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step to filter out baselines and channels
+/// @brief DP3 step to filter out baselines and channels
 /// @author Ger van Diepen
 
-#ifndef DPPP_FILTER_H
-#define DPPP_FILTER_H
-
-#include "InputStep.h"
+#ifndef DP3_STEPS_FILTER_H_
+#define DP3_STEPS_FILTER_H_
 
 #include <dp3/base/DPBuffer.h>
+#include <dp3/steps/Step.h>
 #include "../base/BaselineSelection.h"
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
-/// @brief DPPP step to filter out baselines and channels
+/// @brief DP3 step to filter out baselines and channels
 
 /// This class is a InputStep step reading the data from a MeasurementSet.
 /// At the beginning it finds out the shape of the data; i.e., the
@@ -111,10 +108,10 @@ class Filter : public Step {
 
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  Filter(InputStep* input, const common::ParameterSet&, const string& prefix);
+  Filter(const common::ParameterSet&, const string& prefix);
 
   /// Construct the object for the given MS and baseline selection.
-  Filter(InputStep* input, const base::BaselineSelection&);
+  Filter(const base::BaselineSelection&);
 
   virtual ~Filter();
 
@@ -168,8 +165,7 @@ class Filter : public Step {
       const casacore::Vector<common::rownr_t>& removedAnt,
       const casacore::Vector<int>& antMap, common::rownr_t& nrId) const;
 
-  InputStep* itsInput;
-  string itsName;
+  std::string itsName;
   base::DPBuffer itsBuf;
   base::DPBuffer itsBufTmp;
   casacore::String itsStartChanStr;  ///< startchan expression

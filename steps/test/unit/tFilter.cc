@@ -12,10 +12,12 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "tStepCommon.h"
-#include "mock/ThrowStep.h"
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
+
+#include "tStepCommon.h"
+#include "mock/MockInput.h"
+#include "mock/ThrowStep.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
@@ -24,25 +26,22 @@ using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::Filter;
 using dp3::steps::Step;
-using std::vector;
 
 BOOST_AUTO_TEST_SUITE(filter)
 
 BOOST_AUTO_TEST_CASE(fields_default) {
-  dp3::steps::MockInput input;
   const ParameterSet parset;
-  const Filter filter(&input, parset, "");
+  const Filter filter(parset, "");
   BOOST_CHECK_EQUAL(filter.getProvidedFields(), dp3::common::Fields());
   BOOST_CHECK_EQUAL(filter.getRequiredFields(), dp3::common::Fields());
 }
 
 BOOST_AUTO_TEST_CASE(fields_channel_selection) {
   // Test fields when enabling channel filtering.
-  dp3::steps::MockInput input;
   ParameterSet parset;
   parset.add("startchan", "4");
   parset.add("nchan", "2");
-  const Filter channel_only(&input, parset, "");
+  const Filter channel_only(parset, "");
   const dp3::common::Fields kExpectedFields =
       Step::kDataField | Step::kFlagsField | Step::kWeightsField |
       Step::kFullResFlagsField;
@@ -51,7 +50,7 @@ BOOST_AUTO_TEST_CASE(fields_channel_selection) {
 
   ParameterSet parset_remove_ant = parset;
   parset_remove_ant.add("remove", "true");
-  const Filter remove_ant(&input, parset_remove_ant, "");
+  const Filter remove_ant(parset_remove_ant, "");
   const dp3::common::Fields kExpectedFieldsRemove =
       kExpectedFields | Step::kUvwField;
   BOOST_CHECK_EQUAL(remove_ant.getRequiredFields(), kExpectedFieldsRemove);
@@ -59,10 +58,9 @@ BOOST_AUTO_TEST_CASE(fields_channel_selection) {
 }
 
 BOOST_AUTO_TEST_CASE(fields_baseline_selection) {
-  dp3::steps::MockInput input;
   ParameterSet parset;
   parset.add("baseline", "42");
-  const Filter baseline_only(&input, parset, "");
+  const Filter baseline_only(parset, "");
 
   const dp3::common::Fields kExpectedFields =
       Step::kDataField | Step::kFlagsField | Step::kWeightsField |
@@ -72,7 +70,7 @@ BOOST_AUTO_TEST_CASE(fields_baseline_selection) {
 
   parset.add("startchan", "4");
   parset.add("nchan", "2");
-  const Filter baseline_and_channel(&input, parset, "");
+  const Filter baseline_and_channel(parset, "");
   BOOST_CHECK_EQUAL(baseline_and_channel.getRequiredFields(), kExpectedFields);
   BOOST_CHECK_EQUAL(baseline_and_channel.getProvidedFields(), kExpectedFields);
 }
@@ -94,8 +92,8 @@ class TestInput : public dp3::steps::MockInput {
     info().init(ncorr, 0, nchan, ntime, 0.5, 5., string(), string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    vector<int> ant1(nbl);
-    vector<int> ant2(nbl);
+    std::vector<int> ant1(nbl);
+    std::vector<int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     for (int i = 0; i < nbl; ++i) {
@@ -108,9 +106,10 @@ class TestInput : public dp3::steps::MockInput {
         }
       }
     }
-    vector<string> antNames{"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
+    std::vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
+                                      "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<casacore::MPosition> antPos(4);
+    std::vector<casacore::MPosition> antPos(4);
     casacore::Vector<double> vals(3);
     vals[0] = 3828763;
     vals[1] = 442449;
@@ -293,46 +292,49 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   bool itsFlag;
 };
 
-// Test filtering of channels only.
-void test1(int ntime, int nbl, int nchan, int ncorr, int startchan,
-           int nchanout, bool flag) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+void TestChannelsOnly(int ntime, int nbl, int nchan, int ncorr, int startchan,
+                      int nchanout, bool flag) {
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("startchan", std::to_string(startchan));
   parset.add("nchan", std::to_string(nchanout) + "+nchan-nchan");
-  Step::ShPtr step2(new Filter(in, parset, ""));
-  Step::ShPtr step3(
-      new TestOutput(ntime, nbl, nchan, ncorr, nbl, startchan, nchanout, flag));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto filter = std::make_shared<Filter>(parset, "");
+  auto out = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, nbl,
+                                          startchan, nchanout, flag);
+  dp3::steps::test::Execute({in, filter, out});
 }
 
-// Test filtering of baselines and channels.
-void test2(int ntime, int nbl, int nchan, int ncorr, int startchan,
-           int nchanout, bool flag) {
+void TestChannelsAndBaselines(int ntime, int nbl, int nchan, int ncorr,
+                              int startchan, int nchanout, bool flag) {
   BOOST_CHECK(nbl <=
               4);  // otherwise baseline selection removes more than the first
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("startchan", std::to_string(startchan) + "+nchan-nchan");
   parset.add("nchan", std::to_string(nchanout));
   // This removes the first baseline.
   parset.add("baseline", "[[rs01.s01,rs*]]");
-  Step::ShPtr step2(new Filter(in, parset, ""));
-  Step::ShPtr step3(
-      new TestOutput(ntime, nbl, nchan, ncorr, 2, startchan, nchanout, flag));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto filter = std::make_shared<Filter>(parset, "");
+  auto out = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, 2,
+                                          startchan, nchanout, flag);
+  dp3::steps::test::Execute({in, filter, out});
 }
 
-BOOST_AUTO_TEST_CASE(test_filter1) { test1(10, 3, 32, 4, 2, 24, false); }
+BOOST_AUTO_TEST_CASE(filter_channels_1) {
+  TestChannelsOnly(10, 3, 32, 4, 2, 24, false);
+}
 
-BOOST_AUTO_TEST_CASE(test_filter2) { test1(10, 10, 30, 1, 3, 3, true); }
+BOOST_AUTO_TEST_CASE(filter_channels_2) {
+  TestChannelsOnly(10, 10, 30, 1, 3, 3, true);
+}
 
-BOOST_AUTO_TEST_CASE(test_filter3) { test1(10, 10, 1, 4, 0, 1, true); }
+BOOST_AUTO_TEST_CASE(filter_channels_3) {
+  TestChannelsOnly(10, 10, 1, 4, 0, 1, true);
+}
 
-BOOST_AUTO_TEST_CASE(test_filter4) { test2(10, 4, 32, 4, 2, 24, false); }
+BOOST_AUTO_TEST_CASE(channels_and_baselines) {
+  TestChannelsAndBaselines(10, 4, 32, 4, 2, 24, false);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

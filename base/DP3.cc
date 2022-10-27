@@ -184,7 +184,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "setbeam") {
     step = std::make_shared<steps::SetBeam>(parset, prefix);
   } else if (type == "filter") {
-    step = std::make_shared<steps::Filter>(inputStep, parset, prefix);
+    step = std::make_shared<steps::Filter>(parset, prefix);
   } else if (type == "applycal" || type == "correct") {
     step = std::make_shared<steps::ApplyCal>(parset, prefix);
   } else if (type == "nullstokes") {
