@@ -1,21 +1,20 @@
-// Averager.h: DPPP step class to average in time and/or freq
+// Averager.h: DP3 step class to average in time and/or freq
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to average in time and/or freq
+/// @brief DP3 step class to average in time and/or freq
 /// @author Ger van Diepen
 
-#ifndef DPPP_AVERAGER_H
-#define DPPP_AVERAGER_H
-
-#include "InputStep.h"
-
-#include <dp3/base/DPBuffer.h>
-
-#include <aocommon/staticfor.h>
+#ifndef DP3_STEPS_AVERAGER_H_
+#define DP3_STEPS_AVERAGER_H_
 
 #include <casacore/casa/Arrays/Cube.h>
+#include <aocommon/staticfor.h>
+
+#include <dp3/base/DPBuffer.h>
+#include <dp3/steps/Step.h>
+#include "../common/Timer.h"
 
 namespace dp3 {
 
@@ -48,12 +47,12 @@ class Averager : public Step {
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Averager(InputStep&, const common::ParameterSet&, const string& prefix);
+  Averager(const common::ParameterSet&, const string& prefix);
 
   /// Construct the object using the given parameters.
-  Averager(InputStep&, const string& stepname, unsigned int nchanAvg,
+  Averager(const string& stepname, unsigned int nchanAvg,
            unsigned int ntimeAvg);
-  Averager(InputStep&, const string& stepname, double freq_resolution,
+  Averager(const string& stepname, double freq_resolution,
            double time_resolution);
 
   virtual ~Averager();
@@ -93,7 +92,6 @@ class Averager : public Step {
   void copyFullResFlags(const casacore::Cube<bool>& fullResFlags,
                         const casacore::Cube<bool>& flags, int timeIndex);
 
-  InputStep& itsInput;
   std::string itsName;
   base::DPBuffer itsBuf;
   base::DPBuffer itsBufTmp;

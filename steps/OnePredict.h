@@ -11,28 +11,13 @@
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
-#include "InputStep.h"
 #include "ResultStep.h"
-
 #include <dp3/base/DP3.h>
 #include <dp3/base/DPBuffer.h>
-
 #include "../base/ModelComponent.h"
 #include "../base/Patch.h"
 #include "../base/PredictBuffer.h"
 #include "../base/SourceDBUtil.h"
-
-#include <EveryBeam/station.h>
-#include <EveryBeam/common/types.h>
-
-#include <casacore/casa/Arrays/Cube.h>
-#include <casacore/casa/Quanta/MVEpoch.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
-
-#include <atomic>
-#include <mutex>
-#include <utility>
 
 namespace aocommon {
 class ThreadPool;
@@ -52,7 +37,6 @@ class OnePredict : public ModelDataStep {
  public:
   /**
    * Constructs the object.
-   * @param input_step Input step, for reading extra data.
    * @param parset Parameter set with settings for the step.
    * @param prefix Prefix for reading settings from 'parset'.
    * @param sourceList Direction names. If empty, obtain sources from the parset

@@ -30,7 +30,7 @@ BOOST_FIXTURE_TEST_CASE(fields, dp3::steps::test::H5ParmFixture) {
 
   // H5ParmPredict creates Predict steps which have internal OnePredict
   // sub-steps as next step.
-  const dp3::steps::Predict predict(input, parset, "",
+  const dp3::steps::Predict predict(parset, "",
                                     {dp3::steps::test::kPredictDirection});
 
   const dp3::common::Fields predict_required =

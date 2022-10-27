@@ -1,14 +1,12 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_PREDICT_H
-#define DP3_PREDICT_H
+#ifndef DP3_STEPS_PREDICT_H_
+#define DP3_STEPS_PREDICT_H_
 
 #include <dp3/steps/Step.h>
 
 #include <mutex>
-
-#include "steps/InputStep.h"
 
 namespace aocommon {
 class ThreadPool;
@@ -35,24 +33,21 @@ class Predict : public ModelDataStep {
  public:
   /**
    * Constructs the object.
-   * @param input_step Input step, for reading extra data.
    * @param parset Parameter set with settings for the step.
    * @param prefix Prefix for reading settings from 'parset'.
    * @param input_type Input type, Regular (default) or Bda.
    */
-  Predict(InputStep& input_step, const common::ParameterSet& parset,
-          const std::string& prefix, MsType input_type = MsType::kRegular);
+  Predict(const common::ParameterSet& parset, const std::string& prefix,
+          MsType input_type = MsType::kRegular);
 
   /**
    * Constructs the object with explicit source patterns.
-   * @param input_step Input step, for reading extra data.
    * @param parset Parameter set with settings for the step.
    * @param prefix Prefix for reading settings from 'parset'.
    * @param source_patterns Source patterns.
    * @param input_type Input type, Regular (default) or Bda.
    */
-  Predict(InputStep& input_step, const common::ParameterSet& parset,
-          const std::string& prefix,
+  Predict(const common::ParameterSet& parset, const std::string& prefix,
           const std::vector<std::string>& source_patterns,
           MsType input_type = MsType::kRegular);
 
@@ -104,8 +99,8 @@ class Predict : public ModelDataStep {
    * Common part of the constructors.
    * Parses parset arguments and sets up first_step_ and last_step_.
    */
-  void Initialize(InputStep& input_step, const common::ParameterSet& parset,
-                  const string& prefix, MsType input_type);
+  void Initialize(const common::ParameterSet& parset, const string& prefix,
+                  MsType input_type);
 
   /// Input and output measurement set type: Regular (default) or Bda
   const MsType ms_type_;

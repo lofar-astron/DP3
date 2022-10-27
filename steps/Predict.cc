@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "Predict.h"
+
+#include <ostream>
+#include <string>
+
 #include "Averager.h"
 #include "BDAAverager.h"
 #include "BDAExpander.h"
@@ -12,35 +16,30 @@
 
 #include "../common/ParameterSet.h"
 
-#include <ostream>
-#include <string>
-
 using dp3::base::BDABuffer;
 using dp3::base::DPInfo;
 
 namespace dp3 {
 namespace steps {
 
-Predict::Predict(InputStep& input_step, const common::ParameterSet& parset,
-                 const string& prefix, MsType input_type)
+Predict::Predict(const common::ParameterSet& parset, const string& prefix,
+                 MsType input_type)
     : ms_type_(input_type),
       predict_step_(std::make_shared<OnePredict>(parset, prefix,
                                                  std::vector<std::string>())) {
-  Initialize(input_step, parset, prefix, input_type);
+  Initialize(parset, prefix, input_type);
 }
 
-Predict::Predict(InputStep& input_step, const common::ParameterSet& parset,
-                 const string& prefix,
+Predict::Predict(const common::ParameterSet& parset, const string& prefix,
                  const std::vector<std::string>& source_patterns,
                  MsType input_type)
     : ms_type_(input_type),
       predict_step_(
           std::make_shared<OnePredict>(parset, prefix, source_patterns)) {
-  Initialize(input_step, parset, prefix, input_type);
+  Initialize(parset, prefix, input_type);
 }
 
-void Predict::Initialize(InputStep& input_step,
-                         const common::ParameterSet& parset,
+void Predict::Initialize(const common::ParameterSet& parset,
                          const string& prefix, MsType input_type) {
   if (input_type == MsType::kBda) {
     steps_before_predict_.push_back(std::make_shared<BDAExpander>(prefix));
@@ -52,12 +51,11 @@ void Predict::Initialize(InputStep& input_step,
     steps_before_predict_.push_back(std::make_shared<Upsample>(
         prefix + "upsample", time_smearing_factor, true));
     steps_after_predict_.push_back(std::make_shared<Averager>(
-        input_step, prefix + "averager", 1, time_smearing_factor));
+        prefix + "averager", 1, time_smearing_factor));
   }
 
   if (input_type == MsType::kBda) {
-    bda_averager_ =
-        std::make_shared<BDAAverager>(input_step, parset, prefix, false);
+    bda_averager_ = std::make_shared<BDAAverager>(parset, prefix, false);
     steps_after_predict_.push_back(bda_averager_);
   }
 

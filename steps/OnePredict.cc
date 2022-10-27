@@ -35,9 +35,9 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/OS/File.h>
-#include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/tables/Tables/RefRows.h>
 
 #include <stddef.h>

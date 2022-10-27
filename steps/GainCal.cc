@@ -113,7 +113,7 @@ GainCal::GainCal(InputStep& input, const common::ParameterSet& parset,
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   if (!itsUseModelColumn) {
-    auto predict_step = std::make_unique<Predict>(input, parset, prefix);
+    auto predict_step = std::make_unique<Predict>(parset, prefix);
     predict_step->SetThreadData(itsThreadPool, nullptr);
     predict_step->setNextStep(itsResultStep);
     itsFirstSubStep = std::move(predict_step);

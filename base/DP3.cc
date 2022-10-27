@@ -152,9 +152,9 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   if (type == "aoflagger" || type == "aoflag") {
     step = std::make_shared<steps::AOFlaggerStep>(parset, prefix);
   } else if (type == "averager" || type == "average" || type == "squash") {
-    step = std::make_shared<steps::Averager>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::Averager>(parset, prefix);
   } else if (type == "bdaaverage" || type == "bdaaverager") {
-    step = std::make_shared<steps::BDAAverager>(*inputStep, parset, prefix);
+    step = std::make_shared<steps::BDAAverager>(parset, prefix);
   } else if (type == "bdaexpander") {
     step = std::make_shared<steps::BDAExpander>(prefix);
   } else if (type == "madflagger" || type == "madflag") {
@@ -190,8 +190,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "nullstokes") {
     step = std::make_shared<steps::NullStokes>(parset, prefix);
   } else if (type == "predict") {
-    step =
-        std::make_shared<steps::Predict>(*inputStep, parset, prefix, inputType);
+    step = std::make_shared<steps::Predict>(parset, prefix, inputType);
   } else if (type == "grouppredict") {
     step = std::make_shared<steps::BdaGroupPredict>(*inputStep, parset, prefix);
   } else if (type == "idgpredict") {

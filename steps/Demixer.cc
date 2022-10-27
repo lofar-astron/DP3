@@ -231,10 +231,9 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
     itsPhaseShifts.push_back(step1);
     auto step2 =
         (use_resolution
-             ? std::make_shared<Averager>(*input, prefix, itsFreqResolution,
+             ? std::make_shared<Averager>(prefix, itsFreqResolution,
                                           itsTimeResolution)
-             : std::make_shared<Averager>(*input, prefix, itsNChanAvg,
-                                          itsNTimeAvg));
+             : std::make_shared<Averager>(prefix, itsNChanAvg, itsNTimeAvg));
     step1->setNextStep(step2);
     auto step3 = std::make_shared<MultiResultStep>(itsNTimeChunk);
     step2->setNextStep(step3);
@@ -245,10 +244,9 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
   // Now create the step to average the data themselves.
   auto targetAvg =
       (use_resolution
-           ? std::make_shared<Averager>(*input, prefix, itsFreqResolution,
+           ? std::make_shared<Averager>(prefix, itsFreqResolution,
                                         itsTimeResolution)
-           : std::make_shared<Averager>(*input, prefix, itsNChanAvg,
-                                        itsNTimeAvg));
+           : std::make_shared<Averager>(prefix, itsNChanAvg, itsNTimeAvg));
   itsFirstSteps.push_back(targetAvg);
   auto targetAvgRes = std::make_shared<MultiResultStep>(itsNTimeChunk);
   targetAvg->setNextStep(targetAvgRes);
@@ -258,8 +256,8 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
   // The entire average result is needed for the next NDPPP step.
   // Only the selected baselines need to be subtracted, so add a
   // filter step as the last one.
-  itsAvgStepSubtr = std::make_shared<Averager>(*input, prefix, itsNChanAvgSubtr,
-                                               itsNTimeAvgSubtr);
+  itsAvgStepSubtr =
+      std::make_shared<Averager>(prefix, itsNChanAvgSubtr, itsNTimeAvgSubtr);
   itsAvgResultFull = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);
   itsFilterSubtr = std::make_shared<Filter>(input, itsSelBL);
   itsAvgResultSubtr = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);

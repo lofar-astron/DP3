@@ -5,8 +5,8 @@
 /// @brief Step for compressing regular data into BDA data.
 /// @author Maik Nijhuis
 
-#ifndef DPPP_BDAAVERAGER_H
-#define DPPP_BDAAVERAGER_H
+#ifndef DP3_STEPS_BDAAVERAGER_H_
+#define DP3_STEPS_BDAAVERAGER_H_
 
 #include <dp3/steps/Step.h>
 #include "../common/Timer.h"
@@ -28,21 +28,17 @@ class BDABuffer;
 namespace dp3 {
 namespace steps {
 
-class InputStep;
-
 class BDAAverager : public Step {
  public:
   /**
    * Constructor, which uses a parset for configuring the step.
-   * @param input InputStep object, for fetching weights, UVW etc.
    * @param parset A ParameterSet that contains the configuration.
    * @param prefix ParameterSet Prefix for obtaining the configuration.
    * @param use_weights_and_flags A flag (true by default) which allows the
    * BdaAverager to ignore the weights and flags. When false, it assumes
    * unflagged data and a weight of 1.0 for all input data.
    */
-  BDAAverager(InputStep& input, const common::ParameterSet& parset,
-              const std::string& prefix,
+  BDAAverager(const common::ParameterSet& parset, const std::string& prefix,
               const bool use_weights_and_flags = true);
 
   ~BDAAverager() override;
@@ -103,7 +99,6 @@ class BDAAverager : public Step {
 
   void AddBaseline(std::size_t baseline_nr);
 
-  InputStep& input_;
   common::NSTimer timer_;
 
   /// Baseline threshold length for time averaging.

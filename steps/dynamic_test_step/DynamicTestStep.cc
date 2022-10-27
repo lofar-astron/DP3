@@ -19,7 +19,7 @@ namespace dynamic_test_step {
 DynamicTestStep::DynamicTestStep(InputStep* input,
                                  const common::ParameterSet& pset,
                                  const std::string& prefix)
-    : Averager(*input, pset, prefix) {}
+    : Averager(pset, prefix) {}
 
 DynamicTestStep::~DynamicTestStep() {}
 

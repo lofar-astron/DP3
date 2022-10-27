@@ -81,8 +81,7 @@ H5ParmPredict::H5ParmPredict(InputStep* input,
           "e.g. [a, b]");
     directionVec = common::stringtools::tokenize(
         directionStr.substr(1, directionStr.size() - 2), ",");
-    auto predictStep =
-        std::make_shared<Predict>(*input, parset, prefix, directionVec);
+    auto predictStep = std::make_shared<Predict>(parset, prefix, directionVec);
 
     if (operation == "replace" && i > 0) {
       predictStep->SetOperation("add");

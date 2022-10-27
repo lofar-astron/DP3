@@ -47,8 +47,7 @@ class BdaGroupPredict::BaselineGroup {
   void MakeSteps(InputStep& input, base::DPInfo& info_in,
                  const common::ParameterSet& parset, std::string& prefix,
                  std::vector<std::string> source_patterns) {
-    predict_step_ =
-        std::make_shared<Predict>(input, parset, prefix, source_patterns);
+    predict_step_ = std::make_shared<Predict>(parset, prefix, source_patterns);
     result_step_ = std::make_shared<ResultStep>();
 
     predict_step_->setNextStep(result_step_);
