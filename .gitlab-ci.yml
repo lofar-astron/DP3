@@ -201,20 +201,30 @@ linting-2204:
   script:
     - cd build
     - echo configuring with CMake flags $CMAKE_FLAGS and CXX flags $CXX_FLAGS
-    - cmake $CMAKE_FLAGS -DCMAKE_CXX_FLAGS="-coverage $CXX_FLAGS" .
+    - cmake $CMAKE_FLAGS -DCMAKE_CXX_FLAGS="$CXX_FLAGS" .
     - ninja
-    - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) $CTEST_FLAGS |& tee ctest.out
+    - ctest --output-on-failure -j$(nproc) $CTEST_FLAGS |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
+  artifacts:
+    paths:
+      - build/unittest*.xml
+    reports:
+      junit: build/unittest*.xml
+
+# Common parts for unit test jobs that report coverage.
+.unit-test-coverage:
+  after_script:
+    - cd build
     - mkdir coverage-unit
-    # The line below will show the coverage in the logs which are used in the gitlab coverage. Common is included in this coverage report.
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json run-unit.json --xml coverage.xml --html-details coverage-unit/coverage.html
+    # Collect coverage in json, xml and html formats.
+    - gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json run-unit.json --xml coverage.xml --html-details coverage-unit/coverage.html
+    # Read json coverage and output in text format.
     - gcovr --add-tracefile run-unit.json
     - tar cfz coverage-unit.tar.gz coverage-unit/
   artifacts:
     paths:
-      # This will give a warning which is ok
       - build/run-unit.json
       - build/unittest*.xml
       - build/coverage-unit.tar.gz
@@ -225,23 +235,24 @@ linting-2204:
         path: build/coverage.xml
 
 unit-test-2204:
-  extends: .unit-test-2204
+  extends: [".unit-test-2204", ".unit-test-coverage"]
   variables:
     CMAKE_FLAGS: -DPORTABLE=OFF
+    CXX_FLAGS: -coverage
     CTEST_FLAGS: -L unit
 
 unit-test-portable-2204:
-  extends: .unit-test-2204
+  extends: [".unit-test-2204", ".unit-test-coverage"]
   variables:
-    CMAKE_FLAGS:  -DPORTABLE=ON
+    CMAKE_FLAGS: -DPORTABLE=ON
+    CXX_FLAGS: -coverage
     CTEST_FLAGS: -L unit
 
 unit-test-portable-no-avx2-2204:
-  extends: .unit-test-2204
+  extends: [".unit-test-2204", ".unit-test-coverage"]
   variables:
-    # TODO Renable coverage
     CMAKE_FLAGS: -DPORTABLE=ON
-    CXX_FLAGS: -mno-avx2
+    CXX_FLAGS: -mno-avx2 -coverage
     CTEST_FLAGS: -L unit
 
 unit-test-asan-2204:
