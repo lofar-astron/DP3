@@ -44,7 +44,7 @@ DemixerNew::DemixerNew(InputStep* input, const common::ParameterSet& parset,
       itsDemixInfo(parset, prefix),
       itsInstrumentName(
           parset.getString(prefix + "instrumentmodel", "instrument")),
-      itsFilter(input, itsDemixInfo.selBL()),
+      itsFilter(itsDemixInfo.selBL()),
       itsNTime(0),
       itsNTimeOut(0),
       itsNChunk(0) {

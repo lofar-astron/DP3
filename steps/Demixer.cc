@@ -74,7 +74,7 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
       itsDefaultGain(parset.getDouble(prefix + "defaultgain", 1.0)),
       itsMaxIter(parset.getInt(prefix + "maxiter", 50)),
       itsSelBL(parset, prefix, false, "cross"),
-      itsFilter(input, itsSelBL),
+      itsFilter(itsSelBL),
       itsAvgResultSubtr(0),
       itsIgnoreTarget(parset.getBool(prefix + "ignoretarget", false)),
       itsTargetSource(parset.getString(prefix + "targetsource", string())),
@@ -259,7 +259,7 @@ Demixer::Demixer(InputStep* input, const common::ParameterSet& parset,
   itsAvgStepSubtr =
       std::make_shared<Averager>(prefix, itsNChanAvgSubtr, itsNTimeAvgSubtr);
   itsAvgResultFull = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);
-  itsFilterSubtr = std::make_shared<Filter>(input, itsSelBL);
+  itsFilterSubtr = std::make_shared<Filter>(itsSelBL);
   itsAvgResultSubtr = std::make_shared<MultiResultStep>(itsNTimeChunkSubtr);
   itsAvgStepSubtr->setNextStep(itsAvgResultFull);
   itsAvgResultFull->setNextStep(itsFilterSubtr);

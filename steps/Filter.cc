@@ -6,11 +6,7 @@
 
 #include "Filter.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
-
-#include "../common/ParameterSet.h"
+#include <cassert>
 
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -18,7 +14,12 @@
 #include <casacore/tables/TaQL/RecordGram.h>
 #include <casacore/casa/Containers/Record.h>
 
-#include <cassert>
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
+
+#include "../base/DPLogger.h"
+#include "../base/FlagCounter.h"
+#include "../common/ParameterSet.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -32,19 +33,16 @@ using casacore::TableExprNode;
 namespace dp3 {
 namespace steps {
 
-Filter::Filter(InputStep* input, const common::ParameterSet& parset,
-               const string& prefix)
-    : itsInput(input),
-      itsName(prefix),
+Filter::Filter(const common::ParameterSet& parset, const string& prefix)
+    : itsName(prefix),
       itsStartChanStr(parset.getString(prefix + "startchan", "0")),
       itsNrChanStr(parset.getString(prefix + "nchan", "0")),
       itsRemoveAnt(parset.getBool(prefix + "remove", false)),
       itsBaselines(parset, prefix),
       itsDoSelect(false) {}
 
-Filter::Filter(InputStep* input, const base::BaselineSelection& baselines)
-    : itsInput(input),
-      itsStartChanStr("0"),
+Filter::Filter(const base::BaselineSelection& baselines)
+    : itsStartChanStr("0"),
       itsNrChanStr("0"),
       itsRemoveAnt(false),
       itsBaselines(baselines),
@@ -161,12 +159,9 @@ bool Filter::process(const DPBuffer& buf) {
   itsBufTmp.referenceFilled(buf);
   const casacore::Array<casacore::Complex>& data = buf.getData();
   const casacore::Array<bool>& flags = buf.getFlags();
-  const casacore::Array<float>& weights =
-      itsInput->fetchWeights(buf, itsBufTmp, itsTimer);
-  const casacore::Array<double>& uvws =
-      itsInput->fetchUVW(buf, itsBufTmp, itsTimer);
-  const casacore::Array<bool>& frFlags =
-      itsInput->fetchFullResFlags(buf, itsBufTmp, itsTimer);
+  const casacore::Array<float>& weights = buf.getWeights();
+  const casacore::Array<double>& uvws = buf.getUVW();
+  const casacore::Array<bool>& frFlags = buf.getFullResFlags();
   // Size fullResFlags if not done yet.
   int frfAvg = frFlags.shape()[0] / data.shape()[1];
   if (itsBuf.getFullResFlags().empty()) {
