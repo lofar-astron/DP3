@@ -78,8 +78,8 @@ void BdaDdeCal::InitializePredictSteps(InputStep* input,
     patches_.push_back(std::move(source_patterns));
 
     if (bda_group_predict) {
-      steps_.push_back(std::make_shared<BdaGroupPredict>(*input, parset, prefix,
-                                                         patches_.back()));
+      steps_.push_back(
+          std::make_shared<BdaGroupPredict>(parset, prefix, patches_.back()));
     } else {
       steps_.push_back(std::make_shared<Predict>(
           parset, prefix, patches_.back(), Step::MsType::kBda));

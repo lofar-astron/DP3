@@ -44,8 +44,8 @@ class BdaGroupPredict::BaselineGroup {
 
   /// Create the predict and result step for this group
   /// to be called afer all baselines have been added
-  void MakeSteps(InputStep& input, base::DPInfo& info_in,
-                 const common::ParameterSet& parset, std::string& prefix,
+  void MakeSteps(base::DPInfo& info_in, const common::ParameterSet& parset,
+                 std::string& prefix,
                  std::vector<std::string> source_patterns) {
     predict_step_ = std::make_shared<Predict>(parset, prefix, source_patterns);
     result_step_ = std::make_shared<ResultStep>();
@@ -160,18 +160,14 @@ class BdaGroupPredict::BaselineGroup {
   std::size_t nr_baselines_requested_;
 };
 
-BdaGroupPredict::BdaGroupPredict(InputStep& input,
-                                 const common::ParameterSet& parset,
+BdaGroupPredict::BdaGroupPredict(const common::ParameterSet& parset,
                                  const std::string& prefix)
-    : input_(input), parset_(parset), name_(prefix) {}
+    : parset_(parset), name_(prefix) {}
 
 BdaGroupPredict::BdaGroupPredict(
-    InputStep& input, const common::ParameterSet& parset,
-    const std::string& prefix, const std::vector<std::string>& source_patterns)
-    : input_(input),
-      parset_(parset),
-      name_(prefix),
-      source_patterns_(source_patterns) {}
+    const common::ParameterSet& parset, const std::string& prefix,
+    const std::vector<std::string>& source_patterns)
+    : parset_(parset), name_(prefix), source_patterns_(source_patterns) {}
 
 BdaGroupPredict::~BdaGroupPredict() {}
 
@@ -205,7 +201,7 @@ void BdaGroupPredict::updateInfo(const DPInfo& infoIn) {
 
   for (auto& entry : averaging_to_baseline_group_map_) {
     BaselineGroup& blg = entry.second;
-    blg.MakeSteps(input_, info(), parset_, name_, source_patterns_);
+    blg.MakeSteps(info(), parset_, name_, source_patterns_);
   }
 }
 
