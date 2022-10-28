@@ -1,20 +1,20 @@
 // NodeDesc.h: Description of a node in a cluster
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief Description of a node in a cluster.
 /// @author Ger van Diepen (diepen AT astron nl)
 
-#ifndef LOFAR_LMWCOMMON_NODEDESC_H
-#define LOFAR_LMWCOMMON_NODEDESC_H
+#ifndef DP3_COMMON_NODEDESC_H_
+#define DP3_COMMON_NODEDESC_H_
 
-#include "ParameterHandler.h"
-
+#include <iosfwd>
 #include <string>
 #include <vector>
-#include <iosfwd>
+
+#include "ParameterSet.h"
 
 namespace dp3 {
 namespace common {

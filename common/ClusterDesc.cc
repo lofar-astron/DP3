@@ -1,6 +1,6 @@
 // ClusterDesc.cc: Description of a cluster
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen <diepen AT astron nl>
@@ -8,6 +8,8 @@
 #include "ClusterDesc.h"
 
 #include <casacore/casa/OS/Path.h>
+
+#include "ParameterSet.h"
 
 using namespace std;
 using namespace casacore;

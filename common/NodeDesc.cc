@@ -7,12 +7,12 @@
 
 #include "NodeDesc.h"
 
-#include "StreamUtil.h"
-#include "StringTools.h"
-
 #include <ostream>
 
 #include <boost/algorithm/string/case_conv.hpp>
+
+#include "StreamUtil.h"
+#include "StringTools.h"
 
 using namespace std;
 

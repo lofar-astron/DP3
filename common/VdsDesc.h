@@ -11,7 +11,6 @@
 #define LOFAR_LMWCOMMON_VDSDESC_H
 
 #include "VdsPartDesc.h"
-#include "ParameterHandler.h"
 
 #include <casacore/casa/Utilities/Regex.h>
 
