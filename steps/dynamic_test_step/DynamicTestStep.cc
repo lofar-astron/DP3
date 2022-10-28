@@ -1,11 +1,11 @@
-// TestDyn.cc: Test of a dynamically loaded DPPP step
+// TestDyn.cc: Test of a dynamically loaded DP3 step
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
 // @file
-// @brief Test of a dynamically loaded DPPP step
+// @brief Test of a dynamically loaded DP3 step
 
 #include "DynamicTestStep.h"
 
@@ -16,17 +16,13 @@ namespace dp3 {
 namespace steps {
 namespace dynamic_test_step {
 
-DynamicTestStep::DynamicTestStep(InputStep* input,
-                                 const common::ParameterSet& pset,
+DynamicTestStep::DynamicTestStep(const common::ParameterSet& parset,
                                  const std::string& prefix)
-    : Averager(pset, prefix) {}
+    : Averager(parset, prefix) {}
 
-DynamicTestStep::~DynamicTestStep() {}
-
-Step::ShPtr DynamicTestStep::makeStep(InputStep* input,
-                                      const common::ParameterSet& pset,
-                                      const std::string& prefix) {
-  return std::make_shared<DynamicTestStep>(input, pset, prefix);
+std::shared_ptr<Step> DynamicTestStep::MakeStep(
+    const common::ParameterSet& parset, const std::string& prefix) {
+  return std::make_shared<DynamicTestStep>(parset, prefix);
 }
 
 }  // namespace dynamic_test_step
@@ -35,7 +31,7 @@ Step::ShPtr DynamicTestStep::makeStep(InputStep* input,
 
 // Define the function to make the TestDynStep 'constructor' known.
 // Its suffix must be the (lowercase) name of the package (library).
-void register_testdyndppp() {
-  dp3::base::DP3::registerStepCtor(
-      "TestDynDPPP", dp3::steps::dynamic_test_step::DynamicTestStep::makeStep);
+void register_testdyndp3() {
+  dp3::base::DP3::RegisterStepCreator(
+      "TestDynDP3", dp3::steps::dynamic_test_step::DynamicTestStep::MakeStep);
 }

@@ -75,7 +75,7 @@ namespace dp3 {
 namespace base {
 
 // Initialize the statics.
-std::map<std::string, DP3::StepCtor*> DP3::theirStepMap;
+std::map<std::string, DP3::StepCreator*> DP3::theirStepMap;
 
 /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
 /// If no data are modified (for example if only count was done),
@@ -220,7 +220,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     step = std::make_shared<steps::NullStep>();
   } else {
     // Maybe the step is defined in a dynamic library.
-    step = DP3::findStepCtor(type)(inputStep, parset, prefix);
+    step = DP3::FindStepCreator(type)(parset, prefix);
   }
   if (!step) {
     throw std::runtime_error("Could not create step of type '" + type + "'");
@@ -228,12 +228,12 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   return step;
 }
 
-void DP3::registerStepCtor(const std::string& type, StepCtor* func) {
+void DP3::RegisterStepCreator(const std::string& type, StepCreator* func) {
   theirStepMap[type] = func;
 }
 
-DP3::StepCtor* DP3::findStepCtor(const std::string& type) {
-  std::map<std::string, StepCtor*>::const_iterator iter =
+DP3::StepCreator* DP3::FindStepCreator(const std::string& type) {
+  std::map<std::string, StepCreator*>::const_iterator iter =
       theirStepMap.find(type);
   if (iter != theirStepMap.end()) {
     return iter->second;
@@ -250,8 +250,7 @@ DP3::StepCtor* DP3::findStepCtor(const std::string& type) {
   }
 
   // Try to load and initialize the dynamic library.
-  casacore::DynLib dl(libname, string("libdppp_"), "register_" + libname,
-                      false);
+  casacore::DynLib dl(libname, "libDP3_", "register_" + libname, false);
   if (dl.getHandle()) {
     // See if registered now.
     iter = theirStepMap.find(type);
@@ -262,7 +261,7 @@ DP3::StepCtor* DP3::findStepCtor(const std::string& type) {
 
   throw std::runtime_error(
       "Step type " + type + " is unknown and no shared library lib" + libname +
-      " or libdppp_" + libname + " found in (DY)LD_LIBRARY_PATH");
+      " or libDP3_" + libname + " found in (DY)LD_LIBRARY_PATH");
 }
 
 dp3::common::Fields DP3::GetChainRequiredFields(
@@ -298,7 +297,7 @@ dp3::common::Fields DP3::SetChainProvidedFields(
   return provided_fields;
 }
 
-void DP3::execute(const string& parsetName, int argc, char* argv[]) {
+void DP3::Execute(const string& parsetName, int argc, char* argv[]) {
   casacore::Timer timer;
   common::NSTimer nstimer;
   nstimer.start();
@@ -326,7 +325,7 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   unsigned int numThreads = parset.getInt("numthreads", 0);
 
   // Create the steps, link them together
-  std::shared_ptr<InputStep> firstStep = makeMainSteps(parset);
+  std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
 
   Step::ShPtr step = firstStep;
   Step::ShPtr lastStep;
@@ -431,12 +430,12 @@ void DP3::execute(const string& parsetName, int argc, char* argv[]) {
   // The destructors are called automatically at this point.
 }
 
-std::shared_ptr<InputStep> DP3::makeMainSteps(
+std::shared_ptr<InputStep> DP3::MakeMainSteps(
     const common::ParameterSet& parset) {
   std::shared_ptr<InputStep> input_step = InputStep::CreateReader(parset);
   std::shared_ptr<Step> last_step = input_step;
 
-  std::shared_ptr<Step> step = makeStepsFromParset(
+  std::shared_ptr<Step> step = MakeStepsFromParset(
       parset, "", "steps", *input_step, false, input_step->outputs());
   if (step) {
     input_step->setNextStep(step);
@@ -475,7 +474,7 @@ std::shared_ptr<InputStep> DP3::makeMainSteps(
   return input_step;
 }
 
-Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
+Step::ShPtr DP3::MakeStepsFromParset(const common::ParameterSet& parset,
                                      const std::string& prefix,
                                      const std::string& step_names_key,
                                      InputStep& inputStep, bool terminateChain,

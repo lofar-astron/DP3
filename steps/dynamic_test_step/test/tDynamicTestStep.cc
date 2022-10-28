@@ -8,26 +8,26 @@
 // Only the way the average steps are created is different.
 // Average is used underneath TestDynStep.
 
-#include "tStepCommon.h"
-#include "mock/ThrowStep.h"
-#include <dp3/base/DPBuffer.h>
-#include "../../base/DPInfo.h"
-#include "../../base/InputStep.h"
-#include "../../base/DPRun.h"
-
-#include "../../common/ParameterSet.h"
-#include "../../common/StringTools.h"
+#include <boost/test/unit_test.hpp>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/BasicMath/Math.h>
 
-#include <boost/test/unit_test.hpp>
+#include <dp3/base/DP3.h>
+#include <dp3/common/Types.h>
+#include "../../../common/ParameterSet.h"
+#include "../../../common/StringTools.h"
 
-using namespace LOFAR;
+#include "../../test/unit/tStepCommon.h"
+#include "../../test/unit/mock/ThrowStep.h"
+
 using namespace dp3::base;
 using namespace casacore;
+using dp3::steps::Step;
 
-BOOST_AUTO_TEST_SUITE(dyn_step)
+// TODO(AST-1045): Either remove or test support for Steps in dynamic libraries.
+BOOST_AUTO_TEST_SUITE(dyn_step, *boost::unit_test::disabled())
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -148,7 +148,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-5));
     BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
     BOOST_CHECK(near(buf.getTime(), 2 + 5 * (itsCount * itsNAvgTime +
-                                             (itsNAvgTime - 1) / 2.)));
+                                             (itsNAvgTime - 1) / 2.0)));
     BOOST_CHECK(allNear(buf.getWeights(), resultw, 1e-5));
     if (navgtime == itsNAvgTime) {
       Matrix<double> uvw(3, itsNBl);
@@ -214,7 +214,7 @@ class TestInput3 : public dp3::steps::MockInput {
     buf.setData(data);
     buf.setWeights(weights);
     buf.setFlags(flags);
-    Vector<rownr_t> rownrs(1, itsCount);
+    Vector<dp3::common::rownr_t> rownrs(1, itsCount);
     buf.setRowNrs(rownrs);
     getNextStep()->process(buf);
     ++itsCount;
@@ -237,8 +237,8 @@ class TestInput3 : public dp3::steps::MockInput {
                 std::string());
     // Define the frequencies.
     std::vector<double> chanFreqs;
-    std::vector<double> chanWidth(itsNChan, 100000.);
-    for (int i = 0; i < itsNChan; i++) {
+    std::vector<double> chanWidth(itsNrChan, 100000.);
+    for (int i = 0; i < itsNrChan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
     info().set(std::move(chanFreqs), std::move(chanWidth));
@@ -438,15 +438,14 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
        << " ncorr=" << ncorr << " navgtime=" << navgtime
        << " navgchan=" << navgchan << endl;
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   dp3::common::ParameterSet parset;
   parset.add("freqstep", std::to_string(navgchan));
   parset.add("timestep", std::to_string(navgtime));
-  Step::ShPtr step2 = DPRun::findStepCtor("TestDynDPPP")(in, parset, "");
-  Step::ShPtr step3(
-      new TestOutput(ntime, nbl, nchan, ncorr, navgtime, navgchan, flag));
-  dp3::steps::test::Execute({step1, step2, step3});
+  std::shared_ptr<Step> step = DP3::FindStepCreator("TestDynDP3")(parset, "");
+  auto out = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, navgtime,
+                                          navgchan, flag);
+  dp3::steps::test::Execute({in, step, out});
 }
 
 // Like test1, but the averaging is done in two steps.
@@ -455,49 +454,43 @@ void test2(int ntime, int nbl, int nchan, int ncorr, bool flag) {
        << " ncorr=" << ncorr << " navgtime=2"
        << " navgchan=4" << endl;
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   dp3::common::ParameterSet parset1, parset2;
   parset1.add("freqstep", "4");
   parset2.add("timestep", "2");
-  Step::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
-  Step::ShPtr step2b = DPRun::findStepCtor("TestDynDPPP")(in, parset2, "");
-  Step::ShPtr step3(new TestOutput(ntime, nbl, nchan, ncorr, 2, 4, flag));
-  dp3::steps::test::Execute({step1, step2a, step2b, step3});
+  std::shared_ptr<Step> step1 = DP3::FindStepCreator("TestDynDP3")(parset1, "");
+  std::shared_ptr<Step> step2 = DP3::FindStepCreator("TestDynDP3")(parset2, "");
+  auto out = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, 2, 4, flag);
+  dp3::steps::test::Execute({in, step1, step2, out});
 }
 
 // Do tests with weighting and some flagged points.
 void test3(int nrbl, int nrcorr) {
   {
-    cout << "test3: ntime=2 nrbl=" << nrbl << " nchan=2 ncorr=" << nrcorr
-         << endl;
-    cout << "  navgtime=2 navgchan=2" << endl;
     // Create the steps.
-    TestInput3* in = new TestInput3(2, nrbl, 2, nrcorr);
-    Step::ShPtr step1(in);
+    auto in = std::make_shared<TestInput3>(2, nrbl, 2, nrcorr);
     dp3::common::ParameterSet parset1;
     parset1.add("freqstep", "2");
     parset1.add("timestep", "2");
-    Step::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
-    Step::ShPtr step3(new TestOutput3(2, nrbl, 2, nrcorr));
-    dp3::steps::test::Execute({step1, step2a, step3});
+    std::shared_ptr<Step> step =
+        DP3::FindStepCreator("TestDynDP3")(parset1, "");
+    auto out = std::make_shared<TestOutput3>(2, nrbl, 2, nrcorr);
+    dp3::steps::test::Execute({in, step, out});
   }
   {
-    cout << "test3: ntime=4 nrbl=" << nrbl << " nchan=8 ncorr=" << nrcorr
-         << endl;
-    cout << "  [navgtime=2 navgchan=4], [navgtime=2 navgchan=2]" << endl;
     // Create the steps.
-    TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
-    Step::ShPtr step1(in);
+    auto in = std::make_shared<TestInput3>(4, nrbl, 8, nrcorr);
     dp3::common::ParameterSet parset1, parset2;
     parset1.add("freqstep", "4");
     parset1.add("timestep", "2");
     parset2.add("freqstep", "2");
     parset2.add("timestep", "2");
-    Step::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
-    Step::ShPtr step2b = DPRun::findStepCtor("TestDynDPPP")(in, parset2, "");
-    Step::ShPtr step3(new TestOutput3(4, nrbl, 8, nrcorr));
-    dp3::steps::test::Execute({step1, step2a step2b, step3});
+    std::shared_ptr<Step> step1 =
+        DP3::FindStepCreator("TestDynDP3")(parset1, "");
+    std::shared_ptr<Step> step2 =
+        DP3::FindStepCreator("TestDynDP3")(parset2, "");
+    auto out = std::make_shared<TestOutput3>(4, nrbl, 8, nrcorr);
+    dp3::steps::test::Execute({in, step1, step2, out});
   }
 }
 
@@ -505,23 +498,20 @@ void test3(int nrbl, int nrcorr) {
 // promoted to the FULLRES flags.
 void test4(int nrbl, int nrcorr, int flagstep) {
   {
-    cout << "test4: ntime=4 nrbl=" << nrbl << " nchan=8 ncorr=" << nrcorr
-         << endl;
-    cout << "  [navgtime=2 navgchan=2], [flagstep=" << flagstep
-         << "] [navgtime=2 navgchan=4]" << endl;
     // Create the steps.
-    TestInput3* in = new TestInput3(4, nrbl, 8, nrcorr);
-    Step::ShPtr step1(in);
+    auto in = std::make_shared<TestInput3>(4, nrbl, 8, nrcorr);
     dp3::common::ParameterSet parset1, parset2;
     parset1.add("freqstep", "2");
     parset1.add("timestep", "2");
     parset2.add("freqstep", "4");
     parset2.add("timestep", "2");
-    Step::ShPtr step2a = DPRun::findStepCtor("TestDynDPPP")(in, parset1, "");
-    Step::ShPtr step2b(new TestFlagger(flagstep));
-    Step::ShPtr step2c = DPRun::findStepCtor("TestDynDPPP")(in, parset2, "");
-    Step::ShPtr step3(new TestOutput4(4, nrbl, 8, nrcorr, flagstep));
-    dp3::steps::test::Execute({step1, step2a, step2b, step2c});
+    std::shared_ptr<Step> step1 =
+        DP3::FindStepCreator("TestDynDP3")(parset1, "");
+    auto flagger = std::make_shared<TestFlagger>(flagstep);
+    std::shared_ptr<Step> step2 =
+        DP3::FindStepCreator("TestDynDP3")(parset2, "");
+    auto out = std::make_shared<TestOutput4>(4, nrbl, 8, nrcorr, flagstep);
+    dp3::steps::test::Execute({in, step1, flagger, step2, out});
   }
 }
 

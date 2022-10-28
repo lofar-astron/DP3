@@ -63,7 +63,7 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
       parsetCopy.replace(replace_parameters_[j], replace_values[j][i]);
     }
     std::shared_ptr<Step> first_step =
-        base::DP3::makeStepsFromParset(parsetCopy, prefix, "steps", *input,
+        base::DP3::MakeStepsFromParset(parsetCopy, prefix, "steps", *input,
                                        true, steps::Step::MsType::kRegular);
     if (first_step) {
       first_step->setPrevStep(this);

@@ -258,7 +258,7 @@ void CreateCopyMs() {
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_copy, FixtureDirectory) {
@@ -278,7 +278,7 @@ BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
     ostr << "msout=" << kCopyColumnMS << '\n';
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // First copy standard data and weight columns
   {
@@ -290,7 +290,7 @@ BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
     ostr << "msout.weightcolumn=COPY_WEIGHT\n";
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Copy custom data and weight columns.
   {
@@ -304,7 +304,7 @@ BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
     ostr << "msout.weightcolumn=COPY2_WEIGHT\n";
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   Table table_copy(kCopyColumnMS);
   BOOST_CHECK_GT(table_copy.nrow(), 0u);
@@ -336,7 +336,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_basic, FixtureDirectory) {
     ostr << "msout=" << kMultiMS << '\n';
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
   CheckCopy(kMultiMS, {false, false});
 }
 
@@ -357,7 +357,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_data, FixtureDirectory) {
     ostr << "msout=" << kMissingDataMS << '\n';
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
   const Table tab(kMissingDataMS);
   BOOST_CHECK_EQUAL(tab.nrow(), kNCopyMsTimeSlots * kNBaselinesRemaining);
   BOOST_CHECK(allEQ(ArrayColumn<Complex>(tab, "DATA").getColumn(), Complex()));
@@ -380,7 +380,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_ms, FixtureDirectory) {
     ostr << "msout=" << kMultiMS << '\n';
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
   CheckCopy(kMultiMS, {true, false, true, true});
 }
 
@@ -475,7 +475,7 @@ BOOST_FIXTURE_TEST_CASE(test_avg_single, FixtureDirectory) {
     ostr << "avg.timestep=20\n";
     ostr << "avg.freqstep=100\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
   CheckAvg("tNDPPP_tmp.avg.MS");
 }
 
@@ -501,7 +501,7 @@ BOOST_FIXTURE_TEST_CASE(test_avg_multiple, FixtureDirectory) {
     ostr << "avg4.timestep=2\n";
     ostr << "avg4.freqstep=4\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
   CheckAvg("tNDPPP_tmp.avg.MS");
 }
 
@@ -548,10 +548,10 @@ BOOST_FIXTURE_TEST_CASE(test_avg_multiple_outputs, FixtureDirectory) {
     ostr4 << "avg4.timestep=2\n";
     ostr4 << "avg4.freqstep=4\n";
   }
-  DP3::execute("tNDPPP_tmp.parset1");
-  DP3::execute("tNDPPP_tmp.parset2");
-  DP3::execute("tNDPPP_tmp.parset3");
-  DP3::execute("tNDPPP_tmp.parset4");
+  DP3::Execute("tNDPPP_tmp.parset1");
+  DP3::Execute("tNDPPP_tmp.parset2");
+  DP3::Execute("tNDPPP_tmp.parset3");
+  DP3::Execute("tNDPPP_tmp.parset4");
   CheckAvg("tNDPPP_tmp.avg4.MS");
 }
 
@@ -571,7 +571,7 @@ BOOST_FIXTURE_TEST_CASE(test_avg_start_time, FixtureDirectory) {
     ostr << "avg.timestep=2\n";
     ostr << "avg.freqstep=100\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Only check the times in the averaged MS.
   Table table_input(kInputMs);
@@ -620,7 +620,7 @@ BOOST_FIXTURE_TEST_CASE(test_update_basic, FixtureCopyInput) {
     ostr << "msout=''\n";
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Check that the flags did not change.
   const Table table_input(kInputMs);
@@ -640,7 +640,7 @@ BOOST_FIXTURE_TEST_CASE(test_update_flags, FixtureCopyInput) {
     ostr << "steps=[preflag]\n";
     ostr << "preflag.blmin=1e6\n";  // should flag all data
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Check that all flags are true.
   const Table table_copy(kCopyMs);
@@ -660,7 +660,7 @@ BOOST_FIXTURE_TEST_CASE(test_update_scale, FixtureCopyInput) {
     ostr << "scaledata.stations=*\n";
     ostr << "scaledata.scalesize=false\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Check that all data is doubled and that the flags remain equal.
   const Table table_input(kInputMs);
@@ -778,7 +778,7 @@ void CreateFlaggedMs() {
     ostr << "preflag.flag2.chan=[0,2,6..8]\n";
     ostr << "average.timestep=6\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 }
 
 }  // namespace
@@ -817,8 +817,8 @@ BOOST_FIXTURE_TEST_CASE(test_flags_shifted, FixtureDirectory) {
     ostr2 << "average.timestep=3\n";
     ostr2 << "average.freqstep=2\n";
   }
-  DP3::execute("tNDPPP_tmp.parset1");
-  DP3::execute("tNDPPP_tmp.parset2");
+  DP3::Execute("tNDPPP_tmp.parset1");
+  DP3::Execute("tNDPPP_tmp.parset2");
   CheckFullResFlags(kFlaggedMs);
 }
 
@@ -852,8 +852,8 @@ BOOST_FIXTURE_TEST_CASE(test_flags_averaged_channel, FixtureDirectory) {
     ostr2 << "average.timestep=3\n";
     ostr2 << "average.freqstep=2\n";
   }
-  DP3::execute("tNDPPP_tmp.parset1");
-  DP3::execute("tNDPPP_tmp.parset2");
+  DP3::Execute("tNDPPP_tmp.parset1");
+  DP3::Execute("tNDPPP_tmp.parset2");
   CheckFullResFlags(kFlaggedMs);
 }
 
@@ -878,7 +878,7 @@ BOOST_FIXTURE_TEST_CASE(test_flags_set_clear, FixtureDirectory) {
     ostr << "steps=[preflag]\n";
     ostr << "preflag.baseline=[[*]]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
   CheckFullResFlags(kAllFlaggedMs);  // Full res flags shouldn't change.
   BOOST_CHECK(
       allEQ(ArrayColumn<bool>(Table(kAllFlaggedMs), "FLAG").getColumn(), true));
@@ -894,7 +894,7 @@ BOOST_FIXTURE_TEST_CASE(test_flags_set_clear, FixtureDirectory) {
     ostr << "preflag.mode=clear\n";
     ostr << "preflag.baseline=[[*]]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
   CheckFullResFlags(kAllClearMs);  // Full res flags shouldn't change.
   BOOST_CHECK(
       allEQ(ArrayColumn<bool>(Table(kAllClearMs), "FLAG").getColumn(), false));
@@ -912,7 +912,7 @@ BOOST_FIXTURE_TEST_CASE(test_station_add, FixtureDirectory) {
     ostr << "steps=[stationadd]\n";
     ostr << "stationadd.stations={RTnew:[RT0..2]}\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   Table antenna_in(kInputMs + "/ANTENNA");
   Table antenna_out(kOutputMs + "/ANTENNA");
@@ -953,7 +953,7 @@ BOOST_FIXTURE_TEST_CASE(test_filter_baseline, FixtureDirectory) {
     ostr << "filter.baseline=!RT[16]&&*\n";
     ostr << "filter.remove=true\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Note: the ANTENNA table also contained RT8, RT9, etc., but they do not
   // have baselines. So these were removed as well meaning only 0,2,7 are left.
@@ -1033,7 +1033,7 @@ BOOST_FIXTURE_TEST_CASE(test_filter_keep_baselines, FixtureDirectory) {
         ostr << "filter.remove=true\n";
       }
     }
-    DP3::execute(kParsetFile);
+    DP3::Execute(kParsetFile);
 
     // Note: the ANTENNA table also contained RT8, RT9, etc., but they do not
     // have baselines. So these were removed meaning only 0,1,2,6,7 are left.
@@ -1102,7 +1102,7 @@ BOOST_FIXTURE_TEST_CASE(test_filter_different_data_column, FixtureCopyInput) {
     ostr << "filter.baseline=!RT[16]&&*\n";
     ostr << "filter.remove=False\n";
   }
-  BOOST_CHECK_NO_THROW(DP3::execute(kParsetFile));
+  BOOST_CHECK_NO_THROW(DP3::Execute(kParsetFile));
 }
 
 BOOST_FIXTURE_TEST_CASE(test_multi_out, FixtureDirectory) {
@@ -1115,7 +1115,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_out, FixtureDirectory) {
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[]\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Test if update data works fine with multiple outputs:
   // Read from tNDPPP_tmp.MS, write to MS_out, update to MS_out.
@@ -1134,7 +1134,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_out, FixtureDirectory) {
     ostr << "out2.name=.\n";  // Defaults to the previous out, so .MS_out.
     ostr << "out2.datacolumn=DATA_2\n";
   }
-  DP3::execute(kParsetFile);
+  DP3::Execute(kParsetFile);
 
   // Check that the tables exist and that they contain the specified columns.
   Table table_ref("tNDPPP_tmp.MS_ref");
@@ -1166,7 +1166,7 @@ BOOST_FIXTURE_TEST_CASE(test_error_out_avg, FixtureDirectory) {
     ostr << "out2.name=.\n";  // update not possible when avg
     ostr << "msout=''\n";
   }
-  BOOST_CHECK_THROW(DP3::execute(kParsetFile), std::runtime_error);
+  BOOST_CHECK_THROW(DP3::Execute(kParsetFile), std::runtime_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(test_error_out_filter, FixtureDirectory) {
@@ -1183,7 +1183,7 @@ BOOST_FIXTURE_TEST_CASE(test_error_out_filter, FixtureDirectory) {
     ostr << "out2.name=./tNDPPP_tmp.MSx\n";  // update not possible (filter)
     ostr << "msout=''\n";
   }
-  BOOST_CHECK_THROW(DP3::execute(kParsetFile), std::runtime_error);
+  BOOST_CHECK_THROW(DP3::Execute(kParsetFile), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(test_required_fields) {

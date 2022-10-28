@@ -6,8 +6,8 @@
 /// @brief Test of a dynamically loaded DPPP step
 /// @author Ger van Diepen
 
-#ifndef TESTDYNDPPP_TESTDYNSTEP_H
-#define TESTDYNDPPP_TESTDYNSTEP_H
+#ifndef DP3_STEPS_DYNAMICTESTSTEP_H_
+#define DP3_STEPS_DYNAMICTESTSTEP_H_
 
 #include <dp3/steps/Step.h>
 #include "../../steps/Averager.h"
@@ -25,10 +25,9 @@ namespace dynamic_test_step {
 
 class DynamicTestStep : public Averager {
  public:
-  DynamicTestStep(InputStep*, const common::ParameterSet&, const std::string&);
-  virtual ~DynamicTestStep();
-  static Step::ShPtr makeStep(InputStep*, const common::ParameterSet&,
-                              const std::string&);
+  DynamicTestStep(const common::ParameterSet&, const std::string&);
+  static std::shared_ptr<Step> MakeStep(const common::ParameterSet&,
+                                        const std::string&);
 };
 
 }  // namespace dynamic_test_step
@@ -37,7 +36,7 @@ class DynamicTestStep : public Averager {
 
 // Define the function (without name mangling) to register the 'constructor'.
 extern "C" {
-void register_testdyndppp();
+void register_testdyndp3();
 }
 
 #endif
