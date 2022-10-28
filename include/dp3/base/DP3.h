@@ -26,37 +26,36 @@ namespace base {
 class DP3 {
  public:
   /// Define the function to create a step from the given parameterset.
-  typedef steps::Step::ShPtr StepCtor(steps::InputStep*,
-                                      const common::ParameterSet&,
-                                      const std::string& prefix);
+  using StepCreator = std::shared_ptr<steps::Step>(const common::ParameterSet&,
+                                                   const std::string& prefix);
 
   /// Add a function creating a Step to the map.
-  static void registerStepCtor(const std::string&, StepCtor*);
+  static void RegisterStepCreator(const std::string&, StepCreator*);
 
   /// Create a step object from the given parameters.
   /// It looks up the step type in theirStepMap. If not found, it will
   /// try to load a shared library with that name and execute the
   /// register function in it.
-  static StepCtor* findStepCtor(const std::string& type);
+  static StepCreator* FindStepCreator(const std::string& type);
 
   /// Execute the steps defined in the parset file.
   /// Possible parameters given at the command line are taken into account.
-  static void execute(const std::string& parsetName, int argc = 0,
+  static void Execute(const std::string& parsetName, int argc = 0,
                       char* argv[] = 0);
 
   /// Create a chain of step objects that are connected together.
   /// A writer will be added to the steps if it is not defined,
   /// and a terminating NullStep is added.
-  static std::shared_ptr<steps::InputStep> makeMainSteps(
+  static std::shared_ptr<steps::InputStep> MakeMainSteps(
       const common::ParameterSet& parset);
 
   /// Create a chain of step objects that are connected together.
-  /// Unlike makeMainSteps(), this does neither add a writer nor
+  /// Unlike MakeMainSteps(), this does neither add a writer nor
   /// terminate the chain with a NullStep.
   /// @param step_names_key Parset key for getting the step names.
   /// @return The first step of the step chain or a null pointer if the chain is
   /// empty.
-  static std::shared_ptr<steps::Step> makeStepsFromParset(
+  static std::shared_ptr<steps::Step> MakeStepsFromParset(
       const common::ParameterSet& parset, const std::string& prefix,
       const std::string& step_names_key, steps::InputStep& inputStep,
       bool terminateChain, steps::Step::MsType initial_step_output);
@@ -80,7 +79,7 @@ class DP3 {
 
  private:
   /// The map to create a step object from its type name.
-  static std::map<std::string, StepCtor*> theirStepMap;
+  static std::map<std::string, StepCreator*> theirStepMap;
 };
 
 }  // namespace base

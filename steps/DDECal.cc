@@ -184,7 +184,7 @@ void DDECal::setModelNextSteps(Step& step, const std::string& direction,
 
   if (parset.isDefined(step_names_key)) {
     Step::ShPtr first_step =
-        base::DP3::makeStepsFromParset(parset, "", step_names_key, itsInput,
+        base::DP3::MakeStepsFromParset(parset, "", step_names_key, itsInput,
                                        false, steps::Step::MsType::kRegular);
 
     if (first_step) {

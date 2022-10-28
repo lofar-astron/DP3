@@ -580,12 +580,12 @@ if(BUILD_TESTING)
     set(OS_SPECIFIC_TESTS) # No specific tests for Apple
   else()
     # These run only on Linux
-    set(OS_SPECIFIC_TESTS # steps/dynamic_test_step/test/tDynamicTestStep.cc #
-                          # This test still fails
-    )
-    add_library(dp3_testdyndp3 SHARED
+    # Note: The tests in tDynamicTestStep still fail and are disabled.
+    # TODO(AST-1045): Either remove or test this feature.
+    set(OS_SPECIFIC_TESTS steps/dynamic_test_step/test/tDynamicTestStep.cc)
+    add_library(DP3_testdyndp3 SHARED
                 steps/dynamic_test_step/DynamicTestStep.cc)
-    target_link_libraries(dp3_testdyndp3 LIBDP3)
+    target_link_libraries(DP3_testdyndp3 LIBDP3)
   endif()
 
   set(TEST_FILENAMES
