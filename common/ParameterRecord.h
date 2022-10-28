@@ -1,29 +1,20 @@
 // ParameterRecord.h: A record of parameter values
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef LOFAR_COMMON_PARAMETERRECORD_H
-#define LOFAR_COMMON_PARAMETERRECORD_H
+#ifndef DP3_COMMON_PARAMETERRECORD_H_
+#define DP3_COMMON_PARAMETERRECORD_H_
 
 #include "ParameterSet.h"
 
 namespace dp3 {
 namespace common {
 
-/// \brief A record of parameter values
+/// \brief A record of parameter values.
+/// The only difference with a ParameterSet is the output operator.
 class ParameterRecord : public ParameterSet {
  public:
-  /// Define the iterators for this class.
-  typedef ParameterSet::iterator iterator;
-  typedef ParameterSet::const_iterator const_iterator;
-
-  /// Default constructor creates empty record.
-  ParameterRecord() {}
-
-  /// Try to get a value from the record or from a nested record.
-  bool getRecursive(const std::string& key, ParameterValue& value) const;
-
   /// Put to ostream.
   friend std::ostream& operator<<(std::ostream& os, const ParameterRecord&);
 };
