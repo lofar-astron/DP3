@@ -9,6 +9,8 @@
 #ifndef DP3_STEPS_ONEPREDICT_H_
 #define DP3_STEPS_ONEPREDICT_H_
 
+#include <atomic>
+
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 #include "ResultStep.h"
