@@ -6,14 +6,14 @@
 // @author Ger van Diepen <diepen AT astron nl>
 
 #include "VdsPartDesc.h"
-#include "ParameterHandler.h"
-#include "StreamUtil.h"
 
-#include "../blob/BlobArray.h"
+#include <ostream>
 
 #include <casacore/casa/Quanta/MVTime.h>
 
-#include <ostream>
+#include "../blob/BlobArray.h"
+
+#include "StreamUtil.h"
 
 using namespace std;
 using namespace casacore;

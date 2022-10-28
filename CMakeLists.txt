@@ -331,7 +331,6 @@ add_library(
   common/Fields.cc
   common/Memory.cc
   common/NodeDesc.cc
-  common/ParameterHandler.cc
   common/ParameterRecord.cc
   common/ParameterSet.cc
   common/ParameterSetImpl.cc

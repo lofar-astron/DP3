@@ -1,10 +1,13 @@
 // ParameterSet.h: Implements a map of Key-Value pairs.
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef LOFAR_COMMON_PARAMETERSET_H
-#define LOFAR_COMMON_PARAMETERSET_H
+#ifndef DP3_COMMON_PARAMETERSET_H_
+#define DP3_COMMON_PARAMETERSET_H_
+
+#include "../blob/BlobIStream.h"
+#include "../blob/BlobOStream.h"
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 #include "ParameterSetImpl.h"
@@ -42,9 +45,6 @@ class ParameterSet {
   /// Create an empty collection.
   /// Tell if keys have to be compared case-insenstitive.
   explicit ParameterSet(bool caseInsensitive);
-
-  /// Destroy the contents.
-  ~ParameterSet();
 
   /// Construct a ParameterSet from the contents of \a theFilename. The
   /// optional argument \a mode determines how keys should be compared.
@@ -337,6 +337,12 @@ class ParameterSet {
 
   std::shared_ptr<ParameterSetImpl> itsSet;
 };
+
+/// Write/read a ParameterSet into/from a blob.
+/// @{
+blob::BlobOStream& operator<<(blob::BlobOStream&, const ParameterSet&);
+blob::BlobIStream& operator>>(blob::BlobIStream&, ParameterSet&);
+/// @}
 
 //
 // ---------- inline functions ----------
