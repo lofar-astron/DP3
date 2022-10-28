@@ -106,6 +106,7 @@ static std::shared_ptr<OutputStep> MakeOutputStep(
   }
 
   // A name equal to . or the last name means an update of the last MS.
+  assert(!currentMSName.empty());
   if (outName.empty() || outName == ".") {
     outName = currentMSName;
     doUpdate = true;
@@ -212,8 +213,6 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "interpolate") {
     step = std::make_shared<steps::Interpolate>(parset, prefix);
   } else if (type == "out" || type == "output" || type == "msout") {
-    if (msName.empty())
-      msName = casacore::Path(inputStep->msName()).absoluteName();
     step = MakeOutputStep(inputStep, parset, prefix, msName, inputType);
   } else if (type == "python" || type == "pythondppp") {
     step = pythondp3::PyStep::create_instance(inputStep, parset, prefix);
@@ -481,7 +480,7 @@ Step::ShPtr DP3::makeStepsFromParset(const common::ParameterSet& parset,
                                      const std::string& step_names_key,
                                      InputStep& inputStep, bool terminateChain,
                                      Step::MsType initial_step_output) {
-  std::string msName;
+  std::string msName = casacore::Path(inputStep.msName()).absoluteName();
   const std::vector<string> stepNames =
       parset.getStringVector(prefix + step_names_key);
 
