@@ -4,8 +4,8 @@
 # MockPyStep.py: simple python step, where the MockPyStep inherits from
 # the (py)dp3.DPStep class.
 
-import parameterset
-from pydp3 import Step
+from dp3 import parameterset
+from dp3 import Step
 import numpy as np
 
 

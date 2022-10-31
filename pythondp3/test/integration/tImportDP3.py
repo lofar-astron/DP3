@@ -20,10 +20,10 @@ Script can be invoked in two ways:
 """
 
 
-def test_import_pydp3():
+def test_import_dp3():
     """
-    Test import of pydp3 module
+    Test import of dp3 module
     One reason this might fail is when the linkage of this module, a shared library,
     is incomplete. In that case, the run-time linker will report unresolved symbols.
     """
-    import pydp3
+    import dp3
