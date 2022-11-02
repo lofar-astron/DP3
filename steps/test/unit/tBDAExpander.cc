@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
             kInterval, kAntennaSet);
   info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);
-  info.set(std::move(chan_freqs), std::move(chan_widths));
+  info.setChannels(std::move(chan_freqs), std::move(chan_widths));
 
   dp3::common::ParameterSet parset;
   dp3::steps::MockInput mock_input;
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
 
   info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);
-  info.set(std::move(chan_freqs), std::move(chan_widths));
+  info.setChannels(std::move(chan_freqs), std::move(chan_widths));
 
   dp3::common::ParameterSet parset;
   dp3::steps::MockInput mock_input;

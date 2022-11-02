@@ -52,7 +52,7 @@ class TestInput : public dp3::steps::MockInput {
     for (int i = 0; i < nchan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
-    info().set(std::move(chanFreqs), std::move(chanWidth));
+    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
     // Fill the baseline stations.
     // Determine nr of stations using:  na*(na+1)/2 = nbl
     // If many baselines, divide into groups of 6 to test if

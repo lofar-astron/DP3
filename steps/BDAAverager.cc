@@ -200,7 +200,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   bda_pool_size_ = _info.ncorr() * bda_channels;
 
   info().update(std::move(baseline_factors));
-  info().set(std::move(freqs), std::move(widths));
+  info().setChannels(std::move(freqs), std::move(widths));
 }
 
 bool BDAAverager::process(const DPBuffer& buffer) {

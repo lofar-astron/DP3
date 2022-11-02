@@ -175,7 +175,6 @@ class MultiMSReader final : public MSReader {
   std::vector<base::DPBuffer> itsBuffers;
   unsigned int itsFillNChan;  ///< nr of chans for missing MSs
   base::FlagCounter itsFlagCounter;
-  bool itsRegularChannels;  /// Are resulting channels regularly spaced
 };
 
 }  // namespace steps

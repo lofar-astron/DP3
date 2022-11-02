@@ -90,7 +90,7 @@ class TestInput : public dp3::steps::MockInput {
     for (unsigned int i = 0; i < kNChannels; i++) {
       chan_freqs.push_back(1050000. + i * 100000.);
     }
-    info().set(std::move(chan_freqs), std::move(chan_width));
+    info().setChannels(std::move(chan_freqs), std::move(chan_width));
 
     // Define antennas and baselines.
     const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2"};

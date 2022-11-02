@@ -110,7 +110,7 @@ class TestInput : public dp3::steps::MockInput {
       chanFreqs[0] = 100.e6;
       chanFreqs[1] = 101.e6;
     }
-    info().set(std::move(chanFreqs), std::move(chanWidth));
+    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
  private:

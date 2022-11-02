@@ -181,7 +181,7 @@ void TestInput<DPBuffer>::updateInfo(const DPInfo&) {
     channel_frequencies.push_back(start_frequency_ +
                                   (i + 0.5) * min_channel_width_);
   }
-  info().set(std::move(channel_frequencies), std::move(channel_widths));
+  info().setChannels(std::move(channel_frequencies), std::move(channel_widths));
 }
 
 template <>
@@ -208,7 +208,7 @@ void TestInput<std::unique_ptr<BDABuffer>>::updateInfo(const DPInfo&) {
     }
   }
 
-  info().set(std::move(channel_frequencies), std::move(channel_widths));
+  info().setChannels(std::move(channel_frequencies), std::move(channel_widths));
 }
 
 // Class to check result of flagged, unaveraged TestInput run by test1.

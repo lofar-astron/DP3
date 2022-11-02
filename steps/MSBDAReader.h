@@ -141,9 +141,6 @@ class MSBDAReader : public InputStep {
   /// Get the main MS table.
   const casacore::Table& table() const override { return ms_; }
 
-  /// Get the selected spectral window.
-  unsigned int spectralWindow() const override { return spw_; }
-
   /// Get the nr of averaged full resolution channels.
   unsigned int nchanAvgFullRes() const override { return 1; }
 
@@ -166,7 +163,6 @@ class MSBDAReader : public InputStep {
   double last_ms_interval_;
   double interval_;  ///< original interval of the MS
   bool is_interval_integer_;
-  unsigned int spw_;    ///< spw (band) to use (<0 no select)
   unsigned int nread_;  ///< nr of time slots read from MS
   common::NSTimer timer_;
   std::size_t pool_size_;  ///< Pool size that will be used for the BDA buffers

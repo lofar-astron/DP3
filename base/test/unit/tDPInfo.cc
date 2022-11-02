@@ -54,7 +54,8 @@ BOOST_AUTO_TEST_CASE(set_frequency_info) {
   const double kTotalWidth = 11.0;
 
   dp3::base::DPInfo info;
-  info.set(std::vector<double>(kFreqs), std::vector<double>(kWidths));
+  info.setChannels(std::vector<double>(kFreqs), std::vector<double>(kWidths));
+  BOOST_TEST(kFreqs.size() == info.nchan());
   BOOST_TEST(kFreqs == info.chanFreqs());
   BOOST_TEST(kWidths == info.chanWidths());
   BOOST_TEST(kWidths == info.resolutions());
@@ -74,14 +75,15 @@ BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
 
   dp3::base::DPInfo info;
   info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
-  info.set(std::vector<std::vector<double>>(kFreqs),
-           std::vector<std::vector<double>>(kWidths));
+  info.setChannels(std::vector<std::vector<double>>(kFreqs),
+                   std::vector<std::vector<double>>(kWidths));
   for (std::size_t i = 0; i < kFreqs.size(); i++) {
     BOOST_TEST(kFreqs[i] == info.chanFreqs(i));
     BOOST_TEST(kWidths[i] == info.chanWidths(i));
     BOOST_TEST(kWidths[i] == info.resolutions(i));
     BOOST_TEST(kWidths[i] == info.effectiveBW(i));
   }
+  BOOST_TEST(5 == info.nchan());  // Maximum number of channels.
   BOOST_TEST(kRefFreq == info.refFreq());
   BOOST_TEST(kTotalWidth == info.totalBW());
 }
@@ -108,20 +110,20 @@ BOOST_AUTO_TEST_CASE(channels_are_regular) {
   // Test using a single baseline.
   {
     dp3::base::DPInfo info;
-    info.set(std::vector<double>(kRegularFreqs.front()),
-             std::vector<double>(kRegularWidths.front()));
+    info.setChannels(std::vector<double>(kRegularFreqs.front()),
+                     std::vector<double>(kRegularWidths.front()));
     BOOST_TEST(info.channelsAreRegular());
   }
   {
     dp3::base::DPInfo info;
-    info.set(std::vector<double>(kRegularFreqs.front()),
-             std::vector<double>(kIrregularWidths));
+    info.setChannels(std::vector<double>(kRegularFreqs.front()),
+                     std::vector<double>(kIrregularWidths));
     BOOST_TEST(!info.channelsAreRegular());
   }
   {
     dp3::base::DPInfo info;
-    info.set(std::vector<double>(kIrregularFreqs),
-             std::vector<double>(kRegularWidths.front()));
+    info.setChannels(std::vector<double>(kIrregularFreqs),
+                     std::vector<double>(kRegularWidths.front()));
     BOOST_TEST(!info.channelsAreRegular());
   }
 
@@ -129,15 +131,15 @@ BOOST_AUTO_TEST_CASE(channels_are_regular) {
   {
     dp3::base::DPInfo info;
     info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
-    info.set(std::vector<std::vector<double>>(kRegularFreqs),
-             std::vector<std::vector<double>>(kRegularWidths));
+    info.setChannels(std::vector<std::vector<double>>(kRegularFreqs),
+                     std::vector<std::vector<double>>(kRegularWidths));
     BOOST_TEST(info.channelsAreRegular());
   }
   {
     dp3::base::DPInfo info;
     info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
-    info.set(std::vector<std::vector<double>>(kIrregularFreqsBDA),
-             std::vector<std::vector<double>>(kIrregularWidthsBDA));
+    info.setChannels(std::vector<std::vector<double>>(kIrregularFreqsBDA),
+                     std::vector<std::vector<double>>(kIrregularWidthsBDA));
     BOOST_TEST(!info.channelsAreRegular());
   }
 }

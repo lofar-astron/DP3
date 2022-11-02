@@ -55,9 +55,10 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
-  info.set(std::vector<std::vector<double>>{{1.}},
-           std::vector<std::vector<double>>{{10.}});
-  info.set(std::vector<double>(nchan, 1.), std::vector<double>(nchan, 5000.));
+  info.setChannels(std::vector<std::vector<double>>{{1.}},
+                   std::vector<std::vector<double>>{{10.}});
+  info.setChannels(std::vector<double>(nchan, 1.),
+                   std::vector<double>(nchan, 5000.));
   writer.updateInfo(info);
 
   auto buffer = std::make_unique<BDABuffer>(1);
@@ -159,7 +160,7 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
            std::vector<double>{1.0, 2.0},
            {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{0, 0, 0}},
            std::vector<int>{0, 1}, std::vector<int>{0, 1});
-  info.set(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
+  info.setChannels(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
 
   // ntimeAvgs is 1, nbaselines 2 so we expect an exception
   BOOST_TEST(info.ntimeAvgs().size() == size_t(1));
@@ -176,7 +177,7 @@ BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory,
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
-  info.set(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
+  info.setChannels(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
   const std::string kMsName = "default_tables.MS";
 
   MSBDAWriter writer(nullptr, kMsName, ParameterSet(), "");
@@ -210,8 +211,8 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory,
            std::vector<double>{1.0, 1.0},
            {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{10, 10, 0}},
            std::vector<int>{0, 1}, std::vector<int>{0, 1});
-  info.set(std::vector<std::vector<double>>{{1.}, {1.}},
-           std::vector<std::vector<double>>{{5000.}, {5000.}});
+  info.setChannels(std::vector<std::vector<double>>{{1.}, {1.}},
+                   std::vector<std::vector<double>>{{5000.}, {5000.}});
   info.update(std::vector<unsigned int>{kMinTimeInterval, kMaxTimeInterval});
   casacore::MeasurementSet ms_in("../tNDPPP_tmp.MS");
   MSReader reader(ms_in, parset, prefix);

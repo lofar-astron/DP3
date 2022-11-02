@@ -120,10 +120,6 @@ double InputStep::lastTime() const {
   throw std::runtime_error("InputStep::lastTime not implemented");
 }
 
-unsigned int InputStep::spectralWindow() const {
-  throw std::runtime_error("InputStep::spectralWindow not implemented");
-}
-
 unsigned int InputStep::nchanAvgFullRes() const {
   throw std::runtime_error("InputStep::nchanAvgFullRes not implemented");
 }

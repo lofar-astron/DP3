@@ -37,7 +37,7 @@ class BdaPredictFixture {
 
     // Use unusal values since to make clear the value is not used.
     info.update(std::vector<unsigned>{-1u, -1u, -1u});
-    info.set(std::move(chan_freqs), std::move(chan_widths));
+    info.setChannels(std::move(chan_freqs), std::move(chan_widths));
     predict_->setInfo(info);
   }
 

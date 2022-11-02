@@ -42,6 +42,7 @@ DPInfo::DPInfo()
       start_time_(0),
       time_interval_(0),
       beam_correction_mode_(static_cast<int>(everybeam::CorrectionMode::kNone)),
+      spectral_window_(0),
       n_threads_(aocommon::system::ProcessorCount()) {}
 
 void DPInfo::init(unsigned int ncorr, unsigned int startChan,
@@ -67,10 +68,11 @@ void DPInfo::setMsNames(const std::string& ms_name,
   weight_column_name_ = weight_column_name;
 }
 
-void DPInfo::set(std::vector<double>&& chan_freqs,
-                 std::vector<double>&& chan_widths,
-                 std::vector<double>&& resolutions,
-                 std::vector<double>&& effective_bw, double ref_freq) {
+void DPInfo::setChannels(std::vector<double>&& chan_freqs,
+                         std::vector<double>&& chan_widths,
+                         std::vector<double>&& resolutions,
+                         std::vector<double>&& effective_bw, double ref_freq,
+                         int spectral_window) {
   if (resolutions.empty()) {
     resolutions = chan_widths;
   }
@@ -78,11 +80,13 @@ void DPInfo::set(std::vector<double>&& chan_freqs,
     effective_bw = chan_widths;
   }
 
+  n_channels_ = chan_freqs.size();
   if (ref_freq == 0) {
-    int n = chan_freqs.size();
     // Takes mean of middle elements if n is even; takes middle if odd.
-    ref_freq = 0.5 * (chan_freqs[(n - 1) / 2] + chan_freqs[n / 2]);
+    ref_freq =
+        0.5 * (chan_freqs[(n_channels_ - 1) / 2] + chan_freqs[n_channels_ / 2]);
   }
+  reference_frequency_ = ref_freq;
 
   channel_frequencies_.clear();
   channel_widths_.clear();
@@ -96,14 +100,14 @@ void DPInfo::set(std::vector<double>&& chan_freqs,
 
   total_bandwidth_ = std::accumulate(effective_bandwidth_.front().begin(),
                                      effective_bandwidth_.front().end(), 0.0);
-  reference_frequency_ = ref_freq;
+  spectral_window_ = spectral_window;
 }
 
-void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
-                 std::vector<std::vector<double>>&& chan_widths,
-                 std::vector<std::vector<double>>&& resolutions,
-                 std::vector<std::vector<double>>&& effective_bw,
-                 double ref_freq) {
+void DPInfo::setChannels(std::vector<std::vector<double>>&& chan_freqs,
+                         std::vector<std::vector<double>>&& chan_widths,
+                         std::vector<std::vector<double>>&& resolutions,
+                         std::vector<std::vector<double>>&& effective_bw,
+                         double ref_freq, int spectral_window) {
   if (resolutions.empty()) {
     resolutions = chan_widths;
   }
@@ -137,13 +141,14 @@ void DPInfo::set(std::vector<std::vector<double>>&& chan_freqs,
     // Takes mean of middle elements if n is even; takes middle if odd.
     ref_freq = 0.5 * ((*it)[(n_channels_ - 1) / 2] + (*it)[n_channels_ / 2]);
   }
+  reference_frequency_ = ref_freq;
 
   channel_frequencies_ = std::move(chan_freqs);
   channel_widths_ = std::move(chan_widths);
   resolutions_ = std::move(resolutions);
   effective_bandwidth_ = std::move(effective_bw);
   total_bandwidth_ = total_bw;
-  reference_frequency_ = ref_freq;
+  spectral_window_ = spectral_window;
 }
 
 bool DPInfo::channelsAreRegular() const {

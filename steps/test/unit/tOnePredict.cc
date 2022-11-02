@@ -56,7 +56,7 @@ class OnePredictFixture {
     std::vector<double> chan_freqs(1, 10.0e6);
     std::vector<double> chan_widths(1, 3.0e6);
 
-    info.set(std::move(chan_freqs), std::move(chan_widths));
+    info.setChannels(std::move(chan_freqs), std::move(chan_widths));
     predict_->setInfo(info);
   }
 

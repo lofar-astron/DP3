@@ -93,7 +93,6 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
       itsAutoWeightForce(parset.getBool(prefix + "forceautoweight", false)),
       itsUseFlags(parset.getBool(prefix + "useflag", true)),
       itsMissingData(missingData),
-      itsSpw(parset.getInt(prefix + "band", -1)),
       itsTimeTolerance(parset.getDouble(prefix + "timetolerance", 1e-2)) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Get info from parset.
@@ -109,19 +108,20 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   assert(!HasBda(ms));
   // See if a selection on band needs to be done.
   // We assume that DATA_DESC_ID and SPW_ID map 1-1.
-  if (itsSpw >= 0) {
+  int spectralWindow = parset.getInt(prefix + "band", -1);
+  if (spectralWindow >= 0) {
     DPLOG_INFO_STR(" MSReader selecting spectral window " +
-                   std::to_string(itsSpw) + " ...");
-    Table subset = itsSelMS(itsSelMS.col("DATA_DESC_ID") == itsSpw);
+                   std::to_string(spectralWindow) + " ...");
+    Table subset = itsSelMS(itsSelMS.col("DATA_DESC_ID") == spectralWindow);
     // If not all is selected, use the selection.
     if (subset.nrow() < itsSelMS.nrow()) {
       if (subset.nrow() <= 0)
-        throw std::runtime_error("Band " + std::to_string(itsSpw) +
+        throw std::runtime_error("Band " + std::to_string(spectralWindow) +
                                  " not found in " + msName());
       itsSelMS = subset;
     }
   } else {
-    itsSpw = 0;
+    spectralWindow = 0;
   }
   // See if a selection on baseline needs to be done.
   if (!itsSelBL.empty()) {
@@ -258,7 +258,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   // Are all channels used?
   itsUseAllChan = itsStartChan == 0 && itsNrChan == nAllChan;
   // Do the rest of the preparation.
-  prepare2();
+  prepare2(spectralWindow);
   // Take subset of channel frequencies if needed.
   // Make sure to copy the subset to get a proper Vector.
   // Form the slicer to get channels and correlations from column.
@@ -453,7 +453,7 @@ void MSReader::show(std::ostream& os) const {
     if (!itsSelBL.empty()) {
       os << "  baseline:       " << itsSelBL << '\n';
     }
-    os << "  band            " << itsSpw << '\n';
+    os << "  band            " << getInfo().spectralWindow() << '\n';
     os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
        << ")\n";
     os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
@@ -669,7 +669,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
       std::make_unique<base::UVWCalculator>(phaseCenter, arrayPos, antPos);
 }
 
-void MSReader::prepare2() {
+void MSReader::prepare2(int spectralWindow) {
   // Set the info.
   // The 1.5 comes from a) rounding (0.5) + b) the paaltjesprobleem.
   unsigned int ntime =
@@ -690,24 +690,25 @@ void MSReader::prepare2() {
   ArrayColumn<double> resolCol(spwtab, "RESOLUTION");
   ArrayColumn<double> effBWCol(spwtab, "EFFECTIVE_BW");
   ScalarColumn<double> refCol(spwtab, "REF_FREQUENCY");
-  std::vector<double> chanFreqs = freqCol(itsSpw).tovector();
-  std::vector<double> chanWidths = widthCol(itsSpw).tovector();
-  std::vector<double> resolutions = resolCol(itsSpw).tovector();
-  std::vector<double> effectiveBW = effBWCol(itsSpw).tovector();
-  const double refFreq = refCol(itsSpw);
+  std::vector<double> chanFreqs = freqCol(spectralWindow).tovector();
+  std::vector<double> chanWidths = widthCol(spectralWindow).tovector();
+  std::vector<double> resolutions = resolCol(spectralWindow).tovector();
+  std::vector<double> effectiveBW = effBWCol(spectralWindow).tovector();
+  const double refFreq = refCol(spectralWindow);
   if (itsUseAllChan) {
-    info().set(std::move(chanFreqs), std::move(chanWidths),
-               std::move(resolutions), std::move(effectiveBW), refFreq);
+    info().setChannels(std::move(chanFreqs), std::move(chanWidths),
+                       std::move(resolutions), std::move(effectiveBW), refFreq,
+                       spectralWindow);
   } else {
     auto freqBegin = chanFreqs.begin() + itsStartChan;
     auto widthBegin = chanWidths.begin() + itsStartChan;
     auto resolBegin = resolutions.begin() + itsStartChan;
     auto effbwBegin = effectiveBW.begin() + itsStartChan;
-    info().set(std::vector<double>(freqBegin, freqBegin + itsNrChan),
-               std::vector<double>(widthBegin, widthBegin + itsNrChan),
-               std::vector<double>(resolBegin, resolBegin + itsNrChan),
-               std::vector<double>(effbwBegin, effbwBegin + itsNrChan),
-               refFreq);
+    info().setChannels(std::vector<double>(freqBegin, freqBegin + itsNrChan),
+                       std::vector<double>(widthBegin, widthBegin + itsNrChan),
+                       std::vector<double>(resolBegin, resolBegin + itsNrChan),
+                       std::vector<double>(effbwBegin, effbwBegin + itsNrChan),
+                       refFreq, spectralWindow);
   }
 }
 

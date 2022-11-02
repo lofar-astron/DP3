@@ -91,12 +91,10 @@ MSBDAReader::MSBDAReader(const casacore::MeasurementSet& ms,
   // a programming error, and not a user error, if the MS doesn't have BDA data.
   assert(HasBda(ms));
 
-  int spwInt = parset.getInt(prefix + "band", -1);
-  if (spwInt > 0) {
+  const int spectral_window = parset.getInt(prefix + "band", -1);
+  if (spectral_window > 0) {
     throw std::invalid_argument(
         "BDA in combination with multiple spectral windows is not implemented");
-  } else {
-    spw_ = 0;
   }
 
   const unsigned int nchan = parset.getInt(prefix + "nchan", 0);
@@ -344,7 +342,7 @@ void MSBDAReader::FillInfoMetaData() {
                              tile_beam_dir);
 
   info().update(std::move(baseline_factors));
-  info().set(std::move(freqs), std::move(widths));
+  info().setChannels(std::move(freqs), std::move(widths));
 }
 
 void MSBDAReader::show(std::ostream& os) const {
@@ -353,8 +351,8 @@ void MSBDAReader::show(std::ostream& os) const {
   if (ms_.isNull()) {
     os << "    *** MS does not exist ***\n";
   } else {
-    os << "  band            " << spw_ << '\n';
-    os << "  start_chan:      " << 0 << '\n';
+    os << "  band            " << getInfo().spectralWindow() << '\n';
+    os << "  start_chan:     " << 0 << '\n';
     os << "  nchan:          " << getInfo().nchan() << '\n';
     os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
     os << "  nbaselines:     " << getInfo().nbaselines() << '\n';

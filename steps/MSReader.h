@@ -184,9 +184,6 @@ class MSReader : public InputStep {
   double firstTime() const override { return itsFirstTime; }
   double lastTime() const override { return itsLastTime; }
 
-  /// Get the selected spectral window.
-  unsigned int spectralWindow() const override { return itsSpw; }
-
   /// Get the baseline selection.
   const string& baselineSelection() const { return itsSelBL; }
 
@@ -222,7 +219,7 @@ class MSReader : public InputStep {
   void prepare(double& firstTime, double& lastTime, double& interval);
 
   /// Do the rest of the preparation.
-  void prepare2();
+  void prepare2(int spectralWindow);
 
   /// Skip the first times in the MS in case a start time was given.
   /// If needed, it sets itsFirstTime properly.
@@ -252,7 +249,6 @@ class MSReader : public InputStep {
   bool itsUseFlags{true};
   bool itsUseAllChan{false};   ///< all channels (i.e. no slicer)?
   bool itsMissingData{false};  ///< allow missing data column?
-  int itsSpw{-1};              ///< spw (band) to use (<0 no select)
   unsigned int itsNrBl{0};
   unsigned int itsNrCorr{0};
   unsigned int itsNrChan{0};

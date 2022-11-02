@@ -45,9 +45,6 @@ class DPInfo {
     bda_interval_factor_is_integer_ = isIntervalInteger;
   }
 
-  /// Set nr of channels.
-  void setNChan(unsigned int nchan) { n_channels_ = nchan; }
-
   /// Set the time interval and the number of time steps.
   void setTimeIntervalAndSteps(double timeInterval, unsigned int ntime) {
     time_interval_ = timeInterval;
@@ -58,23 +55,24 @@ class DPInfo {
   /// An empty resolutions or effectiveBW is default to chanWidths.
   /// total_bandwidth_ is set to the sum of effectiveBW.
   /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
-  void set(std::vector<double>&& chanFreqs, std::vector<double>&& chanWidths,
-           std::vector<double>&& resolutions = std::vector<double>(),
-           std::vector<double>&& effectiveBW = std::vector<double>(),
-           double refFreq = 0);
+  void setChannels(std::vector<double>&& chanFreqs,
+                   std::vector<double>&& chanWidths,
+                   std::vector<double>&& resolutions = std::vector<double>(),
+                   std::vector<double>&& effectiveBW = std::vector<double>(),
+                   double refFreq = 0, int spectralWindow = 0);
 
   /// Set the frequency info, using different info per baseline.
   /// An empty resolutions or effectiveBW is default to chanWidths.
   /// total_bandwidth_ is set to the sum of effectiveBW, which should be equal
   /// for all baselines. If refFreq is 0, it is set to the middle of chanFreqs
   /// (mean if even). of the baseline with the most channels.
-  void set(std::vector<std::vector<double>>&& chanFreqs,
-           std::vector<std::vector<double>>&& chanWidths,
-           std::vector<std::vector<double>>&& resolutions =
-               std::vector<std::vector<double>>(),
-           std::vector<std::vector<double>>&& effectiveBW =
-               std::vector<std::vector<double>>(),
-           double refFreq = 0);
+  void setChannels(std::vector<std::vector<double>>&& chanFreqs,
+                   std::vector<std::vector<double>>&& chanWidths,
+                   std::vector<std::vector<double>>&& resolutions =
+                       std::vector<std::vector<double>>(),
+                   std::vector<std::vector<double>>&& effectiveBW =
+                       std::vector<std::vector<double>>(),
+                   double refFreq = 0, int spectralWindow = 0);
 
   void setArrayInformation(const casacore::MPosition& arrayPos,
                            const casacore::MDirection& phaseCenter,
@@ -188,6 +186,7 @@ class DPInfo {
   }
   double totalBW() const { return total_bandwidth_; }
   double refFreq() const { return reference_frequency_; }
+  int spectralWindow() const { return spectral_window_; }
   ///@}
 
   /// Get the antenna numbers actually used in the (selected) baselines.
@@ -296,6 +295,7 @@ class DPInfo {
   std::vector<std::vector<double>> effective_bandwidth_;
   double total_bandwidth_;
   double reference_frequency_;
+  int spectral_window_;
   std::vector<std::string> antenna_names_;
   std::vector<double> antenna_diameters_;
   std::vector<casacore::MPosition> antenna_positions_;
