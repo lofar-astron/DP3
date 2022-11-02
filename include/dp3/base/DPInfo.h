@@ -224,14 +224,6 @@ class DPInfo {
 
   unsigned int nThreads() const { return n_threads_; }
 
-  /// Convert to a Record.
-  /// The names of the fields in the record are the data names without 'its'.
-  casacore::Record toRecord() const;
-
-  /// Update the DPInfo object from a Record.
-  /// It is possible that only a few fields are defined in the record.
-  void fromRecord(const casacore::Record& rec);
-
   /// Get the beam correction mode.
   /// @return An integer representation of an everybeam::CorrectionMode value.
   int beamCorrectionMode() const { return beam_correction_mode_; }
