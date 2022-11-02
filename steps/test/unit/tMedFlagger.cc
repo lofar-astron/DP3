@@ -130,7 +130,7 @@ class TestInput : public dp3::steps::MockInput {
     for (int i = 0; i < itsNChan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
-    info().set(std::move(chanFreqs), std::move(chanWidth));
+    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;

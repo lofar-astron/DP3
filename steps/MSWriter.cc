@@ -187,7 +187,7 @@ void MSWriter::StartNewMs() {
       chunk_duration_ == 0.0
           ? out_name_
           : InsertNumberInFilename(out_name_, current_chunk_index_);
-  CreateMs(chunk_name, info(), tile_size_, tile_n_chan_);
+  CreateMs(chunk_name, tile_size_, tile_n_chan_);
   // Write the parset info into the history.
   WriteHistory(ms_, parset_);
   ms_.flush(true, true);
@@ -302,8 +302,8 @@ void MSWriter::MakeArrayColumn(ColumnDesc desc, const IPosition& ipos,
   }
 }
 
-void MSWriter::CreateMs(const string& out_name, const DPInfo& info,
-                        unsigned int tile_size, unsigned int tile_n_chan) {
+void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
+                        unsigned int tile_n_chan) {
   // Determine the data shape.
   IPosition data_shape(2, nr_corr_, nr_chan_);
   // Obtain the MS description.
@@ -514,17 +514,18 @@ void MSWriter::CreateMs(const string& out_name, const DPInfo& info,
   omitted_subtables[1] = base::DP3MS::kBDAFactorsTable;
   TableCopy::copySubTables(ms_, temptable, false, omitted_subtables);
   // Adjust the SPECTRAL_WINDOW and DATA_DESCRIPTION table as needed.
-  UpdateSpw(out_name, info);
+  UpdateSpw(out_name);
   // Adjust the OBSERVATION table as needed.
   UpdateObs(out_name);
   // Adjust the FIELD table as needed.
-  if (info.originalPhaseCenter().getValue() != info.phaseCenter().getValue()) {
-    UpdatePhaseCentre(out_name, info);
+  if (info().originalPhaseCenter().getValue() !=
+      info().phaseCenter().getValue()) {
+    UpdatePhaseCentre(out_name);
   }
-  UpdateBeam(ms_, "DATA", info);
+  UpdateBeam(ms_, "DATA", info());
 }
 
-void MSWriter::UpdateSpw(const string& out_name, const DPInfo& info) {
+void MSWriter::UpdateSpw(const std::string& out_name) {
   // Fix the SPECTRAL_WINDOW values by updating the values in the subtable.
   IPosition shape(1, nr_chan_);
   Table in_spw = reader_.table().keywordSet().asTable("SPECTRAL_WINDOW");
@@ -534,11 +535,10 @@ void MSWriter::UpdateSpw(const string& out_name, const DPInfo& info) {
     throw std::runtime_error(
         "nrow in SPECTRAL_WINDOW table is not the same as nrow in "
         "DATA_DESCRIPTION table");
-  unsigned int spw = reader_.spectralWindow();
   // Remove all rows before and after the selected band.
   // Do it from the end, otherwise row numbers change.
-  for (unsigned int i = out_spw.nrow(); i > 0;) {
-    if (--i != spw) {
+  for (int i = int(out_spw.nrow()) - 1; i >= 0; --i) {
+    if (i != info().spectralWindow()) {
       out_spw.removeRow(i);
       out_dd.removeRow(i);
     }
@@ -559,12 +559,12 @@ void MSWriter::UpdateSpw(const string& out_name, const DPInfo& info) {
   ArrayColumn<double> out_resolution(out_spw, "RESOLUTION");
   ScalarColumn<double> out_totalbw(out_spw, "TOTAL_BANDWIDTH");
   ScalarColumn<double> out_reffreq(out_spw, "REF_FREQUENCY");
-  out_freq.put(0, casacore::Vector<double>(info.chanFreqs()));
-  out_width.put(0, casacore::Vector<double>(info.chanWidths()));
-  out_bw.put(0, casacore::Vector<double>(info.effectiveBW()));
-  out_resolution.put(0, casacore::Vector<double>(info.resolutions()));
-  out_totalbw.put(0, info.totalBW());
-  out_reffreq.put(0, info.refFreq());
+  out_freq.put(0, casacore::Vector<double>(info().chanFreqs()));
+  out_width.put(0, casacore::Vector<double>(info().chanWidths()));
+  out_bw.put(0, casacore::Vector<double>(info().effectiveBW()));
+  out_resolution.put(0, casacore::Vector<double>(info().resolutions()));
+  out_totalbw.put(0, info().totalBW());
+  out_reffreq.put(0, info().refFreq());
   // Adjust the spwid in the DATA_DESCRIPTION.
   ScalarColumn<int> spw_col(out_dd, "SPECTRAL_WINDOW_ID");
   spw_col.put(0, 0);
@@ -583,15 +583,15 @@ void MSWriter::UpdateObs(const string& out_name) {
   }
 }
 
-void MSWriter::UpdatePhaseCentre(const string& out_name, const DPInfo& info) {
+void MSWriter::UpdatePhaseCentre(const string& out_name) {
   Table out_field = Table(out_name + "/FIELD", Table::Update);
   // Write new phase center.
   ArrayMeasColumn<MDirection> phase_col(out_field, "PHASE_DIR");
   // If a moving reference type like AZELGEO was used in the original MS, and
   // the phase centre is changed (with a phaseshift), the ref frame of the
   // column must be reset:
-  phase_col.setDescRefCode(info.phaseCenter().getRefPtr()->getType(), false);
-  casacore::Vector<MDirection> dir(1, info.phaseCenter());
+  phase_col.setDescRefCode(info().phaseCenter().getRefPtr()->getType(), false);
+  casacore::Vector<MDirection> dir(1, info().phaseCenter());
   phase_col.put(0, dir);
 }
 

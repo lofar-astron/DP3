@@ -376,9 +376,8 @@ void MSBDAWriter::OverwriteSubTables(const Int bda_set_id) {
 
   // Remove all rows before and after the selected band.
   // Do it from the end, otherwise row numbers change.
-  for (unsigned int i = outSPW.nrow(); i > 0;) {
-    --i;
-    if (i == reader_->spectralWindow()) {
+  for (int i = int(outSPW.nrow()) - 1; i >= 0; --i) {
+    if (i == info().spectralWindow()) {
       measFreqRef =
           outSPW.col(MS_SPW::columnName(MS_SPW::MEAS_FREQ_REF)).getInt(i);
       name = outSPW.col(MS_SPW::columnName(MS_SPW::NAME)).getString(i);

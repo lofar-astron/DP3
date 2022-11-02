@@ -69,9 +69,7 @@ class BdaGroupPredict::BaselineGroup {
     std::vector<double> chanFreqs(info_in.chanFreqs(baselines_[0]));
     std::vector<double> chanWidths(info_in.chanWidths(baselines_[0]));
     std::size_t nr_chan = chanFreqs.size();
-    info.set(std::move(chanFreqs),
-             std::move(chanWidths));  // This does not update info.nchan() !!
-    info.setNChan(nr_chan);           // So we need to set it
+    info.setChannels(std::move(chanFreqs), std::move(chanWidths));
     predict_step_->setInfo(info);
     dpbuffer_.getData().resize(info_in.ncorr(), nr_chan, nr_baselines);
     dpbuffer_.getWeights().resize(info_in.ncorr(), nr_chan, nr_baselines);

@@ -75,7 +75,7 @@ class TestInput final : public steps::MockInput {
     for (int i = 0; i < kNChannels; i++) {
       chan_freqs.push_back(1050000. + i * 100000.);
     }
-    info().set(std::move(chan_freqs), std::move(chan_width));
+    info().setChannels(std::move(chan_freqs), std::move(chan_width));
   }
   int count_;
 };

@@ -91,7 +91,7 @@ void BDAExpander::updateInfo(const DPInfo &_info) {
     }
   }
 
-  info().set(std::move(freqs), std::move(widths));
+  info().setChannels(std::move(freqs), std::move(widths));
 }
 
 void BDAExpander::show(std::ostream &os) const {

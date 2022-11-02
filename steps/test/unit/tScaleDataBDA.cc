@@ -85,7 +85,7 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
   // Define the frequencies.
   std::vector<double> chan_width(nchan, 1e6);
   std::vector<double> chan_freqs(nchan, kFreq * 1e6);
-  info.set(std::move(chan_freqs), std::move(chan_width));
+  info.setChannels(std::move(chan_freqs), std::move(chan_width));
 
   return info;
 }

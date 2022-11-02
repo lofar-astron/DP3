@@ -98,7 +98,7 @@ class TestInput : public dp3::steps::MockInput {
     std::vector<double> chanFreqs(nchan);
     std::vector<double> chanWidth(nchan, 100000.);
     std::iota(chanFreqs.begin(), chanFreqs.end(), 1050000);
-    info().set(std::move(chanFreqs), std::move(chanWidth));
+    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
  private:

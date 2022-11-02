@@ -44,10 +44,7 @@ namespace steps {
 MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
                              const common::ParameterSet& parset,
                              const string& prefix)
-    : itsFirst(-1),
-      itsNMissing(0),
-      itsMSNames(msNames),
-      itsRegularChannels(true) {
+    : itsFirst(-1), itsNMissing(0), itsMSNames(msNames) {
   if (msNames.empty())
     throw std::runtime_error("No names of MeasurementSets given");
   itsStartChanStr = parset.getString(prefix + "startchan", "0");
@@ -141,8 +138,10 @@ void MultiMSReader::handleBands() {
                       itsReaders[i]->getInfo().effectiveBW().data(), nchan);
     inx += nchan;
   }
-  info().set(std::move(chanFreqs), std::move(chanWidths),
-             std::move(resolutions), std::move(effectiveBW));
+  info().setChannels(std::move(chanFreqs), std::move(chanWidths),
+                     std::move(resolutions), std::move(effectiveBW),
+                     itsReaders[itsFirst]->getInfo().refFreq(),
+                     itsReaders[itsFirst]->getInfo().spectralWindow());
 }
 
 void MultiMSReader::sortBands() {
@@ -210,7 +209,7 @@ void MultiMSReader::fillBands() {
     }
   }
 
-  info().set(std::move(chanFreqs), std::move(chanWidths));
+  info().setChannels(std::move(chanFreqs), std::move(chanWidths));
 }
 
 bool MultiMSReader::process(const DPBuffer& buf) {
@@ -298,7 +297,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   itsLastTime = itsReaders[itsFirst]->lastTime();
   itsTimeInterval = getInfo().timeInterval();
   itsSelBL = itsReaders[itsFirst]->baselineSelection();
-  itsSpw = itsReaders[itsFirst]->spectralWindow();
   itsNrCorr = getInfo().ncorr();
   itsNrBl = getInfo().nbaselines();
   itsNrChan = 0;
@@ -353,11 +351,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   // Sort them if needed.
   handleBands();
 
-  // check that channels are regularly spaced, give warning otherwise
-  itsRegularChannels = info().channelsAreRegular();
-
-  // Set correct nr of channels.
-  info().setNChan(itsNrChan);
   // Initialize the flag counters.
   itsFlagCounter.init(getInfo());
 }
@@ -371,11 +364,11 @@ void MultiMSReader::show(std::ostream& os) const {
   if (!itsSelBL.empty()) {
     os << "  baseline:       " << itsSelBL << '\n';
   }
-  os << "  band            " << itsSpw << '\n';
+  os << "  band            " << getInfo().spectralWindow() << '\n';
   os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr << ')'
      << '\n';
   os << "  nchan:          " << itsNrChan << "  (" << itsNrChanStr << ')';
-  if (itsRegularChannels) {
+  if (getInfo().channelsAreRegular()) {
     os << " (regularly spaced)" << '\n';
   } else {
     os << " (NOT regularly spaced)" << '\n';

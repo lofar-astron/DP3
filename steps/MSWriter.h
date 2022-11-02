@@ -107,17 +107,17 @@ class MSWriter : public OutputStep {
   /// Create the MS by cloning all subtables from the input MS.
   /// All output columns in the main table are using normal storage managers.
   /// The SPECTRAL_WINDOW table is adapted as needed.
-  void CreateMs(const std::string& out_name, const base::DPInfo& info,
-                unsigned int tile_size, unsigned int tile_n_chan);
+  void CreateMs(const std::string& out_name, unsigned int tile_size,
+                unsigned int tile_n_chan);
 
   /// Update the SPECTRAL_WINDOW table for averaged channels.
-  void UpdateSpw(const string& out_name, const base::DPInfo& info);
+  void UpdateSpw(const string& out_name);
 
   /// Update the OBSERVATION table with the correct start and end time.
   void UpdateObs(const string& out_name);
 
   /// Update the FIELD table with the new phase center.
-  void UpdatePhaseCentre(const string& out_name, const base::DPInfo& info);
+  void UpdatePhaseCentre(const string& out_name);
 
   /// Update @ref internal_buffer_ with the provided @a buffer.
   void UpdateInternalBuffer(const base::DPBuffer& buffer);

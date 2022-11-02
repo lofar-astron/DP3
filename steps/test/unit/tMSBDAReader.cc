@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(set_info) {
                    // (2000/08/03 13h22m05.000) into seconds
 
   const DPInfo& info = reader.getInfo();
-  BOOST_TEST(reader.spectralWindow() == 0U);
+  BOOST_TEST(info.spectralWindow() == 0U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
   // With BDA we approximate this amount of buffers to be streamed.

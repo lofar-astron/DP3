@@ -87,9 +87,6 @@ class InputStep : public Step {
   virtual double firstTime() const;
   virtual double lastTime() const;
 
-  /// Get the selected spectral window.
-  virtual unsigned int spectralWindow() const;
-
   /// Get the nr of averaged full resolution channels.
   virtual unsigned int nchanAvgFullRes() const;
   /// Get the nr of averaged full resolution time slots.

@@ -67,7 +67,7 @@ void InitInfo(DPInfo& info, const std::vector<int>& ant1,
   info.init(kNCorr, kStartChan, n_chan, kNTime, kStartTime, kInterval,
             kAntennaSet);
   info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
-  info.set(std::move(chan_freqs), std::move(chan_widths));
+  info.setChannels(std::move(chan_freqs), std::move(chan_widths));
 }
 
 void CheckInfo(
