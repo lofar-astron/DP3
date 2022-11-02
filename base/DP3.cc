@@ -131,7 +131,7 @@ static std::shared_ptr<OutputStep> MakeOutputStep(
         // Take care the history is not written twice.
         // Note that if there is nothing to write, the updater won't do
         // anything.
-        step = std::make_shared<MSUpdater>(reader, outName, parset, prefix,
+        step = std::make_shared<MSUpdater>(outName, parset, prefix,
                                            outName != currentMSName);
       } else {
         step = std::make_shared<MSWriter>(*reader, outName, parset, prefix);

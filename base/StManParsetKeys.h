@@ -27,7 +27,8 @@ struct StManParsetKeys {
   std::string
       dyscoNormalization;  ///< Kind of normalization; "AF", "RF" or "Row".
 
-  void Set(const common::ParameterSet& parset, const std::string& prefix) {
+  explicit StManParsetKeys(const common::ParameterSet& parset,
+                           const std::string& prefix) {
     stManName = boost::to_lower_copy(parset.getString(
         prefix + "storagemanager",
         parset.getString(prefix + "storagemanager.name", string())));

@@ -51,7 +51,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
   MSBDAWriter writer(&reader, kMsName, ParameterSet(), "");
 
   DPInfo info;
-  info.init(ncorr, 0, 1, nchan, kTime, kInterval, "", "");
+  info.init(ncorr, 0, 1, nchan, kTime, kInterval, "");
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
@@ -154,7 +154,7 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
   MSBDAWriter writer(nullptr, kMsName, ParameterSet(), "");
 
   DPInfo info;
-  info.init(1, 0, 1, 1, kTime, kInterval, "", "");
+  info.init(1, 0, 1, 1, kTime, kInterval, "");
   info.set(std::vector<std::string>{"ant", "ant2"},
            std::vector<double>{1.0, 2.0},
            {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{0, 0, 0}},
@@ -172,7 +172,7 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
 BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory,
                         *boost::unit_test::label("slow")) {
   DPInfo info;
-  info.init(1, 0, 1, 1, 3.0, 1.5, "", "");
+  info.init(1, 0, 1, 1, 3.0, 1.5, "");
   info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
            {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
            std::vector<int>{0});
@@ -205,7 +205,7 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory,
   ParameterSet parset;
   parset.add(prefix + "overwrite", "true");
   DPInfo info;
-  info.init(1, 0, 1, 1, 3.0, timeInterval, "", "");
+  info.init(1, 0, 1, 1, 3.0, timeInterval, "");
   info.set(std::vector<std::string>{"ant", "ant2"},
            std::vector<double>{1.0, 1.0},
            {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{10, 10, 0}},

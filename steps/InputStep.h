@@ -83,13 +83,6 @@ class InputStep : public Step {
   /// Get the main MS table.
   virtual const casacore::Table& table() const;
 
-  /// @return The name of the column used for reading visibilities from the MS.
-  virtual const std::string& dataColumnName() const = 0;
-  /// @return The name of the column used for reading flags from the MS.
-  virtual const std::string& flagColumnName() const = 0;
-  /// @return The name of the column used for reading weights from the MS.
-  virtual const std::string& weightColumnName() const = 0;
-
   /// Get the time information.
   virtual double firstTime() const;
   virtual double lastTime() const;

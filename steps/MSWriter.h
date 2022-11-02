@@ -86,7 +86,7 @@ class MSWriter : public OutputStep {
   static void WriteHistory(casacore::Table& ms,
                            const common::ParameterSet& parset);
 
-  static void UpdateBeam(const std::string& out_name,
+  static void UpdateBeam(casacore::Table& main_table,
                          const std::string& out_col_name,
                          const base::DPInfo& info);
 

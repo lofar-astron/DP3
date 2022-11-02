@@ -141,18 +141,6 @@ class MSBDAReader : public InputStep {
   /// Get the main MS table.
   const casacore::Table& table() const override { return ms_; }
 
-  const std::string& dataColumnName() const override {
-    return data_column_name_;
-  }
-
-  const std::string& flagColumnName() const override {
-    throw std::runtime_error("MSBDAReader does not support reading flags.");
-  }
-
-  const std::string& weightColumnName() const override {
-    return weight_column_name_;
-  }
-
   /// Get the selected spectral window.
   unsigned int spectralWindow() const override { return spw_; }
 

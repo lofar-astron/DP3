@@ -14,17 +14,26 @@ inputs:
     default: DATA
     type: string
     doc: >-
-      The column in which to write the data. When creating a new MeasurementSet, only column DATA can be used. When updating the input MeasurementSet, any column can be used. If not existing, it will be created first `.`
+      The column in which to write the data. When creating a new MeasurementSet,
+      only column DATA can be used. When updating the input MeasurementSet,
+      any column can be used. If not existing, it will be created first.
+      When this setting is used, the output step always writes the data `.`
   msout&#46;weightcolumn:
     default: WEIGHT_SPECTRUM
     type: string
     doc: >-
-      The column in which to write the weights. When creating a new MeasurementSet, only WEIGHT_SPECTRUM can be used. When updating the input Measurementset, any column can be used. If not existing, it will be created first `.`
+      The column in which to write the weights. When creating a new MeasurementSet,
+      only WEIGHT_SPECTRUM can be used. When updating the input Measurementset,
+      any column can be used. If not existing, it will be created first.
+      When this setting is used, the output step always writes the weights `.`
   msout&#46;flagcolumn:
     default: FLAG
     type: string
     doc: >-
-      The column in which to write the flags. When creating a new MeasurementSet, only the name FLAG can be used. When updating the input MeasurementSet, any column name can be used. If not existing, it will be created first `.`
+      The column in which to write the flags. When creating a new MeasurementSet,
+      only the name FLAG can be used. When updating the input MeasurementSet,
+      any column name can be used. If not existing, it will be created first.
+      When this setting is used, the output step always writes the flags `.`
   msout&#46;writefullresflag:
     default: true
     type: bool

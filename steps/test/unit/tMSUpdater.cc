@@ -29,40 +29,18 @@ const std::string kCopyMs = "tNDPPP-generic-copy.MS";
 const std::complex<float> kDataAdjustment{42.0, 43.0};
 const float kWeightAdjustment{42.0};
 
-const std::string kInputDataColumnName = "input_data";
-const std::string kInputFlagColumnName = "input_flags";
-const std::string kInputWeightColumnName = "input_weights";
-
-/**
- * Test input class that returns fixed column names.
- */
-class TestInput : public dp3::steps::MockInput {
- public:
-  const std::string& dataColumnName() const override {
-    return kInputDataColumnName;
-  }
-
-  const std::string& flagColumnName() const override {
-    return kInputFlagColumnName;
-  }
-
-  const std::string& weightColumnName() const override {
-    return kInputWeightColumnName;
-  }
-};
-
 void TestFields(const std::string& data_column_name,
                 const std::string& flag_column_name,
                 const std::string& weight_column_name,
                 const dp3::common::Fields expected_required_fields) {
-  TestInput input;
   dp3::common::ParameterSet parset;
   parset.add("datacolumn", data_column_name);
   parset.add("flagcolumn", flag_column_name);
   parset.add("weightcolumn", weight_column_name);
-  const MSUpdater updater(&input, "test_msupdater.ms", parset, "");
+  const MSUpdater updater(kInputMs, parset, "");
   BOOST_TEST(updater.getRequiredFields() == expected_required_fields);
   BOOST_TEST(updater.getProvidedFields() == dp3::common::Fields());
+  BOOST_TEST(updater.GetFieldsToWrite() == expected_required_fields);
 }
 
 /**
@@ -118,16 +96,28 @@ class TestAdjust : public dp3::steps::test::ThrowStep {
 BOOST_AUTO_TEST_SUITE(msupdater)
 
 BOOST_AUTO_TEST_CASE(fields) {
-  TestFields(kInputDataColumnName, kInputFlagColumnName, kInputWeightColumnName,
-             dp3::common::Fields());
-  TestFields("custom_data", kInputFlagColumnName, kInputWeightColumnName,
-             Step::kDataField);
-  TestFields(kInputDataColumnName, "custom_flag", kInputWeightColumnName,
-             Step::kFlagsField);
-  TestFields(kInputDataColumnName, kInputFlagColumnName, "custom_weight",
-             Step::kWeightsField);
+  // When the columnnames are empty, MSUpdater should not update.
+  TestFields("", "", "", dp3::common::Fields());
+
+  // When the columnnames are the existing names, MSUpdater always updates.
+  TestFields("DATA", "", "", Step::kDataField);
+  TestFields("", "FLAG", "", Step::kFlagsField);
+  TestFields("", "", "WEIGHT_SPECTRUM", Step::kWeightsField);
+
+  // When the columnnames are different, MSUpdater should update.
+  TestFields("custom_data", "", "", Step::kDataField);
+  TestFields("", "custom_flag", "", Step::kFlagsField);
+  TestFields("", "", "custom_weight", Step::kWeightsField);
   TestFields("all_columns", "have", "different_names",
              Step::kDataField | Step::kFlagsField | Step::kWeightsField);
+}
+
+BOOST_AUTO_TEST_CASE(update_bda_fails) {
+  const std::string kMsName = "tNDPPP_bda_tmp.MS";
+  const dp3::common::ParameterSet kParset;
+  MSUpdater updater(kMsName, kParset, "");
+  BOOST_CHECK_THROW(updater.updateInfo(dp3::base::DPInfo()),
+                    std::runtime_error);
 }
 
 BOOST_DATA_TEST_CASE_F(
@@ -145,8 +135,7 @@ BOOST_DATA_TEST_CASE_F(
   {
     auto reader = std::make_shared<MSReader>(updated_ms, parset, "");
     auto adjust = std::make_shared<TestAdjust>();
-    auto updater =
-        std::make_shared<MSUpdater>(reader.get(), kCopyMs, parset, "");
+    auto updater = std::make_shared<MSUpdater>(kCopyMs, parset, "");
     reader->setFieldsToRead(Step::kDataField | Step::kFlagsField |
                             Step::kWeightsField);
     updater->SetFieldsToWrite(fields_to_write);

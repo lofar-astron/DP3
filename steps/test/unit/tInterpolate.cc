@@ -125,7 +125,7 @@ class TestInput : public dp3::steps::MockInput {
   virtual void finish() { getNextStep()->finish(); }
   virtual void updateInfo(const DPInfo&) {
     // Use startchan=0 and timeInterval=5
-    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
+    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string());
   }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;

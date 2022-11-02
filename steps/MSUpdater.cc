@@ -5,12 +5,10 @@
 // @author Ger van Diepen
 
 #include "MSUpdater.h"
-#include "MSReader.h"
-#include "MSWriter.h"
 
-#include <dp3/base/DPBuffer.h>
-
-#include "../common/ParameterSet.h"
+#include <cassert>
+#include <iostream>
+#include <limits>
 
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -21,8 +19,14 @@
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
-#include <iostream>
-#include <limits>
+
+#include <dp3/base/DPBuffer.h>
+
+#include "../base/DPLogger.h"
+#include "../common/ParameterSet.h"
+
+#include "InputStep.h"
+#include "MSWriter.h"
 
 using casacore::ArrayColumn;
 using casacore::ColumnDesc;
@@ -46,27 +50,25 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-MSUpdater::MSUpdater(InputStep* reader, casacore::String msName,
-                     const common::ParameterSet& parset,
+MSUpdater::MSUpdater(std::string msName, const common::ParameterSet& parset,
                      const std::string& prefix, bool writeHistory)
-    : itsReader(reader),
-      itsName(prefix),
-      itsMSName(msName),
+    : itsName(prefix),
+      itsMSName(std::move(msName)),
       itsParset(parset),
+      itsDataColName(parset.getString(prefix + "datacolumn", "")),
+      itsFlagColName(parset.getString(prefix + "flagcolumn", "")),
+      itsWeightColName(parset.getString(prefix + "weightcolumn", "")),
+      itsNrTimesFlush(parset.getUint(prefix + "flush", 0)),
       itsNrDone(0),
       itsDataColAdded(false),
       itsFlagColAdded(false),
       itsWeightColAdded(false),
-      itsWriteHistory(writeHistory) {
-  itsDataColName = parset.getString(prefix + "datacolumn", "");
-  itsFlagColName = parset.getString(prefix + "flagcolumn", "");
-  itsWeightColName = parset.getString(prefix + "weightcolumn", "");
-  itsNrTimesFlush = parset.getUint(prefix + "flush", 0);
-  itsTileSize = parset.getUint(prefix + "tilesize", 1024);
-  itsStManKeys.Set(parset, prefix);
+      itsWriteHistory(writeHistory),
+      itsTileSize(parset.getUint(prefix + "tilesize", 1024)),
+      itsStManKeys(parset, prefix) {
+  // Call SetFieldsToWrite, since getRequiredFields() uses GetFieldsToWrite().
+  SetFieldsToWrite(common::Fields());
 }
-
-MSUpdater::~MSUpdater() {}
 
 bool MSUpdater::addColumn(const string& colName,
                           const casacore::DataType dataType,
@@ -207,55 +209,28 @@ void MSUpdater::finish() {}
 
 common::Fields MSUpdater::getRequiredFields() const {
   common::Fields fields;
-  if (itsDataColName != itsReader->dataColumnName()) fields |= kDataField;
-  if (itsFlagColName != itsReader->flagColumnName()) fields |= kFlagsField;
-  if (itsWeightColName != itsReader->weightColumnName())
-    fields |= kWeightsField;
+  if (GetFieldsToWrite().Data()) fields |= kDataField;
+  if (GetFieldsToWrite().Flags()) fields |= kFlagsField;
+  if (GetFieldsToWrite().Weights()) fields |= kWeightsField;
   return fields;
 }
 
+void MSUpdater::SetFieldsToWrite(const common::Fields& base_fields) {
+  // SetFieldsToWrite currently only supports calls before updateInfo() is
+  // called, since updateInfo() updates the column name members.
+  assert(info().dataColumnName().empty() && info().flagColumnName().empty() &&
+         info().weightColumnName().empty());
+
+  // A non-empty column name indicates it should be written.
+  common::Fields fields = base_fields;
+  if (!itsDataColName.empty()) fields |= kDataField;
+  if (!itsFlagColName.empty()) fields |= kFlagsField;
+  if (!itsWeightColName.empty()) fields |= kWeightsField;
+  OutputStep::SetFieldsToWrite(fields);
+}
+
 void MSUpdater::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-
-  if (itsReader->outputs() != this->outputs()) {
-    throw std::runtime_error(
-        "Update step is not possible because input/output types are "
-        "incompatible (BDA buffer - Regular buffer).\nSpecify a name in the "
-        "parset for \"msout\"");
-  }
-
-  const std::string& origDataColName = itsReader->dataColumnName();
-  if (itsDataColName.empty()) {
-    itsDataColName = origDataColName;
-  } else if (itsDataColName != origDataColName) {
-    info().setNeedVisData();
-    SetFieldsToWrite(GetFieldsToWrite() |
-                     common::Fields(common::Fields::Single::kData));
-  }
-
-  const std::string& origWeightColName = itsReader->weightColumnName();
-  if (itsWeightColName.empty()) {
-    if (origWeightColName == "WEIGHT") {
-      itsWeightColName = "WEIGHT_SPECTRUM";
-    } else {
-      itsWeightColName = origWeightColName;
-    }
-  }
-  if (itsWeightColName == "WEIGHT")
-    throw std::runtime_error(
-        "Can't use WEIGHT column as spectral weights column");
-  if (itsWeightColName != origWeightColName) {
-    SetFieldsToWrite(GetFieldsToWrite() |
-                     common::Fields(common::Fields::Single::kWeights));
-  }
-
-  const std::string& origFlagColName = itsReader->flagColumnName();
-  if (itsFlagColName.empty()) {
-    itsFlagColName = origFlagColName;
-  } else if (itsFlagColName != origFlagColName) {
-    SetFieldsToWrite(GetFieldsToWrite() |
-                     common::Fields(common::Fields::Single::kFlags));
-  }
+  Step::updateInfo(infoIn);
 
   if (getInfo().metaChanged()) {
     throw std::runtime_error("Update step " + itsName +
@@ -263,11 +238,42 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
                              " (by averaging, adding/removing stations, etc.)");
   }
 
+  // Since an MSUpdater supports updating an MS created by MSWriter, and
+  // MSWriter creates its MS in updateInfo(), MSUpdater should delay opening the
+  // MS until updateInfo().
+  itsMS = casacore::MeasurementSet(itsMSName, TableLock::AutoNoReadLocking,
+                                   Table::Update);
+  if (InputStep::HasBda(itsMS)) {
+    throw std::runtime_error(
+        R"(Update step is not possible because the input/output types are incompatible
+(BDA buffer - Regular buffer).
+Specify a name in the parset for "msout".)");
+  }
+
+  if (itsDataColName.empty()) {
+    itsDataColName = infoIn.dataColumnName();
+  }
+
+  if (itsWeightColName.empty()) {
+    if (infoIn.weightColumnName() == "WEIGHT") {
+      itsWeightColName = "WEIGHT_SPECTRUM";
+      SetFieldsToWrite(GetFieldsToWrite() | kWeightsField);
+    } else {
+      itsWeightColName = infoIn.weightColumnName();
+    }
+  }
+
+  if (itsWeightColName == "WEIGHT")
+    throw std::runtime_error(
+        "Can't use WEIGHT column as spectral weights column");
+
+  if (itsFlagColName.empty()) {
+    itsFlagColName = infoIn.flagColumnName();
+  }
+
   if (GetFieldsToWrite().Data() || GetFieldsToWrite().Flags() ||
       GetFieldsToWrite().Weights()) {
     common::NSTimer::StartStop sstime(itsTimer);
-    itsMS =
-        MeasurementSet(itsMSName, TableLock::AutoNoReadLocking, Table::Update);
     // Add the data + flag + weight column if needed and if it does not exist
     // yet.
     if (GetFieldsToWrite().Data()) {
@@ -288,7 +294,7 @@ void MSUpdater::updateInfo(const DPInfo& infoIn) {
       itsWeightColAdded = addColumn(itsWeightColName, casacore::TpFloat, cd);
     }
   }
-  MSWriter::UpdateBeam(itsMSName, itsDataColName, info());
+  MSWriter::UpdateBeam(itsMS, itsDataColName, info());
   // Subsequent steps have to set again if writes need to be done.
   info().clearMetaChanged();
 }

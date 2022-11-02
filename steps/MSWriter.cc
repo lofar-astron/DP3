@@ -76,7 +76,8 @@ MSWriter::MSWriter(InputStep& reader, const std::string& out_name,
       name_(prefix),
       out_name_(out_name),
       parset_(parset),
-      nr_done_(0) {
+      nr_done_(0),
+      st_man_keys_(parset, prefix) {
   // Get tile size (default 1024 KBytes).
   tile_size_ = parset.getUint(prefix + "tilesize", 1024);
   tile_n_chan_ = parset.getUint(prefix + "tilenchan", 0);
@@ -104,8 +105,6 @@ MSWriter::MSWriter(InputStep& reader, const std::string& out_name,
     throw std::runtime_error(
         "Currently only the "
         "WEIGHT_SPECTRUM column can be used as output when writing a new MS");
-
-  st_man_keys_.Set(parset, prefix);
 }
 
 MSWriter::~MSWriter() { StopWriteThread(); }
@@ -522,7 +521,7 @@ void MSWriter::CreateMs(const string& out_name, const DPInfo& info,
   if (info.originalPhaseCenter().getValue() != info.phaseCenter().getValue()) {
     UpdatePhaseCentre(out_name, info);
   }
-  UpdateBeam(out_name, "DATA", info);
+  UpdateBeam(ms_, "DATA", info);
 }
 
 void MSWriter::UpdateSpw(const string& out_name, const DPInfo& info) {
@@ -596,12 +595,11 @@ void MSWriter::UpdatePhaseCentre(const string& out_name, const DPInfo& info) {
   phase_col.put(0, dir);
 }
 
-void MSWriter::UpdateBeam(const std::string& out_name,
-                          const std::string& out_col_name, const DPInfo& info) {
+void MSWriter::UpdateBeam(Table& main_table, const std::string& out_col_name,
+                          const DPInfo& info) {
   const char *beam_mode_field_name = "LOFAR_APPLIED_BEAM_MODE",
              *beam_dir_field_name = "LOFAR_APPLIED_BEAM_DIR";
 
-  Table main_table(out_name, Table::Update);
   ArrayColumn<casacore::Complex> data_column(main_table, out_col_name);
   bool fields_exist = data_column.keywordSet().isDefined(beam_mode_field_name);
   const std::string mode_str = everybeam::ToString(

@@ -18,10 +18,6 @@ class MockInput : public InputStep {
   common::Fields getRequiredFields() const override;
   common::Fields getProvidedFields() const override;
 
-  const std::string& dataColumnName() const override;
-  const std::string& flagColumnName() const override;
-  const std::string& weightColumnName() const override;
-
   void getUVW(const casacore::RefRows&, double,
               base::DPBuffer& buffer) override;
   void getWeights(const casacore::RefRows&, base::DPBuffer& buffer) override;
