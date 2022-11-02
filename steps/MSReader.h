@@ -168,17 +168,6 @@ class MSReader : public InputStep {
   /// Get the main MS table.
   const casacore::Table& table() const override { return itsMS; }
 
-  /// Get the name of the data column to be used.
-  const std::string& dataColumnName() const override { return itsDataColName; }
-
-  const std::string& flagColumnName() const override { return itsFlagColName; }
-
-  const std::string& weightColumnName() const override {
-    return itsWeightColName;
-  }
-
-  const std::string& modelColumnName() const { return itsModelColName; }
-
   /// Get the slicer in the FLAG and DATA column.
   const casacore::Slicer& colSlicer() const { return itsColSlicer; }
 

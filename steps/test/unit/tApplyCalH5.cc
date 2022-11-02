@@ -47,7 +47,7 @@ class TestInput : public dp3::steps::MockInput {
         itsTimeInterval(5.),
         itsFirstTime(4472025740.0) {
     info().init(itsNCorr, 0, nchan, ntime, itsFirstTime, itsTimeInterval,
-                string(), string());
+                std::string());
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 

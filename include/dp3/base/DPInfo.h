@@ -34,7 +34,12 @@ class DPInfo {
   /// Set the initial info from the input.
   void init(unsigned int ncorr, unsigned int startChan, unsigned int nchan,
             unsigned int ntime, double startTime, double timeInterval,
-            const string& msName, const string& antennaSet);
+            const std::string& antennaSet);
+
+  void setMsNames(const std::string& ms_name,
+                  const std::string& data_column_name,
+                  const std::string& flag_column_name,
+                  const std::string& weight_column_name);
 
   void setIsBDAIntervalFactorInteger(bool isIntervalInteger) {
     bda_interval_factor_is_integer_ = isIntervalInteger;
@@ -105,8 +110,11 @@ class DPInfo {
 
   /// Get the info.
   ///@{
-  const string& msName() const { return ms_name_; }
-  const string& antennaSet() const { return antenna_set_; }
+  const std::string& msName() const { return ms_name_; }
+  const std::string& dataColumnName() const { return data_column_name_; }
+  const std::string& flagColumnName() const { return flag_column_name_; }
+  const std::string& weightColumnName() const { return weight_column_name_; }
+  const std::string& antennaSet() const { return antenna_set_; }
   unsigned int ncorr() const { return n_correlations_; }
   unsigned int nchan() const { return n_channels_; }
   unsigned int startchan() const { return start_channel_; }
@@ -255,6 +263,9 @@ class DPInfo {
   bool need_data_;     ///< Is the visibility data needed?
   bool meta_changed_;  ///< Are meta data changed? (e.g., by averaging)
   std::string ms_name_;
+  std::string data_column_name_;
+  std::string flag_column_name_;
+  std::string weight_column_name_;
   std::string antenna_set_;
   unsigned int n_correlations_;
   unsigned int start_channel_;

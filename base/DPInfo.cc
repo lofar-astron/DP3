@@ -46,8 +46,7 @@ DPInfo::DPInfo()
 
 void DPInfo::init(unsigned int ncorr, unsigned int startChan,
                   unsigned int nchan, unsigned int ntime, double startTime,
-                  double timeInterval, const string& msName,
-                  const string& antennaSet) {
+                  double timeInterval, const std::string& antennaSet) {
   n_correlations_ = ncorr;
   start_channel_ = startChan;
   n_channels_ = nchan;
@@ -55,8 +54,17 @@ void DPInfo::init(unsigned int ncorr, unsigned int startChan,
   n_times_ = ntime;
   start_time_ = startTime;
   time_interval_ = timeInterval;
-  ms_name_ = msName;
   antenna_set_ = antennaSet;
+}
+
+void DPInfo::setMsNames(const std::string& ms_name,
+                        const std::string& data_column_name,
+                        const std::string& flag_column_name,
+                        const std::string& weight_column_name) {
+  ms_name_ = ms_name;
+  data_column_name_ = data_column_name;
+  flag_column_name_ = flag_column_name;
+  weight_column_name_ = weight_column_name;
 }
 
 void DPInfo::set(std::vector<double>&& chan_freqs,

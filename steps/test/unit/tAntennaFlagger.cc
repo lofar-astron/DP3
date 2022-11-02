@@ -37,8 +37,7 @@ class TestInput final : public dp3::steps::MockInput {
         n_correlations_(n_correlations),
         flag_(flag) {
     // Define start time 0.5 (= 3 - 0.5*5) and time interval 5.
-    info().init(n_correlations, 0, n_channels, n_time, 0.5, 5., string(),
-                string());
+    info().init(n_correlations, 0, n_channels, n_time, 0.5, 5.0, std::string());
 
     // Fill the baselines; use 12 stations with 48 antennas each.
     constexpr int n_receivers = 12 * 48;

@@ -44,7 +44,7 @@ class OnePredictFixture {
 
   void SetInfo() {
     dp3::base::DPInfo info;
-    info.init(1, 0, 1, 10, 0.0, 1.0, "", "");
+    info.init(1, 0, 1, 10, 0.0, 1.0, "");
 
     const std::vector<int> kAnt1{0, 0, 1};
     const std::vector<int> kAnt2{1, 2, 2};

@@ -89,7 +89,7 @@ class TestInput : public dp3::steps::MockInput {
         itsNCorr(ncorr),
         itsFlag(flag) {
     // Define start time 0.5 (= 3 - 0.5*5) and time interval 5.
-    info().init(ncorr, 0, nchan, ntime, 0.5, 5., string(), string());
+    info().init(ncorr, 0, nchan, ntime, 0.5, 5.0, std::string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     std::vector<int> ant1(nbl);
@@ -192,7 +192,7 @@ class TestInput : public dp3::steps::MockInput {
   virtual void finish() { getNextStep()->finish(); }
   virtual void updateInfo(const DPInfo&) {
     // Use timeInterval=5
-    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, string(), string());
+    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string());
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNChan, 100000.);

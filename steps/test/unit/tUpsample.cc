@@ -83,7 +83,7 @@ class TestInput : public dp3::steps::MockInput {
 
   void updateInfo(const DPInfo&) override {
     info().init(kNCorr, 0, kNChannels, times_.size(), times_[0], time_interval_,
-                "", "");
+                "");
     // Define the frequencies.
     std::vector<double> chan_freqs;
     std::vector<double> chan_width(kNChannels, 100000.);

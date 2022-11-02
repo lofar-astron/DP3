@@ -40,7 +40,7 @@ class TestInput : public dp3::steps::MockInput {
         itsNChan(nchan),
         itsNCorr(ncorr),
         itsFlag(flag) {
-    info().init(ncorr, 0, nchan, ntime, 0., 10., string(), string());
+    info().init(ncorr, 0, nchan, ntime, 0.0, 10.0, std::string());
     casacore::MDirection phaseCenter(casacore::Quantity(45, "deg"),
                                      casacore::Quantity(30, "deg"),
                                      casacore::MDirection::J2000);

@@ -681,7 +681,8 @@ void MSReader::prepare2() {
     antennaSet = ScalarColumn<casacore::String>(obstab, "LOFAR_ANTENNA_SET")(0);
   }
   info().init(itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
-              itsTimeInterval, msName(), antennaSet);
+              itsTimeInterval, antennaSet);
+  info().setMsNames(msName(), itsDataColName, itsFlagColName, itsWeightColName);
   // Read the center frequencies of all channels.
   Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
   ArrayColumn<double> freqCol(spwtab, "CHAN_FREQ");

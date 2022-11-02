@@ -152,7 +152,11 @@ void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
 
   // FillInfoMetaData already set the number of channels via DPInfo::set.
   info().init(ncorr, start_chan, info().nchan(), ntime,
-              first_time_ - interval_ / 2, interval_, msName(), antenna_set);
+              first_time_ - interval_ / 2, interval_, antenna_set);
+
+  const std::string kFlagColumnName = "";  // Reading flags is not supported.
+  info().setMsNames(msName(), data_column_name_, kFlagColumnName,
+                    weight_column_name_);
   info().setIsBDAIntervalFactorInteger(is_interval_integer_);
 }
 

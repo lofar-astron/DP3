@@ -44,7 +44,7 @@ class TestInput : public dp3::steps::MockInput {
         n_channels_(n_channels),
         n_correlations_(n_correlations) {
     info().init(n_correlations, 0, n_channels, n_times, 0., time_interval_,
-                string(), string());
+                std::string());
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(n_baselines);

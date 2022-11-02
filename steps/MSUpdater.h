@@ -5,25 +5,18 @@
 #ifndef DP3_STEPS_MSUPDATER_H_
 #define DP3_STEPS_MSUPDATER_H_
 
-#include "OutputStep.h"
-
-#include "../base/StManParsetKeys.h"
-#include "../common/Timer.h"
-
+#include <casacore/tables/Tables/ColumnDesc.h>
+#include <casacore/tables/Tables/RefRows.h>
 #include <casacore/tables/Tables/Table.h>
 
-namespace casacore {
-class ColumnDesc;
-class RefRows;
-}  // namespace casacore
+#include "../base/StManParsetKeys.h"
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
+
+#include "OutputStep.h"
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
-class InputStep;
 
 /// @brief DP3 step writing to an MS
 
@@ -36,13 +29,12 @@ class InputStep;
 
 class MSUpdater : public OutputStep {
  public:
-  MSUpdater(InputStep* reader, casacore::String msName,
-            const common::ParameterSet& parset, const std::string& prefix,
-            bool writeHistory = true);
-
-  virtual ~MSUpdater();
+  explicit MSUpdater(std::string msName, const common::ParameterSet& parset,
+                     const std::string& prefix, bool writeHistory = true);
 
   common::Fields getRequiredFields() const override;
+
+  void SetFieldsToWrite(const common::Fields& fields) override;
 
   /// Process the next data chunk.
   /// It returns false when at the end.
@@ -89,8 +81,7 @@ class MSUpdater : public OutputStep {
   bool addColumn(const string& colname, const casacore::DataType dataType,
                  const casacore::ColumnDesc& cd);
 
-  InputStep* itsReader;
-  string itsName;
+  std::string itsName;
   std::string itsMSName;
   casacore::Table itsMS;
   const common::ParameterSet& itsParset;

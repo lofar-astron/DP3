@@ -17,18 +17,6 @@ common::Fields MockInput::getProvidedFields() const {
   throw std::runtime_error("Unexpected getProvidedFields call");
 }
 
-const std::string& MockInput::dataColumnName() const {
-  throw std::runtime_error("Unexpected dataColumnName call");
-}
-
-const std::string& MockInput::flagColumnName() const {
-  throw std::runtime_error("Unexpected flagColumnName call");
-}
-
-const std::string& MockInput::weightColumnName() const {
-  throw std::runtime_error("Unexpected weightColumnName call");
-}
-
 void MockInput::getUVW(const casacore::RefRows&, double,
                        base::DPBuffer& buffer) {
   BOOST_TEST(!buffer.getUVW().empty());

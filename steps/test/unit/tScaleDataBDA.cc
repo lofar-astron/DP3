@@ -52,8 +52,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
 // Generate DP Info for 2 antennas
 DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
-  DPInfo info = DPInfo();
-  info.init(ncorr, 0, nchan, ntime, 0., 5., string(), string());
+  DPInfo info;
+  info.init(ncorr, 0, nchan, ntime, 0.0, 5.0, std::string());
   // Fill the baseline stations; use 2 stations.
   // So they are called 00 01 10 11 00 01 ...
   vector<int> ant1(nbl);

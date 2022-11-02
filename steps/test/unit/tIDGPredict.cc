@@ -47,7 +47,7 @@ void InitInfo(dp3::base::DPInfo& info, const std::vector<int>& ant1,
     chan_freqs[i] = i * 10000.0;
   }
 
-  info.init(kNCorr, kStartChan, n_chan, kNTime, kStartTime, kInterval, kMsName,
+  info.init(kNCorr, kStartChan, n_chan, kNTime, kStartTime, kInterval,
             kAntennaSet);
   info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
   info.set(std::move(chan_freqs), std::move(chan_widths));
