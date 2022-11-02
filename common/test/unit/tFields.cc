@@ -86,7 +86,8 @@ BOOST_AUTO_TEST_CASE(outputstream) {
                  Fields(Fields::Single::kFlags) |
                  Fields(Fields::Single::kFullResFlags) |
                  Fields(Fields::Single::kUvw));
-  BOOST_CHECK_EQUAL(stream_all.str(), "[data, flags, weights, frf, uvw]");
+  BOOST_CHECK_EQUAL(stream_all.str(),
+                    "[data, flags, weights, fullresflags, uvw]");
 }
 
 BOOST_AUTO_TEST_CASE(update_requirements) {

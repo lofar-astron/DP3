@@ -20,6 +20,9 @@ PYBIND11_MODULE(parameterset, m) {
              std::shared_ptr<ParameterSet>  // holder type
              >(m, "ParameterSet")
       .def(py::init<>())
+      .def(py::init<std::string>(),
+           "Construct a ParameterSet from the contents of the filename given "
+           "as argument.")
       .def("getBool", (bool(ParameterSet::*)(const std::string&) const) &
                           ParameterSet::getBool)
       .def("getBool", (bool(ParameterSet::*)(const std::string&, bool) const) &

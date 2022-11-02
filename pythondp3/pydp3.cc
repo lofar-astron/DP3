@@ -4,6 +4,8 @@
 
 #include "PyStep.h"
 #include "PyStepImpl.h"
+#include <dp3/common/Fields.h>
+#include <sstream>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -13,6 +15,7 @@
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
+using dp3::common::Fields;
 
 namespace py = pybind11;
 
@@ -100,6 +103,10 @@ PYBIND11_MODULE(pydp3, m) {
            "Process the next step")
       .def("get_count", &StepWrapper::get_count,
            "Get the number of time slots processed")
+      .def("get_required_fields", &StepWrapper::getRequiredFields,
+           "Get the fields required by current step")
+      .def("get_provided_fields", &StepWrapper::getProvidedFields,
+           "Get the fields provided by current step")
       .def_readwrite("fetch_uvw", &StepWrapper::m_fetch_uvw,
                      "Fill the UVW data in the buffer")
       .def_readwrite("fetch_weights", &StepWrapper::m_fetch_weights,
@@ -171,6 +178,57 @@ PYBIND11_MODULE(pydp3, m) {
       .def("time_interval", &DPInfo::timeInterval, "Get the time interval")
       .def("ntime", &DPInfo::ntime, "Get the total number of time slots")
       .def("ms_name", &DPInfo::msName, "Get name of measurement set");
+
+  py::class_<Fields, std::shared_ptr<Fields>> fields(m, "Fields");
+  fields.def(py::init<>())
+      .def(py::init<Fields>())
+      .def(py::init<Fields::Single>())
+      .def_property_readonly("data", &Fields::Data)
+      .def_property_readonly("flags", &Fields::Flags)
+      .def_property_readonly("uvw", &Fields::Uvw)
+      .def_property_readonly("weights", &Fields::Weights)
+      .def_property_readonly("fullresflags", &Fields::FullResFlags)
+      .def(
+          "update_requirements",
+          [](Fields &self, const Fields &a, const Fields &b) {
+            return self.UpdateRequirements(a, b);
+          },
+          "Updates the current object's Fields based on a step's required and "
+          "provided Fields")
+      .def("__str__",
+           [](const Fields &a) {
+             std::stringstream ss;
+             ss << a;
+             return ss.str();
+           })
+      .def("__eq__", [](const Fields &a, const Fields &b) { return a == b; })
+      .def("__neq__", [](const Fields &a, const Fields &b) { return a != b; })
+      .def("__or__", [](const Fields &a, const Fields &b) { return a | b; })
+      .def("__ior__", [](Fields &a, const Fields &b) {
+        a |= b;
+        return a;
+      });
+
+  py::enum_<Fields::Single> fields_enum(fields, "Single");
+  fields_enum.value("DATA", Fields::Single::kData)
+      .value("FLAGS", Fields::Single::kFlags)
+      .value("WEIGHTS", Fields::Single::kWeights)
+      .value("FULLRESFLAGS", Fields::Single::kFullResFlags)
+      .value("UVW", Fields::Single::kUvw);
+
+  // Custom export_values()
+  // For each entry in the Fields.Single enum a static property is added to the
+  // Fields class. The getter function returns a new instance that can be
+  // modified freely without affecting the value returned by subsequent calls to
+  // the getter. This allows the usage of, for example, Fields.DATA instead of
+  // the more verbose Fields(Fields.Single.DATA)
+  py::dict entries = fields_enum.attr("__entries");
+  for (auto kv : entries) {
+    auto key = kv.first.cast<string>();
+    auto value = kv.second[py::int_(0)];
+    fields.def_property_readonly_static(
+        key.c_str(), [value](py::object fields) { return fields(value); });
+  }
 }
 
 void test() {}

@@ -4,3 +4,4 @@ leak:libcasa_casa
 leak:libcasa_measures
 leak:libpython
 leak:numpy
+leak:pybind11

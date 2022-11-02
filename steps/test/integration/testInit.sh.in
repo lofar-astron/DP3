@@ -4,9 +4,6 @@
 # A test script should source this file at its start.
 # If this file is test_common.sh, CMake generated it from test_common.sh.in.
 
-import sys
-import os
-
 # Set common environment for scripts. CMake configures these variables.
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_BINARY_DIR@
@@ -14,9 +11,6 @@ resourcedir=@CMAKE_SOURCE_DIR@/resources
 dp3exe=@CMAKE_BINARY_DIR@/DP3
 makesourcedbexe=@CMAKE_BINARY_DIR@/makesourcedb
 taqlexe=@TAQL_EXECUTABLE@
-
-# Prepend the search path with the python build dir, which contains the pseudo install directory 'dp3'.
-sys.path.insert(0, os.path.join(bindir, "pythondp3"))
 
 # Create and initialize temp directory
 # FIXME: can be removed once all integration tests are converted
