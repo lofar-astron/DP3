@@ -150,6 +150,14 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
           output_stream_step.str() ==
           "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
 
+      common::Fields provided = py_step->getProvidedFields();
+      common::Fields required = py_step->getRequiredFields();
+      BOOST_CHECK(provided.Data() && provided.Flags() && provided.Weights());
+      BOOST_CHECK((!provided.FullResFlags()) && (!provided.Uvw()));
+      BOOST_CHECK(required.Data() && required.Weights());
+      BOOST_CHECK((!required.Flags()) && (!required.FullResFlags()) &&
+                  (!required.Uvw()));
+
       dp3::steps::test::Execute({in_step, py_step, out_step});
     }
     // out_step went out of scope here, but is still reachable following

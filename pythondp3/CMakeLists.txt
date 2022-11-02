@@ -18,5 +18,5 @@ target_link_libraries(parameterset PRIVATE LIBDP3)
 # Output the library/module in the pseudo install directory 'dp3'
 set_target_properties(parameterset PROPERTIES LIBRARY_OUTPUT_DIRECTORY dp3)
 
-install(TARGETS pydp3 parameterset DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
+install(TARGETS parameterset pydp3 DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
 install(FILES __init__.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3")

@@ -5,7 +5,7 @@
 # the (py)dp3.DPStep class.
 
 from dp3 import parameterset
-from dp3 import Step
+from dp3 import Step, Fields
 import numpy as np
 
 
@@ -46,6 +46,13 @@ class MockPyStep(Step):
         print("\nMockPyStep")
         print(f"  data factor:    {self.datafactor}")
         print(f"  weights factor: {self.weightsfactor}")
+
+    def get_required_fields(self):
+        return Fields.DATA | Fields.WEIGHTS
+
+    def get_provided_fields(self):
+        # The Flags field is added as provided fields only for testing purposes.
+        return Fields.DATA | Fields.FLAGS | Fields.WEIGHTS
 
     def process(self, dpbuffer):
         """
