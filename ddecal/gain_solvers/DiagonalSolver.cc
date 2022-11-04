@@ -23,33 +23,11 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   assert(solutions.size() == NChannelBlocks());
 
   PrepareConstraints();
-
-  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
-
   SolveResult result;
 
-  // Model matrix 2 x ant x [2N x D] and visibility vector 2 x ant x [2N],
-  // for each channelblock. The following loop allocates all structures
-  std::vector<std::vector<Matrix>> g_times_cs(NChannelBlocks());
-  std::vector<std::vector<std::vector<Complex>>> vs(NChannelBlocks());
-  for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
-    const SolveData::ChannelBlockData& channelBlock =
-        data.ChannelBlock(ch_block);
-    next_solutions[ch_block].resize(NDirections() * NAntennas() * 2);
-    g_times_cs[ch_block].reserve(NAntennas() * 2);
-    vs[ch_block].reserve(NAntennas() * 2);
-
-    for (size_t ant = 0; ant != NAntennas(); ++ant) {
-      // Model matrix [(2N) x D] and visibility vector [2N]
-      const size_t n_visibilities = channelBlock.NAntennaVisibilities(ant);
-      const size_t m = 2 * n_visibilities;
-      const size_t n = NDirections();
-      for (size_t p = 0; p != 2; ++p) {
-        g_times_cs[ch_block].emplace_back(m, n);
-        vs[ch_block].emplace_back(std::max(m, n));
-      }
-    }
-  }
+  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+  for (std::vector<DComplex>& next_solution : next_solutions)
+    next_solution.resize(NDirections() * NAntennas() * 2);
 
   ///
   /// Start iterating
@@ -64,17 +42,29 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
   double avg_squared_diff = 1.0E4;
 
+  // Using more threads wastes CPU and memory resources.
+  const size_t n_threads = std::min(NChannelBlocks(), GetNThreads());
+  // For each thread:
+  // - Model matrix 2 x ant x [2N x D]
+  // - Visibility vector 2 x ant x [2N]
+  std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
+  std::vector<std::vector<std::vector<Complex>>> thread_vs(n_threads);
+
+  aocommon::ParallelFor<size_t> loop(n_threads);
   do {
     MakeSolutionsFinite2Pol(solutions);
 
-    ParallelFor<size_t> loop(GetNThreads());
     loop.Run(0, NChannelBlocks(),
              [&](size_t ch_block, [[maybe_unused]] size_t thread) {
-               const SolveData::ChannelBlockData& channelBlock =
+               const SolveData::ChannelBlockData& channel_block =
                    data.ChannelBlock(ch_block);
-               PerformIteration(channelBlock, g_times_cs[ch_block],
-                                vs[ch_block], solutions[ch_block],
-                                next_solutions[ch_block]);
+
+               std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread];
+               std::vector<std::vector<Complex>>& vs = thread_vs[thread];
+               InitializeModelMatrix(channel_block, g_times_cs, vs);
+
+               PerformIteration(channel_block, g_times_cs, vs,
+                                solutions[ch_block], next_solutions[ch_block]);
              });
 
     Step(solutions, next_solutions);
@@ -200,6 +190,35 @@ void DiagonalSolver::PerformIteration(
           next_solutions[(ant * NDirections() + d) * 2 + pol] =
               std::numeric_limits<double>::quiet_NaN();
       }
+    }
+  }
+}
+
+void DiagonalSolver::InitializeModelMatrix(
+    const SolveData::ChannelBlockData& channel_block_data,
+    std::vector<Matrix>& g_times_cs,
+    std::vector<std::vector<Complex>>& vs) const {
+  assert(g_times_cs.empty() == vs.empty());
+  if (g_times_cs.empty()) {
+    // Executed the first iteration only.
+    g_times_cs.reserve(NAntennas() * 2);
+    vs.reserve(NAntennas() * 2);
+  } else {
+    // Note clear() does not modify the capacity.
+    // See https://en.cppreference.com/w/cpp/container/vector/clear
+    g_times_cs.clear();
+    vs.clear();
+  }
+
+  // Update the size of the model matrix and initialize them to zero.
+  for (size_t ant = 0; ant != NAntennas(); ++ant) {
+    // Model matrix [(2N) x D] and visibility vector [2N]
+    const size_t n_visibilities = channel_block_data.NAntennaVisibilities(ant);
+    const size_t m = n_visibilities * 2;
+    const size_t n = NDirections();
+    for (size_t p = 0; p != 2; ++p) {
+      g_times_cs.emplace_back(m, n);
+      vs.emplace_back(std::max(m, n));
     }
   }
 }

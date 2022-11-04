@@ -51,33 +51,11 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   assert(solutions.size() == NChannelBlocks());
 
   PrepareConstraints();
-
-  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
-
   SolveResult result;
 
-  // Dimensions for each channelblock:
-  // - Model matrix: n_antennas x [2N x 2D]
-  // - Visibility matrix: n_antennas x [2N x 2]
-  // The following loop allocates all structures:
-  std::vector<std::vector<Matrix>> g_times_cs(NChannelBlocks());
-  std::vector<std::vector<Matrix>> vs(NChannelBlocks());
-  for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
-    const SolveData::ChannelBlockData& channel_block_data =
-        data.ChannelBlock(ch_block);
+  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+  for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block)
     next_solutions[ch_block].resize(NDirections() * NAntennas() * 4);
-    g_times_cs[ch_block].reserve(NAntennas());
-    vs[ch_block].reserve(NAntennas());
-
-    for (size_t ant = 0; ant != NAntennas(); ++ant) {
-      // Model matrix [2N x 2D] and visibility matrix [2N x 2]
-      const size_t m = channel_block_data.NAntennaVisibilities(ant) * 2;
-      const size_t n = NDirections() * 2;
-      const size_t n_rhs = 2;
-      g_times_cs[ch_block].emplace_back(m, n);
-      vs[ch_block].emplace_back(std::max(m, n), n_rhs);
-    }
-  }
 
   ///
   /// Start iterating
@@ -90,16 +68,29 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
+  // Using more threads wastes CPU and memory resources.
+  const size_t n_threads = std::min(NChannelBlocks(), GetNThreads());
+  // For each thread:
+  // - Model matrix: n_antennas x [2N x 2D]
+  // - Visibility matrix: n_antennas x [2N x 2]
+  std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
+  std::vector<std::vector<Matrix>> thread_vs(n_threads);
+
+  aocommon::ParallelFor<size_t> loop(GetNThreads());
   do {
     MakeSolutionsFinite4Pol(solutions);
 
-    aocommon::ParallelFor<size_t> loop(GetNThreads());
-    loop.Run(0, NChannelBlocks(),
-             [&](size_t ch_block, [[maybe_unused]] size_t thread) {
-               PerformIteration(data.ChannelBlock(ch_block),
-                                g_times_cs[ch_block], vs[ch_block],
-                                solutions[ch_block], next_solutions[ch_block]);
-             });
+    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t thread) {
+      const SolveData::ChannelBlockData& channel_block =
+          data.ChannelBlock(ch_block);
+
+      std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread];
+      std::vector<Matrix>& vs = thread_vs[thread];
+      InitializeModelMatrix(channel_block, g_times_cs, vs);
+
+      PerformIteration(channel_block, g_times_cs, vs, solutions[ch_block],
+                       next_solutions[ch_block]);
+    });
 
     Step(solutions, next_solutions);
 
@@ -254,6 +245,33 @@ void FullJonesSolver::PerformIteration(
         next_solutions[ant * NDirections() * 4 + i] =
             std::numeric_limits<double>::quiet_NaN();
     }
+  }
+}
+
+void FullJonesSolver::InitializeModelMatrix(
+    const SolveData::ChannelBlockData& channel_block_data,
+    std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs) const {
+  assert(g_times_cs.empty() == vs.empty());
+  if (g_times_cs.empty()) {
+    // Executed the first iteration only.
+    g_times_cs.reserve(NAntennas());
+    vs.reserve(NAntennas());
+  } else {
+    // Note clear() does not modify the capacity.
+    // See https://en.cppreference.com/w/cpp/container/vector/clear
+    g_times_cs.clear();
+    vs.clear();
+  }
+
+  // Update the size of the model matrix and initialize them to zero.
+  for (size_t ant = 0; ant != NAntennas(); ++ant) {
+    // Model matrix [2N x 2D] and visibility matrix [2N x 2]
+    const size_t n_visibilities = channel_block_data.NAntennaVisibilities(ant);
+    const size_t m = n_visibilities * 2;
+    const size_t n = NDirections() * 2;
+    const size_t n_rhs = 2;
+    g_times_cs.emplace_back(m, n);
+    vs.emplace_back(std::max(m, n), n_rhs);
   }
 }
 
