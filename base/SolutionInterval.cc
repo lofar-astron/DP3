@@ -10,14 +10,12 @@ using dp3::steps::InputStep;
 namespace dp3 {
 namespace base {
 
-SolutionInterval::SolutionInterval(InputStep& input,
-                                   const std::size_t n_solution,
+SolutionInterval::SolutionInterval(const std::size_t n_solution,
                                    const std::size_t buffer_size,
                                    common::NSTimer timer)
     : buffer_size_(buffer_size),
       n_solution_(n_solution),
       timer_(timer),
-      input_(input),
       buffer_index_(0),
       buffers_(buffer_size),
       original_flags_(buffer_size),
@@ -31,10 +29,6 @@ void SolutionInterval::PushBack(const DPBuffer& buffer) {
   }
 
   buffers_[buffer_index_].copy(buffer);
-
-  input_.fetchUVW(buffer, buffers_[buffer_index_], timer_);
-  input_.fetchWeights(buffer, buffers_[buffer_index_], timer_);
-  input_.fetchFullResFlags(buffer, buffers_[buffer_index_], timer_);
 
   original_flags_[buffer_index_].assign(buffer.getFlags());
   original_weights_[buffer_index_].assign(buffer.getWeights());

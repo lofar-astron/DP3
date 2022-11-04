@@ -656,8 +656,7 @@ bool DDECal::process(const DPBuffer& bufin) {
   // Create a new solution interval if needed
   if (itsSolIntBuffers.empty() ||
       itsSolIntBuffers.back().Size() == itsRequestedSolInt) {
-    itsSolIntBuffers.emplace_back(itsInput, itsNSolInts, itsRequestedSolInt,
-                                  itsTimer);
+    itsSolIntBuffers.emplace_back(itsNSolInts, itsRequestedSolInt, itsTimer);
   }
 
   const size_t currentIntervalIndex = itsSolIntBuffers.back().Size();

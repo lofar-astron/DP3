@@ -23,8 +23,8 @@ class DPBuffer;
 
 class SolutionInterval {
  public:
-  SolutionInterval(steps::InputStep& input, std::size_t n_solution,
-                   std::size_t buffer_size, common::NSTimer timer);
+  SolutionInterval(std::size_t n_solution, std::size_t buffer_size,
+                   common::NSTimer timer);
   ~SolutionInterval();
 
   // Copy a buffer and append it to the Solution Interval.
@@ -57,7 +57,6 @@ class SolutionInterval {
   const std::size_t n_solution_;
 
   common::NSTimer timer_;  ///< Timer from the step that is using it for metrics
-  steps::InputStep& input_;   ///< Input of DP3
   std::size_t buffer_index_;  ///< Current index where to insert the next buffer
   std::vector<DPBuffer> buffers_;  ///< Vector of DPBuffer copies
 
