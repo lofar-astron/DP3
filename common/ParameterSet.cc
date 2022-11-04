@@ -71,7 +71,7 @@ blob::BlobOStream& operator<<(blob::BlobOStream& stream,
                               const ParameterSet& set) {
   stream.putStart("ParameterSet", 1);
   stream << static_cast<std::uint32_t>(set.size());
-  for (const std::pair<std::string, ParameterValue>& entry : set) {
+  for (const std::pair<const std::string, ParameterValue>& entry : set) {
     stream << entry.first << entry.second.get();
   }
   stream.putEnd();

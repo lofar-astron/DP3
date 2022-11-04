@@ -13,7 +13,7 @@ namespace common {
 std::ostream& operator<<(std::ostream& os, const ParameterRecord& record) {
   bool first = true;
   os << '{';
-  for (const std::pair<std::string, ParameterValue>& entry : record) {
+  for (const std::pair<const std::string, ParameterValue>& entry : record) {
     if (first) {
       first = false;
     } else {
