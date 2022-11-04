@@ -9,8 +9,8 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
+#include <boost/test/unit_test.hpp>  // Include before test_case
 #include <boost/test/data/test_case.hpp>
-#include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
