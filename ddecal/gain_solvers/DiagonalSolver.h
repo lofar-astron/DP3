@@ -26,6 +26,17 @@ class DiagonalSolver final : public SolverBase {
                         std::vector<std::vector<Complex>>& vs,
                         const std::vector<DComplex>& solutions,
                         std::vector<DComplex>& next_solutions);
+
+  /**
+   * Initialize the model matrix for a channel block.
+   *
+   * The number of elements in the model matrix depends on the number of
+   * antenna visibilities in the corresponding channel block.
+   */
+  void InitializeModelMatrix(
+      const SolveData::ChannelBlockData& channel_block_data,
+      std::vector<Matrix>& g_times_cs,
+      std::vector<std::vector<Complex>>& vs) const;
 };
 
 }  // namespace ddecal

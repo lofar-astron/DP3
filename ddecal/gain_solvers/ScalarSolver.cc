@@ -20,33 +20,11 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   assert(solutions.size() == NChannelBlocks());
 
   PrepareConstraints();
-
-  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
-
   SolveResult result;
 
-  // Model matrix ant x [N x D] and visibility vector ant x [N x 1],
-  // for each channelblock
-  // The following loop allocates all structures
-  std::vector<std::vector<Matrix>> g_times_cs(NChannelBlocks());
-  std::vector<std::vector<Matrix>> vs(NChannelBlocks());
-  for (size_t chBlock = 0; chBlock != NChannelBlocks(); ++chBlock) {
-    const SolveData::ChannelBlockData& channelBlock =
-        data.ChannelBlock(chBlock);
-    next_solutions[chBlock].resize(NDirections() * NAntennas());
-    g_times_cs[chBlock].reserve(NAntennas());
-    vs[chBlock].reserve(NAntennas());
-
-    for (size_t ant = 0; ant != NAntennas(); ++ant) {
-      // Model matrix [N x D] and visibility vector [N x 1]
-      const size_t n_visibilities = channelBlock.NAntennaVisibilities(ant);
-      const size_t m = n_visibilities * 4;
-      const size_t n = NDirections();
-      const size_t nrhs = 1;
-      g_times_cs[chBlock].emplace_back(m, n);
-      vs[chBlock].emplace_back(std::max(m, n), nrhs);
-    }
-  }
+  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+  for (std::vector<DComplex>& next_solution : next_solutions)
+    next_solution.resize(NDirections() * NAntennas());
 
   ///
   /// Start iterating
@@ -61,17 +39,29 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
   double avg_squared_diff = 1.0E4;
 
+  // Using more threads wastes CPU and memory resources.
+  const size_t n_threads = std::min(NChannelBlocks(), GetNThreads());
+  // For each thread:
+  // - Model matrix ant x [N x D] and
+  // - Visibility vector ant x [N x 1]
+  std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
+  std::vector<std::vector<Matrix>> thread_vs(n_threads);
+
+  aocommon::ParallelFor<size_t> loop(n_threads);
   do {
     MakeSolutionsFinite1Pol(solutions);
 
-    aocommon::ParallelFor<size_t> loop(GetNThreads());
-    loop.Run(0, NChannelBlocks(),
-             [&](size_t chBlock, [[maybe_unused]] size_t thread) {
-               const SolveData::ChannelBlockData& channelBlock =
-                   data.ChannelBlock(chBlock);
-               PerformIteration(channelBlock, g_times_cs[chBlock], vs[chBlock],
-                                solutions[chBlock], next_solutions[chBlock]);
-             });
+    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t thread) {
+      const SolveData::ChannelBlockData& channel_block =
+          data.ChannelBlock(ch_block);
+
+      std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread];
+      std::vector<Matrix>& vs = thread_vs[thread];
+      InitializeModelMatrix(channel_block, g_times_cs, vs);
+
+      PerformIteration(channel_block, g_times_cs, vs, solutions[ch_block],
+                       next_solutions[ch_block]);
+    });
 
     Step(solutions, next_solutions);
 
@@ -112,10 +102,6 @@ void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
                                     std::vector<Matrix>& vs,
                                     const std::vector<DComplex>& solutions,
                                     std::vector<DComplex>& next_solutions) {
-  for (size_t ant = 0; ant != NAntennas(); ++ant) {
-    g_times_cs[ant].SetZero();
-    vs[ant].SetZero();
-  }
   const size_t n_visibilities = cb_data.NVisibilities();
   const size_t p1_to_p2[4] = {0, 2, 1, 3};
 
@@ -193,6 +179,34 @@ void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
         next_solutions[ant * NDirections() + d] =
             std::numeric_limits<double>::quiet_NaN();
     }
+  }
+}
+
+void ScalarSolver::InitializeModelMatrix(
+    const SolveData::ChannelBlockData& channel_block_data,
+    std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs) const {
+  assert(g_times_cs.empty() == vs.empty());
+  if (g_times_cs.empty()) {
+    // Executed the first iteration only.
+    g_times_cs.reserve(NAntennas());
+    vs.reserve(NAntennas());
+  } else {
+    // Note clear() does not modify the capacity.
+    // See https://en.cppreference.com/w/cpp/container/vector/clear
+    g_times_cs.clear();
+    vs.clear();
+  }
+
+  // Update the size of the model matrix and initialize them to zero.
+  for (size_t ant = 0; ant != NAntennas(); ++ant) {
+    // Model matrix [N x D] and visibility vector [N x 1]
+    const size_t n_visibilities = channel_block_data.NAntennaVisibilities(ant);
+    const size_t m = n_visibilities * 4;
+    const size_t n = NDirections();
+    const size_t nrhs = 1;
+
+    g_times_cs.emplace_back(m, n);
+    vs.emplace_back(std::max(m, n), nrhs);
   }
 }
 
