@@ -7,6 +7,7 @@
 #include "../constraints/Constraint.h"
 #include "../linear_solvers/LLSSolver.h"
 
+#include <algorithm>
 #include <cassert>
 #include <complex>
 #include <vector>
@@ -26,12 +27,28 @@ class SolverBase {
    public:
     Matrix() : data_(), columns_(0) {}
     Matrix(size_t columns, size_t rows)
-        : data_(columns * rows, 0.0), columns_(columns) {}
-    void SetZero() { data_.assign(data_.size(), Complex(0.0, 0.0)); }
+        : data_(columns * rows, Complex(0.0, 0.0)), columns_(columns) {}
+    void SetZero() { std::fill(data_.begin(), data_.end(), Complex(0.0, 0.0)); }
     Complex& operator()(size_t column, size_t row) {
       return data_[column + row * columns_];
     }
     Complex* data() { return data_.data(); }
+
+    // Re-initialize the object to a new size.
+    //
+    // Like the constructor this sets all data element to 0+0i.
+    void Reset(size_t columns, size_t rows) {
+      size_t size = columns * rows;
+      // Minimize the number of elements to modify.
+      if (size < data_.size()) {
+        data_.resize(size);
+        SetZero();
+      } else {
+        SetZero();
+        data_.resize(size, Complex(0.0, 0.0));
+      }
+      columns_ = columns;
+    }
 
    private:
     std::vector<Complex> data_;
@@ -46,7 +63,7 @@ class SolverBase {
 
   SolverBase();
 
-  virtual ~SolverBase() {}
+  virtual ~SolverBase() = default;
 
   /**
    * Prepares the solver with the given dimensionality info

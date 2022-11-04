@@ -188,13 +188,8 @@ void ScalarSolver::InitializeModelMatrix(
   assert(g_times_cs.empty() == vs.empty());
   if (g_times_cs.empty()) {
     // Executed the first iteration only.
-    g_times_cs.reserve(NAntennas());
-    vs.reserve(NAntennas());
-  } else {
-    // Note clear() does not modify the capacity.
-    // See https://en.cppreference.com/w/cpp/container/vector/clear
-    g_times_cs.clear();
-    vs.clear();
+    g_times_cs.resize(NAntennas());
+    vs.resize(NAntennas());
   }
 
   // Update the size of the model matrix and initialize them to zero.
@@ -203,10 +198,10 @@ void ScalarSolver::InitializeModelMatrix(
     const size_t n_visibilities = channel_block_data.NAntennaVisibilities(ant);
     const size_t m = n_visibilities * 4;
     const size_t n = NDirections();
-    const size_t nrhs = 1;
+    const size_t n_rhs = 1;
 
-    g_times_cs.emplace_back(m, n);
-    vs.emplace_back(std::max(m, n), nrhs);
+    g_times_cs[ant].Reset(m, n);
+    vs[ant].Reset(std::max(m, n), n_rhs);
   }
 }
 

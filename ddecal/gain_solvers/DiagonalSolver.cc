@@ -11,6 +11,7 @@
 
 using aocommon::ParallelFor;
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 
@@ -194,6 +195,18 @@ void DiagonalSolver::PerformIteration(
   }
 }
 
+// Based on SolverBase::Matrix::Reset.
+static void Reset(std::vector<SolverBase::Complex>& vector, size_t size) {
+  // Minimize the number of elements to modify.
+  if (size < vector.size()) {
+    vector.resize(size);
+    std::fill(vector.begin(), vector.end(), SolverBase::Complex(0.0, 0.0));
+  } else {
+    std::fill(vector.begin(), vector.end(), SolverBase::Complex(0.0, 0.0));
+    vector.resize(size, SolverBase::Complex(0.0, 0.0));
+  }
+}
+
 void DiagonalSolver::InitializeModelMatrix(
     const SolveData::ChannelBlockData& channel_block_data,
     std::vector<Matrix>& g_times_cs,
@@ -201,13 +214,8 @@ void DiagonalSolver::InitializeModelMatrix(
   assert(g_times_cs.empty() == vs.empty());
   if (g_times_cs.empty()) {
     // Executed the first iteration only.
-    g_times_cs.reserve(NAntennas() * 2);
-    vs.reserve(NAntennas() * 2);
-  } else {
-    // Note clear() does not modify the capacity.
-    // See https://en.cppreference.com/w/cpp/container/vector/clear
-    g_times_cs.clear();
-    vs.clear();
+    g_times_cs.resize(NAntennas() * 2);
+    vs.resize(NAntennas() * 2);
   }
 
   // Update the size of the model matrix and initialize them to zero.
@@ -217,8 +225,8 @@ void DiagonalSolver::InitializeModelMatrix(
     const size_t m = n_visibilities * 2;
     const size_t n = NDirections();
     for (size_t p = 0; p != 2; ++p) {
-      g_times_cs.emplace_back(m, n);
-      vs.emplace_back(std::max(m, n));
+      g_times_cs[2 * ant + p].Reset(m, n);
+      Reset(vs[2 * ant + p], std::max(m, n));
     }
   }
 }
