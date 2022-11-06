@@ -141,12 +141,6 @@ class MSBDAReader : public InputStep {
   /// Get the main MS table.
   const casacore::Table& table() const override { return ms_; }
 
-  /// Get the nr of averaged full resolution channels.
-  unsigned int nchanAvgFullRes() const override { return 1; }
-
-  /// Get the nr of averaged full resolution timeslots.
-  unsigned int ntimeAvgFullRes() const override { return 1; }
-
   /// Get the time information: cetroid of first and last time slots in the
   /// measurement set
   double firstTime() const override { return first_time_; }

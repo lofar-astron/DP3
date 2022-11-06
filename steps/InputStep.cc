@@ -120,14 +120,6 @@ double InputStep::lastTime() const {
   throw std::runtime_error("InputStep::lastTime not implemented");
 }
 
-unsigned int InputStep::nchanAvgFullRes() const {
-  throw std::runtime_error("InputStep::nchanAvgFullRes not implemented");
-}
-
-unsigned int InputStep::ntimeAvgFullRes() const {
-  throw std::runtime_error("InputStep::ntimeAvgFullRes not implemented");
-}
-
 bool InputStep::HasBda(const casacore::MeasurementSet& ms) {
   return ms.keywordSet().isDefined(base::DP3MS::kBDAFactorsTable) &&
          (ms.keywordSet().asTable(base::DP3MS::kBDAFactorsTable).nrow() > 0);

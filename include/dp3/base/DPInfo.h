@@ -51,6 +51,12 @@ class DPInfo {
     n_times_ = ntime;
   }
 
+  void setFullResolutionAveragingFactors(unsigned int channel_factor,
+                                         unsigned int time_factor) {
+    full_resolution_channel_averaging_factor_ = channel_factor;
+    full_resolution_time_averaging_factor_ = time_factor;
+  }
+
   /// Set the frequency info.
   /// An empty resolutions or effectiveBW is default to chanWidths.
   /// total_bandwidth_ is set to the sum of effectiveBW.
@@ -126,6 +132,14 @@ class DPInfo {
   }
   const std::vector<unsigned int>& ntimeAvgs() const {
     return time_averaging_factors_;
+  }
+  /// @return The number of averaged full resolution channels.
+  unsigned int nAveragedFullResolutionChannels() const {
+    return full_resolution_channel_averaging_factor_;
+  }
+  /// @return The number of averaged full resolution time slots.
+  unsigned int nAveragedFullResolutionTimes() const {
+    return full_resolution_time_averaging_factor_;
   }
   double startTime() const { return start_time_; }
   double timeInterval() const { return time_interval_; }
@@ -263,8 +277,10 @@ class DPInfo {
   unsigned int original_n_channels_;
   unsigned int n_channels_;
   unsigned int channel_averaging_factor_;
-  unsigned int n_times_;
   std::vector<unsigned int> time_averaging_factors_;
+  unsigned int full_resolution_channel_averaging_factor_;
+  unsigned int full_resolution_time_averaging_factor_;
+  unsigned int n_times_;
   double start_time_;
   double time_interval_;
   bool bda_interval_factor_is_integer_{false};  // INTEGER_INTERVAL_FACTORS in

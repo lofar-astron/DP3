@@ -223,17 +223,17 @@ void MSWriter::FinishMs() {
 }
 
 void MSWriter::updateInfo(const DPInfo& info_in) {
-  info() = info_in;
-  interval_ = info().timeInterval();
-  nr_corr_ = info().ncorr();
-  nr_chan_ = info().nchan();
-  nr_bl_ = info().nbaselines();
-  nr_times_ = info().ntime();
+  OutputStep::updateInfo(info_in);
+  interval_ = info_in.timeInterval();
+  nr_corr_ = info_in.ncorr();
+  nr_chan_ = info_in.nchan();
+  nr_bl_ = info_in.nbaselines();
+  nr_times_ = info_in.ntime();
   // Input can already be averaged, so take that into account.
-  n_chan_avg_ = reader_.nchanAvgFullRes() * info().nchanAvg();
-  n_time_avg_ = reader_.ntimeAvgFullRes() * info().ntimeAvg();
-  if (tile_n_chan_ <= 0 || tile_n_chan_ > getInfo().nchan()) {
-    tile_n_chan_ = getInfo().nchan();
+  n_chan_avg_ = info_in.nAveragedFullResolutionChannels() * info_in.nchanAvg();
+  n_time_avg_ = info_in.nAveragedFullResolutionTimes() * info_in.ntimeAvg();
+  if (tile_n_chan_ <= 0 || tile_n_chan_ > info_in.nchan()) {
+    tile_n_chan_ = info_in.nchan();
   }
   StartNewMs();
 }

@@ -302,8 +302,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   itsNrChan = 0;
   itsFillNChan = getInfo().nchan();
   itsStartChan = itsReaders[itsFirst]->startChan();
-  itsFullResNChanAvg = itsReaders[itsFirst]->nchanAvgFullRes();
-  itsFullResNTimeAvg = itsReaders[itsFirst]->ntimeAvgFullRes();
   itsHasFullResFlags = itsReaders[itsFirst]->hasFullResFlags();
   itsBaseRowNrs = itsReaders[itsFirst]->getBaseRowNrs();
   for (std::size_t i = 0; i < itsMSNames.size(); ++i) {
@@ -325,10 +323,12 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
       if (itsNrBl != rdinfo.nbaselines())
         throw std::runtime_error("Number of baselines of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
-      if (itsFullResNChanAvg != itsReaders[i]->nchanAvgFullRes())
+      if (getInfo().nAveragedFullResolutionChannels() !=
+          rdinfo.nAveragedFullResolutionChannels())
         throw std::runtime_error("FullResNChanAvg of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
-      if (itsFullResNTimeAvg != itsReaders[i]->ntimeAvgFullRes())
+      if (getInfo().nAveragedFullResolutionTimes() !=
+          rdinfo.nAveragedFullResolutionTimes())
         throw std::runtime_error("FullResNTimeAvg of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
       if (getInfo().antennaSet() != rdinfo.antennaSet())
@@ -438,8 +438,8 @@ bool MultiMSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   Cube<bool>& flags = buf.getFullResFlags();
   // Resize if needed (probably when called for first time).
   if (flags.empty()) {
-    int norigchan = itsNrChan * itsFullResNChanAvg;
-    flags.resize(norigchan, itsFullResNTimeAvg, itsNrBl);
+    int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
+    flags.resize(norigchan, getInfo().nAveragedFullResolutionTimes(), itsNrBl);
   }
   // Return false if no fullRes flags available.
   if (!itsHasFullResFlags) {

@@ -549,12 +549,11 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   itsHasFullResFlags = tdesc.isColumn("LOFAR_FULL_RES_FLAG");
   if (itsHasFullResFlags) {
     TableColumn fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-    itsFullResNChanAvg = fullResFlagCol.keywordSet().asInt("NCHAN_AVG");
-    itsFullResNTimeAvg = fullResFlagCol.keywordSet().asInt("NTIME_AVG");
-  } else {
-    itsFullResNChanAvg = 1;
-    itsFullResNTimeAvg = 1;
-  }
+    info().setFullResolutionAveragingFactors(
+        fullResFlagCol.keywordSet().asInt("NCHAN_AVG"),
+        fullResFlagCol.keywordSet().asInt("NTIME_AVG"));
+  }  // else keep the default setting of 1 for the averaging factors.
+
   // Get the main table in the correct order.
   // Determine if the data are stored using LofarStMan.
   // If so, we know it is in time order.
@@ -895,10 +894,10 @@ void MSReader::FillFullResFlags(DPBuffer& buffer) {
 bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
   Cube<bool>& flags = buf.getFullResFlags();
-  int norigchan = itsNrChan * itsFullResNChanAvg;
+  int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
   // Resize if needed (probably when called for first time).
   if (flags.empty()) {
-    flags.resize(norigchan, itsFullResNTimeAvg, itsNrBl);
+    flags.resize(norigchan, getInfo().nAveragedFullResolutionTimes(), itsNrBl);
   }
   // Return false if no fullRes flags available.
   if (!itsHasFullResFlags) {
@@ -911,7 +910,7 @@ bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
     return true;
   }
   ArrayColumn<unsigned char> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-  int origstart = itsStartChan * itsFullResNChanAvg;
+  int origstart = itsStartChan * getInfo().nAveragedFullResolutionChannels();
   casacore::Array<unsigned char> chars = fullResFlagCol.getColumnCells(rowNrs);
   // The original flags are kept per channel, not per corr.
   // Per row the flags are stored as unsigned char[nchar,navgtime].
@@ -919,7 +918,8 @@ bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   // ntimeavg is the nr of times used when averaging.
   // Return it as Cube<bool>[norigchan,ntimeavg,nrbl].
   IPosition chShape = chars.shape();
-  if (chShape[1] != itsFullResNTimeAvg || chShape[2] != itsNrBl)
+  if (chShape[1] != getInfo().nAveragedFullResolutionTimes() ||
+      chShape[2] != itsNrBl)
     throw std::runtime_error("Incorrect shape of LOFAR_FULL_RES_FLAG column");
   // Now expand the bits to bools.
   // If all bits to convert are contiguous, do it all in one go.

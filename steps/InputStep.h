@@ -87,11 +87,6 @@ class InputStep : public Step {
   virtual double firstTime() const;
   virtual double lastTime() const;
 
-  /// Get the nr of averaged full resolution channels.
-  virtual unsigned int nchanAvgFullRes() const;
-  /// Get the nr of averaged full resolution time slots.
-  virtual unsigned int ntimeAvgFullRes() const;
-
   /// Fetch the FullRes flags.
   /// If defined in the buffer, they are taken from there.
   /// Otherwise there are read from the input.
