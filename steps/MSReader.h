@@ -193,11 +193,6 @@ class MSReader : public InputStep {
   /// Get the start channel.
   unsigned int startChan() const { return itsStartChan; }
 
-  /// Get the nr of averaged full resolution channels.
-  unsigned int nchanAvgFullRes() const override { return itsFullResNChanAvg; }
-  /// Get the nr of averaged full resolution time slots.
-  unsigned int ntimeAvgFullRes() const override { return itsFullResNTimeAvg; }
-
   /// Tell if the input MS has LOFAR_FULL_RES_FLAG.
   bool hasFullResFlags() const { return itsHasFullResFlags; }
 
@@ -268,8 +263,6 @@ class MSReader : public InputStep {
   casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
   casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array
   bool itsHasFullResFlags{false};
-  unsigned int itsFullResNChanAvg{0};
-  unsigned int itsFullResNTimeAvg{0};
   base::DPBuffer itsBuffer;
   std::unique_ptr<base::UVWCalculator> itsUVWCalc;
   casacore::Vector<common::rownr_t>
