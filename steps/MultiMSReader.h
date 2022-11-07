@@ -137,20 +137,6 @@ class MultiMSReader final : public MSReader {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
-  /// Read the UVW at the given row numbers.
-  void getUVW(const casacore::RefRows& rowNrs, double time,
-              base::DPBuffer& buf) override;
-
-  /// Read the weights at the given row numbers.
-  void getWeights(const casacore::RefRows& rowNrs,
-                  base::DPBuffer& buf) override;
-
-  /// Read the FullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers.
-  /// It returns a 3-dim array [norigchan, ntimeavg, nbaseline].
-  /// If undefined, false is returned.
-  bool getFullResFlags(const casacore::RefRows& rowNrs,
-                       base::DPBuffer& buf) override;
-
   /// Set which fields must be read.
   void setFieldsToRead(const dp3::common::Fields& fields) override;
 
@@ -166,6 +152,13 @@ class MultiMSReader final : public MSReader {
 
   /// Fill the band info where some MSs are missing.
   void fillBands();
+
+  /// Reads the weights into 'itsBuffer'
+  void getWeights();
+
+  /// Reads the FullRes flags (LOFAR_FULL_RES_FLAG) into 'itsBuffer'.
+  /// Sets the flags to false if they are undefined.
+  void getFullResolutionFlags();
 
   bool itsOrderMS;  ///< sort multi MS in order of freq?
   int itsFirst;     ///< first valid MSReader (<0 = none)

@@ -263,11 +263,13 @@ bool MultiMSReader::process(const DPBuffer& buf) {
     s[1] = e[1] + 1;
   }
 
-  if (getFieldsToRead().Uvw())
-    getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(), itsBuffer);
-  if (getFieldsToRead().Weights()) getWeights(itsBuffer.getRowNrs(), itsBuffer);
-  if (getFieldsToRead().FullResFlags())
-    getFullResFlags(itsBuffer.getRowNrs(), itsBuffer);
+  if (getFieldsToRead().Uvw()) {
+    // All Measurement Sets have the same UVWs, so use the first one.
+    itsReaders[itsFirst]->getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(),
+                                 itsBuffer);
+  }
+  if (getFieldsToRead().Weights()) getWeights();
+  if (getFieldsToRead().FullResFlags()) getFullResolutionFlags();
 
   getNextStep()->process(itsBuffer);
   return true;
@@ -407,13 +409,9 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
   }
 }
 
-void MultiMSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
-  // All MSs have the same UVWs, so use first one.
-  itsReaders[itsFirst]->getUVW(rowNrs, time, buf);
-}
-
-void MultiMSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
-  Cube<float>& weights = buf.getWeights();
+void MultiMSReader::getWeights() {
+  const RefRows& rowNrs = itsBuffer.getRowNrs();
+  Cube<float>& weights = itsBuffer.getWeights();
   // Resize if needed (probably when called for first time).
   if (weights.empty()) {
     weights.resize(itsNrCorr, itsNrChan, itsNrBl);
@@ -434,22 +432,23 @@ void MultiMSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   }
 }
 
-bool MultiMSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
-  Cube<bool>& flags = buf.getFullResFlags();
+void MultiMSReader::getFullResolutionFlags() {
+  const RefRows& rowNrs = itsBuffer.getRowNrs();
+  Cube<bool>& flags = itsBuffer.getFullResFlags();
   // Resize if needed (probably when called for first time).
   if (flags.empty()) {
     int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
     flags.resize(norigchan, getInfo().nAveragedFullResolutionTimes(), itsNrBl);
   }
-  // Return false if no fullRes flags available.
+  // Return if no fullRes flags available.
   if (!itsHasFullResFlags) {
     flags = false;
-    return false;
+    return;
   }
   // Flag everything if data rows are missing.
   if (rowNrs.rowVector().empty()) {
     flags = true;
-    return true;
+    return;
   }
   // Get the flags from all MSs and combine them.
   IPosition s(3, 0);
@@ -465,7 +464,6 @@ bool MultiMSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
     }
     s[0] = e[0] + 1;
   }
-  return true;
 }
 
 }  // namespace steps

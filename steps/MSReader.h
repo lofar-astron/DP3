@@ -143,19 +143,17 @@ class MSReader : public InputStep {
   void showTimings(std::ostream&, double duration) const override;
 
   /// Read the UVW at the given row numbers into the buffer.
-  void getUVW(const casacore::RefRows& rowNrs, double time,
-              base::DPBuffer&) override;
+  void getUVW(const casacore::RefRows& rowNrs, double time, base::DPBuffer&);
 
   /// Read the weights at the given row numbers into the buffer.
   /// Note: the buffer must contain DATA if autoweighting is in effect.
-  void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&) override;
+  void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
   /// Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
   /// into the buffer.
   /// If there is no such column, the flags are set to false and false is
   /// returned.
-  bool getFullResFlags(const casacore::RefRows& rowNrs,
-                       base::DPBuffer&) override;
+  bool getFullResFlags(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
   /// Fill the fullResFlags field in the DPBuffer.
   /// If the LOFAR_FULL_RES_FLAG column is present in the MS

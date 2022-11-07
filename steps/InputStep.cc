@@ -34,18 +34,6 @@ InputStep::~InputStep() {}
 
 std::string InputStep::msName() const { return std::string(); }
 
-void InputStep::getUVW(const RefRows&, double, DPBuffer&) {
-  throw std::runtime_error("InputStep::getUVW not implemented");
-}
-
-void InputStep::getWeights(const RefRows&, DPBuffer&) {
-  throw std::runtime_error("InputStep::getWeights not implemented");
-}
-
-bool InputStep::getFullResFlags(const RefRows&, DPBuffer&) {
-  throw std::runtime_error("InputStep::getFullResFlags not implemented");
-}
-
 const casacore::Table& InputStep::table() const {
   throw std::runtime_error("InputStep::table not implemented");
 }

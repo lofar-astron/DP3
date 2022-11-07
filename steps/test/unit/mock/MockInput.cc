@@ -17,18 +17,6 @@ common::Fields MockInput::getProvidedFields() const {
   throw std::runtime_error("Unexpected getProvidedFields call");
 }
 
-void MockInput::getUVW(const casacore::RefRows&, double,
-                       base::DPBuffer& buffer) {
-  BOOST_TEST(!buffer.getUVW().empty());
-}
-void MockInput::getWeights(const casacore::RefRows&, base::DPBuffer& buffer) {
-  BOOST_TEST(!buffer.getWeights().empty());
-}
-bool MockInput::getFullResFlags(const casacore::RefRows&,
-                                base::DPBuffer& buffer) {
-  BOOST_TEST(!buffer.getFullResFlags().empty());
-  return true;
-}
 void MockInput::finish() { BOOST_ERROR("Unexpected finish() call"); }
 void MockInput::show(std::ostream&) const {
   BOOST_ERROR("Unexpected show() call");
