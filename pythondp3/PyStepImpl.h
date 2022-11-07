@@ -45,12 +45,8 @@ class StepWrapper : public steps::Step {
   }
 
   int get_count() { return m_count; }
-  void set_input(steps::InputStep* input) { m_input = input; };
   void set_parset(const common::ParameterSet& parset) { m_parset = parset; };
   void set_name(const string& name) { m_name = name; };
-
-  bool m_fetch_uvw = false;
-  bool m_fetch_weights = false;
 
  protected:
   int m_count = 0;
