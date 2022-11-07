@@ -42,22 +42,6 @@ class InputStep : public Step {
 
   common::Fields getProvidedFields() const override { return fields_to_read_; }
 
-  /// Read the UVW at the given row numbers into the buffer.
-  /// The default implementation throws an exception.
-  virtual void getUVW(const casacore::RefRows& rowNrs, double time,
-                      base::DPBuffer&);
-
-  /// Read the weights at the given row numbers into the buffer.
-  /// The default implementation throws an exception.
-  virtual void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
-
-  /// Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
-  /// into the buffer.
-  /// If undefined, false is returned.
-  /// The default implementation throws an exception.
-  virtual bool getFullResFlags(const casacore::RefRows& rowNrs,
-                               base::DPBuffer&);
-
   /// Get the MS name.
   /// The default implementation returns an empty string.
   virtual std::string msName() const;
