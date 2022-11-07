@@ -34,68 +34,6 @@ InputStep::~InputStep() {}
 
 std::string InputStep::msName() const { return std::string(); }
 
-const Cube<bool>& InputStep::fetchFullResFlags(const base::DPBuffer& bufin,
-                                               base::DPBuffer& bufout,
-                                               common::NSTimer& timer,
-                                               bool merge) {
-  // If already defined in the buffer, return those fullRes flags.
-  if (!bufin.getFullResFlags().empty()) {
-    return bufin.getFullResFlags();
-  }
-  // No fullRes flags in buffer, so get them from the input.
-  timer.stop();
-  bool fnd = getFullResFlags(bufin.getRowNrs(), bufout);
-  timer.start();
-  Cube<bool>& fullResFlags = bufout.getFullResFlags();
-  if (!fnd) {
-    // No fullRes flags in input; form them from the flags in the buffer.
-    // Only use the XX flags; no averaging done, thus navgtime=1.
-    // (If any averaging was done, the flags would be in the buffer).
-    IPosition shp(bufin.getFlags().shape());
-    if (fullResFlags.shape()[0] != shp[1] || fullResFlags.shape()[1] != 1 ||
-        fullResFlags.shape()[2] != shp[2])
-      throw std::runtime_error("Invalid shape of full res flags");
-    casacore::objcopy(fullResFlags.data(), bufin.getFlags().data(),
-                      fullResFlags.size(), 1, shp[0]);  // only copy XX.
-    return fullResFlags;
-  }
-  // There are fullRes flags.
-  // If needed, merge them with the buffer's flags.
-  if (merge) {
-    DPBuffer::mergeFullResFlags(fullResFlags, bufin.getFlags());
-  }
-  return fullResFlags;
-}
-
-const Cube<float>& InputStep::fetchWeights(const DPBuffer& bufin,
-                                           DPBuffer& bufout,
-                                           common::NSTimer& timer) {
-  // If already defined in the buffer, return those weights.
-  if (!bufin.getWeights().empty()) {
-    return bufin.getWeights();
-  }
-  // No weights in buffer, so get them from the input.
-  // It might need the data and flags in the buffer.
-  timer.stop();
-  getWeights(bufin.getRowNrs(), bufout);
-  timer.start();
-  return bufout.getWeights();
-}
-
-const Matrix<double>& InputStep::fetchUVW(const DPBuffer& bufin,
-                                          DPBuffer& bufout,
-                                          common::NSTimer& timer) {
-  // If already defined in the buffer, return those UVW.
-  if (!bufin.getUVW().empty()) {
-    return bufin.getUVW();
-  }
-  // No UVW in buffer, so get them from the input.
-  timer.stop();
-  getUVW(bufin.getRowNrs(), bufin.getTime(), bufout);
-  timer.start();
-  return bufout.getUVW();
-}
-
 void InputStep::getUVW(const RefRows&, double, DPBuffer&) {
   throw std::runtime_error("InputStep::getUVW not implemented");
 }
