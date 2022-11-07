@@ -15,8 +15,6 @@ class MockPyStep(Step):
     def __init__(self, parset, prefix):
         """
         Set up the step (constructor). Read the parset here.
-        Set fetch_weights to True if the weights need to be read.
-        Similarly for fetch_uvw.
 
         Args:
           parset: Parameter set for the entire pipeline

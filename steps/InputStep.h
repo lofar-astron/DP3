@@ -33,14 +33,6 @@ namespace steps {
 /// data from a MeasurementSet. However, it is also possible to have
 /// input steps generating data on the fly as done in test programs
 /// like tAverager.cc.
-///
-/// A particular task of the class is to fetch the input for various
-/// data items like weight, uvw, etc.. This is done by testing if the
-/// item's data array is in the DPBuffer. If so, it will be returned.
-/// Otherwise the appropriate 'get' function will be called to read the
-/// data array from the input.
-/// The derived classes should implement those 'get' functions, unless
-/// they are sure the data arrays are always put in the buffer.
 
 class InputStep : public Step {
  public:
@@ -86,38 +78,6 @@ class InputStep : public Step {
   /// Get the time information.
   virtual double firstTime() const;
   virtual double lastTime() const;
-
-  /// Fetch the FullRes flags.
-  /// If defined in the buffer, they are taken from there.
-  /// Otherwise there are read from the input.
-  /// If not defined in the input, they are filled using the flags in the
-  /// buffer assuming that no averaging has been done so far.
-  /// If desired, they can be merged with the buffer's FLAG which means
-  /// that if an averaged channel is flagged, the corresponding FullRes
-  /// flags are set.
-  /// It does a stop/start of the timer when actually reading the data.
-  const casacore::Cube<bool>& fetchFullResFlags(const base::DPBuffer& bufin,
-                                                base::DPBuffer& bufout,
-                                                common::NSTimer& timer,
-                                                bool merge = false);
-
-  /// Fetch the weights.
-  /// If defined in the buffer, they are taken from there.
-  /// Otherwise there are read from the input.
-  /// If they have to be read and if autoweighting is in effect, the buffer
-  /// must contain DATA to calculate the weights.
-  /// <br>It does a stop/start of the timer when actually reading the data.
-  const casacore::Cube<float>& fetchWeights(const base::DPBuffer& bufin,
-                                            base::DPBuffer& bufout,
-                                            common::NSTimer& timer);
-
-  /// Fetch the UVW.
-  /// If defined in the buffer, they are taken from there.
-  /// Otherwise there are read from the input.
-  /// <br>It does a stop/start of the timer when actually reading the data.
-  const casacore::Matrix<double>& fetchUVW(const base::DPBuffer& bufin,
-                                           base::DPBuffer& bufout,
-                                           common::NSTimer& timer);
 
   /// Check if a measurement set contains Baseline Dependent Averaged data.
   /// @param ms A casacore measurement set.
