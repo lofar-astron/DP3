@@ -106,11 +106,7 @@ PYBIND11_MODULE(pydp3, m) {
       .def("get_required_fields", &StepWrapper::getRequiredFields,
            "Get the fields required by current step")
       .def("get_provided_fields", &StepWrapper::getProvidedFields,
-           "Get the fields provided by current step")
-      .def_readwrite("fetch_uvw", &StepWrapper::m_fetch_uvw,
-                     "Fill the UVW data in the buffer")
-      .def_readwrite("fetch_weights", &StepWrapper::m_fetch_weights,
-                     "Fill the weights data in the buffer");
+           "Get the fields provided by current step");
 
   py::class_<DPBuffer, std::shared_ptr<DPBuffer>>(m, "DPBuffer")
       .def(py::init<>())

@@ -12,7 +12,7 @@ description: |-
   .. include:: ../../steps/test/unit/mock/mockpystep.py
      :code: python
 
-  **Note**: :code:`import dppp` does not work from a python interpreter directly, it only works if the python code is run by DP3.
+  **Note**: :code:`import dp3` does not work from a python interpreter directly, it only works if the python code is run by DP3.
 
    For a complete list of DP3 functions available in python see the source code of pydp3.cc
 

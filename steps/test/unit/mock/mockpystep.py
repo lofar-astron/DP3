@@ -26,9 +26,6 @@ class MockPyStep(Step):
         self.datafactor = parset.getDouble(prefix + "datafactor")
         self.weightsfactor = parset.getDouble(prefix + "weightsfactor")
 
-        self.fetch_weights = True
-        self.fetch_uvw = False
-
     def update_info(self, dpinfo):
         """
         Process metadata. This will be called before any call to process.

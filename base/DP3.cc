@@ -215,7 +215,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
   } else if (type == "out" || type == "output" || type == "msout") {
     step = MakeOutputStep(inputStep, parset, prefix, msName, inputType);
   } else if (type == "python" || type == "pythondppp") {
-    step = pythondp3::PyStep::create_instance(inputStep, parset, prefix);
+    step = pythondp3::PyStep::create_instance(parset, prefix);
   } else if (type == "null") {
     step = std::make_shared<steps::NullStep>();
   } else {

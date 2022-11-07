@@ -6,16 +6,14 @@
 
 #include <dp3/steps/Step.h>
 #include "../common/ParameterSet.h"
-#include "steps/InputStep.h"
 
 namespace dp3 {
 namespace pythondp3 {
 
 class PyStep : public steps::Step {
  public:
-  static Step::ShPtr create_instance(steps::InputStep* input,
-                                     const common::ParameterSet& parset,
-                                     const string& prefix);
+  static std::shared_ptr<Step> create_instance(
+      const common::ParameterSet& parset, const string& prefix);
 
  private:
   using Step::Step;

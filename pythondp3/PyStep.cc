@@ -51,15 +51,6 @@ bool PyStepImpl::process(const DPBuffer& bufin) {
   auto dpbuffer = std::shared_ptr<DPBuffer>(new DPBuffer());
   dpbuffer->copy(bufin);
 
-  // fetch optional data
-  if (m_fetch_uvw) {
-    m_input->fetchUVW(bufin, *dpbuffer, m_timer);
-  }
-
-  if (m_fetch_weights) {
-    m_input->fetchWeights(bufin, *dpbuffer, m_timer);
-  }
-
   PYBIND11_OVERRIDE_PURE(
       bool,        /* Return type */
       StepWrapper, /* Parent class */
@@ -68,13 +59,11 @@ bool PyStepImpl::process(const DPBuffer& bufin) {
   );
 }
 
-// TODO(AST-1046): Create python wrapper for Fields
 common::Fields PyStepImpl::getRequiredFields() const {
   PYBIND11_OVERRIDE_PURE_NAME(common::Fields, StepWrapper,
                               "get_required_fields", getRequiredFields, );
 }
 
-// TODO(AST-1046): Create python wrapper for Fields
 common::Fields PyStepImpl::getProvidedFields() const {
   PYBIND11_OVERRIDE_PURE_NAME(common::Fields, StepWrapper,
                               "get_provided_fields", getProvidedFields, );
@@ -96,9 +85,8 @@ void PyStepImpl::hold() {
 
 void PyStepImpl::release() { m_py_object.reset(); }
 
-Step::ShPtr PyStep::create_instance(InputStep* input,
-                                    const common::ParameterSet& parset,
-                                    const string& prefix) {
+std::shared_ptr<Step> PyStep::create_instance(
+    const common::ParameterSet& parset, const string& prefix) {
   std::string module_name = parset.getString(prefix + "python.module");
   std::string class_name = parset.getString(prefix + "python.class");
 
@@ -119,7 +107,6 @@ Step::ShPtr PyStep::create_instance(InputStep* input,
       pydpstep_instance.cast<PyStepImpl*>(), std::mem_fn(&PyStepImpl::release));
 
   pydpstep_instance_ptr->hold();
-  pydpstep_instance_ptr->set_input(input);
 
   return pydpstep_instance_ptr;
 }

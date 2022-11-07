@@ -135,8 +135,7 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
     parset.add("datafactor", "2");
     parset.add("weightsfactor", "0.5");
     {
-      std::shared_ptr<Step> py_step =
-          PyStep::create_instance(in_step.get(), parset, "");
+      std::shared_ptr<Step> py_step = PyStep::create_instance(parset, "");
       auto out_step = std::make_shared<TestOutput>();
 
       // Monitor lifetime of output step
