@@ -294,9 +294,8 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   // Use the first valid MS as the standard MS (for meta data)
   // Get meta data and check they are equal for all MSs.
   itsMS = itsReaders[itsFirst]->table();
-  itsStartTime = getInfo().startTime();
-  itsFirstTime = itsReaders[itsFirst]->firstTime();
-  itsLastTime = itsReaders[itsFirst]->lastTime();
+  itsFirstTime = getInfo().firstTime();
+  itsLastTime = getInfo().lastTime();
   itsTimeInterval = getInfo().timeInterval();
   itsSelBL = itsReaders[itsFirst]->baselineSelection();
   itsNrCorr = getInfo().ncorr();
@@ -309,13 +308,13 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   for (std::size_t i = 0; i < itsMSNames.size(); ++i) {
     if (itsReaders[i]) {
       const DPInfo& rdinfo = itsReaders[i]->getInfo();
-      if (!casacore::near(itsStartTime, rdinfo.startTime()))
-        throw std::runtime_error("Start time of MS " + itsMSNames[i] +
+      if (!casacore::near(getInfo().firstTime(), rdinfo.firstTime()))
+        throw std::runtime_error("First time of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
-      if (!casacore::near(itsLastTime, itsReaders[i]->lastTime()))
+      if (!casacore::near(getInfo().lastTime(), rdinfo.lastTime()))
         throw std::runtime_error("Last time of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
-      if (!casacore::near(itsTimeInterval, rdinfo.timeInterval()))
+      if (!casacore::near(getInfo().timeInterval(), rdinfo.timeInterval()))
         throw std::runtime_error("Time interval of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
       if (itsNrCorr != rdinfo.ncorr())

@@ -6,16 +6,11 @@
 
 #include "MSReader.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
+#include <iostream>
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
 #include <EveryBeam/telescope/phasedarray.h>
-
-#include "../common/ParameterSet.h"
-#include "../common/BaselineSelect.h"
 
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -37,7 +32,11 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include <iostream>
+#include "../base/DPLogger.h"
+#include "../base/MS.h"
+
+#include "../common/ParameterSet.h"
+#include "../common/BaselineSelect.h"
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;
@@ -231,7 +230,6 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
     itsLastTime = itsFirstTime + (nTimes - 1) * itsTimeInterval;
   }
   itsNextTime = itsFirstTime;
-  itsStartTime = itsFirstTime - 0.5 * itsTimeInterval;
   // Parse the chan expressions.
   // Nr of channels can be used as 'nchan' in the expressions.
   Record rec;
@@ -494,6 +492,14 @@ void MSReader::showTimings(std::ostream& os, double duration) const {
 }
 
 void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
+  // Find the number of correlations and channels.
+  IPosition shape(ArrayColumn<casacore::Complex>(itsSelMS, "DATA").shape(0));
+  itsNrCorr = shape[0];
+  itsNrChan = shape[1];
+
+  const std::string antenna_set = base::ReadAntennaSet(itsMS);
+  info() = DPInfo(itsNrCorr, itsNrChan, itsStartChan, antenna_set);
+
   if (itsSelMS.nrow() == 0) {
     DPLOG_WARN_STR("The selected input does not contain any data.");
   }
@@ -594,11 +600,8 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   // Create iterator over time. Do not sort again.
   itsIter = TableIterator(sortms, Block<casacore::String>(1, "TIME"),
                           TableIterator::Ascending, TableIterator::NoSort);
-  // Find the nr of corr, chan, and baseline.
-  IPosition shp(ArrayColumn<casacore::Complex>(itsSelMS, "DATA").shape(0));
-  itsNrCorr = shp[0];
-  itsNrChan = shp[1];
   itsNrBl = itsIter.table().nrow();
+
   // Ensure we have only one band by checking the nr of unique baselines.
   Table sortab = itsIter.table().sort(
       sortCols, casacore::Sort::Ascending,
@@ -655,10 +658,12 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
 
   // Get the array position using the telescope name from the OBSERVATION
   // subtable.
-  Table obstab(itsMS.keywordSet().asTable("OBSERVATION"));
-  ScalarColumn<casacore::String> telCol(obstab, "TELESCOPE_NAME");
+  const casacore::Table observation_table(
+      itsMS.keywordSet().asTable(base::DP3MS::kObservationTable));
+  ScalarColumn<casacore::String> telCol(observation_table, "TELESCOPE_NAME");
   MPosition arrayPos;
-  if (obstab.nrow() == 0 || !MeasTable::Observatory(arrayPos, telCol(0))) {
+  if (observation_table.nrow() == 0 ||
+      !MeasTable::Observatory(arrayPos, telCol(0))) {
     // If not found, use the position of the middle antenna.
     arrayPos = antPos[antPos.size() / 2];
   }
@@ -669,18 +674,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
 }
 
 void MSReader::prepare2(int spectralWindow) {
-  // Set the info.
-  // The 1.5 comes from a) rounding (0.5) + b) the paaltjesprobleem.
-  unsigned int ntime =
-      (unsigned int)((itsLastTime - itsFirstTime) / itsTimeInterval + 1.5);
-  // Read the antenna set.
-  Table obstab(itsMS.keywordSet().asTable("OBSERVATION"));
-  string antennaSet;
-  if (obstab.nrow() > 0 && obstab.tableDesc().isColumn("LOFAR_ANTENNA_SET")) {
-    antennaSet = ScalarColumn<casacore::String>(obstab, "LOFAR_ANTENNA_SET")(0);
-  }
-  info().init(itsNrCorr, itsStartChan, itsNrChan, ntime, itsStartTime,
-              itsTimeInterval, antennaSet);
+  info().setTimes(itsFirstTime, itsLastTime, itsTimeInterval);
   info().setMsNames(msName(), itsDataColName, itsFlagColName, itsWeightColName);
   // Read the center frequencies of all channels.
   Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));

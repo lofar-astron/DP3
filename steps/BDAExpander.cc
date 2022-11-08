@@ -31,8 +31,6 @@ namespace steps {
 BDAExpander::BDAExpander(const string &prefix)
     : timer_("BDA Expander"), step_name_(prefix) {}
 
-BDAExpander::~BDAExpander() {}
-
 void BDAExpander::updateInfo(const DPInfo &_info) {
   info() = _info;
   info().setNeedVisData();

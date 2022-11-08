@@ -48,6 +48,9 @@ class TestInput : public dp3::steps::MockInput {
         itsNChan(nchan),
         itsNCorr(ncorr),
         itsFlag(flag) {
+    info() = DPInfo(itsNCorr, itsNChan);
+    info().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
+
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     std::vector<int> ant1(itsNBl);
@@ -94,6 +97,7 @@ class TestInput : public dp3::steps::MockInput {
                           MPosition::ITRF);
     std::vector<double> antDiam(4, 70.);
     info().set(antNames, antDiam, antPos, ant1, ant2);
+
     // Define the frequencies.
     std::vector<double> chanFreqs(nchan);
     std::vector<double> chanWidth(nchan, 100000.);
@@ -134,10 +138,8 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo&)
-  // Use startchan=0 and timeInterval=5
-  {
-    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string());
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
   }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
@@ -178,8 +180,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK(int(info.origNChan()) == itsNChan);
     BOOST_CHECK(int(info.nchan()) == itsNChan);
     BOOST_CHECK(int(info.ntime()) == itsNTime);
-    BOOST_CHECK(info.startTime() == 100);
-    BOOST_CHECK(info.timeInterval() == 5);
+    BOOST_CHECK(info.firstTime() == 100.0);
+    BOOST_CHECK(info.timeInterval() == 5.0);
     BOOST_CHECK(int(info.nchanAvg()) == 1);
     BOOST_CHECK(int(info.ntimeAvg()) == 1);
     BOOST_CHECK(int(info.chanFreqs().size()) == itsNChan);

@@ -43,8 +43,8 @@ class TestInput : public dp3::steps::MockInput {
         n_baselines_(n_baselines),
         n_channels_(n_channels),
         n_correlations_(n_correlations) {
-    info().init(n_correlations, 0, n_channels, n_times, 0., time_interval_,
-                std::string());
+    info() = DPInfo(n_correlations, n_channels);
+    info().setTimes(0.0, (n_times - 1) * time_interval_, time_interval_);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(n_baselines);
@@ -110,7 +110,9 @@ class TestInput : public dp3::steps::MockInput {
     return t;
   };
   virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo&) {}
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
+  }
 
   size_t count_, n_times_, n_baselines_, n_channels_, n_correlations_;
   double start_frequency_ = 10000000.0;

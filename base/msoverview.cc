@@ -1,14 +1,16 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <iostream>
+#include <sstream>
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/ms/MSOper/MSSummary.h>
 #include <casacore/tables/TaQL/TableParse.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Inputs/Input.h>
 
-#include <iostream>
-#include <sstream>
+#include "MS.h"
 
 namespace {
 void RunMSOverview(int argc, char* argv[]) {
@@ -69,11 +71,9 @@ void RunMSOverview(int argc, char* argv[]) {
   logio << casacore::LogIO::NORMAL << '\n' << casacore::LogIO::POST;
   summ.listWhere(logio, true);
   // If possible, show the AntennaSet.
-  casacore::Table obsTab(ms.keywordSet().asTable("OBSERVATION"));
-  if (obsTab.tableDesc().isColumn("LOFAR_ANTENNA_SET")) {
-    logio << casacore::LogIO::NORMAL << "Antenna-set: "
-          << casacore::ScalarColumn<casacore::String>(obsTab,
-                                                      "LOFAR_ANTENNA_SET")(0)
+  const std::string antenna_set = dp3::base::ReadAntennaSet(ms);
+  if (!antenna_set.empty()) {
+    logio << casacore::LogIO::NORMAL << "Antenna-set: " << antenna_set
           << casacore::LogIO::POST;
   }
   logio << casacore::LogIO::NORMAL << '\n' << casacore::LogIO::POST;

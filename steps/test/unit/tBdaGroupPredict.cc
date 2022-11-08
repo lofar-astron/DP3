@@ -20,8 +20,13 @@ class BdaPredictFixture {
   }
 
   void SetInfo() {
-    dp3::base::DPInfo info;
-    info.init(1, 0, 1, 10, 0.0, 1.0, "");
+    const unsigned int kNCorrelations = 1;
+    const unsigned int kNChannels = 3;
+    const double kFirstTime = 0.5;
+    const double kLastTime = 9.5;
+    const double kTimeInterval = 1.0;
+    dp3::base::DPInfo info(kNCorrelations, kNChannels);
+    info.setTimes(kFirstTime, kLastTime, kTimeInterval);
 
     const std::vector<int> kAnt1{0, 0, 1};
     const std::vector<int> kAnt2{1, 2, 2};

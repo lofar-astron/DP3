@@ -88,8 +88,8 @@ class TestInput : public dp3::steps::MockInput {
         itsNChan(nchan),
         itsNCorr(ncorr),
         itsFlag(flag) {
-    // Define start time 0.5 (= 3 - 0.5*5) and time interval 5.
-    info().init(ncorr, 0, nchan, ntime, 0.5, 5.0, std::string());
+    info() = DPInfo(ncorr, nchan);
+    info().setTimes(100.0, 100.0 + (ntime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     std::vector<int> ant1(nbl);
@@ -139,7 +139,7 @@ class TestInput : public dp3::steps::MockInput {
     info().set(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 100000.);
-    std::vector<double> chanFreqs(nchan);
+    std::vector<double> chanFreqs;
     for (int i = 0; i < nchan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
@@ -190,17 +190,10 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo&) {
-    // Use timeInterval=5
-    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string());
-    // Define the frequencies.
-    std::vector<double> chanFreqs;
-    std::vector<double> chanWidth(itsNChan, 100000.);
-    for (int i = 0; i < itsNChan; i++) {
-      chanFreqs.push_back(1050000. + i * 100000.);
-    }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
   }
+
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
 };

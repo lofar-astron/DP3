@@ -1,10 +1,12 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
 /// @author Lars Krombeen
 
 #include "MS.h"
+
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/TableRecord.h>
 
 namespace dp3 {
 namespace base {
@@ -32,12 +34,24 @@ const std::string kSpectralWindowTable = "SPECTRAL_WINDOW";
 const std::string kBDAFreqAxisId = "BDA_FREQ_AXIS_ID";
 const std::string kBDASetId = "BDA_SET_ID";
 
-const std::string kLofarAntennaSet = "LOFAR_ANTENNA_SET";
-
 const std::string kAntennaTable = "ANTENNA";
 const std::string kDataDescTable = "DATA_DESCRIPTION";
 const std::string kObservationTable = "OBSERVATION";
 
 }  // namespace DP3MS
+
+std::string ReadAntennaSet(const casacore::MeasurementSet& ms) {
+  const std::string kLofarAntennaSet = "LOFAR_ANTENNA_SET";
+  const casacore::Table observation_table(
+      ms.keywordSet().asTable(DP3MS::kObservationTable));
+  std::string antenna_set;
+  if (observation_table.nrow() > 0 &&
+      observation_table.tableDesc().isColumn(kLofarAntennaSet)) {
+    antenna_set = casacore::ScalarColumn<casacore::String>(observation_table,
+                                                           kLofarAntennaSet)(0);
+  }
+  return antenna_set;
+}
+
 }  // namespace base
 }  // namespace dp3

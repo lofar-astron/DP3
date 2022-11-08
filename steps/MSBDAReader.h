@@ -122,7 +122,8 @@ class MSBDAReader : public InputStep {
   /// Return which datatype this step outputs.
   MsType outputs() const override { return MsType::kBda; };
 
-  /// Update the general info.
+  /// Reads the BDA subtables from an MS and stores the required values in the
+  /// info() object.
   void updateInfo(const base::DPInfo&) override;
 
   /// Add some data to the MeasurementSet written/updated.
@@ -147,9 +148,6 @@ class MSBDAReader : public InputStep {
   double lastTime() const override { return last_time_; }
 
  private:
-  /// Reads the BDA subtables from an MS and stores the values that are required
-  void FillInfoMetaData();
-
   const casacore::MeasurementSet ms_;
   std::string data_column_name_;
   std::string weight_column_name_;

@@ -30,34 +30,46 @@ using namespace std;
 namespace dp3 {
 namespace base {
 
-DPInfo::DPInfo()
+DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
+               unsigned int start_channel, std::string antenna_set)
     : need_data_(false),
       meta_changed_(false),
-      n_correlations_(0),
-      start_channel_(0),
-      n_channels_(0),
+      antenna_set_(std::move(antenna_set)),
+      n_correlations_(n_correlations),
+      start_channel_(start_channel),
+      original_n_channels_(original_n_channels),
+      n_channels_(original_n_channels),
       channel_averaging_factor_(1),
       time_averaging_factors_({1}),
       full_resolution_channel_averaging_factor_(1),
       full_resolution_time_averaging_factor_(1),
-      n_times_(0),
-      start_time_(0),
-      time_interval_(0),
+      first_time_(0.0),
+      last_time_(0.0),
+      time_interval_(1.0),
+      n_times_(1),
       beam_correction_mode_(static_cast<int>(everybeam::CorrectionMode::kNone)),
       spectral_window_(0),
       n_threads_(aocommon::system::ProcessorCount()) {}
 
-void DPInfo::init(unsigned int ncorr, unsigned int startChan,
-                  unsigned int nchan, unsigned int ntime, double startTime,
-                  double timeInterval, const std::string& antennaSet) {
-  n_correlations_ = ncorr;
-  start_channel_ = startChan;
-  n_channels_ = nchan;
-  original_n_channels_ = nchan;
-  n_times_ = ntime;
-  start_time_ = startTime;
-  time_interval_ = timeInterval;
-  antenna_set_ = antennaSet;
+void DPInfo::setTimes(double first_time, double last_time,
+                      double time_interval) {
+  if (last_time < first_time) {
+    throw std::invalid_argument("Last time is before the first time");
+  }
+  if (time_interval <= 0.0) {
+    throw std::invalid_argument("Time interval is zero or negative");
+  }
+
+  first_time_ = first_time;
+  last_time_ = last_time;
+  time_interval_ = time_interval;
+
+  // Calculate the amount of timeslots. The 1.5 comes from:
+  // - rounding (0.5)
+  // - (last_time_ - first_time_) gives the distance between the centroids of
+  //   the first and last time slot. We need to add 0.5 interval at the
+  //   beginning and 0.5 interval at the end to obtain the entire time span.
+  n_times_ = (last_time - first_time) / time_interval + 1.5;
 }
 
 void DPInfo::setMsNames(const std::string& ms_name,

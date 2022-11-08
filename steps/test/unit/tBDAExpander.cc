@@ -20,7 +20,6 @@ using dp3::steps::BDAExpander;
 
 const unsigned int kNCorr = 4;
 const unsigned int kNChan = 8;
-const unsigned int kStartChan = 0;
 const unsigned int kNTime = 3;
 const double kStartTime = 0.0;
 const double kInterval = 2.0;
@@ -30,7 +29,6 @@ const std::size_t kNIntervals = 3;
 const int kNAntennas = 3;
 const int kNBaselines = 2;
 const std::string kMsName{};
-const std::string kAntennaSet{};
 const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2"};
 const std::vector<casacore::MPosition> kAntPos{casacore::MVPosition{0, 0, 0},
                                                casacore::MVPosition{10, 0, 0},
@@ -122,7 +120,6 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
                  baseline_id[1], kNCorr, kNChan, kData4.data(), nullptr,
                  kWeights[3].data(), nullptr, kUVW);
 
-  DPInfo info;
   std::vector<std::vector<double>> chan_freqs(kNBaselines);
   std::vector<std::vector<double>> chan_widths(kNBaselines);
   for (int k = 0; k < kNBaselines; k++) {
@@ -132,8 +129,9 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
     }
   }
 
-  info.init(kNCorr, kStartChan, kNChan, kNTime, bda_first_time - kInterval / 2,
-            kInterval, kAntennaSet);
+  DPInfo info(kNCorr, kNChan);
+  info.setTimes(bda_first_time, bda_first_time + (kNTime - 1) * kInterval,
+                kInterval);
   info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
@@ -230,8 +228,6 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
                  baseline_id[1], kNCorr, kNChan, kData6.data(), nullptr,
                  kWeights[5].data(), nullptr, kUVW);
 
-  DPInfo info;
-
   std::vector<std::vector<double>> chan_freqs{
       // Baseline 0: channels are averaged
       {10000.0, 30000.0, 50000.0, 70000.0},
@@ -244,9 +240,9 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
       // Baseline 1: channels are not averaged
       {10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0, 10000.0}};
 
-  info.init(kNCorr, kStartChan, kNChan, kNTime, bda_first_time - kInterval / 2,
-            kInterval, kAntennaSet);
-
+  DPInfo info(kNCorr, kNChan);
+  info.setTimes(bda_first_time, bda_first_time + (kNTime - 1) * kInterval,
+                kInterval);
   info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
@@ -282,14 +278,11 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
 }
 
 BOOST_AUTO_TEST_CASE(wrong_input_parameters) {
-  DPInfo info;
-  info.init(kNCorr, kStartChan, kNChan, kNTime, kStartTime, kInterval,
-            kAntennaSet);
+  DPInfo info(kNCorr, kNChan);
+  info.setTimes(kStartTime, kStartTime + kInterval, kInterval);
   info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(false);
 
-  dp3::common::ParameterSet parset;
-  dp3::steps::MockInput mock_input;
   BDAExpander expander("bdaexpander");
   BOOST_CHECK_THROW(expander.updateInfo(info), std::invalid_argument);
 }

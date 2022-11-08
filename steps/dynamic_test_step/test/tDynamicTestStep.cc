@@ -77,8 +77,10 @@ class TestInput : public dp3::steps::MockInput {
 
   virtual void finish() { getNextStep()->finish(); }
   virtual void updateInfo(const DPInfo&) {
-    // Use timeInterval=5
-    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string());
+    const double kTimeInterval = 5.0;
+    info() = DPInfo(itsNCorr, itsNChan);
+    info().setTimes(100.0, 100.0 + (itsNTime - 1) * kTimeInterval,
+                    kTimeInterval);
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNChan, 100000.);
@@ -232,7 +234,8 @@ class TestInput3 : public dp3::steps::MockInput {
   virtual void finish() { getNextStep()->finish(); }
   virtual void updateInfo(const DPInfo&) {
     // Use timeInterval=5
-    info().init(itsNrCorr, 0, itsNrChan, itsNrTime, 100, 5, std::string());
+    info() = DPInfo(itsNrCorr, itsNrChan);
+    info().setTimes(100.0, 100.0 + (itsNrTime - 1) * 5.0, 5.0);
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNrChan, 100000.);

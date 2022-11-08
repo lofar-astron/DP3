@@ -43,8 +43,9 @@ class OnePredictFixture {
   }
 
   void SetInfo() {
-    dp3::base::DPInfo info;
-    info.init(1, 0, 1, 10, 0.0, 1.0, "");
+    const unsigned int kNChannels = 1;
+    dp3::base::DPInfo info(1, kNChannels);
+    info.setTimes(0.5, 9.5, 1.0);
 
     const std::vector<int> kAnt1{0, 0, 1};
     const std::vector<int> kAnt2{1, 2, 2};
@@ -53,8 +54,8 @@ class OnePredictFixture {
     const std::vector<casacore::MPosition> kAntPos(3);
     info.set(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
 
-    std::vector<double> chan_freqs(1, 10.0e6);
-    std::vector<double> chan_widths(1, 3.0e6);
+    std::vector<double> chan_freqs(kNChannels, 10.0e6);
+    std::vector<double> chan_widths(kNChannels, 3.0e6);
 
     info.setChannels(std::move(chan_freqs), std::move(chan_widths));
     predict_->setInfo(info);

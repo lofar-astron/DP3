@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
 namespace dp3 {
 namespace base {
 namespace DP3MS {  // Avoid name conflict with casacore::MS.
@@ -36,13 +38,20 @@ extern const std::string kSpectralWindowTable;
 extern const std::string kBDAFreqAxisId;
 extern const std::string kBDASetId;
 
-extern const std::string kLofarAntennaSet;
-
 extern const std::string kAntennaTable;
 extern const std::string kDataDescTable;
 extern const std::string kObservationTable;
 
 }  // namespace DP3MS
+
+/**
+ * Read the antenna set (e.g. LBA_OUTER, HBA_DUAL_INNER) from the OBSERVATION
+ * table in the MS. This is a LOFAR-specific extension.
+ * @param ms A measurement set, which may contain the antenna set field.
+ * @return The antenna set of the MS, or an empty string if not found.
+ */
+std::string ReadAntennaSet(const casacore::MeasurementSet& ms);
+
 }  // namespace base
 }  // namespace dp3
 

@@ -36,8 +36,8 @@ class TestInput final : public dp3::steps::MockInput {
         n_channels_(n_channels),
         n_correlations_(n_correlations),
         flag_(flag) {
-    // Define start time 0.5 (= 3 - 0.5*5) and time interval 5.
-    info().init(n_correlations, 0, n_channels, n_time, 0.5, 5.0, std::string());
+    info() = DPInfo(n_correlations, n_channels);
+    info().setTimes(0.5, 0.5 + (n_time - 1) * 5.0, 5.0);
 
     // Fill the baselines; use 12 stations with 48 antennas each.
     constexpr int n_receivers = 12 * 48;
@@ -105,7 +105,9 @@ class TestInput final : public dp3::steps::MockInput {
 
   void finish() override { getNextStep()->finish(); }
   void show(std::ostream&) const override{};
-  void updateInfo(const DPInfo&) override {}
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
+  }
 
   size_t n_time_processed_;
   size_t n_time_;

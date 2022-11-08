@@ -28,13 +28,16 @@ namespace base {
 
 class DPInfo {
  public:
-  /// Default constructor.
-  DPInfo();
+  explicit DPInfo(unsigned int n_correlations = 0,
+                  unsigned int n_original_channels = 0,
+                  unsigned int start_channel = 0,
+                  std::string antenna_set = std::string());
 
-  /// Set the initial info from the input.
-  void init(unsigned int ncorr, unsigned int startChan, unsigned int nchan,
-            unsigned int ntime, double startTime, double timeInterval,
-            const std::string& antennaSet);
+  /// Set time information and derive the number of time slots.
+  /// @param first_time Centroid time of the first time slot, in mjd seconds.
+  /// @param last_time Centroid time of the last time slot, in mjd seconds.
+  /// @param time_interval Time interval between two time slots, in mjd seconds.
+  void setTimes(double first_time, double last_time, double time_interval);
 
   void setMsNames(const std::string& ms_name,
                   const std::string& data_column_name,
@@ -141,7 +144,9 @@ class DPInfo {
   unsigned int nAveragedFullResolutionTimes() const {
     return full_resolution_time_averaging_factor_;
   }
-  double startTime() const { return start_time_; }
+  double startTime() const { return first_time_ - 0.5 * time_interval_; }
+  double firstTime() const { return first_time_; }
+  double lastTime() const { return last_time_; }
   double timeInterval() const { return time_interval_; }
   bool isBDAIntervalFactorInteger() const {
     return bda_interval_factor_is_integer_;
@@ -280,9 +285,12 @@ class DPInfo {
   std::vector<unsigned int> time_averaging_factors_;
   unsigned int full_resolution_channel_averaging_factor_;
   unsigned int full_resolution_time_averaging_factor_;
-  unsigned int n_times_;
-  double start_time_;
-  double time_interval_;
+  double
+      first_time_;    ///< Centroid time of the first time slot, in mjd seconds.
+  double last_time_;  ///< Centroid time of the last time slot, in mjd seconds.
+  double time_interval_;  ///< Time interval between two time slots, in mjd
+                          ///< seconds.
+  unsigned int n_times_;  ///< Number of time slots.
   bool bda_interval_factor_is_integer_{false};  // INTEGER_INTERVAL_FACTORS in
                                                 // [BDA_TIME_AXIS}
   casacore::MDirection original_phase_center_;
