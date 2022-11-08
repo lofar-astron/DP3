@@ -43,6 +43,18 @@ class DP3 {
   static void Execute(const std::string& parsetName, int argc = 0,
                       char* argv[] = 0);
 
+  /// Create a step
+  /// @param type Type of the step.
+  /// @param parset ParameterSet containing the configuration for the step.
+  /// @param prefix Prefix, including trailing dot ("."), to use for looking up
+  /// parmeters in the ParameterSet.
+  /// @param input_type Type of input data, BDA or regular.
+  /// @return Pointer to the newly created step, or a null pointer if the
+  /// type not recognized.
+  static std::shared_ptr<steps::Step> MakeSingleStep(
+      const std::string& type, const common::ParameterSet& parset,
+      const std::string& prefix, steps::Step::MsType input_type);
+
   /// Create a chain of step objects that are connected together.
   /// A writer will be added to the steps if it is not defined,
   /// and a terminating NullStep is added.

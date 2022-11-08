@@ -143,12 +143,10 @@ static std::shared_ptr<OutputStep> MakeOutputStep(
   return step;
 }
 
-static std::shared_ptr<Step> makeSingleStep(const std::string& type,
-                                            InputStep* inputStep,
-                                            const common::ParameterSet& parset,
-                                            const std::string& prefix,
-                                            std::string& msName,
-                                            Step::MsType inputType) {
+std::shared_ptr<Step> DP3::MakeSingleStep(const std::string& type,
+                                          const common::ParameterSet& parset,
+                                          const std::string& prefix,
+                                          Step::MsType inputType) {
   std::shared_ptr<Step> step;
   if (type == "aoflagger" || type == "aoflag") {
     step = std::make_shared<steps::AOFlaggerStep>(parset, prefix);
@@ -192,6 +190,16 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     step = std::make_shared<steps::NullStokes>(parset, prefix);
   } else if (type == "predict") {
     step = std::make_shared<steps::Predict>(parset, prefix, inputType);
+  } else if (type == "idgpredict") {
+    step = std::make_shared<steps::IDGPredict>(parset, prefix);
+  } else if (type == "upsample") {
+    step = std::make_shared<steps::Upsample>(parset, prefix);
+  } else if (type == "interpolate") {
+    step = std::make_shared<steps::Interpolate>(parset, prefix);
+  } else if (type == "null") {
+    step = std::make_shared<steps::NullStep>();
+  } else if (type == "smartdemixer" || type == "smartdemix") {
+    step = std::make_shared<steps::DemixerNew>(parset, prefix);
   } else if (type == "grouppredict") {
     step = std::make_shared<steps::BdaGroupPredict>(parset, prefix);
   } else if (type == "idgpredict") {
@@ -200,9 +208,26 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     step = std::make_shared<steps::H5ParmPredict>(parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
     step = std::make_shared<steps::GainCal>(parset, prefix);
-  } else if (type == "upsample") {
-    step = std::make_shared<steps::Upsample>(parset, prefix);
-  } else if (type == "split" || type == "explode") {
+  } else if (type == "demixer" || type == "demix") {
+    step = std::make_shared<steps::Demixer>(parset, prefix);
+  } else if (type == "python" || type == "pythondppp") {
+    step = pythondp3::PyStep::create_instance(parset, prefix);
+  }
+  return step;
+}
+
+static std::shared_ptr<Step> MakeSingleStep(const std::string& type,
+                                            InputStep* inputStep,
+                                            const common::ParameterSet& parset,
+                                            const std::string& prefix,
+                                            std::string& msName,
+                                            Step::MsType inputType) {
+  std::shared_ptr<Step> step =
+      DP3::MakeSingleStep(type, parset, prefix, inputType);
+  if (step) {
+    return step;
+  }
+  if (type == "split" || type == "explode") {
     step = std::make_shared<steps::Split>(inputStep, parset, prefix);
   } else if (type == "ddecal") {
     if (inputType == Step::MsType::kRegular) {
@@ -210,12 +235,8 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     } else if (inputType == Step::MsType::kBda) {
       step = std::make_shared<steps::BdaDdeCal>(parset, prefix);
     }
-  } else if (type == "interpolate") {
-    step = std::make_shared<steps::Interpolate>(parset, prefix);
   } else if (type == "out" || type == "output" || type == "msout") {
     step = MakeOutputStep(inputStep, parset, prefix, msName, inputType);
-  } else if (type == "python" || type == "pythondppp") {
-    step = pythondp3::PyStep::create_instance(parset, prefix);
   } else if (type == "null") {
     step = std::make_shared<steps::NullStep>();
   } else {
@@ -499,8 +520,8 @@ Step::ShPtr DP3::MakeStepsFromParset(const common::ParameterSet& parset,
 
     Step::MsType inputType =
         lastStep ? lastStep->outputs() : initial_step_output;
-    Step::ShPtr step =
-        makeSingleStep(type, &inputStep, parset, prefix, msName, inputType);
+    Step::ShPtr step = dp3::base::MakeSingleStep(type, &inputStep, parset,
+                                                 prefix, msName, inputType);
 
     if (lastStep) {
       if (!step->accepts(lastStep->outputs())) {

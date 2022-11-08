@@ -11,9 +11,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "tStepCommon.h"
-#include "mock/ThrowStep.h"
-#include "../../../pythondp3/PyStep.h"
+#include "../../../steps/test/unit/tStepCommon.h"
+#include "../../../steps/test/unit/mock/ThrowStep.h"
+#include "../../PyStep.h"
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
@@ -131,12 +131,12 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
     auto in_step = std::make_shared<TestInput>();
     // Requires mockpystep to be on the PYTHONPATH!
     ParameterSet parset;
-    parset.add("python.module", "mockpystep");
-    parset.add("python.class", "MockPyStep");
-    parset.add("datafactor", "2");
-    parset.add("weightsfactor", "0.5");
+    parset.add("mock.python.module", "mockpystep");
+    parset.add("mock.python.class", "MockPyStep");
+    parset.add("mock.datafactor", "2");
+    parset.add("mock.weightsfactor", "0.5");
     {
-      std::shared_ptr<Step> py_step = PyStep::create_instance(parset, "");
+      std::shared_ptr<Step> py_step = PyStep::create_instance(parset, "mock.");
       auto out_step = std::make_shared<TestOutput>();
 
       // Monitor lifetime of output step
@@ -146,8 +146,8 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
       // indeed redirected to output stream
       std::ostringstream output_stream_step;
       py_step->show(output_stream_step);
-      BOOST_TEST(
-          output_stream_step.str() ==
+      BOOST_CHECK_EQUAL(
+          output_stream_step.str(),
           "\nMockPyStep\n  data factor:    2.0\n  weights factor: 0.5\n");
 
       common::Fields provided = py_step->getProvidedFields();
