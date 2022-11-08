@@ -24,7 +24,8 @@ namespace {
 class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int nbl, int nchan, int ncorr) : itsNChan(nchan), itsNCorr(ncorr) {
-    info().init(itsNCorr, 0, itsNChan, 0, 0, 50, std::string());
+    info() = dp3::base::DPInfo(ncorr, nchan);
+    info().setTimes(0.0, 0.0, 50.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     std::vector<int> ant1(nbl);

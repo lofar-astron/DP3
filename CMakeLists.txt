@@ -560,7 +560,7 @@ target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
 add_executable(showsourcedb parmdb/showsourcedb.cc)
 target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 
-add_executable(msoverview base/msoverview.cc)
+add_executable(msoverview base/msoverview.cc base/MS.cc)
 target_link_libraries(msoverview ${CASACORE_LIBRARIES})
 
 install(TARGETS DP3 makesourcedb showsourcedb msoverview DESTINATION bin)
@@ -656,6 +656,7 @@ if(BUILD_TESTING)
       common/test/unit/tStringTools.cc
       base/test/unit/tDP3.cc
       base/test/unit/tDPInfo.cc
+      base/test/unit/tMs.cc
       base/test/unit/tSimulator.cc
       ddecal/test/unit/tSolutionResampler.cc
       ddecal/test/unit/tSolveData.cc

@@ -40,7 +40,8 @@ class TestInput : public dp3::steps::MockInput {
         itsNChan(nchan),
         itsNCorr(ncorr),
         itsFlag(flag) {
-    info().init(ncorr, 0, nchan, ntime, 0.0, 10.0, std::string());
+    info() = DPInfo(ncorr, nchan);
+    info().setTimes(0.0, (ntime - 1) * 10.0, 10.0);
     casacore::MDirection phaseCenter(casacore::Quantity(45, "deg"),
                                      casacore::Quantity(30, "deg"),
                                      casacore::MDirection::J2000);
@@ -141,8 +142,10 @@ class TestInput : public dp3::steps::MockInput {
     return true;
   }
 
-  virtual void updateInfo(const DPInfo&) {}
   virtual void finish() { getNextStep()->finish(); }
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
+  }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;

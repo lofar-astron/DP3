@@ -43,6 +43,9 @@ class TestInput : public dp3::steps::MockInput {
     using casacore::MPosition;
     using casacore::Quantum;
 
+    info() = DPInfo(itsNCorr, itsNChan);
+    info().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
+
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     std::vector<int> ant1(itsNBl);
@@ -123,9 +126,8 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo&) {
-    // Use startchan=0 and timeInterval=5
-    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string());
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
   }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
@@ -164,8 +166,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(info.nchan()), itsNChan);
     BOOST_CHECK_EQUAL(int(info.ntime()), itsNTime);
-    BOOST_CHECK_EQUAL(info.startTime(), 100);
-    BOOST_CHECK_EQUAL(info.timeInterval(), 5);
+    BOOST_CHECK_EQUAL(info.firstTime(), 100.0);
+    BOOST_CHECK_EQUAL(info.timeInterval(), 5.0);
     BOOST_CHECK_EQUAL(int(info.nchanAvg()), 1);
     BOOST_CHECK_EQUAL(int(info.ntimeAvg()), 1);
     BOOST_CHECK_EQUAL(int(info.chanFreqs().size()), itsNChan);

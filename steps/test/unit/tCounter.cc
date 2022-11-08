@@ -40,7 +40,6 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   unsigned int n_chan = 4;
   unsigned int n_baselines = 3;
 
-  const std::string antenna_set{};
   const std::vector<std::string> ant_names{"ant0", "ant1", "ant2"};
 
   const std::vector<casacore::MPosition> ant_pos{
@@ -50,8 +49,8 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   const std::vector<int> ant1{0, 1, 2};
   const std::vector<int> ant2{1, 2, 0};
 
-  dp3::base::DPInfo info;
-  info.init(n_corr, 0, n_chan, 1, 0, 1, antenna_set);
+  dp3::base::DPInfo info(n_corr, n_chan);
+  info.setTimes(0.0, 0.0, 1.0);
   info.set(ant_names, ant_diam, ant_pos, ant1, ant2);
 
   dp3::common::ParameterSet parset;

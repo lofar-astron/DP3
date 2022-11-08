@@ -45,9 +45,11 @@ class TestInput : public dp3::steps::MockInput {
         itsNBl(9),
         itsNCorr(4),
         itsTimeInterval(5.),
-        itsFirstTime(4472025740.0) {
-    info().init(itsNCorr, 0, nchan, ntime, itsFirstTime, itsTimeInterval,
-                std::string());
+        itsFirstTime(4472025742.5) {
+    info() = DPInfo(itsNCorr, itsNChan);
+    info().setTimes(itsFirstTime,
+                    itsFirstTime + (itsNTime - 1) * itsTimeInterval,
+                    itsTimeInterval);
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 
@@ -149,7 +151,9 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo&) {}
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
+  }
 
   int itsCount, itsNTime, itsNChan, itsNBl, itsNCorr, itsTimeInterval;
   double itsFirstTime;

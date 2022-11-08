@@ -68,7 +68,8 @@ class TestInput final : public steps::MockInput {
   void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Use timeInterval=5
-    info().init(kNCorrelations, 0, kNChannels, kNTimes, 100, 5, std::string());
+    info() = DPInfo(kNCorrelations, kNChannels);
+    info().setTimes(100.0, 100.0 + (kNTimes - 1) * 5.0, 5.0);
     // Define the frequencies.
     std::vector<double> chan_freqs;
     std::vector<double> chan_width(kNChannels, 100000.);

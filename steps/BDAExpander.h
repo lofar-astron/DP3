@@ -19,11 +19,8 @@
 #include <vector>
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}
-
 namespace steps {
+
 /// @brief DP3 step that expands BDA data in BDABuffers to regular data in
 /// DPBuffers.
 
@@ -35,11 +32,7 @@ namespace steps {
 
 class BDAExpander : public Step {
  public:
-  /// Construct the object.
-  /// Parameters are obtained from the parset using the given prefix.
-  BDAExpander(const string &prefix);
-
-  ~BDAExpander() override;
+  explicit BDAExpander(const std::string &prefix);
 
   common::Fields getRequiredFields() const override { return kUvwField; }
 

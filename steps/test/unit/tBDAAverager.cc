@@ -21,11 +21,11 @@ const unsigned int kNCorr = 4;
 const unsigned int kNChan = 5;
 const std::vector<std::size_t> kChannelCounts(kNChan, 1);
 const unsigned int kStartChan = 0;
-const unsigned int kNTime = 10;
 const double kStartTime = 0.0;
 const double kInterval = 1.0;
+const double kFirstTime = 0.5;
+const double kLastTime = 9.5;
 const std::string kMsName{};
-const std::string kAntennaSet{};
 const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2", "ant3"};
 const std::vector<casacore::MPosition> kAntPos{
     casacore::MVPosition{0, 0, 0}, casacore::MVPosition{300, 0, 0},
@@ -55,8 +55,8 @@ void InitParset(dp3::common::ParameterSet& parset,
   }
 }
 
-void InitInfo(DPInfo& info, const std::vector<int>& ant1,
-              const std::vector<int>& ant2, std::size_t n_chan = kNChan) {
+DPInfo InitInfo(const std::vector<int>& ant1, const std::vector<int>& ant2,
+                std::size_t n_chan = kNChan) {
   BOOST_REQUIRE_EQUAL(ant1.size(), ant2.size());
   std::vector<double> chan_freqs(n_chan);
   std::vector<double> chan_widths(n_chan, 5000.0);
@@ -64,10 +64,11 @@ void InitInfo(DPInfo& info, const std::vector<int>& ant1,
     chan_freqs[i] = i * 10000.0;
   }
 
-  info.init(kNCorr, kStartChan, n_chan, kNTime, kStartTime, kInterval,
-            kAntennaSet);
+  DPInfo info(kNCorr, kNChan);
+  info.setTimes(kFirstTime, kLastTime, kInterval);
   info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
+  return info;
 }
 
 void CheckInfo(
@@ -290,8 +291,7 @@ BOOST_AUTO_TEST_CASE(set_averaging_params_invalid) {
 }
 
 BOOST_AUTO_TEST_CASE(set_averaging_params_unsupported) {
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
   dp3::common::ParameterSet parset;
   BDAAverager averager(parset, "");
@@ -307,8 +307,7 @@ BOOST_AUTO_TEST_CASE(set_averaging_params_unsupported) {
 }
 
 BOOST_AUTO_TEST_CASE(set_averaging_params) {
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
   dp3::common::ParameterSet parset;
   BDAAverager averager(parset, "");
@@ -328,8 +327,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   const std::size_t kNBaselines = 1;
   const std::size_t kTimeSteps = 7;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   // With the default options, the averager performs no averaging: It only
   // copies data from DPBuffers into BDABuffers.
   dp3::common::ParameterSet parset;
@@ -366,8 +364,7 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
   const std::size_t kFactor = 2;  // Averaging factor for this test.
   const std::size_t kNBaselines = 1;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
   const double averaged_interval = 2 * kInterval;
   const double averaged_start_time = kStartTime - kInterval / 2;
@@ -416,8 +413,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_use_weights) {
   const std::size_t kTimeAveragingFactor = 2;
   const std::size_t kNBaselines = 1;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
   const double averaged_interval = 2 * kInterval;
   const double averaged_start_time = kStartTime - kInterval / 2;
@@ -466,8 +462,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
   const std::size_t kTimeAveragingFactor = 2;
   const std::size_t kNBaselines = 1;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
   const double averaged_interval = 2 * kInterval;
   const double averaged_start_time = kStartTime - kInterval / 2;
@@ -523,8 +518,8 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
   const std::vector<double> kOutputFreqs{5000.0, 25000.0, 50000.0};
   const std::vector<double> kOutputWidths{10000.0, 10000.0, 15000.0};
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
+  const DPInfo info =
+      InitInfo(kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;
@@ -562,8 +557,8 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
   const std::vector<double> kOutputFreqs{5000.0, 25000.0, 50000.0};
   const std::vector<double> kOutputWidths{10000.0, 10000.0, 15000.0};
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
+  const DPInfo info =
+      InitInfo(kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;
@@ -621,8 +616,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   // The averager should average the third baseline by a factor of 3.
   const std::size_t kNBaselines = 3;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_3Bl, kAnt2_3Bl);
+  const DPInfo info = InitInfo(kAnt1_3Bl, kAnt2_3Bl);
   const double time_threshold = 600.0;  // Time averaging factors become 1,2,3.
   const double chan_threshold = 100.0;  // No channel averaging.
 
@@ -720,8 +714,8 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
   const std::vector<std::size_t> kOutputChannelCounts3{3, 3, 3};
   const std::size_t kTimeSteps = 5;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_3Bl, kAnt2_3Bl, kInputChannelCounts.size());
+  const DPInfo info =
+      InitInfo(kAnt1_3Bl, kAnt2_3Bl, kInputChannelCounts.size());
   const double time_threshold = 100.0;  // No averaging, baselines are longer.
   const double chan_threshold = 600.0;  // Averaging factors become 1, 2, 3.
 
@@ -771,8 +765,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
 
 BOOST_AUTO_TEST_CASE(shape_mismatch) {
   // The antenna vectors indicate there is a single baseline.
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   dp3::common::ParameterSet parset;
   BDAAverager averager(parset, "");
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
@@ -792,8 +785,7 @@ BOOST_AUTO_TEST_CASE(max_interval) {
   const std::size_t kNBaselines = 1;
   const std::size_t kTimeSteps = 7 * kFactor;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
   // The threshold implies an averaging factor of 42, however, kMaxInterval
@@ -829,8 +821,7 @@ BOOST_AUTO_TEST_CASE(min_channels) {
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kOutputChannelCounts{1, 2, 2};
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;
@@ -862,8 +853,7 @@ BOOST_AUTO_TEST_CASE(zero_values_weight) {
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kOutputChannelCounts{1, 2, 2};
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;
@@ -896,8 +886,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize) {
   const std::size_t kNBaselines = 1;
   const int kNInputBuffers = 20;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;
@@ -941,8 +930,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize_smaller_than_output) {
   const std::size_t kNBaselines = 1;
   const int kNInputBuffers = 20;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;
@@ -986,8 +974,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
   const std::size_t kNBaselines = 1;
   const int kNInputBuffers = 20;
 
-  DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
   dp3::common::ParameterSet parset;

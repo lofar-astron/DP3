@@ -74,10 +74,10 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo& infoIn) {
-    info() = infoIn;
+  virtual void updateInfo(const DPInfo&) {
+    info() = DPInfo(itsNCorr, itsNChan);
     // Use timeInterval=5
-    info().init(itsNCorr, 0, itsNChan, itsNTime, 100, 5, std::string());
+    info().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(itsNBl);

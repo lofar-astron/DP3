@@ -23,12 +23,11 @@ const unsigned int kNCorr = 4;
 const unsigned int kNChan = 5;
 const std::vector<std::size_t> kChannelCounts(kNChan, 1);
 const unsigned int kStartChan = 0;
-const unsigned int kNTime = 10;
-const double kStartTime = 0.0;
+const double kFirstTime = 0.5;
+const double kLastTime = 9.5;
 const double kInterval = 1.0;
 const std::size_t kTimeSteps = 5;
 const std::string kMsName{};
-const std::string kAntennaSet{};
 const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2", "ant3"};
 const std::vector<casacore::MPosition> kAntPos{
     casacore::MVPosition{0, 0, 0}, casacore::MVPosition{300, 0, 0},
@@ -38,8 +37,9 @@ const std::vector<int> kAnt1_1Bl{0, 0, 0};
 const std::vector<int> kAnt2_1Bl{3, 1, 2};
 const std::size_t kNBaselines = 3;
 
-void InitInfo(dp3::base::DPInfo& info, const std::vector<int>& ant1,
-              const std::vector<int>& ant2, std::size_t n_chan = kNChan) {
+dp3::base::DPInfo InitInfo(const std::vector<int>& ant1,
+                           const std::vector<int>& ant2,
+                           std::size_t n_chan = kNChan) {
   BOOST_REQUIRE_EQUAL(ant1.size(), ant2.size());
   std::vector<double> chan_freqs(n_chan);
   std::vector<double> chan_widths(n_chan, 5000.0);
@@ -47,15 +47,16 @@ void InitInfo(dp3::base::DPInfo& info, const std::vector<int>& ant1,
     chan_freqs[i] = i * 10000.0;
   }
 
-  info.init(kNCorr, kStartChan, n_chan, kNTime, kStartTime, kInterval,
-            kAntennaSet);
+  dp3::base::DPInfo info(kNCorr, kNChan);
+  info.setTimes(kFirstTime, kLastTime, kInterval);
   info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
+  return info;
 }
 
 /**
  * Create a buffer with artifical data values.
- * @param time Start time for the buffer.
+ * @param time Centroid time for the buffer.
  * @param interval Interval duration for the buffer.
  * @param n_baselines Number of baselines in the buffer.
  * @param base_value Base value for the data values, for distinguising buffers.
@@ -237,8 +238,7 @@ BOOST_AUTO_TEST_CASE(update_info_wrong) {
 BOOST_AUTO_TEST_CASE(update_info) {
   const dp3::common::ParameterSet parset = CreateParset();
 
-  dp3::base::DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const dp3::base::DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
   IDGPredict predict(parset, "");
 
@@ -259,12 +259,11 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
 
   predict.setNextStep(result_step);
 
-  dp3::base::DPInfo info;
-  InitInfo(info, kAnt1_1Bl, kAnt2_1Bl);
+  const dp3::base::DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   predict.setInfo(info);
 
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    DPBuffer buffer = CreateBuffer(kStartTime + i * kInterval, kInterval,
+    DPBuffer buffer = CreateBuffer(kFirstTime + i * kInterval, kInterval,
                                    kNBaselines, kChannelCounts, i * 1000.0);
     predict.process(buffer);
   }
@@ -308,8 +307,7 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
   reader->setNextStep(predict);
   predict->setNextStep(result_step);
 
-  dp3::base::DPInfo info;
-  reader->setInfo(info);
+  reader->setInfo(dp3::base::DPInfo());
   reader->setFieldsToRead(predict->getRequiredFields());
 
   DPBuffer buffer;

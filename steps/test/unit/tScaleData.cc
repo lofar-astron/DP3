@@ -41,7 +41,8 @@ class TestInput : public dp3::steps::MockInput {
         itsNBl(nbl),
         itsNChan(nchan),
         itsNCorr(ncorr) {
-    info().init(ncorr, 0, nchan, ntime, 0.0, 5.0, std::string());
+    info() = DPInfo(ncorr, nchan);
+    info().setTimes(0.0, (ntime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(nbl);
@@ -125,7 +126,9 @@ class TestInput : public dp3::steps::MockInput {
   }
 
   virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo&) {}
+  void updateInfo(const DPInfo&) override {
+    // Do nothing / keep the info set in the constructor.
+  }
 
   int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
 };

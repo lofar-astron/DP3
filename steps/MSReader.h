@@ -250,7 +250,6 @@ class MSReader : public InputStep {
   /// Can be negative to insert flagged time slots before start.
   double itsTimeTolerance{1e-2};
   double itsTimeInterval{0.0};
-  double itsStartTime{0.0};
   double itsFirstTime{0.0};
   double itsLastTime{0.0};
   double itsNextTime{0.0};

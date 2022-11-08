@@ -3,6 +3,9 @@
 
 #include "MSBDAReader.h"
 
+#include <algorithm>
+#include <iostream>
+
 #include <dp3/base/BDABuffer.h>
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
@@ -38,8 +41,6 @@
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
 #include <EveryBeam/telescope/phasedarray.h>
-
-#include <iostream>
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;
@@ -119,45 +120,6 @@ MSBDAReader::MSBDAReader(const casacore::MeasurementSet& ms,
 
 MSBDAReader::~MSBDAReader() {}
 
-void MSBDAReader::updateInfo(const DPInfo& dpInfo) {
-  InputStep::updateInfo(dpInfo);
-
-  // Find the nr of correlations, channels, and baselines.
-
-  unsigned int ncorr =
-      ArrayColumn<Complex>(ms_, MS::columnName(MS::DATA)).shape(0)[0];
-
-  // Read the meta data tables and store required values.
-  FillInfoMetaData();
-
-  // Read the antenna set.
-  Table obstab(ms_.keywordSet().asTable(base::DP3MS::kObservationTable));
-  std::string antenna_set;
-  if (obstab.nrow() > 0 &&
-      obstab.tableDesc().isColumn(base::DP3MS::kLofarAntennaSet)) {
-    antenna_set = ScalarColumn<casacore::String>(
-        obstab, base::DP3MS::kLofarAntennaSet)(0);
-  }
-
-  // Calculate ntime (amount of timeslots)
-  // The 1.5 comes from a) rounding (0.5) + b) (last_time_ - first_time_) gives
-  // the distance between the centroids of the first and last time slot. We need
-  // to add 0.5 interval at the beginning and 0.5 interval at the end to obtain
-  // the entire time span.
-  unsigned int ntime = unsigned((last_time_ - first_time_) / interval_ + 1.5);
-
-  unsigned int start_chan = 0;
-
-  // FillInfoMetaData already set the number of channels via DPInfo::set.
-  info().init(ncorr, start_chan, info().nchan(), ntime,
-              first_time_ - interval_ / 2, interval_, antenna_set);
-
-  const std::string kFlagColumnName = "";  // Reading flags is not supported.
-  info().setMsNames(msName(), data_column_name_, kFlagColumnName,
-                    weight_column_name_);
-  info().setIsBDAIntervalFactorInteger(is_interval_integer_);
-}
-
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
 bool MSBDAReader::process(const base::DPBuffer&) { return process(nullptr); }
@@ -234,7 +196,7 @@ bool MSBDAReader::process(std::unique_ptr<base::BDABuffer>) {
 
 void MSBDAReader::finish() { getNextStep()->finish(); }
 
-void MSBDAReader::FillInfoMetaData() {
+void MSBDAReader::updateInfo(const DPInfo& info_in) {
   using MS_Ant = casacore::MSAntenna;
   using MS_SPW = casacore::MSSpectralWindow;
   using MS_Field = casacore::MSField;
@@ -247,6 +209,8 @@ void MSBDAReader::FillInfoMetaData() {
   interval_ = axis.col(base::DP3MS::kUnitTimeInterval).getDouble(0);
   is_interval_integer_ = axis.col(base::DP3MS::kIntervalFactors).getBool(0);
   unsigned int nbl = factors.nrow();
+  unsigned int ncorr =
+      ArrayColumn<Complex>(ms_, MS::columnName(MS::DATA)).shape(0)[0];
 
   // Required columns to read
   ScalarColumn<int> factor_col(factors, base::DP3MS::kFactor);
@@ -257,6 +221,10 @@ void MSBDAReader::FillInfoMetaData() {
   ArrayColumn<double> freqs_col(spw, MS_SPW::columnName(MS_SPW::CHAN_FREQ));
   ArrayColumn<double> widths_col(spw, MS_SPW::columnName(MS_SPW::CHAN_WIDTH));
 
+  // Get the first time and last time.
+  // When all baselines are averaged in time, the first and start time will
+  // be incorrect: Together with the (non-averaged) time interval they yield
+  // an incorrect start time, for example. AST-1092 should address this issue.
   string query =
       "select gmin(TIME_CENTROID) as first_time, "
       "gmax(TIME_CENTROID) as last_time "
@@ -272,11 +240,13 @@ void MSBDAReader::FillInfoMetaData() {
   std::vector<std::vector<double>> freqs(nbl);
   std::vector<std::vector<double>> widths(nbl);
   std::vector<unsigned int> baseline_factors(nbl);
+  std::size_t max_n_channels = 0;
   for (unsigned int i = 0; i < nbl; ++i) {
     unsigned int spw_id = ids_col(i);
     baseline_factors[i] = factor_col(i);
     freqs[i] = freqs_col.get(spw_id).tovector();
     widths[i] = widths_col.get(spw_id).tovector();
+    max_n_channels = std::max(max_n_channels, freqs[i].size());
 
     desc_id_to_nchan_[ids_col(i)] = freqs[i].size();
     bl_to_id_[std::make_pair(ant1_col(i), ant2_col(i))] = i;
@@ -294,6 +264,11 @@ void MSBDAReader::FillInfoMetaData() {
   for (unsigned int i = 0; i < anttab.nrow(); ++i) {
     antPos.push_back(ant_col(i));
   }
+
+  const unsigned int start_channel = 0;
+  const std::string antenna_set = base::ReadAntennaSet(ms_);
+  info() = DPInfo(ncorr, max_n_channels, start_channel, antenna_set);
+  info().setNThreads(info_in.nThreads());
 
   // Set antenna/baseline info.
   casacore::Vector<casacore::String> names = name_col.getColumn();
@@ -343,6 +318,13 @@ void MSBDAReader::FillInfoMetaData() {
 
   info().update(std::move(baseline_factors));
   info().setChannels(std::move(freqs), std::move(widths));
+
+  info().setTimes(first_time_, last_time_, interval_);
+
+  const std::string kFlagColumnName = "";  // Reading flags is not supported.
+  info().setMsNames(msName(), data_column_name_, kFlagColumnName,
+                    weight_column_name_);
+  info().setIsBDAIntervalFactorInteger(is_interval_integer_);
 }
 
 void MSBDAReader::show(std::ostream& os) const {
