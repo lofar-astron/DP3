@@ -20,9 +20,10 @@ class MockPyStep(Step):
           parset: Parameter set for the entire pipeline
           prefix: Prefix for this step, e.g. "thisstepname."
         """
+
         super().__init__()
-        self.datafactor = parset.getDouble(prefix + "datafactor")
-        self.weightsfactor = parset.getDouble(prefix + "weightsfactor")
+        self.datafactor = parset.get_double(prefix + "datafactor")
+        self.weightsfactor = parset.get_double(prefix + "weightsfactor")
 
     def update_info(self, dpinfo):
         """
@@ -66,7 +67,7 @@ class MockPyStep(Step):
         weights *= self.weightsfactor
 
         # Send processed data to the next step
-        self.process_next_step(dpbuffer)
+        self.get_next_step().process(dpbuffer)
 
     def finish(self):
         """

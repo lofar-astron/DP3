@@ -639,7 +639,7 @@ if(BUILD_TESTING)
       steps/test/unit/tStationAdder.cc
       steps/test/unit/tStepCommon.cc)
   if(${Python3_NumPy_FOUND})
-    list(APPEND TEST_FILENAMES "steps/test/unit/tPyStep.cc")
+    list(APPEND TEST_FILENAMES "pythondp3/test/unit/tPyStep.cc")
   else(${Python3_NumPy_FOUND})
     message(
       WARNING "NumPy not found on machine, tPyStep test is excluded from tests."

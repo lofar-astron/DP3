@@ -2,20 +2,26 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "PyStep.h"
-#include "PyStepImpl.h"
-#include <dp3/common/Fields.h>
 #include <sstream>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+#include <pybind11/iostream.h>
 
 #include <casacore/measures/Measures/MDirection.h>
+
+#include <dp3/base/DP3.h>
+#include <dp3/steps/Step.h>
+#include <dp3/common/Fields.h>
+
+#include "PyStep.h"
+#include "utils.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::Fields;
+using dp3::steps::Step;
 
 namespace py = pybind11;
 
@@ -73,6 +79,12 @@ void register_vector(py::module &m, const char *name) {
       });
 }
 
+class PublicStep : public Step {
+ public:
+  using Step::info;
+  using Step::updateInfo;
+};
+
 PYBIND11_MODULE(pydp3, m) {
   m.doc() = "pybind11 example plugin";  // optional module docstring
 
@@ -86,26 +98,43 @@ PYBIND11_MODULE(pydp3, m) {
   py::class_<ostream_wrapper>(m, "ostream")
       .def("write", &ostream_wrapper::write);
 
-  py::class_<StepWrapper, PyStepImpl /* <--- trampoline*/
-             >(m, "Step")
+  m.def("make_step", &dp3::base::DP3::MakeSingleStep);
+
+  py::enum_<dp3::steps::Step::MsType>(m, "MsType")
+      .value("regular", dp3::steps::Step::MsType::kRegular)
+      .value("bda", dp3::steps::Step::MsType::kBda);
+
+  py::class_<dp3::steps::Step, std::shared_ptr<dp3::steps::Step>, PyStep>(
+      m, "Step")
       .def(py::init<>())
-      .def("show", &StepWrapper::show,
-           "Show step summary (stdout will be redirected to DPPP's output "
-           "stream during this step)")
-      .def("update_info", &StepWrapper::updateInfo, "Handle metadata")
-      .def("info", &StepWrapper::info, py::return_value_policy::reference,
+      .def(
+          "show", [](const dp3::steps::Step &step) { step.show(std::cout); },
+          "Show step summary. When running embedded in DP3, sys.stdout will be "
+          "redirected to DP3's output stream. Overrides of show() should use "
+          "print() "
+          "to output a summary of the step.")
+      .def("__str__",
+           [](const dp3::steps::Step &step) {
+             std::stringstream ss;
+             step.show(ss);
+             return ss.str();
+           })
+      .def("update_info", &PublicStep::updateInfo, "Handle metadata")
+      .def("info", &PublicStep::info, py::return_value_policy::reference,
            "Get info object (read/write) with metadata")
-      .def("finish", &StepWrapper::finish,
+      .def(
+          "process",
+          [](dp3::steps::Step &step, const base::DPBuffer &buffer) {
+            step.process(buffer);
+          },
+          "process buffer")
+      .def("finish", &Step::finish,
            "Finish processing (nextstep->finish will be called automatically")
-      .def("get_next_step", &StepWrapper::get_next_step,
-           py::return_value_policy::copy, "Get a reference to the next step")
-      .def("process_next_step", &StepWrapper::process_next_step,
-           "Process the next step")
-      .def("get_count", &StepWrapper::get_count,
-           "Get the number of time slots processed")
-      .def("get_required_fields", &StepWrapper::getRequiredFields,
+      .def("get_next_step", &Step::getNextStep,
+           "Get a reference to the next step")
+      .def("get_required_fields", &Step::getRequiredFields,
            "Get the fields required by current step")
-      .def("get_provided_fields", &StepWrapper::getProvidedFields,
+      .def("get_provided_fields", &Step::getProvidedFields,
            "Get the fields provided by current step");
 
   py::class_<DPBuffer, std::shared_ptr<DPBuffer>>(m, "DPBuffer")
@@ -212,12 +241,12 @@ PYBIND11_MODULE(pydp3, m) {
       .value("FULLRESFLAGS", Fields::Single::kFullResFlags)
       .value("UVW", Fields::Single::kUvw);
 
-  // Custom export_values()
-  // For each entry in the Fields.Single enum a static property is added to the
-  // Fields class. The getter function returns a new instance that can be
-  // modified freely without affecting the value returned by subsequent calls to
-  // the getter. This allows the usage of, for example, Fields.DATA instead of
-  // the more verbose Fields(Fields.Single.DATA)
+  // Custom export_values(), adaptation of the export_values() function in
+  // pybind11.h For each entry in the Fields.Single enum a static property is
+  // added to the Fields class. The getter function returns a new instance that
+  // can be modified freely without affecting the value returned by subsequent
+  // calls to the getter. This allows the usage of, for example, Fields.DATA
+  // instead of the more verbose Fields(Fields.Single.DATA)
   py::dict entries = fields_enum.attr("__entries");
   for (auto kv : entries) {
     auto key = kv.first.cast<string>();

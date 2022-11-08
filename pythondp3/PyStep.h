@@ -1,8 +1,8 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DPPP_PYDPSTEP_H
-#define DPPP_PYDPSTEP_H
+#ifndef DP3_STEPS_PYDPSTEP_H_
+#define DP3_STEPS_PYDPSTEP_H_
 
 #include <dp3/steps/Step.h>
 #include "../common/ParameterSet.h"
@@ -10,16 +10,27 @@
 namespace dp3 {
 namespace pythondp3 {
 
-class PyStep : public steps::Step {
+class PyStep final : public steps::Step {
  public:
-  static std::shared_ptr<Step> create_instance(
+  static std::shared_ptr<PyStep> create_instance(
       const common::ParameterSet& parset, const string& prefix);
+  using steps::Step::Step;
 
- private:
-  using Step::Step;
+  PyStep();
+
+  void show(std::ostream& os) const override;
+
+  common::Fields getRequiredFields() const override;
+  common::Fields getProvidedFields() const override;
+
+  void updateInfo(const base::DPInfo&) override;
+
+  bool process(const base::DPBuffer&) override;
+
+  void finish() override;
 };
 
 }  // namespace pythondp3
 }  // namespace dp3
 
-#endif  // DPPP_PYDPSTEP_H
+#endif  // DP3_STEPS_PYDPSTEP_H_
