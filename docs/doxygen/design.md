@@ -16,11 +16,12 @@ write out the processed data.
 DP3 runs a pipeline in clearly defined stages, to make spotting
 errors as easy as possible.
 * **Initialise** This connects all the processing steps together. This step is data independent.
+* **Get fields to read** At this stage the fields required by each step (data, flags, weights, uvw, full resolution flags) are combined, to get the information on what to read from the measurement set.
 * **Tune At** This stage reads metadata, such as the number of channels, and adjusts the steps accordingly.
 * **Process** This stage pipes the data through the steps, one buffer at a time. The steps define the buffer size.
 
 ## Reading input
-Internally, DP3 passes all bulk data (visibilities, flags, weights, uvw) as so-called [DPBuffer](@ref dp3::base::DPBuffer)s or [BDABuffer](@ref dp3::base::BDABuffer)s. As output, a new MS can be written (with [MSWriter](@ref dp3::base::MSwriter), or the input MS can be updated (with [MSUpdater](@ref dp3::base::MSUpdater). Updating is currently not implemented for BDA MSs, though. If an MS is updated, and some data from the input MS is not used by any step in the pipeline, the data is not read into the DPBuffer. DP3 implements this mechanism using the [getRequiredFields](@ref dp3::steps::Step::getRequiredFields) and [getProvidedFields](@ref dp3::steps::Step::getProvidedFields) functions of each Step.
+Internally, DP3 passes all bulk data (visibilities, flags, weights, uvw) as so-called [DPBuffer](@ref dp3::base::DPBuffer)s or [BDABuffer](@ref dp3::base::BDABuffer)s. As output, a new MS can be written (respectively with [MSWriter](@ref dp3::steps::MSWriter) and [MSBDAWriter](@ref dp3::steps::MSBDAWriter) or the input MS can be updated with [MSUpdater](@ref dp3::steps::MSUpdater)). Updating is currently not implemented for BDA MSs, though. If an MS is updated, and some data from the input MS is not used by any step in the pipeline, the data is not read into the DPBuffer. DP3 implements this mechanism using the [getRequiredFields](@ref dp3::steps::Step::getRequiredFields) and [getProvidedFields](@ref dp3::steps::Step::getProvidedFields) functions of each Step.
 If the first step is an MSReader and a field is not required, it will not read it into the buffer.
 The RequiredFields can also hold metadata about which things need to be read into the metadata, which is stored in the [DPInfo](@ref dp3::base::DPInfo) object. The same logic holds: if a field is not required by the pipeline, the MSReader will not read it into the DPInfo object. An example of an optional metadata object is the beam information.
 

@@ -50,10 +50,9 @@ namespace steps {
 /// MS by giving the correct starttime and endtime.
 /// The correct UVW coordinates are calculated for inserted time slots.
 ///
-/// The process function only reads the data and flags to avoid that
-/// too much data is kept in memory.
-/// Other columns (like WEIGHT, UVW) can be read when needed by using the
-/// appropriate InputStep::fetch function.
+/// The process function reads the fields needed by the steps' chain which can
+/// be obtained calling getFieldsToRead(). In this way only the necessary data
+/// is kept in memory.
 ///
 /// The data columns are handled in the following way:
 /// <table>

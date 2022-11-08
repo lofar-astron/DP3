@@ -90,12 +90,11 @@ namespace base {
 /// but also improved performance, possible due to far less mallocs.
 ///
 /// The buffer/step guidelines are as follows:
-/// 1. If a step keeps a buffer for later processing (e.g. AORFlagger),
+/// 1. If a step keeps a buffer for later processing (e.g. AOFlagger),
 ///    it must make a copy of the buffer because the input data arrays
 ///    might have changed before that step processes the data.
 /// 2. A shallow copy of a data member can be used if a step processes
 ///    the data immediately (e.g. Averager).
-/// The InputStep::fetch functions come in those 2 flavours.
 class DPBuffer {
  public:
   using Complex = std::complex<float>;
