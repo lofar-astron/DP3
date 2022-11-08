@@ -1,4 +1,5 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// tBdaDdeCal.cc: Test program for class BdaDdeCal
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <boost/test/unit_test.hpp>
@@ -26,12 +27,11 @@ dp3::common::ParameterSet CreateMinimalPararameterSet() {
 
 /// Fixture that creates a minimal working BdaDdeCal step.
 struct BdaDdeCalFixture {
-  BdaDdeCalFixture() : input(), bdaddecal() {
+  BdaDdeCalFixture() : bdaddecal() {
     dp3::common::ParameterSet parset = CreateMinimalPararameterSet();
-    bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input, parset, "");
+    bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(parset, "");
   }
 
-  dp3::steps::MockInput input;
   std::shared_ptr<BdaDdeCal> bdaddecal;
 };
 
@@ -43,10 +43,9 @@ BOOST_AUTO_TEST_SUITE(bdaddecal)
 static void TestShow(
     const std::string& expected,
     const std::vector<std::pair<std::string, std::string>>& parameters) {
-  dp3::steps::MockInput input;
   const dp3::common::ParameterSet parset =
       dp3::steps::test::CreateParameterSet(parameters);
-  const BdaDdeCal bdaddecal(&input, parset, "prefix.");
+  const BdaDdeCal bdaddecal(parset, "prefix.");
   BOOST_CHECK_EQUAL(expected, dp3::steps::test::Show(bdaddecal));
 
   BOOST_CHECK_MESSAGE(parset.unusedKeys().empty(),
@@ -223,10 +222,9 @@ BOOST_FIXTURE_TEST_CASE(get_required_fields, BdaDdeCalFixture) {
 
 BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {
   using dp3::steps::Step;
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset = CreateMinimalPararameterSet();
   parset.add("correcttimesmearing", "10");
-  auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input, parset, "");
+  auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(parset, "");
 
   const dp3::common::Fields kExpectedFields =
       Step::kFlagsField | Step::kWeightsField | Step::kFullResFlagsField |
@@ -240,10 +238,9 @@ BOOST_FIXTURE_TEST_CASE(get_provided_fields, BdaDdeCalFixture) {
 }
 
 BOOST_AUTO_TEST_CASE(get_provided_fields_subtract) {
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset = CreateMinimalPararameterSet();
   parset.add("subtract", "true");
-  auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(&input, parset, "");
+  auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(parset, "");
 
   const dp3::common::Fields kExpectedFields = dp3::steps::Step::kDataField;
   BOOST_TEST(bdaddecal->getProvidedFields() == kExpectedFields);

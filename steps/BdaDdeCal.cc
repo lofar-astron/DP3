@@ -26,7 +26,7 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
+BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
                      const std::string& prefix)
     : settings_(parset, prefix),
       solution_writer_(),
@@ -53,7 +53,7 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
       std::make_unique<UVWFlagger>(parset, prefix, Step::MsType::kBda);
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
   uvw_flagger_step_->setNextStep(uvw_flagger_result_step_);
-  InitializePredictSteps(input, parset, prefix);
+  InitializePredictSteps(parset, prefix);
 
   if (!settings_.only_predict) {
     solver_ = ddecal::CreateSolver(settings_, parset, prefix);
@@ -62,9 +62,8 @@ BdaDdeCal::BdaDdeCal(InputStep* input, const common::ParameterSet& parset,
   }
 }
 
-void BdaDdeCal::InitializePredictSteps(InputStep* input,
-                                       const common::ParameterSet& parset,
-                                       const string& prefix) {
+void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
+                                       const std::string& prefix) {
   std::vector<std::vector<std::string>> directions =
       base::MakeDirectionList(settings_.directions, settings_.source_db);
 

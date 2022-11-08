@@ -208,7 +208,7 @@ static std::shared_ptr<Step> makeSingleStep(const std::string& type,
     if (inputType == Step::MsType::kRegular) {
       step = std::make_shared<steps::DDECal>(inputStep, parset, prefix);
     } else if (inputType == Step::MsType::kBda) {
-      step = std::make_shared<steps::BdaDdeCal>(inputStep, parset, prefix);
+      step = std::make_shared<steps::BdaDdeCal>(parset, prefix);
     }
   } else if (type == "interpolate") {
     step = std::make_shared<steps::Interpolate>(parset, prefix);

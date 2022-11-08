@@ -1,8 +1,8 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_BDADDECAL_H
-#define DP3_BDADDECAL_H
+#ifndef DP3_BDADDECAL_H_
+#define DP3_BDADDECAL_H_
 
 #include <dp3/steps/Step.h>
 
@@ -59,12 +59,10 @@ class BdaDdeCal : public Step {
  public:
   /**
    * Constructor.
-   * @param input_step Input step, for reading extra data.
    * @param parset A parameter set with settings for this class.
    * @param prefix Prefix for reading settings from the parameter set.
    */
-  BdaDdeCal(InputStep* input_step, const common::ParameterSet& parset,
-            const std::string& prefix);
+  BdaDdeCal(const common::ParameterSet& parset, const std::string& prefix);
 
   common::Fields getRequiredFields() const override;
 
@@ -94,9 +92,8 @@ class BdaDdeCal : public Step {
                            size_t n_channel_blocks) const;
 
  private:
-  void InitializePredictSteps(InputStep* input,
-                              const common::ParameterSet& parset,
-                              const string& prefix);
+  void InitializePredictSteps(const common::ParameterSet& parset,
+                              const std::string& prefix);
 
   /// Initialize chan_block_start_freqs_.
   void DetermineChannelBlocks();
