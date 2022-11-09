@@ -87,11 +87,21 @@ void DPInfo::setChannels(std::vector<double>&& chan_freqs,
                          std::vector<double>&& resolutions,
                          std::vector<double>&& effective_bw, double ref_freq,
                          int spectral_window) {
+  if (chan_freqs.size() != chan_widths.size()) {
+    throw std::invalid_argument(
+        "Channel width count does not match frequency count");
+  }
   if (resolutions.empty()) {
     resolutions = chan_widths;
+  } else if (resolutions.size() != chan_freqs.size()) {
+    throw std::invalid_argument(
+        "Channel resolution count does not match frequency count");
   }
   if (effective_bw.empty()) {
     effective_bw = chan_widths;
+  } else if (effective_bw.size() != chan_freqs.size()) {
+    throw std::invalid_argument(
+        "Channel effective bandwidth count does not match frequency count");
   }
 
   n_channels_ = chan_freqs.size();
@@ -131,8 +141,27 @@ void DPInfo::setChannels(std::vector<std::vector<double>>&& chan_freqs,
   if (chan_freqs.size() != nbaselines() || chan_widths.size() != nbaselines() ||
       resolutions.size() != nbaselines() ||
       effective_bw.size() != nbaselines()) {
-    throw std::runtime_error(
+    throw std::invalid_argument(
         "Invalid baseline count while setting frequency info");
+  }
+  for (std::size_t i = 0; i < nbaselines(); ++i) {
+    if (chan_freqs[i].size() != chan_widths[i].size()) {
+      throw std::invalid_argument(
+          "Channel width count does not match frequency count for baseline " +
+          std::to_string(i));
+    }
+    if (chan_freqs[i].size() != resolutions[i].size()) {
+      throw std::invalid_argument(
+          "Channel resolution count does not match frequency count for "
+          "baseline " +
+          std::to_string(i));
+    }
+    if (chan_freqs[i].size() != effective_bw[i].size()) {
+      throw std::invalid_argument(
+          "Channel effective bandwidth count does not match frequency count "
+          "for baseline " +
+          std::to_string(i));
+    }
   }
 
   const double total_bw = std::accumulate(effective_bw.front().begin(),

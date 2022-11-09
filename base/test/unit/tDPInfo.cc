@@ -7,9 +7,11 @@
 using dp3::base::DPInfo;
 
 namespace {
-const std::vector<std::string> kAntNames{"foobar"};
-const std::vector<double> kAntDiam = {42.0};
-const std::vector<casacore::MPosition> kAntPos(1);
+const std::size_t kNBaselines = 3;
+const std::vector<int> kAntennaIndices(kNBaselines, 0);
+const std::vector<std::string> kAntennaNames{"foobar"};
+const std::vector<double> kAntennaDiameters = {42.0};
+const std::vector<casacore::MPosition> kAntennaPositions(1);
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(dpinfo)
@@ -129,7 +131,7 @@ BOOST_AUTO_TEST_CASE(set_array_info) {
   BOOST_TEST(info.tileBeamDir().getValue() == kTimeBeamDirection.getValue());
 }
 
-BOOST_AUTO_TEST_CASE(set_frequency_info) {
+BOOST_AUTO_TEST_CASE(set_channels) {
   const std::vector<double> kFreqs{10.0, 20.0};
   const std::vector<double> kWidths{5.0, 6.0};
   const double kRefFreq = 15.0;
@@ -150,8 +152,7 @@ BOOST_AUTO_TEST_CASE(set_frequency_info) {
   BOOST_TEST(kTotalWidth == info.totalBW());
 }
 
-BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
-  const std::vector<int> kAnt(3, 0);
+BOOST_AUTO_TEST_CASE(set_bda_channels) {
   const std::vector<std::vector<double>> kFreqs{
       {30.0}, {10.0, 20.0, 30.0, 40.0, 50.0}, {20.0, 45.0}};
   const std::vector<std::vector<double>> kWidths{
@@ -161,7 +162,8 @@ BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
   const unsigned int kNOriginalChannels = 42;
 
   DPInfo info(1, kNOriginalChannels);
-  info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
+  info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions, kAntennaIndices,
+           kAntennaIndices);  // Set baseline count.
   info.setChannels(std::vector<std::vector<double>>(kFreqs),
                    std::vector<std::vector<double>>(kWidths));
   for (std::size_t i = 0; i < kFreqs.size(); i++) {
@@ -177,10 +179,110 @@ BOOST_AUTO_TEST_CASE(set_bda_frequency_info) {
   BOOST_TEST(kTotalWidth == info.totalBW());
 }
 
+BOOST_AUTO_TEST_CASE(set_mismatching_channels) {
+  std::vector<double> kFrequencies{42.0};
+  std::vector<double> kWidths{1.0};
+  std::vector<double> kMismatch{1.0, 2.0};
+
+  BOOST_CHECK_NO_THROW(DPInfo().setChannels(std::vector<double>(kFrequencies),
+                                            std::vector<double>(kWidths)));
+
+  // Use kMismatch for widths.
+  BOOST_CHECK_THROW(DPInfo().setChannels(std::vector<double>(kFrequencies),
+                                         std::vector<double>(kMismatch)),
+                    std::invalid_argument);
+
+  // Use kMisMatch for resolutions.
+  BOOST_CHECK_THROW(DPInfo().setChannels(std::vector<double>(kFrequencies),
+                                         std::vector<double>(kWidths),
+                                         std::vector<double>(kMismatch)),
+                    std::invalid_argument);
+
+  // Use kMisMatch for effective bandwidth.
+  BOOST_CHECK_THROW(DPInfo().setChannels(std::vector<double>(kFrequencies),
+                                         std::vector<double>(kWidths), {},
+                                         std::vector<double>(kMismatch)),
+                    std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(set_mismatching_bda_channels) {
+  const std::vector<std::vector<double>> kCorrectFrequencies{
+      {42.0}, {42.0}, {42.0}};
+  const std::vector<std::vector<double>> kCorrectWidths{{1.0}, {1.0}, {1.0}};
+
+  DPInfo info;
+  info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions, kAntennaIndices,
+           kAntennaIndices);  // Set baseline count.
+  {
+    std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
+    std::vector<std::vector<double>> widths = kCorrectWidths;
+    BOOST_CHECK_NO_THROW(
+        DPInfo(info).setChannels(std::move(frequencies), std::move(widths)));
+  }
+
+  {  // Use an incorrect baseline count for frequencies.
+    std::vector<std::vector<double>> incorrect_frequencies{{42.0}, {42.0}};
+    std::vector<std::vector<double>> widths = kCorrectWidths;
+    BOOST_CHECK_THROW(DPInfo(info).setChannels(std::move(incorrect_frequencies),
+                                               std::move(widths)),
+                      std::invalid_argument);
+  }
+  {  // Use an incorrect baseline count for widths.
+    std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
+    std::vector<std::vector<double>> incorrect_widths{{1.0}, {1.0}};
+    BOOST_CHECK_THROW(DPInfo(info).setChannels(std::move(frequencies),
+                                               std::move(incorrect_widths)),
+                      std::invalid_argument);
+  }
+  {  // Use an incorrect baseline count for resolutions.
+    std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
+    std::vector<std::vector<double>> widths = kCorrectWidths;
+    std::vector<std::vector<double>> incorrect_resolutions{{1.0}, {1.0}};
+    BOOST_CHECK_THROW(
+        DPInfo(info).setChannels(std::move(frequencies), std::move(widths),
+                                 std::move(incorrect_resolutions)),
+        std::invalid_argument);
+  }
+  {  // Use an incorrect baseline count for effective bandwidths.
+    std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
+    std::vector<std::vector<double>> widths = kCorrectWidths;
+    std::vector<std::vector<double>> incorrect_effective_bandwidths{{1.0},
+                                                                    {1.0}};
+    BOOST_CHECK_THROW(
+        DPInfo(info).setChannels(std::move(frequencies), std::move(widths), {},
+                                 std::move(incorrect_effective_bandwidths)),
+        std::invalid_argument);
+  }
+  {  // Use more widths than frequencies in the first baseline.
+    std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
+    std::vector<std::vector<double>> widths{{1.0, 1.0}, {1.0}, {1.0}};
+    BOOST_CHECK_THROW(
+        DPInfo(info).setChannels(std::move(frequencies), std::move(widths)),
+        std::invalid_argument);
+  }
+  {  // Use more resolutions than frequencies in the second baseline.
+    std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
+    std::vector<std::vector<double>> widths = kCorrectWidths;
+    std::vector<std::vector<double>> resolutions{{1.0}, {1.0, 1.0}, {1.0}};
+    BOOST_CHECK_THROW(
+        DPInfo(info).setChannels(std::move(frequencies), std::move(widths),
+                                 std::move(resolutions)),
+        std::invalid_argument);
+  }
+  {  // Use more effective bandwidths than frequencies in the third baseline.
+    std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
+    std::vector<std::vector<double>> widths = kCorrectWidths;
+    std::vector<std::vector<double>> effective_bandwidths{
+        {1.0}, {1.0}, {1.0, 1.0}};
+    BOOST_CHECK_THROW(
+        DPInfo(info).setChannels(std::move(frequencies), std::move(widths), {},
+                                 std::move(effective_bandwidths)),
+        std::invalid_argument);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(channels_are_regular) {
   // Note that the tolerance in channelsAreRegular is 1000 Hz.
-
-  const std::vector<int> kAnt(3, 0);
 
   const std::vector<std::vector<double>> kRegularFreqs(
       3, {10000.0, 20000.0, 30000.0, 40000.0});
@@ -219,14 +321,16 @@ BOOST_AUTO_TEST_CASE(channels_are_regular) {
   // Test using multiple baselines.
   {
     DPInfo info;
-    info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
+    info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+             kAntennaIndices, kAntennaIndices);  // Set baseline count.
     info.setChannels(std::vector<std::vector<double>>(kRegularFreqs),
                      std::vector<std::vector<double>>(kRegularWidths));
     BOOST_TEST(info.channelsAreRegular());
   }
   {
     DPInfo info;
-    info.set(kAntNames, kAntDiam, kAntPos, kAnt, kAnt);  // Set baseline count.
+    info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+             kAntennaIndices, kAntennaIndices);  // Set baseline count.
     info.setChannels(std::vector<std::vector<double>>(kIrregularFreqsBDA),
                      std::vector<std::vector<double>>(kIrregularWidthsBDA));
     BOOST_TEST(!info.channelsAreRegular());

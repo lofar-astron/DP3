@@ -64,6 +64,7 @@ class DPInfo {
   /// An empty resolutions or effectiveBW is default to chanWidths.
   /// total_bandwidth_ is set to the sum of effectiveBW.
   /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
+  /// @throw std::invalid argument When vector sizes do not match.
   void setChannels(std::vector<double>&& chanFreqs,
                    std::vector<double>&& chanWidths,
                    std::vector<double>&& resolutions = std::vector<double>(),
@@ -71,10 +72,19 @@ class DPInfo {
                    double refFreq = 0, int spectralWindow = 0);
 
   /// Set the frequency info, using different info per baseline.
-  /// An empty resolutions or effectiveBW is default to chanWidths.
   /// total_bandwidth_ is set to the sum of effectiveBW, which should be equal
   /// for all baselines. If refFreq is 0, it is set to the middle of chanFreqs
   /// (mean if even). of the baseline with the most channels.
+  /// @param chanFreqs Channel frequencies for each baseline in Hz.
+  /// @param chanWidths Channel widths for each baseline in Hz.
+  /// @param resolutions Channel resolution for each baseline in Hz.
+  ///        If omitted/empty, channel widths are used.
+  /// @param effectiveBW Effective bandwidth for the channels in each baseline
+  //         in Hz. If omitted/empty, channel widths are used.
+  /// @throw std::invalid argument When a vector has an incorrect size.
+  ///        The size of the vector arguments should be the number of baselines.
+  ///        For each baseline, the number of elements in the vectors for that
+  ///        baseline should be equal.
   void setChannels(std::vector<std::vector<double>>&& chanFreqs,
                    std::vector<std::vector<double>>&& chanWidths,
                    std::vector<std::vector<double>>&& resolutions =
