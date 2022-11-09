@@ -132,10 +132,12 @@ PYBIND11_MODULE(pydp3, m) {
            "Finish processing (nextstep->finish will be called automatically")
       .def("get_next_step", &Step::getNextStep,
            "Get a reference to the next step")
+      .def("set_next_step", &Step::setNextStep,
+           "Set the step that follows the current step")
       .def("get_required_fields", &Step::getRequiredFields,
-           "Get the fields required by current step")
+           "Get the fields required by the current step")
       .def("get_provided_fields", &Step::getProvidedFields,
-           "Get the fields provided by current step");
+           "Get the fields provided by the current step");
 
   py::class_<DPBuffer, std::shared_ptr<DPBuffer>>(m, "DPBuffer")
       .def(py::init<>())
