@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
   // Weak pointer that will be used to monitor the lifetime of the last step
   // Because of the complicated ownership across the Python-C++ boundary
   // we need to check whether the steps are destroyed at the right time
-  std::weak_ptr<Step> out_weak_ptr;
+  std::weak_ptr<Step> py_step_weak_ptr;
 
   // Create the steps.
   {
@@ -139,8 +139,8 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
       std::shared_ptr<Step> py_step = PyStep::create_instance(parset, "mock.");
       auto out_step = std::make_shared<TestOutput>();
 
-      // Monitor lifetime of output step
-      out_weak_ptr = out_step;
+      // Monitor lifetime of the python step
+      py_step_weak_ptr = py_step;
 
       // Check whether print statements in show() method are
       // indeed redirected to output stream
@@ -160,14 +160,14 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
 
       dp3::steps::test::Execute({in_step, py_step, out_step});
     }
-    // out_step went out of scope here, but is still reachable following
+    // py_step went out of scope here, but is still reachable following
     // the chain of getNextStep() calls from in_step, and thus should
     // still be alive
-    BOOST_TEST(!out_weak_ptr.expired());
+    BOOST_TEST(!py_step_weak_ptr.expired());
   }
   // in_step went out of scope here
-  // out_step should also no longer be alive now
-  BOOST_TEST(out_weak_ptr.expired());
+  // py_step should also no longer be alive now
+  BOOST_TEST(py_step_weak_ptr.expired());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
