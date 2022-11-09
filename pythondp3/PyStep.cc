@@ -59,13 +59,15 @@ bool PyStep::process(const DPBuffer& bufin) {
 }
 
 common::Fields PyStep::getRequiredFields() const {
-  PYBIND11_OVERRIDE_PURE_NAME(common::Fields, Step, "get_required_fields",
-                              getRequiredFields);
+  PYBIND11_OVERRIDE_PURE_NAME(
+      common::Fields, Step, "get_required_fields", getRequiredFields,
+      /* no arguments*/);
 }
 
 common::Fields PyStep::getProvidedFields() const {
-  PYBIND11_OVERRIDE_PURE_NAME(common::Fields, Step, "get_provided_fields",
-                              getProvidedFields);
+  PYBIND11_OVERRIDE_PURE_NAME(
+      common::Fields, Step, "get_provided_fields", getProvidedFields,
+      /* no arguments*/);
 }
 
 void PyStep::updateInfo(const DPInfo& dpinfo) {
@@ -93,17 +95,19 @@ std::shared_ptr<PyStep> PyStep::create_instance(
 
   // Create the python step on the heap
   // This object needs to outlive the scope of this function
-  // to prevent the python step from being garbage collected
+  // to prevent the python step from being garbage collected.
+  // When using a std::unique_ptr<pybind11::object> member inside PyStep
+  // instead, GCC will give a warning regarding visibility.
   auto pyobject_step = new pybind11::object(
       mydpstep_module.attr(class_name.c_str())(parset, prefix));
 
   // shared_ptr with custom deleter
   // The deleter deletes the pybind11:object
   // That will decrease the reference count on the python side.
-  // Python's garbage collector will take care of the cleanup
+  // Python's garbage collector will cleanup the actual PyStep object.
   auto pystep = std::shared_ptr<PyStep>(
       pyobject_step->cast<PyStep*>(),
-      [pyobject_step](void* p) { delete pyobject_step; });
+      [pyobject_step](PyStep*) { delete pyobject_step; });
 
   return pystep;
 }
