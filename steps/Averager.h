@@ -107,7 +107,7 @@ class Averager : public Step {
   unsigned int itsMinNPoint;
   float itsMinPerc;
   unsigned int itsNTimes;
-  double itsTimeInterval;
+  double itsOriginalTimeInterval;
   bool itsNoAvg;  ///< No averaging (i.e. both 1)?
   common::NSTimer itsTimer;
   aocommon::StaticFor<size_t> loop_{0};

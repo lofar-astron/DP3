@@ -37,7 +37,7 @@ Averager::Averager(const common::ParameterSet& parset, const string& prefix)
       itsMinNPoint(parset.getUint(prefix + "minpoints", 1)),
       itsMinPerc(parset.getFloat(prefix + "minperc", 0.) / 100.),
       itsNTimes(0),
-      itsTimeInterval(0),
+      itsOriginalTimeInterval(0),
       itsNoAvg(true) {
   string freqResolutionStr = parset.getString(prefix + "freqresolution", "0");
   itsFreqResolution = getFreqHz(freqResolutionStr);
@@ -66,7 +66,7 @@ Averager::Averager(const string& stepName, unsigned int nchanAvg,
       itsMinNPoint(1),
       itsMinPerc(0),
       itsNTimes(0),
-      itsTimeInterval(0),
+      itsOriginalTimeInterval(0),
       itsNoAvg(itsNChanAvg == 1 && itsNTimeAvg == 1) {}
 
 Averager::Averager(const string& stepName, double freq_resolution,
@@ -79,7 +79,7 @@ Averager::Averager(const string& stepName, double freq_resolution,
       itsMinNPoint(1),
       itsMinPerc(0),
       itsNTimes(0),
-      itsTimeInterval(0),
+      itsOriginalTimeInterval(0),
       itsNoAvg(itsNChanAvg == 1 && itsNTimeAvg == 1) {}
 
 Averager::~Averager() {}
@@ -92,17 +92,17 @@ void Averager::updateInfo(const base::DPInfo& infoIn) {
   if (itsNChanAvg <= 0) {
     if (itsFreqResolution > 0) {
       double chanwidth = infoIn.chanWidths()[0];
-      itsNChanAvg = std::max(1, (int)(itsFreqResolution / chanwidth + 0.5));
+      itsNChanAvg = std::max(1, int(itsFreqResolution / chanwidth + 0.5));
     } else {
       itsNChanAvg = 1;
     }
   }
 
-  itsTimeInterval = infoIn.timeInterval();
+  itsOriginalTimeInterval = infoIn.timeInterval();
   if (itsNTimeAvg <= 0) {
     if (itsTimeResolution > 0) {
       itsNTimeAvg =
-          std::max(1, (int)(itsTimeResolution / itsTimeInterval + 0.5));
+          std::max(1, int(itsTimeResolution / itsOriginalTimeInterval + 0.5));
     } else {
       itsNTimeAvg = 1;
     }
@@ -172,9 +172,10 @@ bool Averager::process(const base::DPBuffer& buf) {
     itsBuf.getFullResFlags() = true;  // initialize for times missing at end
     copyFullResFlags(itsBufTmp.getFullResFlags(), itsBuf.getFlags(), 0);
     // Set middle of new interval.
-    double time = buf.getTime() + 0.5 * (itsNTimeAvg - 1) * itsTimeInterval;
+    double time = buf.getTime() +
+                  0.5 * (getInfo().timeInterval() - itsOriginalTimeInterval);
     itsBuf.setTime(time);
-    itsBuf.setExposure(itsNTimeAvg * itsTimeInterval);
+    itsBuf.setExposure(getInfo().timeInterval());
     // Only set.
     itsNPoints = 1;
     // Set flagged points to zero.

@@ -59,10 +59,6 @@ class InputStep : public Step {
   /// Get the main MS table.
   virtual const casacore::Table& table() const;
 
-  /// Get the time information.
-  virtual double firstTime() const;
-  virtual double lastTime() const;
-
   /// Check if a measurement set contains Baseline Dependent Averaged data.
   /// @param ms A casacore measurement set.
   /// @return true if the measurement set has BDA data, false if it is regular.

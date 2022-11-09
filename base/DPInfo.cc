@@ -284,11 +284,17 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
   n_channels_ = (n_channels_ + chanAvg - 1) / chanAvg;
   time_averaging_factors_.front() *= timeAvg;
   n_times_ = (n_times_ + timeAvg - 1) / timeAvg;
+  // Adjust first_time_ to be the centroid of the first averaged interval.
+  // Subtract 0.5 * old interval; Add 0.5 * new interval. Same for last_time_.
+  const double time_adjustment = 0.5 * (timeAvg - 1) * time_interval_;
+  first_time_ += time_adjustment;
+  last_time_ -= time_adjustment;
   time_interval_ *= timeAvg;
+
   std::vector<double> freqs(n_channels_);
-  std::vector<double> widths(n_channels_, 0.);
-  std::vector<double> resols(n_channels_, 0.);
-  std::vector<double> effBWs(n_channels_, 0.);
+  std::vector<double> widths(n_channels_, 0.0);
+  std::vector<double> resols(n_channels_, 0.0);
+  std::vector<double> effBWs(n_channels_, 0.0);
   double totBW = 0;
   for (unsigned int i = 0; i < n_channels_; ++i) {
     freqs[i] = 0.5 * (channel_frequencies_.front()[i * chanAvg] +

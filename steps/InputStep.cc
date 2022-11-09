@@ -38,14 +38,6 @@ const casacore::Table& InputStep::table() const {
   throw std::runtime_error("InputStep::table not implemented");
 }
 
-double InputStep::firstTime() const {
-  throw std::runtime_error("InputStep::firstTime not implemented");
-}
-
-double InputStep::lastTime() const {
-  throw std::runtime_error("InputStep::lastTime not implemented");
-}
-
 bool InputStep::HasBda(const casacore::MeasurementSet& ms) {
   return ms.keywordSet().isDefined(base::DP3MS::kBDAFactorsTable) &&
          (ms.keywordSet().asTable(base::DP3MS::kBDAFactorsTable).nrow() > 0);

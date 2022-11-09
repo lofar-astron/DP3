@@ -142,18 +142,12 @@ class MSBDAReader : public InputStep {
   /// Get the main MS table.
   const casacore::Table& table() const override { return ms_; }
 
-  /// Get the time information: cetroid of first and last time slots in the
-  /// measurement set
-  double firstTime() const override { return first_time_; }
-  double lastTime() const override { return last_time_; }
-
  private:
   const casacore::MeasurementSet ms_;
   std::string data_column_name_;
   std::string weight_column_name_;
   double last_ms_time_;
   double last_ms_interval_;
-  double interval_;  ///< original interval of the MS
   bool is_interval_integer_;
   unsigned int nread_;  ///< nr of time slots read from MS
   common::NSTimer timer_;
@@ -163,9 +157,6 @@ class MSBDAReader : public InputStep {
       desc_id_to_nchan_;  ///< Maps DATA_DESC_ID to channel count.
   std::map<std::pair<int, int>, unsigned int>
       bl_to_id_;  ///< Maps a baseline(antenna pair) to a baseline index.
-
-  double first_time_;
-  double last_time_;
 };
 
 }  // namespace steps
