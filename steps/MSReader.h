@@ -177,10 +177,6 @@ class MSReader : public InputStep {
   /// Get the name of the MS.
   std::string msName() const override;
 
-  /// Get the time information.
-  double firstTime() const override { return itsFirstTime; }
-  double lastTime() const override { return itsLastTime; }
-
   /// Get the baseline selection.
   const string& baselineSelection() const { return itsSelBL; }
 

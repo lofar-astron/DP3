@@ -80,14 +80,11 @@ MSBDAReader::MSBDAReader(const casacore::MeasurementSet& ms,
           prefix + "weightcolumn", MS::columnName(MS::WEIGHT_SPECTRUM))),
       last_ms_time_(0),
       last_ms_interval_(0),
-      interval_(0),
       nread_(0),
       timer_(),
       pool_size_(0),
       desc_id_to_nchan_(),
-      bl_to_id_(),
-      first_time_(0),
-      last_time_(0) {
+      bl_to_id_() {
   // InputStep::CreateReader only creates MSBDAReader's for BDA MS's, so it's
   // a programming error, and not a user error, if the MS doesn't have BDA data.
   assert(HasBda(ms));
@@ -203,11 +200,8 @@ void MSBDAReader::updateInfo(const DPInfo& info_in) {
   using MS_Obs = casacore::MSObservation;
 
   Table factors = ms_.keywordSet().asTable(base::DP3MS::kBDAFactorsTable);
-  Table axis = ms_.keywordSet().asTable(base::DP3MS::kBDATimeAxisTable);
   Table spw = ms_.spectralWindow();
 
-  interval_ = axis.col(base::DP3MS::kUnitTimeInterval).getDouble(0);
-  is_interval_integer_ = axis.col(base::DP3MS::kIntervalFactors).getBool(0);
   unsigned int nbl = factors.nrow();
   unsigned int ncorr =
       ArrayColumn<Complex>(ms_, MS::columnName(MS::DATA)).shape(0)[0];
@@ -220,21 +214,6 @@ void MSBDAReader::updateInfo(const DPInfo& info_in) {
   ScalarColumn<int> ids_col(factors, base::DP3MS::kSpectralWindowId);
   ArrayColumn<double> freqs_col(spw, MS_SPW::columnName(MS_SPW::CHAN_FREQ));
   ArrayColumn<double> widths_col(spw, MS_SPW::columnName(MS_SPW::CHAN_WIDTH));
-
-  // Get the first time and last time.
-  // When all baselines are averaged in time, the first and start time will
-  // be incorrect: Together with the (non-averaged) time interval they yield
-  // an incorrect start time, for example. AST-1092 should address this issue.
-  string query =
-      "select gmin(TIME_CENTROID) as first_time, "
-      "gmax(TIME_CENTROID) as last_time "
-      "from $1";
-  casacore::TaQLResult result = casacore::tableCommand(query, ms_);
-  auto result_table = result.table();
-  ScalarColumn<double> first_time_col(result_table, "first_time");
-  ScalarColumn<double> last_time_col(result_table, "last_time");
-  first_time_ = first_time_col(0);
-  last_time_ = last_time_col(0);
 
   // Fill info with the data required to repopulate BDA_FACTORS
   std::vector<std::vector<double>> freqs(nbl);
@@ -269,6 +248,27 @@ void MSBDAReader::updateInfo(const DPInfo& info_in) {
   const std::string antenna_set = base::ReadAntennaSet(ms_);
   info() = DPInfo(ncorr, max_n_channels, start_channel, antenna_set);
   info().setNThreads(info_in.nThreads());
+
+  // Set time info.
+
+  // Get the first time and last time.
+  // When all baselines are averaged in time, the first and start time will
+  // be incorrect: Together with the (non-averaged) time interval they yield
+  // an incorrect start time, for example. AST-1092 should address this issue.
+  std::string time_query =
+      "select gmin(TIME_CENTROID) as first_time, "
+      "gmax(TIME_CENTROID) as last_time "
+      "from $1";
+  casacore::TaQLResult time_result = casacore::tableCommand(time_query, ms_);
+  ScalarColumn<double> first_time_col(time_result.table(), "first_time");
+  ScalarColumn<double> last_time_col(time_result.table(), "last_time");
+
+  casacore::Table axis =
+      ms_.keywordSet().asTable(base::DP3MS::kBDATimeAxisTable);
+  const double interval = axis.col(base::DP3MS::kUnitTimeInterval).getDouble(0);
+  is_interval_integer_ = axis.col(base::DP3MS::kIntervalFactors).getBool(0);
+
+  info().setTimes(first_time_col(0), last_time_col(0), interval);
 
   // Set antenna/baseline info.
   casacore::Vector<casacore::String> names = name_col.getColumn();
@@ -319,8 +319,6 @@ void MSBDAReader::updateInfo(const DPInfo& info_in) {
   info().update(std::move(baseline_factors));
   info().setChannels(std::move(freqs), std::move(widths));
 
-  info().setTimes(first_time_, last_time_, interval_);
-
   const std::string kFlagColumnName = "";  // Reading flags is not supported.
   info().setMsNames(msName(), data_column_name_, kFlagColumnName,
                     weight_column_name_);
@@ -339,9 +337,9 @@ void MSBDAReader::show(std::ostream& os) const {
     os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
     os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
     os << "  first time:     " << MVTime::Format(MVTime::YMD)
-       << MVTime(first_time_ / (24 * 3600.)) << '\n';
+       << MVTime(getInfo().firstTime() / (24 * 3600.)) << '\n';
     os << "  last time:      " << MVTime::Format(MVTime::YMD)
-       << MVTime(last_time_ / (24 * 3600.)) << '\n';
+       << MVTime(getInfo().lastTime() / (24 * 3600.)) << '\n';
     os << "  ntimes:         " << getInfo().ntime() << '\n';
     os << "  time interval:  " << getInfo().timeInterval() << '\n';
     os << "  DATA column:    " << data_column_name_;

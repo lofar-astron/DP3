@@ -575,8 +575,8 @@ void MSWriter::UpdateObs(const string& out_name) {
   // Set nr of channels.
   ArrayColumn<double> time_range(out_obs, "TIME_RANGE");
   casacore::Vector<double> times(2);
-  times[0] = reader_.firstTime() - 0.5 * reader_.getInfo().timeInterval();
-  times[1] = reader_.lastTime() + 0.5 * reader_.getInfo().timeInterval();
+  times[0] = getInfo().firstTime() - 0.5 * getInfo().timeInterval();
+  times[1] = getInfo().lastTime() + 0.5 * getInfo().timeInterval();
   // There should be one row, but loop in case of.
   for (unsigned int i = 0; i < out_obs.nrow(); ++i) {
     time_range.put(i, times);
