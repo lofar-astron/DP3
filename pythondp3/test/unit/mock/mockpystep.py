@@ -52,7 +52,7 @@ class MockPyStep(Step):
 
     def process(self, dpbuffer):
         """
-        Process one time slot of data. This function MUST call process_next_step.
+        Process one time slot of data. This function MUST call self.get_next_step().process
 
         Args:
           dpbuffer: DPBuffer object which can contain data, flags and weights
