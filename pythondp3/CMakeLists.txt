@@ -8,7 +8,7 @@ file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/dp3")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/__init__.py"
                "${CMAKE_CURRENT_BINARY_DIR}/dp3/__init__.py" COPYONLY)
 
-pybind11_add_module(pydp3 MODULE pydp3.cc)
+pybind11_add_module(pydp3 MODULE pydp3.cc pydpinfo.cc)
 target_link_libraries(pydp3 PRIVATE LIBDP3)
 # Output the library/module in the pseudo install directory 'dp3'
 set_target_properties(pydp3 PROPERTIES LIBRARY_OUTPUT_DIRECTORY dp3)
