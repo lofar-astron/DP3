@@ -2,6 +2,7 @@ leak:PyUFunc_FromFuncAndDataAndSignatureAndIdentity
 leak:casacore
 leak:libcasa_casa
 leak:libcasa_measures
+leak:libcrypto
 leak:libpython
 leak:numpy
 leak:pybind11
