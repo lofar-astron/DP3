@@ -10,7 +10,6 @@ sys.path.append(".")
 import testconfig as tcf
 
 sys.path.insert(0, tcf.PYTHONDIR)
-sys.path.insert(0, tcf.PYTHONMOCKDIR)
 
 try:
     "The import may fail while running pytest --collect-only"
