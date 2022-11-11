@@ -69,30 +69,29 @@ using dp3::base::FlagCounter;
 namespace dp3 {
 namespace steps {
 
-MSWriter::MSWriter(InputStep& reader, const std::string& out_name,
+MSWriter::MSWriter(const std::string& out_name,
                    const common::ParameterSet& parset,
                    const std::string& prefix)
-    : reader_(reader),
-      name_(prefix),
+    : name_(prefix),
       out_name_(out_name),
       parset_(parset),
+      data_col_name_(parset.getString(prefix + "datacolumn", "DATA")),
+      flag_col_name_(parset.getString(prefix + "flagcolumn", "FLAG")),
+      weight_col_name_(
+          parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM")),
+      overwrite_(parset.getBool(prefix + "overwrite", false)),
+      copy_corr_data_(parset.getBool(prefix + "copycorrecteddata", false)),
+      copy_model_data_(parset.getBool(prefix + "copymodeldata", false)),
+      write_full_res_flags_(parset.getBool(prefix + "writefullresflag", true)),
+      // Get tile size (default 1024 KBytes).
+      tile_size_(parset.getUint(prefix + "tilesize", 1024)),
+      tile_n_chan_(parset.getUint(prefix + "tilenchan", 0)),
+      nr_times_flush_(parset.getUint(prefix + "flush", 60)),
       nr_done_(0),
+      chunk_duration_(parset.getDouble(prefix + "chunkduration", 0.0)),
+      vds_dir_(parset.getString(prefix + "vdsdir", std::string())),
+      cluster_desc_(parset.getString(prefix + "clusterdesc", std::string())),
       st_man_keys_(parset, prefix) {
-  // Get tile size (default 1024 KBytes).
-  tile_size_ = parset.getUint(prefix + "tilesize", 1024);
-  tile_n_chan_ = parset.getUint(prefix + "tilenchan", 0);
-  chunk_duration_ = parset.getDouble(prefix + "chunkduration", 0.0);
-  overwrite_ = parset.getBool(prefix + "overwrite", false);
-  nr_times_flush_ = parset.getUint(prefix + "flush", 60);
-  copy_corr_data_ = parset.getBool(prefix + "copycorrecteddata", false);
-  copy_model_data_ = parset.getBool(prefix + "copymodeldata", false);
-  write_full_res_flags_ = parset.getBool(prefix + "writefullresflag", true);
-  data_col_name_ = parset.getString(prefix + "datacolumn", "DATA");
-  flag_col_name_ = parset.getString(prefix + "flagcolumn", "FLAG");
-  weight_col_name_ =
-      parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM");
-  vds_dir_ = parset.getString(prefix + "vdsdir", string());
-  cluster_desc_ = parset.getString(prefix + "clusterdesc", string());
   if (data_col_name_ != "DATA")
     throw std::runtime_error(
         "Currently only the DATA column"
@@ -149,10 +148,10 @@ void MSWriter::ProcessBuffer(DPBuffer& buffer) {
   const common::NSTimer::StartStop timer(writer_timer_);
 
   // Form the vector of the output table containing new rows.
-  casacore::Vector<common::rownr_t> rownrs(nr_bl_);
+  casacore::Vector<common::rownr_t> rownrs(getInfo().nbaselines());
   indgen(rownrs, ms_.nrow());
   // Add the necessary rows to the table.
-  ms_.addRow(nr_bl_);
+  ms_.addRow(getInfo().nbaselines());
   // Form the subset of the tables containing the rows.
   // It can happen that a missing slot was inserted. In that case
   // the rownr vector is empty and we use the first itsNrBl input rows.
@@ -224,11 +223,6 @@ void MSWriter::FinishMs() {
 
 void MSWriter::updateInfo(const DPInfo& info_in) {
   OutputStep::updateInfo(info_in);
-  interval_ = info_in.timeInterval();
-  nr_corr_ = info_in.ncorr();
-  nr_chan_ = info_in.nchan();
-  nr_bl_ = info_in.nbaselines();
-  nr_times_ = info_in.ntime();
   // Input can already be averaged, so take that into account.
   n_chan_avg_ = info_in.nAveragedFullResolutionChannels() * info_in.nchanAvg();
   n_time_avg_ = info_in.nAveragedFullResolutionTimes() * info_in.ntimeAvg();
@@ -241,11 +235,11 @@ void MSWriter::updateInfo(const DPInfo& info_in) {
 void MSWriter::show(std::ostream& os) const {
   os << "MSWriter " << name_ << '\n';
   os << "  output MS:      " << ms_.tableName() << '\n';
-  os << "  nchan:          " << nr_chan_ << '\n';
-  os << "  ncorrelations:  " << nr_corr_ << '\n';
-  os << "  nbaselines:     " << nr_bl_ << '\n';
-  os << "  ntimes:         " << nr_times_ << '\n';
-  os << "  time interval:  " << interval_ << '\n';
+  os << "  nchan:          " << getInfo().nchan() << '\n';
+  os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
+  os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
+  os << "  ntimes:         " << getInfo().ntime() << '\n';
+  os << "  time interval:  " << getInfo().timeInterval() << '\n';
   os << "  DATA column:    " << data_col_name_ << '\n';
   os << "  FLAG column:    " << flag_col_name_ << '\n';
   os << "  WEIGHT column:  " << weight_col_name_ << '\n';
@@ -305,9 +299,10 @@ void MSWriter::MakeArrayColumn(ColumnDesc desc, const IPosition& ipos,
 void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
                         unsigned int tile_n_chan) {
   // Determine the data shape.
-  IPosition data_shape(2, nr_corr_, nr_chan_);
+  IPosition data_shape(2, getInfo().ncorr(), getInfo().nchan());
   // Obtain the MS description.
-  TableDesc tdesc(reader_.table().tableDesc());
+  casacore::Table original_table(getInfo().msName());
+  TableDesc tdesc(original_table.tableDesc());
   // Create the output table without the columns depending
   // on the nr of channels.
   // FLAG_CATEGORY is taken, but ignored when writing.
@@ -332,7 +327,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   fixed_columns[17] = "STATE_ID";
   fixed_columns[18] = "TIME";
   fixed_columns[19] = "TIME_CENTROID";
-  Table temptable = reader_.table().project(fixed_columns);
+  Table temptable = original_table.project(fixed_columns);
   TableDesc newdesc = temptable.tableDesc();
   // Now quite some 'magic' is done to get the storage managers right.
   // Most of the columns do not change much and should be stored with
@@ -346,13 +341,13 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   {
     ColumnDesc& cdesc = newdesc.rwColumnDesc("WEIGHT");
     if (cdesc.shape().empty()) {
-      cdesc.setShape(IPosition(1, nr_corr_), true);
+      cdesc.setShape(IPosition(1, getInfo().ncorr()), true);
     }
   }
   {
     ColumnDesc& cdesc = newdesc.rwColumnDesc("SIGMA");
     if (cdesc.shape().empty()) {
-      cdesc.setShape(IPosition(1, nr_corr_), true);
+      cdesc.setShape(IPosition(1, getInfo().ncorr()), true);
     }
   }
   // Remove possible hypercolumn definitions.
@@ -371,7 +366,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   Record dminfo = temptable.dataManagerInfo();
   // Determine the DATA tile shape. Use all corrs and the given #channels.
   // The given tile size (in kbytes) determines the nr of rows in a tile .
-  IPosition tile_shape(3, nr_corr_, tile_n_chan, 1);
+  IPosition tile_shape(3, getInfo().ncorr(), tile_n_chan, 1);
   tile_shape[2] = tile_size * 1024 / (8 * tile_shape[0] * tile_shape[1]);
   if (tile_shape[2] < 1) {
     tile_shape[2] = 1;
@@ -446,7 +441,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     // Add LOFAR_FULL_RES_FLAG column using tsm.
     // The input can already be averaged and averaging can be done in
     // this run, so the full resolution is the combination of both.
-    unsigned int orignchan = nr_chan_ * n_chan_avg_;
+    unsigned int orignchan = getInfo().nchan() * n_chan_avg_;
     IPosition data_shape_f(2, (orignchan + 7) / 8, n_time_avg_);
     IPosition tile_shape_f(3, (orignchan + 7) / 8, 1024, tile_shape[2]);
     TiledColumnStMan tsmf("TiledFullResFlag", tile_shape_f);
@@ -497,7 +492,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     }
     Matrix<int> selection(2, 1);
     selection(0, 0) = 0;
-    selection(1, 0) = nr_chan_;
+    selection(1, 0) = getInfo().nchan();
     keyset.define("CHANNEL_SELECTION", selection);
     TiledColumnStMan tsmm("ModelData", tile_shape);
     MakeArrayColumn(mdesc, data_shape, &tsmm, ms_);
@@ -527,8 +522,9 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
 
 void MSWriter::UpdateSpw(const std::string& out_name) {
   // Fix the SPECTRAL_WINDOW values by updating the values in the subtable.
-  IPosition shape(1, nr_chan_);
-  Table in_spw = reader_.table().keywordSet().asTable("SPECTRAL_WINDOW");
+  IPosition shape(1, getInfo().nchan());
+  Table original_table(getInfo().msName());
+  Table in_spw = original_table.keywordSet().asTable("SPECTRAL_WINDOW");
   Table out_spw = Table(out_name + "/SPECTRAL_WINDOW", Table::Update);
   Table out_dd = Table(out_name + "/DATA_DESCRIPTION", Table::Update);
   if (out_spw.nrow() != out_dd.nrow())
@@ -545,7 +541,7 @@ void MSWriter::UpdateSpw(const std::string& out_name) {
   }
   // Set nr of channels.
   ScalarColumn<int> channum(out_spw, "NUM_CHAN");
-  channum.fillColumn(nr_chan_);
+  channum.fillColumn(getInfo().nchan());
   // Change the column shapes.
   TableDesc tdesc = in_spw.tableDesc();
   MakeArrayColumn(tdesc["CHAN_FREQ"], shape, 0, out_spw);
@@ -721,11 +717,11 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
 void MSWriter::WriteFullResFlags(Table& out, const DPBuffer& buf) {
   const Cube<bool>& flags = buf.getFullResFlags();
   const IPosition& of_shape = flags.shape();
-  if ((unsigned int)(of_shape[0]) != n_chan_avg_ * nr_chan_)
+  if ((unsigned int)(of_shape[0]) != n_chan_avg_ * getInfo().nchan())
     throw std::runtime_error(
         "Full Res Flags size " + std::to_string(of_shape[0]) +
         " does not equal " + std::to_string(n_chan_avg_) + "*" +
-        std::to_string(nr_chan_) +
+        std::to_string(getInfo().nchan()) +
         ".\nTry setting \"msout.writefullresflag=false\" in input parset");
   if ((unsigned int)(of_shape[1]) != n_time_avg_)
     throw std::runtime_error(std::to_string(of_shape[1]) +
@@ -767,7 +763,7 @@ void MSWriter::WriteMeta(Table& out, const DPBuffer& buf) {
   FillSca<double>(buf.getTime(), out, "TIME");
   FillSca<double>(buf.getTime(), out, "TIME_CENTROID");
   FillSca<double>(buf.getExposure(), out, "EXPOSURE");
-  FillSca<double>(interval_, out, "INTERVAL");
+  FillSca<double>(getInfo().timeInterval(), out, "INTERVAL");
   FillSca<int>(0, out, "FEED1");
   FillSca<int>(0, out, "FEED2");
   FillSca<int>(0, out, "DATA_DESC_ID");
@@ -777,7 +773,7 @@ void MSWriter::WriteMeta(Table& out, const DPBuffer& buf) {
   FillSca<int>(0, out, "ARRAY_ID");
   FillSca<int>(0, out, "OBSERVATION_ID");
   FillSca<int>(0, out, "STATE_ID");
-  Array<float> arr(IPosition(1, nr_corr_));
+  Array<float> arr(IPosition(1, getInfo().ncorr()));
   arr = 1;
   FillArr<float>(arr, out, "SIGMA");
   FillArr<float>(arr, out, "WEIGHT");

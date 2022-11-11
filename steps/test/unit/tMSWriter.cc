@@ -5,8 +5,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "mock/MockInput.h"
-
 using dp3::steps::MSWriter;
 using dp3::steps::Step;
 
@@ -30,11 +28,10 @@ BOOST_AUTO_TEST_CASE(fields) {
       Step::kDataField | Step::kFlagsField | Step::kWeightsField |
       Step::kUvwField;
 
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
 
   {
-    const MSWriter writer(input, "test_mswriter.ms", parset, "");
+    const MSWriter writer("test_mswriter.ms", parset, "");
     BOOST_TEST(writer.getRequiredFields() ==
                (kAlwaysWritten | Step::kFullResFlagsField));
     BOOST_TEST(writer.getProvidedFields() == dp3::common::Fields());
@@ -42,7 +39,7 @@ BOOST_AUTO_TEST_CASE(fields) {
 
   {
     parset.add("writefullresflag", "false");
-    const MSWriter writer(input, "test_mswriter.ms", parset, "");
+    const MSWriter writer("test_mswriter.ms", parset, "");
     BOOST_TEST(writer.getRequiredFields() == kAlwaysWritten);
     BOOST_TEST(writer.getProvidedFields() == dp3::common::Fields());
   }

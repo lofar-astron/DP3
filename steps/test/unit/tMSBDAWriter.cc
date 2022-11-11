@@ -45,10 +45,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
   const double kUVW[3]{45.0, 46.0, 47.0};
   const std::string kMsName = "bda_simple.MS";
 
-  // TODO: Remove reader, when the writer can create subtables etc.
-  const casacore::MeasurementSet ms_in("../tNDPPP_tmp.MS");
-  MSReader reader(ms_in, ParameterSet(), "");
-  MSBDAWriter writer(&reader, kMsName, ParameterSet(), "");
+  MSBDAWriter writer(kMsName, ParameterSet(), "");
 
   DPInfo info(ncorr, nchan);
   info.setTimes(kTime, kTime, kInterval);
@@ -152,7 +149,7 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
   const double kInterval(1.5);
   const std::string kMsName = "bda_exception.MS";
 
-  MSBDAWriter writer(nullptr, kMsName, ParameterSet(), "");
+  MSBDAWriter writer(kMsName, ParameterSet(), "");
 
   DPInfo info(1, 1);
   info.setTimes(kTime, kTime, kInterval);
@@ -180,7 +177,7 @@ BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory,
   info.setChannels(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
   const std::string kMsName = "default_tables.MS";
 
-  MSBDAWriter writer(nullptr, kMsName, ParameterSet(), "");
+  MSBDAWriter writer(kMsName, ParameterSet(), "");
   writer.updateInfo(info);
 
   Table table(kMsName, TableLock::AutoNoReadLocking);
@@ -214,9 +211,7 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory,
   info.setChannels(std::vector<std::vector<double>>{{1.}, {1.}},
                    std::vector<std::vector<double>>{{5000.}, {5000.}});
   info.update(std::vector<unsigned int>{kMinTimeInterval, kMaxTimeInterval});
-  casacore::MeasurementSet ms_in("../tNDPPP_tmp.MS");
-  MSReader reader(ms_in, parset, prefix);
-  MSBDAWriter writer(&reader, msOutName, parset, prefix);
+  MSBDAWriter writer(msOutName, parset, prefix);
 
   // Execute
   writer.setInfo(info);

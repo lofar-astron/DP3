@@ -50,8 +50,8 @@ class InputStep;
 
 class MSWriter : public OutputStep {
  public:
-  explicit MSWriter(InputStep& reader, const std::string& out_name,
-                    const common::ParameterSet&, const std::string& prefix);
+  explicit MSWriter(const std::string& out_name, const common::ParameterSet&,
+                    const std::string& prefix);
 
   ~MSWriter() override;
 
@@ -181,7 +181,6 @@ class MSWriter : public OutputStep {
     out_col.putColumn(in_col.getColumn());
   }
 
-  InputStep& reader_;
   string name_;
   string out_name_;
   base::DPBuffer internal_buffer_;
@@ -190,17 +189,12 @@ class MSWriter : public OutputStep {
   casacore::String data_col_name_;
   casacore::String flag_col_name_;
   casacore::String weight_col_name_;
-  double interval_;
   bool overwrite_;  ///< Overwrite an existing output MS?
   bool copy_corr_data_;
   bool copy_model_data_;
   bool write_full_res_flags_;
   unsigned int tile_size_;
   unsigned int tile_n_chan_;
-  unsigned int nr_corr_;
-  unsigned int nr_chan_;
-  unsigned int nr_bl_;
-  unsigned int nr_times_;
   unsigned int n_chan_avg_;      ///< nr of channels in input averaged to 1
   unsigned int n_time_avg_;      ///< nr of times in input averaged to 1
   unsigned int nr_times_flush_;  ///< flush every N time slots (0=no flush)
