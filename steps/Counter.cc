@@ -48,10 +48,6 @@ void Counter::showCounts(std::ostream& os) const {
 
 void Counter::updateInfo(const base::DPInfo& info_in) {
   Step::updateInfo(info_in);
-  // Visibility data must be read if needed, so NaNs are flagged.
-  if (flag_data_) {
-    info().setNeedVisData();
-  }
   // Initialize the flag counters.
   flag_counter_.init(info_in);
 }

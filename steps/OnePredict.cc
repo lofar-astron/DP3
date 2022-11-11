@@ -230,8 +230,7 @@ void OnePredict::initializeThreadData() {
 }
 
 void OnePredict::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-  info().setNeedVisData();
+  Step::updateInfo(infoIn);
   if (operation_ == "replace")
     info().setBeamCorrectionMode(
         static_cast<int>(everybeam::CorrectionMode::kNone));

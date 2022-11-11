@@ -86,7 +86,6 @@ void Predict::updateInfo(const DPInfo& infoIn) {
     bda_averager_->set_averaging_params(
         info().ntimeAvgs(), info().BdaChanFreqs(), info().BdaChanWidths());
   }
-  info().setNeedVisData();
 }
 
 base::Direction Predict::GetFirstDirection() const {

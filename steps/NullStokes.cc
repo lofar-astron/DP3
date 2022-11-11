@@ -81,10 +81,7 @@ bool NullStokes::process(const base::DPBuffer& buffer) {
 }
 
 void NullStokes::updateInfo(const base::DPInfo& info_in) {
-  info() = info_in;
-  if (modify_q_ || modify_u_) {
-    info().setNeedVisData();
-  }
+  Step::updateInfo(info_in);
 }
 
 void NullStokes::finish() {

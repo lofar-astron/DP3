@@ -68,7 +68,6 @@ common::Fields DemixerNew::getProvidedFields() const {
 void DemixerNew::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   // Update the info of this object.
-  info().setNeedVisData();
   // Handle possible data selection.
   itsFilter.updateInfo(getInfo());
   // Update itsDemixInfo and info().

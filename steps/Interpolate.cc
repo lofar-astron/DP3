@@ -49,11 +49,6 @@ Interpolate::Interpolate(const common::ParameterSet& parset,
   }
 }
 
-void Interpolate::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-  info().setNeedVisData();
-}
-
 void Interpolate::show(std::ostream& os) const {
   os << "Interpolate " << _name << '\n';
   os << "  windowsize:     " << _windowSize << '\n';

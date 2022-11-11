@@ -162,7 +162,6 @@ void GainCal::setAntennaUsed() {
 
 void GainCal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  info().setNeedVisData();
 
   // By giving a thread pool to the predicter, the threads are
   // sustained.

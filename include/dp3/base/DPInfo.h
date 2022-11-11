@@ -227,14 +227,9 @@ class DPInfo {
   /// E.g. [0,-1,1,-1,-1,2,3] for the example above.
   const std::vector<int>& antennaMap() const { return antenna_map_; }
 
-  /// Is the visibility data needed?
-  bool needData() const { return need_data_; }
-
   /// Has the meta data been changed in a step (precluding an update)?
   bool metaChanged() const { return meta_changed_; }
 
-  /// Set if visibility data needs to be read.
-  void setNeedVisData() { need_data_ = true; }
   /// Set change of meta data.
   void setMetaChanged() { meta_changed_ = true; }
   void clearMetaChanged() { meta_changed_ = false; }
@@ -280,7 +275,6 @@ class DPInfo {
   static casacore::MeasureHolder copyMeasure(
       const casacore::MeasureHolder fromMeas);
 
-  bool need_data_;     ///< Is the visibility data needed?
   bool meta_changed_;  ///< Are meta data changed? (e.g., by averaging)
   std::string ms_name_;
   std::string data_column_name_;

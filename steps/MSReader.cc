@@ -631,10 +631,6 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
              diamCol.getColumn().tovector(), antPos,
              ant1col.getColumn().tovector(), ant2col.getColumn().tovector());
 
-  if (itsAutoWeight) {
-    info().setNeedVisData();
-  }
-
   // Read the phase reference position from the FIELD subtable.
   // Only use the main value from the PHASE_DIR array.
   // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
