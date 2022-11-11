@@ -214,8 +214,11 @@ linting-2204:
   artifacts:
     paths:
       - build/unittest*.xml
+      - build/pytest_*.xml
     reports:
-      junit: build/unittest*.xml
+      junit:
+        - build/unittest*.xml
+        - build/pytest_*.xml
 
 # Common parts for unit test jobs that report coverage.
 .unit-test-coverage:
@@ -231,9 +234,12 @@ linting-2204:
     paths:
       - build/run-unit.json
       - build/unittest*.xml
+      - build/pytest_*.xml
       - build/coverage-unit.tar.gz
     reports:
-      junit: build/unittest*.xml
+      junit:
+        - build/unittest*.xml
+        - build/pytest_*.xml
       coverage_report:
         coverage_format: cobertura
         path: build/coverage.xml
@@ -309,9 +315,9 @@ integration-test-2204:
     paths:
       # This will give a warning and ERROR: No files to upload, which is ok
       - build/run-integration.json
-      - build/integration_*.xml
+      - build/pytest_*.xml
     reports:
-      junit: build/integration_*.xml
+      junit: build/pytest_*.xml
 
 benchmark-2204:
   stage: test

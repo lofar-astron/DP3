@@ -1,7 +1,7 @@
-# Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+# Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-SRCDIR = "@CMAKE_CURRENT_SOURCE_DIR@/steps/test/integration"
+SRCDIR = "@CMAKE_CURRENT_SOURCE_DIR@"
 BINDIR = "@CMAKE_BINARY_DIR@"
 RESOURCEDIR = "@CMAKE_SOURCE_DIR@/resources"
 DDECAL_RESOURCEDIR = "@CMAKE_BINARY_DIR@/ddecal/test/integration/source/resources/"
@@ -10,4 +10,4 @@ MAKESOURCEDBEXE = "@CMAKE_BINARY_DIR@/makesourcedb"
 SHOWSOURCEDBEXE = "@CMAKE_BINARY_DIR@/showsourcedb"
 TAQLEXE = "@TAQL_EXECUTABLE@"
 PYTHONDIR = "@CMAKE_BINARY_DIR@/pythondp3/"
-PYTHONMOCKDIR = "@CMAKE_CURRENT_SOURCE_DIR@/pythondp3/test/unit/mock"
+PYTHONMOCKDIR = "@CMAKE_SOURCE_DIR@/pythondp3/test/unit/mock"

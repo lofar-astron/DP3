@@ -797,16 +797,6 @@ if(BUILD_TESTING)
                          "unittests;extract_resources" COST ${COST})
   endforeach()
 
-  function(add_sh_integration_tests)
-    foreach(TEST ${ARGN})
-      # Even if the 'source' symbolic link exists (see below), use
-      # ${CMAKE_CURRENT_SOURCE_DIR} instead since not all systems
-      # support symbolic links.
-      add_test(${TEST} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.sh)
-      set_tests_properties(${TEST} PROPERTIES LABELS "integration")
-    endforeach()
-  endfunction()
-
   execute_process(
     COMMAND python3 -m pytest
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -824,7 +814,30 @@ if(BUILD_TESTING)
   # Notes:
   # - The collection of python-based integration tests can be invoked with ctest -L pyintegration
   # - The tPredict.py docstring describes how the tests can be invoked stand-alone.
-  function(add_python_integrationtests)
+  function(add_python_tests)
+    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
+                   testconfig.py)
+    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in utils.py)
+
+    # The 'source' symbolic link simplifies running the tests manually inside
+    # ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'source/tApplyBeam.sh' instead
+    # of '../../../../DP3/steps/test/integration/tApplyBeam.sh. (Using 'RESULT',
+    # fatal errors won't occur on systems without symlink support.)
+    if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
+      file(
+        CREATE_LINK ${CMAKE_SOURCE_DIR}/${PYTHON_TEST_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/source
+        RESULT DUMMY_RESULT
+        SYMBOLIC)
+    endif()
+
+    set(LABELS "python")
+    if(${CMAKE_CURRENT_SOURCE_DIR} MATCHES "test/unit")
+      string(APPEND LABELS ";unit")
+    elseif(${CMAKE_CURRENT_SOURCE_DIR} MATCHES "test/integration")
+      string(APPEND LABELS ";integration")
+    endif()
+
     foreach(TEST ${ARGN})
       # Extract a list of sub-tests using "pytest --co -q".
       # The last two output lines are an empty line followed by
@@ -858,38 +871,19 @@ if(BUILD_TESTING)
           NAME ${TEST}::${PYTEST}
           COMMAND
             python3 -m pytest --exitfirst -v -k ${PYTEST}
-            --junitxml=${CMAKE_BINARY_DIR}/integration_${TEST}_${PYTEST}.xml
+            --junitxml=${CMAKE_BINARY_DIR}/pytest_${TEST}_${PYTEST}.xml
             ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py)
-        set_tests_properties(${TEST}::${PYTEST} PROPERTIES LABELS
-                                                           "pyintegration")
+        set_tests_properties(${TEST}::${PYTEST} PROPERTIES LABELS "${LABELS}")
       endforeach()
     endforeach()
   endfunction()
 
-  # Add integration tests
-  foreach(DIR ddecal parmdb pythondp3 steps)
-    set(INTEGRATION_DIR ${DIR}/test/integration)
-    set(BINARY_INTEGRATION_DIR ${CMAKE_BINARY_DIR}/${INTEGRATION_DIR})
-
-    file(MAKE_DIRECTORY ${BINARY_INTEGRATION_DIR})
-    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
-                   ${BINARY_INTEGRATION_DIR}/testconfig.py)
-    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in
-                   ${BINARY_INTEGRATION_DIR}/utils.py)
-
-    # The 'source' symbolic link simplifies running the tests manually inside
-    # ${BINARY_INTEGRATION_DIR}: It allows using 'source/tApplyBeam.sh' instead
-    # of '../../../../DP3/steps/test/integration/tApplyBeam.sh. (Using 'RESULT',
-    # fatal errors won't occur on systems without symlink support.)
-    if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
-      file(
-        CREATE_LINK ${CMAKE_SOURCE_DIR}/${INTEGRATION_DIR}
-        ${BINARY_INTEGRATION_DIR}/source
-        RESULT DUMMY_RESULT
-        SYMBOLIC)
-    endif()
-
-    add_subdirectory(${INTEGRATION_DIR})
+  # Add python unit and integration tests.
+  # The CMakeLists.txt in these directories call add_python_tests.
+  foreach(PYTHON_TEST_DIR
+          ddecal/test/integration parmdb/test/integration pythondp3/test/unit
+          pythondp3/test/integration steps/test/integration)
+    add_subdirectory(${PYTHON_TEST_DIR})
   endforeach()
 
 endif() # BUILD_TESTING
