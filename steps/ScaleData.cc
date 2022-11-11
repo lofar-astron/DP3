@@ -60,8 +60,7 @@ ScaleData::ScaleData(const common::ParameterSet& parset, const string& prefix,
 ScaleData::~ScaleData() {}
 
 void ScaleData::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-  info().setNeedVisData();
+  Step::updateInfo(infoIn);
   // Find out if the observation has LBA or HBA data.
   // Add the default factors to itsCoeffStr as being valid for all stations.
   // In that way they will be used if a station matches no others.

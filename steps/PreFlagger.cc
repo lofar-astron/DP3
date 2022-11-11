@@ -114,12 +114,10 @@ void PreFlagger::showTimings(std::ostream& os, double duration) const {
   os << " PreFlagger " << itsName << '\n';
 }
 
-void PreFlagger::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-  info().setNeedVisData();
-  itsPSet.updateInfo(getInfo());
-  // Initialize the flag counters.
-  itsFlagCounter.init(getInfo());
+void PreFlagger::updateInfo(const DPInfo& info_in) {
+  Step::updateInfo(info_in);
+  itsPSet.updateInfo(info_in);
+  itsFlagCounter.init(info_in);
 }
 
 bool PreFlagger::process(const DPBuffer& buf) {

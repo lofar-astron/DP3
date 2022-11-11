@@ -32,8 +32,7 @@ namespace base {
 
 DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
                unsigned int start_channel, std::string antenna_set)
-    : need_data_(false),
-      meta_changed_(false),
+    : meta_changed_(false),
       antenna_set_(std::move(antenna_set)),
       n_correlations_(n_correlations),
       start_channel_(start_channel),

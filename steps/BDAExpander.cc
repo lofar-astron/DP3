@@ -33,7 +33,6 @@ BDAExpander::BDAExpander(const string &prefix)
 
 void BDAExpander::updateInfo(const DPInfo &_info) {
   info() = _info;
-  info().setNeedVisData();
 
   if (!info().isBDAIntervalFactorInteger()) {
     throw std::invalid_argument(

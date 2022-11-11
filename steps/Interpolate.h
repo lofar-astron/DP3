@@ -44,9 +44,6 @@ class Interpolate : public Step {
   /// Finish the processing of this step and subsequent steps.
   virtual void finish();
 
-  /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
-
   /// Show the step parameters.
   virtual void show(std::ostream&) const;
 

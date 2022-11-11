@@ -17,10 +17,7 @@ DummyStep::DummyStep([[maybe_unused]] const common::ParameterSet& parset,
                      const std::string& prefix)
     : name_(prefix) {}
 
-void DummyStep::updateInfo(const DPInfo& info_in) {
-  Step::updateInfo(info_in);
-  info().setNeedVisData();
-}
+void DummyStep::updateInfo(const DPInfo& info_in) { Step::updateInfo(info_in); }
 
 void DummyStep::show(std::ostream& os) const {
   os << "DummyStep " << name_ << '\n';

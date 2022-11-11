@@ -34,9 +34,6 @@ class MockPyStep(Step):
         """
         super().update_info(dpinfo)
 
-        # Make sure data is read
-        self.info().set_need_vis_data()
-
     def show(self):
         """Print a summary of the step and its settings"""
         print("\nMockPyStep")

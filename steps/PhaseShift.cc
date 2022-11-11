@@ -50,7 +50,6 @@ PhaseShift::~PhaseShift() {}
 
 void PhaseShift::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  info().setNeedVisData();
   info().setMetaChanged();
   // Default phase center is the original one.
   MDirection newDir(infoIn.originalPhaseCenter());

@@ -34,6 +34,7 @@ class Counter : public Step {
 
   common::Fields getRequiredFields() const override {
     if (flag_data_)
+      // Visibility data must be read if needed, so NaNs are flagged.
       return kDataField | kFlagsField;
     else
       return kFlagsField;

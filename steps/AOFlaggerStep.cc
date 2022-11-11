@@ -97,7 +97,6 @@ void AOFlaggerStep::formatBytes(std::ostream& os, double bytes) {
 
 void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
-  info().setNeedVisData();
   // Determine available memory.
   double availMemory = casacore::HostInfo::memoryTotal() * 1024.;
   // Determine how much memory can be used.

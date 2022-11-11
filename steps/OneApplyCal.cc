@@ -166,8 +166,7 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
 OneApplyCal::~OneApplyCal() {}
 
 void OneApplyCal::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-  info().setNeedVisData();
+  Step::updateInfo(infoIn);
   itsTimeInterval = infoIn.timeInterval();
   itsNCorr = infoIn.ncorr();
 

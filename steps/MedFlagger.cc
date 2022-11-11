@@ -100,8 +100,7 @@ void MedFlagger::showTimings(std::ostream& os, double duration) const {
 }
 
 void MedFlagger::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
-  info().setNeedVisData();
+  Step::updateInfo(infoIn);
   // Get baseline indices of autocorrelations.
   itsAutoCorrIndex = info().getAutoCorrIndex();
   itsNrAutoCorr = 0;

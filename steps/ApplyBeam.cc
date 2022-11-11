@@ -89,7 +89,6 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
 
 void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
-  info().setNeedVisData();
 
   // Parse direction parset value
   if (itsDirectionStr.empty())

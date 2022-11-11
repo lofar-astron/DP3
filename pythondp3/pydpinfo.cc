@@ -44,8 +44,6 @@ void WrapDpInfo(py::module &m) {
             return ret;
           },
           "Get a list of antenna positions in ITRF XYZ (read only)")
-      .def("set_need_vis_data", &DPInfo::setNeedVisData,
-           "Set whether data needs to be read before this step")
       .def("get_channel_frequencies", &DPInfo::chanFreqs,
            py::arg("baseline") = 0,
            "Get a list of channel frequencies (read only)")

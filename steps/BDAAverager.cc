@@ -103,7 +103,6 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   }
 
   Step::updateInfo(_info);
-  info().setNeedVisData();
   info().setIsBDAIntervalFactorInteger(true);
 
   expected_input_shape_ = casacore::IPosition(3, info().ncorr(), info().nchan(),

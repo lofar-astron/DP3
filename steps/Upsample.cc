@@ -52,7 +52,6 @@ Upsample::~Upsample() {}
 
 void Upsample::updateInfo(const DPInfo& info_in) {
   Step::updateInfo(info_in);
-  info().setNeedVisData();
   info().setTimeIntervalAndSteps(info().timeInterval() / time_step_,
                                  info().ntime() * time_step_);
   info().setMetaChanged();

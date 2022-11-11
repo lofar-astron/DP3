@@ -57,7 +57,6 @@ bool MsColumnReader::process(const DPBuffer& buffer) {
 void MsColumnReader::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
   table_ = casacore::Table(_info.msName());
-  info().setNeedVisData();
 }
 
 void MsColumnReader::finish() { getNextStep()->finish(); }
