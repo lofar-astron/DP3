@@ -86,11 +86,10 @@ std::map<std::string, DP3::StepCreator*> DP3::theirStepMap;
 /// Create an updater step only if needed (e.g. not if only count is done).
 /// If the user specified an output MS name, a writer or updater is always
 /// created If there is a writer, the reader needs to read the visibility
-/// data. reader should be the original reader
+/// data.
 static std::shared_ptr<OutputStep> MakeOutputStep(
-    InputStep* reader, const common::ParameterSet& parset,
-    const std::string& prefix, std::string& currentMSName,
-    Step::MsType inputType) {
+    const common::ParameterSet& parset, const std::string& prefix,
+    std::string& currentMSName, Step::MsType inputType) {
   std::shared_ptr<OutputStep> step;
   std::string outName;
   bool doUpdate = false;
@@ -122,7 +121,7 @@ static std::shared_ptr<OutputStep> MakeOutputStep(
       if (doUpdate) {
         throw std::invalid_argument("No updater for BDA data.");
       } else {
-        step = std::make_shared<MSBDAWriter>(reader, outName, parset, prefix);
+        step = std::make_shared<MSBDAWriter>(outName, parset, prefix);
       }
       break;
     case Step::MsType::kRegular:
@@ -134,7 +133,7 @@ static std::shared_ptr<OutputStep> MakeOutputStep(
         step = std::make_shared<MSUpdater>(outName, parset, prefix,
                                            outName != currentMSName);
       } else {
-        step = std::make_shared<MSWriter>(*reader, outName, parset, prefix);
+        step = std::make_shared<MSWriter>(outName, parset, prefix);
       }
       break;
   }
@@ -212,6 +211,8 @@ std::shared_ptr<Step> DP3::MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::Demixer>(parset, prefix);
   } else if (type == "python" || type == "pythondppp") {
     step = pythondp3::PyStep::create_instance(parset, prefix);
+  } else if (type == "null") {
+    step = std::make_shared<steps::NullStep>();
   }
   return step;
 }
@@ -236,9 +237,7 @@ static std::shared_ptr<Step> MakeSingleStep(const std::string& type,
       step = std::make_shared<steps::BdaDdeCal>(parset, prefix);
     }
   } else if (type == "out" || type == "output" || type == "msout") {
-    step = MakeOutputStep(inputStep, parset, prefix, msName, inputType);
-  } else if (type == "null") {
-    step = std::make_shared<steps::NullStep>();
+    step = MakeOutputStep(parset, prefix, msName, inputType);
   } else {
     // Maybe the step is defined in a dynamic library.
     step = DP3::FindStepCreator(type)(parset, prefix);
@@ -479,8 +478,8 @@ std::shared_ptr<InputStep> DP3::MakeMainSteps(
 
     if (!msOutName.empty() || provided_fields != common::Fields()) {
       std::string msName = casacore::Path(input_step->msName()).absoluteName();
-      std::shared_ptr<OutputStep> output_step = MakeOutputStep(
-          input_step.get(), parset, "msout.", msName, last_step->outputs());
+      std::shared_ptr<OutputStep> output_step =
+          MakeOutputStep(parset, "msout.", msName, last_step->outputs());
       output_step->SetFieldsToWrite(provided_fields);
       last_step->setNextStep(output_step);
       last_step = output_step;

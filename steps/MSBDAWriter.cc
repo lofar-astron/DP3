@@ -60,16 +60,13 @@ const std::string kBDATimeAxisVersion = "1.0";
 namespace dp3 {
 namespace steps {
 
-MSBDAWriter::MSBDAWriter(InputStep* reader, const std::string& out_name,
+MSBDAWriter::MSBDAWriter(const std::string& out_name,
                          const common::ParameterSet& parset,
                          const std::string& prefix)
-    : reader_(reader),
-      outName_(out_name),
+    : out_name_(out_name),
       parset_(parset),
       prefix_(prefix),
       overwrite_(parset.getBool(prefix + "overwrite", false)) {}
-
-MSBDAWriter::~MSBDAWriter() {}
 
 void MSBDAWriter::updateInfo(const DPInfo& info_in) {
   if (info_in.ntimeAvgs().size() != info_in.nbaselines()) {
@@ -77,8 +74,6 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
   }
 
   Step::updateInfo(info_in);
-  nbl_ = info().nbaselines();
-  ncorr_ = info().ncorr();
   CreateMS();
 
   WriteMetaData();
@@ -153,14 +148,14 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 void MSBDAWriter::finish() {}
 
 void MSBDAWriter::addToMS(const std::string&) {
-  getPrevStep()->addToMS(outName_);
+  getPrevStep()->addToMS(out_name_);
 }
 
 void MSBDAWriter::show(std::ostream& os) const {
   os << "MSBDAWriter " << prefix_ << '\n';
   os << "  output MS:      " << ms_.tableName() << '\n';
-  os << "  ncorrelations:  " << ncorr_ << '\n';
-  os << "  nbaselines:     " << nbl_ << '\n';
+  os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
+  os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
   os << "  DATA column:    DATA" << '\n';
   os << "  Compressed:     no\n";
 }
@@ -185,7 +180,7 @@ void MSBDAWriter::CreateMainTable() {
   StandardStMan man_std(32768);
 
   Table::TableOption opt = overwrite_ ? Table::New : Table::NewNoReplace;
-  SetupNewTable setup(outName_, td, opt);
+  SetupNewTable setup(out_name_, td, opt);
 
   // Set fixed shapes for columns that allow it.
   setup.setShapeColumn(MS::columnName(MS::UVW), IPosition(1, 3));
@@ -209,19 +204,19 @@ void MSBDAWriter::CreateMainTable() {
 
   // Create empty subtables.
   MeasurementSet(ms_).createDefaultSubtables(Table::New);
-  if (reader_) {
+  if (!getInfo().msName().empty()) {
     DPLOG_INFO("Copying info and subtables ...", false);
-    // Copy the info and subtables.
-    TableCopy::copyInfo(ms_, reader_->table());
+    casacore::Table original_table(getInfo().msName());
+    TableCopy::copyInfo(ms_, original_table);
 
     Block<casacore::String> omitted_subtables(4);
     omitted_subtables[0] = base::DP3MS::kBDATimeAxisTable;
     omitted_subtables[1] = base::DP3MS::kBDAFactorsTable;
     omitted_subtables[2] = base::DP3MS::kSpectralWindowTable;
     omitted_subtables[3] = base::DP3MS::kDataDescTable;
-    TableCopy::copySubTables(ms_, reader_->table(), false, omitted_subtables);
+    TableCopy::copySubTables(ms_, original_table, false, omitted_subtables);
   }
-}  // namespace DPPP
+}
 
 void MSBDAWriter::CreateBDATimeAxis() {
   // Build the table description for BDA_TIME_AXIS.
@@ -240,7 +235,7 @@ void MSBDAWriter::CreateBDATimeAxis() {
   td.addColumn(ScalarColumnDesc<Bool>(base::DP3MS::kHasBDAOrdering));
 
   // Add the BDA_TIME_AXIS as a subtable to the output measurementset.
-  SetupNewTable new_table(outName_ + '/' + base::DP3MS::kBDATimeAxisTable, td,
+  SetupNewTable new_table(out_name_ + '/' + base::DP3MS::kBDATimeAxisTable, td,
                           Table::New);
   Table bda_time_axis_table(new_table);
   ms_.rwKeywordSet().defineTable(base::DP3MS::kBDATimeAxisTable,
@@ -257,7 +252,7 @@ void MSBDAWriter::CreateBDATimeFactor() {
   td.addColumn(ScalarColumnDesc<Int>(base::DP3MS::kSpectralWindowId));
 
   // Add the BDA_FACTORS as a subtable to the output measurementset.
-  SetupNewTable new_table(outName_ + '/' + base::DP3MS::kBDAFactorsTable, td,
+  SetupNewTable new_table(out_name_ + '/' + base::DP3MS::kBDAFactorsTable, td,
                           Table::New);
   Table bda_time_factor_table(new_table);
   ms_.rwKeywordSet().defineTable(base::DP3MS::kBDAFactorsTable,
@@ -268,7 +263,7 @@ void MSBDAWriter::CreateMetaDataFrequencyColumns() {
   using MS_SPW = casacore::MSSpectralWindow;
 
   Table out_spw =
-      Table(outName_ + '/' + base::DP3MS::kSpectralWindowTable, Table::Update);
+      Table(out_name_ + '/' + base::DP3MS::kSpectralWindowTable, Table::Update);
 
   // Don't add BDA_FREQ_AXIS_ID
 
@@ -304,7 +299,7 @@ void MSBDAWriter::WriteMetaData() {
 void MSBDAWriter::WriteTimeFactorRows(Int bda_set_id,
                                       unsigned int& min_factor_time,
                                       unsigned int& max_factor_time) {
-  Table bda_time_factor(outName_ + '/' + base::DP3MS::kBDAFactorsTable,
+  Table bda_time_factor(out_name_ + '/' + base::DP3MS::kBDAFactorsTable,
                         Table::Update);
 
   ScalarColumn<Int> col_time_axis_id(bda_time_factor, base::DP3MS::kTimeAxisId);
@@ -333,7 +328,7 @@ void MSBDAWriter::WriteTimeFactorRows(Int bda_set_id,
 
 void MSBDAWriter::WriteTimeAxisRow(Int bda_set_id, unsigned int min_factor_time,
                                    unsigned int max_factor_time) {
-  Table bda_time_axis(outName_ + '/' + base::DP3MS::kBDATimeAxisTable,
+  Table bda_time_axis(out_name_ + '/' + base::DP3MS::kBDATimeAxisTable,
                       Table::Update);
   const double interval = info().timeInterval();
   int row = bda_time_axis.nrow();
@@ -365,8 +360,8 @@ void MSBDAWriter::OverwriteSubTables(const Int bda_set_id) {
   std::string name;
   int measFreqRef;
 
-  Table outDD(outName_ + '/' + base::DP3MS::kDataDescTable, Table::Update);
-  Table outSPW(outName_ + '/' + base::DP3MS::kSpectralWindowTable,
+  Table outDD(out_name_ + '/' + base::DP3MS::kDataDescTable, Table::Update);
+  Table outSPW(out_name_ + '/' + base::DP3MS::kSpectralWindowTable,
                Table::Update);
 
   if (outSPW.nrow() != outDD.nrow())

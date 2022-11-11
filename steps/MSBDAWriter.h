@@ -4,12 +4,13 @@
 #ifndef DP3_STEPS_MSBDAWRITER_H_
 #define DP3_STEPS_MSBDAWRITER_H_
 
-#include <casacore/tables/Tables/Table.h>
 #include <map>
 
-#include "OutputStep.h"
-#include "MSReader.h"
+#include <casacore/tables/Tables/Table.h>
+
 #include "../common/ParameterSet.h"
+
+#include "OutputStep.h"
 
 namespace dp3 {
 namespace steps {
@@ -19,10 +20,9 @@ namespace steps {
  */
 class MSBDAWriter : public OutputStep {
  public:
-  MSBDAWriter(InputStep*, const std::string&, const common::ParameterSet&,
-              const std::string&);
-
-  ~MSBDAWriter() override;
+  explicit MSBDAWriter(const std::string& out_name,
+                       const common::ParameterSet& parset,
+                       const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
     return kDataField | kFlagsField | kWeightsField | kUvwField;
@@ -78,14 +78,11 @@ class MSBDAWriter : public OutputStep {
   void OverwriteSubTables(casacore::Int bda_set_id);
 
  private:
-  InputStep* reader_;
-  const std::string outName_;
+  const std::string out_name_;
   const common::ParameterSet parset_;
   const std::string prefix_;
   const bool overwrite_;
 
-  unsigned int ncorr_;
-  unsigned int nbl_;
   std::map<std::size_t, unsigned int> nchanToDescId;
   casacore::Table ms_;
 };
