@@ -32,7 +32,7 @@ void ComputeStatsPerBaseline(size_t n_baselines, size_t n_channels,
   // input and output. This is also different from the Python reference,
   // and is to avoid strided access later on where the stats are used.
 
-  size_t n_in = n_baselines * n_channels * n_correlations;
+  [[maybe_unused]] size_t n_in = n_baselines * n_channels * n_correlations;
   assert(data.size() == n_in);
 
   std::vector<OutType> result(n_baselines * n_correlations);

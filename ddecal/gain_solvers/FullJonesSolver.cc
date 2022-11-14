@@ -76,7 +76,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<Matrix>> thread_vs(n_threads);
 
-  aocommon::ParallelFor<size_t> loop(GetNThreads());
+  aocommon::ParallelFor<size_t> loop(n_threads);
   do {
     MakeSolutionsFinite4Pol(solutions);
 
