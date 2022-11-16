@@ -3,4 +3,4 @@
 
 # The .cc tests are added in the top level CMakeLists.txt file.
 
-add_python_tests(tPyDpBuffer tPyFields tPyStep)
+add_python_tests(tPyDpBuffer tPyFields tPyStep tQueueOutput)
