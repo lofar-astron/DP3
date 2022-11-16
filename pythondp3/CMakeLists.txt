@@ -5,8 +5,13 @@
 # mimics the ${PYTHON_INSTALL_DIR}$ such that 'import dp3' can be used
 # in the build environment
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/dp3")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/dp3/steps")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/__init__.py"
                "${CMAKE_CURRENT_BINARY_DIR}/dp3/__init__.py" COPYONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/steps/__init__.py"
+               "${CMAKE_CURRENT_BINARY_DIR}/dp3/steps/__init__.py" COPYONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/steps/queue.py"
+               "${CMAKE_CURRENT_BINARY_DIR}/dp3/steps/queue.py" COPYONLY)
 
 pybind11_add_module(pydp3 MODULE pydp3.cc pydpinfo.cc)
 target_link_libraries(pydp3 PRIVATE LIBDP3)
@@ -20,3 +25,4 @@ set_target_properties(parameterset PROPERTIES LIBRARY_OUTPUT_DIRECTORY dp3)
 
 install(TARGETS parameterset pydp3 DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
 install(FILES __init__.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
+install(FILES steps/queue.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3/steps")
