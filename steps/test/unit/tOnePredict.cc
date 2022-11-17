@@ -52,7 +52,7 @@ class OnePredictFixture {
     const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2"};
     const std::vector<double> kAntDiam(3, 1.0);
     const std::vector<casacore::MPosition> kAntPos(3);
-    info.set(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
+    info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
 
     std::vector<double> chan_freqs(kNChannels, 10.0e6);
     std::vector<double> chan_widths(kNChannels, 3.0e6);

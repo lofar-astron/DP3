@@ -81,7 +81,7 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
       casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vector<double> antDiam(2, 70.);
-  info.set(ant_names, antDiam, ant_pos, ant1, ant2);
+  info.setAntennas(ant_names, antDiam, ant_pos, ant1, ant2);
   // Define the frequencies.
   std::vector<double> chan_width(nchan, 1e6);
   std::vector<double> chan_freqs(nchan, kFreq * 1e6);

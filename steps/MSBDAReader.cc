@@ -272,9 +272,10 @@ void MSBDAReader::updateInfo(const DPInfo& info_in) {
 
   // Set antenna/baseline info.
   casacore::Vector<casacore::String> names = name_col.getColumn();
-  info().set(std::vector<std::string>(names.begin(), names.end()),
-             diam_col.getColumn().tovector(), antPos,
-             ant1_col.getColumn().tovector(), ant2_col.getColumn().tovector());
+  info().setAntennas(std::vector<std::string>(names.begin(), names.end()),
+                     diam_col.getColumn().tovector(), antPos,
+                     ant1_col.getColumn().tovector(),
+                     ant2_col.getColumn().tovector());
 
   const MS_Field& field = ms_.field();
   if (field.nrow() != 1)

@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
 
   dp3::base::DPInfo info(n_corr, n_chan);
   info.setTimes(0.0, 0.0, 1.0);
-  info.set(ant_names, ant_diam, ant_pos, ant1, ant2);
+  info.setAntennas(ant_names, ant_diam, ant_pos, ant1, ant2);
 
   dp3::common::ParameterSet parset;
   std::string test_filename = "flag_counter_test.json";

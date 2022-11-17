@@ -83,7 +83,7 @@ class TestInput : public dp3::steps::MockInput {
         MPosition(Quantum<casacore::Vector<double>>(vals3, "m"),
                   MPosition::ITRF)};
     const std::vector<double> antDiam(4, 70.);
-    info().set(antNames, antDiam, antPos, ant1, ant2);
+    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(nchan, 100000.);

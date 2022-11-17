@@ -101,7 +101,7 @@ class TestInput : public dp3::steps::MockInput {
     // Baseline 0 has auto-correlations.
     const std::vector<int> kAnt1{0, 0, 1};
     const std::vector<int> kAnt2{0, 2, 2};
-    info().set(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
+    info().setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
   }
 
  private:

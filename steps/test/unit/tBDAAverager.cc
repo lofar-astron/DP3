@@ -66,7 +66,7 @@ DPInfo InitInfo(const std::vector<int>& ant1, const std::vector<int>& ant2,
 
   DPInfo info(kNCorr, kNChan);
   info.setTimes(kFirstTime, kLastTime, kInterval);
-  info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
+  info.setAntennas(kAntNames, kAntDiam, kAntPos, ant1, ant2);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
   return info;
 }

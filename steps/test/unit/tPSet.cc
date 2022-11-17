@@ -46,7 +46,7 @@ class TestInput : public dp3::steps::MockInput {
                                  "cs01.s02"};
     std::vector<casacore::MPosition> antPos(4);
     std::vector<double> antDiam(4, 70.);
-    info().set(antNames, antDiam, antPos, ant1, ant2);
+    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     std::vector<double> chanWidth(nchan, 100000);
     std::vector<double> chanFreqs;
     for (int i = 0; i < nchan; i++) {

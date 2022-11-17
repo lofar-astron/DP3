@@ -240,7 +240,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     }
   }
   // Set the new info.
-  info().set(antennaNames, antennaDiam, antennaPos, ant1, ant2);
+  info().setAntennas(antennaNames, antennaDiam, antennaPos, ant1, ant2);
   // Setup the UVW calculator (for new baselines).
   itsUVWCalc = std::make_unique<base::UVWCalculator>(
       infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);

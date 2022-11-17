@@ -49,7 +49,7 @@ dp3::base::DPInfo InitInfo(const std::vector<int>& ant1,
 
   dp3::base::DPInfo info(kNCorr, kNChan);
   info.setTimes(kFirstTime, kLastTime, kInterval);
-  info.set(kAntNames, kAntDiam, kAntPos, ant1, ant2);
+  info.setAntennas(kAntNames, kAntDiam, kAntPos, ant1, ant2);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
   return info;
 }

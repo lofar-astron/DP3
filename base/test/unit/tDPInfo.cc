@@ -162,8 +162,9 @@ BOOST_AUTO_TEST_CASE(set_bda_channels) {
   const unsigned int kNOriginalChannels = 42;
 
   DPInfo info(1, kNOriginalChannels);
-  info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions, kAntennaIndices,
-           kAntennaIndices);  // Set baseline count.
+  info.setAntennas(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+                   kAntennaIndices,
+                   kAntennaIndices);  // Set baseline count.
   info.setChannels(std::vector<std::vector<double>>(kFreqs),
                    std::vector<std::vector<double>>(kWidths));
   for (std::size_t i = 0; i < kFreqs.size(); i++) {
@@ -211,8 +212,9 @@ BOOST_AUTO_TEST_CASE(set_mismatching_bda_channels) {
   const std::vector<std::vector<double>> kCorrectWidths{{1.0}, {1.0}, {1.0}};
 
   DPInfo info;
-  info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions, kAntennaIndices,
-           kAntennaIndices);  // Set baseline count.
+  info.setAntennas(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+                   kAntennaIndices,
+                   kAntennaIndices);  // Set baseline count.
   {
     std::vector<std::vector<double>> frequencies = kCorrectFrequencies;
     std::vector<std::vector<double>> widths = kCorrectWidths;
@@ -321,16 +323,16 @@ BOOST_AUTO_TEST_CASE(channels_are_regular) {
   // Test using multiple baselines.
   {
     DPInfo info;
-    info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions,
-             kAntennaIndices, kAntennaIndices);  // Set baseline count.
+    info.setAntennas(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+                     kAntennaIndices, kAntennaIndices);  // Set baseline count.
     info.setChannels(std::vector<std::vector<double>>(kRegularFreqs),
                      std::vector<std::vector<double>>(kRegularWidths));
     BOOST_TEST(info.channelsAreRegular());
   }
   {
     DPInfo info;
-    info.set(kAntennaNames, kAntennaDiameters, kAntennaPositions,
-             kAntennaIndices, kAntennaIndices);  // Set baseline count.
+    info.setAntennas(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+                     kAntennaIndices, kAntennaIndices);  // Set baseline count.
     info.setChannels(std::vector<std::vector<double>>(kIrregularFreqsBDA),
                      std::vector<std::vector<double>>(kIrregularWidthsBDA));
     BOOST_TEST(!info.channelsAreRegular());
