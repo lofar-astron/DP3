@@ -63,3 +63,36 @@ def test_antenna_properties():
     assert info.antenna_positions == positions
     assert info.first_antenna_indices == first_indices
     assert info.second_antenna_indices == second_indices
+
+
+def test_channel_properties():
+    info = dp3.DPInfo()
+
+    # Check default values.
+    assert info.n_channels == 0
+    assert info.channel_frequencies == []
+    assert info.bda_channel_frequencies == [[]]
+    assert info.channel_widths == []
+    assert info.bda_channel_widths == [[]]
+
+    # Check that properties are read-only.
+    with pytest.raises(AttributeError):
+        info.n_channels = 3
+    with pytest.raises(AttributeError):
+        info.channel_frequencies = [10.0e6, 11.0e6, 12.0e6]
+    with pytest.raises(AttributeError):
+        info.bda_channel_frequencies = [[13.0e6, 14.0e6, 15.0e6]]
+    with pytest.raises(AttributeError):
+        info.channel_frequencies = [2.0e6, 2.0e6, 2.0e6]
+    with pytest.raises(AttributeError):
+        info.bda_channel_frequencies = [[3.0e6, 3.0e6, 3.0e6]]
+
+    # Check that set_channels() yields new property values.
+    frequencies = [42.0e6, 43.0e6]
+    widths = [1.0e6, 1.0e6]
+    info.set_channels(frequencies, widths)
+    assert info.n_channels == 2
+    assert info.channel_frequencies == frequencies
+    assert info.bda_channel_frequencies == [frequencies]
+    assert info.channel_widths == widths
+    assert info.bda_channel_widths == [widths]

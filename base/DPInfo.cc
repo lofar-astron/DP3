@@ -47,6 +47,11 @@ DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
       time_interval_(1.0),
       n_times_(1),
       beam_correction_mode_(static_cast<int>(everybeam::CorrectionMode::kNone)),
+      channel_frequencies_(1),  // Ensure that chanFreqs(), chanWidths(),
+      channel_widths_(1),       // resolutions() and effectiveBW()
+      resolutions_(1),          // can retrieve a first list.
+      effective_bandwidth_(1),
+      total_bandwidth_(0.0),
       spectral_window_(0),
       n_threads_(aocommon::system::ProcessorCount()) {}
 

@@ -79,12 +79,48 @@ Parameters:
       .def_property_readonly("n_antenna", &DPInfo::nantenna,
                              "The number of antennas (read-only)")
 
+      /* Channel properties. Not all properties are bound in python. */
+      .def(
+          "set_channels",
+          [](DPInfo& self, std::vector<double> frequencies,
+             std::vector<double> widths) {
+            self.setChannels(std::move(frequencies), std::move(widths));
+          },
+          R"(Set (basic) channel properties".
+Parameters:
+  frequencies: List with the frequencies for each channel.
+  widths: List with the widths of each channel.
+          Typically, all channels have the same width.)",
+          py::arg("frequencies"), py::arg("widths"))
+      .def_property_readonly("n_channels", &DPInfo::nchan, "Number of channels")
+      .def_property_readonly(
+          "channel_frequencies", [](DPInfo& self) { return self.chanFreqs(0); },
+          R"(A list of channel frequencies (read only).
+When using BDA, this property has the values for the first baseline.
+
+See Also
+--------
+bda_channel_frequencies
+)")
+      .def_property_readonly(
+          "bda_channel_frequencies", &DPInfo::BdaChanFreqs,
+          R"(A list with, for each baseline, a list of channel frequencies (read only).
+When not using BDA, there is always a single frequency list.)")
+      .def_property_readonly(
+          "channel_widths", [](DPInfo& self) { return self.chanWidths(0); },
+          R"(A list of channel widths (read only).
+When using BDA, this property has the values for the first baseline.
+
+See Also
+--------
+bda_channel_widths)")
+      .def_property_readonly(
+          "bda_channel_widths", &DPInfo::BdaChanWidths,
+          R"(A list with, for each baseline, a list of channel widths (read only).
+When not using BDA, there is always a single list of channel widths.)")
+
       /* Other properties */
       // TODO(AST-1097): Add more bindings and use proper property bindings. */
-      .def("get_channel_frequencies", &DPInfo::chanFreqs,
-           py::arg("baseline") = 0,
-           "Get a list of channel frequencies (read only)")
-      .def("nchan", &DPInfo::nchan, "Get the number of channels")
       .def("start_time", &DPInfo::startTime, "Get the start time")
       .def("time_interval", &DPInfo::timeInterval, "Get the time interval")
       .def("ntime", &DPInfo::ntime, "Get the total number of time slots")
