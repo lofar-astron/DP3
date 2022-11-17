@@ -241,10 +241,11 @@ void DPInfo::setArrayInformation(const MPosition& arrayPos,
   tile_beam_direction_ = tileBeamDir;
 }
 
-void DPInfo::set(const std::vector<std::string>& antNames,
-                 const std::vector<double>& antDiam,
-                 const std::vector<MPosition>& antPos,
-                 const std::vector<int>& ant1, const std::vector<int>& ant2) {
+void DPInfo::setAntennas(const std::vector<std::string>& antNames,
+                         const std::vector<double>& antDiam,
+                         const std::vector<MPosition>& antPos,
+                         const std::vector<int>& ant1,
+                         const std::vector<int>& ant2) {
   if (antNames.size() != antDiam.size() || antNames.size() != antPos.size())
     throw std::invalid_argument(
         "The name, diameter and position arrays are not of the same size");

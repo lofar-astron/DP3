@@ -1,8 +1,13 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>
+
+#include <casacore/casa/Quanta/Quantum.h>
 
 #include <dp3/base/DPInfo.h>
 
@@ -13,24 +18,46 @@ namespace py = pybind11;
 namespace dp3 {
 namespace pythondp3 {
 
-void WrapDpInfo(py::module &m) {
+void WrapDpInfo(py::module& m) {
   py::class_<DPInfo>(m, "DPInfo")
+      .def(py::init<>())
+
+      /* Antenna properties */
       .def(
-          "antenna_names",
-          [](DPInfo &self) -> py::array {
-            // Convert casa vector of casa strings to std::vector of strings
-            std::vector<std::string> names_casa = self.antennaNames();
-            std::vector<std::string> names;
-            for (size_t i = 0; i < names_casa.size(); ++i) {
-              names.push_back(names_casa[i]);
+          "set_antennas",
+          [](DPInfo& self, const std::vector<std::string>& names,
+             const std::vector<double>& diameters,
+             const std::vector<std::array<double, 3>>& positions,
+             const std::vector<int>& antenna1_indices,
+             const std::vector<int>& antenna2_indices) {
+            std::vector<casacore::MPosition> positions_casa;
+            positions_casa.reserve(positions.size());
+            for (const std::array<double, 3>& position : positions) {
+              casacore::Vector<double> vector(position.size());
+              std::copy_n(position.data(), position.size(), vector.data());
+              casacore::Quantum<casacore::Vector<double>> quantum(vector, "m");
+              positions_casa.emplace_back(quantum, casacore::MPosition::ITRF);
             }
-            py::array ret = py::cast(names);
-            return ret;
+            self.setAntennas(names, diameters, positions_casa, antenna1_indices,
+                             antenna2_indices);
           },
-          "Get numpy array with antenna names (read only)")
-      .def(
+          R"(Set antenna properties.
+Parameters:
+  names: List with the names for each antenna.
+  diameters: List with the diameters for each antenna, in meters.
+  positions: List with the antenna positions in ITRF XYZ format.
+             An antenna position is a list with x, y, z values in meters.
+  first_antenna_indices: List with the index of the first antenna for each
+                         baseline.
+  second_antenna_indices: List with the index of the second antenna for
+                          each baseline.)",
+          py::arg("names"), py::arg("diameters"), py::arg("positions"),
+          py::arg("first_antenna_indices"), py::arg("second_antenna_indices"))
+      .def_property_readonly("antenna_names", &DPInfo::antennaNames,
+                             "A list with antenna names (read only)")
+      .def_property_readonly(
           "antenna_positions",
-          [](DPInfo &self) -> py::array {
+          [](DPInfo& self) {
             // Convert vector of casa MPositions to std::vector of positions
             std::vector<casacore::MPosition> positions_casa = self.antennaPos();
             std::vector<std::array<double, 3>> positions;
@@ -40,18 +67,23 @@ void WrapDpInfo(py::module &m) {
                   position_mv(0), position_mv(1), position_mv(2)};
               positions.push_back(position_array);
             }
-            py::array ret = py::cast(positions);
-            return ret;
+            return positions;
           },
-          "Get a list of antenna positions in ITRF XYZ (read only)")
+          "A list of antenna positions in ITRF XYZ format (read only)")
+      .def_property_readonly("first_antenna_indices", &DPInfo::getAnt1,
+                             "A list with index of the first antenna for each "
+                             "baseline (read-only)")
+      .def_property_readonly("second_antenna_indices", &DPInfo::getAnt2,
+                             "A list with index of the second antenna for each "
+                             "baseline (read-only)")
+      .def_property_readonly("n_antenna", &DPInfo::nantenna,
+                             "The number of antennas (read-only)")
+
+      /* Other properties */
+      // TODO(AST-1097): Add more bindings and use proper property bindings. */
       .def("get_channel_frequencies", &DPInfo::chanFreqs,
            py::arg("baseline") = 0,
            "Get a list of channel frequencies (read only)")
-      .def("get_antenna1", &DPInfo::getAnt1,
-           "Get a list of first antenna numbers of correlations")
-      .def("get_antenna2", &DPInfo::getAnt2,
-           "Get a list of second antenna numbers of correlations")
-      .def("nantenna", &DPInfo::nantenna, "Get the number of antennas")
       .def("nchan", &DPInfo::nchan, "Get the number of channels")
       .def("start_time", &DPInfo::startTime, "Get the start time")
       .def("time_interval", &DPInfo::timeInterval, "Get the time interval")

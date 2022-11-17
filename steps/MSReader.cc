@@ -627,9 +627,10 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   }
   // Set antenna/baseline info.
   casacore::Vector<casacore::String> names = nameCol.getColumn();
-  info().set(std::vector<std::string>(names.begin(), names.end()),
-             diamCol.getColumn().tovector(), antPos,
-             ant1col.getColumn().tovector(), ant2col.getColumn().tovector());
+  info().setAntennas(std::vector<std::string>(names.begin(), names.end()),
+                     diamCol.getColumn().tovector(), antPos,
+                     ant1col.getColumn().tovector(),
+                     ant2col.getColumn().tovector());
 
   // Read the phase reference position from the FIELD subtable.
   // Only use the main value from the PHASE_DIR array.

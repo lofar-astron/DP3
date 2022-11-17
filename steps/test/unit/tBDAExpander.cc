@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
   DPInfo info(kNCorr, kNChan);
   info.setTimes(bda_first_time, bda_first_time + (kNTime - 1) * kInterval,
                 kInterval);
-  info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
+  info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
 
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
   DPInfo info(kNCorr, kNChan);
   info.setTimes(bda_first_time, bda_first_time + (kNTime - 1) * kInterval,
                 kInterval);
-  info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
+  info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(true);
   info.setChannels(std::move(chan_freqs), std::move(chan_widths));
 
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
 BOOST_AUTO_TEST_CASE(wrong_input_parameters) {
   DPInfo info(kNCorr, kNChan);
   info.setTimes(kStartTime, kStartTime + kInterval, kInterval);
-  info.set(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
+  info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(false);
 
   BDAExpander expander("bdaexpander");

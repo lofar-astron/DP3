@@ -78,7 +78,7 @@ DPInfo makeInfo(int nbl) {
       casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
   vector<double> antDiam(4, 70.);
-  info.set(antNames, antDiam, antPos, ant1, ant2);
+  info.setAntennas(antNames, antDiam, antPos, ant1, ant2);
   return info;
 }
 

@@ -33,7 +33,7 @@ class BdaPredictFixture {
     const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2"};
     const std::vector<double> kAntDiam(3, 1.0);
     const std::vector<casacore::MPosition> kAntPos(3);
-    info.set(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
+    info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
 
     std::vector<std::vector<double>> chan_freqs{
         {10.0e6}, {9.0e6, 10.0e6, 11.0e6}, {10.0e6}};

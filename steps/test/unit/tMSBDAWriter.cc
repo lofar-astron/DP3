@@ -49,9 +49,9 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
 
   DPInfo info(ncorr, nchan);
   info.setTimes(kTime, kTime, kInterval);
-  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
-           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
-           std::vector<int>{0});
+  info.setAntennas(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
+                   {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
+                   std::vector<int>{0});
   info.setChannels(std::vector<std::vector<double>>{{1.}},
                    std::vector<std::vector<double>>{{10.}});
   info.setChannels(std::vector<double>(nchan, 1.),
@@ -153,10 +153,10 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
 
   DPInfo info(1, 1);
   info.setTimes(kTime, kTime, kInterval);
-  info.set(std::vector<std::string>{"ant", "ant2"},
-           std::vector<double>{1.0, 2.0},
-           {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{0, 0, 0}},
-           std::vector<int>{0, 1}, std::vector<int>{0, 1});
+  info.setAntennas(
+      std::vector<std::string>{"ant", "ant2"}, std::vector<double>{1.0, 2.0},
+      {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{0, 0, 0}},
+      std::vector<int>{0, 1}, std::vector<int>{0, 1});
   info.setChannels(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
 
   // ntimeAvgs is 1, nbaselines 2 so we expect an exception
@@ -171,9 +171,9 @@ BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory,
                         *boost::unit_test::label("slow")) {
   DPInfo info(1, 1);
   info.setTimes(3.0, 3.0, 1.5);
-  info.set(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
-           {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
-           std::vector<int>{0});
+  info.setAntennas(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
+                   {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
+                   std::vector<int>{0});
   info.setChannels(std::vector<double>(1, 1.), std::vector<double>(1, 5000.));
   const std::string kMsName = "default_tables.MS";
 
@@ -204,10 +204,10 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory,
   parset.add(prefix + "overwrite", "true");
   DPInfo info(1, 1);
   info.setTimes(3.0, 3.0, timeInterval);
-  info.set(std::vector<std::string>{"ant", "ant2"},
-           std::vector<double>{1.0, 1.0},
-           {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{10, 10, 0}},
-           std::vector<int>{0, 1}, std::vector<int>{0, 1});
+  info.setAntennas(
+      std::vector<std::string>{"ant", "ant2"}, std::vector<double>{1.0, 1.0},
+      {casacore::MVPosition{0, 0, 0}, casacore::MVPosition{10, 10, 0}},
+      std::vector<int>{0, 1}, std::vector<int>{0, 1});
   info.setChannels(std::vector<std::vector<double>>{{1.}, {1.}},
                    std::vector<std::vector<double>>{{5000.}, {5000.}});
   info.update(std::vector<unsigned int>{kMinTimeInterval, kMaxTimeInterval});

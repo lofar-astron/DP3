@@ -63,8 +63,8 @@ class BdaGroupPredict::BaselineGroup {
 
     write_back_info_.resize(nr_baselines);
 
-    info.set(info_in.antennaNames(), info_in.antennaDiam(),
-             info_in.antennaPos(), ant1, ant2);
+    info.setAntennas(info_in.antennaNames(), info_in.antennaDiam(),
+                     info_in.antennaPos(), ant1, ant2);
 
     std::vector<double> chanFreqs(info_in.chanFreqs(baselines_[0]));
     std::vector<double> chanWidths(info_in.chanWidths(baselines_[0]));

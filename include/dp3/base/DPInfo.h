@@ -99,10 +99,10 @@ class DPInfo {
                            const casacore::MDirection& tileBeamDir);
 
   /// Set the info for the given antennae and baselines.
-  void set(const std::vector<std::string>& antNames,
-           const std::vector<double>& antDiam,
-           const std::vector<casacore::MPosition>& antPos,
-           const std::vector<int>& ant1, const std::vector<int>& ant2);
+  void setAntennas(const std::vector<std::string>& antNames,
+                   const std::vector<double>& antDiam,
+                   const std::vector<casacore::MPosition>& antPos,
+                   const std::vector<int>& ant1, const std::vector<int>& ant2);
 
   /// Update the info for the given average factors.
   /// If chanAvg is higher than the actual nr of channels, it is reset.
