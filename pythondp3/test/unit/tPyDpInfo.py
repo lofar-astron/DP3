@@ -10,6 +10,7 @@ This script can be invoked in two ways:
 - using ctest, see pythondp3/test/integration/CMakeLists.txt
 """
 
+import math
 import pytest
 import sys
 
@@ -96,3 +97,62 @@ def test_channel_properties():
     assert info.bda_channel_frequencies == [frequencies]
     assert info.channel_widths == widths
     assert info.bda_channel_widths == [widths]
+
+
+def test_time_properties():
+    info = dp3.DPInfo()
+
+    # Check default values.
+    assert info.first_time == 0.0
+    assert info.last_time == 0.0
+    assert info.time_interval == 1.0
+    assert info.start_time == -0.5
+    assert info.n_times == 1
+
+    # Check that properties are read-only.
+    with pytest.raises(AttributeError):
+        info.first_time = 3.0
+    with pytest.raises(AttributeError):
+        info.last_time = 4.0
+    with pytest.raises(AttributeError):
+        info.time_interval = 5.0
+    with pytest.raises(AttributeError):
+        info.start_time = 6.0
+    with pytest.raises(AttributeError):
+        info.n_times = 7
+
+    # Check that set_times() yields new property values.
+    first_time = 42.0
+    last_time = 141.0
+    interval = 5.0
+    info.set_times(first_time, last_time, interval)
+    assert info.first_time == first_time
+    assert info.last_time == last_time
+    assert info.time_interval == interval
+    assert info.start_time == 39.5
+    assert info.n_times == 21
+
+
+def test_phase_center():
+    info = dp3.DPInfo()
+    assert math.isclose(info.phase_center[0], 0.0, rel_tol=1.0e-9)
+    assert math.isclose(info.phase_center[1], 0.5 * math.pi, rel_tol=1.0e-9)
+
+    for phase_center in [[0.1, 0.2], [-0.1, 0.2], [0.1, -0.2], [-0.1, -0.2]]:
+        info = dp3.DPInfo()
+        info.phase_center = phase_center
+        assert math.isclose(
+            phase_center[0], info.phase_center[0], rel_tol=1.0e-9
+        )
+        assert math.isclose(
+            phase_center[1], info.phase_center[1], rel_tol=1.0e-9
+        )
+
+
+def test_ms_name():
+    info = dp3.DPInfo()
+    assert info.ms_name == ""
+
+    name = "test_ms_name"
+    info.ms_name = name
+    assert info.ms_name == name

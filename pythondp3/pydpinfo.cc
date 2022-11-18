@@ -119,12 +119,51 @@ bda_channel_widths)")
           R"(A list with, for each baseline, a list of channel widths (read only).
 When not using BDA, there is always a single list of channel widths.)")
 
+      /* Time properties */
+      .def("set_times", &DPInfo::setTimes,
+           R"(Set basic time properties.
+Parameters:
+  first_time: Centroid time of the first time slot (mjd seconds).
+  last_time: Centroid time of the last time slot (mjd seconds).
+  time_interval: Time interval between two time slots (seconds)",
+           py::arg("first_time"), py::arg("last_time"),
+           py::arg("time_interval"))
+      .def_property_readonly(
+          "start_time", &DPInfo::startTime,
+          R"(The time point at which the measurements started (mjd seconds).
+The start time equals the first time minus half a time interval)")
+      .def_property_readonly(
+          "first_time", &DPInfo::firstTime,
+          "The centroid time of the first time slot (mjd seconds)")
+      .def_property_readonly(
+          "last_time", &DPInfo::lastTime,
+          "The centroid time of the last time slot (mjd seconds)")
+      .def_property_readonly(
+          "time_interval", &DPInfo::timeInterval,
+          "The time interval between two time slots (seconds)")
+      .def_property_readonly("n_times", &DPInfo::ntime,
+                             "The number of time slots")
+
+      /* Array information */
+      .def_property(
+          "phase_center",
+          [](DPInfo& self) {
+            return std::array<double, 2>{
+                self.phaseCenter().getValue().get()[0],
+                self.phaseCenter().getValue().get()[1]};
+          },
+          [](DPInfo& self, const std::array<double, 2>& ra_dec) {
+            const casacore::Quantity ra(ra_dec[0], "rad");
+            const casacore::Quantity dec(ra_dec[1], "rad");
+            const casacore::MDirection direction(ra, dec,
+                                                 casacore::MDirection::J2000);
+            self.setPhaseCenter(direction);
+          },
+          "The phase center for the measurements ([ra, dec] in radians)")
+
       /* Other properties */
-      // TODO(AST-1097): Add more bindings and use proper property bindings. */
-      .def("start_time", &DPInfo::startTime, "Get the start time")
-      .def("time_interval", &DPInfo::timeInterval, "Get the time interval")
-      .def("ntime", &DPInfo::ntime, "Get the total number of time slots")
-      .def("ms_name", &DPInfo::msName, "Get name of measurement set");
+      .def_property("ms_name", &DPInfo::msName, &DPInfo::setMsName,
+                    "The name of the measurement set");
 }
 
 }  // namespace pythondp3
