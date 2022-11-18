@@ -15,6 +15,7 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/BasicSL/STLIO.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 #include <EveryBeam/correctionmode.h>
 
@@ -33,6 +34,10 @@ namespace base {
 DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
                unsigned int start_channel, std::string antenna_set)
     : meta_changed_(false),
+      ms_name_(),
+      data_column_name_(MS::columnName(MS::DATA)),
+      flag_column_name_(MS::columnName(MS::FLAG)),
+      weight_column_name_(MS::columnName(MS::WEIGHT_SPECTRUM)),
       antenna_set_(std::move(antenna_set)),
       n_correlations_(n_correlations),
       start_channel_(start_channel),

@@ -216,11 +216,6 @@ common::Fields MSUpdater::getRequiredFields() const {
 }
 
 void MSUpdater::SetFieldsToWrite(const common::Fields& base_fields) {
-  // SetFieldsToWrite currently only supports calls before updateInfo() is
-  // called, since updateInfo() updates the column name members.
-  assert(info().dataColumnName().empty() && info().flagColumnName().empty() &&
-         info().weightColumnName().empty());
-
   // A non-empty column name indicates it should be written.
   common::Fields fields = base_fields;
   if (!itsDataColName.empty()) fields |= kDataField;

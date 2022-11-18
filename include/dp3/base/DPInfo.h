@@ -39,6 +39,8 @@ class DPInfo {
   /// @param time_interval Time interval between two time slots, in mjd seconds.
   void setTimes(double first_time, double last_time, double time_interval);
 
+  void setMsName(const std::string& ms_name) { ms_name_ = ms_name; }
+
   void setMsNames(const std::string& ms_name,
                   const std::string& data_column_name,
                   const std::string& flag_column_name,
