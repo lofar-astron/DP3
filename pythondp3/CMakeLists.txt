@@ -25,4 +25,5 @@ set_target_properties(parameterset PROPERTIES LIBRARY_OUTPUT_DIRECTORY dp3)
 
 install(TARGETS parameterset pydp3 DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
 install(FILES __init__.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
+install(FILES steps/__init__.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3/steps")
 install(FILES steps/queue.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3/steps")

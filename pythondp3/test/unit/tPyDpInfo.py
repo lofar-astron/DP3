@@ -28,7 +28,34 @@ except ImportError:
     pass
 
 
+def test_constructor():
+
+    # Constructor using only default values for the arguments
+    info0 = dp3.DPInfo()
+
+    # Check whether the default values for the constructor arguments have been used
+    assert info0.n_correlations == 0
+    assert info0.original_n_channels == 0
+    assert info0.start_channel == 0
+    assert info0.antenna_set == ""
+
+    # Constructor using specific values for the arguments
+    n_correlations = 4
+    original_n_channels = 8
+    start_channel = 1
+    antenna_set = "LBA"
+    info1 = dp3.DPInfo(
+        n_correlations, original_n_channels, start_channel, antenna_set
+    )
+
+    assert info1.n_correlations == n_correlations
+    assert info1.original_n_channels == original_n_channels
+    assert info1.start_channel == start_channel
+    assert info1.antenna_set == antenna_set
+
+
 def test_antenna_properties():
+
     info = dp3.DPInfo()
 
     # Check default values.

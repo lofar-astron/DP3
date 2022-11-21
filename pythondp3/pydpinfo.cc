@@ -20,8 +20,9 @@ namespace pythondp3 {
 
 void WrapDpInfo(py::module& m) {
   py::class_<DPInfo>(m, "DPInfo")
-      .def(py::init<>())
-
+      .def(py::init<unsigned int, unsigned int, unsigned int, std::string>(),
+           py::arg("n_correlations") = 0, py::arg("n_original_channels") = 0,
+           py::arg("start_channel") = 0, py::arg("antenna_set") = "")
       /* Antenna properties */
       .def(
           "set_antennas",
@@ -93,6 +94,15 @@ Parameters:
           Typically, all channels have the same width.)",
           py::arg("frequencies"), py::arg("widths"))
       .def_property_readonly("n_channels", &DPInfo::nchan, "Number of channels")
+      .def_property_readonly("original_n_channels", &DPInfo::origNChan,
+                             "Original number of channels")
+      .def_property_readonly(
+          "start_channel", &DPInfo::startchan,
+          "Number of the first channel. Channel numbers start at 0.")
+      .def_property_readonly("n_correlations", &DPInfo::ncorr,
+                             "Number of correlations")
+      .def_property_readonly("antenna_set", &DPInfo::antennaSet,
+                             "Antenna set (LOFAR specific)")
       .def_property_readonly(
           "channel_frequencies", [](DPInfo& self) { return self.chanFreqs(0); },
           R"(A list of channel frequencies (read only).
