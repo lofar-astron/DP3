@@ -36,10 +36,22 @@ void PyStep::show(std::ostream& os) const {
 }
 
 void PyStep::finish() {
+  // The default behaviour of the Python version of finish() deviates somewhat
+  // from the behaviour of the C++ versions. This is to make Python
+  // steps a bit more robust.
+  // The differences between the C++ and Python versions of finish() are:
+  // 1) In C++ finish() is pure virtual.
+  //    In Python overriding the finish() method is optional
+  // 2) A Python override should not call the finish() mehod of the next step.
+  //    If there is a next step its finish() method will be called from here,
+  //    the trampoline class.
+  // Conditionally calling the finish() method of the next step allows to write
+  // Python steps that can be used as end point of a pipeline
+  // like for example the QueueOutput step.
+  // Ticket AST-1105 aims to be bring the C++ and Python behaviour more in line.
   pybind11::function finish_override = pybind11::get_override(this, "finish");
   if (finish_override) finish_override();  // Call the Python function.
-
-  getNextStep()->finish();
+  if (getNextStep()) getNextStep()->finish();
 }
 
 bool PyStep::process(const DPBuffer& bufin) {
