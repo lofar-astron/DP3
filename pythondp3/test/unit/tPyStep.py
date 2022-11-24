@@ -74,3 +74,41 @@ def test_next_step_process():
         first_step.process(dp3.DPBuffer())
         assert first_step.process_count == i
         assert last_step.process_count == i
+
+
+def test_info():
+    class TestInfoStep(dp3.Step):
+        def __init__(self):
+            dp3.Step.__init__(self)
+
+        def _update_info(self, info):
+
+            # Modify the info a bit showing that this method is
+            # indeed called when set_info() is called.
+            # An example of a step that makes actual changes to the info object
+            # is the Averager step.
+            first_time = info.first_time + 1.0
+            last_time = info.last_time + 2.0
+            time_interval = info.time_interval + 3.0
+            info.set_times(first_time, last_time, time_interval)
+            super()._update_info(info)
+
+    step = TestInfoStep()
+
+    info = dp3.DPInfo()
+
+    first_time = 42.0
+    last_time = 141.0
+    time_interval = 5.0
+    info.set_times(first_time, last_time, time_interval)
+
+    # Set info, this will call _update_info()
+    step.set_info(info)
+
+    # Assert that info was set and modified by _update_info()
+    # Storing step.info in local variable step_info, because
+    # step.info creates a copy
+    step_info = step.info
+    assert step_info.first_time == first_time + 1.0
+    assert step_info.last_time == last_time + 2.0
+    assert step_info.time_interval == time_interval + 3.0

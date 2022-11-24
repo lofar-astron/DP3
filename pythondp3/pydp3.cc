@@ -123,9 +123,21 @@ PYBIND11_MODULE(pydp3, m) {
              step.show(ss);
              return ss.str();
            })
-      .def("update_info", &PublicStep::updateInfo, "Handle metadata")
-      .def("info", &PublicStep::info, py::return_value_policy::reference,
-           "Get info object (read/write) with metadata")
+      // Step::updateInfo is protected
+      // Prepending by an underscore to indicate that this mehod is not
+      // supposed to be called directly
+      .def("_update_info", &PublicStep::updateInfo, "Handle metadata")
+      .def("set_info", &Step::setInfo, py::return_value_policy::reference,
+           "Set info object. This will call _update_info() for this step and "
+           "all next steps")
+      // Step::getInfo() returns a const reference
+      // Unfortunately there is no way to enforce constness in Python
+      // Also there is no guarantee that the Step will outlive the returned
+      // info object. Altough not the most efficient, the safest way
+      // is returning a copy here.
+      .def_property_readonly(
+          "info", &Step::getInfo, py::return_value_policy::copy,
+          "Get a copy of the info object containing metadata")
       .def(
           "process",
           [](dp3::steps::Step &step, const base::DPBuffer &buffer) {

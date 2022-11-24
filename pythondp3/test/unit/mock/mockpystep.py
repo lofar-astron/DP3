@@ -25,15 +25,6 @@ class MockPyStep(Step):
         self.datafactor = parset.get_double(prefix + "datafactor")
         self.weightsfactor = parset.get_double(prefix + "weightsfactor")
 
-    def update_info(self, dpinfo):
-        """
-        Process metadata. This will be called before any call to process.
-
-        Args:
-          dpinfo: DPInfo object with all metadata, see docs in pydp3.cc
-        """
-        super().update_info(dpinfo)
-
     def show(self):
         """Print a summary of the step and its settings"""
         print("\nMockPyStep")
