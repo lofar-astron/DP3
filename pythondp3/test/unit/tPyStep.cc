@@ -66,6 +66,7 @@ class TestInput final : public steps::MockInput {
   }
 
   void finish() override { getNextStep()->finish(); }
+
   void updateInfo(const DPInfo&) override {
     // Use timeInterval=5
     info() = DPInfo(kNCorrelations, kNChannels);

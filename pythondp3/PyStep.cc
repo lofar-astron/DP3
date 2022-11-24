@@ -83,11 +83,14 @@ common::Fields PyStep::getProvidedFields() const {
 }
 
 void PyStep::updateInfo(const DPInfo& dpinfo) {
-  PYBIND11_OVERRIDE_NAME(void,          /* Return type */
-                         Step,          /* Parent class */
-                         "update_info", /* Name of function in Python  */
-                         updateInfo,    /* Name of function in C++  */
-                         dpinfo         /* Argument(s) */
+  // dpinfo is const
+  // In Python constness can not be enforced
+  // Passing a copy here to protect dpinfo from modications on the Python side
+  PYBIND11_OVERRIDE_NAME(void,           /* Return type */
+                         Step,           /* Parent class */
+                         "_update_info", /* Name of function in Python  */
+                         updateInfo,     /* Name of function in C++  */
+                         DPInfo(dpinfo)  /* Argument(s) */
   );
 }
 
