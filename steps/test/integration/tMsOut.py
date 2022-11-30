@@ -44,7 +44,9 @@ def test_chunking():
             f"msin={MSIN}",
             "msout=chunktest.ms",
             "msout.chunkduration=18",
-            "steps=[]",
+            "steps=[filter]",
+            "filter.baseline=[CR]S*&",
+            "filter.remove=True",
         ]
     )
     # The integration time of this set is 10 seconds. With chunking after 18 sec, this

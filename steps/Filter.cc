@@ -244,8 +244,8 @@ void Filter::finish() {
   getNextStep()->finish();
 }
 
-void Filter::addToMS(const string& msName) {
-  getPrevStep()->addToMS(msName);
+void Filter::addToMS(const std::string& msName) {
+  Step::addToMS(msName);
   if (!itsRemoveAnt) {
     return;
   }

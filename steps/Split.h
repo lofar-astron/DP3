@@ -40,8 +40,6 @@ class Split : public OutputStep {
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
 
-  void addToMS(const string&) override;
-
   /// Update the general info.
   void updateInfo(const base::DPInfo&) override;
 
@@ -62,8 +60,6 @@ class Split : public OutputStep {
 
   /// The first step in each chain of sub steps.
   std::vector<std::shared_ptr<Step>> sub_steps_;
-
-  bool added_to_ms_;  ///< Used in addToMS to prevent recursion
 };
 
 }  // namespace steps

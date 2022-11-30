@@ -174,19 +174,16 @@ void MSWriter::ProcessBuffer(DPBuffer& buffer) {
 
 void MSWriter::finish() {
   FinishMs();
-  getNextStep()->finish();
+  if (getNextStep()) getNextStep()->finish();
 }
-
-void MSWriter::addToMS(const string&) { getPrevStep()->addToMS(out_name_); }
 
 void MSWriter::StartNewMs() {
   // Create the MS.
   common::NSTimer::StartStop sstime(timer_);
-  const std::string chunk_name =
-      chunk_duration_ == 0.0
-          ? out_name_
-          : InsertNumberInFilename(out_name_, current_chunk_index_);
-  CreateMs(chunk_name, tile_size_, tile_n_chan_);
+  chunk_name_ = chunk_duration_ == 0.0
+                    ? out_name_
+                    : InsertNumberInFilename(out_name_, current_chunk_index_);
+  CreateMs(chunk_name_, tile_size_, tile_n_chan_);
   // Write the parset info into the history.
   WriteHistory(ms_, parset_);
   ms_.flush(true, true);
@@ -219,6 +216,7 @@ void MSWriter::FinishMs() {
     dp3::common::VdsMaker::create(ms_.tableName(), vds_name, cluster_desc_, "",
                                   false);
   }
+  addToMS(chunk_name_);
 }
 
 void MSWriter::updateInfo(const DPInfo& info_in) {

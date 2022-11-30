@@ -205,7 +205,13 @@ bool MSUpdater::process(const DPBuffer& buf) {
   return true;
 }
 
-void MSUpdater::finish() {}
+void MSUpdater::finish() {
+  addToMS(itsMSName);
+  if (itsWriteHistory) {
+    MSWriter::WriteHistory(itsMS, itsParset);
+  }
+  if (getNextStep()) getNextStep()->finish();
+}
 
 common::Fields MSUpdater::getRequiredFields() const {
   common::Fields fields;
@@ -292,13 +298,6 @@ Specify a name in the parset for "msout".)");
   MSWriter::UpdateBeam(itsMS, itsDataColName, info());
   // Subsequent steps have to set again if writes need to be done.
   info().clearMetaChanged();
-}
-
-void MSUpdater::addToMS(const string&) {
-  getPrevStep()->addToMS(itsMSName);
-  if (itsWriteHistory) {
-    MSWriter::WriteHistory(itsMS, itsParset);
-  }
 }
 
 void MSUpdater::show(std::ostream& os) const {

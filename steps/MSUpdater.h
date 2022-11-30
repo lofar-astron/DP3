@@ -38,23 +38,19 @@ class MSUpdater : public OutputStep {
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
-
-  /// Add some data to the MeasurementSet written/updated.
-  /// Calls addToMS from the previous step, with the current output msname.
-  virtual void addToMS(const string&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Tests if an update of the buffer described in info to the MS msName
   /// is possible. When throwError is true, it will throw an error with a
