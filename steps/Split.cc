@@ -30,8 +30,7 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
              const string& prefix)
     : name_(prefix),
       replace_parameters_(parset.getStringVector(prefix + "replaceparms")),
-      sub_steps_(),
-      added_to_ms_(false) {
+      sub_steps_() {
   // For each of the parameters, the values for each substep
   std::vector<std::vector<string>> replace_values;
   replace_values.reserve(replace_parameters_.size());
@@ -130,23 +129,6 @@ void Split::finish() {
   // Let the next steps finish.
   for (std::shared_ptr<Step>& step : sub_steps_) {
     step->finish();
-  }
-}
-
-void Split::addToMS(const string& ms_name) {
-  if (added_to_ms_) {
-    getPrevStep()->addToMS(ms_name);
-  } else {
-    added_to_ms_ = true;
-    for (std::shared_ptr<Step>& sub_step : sub_steps_) {
-      std::shared_ptr<Step> step = sub_step;
-      std::shared_ptr<Step> last_step;
-      while (step) {
-        last_step = step;
-        step = step->getNextStep();
-      }
-      last_step->addToMS(ms_name);
-    }
   }
 }
 

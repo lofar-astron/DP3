@@ -475,7 +475,7 @@ void StationAdder::finish() {
 }
 
 void StationAdder::addToMS(const string& msName) {
-  getPrevStep()->addToMS(msName);
+  Step::addToMS(msName);
   // Add the new stations to the ANTENNA subtable.
   Table antTab(msName + "/ANTENNA", Table::Update);
   ScalarColumn<casacore::String> nameCol(antTab, "NAME");

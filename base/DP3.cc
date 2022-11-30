@@ -405,11 +405,6 @@ void DP3::Execute(const string& parsetName, int argc, char* argv[]) {
   // Finish the processing.
   DPLOG_INFO_STR("Finishing processing ...");
   firstStep->finish();
-  // Give all steps the option to add something to the MS written.
-  // It starts with the last step to get the name of the output MS,
-  // but each step must first call its previous step before
-  // it adds something itself.
-  lastStep->addToMS("");
 
   // Show the counts where needed.
   if (showcounts) {

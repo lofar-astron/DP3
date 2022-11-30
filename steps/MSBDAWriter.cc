@@ -145,10 +145,9 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
   return true;
 }
 
-void MSBDAWriter::finish() {}
-
-void MSBDAWriter::addToMS(const std::string&) {
-  getPrevStep()->addToMS(out_name_);
+void MSBDAWriter::finish() {
+  addToMS(out_name_);
+  if (getNextStep()) getNextStep()->finish();
 }
 
 void MSBDAWriter::show(std::ostream& os) const {

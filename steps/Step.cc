@@ -29,7 +29,7 @@ const DPInfo& Step::setInfo(const DPInfo& info) {
 
 void Step::updateInfo(const DPInfo& infoIn) { info() = infoIn; }
 
-void Step::addToMS(const string& msName) {
+void Step::addToMS(const std::string& msName) {
   if (itsPrevStep) itsPrevStep->addToMS(msName);
 }
 

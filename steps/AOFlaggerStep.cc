@@ -255,7 +255,7 @@ void AOFlaggerStep::addToMS(const string& msName) {
     quality_timer_.stop();
   }
   total_timer_.stop();
-  getPrevStep()->addToMS(msName);
+  Step::addToMS(msName);
 }
 
 void AOFlaggerStep::flag(unsigned int rightOverlap) {

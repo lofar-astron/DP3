@@ -72,10 +72,6 @@ class MSWriter : public OutputStep {
   /// Show the step parameters.
   void show(std::ostream&) const override;
 
-  /// Add some data to the MeasurementSet written/updated.
-  /// Calls addToMS from the previous step, with the current output msname.
-  void addToMS(const string&) override;
-
   /// Update the general info.
   void updateInfo(const base::DPInfo&) override;
 
@@ -181,8 +177,12 @@ class MSWriter : public OutputStep {
     out_col.putColumn(in_col.getColumn());
   }
 
-  string name_;
-  string out_name_;
+  /// Name of the step
+  std::string name_;
+  /// Requested filename of the output ms (before adding chunk number)
+  std::string out_name_;
+  /// The filename of the currently being written chunk
+  std::string chunk_name_;
   base::DPBuffer internal_buffer_;
   casacore::Table ms_;
   common::ParameterSet parset_;  ///< parset for writing history

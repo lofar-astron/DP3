@@ -40,7 +40,8 @@ namespace steps {
 ///  <li> 'finish' finishes the processing which could mean that 'process'
 ///       of the next step has to be called several times. When done,
 ///       it should call 'finish' of the next step.
-///  <li> 'addToMS' is called after 'finish'. It gives a step the opportunity
+///  <li> 'addToMS' is called in the 'finish' step of tasks that write
+///       or update a measurement set. It gives a step the opportunity
 ///       to add some data to the MS written/updated. It is, for example,
 ///       used by AOFlagger to write its statistics.
 ///  <li> 'showCounts' can be used to show possible counts of flags, etc.
@@ -106,10 +107,6 @@ class Step {
   /// Get access to the info.
   const base::DPInfo& getInfo() const { return itsInfo; }
 
-  /// Add some data to the MeasurementSet written/updated.
-  /// The default implementation only calls addToMS from the previous step
-  virtual void addToMS(const std::string& msName);
-
   /// Show the step parameters.
   virtual void show(std::ostream&) const = 0;
 
@@ -148,6 +145,10 @@ class Step {
   /// Update the general info (called by setInfo).
   /// The default implementation copies the info.
   virtual void updateInfo(const base::DPInfo&);
+
+  /// Add some data to the MeasurementSet written/updated.
+  /// The default implementation only calls addToMS from the previous step
+  virtual void addToMS(const std::string& msName);
 
  private:
   Step::ShPtr itsNextStep;
