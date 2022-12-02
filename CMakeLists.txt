@@ -168,9 +168,13 @@ endif()
 
 # Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
+set(BOOST_COMPONENTS "filesystem;program_options;system")
+if(BUILD_TESTING)
+  list(APPEND BOOST_COMPONENTS "unit_test_framework")
+endif()
 find_package(
   Boost
-  COMPONENTS filesystem program_options system unit_test_framework
+  COMPONENTS ${BOOST_COMPONENTS}
   REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -520,8 +524,11 @@ if(LIBDIRAC_FOUND)
 endif()
 
 # Perform the BLAS check from aocommon
-include("${CMAKE_SOURCE_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
-check_blas(LIBRARIES ${DP3_LIBRARIES})
+option(CHECK_BLAS "Perform validity checks on the BLAS library" On)
+if(CHECK_BLAS)
+  include("${CMAKE_SOURCE_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
+  check_blas(LIBRARIES ${DP3_LIBRARIES})
+endif()
 
 add_library(Aocommon INTERFACE)
 target_include_directories(

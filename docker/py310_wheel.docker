@@ -1,0 +1,49 @@
+# Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+FROM quay.io/casacore/casacore:master_wheel310
+
+ENV AOFLAGGER_VERSION 3.2.0
+ENV EVERYBEAM_VERSION 0.4.0
+ENV HDF5_VERSION 1.12.2
+ENV FFTW_VERSION 3.3.8
+ENV LUA_VERSION 5.3.6
+
+COPY docker/install_boost.sh /
+RUN bash /install_boost.sh
+
+COPY docker/install_fftw.sh /
+RUN bash /install_fftw.sh
+
+COPY docker/install_hdf5.sh /
+RUN bash /install_hdf5.sh
+
+COPY docker/install_lua.sh /
+RUN bash /install_lua.sh
+
+# Create fake libpython to stop the linker from complaining. The wheel should find the user's libpython at runtime.
+RUN touch /usr/lib64/libpython${PYMAJOR}.${PYMINOR}${PYUNICODE}.so
+
+# EveryBeam uses FFTW, HDF5
+COPY docker/install_everybeam.sh /
+RUN bash /install_everybeam.sh
+
+# AOFlagger uses FFTW, HDF5, LUA.
+COPY docker/install_aoflagger.sh /
+RUN bash /install_aoflagger.sh
+
+ADD . /dp3
+WORKDIR /dp3
+
+# Ensure DP3 uses the correct Python version.
+RUN sed -i -z "s=\(find_package(\n *Python3\)=\1 ${PYMAJOR}.${PYMINOR} EXACT=" CMakeLists.txt
+RUN sed -i "s=find_package(PythonInterp 3 REQUIRED)=find_package(PythonInterp ${PYMAJOR}.${PYMINOR} EXACT REQUIRED)=" CMakeLists.txt
+
+# Wheels should not actually link to libpython, since they find the user's python at runtime.
+# So prevent DP3 to even find libpython (which is not even included in the anylinux images)
+RUN sed -i 's=\(COMPONENTS Interpreter\) Development=\1=' CMakeLists.txt
+RUN sed -i '/find_package(PythonLibs 3 REQUIRED)/d' CMakeLists.txt
+
+RUN /opt/python/${TARGET}/bin/python ./setup.py build_ext -j${THREADS}
+RUN /opt/python/${TARGET}/bin/python ./setup.py bdist_wheel -d .
+RUN auditwheel repair --plat manylinux2014_x86_64 -w /output *.whl
