@@ -2,26 +2,30 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Create a pseudo install directory 'dp3' in the build directory that
-# mimics the ${PYTHON_INSTALL_DIR}$ such that 'import dp3' can be used
+# mimics the ${PYTHON_INSTALL_DIR} such that 'import dp3' can be used
 # in the build environment
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/dp3")
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/dp3/steps")
+
+set(PSEUDO_INSTALL_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dp3)
+
+file(MAKE_DIRECTORY "${PSEUDO_INSTALL_DIRECTORY}")
+file(MAKE_DIRECTORY "${PSEUDO_INSTALL_DIRECTORY}/steps")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/__init__.py"
-               "${CMAKE_CURRENT_BINARY_DIR}/dp3/__init__.py" COPYONLY)
+               "${PSEUDO_INSTALL_DIRECTORY}/__init__.py" COPYONLY)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/steps/__init__.py"
-               "${CMAKE_CURRENT_BINARY_DIR}/dp3/steps/__init__.py" COPYONLY)
+               "${PSEUDO_INSTALL_DIRECTORY}/steps/__init__.py" COPYONLY)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/steps/queue.py"
-               "${CMAKE_CURRENT_BINARY_DIR}/dp3/steps/queue.py" COPYONLY)
+               "${PSEUDO_INSTALL_DIRECTORY}/steps/queue.py" COPYONLY)
 
 pybind11_add_module(pydp3 MODULE pydp3.cc pydpinfo.cc)
-target_link_libraries(pydp3 PRIVATE LIBDP3)
-# Output the library/module in the pseudo install directory 'dp3'
-set_target_properties(pydp3 PROPERTIES LIBRARY_OUTPUT_DIRECTORY dp3)
-
 pybind11_add_module(parameterset MODULE parameterset.cc)
-target_link_libraries(parameterset PRIVATE LIBDP3)
-# Output the library/module in the pseudo install directory 'dp3'
-set_target_properties(parameterset PROPERTIES LIBRARY_OUTPUT_DIRECTORY dp3)
+
+foreach(PYLIB pydp3 parameterset)
+  target_link_libraries(${PYLIB} PRIVATE LIBDP3)
+
+  # Output the library/module in the pseudo install directory.
+  set_target_properties(${PYLIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                            ${PSEUDO_INSTALL_DIRECTORY})
+endforeach()
 
 install(TARGETS parameterset pydp3 DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
 install(FILES __init__.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
