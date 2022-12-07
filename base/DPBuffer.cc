@@ -26,6 +26,7 @@ DPBuffer::DPBuffer(const DPBuffer& that) { operator=(that); }
 DPBuffer::DPBuffer(DPBuffer&& that)
     : itsTime(that.itsTime),
       itsExposure(that.itsExposure),
+      itsSolution(that.itsSolution),
       itsRowNrs(std::move(that.itsRowNrs)),
       itsData(std::move(that.itsData)),
       itsFlags(std::move(that.itsFlags)),
@@ -48,6 +49,7 @@ DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
   if (this != &that) {
     itsTime = that.itsTime;
     itsExposure = that.itsExposure;
+    itsSolution = that.itsSolution;
     itsRowNrs.reference(that.itsRowNrs);
     itsData.reference(that.itsData);
     itsFlags.reference(that.itsFlags);
@@ -62,6 +64,8 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
   if (this != &that) {
     itsTime = that.itsTime;
     itsExposure = that.itsExposure;
+    itsSolution = that.itsSolution;
+
     // Casacore < 3.4.0 does not support move semantics for casacore::Array.
     // The copy assignment operator for casacore::Array then creates copies.
 #ifdef USE_CASACORE_MOVE_SEMANTICS
@@ -167,6 +171,10 @@ void DPBuffer::mergeFullResFlags(casacore::Cube<bool>& fullResFlags,
     // Set pointer to next baseline.
     fullResPtr += (navgtime - 1) * orignchan;
   }
+}
+const std::vector<std::vector<std::complex<double>>>& DPBuffer::GetSolution()
+    const {
+  return itsSolution;
 }
 
 }  // namespace base

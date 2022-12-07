@@ -47,7 +47,8 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
     : itsName(prefix),
       itsParmDBName(parset.isDefined(prefix + "parmdb")
                         ? parset.getString(prefix + "parmdb")
-                        : parset.getString(defaultPrefix + "parmdb")),
+                        : parset.getString(defaultPrefix + "parmdb", "")),
+      itsParmDBOnDisk(!itsParmDBName.empty()),
       itsUseH5Parm(itsParmDBName.find(".h5") != std::string::npos),
       itsSolSetName(parset.isDefined(prefix + "solset")
                         ? parset.getString(prefix + "solset")
@@ -66,9 +67,6 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       itsTimeInterval(-1),
       itsLastTime(-1),
       itsUseAP(false) {
-  if (itsParmDBName.empty())
-    throw std::runtime_error("A parmdb or h5parm should be provided");
-
   if (substep) {
     itsInvert = false;
   } else {
@@ -95,12 +93,15 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
         (parset.isDefined(prefix + "direction")
              ? parset.getString(prefix + "direction")
              : parset.getString(defaultPrefix + "direction", predictDirection));
-    itsH5Parm = schaapcommon::h5parm::H5Parm(itsParmDBName, false, false,
-                                             itsSolSetName);
 
-    itsSolTabName = (parset.isDefined(prefix + "correction")
-                         ? parset.getString(prefix + "correction")
-                         : parset.getString(defaultPrefix + "correction"));
+    if (itsParmDBOnDisk) {
+      itsH5Parm = schaapcommon::h5parm::H5Parm(itsParmDBName, false, false,
+                                               itsSolSetName);
+      // The correction only makes sense if the parmdb is being read from disk.
+      itsSolTabName = (parset.isDefined(prefix + "correction")
+                           ? parset.getString(prefix + "correction")
+                           : parset.getString(defaultPrefix + "correction"));
+    }
     const std::string missingAntennaBehaviorStr =
         (parset.isDefined(prefix + "missingantennabehavior")
              ? parset.getString(prefix + "missingantennabehavior")
@@ -108,39 +109,24 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
                                 "error"));
     itsMissingAntennaBehavior = JonesParameters::StringToMissingAntennaBehavior(
         missingAntennaBehaviorStr);
-    if (itsSolTabName == "fulljones") {
+
+    if (itsParmDBOnDisk) {
       std::vector<string> solTabs = parset.getStringVector(
           prefix + "soltab", std::vector<string>{"amplitude000", "phase000"});
-      if (solTabs.size() != 2)
-        throw std::runtime_error(
-            "The soltab parameter requires two soltabs for fulljones "
-            "correction (amplitude and phase)");
-      itsSolTab = itsH5Parm.GetSolTab(solTabs[0]);
-      itsSolTab2 = itsH5Parm.GetSolTab(solTabs[1]);
-      itsSolTabName =
-          solTabs[0] + ", " +
-          solTabs[1];  // this is only so that show() shows these tables
-      itsCorrectType = CorrectType::FULLJONES;
-    } else {
-      itsSolTab = itsH5Parm.GetSolTab(itsSolTabName);
-      itsCorrectType =
-          JonesParameters::StringToCorrectType(itsSolTab.GetType());
-    }
-    if (itsCorrectType == CorrectType::PHASE && nPol("") == 1) {
-      itsCorrectType = CorrectType::SCALARPHASE;
-    }
-    if (itsCorrectType == CorrectType::AMPLITUDE && nPol("") == 1) {
-      itsCorrectType = CorrectType::SCALARAMPLITUDE;
-    }
-    itsDirection = 0;
-    if (directionStr == "") {
-      if (itsSolTab.HasAxis("dir") && itsSolTab.GetAxis("dir").size != 1)
-        throw std::runtime_error(
-            "If the soltab contains multiple directions, the direction to be "
-            "applied in applycal should be specified");
-      // If there is only one direction, silently assume it is the right one
-    } else if (itsSolTab.HasAxis("dir") && itsSolTab.GetAxis("dir").size > 1) {
-      itsDirection = itsSolTab.GetDirIndex(directionStr);
+      setCorrectType(solTabs);
+
+      itsDirection = 0;
+      if (directionStr.empty()) {
+        if (itsSolTab.HasAxis("dir") && itsSolTab.GetAxis("dir").size != 1)
+          throw std::runtime_error(
+              "If the soltab contains multiple directions, the direction to "
+              "be "
+              "applied in applycal should be specified");
+        // If there is only one direction, silently assume it is the right one
+      } else if (itsSolTab.HasAxis("dir") &&
+                 itsSolTab.GetAxis("dir").size > 1) {
+        itsDirection = itsSolTab.GetDirIndex(directionStr);
+      }
     }
   } else {
     itsMissingAntennaBehavior = JonesParameters::MissingAntennaBehavior::kError;
@@ -163,6 +149,30 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
   }
 }
 
+void OneApplyCal::setCorrectType(std::vector<std::string>& solTabs) {
+  if (itsSolTabName == "fulljones") {
+    if (solTabs.size() != 2)
+      throw std::runtime_error(
+          "The soltab parameter requires two soltabs for fulljones "
+          "correction (amplitude and phase)");
+    itsSolTab = itsH5Parm.GetSolTab(solTabs[0]);
+    itsSolTab2 = itsH5Parm.GetSolTab(solTabs[1]);
+    itsSolTabName =
+        solTabs[0] + ", " +
+        solTabs[1];  // this is only so that show() shows these tables
+    itsCorrectType = CorrectType::FULLJONES;
+  } else {
+    itsSolTab = itsH5Parm.GetSolTab(itsSolTabName);
+    itsCorrectType = JonesParameters::StringToCorrectType(itsSolTab.GetType());
+  }
+  if (itsCorrectType == CorrectType::PHASE && nPol("") == 1) {
+    itsCorrectType = CorrectType::SCALARPHASE;
+  }
+  if (itsCorrectType == CorrectType::AMPLITUDE && nPol("") == 1) {
+    itsCorrectType = CorrectType::SCALARAMPLITUDE;
+  }
+}
+
 OneApplyCal::~OneApplyCal() {}
 
 void OneApplyCal::updateInfo(const DPInfo& infoIn) {
@@ -173,118 +183,121 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
   if (itsNCorr != 4)
     throw std::runtime_error("Applycal only works with 4 correlations");
 
-  if (itsUseH5Parm) {
-    itsTimeSlotsPerParmUpdate = info().ntime();
-  } else {  // Use ParmDB
-    itsParmDB = std::make_shared<parmdb::ParmFacade>(itsParmDBName);
-  }
-
-  // Detect if full jones solutions are present
-  if (!itsUseH5Parm &&
-      (itsCorrectType == CorrectType::GAIN ||
-       itsCorrectType == CorrectType::FULLJONES) &&
-      (itsParmDB->getNames("Gain:0:1:*").size() +
-           itsParmDB->getDefNames("Gain:0:1:*").size() >
-       0)) {
-    itsCorrectType = CorrectType::FULLJONES;
-  }
-
-  // Detect if solutions are saved as Real/Imag or Ampl/Phase
-  if (itsCorrectType == CorrectType::GAIN ||
-      itsCorrectType == CorrectType::FULLJONES) {
+  if (itsParmDBOnDisk) {
     if (itsUseH5Parm) {
-      // H5Parm uses amplitude / phase by definition
-      itsUseAP = true;
-    } else {
-      // Determine from values present in parmdb what to use
-      if (!itsParmDB->getNames("Gain:0:0:Real*").empty()) {
-        // Values with :Real present
-        itsUseAP = false;
-      } else if (!itsParmDB->getNames("Gain:0:0:Ampl*").empty() ||
-                 !itsParmDB->getNames("Phase:0:0:Ampl*").empty()) {
-        // Values with :Ampl present
-        itsUseAP = true;
-      } else if (!itsParmDB->getDefNames("Gain:0:0:Real*").empty()) {
-        // Defvalues with :Real present
-        itsUseAP = false;
-      } else if (!itsParmDB->getDefNames("Gain:0:0:Ampl*").empty() ||
-                 !itsParmDB->getDefNames("Gain:0:0:Phase*").empty()) {
-        // Defvalues with :Ampl present
+      itsTimeSlotsPerParmUpdate = info().ntime();
+    } else {  // Use ParmDB
+      itsParmDB = std::make_shared<parmdb::ParmFacade>(itsParmDBName);
+    }
+
+    // Detect if full jones solutions are present
+    if (!itsUseH5Parm &&
+        (itsCorrectType == CorrectType::GAIN ||
+         itsCorrectType == CorrectType::FULLJONES) &&
+        (itsParmDB->getNames("Gain:0:1:*").size() +
+             itsParmDB->getDefNames("Gain:0:1:*").size() >
+         0)) {
+      itsCorrectType = CorrectType::FULLJONES;
+    }
+
+    // Detect if solutions are saved as Real/Imag or Ampl/Phase
+    if (itsCorrectType == CorrectType::GAIN ||
+        itsCorrectType == CorrectType::FULLJONES) {
+      if (itsUseH5Parm) {
+        // H5Parm uses amplitude / phase by definition
         itsUseAP = true;
       } else {
-        throw std::runtime_error("No gains found in parmdb " + itsParmDBName);
+        // Determine from values present in parmdb what to use
+        if (!itsParmDB->getNames("Gain:0:0:Real*").empty()) {
+          // Values with :Real present
+          itsUseAP = false;
+        } else if (!itsParmDB->getNames("Gain:0:0:Ampl*").empty() ||
+                   !itsParmDB->getNames("Phase:0:0:Ampl*").empty()) {
+          // Values with :Ampl present
+          itsUseAP = true;
+        } else if (!itsParmDB->getDefNames("Gain:0:0:Real*").empty()) {
+          // Defvalues with :Real present
+          itsUseAP = false;
+        } else if (!itsParmDB->getDefNames("Gain:0:0:Ampl*").empty() ||
+                   !itsParmDB->getDefNames("Gain:0:0:Phase*").empty()) {
+          // Defvalues with :Ampl present
+          itsUseAP = true;
+        } else {
+          throw std::runtime_error("No gains found in parmdb " + itsParmDBName);
+        }
       }
     }
-  }
 
-  if (itsCorrectType == CorrectType::GAIN) {
-    if (itsUseAP) {
-      itsParmExprs.push_back("Gain:0:0:Ampl");
-      itsParmExprs.push_back("Gain:0:0:Phase");
-      itsParmExprs.push_back("Gain:1:1:Ampl");
-      itsParmExprs.push_back("Gain:1:1:Phase");
+    if (itsCorrectType == CorrectType::GAIN) {
+      if (itsUseAP) {
+        itsParmExprs.push_back("Gain:0:0:Ampl");
+        itsParmExprs.push_back("Gain:0:0:Phase");
+        itsParmExprs.push_back("Gain:1:1:Ampl");
+        itsParmExprs.push_back("Gain:1:1:Phase");
+      } else {
+        itsParmExprs.push_back("Gain:0:0:Real");
+        itsParmExprs.push_back("Gain:0:0:Imag");
+        itsParmExprs.push_back("Gain:1:1:Real");
+        itsParmExprs.push_back("Gain:1:1:Imag");
+      }
+    } else if (itsCorrectType == CorrectType::FULLJONES) {
+      if (itsUseAP) {
+        itsParmExprs.push_back("Gain:0:0:Ampl");
+        itsParmExprs.push_back("Gain:0:0:Phase");
+        itsParmExprs.push_back("Gain:0:1:Ampl");
+        itsParmExprs.push_back("Gain:0:1:Phase");
+        itsParmExprs.push_back("Gain:1:0:Ampl");
+        itsParmExprs.push_back("Gain:1:0:Phase");
+        itsParmExprs.push_back("Gain:1:1:Ampl");
+        itsParmExprs.push_back("Gain:1:1:Phase");
+      } else {
+        itsParmExprs.push_back("Gain:0:0:Real");
+        itsParmExprs.push_back("Gain:0:0:Imag");
+        itsParmExprs.push_back("Gain:0:1:Real");
+        itsParmExprs.push_back("Gain:0:1:Imag");
+        itsParmExprs.push_back("Gain:1:0:Real");
+        itsParmExprs.push_back("Gain:1:0:Imag");
+        itsParmExprs.push_back("Gain:1:1:Real");
+        itsParmExprs.push_back("Gain:1:1:Imag");
+      }
+    } else if (itsCorrectType == CorrectType::TEC) {
+      if (nPol("TEC") == 1) {
+        itsParmExprs.push_back("TEC");
+      } else {
+        itsParmExprs.push_back("TEC:0");
+        itsParmExprs.push_back("TEC:1");
+      }
+    } else if (itsCorrectType == CorrectType::CLOCK) {
+      if (nPol("Clock") == 1) {
+        itsParmExprs.push_back("Clock");
+      } else {
+        itsParmExprs.push_back("Clock:0");
+        itsParmExprs.push_back("Clock:1");
+      }
+    } else if (itsCorrectType == CorrectType::ROTATIONANGLE) {
+      itsParmExprs.push_back("{Common,}RotationAngle");
+    } else if (itsCorrectType == CorrectType::SCALARPHASE) {
+      itsParmExprs.push_back("{Common,}ScalarPhase");
+    } else if (itsCorrectType == CorrectType::ROTATIONMEASURE) {
+      itsParmExprs.push_back("RotationMeasure");
+    } else if (itsCorrectType == CorrectType::SCALARAMPLITUDE) {
+      itsParmExprs.push_back("{Common,}ScalarAmplitude");
+    } else if (itsCorrectType == CorrectType::PHASE) {
+      if (!itsUseH5Parm)
+        throw std::runtime_error("A H5Parm is required for phase correction");
+      itsParmExprs.push_back("Phase:0");
+      itsParmExprs.push_back("Phase:1");
+    } else if (itsCorrectType == CorrectType::AMPLITUDE) {
+      if (!itsUseH5Parm)
+        throw std::runtime_error(
+            "A H5Parm is required for amplitude correction");
+      itsParmExprs.push_back("Amplitude:0");
+      itsParmExprs.push_back("Amplitude:1");
     } else {
-      itsParmExprs.push_back("Gain:0:0:Real");
-      itsParmExprs.push_back("Gain:0:0:Imag");
-      itsParmExprs.push_back("Gain:1:1:Real");
-      itsParmExprs.push_back("Gain:1:1:Imag");
+      throw std::runtime_error(
+          "Correction type " +
+          JonesParameters::CorrectTypeToString(itsCorrectType) + " is unknown");
     }
-  } else if (itsCorrectType == CorrectType::FULLJONES) {
-    if (itsUseAP) {
-      itsParmExprs.push_back("Gain:0:0:Ampl");
-      itsParmExprs.push_back("Gain:0:0:Phase");
-      itsParmExprs.push_back("Gain:0:1:Ampl");
-      itsParmExprs.push_back("Gain:0:1:Phase");
-      itsParmExprs.push_back("Gain:1:0:Ampl");
-      itsParmExprs.push_back("Gain:1:0:Phase");
-      itsParmExprs.push_back("Gain:1:1:Ampl");
-      itsParmExprs.push_back("Gain:1:1:Phase");
-    } else {
-      itsParmExprs.push_back("Gain:0:0:Real");
-      itsParmExprs.push_back("Gain:0:0:Imag");
-      itsParmExprs.push_back("Gain:0:1:Real");
-      itsParmExprs.push_back("Gain:0:1:Imag");
-      itsParmExprs.push_back("Gain:1:0:Real");
-      itsParmExprs.push_back("Gain:1:0:Imag");
-      itsParmExprs.push_back("Gain:1:1:Real");
-      itsParmExprs.push_back("Gain:1:1:Imag");
-    }
-  } else if (itsCorrectType == CorrectType::TEC) {
-    if (nPol("TEC") == 1) {
-      itsParmExprs.push_back("TEC");
-    } else {
-      itsParmExprs.push_back("TEC:0");
-      itsParmExprs.push_back("TEC:1");
-    }
-  } else if (itsCorrectType == CorrectType::CLOCK) {
-    if (nPol("Clock") == 1) {
-      itsParmExprs.push_back("Clock");
-    } else {
-      itsParmExprs.push_back("Clock:0");
-      itsParmExprs.push_back("Clock:1");
-    }
-  } else if (itsCorrectType == CorrectType::ROTATIONANGLE) {
-    itsParmExprs.push_back("{Common,}RotationAngle");
-  } else if (itsCorrectType == CorrectType::SCALARPHASE) {
-    itsParmExprs.push_back("{Common,}ScalarPhase");
-  } else if (itsCorrectType == CorrectType::ROTATIONMEASURE) {
-    itsParmExprs.push_back("RotationMeasure");
-  } else if (itsCorrectType == CorrectType::SCALARAMPLITUDE) {
-    itsParmExprs.push_back("{Common,}ScalarAmplitude");
-  } else if (itsCorrectType == CorrectType::PHASE) {
-    if (!itsUseH5Parm)
-      throw std::runtime_error("A H5Parm is required for phase correction");
-    itsParmExprs.push_back("Phase:0");
-    itsParmExprs.push_back("Phase:1");
-  } else if (itsCorrectType == CorrectType::AMPLITUDE) {
-    if (!itsUseH5Parm)
-      throw std::runtime_error("A H5Parm is required for amplitude correction");
-    itsParmExprs.push_back("Amplitude:0");
-    itsParmExprs.push_back("Amplitude:1");
-  } else {
-    throw std::runtime_error(
-        "Correction type " +
-        JonesParameters::CorrectTypeToString(itsCorrectType) + " is unknown");
   }
 
   itsFlagCounter.init(getInfo());
@@ -312,8 +325,11 @@ void OneApplyCal::show(std::ostream& os) const {
        << JonesParameters::MissingAntennaBehaviorToString(
               itsMissingAntennaBehavior)
        << '\n';
-  } else {
+  } else if (itsParmDBOnDisk) {
     os << "  Parmdb:         " << itsParmDBName << '\n';
+  } else {
+    os << "  Parm solutions read from buffer"
+       << "\n";
   }
   os << "  Correction:       "
      << JonesParameters::CorrectTypeToString(itsCorrectType) << '\n';
@@ -340,12 +356,53 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
   itsBuffer.copy(bufin);
 
   if (bufin.getTime() > itsLastTime) {
-    if (itsUseH5Parm) {
+    if (itsParmDBOnDisk && itsUseH5Parm) {
       updateParmsH5(bufin.getTime());
-    } else {
+    } else if (itsParmDBOnDisk) {
       updateParmsParmDB(bufin.getTime());
-    }
+    } else {
+      if (itsBuffer.GetSolution().size() == 0) {
+        throw std::runtime_error(
+            "No buffer stored before OneApplyCal step. Ensure a solution is "
+            "computed before this step, or specify a parmdb/h5parm file in "
+            "the applycal step.");
+      }
+      /*
+       * Read solutions from buffer instead.
+       */
+      // Make parameters complex
+      JonesParameters::CorrectType ct = itsCorrectType;
+      if (itsCorrectType == CorrectType::GAIN && !itsUseAP) {
+        ct = CorrectType::GAIN_RE_IM;
+      } else if (itsCorrectType == CorrectType::FULLJONES && !itsUseAP) {
+        ct = CorrectType::FULLJONES_RE_IM;
+      }
 
+      vector<double> times(info().ntime());
+      for (size_t t = 0; t < times.size(); ++t) {
+        // time centroids
+        times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
+      }
+
+      std::vector<std::string> ant_names;
+      for (const std::string& name : info().antennaNames()) {
+        ant_names.push_back(name);
+      }
+
+      // Validate that the data is in the correct shape
+      size_t nchan = itsBuffer.getData().shape()[1];
+      size_t n_corrs = itsBuffer.GetSolution()[0].size() / ant_names.size();
+      if (itsBuffer.GetSolution().size() != nchan ||
+          (n_corrs != 2 && n_corrs != 4)) {
+        throw std::runtime_error(
+            "The solution is not in the correct shape. Was the solution "
+            "computed on different data than it is being applied on?");
+      }
+
+      itsJonesParameters = std::make_unique<JonesParameters>(
+          info().chanFreqs(), times, ant_names, ct, itsBuffer.GetSolution(),
+          itsInvert, itsSigmaMMSE);
+    }
     itsTimeStep = 0;
   } else {
     itsTimeStep++;

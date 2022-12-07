@@ -180,6 +180,12 @@ class DPBuffer {
   static void mergeFullResFlags(casacore::Cube<bool>& fullResFlags,
                                 const casacore::Cube<bool>& flags);
 
+  void SetSolution(
+      const std::vector<std::vector<std::complex<double>>>& solution) {
+    itsSolution = solution;
+  }
+  const std::vector<std::vector<std::complex<double>>>& GetSolution() const;
+
  private:
   double itsTime;
   double itsExposure;
@@ -189,6 +195,8 @@ class DPBuffer {
   casacore::Matrix<double> itsUVW;       ///< 3,nbasel
   casacore::Cube<float> itsWeights;      ///< ncorr,nchan,nbasel
   casacore::Cube<bool> itsFullResFlags;  ///< fullres_nchan,ntimeavg,nbl
+  std::vector<std::vector<std::complex<double>>>
+      itsSolution;  ///< nchan,nant*npol
 };
 
 }  // namespace base

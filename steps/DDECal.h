@@ -157,6 +157,10 @@ class DDECal : public Step {
   /// For each directions, a multiresultstep with all times.
   std::vector<std::shared_ptr<MultiResultStep>> itsResultSteps;
 
+  /// Store the solution for later steps of processing in DPBuffer. Note: only
+  /// works for 1 direction.
+  bool itsStoreSolutionInBuffer;
+
   common::NSTimer itsTimer;
   common::NSTimer itsTimerPredict;
   common::NSTimer itsTimerSolve;

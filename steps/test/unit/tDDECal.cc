@@ -58,6 +58,7 @@ BOOST_AUTO_TEST_CASE(show_default) {
   mode (constraints):  diagonal
   algorithm:           directionsolve
   H5Parm:              tDDECal.MS/instrument.h5
+  write sol to buffer: false
   solint:              1
   nchan:               1
   directions:          [[center]]
@@ -100,6 +101,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   mode (constraints):  diagonal
   algorithm:           hybrid
   H5Parm:              tDDECal.MS/instrument.h5
+  write sol to buffer: false
   solint:              42
   nchan:               44
   directions:          [[center]]
