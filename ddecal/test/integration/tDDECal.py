@@ -15,7 +15,7 @@ sys.path.append(".")
 
 import testconfig as tcf
 from testconfig import TAQLEXE
-from utils import assert_taql, untar_ms
+from utils import assert_taql, untar_ms, get_taql_result
 
 """
 Script can be invoked in two ways:
@@ -526,6 +526,63 @@ def test_h5parm_predict(skymodel):
     assert_taql(taql_command)
 
 
+def test_oneapplycal_from_buffer():
+    skymodel = "sky.txt"
+
+    # Apply ddecal and oneapplycal sequentially
+    check_call(
+        [
+            tcf.DP3EXE,
+            "numthreads=1",
+            f"msin={MSIN}",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/{skymodel}",
+            "ddecal.h5parm=cal.h5",
+            "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
+            "msout=.",
+            "msout.datacolumn=DATA_REF_BUF",
+            "checkparset=1",
+        ]
+    )
+    check_call(
+        [
+            tcf.DP3EXE,
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msin.datacolumn=DATA_REF_BUF",
+            "steps=[applycal]",
+            "applycal.parmdb=cal.h5",
+            "applycal.steps=[phase,ampl]",
+            "applycal.phase.correction=phase000",
+            "applycal.ampl.correction=amplitude000",
+            "msout=.",
+            "msout.datacolumn=DATA_REF_BUF",
+            "checkparset=1",
+        ]
+    )
+
+    # DDECal and immediate application
+    check_call(
+        [
+            tcf.DP3EXE,
+            "numthreads=1",
+            f"msin={MSIN}",
+            "steps=[ddecal,applycal]",
+            f"ddecal.sourcedb={MSIN}/{skymodel}",
+            "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
+            "ddecal.storebuffer=True",
+            "msout=.",
+            "msout.datacolumn=DATA_NEW_BUF",
+            "applycal.parmdb=",
+            "checkparset=1",
+        ]
+    )
+
+    # echo "Check that h5parmpredict creates the same output as multiple predict steps"
+    taql_command = f"select from (select abs(gsumsqr(DATA_REF_BUF-DATA_NEW_BUF)) as diff from {MSIN}) where diff>1.e-6"
+    assert_taql(taql_command)
+
+
 def test_pre_apply():
     # make calibration solutions
     check_call(
@@ -695,7 +752,6 @@ def test_modelnextsteps(copy_data_to_model_data):
 
 
 def test_bda_constaints():
-
     import h5py  # Don't import h5py when pytest is only collecting tests.
 
     common = [

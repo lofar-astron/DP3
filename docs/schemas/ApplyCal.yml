@@ -11,7 +11,7 @@ inputs:
     default: applycal
   parmdb:
     type: string
-    doc: Path of parmdb in which the parameters are stored. This can also be an H5Parm file, in that case the filename has to end in '.h5' `.`
+    doc: Path of parmdb in which the parameters are stored. This can also be an H5Parm file, in that case the filename has to end in '.h5' `.` When this is not set, or it is set to an empty string, ApplyCal will use the buffer for a solution to use.
   solset:
     type: string?
     doc: >-

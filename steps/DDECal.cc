@@ -69,6 +69,7 @@ DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
       itsBufferedSolInts(0),
       itsNChan(itsSettings.n_channels),
       itsUVWFlagStep(parset, prefix, Step::MsType::kRegular),
+      itsStoreSolutionInBuffer(parset.getBool(prefix + "storebuffer", false)),
       itsSolver(ddecal::CreateSolver(itsSettings, parset, prefix)),
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
@@ -330,6 +331,8 @@ void DDECal::show(std::ostream& os) const {
      << "  algorithm:           "
      << ddecal::ToString(itsSettings.solver_algorithm) << '\n'
      << "  H5Parm:              " << itsSettings.h5parm_name << '\n'
+     << "  write sol to buffer: " << std::boolalpha << itsStoreSolutionInBuffer
+     << '\n'
      << "  solint:              " << itsRequestedSolInt << '\n'
      << "  nchan:               " << itsNChan << '\n'
      << "  directions:          " << itsDirections << '\n'
@@ -636,6 +639,18 @@ void DDECal::doSolve() {
     }
   }
 
+  /*
+   * Store calibration solution for later calibration application steps to use.
+   */
+  if (itsStoreSolutionInBuffer) {
+    for (base::SolutionInterval& solIntBuffer : itsSolIntBuffers) {
+      assert(itsSolIntBuffers.size() == 1);
+      std::vector<std::vector<std::complex<double>>>& solution =
+          itsSols[itsSolIntBuffers[0].NSolution()];
+
+      solIntBuffer.DataBuffers()[0].SetSolution(solution);
+    }
+  }
   itsTimer.stop();
 
   for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {

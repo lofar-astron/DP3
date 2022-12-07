@@ -99,6 +99,10 @@ class OneApplyCal : public Step {
   base::DPBuffer itsBuffer;
   std::string itsName;
   std::string itsParmDBName;
+  // itsParmDBOnDisk specifies the existence of a parmdb on disk. If this is
+  // false, it means the solutions are instead stored in the DPBuffer, which can
+  // be fetched with DPBuffer::GetSolutions.
+  bool itsParmDBOnDisk;
   bool itsUseH5Parm;
   std::string itsSolSetName;
   std::shared_ptr<parmdb::ParmFacade> itsParmDB;
@@ -134,6 +138,7 @@ class OneApplyCal : public Step {
   common::NSTimer itsTimer;
 
   static std::mutex theirHDF5Mutex;  ///< Prevent parallel access to HDF5
+  void setCorrectType(std::vector<std::string>& solTabs);
 };
 
 }  // namespace steps

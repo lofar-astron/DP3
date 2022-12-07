@@ -201,3 +201,7 @@ inputs:
     default: 10
     type: int
     doc: LBFGS solver history size. This is the memory (as a multiple of the number of parameters) used to store information pertaining to previous iterations `.`
+  storebuffer:
+    default: false
+    type: bool
+    doc: Setting this to true will store the solution of DDECal into the buffer, allowing the usage of this solution in a later step. For example, a pipeline with  DDECal -> OneApplyCal  would be able to apply solutions to the data without requiring an intermediate format to be stored to disk. Note that it currently only works for single-direction solutions.
