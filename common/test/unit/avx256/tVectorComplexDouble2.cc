@@ -194,6 +194,30 @@ BOOST_AUTO_TEST_CASE(multiply) {
   BOOST_TEST(r[1] == (std::complex<double>{-84.0, 880.0}));
 }
 
+BOOST_AUTO_TEST_CASE(multiply_vector_and_value) {
+  const aocommon::Avx256::VectorComplexDouble2 lhs{{1.0, 2.0}, {10, 11}};
+
+  const std::complex<double> rhs{4, 8};
+
+  const aocommon::Avx256::VectorComplexDouble2 r = lhs * rhs;
+  static_assert(noexcept(lhs * rhs));
+
+  BOOST_TEST(r[0] == (std::complex<double>{-12.0, 16.0}));
+  BOOST_TEST(r[1] == (std::complex<double>{-48, 124}));
+}
+
+BOOST_AUTO_TEST_CASE(multiply_value_and_vector) {
+  const std::complex<double> lhs{4, 8};
+
+  const aocommon::Avx256::VectorComplexDouble2 rhs{{1.0, 2.0}, {10, 11}};
+
+  const aocommon::Avx256::VectorComplexDouble2 r = lhs * rhs;
+  static_assert(noexcept(lhs * rhs));
+
+  BOOST_TEST(r[0] == (std::complex<double>{-12.0, 16.0}));
+  BOOST_TEST(r[1] == (std::complex<double>{-48, 124}));
+}
+
 BOOST_AUTO_TEST_CASE(equal) {
   static_assert(
       noexcept(aocommon::Avx256::VectorComplexDouble2{

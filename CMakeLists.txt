@@ -596,6 +596,7 @@ if(BUILD_TESTING)
   endif()
 
   set(TEST_FILENAMES
+      common/test/unit/avx256/tDiagonalMatrixComplexDouble2x2.cc
       common/test/unit/avx256/tVectorComplexDouble2.cc
       common/test/unit/avx256/tMatrixComplexDouble2x2.cc
       common/test/unit/avx256/tMatrixComplexFloat2x2.cc
@@ -901,7 +902,7 @@ if(BUILD_BENCHMARKS)
   FetchContent_Declare(
     nanobench
     GIT_REPOSITORY https://github.com/martinus/nanobench.git
-    GIT_TAG v4.1.0
+    GIT_TAG v4.3.7
     GIT_SHALLOW TRUE)
 
   FetchContent_MakeAvailable(nanobench)
@@ -921,4 +922,5 @@ if(BUILD_BENCHMARKS)
 
   add_benchmark(MatrixComplexDouble2x2)
   add_benchmark(MatrixComplexFloat2x2)
+  add_benchmark(VectorComplexDouble2)
 endif()

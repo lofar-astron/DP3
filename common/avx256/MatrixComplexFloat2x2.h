@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2_X_2_H
-#define AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2_X_2_H
+#ifndef AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2X2_H
+#define AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2X2_H
 
 /**
  * @file Implements a 2x2 Matrix with complex float values.
@@ -188,4 +188,4 @@ inline float Norm(MatrixComplexFloat2x2 matrix) noexcept {
 
 #endif  // defined(__AVX2__)
 
-#endif  // AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2_X_2_H
+#endif  // AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2X2_H

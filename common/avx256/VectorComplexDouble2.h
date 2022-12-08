@@ -125,14 +125,24 @@ class VectorComplexDouble2 {
 
     // lhs    | L0 Re | L0 Im | L1 Re | L1 Im |
 
-    __m256d Lv1 =
-        _mm256_shuffle_pd(lhs.data_.Value(), lhs.data_.Value(), 0b00'00);
     __m256d Rv1 =
         _mm256_shuffle_pd(lhs.data_.Value(), lhs.data_.Value(), 0b11'11);
     __m256d Rv2 =
         _mm256_shuffle_pd(rhs.data_.Value(), rhs.data_.Value(), 0b01'01);
     __m256d Rv3 = _mm256_mul_pd(Rv1, Rv2);
+    __m256d Lv1 =
+        _mm256_shuffle_pd(lhs.data_.Value(), lhs.data_.Value(), 0b00'00);
     return VectorDouble4{_mm256_fmaddsub_pd(Lv1, rhs.data_.Value(), Rv3)};
+  }
+
+  friend VectorComplexDouble2 operator*(VectorComplexDouble2 lhs,
+                                        std::complex<double> rhs) noexcept {
+    return lhs * VectorComplexDouble2{rhs, rhs};
+  }
+
+  friend VectorComplexDouble2 operator*(std::complex<double> lhs,
+                                        VectorComplexDouble2 rhs) noexcept {
+    return rhs * lhs;
   }
 
   [[nodiscard]] friend bool operator==(VectorComplexDouble2 lhs,
