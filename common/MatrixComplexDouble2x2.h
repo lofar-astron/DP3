@@ -1,8 +1,8 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef AOCOMMON_MATRIX_COMPLEX_DOUBLE_2_X_2_H
-#define AOCOMMON_MATRIX_COMPLEX_DOUBLE_2_X_2_H
+#ifndef AOCOMMON_MATRIX_COMPLEX_DOUBLE_2X2_H
+#define AOCOMMON_MATRIX_COMPLEX_DOUBLE_2X2_H
 
 #include "common/scalar/MatrixComplexDouble2x2.h"
 #include "common/avx256/MatrixComplexDouble2x2.h"
@@ -233,6 +233,16 @@ class MatrixComplexDouble2x2 {
     return ExecuteBinaryOperator(lhs, rhs, std::multiplies{});
   }
 
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
+      MatrixComplexDouble2x2 lhs, std::complex<double> rhs) const noexcept {
+    return ExecuteBinaryOperator(lhs, rhs, std::multiplies{});
+  }
+
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
+      std::complex<double> lhs, MatrixComplexDouble2x2 rhs) const noexcept {
+    return ExecuteBinaryOperator(lhs, rhs, std::multiplies{});
+  }
+
   [[nodiscard]] MatrixComplexDouble2x2 Transpose() const noexcept {
     return ExecuteCall([](auto object) -> MatrixComplexDouble2x2 {
       return object.Transpose();
@@ -272,8 +282,8 @@ class MatrixComplexDouble2x2 {
   // The are resembling operations but use names not conforming to Google
   // Style or use named operations instead of operator overloading.
   //
-  [[deprecated("Use HermitianTranspose")]] [[nodiscard]] MatrixComplexDouble2x2
-  HermTranspose() const noexcept {
+  // RAP-133 enabled diagnostic [[deprecated("Use HermitianTranspose")]]
+  [[nodiscard]] MatrixComplexDouble2x2 HermTranspose() const noexcept {
     return HermitianTranspose();
   }
 
@@ -284,11 +294,10 @@ class MatrixComplexDouble2x2 {
   };
 };
 
-[[deprecated(
-    "Use "
-    "MatrixComplexDouble2x2::"
-    "HermitianTranspose")]] [[nodiscard]] inline MatrixComplexDouble2x2
-HermTranspose(MatrixComplexDouble2x2 matrix) noexcept {
+// RAP-133 enabled diagnostic
+// [[deprecated("Use MatrixComplexDouble2x2::HermitianTranspose")]]
+[[nodiscard]] inline MatrixComplexDouble2x2 HermTranspose(
+    MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
 }
 
@@ -296,4 +305,4 @@ HermTranspose(MatrixComplexDouble2x2 matrix) noexcept {
 
 }  // namespace aocommon
 
-#endif  // AOCOMMON_MATRIX_COMPLEX_DOUBLE_2_X_2_H
+#endif  // AOCOMMON_MATRIX_COMPLEX_DOUBLE_2X2_H

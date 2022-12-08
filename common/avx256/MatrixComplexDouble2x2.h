@@ -1,8 +1,8 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2_X_2_H
-#define AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2_X_2_H
+#ifndef AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2X2_H
+#define AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2X2_H
 
 /**
  * @file Implements a 2x2 Matrix with complex double values.
@@ -16,6 +16,7 @@
  */
 
 #include "common/avx256/VectorComplexDouble2.h"
+#include "common/avx256/DiagonalMatrixComplexDouble2x2.h"
 
 #include <aocommon/matrix2x2.h>
 
@@ -205,6 +206,28 @@ class MatrixComplexDouble2x2 {
     return std::array<VectorComplexDouble2, 2>{hr, lr};
   }
 
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
+      MatrixComplexDouble2x2 lhs, std::complex<double> rhs) noexcept {
+    return std::array<VectorComplexDouble2, 2>{lhs.data_[0] * rhs,
+                                               lhs.data_[1] * rhs};
+  }
+
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
+      std::complex<double> lhs, MatrixComplexDouble2x2 rhs) noexcept {
+    return rhs * lhs;
+  }
+
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
+      MatrixComplexDouble2x2 lhs, DiagonalMatrixComplexDouble2x2 rhs) noexcept {
+    return std::array<VectorComplexDouble2, 2>{lhs.data_[0] * rhs[0],
+                                               lhs.data_[1] * rhs[1]};
+  }
+
+  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
+      DiagonalMatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
+    return rhs * lhs;
+  }
+
   [[nodiscard]] friend bool operator==(MatrixComplexDouble2x2 lhs,
                                        MatrixComplexDouble2x2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
@@ -217,10 +240,17 @@ class MatrixComplexDouble2x2 {
     return output;
   }
 
+  // RAP-133 enabled diagnostic [[deprecated("Use HermitianTranspose")]]
+  [[nodiscard]] MatrixComplexDouble2x2 HermTranspose() const noexcept {
+    return HermitianTranspose();
+  }
+
  private:
   std::array<VectorComplexDouble2, 2> data_;
 };
 
+// RAP-133 enabled diagnostic
+// [[deprecated("Use MatrixComplexDouble2x2::HermitianTranspose")]]
 /// MC2x2Base compatibility wrapper.
 [[nodiscard]] inline MatrixComplexDouble2x2 HermTranspose(
     MatrixComplexDouble2x2 matrix) noexcept {
@@ -240,4 +270,4 @@ inline double Norm(MatrixComplexDouble2x2 matrix) noexcept {
 
 #endif  // defined(__AVX2__)
 
-#endif  // AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2_X_2_H
+#endif  // AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2X2_H
