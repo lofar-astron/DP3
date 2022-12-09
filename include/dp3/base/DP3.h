@@ -4,17 +4,10 @@
 #ifndef DP3_BASE_DP3_H_
 #define DP3_BASE_DP3_H_
 
-#include <dp3/steps/Step.h>
-
-#include <map>
+#include "../common/ParameterSet.h"
+#include "../steps/InputStep.h"
 
 namespace dp3 {
-namespace common {
-class ParameterSet;
-}  // namespace common
-namespace steps {
-class InputStep;
-}  // namespace steps
 namespace base {
 
 /// @brief Class to run steps like averaging and flagging on an MS
@@ -25,23 +18,10 @@ namespace base {
 
 class DP3 {
  public:
-  /// Define the function to create a step from the given parameterset.
-  using StepCreator = std::shared_ptr<steps::Step>(const common::ParameterSet&,
-                                                   const std::string& prefix);
-
-  /// Add a function creating a Step to the map.
-  static void RegisterStepCreator(const std::string&, StepCreator*);
-
-  /// Create a step object from the given parameters.
-  /// It looks up the step type in theirStepMap. If not found, it will
-  /// try to load a shared library with that name and execute the
-  /// register function in it.
-  static StepCreator* FindStepCreator(const std::string& type);
-
   /// Execute the steps defined in the parset file.
   /// Possible parameters given at the command line are taken into account.
   static void Execute(const std::string& parsetName, int argc = 0,
-                      char* argv[] = 0);
+                      char* argv[] = nullptr);
 
   /// Create a step
   /// @param type Type of the step.
@@ -88,10 +68,6 @@ class DP3 {
   static dp3::common::Fields SetChainProvidedFields(
       std::shared_ptr<steps::Step> first_step,
       dp3::common::Fields provided_fields = dp3::common::Fields());
-
- private:
-  /// The map to create a step object from its type name.
-  static std::map<std::string, StepCreator*> theirStepMap;
 };
 
 }  // namespace base
