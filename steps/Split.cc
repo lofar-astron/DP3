@@ -62,8 +62,8 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
       parsetCopy.replace(replace_parameters_[j], replace_values[j][i]);
     }
     std::shared_ptr<Step> first_step =
-        base::DP3::MakeStepsFromParset(parsetCopy, prefix, "steps", *input,
-                                       true, steps::Step::MsType::kRegular);
+        base::MakeStepsFromParset(parsetCopy, prefix, "steps", *input, true,
+                                  steps::Step::MsType::kRegular);
     if (first_step) {
       first_step->setPrevStep(this);
       sub_steps_.push_back(std::move(first_step));
@@ -74,7 +74,7 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
 common::Fields Split::getRequiredFields() const {
   common::Fields fields;
   for (const std::shared_ptr<Step>& first_step : sub_steps_) {
-    fields |= base::DP3::GetChainRequiredFields(first_step);
+    fields |= base::GetChainRequiredFields(first_step);
   }
   return fields;
 }
@@ -82,7 +82,7 @@ common::Fields Split::getRequiredFields() const {
 void Split::SetFieldsToWrite(const common::Fields& fields) {
   // Forward the provided fields to each sub-pipeline.
   for (std::shared_ptr<Step>& first_step : sub_steps_) {
-    base::DP3::SetChainProvidedFields(first_step, fields);
+    base::SetChainProvidedFields(first_step, fields);
   }
 }
 

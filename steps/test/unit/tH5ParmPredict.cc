@@ -32,7 +32,7 @@ BOOST_FIXTURE_TEST_CASE(fields, dp3::steps::test::H5ParmFixture) {
                                     {dp3::steps::test::kPredictDirection});
 
   const dp3::common::Fields predict_required =
-      dp3::base::DP3::GetChainRequiredFields(
+      dp3::base::GetChainRequiredFields(
           std::make_shared<dp3::steps::Predict>(predict));
 
   // TODO(AST-1033) Determine Predict provided fields using generic DP3

@@ -109,7 +109,7 @@ BOOST_FIXTURE_TEST_CASE(fields_applycal, dp3::steps::test::H5ParmFixture) {
   const dp3::steps::ApplyCal apply_cal(parset, "applycal.", true);
 
   const dp3::common::Fields apply_cal_required =
-      dp3::base::DP3::GetChainRequiredFields(
+      dp3::base::GetChainRequiredFields(
           std::make_shared<dp3::steps::ApplyCal>(apply_cal));
   // TODO(AST-1033) Determine ApplyCal provided fields using generic DP3
   // functions.
@@ -137,7 +137,7 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
   const dp3::steps::ApplyCal apply_cal(parset, "applycal.", true);
 
   const dp3::common::Fields apply_cal_required =
-      dp3::base::DP3::GetChainRequiredFields(
+      dp3::base::GetChainRequiredFields(
           std::make_shared<dp3::steps::ApplyCal>(apply_cal));
 
   BOOST_TEST(predict.getRequiredFields() ==

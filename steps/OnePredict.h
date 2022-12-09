@@ -54,7 +54,7 @@ class OnePredict : public ModelDataStep {
       fields |= kDataField;
     }
     if (apply_cal_step_) {
-      fields |= base::DP3::GetChainRequiredFields(apply_cal_step_);
+      fields |= base::GetChainRequiredFields(apply_cal_step_);
     }
     return fields;
   }

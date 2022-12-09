@@ -91,7 +91,7 @@ void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
 common::Fields BdaDdeCal::getRequiredFields() const {
   common::Fields fields = uvw_flagger_step_->getRequiredFields();
   for (std::shared_ptr<Step> direction_first_step : steps_) {
-    fields |= base::DP3::GetChainRequiredFields(direction_first_step);
+    fields |= base::GetChainRequiredFields(direction_first_step);
   }
   return fields;
 }

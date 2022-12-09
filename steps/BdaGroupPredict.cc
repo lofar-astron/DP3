@@ -39,7 +39,7 @@ class BdaGroupPredict::BaselineGroup {
 
   /// @return The required fields for the sub-steps in this group.
   common::Fields GetRequiredFields() const {
-    return base::DP3::GetChainRequiredFields(predict_step_);
+    return base::GetChainRequiredFields(predict_step_);
   }
 
   /// Create the predict and result step for this group

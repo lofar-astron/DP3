@@ -35,7 +35,7 @@ class H5ParmPredict : public Step {
 
   common::Fields getRequiredFields() const override {
     // Combine the result of all sub steps.
-    return base::DP3::GetChainRequiredFields(itsPredictSteps.front());
+    return base::GetChainRequiredFields(itsPredictSteps.front());
   }
 
   common::Fields getProvidedFields() const override {
