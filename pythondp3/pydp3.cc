@@ -102,7 +102,7 @@ PYBIND11_MODULE(pydp3, m) {
   py::class_<ostream_wrapper>(m, "ostream")
       .def("write", &ostream_wrapper::write);
 
-  m.def("make_step", &dp3::base::DP3::MakeSingleStep);
+  m.def("make_step", &dp3::base::MakeSingleStep);
 
   py::enum_<dp3::steps::Step::MsType>(m, "MsType")
       .value("regular", dp3::steps::Step::MsType::kRegular)

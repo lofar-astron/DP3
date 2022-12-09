@@ -139,10 +139,10 @@ static std::shared_ptr<OutputStep> MakeOutputStep(
   return step;
 }
 
-std::shared_ptr<Step> DP3::MakeSingleStep(const std::string& type,
-                                          const common::ParameterSet& parset,
-                                          const std::string& prefix,
-                                          Step::MsType inputType) {
+std::shared_ptr<Step> MakeSingleStep(const std::string& type,
+                                     const common::ParameterSet& parset,
+                                     const std::string& prefix,
+                                     Step::MsType inputType) {
   std::shared_ptr<Step> step;
   if (type == "aoflagger" || type == "aoflag") {
     step = std::make_shared<steps::AOFlaggerStep>(parset, prefix);
@@ -220,8 +220,7 @@ static std::shared_ptr<Step> MakeSingleStep(const std::string& type,
                                             const std::string& prefix,
                                             std::string& msName,
                                             Step::MsType inputType) {
-  std::shared_ptr<Step> step =
-      DP3::MakeSingleStep(type, parset, prefix, inputType);
+  std::shared_ptr<Step> step = MakeSingleStep(type, parset, prefix, inputType);
   if (step) {
     return step;
   }
@@ -242,8 +241,7 @@ static std::shared_ptr<Step> MakeSingleStep(const std::string& type,
   return step;
 }
 
-dp3::common::Fields DP3::GetChainRequiredFields(
-    std::shared_ptr<Step> first_step) {
+dp3::common::Fields GetChainRequiredFields(std::shared_ptr<Step> first_step) {
   std::shared_ptr<Step> last_step;
   for (std::shared_ptr<Step> step = first_step; step;
        step = step->getNextStep()) {
@@ -260,8 +258,8 @@ dp3::common::Fields DP3::GetChainRequiredFields(
   return overall_required_fields;
 }
 
-dp3::common::Fields DP3::SetChainProvidedFields(
-    std::shared_ptr<Step> first_step, common::Fields provided_fields) {
+dp3::common::Fields SetChainProvidedFields(std::shared_ptr<Step> first_step,
+                                           common::Fields provided_fields) {
   for (std::shared_ptr<Step> step = first_step; step;
        step = step->getNextStep()) {
     OutputStep* output_step = dynamic_cast<OutputStep*>(step.get());
@@ -275,7 +273,7 @@ dp3::common::Fields DP3::SetChainProvidedFields(
   return provided_fields;
 }
 
-void DP3::Execute(const string& parsetName, int argc, char* argv[]) {
+void Execute(const string& parsetName, int argc, char* argv[]) {
   casacore::Timer timer;
   common::NSTimer nstimer;
   nstimer.start();
@@ -305,8 +303,8 @@ void DP3::Execute(const string& parsetName, int argc, char* argv[]) {
   // Create the steps, link them together
   std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
 
-  Step::ShPtr step = firstStep;
-  Step::ShPtr lastStep;
+  std::shared_ptr<Step> step = firstStep;
+  std::shared_ptr<Step> lastStep;
   while (step) {
     step = step->getNextStep();
   }
@@ -403,8 +401,7 @@ void DP3::Execute(const string& parsetName, int argc, char* argv[]) {
   // The destructors are called automatically at this point.
 }
 
-std::shared_ptr<InputStep> DP3::MakeMainSteps(
-    const common::ParameterSet& parset) {
+std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
   std::shared_ptr<InputStep> input_step = InputStep::CreateReader(parset);
   std::shared_ptr<Step> last_step = input_step;
 
@@ -447,17 +444,18 @@ std::shared_ptr<InputStep> DP3::MakeMainSteps(
   return input_step;
 }
 
-Step::ShPtr DP3::MakeStepsFromParset(const common::ParameterSet& parset,
-                                     const std::string& prefix,
-                                     const std::string& step_names_key,
-                                     InputStep& inputStep, bool terminateChain,
-                                     Step::MsType initial_step_output) {
+std::shared_ptr<Step> MakeStepsFromParset(const common::ParameterSet& parset,
+                                          const std::string& prefix,
+                                          const std::string& step_names_key,
+                                          InputStep& inputStep,
+                                          bool terminateChain,
+                                          Step::MsType initial_step_output) {
   std::string msName = casacore::Path(inputStep.msName()).absoluteName();
   const std::vector<string> stepNames =
       parset.getStringVector(prefix + step_names_key);
 
-  Step::ShPtr firstStep;
-  Step::ShPtr lastStep;
+  std::shared_ptr<Step> firstStep;
+  std::shared_ptr<Step> lastStep;
   for (const std::string& stepName : stepNames) {
     std::string prefix(stepName + '.');
 
@@ -472,8 +470,8 @@ Step::ShPtr DP3::MakeStepsFromParset(const common::ParameterSet& parset,
 
     Step::MsType inputType =
         lastStep ? lastStep->outputs() : initial_step_output;
-    Step::ShPtr step = dp3::base::MakeSingleStep(type, &inputStep, parset,
-                                                 prefix, msName, inputType);
+    std::shared_ptr<Step> step =
+        MakeSingleStep(type, &inputStep, parset, prefix, msName, inputType);
 
     if (lastStep) {
       if (!step->accepts(lastStep->outputs())) {

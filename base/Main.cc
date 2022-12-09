@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Execute the parset file.
-    dp3::base::DP3::Execute(parsetName, argc, argv);
+    dp3::base::Execute(parsetName, argc, argv);
   } catch (std::exception& err) {
     std::cerr << "\nstd exception detected: " << err.what() << '\n';
     return 1;
