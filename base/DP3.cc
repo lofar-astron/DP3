@@ -74,9 +74,6 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace base {
 
-// Initialize the statics.
-std::map<std::string, DP3::StepCreator*> DP3::theirStepMap;
-
 /// Create an output step, either an MSWriter, MSUpdater or an MSBDAWriter
 /// If no data are modified (for example if only count was done),
 /// still an MSUpdater is created, but it will not write anything.
@@ -238,50 +235,11 @@ static std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     }
   } else if (type == "out" || type == "output" || type == "msout") {
     step = MakeOutputStep(parset, prefix, msName, inputType);
-  } else {
-    // Maybe the step is defined in a dynamic library.
-    step = DP3::FindStepCreator(type)(parset, prefix);
   }
   if (!step) {
     throw std::runtime_error("Could not create step of type '" + type + "'");
   }
   return step;
-}
-
-void DP3::RegisterStepCreator(const std::string& type, StepCreator* func) {
-  theirStepMap[type] = func;
-}
-
-DP3::StepCreator* DP3::FindStepCreator(const std::string& type) {
-  std::map<std::string, StepCreator*>::const_iterator iter =
-      theirStepMap.find(type);
-  if (iter != theirStepMap.end()) {
-    return iter->second;
-  }
-  // Try to load the step from a dynamic library with that name
-  // (in lowercase).
-  // A dot can be used to have a specific library name (so multiple
-  // steps can use the same shared library).
-  std::string libname(type);
-  boost::algorithm::to_lower(libname);
-  string::size_type pos = libname.find_first_of(".");
-  if (pos != string::npos) {
-    libname = libname.substr(0, pos);
-  }
-
-  // Try to load and initialize the dynamic library.
-  casacore::DynLib dl(libname, "libDP3_", "register_" + libname, false);
-  if (dl.getHandle()) {
-    // See if registered now.
-    iter = theirStepMap.find(type);
-    if (iter != theirStepMap.end()) {
-      return iter->second;
-    }
-  }
-
-  throw std::runtime_error(
-      "Step type " + type + " is unknown and no shared library lib" + libname +
-      " or libDP3_" + libname + " found in (DY)LD_LIBRARY_PATH");
 }
 
 dp3::common::Fields DP3::GetChainRequiredFields(

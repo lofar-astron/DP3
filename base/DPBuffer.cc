@@ -26,13 +26,13 @@ DPBuffer::DPBuffer(const DPBuffer& that) { operator=(that); }
 DPBuffer::DPBuffer(DPBuffer&& that)
     : itsTime(that.itsTime),
       itsExposure(that.itsExposure),
-      itsSolution(that.itsSolution),
       itsRowNrs(std::move(that.itsRowNrs)),
       itsData(std::move(that.itsData)),
       itsFlags(std::move(that.itsFlags)),
       itsUVW(std::move(that.itsUVW)),
       itsWeights(std::move(that.itsWeights)),
-      itsFullResFlags(std::move(that.itsFullResFlags)) {
+      itsFullResFlags(std::move(that.itsFullResFlags)),
+      itsSolution(that.itsSolution) {
 #ifndef USE_CASACORE_MOVE_SEMANTICS
   // The copy constructor for casacore::Array creates references. Since
   // moving a buffer does not have reference semantics, clear 'that'.
