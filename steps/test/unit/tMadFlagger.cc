@@ -1,10 +1,10 @@
-// tMedFlagger.cc: Test program for class MedFlagger
+// tMadFlagger.cc: Test program for class MadFlagger
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
-#include "../../MedFlagger.h"
+#include "../../MadFlagger.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
@@ -23,11 +23,11 @@
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
-using dp3::steps::MedFlagger;
+using dp3::steps::MadFlagger;
 using dp3::steps::Step;
 using std::vector;
 
-BOOST_AUTO_TEST_SUITE(medflagger)
+BOOST_AUTO_TEST_SUITE(madflagger)
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -206,8 +206,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
            bool shortbl) {
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nant, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("freqwindow", "1");
   parset.add("timewindow", "1");
@@ -216,18 +215,17 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
     parset.add("blmin", "0");
     parset.add("blmax", "145");
   }
-  Step::ShPtr step2(new MedFlagger(parset, ""));
-  Step::ShPtr step3(
-      new TestOutput(ntime, nant, nchan, ncorr, flag, false, shortbl));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto mad_flagger = std::make_shared<MadFlagger>(parset, "");
+  auto out = std::make_shared<TestOutput>(ntime, nant, nchan, ncorr, flag,
+                                          false, shortbl);
+  dp3::steps::test::Execute({in, mad_flagger, out});
 }
 
 // Test applyautocorr flagging with or without preflagged points.
 void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
            bool shortbl) {
   // Create the steps.
-  TestInput* in = new TestInput(ntime, nant, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nant, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("freqwindow", "3");
   parset.add("timewindow", "min(1,max(1,bl))");
@@ -236,33 +234,33 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
   if (shortbl) {
     parset.add("blmax", "145");
   }
-  Step::ShPtr step2(new MedFlagger(parset, ""));
-  Step::ShPtr step3(
-      new TestOutput(ntime, nant, nchan, ncorr, flag, true, shortbl));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto mad_flagger = std::make_shared<MadFlagger>(parset, "");
+  auto out = std::make_shared<TestOutput>(ntime, nant, nchan, ncorr, flag, true,
+                                          shortbl);
+  dp3::steps::test::Execute({in, mad_flagger, out});
 }
 
-BOOST_DATA_TEST_CASE(test_medflagger_1,
+BOOST_DATA_TEST_CASE(test_madflagger_1,
                      boost::unit_test::data::make({true, false}), shortbl) {
   test1(10, 2, 32, 4, false, 1, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_medflagger_2,
+BOOST_DATA_TEST_CASE(test_madflagger_2,
                      boost::unit_test::data::make({true, false}), shortbl) {
   test1(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_medflagger_3,
+BOOST_DATA_TEST_CASE(test_madflagger_3,
                      boost::unit_test::data::make({true, false}), shortbl) {
   test1(4, 2, 8, 4, false, 100, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_medflagger_4,
+BOOST_DATA_TEST_CASE(test_madflagger_4,
                      boost::unit_test::data::make({true, false}), shortbl) {
   test2(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_medflagger_5,
+BOOST_DATA_TEST_CASE(test_madflagger_5,
                      boost::unit_test::data::make({true, false}), shortbl) {
   test2(4, 2, 8, 4, false, 100, shortbl);
 }

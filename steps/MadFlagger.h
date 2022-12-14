@@ -1,4 +1,4 @@
-// MedFlagger.h: DPPP step class to flag data based on median filtering
+// MadFlagger.h: DPPP step class to flag data based on median filtering
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -6,8 +6,8 @@
 /// @brief DPPP step class to flag data based on median filtering
 /// @author Ger van Diepen
 
-#ifndef DPPP_MEDFLAGGER_H
-#define DPPP_MEDFLAGGER_H
+#ifndef DP3_STEPS_MADFLAGGER_H_
+#define DP3_STEPS_MADFLAGGER_H_
 
 #include "InputStep.h"
 
@@ -20,7 +20,8 @@ class ParameterSet;
 }
 
 namespace steps {
-/// @brief DPPP step class to flag data based on median filtering
+/// @brief DPPP step class to flag data based on Median Average Deviation
+/// (MAD) filtering
 
 /// This class is a Step class flagging data points based on the median
 /// of the absolute difference of the data and the median of the data.
@@ -56,13 +57,13 @@ namespace steps {
 /// apply the resulting flags to the crosscorrelations, possibly selected
 /// on baseline length.
 
-class MedFlagger : public Step {
+class MadFlagger : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  MedFlagger(const common::ParameterSet&, const string& prefix);
+  MadFlagger(const common::ParameterSet&, const std::string& prefix);
 
-  virtual ~MedFlagger();
+  virtual ~MadFlagger();
 
   common::Fields getRequiredFields() const override { return kDataField; }
 

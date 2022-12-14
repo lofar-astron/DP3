@@ -1,10 +1,10 @@
-// MedFlagger.cc: DPPP step class to flag data based on median filtering
+// MadFlagger.cc: DPPP step class to flag data based on median filtering
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
-#include "MedFlagger.h"
+#include "MadFlagger.h"
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
@@ -40,7 +40,8 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-MedFlagger::MedFlagger(const common::ParameterSet& parset, const string& prefix)
+MadFlagger::MadFlagger(const common::ParameterSet& parset,
+                       const std::string& prefix)
     : itsName(prefix),
       itsThresholdStr(parset.getString(prefix + "threshold", "1")),
       itsFreqWindowStr(parset.getString(prefix + "freqwindow", "1")),
@@ -57,9 +58,9 @@ MedFlagger::MedFlagger(const common::ParameterSet& parset, const string& prefix)
   itsMaxBLength = parset.getDouble(prefix + "blmax", 1e30);
 }
 
-MedFlagger::~MedFlagger() {}
+MadFlagger::~MadFlagger() {}
 
-void MedFlagger::show(std::ostream& os) const {
+void MadFlagger::show(std::ostream& os) const {
   os << "MADFlagger " << itsName << '\n';
   os << "  freqwindow:     " << itsFreqWindowStr
      << "   (max = " << itsFreqWindow << ')' << '\n';
@@ -74,7 +75,7 @@ void MedFlagger::show(std::ostream& os) const {
   os << "  blmax:          " << itsMaxBLength << " m" << '\n';
 }
 
-void MedFlagger::showCounts(std::ostream& os) const {
+void MadFlagger::showCounts(std::ostream& os) const {
   os << "\nFlags set by MADFlagger " << itsName;
   os << "\n=======================\n";
   itsFlagCounter.showBaseline(os, itsNTimes);
@@ -82,7 +83,7 @@ void MedFlagger::showCounts(std::ostream& os) const {
   itsFlagCounter.showCorrelation(os, itsNTimes);
 }
 
-void MedFlagger::showTimings(std::ostream& os, double duration) const {
+void MadFlagger::showTimings(std::ostream& os, double duration) const {
   double flagDur = itsTimer.getElapsed();
   os << "  ";
   base::FlagCounter::showPerc1(os, flagDur, duration);
@@ -99,7 +100,7 @@ void MedFlagger::showTimings(std::ostream& os, double duration) const {
   os << " of it spent in calculating medians\n";
 }
 
-void MedFlagger::updateInfo(const DPInfo& infoIn) {
+void MadFlagger::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   // Get baseline indices of autocorrelations.
   itsAutoCorrIndex = info().getAutoCorrIndex();
@@ -139,7 +140,7 @@ void MedFlagger::updateInfo(const DPInfo& infoIn) {
     }
     // If no valid left, use first one.
     if (flagCorr.empty()) {
-      DPLOG_INFO_STR("No valid correlations given in MedFlagger " + itsName +
+      DPLOG_INFO_STR("No valid correlations given in MadFlagger " + itsName +
                      "; first one will be used");
       flagCorr.push_back(0);
     }
@@ -149,7 +150,7 @@ void MedFlagger::updateInfo(const DPInfo& infoIn) {
   itsFlagCounter.init(getInfo());
 }
 
-bool MedFlagger::process(const DPBuffer& buf) {
+bool MadFlagger::process(const DPBuffer& buf) {
   itsTimer.start();
   // Accumulate in the time window.
   // The buffer is wrapped, thus oldest entries are overwritten.
@@ -189,7 +190,7 @@ bool MedFlagger::process(const DPBuffer& buf) {
   return true;
 }
 
-void MedFlagger::finish() {
+void MadFlagger::finish() {
   itsTimer.start();
   // Adjust window size if there are fewer time entries.
   if (itsNTimes < itsTimeWindow) {
@@ -234,7 +235,7 @@ void MedFlagger::finish() {
   getNextStep()->finish();
 }
 
-void MedFlagger::flagBaseline(
+void MadFlagger::flagBaseline(
     const std::vector<int>& ant1, const std::vector<int>& ant2,
     const std::vector<unsigned int>& timeEntries, unsigned int ib,
     unsigned int ncorr, unsigned int nchan, const float* bufDataPtr,
@@ -285,7 +286,7 @@ void MedFlagger::flagBaseline(
   }
 }
 
-void MedFlagger::flag(unsigned int index,
+void MadFlagger::flag(unsigned int index,
                       const std::vector<unsigned int>& timeEntries) {
   // Get antenna numbers in case applyautocorr is true.
   const std::vector<int>& ant1 = getInfo().getAnt1();
@@ -381,7 +382,7 @@ void MedFlagger::flag(unsigned int index,
   itsTimer.start();
 }
 
-void MedFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
+void MadFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
                                 unsigned int bl, int chan, int corr, int nchan,
                                 int ncorr, float& Z1, float& Z2,
                                 std::vector<float>& tempBuf,
@@ -446,7 +447,7 @@ void MedFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
   }
 }
 
-void MedFlagger::getExprValues(int maxNChan, int maxNTime) {
+void MadFlagger::getExprValues(int maxNChan, int maxNTime) {
   // Parse the expressions.
   // Baseline length can be used as 'bl' in the expressions.
   Record rec;

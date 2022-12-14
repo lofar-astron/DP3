@@ -426,7 +426,7 @@ add_library(
   steps/IDGPredict.cc
   steps/InputStep.cc
   steps/Interpolate.cc
-  steps/MedFlagger.cc
+  steps/MadFlagger.cc
   steps/MSBDAReader.cc
   steps/MSBDAWriter.cc
   steps/MsColumnReader.cc
@@ -627,7 +627,7 @@ if(BUILD_TESTING)
       steps/test/unit/tDummyStep.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tInterpolate.cc
-      steps/test/unit/tMedFlagger.cc
+      steps/test/unit/tMadFlagger.cc
       steps/test/unit/tPhaseShift.cc
       steps/test/unit/tUVWFlagger.cc
       steps/test/unit/tPSet.cc
