@@ -1,5 +1,5 @@
 description: >-
-  Automatic flagging in time/freq windows based on median filtering.
+  Automatic flagging in time/freq windows based on Median Average Deviation (MAD) filtering.
   Filter to filter on baseline and/or channel (only the given baselines/channels are kept). 
   The reader step has an implicit filter.
 inputs:

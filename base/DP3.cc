@@ -31,7 +31,7 @@
 #include "../steps/H5ParmPredict.h"
 #include "../steps/IDGPredict.h"
 #include "../steps/Interpolate.h"
-#include "../steps/MedFlagger.h"
+#include "../steps/MadFlagger.h"
 #include "../steps/MSBDAWriter.h"
 #include "../steps/MsColumnReader.h"
 #include "../steps/MSReader.h"
@@ -153,7 +153,7 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
   } else if (type == "bdaexpander") {
     step = std::make_shared<steps::BDAExpander>(prefix);
   } else if (type == "madflagger" || type == "madflag") {
-    step = std::make_shared<steps::MedFlagger>(parset, prefix);
+    step = std::make_shared<steps::MadFlagger>(parset, prefix);
   } else if (type == "preflagger" || type == "preflag") {
     step = std::make_shared<steps::PreFlagger>(parset, prefix);
   } else if (type == "antennaflagger") {
