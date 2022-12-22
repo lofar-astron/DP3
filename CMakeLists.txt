@@ -207,10 +207,10 @@ include_directories(${AOFLAGGER_INCLUDE_DIR})
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
   if(${EVERYBEAM_VERSION} VERSION_LESS "0.4.0" OR ${EVERYBEAM_VERSION}
-                                                  VERSION_GREATER_EQUAL "0.5.0")
+                                                  VERSION_GREATER_EQUAL "0.5.1")
     message(
       FATAL_ERROR
-        "DP3 needs EveryBeam version 0.4.x - with x >= 0 - but found version ${EveryBeam_VERSION}"
+        "DP3 needs EveryBeam version 0.4.x - with x >= 0 or 0.5.0 - but found version ${EveryBeam_VERSION}"
     )
   endif()
   include_directories(${EVERYBEAM_INCLUDE_DIR})
