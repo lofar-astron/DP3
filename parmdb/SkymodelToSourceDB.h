@@ -17,8 +17,6 @@
 #include "../common/StringTools.h"
 #include "../common/StreamUtil.h"
 
-#include <boost/algorithm/string.hpp>
-
 #include <string>
 #include <iostream>
 #include <fstream>
