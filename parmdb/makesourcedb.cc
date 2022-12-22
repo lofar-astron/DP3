@@ -107,6 +107,8 @@
 
 #include "SkymodelToSourceDB.h"
 
+#include <boost/algorithm/string/case_conv.hpp>
+
 int main(int argc, char* argv[]) {
   try {
     // Get the inputs.

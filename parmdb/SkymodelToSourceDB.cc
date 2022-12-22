@@ -1,14 +1,13 @@
 // SkymodelToSourceDB.cc
 //
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SkymodelToSourceDB.h"
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_io.hpp>
+#include <algorithm>
 
-using std::istream;
+#include <boost/algorithm/string.hpp>
 
 using dp3::parmdb::ParmDBMeta;
 using dp3::parmdb::ParmMap;
@@ -32,7 +31,7 @@ enum FieldNr {
   QNr,
   UNr,
   VNr,
-  SpInxNr,
+  SpectralIndexNr,
   LogSINr,
   RefFreqNr,
   MajorNr,
@@ -134,7 +133,7 @@ struct SdbFormat {
 };
 
 // Read a line and remove a possible carriage-return at the end.
-void getInLine(istream& infile, string& line) {
+void getInLine(std::istream& infile, std::string& line) {
   getline(infile, line);
   int sz = line.size();
   if (sz > 0 && line[sz - 1] == '\r') {
@@ -160,7 +159,8 @@ void checkRaDec(const SdbFormat& sdbf, int nr, int hnr, int dnr, int mnr,
     throw std::runtime_error("No Ra or Dec info given");
 }
 
-unsigned int ltrim(const string& value, unsigned int st, unsigned int end) {
+unsigned int ltrim(const std::string& value, unsigned int st,
+                   unsigned int end) {
   for (; st < end; ++st) {
     if (value[st] != ' ' && value[st] != '\t') {
       break;
@@ -169,7 +169,8 @@ unsigned int ltrim(const string& value, unsigned int st, unsigned int end) {
   return st;
 }
 
-unsigned int rtrim(const string& value, unsigned int st, unsigned int end) {
+unsigned int rtrim(const std::string& value, unsigned int st,
+                   unsigned int end) {
   for (; end > st; --end) {
     if (value[end - 1] != ' ' && value[end - 1] != '\t') {
       break;
@@ -181,15 +182,15 @@ unsigned int rtrim(const string& value, unsigned int st, unsigned int end) {
 // Get the next value by looking for the separator.
 // The separator is ignored in parts enclosed in quotes or square brackets.
 // Square brackets can be nested (they indicate arrays).
-unsigned int nextValue(const string& str, char sep, unsigned int st,
+unsigned int nextValue(const std::string& str, char sep, unsigned int st,
                        unsigned int end) {
   unsigned int posbracket = 0;
   int nbracket = 0;
   while (st < end) {
     if (str[st] == '\'' || str[st] == '"') {
       // Ignore a quoted part.
-      string::size_type pos = str.find(str[st], st + 1);
-      if (pos == string::npos)
+      std::string::size_type pos = str.find(str[st], st + 1);
+      if (pos == std::string::npos)
         throw std::runtime_error("Unbalanced quoted string at position " +
                                  std::to_string(st) + " in " + str);
       st = pos;
@@ -214,7 +215,7 @@ unsigned int nextValue(const string& str, char sep, unsigned int st,
   return end;
 }
 
-SdbFormat getFormat(const string& format) {
+SdbFormat getFormat(const std::string& format) {
   // Fill the map with known names.
   std::map<std::string, int> nameMap;
   for (unsigned int i = 0; i < theFieldNames.size(); ++i) {
@@ -254,8 +255,8 @@ SdbFormat getFormat(const string& format) {
       ++i;  // part of name
     } else {
       // End of name
-      string name = format.substr(st, i - st);
-      string lname = boost::to_lower_copy(name);
+      std::string name = format.substr(st, i - st);
+      std::string lname = boost::to_lower_copy(name);
       int fieldType = 0;
       if (lname.empty() || lname == "dummy") {
         fieldType = SKIPFIELD;
@@ -608,18 +609,29 @@ void add(ParmMap& fieldValues, FieldNr field, double value) {
   fieldValues.define(theFieldNames[field], ParmValueSet(ParmValue(value)));
 }
 
-void addSpInx(ParmMap& fieldValues, const std::vector<double>& spinx,
-              double refFreq) {
-  if (spinx.size() > 0) {
-    if (refFreq <= 0)
+void addSpectralIndices(ParmMap& fieldValues,
+                        const std::vector<double>& spectralIndices,
+                        double referenceFrequency) {
+  // Spectral index terms are typically of order 1. An absolute value above
+  // 1000 is thus clearly incorrect.
+  const double kMaxSpectralIndex = 1.0e3;
+  if (spectralIndices.size() > 0) {
+    if (referenceFrequency <= 0)
       throw std::runtime_error(
           "SpectralIndex given, but no ReferenceFrequency");
     /// Remove the following lines if not needed anymore for BBS.
-    addValue(fieldValues, "SpectralIndexDegree", int(spinx.size()) - 1);
-    for (unsigned int i = 0; i < spinx.size(); ++i) {
+    addValue(fieldValues, "SpectralIndexDegree",
+             int(spectralIndices.size()) - 1);
+    for (unsigned int i = 0; i < spectralIndices.size(); ++i) {
+      if (std::abs(spectralIndices[i]) > kMaxSpectralIndex) {
+        std::stringstream message;
+        message << "SpectralIndex " << spectralIndices[i]
+                << " is out of bound.";
+        throw std::runtime_error(message.str());
+      }
       std::ostringstream ostr;
       ostr << "SpectralIndex:" << i;
-      addValue(fieldValues, ostr.str(), spinx[i]);
+      addValue(fieldValues, ostr.str(), spectralIndices[i]);
     }
   }
 }
@@ -691,23 +703,24 @@ void fillShapelet(SourceInfo& srcInfo, const std::string& shpI,
 // for a given reference wavelength.
 // A spectral index can be used to calculate Stokes I.
 void calcRMParam(double& polfrac, double& polang, double fluxi0, double fluxq,
-                 double fluxu, const std::vector<double>& spinx, double rm,
-                 double refFreq, double rmRefWavel) {
+                 double fluxu, const std::vector<double>& spectralIndices,
+                 double rm, double refFreq, double rmRefWavel) {
   // polfrac = sqrt(q^2 + u^2) / i
-  // where i = i(0) * spinx
+  // where i = i(0) * spectral_index
   // Compute spectral index for the RM reference wavelength as:
   // (v / v0) ^ (c0 + c1 * log10(v / v0) + c2 * log10(v / v0)^2 + ...)
-  // Where v is the RM frequency and v0 is the spinx reference frequency.
+  // Where v is the RM frequency and v0 is the spectral index reference
+  // frequency.
   double si = 1;
-  if (spinx.size() > 0) {
+  if (spectralIndices.size() > 0) {
     if (rmRefWavel <= 0)
       throw std::runtime_error("No RM reference wavelength given");
     double rmFreq = casacore::C::c / rmRefWavel;
     double vv0 = rmFreq / refFreq;
     double factor = 1;
     double sum = 0;
-    for (unsigned int i = 0; i < spinx.size(); ++i) {
-      sum += factor * spinx[i];
+    for (unsigned int i = 0; i < spectralIndices.size(); ++i) {
+      sum += factor * spectralIndices[i];
       factor *= log10(vv0);
     }
     si = std::pow(vv0, sum);
@@ -731,7 +744,6 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
              int& nrpatchfnd, int& nrsourcefnd,
              std::map<std::string, PatchSumInfo>& patchSumInfo,
              const SearchInfo& searchInfo) {
-  //  cout << line << endl;
   // Hold the values.
   ParmMap fieldValues;
   std::vector<std::string> values;
@@ -790,9 +802,10 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
   std::string shapeletU = getValue(values, sdbf.fieldNrs[UShapeletNr]);
   std::string shapeletV = getValue(values, sdbf.fieldNrs[VShapeletNr]);
 
-  std::vector<double> spinx(vector2real(
-      string2vector(values, sdbf.fieldNrs[SpInxNr], std::vector<std::string>()),
-      0.));
+  const std::vector<double> spectralIndices(
+      vector2real(string2vector(values, sdbf.fieldNrs[SpectralIndexNr],
+                                std::vector<std::string>()),
+                  0.));
   double refFreq = string2real(values, sdbf.fieldNrs[RefFreqNr], 0);
   bool useLogSI = string2bool(values, sdbf.fieldNrs[LogSINr], true);
   bool orientationIsAbsolute =
@@ -831,8 +844,9 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
             "only be given for ReferenceWavelength=0");
     }
   }
-  SourceInfo srcInfo(srcName, srctype, refType, useLogSI, spinx.size(), refFreq,
-                     useRM, orientationIsAbsolute);
+  SourceInfo srcInfo(srcName, srctype, refType, useLogSI,
+                     spectralIndices.size(), refFreq, useRM,
+                     orientationIsAbsolute);
   if (srctype == SourceInfo::SHAPELET) {
     fillShapelet(srcInfo, shapeletI, shapeletQ, shapeletU, shapeletV);
   }
@@ -848,7 +862,7 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
     double pfrac = string2real(polFrac, 0.);
     double pang = string2real(polAng, 0.);
     if (!fluxQ.empty()) {
-      calcRMParam(pfrac, pang, fluxI, fq, fu, spinx, rmval, refFreq,
+      calcRMParam(pfrac, pang, fluxI, fq, fu, spectralIndices, rmval, refFreq,
                   rmRefWavel);
     }
     add(fieldValues, PolFracNr, pfrac);
@@ -858,7 +872,7 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
     add(fieldValues, UNr, string2real(fluxU, 0.));
   }
   add(fieldValues, VNr, string2real(fluxV, 0.));
-  addSpInx(fieldValues, spinx, refFreq);
+  addSpectralIndices(fieldValues, spectralIndices, refFreq);
   if (refFreq > 0) {
     add(fieldValues, RefFreqNr, refFreq);
   }
