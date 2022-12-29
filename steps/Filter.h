@@ -112,7 +112,7 @@ class Filter final : public Step {
   /// Construct the object for the given MS and baseline selection.
   Filter(const base::BaselineSelection&);
 
-  virtual ~Filter();
+  ~Filter() override;
 
   common::Fields getRequiredFields() const override;
 

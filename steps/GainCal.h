@@ -56,15 +56,15 @@ class GainCal final : public Step {
 
   /// Process the data. It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&) override;
+  bool process(const base::DPBuffer&) override;
 
-  virtual void finish() override;
+  void finish() override;
 
-  virtual void updateInfo(const base::DPInfo&) override;
+  void updateInfo(const base::DPInfo&) override;
 
-  virtual void show(std::ostream&) const override;
+  void show(std::ostream&) const override;
 
-  virtual void showTimings(std::ostream&, double duration) const override;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Make a soltab with the given type
   static std::vector<schaapcommon::h5parm::SolTab> makeSolTab(

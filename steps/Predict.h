@@ -51,7 +51,7 @@ class Predict : public ModelDataStep {
           const std::vector<std::string>& source_patterns,
           MsType input_type = MsType::kRegular);
 
-  virtual ~Predict() {}
+  ~Predict() override {}
 
   common::Fields getRequiredFields() const override {
     // The actual work occurs in sub-steps, which come after Predict in the

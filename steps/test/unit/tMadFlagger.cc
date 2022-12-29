@@ -44,7 +44,7 @@ class TestInput : public dp3::steps::MockInput {
         itsFlag(flag) {}
 
  private:
-  virtual bool process(const DPBuffer&) {
+  bool process(const DPBuffer&) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -73,8 +73,8 @@ class TestInput : public dp3::steps::MockInput {
     return true;
   }
 
-  virtual void finish() { getNextStep()->finish(); }
-  virtual void updateInfo(const DPInfo&) {
+  void finish() override { getNextStep()->finish(); }
+  void updateInfo(const DPInfo&) override {
     info() = DPInfo(itsNCorr, itsNChan);
     // Use timeInterval=5
     info().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
@@ -152,7 +152,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsShortBL(shortbl) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     // Fill expected result in similar way as TestInput.
     casacore::Cube<casacore::Complex> result(itsNCorr, itsNChan, itsNBl);
     for (int i = 0; i < int(result.size()); ++i) {
@@ -187,8 +187,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& info) {
+  void finish() override {}
+  void updateInfo(const DPInfo& info) override {
     BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(info.nchan()), itsNChan);
     BOOST_CHECK_EQUAL(int(info.ntime()), itsNTime);

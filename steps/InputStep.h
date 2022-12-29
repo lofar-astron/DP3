@@ -36,7 +36,7 @@ namespace steps {
 
 class InputStep : public Step {
  public:
-  virtual ~InputStep();
+  ~InputStep() override;
 
   common::Fields getRequiredFields() const override { return {}; }
 

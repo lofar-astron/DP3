@@ -118,8 +118,8 @@ class Simulator : public ModelComponentVisitor {
   void simulate(const std::shared_ptr<const ModelComponent>& component);
 
  private:
-  virtual void visit(const PointSource& component);
-  virtual void visit(const GaussianSource& component);
+  void visit(const PointSource& component) override;
+  void visit(const GaussianSource& component) override;
 
  private:
   Direction itsReference;

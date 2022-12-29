@@ -128,7 +128,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         n_correlations_(n_correlations) {}
 
  private:
-  virtual bool process(const DPBuffer& buffer) {
+  bool process(const DPBuffer& buffer) override {
     casacore::Cube<bool> result(n_correlations_, n_channels_, n_baselines_);
     for (int i = 0; i < n_baselines_; ++i) {
       casacore::Cube<bool> test = buffer.getFlags();
@@ -146,8 +146,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     BOOST_CHECK_EQUAL(static_cast<int>(infoIn.origNChan()), n_channels_);
     BOOST_CHECK_EQUAL(static_cast<int>(infoIn.nchan()), n_channels_);

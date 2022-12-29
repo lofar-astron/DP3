@@ -55,7 +55,7 @@ class Averager : public Step {
   Averager(const string& stepname, double freq_resolution,
            double time_resolution);
 
-  virtual ~Averager();
+  ~Averager() override;
 
   common::Fields getRequiredFields() const override { return kRequiredFields; }
 
@@ -64,19 +64,19 @@ class Averager : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Get the value in Hertz of a string like "1000 MHz". If unit is
   /// omitted it defaults to Hertz

@@ -102,7 +102,7 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  virtual bool process(const DPBuffer&) {
+  bool process(const DPBuffer&) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -138,7 +138,7 @@ class TestInput : public dp3::steps::MockInput {
     return true;
   }
 
-  virtual void finish() { getNextStep()->finish(); }
+  void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Do nothing / keep the info set in the constructor.
   }
@@ -162,7 +162,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsUseComplement(useComplement) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     // The result of the selected and complement data depends on the
     // settings of itsFlag, itsClear, and itsUseComplement as follows:
     //    itsFlag itsUseComp itsClear     sel  comp
@@ -201,8 +201,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
@@ -252,7 +252,7 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
         itsNCorr(ncorr) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     // A few baselines should be flagged (0, 7, 13, 15)
     // Furthermore channel 1,4,5,11,12,13 are flagged.
     casacore::Cube<bool> result(itsNCorr, itsNChan, itsNBl);
@@ -273,8 +273,8 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
@@ -330,7 +330,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     // All baselines except autocorr should be flagged.
     // Furthermore channel 1,4,5 are flagged.
     casacore::Cube<bool> result(itsNCorr, itsNChan, itsNBl);
@@ -351,8 +351,8 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
@@ -392,7 +392,7 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
   TestOutput5(CheckFunc* cfunc) : itsCount(0), itsCFunc(cfunc) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     const casacore::Cube<casacore::Complex>& data = buf.getData();
     const double* uvw = buf.getUVW().data();
     const casacore::IPosition& shp = data.shape();
@@ -416,8 +416,8 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo&) {}
+  void finish() override {}
+  void updateInfo(const DPInfo&) override {}
 
   int itsCount;
   CheckFunc* itsCFunc;

@@ -48,7 +48,7 @@ class TestInput : public dp3::steps::MockInput {
         itsFlag(flag) {}
 
  private:
-  virtual bool process(const DPBuffer&) {
+  bool process(const DPBuffer&) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -80,7 +80,7 @@ class TestInput : public dp3::steps::MockInput {
     return true;
   }
 
-  virtual void finish() { getNextStep()->finish(); }
+  void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override
   // Use startchan=8 and timeInterval=5
   {
@@ -107,7 +107,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     int nchan = 1 + (itsNChan - 1) / itsNAvgChan;
     int navgtime = std::min(itsNAvgTime, itsNTime - itsCount * itsNAvgTime);
     // Fill expected result in similar way as TestInput.
@@ -163,7 +163,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
+  void finish() override {}
   virtual void updateInfo(DPInfo& info) {
     BOOST_CHECK_EQUAL(size_t{8}, info.startchan());
     BOOST_CHECK_EQUAL(itsNChan, int(info.origNChan()));

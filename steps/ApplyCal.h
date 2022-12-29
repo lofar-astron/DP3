@@ -35,7 +35,7 @@ class ApplyCal : public Step {
 
   ApplyCal() = default;
 
-  virtual ~ApplyCal() = default;
+  ~ApplyCal() override = default;
 
   common::Fields getRequiredFields() const override {
     // ApplyCal is a dummy step, which is followed by OneApplyCal steps.
@@ -50,24 +50,24 @@ class ApplyCal : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer& buffer);
+  bool process(const base::DPBuffer& buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Set the next step. It squeezes in the actual OneApplyCal steps
   /// between this ApplyCal step and the next step.
-  virtual void setNextStep(Step::ShPtr nextStep);
+  void setNextStep(Step::ShPtr nextStep) override;
 
   /// Show the step. When ApplyCal is a step in the main chain, this does
   /// nothing; the nextStep mechanism in DPRun will call show on the actual
   /// OneApplyCals.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings. When ApplyCal is a step in the main chain, this does
   /// nothing; the nextStep mechanism in DPRun will call show on the actual
   /// OneApplyCals.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Invert a 2x2 matrix in place
   template <typename NumType>

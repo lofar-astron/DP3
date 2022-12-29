@@ -40,26 +40,26 @@ class Demixer : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   common::Fields getRequiredFields() const override;
 
   common::Fields getProvidedFields() const override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the counts.
-  virtual void showCounts(std::ostream&) const;
+  void showCounts(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
  private:
   /// Add the decorrelation factor contribution for each time slot.

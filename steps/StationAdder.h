@@ -48,7 +48,7 @@ class StationAdder : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   StationAdder(const common::ParameterSet&, const std::string& prefix);
 
-  virtual ~StationAdder();
+  ~StationAdder() override;
 
   common::Fields getRequiredFields() const override {
     return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
@@ -63,22 +63,22 @@ class StationAdder : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Add new meta info to the MS.
-  virtual void addToMS(const string& msName);
+  void addToMS(const string& msName) override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Return the indices of the stations in antennaNames matching
   /// the pattern list.

@@ -94,7 +94,7 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  virtual bool process(const DPBuffer&) {
+  bool process(const DPBuffer&) override {
     // Stop when all times are done.
     if (count_ == n_times_) {
       return false;
@@ -109,7 +109,7 @@ class TestInput : public dp3::steps::MockInput {
     T t;
     return t;
   };
-  virtual void finish() { getNextStep()->finish(); }
+  void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Do nothing / keep the info set in the constructor.
   }
@@ -332,8 +332,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return result;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     BOOST_CHECK_EQUAL(infoIn.origNChan(), n_channels_);
     BOOST_CHECK_EQUAL(infoIn.ntime(), n_times_);

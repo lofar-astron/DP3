@@ -200,7 +200,7 @@ class SourceDB final : public SourceDBBase {
   SourceDB(const SourceDB&);
 
   /// Delete underlying object if no more references to it.
-  ~SourceDB();
+  ~SourceDB() override;
 
   /// Assignment has reference semantics.
   SourceDB& operator=(const SourceDB&);

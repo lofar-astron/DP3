@@ -46,7 +46,7 @@ class OnePredict : public ModelDataStep {
   OnePredict(const common::ParameterSet&, const std::string& prefix,
              const std::vector<std::string>& source_patterns);
 
-  virtual ~OnePredict();
+  ~OnePredict() override;
 
   common::Fields getRequiredFields() const override {
     common::Fields fields = kUvwField;

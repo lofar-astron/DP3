@@ -44,50 +44,49 @@ class ParmFacadeLocal : public ParmFacadeRep {
   ParmFacadeLocal(const string& tableName, bool create = false);
 
   /// The destructor disconnects.
-  virtual ~ParmFacadeLocal();
+  ~ParmFacadeLocal() override;
 
   /// Get the domain range (as startx,endx,starty,endy) of the given
   /// parameters in the table.
   /// This is the minimum start value and maximum end value for all parameters.
   /// An empty name pattern is the same as * (all parm names).
-  virtual std::vector<double> getRange(const string& parmNamePattern) const;
+  std::vector<double> getRange(const string& parmNamePattern) const override;
 
   /// Get parameter names in the table matching the pattern.
   /// An empty name pattern is the same as * (all parm names).
-  virtual std::vector<string> getNames(const string& parmNamePattern,
-                                       bool includeDefaults) const;
+  std::vector<string> getNames(const string& parmNamePattern,
+                               bool includeDefaults) const override;
 
   /// Get default parameter names matching the pattern.
   /// An empty name pattern is the same as * (all parm names).
-  virtual std::vector<string> getDefNames(const string& parmNamePattern) const;
+  std::vector<string> getDefNames(const string& parmNamePattern) const override;
 
   /// Get the default values of parameters matching the pattern.
-  virtual casacore::Record getDefValues(const string& parmNamePattern) const;
+  casacore::Record getDefValues(const string& parmNamePattern) const override;
 
   /// Add one or more default values.
-  virtual void addDefValues(const casacore::Record&, bool check);
+  void addDefValues(const casacore::Record&, bool check) override;
 
   /// Delete the default value records for the given parameters.
-  virtual void deleteDefValues(const string& parmNamePattern);
+  void deleteDefValues(const string& parmNamePattern) override;
 
   /// Get the values of the given parameters on the given regular grid
   /// where v1/v2 represents center/width or start/end.
   /// The Record contains a map of parameter name to Array<double>.
-  virtual casacore::Record getValues(const string& parmNamePattern,
-                                     double freqv1, double freqv2,
-                                     double freqStep, double timev1,
-                                     double timev2, double timeStep,
-                                     bool asStartEnd, bool includeDefaults);
+  casacore::Record getValues(const string& parmNamePattern, double freqv1,
+                             double freqv2, double freqStep, double timev1,
+                             double timev2, double timeStep, bool asStartEnd,
+                             bool includeDefaults) override;
 
   /// Get the values of the given parameters on the given grid where v1/v2
   /// represents center/width or start/end.
   /// The Record contains a map of parameter name to Array<double>.
-  virtual casacore::Record getValues(const string& parmNamePattern,
-                                     const std::vector<double>& freqv1,
-                                     const std::vector<double>& freqv2,
-                                     const std::vector<double>& timev1,
-                                     const std::vector<double>& timev2,
-                                     bool asStartEnd, bool includeDefaults);
+  casacore::Record getValues(const string& parmNamePattern,
+                             const std::vector<double>& freqv1,
+                             const std::vector<double>& freqv2,
+                             const std::vector<double>& timev1,
+                             const std::vector<double>& timev2, bool asStartEnd,
+                             bool includeDefaults) override;
 
   /// Get the values of the given parameters for the given domain.
   /// The Record contains a map of parameter name to Array<value>.
@@ -95,43 +94,41 @@ class ParmFacadeLocal : public ParmFacadeRep {
   /// used for each parameters. Their names have the form parmname/xx
   /// where xx is freqs, freqwidths, times, and timewidths. Their values
   /// are the center and width of each cell.
-  virtual casacore::Record getValuesGrid(const string& parmNamePattern,
-                                         double freqv1, double freqv2,
-                                         double timev1, double timev2,
-                                         bool asStartEnd);
+  casacore::Record getValuesGrid(const string& parmNamePattern, double freqv1,
+                                 double freqv2, double timev1, double timev2,
+                                 bool asStartEnd) override;
 
   /// Get coefficients, errors, and domains they belong to.
-  virtual casacore::Record getCoeff(const string& parmNamePattern,
-                                    double freqv1, double freqv2, double timev1,
-                                    double timev2, bool asStartEnd);
+  casacore::Record getCoeff(const string& parmNamePattern, double freqv1,
+                            double freqv2, double timev1, double timev2,
+                            bool asStartEnd) override;
 
   /// Clear the tables, thus remove all parameter values and default values.
-  virtual void clearTables();
+  void clearTables() override;
 
   /// Flush the possible changes to disk.
-  virtual void flush(bool fsync);
+  void flush(bool fsync) override;
 
   /// Writelock and unlock the database tables.
   /// The user does not need to lock/unlock, but it can increase performance
   /// if many small accesses have to be done.
   ///@{
-  virtual void lock(bool lockForWrite);
-  virtual void unlock();
+  void lock(bool lockForWrite) override;
+  void unlock() override;
   ///@}
 
   /// Get the default step values for the axes.
-  virtual std::vector<double> getDefaultSteps() const;
+  std::vector<double> getDefaultSteps() const override;
 
   /// Set the default step values.
-  virtual void setDefaultSteps(const std::vector<double>&);
+  void setDefaultSteps(const std::vector<double>&) override;
 
   /// Add the values for the given parameter names and domain.
-  virtual void addValues(const casacore::Record& rec);
+  void addValues(const casacore::Record& rec) override;
 
   /// Delete the records for the given parameters and domain.
-  virtual void deleteValues(const string& parmNamePattern, double freqv1,
-                            double freqv2, double timev1, double timev2,
-                            bool asStartEnd);
+  void deleteValues(const string& parmNamePattern, double freqv1, double freqv2,
+                    double timev1, double timev2, bool asStartEnd) override;
 
  private:
   /// Get the values for the given predict grid
