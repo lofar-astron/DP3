@@ -51,7 +51,7 @@ class DDECal : public Step {
                : common::Fields();
   }
 
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   void checkMinimumVisibilities(size_t bufferIndex);
 
@@ -61,13 +61,13 @@ class DDECal : public Step {
   void doSolve();
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
  private:
   void initializeColumnReaders(const common::ParameterSet&,

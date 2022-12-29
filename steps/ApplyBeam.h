@@ -54,7 +54,7 @@ class ApplyBeam : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer& buffer) {
+  bool process(const base::DPBuffer& buffer) override {
     return processMultithreaded(buffer, 0);
   }
 
@@ -63,16 +63,16 @@ class ApplyBeam : public Step {
   bool processMultithreaded(const base::DPBuffer&, size_t thread);
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   bool invert() { return itsInvert; }
 

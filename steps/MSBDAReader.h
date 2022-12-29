@@ -106,7 +106,7 @@ class MSBDAReader : public InputStep {
   MSBDAReader(const casacore::MeasurementSet& ms, const common::ParameterSet&,
               const std::string& prefix);
 
-  virtual ~MSBDAReader();
+  ~MSBDAReader() override;
 
   /// Reads a BDA buffer from the input and passes it to its next step.
   /// @param buffer Dummy input buffer, which is ignored.

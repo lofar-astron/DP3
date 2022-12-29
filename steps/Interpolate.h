@@ -26,7 +26,7 @@ class Interpolate : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   Interpolate(const common::ParameterSet&, const string& prefix);
 
-  virtual ~Interpolate() = default;
+  ~Interpolate() override = default;
 
   common::Fields getRequiredFields() const override {
     return kDataField | kFlagsField;
@@ -39,16 +39,16 @@ class Interpolate : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
  private:
   void interpolateTimestep(size_t index);

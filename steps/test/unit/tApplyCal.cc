@@ -98,7 +98,7 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  virtual bool process(const DPBuffer&) {
+  bool process(const DPBuffer&) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -132,7 +132,7 @@ class TestInput : public dp3::steps::MockInput {
     return true;
   }
 
-  virtual void finish() { getNextStep()->finish(); }
+  void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Do nothing / keep the info set in the constructor.
   }
@@ -161,7 +161,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsDoTest(doTest) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     // Fill data and scale as needed.
     casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
 
@@ -253,8 +253,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     BOOST_CHECK_EQUAL(itsNChan, int(infoIn.origNChan()));
     BOOST_CHECK_EQUAL(itsNChan, int(infoIn.nchan()));

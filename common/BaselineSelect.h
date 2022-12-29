@@ -64,8 +64,8 @@ class BaselineSelect {
 class BaselineSelectErrorHandler : public casacore::MSSelectionErrorHandler {
  public:
   BaselineSelectErrorHandler(std::ostream& os) : itsStream(os) {}
-  virtual ~BaselineSelectErrorHandler();
-  virtual void reportError(const char* token, const casacore::String message);
+  ~BaselineSelectErrorHandler() override;
+  void reportError(const char* token, const casacore::String message) override;
 
  private:
   std::ostream& itsStream;

@@ -35,7 +35,7 @@ class Upsample : public Step {
   /// Constructor that gets the settings directly.
   Upsample(const std::string& name, unsigned int time_step, bool update_uvw);
 
-  virtual ~Upsample();
+  ~Upsample() override;
 
   common::Fields getRequiredFields() const override {
     common::Fields fields = kFlagsField;
@@ -50,16 +50,16 @@ class Upsample : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
  private:
   const std::string name_;

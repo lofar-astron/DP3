@@ -110,7 +110,7 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  virtual bool process(const DPBuffer&) {
+  bool process(const DPBuffer&) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -142,7 +142,7 @@ class TestInput : public dp3::steps::MockInput {
     return true;
   }
 
-  virtual void finish() { getNextStep()->finish(); }
+  void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Do nothing / keep the info set in the constructor.
   }
@@ -166,7 +166,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -188,8 +188,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();
     BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 45., 1e-6);
@@ -216,7 +216,7 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  virtual bool process(const DPBuffer& buf) {
+  bool process(const DPBuffer& buf) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -240,8 +240,8 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
     return true;
   }
 
-  virtual void finish() {}
-  virtual void updateInfo(const DPInfo& infoIn) {
+  void finish() override {}
+  void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();
     BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 50., 1e-5);

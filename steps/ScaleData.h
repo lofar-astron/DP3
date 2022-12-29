@@ -46,7 +46,7 @@ class ScaleData : public Step {
   ScaleData(const common::ParameterSet&, const string& prefix,
             MsType input_type);
 
-  virtual ~ScaleData();
+  ~ScaleData() override;
 
   common::Fields getRequiredFields() const override { return kDataField; }
 
@@ -55,7 +55,7 @@ class ScaleData : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Process the DBA data.
   /// It keeps the data.
@@ -63,16 +63,16 @@ class ScaleData : public Step {
   bool process(std::unique_ptr<base::BDABuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   bool accepts(MsType dt) const override { return dt == itsInputType; }
 

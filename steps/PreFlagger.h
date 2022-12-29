@@ -60,7 +60,7 @@ class PreFlagger : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   PreFlagger(const common::ParameterSet&, const string& prefix);
 
-  virtual ~PreFlagger();
+  ~PreFlagger() override;
 
   common::Fields getRequiredFields() const override {
     common::Fields fields;
@@ -75,23 +75,23 @@ class PreFlagger : public Step {
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the average info.
   /// It is used to adjust the parms if needed.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the flag counts.
-  virtual void showCounts(std::ostream&) const;
+  void showCounts(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
  private:
   /// This internal class represents a single set of ANDed selections.

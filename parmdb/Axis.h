@@ -33,7 +33,7 @@ class Axis : public blob::BlobStreamable {
   /// The constructor sets the unique id.
   Axis();
 
-  virtual ~Axis() {}
+  ~Axis() override {}
 
   /// Clone the object.
   virtual Axis::ShPtr clone() const = 0;
@@ -127,13 +127,13 @@ class Axis : public blob::BlobStreamable {
                       int& e2) const;
 
   /// Return the type of \c *this as a string.
-  virtual const std::string& classType() const = 0;
+  const std::string& classType() const override = 0;
 
   /// Write the contents of \c *this into the blob output stream \a bos.
-  virtual void write(blob::BlobOStream& bos) const = 0;
+  void write(blob::BlobOStream& bos) const override = 0;
 
   /// Read the contents from the blob input stream \a bis into \c *this.
-  virtual void read(blob::BlobIStream& bis) = 0;
+  void read(blob::BlobIStream& bis) override = 0;
 
   /// Make an Axis object from the intervals defined by the low/upp values.
   /// If all intervals have the same width, a RegularAxis object is made.
@@ -180,7 +180,7 @@ class RegularAxis : public Axis {
   RegularAxis(double begin, double cellWidth, unsigned int count,
               bool asStartEnd = false);
 
-  virtual ~RegularAxis();
+  ~RegularAxis() override;
 
   /// Clone the object.
   Axis::ShPtr clone() const override;
@@ -218,7 +218,7 @@ class OrderedAxis : public Axis {
   OrderedAxis(const std::vector<double>& v1, const std::vector<double>& v2,
               bool asStartEnd = false);
 
-  virtual ~OrderedAxis();
+  ~OrderedAxis() override;
 
   /// Clone the object.
   Axis::ShPtr clone() const override;

@@ -31,44 +31,44 @@ class SourceDBCasa : public SourceDBRep {
  public:
   SourceDBCasa(const ParmDBMeta& pdm, bool forceNew);
 
-  virtual ~SourceDBCasa();
+  ~SourceDBCasa() override;
 
   /// Writelock and unlock the database tables.
   /// The user does not need to lock/unlock, but it can increase performance
   /// if many small accesses have to be done.
   /// The default implementation does nothing.
   ///@{
-  virtual void lock(bool lockForWrite);
-  virtual void unlock();
+  void lock(bool lockForWrite) override;
+  void unlock() override;
   ///@}
 
   /// Check for duplicate patches or sources.
   /// An exception is thrown if that is the case.
-  virtual void checkDuplicates();
+  void checkDuplicates() override;
 
   /// Find non-unique patch names.
-  virtual std::vector<string> findDuplicatePatches();
+  std::vector<string> findDuplicatePatches() override;
 
   /// Find non-unique source names.
-  virtual std::vector<string> findDuplicateSources();
+  std::vector<string> findDuplicateSources() override;
 
   /// Test if the patch already exists.
-  virtual bool patchExists(const string& patchName);
+  bool patchExists(const string& patchName) override;
 
   /// Test if the source already exists.
-  virtual bool sourceExists(const string& sourceName);
+  bool sourceExists(const string& sourceName) override;
 
   /// Add a patch and return its patchId.
   /// Nomally ra and dec should be filled in, but for moving patches
   /// (e.g. sun) this is not needed.
   /// <br>Optionally it is checked if the patch already exists.
-  virtual unsigned int addPatch(const string& patchName, int catType,
-                                double apparentBrightness, double ra,
-                                double dec, bool check);
+  unsigned int addPatch(const string& patchName, int catType,
+                        double apparentBrightness, double ra, double dec,
+                        bool check) override;
 
   /// Update the ra/dec and apparent brightness of a patch.
-  virtual void updatePatch(unsigned int patchId, double apparentBrightness,
-                           double ra, double dec);
+  void updatePatch(unsigned int patchId, double apparentBrightness, double ra,
+                   double dec) override;
 
   /// Add a source to a patch.
   /// Its ra and dec and default parameters will be stored as default
@@ -78,59 +78,58 @@ class SourceDBCasa : public SourceDBRep {
   /// Missing parameters will default to 0.
   /// <br>Optionally it is checked if the patch already exists.
   ///@{
-  virtual void addSource(const SourceInfo& sourceInfo, const string& patchName,
-                         const ParmMap& defaultParameters, double ra,
-                         double dec, bool check);
-  virtual void addSource(const SourceData& source, bool check);
+  void addSource(const SourceInfo& sourceInfo, const string& patchName,
+                 const ParmMap& defaultParameters, double ra, double dec,
+                 bool check) override;
+  void addSource(const SourceData& source, bool check) override;
   ///@}
 
   /// Add a source which forms a patch in itself (with the same name).
   /// <br>Optionally it is checked if the patch or source already exists.
-  virtual void addSource(const SourceInfo& sourceInfo, const string& patchName,
-                         int catType, double apparentBrightness,
-                         const ParmMap& defaultParameters, double ra,
-                         double dec, bool check);
+  void addSource(const SourceInfo& sourceInfo, const string& patchName,
+                 int catType, double apparentBrightness,
+                 const ParmMap& defaultParameters, double ra, double dec,
+                 bool check) override;
 
   /// Get patch names in order of category and decreasing apparent flux.
   /// category < 0 means all categories.
   /// A brightness < 0 means no test on brightness.
-  virtual std::vector<string> getPatches(int category, const string& pattern,
-                                         double minBrightness,
-                                         double maxBrightness);
+  std::vector<string> getPatches(int category, const string& pattern,
+                                 double minBrightness,
+                                 double maxBrightness) override;
 
   /// Get the info of all patches (name, ra, dec).
-  virtual std::vector<PatchInfo> getPatchInfo(int category,
-                                              const string& pattern,
-                                              double minBrightness,
-                                              double maxBrightness);
+  std::vector<PatchInfo> getPatchInfo(int category, const string& pattern,
+                                      double minBrightness,
+                                      double maxBrightness) override;
 
   /// Get the sources belonging to the given patch.
-  virtual std::vector<SourceInfo> getPatchSources(const string& patchName);
+  std::vector<SourceInfo> getPatchSources(const string& patchName) override;
 
   /// Get all data of the sources belonging to the given patch.
-  virtual std::vector<SourceData> getPatchSourceData(const string& patchName);
+  std::vector<SourceData> getPatchSourceData(const string& patchName) override;
 
   /// Get the source info of the given source.
-  virtual SourceInfo getSource(const string& sourceName);
+  SourceInfo getSource(const string& sourceName) override;
 
   /// Get the info of all sources matching the given (filename like) pattern.
-  virtual std::vector<SourceInfo> getSources(const string& pattern);
+  std::vector<SourceInfo> getSources(const string& pattern) override;
 
   /// Delete the sources records matching the given (filename like) pattern.
-  virtual void deleteSources(const std::string& sourceNamePattern);
+  void deleteSources(const std::string& sourceNamePattern) override;
 
   /// Clear database or table
-  virtual void clearTables();
+  void clearTables() override;
 
   /// Get the next source from the table.
   /// An exception is thrown if there are no more sources.
-  virtual void getNextSource(SourceData& src);
+  void getNextSource(SourceData& src) override;
 
   /// Tell if we are the end of the file.
-  virtual bool atEnd();
+  bool atEnd() override;
 
   /// Reset to the beginning of the file.
-  virtual void rewind();
+  void rewind() override;
 
  private:
   /// Create the source and patch table.

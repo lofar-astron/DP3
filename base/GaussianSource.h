@@ -48,7 +48,7 @@ class GaussianSource : public PointSource {
   void setMinorAxis(double fwhm);
   double getMinorAxis() const { return itsMinorAxis; }
 
-  virtual void accept(ModelComponentVisitor &visitor) const;
+  void accept(ModelComponentVisitor &visitor) const override;
 
  private:
   double itsPositionAngle;

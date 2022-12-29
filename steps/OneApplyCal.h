@@ -44,7 +44,7 @@ class OneApplyCal : public Step {
               const std::string& defaultPrefix, bool substep = false,
               std::string predictDirection = "");
 
-  virtual ~OneApplyCal();
+  ~OneApplyCal() override;
 
   common::Fields getRequiredFields() const override {
     return kDataField | kWeightsField | kFlagsField;
@@ -59,19 +59,19 @@ class OneApplyCal : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer& buffer);
+  bool process(const base::DPBuffer& buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   bool invert() { return itsInvert; }
 
@@ -85,7 +85,7 @@ class OneApplyCal : public Step {
   void updateParmsH5(const double bufStartTime);
 
   /// If needed, show the flag counts.
-  virtual void showCounts(std::ostream&) const;
+  void showCounts(std::ostream&) const override;
 
   void initDataArrays();
 

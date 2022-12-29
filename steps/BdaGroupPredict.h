@@ -44,7 +44,7 @@ class BdaGroupPredict : public ModelDataStep {
   BdaGroupPredict(const common::ParameterSet&, const string& prefix,
                   const std::vector<std::string>& source_patterns);
 
-  virtual ~BdaGroupPredict();
+  ~BdaGroupPredict() override;
 
   common::Fields getRequiredFields() const override;
 

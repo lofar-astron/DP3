@@ -63,7 +63,7 @@ class MadFlagger : public Step {
   /// Parameters are obtained from the parset using the given prefix.
   MadFlagger(const common::ParameterSet&, const std::string& prefix);
 
-  virtual ~MadFlagger();
+  ~MadFlagger() override;
 
   common::Fields getRequiredFields() const override { return kDataField; }
 
@@ -71,23 +71,23 @@ class MadFlagger : public Step {
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
-  virtual bool process(const base::DPBuffer&);
+  bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
-  virtual void finish();
+  void finish() override;
 
   /// Update the general info.
   /// It is used to adjust the parms if needed.
-  virtual void updateInfo(const base::DPInfo&);
+  void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.
-  virtual void show(std::ostream&) const;
+  void show(std::ostream&) const override;
 
   /// Show the flagger counts.
-  virtual void showCounts(std::ostream&) const;
+  void showCounts(std::ostream&) const override;
 
   /// Show the timings.
-  virtual void showTimings(std::ostream&, double duration) const;
+  void showTimings(std::ostream&, double duration) const override;
 
   /// Flag for the entry at the given index.
   /// Use the given time entries for the medians.

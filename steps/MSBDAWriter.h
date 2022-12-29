@@ -30,7 +30,7 @@ class MSBDAWriter : public OutputStep {
 
   void updateInfo(const base::DPInfo&) override;
 
-  virtual bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BDABuffer>) override;
 
   void finish() override;
 
