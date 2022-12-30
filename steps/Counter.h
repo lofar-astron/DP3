@@ -32,13 +32,7 @@ class Counter : public Step {
 
   ~Counter() override;
 
-  common::Fields getRequiredFields() const override {
-    if (flag_data_)
-      // Visibility data must be read if needed, so NaNs are flagged.
-      return kDataField | kFlagsField;
-    else
-      return kFlagsField;
-  }
+  common::Fields getRequiredFields() const override { return kFlagsField; }
 
   common::Fields getProvidedFields() const override { return {}; }
 
@@ -60,7 +54,6 @@ class Counter : public Step {
 
  private:
   std::string name_;
-  bool flag_data_;
   unsigned int count_;
   bool save_to_json_;
   std::string json_filename_;

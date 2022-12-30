@@ -27,12 +27,6 @@ BOOST_AUTO_TEST_CASE(fields) {
   const Counter counter(parset, "");
   BOOST_TEST(counter.getRequiredFields() == Step::kFlagsField);
   BOOST_TEST(counter.getProvidedFields() == dp3::common::Fields());
-
-  parset.add("flagdata", "true");
-  const Counter flags_data(parset, "");
-  BOOST_TEST(flags_data.getRequiredFields() ==
-             (Step::kDataField | Step::kFlagsField));
-  BOOST_TEST(flags_data.getProvidedFields() == dp3::common::Fields());
 }
 
 BOOST_AUTO_TEST_CASE(save_ratios_to_json) {

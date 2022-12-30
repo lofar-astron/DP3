@@ -17,7 +17,6 @@ namespace steps {
 
 Counter::Counter(const common::ParameterSet& parset, const string& prefix)
     : name_(prefix),
-      flag_data_(parset.getBool(prefix + "flagdata", false)),
       count_(0),
       save_to_json_(parset.getBool(prefix + "savetojson", false)),
       json_filename_(parset.getString(prefix + "jsonfilename",

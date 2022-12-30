@@ -1,6 +1,6 @@
 description: >-
-  count the number of flags per baseline, frequency, and correlation. 
-  A flagging step also counts how many visibilities it flagged. 
+  count the number of flags per baseline, frequency, and correlation.
+  A flagging step also counts how many visibilities it flagged.
   Counts can be saved to a table to be plotted later using function ``plotflags`` in python module ``lofar.dppp``.
 inputs:
   type:
@@ -27,11 +27,6 @@ inputs:
     type: double
     doc: >-
       If > 0, print an extra message for each baseline or channel with a percentage flagged higher than this value. Such a message line can be easily grep-ed `.`
-  flagdata:
-    default: false
-    type: bool
-    doc: >-
-      If COUNT is the only step in an DP3 run, the data won't be read, so unflagged invalid data (NaN. infinite) won't be noticed and counted as flagged. Setting this flag forces DP3 to read and check the data `.`
   savetojson:
     default: false
     type: bool
