@@ -12,6 +12,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <xtensor/xadapt.hpp>
+
 #include <Version.h>
 
 #include "../base/DPLogger.h"
@@ -149,13 +151,15 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
 
 void GainCal::setAntennaUsed() {
   Matrix<bool> selbl(itsBaselineSelection.apply(info()));
-  unsigned int nBl = info().getAnt1().size();
+  unsigned int nBl = getInfo().getAnt1().size();
   itsAntennaUsed.resize(info().antennaNames().size());
   itsAntennaUsed = false;
   for (unsigned int bl = 0; bl < nBl; ++bl) {
-    if (selbl(info().getAnt1()[bl], info().getAnt2()[bl])) {
-      itsAntennaUsed[info().getAnt1()[bl]] = true;
-      itsAntennaUsed[info().getAnt2()[bl]] = true;
+    const int ant1 = getInfo().getAnt1()[bl];
+    const int ant2 = getInfo().getAnt2()[bl];
+    if (selbl(ant1, ant2)) {
+      itsAntennaUsed[ant1] = true;
+      itsAntennaUsed[ant2] = true;
     }
   }
 }
@@ -252,9 +256,10 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
         throw std::runtime_error("Unhandled mode");
     }
 
-    iS.emplace_back(GainCalAlgorithm(
-        itsSolInt, chMax, smode, scalarMode(itsMode), itsTolerance,
-        info().antennaUsed().size(), itsDetectStalling, itsDebugLevel));
+    iS.emplace_back(
+        GainCalAlgorithm(itsSolInt, chMax, smode, scalarMode(itsMode),
+                         itsTolerance, info().antennaUsed().size(),
+                         itsDetectStalling, itsDebugLevel, info().nThreads()));
   }
 
   itsFlagCounter.init(getInfo());
@@ -385,11 +390,10 @@ bool GainCal::process(const DPBuffer& bufin) {
 
   if (itsStepInSolInt == 0) {
     // Start new solution interval
-
-    for (unsigned int freqCell = 0; freqCell < itsNFreqCells; freqCell++) {
+    itsParallelFor.Run(0, itsNFreqCells, [&](size_t freqCell) {
       iS[freqCell].clearStationFlagged();
       iS[freqCell].resetVis();
-    }
+    });
   }
 
   // Store data in the GainCalAlgorithm object
@@ -464,8 +468,8 @@ void GainCal::applySolution(DPBuffer& buf,
 
   for (size_t bl = 0; bl < nbl; ++bl) {
     for (size_t chan = 0; chan < nchan; chan++) {
-      unsigned int antA = info().antennaMap()[info().getAnt1()[bl]];
-      unsigned int antB = info().antennaMap()[info().getAnt2()[bl]];
+      const int antA = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
+      const int antB = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
       unsigned int freqCell = chan / itsNChan;
       if (nCr > 2) {
         ApplyCal::applyFull(
@@ -502,57 +506,68 @@ void GainCal::applySolution(DPBuffer& buf,
 void GainCal::fillMatrices(casacore::Complex* model,
                            const casacore::Complex* data, const float* weight,
                            const casacore::Bool* flag) {
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
-  const size_t nCr = info().ncorr();
-  assert(nCr == 4 || nCr == 2 || nCr == 1);
+  const size_t n_baselines = getInfo().nbaselines();
+  const size_t n_channels = getInfo().nchan();
+  const size_t n_correlations = getInfo().ncorr();
+  assert(n_correlations == 4 || n_correlations == 2 || n_correlations == 1);
 
-  for (unsigned int ch = 0; ch < nCh; ++ch) {
-    for (unsigned int bl = 0; bl < nBl; ++bl) {
-      if (itsSelectedBL[bl]) {
-        int ant1 = info().antennaMap()[info().getAnt1()[bl]];
-        int ant2 = info().antennaMap()[info().getAnt2()[bl]];
-        assert(ant1 >= 0 && ant2 >= 0);
-        if (ant1 == ant2 || iS[ch / itsNChan].getStationFlagged()[ant1] ||
-            iS[ch / itsNChan].getStationFlagged()[ant2] ||
-            flag[bl * nCr * nCh + ch * nCr]) {  // Only check flag of cr==0
-          continue;
-        }
+  const std::vector<std::size_t> shape = {n_baselines, n_channels,
+                                          n_correlations};
+  const size_t size =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies());
+  auto model_adaptor = xt::adapt(model, size, xt::no_ownership(), shape);
+  auto data_adaptor = xt::adapt(data, size, xt::no_ownership(), shape);
+  auto weight_adaptor = xt::adapt(weight, size, xt::no_ownership(), shape);
+  auto flag_adaptor = xt::adapt(flag, size, xt::no_ownership(), shape);
 
-        if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
-          iS[ch / itsNChan].incrementWeight(weight[bl * nCr * nCh + ch * nCr]);
-        }
+  itsParallelFor.Run(0, n_channels, [&](size_t ch) {
+    for (size_t bl = 0; bl < n_baselines; ++bl) {
+      if (!itsSelectedBL[bl]) {
+        continue;
+      }
 
-        for (unsigned int cr = 0; cr < nCr; ++cr) {
-          // The nCrDiv is there such that for nCr==2 the visibilities end up at
-          // (0,0) for cr==0, (1,1) for cr==1
-          unsigned int nCrDiv = (nCr == 4 ? 2 : 1);
-          iS[ch / itsNChan].getVis()(IPosition(6, ant1, cr / nCrDiv,
-                                               itsStepInSolInt, ch % itsNChan,
-                                               cr % 2, ant2)) =
-              casacore::DComplex(data[bl * nCr * nCh + ch * nCr + cr]) *
-              casacore::DComplex(sqrt(weight[bl * nCr * nCh + ch * nCr + cr]));
-          iS[ch / itsNChan].getMVis()(IPosition(6, ant1, cr / nCrDiv,
-                                                itsStepInSolInt, ch % itsNChan,
-                                                cr % 2, ant2)) =
-              casacore::DComplex(model[bl * nCr * nCh + ch * nCr + cr]) *
-              casacore::DComplex(sqrt(weight[bl * nCr * nCh + ch * nCr + cr]));
+      const int ant1 = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
+      const int ant2 = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
 
-          // conjugate transpose
-          iS[ch / itsNChan].getVis()(IPosition(6, ant2, cr % 2, itsStepInSolInt,
-                                               ch % itsNChan, cr / nCrDiv,
-                                               ant1)) =
-              casacore::DComplex(conj(data[bl * nCr * nCh + ch * nCr + cr])) *
-              casacore::DComplex(sqrt(weight[bl * nCr * nCh + ch * nCr + cr]));
-          iS[ch / itsNChan].getMVis()(IPosition(6, ant2, cr % 2,
-                                                itsStepInSolInt, ch % itsNChan,
-                                                cr / nCrDiv, ant1)) =
-              casacore::DComplex(conj(model[bl * nCr * nCh + ch * nCr + cr])) *
-              casacore::DComplex(sqrt(weight[bl * nCr * nCh + ch * nCr + cr]));
-        }
+      const bool skip =
+          (ant1 == ant2 || iS[ch / itsNChan].getStationFlagged()[ant1] ||
+           iS[ch / itsNChan].getStationFlagged()[ant2] ||
+           flag_adaptor(bl, ch, 0));
+
+      if (skip) {  // Only check flag of cr==0
+        continue;
+      }
+
+      if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
+        iS[ch / itsNChan].incrementWeight(weight_adaptor(bl, ch, 0));
+      }
+
+      for (size_t cr = 0; cr < n_correlations; ++cr) {
+        const float weight_sqrt(sqrtf(weight[bl * n_correlations * n_channels +
+                                             ch * n_correlations + cr]));
+        // The n_crDiv is there such that for n_cr==2 the visibilities end up at
+        // (0,0) for cr==0, (1,1) for cr==1
+        const size_t n_crDiv = (n_correlations == 4 ? 2 : 1);
+
+        const IPosition index(6, ant1, cr / n_crDiv, itsStepInSolInt,
+                              ch % itsNChan, cr % 2, ant2);
+
+        iS[ch / itsNChan].getVis()(index) =
+            data_adaptor(bl, ch, cr) * weight_sqrt;
+        iS[ch / itsNChan].getMVis()(index) =
+            model_adaptor(bl, ch, cr) * weight_sqrt;
+
+        const IPosition conjugate_index(6, ant2, cr % 2, itsStepInSolInt,
+                                        ch % itsNChan, cr / n_crDiv, ant1);
+
+        // conjugate transpose
+        iS[ch / itsNChan].getVis()(conjugate_index) =
+            conj(data_adaptor(bl, ch, cr)) * weight_sqrt;
+        iS[ch / itsNChan].getMVis()(conjugate_index) =
+            conj(model_adaptor(bl, ch, cr)) * weight_sqrt;
       }
     }
-  }
+  });
 }
 
 bool GainCal::scalarMode(CalType caltype) {
@@ -602,7 +617,7 @@ void GainCal::calibrate() {
 
     if (itsDebugLevel > 0) {
       for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
-        Matrix<casacore::DComplex> fullSolution =
+        Matrix<std::complex<double>> fullSolution =
             iS[freqCell].getSolution(false);
         std::copy(fullSolution.begin(), fullSolution.end(),
                   &(itsAllSolutions(IPosition(6, 0, 0, 0, freqCell, iter,
@@ -613,14 +628,14 @@ void GainCal::calibrate() {
     if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
       itsTimerSolve.stop();
       itsTimerPhaseFit.start();
-      casacore::Matrix<casacore::DComplex> sols_f(itsNFreqCells,
-                                                  info().antennaUsed().size());
+      casacore::Matrix<std::complex<double>> sols_f(
+          itsNFreqCells, info().antennaUsed().size());
 
       unsigned int nSt = info().antennaUsed().size();
 
       // TODO: set phase reference to something smarter than station 0
       for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
-        casacore::Matrix<casacore::DComplex> sol =
+        casacore::Matrix<std::complex<double>> sol =
             iS[freqCell].getSolution(false);
         if (iS[freqCell].getStationFlagged()[0]) {
           // If reference station flagged, flag whole channel
@@ -689,7 +704,7 @@ void GainCal::calibrate() {
         if (itsDebugLevel > 0) {
           for (unsigned int freqCell = 0; freqCell < itsNFreqCells;
                ++freqCell) {
-            Matrix<casacore::DComplex> fullSolution =
+            Matrix<std::complex<double>> fullSolution =
                 iS[freqCell].getSolution(false);
             std::copy(fullSolution.begin(), fullSolution.end(),
                       &(itsAllSolutions(IPosition(6, 0, 0, 1, freqCell, iter,
@@ -744,7 +759,7 @@ void GainCal::calibrate() {
   unsigned int nSt = info().antennaUsed().size();
 
   for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
-    casacore::Matrix<casacore::DComplex> tmpsol =
+    casacore::Matrix<std::complex<double>> tmpsol =
         iS[freqCell].getSolution(true);
 
     for (unsigned int st = 0; st < nSt; st++) {
@@ -985,8 +1000,8 @@ void GainCal::writeSolutionsH5Parm(double) {
       soltabs[1].SetValues(phasesols, weights, historyString);
     }
   } else {
-    std::vector<casacore::DComplex> sols(nSolFreqs * antennaUsedNames.size() *
-                                         nSolTimes * nPol);
+    std::vector<std::complex<double>> sols(nSolFreqs * antennaUsedNames.size() *
+                                           nSolTimes * nPol);
     std::vector<double> weights(
         nSolFreqs * antennaUsedNames.size() * nSolTimes * nPol, 1.);
     size_t i = 0;
@@ -1132,7 +1147,7 @@ void GainCal::writeSolutionsParmDB(double startTime) {
   const char* strri[] = {"Real:", "Imag:"};
   Matrix<double> values(nfreqs, ntime);
 
-  casacore::DComplex sol;
+  std::complex<double> sol;
 
   unsigned int nSt = info().antennaUsed().size();
 
@@ -1277,7 +1292,7 @@ void GainCal::finish() {
         dims[i] = itsAllSolutions.shape()[5 - i];
       }
       H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
-      H5::CompType complex_data_type(sizeof(casacore::DComplex));
+      H5::CompType complex_data_type(sizeof(std::complex<double>));
       complex_data_type.insertMember("r", 0, H5::PredType::IEEE_F64LE);
       complex_data_type.insertMember("i", sizeof(double),
                                      H5::PredType::IEEE_F64LE);
