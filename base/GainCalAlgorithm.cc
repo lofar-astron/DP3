@@ -12,6 +12,8 @@
 
 #include <iostream>
 
+#include "aocommon/parallelfor.h"
+
 using casacore::IPosition;
 using casacore::Vector;
 
@@ -21,7 +23,8 @@ namespace base {
 GainCalAlgorithm::GainCalAlgorithm(unsigned int solInt, unsigned int nChan,
                                    Mode mode, bool scalar, double tolerance,
                                    unsigned int maxAntennas,
-                                   bool detectStalling, unsigned int debugLevel)
+                                   bool detectStalling, unsigned int debugLevel,
+                                   unsigned int nThreads)
     : _nSt(maxAntennas),
       _badIters(0),
       _veryBadIters(0),
@@ -32,7 +35,8 @@ GainCalAlgorithm::GainCalAlgorithm(unsigned int solInt, unsigned int nChan,
       _tolerance(tolerance),
       _totalWeight(0.),
       _detectStalling(detectStalling),
-      _debugLevel(debugLevel) {
+      _debugLevel(debugLevel),
+      _nThreads(nThreads) {
   resetVis();
 
   _nSt = maxAntennas;
@@ -97,8 +101,8 @@ void GainCalAlgorithm::init(bool initSolutions) {
       double fronormvis = 0;
       double fronormmod = 0;
 
-      DComplex* t_vis_p = _vis.data();
-      DComplex* t_mvis_p = _mvis.data();
+      std::complex<double>* t_vis_p = _vis.data();
+      std::complex<double>* t_mvis_p = _mvis.data();
 
       unsigned int vissize = _vis.size();
       for (unsigned int i = 0; i < vissize; ++i) {
@@ -218,10 +222,10 @@ void GainCalAlgorithm::doStep_polarized() {
       continue;
     }
 
-    DComplex* vis_p;
-    DComplex* mvis_p;
-    Vector<DComplex> w(_nCr);
-    Vector<DComplex> t(_nCr);
+    std::complex<double>* vis_p;
+    std::complex<double>* mvis_p;
+    Vector<std::complex<double>> w(_nCr);
+    Vector<std::complex<double>> t(_nCr);
 
     for (unsigned int time = 0; time < _solInt; ++time) {
       for (unsigned int ch = 0; ch < _nChan; ++ch) {
@@ -324,7 +328,7 @@ void GainCalAlgorithm::doStep_polarized() {
         }  // itsVis(IPosition(6,st2,1,time,ch,1,st1))
       }
     }
-    DComplex invdet = w(0) * w(3) - w(1) * w(2);
+    std::complex<double> invdet = w(0) * w(3) - w(1) * w(2);
     if (std::abs(invdet) == 0) {
       _stationFlagged[st1] = true;
       _g(st1, 0) = 0;
@@ -341,39 +345,28 @@ void GainCalAlgorithm::doStep_polarized() {
 void GainCalAlgorithm::doStep_unpolarized() {
   _gold = _g;
 
-  for (unsigned int ant = 0; ant < _nUn; ++ant) {
-    _h(ant, 0) = conj(_g(ant, 0));
-  }
+  aocommon::ParallelFor<unsigned int> parallel(_nThreads);
+  parallel.Run(0, _nUn,
+               [&](unsigned int ant) { _h(ant, 0) = conj(_g(ant, 0)); });
 
-  for (unsigned int st1 = 0; st1 < _nUn; ++st1) {
+  parallel.Run(0, _nUn, [&](size_t st1) {
     if (_stationFlagged[st1 % _nSt]) {
-      continue;
+      return;
     }
-    DComplex* vis_p;
-    DComplex* mvis_p;
-    double ww = 0;    // Same as w, but specifically for pol==false
-    DComplex tt = 0;  // Same as t, but specifically for pol==false
+    double ww = 0;                // Same as w, but specifically for pol==false
+    std::complex<double> tt = 0;  // Same as t, but specifically for pol==false
 
-    mvis_p = &_mvis(IPosition(6, 0, 0, 0, 0, st1 / _nSt, st1 % _nSt));
-    vis_p = &_vis(IPosition(6, 0, 0, 0, 0, st1 / _nSt, st1 % _nSt));
-    for (unsigned int st1pol = 0; st1pol < _nSp; ++st1pol) {
-      for (unsigned int ch = 0; ch < _nChan; ++ch) {
-        for (unsigned int time = 0; time < _solInt; ++time) {
-          for (unsigned int st2pol = 0; st2pol < _nSp; ++st2pol) {
-            DComplex* h_p = _h.data();
-            for (unsigned int st2 = 0; st2 < _nUn; ++st2) {
-              DComplex z(
-                  h_p[st2] *
-                  *mvis_p);  // itsMVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
-              ww += norm(z);
-              tt +=
-                  conj(z) *
-                  *vis_p;  // itsVis(IPosition(6,st2%nSt,st2/nSt,time,ch,st1/nSt,st1%nSt));
-              mvis_p++;
-              vis_p++;
-            }
-          }
-        }
+    const casacore::IPosition index(6, 0, 0, 0, 0, st1 / _nSt, st1 % _nSt);
+    std::complex<double>* mvis_p = &_mvis(index);
+    std::complex<double>* vis_p = &_vis(index);
+    std::complex<double>* h_p = _h.data();
+
+    for (size_t i = 0; i < _nSp * _nChan * _solInt * _nSp; i++) {
+      for (size_t st2 = 0; st2 < _nUn; ++st2) {
+        const size_t index = i * _nUn + st2;
+        const std::complex<double> z(h_p[st2] * mvis_p[index]);
+        ww += norm(z);
+        tt += conj(z) * vis_p[index];
       }
     }
 
@@ -381,7 +374,7 @@ void GainCalAlgorithm::doStep_unpolarized() {
     if (ww == 0 || std::abs(tt) == 0) {
       _stationFlagged[st1 % _nSt] = true;
       _g(st1, 0) = 0;
-      continue;
+      return;
     }
     _g(st1, 0) = tt / ww;
 
@@ -398,12 +391,12 @@ void GainCalAlgorithm::doStep_unpolarized() {
     } else if (_mode == AMPLITUDEONLY) {
       _g(st1, 0) = std::abs(_g(st1, 0));
     }
-  }
+  });
 }
 
 void GainCalAlgorithm::incrementWeight(float weight) { _totalWeight += weight; }
 
-casacore::Matrix<GainCalAlgorithm::DComplex> GainCalAlgorithm::getSolution(
+casacore::Matrix<std::complex<double>> GainCalAlgorithm::getSolution(
     bool setNaNs) {
   if (setNaNs) {
     for (unsigned int ant = 0; ant < _nUn; ++ant) {
@@ -475,7 +468,7 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
   double fronormg = 0;
   for (unsigned int ant = 0; ant < _nUn; ++ant) {
     for (unsigned int cr = 0; cr < _nCr; ++cr) {
-      DComplex diff = _g(ant, cr) - _gold(ant, cr);
+      std::complex<double> diff = _g(ant, cr) - _gold(ant, cr);
       fronormdiff += std::abs(diff * diff);
       fronormg += std::abs(_g(ant, cr) * _g(ant, cr));
     }

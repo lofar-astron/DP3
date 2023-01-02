@@ -19,7 +19,6 @@ namespace base {
 
 class GainCalAlgorithm {
  public:
-  using DComplex = std::complex<double>;
   enum Status { CONVERGED = 1, NOTCONVERGED = 2, STALLED = 3, FAILED = 4 };
 
   enum Mode { DEFAULT, PHASEONLY, AMPLITUDEONLY, FULLJONES };
@@ -27,7 +26,8 @@ class GainCalAlgorithm {
   /// mode can be "diagonal", "fulljones", "phaseonly", "scalarphase"
   GainCalAlgorithm(unsigned int solInt, unsigned int nChan, Mode mode,
                    bool scalar, double tolerance, unsigned int maxAntennas,
-                   bool detectStalling, unsigned int debugLevel);
+                   bool detectStalling, unsigned int debugLevel,
+                   unsigned int nThreads);
 
   /// Sets visibility matrices to zero
   void resetVis();
@@ -72,7 +72,7 @@ class GainCalAlgorithm {
  private:
   /// Perform relaxation
   Status relax(unsigned int iter);
-  static bool isFinite(const DComplex& val) {
+  static bool isFinite(const std::complex<double>& val) {
     return std::isfinite(val.real()) && std::isfinite(val.imag());
   }
 
@@ -111,6 +111,7 @@ class GainCalAlgorithm {
   double _totalWeight;
   bool _detectStalling;
   unsigned int _debugLevel;
+  unsigned int _nThreads;
 
   double _dg, _dgx;          ///< previous convergence
   std::vector<double> _dgs;  ///< convergence history
