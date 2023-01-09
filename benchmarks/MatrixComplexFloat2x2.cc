@@ -79,6 +79,31 @@ static void Multiply(ankerl::nanobench::Bench& bench, const char* name) {
   });
 }
 
+template <class Matrix>
+static void MultiplyDiagonal(ankerl::nanobench::Bench& bench,
+                             const char* name) {
+  Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+  auto b{Diagonal(a)};
+
+  bench.run(name, [&] {
+    a = a * b;
+    ankerl::nanobench::doNotOptimizeAway(a);
+  });
+}
+
+template <class Matrix>
+static void Invert(ankerl::nanobench::Bench& bench, const char* name) {
+  Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+  Matrix r{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  [[maybe_unused]] bool b = true;
+  bench.run(name, [&] {
+    b = a.Invert();
+    ankerl::nanobench::doNotOptimizeAway(a);
+    a = r;
+  });
+}
+
 static void Generate(const std::string& extension, char const* output_template,
                      const ankerl::nanobench::Bench& bench) {
   std::ofstream output("MatrixComplextFloat2x2.render." + extension);

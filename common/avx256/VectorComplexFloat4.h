@@ -147,6 +147,16 @@ class VectorComplexFloat4 {
     return VectorFloat8{_mm256_fmaddsub_ps(Lv1, rhs.data_.Value(), Rv3)};
   }
 
+  [[nodiscard]] friend VectorComplexFloat4 operator*(
+      VectorComplexFloat4 lhs, std::complex<float> rhs) noexcept {
+    return lhs * VectorComplexFloat4{rhs, rhs, rhs, rhs};
+  }
+
+  [[nodiscard]] friend VectorComplexFloat4 operator*(
+      std::complex<float> lhs, VectorComplexFloat4 rhs) noexcept {
+    return rhs * lhs;
+  }
+
   [[nodiscard]] friend bool operator==(VectorComplexFloat4 lhs,
                                        VectorComplexFloat4 rhs) noexcept {
     return lhs.data_ == rhs.data_;

@@ -49,6 +49,10 @@ class DiagonalMatrixComplexFloat2x2 {
     return data_[index];
   }
 
+  [[nodiscard]] explicit operator __m128() const noexcept {
+    return static_cast<__m128>(data_);
+  }
+
   [[nodiscard]] DiagonalMatrixComplexFloat2x2 Conjugate() const noexcept {
     return data_.Conjugate();
   }

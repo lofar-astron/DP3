@@ -15,8 +15,9 @@
  * @todo Move this to aocommon when the class has matured further.
  */
 
-#include "common/avx256/VectorComplexDouble2.h"
 #include "common/avx256/DiagonalMatrixComplexDouble2x2.h"
+#include "common/avx256/MatrixComplexFloat2x2.h"
+#include "common/avx256/VectorComplexDouble2.h"
 
 #include <aocommon/matrix2x2.h>
 
@@ -50,6 +51,16 @@ class MatrixComplexDouble2x2 {
       const std::complex<float> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
+
+  [[nodiscard]] explicit MatrixComplexDouble2x2(
+      MatrixComplexFloat2x2 matrix) noexcept {
+    __m256 tmp = static_cast<__m256>(matrix);
+
+    __m128 lo = _mm256_castps256_ps128(tmp);
+    __m128 hi = _mm256_extractf128_ps(tmp, 1);
+    data_[0] = VectorDouble4{_mm256_cvtps_pd(lo)};
+    data_[1] = VectorDouble4{_mm256_cvtps_pd(hi)};
+  }
 
   [[nodiscard]] explicit MatrixComplexDouble2x2(
       const std::complex<double> matrix[4]) noexcept
@@ -245,6 +256,10 @@ class MatrixComplexDouble2x2 {
     return std::array<VectorComplexDouble2, 2>{hr, lr};
   }
 
+  [[nodiscard]] DiagonalMatrixComplexDouble2x2 Diagonal() const noexcept {
+    return DiagonalMatrixComplexDouble2x2(data_[0][0], data_[1][1]);
+  }
+
   [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
       MatrixComplexDouble2x2 lhs, std::complex<double> rhs) noexcept {
     return std::array<VectorComplexDouble2, 2>{lhs.data_[0] * rhs,
@@ -270,6 +285,11 @@ class MatrixComplexDouble2x2 {
   [[nodiscard]] friend bool operator==(MatrixComplexDouble2x2 lhs,
                                        MatrixComplexDouble2x2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
+  }
+
+  MatrixComplexDouble2x2& operator=(const aocommon::MC2x2& matrix) noexcept {
+    *this = MatrixComplexDouble2x2(matrix.Data());
+    return *this;
   }
 
   friend std::ostream& operator<<(std::ostream& output,
@@ -309,6 +329,11 @@ inline double Norm(MatrixComplexDouble2x2 matrix) noexcept {
 [[nodiscard]] inline std::complex<double> Trace(
     MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Trace();
+}
+
+[[nodiscard]] inline DiagonalMatrixComplexDouble2x2 Diagonal(
+    MatrixComplexDouble2x2 matrix) noexcept {
+  return matrix.Diagonal();
 }
 
 }  // namespace aocommon::Avx256
