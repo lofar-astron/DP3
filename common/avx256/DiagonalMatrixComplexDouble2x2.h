@@ -59,6 +59,11 @@ class DiagonalMatrixComplexDouble2x2 {
     return Conjugate();
   }
 
+  DiagonalMatrixComplexDouble2x2 operator+=(
+      DiagonalMatrixComplexDouble2x2 value) noexcept {
+    return data_ += value.data_;
+  }
+
   [[nodiscard]] friend bool operator==(
       DiagonalMatrixComplexDouble2x2 lhs,
       DiagonalMatrixComplexDouble2x2 rhs) noexcept {
