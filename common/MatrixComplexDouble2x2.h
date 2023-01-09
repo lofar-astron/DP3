@@ -276,6 +276,15 @@ class MatrixComplexDouble2x2 {
     });
   }
 
+  [[nodiscard]] static MatrixComplexDouble2x2 Unity() noexcept {
+    switch (GetDispatch()) {
+      case Dispatch::Scalar:
+        return Scalar::MatrixComplexDouble2x2::Unity();
+      case Dispatch::Avx256:
+        return Avx256::MatrixComplexDouble2x2::Unity();
+    }
+  }
+
   //
   // Deprecated operations
   //

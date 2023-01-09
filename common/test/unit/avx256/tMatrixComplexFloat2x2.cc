@@ -319,6 +319,14 @@ BOOST_AUTO_TEST_CASE(trace) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(Unity) {
+  static_assert(noexcept(aocommon::Avx256::MatrixComplexFloat2x2::Unity()));
+
+  BOOST_CHECK_EQUAL(
+      aocommon::Avx256::MatrixComplexFloat2x2{aocommon::MC2x2F::Unity()},
+      aocommon::Avx256::MatrixComplexFloat2x2::Unity());
+}
+
 BOOST_AUTO_TEST_CASE(operator_plus_equal) {
   aocommon::Avx256::MatrixComplexFloat2x2 r{
       {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
