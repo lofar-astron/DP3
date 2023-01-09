@@ -55,6 +55,11 @@ class VectorFloat8 {
 
   [[nodiscard]] __m256 Value() const noexcept { return data_; }
 
+  /** Assign data stored by 8 element vector to destination buffer */
+  void AssignTo(float* destination) const noexcept {
+    _mm256_storeu_ps(destination, data_);
+  }
+
   VectorFloat8& operator+=(VectorFloat8 value) noexcept {
     data_ += value.data_;
     return *this;

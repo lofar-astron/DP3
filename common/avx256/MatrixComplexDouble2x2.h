@@ -157,6 +157,13 @@ class MatrixComplexDouble2x2 {
     return {ret[0], ret[1]};
   }
 
+  /** Assign data stored by 2x2 complex matrix to destination buffer */
+  void AssignTo(std::complex<double>* destination) const noexcept {
+    data_[0].AssignTo(destination);
+    destination += 2;
+    data_[1].AssignTo(destination);
+  }
+
   [[nodiscard]] static MatrixComplexDouble2x2 Unity() noexcept {
     return MatrixComplexDouble2x2{
         std::complex<double>(1.0, 0.0), std::complex<double>(0.0, 0.0),

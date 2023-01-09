@@ -110,6 +110,24 @@ BOOST_AUTO_TEST_CASE(value) {
   BOOST_TEST(result[3] == -1.0);
 }
 
+BOOST_AUTO_TEST_CASE(assign_to) {
+  static_assert(noexcept(
+      aocommon::Avx256::VectorDouble4{static_cast<const double*>(nullptr)}
+          .AssignTo(nullptr)));
+
+  const aocommon::Avx256::VectorDouble4 input{-1.0, 1.0, 2.5, -2.5};
+
+  std::vector<double> result(6);
+  input.AssignTo(std::addressof(result[1]));
+
+  BOOST_TEST(result[0] == 0.0);
+  BOOST_TEST(result[1] == -1.0);
+  BOOST_TEST(result[2] == 1.0);
+  BOOST_TEST(result[3] == 2.5);
+  BOOST_TEST(result[4] == -2.5);
+  BOOST_TEST(result[5] == 0.0);
+}
+
 BOOST_AUTO_TEST_CASE(operator_plus_equal) {
   aocommon::Avx256::VectorDouble4 r{1, 2, 10, 11};
 

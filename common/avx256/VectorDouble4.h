@@ -49,6 +49,11 @@ class VectorDouble4 {
 
   [[nodiscard]] __m256d Value() const noexcept { return data_; }
 
+  /** Assign data stored by 4 element vector to destination buffer. */
+  void AssignTo(double* destination) const noexcept {
+    _mm256_storeu_pd(destination, data_);
+  }
+
   VectorDouble4& operator+=(VectorDouble4 value) noexcept {
     data_ += value.data_;
     return *this;

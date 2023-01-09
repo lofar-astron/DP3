@@ -124,6 +124,11 @@ class MatrixComplexFloat2x2 {
     return {ret[0], ret[1]};
   }
 
+  /** Assign data stored by 2x2 complex matrix to destination buffer */
+  void AssignTo(std::complex<float>* destination) const noexcept {
+    data_.AssignTo(destination);
+  }
+
   [[nodiscard]] static MatrixComplexFloat2x2 Unity() noexcept {
     return MatrixComplexFloat2x2{
         std::complex<float>(1.0f, 0.0f), std::complex<float>(0.0f, 0.0f),
