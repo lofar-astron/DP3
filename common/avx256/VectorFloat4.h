@@ -16,7 +16,7 @@
  * @note since 4 floats use 128-bits this vector uses AVX-128 vectors, despite
  * the 256 name.
  *
- * @todo Move this to aocommon then the class has matured further.
+ * @todo Move this to aocommon when the class has matured further.
  */
 
 #include <cassert>

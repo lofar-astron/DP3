@@ -13,7 +13,7 @@
  * @note The class only implements a subset of the vector operations. Other
  * operations will be added on a when-needed basis.
  *
- * @todo Move this to aocommon then the class has matured further.
+ * @todo Move this to aocommon when the class has matured further.
  */
 
 #include "common/avx256/VectorDouble4.h"
@@ -32,20 +32,22 @@ class VectorComplexDouble2 {
  public:
   [[nodiscard]] VectorComplexDouble2() noexcept = default;
 
-  /* implicit */ VectorComplexDouble2(VectorDouble4 data) noexcept
+  [[nodiscard]] /* implicit */ VectorComplexDouble2(VectorDouble4 data) noexcept
       : data_{data} {}
 
-  explicit VectorComplexDouble2(std::complex<double> a,
-                                std::complex<double> b) noexcept
+  [[nodiscard]] explicit VectorComplexDouble2(std::complex<double> a,
+                                              std::complex<double> b) noexcept
       : data_{VectorDouble4{a.real(), a.imag(), b.real(), b.imag()}} {}
 
-  explicit VectorComplexDouble2(const std::complex<float> vector[2]) noexcept
+  [[nodiscard]] explicit VectorComplexDouble2(
+      const std::complex<float> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
       : data_{VectorDouble4{
             reinterpret_cast<const float*>(std::addressof(vector[0]))}} {}
 
-  explicit VectorComplexDouble2(const std::complex<double> vector[2]) noexcept
+  [[nodiscard]] explicit VectorComplexDouble2(
+      const std::complex<double> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
       : data_{VectorDouble4{
@@ -142,13 +144,13 @@ class VectorComplexDouble2 {
     return VectorDouble4{_mm256_fmaddsub_pd(Lv1, rhs.data_.Value(), Rv3)};
   }
 
-  friend VectorComplexDouble2 operator*(VectorComplexDouble2 lhs,
-                                        std::complex<double> rhs) noexcept {
+  [[nodiscard]] friend VectorComplexDouble2 operator*(
+      VectorComplexDouble2 lhs, std::complex<double> rhs) noexcept {
     return lhs * VectorComplexDouble2{rhs, rhs};
   }
 
-  friend VectorComplexDouble2 operator*(std::complex<double> lhs,
-                                        VectorComplexDouble2 rhs) noexcept {
+  [[nodiscard]] friend VectorComplexDouble2 operator*(
+      std::complex<double> lhs, VectorComplexDouble2 rhs) noexcept {
     return rhs * lhs;
   }
 
