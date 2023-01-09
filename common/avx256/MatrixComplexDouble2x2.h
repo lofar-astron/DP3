@@ -23,6 +23,7 @@
 #include <array>
 #include <cassert>
 #include <complex>
+#include <limits>
 #include <ostream>
 
 #if defined(__AVX2__)
@@ -160,6 +161,18 @@ class MatrixComplexDouble2x2 {
     return MatrixComplexDouble2x2{
         std::complex<double>(1.0, 0.0), std::complex<double>(0.0, 0.0),
         std::complex<double>(0.0, 0.0), std::complex<double>(1.0, 0.0)};
+  }
+
+  [[nodiscard]] static MatrixComplexDouble2x2 NaN() noexcept {
+    return MatrixComplexDouble2x2{
+        std::complex<double>{std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::quiet_NaN()},
+        std::complex<double>{std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::quiet_NaN()},
+        std::complex<double>{std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::quiet_NaN()},
+        std::complex<double>{std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::quiet_NaN()}};
   }
 
   MatrixComplexDouble2x2& operator+=(MatrixComplexDouble2x2 value) noexcept {
