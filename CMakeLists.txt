@@ -571,11 +571,14 @@ if(BUILD_TESTING)
 
   set(TEST_FILENAMES
       common/test/unit/avx256/tDiagonalMatrixComplexDouble2x2.cc
+      common/test/unit/avx256/tDiagonalMatrixComplexFloat2x2.cc
       common/test/unit/avx256/tVectorComplexDouble2.cc
       common/test/unit/avx256/tMatrixComplexDouble2x2.cc
       common/test/unit/avx256/tMatrixComplexFloat2x2.cc
+      common/test/unit/avx256/tVectorComplexFloat2.cc
       common/test/unit/avx256/tVectorComplexFloat4.cc
       common/test/unit/avx256/tVectorDouble4.cc
+      common/test/unit/avx256/tVectorFloat4.cc
       common/test/unit/avx256/tVectorFloat8.cc
       common/test/unit/fixtures/fSkymodel.cc
       common/test/unit/tFields.cc
@@ -918,4 +921,5 @@ if(BUILD_BENCHMARKS)
   add_benchmark(MatrixComplexDouble2x2)
   add_benchmark(MatrixComplexFloat2x2)
   add_benchmark(VectorComplexDouble2)
+  add_benchmark(VectorComplexFloat2)
 endif()
