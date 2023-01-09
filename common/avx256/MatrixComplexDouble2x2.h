@@ -145,6 +145,17 @@ class MatrixComplexDouble2x2 {
     return ret[0];
   }
 
+  /** Returns the sum of the diagonal elements. */
+  [[nodiscard]] std::complex<double> Trace() const noexcept {
+    // Trace = M[0] + M[3]
+
+    // Extract M[0] and M[1] as 128-bit AVX vector.
+    __m128d ret = _mm256_castpd256_pd128(static_cast<__m256d>(data_[0]));
+    // Extracts M[3] and M[4] as 128-bit AVX vector and adds it to ret.
+    ret += _mm256_extractf128_pd(static_cast<__m256d>(data_[1]), 1);
+    return {ret[0], ret[1]};
+  }
+
   MatrixComplexDouble2x2& operator+=(MatrixComplexDouble2x2 value) noexcept {
     data_[0] += value.data_[0];
     data_[1] += value.data_[1];
@@ -266,6 +277,12 @@ class MatrixComplexDouble2x2 {
  */
 inline double Norm(MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Norm();
+}
+
+/** Returns the sum of the diagonal elements. */
+[[nodiscard]] inline std::complex<double> Trace(
+    MatrixComplexDouble2x2 matrix) noexcept {
+  return matrix.Trace();
 }
 
 }  // namespace aocommon::Avx256

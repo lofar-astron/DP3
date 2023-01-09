@@ -113,6 +113,17 @@ class MatrixComplexFloat2x2 {
     return ret[0] + ret[1];
   }
 
+  /** Returns the sum of the diagonal elements. */
+  [[nodiscard]] std::complex<float> Trace() const noexcept {
+    // Trace = M[0] + M[3]
+
+    __m256 ret = static_cast<__m256>(data_);
+    ret +=
+        // Moves M[3] to the location of M[0] and adds it to ret.
+        _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(ret), 0b11));
+    return {ret[0], ret[1]};
+  }
+
   MatrixComplexFloat2x2& operator+=(MatrixComplexFloat2x2 value) noexcept {
     data_ += value.data_;
     return *this;
@@ -184,6 +195,11 @@ inline MatrixComplexFloat2x2 HermTranspose(
  */
 inline float Norm(MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.Norm();
+}
+
+/** Returns the sum of the diagonal elements. */
+inline std::complex<float> Trace(MatrixComplexFloat2x2 matrix) noexcept {
+  return matrix.Trace();
 }
 
 }  // namespace aocommon::Avx256

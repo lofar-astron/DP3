@@ -234,12 +234,12 @@ class MatrixComplexDouble2x2 {
   }
 
   [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
-      MatrixComplexDouble2x2 lhs, std::complex<double> rhs) const noexcept {
+      MatrixComplexDouble2x2 lhs, std::complex<double> rhs) noexcept {
     return ExecuteBinaryOperator(lhs, rhs, std::multiplies{});
   }
 
   [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
-      std::complex<double> lhs, MatrixComplexDouble2x2 rhs) const noexcept {
+      std::complex<double> lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return ExecuteBinaryOperator(lhs, rhs, std::multiplies{});
   }
 
