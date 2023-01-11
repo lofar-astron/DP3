@@ -30,6 +30,8 @@ namespace aocommon::Avx256 {
 
 class DiagonalMatrixComplexDouble2x2 {
  public:
+  [[nodiscard]] DiagonalMatrixComplexDouble2x2() noexcept = default;
+
   [[nodiscard]] /* implicit */ DiagonalMatrixComplexDouble2x2(
       VectorComplexDouble2 data) noexcept
       : data_{data} {}

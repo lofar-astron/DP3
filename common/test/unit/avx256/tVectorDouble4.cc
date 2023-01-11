@@ -18,8 +18,7 @@
 
 BOOST_AUTO_TEST_SUITE(VectorDouble4)
 
-static_assert(
-    !std::is_default_constructible_v<aocommon::Avx256::VectorDouble4>);
+static_assert(std::is_default_constructible_v<aocommon::Avx256::VectorDouble4>);
 static_assert(std::is_nothrow_destructible_v<aocommon::Avx256::VectorDouble4>);
 static_assert(
     std::is_nothrow_copy_constructible_v<aocommon::Avx256::VectorDouble4>);
@@ -29,6 +28,17 @@ static_assert(
     std::is_nothrow_copy_assignable_v<aocommon::Avx256::VectorDouble4>);
 static_assert(
     std::is_nothrow_move_assignable_v<aocommon::Avx256::VectorDouble4>);
+
+BOOST_AUTO_TEST_CASE(constructor_default) {
+  static_assert(
+      std::is_nothrow_default_constructible_v<aocommon::Avx256::VectorDouble4>);
+  const aocommon::Avx256::VectorDouble4 result;
+
+  BOOST_TEST(result[0] == 0.0);
+  BOOST_TEST(result[1] == 0.0);
+  BOOST_TEST(result[2] == 0.0);
+  BOOST_TEST(result[3] == 0.0);
+}
 
 BOOST_AUTO_TEST_CASE(constructor_m_256) {
   static_assert(std::is_nothrow_constructible_v<aocommon::Avx256::VectorDouble4,

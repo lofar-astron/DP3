@@ -14,7 +14,7 @@
 BOOST_AUTO_TEST_SUITE(VectorComplexDouble2)
 
 static_assert(
-    !std::is_default_constructible_v<aocommon::Avx256::VectorComplexDouble2>);
+    std::is_default_constructible_v<aocommon::Avx256::VectorComplexDouble2>);
 static_assert(
     std::is_nothrow_destructible_v<aocommon::Avx256::VectorComplexDouble2>);
 static_assert(std::is_nothrow_copy_constructible_v<
@@ -25,6 +25,15 @@ static_assert(
     std::is_nothrow_copy_assignable_v<aocommon::Avx256::VectorComplexDouble2>);
 static_assert(
     std::is_nothrow_move_assignable_v<aocommon::Avx256::VectorComplexDouble2>);
+
+BOOST_AUTO_TEST_CASE(constructor_default) {
+  static_assert(std::is_nothrow_default_constructible_v<
+                aocommon::Avx256::VectorComplexDouble2>);
+  const aocommon::Avx256::VectorComplexDouble2 result;
+
+  BOOST_TEST(result[0] == (std::complex<double>{0.0, 0.0}));
+  BOOST_TEST(result[1] == (std::complex<double>{0.0, 0.0}));
+}
 
 BOOST_AUTO_TEST_CASE(constructor_vector_double) {
   static_assert(

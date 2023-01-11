@@ -30,6 +30,8 @@ namespace aocommon::Avx256 {
 
 class VectorComplexFloat4 {
  public:
+  VectorComplexFloat4() noexcept : data_{_mm256_setzero_ps()} {}
+
   /* implicit */ VectorComplexFloat4(VectorFloat8 data) noexcept
       : data_{data} {}
 

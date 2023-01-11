@@ -27,6 +27,8 @@ namespace aocommon::Avx256 {
 
 class VectorFloat8 {
  public:
+  explicit VectorFloat8() noexcept : data_{_mm256_setzero_ps()} {}
+
   /* implicit */ VectorFloat8(__m256 data) noexcept : data_{data} {}
 
   explicit VectorFloat8(float value) noexcept : data_{_mm256_set1_ps(value)} {}
