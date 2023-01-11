@@ -180,8 +180,6 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
 
-include(external/aocommon/CMake/FetchXTensor.cmake)
-
 # === Load astron packages ===
 
 find_package(AOFlagger 3.1 REQUIRED)
@@ -267,6 +265,7 @@ endif()
 
 # Include aocommon
 include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
+include(external/aocommon/CMake/FetchXTensor.cmake)
 
 # Include pybind11
 set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
