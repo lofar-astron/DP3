@@ -180,22 +180,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
 
-FetchContent_Declare(
-  xtl
-  GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
-  GIT_SHALLOW TRUE
-  GIT_TAG 0.7.4)
-FetchContent_Declare(
-  xsimd
-  GIT_REPOSITORY https://github.com/xtensor-stack/xsimd.git
-  GIT_SHALLOW TRUE
-  GIT_TAG 8.1.0)
-FetchContent_Declare(
-  xtensor
-  GIT_REPOSITORY https://github.com/xtensor-stack/xtensor.git
-  GIT_SHALLOW TRUE
-  GIT_TAG 0.24.2)
-FetchContent_MakeAvailable(xtl xsimd xtensor)
+include(external/aocommon/CMake/FetchXTensor.cmake)
 
 # === Load astron packages ===
 
