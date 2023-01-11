@@ -18,7 +18,7 @@
 
 BOOST_AUTO_TEST_SUITE(DiagonalMatrixComplexDouble2x2)
 
-static_assert(!std::is_default_constructible_v<
+static_assert(std::is_default_constructible_v<
               aocommon::Avx256::DiagonalMatrixComplexDouble2x2>);
 static_assert(std::is_nothrow_destructible_v<
               aocommon::Avx256::DiagonalMatrixComplexDouble2x2>);
@@ -30,6 +30,15 @@ static_assert(std::is_nothrow_copy_assignable_v<
               aocommon::Avx256::DiagonalMatrixComplexDouble2x2>);
 static_assert(std::is_nothrow_move_assignable_v<
               aocommon::Avx256::DiagonalMatrixComplexDouble2x2>);
+
+BOOST_AUTO_TEST_CASE(constructor_default) {
+  static_assert(std::is_nothrow_default_constructible_v<
+                aocommon::Avx256::DiagonalMatrixComplexDouble2x2>);
+  const aocommon::Avx256::DiagonalMatrixComplexDouble2x2 result;
+
+  BOOST_TEST(result[0] == (std::complex<double>{0.0, 0.0}));
+  BOOST_TEST(result[1] == (std::complex<double>{0.0, 0.0}));
+}
 
 BOOST_AUTO_TEST_CASE(constructor_2_complex_double) {
   static_assert(std::is_nothrow_constructible_v<

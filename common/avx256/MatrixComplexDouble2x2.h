@@ -33,6 +33,8 @@ namespace aocommon::Avx256 {
 
 class MatrixComplexDouble2x2 {
  public:
+  [[nodiscard]] MatrixComplexDouble2x2() noexcept = default;
+
   [[nodiscard]] /* implicit */ MatrixComplexDouble2x2(
       std::array<VectorComplexDouble2, 2> data) noexcept
       : data_{data} {}

@@ -26,6 +26,8 @@ namespace aocommon::Avx256 {
 
 class VectorDouble4 {
  public:
+  explicit VectorDouble4() noexcept : data_{_mm256_setzero_pd()} {}
+
   /* implicit */ VectorDouble4(__m256d data) noexcept : data_{data} {}
 
   explicit VectorDouble4(double value) noexcept

@@ -30,6 +30,8 @@ namespace aocommon::Avx256 {
 
 class VectorComplexDouble2 {
  public:
+  [[nodiscard]] VectorComplexDouble2() noexcept = default;
+
   /* implicit */ VectorComplexDouble2(VectorDouble4 data) noexcept
       : data_{data} {}
 

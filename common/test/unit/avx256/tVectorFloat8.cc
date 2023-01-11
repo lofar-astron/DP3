@@ -18,7 +18,7 @@
 
 BOOST_AUTO_TEST_SUITE(VectorFloat8)
 
-static_assert(!std::is_default_constructible_v<aocommon::Avx256::VectorFloat8>);
+static_assert(std::is_default_constructible_v<aocommon::Avx256::VectorFloat8>);
 static_assert(std::is_nothrow_destructible_v<aocommon::Avx256::VectorFloat8>);
 static_assert(
     std::is_nothrow_copy_constructible_v<aocommon::Avx256::VectorFloat8>);
@@ -28,6 +28,21 @@ static_assert(
     std::is_nothrow_copy_assignable_v<aocommon::Avx256::VectorFloat8>);
 static_assert(
     std::is_nothrow_move_assignable_v<aocommon::Avx256::VectorFloat8>);
+
+BOOST_AUTO_TEST_CASE(constructor_default) {
+  static_assert(
+      std::is_nothrow_default_constructible_v<aocommon::Avx256::VectorFloat8>);
+  const aocommon::Avx256::VectorFloat8 result;
+
+  BOOST_TEST(result[0] == 0.0);
+  BOOST_TEST(result[1] == 0.0);
+  BOOST_TEST(result[2] == 0.0);
+  BOOST_TEST(result[3] == 0.0);
+  BOOST_TEST(result[4] == 0.0);
+  BOOST_TEST(result[5] == 0.0);
+  BOOST_TEST(result[6] == 0.0);
+  BOOST_TEST(result[7] == 0.0);
+}
 
 BOOST_AUTO_TEST_CASE(constructor_m_256) {
   static_assert(

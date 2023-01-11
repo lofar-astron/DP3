@@ -31,6 +31,8 @@ namespace aocommon::Avx256 {
 
 class MatrixComplexFloat2x2 {
  public:
+  [[nodiscard]] MatrixComplexFloat2x2() noexcept = default;
+
   /* implicit */ MatrixComplexFloat2x2(VectorComplexFloat4 data) noexcept
       : data_{data} {}
 

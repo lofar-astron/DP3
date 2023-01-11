@@ -14,7 +14,7 @@
 BOOST_AUTO_TEST_SUITE(VectorComplexFloat4)
 
 static_assert(
-    !std::is_default_constructible_v<aocommon::Avx256::VectorComplexFloat4>);
+    std::is_default_constructible_v<aocommon::Avx256::VectorComplexFloat4>);
 static_assert(
     std::is_nothrow_destructible_v<aocommon::Avx256::VectorComplexFloat4>);
 static_assert(std::is_nothrow_copy_constructible_v<
@@ -25,6 +25,17 @@ static_assert(
     std::is_nothrow_copy_assignable_v<aocommon::Avx256::VectorComplexFloat4>);
 static_assert(
     std::is_nothrow_move_assignable_v<aocommon::Avx256::VectorComplexFloat4>);
+
+BOOST_AUTO_TEST_CASE(constructor_default) {
+  static_assert(std::is_nothrow_default_constructible_v<
+                aocommon::Avx256::VectorComplexFloat4>);
+  const aocommon::Avx256::VectorComplexFloat4 result;
+
+  BOOST_TEST(result[0] == (std::complex<float>{0.0, 0.0}));
+  BOOST_TEST(result[1] == (std::complex<float>{0.0, 0.0}));
+  BOOST_TEST(result[2] == (std::complex<float>{0.0, 0.0}));
+  BOOST_TEST(result[3] == (std::complex<float>{0.0, 0.0}));
+}
 
 BOOST_AUTO_TEST_CASE(constructor_vector_float) {
   static_assert(
