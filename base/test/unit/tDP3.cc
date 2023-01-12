@@ -105,10 +105,12 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
   BOOST_CHECK_EQUAL(table_out.nrow(), kNCopyMsTimeSlots * kNBaselines);
   for (std::size_t j = 0; j < n_ms; ++j) {
     // A few dummy time slots were inserted, so ignore those.
-    Table t1 = tableCommand(
-        "using style python "
-        "select from $1 where rownumber() not in [0:6, 4*6:6*6, 21*6:24*6]",
-        table_out);
+    Table t1 =
+        tableCommand(
+            "using style python "
+            "select from $1 where rownumber() not in [0:6, 4*6:6*6, 21*6:24*6]",
+            table_out)
+            .table();
     ArrayColumn<Complex> data(t1, "DATA");
     ArrayColumn<bool> flag(t1, "FLAG");
     ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
@@ -151,10 +153,12 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
   {
     // Check the inserted time slots.
     // The MS misses a few time slots (3 and 4).
-    Table t1 = tableCommand(
-        "using style python "
-        "select from $1 where rownumber() in [0:6, 4*6:6*6, 21*6:24*6]",
-        table_out);
+    Table t1 =
+        tableCommand(
+            "using style python "
+            "select from $1 where rownumber() in [0:6, 4*6:6*6, 21*6:24*6]",
+            table_out)
+            .table();
     ArrayColumn<Complex> data(t1, "DATA");
     ArrayColumn<bool> flag(t1, "FLAG");
     ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
@@ -689,9 +693,10 @@ void CheckFullResFlags(const std::string& out_ms) {
   {
     // Input time slots 3,4 are inserted, thus flagged.
     Table table = tableCommand(
-        "using style python "
-        "select from $1 where rownumber() in [0:6]",
-        table_out);
+                      "using style python "
+                      "select from $1 where rownumber() in [0:6]",
+                      table_out)
+                      .table();
     ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
@@ -711,9 +716,10 @@ void CheckFullResFlags(const std::string& out_ms) {
   {
     // Input time slots 10,11 are flagged.
     Table table = tableCommand(
-        "using style python "
-        "select from $1 where rownumber() in [6:12]",
-        table_out);
+                      "using style python "
+                      "select from $1 where rownumber() in [6:12]",
+                      table_out)
+                      .table();
     ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
@@ -729,9 +735,10 @@ void CheckFullResFlags(const std::string& out_ms) {
   {
     // Input time slots 12-17 are not flagged.
     Table table = tableCommand(
-        "using style python "
-        "select from $1 where rownumber() in [12:18]",
-        table_out);
+                      "using style python "
+                      "select from $1 where rownumber() in [12:18]",
+                      table_out)
+                      .table();
     ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
@@ -743,9 +750,10 @@ void CheckFullResFlags(const std::string& out_ms) {
   {
     // Input time slot 20-23 did not exist, thus flagged in average.
     Table table = tableCommand(
-        "using style python "
-        "select from $1 where rownumber() in [18:24]",
-        table_out);
+                      "using style python "
+                      "select from $1 where rownumber() in [18:24]",
+                      table_out)
+                      .table();
     ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
     casacore::Array<unsigned char> flags = oflag.getColumn();
