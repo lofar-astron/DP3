@@ -513,8 +513,8 @@ void GainCal::fillMatrices(casacore::Complex* model,
 
   const std::vector<std::size_t> shape = {n_baselines, n_channels,
                                           n_correlations};
-  const size_t size =
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies());
+  const size_t size = std::accumulate(shape.begin(), shape.end(), 1,
+                                      std::multiplies<std::size_t>());
   auto model_adaptor = xt::adapt(model, size, xt::no_ownership(), shape);
   auto data_adaptor = xt::adapt(data, size, xt::no_ownership(), shape);
   auto weight_adaptor = xt::adapt(weight, size, xt::no_ownership(), shape);
