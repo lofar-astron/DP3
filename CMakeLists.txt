@@ -358,6 +358,8 @@ add_library(
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 
+target_link_libraries(DDECal PUBLIC xtensor)
+
 # 'Base' files and steps are only included in DP3.
 add_library(
   DP3_OBJ OBJECT

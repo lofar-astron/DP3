@@ -23,9 +23,8 @@ class SmoothnessConstraint final : public Constraint {
    */
   SmoothnessConstraint(double bandwidth_hz, double bandwidth_ref_frequency_hz);
 
-  std::vector<Constraint::Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* stat_stream) override;
+  std::vector<Constraint::Result> Apply(SolutionsSpan& solutions, double time,
+                                        std::ostream* stat_stream) override;
 
   void SetWeights(const std::vector<double>& weights) override {
     weights_ = weights;

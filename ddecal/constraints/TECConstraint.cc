@@ -53,16 +53,14 @@ void ApproximateTECConstraint::initializeChild() {
     pw_fitters_[i].SetChunkSize(fitting_chunk_size_);
 }
 
-void TECConstraintBase::applyReferenceAntenna(
-    std::vector<std::vector<dcomplex>>& solutions) const {
+void TECConstraintBase::applyReferenceAntenna(SolutionsSpan& solutions) const {
   // Choose reference antenna that has at least 20% channels unflagged
   size_t ref_antenna = 0;
   for (; ref_antenna != NAntennas(); ++ref_antenna) {
     size_t n_unflagged_channels = 0;
     // Only check flagged state for first direction
     for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-      if (isfinite(solutions[ch][ref_antenna * NDirections()]))
-        n_unflagged_channels++;
+      if (isfinite(solutions(ch, ref_antenna, 0, 0))) ++n_unflagged_channels;
     }
     if (n_unflagged_channels * 1.0 / NChannelBlocks() > 0.2)
       // Choose this refAntenna;
@@ -75,21 +73,19 @@ void TECConstraintBase::applyReferenceAntenna(
     for (size_t antenna_index = 0; antenna_index != NAntennas();
          ++antenna_index) {
       for (size_t d = 0; d != NDirections(); ++d) {
-        size_t solution_index = antenna_index * NDirections() + d;
-        size_t ref_antenna_index = d + ref_antenna * NDirections();
         if (antenna_index != ref_antenna) {
-          solutions[ch][solution_index] =
-              solutions[ch][solution_index] / solutions[ch][ref_antenna_index];
+          solutions(ch, antenna_index, d, 0) /=
+              solutions(ch, ref_antenna, d, 0);
         }
       }
     }
     for (size_t d = 0; d != NDirections(); ++d)
-      solutions[ch][ref_antenna * NDirections() + d] = 1.0;
+      solutions(ch, ref_antenna, d, 0) = 1.0;
   }
 }
 
 std::vector<Constraint::Result> TECConstraint::Apply(
-    std::vector<std::vector<dcomplex>>& solutions, [[maybe_unused]] double time,
+    SolutionsSpan& solutions, [[maybe_unused]] double time,
     [[maybe_unused]] std::ostream* stat_stream) {
   size_t nRes = 3;
   if (mode_ == TECOnlyMode) {
@@ -120,14 +116,15 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   aocommon::ParallelFor<size_t> loop(NThreads());
   loop.Run(0, NAntennas() * NDirections(),
            [&](size_t solution_index, size_t thread) {
-             size_t antenna_index = solution_index / NDirections();
+             const size_t antenna_index = solution_index / NDirections();
+             const size_t direction_index = solution_index % NDirections();
 
              // Flag channels where calibration yielded inf or nan
              double weight_sum = 0.0;
              for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-               if (isfinite(solutions[ch][solution_index])) {
+               if (isfinite(solutions(ch, antenna_index, direction_index, 0))) {
                  phase_fitters_[thread].PhaseData()[ch] =
-                     std::arg(solutions[ch][solution_index]);
+                     std::arg(solutions(ch, antenna_index, direction_index, 0));
                  phase_fitters_[thread].WeightData()[ch] =
                      weights_[antenna_index * NChannelBlocks() + ch];
                  weight_sum += weights_[antenna_index * NChannelBlocks() + ch];
@@ -156,8 +153,9 @@ std::vector<Constraint::Result> TECConstraint::Apply(
              }
 
              for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-               solutions[ch][solution_index] = std::polar<double>(
-                   1.0, phase_fitters_[thread].PhaseData()[ch]);
+               solutions(ch, antenna_index, direction_index, 0) =
+                   std::polar<double>(1.0,
+                                      phase_fitters_[thread].PhaseData()[ch]);
              }
            });
 
@@ -165,43 +163,45 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 }
 
 std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
-    std::vector<std::vector<dcomplex>>& solutions, double time,
-    std::ostream* stat_stream) {
+    SolutionsSpan& solutions, double time, std::ostream* stat_stream) {
   if (finished_approximate_stage_)
     return TECConstraint::Apply(solutions, time, stat_stream);
   else {
     if (do_phase_reference_) applyReferenceAntenna(solutions);
 
     aocommon::ParallelFor<size_t> loop(NThreads());
-    loop.Run(0, NAntennas() * NDirections(),
-             [&](size_t solutionIndex, size_t thread) {
-               size_t antennaIndex = solutionIndex / NDirections();
-               std::vector<double>& data = thread_data_[thread];
-               std::vector<double>& fittedData = thread_fitted_data_[thread];
-               std::vector<double>& weights = thread_weights_[thread];
+    loop.Run(
+        0, NAntennas() * NDirections(),
+        [&](size_t solution_index, size_t thread) {
+          size_t antenna_index = solution_index / NDirections();
+          size_t direction_index = solution_index % NDirections();
+          std::vector<double>& data = thread_data_[thread];
+          std::vector<double>& fitted_data = thread_fitted_data_[thread];
+          std::vector<double>& weights = thread_weights_[thread];
 
-               // Flag channels where calibration yielded inf or nan
-               for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-                 if (isfinite(solutions[ch][solutionIndex])) {
-                   data[ch] = std::arg(solutions[ch][solutionIndex]);
-                   weights[ch] = weights_[antennaIndex * NChannelBlocks() + ch];
-                 } else {
-                   data[ch] = 0.0;
-                   weights[ch] = 0.0;
-                 }
-               }
+          // Flag channels where calibration yielded inf or nan
+          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+            if (isfinite(solutions(ch, antenna_index, direction_index, 0))) {
+              data[ch] =
+                  std::arg(solutions(ch, antenna_index, direction_index, 0));
+              weights[ch] = weights_[antenna_index * NChannelBlocks() + ch];
+            } else {
+              data[ch] = 0.0;
+              weights[ch] = 0.0;
+            }
+          }
 
-               // TODO might be nice to make it a user option whether to break
-               // or not
-               pw_fitters_[thread].SlidingFitWithBreak(
-                   phase_fitters_[thread].GetFrequencies().data(), data.data(),
-                   weights.data(), fittedData.data(), data.size());
+          // TODO might be nice to make it a user option whether to break
+          // or not
+          pw_fitters_[thread].SlidingFitWithBreak(
+              phase_fitters_[thread].GetFrequencies().data(), data.data(),
+              weights.data(), fitted_data.data(), data.size());
 
-               for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-                 solutions[ch][solutionIndex] =
-                     std::polar<double>(1.0, fittedData[ch]);
-               }
-             });
+          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+            solutions(ch, antenna_index, direction_index, 0) =
+                std::polar<double>(1.0, fitted_data[ch]);
+          }
+        });
 
     return std::vector<Constraint::Result>();
   }
