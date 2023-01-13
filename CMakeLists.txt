@@ -788,13 +788,24 @@ if(BUILD_TESTING)
         "Please install pytest or disable testing using -DBUILD_TESTING=Off")
   endif()
 
-  # Adds python tests using a separate ctest test for each python test function.
+  # Adds python tests using a separate ctest test for each python test.
   # The python tests should thus support parallel runs, e.g., each test function
   # should use its own directory.
+  # Arguments:
+  # ONE_CTEST_PER_SUBTEST:
+  #   If enabled, collect a list of sub-tests for each python test file and
+  #   create a ctest test for each sub-test. This settings allows running more
+  #   tests in parallel at the cost of extra CMake processing time.
+  #   If disabled (default), create a ctest test for each python test file, which
+  #   runs all sub-tests in that file. This setting speeds up CMake processing.
+  #
   # Notes:
-  # - The collection of python-based integration tests can be invoked with ctest -L pyintegration
+  # - The collection of python-based integration tests can be invoked with
+  #   ctest -L python -L integration
   # - The tPredict.py docstring describes how the tests can be invoked stand-alone.
   function(add_python_tests)
+    cmake_parse_arguments(ARG "ONE_CTEST_PER_SUBTEST" "" "" ${ARGN})
+
     configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
                    testconfig.py)
     configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in utils.py)
@@ -805,7 +816,7 @@ if(BUILD_TESTING)
     # fatal errors won't occur on systems without symlink support.)
     if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
       file(
-        CREATE_LINK ${CMAKE_SOURCE_DIR}/${PYTHON_TEST_DIR}
+        CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}/source
         RESULT DUMMY_RESULT
         SYMBOLIC)
@@ -818,54 +829,64 @@ if(BUILD_TESTING)
       string(APPEND LABELS ";integration")
     endif()
 
-    foreach(TEST ${ARGN})
-      # Extract a list of sub-tests using "pytest --co -q".
-      # The last two output lines are an empty line followed by
-      # "no tests ran in 0.18s" -> Strip those using "head -n -2".
-      execute_process(
-        COMMAND python3 -m pytest --collect-only -q
-                ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py
-        COMMAND head -n -2
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} RESULTS_VARIABLE
-                          LIST_RESULTS
-        OUTPUT_VARIABLE LIST_OUTPUT)
-      foreach(LIST_RESULT ${LIST_RESULTS})
-        if(LIST_RESULT)
-          message(
-            FATAL_ERROR
-              "Could not determine pytest functions in ${TEST}. Result: ${LIST_RESULT} Output:\n${LIST_OUTPUT}"
-          )
-        endif()
-      endforeach()
+    foreach(TEST ${ARG_UNPARSED_ARGUMENTS})
+      if(ARG_ONE_CTEST_PER_SUBTEST)
+        # Extract a list of sub-tests using "pytest --co -q".
+        # The last two output lines are an empty line followed by
+        # "no tests ran in 0.18s" -> Strip those using "head -n -2".
+        execute_process(
+          COMMAND python3 -m pytest --collect-only -q
+                  ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py
+          COMMAND head -n -2
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} RESULTS_VARIABLE
+                            LIST_RESULTS
+          OUTPUT_VARIABLE LIST_OUTPUT)
+        foreach(LIST_RESULT ${LIST_RESULTS})
+          if(LIST_RESULT)
+            message(
+              FATAL_ERROR
+                "Could not determine pytest functions in ${TEST}. Result: ${LIST_RESULT} Output:\n${LIST_OUTPUT}"
+            )
+          endif()
+        endforeach()
 
-      # LIST_OUTPUT has one test name at each line.
-      # Convert newlines into CMake list separators (";").
-      string(REPLACE "\n" ";" PYTESTS ${LIST_OUTPUT})
+        # LIST_OUTPUT has one test name at each line.
+        # Convert newlines into CMake list separators (";").
+        string(REPLACE "\n" ";" PYTESTS ${LIST_OUTPUT})
 
-      foreach(PYTEST ${PYTESTS})
-        # PYTEST is of the form: tDDECal.py::test[1-0-complexgain]
-        # Recent pytest versions also add the path before tDDECal.py.
-        # Remove everything up to and including "::".
-        string(REGEX REPLACE ".*${TEST}.py::" "" PYTEST ${PYTEST})
+        foreach(PYTEST ${PYTESTS})
+          # PYTEST is of the form: tDDECal.py::test[1-0-complexgain]
+          # Recent pytest versions also add the path before tDDECal.py.
+          # Remove everything up to and including "::".
+          string(REGEX REPLACE ".*${TEST}.py::" "" PYTEST ${PYTEST})
+          add_test(
+            NAME ${TEST}::${PYTEST}
+            COMMAND
+              python3 -m pytest --exitfirst -v -k ${PYTEST}
+              --junitxml=${CMAKE_BINARY_DIR}/pytest_${TEST}_${PYTEST}.xml
+              ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py)
+          set_tests_properties(${TEST}::${PYTEST} PROPERTIES LABELS "${LABELS}")
+        endforeach()
+      else()
+        # Create one ctest for all sub-tests in a python test file.
         add_test(
-          NAME ${TEST}::${PYTEST}
+          NAME ${TEST}
           COMMAND
-            python3 -m pytest --exitfirst -v -k ${PYTEST}
-            --junitxml=${CMAKE_BINARY_DIR}/pytest_${TEST}_${PYTEST}.xml
+            python3 -m pytest --exitfirst -v
+            --junitxml=${CMAKE_BINARY_DIR}/pytest_${TEST}.xml
             ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py)
-        set_tests_properties(${TEST}::${PYTEST} PROPERTIES LABELS "${LABELS}")
-      endforeach()
+        set_tests_properties(${TEST} PROPERTIES LABELS "${LABELS}")
+      endif()
     endforeach()
   endfunction()
 
   # Add python unit and integration tests.
-  # The CMakeLists.txt in these directories call add_python_tests.
+  # The CMakeLists.txt files in these directories call add_python_tests.
   foreach(PYTHON_TEST_DIR
           ddecal/test/integration parmdb/test/integration pythondp3/test/unit
           pythondp3/test/integration steps/test/integration)
     add_subdirectory(${PYTHON_TEST_DIR})
   endforeach()
-
 endif() # BUILD_TESTING
 
 option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
