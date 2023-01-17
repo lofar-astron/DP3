@@ -276,6 +276,49 @@ BOOST_AUTO_TEST_CASE(norm) {
   for (const auto& input : inputs) BOOST_CHECK_EQUAL(input.Norm(), 2022428.0f);
 }
 
+BOOST_AUTO_TEST_CASE(trace) {
+  static_assert(noexcept(aocommon::Avx256::MatrixComplexFloat2x2{
+      static_cast<const std::complex<float>*>(nullptr)}
+                             .Trace()));
+  const std::vector<aocommon::MC2x2F> inputs{
+      aocommon::MC2x2F{
+          std::complex<float>{1.0, 2.0}, std::complex<float>{10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, 2.0}, std::complex<float>{10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, -101}, std::complex<float>{1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, -101}, std::complex<float>{-1000, 1001}},
+      aocommon::MC2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, -101}, std::complex<float>{-1000, -1001}}};
+
+  for (const auto& input : inputs) {
+    const std::complex<float> expected = aocommon::Trace(input);
+
+    const std::complex<float> result =
+        aocommon::Avx256::MatrixComplexFloat2x2{input}.Trace();
+
+    BOOST_CHECK_EQUAL(result, expected);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(operator_plus_equal) {
   aocommon::Avx256::MatrixComplexFloat2x2 r{
       {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
@@ -488,6 +531,43 @@ BOOST_AUTO_TEST_CASE(non_member_norm) {
 
   for (const auto& input : inputs)
     BOOST_CHECK_EQUAL(input.Norm(), aocommon::Avx256::Norm(input));
+}
+
+BOOST_AUTO_TEST_CASE(non_member_trace) {
+  static_assert(
+      noexcept(aocommon::Avx256::Trace(aocommon::Avx256::MatrixComplexFloat2x2{
+          static_cast<const std::complex<float>*>(nullptr)})));
+  const std::vector<aocommon::Avx256::MatrixComplexFloat2x2> inputs{
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{1.0, 2.0}, std::complex<float>{10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, 2.0}, std::complex<float>{10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, 11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, 101}, std::complex<float>{1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, -101}, std::complex<float>{1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, -101}, std::complex<float>{-1000, 1001}},
+      aocommon::Avx256::MatrixComplexFloat2x2{
+          std::complex<float>{-1.0, -2.0}, std::complex<float>{-10, -11},
+          std::complex<float>{-100, -101}, std::complex<float>{-1000, -1001}}};
+
+  for (const auto& input : inputs)
+    BOOST_CHECK_EQUAL(Trace(input), input.Trace());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

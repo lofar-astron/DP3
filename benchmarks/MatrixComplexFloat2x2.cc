@@ -57,6 +57,18 @@ static void Norm(ankerl::nanobench::Bench& bench, const char* name) {
 }
 
 template <class Matrix>
+static void Trace(ankerl::nanobench::Bench& bench, const char* name) {
+  Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  std::complex<float> r;
+  bench.run(name, [&] {
+    // assigment needed to avoid optimization.
+    r = Trace(a);
+    ankerl::nanobench::doNotOptimizeAway(r);
+  });
+}
+
+template <class Matrix>
 static void Multiply(ankerl::nanobench::Bench& bench, const char* name) {
   Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
   Matrix b{{4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
@@ -89,6 +101,9 @@ int main() {
                                                      "AVX HermitianTranspose");
   Norm<aocommon::MC2x2F>(bench, "    Norm");
   Norm<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "AVX Norm");
+  Trace<aocommon::MC2x2F>(bench, "    Trace");
+  Trace<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "AVX Trace");
+  Trace<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "FMV Trace");
   Multiply<aocommon::MC2x2F>(bench, "    Multiply");
   Multiply<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "AVX Multiply");
 
