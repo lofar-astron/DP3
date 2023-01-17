@@ -124,6 +124,12 @@ class MatrixComplexFloat2x2 {
     return {ret[0], ret[1]};
   }
 
+  [[nodiscard]] static MatrixComplexFloat2x2 Unity() noexcept {
+    return MatrixComplexFloat2x2{
+        std::complex<float>(1.0f, 0.0f), std::complex<float>(0.0f, 0.0f),
+        std::complex<float>(0.0f, 0.0f), std::complex<float>(1.0f, 0.0f)};
+  }
+
   MatrixComplexFloat2x2& operator+=(MatrixComplexFloat2x2 value) noexcept {
     data_ += value.data_;
     return *this;

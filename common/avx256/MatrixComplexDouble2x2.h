@@ -156,6 +156,12 @@ class MatrixComplexDouble2x2 {
     return {ret[0], ret[1]};
   }
 
+  [[nodiscard]] static MatrixComplexDouble2x2 Unity() noexcept {
+    return MatrixComplexDouble2x2{
+        std::complex<double>(1.0, 0.0), std::complex<double>(0.0, 0.0),
+        std::complex<double>(0.0, 0.0), std::complex<double>(1.0, 0.0)};
+  }
+
   MatrixComplexDouble2x2& operator+=(MatrixComplexDouble2x2 value) noexcept {
     data_[0] += value.data_[0];
     data_[1] += value.data_[1];
