@@ -327,6 +327,22 @@ BOOST_AUTO_TEST_CASE(Unity) {
       aocommon::Avx256::MatrixComplexFloat2x2::Unity());
 }
 
+BOOST_AUTO_TEST_CASE(NaN) {
+  static_assert(noexcept(aocommon::Avx256::MatrixComplexFloat2x2::NaN()));
+
+  const aocommon::Avx256::MatrixComplexFloat2x2 value =
+      aocommon::Avx256::MatrixComplexFloat2x2::NaN();
+
+  BOOST_TEST(std::isnan(value[0].real()));
+  BOOST_TEST(std::isnan(value[0].imag()));
+  BOOST_TEST(std::isnan(value[1].real()));
+  BOOST_TEST(std::isnan(value[1].imag()));
+  BOOST_TEST(std::isnan(value[2].real()));
+  BOOST_TEST(std::isnan(value[2].imag()));
+  BOOST_TEST(std::isnan(value[3].real()));
+  BOOST_TEST(std::isnan(value[3].imag()));
+}
+
 BOOST_AUTO_TEST_CASE(operator_plus_equal) {
   aocommon::Avx256::MatrixComplexFloat2x2 r{
       {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};

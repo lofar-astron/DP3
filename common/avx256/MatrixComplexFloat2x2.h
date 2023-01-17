@@ -130,6 +130,18 @@ class MatrixComplexFloat2x2 {
         std::complex<float>(0.0f, 0.0f), std::complex<float>(1.0f, 0.0f)};
   }
 
+  [[nodiscard]] static MatrixComplexFloat2x2 NaN() noexcept {
+    return MatrixComplexFloat2x2{
+        std::complex<float>{std::numeric_limits<float>::quiet_NaN(),
+                            std::numeric_limits<float>::quiet_NaN()},
+        std::complex<float>{std::numeric_limits<float>::quiet_NaN(),
+                            std::numeric_limits<float>::quiet_NaN()},
+        std::complex<float>{std::numeric_limits<float>::quiet_NaN(),
+                            std::numeric_limits<float>::quiet_NaN()},
+        std::complex<float>{std::numeric_limits<float>::quiet_NaN(),
+                            std::numeric_limits<float>::quiet_NaN()}};
+  }
+
   MatrixComplexFloat2x2& operator+=(MatrixComplexFloat2x2 value) noexcept {
     data_ += value.data_;
     return *this;
