@@ -126,13 +126,13 @@ void IterativeFullJonesSolver::SolveDirection(
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
   const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
+  const size_t solution_index0 = cb_data.SolutionIndex(direction, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const size_t antenna_1 = cb_data.Antenna1Index(vis_index);
     const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = solution_map[vis_index];
+    const size_t solution_index = cb_data.SolutionIndex(direction, vis_index);
 
 #if defined(__AVX2__)
     using Matrix = aocommon::Avx256::MatrixComplexFloat2x2;
@@ -151,7 +151,7 @@ void IterativeFullJonesSolver::SolveDirection(
     const Matrix data{v_residual[vis_index]};
     const Matrix model{model_vector[vis_index]};
 
-    const uint32_t rel_solution_index = solution_index - solution_map[0];
+    const size_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
     const Matrix cor_model_herm_1(solution_ant_2 * HermTranspose(model));
     const size_t full_solution_1_index =
@@ -176,7 +176,7 @@ void IterativeFullJonesSolver::SolveDirection(
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (size_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
-      const uint32_t solution_index = rel_sol + solution_map[0];
+      const size_t solution_index = rel_sol + solution_index0;
       const size_t index = ant * n_dir_solutions + rel_sol;
       MC2x2F result;
       if (denominator[index].Invert())
@@ -196,11 +196,10 @@ void IterativeFullJonesSolver::AddOrSubtractDirection(
   const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = solution_map[vis_index];
+    const size_t antenna_1 = cb_data.Antenna1Index(vis_index);
+    const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
+    const size_t solution_index = cb_data.SolutionIndex(direction, vis_index);
     const MC2x2F solution_1(
         &solutions[(antenna_1 * NSolutions() + solution_index) *
                    n_solution_polarizations]);
