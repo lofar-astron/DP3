@@ -761,7 +761,6 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
   itsAvgTime += itsAvgTime + bufin.getTime();
 }
 void DDECal::WriteSolutions() {
-  itsTimer.start();
   itsTimerWrite.start();
 
   // Create antenna info for H5Parm, used antennas only.
@@ -802,7 +801,6 @@ void DDECal::WriteSolutions() {
   }
 
   itsTimerWrite.stop();
-  itsTimer.stop();
 }
 
 void DDECal::finish() {
