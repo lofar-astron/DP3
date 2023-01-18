@@ -176,6 +176,19 @@ BOOST_AUTO_TEST_CASE(hermitian_transpose) {
                         {-1.0, 2.0}, {-10, 11}}));
 }
 
+BOOST_AUTO_TEST_CASE(operator_plus_equal) {
+  aocommon::Avx256::DiagonalMatrixComplexDouble2x2 r{{1.0, 2.0}, {10, 11}};
+
+  const aocommon::Avx256::DiagonalMatrixComplexDouble2x2 value{{4, 8},
+                                                               {40, 44}};
+
+  r += value;
+  static_assert(noexcept(r += value));
+
+  BOOST_TEST(r[0] == (std::complex<double>{5.0, 10.0}));
+  BOOST_TEST(r[1] == (std::complex<double>{50.0, 55.0}));
+}
+
 BOOST_AUTO_TEST_CASE(equal) {
   static_assert(
       noexcept(aocommon::Avx256::DiagonalMatrixComplexDouble2x2{
