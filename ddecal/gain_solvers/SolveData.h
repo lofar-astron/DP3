@@ -28,14 +28,12 @@ class SolveData {
 
     void Resize(size_t n_visibilities, size_t n_directions) {
       data_.resize(n_visibilities);
-      model_data_.resize(n_directions);
-      for (std::vector<aocommon::MC2x2F>& v : model_data_)
-        v.resize(n_visibilities);
+      model_data_.resize({n_directions, n_visibilities});
       antenna_indices_.resize(n_visibilities);
       n_solutions_.resize(n_directions);
       solution_map_.resize({n_directions, n_visibilities});
     }
-    size_t NDirections() const { return model_data_.size(); }
+    size_t NDirections() const { return model_data_.shape(0); }
     size_t NVisibilities() const { return data_.size(); }
     /***
      * The number of visibilities in which a given antenna participates.
@@ -68,11 +66,7 @@ class SolveData {
     }
     const aocommon::MC2x2F& ModelVisibility(size_t direction,
                                             size_t index) const {
-      return model_data_[direction][index];
-    }
-    const std::vector<aocommon::MC2x2F>& ModelVisibilityVector(
-        size_t direction) const {
-      return model_data_[direction];
+      return model_data_(direction, index);
     }
 
     const_iterator DataBegin() const { return data_.begin(); }
@@ -91,10 +85,10 @@ class SolveData {
     void InitializeSolutionIndices();
 
     std::vector<aocommon::MC2x2F> data_;
-    // _modelData[D] is the model data for direction D
-    std::vector<std::vector<aocommon::MC2x2F>> model_data_;
+    // _model_data(D,i) is the model data for direction D, element i
+    xt::xtensor<aocommon::MC2x2F, 2> model_data_;
     // Element i contains the first and second antenna corresponding with
-    // _data[i] and _modelData[D][i]
+    // _data[i] and _model_data(D,i)
     std::vector<std::pair<uint32_t, uint32_t>> antenna_indices_;
     std::vector<size_t> antenna_visibility_counts_;
     /// number of solutions, indexed by direction
