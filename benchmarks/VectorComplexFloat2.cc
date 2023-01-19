@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "common/avx256/VectorComplexDouble2.h"
+#include "common/avx256/VectorComplexFloat2.h"
 
 #include <nanobench.h>
 #include <fstream>
@@ -9,8 +9,8 @@
 
 #if defined(__AVX2__)
 static void Multiply(ankerl::nanobench::Bench& bench, const char* name) {
-  aocommon::Avx256::VectorComplexDouble2 a{{1, 2}, {10, 11}};
-  std::complex<double> b{10, 8};
+  aocommon::Avx256::VectorComplexFloat2 a{{1, 2}, {10, 11}};
+  aocommon::Avx256::VectorComplexFloat2 b{{4, 8}, {40, 44}};
 
   bench.run(name, [&] {
     a = a * b;
@@ -29,7 +29,7 @@ int main() {
   bench.title("Benchmarking Vector Complex 2 AVX");
   bench.minEpochIterations(1'000'000);
 
-  Multiply(bench, "Multiply Vector");
+  Multiply(bench, "Multiply Vector and Value");
 
   Generate("html", ankerl::nanobench::templates::htmlBoxplot(), bench);
   Generate("json", ankerl::nanobench::templates::json(), bench);
