@@ -151,14 +151,11 @@ BOOST_AUTO_TEST_CASE(regular) {
             solver_buffer.ModelDataPointer(time, direction, baseline, channel);
         const aocommon::MC2x2F& model_data =
             cb_data.ModelVisibility(direction, v);
-        const aocommon::MC2x2F& model_vector_data =
-            cb_data.ModelVisibilityVector(direction)[v];
 
         BOOST_TEST(cb_data.SolutionIndex(direction, v) == direction);
 
         for (size_t pol = 0; pol < kNPolarizations; ++pol) {
           BOOST_TEST(expected_model_data[pol] == model_data[pol]);
-          BOOST_TEST(expected_model_data[pol] == model_vector_data[pol]);
         }
       }
     }
@@ -293,8 +290,6 @@ BOOST_AUTO_TEST_CASE(bda) {
     for (size_t v = 0; v < n_visibilities; ++v) {
       const aocommon::MC2x2F& data = cb_data.Visibility(v);
       const aocommon::MC2x2F& model_data = cb_data.ModelVisibility(0, v);
-      const aocommon::MC2x2F& model_vector_data =
-          cb_data.ModelVisibilityVector(0)[v];
 
       const size_t baseline =
           (v < kNVisibilitiesPerBaseline[ch_block][0]) ? 0 : 1;
@@ -325,7 +320,6 @@ BOOST_AUTO_TEST_CASE(bda) {
       for (size_t p = 0; p < kNPolarizations; ++p) {
         BOOST_TEST(data[p] == data_ptr[p]);
         BOOST_TEST(model_data[p] == model_data_ptr[p]);
-        BOOST_TEST(model_vector_data[p] == model_data_ptr[p]);
       }
     }
   }
