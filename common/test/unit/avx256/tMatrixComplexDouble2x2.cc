@@ -277,6 +277,25 @@ BOOST_AUTO_TEST_CASE(trace) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(assign_to) {
+  static_assert(noexcept(aocommon::Avx256::MatrixComplexDouble2x2{
+      static_cast<const std::complex<double>*>(nullptr)}
+                             .AssignTo(nullptr)));
+  const aocommon::Avx256::MatrixComplexDouble2x2 input{
+      std::complex<double>{-1.0, 1.0}, std::complex<double>{3.75, -3.75},
+      std::complex<double>{99.0, -99.0}, std::complex<double>{1.5, -1.5}};
+
+  std::vector<std::complex<double>> result(6);
+  input.AssignTo(std::addressof(result[1]));
+
+  BOOST_TEST(result[0] == (std::complex<double>{0.0, 0.0}));
+  BOOST_TEST(result[1] == (std::complex<double>{-1.0, 1.0}));
+  BOOST_TEST(result[2] == (std::complex<double>{3.75, -3.75}));
+  BOOST_TEST(result[3] == (std::complex<double>{99.0, -99.0}));
+  BOOST_TEST(result[4] == (std::complex<double>{1.5, -1.5}));
+  BOOST_TEST(result[5] == (std::complex<double>{0.0, 0.0}));
+}
+
 BOOST_AUTO_TEST_CASE(Unity) {
   static_assert(noexcept(aocommon::Avx256::MatrixComplexDouble2x2::Unity()));
 

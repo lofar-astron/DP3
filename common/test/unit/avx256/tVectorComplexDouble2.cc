@@ -143,6 +143,23 @@ BOOST_AUTO_TEST_CASE(conjugate) {
       (aocommon::Avx256::VectorComplexDouble2{{-1.0, 2.0}, {-10, 11}}));
 }
 
+BOOST_AUTO_TEST_CASE(assign_to) {
+  static_assert(noexcept(aocommon::Avx256::VectorComplexDouble2{
+      static_cast<const std::complex<double>*>(nullptr)}
+                             .AssignTo(nullptr)));
+
+  const aocommon::Avx256::VectorComplexDouble2 input{
+      std::complex<double>{-1.0, 1.0}, std::complex<double>{3.75, -3.75}};
+
+  std::vector<std::complex<double>> result(4);
+  input.AssignTo(std::addressof(result[1]));
+
+  BOOST_TEST(result[0] == (std::complex<double>{0.0, 0.0}));
+  BOOST_TEST(result[1] == (std::complex<double>{-1.0, 1.0}));
+  BOOST_TEST(result[2] == (std::complex<double>{3.75, -3.75}));
+  BOOST_TEST(result[3] == (std::complex<double>{0.0, 0.0}));
+}
+
 BOOST_AUTO_TEST_CASE(operator_plus_minus) {
   aocommon::Avx256::VectorComplexDouble2 r{{1.0, 2.0}, {10, 11}};
 

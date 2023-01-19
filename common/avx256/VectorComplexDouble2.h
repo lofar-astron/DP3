@@ -67,6 +67,11 @@ class VectorComplexDouble2 {
     return data_ ^ mask;
   }
 
+  /** Assign data stored by 2 element complex vector to destination buffer */
+  void AssignTo(std::complex<double>* destination) const noexcept {
+    data_.AssignTo(reinterpret_cast<double*>(destination));
+  }
+
   VectorComplexDouble2& operator+=(VectorComplexDouble2 value) noexcept {
     data_ += value.data_;
     return *this;

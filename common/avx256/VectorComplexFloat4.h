@@ -69,6 +69,11 @@ class VectorComplexFloat4 {
     return data_ ^ mask;
   }
 
+  /** Assign data stored by 4 element complex vector to destination buffer. */
+  void AssignTo(std::complex<float>* destination) const noexcept {
+    data_.AssignTo(reinterpret_cast<float*>(destination));
+  }
+
   VectorComplexFloat4& operator+=(VectorComplexFloat4 value) noexcept {
     data_ += value.data_;
     return *this;

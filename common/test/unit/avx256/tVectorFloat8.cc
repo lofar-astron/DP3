@@ -139,6 +139,29 @@ BOOST_AUTO_TEST_CASE(value) {
   BOOST_TEST(result[7] == -1.0);
 }
 
+BOOST_AUTO_TEST_CASE(assign_to) {
+  static_assert(noexcept(
+      aocommon::Avx256::VectorFloat8{static_cast<const double*>(nullptr)}
+          .AssignTo(nullptr)));
+
+  const aocommon::Avx256::VectorFloat8 input{-1.0, 1.0,   3.75, -3.75,
+                                             99.0, -99.0, 1.5,  -1.5};
+
+  std::vector<float> result(10);
+  input.AssignTo(std::addressof(result[1]));
+
+  BOOST_TEST(result[0] == 0.0);
+  BOOST_TEST(result[1] == -1.0);
+  BOOST_TEST(result[2] == 1.0);
+  BOOST_TEST(result[3] == 3.75);
+  BOOST_TEST(result[4] == -3.75);
+  BOOST_TEST(result[5] == 99.0);
+  BOOST_TEST(result[6] == -99.0);
+  BOOST_TEST(result[7] == 1.5);
+  BOOST_TEST(result[8] == -1.5);
+  BOOST_TEST(result[9] == 0.0);
+}
+
 BOOST_AUTO_TEST_CASE(operator_plus_equal) {
   aocommon::Avx256::VectorFloat8 r{1, 2, 10, 11, 100, 101, 1000, 1001};
 
