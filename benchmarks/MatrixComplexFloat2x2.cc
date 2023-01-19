@@ -49,7 +49,7 @@ template <class Matrix>
 static void Norm(ankerl::nanobench::Bench& bench, const char* name) {
   Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
 
-  double r = 1.0;
+  float r = 1.0;
   bench.run(name, [&] {
     // assigment needed to avoid optimization.
     ankerl::nanobench::doNotOptimizeAway(r = Norm(a));
@@ -73,10 +73,9 @@ static void Multiply(ankerl::nanobench::Bench& bench, const char* name) {
   Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
   Matrix b{{4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
 
-  Matrix r = a;
   bench.run(name, [&] {
-    // assigment needed to avoid optimization.
-    ankerl::nanobench::doNotOptimizeAway(r = a * b);
+    a = a * b;
+    ankerl::nanobench::doNotOptimizeAway(a);
   });
 }
 

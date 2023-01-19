@@ -423,7 +423,7 @@ BOOST_AUTO_TEST_CASE(multiply_matrix_and_value) {
   BOOST_CHECK_CLOSE(r[3].imag(), 12004, 1e-6);
 }
 
-BOOST_AUTO_TEST_CASE(multiply_value_matrix_and) {
+BOOST_AUTO_TEST_CASE(multiply_value_and_matrix) {
   const std::complex<double> lhs{1.0, 2.0};
 
   const aocommon::Avx256::MatrixComplexDouble2x2 rhs{

@@ -5,7 +5,7 @@
 #define AOCOMMON_AVX256_DIAGONAL_MATRIX_COMPLEX_DOUBLE_2X2_H
 
 /**
- * @file Implements a Diagnoal 2x2 Matrix with complex double values.
+ * @file Implements a Diagonal 2x2 Matrix with complex double values.
  *
  * This class is based on @ref aocommon::MC2x2Diag but uses AVX-256
  * instructions.
@@ -13,7 +13,7 @@
  * @note The class only implements a subset of the matrix operations. Other
  * operations will be added on a when-needed basis.
  *
- * @todo Move this to aocommon then the class has matured further.
+ * @todo Move this to aocommon when the class has matured further.
  */
 
 #include "common/avx256/VectorComplexDouble2.h"
