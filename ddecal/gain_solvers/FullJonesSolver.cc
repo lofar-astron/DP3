@@ -9,7 +9,6 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
-#include <xtensor/xview.hpp>
 
 #include <iostream>
 
@@ -54,10 +53,9 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionsTensor next_solutions_tensor(
-      {NChannelBlocks(), NAntennas(), NDirections(), NSolutionPolarizations()});
-  SolutionsSpan next_solutions =
-      aocommon::xt::CreateSpan(next_solutions_tensor);
+  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+  for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block)
+    next_solutions[ch_block].resize(NDirections() * NAntennas() * 4);
 
   ///
   /// Start iterating
@@ -90,8 +88,8 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
       std::vector<Matrix>& vs = thread_vs[thread];
       InitializeModelMatrix(channel_block, g_times_cs, vs);
 
-      PerformIteration(ch_block, channel_block, g_times_cs, vs,
-                       solutions[ch_block], next_solutions);
+      PerformIteration(channel_block, g_times_cs, vs, solutions[ch_block],
+                       next_solutions[ch_block]);
     });
 
     Step(solutions, next_solutions);
@@ -130,9 +128,9 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
 }
 
 void FullJonesSolver::PerformIteration(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
-    std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs,
-    const std::vector<DComplex>& solutions, SolutionsSpan& next_solutions) {
+    const SolveData::ChannelBlockData& cb_data, std::vector<Matrix>& g_times_cs,
+    std::vector<Matrix>& vs, const std::vector<DComplex>& solutions,
+    std::vector<DComplex>& next_solutions) {
   using aocommon::MC2x2;
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
@@ -239,12 +237,13 @@ void FullJonesSolver::PerformIteration(
         for (size_t p = 0; p != 4; ++p) {
           // The conj transpose is also performed at this point (note swap of %
           // and /)
-          next_solutions(ch_block, ant, d, p) =
+          next_solutions[(ant * NDirections() + d) * 4 + p] =
               std::conj(x(d * 2 + p % 2, p / 2));
         }
     } else {
-      xt::view(next_solutions, ch_block, ant, xt::all(), xt::all()) =
-          std::numeric_limits<double>::quiet_NaN();
+      for (size_t i = 0; i != NDirections() * 4; ++i)
+        next_solutions[ant * NDirections() * 4 + i] =
+            std::numeric_limits<double>::quiet_NaN();
     }
   }
 }

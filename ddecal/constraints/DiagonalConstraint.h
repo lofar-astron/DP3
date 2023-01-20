@@ -8,8 +8,6 @@
 
 #include <vector>
 
-#include <xtensor/xview.hpp>
-
 namespace dp3 {
 namespace ddecal {
 
@@ -19,11 +17,17 @@ class DiagonalConstraint final : public Constraint {
       : pols_per_solution_(pols_per_solution){};
 
   std::vector<Constraint::Result> Apply(
-      SolutionsSpan& solutions, [[maybe_unused]] double time,
+      std::vector<std::vector<dcomplex>>& solutions,
+      [[maybe_unused]] double time,
       [[maybe_unused]] std::ostream* stat_stream) override {
     if (pols_per_solution_ == 4) {
-      xt::view(solutions, xt::all(), xt::all(), xt::all(), xt::range(1, 3)) =
-          0.0;
+      for (size_t ch = 0; ch < solutions.size(); ++ch) {
+        for (size_t solIndex = 0; solIndex < solutions[ch].size();
+             solIndex += 4) {
+          solutions[ch][solIndex + 1] = 0.0;
+          solutions[ch][solIndex + 2] = 0.0;
+        }
+      }
     }
 
     return std::vector<Constraint::Result>();

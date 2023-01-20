@@ -8,7 +8,6 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
-#include <xtensor/xview.hpp>
 
 #include <iostream>
 
@@ -23,10 +22,9 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionsTensor next_solutions_tensor(
-      {NChannelBlocks(), NAntennas(), NDirections(), NSolutionPolarizations()});
-  SolutionsSpan next_solutions =
-      aocommon::xt::CreateSpan(next_solutions_tensor);
+  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+  for (std::vector<DComplex>& next_solution : next_solutions)
+    next_solution.resize(NDirections() * NAntennas());
 
   ///
   /// Start iterating
@@ -61,8 +59,8 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
       std::vector<Matrix>& vs = thread_vs[thread];
       InitializeModelMatrix(channel_block, g_times_cs, vs);
 
-      PerformIteration(ch_block, channel_block, g_times_cs, vs,
-                       solutions[ch_block], next_solutions);
+      PerformIteration(channel_block, g_times_cs, vs, solutions[ch_block],
+                       next_solutions[ch_block]);
     });
 
     Step(solutions, next_solutions);
@@ -99,12 +97,11 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   return result;
 }
 
-void ScalarSolver::PerformIteration(size_t ch_block,
-                                    const SolveData::ChannelBlockData& cb_data,
+void ScalarSolver::PerformIteration(const SolveData::ChannelBlockData& cb_data,
                                     std::vector<Matrix>& g_times_cs,
                                     std::vector<Matrix>& vs,
                                     const std::vector<DComplex>& solutions,
-                                    SolutionsSpan& next_solutions) {
+                                    std::vector<DComplex>& next_solutions) {
   const size_t n_visibilities = cb_data.NVisibilities();
   const size_t p1_to_p2[4] = {0, 2, 1, 3};
 
@@ -176,10 +173,11 @@ void ScalarSolver::PerformIteration(size_t ch_block,
     Matrix& x = vs[ant];
     if (success && x(0, 0) != Complex(0.0, 0.0)) {
       for (size_t d = 0; d != NDirections(); ++d)
-        next_solutions(ch_block, ant, d, 0) = x(d, 0);
+        next_solutions[ant * NDirections() + d] = x(d, 0);
     } else {
-      xt::view(next_solutions, ch_block, ant, xt::all(), xt::all()) =
-          std::numeric_limits<double>::quiet_NaN();
+      for (size_t d = 0; d != NDirections(); ++d)
+        next_solutions[ant * NDirections() + d] =
+            std::numeric_limits<double>::quiet_NaN();
     }
   }
 }
