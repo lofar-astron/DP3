@@ -15,6 +15,7 @@
  * @todo Move this to aocommon when the class has matured further.
  */
 
+#include "common/avx256/DiagonalMatrixComplexFloat2x2.h"
 #include "common/avx256/VectorComplexFloat4.h"
 
 #include <aocommon/matrix2x2.h>
@@ -76,6 +77,10 @@ class MatrixComplexFloat2x2 {
 
   [[nodiscard]] MatrixComplexFloat2x2 HermitianTranspose() const noexcept {
     return Transpose().Conjugate();
+  }
+
+  explicit operator __m256() const noexcept {
+    return static_cast<__m256>(data_);
   }
 
   /// @returns the Frobenius norm of the matrix.
@@ -172,6 +177,11 @@ class MatrixComplexFloat2x2 {
     return lhs -= rhs;
   }
 
+  MatrixComplexFloat2x2& operator*=(MatrixComplexFloat2x2 value) noexcept {
+    data_ = data_ * value.data_;
+    return *this;
+  }
+
   [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
       MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     // The 2x2 matrix multiplication is done using the following algorithm.
@@ -192,6 +202,79 @@ class MatrixComplexFloat2x2 {
     VectorComplexFloat4 s2 = c3 * c4;
 
     return s1 + s2;
+  }
+
+  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
+      MatrixComplexFloat2x2 lhs, std::complex<float> rhs) noexcept {
+    return lhs.data_ * rhs;
+  }
+
+  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
+      std::complex<float> lhs, MatrixComplexFloat2x2 rhs) noexcept {
+    return rhs * lhs;
+  }
+
+  [[nodiscard]] DiagonalMatrixComplexFloat2x2 Diagonal() const noexcept {
+    return VectorComplexFloat2{data_[0], data_[3]};
+  }
+
+  [[nodiscard]] bool Invert() noexcept {
+    // Note it would be possible to optimize further.
+    VectorComplexFloat2 a{data_[0], data_[1]};
+    VectorComplexFloat2 b{data_[3], data_[2]};
+    VectorComplexFloat2 c = a * b;
+
+    std::complex<float> d = c[0] - c[1];
+    if (d == std::complex<float>{}) return false;
+
+    float n = std::norm(d);
+    d.imag(-d.imag());
+    __m256 reprocical = _mm256_setr_ps(d.real(), d.imag(), d.real(), d.imag(),
+                                       d.real(), d.imag(), d.real(), d.imag());
+    reprocical = _mm256_div_ps(reprocical, _mm256_set1_ps(n));
+
+    // std::swap(data[0],data[3]);
+    // Using the fact that extracting as a double, the value has the number of
+    // bits is the same as a complex gloat
+    __m256d data = _mm256_castps_pd(static_cast<__m256>(data_));
+    data = _mm256_permute4x64_pd(data, 0b00'10'01'11);
+    __m256 result = _mm256_castpd_ps(data);
+
+    // data[0] = data[0]
+    // data[1] = -data[1]
+    // data[2] = -data[2]
+    // data[3] = data[3]
+    __m256 mask = _mm256_setr_ps(0.0, 0.0, -0.0, -0.0, -0.0, -0.0, 0.0, 0.0);
+    result = _mm256_xor_ps(result, mask);
+
+    data_ = VectorComplexFloat4{result} * VectorComplexFloat4{reprocical};
+
+    return true;
+  }
+
+  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
+      MatrixComplexFloat2x2 lhs, DiagonalMatrixComplexFloat2x2 rhs) noexcept {
+    // basically this does the same as
+    // return lhs.data_ * VectorComplexFloat4{rhs[0], rhs[0], rhs[1], rhs[1]};
+    // but this gives better codegen and is slightly faster.
+
+    // Since there is no direct way to interleave 2 32-bit float pairs, use the
+    // method to interleave 1 64-bit value. (The values are unchanged.)
+
+    // __m128 lo {rhs[0], rhs[0]}
+    __m128 lo =
+        _mm_castpd_ps(_mm_unpacklo_pd(_mm_castps_pd(static_cast<__m128>(rhs)),
+                                      _mm_castps_pd(static_cast<__m128>(rhs))));
+    // __m128 hi {rhs[1], rhs[1]}
+    __m128 hi =
+        _mm_castpd_ps(_mm_unpackhi_pd(_mm_castps_pd(static_cast<__m128>(rhs)),
+                                      _mm_castps_pd(static_cast<__m128>(rhs))));
+    return lhs.data_ * VectorComplexFloat4{_mm256_set_m128(hi, lo)};
+  }
+
+  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
+      DiagonalMatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
+    return rhs * lhs;
   }
 
   [[nodiscard]] friend bool operator==(MatrixComplexFloat2x2 lhs,
@@ -228,6 +311,11 @@ inline float Norm(MatrixComplexFloat2x2 matrix) noexcept {
 /** Returns the sum of the diagonal elements. */
 inline std::complex<float> Trace(MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.Trace();
+}
+
+[[nodiscard]] inline DiagonalMatrixComplexFloat2x2 Diagonal(
+    MatrixComplexFloat2x2 matrix) noexcept {
+  return matrix.Diagonal();
 }
 
 }  // namespace aocommon::Avx256

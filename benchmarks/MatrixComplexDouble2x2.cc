@@ -80,6 +80,18 @@ static void Multiply(ankerl::nanobench::Bench& bench, const char* name) {
   });
 }
 
+template <class Matrix>
+static void MultiplyDiagonal(ankerl::nanobench::Bench& bench,
+                             const char* name) {
+  Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+  auto b{Diagonal(a)};
+
+  bench.run(name, [&] {
+    a = a * b;
+    ankerl::nanobench::doNotOptimizeAway(a);
+  });
+}
+
 static void Generate(const std::string& extension, char const* output_template,
                      const ankerl::nanobench::Bench& bench) {
   std::ofstream output("MatrixComplextFloat2x2.render." + extension);
@@ -111,6 +123,11 @@ int main() {
   Multiply<aocommon::MC2x2>(bench, "    Multiply");
   Multiply<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "AVX Multiply");
   Multiply<aocommon::MatrixComplexDouble2x2>(bench, "FMV Multiply");
+  MultiplyDiagonal<aocommon::MC2x2>(bench, "    MultiplyDiagonal");
+  MultiplyDiagonal<aocommon::Avx256::MatrixComplexDouble2x2>(
+      bench, "AVX MultiplyDiagonal");
+  MultiplyDiagonal<aocommon::MatrixComplexDouble2x2>(bench,
+                                                     "FMV MultiplyDiagonal");
 
   Generate("html", ankerl::nanobench::templates::htmlBoxplot(), bench);
   Generate("json", ankerl::nanobench::templates::json(), bench);
