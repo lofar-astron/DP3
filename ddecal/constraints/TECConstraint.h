@@ -43,7 +43,8 @@ class TECConstraintBase : public Constraint {
  protected:
   virtual void initializeChild() {}
 
-  void applyReferenceAntenna(SolutionsSpan& solutions) const;
+  void applyReferenceAntenna(
+      std::vector<std::vector<dcomplex>>& solutions) const;
 
   Mode mode_;
   bool do_phase_reference_;
@@ -55,8 +56,9 @@ class TECConstraint : public TECConstraintBase {
  public:
   TECConstraint(Mode mode) : TECConstraintBase(mode) {}
 
-  std::vector<Result> Apply(SolutionsSpan& solutions, double time,
-                            std::ostream* stat_stream) override;
+  virtual std::vector<Result> Apply(
+      std::vector<std::vector<dcomplex>>& solutions, double time,
+      std::ostream* stat_stream) override;
 };
 
 class ApproximateTECConstraint : public TECConstraint {
@@ -83,8 +85,9 @@ class ApproximateTECConstraint : public TECConstraint {
     return finished_approximate_stage_;
   }
 
-  std::vector<Result> Apply(SolutionsSpan& solutions, double time,
-                            std::ostream* stat_stream) final override;
+  virtual std::vector<Result> Apply(
+      std::vector<std::vector<dcomplex>>& solutions, double time,
+      std::ostream* stat_stream) final override;
 
   void SetFittingChunkSize(size_t fitting_chunk_size) {
     fitting_chunk_size_ = fitting_chunk_size;

@@ -18,9 +18,14 @@ namespace ddecal {
 class AmplitudeOnlyConstraint final : public Constraint {
  public:
   std::vector<Constraint::Result> Apply(
-      SolutionsSpan& solutions, double,
+      std::vector<std::vector<dcomplex>>& solutions, double,
       [[maybe_unused]] std::ostream* stat_stream) override {
-    solutions = xt::abs(solutions);
+    for (size_t ch = 0; ch < solutions.size(); ++ch) {
+      for (size_t sol_index = 0; sol_index < solutions[ch].size();
+           ++sol_index) {
+        solutions[ch][sol_index] = std::abs(solutions[ch][sol_index]);
+      }
+    }
 
     return std::vector<Constraint::Result>();
   }

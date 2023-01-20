@@ -9,8 +9,6 @@
 #include <set>
 #include <vector>
 
-#include <xtensor/xview.hpp>
-
 namespace dp3 {
 namespace ddecal {
 
@@ -35,34 +33,39 @@ class AntennaConstraint final : public Constraint {
   }
 
   std::vector<Constraint::Result> Apply(
-      SolutionsSpan& solutions, [[maybe_unused]] double time,
+      std::vector<std::vector<dcomplex>>& solutions,
+      [[maybe_unused]] double time,
       [[maybe_unused]] std::ostream* stat_stream) override {
-    const size_t n_channels = solutions.shape(0);
-    const size_t n_directions = solutions.shape(2);
-    const size_t n_polarizations = solutions.shape(3);
-    for (size_t ch = 0; ch < n_channels; ++ch) {
+    // nGains is nPol x nSolutions (i.e., nr of gains per antenna)
+    size_t n_gains = solutions.front().size() / NAntennas();
+    std::vector<dcomplex> solution_per_set(n_gains);
+    std::vector<size_t> solution_count_per_set(n_gains);
+    for (size_t ch = 0; ch < solutions.size(); ++ch) {
       for (const std::set<size_t>& antenna_set : antenna_sets_) {
-        xt::xtensor<dcomplex, 2> solution_per_set =
-            xt::zeros<dcomplex>({n_directions, n_polarizations});
-        xt::xtensor<size_t, 2> solution_count_per_set =
-            xt::zeros<size_t>({n_directions, n_polarizations});
-
+        solution_per_set.assign(n_gains, 0.0);
+        solution_count_per_set.assign(n_gains, 0);
         // Calculate the sum of solutions over the set of stations
         for (size_t antenna_index : antenna_set) {
-          auto solution_set =
-              xt::view(solutions, ch, antenna_index, xt::all(), xt::all());
-          auto solution_set_is_finite = xt::isfinite(solution_set);
-          solution_per_set += solution_set_is_finite * solution_set;
-          solution_count_per_set += solution_set_is_finite;
+          size_t start_index = antenna_index * n_gains;
+          for (size_t sol_index = 0; sol_index != n_gains; ++sol_index) {
+            dcomplex value = solutions[ch][start_index + sol_index];
+            if (isfinite(value)) {
+              solution_per_set[sol_index] += value;
+              ++solution_count_per_set[sol_index];
+            }
+          }
         }
 
         // Divide by nr of core stations to get the mean solution
-        solution_per_set /= solution_count_per_set;
+        for (size_t sol_index = 0; sol_index != n_gains; ++sol_index)
+          solution_per_set[sol_index] /= solution_count_per_set[sol_index];
 
         // Assign all core stations to the mean solution
         for (size_t antenna_index : antenna_set) {
-          xt::view(solutions, ch, antenna_index, xt::all(), xt::all()) =
-              solution_per_set;
+          size_t start_index = antenna_index * n_gains;
+          for (size_t sol_index = 0; sol_index != n_gains; ++sol_index)
+            solutions[ch][start_index + sol_index] =
+                solution_per_set[sol_index];
         }
       }
     }

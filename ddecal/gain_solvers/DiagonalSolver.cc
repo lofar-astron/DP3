@@ -8,7 +8,6 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
-#include <xtensor/xview.hpp>
 
 using aocommon::ParallelFor;
 
@@ -27,10 +26,9 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionsTensor next_solutions_tensor(
-      {NChannelBlocks(), NAntennas(), NDirections(), NSolutionPolarizations()});
-  SolutionsSpan next_solutions =
-      aocommon::xt::CreateSpan(next_solutions_tensor);
+  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+  for (std::vector<DComplex>& next_solution : next_solutions)
+    next_solution.resize(NDirections() * NAntennas() * 2);
 
   ///
   /// Start iterating
@@ -66,8 +64,8 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
                std::vector<std::vector<Complex>>& vs = thread_vs[thread];
                InitializeModelMatrix(channel_block, g_times_cs, vs);
 
-               PerformIteration(ch_block, channel_block, g_times_cs, vs,
-                                solutions[ch_block], next_solutions);
+               PerformIteration(channel_block, g_times_cs, vs,
+                                solutions[ch_block], next_solutions[ch_block]);
              });
 
     Step(solutions, next_solutions);
@@ -105,9 +103,10 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 }
 
 void DiagonalSolver::PerformIteration(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
-    std::vector<Matrix>& g_times_cs, std::vector<std::vector<Complex>>& vs,
-    const std::vector<DComplex>& solutions, SolutionsSpan& next_solutions) {
+    const SolveData::ChannelBlockData& cb_data, std::vector<Matrix>& g_times_cs,
+    std::vector<std::vector<Complex>>& vs,
+    const std::vector<DComplex>& solutions,
+    std::vector<DComplex>& next_solutions) {
   for (size_t ant_and_pol = 0; ant_and_pol != NAntennas() * 2; ++ant_and_pol) {
     g_times_cs[ant_and_pol].SetZero();
     vs[ant_and_pol].assign(vs[ant_and_pol].size(), 0);
@@ -186,10 +185,11 @@ void DiagonalSolver::PerformIteration(
           solver->Solve(g_times_cs[ant * 2 + pol].data(), x.data(), x0.data());
       if (success && x[0] != Complex(0.0, 0.0)) {
         for (size_t d = 0; d != NDirections(); ++d)
-          next_solutions(ch_block, ant, d, pol) = x[d];
+          next_solutions[(ant * NDirections() + d) * 2 + pol] = x[d];
       } else {
-        xt::view(next_solutions, ch_block, ant, xt::all(), xt::all()) =
-            std::numeric_limits<double>::quiet_NaN();
+        for (size_t d = 0; d != NDirections(); ++d)
+          next_solutions[(ant * NDirections() + d) * 2 + pol] =
+              std::numeric_limits<double>::quiet_NaN();
       }
     }
   }

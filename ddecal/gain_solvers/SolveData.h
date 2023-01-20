@@ -5,7 +5,6 @@
 #define DDECAL_SOLVE_DATA_H
 
 #include <aocommon/matrix2x2.h>
-#include <xtensor/xtensor.hpp>
 
 #include <vector>
 
@@ -28,12 +27,15 @@ class SolveData {
 
     void Resize(size_t n_visibilities, size_t n_directions) {
       data_.resize(n_visibilities);
-      model_data_.resize({n_directions, n_visibilities});
+      model_data_.resize(n_directions);
+      for (std::vector<aocommon::MC2x2F>& v : model_data_)
+        v.resize(n_visibilities);
       antenna_indices_.resize(n_visibilities);
       n_solutions_.resize(n_directions);
-      solution_map_.resize({n_directions, n_visibilities});
+      solution_map_.resize(n_directions);
+      for (std::vector<uint32_t>& m : solution_map_) m.resize(n_visibilities);
     }
-    size_t NDirections() const { return model_data_.shape(0); }
+    size_t NDirections() const { return model_data_.size(); }
     size_t NVisibilities() const { return data_.size(); }
     /***
      * The number of visibilities in which a given antenna participates.
@@ -56,9 +58,16 @@ class SolveData {
      * first solution index is also the lowest value, i.e. SolutionIndex(D, 0)
      * <= SolutionIndex(D, i) for any i,D.
      */
-    size_t SolutionIndex(size_t direction_index,
-                         size_t visibility_index) const {
-      return solution_map_(direction_index, visibility_index);
+    uint32_t SolutionIndex(size_t direction_index,
+                           size_t visibility_index) const {
+      return solution_map_[direction_index][visibility_index];
+    }
+    /**
+     * Returns a vector that maps visibility indices to solution indices (see
+     * @ref SolutionIndex()).
+     */
+    const std::vector<uint32_t>& SolutionMap(size_t direction_index) const {
+      return solution_map_[direction_index];
     }
 
     const aocommon::MC2x2F& Visibility(size_t index) const {
@@ -66,7 +75,11 @@ class SolveData {
     }
     const aocommon::MC2x2F& ModelVisibility(size_t direction,
                                             size_t index) const {
-      return model_data_(direction, index);
+      return model_data_[direction][index];
+    }
+    const std::vector<aocommon::MC2x2F>& ModelVisibilityVector(
+        size_t direction) const {
+      return model_data_[direction];
     }
 
     const_iterator DataBegin() const { return data_.begin(); }
@@ -85,17 +98,17 @@ class SolveData {
     void InitializeSolutionIndices();
 
     std::vector<aocommon::MC2x2F> data_;
-    // _model_data(D,i) is the model data for direction D, element i
-    xt::xtensor<aocommon::MC2x2F, 2> model_data_;
+    // _modelData[D] is the model data for direction D
+    std::vector<std::vector<aocommon::MC2x2F>> model_data_;
     // Element i contains the first and second antenna corresponding with
-    // _data[i] and _model_data(D,i)
+    // _data[i] and _modelData[D][i]
     std::vector<std::pair<uint32_t, uint32_t>> antenna_indices_;
     std::vector<size_t> antenna_visibility_counts_;
     /// number of solutions, indexed by direction
     std::vector<uint32_t> n_solutions_;
-    /// solution_map_(D,i) is the solution associated to
+    /// solution_map_[D][i] is the solution associated to
     /// direction D, visibility index i.
-    xt::xtensor<size_t, 2> solution_map_;
+    std::vector<std::vector<uint32_t>> solution_map_;
   };
 
   /**

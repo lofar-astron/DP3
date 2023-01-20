@@ -19,12 +19,11 @@ class ScalarSolver final : public SolverBase {
   size_t NSolutionPolarizations() const override { return 1; }
 
  private:
-  void PerformIteration(size_t ch_block,
-                        const SolveData::ChannelBlockData& cb_data,
+  void PerformIteration(const SolveData::ChannelBlockData& cb_data,
                         std::vector<Matrix>& g_times_cs,
                         std::vector<Matrix>& vs,
                         const std::vector<DComplex>& solutions,
-                        SolutionsSpan& next_solutions);
+                        std::vector<DComplex>& next_solutions);
 
   /**
    * Initialize the model matrix for a channel block.

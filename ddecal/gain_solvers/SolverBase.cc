@@ -72,37 +72,26 @@ bool SolverBase::DetectStall(size_t iteration,
 }
 
 void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
-                      SolutionsSpan& nextSolutions) const {
+                      std::vector<std::vector<DComplex>>& nextSolutions) const {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
   ParallelFor<size_t> loop(n_threads_);
   loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-    const size_t n_antennas = nextSolutions.shape(1);
-    const size_t n_solutions = nextSolutions.shape(2);
-    const size_t n_polarizations = nextSolutions.shape(3);
-    for (size_t a = 0; a != n_antennas; ++a) {
-      for (size_t s = 0; s != n_solutions_; ++s) {
-        const size_t i = a * n_solutions + s;
-        for (size_t p = 0; p != n_polarizations; ++p) {
-          if (phase_only_) {
-            // In phase only mode, a step is made along the complex circle,
-            // towards the shortest direction.
-            double phaseFrom = std::arg(solutions[chBlock][i]);
-            double distance =
-                std::arg(nextSolutions(chBlock, a, s, p)) - phaseFrom;
-            if (distance > M_PI)
-              distance = distance - 2.0 * M_PI;
-            else if (distance < -M_PI)
-              distance = distance + 2.0 * M_PI;
-            nextSolutions(chBlock, a, s, p) =
-                std::polar(1.0, phaseFrom + step_size_ * distance);
-          } else {
-            nextSolutions(chBlock, a, s, p) =
-                solutions[chBlock][i * n_polarizations + p] *
-                    (1.0 - step_size_) +
-                nextSolutions(chBlock, a, s, p) * step_size_;
-          }
-        }
+    for (size_t i = 0; i != nextSolutions[chBlock].size(); ++i) {
+      if (phase_only_) {
+        // In phase only mode, a step is made along the complex circle,
+        // towards the shortest direction.
+        double phaseFrom = std::arg(solutions[chBlock][i]);
+        double distance = std::arg(nextSolutions[chBlock][i]) - phaseFrom;
+        if (distance > M_PI)
+          distance = distance - 2.0 * M_PI;
+        else if (distance < -M_PI)
+          distance = distance + 2.0 * M_PI;
+        nextSolutions[chBlock][i] =
+            std::polar(1.0, phaseFrom + step_size_ * distance);
+      } else {
+        nextSolutions[chBlock][i] = solutions[chBlock][i] * (1.0 - step_size_) +
+                                    nextSolutions[chBlock][i] * step_size_;
       }
     }
   });
@@ -114,11 +103,10 @@ void SolverBase::PrepareConstraints() {
   }
 }
 
-bool SolverBase::ApplyConstraints(size_t iteration, double time,
-                                  bool has_previously_converged,
-                                  SolveResult& result,
-                                  SolutionsSpan& next_solutions,
-                                  std::ostream* stat_stream) const {
+bool SolverBase::ApplyConstraints(
+    size_t iteration, double time, bool has_previously_converged,
+    SolveResult& result, std::vector<std::vector<DComplex>>& next_solutions,
+    std::ostream* stat_stream) const {
   bool constraints_satisfied = true;
 
   result.results.resize(constraints_.size());
@@ -142,17 +130,17 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
   return constraints_satisfied;
 }
 
-bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
-                                 SolutionsSpan& newSolutions,
-                                 bool useConstraintAccuracy, double& avgAbsDiff,
-                                 std::vector<double>& stepMagnitudes) const {
+bool SolverBase::AssignSolutions(
+    std::vector<std::vector<DComplex>>& solutions,
+    const std::vector<std::vector<DComplex>>& newSolutions,
+    bool useConstraintAccuracy, double& avgAbsDiff,
+    std::vector<double>& stepMagnitudes) const {
   avgAbsDiff = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
   const size_t n_solution_pols = NSolutionPolarizations();
   size_t n = 0;
   for (size_t chBlock = 0; chBlock < n_channel_blocks_; ++chBlock) {
     for (size_t i = 0; i != solutions[chBlock].size(); i += n_solution_pols) {
-      const size_t j = i / n_solution_pols;
       // A normalized squared difference is calculated between the solutions of
       // this and the previous step:
       //   sqrt { 1/n sum over | (t1 - t0) t0^(-1) |_2 }
@@ -162,21 +150,21 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
       // iterations as the scalar version.
       if (n_solution_pols == 1) {
         if (solutions[chBlock][i] != 0.0) {
-          double a = std::abs(
-              (newSolutions(chBlock, 0, j, 0) - solutions[chBlock][i]) /
-              solutions[chBlock][i]);
+          double a =
+              std::abs((newSolutions[chBlock][i] - solutions[chBlock][i]) /
+                       solutions[chBlock][i]);
           if (std::isfinite(a)) {
             avgAbsDiff += a;
             ++n;
           }
         }
-        solutions[chBlock][i] = newSolutions(chBlock, 0, j, 0);
+        solutions[chBlock][i] = newSolutions[chBlock][i];
       } else if (n_solution_pols == 2) {
         DComplex s[2] = {solutions[chBlock][i], solutions[chBlock][i + 1]};
         DComplex sInv[2] = {1.0 / s[0], 1.0 / s[1]};
         if (IsFinite(sInv[0]) && IsFinite(sInv[1])) {
-          DComplex ns[2] = {newSolutions(chBlock, 0, j, 0),
-                            newSolutions(chBlock, 0, j, 1)};
+          DComplex ns[2] = {newSolutions[chBlock][i],
+                            newSolutions[chBlock][i + 1]};
           ns[0] = (ns[0] - s[0]) * sInv[0];
           ns[1] = (ns[1] - s[1]) * sInv[1];
           double sumabs = 0.0;
@@ -189,12 +177,12 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
           }
         }
         for (size_t p = 0; p != n_solution_pols; ++p) {
-          solutions[chBlock][i + p] = newSolutions(chBlock, 0, j, p);
+          solutions[chBlock][i + p] = newSolutions[chBlock][i + p];
         }
       } else {  // NPol == 4
         aocommon::MC2x2 s(&solutions[chBlock][i]), sInv(s);
         if (sInv.Invert()) {
-          aocommon::MC2x2 ns(&newSolutions(chBlock, 0, j, 0));
+          aocommon::MC2x2 ns(&newSolutions[chBlock][i]);
           ns -= s;
           ns *= sInv;
           double sumabs = 0.0;
@@ -207,7 +195,7 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
           }
         }
         for (size_t p = 0; p != n_solution_pols; ++p) {
-          solutions[chBlock][i + p] = newSolutions(chBlock, 0, j, p);
+          solutions[chBlock][i + p] = newSolutions[chBlock][i + p];
         }
       }
     }

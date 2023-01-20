@@ -9,19 +9,12 @@
 
 #ifdef HAVE_LIBDIRAC
 #include <Dirac.h>
-// Dirac.h incorrectly defines complex, we undefine it below
-// to avoid conflicts with xtensor/xcomplex.hpp
-#undef complex
 #endif /* HAVE_LIBDIRAC */
 
 #include <aocommon/parallelfor.h>
-#include <xtensor/xadapt.hpp>
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xvectorize.hpp>
-#include <xtensor/xview.hpp>
 
-#include <algorithm>
 #include <iostream>
+#include <algorithm>
 
 namespace dp3 {
 namespace ddecal {
@@ -405,25 +398,25 @@ void ScalarGradient(double* unknowns, double* gradient, int n_unknowns,
                  [](const SolverBase::DComplex& z) { return -z.imag(); });
 }
 
-void PerformIterationFull(size_t ch_block,
-                          const SolveData::ChannelBlockData& cb_data,
+void PerformIterationFull(const SolveData::ChannelBlockData& cb_data,
                           const std::vector<SolverBase::DComplex>& solutions,
-                          SolutionsSpan& next_solutions, std::size_t n_antennas,
-                          std::size_t n_directions, double robust_nu,
-                          std::size_t max_iter, std::size_t history_size,
-                          std::size_t minibatches, persistent_data_t& pt) {
+                          std::vector<SolverBase::DComplex>& next_solutions,
+                          std::size_t n_antennas, std::size_t n_directions,
+                          double robust_nu, std::size_t max_iter,
+                          std::size_t history_size, std::size_t minibatches,
+                          persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
   const std::size_t n_solutions_2 = n_antennas * n_directions * 4;
   const std::size_t n_solutions = n_solutions_2 * 2;
   assert(n_solutions == static_cast<std::size_t>(pt.m));
   assert(cb_data.NVisibilities() == static_cast<std::size_t>(pt.nlen));
 
-  xt::xtensor<double, 1> d_storage({n_solutions}, 0);
-  auto d_storage_real = xt::view(d_storage, xt::range(0, n_solutions_2));
-  auto d_storage_imag =
-      xt::view(d_storage, xt::range(n_solutions_2, n_solutions));
-  d_storage_real = xt::real(xt::adapt(solutions, {n_solutions_2}));
-  d_storage_imag = xt::imag(xt::adapt(solutions, {n_solutions_2}));
+  std::vector<double> d_storage(n_solutions);
+  std::transform(solutions.begin(), solutions.end(), d_storage.begin(),
+                 [](const SolverBase::DComplex& z) { return z.real(); });
+  std::transform(solutions.begin(), solutions.end(),
+                 d_storage.begin() + n_solutions_2,
+                 [](const SolverBase::DComplex& z) { return z.imag(); });
 
   const std::size_t batch = (minibatches > 1 ? std::rand() % minibatches : 0);
   t.start_baseline = pt.offsets[batch];
@@ -434,17 +427,15 @@ void PerformIterationFull(size_t ch_block,
             history_size, (void*)&t, &pt);
 
   // Map double vector to solutions
-  xt::flatten(
-      xt::view(next_solutions, ch_block, xt::all(), xt::all(), xt::all())) =
-      xt::vectorize([](double r, double i) -> SolverBase::DComplex {
-        return SolverBase::DComplex(r, i);
-      })(d_storage_real, d_storage_imag);
+  std::transform(d_storage.begin(), d_storage.begin() + n_solutions_2,
+                 d_storage.begin() + n_solutions_2, next_solutions.begin(),
+                 [](double r, double i) { return SolverBase::DComplex(r, i); });
 }
 
 void PerformIterationDiagonal(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    const SolveData::ChannelBlockData& cb_data,
     const std::vector<SolverBase::DComplex>& solutions,
-    SolutionsSpan& next_solutions, std::size_t n_antennas,
+    std::vector<SolverBase::DComplex>& next_solutions, std::size_t n_antennas,
     std::size_t n_directions, double robust_nu, std::size_t max_iter,
     std::size_t history_size, std::size_t minibatches, persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
@@ -453,12 +444,12 @@ void PerformIterationDiagonal(
   assert(n_solutions == static_cast<std::size_t>(pt.m));
   assert(cb_data.NVisibilities() == static_cast<std::size_t>(pt.nlen));
 
-  xt::xtensor<double, 1> d_storage({n_solutions}, 0);
-  auto d_storage_real = xt::view(d_storage, xt::range(0, n_solutions_2));
-  auto d_storage_imag =
-      xt::view(d_storage, xt::range(n_solutions_2, n_solutions));
-  d_storage_real = xt::real(xt::adapt(solutions, {n_solutions_2}));
-  d_storage_imag = xt::imag(xt::adapt(solutions, {n_solutions_2}));
+  std::vector<double> d_storage(n_solutions);
+  std::transform(solutions.begin(), solutions.end(), d_storage.begin(),
+                 [](const SolverBase::DComplex& z) { return z.real(); });
+  std::transform(solutions.begin(), solutions.end(),
+                 d_storage.begin() + n_solutions_2,
+                 [](const SolverBase::DComplex& z) { return z.imag(); });
 
   const std::size_t batch = (minibatches > 1 ? std::rand() % minibatches : 0);
   t.start_baseline = pt.offsets[batch];
@@ -469,17 +460,14 @@ void PerformIterationDiagonal(
             max_iter, history_size, (void*)&t, &pt);
 
   // Map double vector to solutions
-  xt::flatten(
-      xt::view(next_solutions, ch_block, xt::all(), xt::all(), xt::all())) =
-      xt::vectorize([](double r, double i) -> SolverBase::DComplex {
-        return SolverBase::DComplex(r, i);
-      })(d_storage_real, d_storage_imag);
+  std::transform(d_storage.begin(), d_storage.begin() + n_solutions_2,
+                 d_storage.begin() + n_solutions_2, next_solutions.begin(),
+                 [](double r, double i) { return SolverBase::DComplex(r, i); });
 }
 
-void PerformIterationScalar(size_t ch_block,
-                            const SolveData::ChannelBlockData& cb_data,
+void PerformIterationScalar(const SolveData::ChannelBlockData& cb_data,
                             const std::vector<SolverBase::DComplex>& solutions,
-                            SolutionsSpan& next_solutions,
+                            std::vector<SolverBase::DComplex>& next_solutions,
                             std::size_t n_antennas, std::size_t n_directions,
                             double robust_nu, std::size_t max_iter,
                             std::size_t history_size, std::size_t minibatches,
@@ -490,12 +478,12 @@ void PerformIterationScalar(size_t ch_block,
   assert(n_solutions == static_cast<std::size_t>(pt.m));
   assert(cb_data.NVisibilities() == static_cast<std::size_t>(pt.nlen));
 
-  xt::xtensor<double, 1> d_storage({n_solutions}, 0);
-  auto d_storage_real = xt::view(d_storage, xt::range(0, n_solutions_2));
-  auto d_storage_imag =
-      xt::view(d_storage, xt::range(n_solutions_2, n_solutions));
-  d_storage_real = xt::real(xt::adapt(solutions, {n_solutions_2}));
-  d_storage_imag = xt::imag(xt::adapt(solutions, {n_solutions_2}));
+  std::vector<double> d_storage(n_solutions);
+  std::transform(solutions.begin(), solutions.end(), d_storage.begin(),
+                 [](const SolverBase::DComplex& z) { return z.real(); });
+  std::transform(solutions.begin(), solutions.end(),
+                 d_storage.begin() + n_solutions_2,
+                 [](const SolverBase::DComplex& z) { return z.imag(); });
 
   const std::size_t batch = (minibatches > 1 ? std::rand() % minibatches : 0);
   t.start_baseline = pt.offsets[batch];
@@ -506,11 +494,9 @@ void PerformIterationScalar(size_t ch_block,
             history_size, (void*)&t, &pt);
 
   // Map double vector to solutions
-  xt::flatten(
-      xt::view(next_solutions, ch_block, xt::all(), xt::all(), xt::all())) =
-      xt::vectorize([](double r, double i) -> SolverBase::DComplex {
-        return SolverBase::DComplex(r, i);
-      })(d_storage_real, d_storage_imag);
+  std::transform(d_storage.begin(), d_storage.begin() + n_solutions_2,
+                 d_storage.begin() + n_solutions_2, next_solutions.begin(),
+                 [](double r, double i) { return SolverBase::DComplex(r, i); });
 }
 }  // anonymous namespace
 
@@ -523,25 +509,35 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
 
   PrepareConstraints();
 
+  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+
   SolveResult result;
 
   SolverMode mode(GetMode());
-
-  SolutionsTensor next_solutions_tensor(
-      {NChannelBlocks(), NAntennas(), NDirections(), NSolutionPolarizations()});
-  SolutionsSpan next_solutions =
-      aocommon::xt::CreateSpan(next_solutions_tensor);
-
+  size_t n_solutions = 0;
+  switch (mode) {
+    case LBFGSSolver::kFull:
+      n_solutions = NDirections() * NAntennas() * 4;
+      break;
+    case LBFGSSolver::kDiagonal:
+      n_solutions = NDirections() * NAntennas() * 2;
+      break;
+    case LBFGSSolver::kScalar:
+      n_solutions = NDirections() * NAntennas();
+      break;
+    default:
+      assert(false);
+  }
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
     const SolveData::ChannelBlockData& channel_block_data =
         data.ChannelBlock(ch_block);
+    next_solutions[ch_block].resize(n_solutions);
     // initialize with
     // minibatches, size of parameters, size of data (baselines), history size,
     // 1 thread
-    lbfgs_persist_init(
-        &persistent_data[ch_block], GetMinibatches(),
-        NAntennas() * NDirections() * NSolutionPolarizations() * 2,
-        channel_block_data.NVisibilities(), GetHistorySize(), 1);
+    lbfgs_persist_init(&persistent_data[ch_block], GetMinibatches(),
+                       n_solutions * 2, channel_block_data.NVisibilities(),
+                       GetHistorySize(), 1);
   }
 
   ///
@@ -561,8 +557,8 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
       case LBFGSSolver::kFull:
         MakeSolutionsFinite4Pol(solutions);
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
-          PerformIterationFull(ch_block, data.ChannelBlock(ch_block),
-                               solutions[ch_block], next_solutions, NAntennas(),
+          PerformIterationFull(data.ChannelBlock(ch_block), solutions[ch_block],
+                               next_solutions[ch_block], NAntennas(),
                                NDirections(), GetRobustDOF(), GetMaxIter(),
                                GetHistorySize(), GetMinibatches(),
                                persistent_data[ch_block]);
@@ -571,18 +567,18 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
       case LBFGSSolver::kDiagonal:
         MakeSolutionsFinite2Pol(solutions);
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
-          PerformIterationDiagonal(ch_block, data.ChannelBlock(ch_block),
-                                   solutions[ch_block], next_solutions,
-                                   NAntennas(), NDirections(), GetRobustDOF(),
-                                   GetMaxIter(), GetHistorySize(),
-                                   GetMinibatches(), persistent_data[ch_block]);
+          PerformIterationDiagonal(
+              data.ChannelBlock(ch_block), solutions[ch_block],
+              next_solutions[ch_block], NAntennas(), NDirections(),
+              GetRobustDOF(), GetMaxIter(), GetHistorySize(), GetMinibatches(),
+              persistent_data[ch_block]);
         });
         break;
       case LBFGSSolver::kScalar:
         MakeSolutionsFinite1Pol(solutions);
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
-          PerformIterationScalar(ch_block, data.ChannelBlock(ch_block),
-                                 solutions[ch_block], next_solutions,
+          PerformIterationScalar(data.ChannelBlock(ch_block),
+                                 solutions[ch_block], next_solutions[ch_block],
                                  NAntennas(), NDirections(), GetRobustDOF(),
                                  GetMaxIter(), GetHistorySize(),
                                  GetMinibatches(), persistent_data[ch_block]);

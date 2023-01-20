@@ -6,8 +6,6 @@
 #include "BdaSolverBuffer.h"
 #include "SolverBuffer.h"
 
-#include <xtensor/xview.hpp>
-
 #include <cassert>
 
 using dp3::base::BDABuffer;
@@ -95,11 +93,11 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
                 solution_start_indices[direction];
 
             for (size_t i = 0; i < channel_block_size; ++i) {
-              cb_data.model_data_(direction, vis_index + i) =
+              cb_data.model_data_[direction][vis_index + i] =
                   aocommon::MC2x2F(buffer.ModelDataPointer(
                       time_index, direction, baseline, first_channel + i));
 
-              cb_data.solution_map_(direction, vis_index + i) = solution_index;
+              cb_data.solution_map_[direction][vis_index + i] = solution_index;
             }
           }
 
@@ -173,7 +171,7 @@ SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
               model_data_row.data +
               channel_start * model_data_row.n_correlations;
           for (size_t i = 0; i != channel_block_size; ++i) {
-            cb_data.model_data_(dir, vis_index + i) = aocommon::MC2x2F(
+            cb_data.model_data_[dir][vis_index + i] = aocommon::MC2x2F(
                 &model_data_ptr[i * model_data_row.n_correlations]);
           }
         }
@@ -203,7 +201,7 @@ void SolveData::ChannelBlockData::InitializeSolutionIndices() {
   // TODO support DD intervals
   n_solutions_.assign(NDirections(), 1);
   for (size_t i = 0; i != NDirections(); ++i) {
-    xt::view(solution_map_, i, xt::all()) = i;
+    solution_map_[i].assign(NVisibilities(), i);
   }
 }
 

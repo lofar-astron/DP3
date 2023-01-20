@@ -6,10 +6,8 @@
 
 #include "../../constraints/SmoothnessConstraint.h"
 
-#include <aocommon/xt/span.h>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
-#include <xtensor/xview.hpp>
 
 using dp3::ddecal::SmoothnessConstraint;
 
@@ -47,17 +45,13 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
   // The first three columns test smoothing a delta function.
   // The fourth and fifth columns are constant, and when the input is constant,
   // the smoother should not modify it.
-
-  std::vector<std::complex<double>> solutions_vector{
-      0.0, 1.0, 0.0,  1.0, 0.0, 5.0,  // channel block 0
-      0.0, 0.0, 0.0,  1.0, 0.0, 4.0,  // channel block 1
-      1.0, 0.0, 0.0,  1.0, 0.0, 3.0,  // channel block 2
-      0.0, 0.0, 0.0,  1.0, 0.0, 2.0,  // channel block 3
-      0.0, 0.0, 10.0, 1.0, 0.0, 1.0   // channel block 4
+  std::vector<std::vector<std::complex<double>>> solutions{
+      {0.0, 1.0, 0.0, 1.0, 0.0, 5.0},  // channel block 0
+      {0.0, 0.0, 0.0, 1.0, 0.0, 4.0},  // channel block 1
+      {1.0, 0.0, 0.0, 1.0, 0.0, 3.0},  // channel block 2
+      {0.0, 0.0, 0.0, 1.0, 0.0, 2.0},  // channel block 3
+      {0.0, 0.0, 10.0, 1.0, 0.0, 1.0}  // channel block 4
   };
-  const std::array<size_t, 4> shape{5, 1, 3, 2};
-  dp3::ddecal::SolutionsSpan solutions =
-      aocommon::xt::CreateSpan(solutions_vector, shape);
 
   SmoothnessConstraint constraint = makeConstraint();
   constraint.Apply(solutions, solution_time, nullptr);
@@ -73,9 +67,9 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
   for (size_t pol_dir = 0; pol_dir != n_solution_polarizations * n_directions;
        ++pol_dir) {
     for (size_t cb = 0; cb != n_channelblocks; ++cb) {
-      BOOST_CHECK_CLOSE(solutions(cb, 0, 0, pol_dir).real(),
+      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].real(),
                         reference_solutions[cb][pol_dir].real(), 1e-3);
-      BOOST_CHECK_CLOSE(solutions(cb, 0, 0, pol_dir).imag(),
+      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].imag(),
                         reference_solutions[cb][pol_dir].imag(), 1e-3);
     }
   }
@@ -88,16 +82,13 @@ BOOST_AUTO_TEST_CASE(flagged_channels) {
   // The first two channels are flagged:
   constraint.SetWeights({0.0, 0.0, 1.0, 1.0, 1.0});
 
-  std::vector<std::complex<double>> solutions_vector{
-      0.0, 1.0, 0.0,  1.0, 0.0, 5.0,  // channel block 0
-      0.0, 0.0, 0.0,  1.0, 0.0, 4.0,  // channel block 1
-      1.0, 0.0, 0.0,  1.0, 0.0, 3.0,  // channel block 2
-      0.0, 0.0, 0.0,  1.0, 0.0, 2.0,  // channel block 3
-      0.0, 0.0, 10.0, 1.0, 0.0, 1.0   // channel block 4
+  std::vector<std::vector<std::complex<double>>> solutions{
+      {0.0, 1.0, 0.0, 1.0, 0.0, 5.0},  // channel block 0
+      {0.0, 0.0, 0.0, 1.0, 0.0, 4.0},  // channel block 1
+      {1.0, 0.0, 0.0, 1.0, 0.0, 3.0},  // channel block 2
+      {0.0, 0.0, 0.0, 1.0, 0.0, 2.0},  // channel block 3
+      {0.0, 0.0, 10.0, 1.0, 0.0, 1.0}  // channel block 4
   };
-  const std::array<size_t, 4> shape{5, 1, 3, 2};
-  dp3::ddecal::SolutionsSpan solutions =
-      aocommon::xt::CreateSpan(solutions_vector, shape);
 
   constraint.Apply(solutions, solution_time, nullptr);
 
@@ -112,9 +103,9 @@ BOOST_AUTO_TEST_CASE(flagged_channels) {
   for (size_t pol_dir = 0; pol_dir != n_solution_polarizations * n_directions;
        ++pol_dir) {
     for (size_t cb = 0; cb != n_channelblocks; ++cb) {
-      BOOST_CHECK_CLOSE(solutions(cb, 0, 0, pol_dir).real(),
+      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].real(),
                         reference_solutions[cb][pol_dir].real(), 1e-3);
-      BOOST_CHECK_CLOSE(solutions(cb, 0, 0, pol_dir).imag(),
+      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].imag(),
                         reference_solutions[cb][pol_dir].imag(), 1e-3);
     }
   }
