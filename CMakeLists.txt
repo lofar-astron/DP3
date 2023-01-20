@@ -1,4 +1,4 @@
-# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires CMake 3.9.
@@ -894,32 +894,10 @@ if(BUILD_TESTING)
   endforeach()
 endif() # BUILD_TESTING
 
-option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
+# Warning: XTensor and XSimd have 'BUILD_BENCHMARK' options. When enabling that
+# option, as error occurs in the XTensor and/or XSimd CMake code.
+# Therefore, do not rename 'BUILD_BENCHMARKS' to 'BUILD_BENCHMARK'!
+option(BUILD_BENCHMARKS "Build the benchmarks" ON)
 if(BUILD_BENCHMARKS)
-  # https://nanobench.ankerl.com/index.html
-  FetchContent_Declare(
-    nanobench
-    GIT_REPOSITORY https://github.com/martinus/nanobench.git
-    GIT_TAG v4.3.7
-    GIT_SHALLOW TRUE)
-
-  FetchContent_MakeAvailable(nanobench)
-  set(BINARY_BENCHMARK_DIR "${CMAKE_CURRENT_BINARY_DIR}/benchmarks")
-  file(MAKE_DIRECTORY "${BINARY_BENCHMARK_DIR}")
-
-  function(add_benchmark name)
-    add_executable(${name} benchmarks/${name}.cc)
-    target_link_libraries(${name} PRIVATE nanobench)
-
-    add_test(
-      NAME benchmark/${name}
-      COMMAND ${name}
-      WORKING_DIRECTORY "${BINARY_BENCHMARK_DIR}")
-    set_tests_properties(benchmark/${name} PROPERTIES LABELS "benchmark")
-  endfunction()
-
-  add_benchmark(MatrixComplexDouble2x2)
-  add_benchmark(MatrixComplexFloat2x2)
-  add_benchmark(VectorComplexDouble2)
-  add_benchmark(VectorComplexFloat2)
+  add_subdirectory(benchmarks)
 endif()
