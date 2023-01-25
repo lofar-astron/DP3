@@ -472,13 +472,22 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                                 uvw(2, st) * (lmn[2] - 1.0));
   }
 
+  std::vector<double> phase_terms(nChannel);
+  // Note that sincos() does not vectorize yet, and
+  // separate sin() cos() is merged to sincos() by the compiler.
+  // Hence split the loop into separate sin(), cos() loops.
   for (size_t st = 0; st < nStation; ++st) {
 #pragma GCC ivdep
     for (size_t ch = 0; ch < nChannel; ++ch) {
-      const double chPhase = stationPhases[st] * freq[ch];
-      sincos(chPhase, shiftdata_im, shiftdata_re);
-      ++shiftdata_re;
-      ++shiftdata_im;
+      phase_terms[ch] = stationPhases[st] * freq[ch];
+    }  // Channels.
+#pragma GCC ivdep
+    for (size_t ch = 0; ch < nChannel; ++ch) {
+      *shiftdata_im++ = sin(phase_terms[ch]);
+    }  // Channels.
+#pragma GCC ivdep
+    for (size_t ch = 0; ch < nChannel; ++ch) {
+      *shiftdata_re++ = cos(phase_terms[ch]);
     }  // Channels.
   }    // Stations.
 }
