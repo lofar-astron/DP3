@@ -27,7 +27,7 @@
 #include "../common/StreamUtil.h"
 
 #include "../ddecal/SolverFactory.h"
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
 #include "../ddecal/constraints/ScreenConstraint.h"
 #endif
 #include "../ddecal/SolutionResampler.h"

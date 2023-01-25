@@ -11,7 +11,7 @@
 #include "../../constraints/RotationAndDiagonalConstraint.h"
 #include "../../constraints/RotationConstraint.h"
 
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
 #include "../../constraints/ScreenConstraint.h"
 #endif
 
@@ -77,7 +77,7 @@ void CheckConstraintType(const dp3::common::ParameterSet& parset) {
 
 BOOST_AUTO_TEST_SUITE(solverfactory)
 
-#ifndef HAVE_ARMADILLO
+#ifndef ENABLE_SCREENFITTER
 BOOST_DATA_TEST_CASE(scalar_type,
                      boost::unit_test::data::make({"scalar", "scalaramplitude",
                                                    "scalarphase", "tec",
@@ -132,7 +132,7 @@ BOOST_DATA_TEST_CASE(
   BOOST_CHECK(!solver->GetPhaseOnly());
 }
 
-#ifndef HAVE_ARMADILLO
+#ifndef ENABLE_SCREENFITTER
 BOOST_DATA_TEST_CASE(phase_only,
                      boost::unit_test::data::make({"scalarphase",
                                                    "diagonalphase", "tec",
@@ -224,7 +224,7 @@ BOOST_DATA_TEST_CASE(tec_constraint,
   }
 }
 
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
 BOOST_AUTO_TEST_CASE(screen_constraint) {
   using dp3::ddecal::PiercePoint;
   using dp3::ddecal::ScreenConstraint;

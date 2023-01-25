@@ -104,17 +104,21 @@ endforeach()
 
 # === Load external packages ===
 
-# DDECal dependencies
-find_package(Armadillo QUIET)
-if(${ARMADILLO_FOUND})
-  add_definitions(-DHAVE_ARMADILLO)
-  include_directories(${ARMADILLO_INCLUDE_DIRS})
-  set(DDE_ARMADILLO_FILES
-      ddecal/constraints/KLFitter.cc ddecal/constraints/PiercePoint.cc
-      ddecal/constraints/ScreenConstraint.cc)
-  message(STATUS "Armadillo found: including screenfitter inside DDECal")
-else()
-  set(DDE_ARMADILLO_FILES)
+# DDECal dependencies.
+# The screen fiter is unmaintained and hasn't been tested or used so far,
+# so only enable it if the user explicitly tells it.
+option(ENABLE_EXPERIMENTAL_SCREENFITTER
+       "Enable the experimental screenfitter inside DDECal" OFF)
+if(ENABLE_EXPERIMENTAL_SCREENFITTER)
+  find_package(Armadillo QUIET)
+  if(${ARMADILLO_FOUND})
+    add_definitions(-DENABLE_SCREENFITTER)
+    include_directories(${ARMADILLO_INCLUDE_DIRS})
+    set(DDE_ARMADILLO_FILES
+        ddecal/constraints/KLFitter.cc ddecal/constraints/PiercePoint.cc
+        ddecal/constraints/ScreenConstraint.cc)
+    message(STATUS "Armadillo found: including screenfitter inside DDECal")
+  endif()
 endif()
 
 # Casacore depends on HDF5 -> First load HDF5.
