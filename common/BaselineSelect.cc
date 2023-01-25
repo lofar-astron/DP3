@@ -104,8 +104,8 @@ casacore::Matrix<bool> BaselineSelect::convert(
   return convert(anttab, a1, a2, baselineSelection, os);
 }
 
-Matrix<bool> BaselineSelect::convert(Table& anttab, TableExprNode& a1,
-                                     TableExprNode& a2,
+Matrix<bool> BaselineSelect::convert(Table& anttab, TableExprNode& a1Node,
+                                     TableExprNode& a2Node,
                                      const string& baselineSelection,
                                      std::ostream& os) {
   // Overwrite the error handler to ignore errors for unknown antennas.
@@ -130,10 +130,10 @@ Matrix<bool> BaselineSelect::convert(Table& anttab, TableExprNode& a1,
   try {
     // Create a table expression representing the selection.
     TableExprNode node = msAntennaGramParseCommand(
-        anttab, a1, a2, baselineSelection, selectedAnts1, selectedAnts2,
+        anttab, a1Node, a2Node, baselineSelection, selectedAnts1, selectedAnts2,
         selectedBaselines);
     // Get the antenna numbers.
-    Table seltab = node.table()(node);
+    Table seltab = a1Node.table()(node);
     casacore::Vector<int> a1 =
         ScalarColumn<int>(seltab, "ANTENNA1").getColumn();
     casacore::Vector<int> a2 =
