@@ -19,7 +19,7 @@
 #include "constraints/PhaseOnlyConstraint.h"
 #include "constraints/RotationConstraint.h"
 #include "constraints/RotationAndDiagonalConstraint.h"
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
 #include "constraints/ScreenConstraint.h"
 #endif
 #include "constraints/SmoothnessConstraint.h"
@@ -145,7 +145,7 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       solver.AddConstraint(std::move(constraint));
       break;
     }
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
     case base::CalType::kTecScreen:
       solver.AddConstraint(
           std::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
@@ -208,7 +208,7 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
       solver->SetPhaseOnly(false);
       break;
     case base::CalType::kTecScreen:
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
       solver = CreateScalarSolver(algorithm, settings);
       solver->SetPhaseOnly(true);
 #else
@@ -297,7 +297,7 @@ void InitializeAntennaConstraint(
   constraint.SetAntennaSets(std::move(constraint_list));
 }
 
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
 void InitializeScreenConstraint(
     ScreenConstraint& constraint, double core_constraint,
     const std::vector<std::array<double, 3>>& antenna_positions,
@@ -392,7 +392,7 @@ void InitializeSolverConstraints(
       }
     }
 
-#ifdef HAVE_ARMADILLO
+#ifdef ENABLE_SCREENFITTER
     ScreenConstraint* screen_constraint =
         dynamic_cast<ScreenConstraint*>(constraint.get());
     if (screen_constraint) {
