@@ -348,14 +348,12 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
     ProgressMeter progress(ndone, ntodo, "DP3", "Time slots processed", "", "",
                            true, 1);
     if (ntodo > 0) progress.update(ndone, true);
-    DPBuffer buf;
-    while (firstStep->process(buf)) {
+    while (firstStep->process(std::make_unique<DPBuffer>())) {
       ++ndone;
       if (ntodo > 0) progress.update(ndone, true);
     }
   } else {
-    DPBuffer buf;
-    while (firstStep->process(buf)) {
+    while (firstStep->process(std::make_unique<DPBuffer>())) {
     }
   }
   // Finish the processing.
