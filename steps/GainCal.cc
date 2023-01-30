@@ -503,7 +503,7 @@ void GainCal::applySolution(DPBuffer& buf,
 // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
 // top left, all 11 polarizations in the bottom right, etc.
 // For TEC fitting, it also sets weights for the frequency cells
-void GainCal::fillMatrices(casacore::Complex* model,
+void GainCal::fillMatrices(const casacore::Complex* model,
                            const casacore::Complex* data, const float* weight,
                            const casacore::Bool* flag) {
   const size_t n_baselines = getInfo().nbaselines();

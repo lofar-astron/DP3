@@ -126,7 +126,7 @@ class BdaGroupPredict::BaselineGroup {
     predict_step_->process(dpbuffer_);
 
     // Get the result out of the Result step
-    base::DPBuffer& buf_out = result_step_->get();
+    const base::DPBuffer& buf_out = result_step_->get();
 
     // Loop over all baselines in baselinegroup
     std::size_t nr_baselines = baselines_.size();
