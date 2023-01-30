@@ -11,7 +11,7 @@ namespace steps {
 
 /// @brief This class defines step in the DP3 pipeline that keeps the result
 /// to make it possible to get the result of another step.
-/// It keeps the result and calls process of the next step.
+/// It stores the result and does *NOT* call process of the next step.
 
 class ResultStep : public Step {
  public:
@@ -39,10 +39,6 @@ class ResultStep : public Step {
 
   /// Get the result.
   const base::DPBuffer& get() const { return buffer_; }
-  base::DPBuffer& get() { return buffer_; }
-
-  /// Clear the buffer.
-  void clear() { buffer_ = base::DPBuffer(); }
 
  private:
   base::DPBuffer buffer_;

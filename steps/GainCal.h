@@ -90,8 +90,9 @@ class GainCal final : public Step {
       const casacore::Cube<casacore::Complex>& sol);
 
   /// Fills the matrices itsVis and itsMVis
-  void fillMatrices(casacore::Complex* model, const casacore::Complex* data,
-                    const float* weight, const casacore::Bool* flag);
+  void fillMatrices(const casacore::Complex* model,
+                    const casacore::Complex* data, const float* weight,
+                    const casacore::Bool* flag);
 
   /// Initialize the parmdb
   void initParmDB();
