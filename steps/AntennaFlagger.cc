@@ -184,7 +184,7 @@ bool AntennaFlagger::process(const base::DPBuffer& buffer) {
   buffer_.copy(buffer);
 
   // Flags are in format: corr,chan,baseline.
-  casacore::Cube<bool> flags = buffer_.getFlags();
+  casacore::Cube<bool> flags = buffer_.GetCasacoreFlags();
 
   /*
    * Do additional flagging on the input data based on outlier statistics.
@@ -192,8 +192,8 @@ bool AntennaFlagger::process(const base::DPBuffer& buffer) {
   if (do_detect_outliers_) {
     computation_timer_.stop();
     flagging_timer_.start();
-    const std::vector<std::complex<float>> data(buffer_.getData().begin(),
-                                                buffer_.getData().end());
+    const std::vector<std::complex<float>> data(
+        buffer_.GetCasacoreData().begin(), buffer_.GetCasacoreData().end());
     flagger_->ComputeStats(data);
 
     // Find outliers both at antenna and station level

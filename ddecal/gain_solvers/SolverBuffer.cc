@@ -34,13 +34,13 @@ void SolverBuffer::AssignAndWeight(
 
   for (size_t timestep = 0; timestep != n_times; ++timestep) {
     const casacore::Cube<std::complex<float>>& unweighted_data =
-        unweighted_data_buffers[timestep].getData();
+        unweighted_data_buffers[timestep].GetCasacoreData();
     const casacore::Cube<float>& weights =
-        unweighted_data_buffers[timestep].getWeights();
+        unweighted_data_buffers[timestep].GetCasacoreWeights();
     assert(unweighted_data.shape() == weights.shape());
     assert(timestep == 0 ||
            unweighted_data.shape() ==
-               unweighted_data_buffers.front().getData().shape());
+               unweighted_data_buffers.front().GetCasacoreData().shape());
 
     n_baselines_ = unweighted_data.shape()[2];
     n_channels_ = unweighted_data.shape()[1];
@@ -68,7 +68,7 @@ void SolverBuffer::AssignAndWeight(
         // Weigh the model data. This is done in a separate loop to loop
         // over the data contiguously in memory.
         for (DPBuffer& model_buffer : model_buffers_[timestep]) {
-          Complex* model_ptr = model_buffer.getData().data();
+          Complex* model_ptr = model_buffer.GetData().data();
           for (size_t cr = 0; cr < kNCorrelations; ++cr) {
             is_flagged = is_flagged || !IsFinite(model_ptr[index + cr]);
             model_ptr[index + cr] *= w_sqrt[cr];
@@ -82,7 +82,7 @@ void SolverBuffer::AssignAndWeight(
             data_[timestep][index + cr] = 0.0;
           }
           for (DPBuffer& model_buffer : model_buffers_[timestep]) {
-            Complex* model_ptr = model_buffer.getData().data();
+            Complex* model_ptr = model_buffer.GetData().data();
             for (size_t cr = 0; cr < kNCorrelations; ++cr) {
               model_ptr[index + cr] = 0.0;
             }
@@ -104,7 +104,7 @@ const std::complex<float>* SolverBuffer::ModelDataPointer(
     size_t time_index, size_t direction, size_t baseline,
     size_t channel) const {
   const DPBuffer& buffer = model_buffers_[time_index][direction];
-  return &buffer.getData()(0, channel, baseline);
+  return &buffer.GetCasacoreData()(0, channel, baseline);
 }
 
 void SolverBuffer::CopyDataChannels(size_t time_index, size_t channel_begin,

@@ -222,12 +222,12 @@ bool MultiMSReader::process(const DPBuffer& buf) {
   itsBuffer.setExposure(buf1.getExposure());
   itsBuffer.setRowNrs(buf1.getRowNrs());
   // Size the buffers if they should be read.
-  if (itsBuffer.getData().empty() && getFieldsToRead().Data()) {
-    itsBuffer.getData().resize(IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
+  if (itsBuffer.GetCasacoreData().empty() && getFieldsToRead().Data()) {
+    itsBuffer.ResizeData(itsNrBl, itsNrChan, itsNrCorr);
   }
-  if (itsBuffer.getFlags().empty() &&
+  if (itsBuffer.GetCasacoreFlags().empty() &&
       (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
-    itsBuffer.getFlags().resize(IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
+    itsBuffer.ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
   }
   // Loop through all readers and get data and flags.
   IPosition s(3, 0, 0, 0);
@@ -246,18 +246,18 @@ bool MultiMSReader::process(const DPBuffer& buf) {
       // Copy data and flags.
       e[1] = s[1] + itsReaders[i]->getInfo().nchan() - 1;
       if (getFieldsToRead().Data()) {
-        itsBuffer.getData()(s, e) = msBuf.getData();
+        itsBuffer.GetCasacoreData()(s, e) = msBuf.GetCasacoreData();
       }
       if (getFieldsToRead().Flags()) {
-        itsBuffer.getFlags()(s, e) = msBuf.getFlags();
+        itsBuffer.GetCasacoreFlags()(s, e) = msBuf.GetCasacoreFlags();
       }
     } else {
       e[1] = s[1] + itsFillNChan - 1;
       if (getFieldsToRead().Data()) {
-        itsBuffer.getData()(s, e) = casacore::Complex();
+        itsBuffer.GetCasacoreData()(s, e) = casacore::Complex();
       }
       if (getFieldsToRead().Flags()) {
-        itsBuffer.getFlags()(s, e) = true;
+        itsBuffer.GetCasacoreFlags()(s, e) = true;
       }
     }
     s[1] = e[1] + 1;
@@ -410,11 +410,11 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
 
 void MultiMSReader::getWeights() {
   const RefRows& rowNrs = itsBuffer.getRowNrs();
-  Cube<float>& weights = itsBuffer.getWeights();
   // Resize if needed (probably when called for first time).
-  if (weights.empty()) {
-    weights.resize(itsNrCorr, itsNrChan, itsNrBl);
+  if (itsBuffer.GetCasacoreWeights().empty()) {
+    itsBuffer.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
   }
+  Cube<float>& weights = itsBuffer.GetCasacoreWeights();
   IPosition s(3, 0, 0, 0);
   IPosition e(3, itsNrCorr - 1, 0, itsNrBl - 1);
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
@@ -422,7 +422,7 @@ void MultiMSReader::getWeights() {
       unsigned int nchan = itsReaders[i]->getInfo().nchan();
       e[1] = s[1] + nchan - 1;
       itsReaders[i]->getWeights(rowNrs, itsBuffers[i]);
-      weights(s, e) = itsBuffers[i].getWeights();
+      weights(s, e) = itsBuffers[i].GetCasacoreWeights();
     } else {
       e[1] = s[1] + itsFillNChan - 1;
       weights(s, e) = float(0);
@@ -433,12 +433,13 @@ void MultiMSReader::getWeights() {
 
 void MultiMSReader::getFullResolutionFlags() {
   const RefRows& rowNrs = itsBuffer.getRowNrs();
-  Cube<bool>& flags = itsBuffer.getFullResFlags();
   // Resize if needed (probably when called for first time).
-  if (flags.empty()) {
+  if (itsBuffer.GetCasacoreFullResFlags().empty()) {
     int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
-    flags.resize(norigchan, getInfo().nAveragedFullResolutionTimes(), itsNrBl);
+    itsBuffer.ResizeFullResFlags(
+        itsNrBl, getInfo().nAveragedFullResolutionTimes(), norigchan);
   }
+  Cube<bool>& flags = itsBuffer.GetCasacoreFullResFlags();
   // Return if no fullRes flags available.
   if (!itsHasFullResFlags) {
     flags = false;
@@ -455,8 +456,8 @@ void MultiMSReader::getFullResolutionFlags() {
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
       itsReaders[i]->getFullResFlags(rowNrs, itsBuffers[i]);
-      e[0] = s[0] + itsBuffers[i].getFullResFlags().shape()[0] - 1;
-      flags(s, e) = itsBuffers[i].getFullResFlags();
+      e[0] = s[0] + itsBuffers[i].GetCasacoreFullResFlags().shape()[0] - 1;
+      flags(s, e) = itsBuffers[i].GetCasacoreFullResFlags();
     } else {
       e[0] = s[0] + itsFillNChan - 1;
       flags(s, e) = true;

@@ -373,9 +373,9 @@ bool GainCal::process(const DPBuffer& bufin) {
   // written
   itsUVWFlagStep.process(itsBuf[bufIndex]);
 
-  const casacore::Complex* data = itsBuf[bufIndex].getData().data();
-  const float* weight = itsBuf[bufIndex].getWeights().data();
-  const bool* flag = itsBuf[bufIndex].getFlags().data();
+  const casacore::Complex* data = itsBuf[bufIndex].GetData().data();
+  const float* weight = itsBuf[bufIndex].GetWeights().data();
+  const bool* flag = itsBuf[bufIndex].GetFlags().data();
 
   // Simulate.
   //
@@ -397,7 +397,7 @@ bool GainCal::process(const DPBuffer& bufin) {
   }
 
   // Store data in the GainCalAlgorithm object
-  fillMatrices(itsResultStep->get().getData().data(), data, weight, flag);
+  fillMatrices(itsResultStep->get().GetData().data(), data, weight, flag);
   itsTimerFill.stop();
 
   ++itsStepInSolInt;
@@ -458,11 +458,11 @@ Cube<casacore::Complex> GainCal::invertSol(const Cube<casacore::Complex>& sol) {
 
 void GainCal::applySolution(DPBuffer& buf,
                             const Cube<casacore::Complex>& invsol) {
-  unsigned int nbl = buf.getData().shape()[2];
-  casacore::Complex* data = buf.getData().data();
-  float* weight = buf.getWeights().data();  // Not initialized yet
-  bool* flag = buf.getFlags().data();
-  unsigned int nchan = buf.getData().shape()[1];
+  unsigned int nbl = buf.GetCasacoreData().shape()[2];
+  casacore::Complex* data = buf.GetData().data();
+  float* weight = buf.GetWeights().data();  // Not initialized yet
+  bool* flag = buf.GetFlags().data();
+  unsigned int nchan = buf.GetCasacoreData().shape()[1];
 
   unsigned int nCr = invsol.shape()[0];
 

@@ -38,12 +38,12 @@ void NullStokes::showTimings(std::ostream& os, double duration) const {
 
 bool NullStokes::process(const base::DPBuffer& buffer) {
   timer_.start();
-  const casacore::IPosition& shape = buffer.getData().shape();
+  const casacore::IPosition& shape = buffer.GetCasacoreData().shape();
   const size_t n_channels = shape[1];
   const size_t n_baselines = shape[2];
   casacore::Array<casacore::Complex> data(shape);
   std::complex<float>* output_visibilities = data.data();
-  const std::complex<float>* input_visibilities = buffer.getData().data();
+  const std::complex<float>* input_visibilities = buffer.GetData().data();
   // The Stokes parameters are defined in terms of correlation of the electric
   // field. The visibilities corresponding to these correlations are denoted by
   // xx, xy, yx, yy. For example, Q = xx - yy, U = xy + yx. Here, the

@@ -119,12 +119,11 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
     info().update(itsStartChan, nrChan, itsSelBL, itsRemoveAnt);
     if (itsDoSelect) {
       // Shape the arrays in the buffer.
-      IPosition shape(3, infoIn.ncorr(), nrChan, getInfo().nbaselines());
-      itsBuf.getData().resize(shape);
-      itsBuf.getFlags().resize(shape);
-      itsBuf.getWeights().resize(shape);
+      itsBuf.ResizeData(getInfo().nbaselines(), nrChan, infoIn.ncorr());
+      itsBuf.ResizeFlags(getInfo().nbaselines(), nrChan, infoIn.ncorr());
+      itsBuf.ResizeWeights(getInfo().nbaselines(), nrChan, infoIn.ncorr());
       if (!itsSelBL.empty()) {
-        itsBuf.getUVW().resize(IPosition(2, 3, shape[2]));
+        itsBuf.ResizeUvw(getInfo().nbaselines());
       }
     }
   }
@@ -156,18 +155,16 @@ bool Filter::process(const DPBuffer& buf) {
   }
   // Get the various data arrays.
   itsBufTmp.referenceFilled(buf);
-  const casacore::Array<casacore::Complex>& data = buf.getData();
-  const casacore::Array<bool>& flags = buf.getFlags();
-  const casacore::Array<float>& weights = buf.getWeights();
-  const casacore::Array<double>& uvws = buf.getUVW();
-  const casacore::Array<bool>& frFlags = buf.getFullResFlags();
+  const casacore::Array<casacore::Complex>& data = buf.GetCasacoreData();
+  const casacore::Array<bool>& flags = buf.GetCasacoreFlags();
+  const casacore::Array<float>& weights = buf.GetCasacoreWeights();
+  const casacore::Array<double>& uvws = buf.GetCasacoreUvw();
+  const casacore::Array<bool>& frFlags = buf.GetCasacoreFullResFlags();
   // Size fullResFlags if not done yet.
   int frfAvg = frFlags.shape()[0] / data.shape()[1];
-  if (itsBuf.getFullResFlags().empty()) {
-    IPosition frfShp = frFlags.shape();
-    frfShp[0] = getInfo().nchan() * frfAvg;
-    frfShp[2] = getInfo().nbaselines();
-    itsBuf.getFullResFlags().resize(frfShp);
+  if (itsBuf.GetCasacoreFullResFlags().empty()) {
+    itsBuf.ResizeFullResFlags(getInfo().nbaselines(), frFlags.shape()[1],
+                              getInfo().nchan() * frfAvg);
   }
   // Form the blc and trc for the channel selection.
   IPosition first(3, 0);
@@ -183,11 +180,13 @@ bool Filter::process(const DPBuffer& buf) {
     // No baseline selection; copy all data for given channels to
     // make them contiguous.
     // UVW can be referenced, because not dependent on channel.
-    itsBuf.getData().assign(data(first, last));
-    itsBuf.getFlags().assign(flags(first, last));
-    itsBuf.getWeights().assign(weights(first, last));
-    itsBuf.getFullResFlags().assign(frFlags(frfFirst, frfLast));
-    itsBuf.setUVW(buf.getUVW());
+    itsBuf.GetCasacoreData().assign(data(first, last));
+    itsBuf.GetCasacoreFlags().assign(flags(first, last));
+    itsBuf.GetCasacoreWeights().assign(weights(first, last));
+    itsBuf.GetCasacoreFullResFlags().assign(frFlags(frfFirst, frfLast));
+    itsBuf.MakeIndependent(kDataField | kFlagsField | kWeightsField |
+                           kFullResFlagsField);
+    itsBuf.setUVW(buf.GetCasacoreUvw());
     itsBuf.setRowNrs(buf.getRowNrs());
   } else {
     casacore::Vector<common::rownr_t> rowNrs;
@@ -195,20 +194,21 @@ bool Filter::process(const DPBuffer& buf) {
       rowNrs.resize(getInfo().nbaselines());
     }
     // Copy the data of the selected baselines and channels.
-    casacore::Complex* toData = itsBuf.getData().data();
-    bool* toFlag = itsBuf.getFlags().data();
-    float* toWeight = itsBuf.getWeights().data();
-    double* toUVW = itsBuf.getUVW().data();
-    bool* toFrf = itsBuf.getFullResFlags().data();
+    casacore::Complex* toData = itsBuf.GetData().data();
+    bool* toFlag = itsBuf.GetFlags().data();
+    float* toWeight = itsBuf.GetWeights().data();
+    double* toUVW = itsBuf.GetUvw().data();
+    bool* toFrf = itsBuf.GetFullResFlags().data();
     size_t off = data.shape()[0] * first[1];  // offset of first channel
     const casacore::Complex* frData = data.data() + off;
     const bool* frFlag = flags.data() + off;
     const float* frWeight = weights.data() + off;
     const double* frUVW = uvws.data();
     int ndfr = data.shape()[0] * data.shape()[1];
-    int ndto = itsBuf.getData().shape()[0] * itsBuf.getData().shape()[1];
+    int ndto = itsBuf.GetCasacoreData().shape()[0] *
+               itsBuf.GetCasacoreData().shape()[1];
     int nffr = frFlags.shape()[0];
-    int nfto = itsBuf.getFullResFlags().shape()[0];
+    int nfto = itsBuf.GetCasacoreFullResFlags().shape()[0];
     for (size_t i = 0; i < itsSelBL.size(); ++i) {
       if (!buf.getRowNrs().empty()) {
         rowNrs[i] = buf.getRowNrs()[itsSelBL[i]];

@@ -271,8 +271,8 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
 
   BOOST_TEST(result_step->size() == kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    BOOST_TEST(result_step->get()[i].getData()(0, 0, 0).real() == 60.f);
-    BOOST_TEST(result_step->get()[i].getData()(0, 0, 0).imag() == 0.f);
+    BOOST_TEST(result_step->get()[i].GetCasacoreData()(0, 0, 0).real() == 60.f);
+    BOOST_TEST(result_step->get()[i].GetCasacoreData()(0, 0, 0).imag() == 0.f);
   }
 }
 
@@ -338,7 +338,7 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
 
   BOOST_TEST(result_step->size() == kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    const auto& data = result_step->get()[i].getData();
+    const auto& data = result_step->get()[i].GetCasacoreData();
     BOOST_TEST_REQUIRE(data.nplane() == reader->getInfo().nbaselines());
     BOOST_TEST_REQUIRE(data.ncolumn() == reader->getInfo().nchan());
     BOOST_TEST_REQUIRE(data.nrow() == reader->getInfo().ncorr());

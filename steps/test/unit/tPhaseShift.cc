@@ -179,11 +179,11 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     casacore::Matrix<double> uvw(3, itsNBl);
     itsInput->fillUVW(uvw, itsCount);
     // Check the result.
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-7));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-7));
-    BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-7));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-7));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), itsFlag));
     BOOST_CHECK_CLOSE_FRACTION(buf.getTime(), 2. + 5 * itsCount, 1e-6);
-    BOOST_CHECK(allNear(buf.getUVW(), uvw, 1e-7));
+    BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-7));
     ++itsCount;
     return true;
   }
@@ -229,13 +229,13 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
     casacore::Matrix<double> uvw(3, itsNBl);
     itsInput->fillUVW(uvw, itsCount);
     // Check the result.
-    BOOST_CHECK(!allNear(real(buf.getData()), real(result), 1e-5));
-    BOOST_CHECK(!allEQ(real(buf.getData()), real(result)));
-    BOOST_CHECK(!allNear(imag(buf.getData()), imag(result), 1e-5));
-    BOOST_CHECK(!allEQ(imag(buf.getData()), imag(result)));
-    BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK(!allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
+    BOOST_CHECK(!allEQ(real(buf.GetCasacoreData()), real(result)));
+    BOOST_CHECK(!allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
+    BOOST_CHECK(!allEQ(imag(buf.GetCasacoreData()), imag(result)));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), itsFlag));
     BOOST_CHECK_CLOSE_FRACTION(buf.getTime(), 2. + 5 * itsCount, 1e-5);
-    BOOST_CHECK(!allNear(buf.getUVW(), uvw, 1e-5));
+    BOOST_CHECK(!allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
     ++itsCount;
     return true;
   }

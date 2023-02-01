@@ -197,9 +197,9 @@ void ApplyBeam::showTimings(std::ostream& os, double duration) const {
 bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
   itsTimer.start();
   itsBuffer.copy(bufin);
-  casacore::Complex* data = itsBuffer.getData().data();
+  casacore::Complex* data = itsBuffer.GetData().data();
 
-  float* weight = itsBuffer.getWeights().data();
+  float* weight = itsBuffer.GetWeights().data();
 
   const double time = itsBuffer.getTime();
 

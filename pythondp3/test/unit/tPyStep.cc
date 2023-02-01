@@ -104,11 +104,11 @@ class TestOutput final : public dp3::steps::test::ThrowStep {
 
     // Check whether the "visibility" data in the buffer is indeed
     // multiplied by a factor 2
-    BOOST_CHECK(allNear(real(buf.getData()), real(ref_data), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(ref_data), 1e-5));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(ref_data), 1e-5));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(ref_data), 1e-5));
 
     // Check whether the weights are divided by 2
-    BOOST_CHECK(allNear(buf.getWeights(), ref_weights, 1e-5));
+    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), ref_weights, 1e-5));
 
     ++count_;
     return true;

@@ -52,11 +52,11 @@ void Counter::updateInfo(const base::DPInfo& info_in) {
 }
 
 bool Counter::process(const base::DPBuffer& buf) {
-  const casacore::IPosition& shape = buf.getFlags().shape();
+  const casacore::IPosition& shape = buf.GetCasacoreFlags().shape();
   unsigned int nrcorr = shape[0];
   unsigned int nrchan = shape[1];
   unsigned int nrbl = shape[2];
-  const bool* flag_pointer = buf.getFlags().data();
+  const bool* flag_pointer = buf.GetFlags().data();
   for (unsigned int i = 0; i < nrbl; ++i) {
     for (unsigned int j = 0; j < nrchan; ++j) {
       if (*flag_pointer) {

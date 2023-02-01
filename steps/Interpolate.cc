@@ -84,11 +84,11 @@ bool Interpolate::process(const DPBuffer& buf) {
 }
 
 void Interpolate::sendFrontBufferToNextStep() {
-  casacore::IPosition shp = _buffers.front().getData().shape();
+  casacore::IPosition shp = _buffers.front().GetCasacoreData().shape();
   size_t nPol = shp[0], nChan = shp[1], nBl = shp[2], n = nPol * nChan * nBl;
   // Set all flags to false
-  bool* flags = _buffers.front().getFlags().data();
-  casacore::Complex* data = _buffers.front().getData().data();
+  bool* flags = _buffers.front().GetFlags().data();
+  casacore::Complex* data = _buffers.front().GetData().data();
   std::fill(flags, flags + n, false);
   // Flag NaN values (values for which the entire window was flagged on input)
   for (size_t i = 0; i != n; ++i) {
@@ -128,7 +128,7 @@ void Interpolate::finish() {
 #define BUFFER_SIZE 1024
 
 void Interpolate::interpolateTimestep(size_t index) {
-  const IPosition shp = _buffers.front().getData().shape();
+  const IPosition shp = _buffers.front().GetCasacoreData().shape();
   const size_t nPol = shp[0], nChan = shp[1], nPerBl = nPol * nChan,
                nBl = shp[2];
 
@@ -142,7 +142,7 @@ void Interpolate::interpolateTimestep(size_t index) {
 
   std::vector<casacore::Complex> dataBlock;
   for (size_t bl = 0; bl < nBl; ++bl) {
-    bool* flags = _buffers[index].getFlags().data() + bl * nPerBl;
+    bool* flags = _buffers[index].GetFlags().data() + bl * nPerBl;
     for (size_t ch = 0; ch != nChan; ++ch) {
       for (size_t p = 0; p != nPol; ++p) {
         if (*flags) {
@@ -168,7 +168,7 @@ void Interpolate::interpolationThread() {
 
 void Interpolate::interpolateSample(size_t timestep, size_t baseline,
                                     size_t channel, size_t pol) {
-  const casacore::IPosition shp = _buffers.front().getData().shape();
+  const casacore::IPosition shp = _buffers.front().GetCasacoreData().shape();
   const size_t nPol = shp[0], nChan = shp[1],
                timestepBegin = (timestep > _windowSize / 2)
                                    ? (timestep - _windowSize / 2)
@@ -184,9 +184,9 @@ void Interpolate::interpolateSample(size_t timestep, size_t baseline,
   float windowSum = 0.0;
 
   for (size_t t = timestepBegin; t != timestepEnd; ++t) {
-    casacore::Complex* data = _buffers[t].getData().data() +
+    casacore::Complex* data = _buffers[t].GetData().data() +
                               (baseline * nChan + channelBegin) * nPol + pol;
-    const bool* flags = _buffers[t].getFlags().data() +
+    const bool* flags = _buffers[t].GetFlags().data() +
                         (baseline * nChan + channelBegin) * nPol + pol;
     const float* row =
         &_kernelLookup[_windowSize * (t + int(_windowSize / 2) - timestep)];
@@ -206,7 +206,7 @@ void Interpolate::interpolateSample(size_t timestep, size_t baseline,
   // read from in the loops above (because flagged values are skipped).
   casacore::Complex& value =
       _buffers[timestep]
-          .getData()
+          .GetCasacoreData()
           .data()[(baseline * nChan + channel) * nPol + pol];
   if (windowSum != 0.0)
     value = valueSum / windowSum;

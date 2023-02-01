@@ -350,7 +350,7 @@ bool TestOutput<DPBuffer>::process(const DPBuffer& buf) {
   // Flag where u,v,w matches intervals given in the requested test.
   const casacore::Cube<bool> expected_result = GetResult();
 
-  BOOST_CHECK(allEQ(buf.getFlags(), expected_result));
+  BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), expected_result));
   count_++;
   return true;
 }

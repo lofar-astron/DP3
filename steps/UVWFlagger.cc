@@ -142,7 +142,7 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   // Because no buffers are kept, we can reference the filled arrays
   // in the input buffer instead of copying them.
   itsBuffer.referenceFilled(buf);
-  Cube<bool>& flags = itsBuffer.getFlags();
+  Cube<bool>& flags = itsBuffer.GetCasacoreFlags();
   // Loop over the baselines and flag as needed.
   const IPosition& shape = flags.shape();
   unsigned int n_correlations = shape[0];
@@ -152,7 +152,7 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   // Input uvw coordinates are only needed if no new phase center is used.
   Matrix<double> uvws;
   if (itsCenter.empty()) {
-    uvws.reference(buf.getUVW());
+    uvws.reference(buf.GetCasacoreUvw());
   }
   const double* uvwPtr = uvws.data();
   bool* flagPtr = flags.data();

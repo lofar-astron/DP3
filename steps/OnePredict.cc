@@ -336,7 +336,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
   const size_t nCr = info().ncorr();
   const size_t nBeamValues = stokes_i_only_ ? nBl * nCh : nBl * nCh * nCr;
 
-  base::nsplitUVW(uvw_split_index_, baselines_, scratch_buffer.getUVW(),
+  base::nsplitUVW(uvw_split_index_, baselines_, scratch_buffer.GetCasacoreUvw(),
                   station_uvw_);
 
   double time = scratch_buffer.getTime();
@@ -578,9 +578,9 @@ bool OnePredict::process(const DPBuffer& bufin) {
   }
 
   // Add all thread model data to one buffer
-  scratch_buffer.getData().resize(nCr, nCh, nBl);
-  scratch_buffer.getData() = casacore::Complex();
-  casacore::Complex* scratch_data = scratch_buffer.getData().data();
+  scratch_buffer.ResizeData(nBl, nCh, nCr);
+  scratch_buffer.GetCasacoreData() = casacore::Complex();
+  casacore::Complex* scratch_data = scratch_buffer.GetData().data();
   const size_t nVisibilities = nBl * nCh * nCr;
   for (size_t thread = 0; thread < std::min(pool->NThreads(), n_threads);
        ++thread) {
@@ -601,7 +601,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
   if (apply_cal_step_) {
     apply_cal_step_->process(scratch_buffer);
     scratch_buffer = result_step_->get();
-    scratch_data = scratch_buffer.getData().data();
+    scratch_data = scratch_buffer.GetData().data();
   }
 
   // Put predict result from temp buffer into the 'real' buffer
@@ -609,7 +609,7 @@ bool OnePredict::process(const DPBuffer& bufin) {
     buffer_ = scratch_buffer;
   } else {
     buffer_.copy(bufin);
-    casacore::Complex* data = buffer_.getData().data();
+    casacore::Complex* data = buffer_.GetData().data();
     if (operation_ == "add") {
       std::transform(data, data + nVisibilities, scratch_data, data,
                      std::plus<dcomplex>());

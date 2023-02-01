@@ -44,9 +44,9 @@ void FillRegularBuffer(DPBuffer& buffer) {
   static std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   static std::mt19937 mt(0);
 
-  std::generate_n(buffer.getData().begin(), buffer.getData().size(), []() {
-    return std::complex<float>(uniform_data(mt), uniform_data(mt));
-  });
+  std::generate_n(
+      buffer.GetCasacoreData().begin(), buffer.GetCasacoreData().size(),
+      []() { return std::complex<float>(uniform_data(mt), uniform_data(mt)); });
 }
 
 void FillBdaBuffer(BDABuffer& buffer, size_t avg_channels,

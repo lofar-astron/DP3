@@ -244,21 +244,21 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         casacore::IPosition(3, 0, itsStChan, 0),
         casacore::IPosition(3, itsNCorr, itsNChanOut, itsNBlOut));
     // Check the expected result.
-    BOOST_CHECK(allEQ(buf.getData(), data(slicer)));
-    BOOST_CHECK(allEQ(buf.getFlags(), flags(slicer)));
-    BOOST_CHECK(allEQ(buf.getWeights(), weights(slicer)));
-    BOOST_CHECK(
-        allEQ(buf.getUVW(), uvw(casacore::IPosition(2, 0, 0),
-                                casacore::IPosition(2, 2, itsNBlOut - 1))));
+    BOOST_CHECK(allEQ(buf.GetCasacoreData(), data(slicer)));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), flags(slicer)));
+    BOOST_CHECK(allEQ(buf.GetCasacoreWeights(), weights(slicer)));
+    BOOST_CHECK(allEQ(buf.GetCasacoreUvw(),
+                      uvw(casacore::IPosition(2, 0, 0),
+                          casacore::IPosition(2, 2, itsNBlOut - 1))));
     if (itsNCorr == 4) {
       BOOST_CHECK(
-          allEQ(buf.getFullResFlags(),
+          allEQ(buf.GetCasacoreFullResFlags(),
                 fullResFlags(casacore::Slicer(
                     casacore::IPosition(3, itsStChan * 2, 0, 0),
                     casacore::IPosition(3, 2 * itsNChanOut, 2, itsNBlOut)))));
     } else {
       BOOST_CHECK(
-          allEQ(buf.getFullResFlags(),
+          allEQ(buf.GetCasacoreFullResFlags(),
                 fullResFlags(casacore::Slicer(
                     casacore::IPosition(3, itsStChan, 0, 0),
                     casacore::IPosition(3, itsNChanOut, 1, itsNBlOut)))));

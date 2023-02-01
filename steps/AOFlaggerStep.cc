@@ -260,8 +260,8 @@ void AOFlaggerStep::addToMS(const string& msName) {
 
 void AOFlaggerStep::flag(unsigned int rightOverlap) {
   // Get the sizes of the axes.
-  size_t nrbl = buffer_[0].getData().shape()[2];
-  size_t ncorr = buffer_[0].getData().shape()[0];
+  size_t nrbl = buffer_[0].GetCasacoreData().shape()[2];
+  size_t ncorr = buffer_[0].GetCasacoreData().shape()[0];
   if (ncorr != 4)
     throw std::runtime_error(
         "AOFlaggerStep can only handle all 4 correlations");
@@ -356,8 +356,8 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   moveTimer.start();
   // Get the sizes of the axes.
   unsigned int ntime = leftOverlap + windowSize + rightOverlap;
-  unsigned int nchan = buffer_[0].getData().shape()[1];
-  unsigned int blsize = nchan * buffer_[0].getData().shape()[0];
+  unsigned int nchan = buffer_[0].GetCasacoreData().shape()[1];
+  unsigned int blsize = nchan * buffer_[0].GetCasacoreData().shape()[0];
   // Fill the rficonsole buffers and flag.
   // Create the objects for the real and imaginary data of all corr.
   aoflagger::ImageSet imageSet = aoflagger_.MakeImageSet(ntime, nchan, 8);
@@ -368,8 +368,8 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   const unsigned int iStride = imageSet.HorizontalStride();
   const unsigned int fStride = origFlags.HorizontalStride();
   for (unsigned int i = 0; i < ntime; ++i) {
-    const casacore::Complex* data = buffer_[i].getData().data() + bl * blsize;
-    const bool* flags = buffer_[i].getFlags().data() + bl * blsize;
+    const casacore::Complex* data = buffer_[i].GetData().data() + bl * blsize;
+    const bool* flags = buffer_[i].GetFlags().data() + bl * blsize;
     for (unsigned int j = 0; j < nchan; ++j) {
       for (unsigned int p = 0; p != 4; ++p) {
         imageSet.ImageBuffer(p * 2)[i + j * iStride] = data->real();
@@ -388,7 +388,7 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   // Put back the true flags and count newly set flags.
   moveTimer.start();
   for (unsigned int i = leftOverlap; i < windowSize + leftOverlap; ++i) {
-    bool* flags = buffer_[i].getFlags().data() + bl * blsize;
+    bool* flags = buffer_[i].GetFlags().data() + bl * blsize;
     for (unsigned int j = 0; j < nchan; ++j) {
       // Only set if not already set.
       // If any corr is newly set, set all corr.

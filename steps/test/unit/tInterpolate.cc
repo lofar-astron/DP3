@@ -155,7 +155,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       result += casacore::Complex(10., 10.);
     }
     // Check the result.
-    BOOST_CHECK(casacore::allNear(buf.getData(), result, 1e-10));
+    BOOST_CHECK(casacore::allNear(buf.GetCasacoreData(), result, 1e-10));
     BOOST_CHECK(casacore::near(buf.getTime(), 2 + 5. * itsCount));
     ++itsCount;
     return true;

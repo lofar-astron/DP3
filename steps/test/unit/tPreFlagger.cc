@@ -196,7 +196,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.getFlags(), result));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }
@@ -268,7 +268,7 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.getFlags(), result));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }
@@ -346,7 +346,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.getFlags(), result));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }
@@ -393,8 +393,8 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
 
  private:
   bool process(const DPBuffer& buf) override {
-    const casacore::Cube<casacore::Complex>& data = buf.getData();
-    const double* uvw = buf.getUVW().data();
+    const casacore::Cube<casacore::Complex>& data = buf.GetCasacoreData();
+    const double* uvw = buf.GetUvw().data();
     const casacore::IPosition& shp = data.shape();
     casacore::Cube<bool> result(shp);
     for (int i = 0; i < shp[2]; ++i) {
@@ -411,7 +411,7 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.getFlags(), result));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }

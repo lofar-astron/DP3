@@ -128,9 +128,9 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   bool process(const DPBuffer& buf) override {
     BOOST_CHECK_SMALL(buf.getTime() - times_[time_step_],
                       time_interval_ * 0.01);
-    BOOST_CHECK(allTrue(buf.getFlags()) == flags_[time_step_]);
+    BOOST_CHECK(allTrue(buf.GetCasacoreFlags()) == flags_[time_step_]);
 
-    const casacore::Matrix<double>& buf_uvw = buf.getUVW();
+    const casacore::Matrix<double>& buf_uvw = buf.GetCasacoreUvw();
     BOOST_REQUIRE(buf_uvw.shape() == casacore::IPosition(2, 3, kNBaselines));
     if (update_uvw_) {
       // The first baseline has auto-correlations. UVW should be zero.

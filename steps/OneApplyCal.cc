@@ -390,7 +390,7 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
       }
 
       // Validate that the data is in the correct shape
-      size_t nchan = itsBuffer.getData().shape()[1];
+      size_t nchan = itsBuffer.GetCasacoreData().shape()[1];
       size_t n_corrs = itsBuffer.GetSolution()[0].size() / ant_names.size();
       if (itsBuffer.GetSolution().size() != nchan ||
           (n_corrs != 2 && n_corrs != 4)) {
@@ -409,12 +409,12 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
   }
 
   // Loop through all baselines in the buffer.
-  size_t nbl = itsBuffer.getData().shape()[2];
+  size_t nbl = itsBuffer.GetCasacoreData().shape()[2];
 
-  casacore::Complex* data = itsBuffer.getData().data();
-  float* weight = itsBuffer.getWeights().data();
-  bool* flag = itsBuffer.getFlags().data();
-  size_t nchan = itsBuffer.getData().shape()[1];
+  casacore::Complex* data = itsBuffer.GetData().data();
+  float* weight = itsBuffer.GetWeights().data();
+  bool* flag = itsBuffer.GetFlags().data();
+  size_t nchan = itsBuffer.GetCasacoreData().shape()[1];
 
   aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {

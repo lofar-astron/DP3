@@ -35,23 +35,23 @@ void CompareArray(const casacore::Array<T>& left,
 /// casacore references.
 void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_EQUAL(left.getRowNrs().data(), right.getRowNrs().data());
-  BOOST_CHECK_EQUAL(left.getData().data(), right.getData().data());
-  BOOST_CHECK_EQUAL(left.getFlags().data(), right.getFlags().data());
-  BOOST_CHECK_EQUAL(left.getUVW().data(), right.getUVW().data());
-  BOOST_CHECK_EQUAL(left.getWeights().data(), right.getWeights().data());
-  BOOST_CHECK_EQUAL(left.getFullResFlags().data(),
-                    right.getFullResFlags().data());
+  BOOST_CHECK_EQUAL(left.GetData().data(), right.GetData().data());
+  BOOST_CHECK_EQUAL(left.GetFlags().data(), right.GetFlags().data());
+  BOOST_CHECK_EQUAL(left.GetUvw().data(), right.GetUvw().data());
+  BOOST_CHECK_EQUAL(left.GetWeights().data(), right.GetWeights().data());
+  BOOST_CHECK_EQUAL(left.GetFullResFlags().data(),
+                    right.GetFullResFlags().data());
 }
 
 /// Verify that two DPBuffers do not share the same data, e.g., using
 /// casacore references.
 void CheckIndependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_NE(left.getRowNrs().data(), right.getRowNrs().data());
-  BOOST_CHECK_NE(left.getData().data(), right.getData().data());
-  BOOST_CHECK_NE(left.getFlags().data(), right.getFlags().data());
-  BOOST_CHECK_NE(left.getUVW().data(), right.getUVW().data());
-  BOOST_CHECK_NE(left.getWeights().data(), right.getWeights().data());
-  BOOST_CHECK_NE(left.getFullResFlags().data(), right.getFullResFlags().data());
+  BOOST_CHECK_NE(left.GetData().data(), right.GetData().data());
+  BOOST_CHECK_NE(left.GetFlags().data(), right.GetFlags().data());
+  BOOST_CHECK_NE(left.GetUvw().data(), right.GetUvw().data());
+  BOOST_CHECK_NE(left.GetWeights().data(), right.GetWeights().data());
+  BOOST_CHECK_NE(left.GetFullResFlags().data(), right.GetFullResFlags().data());
 }
 
 DPBuffer CreateFilledBuffer() {
@@ -72,14 +72,15 @@ void CheckFilledBuffer(const DPBuffer& buffer) {
   BOOST_CHECK(buffer.getExposure() == kExposure);
   CompareArray(buffer.getRowNrs(),
                casacore::Vector<dp3::common::rownr_t>(kRowNrs, kRowNr));
-  CompareArray(buffer.getData(),
+  CompareArray(buffer.GetCasacoreData(),
                casacore::Cube<std::complex<float>>(kDimensions, kDataValue));
-  CompareArray(buffer.getFlags(), casacore::Cube<bool>(kDimensions, false));
-  CompareArray(buffer.getUVW(),
+  CompareArray(buffer.GetCasacoreFlags(),
+               casacore::Cube<bool>(kDimensions, false));
+  CompareArray(buffer.GetCasacoreUvw(),
                casacore::Matrix<double>(3, kNBaselines, KUVWValue));
-  CompareArray(buffer.getWeights(),
+  CompareArray(buffer.GetCasacoreWeights(),
                casacore::Cube<float>(kDimensions, kWeightValue));
-  CompareArray(buffer.getFullResFlags(),
+  CompareArray(buffer.GetCasacoreFullResFlags(),
                casacore::Cube<bool>(kFRFDimensions, true));
 }
 
@@ -92,11 +93,11 @@ BOOST_AUTO_TEST_CASE(constructor) {
   BOOST_CHECK(buffer.getTime() == 0.0);
   BOOST_CHECK(buffer.getExposure() == 0.0);
   BOOST_CHECK(buffer.getRowNrs().empty());
-  BOOST_CHECK(buffer.getData().empty());
-  BOOST_CHECK(buffer.getFlags().empty());
-  BOOST_CHECK(buffer.getUVW().empty());
-  BOOST_CHECK(buffer.getWeights().empty());
-  BOOST_CHECK(buffer.getFullResFlags().empty());
+  BOOST_CHECK(buffer.GetCasacoreData().empty());
+  BOOST_CHECK(buffer.GetCasacoreFlags().empty());
+  BOOST_CHECK(buffer.GetCasacoreUvw().empty());
+  BOOST_CHECK(buffer.GetCasacoreWeights().empty());
+  BOOST_CHECK(buffer.GetCasacoreFullResFlags().empty());
 }
 
 BOOST_AUTO_TEST_CASE(copy_constructor) {
@@ -144,10 +145,15 @@ BOOST_AUTO_TEST_CASE(copy_to_reference_copy) {
 }
 
 BOOST_AUTO_TEST_CASE(make_independent) {
+  using dp3::common::Fields;
   const DPBuffer source = CreateFilledBuffer();
   DPBuffer copy(source);  // 'copy' gets references (see copy_constructor test).
   CheckDependent(source, copy);
-  copy.makeIndependent();
+  copy.getRowNrs().unique();  // MakeIndependent does not support row numbers.
+  copy.MakeIndependent(
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags) |
+      Fields(Fields::Single::kWeights) | Fields(Fields::Single::kFullResFlags) |
+      Fields(Fields::Single::kUvw));
   CheckFilledBuffer(copy);
   CheckIndependent(source, copy);
 }

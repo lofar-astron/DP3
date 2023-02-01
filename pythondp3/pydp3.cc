@@ -161,16 +161,16 @@ PYBIND11_MODULE(pydp3, m) {
            "Constructor with arguments: time, exposure")
       .def("get_data",
            (casacore::Cube<casacore::Complex> &
-            (DPBuffer::*)())(&DPBuffer::getData),
+            (DPBuffer::*)())(&DPBuffer::GetCasacoreData),
            "Get data "
            "buffer that can be read as numpy array. Shape is "
            "(nr baselines, nr channels, nr polarizations)")
-      .def("get_weights",
-           (casacore::Cube<float> & (DPBuffer::*)())(&DPBuffer::getWeights))
-      .def("get_flags",
-           (casacore::Cube<bool> & (DPBuffer::*)())(&DPBuffer::getFlags))
-      .def("get_uvw",
-           (casacore::Matrix<double> & (DPBuffer::*)())(&DPBuffer::getUVW))
+      .def("get_weights", (casacore::Cube<float> &
+                           (DPBuffer::*)())(&DPBuffer::GetCasacoreWeights))
+      .def("get_flags", (casacore::Cube<bool> &
+                         (DPBuffer::*)())(&DPBuffer::GetCasacoreFlags))
+      .def("get_uvw", (casacore::Matrix<double> &
+                       (DPBuffer::*)())(&DPBuffer::GetCasacoreUvw))
       .def("get_exposure", &DPBuffer::getExposure,
            "Get the exposure of this buffer")
       .def(

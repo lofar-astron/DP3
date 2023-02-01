@@ -61,8 +61,8 @@ BOOST_AUTO_TEST_CASE(fill_full_res_flags_available_in_ms) {
 
   // Compare the flags obtained with the FillFullResFlags function with the
   // flags read from the MS.
-  BOOST_CHECK(
-      allEQ(buffer.getFullResFlags(), expected_buffer.getFullResFlags()));
+  BOOST_CHECK(allEQ(buffer.GetCasacoreFullResFlags(),
+                    expected_buffer.GetCasacoreFullResFlags()));
 }
 
 BOOST_AUTO_TEST_CASE(fill_full_res_flags_not_available_in_ms) {
@@ -91,13 +91,15 @@ BOOST_AUTO_TEST_CASE(fill_full_res_flags_not_available_in_ms) {
   // expected shape (there is no polarization axis in the full resolution flags,
   // the XX polarization flag is taken)
   casacore::Cube<bool> expected_full_resolution_flags(kNChan, 1, kNBaseline);
-  casacore::objcopy(
-      expected_full_resolution_flags.data(), buffer.getFlags().data(),
-      expected_full_resolution_flags.size(), 1, buffer.getFlags().shape()[0]);
+  casacore::objcopy(expected_full_resolution_flags.data(),
+                    buffer.GetFlags().data(),
+                    expected_full_resolution_flags.size(), 1,
+                    buffer.GetCasacoreFlags().shape()[0]);
 
   // Compare the flags obtained with the FillFullResFlags function with the
   // flags copied from the buffer's flags
-  BOOST_CHECK(allEQ(buffer.getFullResFlags(), expected_full_resolution_flags));
+  BOOST_CHECK(
+      allEQ(buffer.GetCasacoreFullResFlags(), expected_full_resolution_flags));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

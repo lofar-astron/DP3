@@ -1,5 +1,5 @@
 // DPBuffer.h: Buffer holding the data of a timeslot/band
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -12,6 +12,9 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>
 
+#include <aocommon/xt/span.h>
+
+#include <dp3/common/Fields.h>
 #include <dp3/common/Types.h>
 
 namespace dp3 {
@@ -103,7 +106,7 @@ class DPBuffer {
   explicit DPBuffer(double time = 0.0, double exposure = 0.0);
 
   /// The copy constructor uses reference copies.
-  DPBuffer(const DPBuffer&);
+  DPBuffer(const DPBuffer&) = default;
 
   /// The move constructor moves all data without using reference semantics.
   DPBuffer(DPBuffer&&);
@@ -118,62 +121,84 @@ class DPBuffer {
   /// After this call, the buffer is always independent.
   void copy(const DPBuffer& that);
 
-  /// Ensure that this buffer has independent copies of all data items / that
+  /// Ensure that this buffer has independent copies of data items / that
   /// the data items do not use reference semantices.
-  void makeIndependent();
+  /// @param fields The fields that should be independent copies.
+  void MakeIndependent(const common::Fields& fields);
 
   /// Reference only the arrays that are filled in that.
   void referenceFilled(const DPBuffer& that);
 
   /// Set or get the visibility data per corr,chan,baseline.
-  void setData(const casacore::Cube<Complex>& data) { itsData.reference(data); }
-  const casacore::Cube<Complex>& getData() const { return itsData; }
-  casacore::Cube<Complex>& getData() { return itsData; }
+  void setData(const casacore::Cube<Complex>& data);
+  void ResizeData(size_t n_baselines, size_t n_channels, size_t n_correlations);
+  const casacore::Cube<Complex>& GetCasacoreData() const { return casa_data_; }
+  casacore::Cube<Complex>& GetCasacoreData() { return casa_data_; }
+  const aocommon::xt::Span<std::complex<float>, 3>& GetData() const {
+    return data_;
+  }
+  aocommon::xt::Span<std::complex<float>, 3>& GetData() { return data_; }
 
   /// Set or get the flags per corr,chan,baseline.
-  void setFlags(const casacore::Cube<bool>& flags) {
-    itsFlags.reference(flags);
-  }
-  const casacore::Cube<bool>& getFlags() const { return itsFlags; }
-  casacore::Cube<bool>& getFlags() { return itsFlags; }
+  void setFlags(const casacore::Cube<bool>& flags);
+  void ResizeFlags(size_t n_baselines, size_t n_channels,
+                   size_t n_correlations);
+  const casacore::Cube<bool>& GetCasacoreFlags() const { return casa_flags_; }
+  casacore::Cube<bool>& GetCasacoreFlags() { return casa_flags_; }
+  const aocommon::xt::Span<bool, 3>& GetFlags() const { return flags_; }
+  aocommon::xt::Span<bool, 3>& GetFlags() { return flags_; }
 
   /// Set or get the weights per corr,chan,baseline.
-  void setWeights(const casacore::Cube<float>& weights) {
-    itsWeights.reference(weights);
+  void setWeights(const casacore::Cube<float>& weights);
+  void ResizeWeights(size_t n_baselines, size_t n_channels,
+                     size_t n_correlations);
+  const casacore::Cube<float>& GetCasacoreWeights() const {
+    return casa_weights_;
   }
-  const casacore::Cube<float>& getWeights() const { return itsWeights; }
-  casacore::Cube<float>& getWeights() { return itsWeights; }
+  casacore::Cube<float>& GetCasacoreWeights() { return casa_weights_; }
+  const aocommon::xt::Span<float, 3> GetWeights() const { return weights_; }
+  aocommon::xt::Span<float, 3> GetWeights() { return weights_; }
 
   /// Set or get the flags at the full resolution per chan,timeavg,baseline.
-  void setFullResFlags(const casacore::Cube<bool>& flags) {
-    itsFullResFlags.reference(flags);
+  void setFullResFlags(const casacore::Cube<bool>& flags);
+  void ResizeFullResFlags(size_t n_baselines, size_t n_averaged_times,
+                          size_t n_full_res_channels);
+  const casacore::Cube<bool>& GetCasacoreFullResFlags() const {
+    return casa_full_res_flags_;
   }
-  const casacore::Cube<bool>& getFullResFlags() const {
-    return itsFullResFlags;
+  casacore::Cube<bool>& GetCasacoreFullResFlags() {
+    return casa_full_res_flags_;
   }
-  casacore::Cube<bool>& getFullResFlags() { return itsFullResFlags; }
+  const aocommon::xt::Span<bool, 3>& GetFullResFlags() const {
+    return full_res_flags_;
+  }
+  aocommon::xt::Span<bool, 3>& GetFullResFlags() { return full_res_flags_; }
 
   /// Get or set the time.
-  void setTime(double time) { itsTime = time; }
-  double getTime() const { return itsTime; }
+  void setTime(double time) { time_ = time; }
+  double getTime() const { return time_; }
 
   /// Get or set the exposure.
-  void setExposure(double exposure) { itsExposure = exposure; }
-  double getExposure() const { return itsExposure; }
+  void setExposure(double exposure) { exposure_ = exposure; }
+  double getExposure() const { return exposure_; }
 
   /// Get or set the row numbers used by the InputStep class.
   /// It can be empty (e.g. when MSReader inserted a dummy time slot).
   void setRowNrs(const casacore::Vector<common::rownr_t>& rownrs) {
-    itsRowNrs.reference(rownrs);
+    row_numbers_.reference(rownrs);
   }
   const casacore::Vector<common::rownr_t>& getRowNrs() const {
-    return itsRowNrs;
+    return row_numbers_;
   }
+  casacore::Vector<common::rownr_t>& getRowNrs() { return row_numbers_; }
 
   /// Get or set the UVW coordinates per baseline.
-  void setUVW(const casacore::Matrix<double>& uvw) { itsUVW.reference(uvw); }
-  const casacore::Matrix<double>& getUVW() const { return itsUVW; }
-  casacore::Matrix<double>& getUVW() { return itsUVW; }
+  void setUVW(const casacore::Matrix<double>& uvw);
+  void ResizeUvw(size_t n_baselines);
+  const casacore::Matrix<double>& GetCasacoreUvw() const { return casa_uvw_; }
+  casacore::Matrix<double>& GetCasacoreUvw() { return casa_uvw_; }
+  const aocommon::xt::Span<double, 2>& GetUvw() const { return uvw_; }
+  aocommon::xt::Span<double, 2>& GetUvw() { return uvw_; }
 
   /// Merge the flags into the pre-average flags.
   /// For each flagged point, the corresponding pre-average flags are set.
@@ -182,21 +207,45 @@ class DPBuffer {
 
   void SetSolution(
       const std::vector<std::vector<std::complex<double>>>& solution) {
-    itsSolution = solution;
+    solution_ = solution;
   }
-  const std::vector<std::vector<std::complex<double>>>& GetSolution() const;
+  const std::vector<std::vector<std::complex<double>>>& GetSolution() const {
+    return solution_;
+  }
 
  private:
-  double itsTime;
-  double itsExposure;
-  casacore::Vector<common::rownr_t> itsRowNrs;
-  casacore::Cube<Complex> itsData;       ///< ncorr,nchan,nbasel
-  casacore::Cube<bool> itsFlags;         ///< ncorr,nchan,nbasel
-  casacore::Matrix<double> itsUVW;       ///< 3,nbasel
-  casacore::Cube<float> itsWeights;      ///< ncorr,nchan,nbasel
-  casacore::Cube<bool> itsFullResFlags;  ///< fullres_nchan,ntimeavg,nbl
+  /// (Re)create the XTensor views on the Casacore data.
+  void CreateSpans();
+
+  double time_;
+  double exposure_;
+  casacore::Vector<common::rownr_t> row_numbers_;
+
+  // The casa_ objects hold the actual data. The aocommon::xt::Span objects
+  // below provide XTensor views to the data in the casa_ objects.
+  // In the future, the XTensor views will be replaced by xt::xtensor objects
+  // that hold the data. The casa_ objects then provide a Casacore view to the
+  // data. When the casa_ objects are no longer used, they will be removed.
+  casacore::Cube<Complex> casa_data_;         ///< ncorr,nchan,nbasel
+  casacore::Cube<bool> casa_flags_;           ///< ncorr,nchan,nbasel
+  casacore::Matrix<double> casa_uvw_;         ///< 3,nbasel
+  casacore::Cube<float> casa_weights_;        ///< ncorr,nchan,nbasel
+  casacore::Cube<bool> casa_full_res_flags_;  ///< fullres_nchan,ntimeavg,nbl
+
+  /// Visibilities (n_baselines x n_channels x n_correlations)
+  aocommon::xt::Span<std::complex<float>, 3> data_;
+  /// Flags (n_baselines x n_channels x n_correlations)
+  aocommon::xt::Span<bool, 3> flags_;
+  /// Weights (n_baselines x n_channels x n_correlations)
+  aocommon::xt::Span<float, 3> weights_;
+  /// UVW coordinates (n_baselines x 3)
+  aocommon::xt::Span<double, 2> uvw_;
+  /// LOFAR full resolution flags
+  /// (n_baselines x n_averaged_times x n_full_resolution_channels)
+  aocommon::xt::Span<bool, 3> full_res_flags_;
+
   std::vector<std::vector<std::complex<double>>>
-      itsSolution;  ///< nchan,nant*npol
+      solution_;  ///< nchan,nant*npol
 };
 
 }  // namespace base

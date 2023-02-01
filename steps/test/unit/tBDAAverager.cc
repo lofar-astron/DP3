@@ -209,17 +209,17 @@ void CheckData(const std::complex<float>& expected,
  */
 void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
               std::size_t baseline_nr) {
-  const std::size_t n_corr = expected.getData().shape()[0];
-  const std::size_t n_chan = expected.getData().shape()[1];
+  const std::size_t n_corr = expected.GetCasacoreData().shape()[0];
+  const std::size_t n_chan = expected.GetCasacoreData().shape()[1];
 
   BOOST_TEST(expected.getTime() == row.time);
   BOOST_TEST(expected.getExposure() == row.interval);
   // ??? TODO:compare row_nr ???
   BOOST_REQUIRE_EQUAL(baseline_nr, row.baseline_nr);
   BOOST_REQUIRE_EQUAL(n_chan * n_corr, row.GetDataSize());
-  BOOST_TEST(expected.getUVW()(0, 0) == row.uvw[0]);
-  BOOST_TEST(expected.getUVW()(1, 0) == row.uvw[1]);
-  BOOST_TEST(expected.getUVW()(2, 0) == row.uvw[2]);
+  BOOST_TEST(expected.GetCasacoreUvw()(0, 0) == row.uvw[0]);
+  BOOST_TEST(expected.GetCasacoreUvw()(1, 0) == row.uvw[1]);
+  BOOST_TEST(expected.GetCasacoreUvw()(2, 0) == row.uvw[2]);
 
   std::complex<float>* row_data = row.data;
   bool* row_flag = row.flags;
@@ -231,9 +231,9 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   BOOST_REQUIRE(row_full_res_flag);
   for (std::size_t chan = 0; chan < n_chan; ++chan) {
     for (std::size_t corr = 0; corr < n_corr; ++corr) {
-      CheckData(expected.getData()(corr, chan, 0), *row_data);
-      BOOST_TEST(expected.getFlags()(corr, chan, 0) == *row_flag);
-      BOOST_TEST(expected.getWeights()(corr, chan, 0) == *row_weight);
+      CheckData(expected.GetCasacoreData()(corr, chan, 0), *row_data);
+      BOOST_TEST(expected.GetCasacoreFlags()(corr, chan, 0) == *row_flag);
+      BOOST_TEST(expected.GetCasacoreWeights()(corr, chan, 0) == *row_weight);
       // !!! TODO: add proper full res flags test.
       BOOST_TEST(false == *row_full_res_flag);
       ++row_data;

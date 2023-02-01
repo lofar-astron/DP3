@@ -232,7 +232,7 @@ bool IDGPredict::process(const DPBuffer& buffer) {
   buffers_.emplace_back(buffer);
   // Ensure that the buffer copy has its own UVW array. Otherwise, the UVW array
   // will refer to the UVW array in 'buffer', which may change.
-  buffers_.back().getUVW().unique();
+  buffers_.back().MakeIndependent(kUvwField);
 
   if (buffers_.size() == buffer_size_) {
     flush();
@@ -256,7 +256,7 @@ void IDGPredict::flush() {
   for (size_t dir = 1; dir < directions_.size(); ++dir) {
     auto predictions = Predict(dir);
     for (size_t i = 0; i < predictions.size(); ++i) {
-      front_prediction[i].getData() += predictions[i].getData();
+      front_prediction[i].GetCasacoreData() += predictions[i].GetCasacoreData();
     }
   }
 
@@ -422,8 +422,8 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   const double max_baseline2 = max_baseline_ * max_baseline_;
 
   for (DPBuffer& buffer : buffers_) {
-    assert(buffer.getUVW().size() == (info().nbaselines() * 3));
-    uvws.push_back(buffer.getUVW().data());
+    assert(buffer.GetCasacoreUvw().size() == (info().nbaselines() * 3));
+    uvws.push_back(buffer.GetUvw().data());
 
     const double* uvw = uvws.back();
     for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
@@ -476,7 +476,7 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
     data_ptrs.clear();
     if (term == 0) {  // data_ptrs point directly to the buffers.
       for (size_t t = 0; t < n_timesteps; ++t) {
-        data_ptrs.push_back(result[t].getData().data());
+        data_ptrs.push_back(result[t].GetData().data());
       }
     } else {  // Use term_data as auxiliary buffers for the other terms.
       std::complex<float>* data = term_data + (term - 1) * term_size;
@@ -582,7 +582,7 @@ void IDGPredict::CorrectVisibilities(std::vector<DPBuffer>& result,
   }
 
   for (size_t t = 0; t < n_timesteps; ++t) {
-    std::complex<float>* result_data = result[t].getData().data();
+    std::complex<float>* result_data = result[t].GetData().data();
     for (size_t bl = 0; bl < info().nbaselines(); ++bl) {
       for (size_t ch = 0; ch < info().nchan(); ++ch) {
         float polynomial_factor = 1.0;

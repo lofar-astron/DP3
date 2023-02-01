@@ -501,8 +501,8 @@ bool Demixer::process(const DPBuffer& buf) {
   addFactors(selBuf, itsFactorBuf);
   if (itsNTimeIn % itsNTimeAvg == 0) {
     makeFactors(itsFactorBuf, itsFactors[itsNTimeOut],
-                itsAvgResults[0]->get()[itsNTimeOut].getWeights(), itsNChanOut,
-                itsNChanAvg);
+                itsAvgResults[0]->get()[itsNTimeOut].GetCasacoreWeights(),
+                itsNChanOut, itsNChanAvg);
     // Deproject sources without a model.
     deproject(itsFactors[itsNTimeOut], itsNTimeOut);
     itsFactorBuf = casacore::Complex();  // Clear summation buffer
@@ -513,7 +513,7 @@ bool Demixer::process(const DPBuffer& buf) {
   addFactors(selBuf, itsFactorBufSubtr);
   if (itsNTimeIn % itsNTimeAvgSubtr == 0) {
     makeFactors(itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
-                itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
+                itsAvgResultSubtr->get()[itsNTimeOutSubtr].GetCasacoreWeights(),
                 itsNChanOutSubtr, itsNChanAvgSubtr);
     itsFactorBufSubtr = casacore::Complex();  // Clear summation buffer
     itsNTimeOutSubtr++;
@@ -547,16 +547,17 @@ void Demixer::finish() {
     itsTimerDemix.start();
     if (itsNTimeIn % itsNTimeAvg != 0) {
       makeFactors(itsFactorBuf, itsFactors[itsNTimeOut],
-                  itsAvgResults[0]->get()[itsNTimeOut].getWeights(),
+                  itsAvgResults[0]->get()[itsNTimeOut].GetCasacoreWeights(),
                   itsNChanOut, itsNChanAvg);
       // Deproject sources without a model.
       deproject(itsFactors[itsNTimeOut], itsNTimeOut);
       itsNTimeOut++;
     }
     if (itsNTimeIn % itsNTimeAvgSubtr != 0) {
-      makeFactors(itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
-                  itsAvgResultSubtr->get()[itsNTimeOutSubtr].getWeights(),
-                  itsNChanOutSubtr, itsNChanAvgSubtr);
+      makeFactors(
+          itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
+          itsAvgResultSubtr->get()[itsNTimeOutSubtr].GetCasacoreWeights(),
+          itsNChanOutSubtr, itsNChanAvgSubtr);
       itsNTimeOutSubtr++;
     }
     itsTimerDemix.stop();
@@ -605,7 +606,8 @@ void Demixer::handleDemix() {
     } else {
       bufptr = &(itsAvgResultSubtr->get()[i]);
     }
-    MSReader::flagInfNaN(bufptr->getData(), bufptr->getFlags(), itsFlagCounter);
+    MSReader::flagInfNaN(bufptr->GetCasacoreData(), bufptr->GetCasacoreFlags(),
+                         itsFlagCounter);
     getNextStep()->process(*bufptr);
     itsTimer.start();
   }
@@ -625,10 +627,11 @@ void Demixer::mergeSubtractResult() {
   // Merge the selected baselines from the subtract buffer into the
   // full buffer. Do it for all timestamps.
   for (unsigned int i = 0; i < itsNTimeOutSubtr; ++i) {
-    const Array<casacore::Complex>& arr = itsAvgResultSubtr->get()[i].getData();
+    const Array<casacore::Complex>& arr =
+        itsAvgResultSubtr->get()[i].GetCasacoreData();
     size_t nr = arr.shape()[0] * arr.shape()[1];
     const casacore::Complex* in = arr.data();
-    casacore::Complex* out = itsAvgResultFull->get()[i].getData().data();
+    casacore::Complex* out = itsAvgResultFull->get()[i].GetData().data();
     for (size_t j = 0; j < itsFilter.getIndicesBL().size(); ++j) {
       size_t inx = itsFilter.getIndicesBL()[j];
       memcpy(out + inx * nr, in + j * nr, nr * sizeof(casacore::Complex));
@@ -640,9 +643,9 @@ void Demixer::addFactors(const DPBuffer& newBuf,
                          Array<casacore::DComplex>& factorBuf) {
   // Nothing to do if only target direction.
   if (itsNDir <= 1) return;
-  int ncorr = newBuf.getData().shape()[0];
-  int nchan = newBuf.getData().shape()[1];
-  int nbl = newBuf.getData().shape()[2];
+  int ncorr = newBuf.GetCasacoreData().shape()[0];
+  int nchan = newBuf.GetCasacoreData().shape()[1];
+  int nbl = newBuf.GetCasacoreData().shape()[2];
   int ncc = ncorr * nchan;
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
@@ -659,8 +662,8 @@ void Demixer::addFactors(const DPBuffer& newBuf,
         // The last direction is the target direction, so no need to
         // combine the factors. Take conj to get shift source to target.
         loop.Run(0, nbl, [&](size_t i, size_t /*thread*/) {
-          const bool* flagPtr = newBuf.getFlags().data() + i * ncc;
-          const float* weightPtr = newBuf.getWeights().data() + i * ncc;
+          const bool* flagPtr = newBuf.GetFlags().data() + i * ncc;
+          const float* weightPtr = newBuf.GetWeights().data() + i * ncc;
           casacore::DComplex* factorPtr =
               factorBuf.data() + (dirnr * nbl + i) * ncc;
           const casacore::DComplex* phasor1 =
@@ -680,8 +683,8 @@ void Demixer::addFactors(const DPBuffer& newBuf,
       } else {
         // Different source directions; take both phase terms into account.
         loop.Run(0, nbl, [&](size_t i, size_t /*thread*/) {
-          const bool* flagPtr = newBuf.getFlags().data() + i * ncc;
-          const float* weightPtr = newBuf.getWeights().data() + i * ncc;
+          const bool* flagPtr = newBuf.GetFlags().data() + i * ncc;
+          const float* weightPtr = newBuf.GetWeights().data() + i * ncc;
           casacore::DComplex* factorPtr =
               factorBuf.data() + (dirnr * nbl + i) * ncc;
           const casacore::DComplex* phasor0 =
@@ -776,7 +779,7 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
   // Get pointers to the data for the various directions.
   std::vector<casacore::Complex*> resultPtr(itsNDir);
   for (unsigned int j = 0; j < itsNDir; ++j) {
-    resultPtr[j] = itsAvgResults[j]->get()[resultIndex].getData().data();
+    resultPtr[j] = itsAvgResults[j]->get()[resultIndex].GetData().data();
   }
   // The projection matrix is given by
   //     P = I - A * inv(A.T.conj * A) * A.T.conj
@@ -921,7 +924,8 @@ void Demixer::demix() {
     fill(storage.model.begin(), storage.model.end(), 0.);
     for (size_t dr = 0; dr < nDr; ++dr) {
       base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
-                      itsAvgResults[dr]->get()[ts].getUVW(), storage.uvw);
+                      itsAvgResults[dr]->get()[ts].GetCasacoreUvw(),
+                      storage.uvw);
       /// cout<<"uvw"<<dr<<'='<<storage.uvw<<'\n';
 
       base::Simulator simulator(
@@ -944,9 +948,9 @@ void Demixer::demix() {
     // each direction on each other direction is given by the mixing
     // matrix.
     base::const_cursor<bool> cr_flag =
-        base::casa_const_cursor(itsAvgResults[0]->get()[ts].getFlags());
-    base::const_cursor<float> cr_weight =
-        base::casa_const_cursor(itsAvgResults[0]->get()[ts].getWeights());
+        base::casa_const_cursor(itsAvgResults[0]->get()[ts].GetCasacoreFlags());
+    base::const_cursor<float> cr_weight = base::casa_const_cursor(
+        itsAvgResults[0]->get()[ts].GetCasacoreWeights());
     base::const_cursor<dcomplex> cr_mix =
         base::casa_const_cursor(itsFactors[ts]);
     /// cout << "demixfactor "<<ts<<" = "<<itsFactors[ts]<<'\n';
@@ -954,8 +958,8 @@ void Demixer::demix() {
     std::vector<base::const_cursor<fcomplex>> cr_data(nDr);
     std::vector<base::const_cursor<dcomplex>> cr_model(nDr);
     for (size_t dr = 0; dr < nDr; ++dr) {
-      cr_data[dr] =
-          base::casa_const_cursor(itsAvgResults[dr]->get()[ts].getData());
+      cr_data[dr] = base::casa_const_cursor(
+          itsAvgResults[dr]->get()[ts].GetCasacoreData());
       cr_model[dr] = base::const_cursor<dcomplex>(storage.model[dr].data(), 3,
                                                   stride_model);
     }
@@ -997,7 +1001,7 @@ void Demixer::demix() {
         // Re-simulate if required.
         if (multiplier != 1 || nCh != nChSubtr) {
           base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
-                          itsAvgResultSubtr->get()[ts_subtr].getUVW(),
+                          itsAvgResultSubtr->get()[ts_subtr].GetCasacoreUvw(),
                           storage.uvw);
 
           if (itsMovingPhaseRef) {
@@ -1046,8 +1050,8 @@ void Demixer::demix() {
         apply(nBl, nChSubtr, cr_baseline, cr_unknowns, cr_model_subtr);
 
         // Subtract the source contribution from the data.
-        base::cursor<fcomplex> cr_residual =
-            base::casa_cursor(itsAvgResultSubtr->get()[ts_subtr].getData());
+        base::cursor<fcomplex> cr_residual = base::casa_cursor(
+            itsAvgResultSubtr->get()[ts_subtr].GetCasacoreData());
 
         // Construct a cursor to iterate over a slice of the mixing matrix
         // at the resolution of the residual. The "to" and "from" direction

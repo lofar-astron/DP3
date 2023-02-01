@@ -80,9 +80,9 @@ class TestAdjust : public dp3::steps::test::ThrowStep {
     dp3::base::DPBuffer adjusted = buffer;
     dp3::common::NSTimer timer;
 
-    adjusted.getData() += kDataAdjustment;
-    SetTestFlags(adjusted.getFlags());
-    adjusted.getWeights() += kWeightAdjustment;
+    adjusted.GetCasacoreData() += kDataAdjustment;
+    SetTestFlags(adjusted.GetCasacoreFlags());
+    adjusted.GetCasacoreWeights() += kWeightAdjustment;
 
     getNextStep()->process(adjusted);
     return true;

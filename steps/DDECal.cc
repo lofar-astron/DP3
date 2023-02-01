@@ -499,8 +499,10 @@ void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
   // Set the visibility weights to zero
   for (DPBuffer& buffer : itsSolIntBuffers[bufferIndex].DataBuffers()) {
     for (size_t bl = 0; bl < nBl; ++bl) {
-      float* begin = &buffer.getWeights()(0, itsChanBlockStart[cbIndex], bl);
-      float* end = &buffer.getWeights()(0, itsChanBlockStart[cbIndex + 1], bl);
+      float* begin =
+          &buffer.GetCasacoreWeights()(0, itsChanBlockStart[cbIndex], bl);
+      float* end =
+          &buffer.GetCasacoreWeights()(0, itsChanBlockStart[cbIndex + 1], bl);
       std::fill(begin, end, 0.0f);
     }
   }
@@ -735,13 +737,13 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
       }
       for (size_t cr = 0; cr < nCr; ++cr) {
         itsVisInInterval[chanblock].second++;  // total nr of vis
-        if (bufin.getFlags()(cr, ch, bl)) {
+        if (bufin.GetCasacoreFlags()(cr, ch, bl)) {
           // Flagged points: set weight to 0
           DPBuffer& buf_sol = itsSolIntBuffers[sol_int].DataBuffers()[step];
-          buf_sol.getWeights()(cr, ch, bl) = 0;
+          buf_sol.GetCasacoreWeights()(cr, ch, bl) = 0;
         } else {
           // Add this weight to both involved antennas
-          double weight = bufin.getWeights()(cr, ch, bl);
+          double weight = bufin.GetCasacoreWeights()(cr, ch, bl);
           itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
           itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
           if (weight != 0.0) {
@@ -830,7 +832,7 @@ void DDECal::storeModelData(
     itsModelData[timestep].resize(n_directions);
     for (size_t dir = 0; dir < n_directions; ++dir) {
       const casacore::Cube<std::complex<float>>& input_model_data =
-          input_model_buffers[timestep][dir].getData();
+          input_model_buffers[timestep][dir].GetCasacoreData();
       itsModelData[timestep][dir].assign(input_model_data.begin(),
                                          input_model_data.end());
     }
@@ -870,8 +872,8 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
           chanblock++;
         }
 
-        std::complex<float>* data = &data_buffer.getData()(0, ch, bl);
-        const size_t index = data - data_buffer.getData().data();
+        std::complex<float>* data = &data_buffer.GetCasacoreData()(0, ch, bl);
+        const size_t index = data - data_buffer.GetData().data();
         if (itsSettings.only_predict) {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
 

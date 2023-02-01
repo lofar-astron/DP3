@@ -105,7 +105,7 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
         casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0));
 
     casacore::Cube<std::complex<float>>& time_data =
-        data_buffers_.back().getData();
+        data_buffers_.back().GetCasacoreData();
 
     model_buffers.emplace_back();
     std::vector<DPBuffer>& model_time_buffers = model_buffers.back();
@@ -115,7 +115,7 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
       model_time_buffers.back().setData(casacore::Cube<std::complex<float>>(
           kNPolarizations, kNChannels, kNBaselines));
       std::complex<float>* this_direction =
-          model_time_buffers.back().getData().data();
+          model_time_buffers.back().GetData().data();
 
       for (size_t bl = 0; bl != kNBaselines; ++bl) {
         for (size_t ch = 0; ch != kNChannels; ++ch) {
@@ -138,8 +138,8 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
           MC2x2 perturbed_model = MC2x2::Zero();
           for (size_t d = 0; d != kNDirections; ++d) {
             const size_t solution_index = solution_indices[d][timestep];
-            const MC2x2 val(
-                &model_time_buffers[d].getData()(0, ch, baseline_index));
+            const MC2x2 val(&model_time_buffers[d].GetCasacoreData()(
+                0, ch, baseline_index));
             MC2x2 left(
                 input_solutions_[(a1 * n_solutions_ + solution_index) * 2 + 0],
                 0.0, 0.0,

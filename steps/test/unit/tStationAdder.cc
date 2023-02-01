@@ -205,33 +205,35 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       uvw(2, i) = 3 + itsCount + i;
     }
     casacore::IPosition end(3, itsNCorr - 1, itsNChan - 1, itsNBl - 1);
-    BOOST_CHECK(allEQ(buf.getData()(casacore::IPosition(3, 0), end), data));
-    BOOST_CHECK_EQUAL(buf.getFlags().shape(),
-                      casacore::IPosition(3, itsNCorr, itsNChan, itsNBl + 2));
-    BOOST_CHECK(allEQ(buf.getFlags(), false));
     BOOST_CHECK(
-        allEQ(buf.getWeights()(casacore::IPosition(3, 0), end), weights));
-    BOOST_CHECK(allEQ(buf.getUVW()(casacore::IPosition(2, 0),
+        allEQ(buf.GetCasacoreData()(casacore::IPosition(3, 0), end), data));
+    BOOST_CHECK_EQUAL(buf.GetCasacoreFlags().shape(),
+                      casacore::IPosition(3, itsNCorr, itsNChan, itsNBl + 2));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
+    BOOST_CHECK(allEQ(buf.GetCasacoreWeights()(casacore::IPosition(3, 0), end),
+                      weights));
+    BOOST_CHECK(
+        allEQ(buf.GetCasacoreUvw()(casacore::IPosition(2, 0),
                                    casacore::IPosition(2, 2, itsNBl - 1)),
-                      uvw));
-    BOOST_CHECK_EQUAL(buf.getFullResFlags().shape(),
+              uvw));
+    BOOST_CHECK_EQUAL(buf.GetCasacoreFullResFlags().shape(),
                       casacore::IPosition(3, itsNChan, 1, itsNBl + 2));
-    BOOST_CHECK(allEQ(buf.getFullResFlags(), false));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    BOOST_CHECK(
-        allNear(buf.getData()(casacore::IPosition(3, 0, 0, itsNBl), end),
-                databl0 / weight, 1e-5));
-    BOOST_CHECK(
-        allNear(buf.getWeights()(casacore::IPosition(3, 0, 0, itsNBl), end),
-                weight, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl), end),
+        databl0 / weight, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl), end),
+        weight, 1e-5));
     end[2] = itsNBl + 1;
-    BOOST_CHECK(
-        allNear(buf.getData()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
-                databl1 / 6.f, 1e-5));
-    BOOST_CHECK(
-        allNear(buf.getWeights()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
-                6.f, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
+        databl1 / 6.f, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
+        6.f, 1e-5));
     itsCount++;
     return true;
   }
@@ -361,57 +363,59 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
       uvw(2, i) = 3 + itsCount + i;
     }
     casacore::IPosition end(3, itsNCorr - 1, itsNChan - 1, itsNBl - 1);
-    BOOST_CHECK(allEQ(buf.getData()(casacore::IPosition(3, 0), end), data));
-    BOOST_CHECK_EQUAL(buf.getFlags().shape(),
-                      casacore::IPosition(3, itsNCorr, itsNChan, itsNBl + 5));
-    BOOST_CHECK(allEQ(buf.getFlags(), false));
     BOOST_CHECK(
-        allEQ(buf.getWeights()(casacore::IPosition(3, 0), end), weights));
-    BOOST_CHECK(allEQ(buf.getUVW()(casacore::IPosition(2, 0),
+        allEQ(buf.GetCasacoreData()(casacore::IPosition(3, 0), end), data));
+    BOOST_CHECK_EQUAL(buf.GetCasacoreFlags().shape(),
+                      casacore::IPosition(3, itsNCorr, itsNChan, itsNBl + 5));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
+    BOOST_CHECK(allEQ(buf.GetCasacoreWeights()(casacore::IPosition(3, 0), end),
+                      weights));
+    BOOST_CHECK(
+        allEQ(buf.GetCasacoreUvw()(casacore::IPosition(2, 0),
                                    casacore::IPosition(2, 2, itsNBl - 1)),
-                      uvw));
-    BOOST_CHECK_EQUAL(buf.getFullResFlags().shape(),
+              uvw));
+    BOOST_CHECK_EQUAL(buf.GetCasacoreFullResFlags().shape(),
                       casacore::IPosition(3, itsNChan, 1, itsNBl + 5));
-    BOOST_CHECK(allEQ(buf.getFullResFlags(), false));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
-    BOOST_CHECK(
-        allNear(buf.getData()(casacore::IPosition(3, 0, 0, itsNBl), end),
-                databl0, 1e-5));
-    BOOST_CHECK(
-        allNear(buf.getWeights()(casacore::IPosition(3, 0, 0, itsNBl), end),
-                weightbl0, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl), end),
+        databl0, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl), end),
+        weightbl0, 1e-5));
     end[2] = itsNBl + 1;
-    BOOST_CHECK(
-        allNear(buf.getData()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
-                databl1, 1e-5));
-    BOOST_CHECK(
-        allNear(buf.getWeights()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
-                weightbl1, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
+        databl1, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
+        weightbl1, 1e-5));
     end[2] = itsNBl + 2;
-    BOOST_CHECK(
-        allNear(buf.getData()(casacore::IPosition(3, 0, 0, itsNBl + 2), end),
-                databl2, 1e-5));
-    BOOST_CHECK(
-        allNear(buf.getWeights()(casacore::IPosition(3, 0, 0, itsNBl + 2), end),
-                weightbl2, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 2), end),
+        databl2, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 2), end),
+        weightbl2, 1e-5));
     end[2] = itsNBl + 3;
-    BOOST_CHECK(
-        allNear(buf.getData()(casacore::IPosition(3, 0, 0, itsNBl + 3), end),
-                databl3, 1e-5));
-    BOOST_CHECK(
-        allNear(buf.getWeights()(casacore::IPosition(3, 0, 0, itsNBl + 3), end),
-                weightbl3, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 3), end),
+        databl3, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 3), end),
+        weightbl3, 1e-5));
     end[2] = itsNBl + 4;
-    BOOST_CHECK(
-        allNear(buf.getData()(casacore::IPosition(3, 0, 0, itsNBl + 4), end),
-                databl4, 1e-5));
-    BOOST_CHECK(
-        allNear(buf.getWeights()(casacore::IPosition(3, 0, 0, itsNBl + 4), end),
-                weightbl4, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 4), end),
+        databl4, 1e-5));
+    BOOST_CHECK(allNear(
+        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 4), end),
+        weightbl4, 1e-5));
     itsCount++;
     return true;
-    BOOST_CHECK(allEQ(buf.getFlags(), false));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
     itsCount++;
     return true;
   }

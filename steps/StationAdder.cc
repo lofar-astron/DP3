@@ -245,13 +245,13 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   itsUVWCalc = std::make_unique<base::UVWCalculator>(
       infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);
   // Size the buffer to cater for the new baselines.
-  IPosition dataShp(3, getInfo().ncorr(), getInfo().nchan(),
-                    getInfo().nbaselines());
-  IPosition uvwShp(2, 3, getInfo().nbaselines());
-  itsBuf.getData().resize(dataShp);
-  itsBuf.getFlags().resize(dataShp);
-  itsBuf.getWeights().resize(dataShp);
-  itsBuf.getUVW().resize(uvwShp);
+  itsBuf.ResizeData(getInfo().nbaselines(), getInfo().nchan(),
+                    getInfo().ncorr());
+  itsBuf.ResizeFlags(getInfo().nbaselines(), getInfo().nchan(),
+                     getInfo().ncorr());
+  itsBuf.ResizeWeights(getInfo().nbaselines(), getInfo().nchan(),
+                       getInfo().ncorr());
+  itsBuf.ResizeUvw(getInfo().nbaselines());
 }
 
 void StationAdder::show(std::ostream& os) const {
@@ -283,35 +283,34 @@ void StationAdder::showTimings(std::ostream& os, double duration) const {
 bool StationAdder::process(const DPBuffer& buf) {
   itsTimer.start();
   // Get the various data arrays.
-  const casacore::Array<casacore::Complex>& data = buf.getData();
-  const casacore::Array<bool>& flags = buf.getFlags();
-  const casacore::Array<float>& weights = buf.getWeights();
-  const casacore::Array<double>& uvws = buf.getUVW();
-  const casacore::Array<bool>& frFlags = buf.getFullResFlags();
+  const casacore::Array<casacore::Complex>& data = buf.GetCasacoreData();
+  const casacore::Array<bool>& flags = buf.GetCasacoreFlags();
+  const casacore::Array<float>& weights = buf.GetCasacoreWeights();
+  const casacore::Array<double>& uvws = buf.GetCasacoreUvw();
+  const casacore::Array<bool>& frFlags = buf.GetCasacoreFullResFlags();
   // Size fullResFlags if not done yet.
-  if (itsBuf.getFullResFlags().empty()) {
-    IPosition frfShp = frFlags.shape();
-    frfShp[2] = getInfo().nbaselines();
-    itsBuf.getFullResFlags().resize(frfShp);
+  if (itsBuf.GetCasacoreFullResFlags().empty()) {
+    itsBuf.ResizeFullResFlags(getInfo().nbaselines(), frFlags.shape()[1],
+                              frFlags.shape()[0]);
   }
   // Copy the data; only the first baselines will be filled.
-  std::copy(data.data(), data.data() + data.size(), itsBuf.getData().data());
+  std::copy(data.data(), data.data() + data.size(), itsBuf.GetData().data());
   std::copy(flags.data(), flags.data() + flags.size(),
-            itsBuf.getFlags().data());
+            itsBuf.GetFlags().data());
   std::copy(weights.data(), weights.data() + weights.size(),
-            itsBuf.getWeights().data());
-  std::copy(uvws.data(), uvws.data() + uvws.size(), itsBuf.getUVW().data());
+            itsBuf.GetWeights().data());
+  std::copy(uvws.data(), uvws.data() + uvws.size(), itsBuf.GetUvw().data());
   std::copy(frFlags.data(), frFlags.data() + frFlags.size(),
-            itsBuf.getFullResFlags().data());
+            itsBuf.GetFullResFlags().data());
   // Now calculate the data pointers of the new baselines.
   unsigned int nrOldBL = data.shape()[2];
   unsigned int nrcc = data.shape()[0] * data.shape()[1];
   unsigned int nrfr = frFlags.shape()[0] * frFlags.shape()[1];
-  casacore::Complex* dataPtr = itsBuf.getData().data() + data.size();
-  bool* flagPtr = itsBuf.getFlags().data() + data.size();
-  float* wghtPtr = itsBuf.getWeights().data() + data.size();
-  double* uvwPtr = itsBuf.getUVW().data() + uvws.size();
-  bool* frfPtr = itsBuf.getFullResFlags().data() + frFlags.size();
+  casacore::Complex* dataPtr = itsBuf.GetData().data() + data.size();
+  bool* flagPtr = itsBuf.GetFlags().data() + data.size();
+  float* wghtPtr = itsBuf.GetWeights().data() + data.size();
+  double* uvwPtr = itsBuf.GetUvw().data() + uvws.size();
+  bool* frfPtr = itsBuf.GetFullResFlags().data() + frFlags.size();
   std::vector<unsigned int> npoints(nrcc);
   std::vector<casacore::Complex> dataFlg(nrcc);
   std::vector<float> wghtFlg(nrcc);
@@ -347,11 +346,11 @@ bool StationAdder::process(const DPBuffer& buf) {
       blnr--;  // decrement because blnr+1 is stored in itsBufRows
       // Get pointers to the input baseline data.
       const casacore::Complex* inDataPtr =
-          (itsBuf.getData().data() + blnr * nrcc);
-      const bool* inFlagPtr = (itsBuf.getFlags().data() + blnr * nrcc);
-      const float* inWghtPtr = (itsBuf.getWeights().data() + blnr * nrcc);
-      const bool* inFrfPtr = (itsBuf.getFullResFlags().data() + blnr * nrfr);
-      const double* inUvwPtr = (itsBuf.getUVW().data() + blnr * 3);
+          (itsBuf.GetData().data() + blnr * nrcc);
+      const bool* inFlagPtr = (itsBuf.GetFlags().data() + blnr * nrcc);
+      const float* inWghtPtr = (itsBuf.GetWeights().data() + blnr * nrcc);
+      const bool* inFrfPtr = (itsBuf.GetFullResFlags().data() + blnr * nrfr);
+      const double* inUvwPtr = (itsBuf.GetUvw().data() + blnr * 3);
       // Add the data, uvw, and weights if not flagged.
       // Write 4 loops to avoid having to test inside the loop.
       // Count the flagged points separately, so it can be used
