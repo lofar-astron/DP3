@@ -503,12 +503,12 @@ set(DP3_LIBRARIES
     Threads::Threads
     pybind11::embed)
 
-# If  libdirac is found, use it
+# If libdirac is found, use it
 if(LIBDIRAC_FOUND)
   # add preprocessor def
   add_definitions(-DHAVE_LIBDIRAC)
   # add link flags
-  set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LIBRARIES} ${LIBDIRAC_LDFLAGS})
+  set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
 endif()
 
 # Perform the BLAS check from aocommon
