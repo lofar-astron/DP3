@@ -206,10 +206,10 @@ void BDAExpander::finish() {
 void BDAExpander::CopyData(const BDABuffer::Row &bda_row, DPBuffer &buf_out,
                            unsigned int current_bl,
                            float time_averaging_factor) {
-  casacore::Cube<casacore::Complex> &data = buf_out.getData();
-  casacore::Cube<float> &weights = buf_out.getWeights();
-  casacore::Cube<bool> &flags = buf_out.getFlags();
-  casacore::Matrix<double> &uvw = buf_out.getUVW();
+  casacore::Cube<casacore::Complex> &data = buf_out.GetCasacoreData();
+  casacore::Cube<float> &weights = buf_out.GetCasacoreWeights();
+  casacore::Cube<bool> &flags = buf_out.GetCasacoreFlags();
+  casacore::Matrix<double> &uvw = buf_out.GetCasacoreUvw();
 
   for (unsigned int chan = 0; chan < info().nchan(); ++chan) {
     // Set the pointers to the right value: when channel averaging happens, the

@@ -168,8 +168,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
     // Check the result.
     /// cout << buf.getData()<< result;
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-10));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-10));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-10));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-10));
     BOOST_CHECK_CLOSE(buf.getTime(), 2 + 5.0 * itsCount, 1e-8);
     ++itsCount;
     return true;

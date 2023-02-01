@@ -146,19 +146,19 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1.0e-5));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1.0e-5));
-    BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1.0e-5));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1.0e-5));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), itsFlag));
     BOOST_CHECK_CLOSE(
         buf.getTime(),
         2.0 + 5.0 * (itsCount * itsNAvgTime + (itsNAvgTime - 1) / 2.0), 1.0e-3);
-    BOOST_CHECK(allNear(buf.getWeights(), resultw, 1.0e-5));
+    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), resultw, 1.0e-5));
     if (navgtime == itsNAvgTime) {
       casacore::Matrix<double> uvw(3, itsNBl);
       indgen(uvw, 100 * (itsCount * itsNAvgTime + 0.5 * (itsNAvgTime - 1)));
-      BOOST_CHECK(allNear(buf.getUVW(), uvw, 1e-5));
+      BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
     }
-    BOOST_CHECK(allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
   }

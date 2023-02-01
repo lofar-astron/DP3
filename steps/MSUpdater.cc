@@ -155,16 +155,16 @@ bool MSUpdater::addColumn(const string& colName,
 bool MSUpdater::process(const DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
   if (GetFieldsToWrite().Flags()) {
-    putFlags(buf.getRowNrs(), buf.getFlags());
+    putFlags(buf.getRowNrs(), buf.GetCasacoreFlags());
   }
   if (GetFieldsToWrite().Data()) {
     // If compressing, flagged values need to be set to NaN to decrease the
     // dynamic range
     if (itsStManKeys.stManName == "dysco") {
-      Cube<casacore::Complex> dataCopy = buf.getData().copy();
+      Cube<casacore::Complex> dataCopy = buf.GetCasacoreData().copy();
       Cube<casacore::Complex>::iterator dataIter = dataCopy.begin();
-      for (Cube<bool>::const_iterator flagIter = buf.getFlags().begin();
-           flagIter != buf.getFlags().end(); ++flagIter) {
+      for (Cube<bool>::const_iterator flagIter = buf.GetCasacoreFlags().begin();
+           flagIter != buf.GetCasacoreFlags().end(); ++flagIter) {
         if (*flagIter) {
           *dataIter =
               casacore::Complex(std::numeric_limits<float>::quiet_NaN(),
@@ -174,19 +174,19 @@ bool MSUpdater::process(const DPBuffer& buf) {
       }
       putData(buf.getRowNrs(), dataCopy);
     } else {
-      putData(buf.getRowNrs(), buf.getData());
+      putData(buf.getRowNrs(), buf.GetCasacoreData());
     }
   }
   if (GetFieldsToWrite().Weights()) {
-    const Cube<float>& weights = buf.getWeights();
+    const Cube<float>& weights = buf.GetCasacoreWeights();
 
     // If compressing, set weights of flagged points to zero to decrease the
     // dynamic range
     if (itsStManKeys.stManName == "dysco") {
       Cube<float> weightsCopy = weights.copy();
       Cube<float>::iterator weightsIter = weightsCopy.begin();
-      for (Cube<bool>::const_iterator flagIter = buf.getFlags().begin();
-           flagIter != buf.getFlags().end(); ++flagIter) {
+      for (Cube<bool>::const_iterator flagIter = buf.GetCasacoreFlags().begin();
+           flagIter != buf.GetCasacoreFlags().end(); ++flagIter) {
         if (*flagIter) {
           *weightsIter = 0.;
         }

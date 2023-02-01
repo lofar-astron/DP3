@@ -186,15 +186,15 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       uvw(1, i) = 2 + itsCount + i;
       uvw(2, i) = 3 + itsCount + i;
     }
-    BOOST_CHECK(allEQ(buf.getData(), data));
-    BOOST_CHECK_EQUAL(buf.getFlags().shape(),
+    BOOST_CHECK(allEQ(buf.GetCasacoreData(), data));
+    BOOST_CHECK_EQUAL(buf.GetCasacoreFlags().shape(),
                       casacore::IPosition(3, itsNCorr, itsNChan, itsNBl));
-    BOOST_CHECK(allEQ(buf.getFlags(), false));
-    BOOST_CHECK(allEQ(buf.getWeights(), weights));
-    BOOST_CHECK(allEQ(buf.getUVW(), uvw));
-    BOOST_CHECK_EQUAL(buf.getFullResFlags().shape(),
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
+    BOOST_CHECK(allEQ(buf.GetCasacoreWeights(), weights));
+    BOOST_CHECK(allEQ(buf.GetCasacoreUvw(), uvw));
+    BOOST_CHECK_EQUAL(buf.GetCasacoreFullResFlags().shape(),
                       casacore::IPosition(3, itsNChan, 1, itsNBl));
-    BOOST_CHECK(allEQ(buf.getFullResFlags(), false));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), false));
     itsCount++;
     return true;
   }

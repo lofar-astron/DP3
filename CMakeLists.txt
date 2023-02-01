@@ -361,6 +361,7 @@ add_library(
   ddecal/gain_solvers/SolverBuffer.cc
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
+target_link_libraries(DDECal xtensor)
 
 # 'Base' files and steps are only included in DP3.
 add_library(
@@ -398,6 +399,7 @@ add_library(
   base/SubtractNew.cc
   base/Telescope.cc
   base/UVWCalculator.cc
+  pythondp3/PyStep.cc
   steps/AntennaFlagger.cc
   steps/AOFlaggerStep.cc
   steps/ApplyCal.cc
@@ -468,10 +470,8 @@ add_library(
   parmdb/SourceDBSkymodel.cc
   parmdb/SourceInfo.cc)
 
-add_library(PythonDP3 OBJECT pythondp3/PyStep.cc)
-
 # dp3_testdyndp3 requires using position independent code.
-set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB PythonDP3
+set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(LIBDIRAC_PREFIX
@@ -528,7 +528,7 @@ target_link_libraries(Casacore INTERFACE ${CASACORE_LIBRARIES})
 add_library(LIBDP3 SHARED)
 target_link_libraries(
   LIBDP3
-  PUBLIC Blob Common DDECal DP3_OBJ ParmDB PythonDP3
+  PUBLIC Blob Common DDECal DP3_OBJ ParmDB
   # The public headers of LIBDP3 include casacore and aocommon headers
   # These targets should therefore be linked as INTERFACE
   INTERFACE Casacore Aocommon

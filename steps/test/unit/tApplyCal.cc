@@ -228,25 +228,25 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
 
     if (itsDoTest & WeightEquals) {
-      BOOST_CHECK(casacore::near(buf.getWeights()(0, 0, 1), 4.));
-      BOOST_CHECK(casacore::near(buf.getWeights()(1, 0, 1), 9.));
-      BOOST_CHECK(casacore::near(buf.getWeights()(2, 0, 1), 4.));
-      BOOST_CHECK(casacore::near(buf.getWeights()(3, 0, 1), 9.));
-      BOOST_CHECK(casacore::near(buf.getWeights()(0, 31, 5), 0.8));
+      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(0, 0, 1), 4.));
+      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(1, 0, 1), 9.));
+      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(2, 0, 1), 4.));
+      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(3, 0, 1), 9.));
+      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(0, 31, 5), 0.8));
     }
 
     if (itsDoTest & DataEquals) {
-      BOOST_CHECK(allNear(buf.getData(), data, 1.e-7));
+      BOOST_CHECK(allNear(buf.GetCasacoreData(), data, 1.e-7));
     }
 
     if (itsDoTest & DataNotChanged) {
-      BOOST_CHECK(allNear(buf.getData(), data, 1.e-7));
+      BOOST_CHECK(allNear(buf.GetCasacoreData(), data, 1.e-7));
     }
     if (itsDoTest & DataChanged) {
-      BOOST_CHECK(!(allNear(buf.getData(), data, 1.e-7)));
+      BOOST_CHECK(!(allNear(buf.GetCasacoreData(), data, 1.e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      BOOST_CHECK(allNear(buf.getWeights(), weights, 1.e-6));
+      BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1.e-6));
     }
     itsCount++;
     itsTimeStep++;

@@ -128,15 +128,15 @@ bool PreFlagger::process(const DPBuffer& buf) {
   unsigned int nrcorr = info().ncorr();
   unsigned int nrchan = info().nchan();
   unsigned int nrbl = info().nbaselines();
-  if (itsBuffer.getFlags().empty()) {
-    itsBuffer.getFlags().resize(nrcorr, nrchan, nrbl);
+  if (itsBuffer.GetCasacoreFlags().empty()) {
+    itsBuffer.ResizeFlags(nrbl, nrchan, nrcorr);
   }
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.
   Cube<bool>* flags =
       itsPSet.process(buf, itsBuffer, itsCount, Block<bool>(), itsTimer);
   const bool* inPtr = flags->data();
-  bool* outPtr = itsBuffer.getFlags().data();
+  bool* outPtr = itsBuffer.GetFlags().data();
   switch (itsMode) {
     case SetFlag:
       setFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, true);
@@ -179,8 +179,8 @@ void PreFlagger::setFlags(const bool* inPtr, bool* outPtr, unsigned int nrcorr,
 void PreFlagger::clearFlags(const bool* inPtr, bool* outPtr,
                             unsigned int nrcorr, unsigned int nrchan,
                             unsigned int nrbl, bool mode, const DPBuffer& buf) {
-  const casacore::Complex* dataPtr = buf.getData().data();
-  Cube<float> weights = buf.getWeights();
+  const casacore::Complex* dataPtr = buf.GetData().data();
+  Cube<float> weights = buf.GetCasacoreWeights();
   const float* weightPtr = weights.data();
   for (unsigned int i = 0; i < nrbl; ++i) {
     for (unsigned int j = 0; j < nrchan; ++j) {
@@ -482,7 +482,7 @@ Cube<bool>* PreFlagger::PSet::process(const DPBuffer& in, DPBuffer& out,
   }
   // Initialize the flags.
   itsFlags = false;
-  const IPosition& shape = out.getFlags().shape();
+  const IPosition& shape = out.GetCasacoreFlags().shape();
   unsigned int nr = shape[0] * shape[1];
   // Take over the baseline info from the parent. Default is all.
   if (matchBL.empty()) {
@@ -505,7 +505,7 @@ Cube<bool>* PreFlagger::PSet::process(const DPBuffer& in, DPBuffer& out,
     return &itsFlags;
   }
   // Flag on UV distance if necessary.
-  if (itsFlagOnUV && !flagUV(out.getUVW())) {
+  if (itsFlagOnUV && !flagUV(out.GetCasacoreUvw())) {
     return &itsFlags;
   }
   // Flag on AzEl is necessary.
@@ -526,16 +526,16 @@ Cube<bool>* PreFlagger::PSet::process(const DPBuffer& in, DPBuffer& out,
   }
   // Flag on amplitude, phase or real/imaginary if necessary.
   if (itsFlagOnAmpl) {
-    flagAmpl(amplitude(out.getData()));
+    flagAmpl(amplitude(out.GetCasacoreData()));
   }
   if (itsFlagOnReal) {
-    flagReal(out.getData());
+    flagReal(out.GetCasacoreData());
   }
   if (itsFlagOnImag) {
-    flagImag(out.getData());
+    flagImag(out.GetCasacoreData());
   }
   if (itsFlagOnPhase) {
-    flagPhase(out.getData());
+    flagPhase(out.GetCasacoreData());
   }
   // Evaluate the PSet expression.
   // The expression is in RPN notation. A stack of array pointers is used

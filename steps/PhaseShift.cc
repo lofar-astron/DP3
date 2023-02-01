@@ -100,9 +100,9 @@ void PhaseShift::showTimings(std::ostream& os, double duration) const {
 bool PhaseShift::process(const DPBuffer& buf) {
   itsTimer.start();
   itsBuf.copy(buf);
-  int ncorr = itsBuf.getData().shape()[0];
-  int nchan = itsBuf.getData().shape()[1];
-  int nbl = itsBuf.getData().shape()[2];
+  int ncorr = itsBuf.GetCasacoreData().shape()[0];
+  int nchan = itsBuf.GetCasacoreData().shape()[1];
+  int nbl = itsBuf.GetCasacoreData().shape()[2];
   const double* mat1 = itsEulerMatrix.data();
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
@@ -110,8 +110,8 @@ bool PhaseShift::process(const DPBuffer& buf) {
   loop_.Run(0, nbl, [&](size_t begin, size_t end) {
     for (unsigned int bl = begin; bl != end; ++bl) {
       casacore::Complex* __restrict__ data =
-          itsBuf.getData().data() + bl * nchan * ncorr;
-      double* __restrict__ uvw = itsBuf.getUVW().data() + bl * 3;
+          itsBuf.GetData().data() + bl * nchan * ncorr;
+      double* __restrict__ uvw = itsBuf.GetUvw().data() + bl * 3;
       casacore::DComplex* __restrict__ phasors = itsPhasors.data() + bl * nchan;
       double u = uvw[0] * mat1[0] + uvw[1] * mat1[3] + uvw[2] * mat1[6];
       double v = uvw[0] * mat1[1] + uvw[1] * mat1[4] + uvw[2] * mat1[7];

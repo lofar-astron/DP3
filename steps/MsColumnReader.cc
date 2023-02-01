@@ -41,12 +41,12 @@ MsColumnReader::MsColumnReader(const common::ParameterSet& parset,
 bool MsColumnReader::process(const DPBuffer& buffer) {
   buffer_.copy(buffer);
   ArrayColumn<casacore::Complex> model_col(table_, column_name_);
-  model_col.getColumnCells(buffer.getRowNrs(), buffer_.getData());
+  model_col.getColumnCells(buffer.getRowNrs(), buffer_.GetCasacoreData());
 
   if (operation_ == Operation::kAdd) {
-    buffer_.setData(buffer.getData() + buffer_.getData());
+    buffer_.setData(buffer.GetCasacoreData() + buffer_.GetCasacoreData());
   } else if (operation_ == Operation::kSubtract) {
-    buffer_.setData(buffer.getData() - buffer_.getData());
+    buffer_.setData(buffer.GetCasacoreData() - buffer_.GetCasacoreData());
   }
 
   getNextStep()->process(buffer_);

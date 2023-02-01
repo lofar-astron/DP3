@@ -186,11 +186,12 @@ bool ScaleData::process(const DPBuffer& buf) {
   // Apply the scale factors.
   DPBuffer bufNew(buf);
   const IPosition shp = itsFactors.shape();
-  assert(buf.getData().shape() == shp);
+  assert(buf.GetCasacoreData().shape() == shp);
   // Multiply the data and factors giving a new data array.
   casacore::Array<casacore::Complex> data(shp);
   arrayContTransform(
-      static_cast<const casacore::Array<casacore::Complex>&>(buf.getData()),
+      static_cast<const casacore::Array<casacore::Complex>&>(
+          buf.GetCasacoreData()),
       static_cast<const casacore::Array<double>&>(itsFactors), data,
       casacore::Multiplies<casacore::Complex, double, casacore::Complex>());
   bufNew.setData(data);

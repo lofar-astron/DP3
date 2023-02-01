@@ -71,10 +71,10 @@ class BdaGroupPredict::BaselineGroup {
     std::size_t nr_chan = chanFreqs.size();
     info.setChannels(std::move(chanFreqs), std::move(chanWidths));
     predict_step_->setInfo(info);
-    dpbuffer_.getData().resize(info_in.ncorr(), nr_chan, nr_baselines);
-    dpbuffer_.getWeights().resize(info_in.ncorr(), nr_chan, nr_baselines);
-    dpbuffer_.getFlags().resize(info_in.ncorr(), nr_chan, nr_baselines);
-    dpbuffer_.getUVW().resize(3, nr_baselines);
+    dpbuffer_.ResizeData(nr_baselines, nr_chan, info_in.ncorr());
+    dpbuffer_.ResizeWeights(nr_baselines, nr_chan, info_in.ncorr());
+    dpbuffer_.ResizeFlags(nr_baselines, nr_chan, info_in.ncorr());
+    dpbuffer_.ResizeUvw(nr_baselines);
   }
 
   /// Write information on the predict step for this baseline group to the
@@ -107,7 +107,7 @@ class BdaGroupPredict::BaselineGroup {
 
     // Copy data from BDA buffer row into the (regular) buffer for this baseline
     // group
-    std::copy(row.uvw, row.uvw + 3, dpbuffer_.getUVW()[bl_idx].begin());
+    std::copy(row.uvw, row.uvw + 3, dpbuffer_.GetCasacoreUvw()[bl_idx].begin());
 
     write_back_info_[bl_idx] = {row.data, &row_counter};
     dpbuffer_.setTime(time);
@@ -132,8 +132,8 @@ class BdaGroupPredict::BaselineGroup {
     std::size_t nr_baselines = baselines_.size();
     for (std::size_t bl = 0; bl < nr_baselines; ++bl) {
       // Copy result from regular predict into corresponding BDABuffer in queue
-      std::copy(buf_out.getData()[bl].begin(), buf_out.getData()[bl].end(),
-                write_back_info_[bl].data);
+      std::copy(buf_out.GetCasacoreData()[bl].begin(),
+                buf_out.GetCasacoreData()[bl].end(), write_back_info_[bl].data);
       // Increment counter of rows filled in BDABuffer
       (*write_back_info_[bl].row_counter)++;
     }

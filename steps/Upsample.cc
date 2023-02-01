@@ -81,8 +81,9 @@ bool Upsample::process(const DPBuffer& bufin) {
     buffers_[i].setExposure(exposure);
 
     if (update_uvw_) {
-      buffers_[i].getUVW().resize(3, info().nbaselines());
-      double* uvw_ptr = buffers_[i].getUVW().data();
+      buffers_[i].ResizeUvw(info().nbaselines());
+
+      double* uvw_ptr = buffers_[i].GetUvw().data();
       for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
         const std::array<double, 3> uvw = uvw_calculator_->getUVW(
             info().getAnt1()[bl], info().getAnt2()[bl], time);
@@ -122,7 +123,7 @@ bool Upsample::process(const DPBuffer& bufin) {
                           0.4 * info().timeInterval())) {
       // Found double buffer, choose which one to use
       // If both totally flagged, prefer prevbuffer
-      if (allTrue(buffers_[curIndex].getFlags())) {
+      if (allTrue(buffers_[curIndex].GetCasacoreFlags())) {
         // Use prevBuffer
         first_to_flush_ = curIndex + 1;
         getNextStep()->process(prev_buffers_[prevIndex]);

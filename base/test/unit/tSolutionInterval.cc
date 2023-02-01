@@ -74,13 +74,16 @@ BOOST_AUTO_TEST_CASE(insertion) {
 
   BOOST_TEST(&solInt[0] != &buffer);
   BOOST_TEST(solInt.NSolution() == n_solution);
-  BOOST_TEST(solInt[0].getData().tovector() == buffer.getData().tovector());
-  BOOST_TEST(solInt[0].getFlags().tovector() == buffer.getFlags().tovector());
-  BOOST_TEST(solInt[0].getFullResFlags().tovector() ==
-             buffer.getFullResFlags().tovector());
-  BOOST_TEST(solInt[0].getUVW().tovector() == buffer.getUVW().tovector());
-  BOOST_TEST(solInt[0].getWeights().tovector() ==
-             buffer.getWeights().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreData().tovector() ==
+             buffer.GetCasacoreData().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreFlags().tovector() ==
+             buffer.GetCasacoreFlags().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreFullResFlags().tovector() ==
+             buffer.GetCasacoreFullResFlags().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreUvw().tovector() ==
+             buffer.GetCasacoreUvw().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==
+             buffer.GetCasacoreWeights().tovector());
 }
 
 /// Test that the limit cannot be exceeded
@@ -107,13 +110,16 @@ BOOST_AUTO_TEST_CASE(copy) {
   solInt.PushBack(buffer);
 
   BOOST_TEST(&solInt[0] != &buffer);
-  BOOST_TEST(solInt[0].getData().tovector() == buffer.getData().tovector());
-  BOOST_TEST(solInt[0].getFlags().tovector() == buffer.getFlags().tovector());
-  BOOST_TEST(solInt[0].getFullResFlags().tovector() ==
-             buffer.getFullResFlags().tovector());
-  BOOST_TEST(solInt[0].getUVW().tovector() == buffer.getUVW().tovector());
-  BOOST_TEST(solInt[0].getWeights().tovector() ==
-             buffer.getWeights().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreData().tovector() ==
+             buffer.GetCasacoreData().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreFlags().tovector() ==
+             buffer.GetCasacoreFlags().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreFullResFlags().tovector() ==
+             buffer.GetCasacoreFullResFlags().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreUvw().tovector() ==
+             buffer.GetCasacoreUvw().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==
+             buffer.GetCasacoreWeights().tovector());
 }
 
 /// Copy a buffer, change a weight and test if it is restored
@@ -128,19 +134,21 @@ BOOST_AUTO_TEST_CASE(restore) {
 
   // Overwrite the values in the buffer
   casacore::Complex new_data(42.0f, -42.0f);
-  solInt.DataBuffers()[0].getData() = new_data;
+  solInt.DataBuffers()[0].GetCasacoreData() = new_data;
   float new_weight = 0.5;
-  solInt.DataBuffers()[0].getWeights() = new_weight;
+  solInt.DataBuffers()[0].GetCasacoreWeights() = new_weight;
 
-  BOOST_TEST(solInt[0].getData().tovector() != buffer.getData().tovector());
-  BOOST_TEST(solInt[0].getWeights().tovector() !=
-             buffer.getWeights().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreData().tovector() !=
+             buffer.GetCasacoreData().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() !=
+             buffer.GetCasacoreWeights().tovector());
 
   solInt.RestoreFlagsAndWeights();
 
-  BOOST_TEST(solInt[0].getData().tovector() != buffer.getData().tovector());
-  BOOST_TEST(solInt[0].getWeights().tovector() ==
-             buffer.getWeights().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreData().tovector() !=
+             buffer.GetCasacoreData().tovector());
+  BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==
+             buffer.GetCasacoreWeights().tovector());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

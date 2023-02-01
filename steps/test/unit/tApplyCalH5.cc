@@ -225,10 +225,10 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         for (int chan = 0; chan < itsNChan; ++chan) {
           // Square root of autocorrelation for first antenna
           complex<float> val = sqrt(
-              buf.getData().data()[bl * itsNCorr * itsNChan + chan * itsNCorr]);
+              buf.GetData().data()[bl * itsNCorr * itsNChan + chan * itsNCorr]);
 
           bool flag =
-              buf.getFlags().data()[bl * itsNCorr * itsNChan + chan * itsNCorr];
+              buf.GetFlags().data()[bl * itsNCorr * itsNChan + chan * itsNCorr];
           if ((ant1 == 1 || ant2 == 1) && rightTimes[itsTimeStep] == 2 &&
               rightFreqs[chan] == 2) {
             BOOST_CHECK(flag);
@@ -259,13 +259,13 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
 
     if (itsDoTest & DataNotChanged) {
-      BOOST_CHECK(allNear(buf.getData(), data, 1.e-7));
+      BOOST_CHECK(allNear(buf.GetCasacoreData(), data, 1.e-7));
     }
     if (itsDoTest & DataChanged) {
-      BOOST_CHECK(!(allNear(buf.getData(), data, 1.e-7)));
+      BOOST_CHECK(!(allNear(buf.GetCasacoreData(), data, 1.e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      BOOST_CHECK(allNear(buf.getWeights(), weights, 1.e-7));
+      BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1.e-7));
     }
     itsCount++;
     itsTimeStep++;

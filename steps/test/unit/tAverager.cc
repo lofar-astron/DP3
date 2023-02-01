@@ -144,19 +144,19 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-5));
-    BOOST_CHECK(allEQ(buf.getFlags(), itsFlag));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), itsFlag));
     BOOST_CHECK(casacore::near(
         buf.getTime(),
         2 + 5 * (itsCount * itsNAvgTime + (itsNAvgTime - 1) / 2.)));
-    BOOST_CHECK(allNear(buf.getWeights(), resultw, 1e-5));
+    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), resultw, 1e-5));
     if (navgtime == itsNAvgTime) {
       casacore::Matrix<double> uvw(3, itsNBl);
       indgen(uvw, 100 * (itsCount * itsNAvgTime + 0.5 * (itsNAvgTime - 1)));
-      BOOST_CHECK(allNear(buf.getUVW(), uvw, 1e-5));
+      BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
     }
-    BOOST_CHECK(allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
   }
@@ -227,11 +227,12 @@ class TestInput3 : public dp3::steps::MockInput {
   }
 
   virtual void getUVW(const casacore::RefRows&, double, DPBuffer& buf) {
-    buf.getUVW().resize(3, itsNrBl);
-    indgen(buf.getUVW());
+    buf.ResizeUvw(itsNrBl);
+    indgen(buf.GetCasacoreUvw());
   }
   virtual bool getFullResFlags(const casacore::RefRows&, DPBuffer& buf) {
-    buf.getFullResFlags().assign(itsFullResFlags);
+    buf.GetCasacoreFullResFlags() = itsFullResFlags;
+    buf.MakeIndependent(kFullResFlagsField);
     return true;
   }
 
@@ -296,15 +297,15 @@ class TestOutput3 : public dp3::steps::test::ThrowStep {
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-5));
-    BOOST_CHECK(allEQ(buf.getFlags(), flags));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), flags));
     BOOST_CHECK(casacore::near(buf.getTime(), 2. + 5 * (itsNrTime - 1) / 2.));
-    BOOST_CHECK(allNear(buf.getWeights(), weights, 1e-5));
+    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1e-5));
     casacore::Matrix<double> uvw(3, itsNrBl);
     indgen(uvw);
-    BOOST_CHECK(allNear(buf.getUVW(), uvw, 1e-5));
-    BOOST_CHECK(allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
     return true;
   }
 
@@ -328,9 +329,9 @@ class TestFlagger : public dp3::steps::test::ThrowStep {
 
   bool process(const DPBuffer& buf) override {
     DPBuffer buf2(buf);
-    int ncorr = buf2.getFlags().shape()[0];
-    int np = buf2.getFlags().size() / ncorr;
-    bool* flagPtr = buf2.getFlags().data();
+    int ncorr = buf2.GetCasacoreFlags().shape()[0];
+    int np = buf2.GetCasacoreFlags().size() / ncorr;
+    bool* flagPtr = buf2.GetFlags().data();
     for (int i = 0; i < np; ++i) {
       if ((i + itsCount) % itsStep == 0) {
         for (int j = 0; j < ncorr; ++j) {
@@ -402,15 +403,15 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-5));
-    BOOST_CHECK(allEQ(buf.getFlags(), flags));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), flags));
     BOOST_CHECK(casacore::near(buf.getTime(), 2. + 5 * (itsNrTime - 1) / 2.));
-    BOOST_CHECK(allNear(buf.getWeights(), weights, 1e-5));
+    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1e-5));
     casacore::Matrix<double> uvw(3, itsNrBl);
     indgen(uvw);
-    BOOST_CHECK(allNear(buf.getUVW(), uvw, 1e-5));
-    BOOST_CHECK(allEQ(buf.getFullResFlags(), fullResFlags));
+    BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
     return true;
   }
 

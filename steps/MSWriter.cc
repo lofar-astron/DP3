@@ -665,23 +665,23 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
   ArrayColumn<bool> flag_col(out, "FLAG");
   ScalarColumn<bool> flag_row_col(out, "FLAG_ROW");
 
-  if (buf.getData().empty()) {
+  if (buf.GetCasacoreData().empty()) {
     return;
   }
 
   // Write WEIGHT_SPECTRUM and DATA
   ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
-  const Array<float>& weights = buf.getWeights();
+  const Array<float>& weights = buf.GetCasacoreWeights();
 
   // If compressing, flagged values need to be set to NaN, and flagged
   // weights to zero, to decrease the dynamic range
   if (st_man_keys_.stManName == "dysco") {
-    Cube<casacore::Complex> data_copy = buf.getData().copy();
+    Cube<casacore::Complex> data_copy = buf.GetCasacoreData().copy();
     Cube<casacore::Complex>::iterator data_iter = data_copy.begin();
     Cube<float> weights_copy = weights.copy();
     Cube<float>::iterator weights_iter = weights_copy.begin();
-    for (Cube<bool>::const_iterator flag_iter = buf.getFlags().begin();
-         flag_iter != buf.getFlags().end(); ++flag_iter) {
+    for (Cube<bool>::const_iterator flag_iter = buf.GetCasacoreFlags().begin();
+         flag_iter != buf.GetCasacoreFlags().end(); ++flag_iter) {
       if (*flag_iter) {
         *data_iter = casacore::Complex(std::numeric_limits<float>::quiet_NaN(),
                                        std::numeric_limits<float>::quiet_NaN());
@@ -693,13 +693,13 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
     data_col.putColumn(data_copy);
     weightCol.putColumn(weights_copy);
   } else {
-    data_col.putColumn(buf.getData());
+    data_col.putColumn(buf.GetCasacoreData());
     weightCol.putColumn(weights);
   }
 
-  flag_col.putColumn(buf.getFlags());
+  flag_col.putColumn(buf.GetCasacoreFlags());
   // A row is flagged if no flags in the row are False.
-  auto c = partialNFalse(buf.getFlags(), IPosition(2, 0, 1));
+  auto c = partialNFalse(buf.GetCasacoreFlags(), IPosition(2, 0, 1));
   casacore::Vector<bool> row_flags(c == decltype(c)::value_type(0));
   flag_row_col.putColumn(row_flags);
   if (write_full_res_flags_) {
@@ -708,12 +708,12 @@ void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
 
   // Write UVW
   ArrayColumn<double> uvw_col(out, "UVW");
-  const Array<double>& uvws = buf.getUVW();
+  const Array<double>& uvws = buf.GetCasacoreUvw();
   uvw_col.putColumn(uvws);
 }
 
 void MSWriter::WriteFullResFlags(Table& out, const DPBuffer& buf) {
-  const Cube<bool>& flags = buf.getFullResFlags();
+  const Cube<bool>& flags = buf.GetCasacoreFullResFlags();
   const IPosition& of_shape = flags.shape();
   if ((unsigned int)(of_shape[0]) != n_chan_avg_ * getInfo().nchan())
     throw std::runtime_error(

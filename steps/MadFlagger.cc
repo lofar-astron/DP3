@@ -158,11 +158,12 @@ bool MadFlagger::process(const DPBuffer& buf) {
   itsBuf[index].copy(buf);
   DPBuffer& dbuf = itsBuf[index];
   // Calculate amplitudes if needed.
-  amplitude(itsAmpl[index], dbuf.getData());
+  amplitude(itsAmpl[index], dbuf.GetCasacoreData());
   // Fill flags if needed.
-  if (dbuf.getFlags().empty()) {
-    dbuf.getFlags().resize(dbuf.getData().shape());
-    dbuf.getFlags() = false;
+  if (dbuf.GetCasacoreFlags().empty()) {
+    dbuf.ResizeFlags(getInfo().nbaselines(), getInfo().nchan(),
+                     getInfo().ncorr());
+    dbuf.GetCasacoreFlags() = false;
   }
   itsNTimes++;
   // Flag if there are enough time entries in the buffer.
@@ -293,14 +294,14 @@ void MadFlagger::flag(unsigned int index,
   const std::vector<int>& ant2 = getInfo().getAnt2();
   // Result is 'copy' of the entry at the given time index.
   DPBuffer buf(itsBuf[index]);
-  casacore::IPosition shp = buf.getData().shape();
+  casacore::IPosition shp = buf.GetCasacoreData().shape();
   unsigned int ncorr = shp[0];
   unsigned int nchan = shp[1];
   unsigned int blsize = ncorr * nchan;
   int nrbl = shp[2];
   // Get pointers to data and flags.
   const float* bufDataPtr = itsAmpl[index].data();
-  bool* bufFlagPtr = buf.getFlags().data();
+  bool* bufFlagPtr = buf.GetFlags().data();
   itsComputeTimer.start();
   // Now flag each baseline, channel and correlation for this time window.
   // This can be done in parallel.
@@ -361,9 +362,9 @@ void MadFlagger::flag(unsigned int index,
           for (unsigned int ic = 0; ic < nchan; ++ic) {
             bool* flagPtr = &bufFlagPtr[ib * blsize + ic * ncorr];
             bool* flagAnt1 =
-                &buf.getFlags().data()[inx1 * nchan * ncorr + ic * ncorr];
+                &buf.GetFlags().data()[inx1 * nchan * ncorr + ic * ncorr];
             bool* flagAnt2 =
-                &buf.getFlags().data()[inx2 * nchan * ncorr + ic * ncorr];
+                &buf.GetFlags().data()[inx2 * nchan * ncorr + ic * ncorr];
             if (!*flagPtr && (*flagAnt1 || *flagAnt2)) {
               for (unsigned int ip = 0; ip < ncorr; ++ip) {
                 flagPtr[ip] = true;
@@ -417,7 +418,7 @@ void MadFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
     // Get pointers to given baseline and correlation.
     unsigned int offset = bl * nchan * ncorr + corr;
     const float* dataPtr = ampl.data() + offset;
-    const bool* flagPtr = inbuf.getFlags().data() + offset;
+    const bool* flagPtr = inbuf.GetFlags().data() + offset;
     // Now move data from the two channel parts.
     for (int i = s1 * ncorr; i < e1 * ncorr; i += ncorr) {
       if (!flagPtr[i]) {

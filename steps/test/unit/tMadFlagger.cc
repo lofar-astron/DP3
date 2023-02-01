@@ -160,8 +160,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
           casacore::Complex(i + itsCount * 10, i - 10 + itsCount * 6);
     }
     // Check the result.
-    BOOST_CHECK(allNear(real(buf.getData()), real(result), 1e-10));
-    BOOST_CHECK(allNear(imag(buf.getData()), imag(result), 1e-10));
+    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-10));
+    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-10));
     // Check the flags.
     // If autocorrs are used, only the last channel is flagged, but the first
     // channel also for the first time stamp. Thus is only true for a limited
@@ -181,7 +181,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.getFlags(), expFlag));
+    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), expFlag));
     BOOST_CHECK(casacore::near(buf.getTime(), 2 + 5. * itsCount));
     ++itsCount;
     return true;

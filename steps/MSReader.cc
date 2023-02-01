@@ -284,11 +284,11 @@ std::string MSReader::msName() const { return itsMS.tableName(); }
 bool MSReader::process(const DPBuffer&) {
   if (itsNrRead == 0) {
     if (getFieldsToRead().Data()) {
-      itsBuffer.getData().resize(itsNrCorr, itsNrChan, itsNrBl);
+      itsBuffer.ResizeData(itsNrBl, itsNrChan, itsNrCorr);
     }
     if (itsUseFlags &&
         (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
-      itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
+      itsBuffer.ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
     }
   }
   {
@@ -337,9 +337,9 @@ bool MSReader::process(const DPBuffer&) {
       // Need to insert a fully flagged time slot.
       itsBuffer.setRowNrs(casacore::Vector<common::rownr_t>());
       itsBuffer.setExposure(itsTimeInterval);
-      itsBuffer.getFlags() = true;
+      itsBuffer.GetCasacoreFlags() = true;
       if (getFieldsToRead().Data()) {
-        itsBuffer.getData() = casacore::Complex();
+        itsBuffer.GetCasacoreData() = casacore::Complex();
       }
       itsNrInserted++;
     } else {
@@ -347,9 +347,9 @@ bool MSReader::process(const DPBuffer&) {
       if (itsMissingData) {
         // Data column not present, so fill a fully flagged time slot.
         itsBuffer.setExposure(itsTimeInterval);
-        itsBuffer.getFlags() = true;
+        itsBuffer.GetCasacoreFlags() = true;
         if (getFieldsToRead().Data()) {
-          itsBuffer.getData() = casacore::Complex();
+          itsBuffer.GetCasacoreData() = casacore::Complex();
         }
       } else {
         // Set exposure.
@@ -360,24 +360,24 @@ bool MSReader::process(const DPBuffer&) {
           ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
                                                  itsDataColName);
           if (itsUseAllChan) {
-            dataCol.getColumn(itsBuffer.getData());
+            dataCol.getColumn(itsBuffer.GetCasacoreData());
           } else {
-            dataCol.getColumn(itsColSlicer, itsBuffer.getData());
+            dataCol.getColumn(itsColSlicer, itsBuffer.GetCasacoreData());
           }
         }
         if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
           if (itsUseFlags) {
             ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
             if (itsUseAllChan) {
-              flagCol.getColumn(itsBuffer.getFlags());
+              flagCol.getColumn(itsBuffer.GetCasacoreFlags());
             } else {
-              flagCol.getColumn(itsColSlicer, itsBuffer.getFlags());
+              flagCol.getColumn(itsColSlicer, itsBuffer.GetCasacoreFlags());
             }
             // Set flags if FLAG_ROW is set.
             ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
             for (unsigned int i = 0; i < itsIter.table().nrow(); ++i) {
               if (flagrowCol(i)) {
-                itsBuffer.getFlags()(
+                itsBuffer.GetCasacoreFlags()(
                     IPosition(3, 0, 0, i),
                     IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) = true;
               }
@@ -385,11 +385,12 @@ bool MSReader::process(const DPBuffer&) {
 
           } else {
             // Do not use FLAG from the MS.
-            itsBuffer.getFlags().resize(itsNrCorr, itsNrChan, itsNrBl);
-            itsBuffer.getFlags() = false;
+            itsBuffer.ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
+            itsBuffer.GetCasacoreFlags() = false;
           }
           // Flag invalid data (NaN, infinite).
-          flagInfNaN(itsBuffer.getData(), itsBuffer.getFlags(), itsFlagCounter);
+          flagInfNaN(itsBuffer.GetCasacoreData(), itsBuffer.GetCasacoreFlags(),
+                     itsFlagCounter);
         }
       }
       itsLastMSTime = itsNextTime;
@@ -397,7 +398,7 @@ bool MSReader::process(const DPBuffer&) {
       itsIter.next();
     }
     if (getFieldsToRead().Flags()) {
-      if (itsBuffer.getFlags().shape()[2] != int(itsNrBl))
+      if (itsBuffer.GetCasacoreFlags().shape()[2] != int(itsNrBl))
         throw std::runtime_error(
             "#baselines is not the same for all time slots in the MS");
     }
@@ -740,8 +741,8 @@ void MSReader::skipFirstTimes() {
 }
 
 void MSReader::calcUVW(double time, DPBuffer& buf) {
-  Matrix<double>& uvws = buf.getUVW();
-  uvws.resize(3, itsNrBl);
+  buf.ResizeUvw(itsNrBl);
+  Matrix<double>& uvws = buf.GetCasacoreUvw();
   const std::vector<int>& ant1 = getInfo().getAnt1();
   const std::vector<int>& ant2 = getInfo().getAnt2();
   double* uvw_ptr = uvws.data();
@@ -760,17 +761,17 @@ void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
     calcUVW(time, buf);
   } else {
     ArrayColumn<double> dataCol(itsMS, "UVW");
-    dataCol.getColumnCells(rowNrs, buf.getUVW());
+    dataCol.getColumnCells(rowNrs, buf.GetCasacoreUvw());
   }
 }
 
 void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
-  Cube<float>& weights = buf.getWeights();
   // Resize if needed (probably when called for first time).
-  if (weights.empty()) {
-    weights.resize(itsNrCorr, itsNrChan, itsNrBl);
+  if (buf.GetCasacoreWeights().empty()) {
+    buf.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
   }
+  Cube<float>& weights = buf.GetCasacoreWeights();
   if (rowNrs.rowVector().empty()) {
     // rowNrs can be empty if a time slot was inserted.
     weights = 0;
@@ -824,7 +825,7 @@ void MSReader::autoWeight(Cube<float>& weights, const DPBuffer& buf) {
   // Calculate the weight for each cross-correlation data point.
   const std::vector<int>& ant1 = getInfo().getAnt1();
   const std::vector<int>& ant2 = getInfo().getAnt2();
-  const casacore::Complex* data = buf.getData().data();
+  const casacore::Complex* data = buf.GetData().data();
   float* weight = weights.data();
   for (unsigned int i = 0; i < nbl; ++i) {
     // Can only be done if both autocorrelations are present.
@@ -862,13 +863,13 @@ void MSReader::autoWeight(Cube<float>& weights, const DPBuffer& buf) {
 
 void MSReader::FillFullResFlags(DPBuffer& buffer) {
   bool column_found = getFullResFlags(buffer.getRowNrs(), buffer);
-  Cube<bool>& full_resolution_flags = buffer.getFullResFlags();
+  Cube<bool>& full_resolution_flags = buffer.GetCasacoreFullResFlags();
   if (!column_found) {
     // No fullRes flags in input; form them from the flags in the buffer.
     // Only use the XX polarization for the flags; no averaging done, thus
     // navgtime=1. (If any averaging was done, the flags would be in the
     // buffer).
-    IPosition flags_shape(buffer.getFlags().shape());
+    IPosition flags_shape(buffer.GetCasacoreFlags().shape());
     // The flags have shape (itsNrCorr, itsNrChan, itsNrBl);
     // The full res flags initialized in the getFullResFlags function (when the
     // column is not found) have shape (itsNrChan, 1, itsNrBl) If the shapes do
@@ -876,7 +877,7 @@ void MSReader::FillFullResFlags(DPBuffer& buffer) {
     if (full_resolution_flags.shape() !=
         IPosition(3, flags_shape[1], 1, flags_shape[2]))
       throw std::runtime_error("Invalid shape of full res flags");
-    casacore::objcopy(full_resolution_flags.data(), buffer.getFlags().data(),
+    casacore::objcopy(full_resolution_flags.data(), buffer.GetFlags().data(),
                       full_resolution_flags.size(), 1,
                       flags_shape[0]);  // only copy XX.
   }
@@ -884,12 +885,13 @@ void MSReader::FillFullResFlags(DPBuffer& buffer) {
 
 bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
-  Cube<bool>& flags = buf.getFullResFlags();
   int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
   // Resize if needed (probably when called for first time).
-  if (flags.empty()) {
-    flags.resize(norigchan, getInfo().nAveragedFullResolutionTimes(), itsNrBl);
+  if (buf.GetCasacoreFullResFlags().empty()) {
+    buf.ResizeFullResFlags(itsNrBl, getInfo().nAveragedFullResolutionTimes(),
+                           norigchan);
   }
+  Cube<bool>& flags = buf.GetCasacoreFullResFlags();
   // Return false if no fullRes flags available.
   if (!itsHasFullResFlags) {
     flags = false;

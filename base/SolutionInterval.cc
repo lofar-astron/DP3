@@ -30,8 +30,8 @@ void SolutionInterval::PushBack(const DPBuffer& buffer) {
 
   buffers_[buffer_index_].copy(buffer);
 
-  original_flags_[buffer_index_].assign(buffer.getFlags());
-  original_weights_[buffer_index_].assign(buffer.getWeights());
+  original_flags_[buffer_index_].assign(buffer.GetCasacoreFlags());
+  original_weights_[buffer_index_].assign(buffer.GetCasacoreWeights());
   // Ensure that the copies are independent of the data in 'buffer'..
   original_flags_[buffer_index_].unique();
   original_weights_[buffer_index_].unique();
@@ -40,9 +40,13 @@ void SolutionInterval::PushBack(const DPBuffer& buffer) {
 }
 
 void SolutionInterval::RestoreFlagsAndWeights() {
+  constexpr common::Fields kFlagsField(common::Fields::Single::kFlags);
+  constexpr common::Fields kWeightsField(common::Fields::Single::kWeights);
+  const common::Fields kFields(kFlagsField | kWeightsField);
   for (std::size_t index = 0; index < buffer_index_; ++index) {
-    buffers_[index].getFlags().assign(original_flags_[index]);
-    buffers_[index].getWeights().assign(original_weights_[index]);
+    buffers_[index].GetCasacoreFlags() = original_flags_[index];
+    buffers_[index].GetCasacoreWeights() = original_weights_[index];
+    buffers_[index].MakeIndependent(kFields);
   }
 }
 

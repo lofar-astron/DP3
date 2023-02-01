@@ -131,7 +131,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   bool process(const DPBuffer& buffer) override {
     casacore::Cube<bool> result(n_correlations_, n_channels_, n_baselines_);
     for (int i = 0; i < n_baselines_; ++i) {
-      casacore::Cube<bool> test = buffer.getFlags();
+      casacore::Cube<bool> test = buffer.GetCasacoreFlags();
 
       if (i == 4 || i == 10 || i == 11) {
         for (int j = 0; j < n_channels_; ++j) {
@@ -141,7 +141,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buffer.getFlags(), result));
+    BOOST_CHECK(allEQ(buffer.GetCasacoreFlags(), result));
     n_time_processed_++;
     return true;
   }
