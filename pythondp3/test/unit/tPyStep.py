@@ -82,7 +82,6 @@ def test_info():
             dp3.Step.__init__(self)
 
         def _update_info(self, info):
-
             # Modify the info a bit showing that this method is
             # indeed called when set_info() is called.
             # An example of a step that makes actual changes to the info object

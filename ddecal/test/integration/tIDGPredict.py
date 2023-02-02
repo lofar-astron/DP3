@@ -87,7 +87,6 @@ def test_input_with_four_sources():
 @pytest.mark.parametrize("source", ["center", "ra", "dec", "radec"])
 @pytest.mark.parametrize("offset", ["center", "dl", "dm", "dldm"])
 def test_input_with_single_sources(source, offset):
-
     """
     Test inputs that contain a single source.
     Since these tests take quite some time, they only run locally, and only
@@ -218,7 +217,6 @@ def test_polynomial_frequency_term_corrections():
     )
 
     for ch in range(ch_count - 1):
-
         # The factors 10, 20000 and 30000 match those in tIDGPredict_ref.py
         taql_command = f"select from {MSIN} where not(TERMS_DATA[{ch},0]=0 or near(TERMS_DATA[{ch},0], (select 10+20000*(CHAN_FREQ[{ch}]/CHAN_FREQ[0]-1) +30000*(CHAN_FREQ[{ch}]/CHAN_FREQ[0]-1)**2 from ::SPECTRAL_WINDOW)[0], 1e-3))"
         assert_taql(taql_command)

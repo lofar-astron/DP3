@@ -173,7 +173,6 @@ def test_caltype_fulljones(create_model_data):
 
 
 def test_caltype_diagonal_nchan_2(create_model_data):
-
     check_call(
         [
             tcf.DP3EXE,
@@ -216,7 +215,6 @@ def test_caltype_diagonal_nchan_2(create_model_data):
 
 @pytest.mark.parametrize("caltype", ["tec", "tecandphase"])
 def test_output_parameters(caltype):
-
     check_call(
         [
             tcf.DP3EXE,
