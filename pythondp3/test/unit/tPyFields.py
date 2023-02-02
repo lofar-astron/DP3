@@ -48,7 +48,6 @@ def check_fields(fields, set_fields):
 
 
 def test_constructor():
-
     # Test constructor with empty field
     empty_fields = dp3.Fields()
     check_fields(empty_fields, [])
@@ -74,7 +73,6 @@ def test_constructor():
 
 
 def test_or_operator():
-
     test_fields = dp3.Fields()
     test_fields |= dp3.Fields.FLAGS
     check_fields(test_fields, ["flags"])
@@ -89,7 +87,6 @@ def test_or_operator():
 
 
 def test_equality_operator():
-
     left_empty = dp3.Fields()
     right_empty = dp3.Fields()
     left_three = dp3.Fields.DATA | dp3.Fields.FLAGS | dp3.Fields.UVW
@@ -113,7 +110,6 @@ def test_equality_operator():
 
 
 def test_string_operator():
-
     assert str(dp3.Fields()) == "[]"
     assert str(dp3.Fields.DATA) == "[data]"
     assert str(dp3.Fields.FLAGS) == "[flags]"
@@ -130,7 +126,6 @@ def test_string_operator():
 
 
 def test_update_requirements():
-
     check_fields(
         dp3.Fields(dp3.Fields.DATA).update_requirements(
             dp3.Fields(), dp3.Fields.DATA

@@ -97,7 +97,6 @@ def create_corrupted_data():
 
 @pytest.fixture()
 def create_corrupted_data_from_regular():
-
     """
     Use a lower frequency averaging to ensure the condition on the frequency
     channels is satisfied: channels per chan block >= max averaged channels

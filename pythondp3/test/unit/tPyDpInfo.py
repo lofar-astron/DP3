@@ -29,7 +29,6 @@ except ImportError:
 
 
 def test_constructor():
-
     # Constructor using only default values for the arguments
     info0 = dp3.DPInfo()
 
@@ -55,7 +54,6 @@ def test_constructor():
 
 
 def test_antenna_properties():
-
     info = dp3.DPInfo()
 
     # Check default values.

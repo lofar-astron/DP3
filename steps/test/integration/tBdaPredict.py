@@ -129,7 +129,6 @@ def test_bdapredict(create_skymodel, bda_predict_step_type):
 def test_predicted_values_regular_input(
     create_skymodel_in_phase_center, bda_predict_step_type
 ):
-
     check_call(
         [
             tcf.DP3EXE,

@@ -37,7 +37,6 @@ def parse_junit_tree(element, test_summary=None):
 
     # Parse top level <testsuites> or <testsuite> tags.
     if element.tag in ["testsuites", "testsuite"]:
-
         for attr in test_summary[element.tag]:
             test_summary[element.tag][attr] += int(element.get(attr, 0))
 
