@@ -120,25 +120,24 @@ std::string MSWriter::InsertNumberInFilename(const std::string& name,
   return name.substr(0, dot) + '-' + n + name.substr(dot);
 }
 
-bool MSWriter::process(const DPBuffer& buf) {
-  if (chunk_start_time_ == 0.0) chunk_start_time_ = buf.getTime();
+bool MSWriter::process(std::unique_ptr<DPBuffer> buffer) {
+  if (chunk_start_time_ == 0.0) chunk_start_time_ = buffer->getTime();
 
   if (chunk_duration_ != 0.0 &&
-      buf.getTime() - chunk_start_time_ >= chunk_duration_) {
+      buffer->getTime() - chunk_start_time_ >= chunk_duration_) {
     FinishMs();
     ++current_chunk_index_;
-    chunk_start_time_ = buf.getTime();
+    chunk_start_time_ = buffer->getTime();
     StartNewMs();
   }
 
   common::NSTimer::StartStop sstime(timer_);
 
-  UpdateInternalBuffer(buf);
   if (use_write_thread_) {
-    CreateTask();
+    CreateTask(std::move(buffer));
   } else {
-    ProcessBuffer(internal_buffer_);
-    getNextStep()->process(internal_buffer_);
+    ProcessBuffer(*buffer);
+    getNextStep()->process(std::move(buffer));
   }
 
   return true;
@@ -260,9 +259,6 @@ void MSWriter::showTimings(std::ostream& os, double duration) const {
   os << " MSWriter " << name_ << '\n';
 
   duration = timer_.getElapsed();
-  os << "    ";
-  FlagCounter::showPerc1(os, update_buffer_timer_.getElapsed(), duration);
-  os << " Updating buffer\n";
   if (use_write_thread_) {
     os << "    ";
     FlagCounter::showPerc1(os, create_task_timer_.getElapsed(), duration);
@@ -655,11 +651,6 @@ void MSWriter::WriteHistory(Table& ms, const common::ParameterSet& parset) {
   cli.put(rownr, clivec);
 }
 
-void MSWriter::UpdateInternalBuffer(const base::DPBuffer& buffer) {
-  const common::NSTimer::StartStop timer(update_buffer_timer_);
-  internal_buffer_.referenceFilled(buffer);
-}
-
 void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
   ArrayColumn<casacore::Complex> data_col(out, data_col_name_);
   ArrayColumn<bool> flag_col(out, "FLAG");
@@ -811,17 +802,16 @@ void MSWriter::StopWriteThread() {
 }
 
 void MSWriter::WriteQueueProcess() {
-  base::DPBuffer buffer;
+  std::unique_ptr<base::DPBuffer> buffer;
   while (write_queue_.read(buffer)) {
-    ProcessBuffer(buffer);
+    ProcessBuffer(*buffer);
   }
 }
 
-void MSWriter::CreateTask() {
+void MSWriter::CreateTask(std::unique_ptr<base::DPBuffer> buffer) {
   const common::NSTimer::StartStop timer(create_task_timer_);
 
-  base::DPBuffer buffer;
-  buffer.copy(internal_buffer_);
+  buffer->MakeIndependent(getRequiredFields());
   write_queue_.write(std::move(buffer));
 }
 
