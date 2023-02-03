@@ -708,14 +708,18 @@ def test_dd_solution_intervals(solutions_per_direction):
             stderr=STDOUT,
         )
     except CalledProcessError as e:
+        # AST-1184: The output may contain other warnings, e.g., libgcov version
+        # mismatch errors. Therefore check if the output contains the exception.
         if solutions_per_direction == [5, 5, 5]:
-            if not e.output.decode().startswith(
-                "\nstd exception detected: Values in ddecal"
+            if (
+                not "\nstd exception detected: Values in ddecal.solutions_per_direction should be integer divisors of solint\n"
+                in e.output.decode()
             ):
                 raise e
         elif solutions_per_direction == [2, 0]:
-            if not e.output.decode().startswith(
-                "\nstd exception detected: All entries in ddecal"
+            if (
+                not "\nstd exception detected: All entries in ddecal.solutions_per_direction should be > 0.\n"
+                in e.output.decode()
             ):
                 raise e
         else:
