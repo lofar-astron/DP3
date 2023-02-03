@@ -85,6 +85,9 @@ class SolveData {
     const_iterator DataBegin() const { return data_.begin(); }
     const_iterator DataEnd() const { return data_.end(); }
 
+    /**
+     * @return The number of solutions for the given direction.
+     */
     uint32_t NSolutionsForDirection(size_t direction_index) const {
       return n_solutions_[direction_index];
     }

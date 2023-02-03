@@ -9,6 +9,10 @@
 #include <ostream>
 #include <vector>
 
+#include <xtensor/xtensor.hpp>
+
+#include "../Solutions.h"
+
 namespace dp3 {
 namespace ddecal {
 
@@ -66,15 +70,13 @@ class Constraint {
 
   /**
    * This method applies the constraints to the solutions.
-   * @param solutions is an array of array, such that:
-   * - solutions[ch] is a pointer for channelblock ch to n_antennas x
-   * n_solutions x n_pol solutions.
-   * - pol is the dimension with the fastest changing index.
+   * @param solutions A 4D array with dimensions n_channel_blocks x n_antennas
+   * x n_solutions x n_pol solutions.
+   * n_pol is the dimension with the fastest changing index.
    * @param time Central time of interval.
    */
-  virtual std::vector<Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* statStream) = 0;
+  virtual std::vector<Result> Apply(SolutionSpan& solutions, double time,
+                                    std::ostream* statStream) = 0;
 
   /**
    * Perform common constraint initialization. Should be overridden when

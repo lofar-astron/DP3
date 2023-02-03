@@ -20,7 +20,9 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
 
-  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
+  SolutionTensor next_solutions_tensor(
+      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionSpan next_solutions = aocommon::xt::CreateSpan(next_solutions_tensor);
 
   SolveResult result;
 
@@ -29,7 +31,6 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
   std::vector<std::vector<MC2x2F>> v_residual(NChannelBlocks());
   // The following loop allocates all structures
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
-    next_solutions[ch_block].resize(NSolutions() * NAntennas() * 2);
     v_residual[ch_block].resize(data.ChannelBlock(ch_block).NVisibilities());
   }
 
@@ -50,9 +51,9 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
     aocommon::ParallelFor<size_t> loop(GetNThreads());
     loop.Run(0, NChannelBlocks(),
              [&](size_t ch_block, [[maybe_unused]] size_t thread) {
-               PerformIteration(data.ChannelBlock(ch_block),
+               PerformIteration(ch_block, data.ChannelBlock(ch_block),
                                 v_residual[ch_block], solutions[ch_block],
-                                next_solutions[ch_block]);
+                                next_solutions);
              });
 
     Step(solutions, next_solutions);
@@ -82,9 +83,9 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
 }
 
 void IterativeDiagonalSolver::PerformIteration(
-    const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
-    const std::vector<DComplex>& solutions,
-    std::vector<DComplex>& next_solutions) {
+    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    std::vector<MC2x2F>& v_residual, const std::vector<DComplex>& solutions,
+    SolutionSpan& next_solutions) {
   // Fill v_residual
   std::copy(cb_data.DataBegin(), cb_data.DataEnd(), v_residual.begin());
 
@@ -101,15 +102,15 @@ void IterativeDiagonalSolver::PerformIteration(
     if (direction != 0) v_residual = v_copy;
     AddOrSubtractDirection<true>(cb_data, v_residual, direction, solutions);
 
-    SolveDirection(cb_data, v_residual, direction, solutions, next_solutions);
+    SolveDirection(ch_block, cb_data, v_residual, direction, solutions,
+                   next_solutions);
   }
 }
 
 void IterativeDiagonalSolver::SolveDirection(
-    const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
     const std::vector<MC2x2F>& v_residual, size_t direction,
-    const std::vector<DComplex>& solutions,
-    std::vector<DComplex>& next_solutions) {
+    const std::vector<DComplex>& solutions, SolutionSpan& next_solutions) {
   // Calculate this equation, given ant a:
   //
   //          sum_b data_ab * solutions_b * model_ab^*
@@ -175,16 +176,16 @@ void IterativeDiagonalSolver::SolveDirection(
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (size_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
       const uint32_t solution_index = rel_sol + solution_map[0];
-      DComplex* destination =
-          &next_solutions[(ant * NSolutions() + solution_index) * 2];
       const size_t index = ant * n_dir_solutions + rel_sol;
 
       for (size_t pol = 0; pol != 2; ++pol) {
         if (denominator[index * 2 + pol] == 0.0)
-          destination[pol] = std::numeric_limits<double>::quiet_NaN();
+          next_solutions(ch_block, ant, solution_index, pol) =
+              std::numeric_limits<double>::quiet_NaN();
         else
-          destination[pol] = DComplex(numerator[index][pol]) /
-                             double(denominator[index * 2 + pol]);
+          next_solutions(ch_block, ant, solution_index, pol) =
+              DComplex(numerator[index][pol]) /
+              double(denominator[index * 2 + pol]);
       }
     }
   }

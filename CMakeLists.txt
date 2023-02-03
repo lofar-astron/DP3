@@ -645,6 +645,7 @@ if(BUILD_TESTING)
       base/test/unit/tDPInfo.cc
       base/test/unit/tMs.cc
       base/test/unit/tSimulator.cc
+      ddecal/test/unit/tLBFGSSolver.cc
       ddecal/test/unit/tSolutionResampler.cc
       ddecal/test/unit/tSolveData.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc

@@ -25,17 +25,18 @@ BOOST_AUTO_TEST_CASE(test_rotation) {
   RotationConstraint constraint;
   constraint.Initialize(1, {1u}, {42e6});
 
-  vector<vector<complex<double>>> onesolution(1);
-  onesolution[0].resize(4);
+  dp3::ddecal::SolutionTensor onesolution_tensor({1, 1, 1, 4});
+  dp3::ddecal::SolutionSpan onesolution =
+      aocommon::xt::CreateSpan(onesolution_tensor);
   double pi = 3.1415;
   for (double phi = -pi; phi < pi; phi += pi / 6) {
     /* Solution is of the form ((a,0),(0,b))*rot(phi)
      with rot(phi) = ((cos(phi),-sin(phi)),(sin(phi),cos(phi)))
     */
-    onesolution[0][0] = cos(phi);
-    onesolution[0][1] = -sin(phi);
-    onesolution[0][2] = sin(phi);
-    onesolution[0][3] = cos(phi);
+    onesolution(0, 0, 0, 0) = cos(phi);
+    onesolution(0, 0, 0, 1) = -sin(phi);
+    onesolution(0, 0, 0, 2) = sin(phi);
+    onesolution(0, 0, 0, 3) = cos(phi);
     vector<Constraint::Result> constraint_result;
     constraint_result = constraint.Apply(onesolution, 0., nullptr);
 
@@ -57,8 +58,9 @@ BOOST_DATA_TEST_CASE(test_rotation_and_diagonal,
   constraint.Initialize(1, {1u}, {42e6});
   constraint.SetDoRotationReference(doRotationReference);
 
-  vector<vector<complex<double>>> onesolution(1);
-  onesolution[0].resize(4);
+  dp3::ddecal::SolutionTensor onesolution_tensor({1, 1, 1, 4});
+  dp3::ddecal::SolutionSpan onesolution =
+      aocommon::xt::CreateSpan(onesolution_tensor);
   double pi = 3.1415;
   double phi = pi / 6;
   const complex<double> i(0, 1.);
@@ -67,10 +69,10 @@ BOOST_DATA_TEST_CASE(test_rotation_and_diagonal,
   /* Solution is of the form ((a,0),(0,b))*rot(phi)
      with rot(phi) = ((cos(phi),-sin(phi)),(sin(phi),cos(phi)))
   */
-  onesolution[0][0] = a * cos(phi);
-  onesolution[0][1] = a * -sin(phi);
-  onesolution[0][2] = b * sin(phi);
-  onesolution[0][3] = b * cos(phi);
+  onesolution(0, 0, 0, 0) = a * cos(phi);
+  onesolution(0, 0, 0, 1) = a * -sin(phi);
+  onesolution(0, 0, 0, 2) = b * sin(phi);
+  onesolution(0, 0, 0, 3) = b * cos(phi);
 
   vector<Constraint::Result> constraint_result;
   constraint_result = constraint.Apply(onesolution, 0., nullptr);

@@ -16,8 +16,8 @@ class RotationAndDiagonalConstraint final : public Constraint {
  public:
   RotationAndDiagonalConstraint();
 
-  std::vector<Result> Apply(std::vector<std::vector<dcomplex>>& solutions,
-                            double time, std::ostream* statStream) override;
+  std::vector<Result> Apply(SolutionSpan& solutions, double time,
+                            std::ostream* statStream) override;
 
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,

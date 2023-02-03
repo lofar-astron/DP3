@@ -147,19 +147,23 @@ void ScreenConstraint::CalculatePiercepoints() {
       pierce_points_[i][j].evaluate(time);
 }
 
-void ScreenConstraint::GetPpValue(
-    const std::vector<std::vector<dcomplex>>& solutions, size_t solutionIndex,
-    size_t dirIndex, double& avgTEC, double& error) const {
+void ScreenConstraint::GetPpValue(const SolutionSpan& solutions,
+                                  size_t antIndex, size_t dirIndex,
+                                  double& avgTEC, double& error) const {
+  assert(solutions.shape(3) == 1);  // phase only solutions
   if (avg_mode_ == "simple") {
     avgTEC = 0;
     error = 1.0;
     size_t nrch(0);
     for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
-      if (isfinite(solutions[ch][dirIndex])) {
-        double refphase = std::arg(solutions[ch][dirIndex]);
+      const std::complex<double>& solution0 = solutions(ch, 0, dirIndex, 0);
+      if (isfinite(solution0)) {
+        double refphase = std::arg(solution0);
         // TODO: more advance frequency averaging...
-        if (isfinite(solutions[ch][solutionIndex])) {
-          avgTEC += std::arg(solutions[ch][solutionIndex] *
+        const std::complex<double>& antennaSolution =
+            solutions(ch, antIndex, dirIndex, 0);
+        if (isfinite(antennaSolution)) {
+          avgTEC += std::arg(antennaSolution *
                              std::polar<double>(1.0, -1 * refphase)) *
                     frequencies_[ch] * kPhaseToTec;
           nrch++;
@@ -167,26 +171,19 @@ void ScreenConstraint::GetPpValue(
       }
     }
     if (nrch > 0) avgTEC /= nrch;
-    /*
-    double mydelay=0;
-    for(size_t ch=0;ch<NChannelBlocks(); ++ch) {
-      double refphase=std::arg(solutions[ch][dirIndex]);
-      double wavelength=freqtolambda/itsFrequencies[ch]
-      //TODO: more advance frequency averaging...
-
-      mydelay +=
-    std::arg(solutions[ch][solutionIndex]*std::polar<double>(1.0,-1*refphase))*itsFrequencies[ch]*phtoTEC;
-    */
   } else {
     PhaseFitter phfit;
     phfit.Initialize(frequencies_);
     double offset = 0.0;
     for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
-      if (isfinite(solutions[ch][solutionIndex])) {
-        phfit.PhaseData()[ch] = std::arg(solutions[ch][solutionIndex]);
+      const std::complex<double>& solution =
+          solutions(ch, antIndex, dirIndex, 0);
+      if (isfinite(solution)) {
+        phfit.PhaseData()[ch] = std::arg(solution);
       } else
         phfit.WeightData()[ch] = 0.0;
     }
+    const size_t solutionIndex = antIndex * NDirections() + dirIndex;
     if (previous_solution_[solutionIndex] < -100) {
       avgTEC = 0.0;
       phfit.FitTEC2ModelParameters(avgTEC, offset);
@@ -203,8 +200,9 @@ void ScreenConstraint::GetPpValue(
 }
 
 std::vector<Constraint::Result> ScreenConstraint::Apply(
-    std::vector<std::vector<dcomplex>>& solutions, double time,
+    SolutionSpan& solutions, double time,
     [[maybe_unused]] std::ostream* statStream) {
+  assert(solutions.shape(3) == 1);  // phase only solutions
   // check if we need to reinitialize piercepoints
   SetTime(time);
   size_t nrresults = 4;
@@ -273,17 +271,16 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(
     }
     for (size_t dirIndex = 0; dirIndex < NDirections(); ++dirIndex) {
       double avgTEC = 0.0, error = 1.0;
-      size_t solutionIndex = antIndex * NDirections() + dirIndex;
       if (debug_mode_ > 0 and iteration_ < kMaxIterations) {
         for (size_t ch = 0; ch < NChannelBlocks(); ch++) {
           iter_phases_[antIndex * NDirections() * kMaxIterations *
                            NChannelBlocks() +
                        dirIndex * kMaxIterations * NChannelBlocks() +
                        ch * kMaxIterations + iteration_] =
-              std::arg(solutions[ch][solutionIndex]);
+              std::arg(solutions(ch, antIndex, dirIndex, 0));
         }
       }
-      GetPpValue(solutions, solutionIndex, dirIndex, avgTEC, error);
+      GetPpValue(solutions, antIndex, dirIndex, avgTEC, error);
       if (error <= 0) error = 1;
       if (mode_ == "station") {
         screen_fitters_[antIndex].PhaseData()[dirIndex] = avgTEC;
@@ -334,7 +331,6 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(
       }
     }
     for (size_t dirIndex = 0; dirIndex < NDirections(); ++dirIndex) {
-      size_t solutionIndex = antIndex * NDirections() + dirIndex;
       double avgTEC = 0;
       if (mode_ == "station")
         avgTEC = screen_fitters_[antIndex].PhaseData()[dirIndex];
@@ -351,9 +347,10 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(
           avgTEC = screen_fitters_[foundantoth + 1].PhaseData()[dirIndex];
       }
 
-      for (size_t ch = 0; ch < NChannelBlocks(); ++ch)
-        solutions[ch][solutionIndex] =
+      for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
+        solutions(ch, antIndex, dirIndex, 0) =
             std::polar<double>(1.0, avgTEC * kTecToPhase / frequencies_[ch]);
+      }
 
       res[3].vals[antIndex * NDirections() + dirIndex] = avgTEC;
       previous_solution_[antIndex * NDirections() + dirIndex] = avgTEC;

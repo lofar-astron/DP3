@@ -5,6 +5,9 @@
 
 #include <aocommon/parallelfor.h>
 
+#include <xtensor/xmath.hpp>
+#include <xtensor/xview.hpp>
+
 namespace dp3 {
 namespace ddecal {
 
@@ -53,18 +56,14 @@ void ApproximateTECConstraint::initializeChild() {
     pw_fitters_[i].SetChunkSize(fitting_chunk_size_);
 }
 
-void TECConstraintBase::applyReferenceAntenna(
-    std::vector<std::vector<dcomplex>>& solutions) const {
+void TECConstraintBase::applyReferenceAntenna(SolutionSpan& solutions) const {
   // Choose reference antenna that has at least 20% channels unflagged
   size_t ref_antenna = 0;
   for (; ref_antenna != NAntennas(); ++ref_antenna) {
-    size_t n_unflagged_channels = 0;
     // Only check flagged state for first direction
-    for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-      if (isfinite(solutions[ch][ref_antenna * NDirections()]))
-        n_unflagged_channels++;
-    }
-    if (n_unflagged_channels * 1.0 / NChannelBlocks() > 0.2)
+    const size_t n_unflagged_channels = xt::sum(
+        xt::isfinite(xt::view(solutions, xt::all(), ref_antenna, 0, 0)))();
+    if (n_unflagged_channels > 0.2 * NChannelBlocks())
       // Choose this refAntenna;
       break;
   }
@@ -72,25 +71,26 @@ void TECConstraintBase::applyReferenceAntenna(
   if (ref_antenna == NAntennas()) ref_antenna = 0;
 
   for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+    auto reference_view = xt::view(solutions, ch, ref_antenna, xt::all(), 0);
     for (size_t antenna_index = 0; antenna_index != NAntennas();
          ++antenna_index) {
-      for (size_t d = 0; d != NDirections(); ++d) {
-        size_t solution_index = antenna_index * NDirections() + d;
-        size_t ref_antenna_index = d + ref_antenna * NDirections();
-        if (antenna_index != ref_antenna) {
-          solutions[ch][solution_index] =
-              solutions[ch][solution_index] / solutions[ch][ref_antenna_index];
-        }
+      if (antenna_index != ref_antenna) {
+        xt::view(solutions, ch, antenna_index, xt::all(), 0) /= reference_view;
       }
     }
-    for (size_t d = 0; d != NDirections(); ++d)
-      solutions[ch][ref_antenna * NDirections() + d] = 1.0;
+    reference_view.fill(1.0);
   }
 }
 
 std::vector<Constraint::Result> TECConstraint::Apply(
-    std::vector<std::vector<dcomplex>>& solutions, [[maybe_unused]] double time,
+    SolutionSpan& solutions, [[maybe_unused]] double time,
     [[maybe_unused]] std::ostream* stat_stream) {
+  assert(solutions.shape(0) == NChannelBlocks());
+  assert(solutions.shape(1) == NAntennas());
+  assert(solutions.shape(2) == NSolutions());
+  assert(solutions.shape(3) ==
+         1);  // single polarization (phase only) solutions
+
   size_t nRes = 3;
   if (mode_ == TECOnlyMode) {
     nRes = 2;  // TEC and error
@@ -99,13 +99,13 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   }
 
   std::vector<Constraint::Result> res(nRes);
-  res[0].vals.resize(NAntennas() * NDirections());
-  res[0].weights.resize(NAntennas() * NDirections());
+  res[0].vals.resize(NAntennas() * NSolutions());
+  res[0].weights.resize(NAntennas() * NSolutions());
   res[0].axes = "ant,dir,freq";
   res[0].name = "tec";
   res[0].dims.resize(3);
   res[0].dims[0] = NAntennas();
-  res[0].dims[1] = NDirections();
+  res[0].dims[1] = NSolutions();
   res[0].dims[2] = 1;
   if (mode_ == TECAndCommonScalarMode) {
     res[1] = res[0];
@@ -118,73 +118,87 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   if (do_phase_reference_) applyReferenceAntenna(solutions);
 
   aocommon::ParallelFor<size_t> loop(NThreads());
-  loop.Run(0, NAntennas() * NDirections(),
-           [&](size_t solution_index, size_t thread) {
-             size_t antenna_index = solution_index / NDirections();
+  loop.Run(
+      0, NAntennas() * NSolutions(),
+      [&](size_t antenna_and_solution_index, size_t thread) {
+        const size_t antenna_index = antenna_and_solution_index / NSolutions();
+        const size_t solution_index = antenna_and_solution_index % NSolutions();
 
-             // Flag channels where calibration yielded inf or nan
-             double weight_sum = 0.0;
-             for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-               if (isfinite(solutions[ch][solution_index])) {
-                 phase_fitters_[thread].PhaseData()[ch] =
-                     std::arg(solutions[ch][solution_index]);
-                 phase_fitters_[thread].WeightData()[ch] =
-                     weights_[antenna_index * NChannelBlocks() + ch];
-                 weight_sum += weights_[antenna_index * NChannelBlocks() + ch];
-               } else {
-                 phase_fitters_[thread].PhaseData()[ch] = 0.0;
-                 phase_fitters_[thread].WeightData()[ch] = 0.0;
-               }
-             }
+        // Flag channels where calibration yielded inf or nan
+        double weight_sum = 0.0;
+        for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+          const std::complex<double>& solution =
+              solutions(ch, antenna_index, solution_index, 0);
+          if (isfinite(solution)) {
+            phase_fitters_[thread].PhaseData()[ch] = std::arg(solution);
+            phase_fitters_[thread].WeightData()[ch] =
+                weights_[antenna_index * NChannelBlocks() + ch];
+            weight_sum += weights_[antenna_index * NChannelBlocks() + ch];
+          } else {
+            phase_fitters_[thread].PhaseData()[ch] = 0.0;
+            phase_fitters_[thread].WeightData()[ch] = 0.0;
+          }
+        }
 
-             double alpha;
-             double beta = 0.0;
-             if (mode_ == TECOnlyMode) {
-               res.back().vals[solution_index] =
-                   phase_fitters_[thread].FitDataToTEC1Model(alpha);
-             } else {
-               res.back().vals[solution_index] =
-                   phase_fitters_[thread].FitDataToTEC2Model(alpha, beta);
-             }
-             res.back().weights[solution_index] = weight_sum;
+        double alpha;
+        double beta = 0.0;
+        if (mode_ == TECOnlyMode) {
+          res.back().vals[antenna_and_solution_index] =
+              phase_fitters_[thread].FitDataToTEC1Model(alpha);
+        } else {
+          res.back().vals[antenna_and_solution_index] =
+              phase_fitters_[thread].FitDataToTEC2Model(alpha, beta);
+        }
+        res.back().weights[antenna_and_solution_index] = weight_sum;
 
-             res[0].vals[solution_index] = alpha / -8.44797245e9;
-             res[0].weights[solution_index] = weight_sum;
-             if (mode_ == TECAndCommonScalarMode) {
-               res[1].vals[solution_index] = beta;
-               res[1].weights[solution_index] = weight_sum;
-             }
+        res[0].vals[antenna_and_solution_index] = alpha / -8.44797245e9;
+        res[0].weights[antenna_and_solution_index] = weight_sum;
+        if (mode_ == TECAndCommonScalarMode) {
+          res[1].vals[antenna_and_solution_index] = beta;
+          res[1].weights[antenna_and_solution_index] = weight_sum;
+        }
 
-             for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-               solutions[ch][solution_index] = std::polar<double>(
-                   1.0, phase_fitters_[thread].PhaseData()[ch]);
-             }
-           });
+        for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+          solutions(ch, antenna_index, solution_index, 0) =
+              std::polar<double>(1.0, phase_fitters_[thread].PhaseData()[ch]);
+        }
+      });
 
   return res;
 }
 
 std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
-    std::vector<std::vector<dcomplex>>& solutions, double time,
-    std::ostream* stat_stream) {
-  if (finished_approximate_stage_)
+    SolutionSpan& solutions, double time, std::ostream* stat_stream) {
+  assert(solutions.shape(0) == NChannelBlocks());
+  assert(solutions.shape(1) == NAntennas());
+  assert(solutions.shape(2) == NSolutions());
+  assert(solutions.shape(3) ==
+         1);  // single polarization (phase only) solutions
+
+  if (finished_approximate_stage_) {
     return TECConstraint::Apply(solutions, time, stat_stream);
-  else {
+  } else {
     if (do_phase_reference_) applyReferenceAntenna(solutions);
 
     aocommon::ParallelFor<size_t> loop(NThreads());
-    loop.Run(0, NAntennas() * NDirections(),
-             [&](size_t solutionIndex, size_t thread) {
-               size_t antennaIndex = solutionIndex / NDirections();
+    loop.Run(0, NAntennas() * NSolutions(),
+             [&](size_t antenna_and_solution_index, size_t thread) {
+               const size_t antenna_index =
+                   antenna_and_solution_index / NSolutions();
+               const size_t solution_index =
+                   antenna_and_solution_index % NSolutions();
                std::vector<double>& data = thread_data_[thread];
-               std::vector<double>& fittedData = thread_fitted_data_[thread];
+               std::vector<double>& fitted_data = thread_fitted_data_[thread];
                std::vector<double>& weights = thread_weights_[thread];
 
                // Flag channels where calibration yielded inf or nan
                for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-                 if (isfinite(solutions[ch][solutionIndex])) {
-                   data[ch] = std::arg(solutions[ch][solutionIndex]);
-                   weights[ch] = weights_[antennaIndex * NChannelBlocks() + ch];
+                 const std::complex<double>& solution =
+                     solutions(ch, antenna_index, solution_index, 0);
+                 if (isfinite(solution)) {
+                   data[ch] = std::arg(solution);
+                   weights[ch] =
+                       weights_[antenna_index * NChannelBlocks() + ch];
                  } else {
                    data[ch] = 0.0;
                    weights[ch] = 0.0;
@@ -195,11 +209,11 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
                // or not
                pw_fitters_[thread].SlidingFitWithBreak(
                    phase_fitters_[thread].GetFrequencies().data(), data.data(),
-                   weights.data(), fittedData.data(), data.size());
+                   weights.data(), fitted_data.data(), data.size());
 
                for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-                 solutions[ch][solutionIndex] =
-                     std::polar<double>(1.0, fittedData[ch]);
+                 solutions(ch, antenna_index, solution_index, 0) =
+                     std::polar<double>(1.0, fitted_data[ch]);
                }
              });
 
