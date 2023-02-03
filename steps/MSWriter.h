@@ -7,8 +7,8 @@
 
 #include "OutputStep.h"
 
-#include "../base/StManParsetKeys.h"
-#include "../common/Timer.h"
+#include <memory>
+#include <thread>
 
 #include <aocommon/lane.h>
 
@@ -16,7 +16,8 @@
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
-#include <thread>
+#include "../base/StManParsetKeys.h"
+#include "../common/Timer.h"
 
 namespace casacore {
 class Table;
@@ -64,7 +65,7 @@ class MSWriter : public OutputStep {
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -114,9 +115,6 @@ class MSWriter : public OutputStep {
 
   /// Update the FIELD table with the new phase center.
   void UpdatePhaseCentre(const string& out_name);
-
-  /// Update @ref internal_buffer_ with the provided @a buffer.
-  void UpdateInternalBuffer(const base::DPBuffer& buffer);
 
   /// Process the data in @ref buffer.
   ///
@@ -183,7 +181,6 @@ class MSWriter : public OutputStep {
   std::string out_name_;
   /// The filename of the currently being written chunk
   std::string chunk_name_;
-  base::DPBuffer internal_buffer_;
   casacore::Table ms_;
   common::ParameterSet parset_;  ///< parset for writing history
   casacore::String data_col_name_;
@@ -213,11 +210,6 @@ class MSWriter : public OutputStep {
   /// The total time spent in the writer.
   common::NSTimer timer_;
 
-  /// The time spent updating the buffer.
-  ///
-  /// This update process will spend time reading from the input.
-  common::NSTimer update_buffer_timer_;
-
   /// The time spent writing data to the output MS.
   ///
   /// This timer can either run in the main thread or the dedicated write
@@ -243,10 +235,10 @@ class MSWriter : public OutputStep {
   /// buffer large takes more memory while the "slow" I/O will just delay the
   /// final part of the processing. Based on experiments locally and on DAS6 the
   /// selected size seems a nice trade-off.
-  aocommon::Lane<base::DPBuffer> write_queue_{3};
+  aocommon::Lane<std::unique_ptr<base::DPBuffer>> write_queue_{3};
 
   /// Creates task for the \ref write_queue_.
-  void CreateTask();
+  void CreateTask(std::unique_ptr<base::DPBuffer> buffer);
 
   /// The thread used to process \ref write_queue_.
   ///
