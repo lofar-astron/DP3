@@ -120,7 +120,7 @@ class MSReader : public InputStep {
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -143,16 +143,6 @@ class MSReader : public InputStep {
 
   /// Read the UVW at the given row numbers into the buffer.
   void getUVW(const casacore::RefRows& rowNrs, double time, base::DPBuffer&);
-
-  /// Read the weights at the given row numbers into the buffer.
-  /// Note: the buffer must contain DATA if autoweighting is in effect.
-  void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
-
-  /// Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
-  /// into the buffer.
-  /// If there is no such column, the flags are set to false and false is
-  /// returned.
-  bool getFullResFlags(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
   /// Fill the fullResFlags field in the DPBuffer.
   /// If the LOFAR_FULL_RES_FLAG column is present in the MS
@@ -189,9 +179,6 @@ class MSReader : public InputStep {
   /// Tell if the input MS has LOFAR_FULL_RES_FLAG.
   bool hasFullResFlags() const { return itsHasFullResFlags; }
 
-  /// Get access to the buffer.
-  const base::DPBuffer& getBuffer() const { return itsBuffer; }
-
   /// Flags inf and NaN
   static void flagInfNaN(const casacore::Cube<casacore::Complex>& dataCube,
                          casacore::Cube<bool>& flagsCube,
@@ -218,6 +205,16 @@ class MSReader : public InputStep {
 
   /// Calculate the weights from the autocorrelations.
   void autoWeight(casacore::Cube<float>& weights, const base::DPBuffer& buf);
+
+  /// Read the weights at the given row numbers into the buffer.
+  /// Note: the buffer must contain DATA if autoweighting is in effect.
+  void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
+
+  /// Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
+  /// into the buffer.
+  /// If there is no such column, the flags are set to false and false is
+  /// returned.
+  bool getFullResFlags(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
  protected:
   casacore::MeasurementSet itsMS;
@@ -255,7 +252,6 @@ class MSReader : public InputStep {
   casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
   casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array
   bool itsHasFullResFlags{false};
-  base::DPBuffer itsBuffer;
   std::unique_ptr<base::UVWCalculator> itsUVWCalc;
   casacore::Vector<common::rownr_t>
       itsBaseRowNrs;  ///< rownrs for meta of missing times

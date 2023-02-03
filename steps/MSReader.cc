@@ -281,15 +281,13 @@ void MSReader::updateInfo(const DPInfo& dpInfo) {
 
 std::string MSReader::msName() const { return itsMS.tableName(); }
 
-bool MSReader::process(const DPBuffer&) {
-  if (itsNrRead == 0) {
-    if (getFieldsToRead().Data()) {
-      itsBuffer.ResizeData(itsNrBl, itsNrChan, itsNrCorr);
-    }
-    if (itsUseFlags &&
-        (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
-      itsBuffer.ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
-    }
+bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
+  if (getFieldsToRead().Data()) {
+    buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
+  }
+  if (itsUseFlags &&
+      (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
+    buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
   }
   {
     common::NSTimer::StartStop sstime(itsTimer);
@@ -332,52 +330,52 @@ bool MSReader::process(const DPBuffer&) {
       return false;
     }
     // Fill the buffer.
-    itsBuffer.setTime(itsNextTime);
+    buffer->setTime(itsNextTime);
     if (!useIter) {
       // Need to insert a fully flagged time slot.
-      itsBuffer.setRowNrs(casacore::Vector<common::rownr_t>());
-      itsBuffer.setExposure(itsTimeInterval);
-      itsBuffer.GetCasacoreFlags() = true;
+      buffer->setRowNrs(casacore::Vector<common::rownr_t>());
+      buffer->setExposure(itsTimeInterval);
+      buffer->GetFlags().fill(true);
       if (getFieldsToRead().Data()) {
-        itsBuffer.GetCasacoreData() = casacore::Complex();
+        buffer->GetData().fill(std::complex<float>());
       }
       itsNrInserted++;
     } else {
-      itsBuffer.setRowNrs(itsIter.table().rowNumbers(itsMS, true));
+      buffer->setRowNrs(itsIter.table().rowNumbers(itsMS, true));
       if (itsMissingData) {
         // Data column not present, so fill a fully flagged time slot.
-        itsBuffer.setExposure(itsTimeInterval);
-        itsBuffer.GetCasacoreFlags() = true;
+        buffer->setExposure(itsTimeInterval);
+        buffer->GetFlags().fill(true);
         if (getFieldsToRead().Data()) {
-          itsBuffer.GetCasacoreData() = casacore::Complex();
+          buffer->GetData().fill(std::complex<float>());
         }
       } else {
         // Set exposure.
-        itsBuffer.setExposure(
+        buffer->setExposure(
             ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
         // Get data and flags from the MS.
         if (getFieldsToRead().Data()) {
           ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
                                                  itsDataColName);
           if (itsUseAllChan) {
-            dataCol.getColumn(itsBuffer.GetCasacoreData());
+            dataCol.getColumn(buffer->GetCasacoreData());
           } else {
-            dataCol.getColumn(itsColSlicer, itsBuffer.GetCasacoreData());
+            dataCol.getColumn(itsColSlicer, buffer->GetCasacoreData());
           }
         }
         if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
           if (itsUseFlags) {
             ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
             if (itsUseAllChan) {
-              flagCol.getColumn(itsBuffer.GetCasacoreFlags());
+              flagCol.getColumn(buffer->GetCasacoreFlags());
             } else {
-              flagCol.getColumn(itsColSlicer, itsBuffer.GetCasacoreFlags());
+              flagCol.getColumn(itsColSlicer, buffer->GetCasacoreFlags());
             }
             // Set flags if FLAG_ROW is set.
             ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
             for (unsigned int i = 0; i < itsIter.table().nrow(); ++i) {
               if (flagrowCol(i)) {
-                itsBuffer.GetCasacoreFlags()(
+                buffer->GetCasacoreFlags()(
                     IPosition(3, 0, 0, i),
                     IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) = true;
               }
@@ -385,11 +383,11 @@ bool MSReader::process(const DPBuffer&) {
 
           } else {
             // Do not use FLAG from the MS.
-            itsBuffer.ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
-            itsBuffer.GetCasacoreFlags() = false;
+            buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
+            buffer->GetFlags().fill(false);
           }
           // Flag invalid data (NaN, infinite).
-          flagInfNaN(itsBuffer.GetCasacoreData(), itsBuffer.GetCasacoreFlags(),
+          flagInfNaN(buffer->GetCasacoreData(), buffer->GetCasacoreFlags(),
                      itsFlagCounter);
         }
       }
@@ -398,7 +396,7 @@ bool MSReader::process(const DPBuffer&) {
       itsIter.next();
     }
     if (getFieldsToRead().Flags()) {
-      if (itsBuffer.GetCasacoreFlags().shape()[2] != int(itsNrBl))
+      if (buffer->GetFlags().shape(0) != itsNrBl)
         throw std::runtime_error(
             "#baselines is not the same for all time slots in the MS");
     }
@@ -406,11 +404,11 @@ bool MSReader::process(const DPBuffer&) {
   // Let the next step in the pipeline process this time slot.
 
   if (getFieldsToRead().Uvw())
-    getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(), itsBuffer);
-  if (getFieldsToRead().Weights()) getWeights(itsBuffer.getRowNrs(), itsBuffer);
-  if (getFieldsToRead().FullResFlags()) FillFullResFlags(itsBuffer);
+    getUVW(buffer->getRowNrs(), buffer->getTime(), *buffer);
+  if (getFieldsToRead().Weights()) getWeights(buffer->getRowNrs(), *buffer);
+  if (getFieldsToRead().FullResFlags()) FillFullResFlags(*buffer);
 
-  getNextStep()->process(itsBuffer);
+  getNextStep()->process(std::move(buffer));
   // Do not add to previous time, because it introduces round-off errors.
   itsNextTime = itsFirstTime + (itsNrRead + itsNrInserted) * itsTimeInterval;
   return true;

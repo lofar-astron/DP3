@@ -1,5 +1,5 @@
 // MultiMSReader.cc: DPPP step reading from multiple MSs
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
@@ -22,14 +22,10 @@
 #include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include <dp3/base/DPBuffer.h>
 #include "../base/DPLogger.h"
-#include <dp3/base/DPInfo.h>
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
-
-#include "NullStep.h"
 
 using casacore::Cube;
 using casacore::IPosition;
@@ -64,6 +60,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
     if (!casacore::Table::isReadable(name)) {
       // Ignore if the MS is missing.
       itsReaders.push_back(nullptr);
+      itsResults.push_back(nullptr);
       itsNMissing++;
     } else {
       const casacore::MeasurementSet ms(name,
@@ -75,9 +72,11 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
       }
       auto reader =
           std::make_shared<MSReader>(ms, parset, prefix, itsMissingData);
-      // Add a null step for the reader.
-      reader->setNextStep(std::make_shared<NullStep>());
+      // Add a result step for the reader.
+      auto result = std::make_shared<ResultStep>();
+      reader->setNextStep(result);
       itsReaders.push_back(std::move(reader));
+      itsResults.push_back(std::move(result));
       if (itsFirst < 0) {
         itsFirst = itsReaders.size() - 1;
       }
@@ -89,7 +88,6 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
 
   if (itsFirst < 0)
     throw std::runtime_error("All input MeasurementSets do not exist");
-  itsBuffers.resize(itsReaders.size());
 }
 
 MultiMSReader::~MultiMSReader() {}
@@ -99,14 +97,17 @@ std::string MultiMSReader::msName() const { return itsMSNames.front(); }
 void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
   InputStep::setFieldsToRead(fields);
 
-  // Only read Data and Flags fields in the MSReader. UVW, Weights and
-  // FullResFlags are read in the MultiMSReader.
+  // Read all fields except UVW in the MSReaders.
+  // Since the UVW values are equal for all MSReaders, read those once,
+  // directly into the target buffer.
   dp3::common::Fields reader_fields;
   if (fields.Data()) reader_fields |= kDataField;
   if (fields.Flags()) reader_fields |= kFlagsField;
-  for (unsigned int i = 0; i < itsReaders.size(); ++i) {
-    if (itsReaders[i]) {
-      itsReaders[i]->setFieldsToRead(reader_fields);
+  if (fields.Weights()) reader_fields |= kWeightsField;
+  if (fields.FullResFlags()) reader_fields |= kFullResFlagsField;
+  for (std::shared_ptr<MSReader>& reader : itsReaders) {
+    if (reader) {
+      reader->setFieldsToRead(reader_fields);
     }
   }
 }
@@ -212,66 +213,74 @@ void MultiMSReader::fillBands() {
   info().setChannels(std::move(chanFreqs), std::move(chanWidths));
 }
 
-bool MultiMSReader::process(const DPBuffer& buf) {
+bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
+  // Reduce memory allocation overhead by reusing the DPBuffer from the
+  // previous iteration.
+  std::unique_ptr<DPBuffer> recycled_buffer = itsResults[itsFirst]->extract();
+  if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
+
   // Stop if at end.
-  if (!itsReaders[itsFirst]->process(buf)) {
+  if (!itsReaders[itsFirst]->process(std::move(recycled_buffer))) {
     return false;  // end of input
   }
-  const DPBuffer& buf1 = itsReaders[itsFirst]->getBuffer();
-  itsBuffer.setTime(buf1.getTime());
-  itsBuffer.setExposure(buf1.getExposure());
-  itsBuffer.setRowNrs(buf1.getRowNrs());
+  const DPBuffer& buf1 = itsResults[itsFirst]->get();
+  buffer->setTime(buf1.getTime());
+  buffer->setExposure(buf1.getExposure());
+  buffer->setRowNrs(buf1.getRowNrs());
   // Size the buffers if they should be read.
-  if (itsBuffer.GetCasacoreData().empty() && getFieldsToRead().Data()) {
-    itsBuffer.ResizeData(itsNrBl, itsNrChan, itsNrCorr);
+  if (getFieldsToRead().Data()) {
+    buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
   }
-  if (itsBuffer.GetCasacoreFlags().empty() &&
-      (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
-    itsBuffer.ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
+  if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
+    buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
   }
   // Loop through all readers and get data and flags.
-  IPosition s(3, 0, 0, 0);
-  IPosition e(3, itsNrCorr - 1, 0, itsNrBl - 1);
+  IPosition start(3, 0, 0, 0);
+  IPosition end(3, itsNrCorr - 1, 0, itsNrBl - 1);
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
       if (int(i) != itsFirst) {
-        itsReaders[i]->process(buf);
+        // Reduce memory allocation overhead by reusing the DPBuffer from the
+        // previous iteration.
+        recycled_buffer = itsResults[i]->extract();
+        if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
+        itsReaders[i]->process(std::move(recycled_buffer));
       }
-      const DPBuffer& msBuf = itsReaders[i]->getBuffer();
+      const DPBuffer& msBuf = itsResults[i]->get();
       if (msBuf.getRowNrs().empty())
         throw std::runtime_error(
             "When using multiple MSs, the times in all MSs have to be "
             "consecutive; this is not the case for MS " +
             std::to_string(i));
       // Copy data and flags.
-      e[1] = s[1] + itsReaders[i]->getInfo().nchan() - 1;
+      end[1] = start[1] + itsReaders[i]->getInfo().nchan() - 1;
       if (getFieldsToRead().Data()) {
-        itsBuffer.GetCasacoreData()(s, e) = msBuf.GetCasacoreData();
+        buffer->GetCasacoreData()(start, end) = msBuf.GetCasacoreData();
       }
       if (getFieldsToRead().Flags()) {
-        itsBuffer.GetCasacoreFlags()(s, e) = msBuf.GetCasacoreFlags();
+        buffer->GetCasacoreFlags()(start, end) = msBuf.GetCasacoreFlags();
       }
     } else {
-      e[1] = s[1] + itsFillNChan - 1;
+      end[1] = start[1] + itsFillNChan - 1;
       if (getFieldsToRead().Data()) {
-        itsBuffer.GetCasacoreData()(s, e) = casacore::Complex();
+        buffer->GetCasacoreData()(start, end) = casacore::Complex();
       }
       if (getFieldsToRead().Flags()) {
-        itsBuffer.GetCasacoreFlags()(s, e) = true;
+        buffer->GetCasacoreFlags()(start, end) = true;
       }
     }
-    s[1] = e[1] + 1;
+    start[1] = end[1] + 1;
   }
 
   if (getFieldsToRead().Uvw()) {
     // All Measurement Sets have the same UVWs, so use the first one.
-    itsReaders[itsFirst]->getUVW(itsBuffer.getRowNrs(), itsBuffer.getTime(),
-                                 itsBuffer);
+    itsReaders[itsFirst]->getUVW(buffer->getRowNrs(), buffer->getTime(),
+                                 *buffer);
   }
-  if (getFieldsToRead().Weights()) getWeights();
-  if (getFieldsToRead().FullResFlags()) getFullResolutionFlags();
+  if (getFieldsToRead().Weights()) getWeights(*buffer);
+  if (getFieldsToRead().FullResFlags()) getFullResolutionFlags(*buffer);
 
-  getNextStep()->process(itsBuffer);
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 
@@ -408,38 +417,31 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
   }
 }
 
-void MultiMSReader::getWeights() {
-  const RefRows& rowNrs = itsBuffer.getRowNrs();
-  // Resize if needed (probably when called for first time).
-  if (itsBuffer.GetCasacoreWeights().empty()) {
-    itsBuffer.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
-  }
-  Cube<float>& weights = itsBuffer.GetCasacoreWeights();
-  IPosition s(3, 0, 0, 0);
-  IPosition e(3, itsNrCorr - 1, 0, itsNrBl - 1);
-  for (unsigned int i = 0; i < itsReaders.size(); ++i) {
-    if (itsReaders[i]) {
-      unsigned int nchan = itsReaders[i]->getInfo().nchan();
-      e[1] = s[1] + nchan - 1;
-      itsReaders[i]->getWeights(rowNrs, itsBuffers[i]);
-      weights(s, e) = itsBuffers[i].GetCasacoreWeights();
-    } else {
-      e[1] = s[1] + itsFillNChan - 1;
-      weights(s, e) = float(0);
+void MultiMSReader::getWeights(DPBuffer& buffer) {
+  const RefRows& rowNrs = buffer.getRowNrs();
+  buffer.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
+  Cube<float>& weights = buffer.GetCasacoreWeights();
+  IPosition start(3, 0, 0, 0);
+  IPosition end(3, itsNrCorr - 1, 0, itsNrBl - 1);
+  for (const std::shared_ptr<ResultStep>& result : itsResults) {
+    if (result) {
+      const unsigned int n_channels = result->get().GetWeights().shape(1);
+      end[1] = start[1] + n_channels - 1;
+      weights(start, end) = result->get().GetCasacoreWeights();
+    } else {  // Use zero weights for dummy bands.
+      end[1] = start[1] + itsFillNChan - 1;
+      weights(start, end) = float(0);
     }
-    s[1] = e[1] + 1;
+    start[1] = end[1] + 1;
   }
 }
 
-void MultiMSReader::getFullResolutionFlags() {
-  const RefRows& rowNrs = itsBuffer.getRowNrs();
-  // Resize if needed (probably when called for first time).
-  if (itsBuffer.GetCasacoreFullResFlags().empty()) {
-    int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
-    itsBuffer.ResizeFullResFlags(
-        itsNrBl, getInfo().nAveragedFullResolutionTimes(), norigchan);
-  }
-  Cube<bool>& flags = itsBuffer.GetCasacoreFullResFlags();
+void MultiMSReader::getFullResolutionFlags(DPBuffer& buffer) {
+  const RefRows& rowNrs = buffer.getRowNrs();
+  int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
+  buffer.ResizeFullResFlags(itsNrBl, getInfo().nAveragedFullResolutionTimes(),
+                            norigchan);
+  Cube<bool>& flags = buffer.GetCasacoreFullResFlags();
   // Return if no fullRes flags available.
   if (!itsHasFullResFlags) {
     flags = false;
@@ -453,11 +455,10 @@ void MultiMSReader::getFullResolutionFlags() {
   // Get the flags from all MSs and combine them.
   IPosition s(3, 0);
   IPosition e(flags.shape() - 1);
-  for (unsigned int i = 0; i < itsReaders.size(); ++i) {
-    if (itsReaders[i]) {
-      itsReaders[i]->getFullResFlags(rowNrs, itsBuffers[i]);
-      e[0] = s[0] + itsBuffers[i].GetCasacoreFullResFlags().shape()[0] - 1;
-      flags(s, e) = itsBuffers[i].GetCasacoreFullResFlags();
+  for (const std::shared_ptr<ResultStep>& result : itsResults) {
+    if (result) {
+      e[0] = s[0] + result->get().GetCasacoreFullResFlags().shape()[0] - 1;
+      flags(s, e) = result->get().GetCasacoreFullResFlags();
     } else {
       e[0] = s[0] + itsFillNChan - 1;
       flags(s, e) = true;

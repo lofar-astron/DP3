@@ -25,8 +25,8 @@ class ResultStep : public Step {
   common::Fields getProvidedFields() const override { return {}; }
 
   /// Keep the buffer.
-  bool process(const base::DPBuffer& buffer) override {
-    buffer_ = buffer;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override {
+    buffer_ = std::move(buffer);
     return true;
   }
 
@@ -38,10 +38,13 @@ class ResultStep : public Step {
   void show(std::ostream&) const override {}
 
   /// Get the result.
-  const base::DPBuffer& get() const { return buffer_; }
+  const base::DPBuffer& get() const { return *buffer_; }
+
+  /// Extract the result.
+  std::unique_ptr<base::DPBuffer> extract() { return std::move(buffer_); }
 
  private:
-  base::DPBuffer buffer_;
+  std::unique_ptr<base::DPBuffer> buffer_;
 };
 
 }  // namespace steps
