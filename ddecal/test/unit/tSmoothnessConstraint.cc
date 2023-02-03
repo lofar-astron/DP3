@@ -6,8 +6,10 @@
 
 #include "../../constraints/SmoothnessConstraint.h"
 
+#include <aocommon/xt/span.h>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
+#include <xtensor/xview.hpp>
 
 using dp3::ddecal::SmoothnessConstraint;
 
@@ -17,14 +19,11 @@ namespace {
 const double bandwidth_hz = 2.01e6;
 const double bandwidth_ref_frequency_hz = 0.0;
 const double solution_time = 0.0;
-const size_t n_antennas = 1;
-const size_t n_directions = 3;
-const size_t n_solution_polarizations = 2;
-const size_t n_channelblocks = 5;
+const size_t kNChannelBlocks = 5;
 
-SmoothnessConstraint makeConstraint() {
-  const std::vector<double> frequencies{1e6, 2e6, 3e6, 4e6, 5e6};
-  std::vector<double> weights{1, 1, 1, 1, 1};
+SmoothnessConstraint makeConstraint(size_t n_antennas, size_t n_directions) {
+  const std::vector<double> frequencies{1.0e6, 2.0e6, 3.0e6, 4.0e6, 5.0e6};
+  const std::vector<double> weights(kNChannelBlocks, 1.0);
   std::vector<double> antenna_distance_factors{1};
 
   SmoothnessConstraint c(bandwidth_hz, bandwidth_ref_frequency_hz);
@@ -40,20 +39,31 @@ SmoothnessConstraint makeConstraint() {
 BOOST_AUTO_TEST_SUITE(smoothness_constraint)
 
 BOOST_AUTO_TEST_CASE(simple_cases) {
+  const size_t kNAntennas = 1;
+  const size_t kNDirections = 3;
+  const size_t kNPolarizations = 2;
+  const size_t kNSolutionsPerChannelBlock =
+      kNAntennas * kNDirections * kNPolarizations;
+
   // The columns form the polarizations and directions.
   // Each polarization (2x) and each direction (3x) is individually smoothed
   // The first three columns test smoothing a delta function.
   // The fourth and fifth columns are constant, and when the input is constant,
   // the smoother should not modify it.
-  std::vector<std::vector<std::complex<double>>> solutions{
-      {0.0, 1.0, 0.0, 1.0, 0.0, 5.0},  // channel block 0
-      {0.0, 0.0, 0.0, 1.0, 0.0, 4.0},  // channel block 1
-      {1.0, 0.0, 0.0, 1.0, 0.0, 3.0},  // channel block 2
-      {0.0, 0.0, 0.0, 1.0, 0.0, 2.0},  // channel block 3
-      {0.0, 0.0, 10.0, 1.0, 0.0, 1.0}  // channel block 4
-  };
 
-  SmoothnessConstraint constraint = makeConstraint();
+  std::vector<std::complex<double>> solutions_vector{
+      0.0, 1.0, 0.0,  1.0, 0.0, 5.0,  // channel block 0
+      0.0, 0.0, 0.0,  1.0, 0.0, 4.0,  // channel block 1
+      1.0, 0.0, 0.0,  1.0, 0.0, 3.0,  // channel block 2
+      0.0, 0.0, 0.0,  1.0, 0.0, 2.0,  // channel block 3
+      0.0, 0.0, 10.0, 1.0, 0.0, 1.0   // channel block 4
+  };
+  const std::array<size_t, 4> shape{kNChannelBlocks, kNAntennas, kNDirections,
+                                    kNPolarizations};
+  dp3::ddecal::SolutionSpan solutions =
+      aocommon::xt::CreateSpan(solutions_vector, shape);
+
+  SmoothnessConstraint constraint = makeConstraint(kNAntennas, kNDirections);
   constraint.Apply(solutions, solution_time, nullptr);
 
   const std::vector<std::vector<std::complex<double>>> reference_solutions{
@@ -64,31 +74,45 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
       {0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753},
   };
 
-  for (size_t pol_dir = 0; pol_dir != n_solution_polarizations * n_directions;
-       ++pol_dir) {
-    for (size_t cb = 0; cb != n_channelblocks; ++cb) {
-      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].real(),
-                        reference_solutions[cb][pol_dir].real(), 1e-3);
-      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].imag(),
-                        reference_solutions[cb][pol_dir].imag(), 1e-3);
+  for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
+    for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
+      const std::complex<double>& solution =
+          solutions_vector[cb * kNSolutionsPerChannelBlock + i];
+      const std::complex<double>& reference_solution =
+          reference_solutions[cb][i];
+      BOOST_CHECK_CLOSE(solution.real(), reference_solution.real(), 1.0e-3);
+      BOOST_CHECK_CLOSE(solution.imag(), reference_solution.imag(), 1.0e-3);
     }
   }
 }
 
 BOOST_AUTO_TEST_CASE(flagged_channels) {
-  SmoothnessConstraint constraint = makeConstraint();
+  const size_t kNAntennas = 1;
+  const size_t kNDirections = 6;
+  // Using a single polarization makes XTensor ignore the last index value.
+  // Indexing using (ch, 0, 0, solution_index), where solution_index > 1,
+  // does not work anymore in that case.
+  const size_t kNPolarizations = 1;
+  const size_t kNSolutionsPerChannelBlock =
+      kNAntennas * kNDirections * kNPolarizations;
+
+  SmoothnessConstraint constraint = makeConstraint(kNAntennas, kNDirections);
   // Flagged channels should be ignored by the constraint, but still
   // provide a value in the output.
   // The first two channels are flagged:
   constraint.SetWeights({0.0, 0.0, 1.0, 1.0, 1.0});
 
-  std::vector<std::vector<std::complex<double>>> solutions{
-      {0.0, 1.0, 0.0, 1.0, 0.0, 5.0},  // channel block 0
-      {0.0, 0.0, 0.0, 1.0, 0.0, 4.0},  // channel block 1
-      {1.0, 0.0, 0.0, 1.0, 0.0, 3.0},  // channel block 2
-      {0.0, 0.0, 0.0, 1.0, 0.0, 2.0},  // channel block 3
-      {0.0, 0.0, 10.0, 1.0, 0.0, 1.0}  // channel block 4
+  std::vector<std::complex<double>> solutions_vector{
+      0.0, 1.0, 0.0,  1.0, 0.0, 5.0,  // channel block 0
+      0.0, 0.0, 0.0,  1.0, 0.0, 4.0,  // channel block 1
+      1.0, 0.0, 0.0,  1.0, 0.0, 3.0,  // channel block 2
+      0.0, 0.0, 0.0,  1.0, 0.0, 2.0,  // channel block 3
+      0.0, 0.0, 10.0, 1.0, 0.0, 1.0   // channel block 4
   };
+  const std::array<size_t, 4> shape{kNChannelBlocks, kNAntennas, kNDirections,
+                                    kNPolarizations};
+  dp3::ddecal::SolutionSpan solutions =
+      aocommon::xt::CreateSpan(solutions_vector, shape);
 
   constraint.Apply(solutions, solution_time, nullptr);
 
@@ -100,13 +124,14 @@ BOOST_AUTO_TEST_CASE(flagged_channels) {
       {0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753},
   };
 
-  for (size_t pol_dir = 0; pol_dir != n_solution_polarizations * n_directions;
-       ++pol_dir) {
-    for (size_t cb = 0; cb != n_channelblocks; ++cb) {
-      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].real(),
-                        reference_solutions[cb][pol_dir].real(), 1e-3);
-      BOOST_CHECK_CLOSE(solutions[cb][pol_dir].imag(),
-                        reference_solutions[cb][pol_dir].imag(), 1e-3);
+  for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
+    for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
+      const std::complex<double>& solution =
+          solutions_vector[cb * kNSolutionsPerChannelBlock + i];
+      const std::complex<double>& reference_solution =
+          reference_solutions[cb][i];
+      BOOST_CHECK_CLOSE(solution.real(), reference_solution.real(), 1.0e-3);
+      BOOST_CHECK_CLOSE(solution.imag(), reference_solution.imag(), 1.0e-3);
     }
   }
 }

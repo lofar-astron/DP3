@@ -33,17 +33,22 @@ void SmoothnessConstraint::SetDistanceFactors(
 }
 
 std::vector<Constraint::Result> SmoothnessConstraint::Apply(
-    std::vector<std::vector<dcomplex>>& solutions, [[maybe_unused]] double time,
+    SolutionSpan& solutions, [[maybe_unused]] double time,
     [[maybe_unused]] std::ostream* stat_stream) {
-  const size_t n_pol = solutions.front().size() / (NAntennas() * NSolutions());
+  assert(NChannelBlocks() == solutions.shape(0));
+  assert(NAntennas() == solutions.shape(1));
+  assert(NSolutions() == solutions.shape(2));
+  const size_t n_polarizations = solutions.shape(3);
+  const size_t n_smoothed = NAntennas() * NSolutions() * n_polarizations;
+  auto solutions_view =
+      xt::reshape_view(solutions, {NChannelBlocks(), n_smoothed});
 
-  const size_t n_smoothed = NAntennas() * NSolutions() * n_pol;
-  loop_->Run(0, n_smoothed, [&](size_t solution_index, size_t thread) {
-    size_t ant_index = solution_index / (NSolutions() * n_pol);
+  loop_->Run(0, n_smoothed, [&](size_t smoothing_index, size_t thread) {
+    size_t ant_index = smoothing_index / (NSolutions() * n_polarizations);
     for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
       // Flag channels where calibration yielded inf or nan
-      if (isfinite(solutions[ch][solution_index])) {
-        fit_data_[thread].data[ch] = solutions[ch][solution_index];
+      if (isfinite(solutions_view(ch, smoothing_index))) {
+        fit_data_[thread].data[ch] = solutions_view(ch, smoothing_index);
         fit_data_[thread].weight[ch] =
             weights_[ant_index * NChannelBlocks() + ch];
       } else {
@@ -57,7 +62,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
                                       antenna_distance_factors_[ant_index]);
 
     for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-      solutions[ch][solution_index] = fit_data_[thread].data[ch];
+      solutions_view(ch, smoothing_index) = fit_data_[thread].data[ch];
     }
   });
 

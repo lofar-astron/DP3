@@ -8,6 +8,7 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/parallelfor.h>
+#include <xtensor/xview.hpp>
 
 using aocommon::ParallelFor;
 
@@ -26,9 +27,9 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  std::vector<std::vector<DComplex>> next_solutions(NChannelBlocks());
-  for (std::vector<DComplex>& next_solution : next_solutions)
-    next_solution.resize(NDirections() * NAntennas() * 2);
+  SolutionTensor next_solutions_tensor(
+      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionSpan next_solutions = aocommon::xt::CreateSpan(next_solutions_tensor);
 
   ///
   /// Start iterating
@@ -64,8 +65,8 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
                std::vector<std::vector<Complex>>& vs = thread_vs[thread];
                InitializeModelMatrix(channel_block, g_times_cs, vs);
 
-               PerformIteration(channel_block, g_times_cs, vs,
-                                solutions[ch_block], next_solutions[ch_block]);
+               PerformIteration(ch_block, channel_block, g_times_cs, vs,
+                                solutions[ch_block], next_solutions);
              });
 
     Step(solutions, next_solutions);
@@ -103,10 +104,9 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 }
 
 void DiagonalSolver::PerformIteration(
-    const SolveData::ChannelBlockData& cb_data, std::vector<Matrix>& g_times_cs,
-    std::vector<std::vector<Complex>>& vs,
-    const std::vector<DComplex>& solutions,
-    std::vector<DComplex>& next_solutions) {
+    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    std::vector<Matrix>& g_times_cs, std::vector<std::vector<Complex>>& vs,
+    const std::vector<DComplex>& solutions, SolutionSpan& next_solutions) {
   for (size_t ant_and_pol = 0; ant_and_pol != NAntennas() * 2; ++ant_and_pol) {
     g_times_cs[ant_and_pol].SetZero();
     vs[ant_and_pol].assign(vs[ant_and_pol].size(), 0);
@@ -135,13 +135,13 @@ void DiagonalSolver::PerformIteration(
   }
 
   // The following loop fills g_times_cs (for all antennas)
-  for (size_t d = 0; d != NDirections(); ++d) {
+  for (size_t s = 0; s != NSolutions(); ++s) {
     ant_positions.assign(NAntennas() * 2, 0);
 
     for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
       size_t antenna1 = cb_data.Antenna1Index(vis_index);
       size_t antenna2 = cb_data.Antenna2Index(vis_index);
-      const aocommon::MC2x2F predicted = cb_data.ModelVisibility(d, vis_index);
+      const aocommon::MC2x2F predicted = cb_data.ModelVisibility(s, vis_index);
 
       for (size_t p = 0; p != 4; ++p) {
         const size_t p1 = p / 2;
@@ -151,12 +151,12 @@ void DiagonalSolver::PerformIteration(
         Matrix& g_times_c2 = g_times_cs[antenna2 * 2 + p2];
         size_t& a1pos = ant_positions[antenna1 * 2 + p1];
         size_t& a2pos = ant_positions[antenna2 * 2 + p2];
-        const size_t sol_index1 = (antenna1 * NDirections() + d) * 2 + p1;
-        const size_t sol_index2 = (antenna2 * NDirections() + d) * 2 + p2;
+        const size_t sol_index1 = (antenna1 * NSolutions() + s) * 2 + p1;
+        const size_t sol_index2 = (antenna2 * NSolutions() + s) * 2 + p2;
 
-        g_times_c1(a1pos, d) =
+        g_times_c1(a1pos, s) =
             std::conj(Complex(solutions[sol_index2])) * predicted[p];
-        g_times_c2(a2pos, d) = std::conj(Complex(solutions[sol_index1]) *
+        g_times_c2(a2pos, s) = std::conj(Complex(solutions[sol_index1]) *
                                          predicted[p]);  // using a* b* = (ab)*
         ++a1pos;
         ++a2pos;
@@ -166,10 +166,10 @@ void DiagonalSolver::PerformIteration(
 
   // The matrices have been filled; compute the linear solution
   // for each antenna.
-  const size_t n = NDirections();
+  const size_t n = NSolutions();
   const size_t nrhs = 1;
 
-  std::vector<Complex> x0(NDirections());
+  std::vector<Complex> x0(NSolutions());
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (size_t pol = 0; pol != 2; ++pol) {
       std::vector<Complex>& x = vs[ant * 2 + pol];
@@ -178,18 +178,17 @@ void DiagonalSolver::PerformIteration(
       // many reallocations
       std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
       // solve x^H in [g C] x^H  = v
-      for (size_t d = 0; d != NDirections(); ++d) {
-        x0[d] = solutions[(ant * NDirections() + d) * 2 + pol];
+      for (size_t s = 0; s != NSolutions(); ++s) {
+        x0[s] = solutions[(ant * NSolutions() + s) * 2 + pol];
       }
       bool success =
           solver->Solve(g_times_cs[ant * 2 + pol].data(), x.data(), x0.data());
       if (success && x[0] != Complex(0.0, 0.0)) {
-        for (size_t d = 0; d != NDirections(); ++d)
-          next_solutions[(ant * NDirections() + d) * 2 + pol] = x[d];
+        for (size_t s = 0; s != NSolutions(); ++s)
+          next_solutions(ch_block, ant, s, pol) = x[s];
       } else {
-        for (size_t d = 0; d != NDirections(); ++d)
-          next_solutions[(ant * NDirections() + d) * 2 + pol] =
-              std::numeric_limits<double>::quiet_NaN();
+        xt::view(next_solutions, ch_block, ant, xt::all(), pol) =
+            std::numeric_limits<double>::quiet_NaN();
       }
     }
   }
@@ -223,7 +222,7 @@ void DiagonalSolver::InitializeModelMatrix(
     // Model matrix [(2N) x D] and visibility vector [2N]
     const size_t n_visibilities = channel_block_data.NAntennaVisibilities(ant);
     const size_t m = n_visibilities * 2;
-    const size_t n = NDirections();
+    const size_t n = NSolutions();
     for (size_t p = 0; p != 2; ++p) {
       g_times_cs[2 * ant + p].Reset(m, n);
       Reset(vs[2 * ant + p], std::max(m, n));

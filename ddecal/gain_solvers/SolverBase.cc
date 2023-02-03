@@ -10,6 +10,8 @@
 #include <iostream>
 #include <numeric>
 
+#include <xtensor/xview.hpp>
+
 using aocommon::ParallelFor;
 
 namespace {
@@ -72,26 +74,35 @@ bool SolverBase::DetectStall(size_t iteration,
 }
 
 void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
-                      std::vector<std::vector<DComplex>>& nextSolutions) const {
+                      SolutionSpan& nextSolutions) const {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
   ParallelFor<size_t> loop(n_threads_);
   loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
-    for (size_t i = 0; i != nextSolutions[chBlock].size(); ++i) {
-      if (phase_only_) {
-        // In phase only mode, a step is made along the complex circle,
-        // towards the shortest direction.
-        double phaseFrom = std::arg(solutions[chBlock][i]);
-        double distance = std::arg(nextSolutions[chBlock][i]) - phaseFrom;
-        if (distance > M_PI)
-          distance = distance - 2.0 * M_PI;
-        else if (distance < -M_PI)
-          distance = distance + 2.0 * M_PI;
-        nextSolutions[chBlock][i] =
-            std::polar(1.0, phaseFrom + step_size_ * distance);
-      } else {
-        nextSolutions[chBlock][i] = solutions[chBlock][i] * (1.0 - step_size_) +
-                                    nextSolutions[chBlock][i] * step_size_;
+    const size_t n_antennas = nextSolutions.shape(1);
+    const size_t n_solutions = nextSolutions.shape(2);
+    const size_t n_polarizations = nextSolutions.shape(3);
+    for (size_t a = 0; a != n_antennas; ++a) {
+      for (size_t s = 0; s != n_solutions_; ++s) {
+        for (size_t p = 0; p != n_polarizations; ++p) {
+          const std::complex<double>& solution =
+              solutions[chBlock][(a * n_solutions + s) * n_polarizations + p];
+          std::complex<double>& next_solution = nextSolutions(chBlock, a, s, p);
+          if (phase_only_) {
+            // In phase only mode, a step is made along the complex circle,
+            // towards the shortest direction.
+            double phaseFrom = std::arg(solution);
+            double distance = std::arg(next_solution) - phaseFrom;
+            if (distance > M_PI)
+              distance = distance - 2.0 * M_PI;
+            else if (distance < -M_PI)
+              distance = distance + 2.0 * M_PI;
+            next_solution = std::polar(1.0, phaseFrom + step_size_ * distance);
+          } else {
+            next_solution =
+                solution * (1.0 - step_size_) + next_solution * step_size_;
+          }
+        }
       }
     }
   });
@@ -103,10 +114,11 @@ void SolverBase::PrepareConstraints() {
   }
 }
 
-bool SolverBase::ApplyConstraints(
-    size_t iteration, double time, bool has_previously_converged,
-    SolveResult& result, std::vector<std::vector<DComplex>>& next_solutions,
-    std::ostream* stat_stream) const {
+bool SolverBase::ApplyConstraints(size_t iteration, double time,
+                                  bool has_previously_converged,
+                                  SolveResult& result,
+                                  SolutionSpan& next_solutions,
+                                  std::ostream* stat_stream) const {
   bool constraints_satisfied = true;
 
   result.results.resize(constraints_.size());
@@ -130,15 +142,22 @@ bool SolverBase::ApplyConstraints(
   return constraints_satisfied;
 }
 
-bool SolverBase::AssignSolutions(
-    std::vector<std::vector<DComplex>>& solutions,
-    const std::vector<std::vector<DComplex>>& newSolutions,
-    bool useConstraintAccuracy, double& avgAbsDiff,
-    std::vector<double>& stepMagnitudes) const {
+bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
+                                 SolutionSpan& newSolutions,
+                                 bool useConstraintAccuracy, double& avgAbsDiff,
+                                 std::vector<double>& stepMagnitudes) const {
+  assert(newSolutions.shape(0) == NChannelBlocks());
+  assert(newSolutions.shape(1) == NAntennas());
+  assert(newSolutions.shape(2) == NSolutions());
+  assert(newSolutions.shape(3) == NSolutionPolarizations());
   avgAbsDiff = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
   const size_t n_solution_pols = NSolutionPolarizations();
   size_t n = 0;
+  const auto new_solutions_view = xt::reshape_view(
+      newSolutions,
+      {newSolutions.shape(0), newSolutions.shape(1) * newSolutions.shape(2),
+       newSolutions.shape(3)});
   for (size_t chBlock = 0; chBlock < n_channel_blocks_; ++chBlock) {
     for (size_t i = 0; i != solutions[chBlock].size(); i += n_solution_pols) {
       // A normalized squared difference is calculated between the solutions of
@@ -150,55 +169,49 @@ bool SolverBase::AssignSolutions(
       // iterations as the scalar version.
       if (n_solution_pols == 1) {
         if (solutions[chBlock][i] != 0.0) {
-          double a =
-              std::abs((newSolutions[chBlock][i] - solutions[chBlock][i]) /
-                       solutions[chBlock][i]);
+          const double a = std::abs(
+              (new_solutions_view(chBlock, i, 0) - solutions[chBlock][i]) /
+              solutions[chBlock][i]);
           if (std::isfinite(a)) {
             avgAbsDiff += a;
             ++n;
           }
         }
-        solutions[chBlock][i] = newSolutions[chBlock][i];
       } else if (n_solution_pols == 2) {
-        DComplex s[2] = {solutions[chBlock][i], solutions[chBlock][i + 1]};
-        DComplex sInv[2] = {1.0 / s[0], 1.0 / s[1]};
+        const DComplex s[2] = {solutions[chBlock][i],
+                               solutions[chBlock][i + 1]};
+        const DComplex sInv[2] = {1.0 / s[0], 1.0 / s[1]};
         if (IsFinite(sInv[0]) && IsFinite(sInv[1])) {
-          DComplex ns[2] = {newSolutions[chBlock][i],
-                            newSolutions[chBlock][i + 1]};
+          DComplex ns[2] = {new_solutions_view(chBlock, i / 2, 0),
+                            new_solutions_view(chBlock, i / 2, 1)};
           ns[0] = (ns[0] - s[0]) * sInv[0];
           ns[1] = (ns[1] - s[1]) * sInv[1];
-          double sumabs = 0.0;
-          for (size_t p = 0; p != n_solution_pols; ++p) {
-            sumabs += std::abs(ns[p]);
-          }
+          const double sumabs = std::abs(ns[0]) + std::abs(ns[1]);
           if (std::isfinite(sumabs)) {
             avgAbsDiff += sumabs;
             n += 2;
           }
         }
-        for (size_t p = 0; p != n_solution_pols; ++p) {
-          solutions[chBlock][i + p] = newSolutions[chBlock][i + p];
-        }
-      } else {  // NPol == 4
-        aocommon::MC2x2 s(&solutions[chBlock][i]), sInv(s);
+      } else {
+        assert(n_solution_pols == 4);
+        const aocommon::MC2x2 s(&solutions[chBlock][i]);
+        aocommon::MC2x2 sInv(s);
         if (sInv.Invert()) {
-          aocommon::MC2x2 ns(&newSolutions[chBlock][i]);
+          aocommon::MC2x2 ns(&new_solutions_view(chBlock, i / 4, 0));
           ns -= s;
           ns *= sInv;
-          double sumabs = 0.0;
-          for (size_t p = 0; p != n_solution_pols; ++p) {
-            sumabs += std::abs(ns[p]);
-          }
+          const double sumabs = std::abs(ns[0]) + std::abs(ns[1]) +
+                                std::abs(ns[2]) + std::abs(ns[3]);
           if (std::isfinite(sumabs)) {
             avgAbsDiff += sumabs;
             n += 4;
           }
         }
-        for (size_t p = 0; p != n_solution_pols; ++p) {
-          solutions[chBlock][i + p] = newSolutions[chBlock][i + p];
-        }
       }
     }
+
+    xt::adapt(solutions[chBlock]) =
+        xt::flatten(xt::view(newSolutions, chBlock));
   }
 
   // The stepsize is taken out, so that a small stepsize won't cause

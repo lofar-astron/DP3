@@ -80,8 +80,10 @@ void RotationAndDiagonalConstraint::SetDoRotationReference(
 }
 
 std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
-    std::vector<std::vector<std::complex<double>>>& solutions, double,
+    SolutionSpan& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
+  assert(solutions.shape(2) == 1);  // 1 direction.
+  assert(solutions.shape(3) == 4);  // 2x2 full jones solutions.
   double angle0 = std::nan("");
   for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
     // First iterate over all antennas to find mean amplitudes, needed for
@@ -89,7 +91,7 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     double amean = 0.0;
     double bmean = 0.0;
     for (size_t ant = 0; ant < NAntennas(); ++ant) {
-      std::complex<double>* data = &(solutions[ch][4 * ant]);
+      std::complex<double>* data = &(solutions(ch, ant, 0, 0));
 
       // Skip this antenna if has no valid data.
       if (!dataIsValid(data, 4)) {
@@ -125,7 +127,7 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
     // Now iterate again to do the actual constraining
     bool diverged = false;
     for (size_t ant = 0; ant < NAntennas(); ++ant) {
-      std::complex<double>* data = &(solutions[ch][4 * ant]);
+      std::complex<double>* data = &(solutions(ch, ant, 0, 0));
 
       // Skip this antenna if has no valid data.
       if (!dataIsValid(data, 4)) {

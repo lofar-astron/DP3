@@ -38,9 +38,8 @@ class ScreenConstraint final : public Constraint {
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,
                   const std::vector<double>& frequencies) override;
-  std::vector<Constraint::Result> Apply(
-      std::vector<std::vector<dcomplex>>& solutions, double time,
-      std::ostream* statStream) override;
+  std::vector<Constraint::Result> Apply(SolutionSpan& solutions, double time,
+                                        std::ostream* statStream) override;
 
   void SetCoreAntennas(const std::set<size_t>& core_antennas);
   void InitPiercePoints(const std::vector<std::array<double, 3>>& antenna_pos,
@@ -54,9 +53,8 @@ class ScreenConstraint final : public Constraint {
  private:
   void SetTime(double time);
   void CalculatePiercepoints();
-  void GetPpValue(const std::vector<std::vector<std::complex<double>>>&,
-                  size_t solution_index, size_t direction_index,
-                  double& avg_tec, double& error) const;
+  void GetPpValue(const SolutionSpan&, size_t antenna_index,
+                  size_t direction_index, double& avg_tec, double& error) const;
 
   std::vector<double> frequencies_;
   std::vector<double> previous_solution_;

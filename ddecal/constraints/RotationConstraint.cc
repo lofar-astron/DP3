@@ -44,12 +44,14 @@ double RotationConstraint::GetRotation(std::complex<double>* data) {
 }
 
 std::vector<Constraint::Result> RotationConstraint::Apply(
-    std::vector<std::vector<dcomplex>>& solutions, double,
-    std::ostream* /*statStream*/) {
+    SolutionSpan& solutions, double,
+    [[maybe_unused]] std::ostream* statStream) {
+  assert(solutions.shape(2) == 1);  // 1 direction
+  assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
   for (unsigned int ch = 0; ch < NChannelBlocks(); ++ch) {
     for (unsigned int ant = 0; ant < NAntennas(); ++ant) {
       // Compute rotation
-      dcomplex* data = &(solutions[ch][4 * ant]);
+      dcomplex* data = &(solutions(ch, ant, 0, 0));
       double angle = GetRotation(data);
       _res[0].vals[ant * NChannelBlocks() + ch] = angle;  // TODO directions!
 

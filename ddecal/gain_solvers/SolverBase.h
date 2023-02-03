@@ -217,7 +217,7 @@ class SolverBase {
 
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
-            std::vector<std::vector<DComplex>>& next_solutions) const;
+            SolutionSpan& next_solutions) const;
 
   bool DetectStall(size_t iteration,
                    const std::vector<double>& step_magnitudes) const;
@@ -235,7 +235,7 @@ class SolverBase {
 
   bool ApplyConstraints(size_t iteration, double time,
                         bool has_previously_converged, SolveResult& result,
-                        std::vector<std::vector<DComplex>>& next_solutions,
+                        SolutionSpan& next_solutions,
                         std::ostream* stat_stream) const;
 
   /**
@@ -244,7 +244,7 @@ class SolverBase {
    * magnitude to step_magnitudes
    */
   bool AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
-                       const std::vector<std::vector<DComplex>>& new_solutions,
+                       SolutionSpan& new_solutions,
                        bool use_constraint_accuracy, double& avg_abs_diff,
                        std::vector<double>& step_magnitudes) const;
 

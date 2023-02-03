@@ -23,6 +23,25 @@ class LBFGSSolver final : public SolverBase {
         minibatches_(minibatches),
         mode_(mode){};
 
+  /// Split real and imaginary parts and combine them into a single tensor.
+  /// This internal function is static, since it has unit tests.
+  /// @param solutions A vector with complex double values.
+  /// @return An XTensor with double values, which has twice the length of
+  ///         the solutions argument. The first and second halves of the
+  ///         tensor will contain the real and imaginary parts of the solutions,
+  ///         respectively.
+  static xt::xtensor<double, 1> SplitSolutions(
+      const std::vector<DComplex>& solutions);
+
+  /// Merge the real and imaginary part of d_storage into next_solutions.
+  /// This internal function is static, since it has unit tests.
+  /// @param next_solutions [out] Target for writing the solutions.
+  /// @param ch_block Channel block index for next_solutions.
+  /// @param d_storage An 1D xtensor. The first and second halves contain the
+  ///                  real and imaginary parts of the solutions, respectively.
+  static void MergeSolutions(SolutionSpan& next_solutions, size_t ch_block,
+                             const xt::xtensor<double, 1>& d_storage);
+
   SolveResult Solve(const SolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;

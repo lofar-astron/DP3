@@ -24,10 +24,11 @@ class IterativeScalarSolver final : public SolverBase {
   bool SupportsDdSolutionIntervals() const override { return true; }
 
  private:
-  void PerformIteration(const SolveData::ChannelBlockData& cb_data,
+  void PerformIteration(size_t ch_block,
+                        const SolveData::ChannelBlockData& cb_data,
                         std::vector<aocommon::MC2x2F>& v_residual,
                         const std::vector<DComplex>& solutions,
-                        std::vector<DComplex>& next_solutions);
+                        SolutionSpan& next_solutions);
 
   template <bool Add>
   void AddOrSubtractDirection(const SolveData::ChannelBlockData& cb_data,
@@ -35,10 +36,11 @@ class IterativeScalarSolver final : public SolverBase {
                               size_t direction,
                               const std::vector<DComplex>& solutions);
 
-  void SolveDirection(const SolveData::ChannelBlockData& cb_data,
+  void SolveDirection(size_t ch_block,
+                      const SolveData::ChannelBlockData& cb_data,
                       const std::vector<aocommon::MC2x2F>& v_residual,
                       size_t direction, const std::vector<DComplex>& solutions,
-                      std::vector<DComplex>& next_solutions);
+                      SolutionSpan& next_solutions);
 };
 
 }  // namespace ddecal
