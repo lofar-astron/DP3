@@ -12,6 +12,8 @@
 
 #include "../../../common/ParameterSet.h"
 
+#include "../../ResultStep.h"
+
 using dp3::steps::MSReader;
 
 BOOST_AUTO_TEST_SUITE(msreader)
@@ -48,21 +50,32 @@ BOOST_AUTO_TEST_CASE(fill_full_res_flags_available_in_ms) {
   const std::string ms_name = "tNDPPP-generic.MS";
   const casacore::MeasurementSet ms(ms_name);
   BOOST_REQUIRE(ms.tableDesc().isColumn("LOFAR_FULL_RES_FLAG"));
+  const dp3::common::ParameterSet parset;
 
-  dp3::common::ParameterSet parset;
-  MSReader reader(ms, parset, "");
+  // Read the LOFAR_FULL_RES_FLAG column using the process() function.
+  std::unique_ptr<dp3::base::DPBuffer> expected_buffer;
+  {
+    MSReader reader(ms, parset, "");
+    reader.setFieldsToRead(
+        dp3::common::Fields(dp3::common::Fields::Single::kFullResFlags));
+    auto result = std::make_shared<dp3::steps::ResultStep>();
+    reader.setNextStep(result);
+    reader.process(std::make_unique<dp3::base::DPBuffer>());
+    expected_buffer = result->extract();
+    BOOST_REQUIRE(expected_buffer);
+  }
 
+  // Read the LOFAR_FULL_RES_FLAG column using FillFullResFlags.
   dp3::base::DPBuffer buffer;
-  reader.FillFullResFlags(buffer);
-
-  // Read the content of the LOFAR_FULL_RES_FLAG column in a new buffer.
-  dp3::base::DPBuffer expected_buffer;
-  reader.getFullResFlags(buffer.getRowNrs(), expected_buffer);
+  buffer.setRowNrs(expected_buffer->getRowNrs());
+  {
+    MSReader reader(ms, parset, "");
+    reader.FillFullResFlags(buffer);
+  }
 
   // Compare the flags obtained with the FillFullResFlags function with the
   // flags read from the MS.
-  BOOST_CHECK(allEQ(buffer.GetCasacoreFullResFlags(),
-                    expected_buffer.GetCasacoreFullResFlags()));
+  BOOST_CHECK(buffer.GetFullResFlags() == expected_buffer->GetFullResFlags());
 }
 
 BOOST_AUTO_TEST_CASE(fill_full_res_flags_not_available_in_ms) {

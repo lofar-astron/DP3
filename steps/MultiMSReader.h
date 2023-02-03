@@ -1,31 +1,28 @@
-// MultiMSReader.h: DPPP step reading from multiple MSs
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// MultiMSReader.h: DP3 step reading from multiple MSs
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step reading from multiple MSs
+/// @brief DP3 step reading from multiple MSs
 /// @author Ger van Diepen
 
-#ifndef DPPP_MULTIMSREADER_H
-#define DPPP_MULTIMSREADER_H
-
-#include "MSReader.h"
-
-#include <dp3/base/DPBuffer.h>
-#include "../base/UVWCalculator.h"
-#include "../base/FlagCounter.h"
+#ifndef DP3_STEPS_MULTIMSREADER_H_
+#define DP3_STEPS_MULTIMSREADER_H_
 
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
 
-namespace dp3 {
-namespace common {
-class ParameterSet;
-}
+#include "../base/UVWCalculator.h"
+#include "../base/FlagCounter.h"
+#include "../common/ParameterSet.h"
 
+#include "MSReader.h"
+#include "ResultStep.h"
+
+namespace dp3 {
 namespace steps {
-/// @brief DPPP step reading from multiple MSs
+/// @brief DP3 step reading from multiple MSs
 
 /// This class is a InputStep step reading the data from a MeasurementSet.
 /// At the beginning it finds out the shape of the data; i.e., the
@@ -119,7 +116,7 @@ class MultiMSReader final : public MSReader {
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -152,19 +149,19 @@ class MultiMSReader final : public MSReader {
   /// Fill the band info where some MSs are missing.
   void fillBands();
 
-  /// Reads the weights into 'itsBuffer'
-  void getWeights();
+  /// Reads the weights into 'buffer'
+  void getWeights(base::DPBuffer& buffer);
 
-  /// Reads the FullRes flags (LOFAR_FULL_RES_FLAG) into 'itsBuffer'.
+  /// Reads the FullRes flags (LOFAR_FULL_RES_FLAG) into 'buffer'.
   /// Sets the flags to false if they are undefined.
-  void getFullResolutionFlags();
+  void getFullResolutionFlags(base::DPBuffer& buffer);
 
   bool itsOrderMS;  ///< sort multi MS in order of freq?
   int itsFirst;     ///< first valid MSReader (<0 = none)
   int itsNMissing;  ///< nr of missing MSs
   std::vector<string> itsMSNames;
   std::vector<std::shared_ptr<MSReader>> itsReaders;
-  std::vector<base::DPBuffer> itsBuffers;
+  std::vector<std::shared_ptr<ResultStep>> itsResults;
   unsigned int itsFillNChan;  ///< nr of chans for missing MSs
   base::FlagCounter itsFlagCounter;
 };
