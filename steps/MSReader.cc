@@ -8,6 +8,9 @@
 
 #include <iostream>
 
+#include <xtensor/xadapt.hpp>
+#include <xtensor/xview.hpp>
+
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
 #include <EveryBeam/telescope/phasedarray.h>
@@ -285,8 +288,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Data()) {
     buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
   }
-  if (itsUseFlags &&
-      (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags())) {
+  if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
     buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
   }
   {
@@ -354,41 +356,45 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
         buffer->setExposure(
             ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
         // Get data and flags from the MS.
+        const casacore::IPosition casa_shape(3, itsNrCorr, itsNrChan, itsNrBl);
         if (getFieldsToRead().Data()) {
           ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
                                                  itsDataColName);
+          casacore::Cube<casacore::Complex> casa_data(
+              casa_shape, buffer->GetData().data(), casacore::SHARE);
           if (itsUseAllChan) {
-            dataCol.getColumn(buffer->GetCasacoreData());
+            dataCol.getColumn(casa_data);
           } else {
-            dataCol.getColumn(itsColSlicer, buffer->GetCasacoreData());
+            dataCol.getColumn(itsColSlicer, casa_data);
           }
         }
         if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
           if (itsUseFlags) {
             ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
+            casacore::Cube<bool> casa_flags(
+                casa_shape, buffer->GetFlags().data(), casacore::SHARE);
+
             if (itsUseAllChan) {
-              flagCol.getColumn(buffer->GetCasacoreFlags());
+              flagCol.getColumn(casa_flags);
             } else {
-              flagCol.getColumn(itsColSlicer, buffer->GetCasacoreFlags());
+              flagCol.getColumn(itsColSlicer, casa_flags);
             }
             // Set flags if FLAG_ROW is set.
             ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
             for (unsigned int i = 0; i < itsIter.table().nrow(); ++i) {
               if (flagrowCol(i)) {
-                buffer->GetCasacoreFlags()(
-                    IPosition(3, 0, 0, i),
-                    IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) = true;
+                casa_flags(IPosition(3, 0, 0, i),
+                           IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) =
+                    true;
               }
             }
 
           } else {
             // Do not use FLAG from the MS.
-            buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
             buffer->GetFlags().fill(false);
           }
           // Flag invalid data (NaN, infinite).
-          flagInfNaN(buffer->GetCasacoreData(), buffer->GetCasacoreFlags(),
-                     itsFlagCounter);
+          flagInfNaN(*buffer, itsFlagCounter);
         }
       }
       itsLastMSTime = itsNextTime;
@@ -401,7 +407,6 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
             "#baselines is not the same for all time slots in the MS");
     }
   }  // end of scope stops the timer.
-  // Let the next step in the pipeline process this time slot.
 
   if (getFieldsToRead().Uvw())
     getUVW(buffer->getRowNrs(), buffer->getTime(), *buffer);
@@ -414,13 +419,11 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   return true;
 }
 
-void MSReader::flagInfNaN(const casacore::Cube<casacore::Complex>& dataCube,
-                          casacore::Cube<bool>& flagsCube,
-                          FlagCounter& flagCounter) {
-  int ncorr = dataCube.shape()[0];
-  const casacore::Complex* dataPtr = dataCube.data();
-  bool* flagPtr = flagsCube.data();
-  for (unsigned int i = 0; i < dataCube.size();) {
+void MSReader::flagInfNaN(DPBuffer& buffer, FlagCounter& flagCounter) {
+  const int ncorr = buffer.GetData().shape(2);
+  const std::complex<float>* dataPtr = buffer.GetData().data();
+  bool* flagPtr = buffer.GetFlags().data();
+  for (unsigned int i = 0; i < buffer.GetData().size(); i += ncorr) {
     for (unsigned int j = i; j < i + ncorr; ++j) {
       bool flag = (!std::isfinite(dataPtr[j].real()) ||
                    !std::isfinite(dataPtr[j].imag()));
@@ -435,7 +438,6 @@ void MSReader::flagInfNaN(const casacore::Cube<casacore::Complex>& dataCube,
         break;
       }
     }
-    i += ncorr;
   }
 }
 
@@ -738,41 +740,36 @@ void MSReader::skipFirstTimes() {
   }
 }
 
-void MSReader::calcUVW(double time, DPBuffer& buf) {
-  buf.ResizeUvw(itsNrBl);
-  Matrix<double>& uvws = buf.GetCasacoreUvw();
-  const std::vector<int>& ant1 = getInfo().getAnt1();
-  const std::vector<int>& ant2 = getInfo().getAnt2();
-  double* uvw_ptr = uvws.data();
-  for (unsigned int i = 0; i < itsNrBl; ++i) {
-    const std::array<double, 3> uvw =
-        itsUVWCalc->getUVW(ant1[i], ant2[i], time);
-    std::copy_n(uvw.data(), uvw.size(), uvw_ptr);
-    uvw_ptr += uvw.size();
-  }
-}
-
 void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
-  // Calculate UVWs if empty rownrs (i.e., missing data).
+  buf.ResizeUvw(itsNrBl);
   if (rowNrs.rowVector().empty()) {
-    calcUVW(time, buf);
-  } else {
+    // Calculate UVWs if empty rownrs (i.e., missing data).
+    const std::vector<int>& ant1 = getInfo().getAnt1();
+    const std::vector<int>& ant2 = getInfo().getAnt2();
+    for (unsigned int i = 0; i < itsNrBl; ++i) {
+      xt::view(buf.GetUvw(), i, xt::all()) =
+          xt::adapt(itsUVWCalc->getUVW(ant1[i], ant2[i], time));
+    }
+  } else {  // Load UVW from MS
     ArrayColumn<double> dataCol(itsMS, "UVW");
-    dataCol.getColumnCells(rowNrs, buf.GetCasacoreUvw());
+    const casacore::IPosition shape(2, 3, itsNrBl);
+    casacore::Matrix<double> casa_uvw(shape, buf.GetUvw().data(),
+                                      casacore::SHARE);
+    dataCol.getColumnCells(rowNrs, casa_uvw);
   }
 }
 
 void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Resize if needed (probably when called for first time).
-  if (buf.GetCasacoreWeights().empty()) {
-    buf.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
-  }
-  Cube<float>& weights = buf.GetCasacoreWeights();
+  buf.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
+  aocommon::xt::Span<float, 3>& weights = buf.GetWeights();
+  const casacore::IPosition shape(3, itsNrCorr, itsNrChan, itsNrBl);
+  casacore::Cube<float> casa_weights(shape, weights.data(), casacore::SHARE);
   if (rowNrs.rowVector().empty()) {
     // rowNrs can be empty if a time slot was inserted.
-    weights = 0;
+    weights.fill(0.0f);
   } else {
     // Get weights for entire spectrum if present.
     if (itsHasWeightSpectrum) {
@@ -780,10 +777,10 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
       // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
       // Hence work around it.
       if (itsUseAllChan) {
-        wsCol.getColumnCells(rowNrs, weights);
+        wsCol.getColumnCells(rowNrs, casa_weights);
       } else {
         Cube<float> w = wsCol.getColumnCells(rowNrs);
-        weights = w(itsArrSlicer);
+        casa_weights = w(itsArrSlicer);
       }
     } else {
       // No spectrum present; get global weights and assign to each channel.
@@ -808,32 +805,33 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
     }
     if (itsAutoWeight) {
       // Adapt weights using autocorrelations.
-      autoWeight(weights, buf);
+      autoWeight(buf);
     }
   }
 }
 
-void MSReader::autoWeight(Cube<float>& weights, const DPBuffer& buf) {
+void MSReader::autoWeight(DPBuffer& buf) {
   const double* chanWidths = getInfo().chanWidths().data();
-  unsigned int npol = weights.shape()[0];
-  unsigned int nchan = weights.shape()[1];
-  unsigned int nbl = weights.shape()[2];
+  aocommon::xt::Span<float, 3>& weights = buf.GetWeights();
+  const unsigned int nbl = weights.shape(0);
+  const unsigned int nchan = weights.shape(1);
+  const unsigned int npol = weights.shape(2);
   // Get the autocorrelations indices.
   const std::vector<int>& autoInx = getInfo().getAutoCorrIndex();
   // Calculate the weight for each cross-correlation data point.
   const std::vector<int>& ant1 = getInfo().getAnt1();
   const std::vector<int>& ant2 = getInfo().getAnt2();
-  const casacore::Complex* data = buf.GetData().data();
-  float* weight = weights.data();
-  for (unsigned int i = 0; i < nbl; ++i) {
+  const aocommon::xt::Span<std::complex<float>, 3>& data = buf.GetData();
+  for (unsigned int bl = 0; bl < nbl; ++bl) {
     // Can only be done if both autocorrelations are present.
-    if (autoInx[ant1[i]] >= 0 && autoInx[ant2[i]] >= 0) {
-      // Get offset of both autocorrelations in data array.
-      const casacore::Complex* auto1 = data + autoInx[ant1[i]] * nchan * npol;
-      const casacore::Complex* auto2 = data + autoInx[ant2[i]] * nchan * npol;
-      for (unsigned int j = 0; j < nchan; ++j) {
+    if (autoInx[ant1[bl]] >= 0 && autoInx[ant2[bl]] >= 0) {
+      for (unsigned int chan = 0; chan < nchan; ++chan) {
+        // Get offset of both autocorrelations in data array.
+        const std::complex<float>* auto1 = &data(autoInx[ant1[bl]], chan, 0);
+        const std::complex<float>* auto2 = &data(autoInx[ant2[bl]], chan, 0);
+        float* weight = &weights(bl, chan, 0);
         if (auto1[0].real() != 0 && auto2[0].real() != 0) {
-          double w = chanWidths[j] * itsTimeInterval;
+          double w = chanWidths[chan] * itsTimeInterval;
           weight[0] *= w / (auto1[0].real() * auto2[0].real());  // XX
           if (npol == 4) {
             if (auto1[3].real() != 0 && auto2[3].real() != 0) {
@@ -847,37 +845,32 @@ void MSReader::autoWeight(Cube<float>& weights, const DPBuffer& buf) {
             }
           }
         }
-        // Set pointers to next channel.
-        weight += npol;
-        auto1 += npol;
-        auto2 += npol;
       }
-    } else {
-      // No autocorrelations for this baseline, so skip it.
-      weight += nchan * npol;
     }
   }
 }
 
 void MSReader::FillFullResFlags(DPBuffer& buffer) {
   bool column_found = getFullResFlags(buffer.getRowNrs(), buffer);
-  Cube<bool>& full_resolution_flags = buffer.GetCasacoreFullResFlags();
+  aocommon::xt::Span<bool, 3>& full_resolution_flags = buffer.GetFullResFlags();
   if (!column_found) {
     // No fullRes flags in input; form them from the flags in the buffer.
     // Only use the XX polarization for the flags; no averaging done, thus
     // navgtime=1. (If any averaging was done, the flags would be in the
     // buffer).
-    IPosition flags_shape(buffer.GetCasacoreFlags().shape());
-    // The flags have shape (itsNrCorr, itsNrChan, itsNrBl);
+    const std::array<size_t, 3>& flags_shape = buffer.GetFlags().shape();
+    // The flags have shape (itsNrBl, itsNrChan, itsNrCorr);
     // The full res flags initialized in the getFullResFlags function (when the
-    // column is not found) have shape (itsNrChan, 1, itsNrBl) If the shapes do
-    // not match, there is an error
-    if (full_resolution_flags.shape() !=
-        IPosition(3, flags_shape[1], 1, flags_shape[2]))
+    // column is not found) have shape (itsNrBl, 1, itsNrChan) If the shapes do
+    // not match, there is an error.
+    if (full_resolution_flags.shape(0) != flags_shape[0] ||
+        full_resolution_flags.shape(1) != 1 ||
+        full_resolution_flags.shape(2) != flags_shape[1]) {
       throw std::runtime_error("Invalid shape of full res flags");
+    }
+    // Only copy XX by using the number of polarizations as stride.
     casacore::objcopy(full_resolution_flags.data(), buffer.GetFlags().data(),
-                      full_resolution_flags.size(), 1,
-                      flags_shape[0]);  // only copy XX.
+                      full_resolution_flags.size(), 1, flags_shape[2]);
   }
 }
 
@@ -885,19 +878,19 @@ bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
   int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
   // Resize if needed (probably when called for first time).
-  if (buf.GetCasacoreFullResFlags().empty()) {
+  if (buf.GetFullResFlags().size() == 0) {
     buf.ResizeFullResFlags(itsNrBl, getInfo().nAveragedFullResolutionTimes(),
                            norigchan);
   }
-  Cube<bool>& flags = buf.GetCasacoreFullResFlags();
+  aocommon::xt::Span<bool, 3>& flags = buf.GetFullResFlags();
   // Return false if no fullRes flags available.
   if (!itsHasFullResFlags) {
-    flags = false;
+    flags.fill(false);
     return false;
   }
   // Flag everything if data rows are missing.
   if (rowNrs.rowVector().empty()) {
-    flags = true;
+    flags.fill(true);
     return true;
   }
   ArrayColumn<unsigned char> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
