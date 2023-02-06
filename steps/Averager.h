@@ -9,6 +9,8 @@
 #ifndef DP3_STEPS_AVERAGER_H_
 #define DP3_STEPS_AVERAGER_H_
 
+#include <memory>
+
 #include <casacore/casa/Arrays/Cube.h>
 #include <aocommon/staticfor.h>
 
@@ -64,7 +66,7 @@ class Averager : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -83,7 +85,7 @@ class Averager : public Step {
   static double getFreqHz(const string& freqstr);
 
  private:
-  /// Average into itsBufOut.
+  /// Update itsBuf so it contains averages.
   void average();
 
   /// Copy the fullRes flags in the input buffer to the correct
@@ -93,13 +95,10 @@ class Averager : public Step {
                         const casacore::Cube<bool>& flags, int timeIndex);
 
   std::string itsName;
-  base::DPBuffer itsBuf;
-  base::DPBuffer itsBufTmp;
-  base::DPBuffer itsBufOut;
+  std::unique_ptr<base::DPBuffer> itsBuf;
   casacore::Cube<int> itsNPoints;
   casacore::Cube<casacore::Complex> itsAvgAll;
   casacore::Cube<float> itsWeightAll;
-  casacore::Cube<bool> itsFullResFlags;
   double itsFreqResolution;
   double itsTimeResolution;
   unsigned int itsNChanAvg;

@@ -137,52 +137,62 @@ void Averager::showTimings(std::ostream& os, double duration) const {
   os << " Averager " << itsName << '\n';
 }
 
-bool Averager::process(const base::DPBuffer& buf) {
+bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
   // Nothing needs to be done if no averaging.
   if (itsNoAvg) {
-    getNextStep()->process(buf);
+    getNextStep()->process(std::move(buffer));
     return true;
   }
   itsTimer.start();
   // Sum the data in time applying the weights.
   // The summing in channel and the averaging is done in function average.
   if (itsNTimes == 0) {
-    // The first time we copy because that is faster than first clearing
+    // The first time we move because that is faster than first clearing
     // and adding thereafter.
-    itsBuf.copy(buf);
-    itsBufTmp.setFullResFlags(buf.GetCasacoreFullResFlags());
-    IPosition shapeIn = buf.GetCasacoreData().shape();
+    assert(!itsBuf);
+    itsBuf = std::move(buffer);
+    // Ensure `itsBuf` does not refer to data in other DPBuffers.
+    // Full res flags are not needed here, since they are resized below.
+    itsBuf->MakeIndependent(kDataField | kWeightsField | kFlagsField |
+                            kUvwField);
+    IPosition shapeIn = itsBuf->GetCasacoreData().shape();
     itsNPoints.resize(shapeIn);
-    itsAvgAll.reference(buf.GetCasacoreData() * itsBuf.GetCasacoreWeights());
+    itsAvgAll.reference(itsBuf->GetCasacoreData() *
+                        itsBuf->GetCasacoreWeights());
     itsWeightAll.resize(shapeIn);
-    itsWeightAll = itsBuf.GetCasacoreWeights();
+    itsWeightAll = itsBuf->GetCasacoreWeights();
     // Take care of the fullRes flags.
     // We have to shape the output array and copy to a part of it.
 
     // Make sure the current fullResFlags are up to date with the flags
-    DPBuffer::mergeFullResFlags(itsBufTmp.GetCasacoreFullResFlags(),
-                                itsBuf.GetCasacoreFlags());
-    const IPosition ofShape = itsBufTmp.GetCasacoreFullResFlags().shape();
+    DPBuffer::mergeFullResFlags(itsBuf->GetCasacoreFullResFlags(),
+                                itsBuf->GetCasacoreFlags());
+
+    // Extract fullResFlags before resizing the field in itsBuffer.
+    casacore::Cube<bool> full_res_flags =
+        std::move(itsBuf->GetCasacoreFullResFlags());
+
+    const IPosition shape = full_res_flags.shape();
     // More time entries, same chan and bl
-    itsBuf.ResizeFullResFlags(ofShape[2], ofShape[1] * itsNTimeAvg, ofShape[0]);
-    itsBuf.GetCasacoreFullResFlags() =
-        true;  // initialize for times missing at end
-    copyFullResFlags(itsBufTmp.GetCasacoreFullResFlags(),
-                     itsBuf.GetCasacoreFlags(), 0);
+    itsBuf->ResizeFullResFlags(shape[2], shape[1] * itsNTimeAvg, shape[0]);
+    itsBuf->GetFullResFlags().fill(
+        true);  // initialize for times missing at end
+    copyFullResFlags(full_res_flags, itsBuf->GetCasacoreFlags(), 0);
+
     // Set middle of new interval.
-    double time = buf.getTime() +
-                  0.5 * (getInfo().timeInterval() - itsOriginalTimeInterval);
-    itsBuf.setTime(time);
-    itsBuf.setExposure(getInfo().timeInterval());
+    const double time = itsBuf->getTime() + 0.5 * (getInfo().timeInterval() -
+                                                   itsOriginalTimeInterval);
+    itsBuf->setTime(time);
+    itsBuf->setExposure(getInfo().timeInterval());
     // Only set.
     itsNPoints = 1;
     // Set flagged points to zero.
     casacore::Array<bool>::const_contiter infIter =
-        buf.GetCasacoreFlags().cbegin();
+        itsBuf->GetCasacoreFlags().cbegin();
     casacore::Array<casacore::Complex>::contiter dataIter =
-        itsBuf.GetCasacoreData().cbegin();
+        itsBuf->GetCasacoreData().cbegin();
     casacore::Array<float>::contiter wghtIter =
-        itsBuf.GetCasacoreWeights().cbegin();
+        itsBuf->GetCasacoreWeights().cbegin();
     casacore::Array<int>::contiter outnIter = itsNPoints.cbegin();
     casacore::Array<int>::contiter outnIterEnd = itsNPoints.cend();
     while (outnIter != outnIterEnd) {
@@ -204,30 +214,30 @@ bool Averager::process(const base::DPBuffer& buf) {
     // Not the first time.
     // For now we assume that all timeslots have the same nr of baselines,
     // so check if the buffer sizes are the same.
-    if (itsBuf.GetCasacoreData().shape() != buf.GetCasacoreData().shape())
+    assert(itsBuf);
+    if (itsBuf->GetCasacoreData().shape() != buffer->GetCasacoreData().shape())
       throw std::runtime_error(
           "Inconsistent buffer sizes in Averager, possibly because of "
           "inconsistent nr of baselines in timeslots");
-    itsBufTmp.copy(buf);
-    itsBuf.GetCasacoreUvw() += buf.GetCasacoreUvw();
+    itsBuf->GetCasacoreUvw() += buffer->GetCasacoreUvw();
 
     // Make sure the current fullResFlags are up to date with the flags
-    DPBuffer::mergeFullResFlags(itsBufTmp.GetCasacoreFullResFlags(),
-                                itsBufTmp.GetCasacoreFlags());
-    copyFullResFlags(itsBufTmp.GetCasacoreFullResFlags(),
-                     itsBufTmp.GetCasacoreFlags(), itsNTimes);
-    const Cube<float>& weights = buf.GetCasacoreWeights();
+    DPBuffer::mergeFullResFlags(buffer->GetCasacoreFullResFlags(),
+                                buffer->GetCasacoreFlags());
+    copyFullResFlags(buffer->GetCasacoreFullResFlags(),
+                     buffer->GetCasacoreFlags(), itsNTimes);
+    const Cube<float>& weights = buffer->GetCasacoreWeights();
     // Ignore flagged points.
     casacore::Array<casacore::Complex>::const_contiter indIter =
-        buf.GetCasacoreData().cbegin();
+        buffer->GetCasacoreData().cbegin();
     casacore::Array<float>::const_contiter inwIter = weights.cbegin();
     casacore::Array<bool>::const_contiter infIter =
-        buf.GetCasacoreFlags().cbegin();
+        buffer->GetCasacoreFlags().cbegin();
     casacore::Array<casacore::Complex>::contiter outdIter =
-        itsBuf.GetCasacoreData().cbegin();
+        itsBuf->GetCasacoreData().cbegin();
     casacore::Array<casacore::Complex>::contiter alldIter = itsAvgAll.cbegin();
     casacore::Array<float>::contiter outwIter =
-        itsBuf.GetCasacoreWeights().cbegin();
+        itsBuf->GetCasacoreWeights().cbegin();
     casacore::Array<float>::contiter allwIter = itsWeightAll.cbegin();
     casacore::Array<int>::contiter outnIter = itsNPoints.cbegin();
     casacore::Array<int>::contiter outnIterEnd = itsNPoints.cend();
@@ -254,7 +264,8 @@ bool Averager::process(const base::DPBuffer& buf) {
   if (itsNTimes >= itsNTimeAvg) {
     average();
     itsTimer.stop();
-    getNextStep()->process(itsBufOut);
+    getNextStep()->process(std::move(itsBuf));
+    itsBuf.reset();
     itsNTimes = 0;
   } else {
     itsTimer.stop();
@@ -268,7 +279,7 @@ void Averager::finish() {
     itsTimer.start();
     average();
     itsTimer.stop();
-    getNextStep()->process(itsBufOut);
+    getNextStep()->process(std::move(itsBuf));
     itsNTimes = 0;
   }
   // Let the next steps finish.
@@ -276,27 +287,27 @@ void Averager::finish() {
 }
 
 void Averager::average() {
-  IPosition shape = itsBuf.GetCasacoreData().shape();
+  IPosition shape = itsBuf->GetCasacoreData().shape();
   const unsigned int nchanin = shape[1];
   const unsigned int npin = shape[0] * nchanin;
   shape[1] = (shape[1] + itsNChanAvg - 1) / itsNChanAvg;
   const unsigned int ncorr = shape[0];
   const unsigned int nchan = shape[1];
   const unsigned int nbl = shape[2];
-  itsBufOut.ResizeData(nbl, nchan, ncorr);
-  itsBufOut.ResizeWeights(nbl, nchan, ncorr);
-  itsBufOut.ResizeFlags(nbl, nchan, ncorr);
+  casacore::Cube<casacore::Complex> data_out(ncorr, nchan, nbl);
+  casacore::Cube<float> weights_out(ncorr, nchan, nbl);
+  casacore::Cube<bool> flags_out(ncorr, nchan, nbl);
   unsigned int npout = ncorr * nchan;
   loop_.Run(0, nbl, [&](size_t begin, size_t end) {
     for (unsigned int k = begin; k != end; ++k) {
-      const casacore::Complex* indata = itsBuf.GetData().data() + k * npin;
+      const casacore::Complex* indata = itsBuf->GetData().data() + k * npin;
       const casacore::Complex* inalld = itsAvgAll.data() + k * npin;
-      const float* inwght = itsBuf.GetWeights().data() + k * npin;
+      const float* inwght = itsBuf->GetWeights().data() + k * npin;
       const float* inallw = itsWeightAll.data() + k * npin;
       const int* innp = itsNPoints.data() + k * npin;
-      casacore::Complex* outdata = itsBufOut.GetData().data() + k * npout;
-      float* outwght = itsBufOut.GetWeights().data() + k * npout;
-      bool* outflags = itsBufOut.GetFlags().data() + k * npout;
+      casacore::Complex* outdata = data_out.data() + k * npout;
+      float* outwght = weights_out.data() + k * npout;
+      bool* outflags = flags_out.data() + k * npout;
       for (unsigned int i = 0; i < ncorr; ++i) {
         unsigned int inxi = i;
         unsigned int inxo = i;
@@ -331,13 +342,13 @@ void Averager::average() {
       }
     }
   });
-  // Set the remaining values in the output buffer.
-  itsBufOut.setTime(itsBuf.getTime());
-  itsBufOut.setExposure(itsBuf.getExposure());
-  itsBufOut.setFullResFlags(itsBuf.GetCasacoreFullResFlags());
+  // Put the averaged values in the buffer.
+  itsBuf->setData(data_out);
+  itsBuf->setWeights(weights_out);
+  itsBuf->setFlags(flags_out);
   // The result UVWs are the average of the input.
   // If ever needed, UVWCalculator can be used to calculate the UVWs.
-  itsBufOut.setUVW(itsBuf.GetCasacoreUvw() / double(itsNTimes));
+  itsBuf->GetUvw() /= double(itsNTimes);
 }
 
 void Averager::copyFullResFlags(const Cube<bool>& fullResFlags,
@@ -349,7 +360,7 @@ void Averager::copyFullResFlags(const Cube<bool>& fullResFlags,
   // nchan and nbl are the same for in and out.
   // ntimout is a multiple of ntimavg.
   IPosition shapeIn = fullResFlags.shape();
-  IPosition shapeOut = itsBuf.GetCasacoreFullResFlags().shape();
+  IPosition shapeOut = itsBuf->GetCasacoreFullResFlags().shape();
   IPosition shapeFlg = flags.shape();
   unsigned int nchan = shapeIn[0];    // original nr of channels
   unsigned int ntimavg = shapeIn[1];  // nr of averaged times in input data
@@ -358,7 +369,8 @@ void Averager::copyFullResFlags(const Cube<bool>& fullResFlags,
   unsigned int nbl = shapeIn[2];       // nr of baselines
   unsigned int ncorr = shapeFlg[0];    // nr of correlations (in FLAG)
   // in has to be copied to the correct time index in out.
-  bool* outBase = itsBuf.GetFullResFlags().data() + nchan * ntimavg * timeIndex;
+  bool* outBase =
+      itsBuf->GetFullResFlags().data() + nchan * ntimavg * timeIndex;
   for (unsigned int k = 0; k < nbl; ++k) {
     const bool* inPtr = fullResFlags.data() + k * nchan * ntimavg;
     const bool* flagPtr = flags.data() + k * ncorr * shapeFlg[1];
