@@ -123,6 +123,8 @@ class DPBuffer {
 
   /// Ensure that this buffer has independent copies of data items / that
   /// the data items do not use reference semantices.
+  /// When DPBuffer will store its data in XTensor objects instead of Casacore
+  /// objects, a DPBuffer is always independent and this function can go away.
   /// @param fields The fields that should be independent copies.
   void MakeIndependent(const common::Fields& fields);
 
