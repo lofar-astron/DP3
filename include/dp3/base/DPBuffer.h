@@ -158,8 +158,8 @@ class DPBuffer {
     return casa_weights_;
   }
   casacore::Cube<float>& GetCasacoreWeights() { return casa_weights_; }
-  const aocommon::xt::Span<float, 3> GetWeights() const { return weights_; }
-  aocommon::xt::Span<float, 3> GetWeights() { return weights_; }
+  const aocommon::xt::Span<float, 3>& GetWeights() const { return weights_; }
+  aocommon::xt::Span<float, 3>& GetWeights() { return weights_; }
 
   /// Set or get the flags at the full resolution per chan,timeavg,baseline.
   void setFullResFlags(const casacore::Cube<bool>& flags);

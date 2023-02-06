@@ -180,8 +180,7 @@ class MSReader : public InputStep {
   bool hasFullResFlags() const { return itsHasFullResFlags; }
 
   /// Flags inf and NaN
-  static void flagInfNaN(const casacore::Cube<casacore::Complex>& dataCube,
-                         casacore::Cube<bool>& flagsCube,
+  static void flagInfNaN(base::DPBuffer& buffer,
                          base::FlagCounter& flagCounter);
 
  protected:
@@ -200,11 +199,8 @@ class MSReader : public InputStep {
   /// If needed, it sets itsFirstTime properly.
   void skipFirstTimes();
 
-  /// Calculate the UVWs for a missing time slot.
-  void calcUVW(double time, base::DPBuffer&);
-
   /// Calculate the weights from the autocorrelations.
-  void autoWeight(casacore::Cube<float>& weights, const base::DPBuffer& buf);
+  void autoWeight(base::DPBuffer& buf);
 
   /// Read the weights at the given row numbers into the buffer.
   /// Note: the buffer must contain DATA if autoweighting is in effect.

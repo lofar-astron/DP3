@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "../../MSReader.h"
+
 #include <vector>
+
+#include <xtensor/xstrided_view.hpp>
+#include <xtensor/xview.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -100,19 +104,16 @@ BOOST_AUTO_TEST_CASE(fill_full_res_flags_not_available_in_ms) {
 
   reader.FillFullResFlags(buffer);
 
-  // Copy the buffer's flags into expected_full_resolution_flags with the
-  // expected shape (there is no polarization axis in the full resolution flags,
-  // the XX polarization flag is taken)
-  casacore::Cube<bool> expected_full_resolution_flags(kNChan, 1, kNBaseline);
-  casacore::objcopy(expected_full_resolution_flags.data(),
-                    buffer.GetFlags().data(),
-                    expected_full_resolution_flags.size(), 1,
-                    buffer.GetCasacoreFlags().shape()[0]);
+  // Create a view of the buffer's flags into expected_full_resolution_flags
+  // with the expected shape (there is no polarization axis in the full
+  // resolution flags, the XX polarization flag is taken)
+  const auto xx_flags = xt::view(buffer.GetFlags(), xt::all(), xt::all(), 0);
+  const auto expected_full_resolution_flags =
+      xt::reshape_view(xx_flags, {kNBaseline, 1, kNChan});
 
   // Compare the flags obtained with the FillFullResFlags function with the
   // flags copied from the buffer's flags
-  BOOST_CHECK(
-      allEQ(buffer.GetCasacoreFullResFlags(), expected_full_resolution_flags));
+  BOOST_CHECK(buffer.GetFullResFlags() == expected_full_resolution_flags);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -606,8 +606,7 @@ void Demixer::handleDemix() {
     } else {
       bufptr = &(itsAvgResultSubtr->get()[i]);
     }
-    MSReader::flagInfNaN(bufptr->GetCasacoreData(), bufptr->GetCasacoreFlags(),
-                         itsFlagCounter);
+    MSReader::flagInfNaN(*bufptr, itsFlagCounter);
     getNextStep()->process(*bufptr);
     itsTimer.start();
   }
