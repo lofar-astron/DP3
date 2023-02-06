@@ -326,7 +326,10 @@ benchmark-2204:
   image: $BASE_IMAGE_2204
   script:
     - cd build
-    - ninja # Needed when ran on different containers with different timestamps
+    # Needed when ran on different containers with different timestamps.
+    # The build may fail when compilers differ between containers for unknown
+    # reasons. Rebuild everything in that case.
+    - if ! ninja; then ninja clean; ninja; fi
     - ctest -V -L benchmark
   artifacts:
     paths:

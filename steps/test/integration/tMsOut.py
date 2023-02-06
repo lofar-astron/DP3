@@ -1,4 +1,4 @@
-# Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+# Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
@@ -73,4 +73,60 @@ def test_chunking():
     result = get_taql_result(taql_command)
     assert (
         result == "Unit: s\n29-Mar-2013/14:00:33.063\n29-Mar-2013/14:00:43.076"
+    )
+
+
+def test_write_thread_enabled():
+    """Assert that the threaded writing is enabled.
+
+    This requires the output step to be the last step."""
+
+    result = check_output(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "msout=out.MS",
+            "steps=[]",
+        ]
+    )
+
+    assert re.search(b"use thread: *true", result)
+    assert re.search(
+        b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Creating task\n",
+        result,
+    )
+    assert re.search(
+        b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Writing \\(threaded\\)\n",
+        result,
+    )
+
+
+def test_write_thread_disabled():
+    """Assert that the threaded writing is disabled.
+
+    This requires the output step not to be the last step."""
+
+    # Use a split so the default msout step won't be created.
+    result = check_output(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "steps=[split]",
+            "split.steps=[out,average]",
+            "split.replaceparms=[out.name]",
+            "out.name=[out.MS]",
+        ]
+    )
+
+    assert re.search(b"use thread: *false", result)
+    assert (
+        re.search(
+            b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Creating task\n",
+            result,
+        )
+        == None
+    )
+    assert re.search(
+        b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Writing\n",
+        result,
     )
