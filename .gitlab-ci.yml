@@ -58,8 +58,13 @@ versioning:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - |
-      if ! docker manifest inspect $DOCKER_IMAGE > /dev/null; then
-        docker build $DOCKER_BUILD_ARG --tag $DOCKER_IMAGE -f $DOCKER_FILE .
+      if ! docker manifest inspect $DOCKER_IMAGE > /dev/null || [ "$BUILD_DOCKER_IMAGE" = "1" ]; then
+        if [ "$BUILD_DOCKER_IMAGE" = "1" ]; then
+          DOCKER_CACHE_PARAMETERS="--no-cache"
+        else
+          DOCKER_CACHE_PARAMETERS=""
+        fi
+        docker build $DOCKER_BUILD_ARG ${DOCKER_CACHE_PARAMETERS} --tag $DOCKER_IMAGE -f $DOCKER_FILE .
         docker push $DOCKER_IMAGE
       fi
   # Skip the job if there are no changes to the Docker file. This shortcut only
