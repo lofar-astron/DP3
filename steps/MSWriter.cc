@@ -651,87 +651,93 @@ void MSWriter::WriteHistory(Table& ms, const common::ParameterSet& parset) {
   cli.put(rownr, clivec);
 }
 
-void MSWriter::WriteData(Table& out, const DPBuffer& buf) {
-  ArrayColumn<casacore::Complex> data_col(out, data_col_name_);
-  ArrayColumn<bool> flag_col(out, "FLAG");
-  ScalarColumn<bool> flag_row_col(out, "FLAG_ROW");
-
-  if (buf.GetCasacoreData().empty()) {
+void MSWriter::WriteData(Table& out, DPBuffer& buf) {
+  if (buf.GetData().size() == 0) {
     return;
   }
-
-  // Write WEIGHT_SPECTRUM and DATA
-  ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
-  const Array<float>& weights = buf.GetCasacoreWeights();
 
   // If compressing, flagged values need to be set to NaN, and flagged
   // weights to zero, to decrease the dynamic range
   if (st_man_keys_.stManName == "dysco") {
-    Cube<casacore::Complex> data_copy = buf.GetCasacoreData().copy();
-    Cube<casacore::Complex>::iterator data_iter = data_copy.begin();
-    Cube<float> weights_copy = weights.copy();
-    Cube<float>::iterator weights_iter = weights_copy.begin();
-    for (Cube<bool>::const_iterator flag_iter = buf.GetCasacoreFlags().begin();
-         flag_iter != buf.GetCasacoreFlags().end(); ++flag_iter) {
-      if (*flag_iter) {
-        *data_iter = casacore::Complex(std::numeric_limits<float>::quiet_NaN(),
-                                       std::numeric_limits<float>::quiet_NaN());
-        *weights_iter = 0.;
+    auto data_iterator = buf.GetData().begin();
+    auto weights_iterator = buf.GetWeights().begin();
+    for (bool flag : buf.GetFlags()) {
+      if (flag) {
+        *data_iterator =
+            casacore::Complex(std::numeric_limits<float>::quiet_NaN(),
+                              std::numeric_limits<float>::quiet_NaN());
+        *weights_iterator = 0.0;
       }
-      ++data_iter;
-      ++weights_iter;
+      ++data_iterator;
+      ++weights_iterator;
     }
-    data_col.putColumn(data_copy);
-    weightCol.putColumn(weights_copy);
-  } else {
-    data_col.putColumn(buf.GetCasacoreData());
-    weightCol.putColumn(weights);
   }
 
-  flag_col.putColumn(buf.GetCasacoreFlags());
+  // Write DATA, WEIGHT_SPECTRUM and FLAG
+  ArrayColumn<casacore::Complex> data_col(out, data_col_name_);
+  ArrayColumn<bool> flag_col(out, "FLAG");
+  ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
+  const casacore::IPosition shape(3, getInfo().ncorr(), getInfo().nchan(),
+                                  getInfo().nbaselines());
+  const Cube<casacore::Complex> data(shape, buf.GetData().data(),
+                                     casacore::SHARE);
+  const Cube<float> weights(shape, buf.GetWeights().data(), casacore::SHARE);
+  const Cube<bool> flags(shape, buf.GetFlags().data(), casacore::SHARE);
+  data_col.putColumn(data);
+  weightCol.putColumn(weights);
+  flag_col.putColumn(flags);
+
   // A row is flagged if no flags in the row are False.
-  auto c = partialNFalse(buf.GetCasacoreFlags(), IPosition(2, 0, 1));
+  auto c = partialNFalse(flags, IPosition(2, 0, 1));
   casacore::Vector<bool> row_flags(c == decltype(c)::value_type(0));
+  ScalarColumn<bool> flag_row_col(out, "FLAG_ROW");
   flag_row_col.putColumn(row_flags);
+
   if (write_full_res_flags_) {
     WriteFullResFlags(out, buf);
   }
 
   // Write UVW
   ArrayColumn<double> uvw_col(out, "UVW");
-  const Array<double>& uvws = buf.GetCasacoreUvw();
+  const casacore::IPosition shape_uvw(2, 3, getInfo().nbaselines());
+  const Matrix<double> uvws(shape_uvw, buf.GetUvw().data(), casacore::SHARE);
   uvw_col.putColumn(uvws);
 }
 
 void MSWriter::WriteFullResFlags(Table& out, const DPBuffer& buf) {
-  const Cube<bool>& flags = buf.GetCasacoreFullResFlags();
-  const IPosition& of_shape = flags.shape();
-  if ((unsigned int)(of_shape[0]) != n_chan_avg_ * getInfo().nchan())
+  const aocommon::xt::Span<bool, 3>& flags = buf.GetFullResFlags();
+  if (flags.shape(2) != n_chan_avg_ * getInfo().nchan()) {
     throw std::runtime_error(
-        "Full Res Flags size " + std::to_string(of_shape[0]) +
+        "Full Res Flags channel count " + std::to_string(flags.shape(2)) +
         " does not equal " + std::to_string(n_chan_avg_) + "*" +
         std::to_string(getInfo().nchan()) +
         ".\nTry setting \"msout.writefullresflag=false\" in input parset");
-  if ((unsigned int)(of_shape[1]) != n_time_avg_)
-    throw std::runtime_error(std::to_string(of_shape[1]) +
-                             std::to_string(n_time_avg_));
-  // Convert the bools to unsigned char bits.
-  IPosition ch_shape(of_shape);
-  ch_shape[0] = (of_shape[0] + 7) / 8;
-  Cube<unsigned char> chars(ch_shape);
+  }
+  if (flags.shape(1) != n_time_avg_) {
+    throw std::runtime_error(
+        "Full Res Flags time averaging " + std::to_string(flags.shape(1)) +
+        " does not equal " + std::to_string(n_time_avg_) +
+        ".\nTry setting \"msout.writefullresflag=false\" in input parset");
+  }
+
+  // Convert the booleans to unsigned char where each bit represents a boolean.
+  // Casacore expects the dimensions in reverse order wrt. the dimensions in
+  // 'flags'.
+  const size_t kFlagsPerChar = 8;  // An unsigned char has 8 bits.
+  const IPosition char_shape(3, (flags.shape(2) + 7) / 8, flags.shape(1),
+                             flags.shape(0));
+  Cube<unsigned char> chars(char_shape);
   // If their sizes match, do it all in one go.
   // Otherwise we have to iterate.
-  if (of_shape[0] == ch_shape[0] * 8) {
+  if (flags.shape(2) == char_shape[0] * kFlagsPerChar) {
     casacore::Conversion::boolToBit(chars.data(), flags.data(), flags.size());
   } else {
-    if (of_shape[0] > ch_shape[0] * 8)
-      throw std::runtime_error("Incorrect shape of full res flags");
     const bool* flags_ptr = flags.data();
     unsigned char* chars_ptr = chars.data();
-    for (int i = 0; i < of_shape[1] * of_shape[2]; ++i) {
-      casacore::Conversion::boolToBit(chars_ptr, flags_ptr, of_shape[0]);
-      flags_ptr += of_shape[0];
-      chars_ptr += ch_shape[0];
+    for (int i = 0; i < flags.shape(1) * flags.shape(0); ++i) {
+      casacore::Conversion::boolToBit(chars_ptr, flags_ptr, flags.shape(2));
+      flags_ptr += flags.shape(2);
+      chars_ptr += char_shape[0];
     }
   }
   ArrayColumn<unsigned char> full_res_col(out, "LOFAR_FULL_RES_FLAG");
