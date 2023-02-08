@@ -86,7 +86,8 @@ BOOST_AUTO_TEST_CASE(merge_solutions) {
     const double kFirstImaginary = 142.0;
     const size_t kChannelBlock = 0;
     const int kNValues = 5;
-    xt::xtensor<double, 1> d_storage({kNValues});
+    const std::array<size_t, 1> d_storage_shape{kNValues * 2};
+    xt::xtensor<double, 1> d_storage(d_storage_shape);
     for (int i = 0; i < kNValues; ++i) {
       d_storage(i) = kFirstReal + i;
       d_storage(i + kNValues) = kFirstImaginary + i;
