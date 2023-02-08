@@ -124,7 +124,7 @@ class MSWriter : public OutputStep {
   /// Write the data, flags, etc.
   ///
   /// This function does not access @ref internal_buffer_.
-  void WriteData(casacore::Table& out, const base::DPBuffer& buf);
+  void WriteData(casacore::Table& out, base::DPBuffer& buf);
 
   /// Write the full resolution flags (flags before any averaging).
   ///
