@@ -6,6 +6,8 @@
 
 #include <dp3/base/DPBuffer.h>
 
+#include <cassert>
+
 #include <casacore/casa/version.h>
 
 // Casacore < 3.4 does not support move semantics for casacore::Array
@@ -208,21 +210,19 @@ void DPBuffer::referenceFilled(const DPBuffer& that) {
   }
 }
 
-void DPBuffer::mergeFullResFlags(casacore::Cube<bool>& fullResFlags,
-                                 const casacore::Cube<bool>& flags) {
-  // Flag shape is [ncorr, newnchan, nbl].
-  // FullRes shape is [orignchan, navgtime, nbl]
+void DPBuffer::MergeFullResFlags() {
+  // Flag shape is [nbl, newnchan, ncorr].
+  // FullRes shape is [nbl, navgtime, orignchan]
   // where orignchan = navgchan * newnchan.
-  const casacore::IPosition& fullResShape = fullResFlags.shape();
-  const casacore::IPosition& flagShape = flags.shape();
-  int orignchan = fullResShape[0];
-  int newnchan = flagShape[1];
-  int navgchan = orignchan / newnchan;
-  int navgtime = fullResShape[1];
-  int nbl = fullResShape[2];
-  int ncorr = flagShape[0];
-  bool* fullResPtr = fullResFlags.data();
-  const bool* flagPtr = flags.data();
+  const int orignchan = full_res_flags_.shape(2);
+  const int newnchan = flags_.shape(1);
+  const int navgchan = orignchan / newnchan;
+  const int navgtime = full_res_flags_.shape(1);
+  const int nbl = full_res_flags_.shape(0);
+  assert(nbl == flags_.shape(0));
+  const int ncorr = flags_.shape(2);
+  bool* fullResPtr = full_res_flags_.data();
+  const bool* flagPtr = flags_.data();
   // Loop over all baselines and new channels.
   // Only use the first correlation in the loop.
   for (int j = 0; j < nbl; ++j) {

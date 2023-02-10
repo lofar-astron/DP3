@@ -122,7 +122,7 @@ class DPBuffer {
   void copy(const DPBuffer& that);
 
   /// Ensure that this buffer has independent copies of data items / that
-  /// the data items do not use reference semantices.
+  /// the data items do not use reference semantics.
   /// When DPBuffer will store its data in XTensor objects instead of Casacore
   /// objects, a DPBuffer is always independent and this function can go away.
   /// @param fields The fields that should be independent copies.
@@ -204,8 +204,7 @@ class DPBuffer {
 
   /// Merge the flags into the pre-average flags.
   /// For each flagged point, the corresponding pre-average flags are set.
-  static void mergeFullResFlags(casacore::Cube<bool>& fullResFlags,
-                                const casacore::Cube<bool>& flags);
+  void MergeFullResFlags();
 
   void SetSolution(
       const std::vector<std::vector<std::complex<double>>>& solution) {
