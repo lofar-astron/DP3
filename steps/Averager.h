@@ -11,6 +11,7 @@
 
 #include <memory>
 
+#include <xtensor/xtensor.hpp>
 #include <casacore/casa/Arrays/Cube.h>
 #include <aocommon/staticfor.h>
 
@@ -91,14 +92,15 @@ class Averager : public Step {
   /// Copy the fullRes flags in the input buffer to the correct
   /// time index in the output buffer.
   /// If a flag is set, set all flags in corresponding FullRes window.
-  void copyFullResFlags(const casacore::Cube<bool>& fullResFlags,
-                        const casacore::Cube<bool>& flags, int timeIndex);
+  void copyFullResFlags(const aocommon::xt::Span<bool, 3>& full_res_flags,
+                        const aocommon::xt::Span<bool, 3>& flags,
+                        int time_index);
 
   std::string itsName;
   std::unique_ptr<base::DPBuffer> itsBuf;
-  casacore::Cube<int> itsNPoints;
-  casacore::Cube<casacore::Complex> itsAvgAll;
-  casacore::Cube<float> itsWeightAll;
+  xt::xtensor<int, 3> itsNPoints;
+  xt::xtensor<std::complex<float>, 3> itsAvgAll;
+  xt::xtensor<float, 3> itsWeightAll;
   double itsFreqResolution;
   double itsTimeResolution;
   unsigned int itsNChanAvg;

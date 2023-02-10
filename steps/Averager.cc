@@ -138,6 +138,8 @@ void Averager::showTimings(std::ostream& os, double duration) const {
 }
 
 bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
+  assert(buffer->GetData().shape(1) == buffer->GetWeights().shape(1));
+
   // Nothing needs to be done if no averaging.
   if (itsNoAvg) {
     getNextStep()->process(std::move(buffer));
@@ -155,29 +157,32 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
     // Full res flags are not needed here, since they are resized below.
     itsBuf->MakeIndependent(kDataField | kWeightsField | kFlagsField |
                             kUvwField);
-    IPosition shapeIn = itsBuf->GetCasacoreData().shape();
-    itsNPoints.resize(shapeIn);
-    itsAvgAll.reference(itsBuf->GetCasacoreData() *
-                        itsBuf->GetCasacoreWeights());
-    itsWeightAll.resize(shapeIn);
-    itsWeightAll = itsBuf->GetCasacoreWeights();
+    itsNPoints.resize(itsBuf->GetData().shape());
+    assert(itsBuf->GetData().shape(1) == itsBuf->GetWeights().shape(1));
+    itsAvgAll = itsBuf->GetData() * itsBuf->GetWeights();
+    itsWeightAll = itsBuf->GetWeights();
     // Take care of the fullRes flags.
     // We have to shape the output array and copy to a part of it.
 
     // Make sure the current fullResFlags are up to date with the flags
-    DPBuffer::mergeFullResFlags(itsBuf->GetCasacoreFullResFlags(),
-                                itsBuf->GetCasacoreFlags());
+    itsBuf->MergeFullResFlags();
 
     // Extract fullResFlags before resizing the field in itsBuffer.
-    casacore::Cube<bool> full_res_flags =
-        std::move(itsBuf->GetCasacoreFullResFlags());
+    // Until DPBuffer stores data in XTensor objects, copy the Casacore object
+    // that contains the full resolution flags. After resizing them in itsBuf,
+    // the Casacore object is the only owner of the old flags. 'full_res_flags'
+    // is therefore valid as long as 'casa_full_res_flags' is in scope.
+    casacore::Cube<bool> casa_full_res_flags =
+        itsBuf->GetCasacoreFullResFlags();
+    aocommon::xt::Span<bool, 3> full_res_flags = itsBuf->GetFullResFlags();
 
-    const IPosition shape = full_res_flags.shape();
+    const std::array<size_t, 3> shape = full_res_flags.shape();
     // More time entries, same chan and bl
-    itsBuf->ResizeFullResFlags(shape[2], shape[1] * itsNTimeAvg, shape[0]);
+    itsBuf->ResizeFullResFlags(shape[0], shape[1] * itsNTimeAvg, shape[2]);
+    itsBuf->MakeIndependent(kFullResFlagsField);
     itsBuf->GetFullResFlags().fill(
         true);  // initialize for times missing at end
-    copyFullResFlags(full_res_flags, itsBuf->GetCasacoreFlags(), 0);
+    copyFullResFlags(full_res_flags, itsBuf->GetFlags(), 0);
 
     // Set middle of new interval.
     const double time = itsBuf->getTime() + 0.5 * (getInfo().timeInterval() -
@@ -185,78 +190,64 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
     itsBuf->setTime(time);
     itsBuf->setExposure(getInfo().timeInterval());
     // Only set.
-    itsNPoints = 1;
+    itsNPoints.fill(1);
     // Set flagged points to zero.
-    casacore::Array<bool>::const_contiter infIter =
-        itsBuf->GetCasacoreFlags().cbegin();
-    casacore::Array<casacore::Complex>::contiter dataIter =
-        itsBuf->GetCasacoreData().cbegin();
-    casacore::Array<float>::contiter wghtIter =
-        itsBuf->GetCasacoreWeights().cbegin();
-    casacore::Array<int>::contiter outnIter = itsNPoints.cbegin();
-    casacore::Array<int>::contiter outnIterEnd = itsNPoints.cend();
-    while (outnIter != outnIterEnd) {
-      if (*infIter) {
+    auto flag_iterator = itsBuf->GetFlags().cbegin();
+    auto data_iterator = itsBuf->GetData().begin();
+    auto weight_iterator = itsBuf->GetWeights().begin();
+
+    for (int& n : itsNPoints) {
+      if (*flag_iterator) {
         // Flagged data point
-        *outnIter = 0;
-        *dataIter = casacore::Complex();
-        *wghtIter = 0;
+        n = 0;
+        *data_iterator = casacore::Complex();
+        *weight_iterator = 0;
       } else {
         // Weigh the data point
-        *dataIter *= *wghtIter;
+        *data_iterator *= *weight_iterator;
       }
-      ++infIter;
-      ++dataIter;
-      ++wghtIter;
-      ++outnIter;
+      ++flag_iterator;
+      ++data_iterator;
+      ++weight_iterator;
     }
   } else {
     // Not the first time.
     // For now we assume that all timeslots have the same nr of baselines,
     // so check if the buffer sizes are the same.
     assert(itsBuf);
-    if (itsBuf->GetCasacoreData().shape() != buffer->GetCasacoreData().shape())
+    if (itsBuf->GetData().shape() != buffer->GetData().shape())
       throw std::runtime_error(
           "Inconsistent buffer sizes in Averager, possibly because of "
           "inconsistent nr of baselines in timeslots");
-    itsBuf->GetCasacoreUvw() += buffer->GetCasacoreUvw();
+    itsBuf->GetUvw() += buffer->GetUvw();
 
     // Make sure the current fullResFlags are up to date with the flags
-    DPBuffer::mergeFullResFlags(buffer->GetCasacoreFullResFlags(),
-                                buffer->GetCasacoreFlags());
-    copyFullResFlags(buffer->GetCasacoreFullResFlags(),
-                     buffer->GetCasacoreFlags(), itsNTimes);
-    const Cube<float>& weights = buffer->GetCasacoreWeights();
+    buffer->MergeFullResFlags();
+    copyFullResFlags(buffer->GetFullResFlags(), buffer->GetFlags(), itsNTimes);
+
     // Ignore flagged points.
-    casacore::Array<casacore::Complex>::const_contiter indIter =
-        buffer->GetCasacoreData().cbegin();
-    casacore::Array<float>::const_contiter inwIter = weights.cbegin();
-    casacore::Array<bool>::const_contiter infIter =
-        buffer->GetCasacoreFlags().cbegin();
-    casacore::Array<casacore::Complex>::contiter outdIter =
-        itsBuf->GetCasacoreData().cbegin();
-    casacore::Array<casacore::Complex>::contiter alldIter = itsAvgAll.cbegin();
-    casacore::Array<float>::contiter outwIter =
-        itsBuf->GetCasacoreWeights().cbegin();
-    casacore::Array<float>::contiter allwIter = itsWeightAll.cbegin();
-    casacore::Array<int>::contiter outnIter = itsNPoints.cbegin();
-    casacore::Array<int>::contiter outnIterEnd = itsNPoints.cend();
-    while (outnIter != outnIterEnd) {
-      *alldIter += *indIter * *inwIter;
-      *allwIter += *inwIter;
-      if (!*infIter) {
-        *outdIter += *indIter * *inwIter;
-        *outwIter += *inwIter;
-        (*outnIter)++;
+    auto data_in_iterator = buffer->GetData().cbegin();
+    auto weights_in_iterator = buffer->GetWeights().cbegin();
+    auto flags_in_iterator = buffer->GetFlags().cbegin();
+    auto data_out_iterator = itsBuf->GetData().begin();
+    auto weights_out_iterator = itsBuf->GetWeights().begin();
+    auto avg_all_iterator = itsAvgAll.begin();
+    auto weight_all_iterator = itsWeightAll.begin();
+    for (int& n : itsNPoints) {
+      *avg_all_iterator += *data_in_iterator * *weights_in_iterator;
+      *weight_all_iterator += *weights_in_iterator;
+      if (!*flags_in_iterator) {
+        *data_out_iterator += *data_in_iterator * *weights_in_iterator;
+        *weights_out_iterator += *weights_in_iterator;
+        ++n;
       }
-      ++indIter;
-      ++inwIter;
-      ++infIter;
-      ++outdIter;
-      ++alldIter;
-      ++outwIter;
-      ++allwIter;
-      ++outnIter;
+      ++data_in_iterator;
+      ++weights_in_iterator;
+      ++flags_in_iterator;
+      ++data_out_iterator;
+      ++avg_all_iterator;
+      ++weights_out_iterator;
+      ++weight_all_iterator;
     }
   }
   // Do the averaging if enough time steps have been processed.
@@ -287,99 +278,111 @@ void Averager::finish() {
 }
 
 void Averager::average() {
-  IPosition shape = itsBuf->GetCasacoreData().shape();
-  const unsigned int nchanin = shape[1];
-  const unsigned int npin = shape[0] * nchanin;
-  shape[1] = (shape[1] + itsNChanAvg - 1) / itsNChanAvg;
-  const unsigned int ncorr = shape[0];
-  const unsigned int nchan = shape[1];
-  const unsigned int nbl = shape[2];
-  casacore::Cube<casacore::Complex> data_out(ncorr, nchan, nbl);
-  casacore::Cube<float> weights_out(ncorr, nchan, nbl);
-  casacore::Cube<bool> flags_out(ncorr, nchan, nbl);
-  unsigned int npout = ncorr * nchan;
-  loop_.Run(0, nbl, [&](size_t begin, size_t end) {
-    for (unsigned int k = begin; k != end; ++k) {
-      const casacore::Complex* indata = itsBuf->GetData().data() + k * npin;
-      const casacore::Complex* inalld = itsAvgAll.data() + k * npin;
-      const float* inwght = itsBuf->GetWeights().data() + k * npin;
-      const float* inallw = itsWeightAll.data() + k * npin;
-      const int* innp = itsNPoints.data() + k * npin;
-      casacore::Complex* outdata = data_out.data() + k * npout;
-      float* outwght = weights_out.data() + k * npout;
-      bool* outflags = flags_out.data() + k * npout;
-      for (unsigned int i = 0; i < ncorr; ++i) {
-        unsigned int inxi = i;
-        unsigned int inxo = i;
-        for (unsigned int ch = 0; ch < nchan; ++ch) {
-          unsigned int nch = std::min(itsNChanAvg, nchanin - ch * itsNChanAvg);
-          unsigned int navgAll = nch * itsNTimes;
-          casacore::Complex sumd;
-          casacore::Complex sumad;
-          float sumw = 0;
-          float sumaw = 0;
-          unsigned int np = 0;
-          for (unsigned int j = 0; j < nch; ++j) {
-            sumd += indata[inxi];  // Note: weight is accounted for in process
-            sumad += inalld[inxi];
-            sumw += inwght[inxi];
-            sumaw += inallw[inxi];
-            np += innp[inxi];
-            inxi += ncorr;
+  // Extract the input data and weights before resizing itsBuf.
+  // Until DPBuffer stores data in XTensor objects, Casacore owns the data.
+  // Copying the Casacore objects ensures that the data remains valid, also
+  // in 'data_in' and 'weights_in', which are views on that data.
+  casacore::Cube<casacore::Complex> casa_data_in = itsBuf->GetCasacoreData();
+  casacore::Cube<float> casa_weights_in = itsBuf->GetCasacoreWeights();
+  aocommon::xt::Span<std::complex<float>, 3> data_in = itsBuf->GetData();
+  aocommon::xt::Span<float, 3> weights_in = itsBuf->GetWeights();
+
+  const unsigned int n_bl = data_in.shape(0);
+  const unsigned int n_chan_in = data_in.shape(1);
+  const unsigned int n_chan_out = (n_chan_in + itsNChanAvg - 1) / itsNChanAvg;
+  const unsigned int n_corr = data_in.shape(2);
+  itsBuf->ResizeData(n_bl, n_chan_out, n_corr);
+  itsBuf->ResizeWeights(n_bl, n_chan_out, n_corr);
+  itsBuf->ResizeFlags(n_bl, n_chan_out, n_corr);
+  itsBuf->MakeIndependent(kDataField | kWeightsField);
+  aocommon::xt::Span<std::complex<float>, 3>& data_out = itsBuf->GetData();
+  aocommon::xt::Span<float, 3>& weights_out = itsBuf->GetWeights();
+  aocommon::xt::Span<bool, 3>& flags_out = itsBuf->GetFlags();
+  assert(data_in.data() != data_out.data());
+  assert(weights_in.data() != weights_out.data());
+
+  loop_.Run(0, n_bl, [&](size_t bl_begin, size_t bl_end) {
+    for (unsigned int bl = bl_begin; bl < bl_end; ++bl) {
+      for (unsigned int corr = 0; corr < n_corr; ++corr) {
+        for (unsigned int chan_out = 0; chan_out < n_chan_out; ++chan_out) {
+          const unsigned int chan_in_begin = chan_out * itsNChanAvg;
+          const unsigned int n_averaged_chan =
+              std::min(itsNChanAvg, n_chan_in - chan_in_begin);
+          const unsigned int chan_in_end = chan_in_begin + n_averaged_chan;
+          const unsigned int n_averaged_all = n_averaged_chan * itsNTimes;
+
+          std::complex<float> sum_data;
+          std::complex<float> sum_all_data;
+          float sum_weights = 0;
+          float sum_all_weights = 0;
+          unsigned int sum_n_points = 0;
+
+          for (unsigned int chan_in = chan_in_begin; chan_in < chan_in_end;
+               ++chan_in) {
+            // Note: weight is accounted for in process().
+            sum_data += data_in(bl, chan_in, corr);
+            sum_all_data += itsAvgAll(bl, chan_in, corr);
+            sum_weights += weights_in(bl, chan_in, corr);
+            sum_all_weights += itsWeightAll(bl, chan_in, corr);
+            sum_n_points += itsNPoints(bl, chan_in, corr);
           }
+
           // Flag the point if insufficient unflagged data.
-          if (sumw == 0 || np < itsMinNPoint || np < navgAll * itsMinPerc) {
-            outdata[inxo] = (sumaw == 0 ? casacore::Complex() : sumad / sumaw);
-            outflags[inxo] = true;
-            outwght[inxo] = sumaw;
+          if (sum_weights == 0 || sum_n_points < itsMinNPoint ||
+              sum_n_points < n_averaged_all * itsMinPerc) {
+            data_out(bl, chan_out, corr) =
+                (sum_all_weights == 0 ? std::complex<float>()
+                                      : sum_all_data / sum_all_weights);
+            flags_out(bl, chan_out, corr) = true;
+            weights_out(bl, chan_out, corr) = sum_all_weights;
           } else {
-            outdata[inxo] = sumd / sumw;
-            outflags[inxo] = false;
-            outwght[inxo] = sumw;
+            data_out(bl, chan_out, corr) = sum_data / sum_weights;
+            flags_out(bl, chan_out, corr) = false;
+            weights_out(bl, chan_out, corr) = sum_weights;
           }
-          inxo += ncorr;
         }
       }
     }
   });
-  // Put the averaged values in the buffer.
-  itsBuf->setData(data_out);
-  itsBuf->setWeights(weights_out);
-  itsBuf->setFlags(flags_out);
   // The result UVWs are the average of the input.
   // If ever needed, UVWCalculator can be used to calculate the UVWs.
   itsBuf->GetUvw() /= double(itsNTimes);
 }
 
-void Averager::copyFullResFlags(const Cube<bool>& fullResFlags,
-                                const Cube<bool>& flags, int timeIndex) {
+void Averager::copyFullResFlags(
+    const aocommon::xt::Span<bool, 3>& full_res_flags,
+    const aocommon::xt::Span<bool, 3>& flags, int time_index) {
   // Copy the fullRes flags to the given index.
   // Furthermore the appropriate FullRes flags are set for a
   // flagged data point. It can be the case that an input data point
   // has been averaged before, thus has fewer channels than FullResFlags.
   // nchan and nbl are the same for in and out.
   // ntimout is a multiple of ntimavg.
-  IPosition shapeIn = fullResFlags.shape();
-  IPosition shapeOut = itsBuf->GetCasacoreFullResFlags().shape();
-  IPosition shapeFlg = flags.shape();
-  unsigned int nchan = shapeIn[0];    // original nr of channels
-  unsigned int ntimavg = shapeIn[1];  // nr of averaged times in input data
-  unsigned int nchanavg = nchan / shapeFlg[1];  // nr of avg chan in input data
-  unsigned int ntimout = shapeOut[1];  // nr of averaged times in output data
-  unsigned int nbl = shapeIn[2];       // nr of baselines
-  unsigned int ncorr = shapeFlg[0];    // nr of correlations (in FLAG)
+  const std::array<size_t, 3> shape_in = full_res_flags.shape();
+  const std::array<size_t, 3> shape_out = itsBuf->GetFullResFlags().shape();
+  const std::array<size_t, 3> shape_flags = flags.shape();
+  // original nr of channels
+  const unsigned int nchan = shape_in[2];
+  // nr of averaged times in input data
+  const unsigned int ntimavg = shape_in[1];
+  // nr of averaged channels in input data
+  const unsigned int nchanavg = nchan / shape_flags[1];
+  // nr of averaged times in output data
+  const unsigned int ntimout = shape_out[1];
+  const unsigned int nbl = shape_in[0];       // nr of baselines
+  const unsigned int ncorr = shape_flags[2];  // nr of correlations (in FLAG)
   // in has to be copied to the correct time index in out.
   bool* outBase =
-      itsBuf->GetFullResFlags().data() + nchan * ntimavg * timeIndex;
+      itsBuf->GetFullResFlags().data() + nchan * ntimavg * time_index;
   for (unsigned int k = 0; k < nbl; ++k) {
-    const bool* inPtr = fullResFlags.data() + k * nchan * ntimavg;
-    const bool* flagPtr = flags.data() + k * ncorr * shapeFlg[1];
+    const bool* inPtr = full_res_flags.data() + k * nchan * ntimavg;
+    const bool* flagPtr = flags.data() + k * ncorr * shape_flags[1];
     bool* outPtr = outBase + k * nchan * ntimout;
     memcpy(outPtr, inPtr, nchan * ntimavg * sizeof(bool));
     // Applying the flags only needs to be done if the input data
     // was already averaged before.
     if (ntimavg > 1 || nchanavg > 1) {
-      for (int j = 0; j < shapeFlg[1]; ++j) {
+      for (unsigned int j = 0; j < shape_flags[1]; ++j) {
         // If a data point is flagged, the flags in the corresponding
         // FullRes window have to be set.
         // Only look at the flags of the first correlation.
