@@ -22,8 +22,7 @@ void Execute(const std::vector<std::shared_ptr<Step>>& steps) {
   steps.front()->setInfo(base::DPInfo());
 
   // Finally, execute the steps.
-  base::DPBuffer buf;
-  while (steps.front()->process(buf))
+  while (steps.front()->process(std::make_unique<base::DPBuffer>()))
     ;
   steps.front()->finish();
 }
