@@ -59,7 +59,7 @@ class OneApplyCal : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer& buffer) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -96,7 +96,6 @@ class OneApplyCal : public Step {
   static void applyFlags(std::vector<double>& values,
                          const std::vector<double>& weights);
 
-  base::DPBuffer itsBuffer;
   std::string itsName;
   std::string itsParmDBName;
   // itsParmDBOnDisk specifies the existence of a parmdb on disk. If this is
