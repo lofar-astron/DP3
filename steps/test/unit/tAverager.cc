@@ -4,10 +4,17 @@
 //
 // @author Ger van Diepen
 
+#include <array>
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Quanta/Quantum.h>
+
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xview.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -42,35 +49,35 @@ class TestInput : public dp3::steps::MockInput {
         itsNCorr(ncorr),
         itsFlag(flag) {}
 
- private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 1000 + itsCount * 6);
+    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
+
+    buffer->ResizeData(itsNBl, itsNChan, itsNCorr);
+    for (int i = 0; i < int(buffer->GetData().size()); ++i) {
+      buffer->GetData().data()[i] =
+          std::complex<float>(i + itsCount * 10, i - 1000 + itsCount * 6);
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buf.setWeights(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    buf.setFlags(flags);
+
+    buffer->ResizeWeights(itsNBl, itsNChan, itsNCorr);
+    buffer->GetWeights().fill(1.0f);
+
+    buffer->ResizeFlags(itsNBl, itsNChan, itsNCorr);
+    buffer->GetFlags().fill(itsFlag);
+
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
-    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = itsFlag;
-    buf.setFullResFlags(fullResFlags);
-    casacore::Matrix<double> uvw(3, itsNBl);
-    indgen(uvw, double(itsCount * 100));
-    buf.setUVW(uvw);
-    getNextStep()->process(buf);
+    buffer->ResizeFullResFlags(itsNBl, 1, itsNChan);
+    buffer->GetFullResFlags().fill(itsFlag);
+
+    buffer->ResizeUvw(itsNBl);
+    xt::flatten(buffer->GetUvw()) =
+        (itsCount * 100) + xt::arange(buffer->GetUvw().size());
+
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -88,7 +95,13 @@ class TestInput : public dp3::steps::MockInput {
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
+
+ private:
+  int itsCount;
+  int itsNTime;
+  int itsNBl;
+  int itsNChan;
+  int itsNCorr;
   bool itsFlag;
 };
 
@@ -106,73 +119,86 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsNAvgChan(navgchan),
         itsFlag(flag) {}
 
- private:
-  bool process(const DPBuffer& buf) override {
-    int nchan = 1 + (itsNChan - 1) / itsNAvgChan;
-    int navgtime = std::min(itsNAvgTime, itsNTime - itsCount * itsNAvgTime);
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    const size_t nchan = 1 + (itsNChan - 1) / itsNAvgChan;
+    const size_t navgtime =
+        std::min(itsNAvgTime, itsNTime - itsCount * itsNAvgTime);
     // Fill expected result in similar way as TestInput.
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    casacore::Cube<bool> fullResFlags(itsNChan, itsNAvgTime, itsNBl);
-    fullResFlags = true;  // takes care of missing times at the end
-    weights = 0;
-    for (int j = itsCount * itsNAvgTime; j < itsCount * itsNAvgTime + navgtime;
-         ++j) {
-      for (int i = 0; i < int(data.size()); ++i) {
-        data.data()[i] += casacore::Complex(i + j * 10, i - 1000 + j * 6);
-        weights.data()[i] += float(1);
+    std::array<size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> data(shape, 0.0f);
+    xt::xtensor<float, 3> weights(shape, 0.0f);
+    // The 'true' value takes care of missing times at the end.
+    xt::xtensor<bool, 3> full_res_flags({itsNBl, itsNAvgTime, itsNChan}, true);
+    for (size_t j = itsCount * itsNAvgTime;
+         j < itsCount * itsNAvgTime + navgtime; ++j) {
+      for (size_t i = 0; i < data.size(); ++i) {
+        data.data()[i] +=
+            std::complex<float>(i + j * 10, int(i) - 1000 + int(j) * 6);
+        weights.data()[i] += 1.0f;
       }
-      fullResFlags(casacore::Slicer(
-          casacore::IPosition(3, 0, 0, 0),
-          casacore::IPosition(3, itsNChan, navgtime, itsNBl))) = itsFlag;
+      xt::view(full_res_flags, xt::all(), xt::range(0, navgtime), xt::all())
+          .fill(itsFlag);
     }
-    casacore::Cube<casacore::Complex> result(itsNCorr, nchan, itsNBl);
-    casacore::Cube<float> resultw(itsNCorr, nchan, itsNBl);
-    resultw = 0;
+    shape[1] = nchan;
+    xt::xtensor<std::complex<float>, 3> result_data(shape, 0.0f);
+    xt::xtensor<float, 3> result_weights(shape, 0.0f);
+    xt::xtensor<bool, 3> result_flags(shape, itsFlag);
     // Average to get the true expected result.
-    for (int k = 0; k < itsNBl; ++k) {
-      for (int i = 0; i < itsNCorr; ++i) {
-        for (int j = 0; j < nchan; ++j) {
-          int jc;
-          for (jc = j * itsNAvgChan;
-               jc < std::min((j + 1) * itsNAvgChan, itsNChan); ++jc) {
-            result(i, j, k) += data(i, jc, k);
-            resultw(i, j, k) += weights(i, jc, k);
+    for (size_t bl = 0; bl < itsNBl; ++bl) {
+      for (size_t corr = 0; corr < itsNCorr; ++corr) {
+        for (size_t ch = 0; ch < nchan; ++ch) {
+          size_t avg_chan;
+          for (avg_chan = ch * itsNAvgChan;
+               avg_chan < std::min((ch + 1) * itsNAvgChan, itsNChan);
+               ++avg_chan) {
+            result_data(bl, ch, corr) += data(bl, avg_chan, corr);
+            result_weights(bl, ch, corr) += weights(bl, avg_chan, corr);
           }
-          result(i, j, k) /= float(navgtime * (jc - j * itsNAvgChan));
+          result_data(bl, ch, corr) /=
+              float(navgtime * (avg_chan - ch * itsNAvgChan));
         }
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), itsFlag));
-    BOOST_CHECK(casacore::near(
-        buf.getTime(),
-        2 + 5 * (itsCount * itsNAvgTime + (itsNAvgTime - 1) / 2.)));
-    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), resultw, 1e-5));
+    BOOST_CHECK(
+        xt::allclose(xt::real(buffer->GetData()), xt::real(result_data)));
+    BOOST_CHECK(
+        xt::allclose(xt::imag(buffer->GetData()), xt::imag(result_data)));
+    BOOST_CHECK(buffer->GetFlags() == result_flags);
+    BOOST_CHECK_CLOSE(
+        buffer->getTime(),
+        2 + 5 * (itsCount * itsNAvgTime + (itsNAvgTime - 1) / 2.0), 1.0e-3);
+    BOOST_CHECK(xt::allclose(buffer->GetWeights(), result_weights));
     if (navgtime == itsNAvgTime) {
-      casacore::Matrix<double> uvw(3, itsNBl);
-      indgen(uvw, 100 * (itsCount * itsNAvgTime + 0.5 * (itsNAvgTime - 1)));
-      BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
+      const xt::xtensor<double, 2> uvw =
+          (100 * (itsCount * itsNAvgTime + 0.5 * (itsNAvgTime - 1))) +
+          xt::arange(itsNBl * 3).reshape({itsNBl, 3});
+      BOOST_CHECK(xt::allclose(buffer->GetUvw(), uvw));
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
+    BOOST_CHECK(buffer->GetFullResFlags() == full_res_flags);
+
     ++itsCount;
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
-    BOOST_CHECK_EQUAL(itsNChan, int(info.origNChan()));
-    BOOST_CHECK_EQUAL(1 + (itsNChan - 1) / itsNAvgChan, int(info.nchan()));
-    BOOST_CHECK_EQUAL(1 + (itsNTime - 1) / itsNAvgTime, int(info.ntime()));
+    BOOST_CHECK_EQUAL(itsNChan, info.origNChan());
+    BOOST_CHECK_EQUAL(1 + (itsNChan - 1) / itsNAvgChan, info.nchan());
+    BOOST_CHECK_EQUAL(1 + (itsNTime - 1) / itsNAvgTime, info.ntime());
     BOOST_CHECK_EQUAL(5 * itsNAvgTime, info.timeInterval());
-    BOOST_CHECK_EQUAL(itsNAvgChan, int(info.nchanAvg()));
-    BOOST_CHECK_EQUAL(itsNAvgTime, int(info.ntimeAvg()));
+    BOOST_CHECK_EQUAL(itsNAvgChan, info.nchanAvg());
+    BOOST_CHECK_EQUAL(itsNAvgTime, info.ntimeAvg());
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNAvgTime, itsNAvgChan;
+ private:
+  size_t itsCount;
+  size_t itsNTime;
+  size_t itsNBl;
+  size_t itsNChan;
+  size_t itsNCorr;
+  size_t itsNAvgTime;
+  size_t itsNAvgChan;
   bool itsFlag;
 };
 
@@ -184,55 +210,40 @@ class TestInput3 : public dp3::steps::MockInput {
         itsNrTime(nrtime),
         itsNrBl(nrbl),
         itsNrChan(nrchan),
-        itsNrCorr(nrcorr) {
-    itsFullResFlags.resize(itsNrChan, 1, nrbl);
-  }
+        itsNrCorr(nrcorr) {}
 
- private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (itsCount == itsNrTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNrCorr, itsNrChan, itsNrBl);
-    casacore::Cube<float> weights(itsNrCorr, itsNrChan, itsNrBl);
-    casacore::Cube<bool> flags(itsNrCorr, itsNrChan, itsNrBl);
+    buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
+    buffer->ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
+    buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
+    buffer->ResizeFullResFlags(itsNrBl, 1, itsNrChan);
     int i = 0;
-    for (int ib = 0; ib < itsNrBl; ++ib) {
-      for (int ic = 0; ic < itsNrChan; ++ic) {
-        for (int ip = 0; ip < itsNrCorr; ++ip) {
-          data.data()[i] =
-              casacore::Complex(i + itsCount * 10, i - 1000 + itsCount * 6);
-          weights.data()[i] = (1 + (itsCount + ib + ic) % 5) / 5.;
-          flags.data()[i] = ((itsCount + 2 * ib + 3 * ic) % 7 == 0);
+    for (int bl = 0; bl < itsNrBl; ++bl) {
+      for (int ch = 0; ch < itsNrChan; ++ch) {
+        for (int corr = 0; corr < itsNrCorr; ++corr) {
+          buffer->GetData()(bl, ch, corr) =
+              std::complex<float>(i + itsCount * 10, i - 1000 + itsCount * 6);
+          buffer->GetWeights()(bl, ch, corr) =
+              (1 + (itsCount + bl + ch) % 5) / 5.;
+          buffer->GetFlags()(bl, ch, corr) =
+              ((itsCount + 2 * bl + 3 * ch) % 7 == 0);
           i++;
         }
-        itsFullResFlags(ic, 0, ib) = ((itsCount + 2 * ib + 3 * ic) % 7 == 0);
+        buffer->GetFullResFlags()(bl, 0, ch) =
+            ((itsCount + 2 * bl + 3 * ch) % 7 == 0);
       }
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
-    buf.setData(data);
-    buf.setWeights(weights);
-    buf.setFlags(flags);
-    buf.setFullResFlags(itsFullResFlags);
+    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
     casacore::Vector<dp3::common::rownr_t> rownrs(1, itsCount);
-    buf.setRowNrs(rownrs);
-    casacore::Matrix<double> uvw(3, itsNrBl);
-    indgen(uvw);
-    buf.setUVW(uvw);
-    getNextStep()->process(buf);
+    buffer->setRowNrs(rownrs);
+    buffer->ResizeUvw(itsNrBl);
+    xt::flatten(buffer->GetUvw()) = xt::arange(buffer->GetUvw().size());
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
-    return true;
-  }
-
-  virtual void getUVW(const casacore::RefRows&, double, DPBuffer& buf) {
-    buf.ResizeUvw(itsNrBl);
-    indgen(buf.GetCasacoreUvw());
-  }
-  virtual bool getFullResFlags(const casacore::RefRows&, DPBuffer& buf) {
-    buf.GetCasacoreFullResFlags() = itsFullResFlags;
-    buf.MakeIndependent(kFullResFlagsField);
     return true;
   }
 
@@ -249,8 +260,13 @@ class TestInput3 : public dp3::steps::MockInput {
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
-  int itsCount, itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
-  casacore::Cube<bool> itsFullResFlags;
+
+ private:
+  int itsCount;
+  int itsNrTime;
+  int itsNrBl;
+  int itsNrChan;
+  int itsNrCorr;
 };
 
 // Class to check result of averaging TestInput3.
@@ -264,62 +280,64 @@ class TestOutput3 : public dp3::steps::test::ThrowStep {
         itsNrChan(nrchan),
         itsNrCorr(nrcorr) {}
 
- private:
-  bool process(const DPBuffer& buf) override {
-    casacore::Cube<casacore::Complex> result(itsNrCorr, 1, itsNrBl);
-    casacore::Cube<float> weights(itsNrCorr, 1, itsNrBl);
-    casacore::Cube<bool> flags(itsNrCorr, 1, itsNrBl);
-    casacore::Cube<bool> fullResFlags(itsNrChan, itsNrTime, itsNrBl);
-    weights = float(0);
-    flags = true;
-    fullResFlags = true;
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    xt::xtensor<std::complex<float>, 3> result({itsNrBl, 1, itsNrCorr}, 0.0f);
+    xt::xtensor<float, 3> weights({itsNrBl, 1, itsNrCorr}, 0.0f);
+    xt::xtensor<bool, 3> flags({itsNrBl, 1, itsNrCorr}, true);
+    xt::xtensor<bool, 3> fullResFlags({itsNrBl, itsNrTime, itsNrChan}, true);
     // Create data in the same way as in TestInput3.
-    for (int it = 0; it < itsNrTime; ++it) {
+    for (size_t time = 0; time < itsNrTime; ++time) {
       int i = 0;
-      for (int ib = 0; ib < itsNrBl; ++ib) {
-        for (int ic = 0; ic < itsNrChan; ++ic) {
-          for (int ip = 0; ip < itsNrCorr; ++ip) {
-            if ((it + 2 * ib + 3 * ic) % 7 != 0) {
-              float weight = (1 + (it + ib + ic) % 5) / 5.;
-              result(ip, 0, ib) +=
-                  weight * casacore::Complex(i + it * 10, i - 1000 + it * 6);
-              weights(ip, 0, ib) += weight;
-              flags(ip, 0, ib) = false;
-              fullResFlags(ic, it, ib) = false;
+      for (size_t bl = 0; bl < itsNrBl; ++bl) {
+        for (size_t ch = 0; ch < itsNrChan; ++ch) {
+          for (size_t corr = 0; corr < itsNrCorr; ++corr) {
+            if ((time + 2 * bl + 3 * ch) % 7 != 0) {
+              float weight = (1 + (time + bl + ch) % 5) / 5.;
+              result(bl, 0, corr) +=
+                  weight *
+                  std::complex<float>(i + time * 10, i - 1000 + int(time) * 6);
+              weights(bl, 0, corr) += weight;
+              flags(bl, 0, corr) = false;
+              fullResFlags(bl, time, ch) = false;
             }
             i++;
           }
         }
       }
     }
-    BOOST_CHECK(allNE(weights, float(0.)));
+    BOOST_CHECK(xt::all(xt::not_equal(weights, 0.0f)));
     for (unsigned int i = 0; i < result.size(); ++i) {
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), flags));
-    BOOST_CHECK(casacore::near(buf.getTime(), 2. + 5 * (itsNrTime - 1) / 2.));
-    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1e-5));
-    casacore::Matrix<double> uvw(3, itsNrBl);
-    indgen(uvw);
-    BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
+    BOOST_CHECK(xt::allclose(xt::real(buffer->GetData()), xt::real(result)));
+    BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData()), xt::imag(result)));
+    BOOST_CHECK(buffer->GetFlags() == flags);
+    BOOST_CHECK_CLOSE(buffer->getTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
+                      1.0e-3);
+    BOOST_CHECK(xt::allclose(buffer->GetWeights(), weights));
+    const xt::xtensor<double, 2> uvw =
+        xt::arange(itsNrBl * 3).reshape({itsNrBl, 3});
+    BOOST_CHECK(xt::allclose(buffer->GetUvw(), uvw));
+    BOOST_CHECK(buffer->GetFullResFlags() == fullResFlags);
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
-    BOOST_CHECK_EQUAL(itsNrChan, int(info.origNChan()));
+    BOOST_CHECK_EQUAL(itsNrChan, info.origNChan());
     BOOST_CHECK_EQUAL(size_t{1}, info.nchan());
     BOOST_CHECK_EQUAL(size_t{1}, info.ntime());
     BOOST_CHECK_EQUAL(5 * itsNrTime, info.timeInterval());
-    BOOST_CHECK_EQUAL(itsNrChan, int(info.nchanAvg()));
-    BOOST_CHECK_EQUAL(itsNrTime, int(info.ntimeAvg()));
+    BOOST_CHECK_EQUAL(itsNrChan, info.nchanAvg());
+    BOOST_CHECK_EQUAL(itsNrTime, info.ntimeAvg());
   }
 
-  int itsNrTime, itsNrBl, itsNrChan, itsNrCorr;
+ private:
+  size_t itsNrTime;
+  size_t itsNrBl;
+  size_t itsNrChan;
+  size_t itsNrCorr;
 };
 
 // Simple class to flag every step-th XX point.
@@ -327,11 +345,10 @@ class TestFlagger : public dp3::steps::test::ThrowStep {
  public:
   TestFlagger(int step) : itsCount(0), itsStep(step) {}
 
-  bool process(const DPBuffer& buf) override {
-    DPBuffer buf2(buf);
-    int ncorr = buf2.GetCasacoreFlags().shape()[0];
-    int np = buf2.GetCasacoreFlags().size() / ncorr;
-    bool* flagPtr = buf2.GetFlags().data();
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    int ncorr = buffer->GetFlags().shape(2);
+    int np = buffer->GetFlags().size() / ncorr;
+    bool* flagPtr = buffer->GetFlags().data();
     for (int i = 0; i < np; ++i) {
       if ((i + itsCount) % itsStep == 0) {
         for (int j = 0; j < ncorr; ++j) {
@@ -339,7 +356,7 @@ class TestFlagger : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    getNextStep()->process(buf2);
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -348,7 +365,8 @@ class TestFlagger : public dp3::steps::test::ThrowStep {
   void finish() override { getNextStep()->finish(); }
 
  private:
-  int itsCount, itsStep;
+  int itsCount;
+  int itsStep;
 };
 
 // Class to check result of averaging and flagging TestInput3.
@@ -364,32 +382,30 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
         itsStep(step) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
-    casacore::Cube<casacore::Complex> result(itsNrCorr, 1, itsNrBl);
-    casacore::Cube<float> weights(itsNrCorr, 1, itsNrBl);
-    casacore::Cube<bool> flags(itsNrCorr, 1, itsNrBl);
-    casacore::Cube<bool> fullResFlags(itsNrChan, itsNrTime, itsNrBl);
-    weights = float(0);
-    flags = true;
-    fullResFlags = true;
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    xt::xtensor<std::complex<float>, 3> result({itsNrBl, 1, itsNrCorr}, 0.0f);
+    xt::xtensor<float, 3> weights({itsNrBl, 1, itsNrCorr}, 0.0f);
+    xt::xtensor<bool, 3> flags({itsNrBl, 1, itsNrCorr}, true);
+    xt::xtensor<bool, 3> fullResFlags({itsNrBl, itsNrTime, itsNrChan}, true);
     // Create data in the same way as in TestInput3.
-    for (int it = 0; it < itsNrTime; ++it) {
+    for (size_t time = 0; time < itsNrTime; ++time) {
       int i = 0;
-      for (int ib = 0; ib < itsNrBl; ++ib) {
-        for (int ic = 0; ic < itsNrChan; ++ic) {
+      for (size_t bl = 0; bl < itsNrBl; ++bl) {
+        for (size_t ch = 0; ch < itsNrChan; ++ch) {
           // TestFlagger flags every step-th point of 2x2 averaged data.
-          int tf = it / 2;  // same as itsCount in testFlagger
-          if (((ib * itsNrChan + ic) / 2 + tf) % itsStep == 0) {
+          size_t tf = time / 2;  // same as itsCount in testFlagger
+          if (((bl * itsNrChan + ch) / 2 + tf) % itsStep == 0) {
             i += itsNrCorr;
           } else {
-            for (int ip = 0; ip < itsNrCorr; ++ip) {
-              if ((it + 2 * ib + 3 * ic) % 7 != 0) {
-                float weight = (1 + (it + ib + ic) % 5) / 5.;
-                result(ip, 0, ib) +=
-                    weight * casacore::Complex(i + it * 10, i - 1000 + it * 6);
-                weights(ip, 0, ib) += weight;
-                flags(ip, 0, ib) = false;
-                fullResFlags(ic, it, ib) = false;
+            for (size_t corr = 0; corr < itsNrCorr; ++corr) {
+              if ((time + 2 * bl + 3 * ch) % 7 != 0) {
+                float weight = (1 + (time + bl + ch) % 5) / 5.;
+                result(bl, 0, corr) +=
+                    weight * std::complex<float>(i + time * 10,
+                                                 i - 1000 + int(time) * 6);
+                weights(bl, 0, corr) += weight;
+                flags(bl, 0, corr) = false;
+                fullResFlags(bl, time, ch) = false;
               }
               i++;
             }
@@ -403,29 +419,34 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), flags));
-    BOOST_CHECK(casacore::near(buf.getTime(), 2. + 5 * (itsNrTime - 1) / 2.));
-    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1e-5));
-    casacore::Matrix<double> uvw(3, itsNrBl);
-    indgen(uvw);
-    BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
+    BOOST_CHECK(xt::allclose(xt::real(buffer->GetData()), xt::real(result)));
+    BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData()), xt::imag(result)));
+    BOOST_CHECK(buffer->GetFlags() == flags);
+    BOOST_CHECK_CLOSE(buffer->getTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
+                      1.0e-3);
+    BOOST_CHECK(xt::allclose(buffer->GetWeights(), weights));
+    const xt::xtensor<double, 2> uvw =
+        xt::arange(itsNrBl * 3).reshape({itsNrBl, 3});
+    BOOST_CHECK(xt::allclose(buffer->GetUvw(), uvw));
+    BOOST_CHECK(buffer->GetFullResFlags() == fullResFlags);
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
-    BOOST_CHECK_EQUAL(itsNrChan, int(info.origNChan()));
+    BOOST_CHECK_EQUAL(itsNrChan, info.origNChan());
     BOOST_CHECK_EQUAL(size_t{1}, info.nchan());
     BOOST_CHECK_EQUAL(size_t{1}, info.ntime());
     BOOST_CHECK_EQUAL(5 * itsNrTime, info.timeInterval());
-    BOOST_CHECK_EQUAL(itsNrChan, int(info.nchanAvg()));
-    BOOST_CHECK_EQUAL(itsNrTime, int(info.ntimeAvg()));
+    BOOST_CHECK_EQUAL(itsNrChan, info.nchanAvg());
+    BOOST_CHECK_EQUAL(itsNrTime, info.ntimeAvg());
   }
 
-  int itsNrTime, itsNrBl, itsNrChan, itsNrCorr, itsStep;
+  const size_t itsNrTime;
+  const size_t itsNrBl;
+  const size_t itsNrChan;
+  const size_t itsNrCorr;
+  const size_t itsStep;
 };
 
 // Test simple averaging without flagged points.
