@@ -734,7 +734,7 @@ void MSWriter::WriteFullResFlags(Table& out, const DPBuffer& buf) {
   } else {
     const bool* flags_ptr = flags.data();
     unsigned char* chars_ptr = chars.data();
-    for (int i = 0; i < flags.shape(1) * flags.shape(0); ++i) {
+    for (size_t i = 0; i < flags.shape(1) * flags.shape(0); ++i) {
       casacore::Conversion::boolToBit(chars_ptr, flags_ptr, flags.shape(2));
       flags_ptr += flags.shape(2);
       chars_ptr += char_shape[0];
