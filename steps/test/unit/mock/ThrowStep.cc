@@ -21,14 +21,6 @@ void ThrowStep::updateInfo(const base::DPInfo&) {
   BOOST_ERROR("Unexpected updateInfo() call");
 }
 
-bool ThrowStep::process(const base::DPBuffer&) {
-  throw std::runtime_error("Unexpected process call for regular data");
-}
-
-bool ThrowStep::process(std::unique_ptr<base::BDABuffer>) {
-  throw std::runtime_error("Unexpected process call for BDA data");
-}
-
 void ThrowStep::finish() { BOOST_ERROR("Unexpected finish() call"); }
 
 void ThrowStep::show(std::ostream&) const {

@@ -12,6 +12,7 @@ namespace test {
 /**
  * Common Step class for use in tests.
  * All methods raise "Unexpected call" errors when called.
+ * 'Step' already throws an exception if process() is not implemented.
  */
 class ThrowStep : public Step {
  public:
@@ -19,8 +20,6 @@ class ThrowStep : public Step {
   common::Fields getProvidedFields() const override;
 
   void updateInfo(const base::DPInfo&) override;
-  bool process(const base::DPBuffer&) override;
-  bool process(std::unique_ptr<base::BDABuffer>) override;
   void finish() override;
   void show(std::ostream&) const override;
 };

@@ -1,5 +1,5 @@
-// tApplyCal.cc: Test program for class AORFlagger
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// tApplyCal.cc: Test program for class ApplyCal
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema
@@ -97,37 +97,28 @@ class TestInput : public dp3::steps::MockInput {
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
- private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] = casacore::Complex(1, 0);
-    }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    weights = 1.;
+    buffer->ResizeData(itsNBl, itsNChan, itsNCorr);
+    buffer->GetData().fill(std::complex<float>(1, 0));
+    buffer->ResizeWeights(itsNBl, itsNChan, itsNCorr);
+    buffer->GetWeights().fill(1.0f);
 
-    casacore::Matrix<double> uvw(3, itsNBl);
+    buffer->ResizeUvw(itsNBl);
     for (int i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = 1 + itsCount + i;
-      uvw(1, i) = 2 + itsCount + i;
-      uvw(2, i) = 3 + itsCount + i;
+      buffer->GetUvw()(i, 0) = 1 + itsCount + i;
+      buffer->GetUvw()(i, 1) = 2 + itsCount + i;
+      buffer->GetUvw()(i, 2) = 3 + itsCount + i;
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * itsTimeInterval + 4472025740.0);
-    buf.setData(data);
-    buf.setWeights(weights);
-    buf.setUVW(uvw);
-    casacore::Cube<bool> flags(data.shape());
-    flags = false;
-    buf.setFlags(flags);
-    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = false;
-    buf.setFullResFlags(fullResFlags);
-    getNextStep()->process(buf);
+    buffer->setTime(itsCount * itsTimeInterval + 4472025740.0);
+    buffer->ResizeFlags(itsNBl, itsNChan, itsNCorr);
+    buffer->GetFlags().fill(false);
+    buffer->ResizeFullResFlags(itsNBl, 1, itsNChan);
+    buffer->GetFullResFlags().fill(false);
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -137,7 +128,13 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNChan, itsNBl, itsNCorr, itsTimeInterval;
+ private:
+  int itsCount;
+  int itsNTime;
+  int itsNChan;
+  int itsNBl;
+  int itsNCorr;
+  int itsTimeInterval;
 };
 
 // Class to check result of TestInput run by tests.
@@ -160,8 +157,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsTimeInterval(5.),
         itsDoTest(doTest) {}
 
- private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Fill data and scale as needed.
     casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
 
@@ -228,25 +224,25 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
 
     if (itsDoTest & WeightEquals) {
-      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(0, 0, 1), 4.));
-      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(1, 0, 1), 9.));
-      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(2, 0, 1), 4.));
-      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(3, 0, 1), 9.));
-      BOOST_CHECK(casacore::near(buf.GetCasacoreWeights()(0, 31, 5), 0.8));
+      BOOST_CHECK(casacore::near(buffer->GetCasacoreWeights()(0, 0, 1), 4.));
+      BOOST_CHECK(casacore::near(buffer->GetCasacoreWeights()(1, 0, 1), 9.));
+      BOOST_CHECK(casacore::near(buffer->GetCasacoreWeights()(2, 0, 1), 4.));
+      BOOST_CHECK(casacore::near(buffer->GetCasacoreWeights()(3, 0, 1), 9.));
+      BOOST_CHECK(casacore::near(buffer->GetCasacoreWeights()(0, 31, 5), 0.8));
     }
 
     if (itsDoTest & DataEquals) {
-      BOOST_CHECK(allNear(buf.GetCasacoreData(), data, 1.e-7));
+      BOOST_CHECK(allNear(buffer->GetCasacoreData(), data, 1.e-7));
     }
 
     if (itsDoTest & DataNotChanged) {
-      BOOST_CHECK(allNear(buf.GetCasacoreData(), data, 1.e-7));
+      BOOST_CHECK(allNear(buffer->GetCasacoreData(), data, 1.e-7));
     }
     if (itsDoTest & DataChanged) {
-      BOOST_CHECK(!(allNear(buf.GetCasacoreData(), data, 1.e-7)));
+      BOOST_CHECK(!(allNear(buffer->GetCasacoreData(), data, 1.e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1.e-6));
+      BOOST_CHECK(allNear(buffer->GetCasacoreWeights(), weights, 1.e-6));
     }
     itsCount++;
     itsTimeStep++;
@@ -263,9 +259,15 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK_EQUAL(itsNBl, int(infoIn.nbaselines()));
   }
 
+ private:
   int itsCount;
   int itsTimeStep;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsTimeInterval, itsDoTest;
+  int itsNTime;
+  int itsNBl;
+  int itsNChan;
+  int itsNCorr;
+  int itsTimeInterval;
+  int itsDoTest;
 };
 
 // Test clock + tec, and test two ApplyCals in sequence
