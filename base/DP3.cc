@@ -198,8 +198,6 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::DemixerNew>(parset, prefix);
   } else if (type == "grouppredict") {
     step = std::make_shared<steps::BdaGroupPredict>(parset, prefix);
-  } else if (type == "idgpredict") {
-    step = std::make_shared<steps::IDGPredict>(parset, prefix);
   } else if (type == "h5parmpredict") {
     step = std::make_shared<steps::H5ParmPredict>(parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
