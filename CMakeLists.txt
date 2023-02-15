@@ -900,7 +900,7 @@ endif() # BUILD_TESTING
 # Warning: XTensor and XSimd have 'BUILD_BENCHMARK' options. When enabling that
 # option, as error occurs in the XTensor and/or XSimd CMake code.
 # Therefore, do not rename 'BUILD_BENCHMARKS' to 'BUILD_BENCHMARK'!
-option(BUILD_BENCHMARKS "Build the benchmarks" ON)
+option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
 if(BUILD_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
