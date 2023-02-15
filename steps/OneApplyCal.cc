@@ -351,17 +351,16 @@ void OneApplyCal::showTimings(std::ostream& os, double duration) const {
   os << " OneApplyCal " << itsName << '\n';
 }
 
-bool OneApplyCal::process(const DPBuffer& bufin) {
+bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
-  itsBuffer.copy(bufin);
 
-  if (bufin.getTime() > itsLastTime) {
+  if (buffer->getTime() > itsLastTime) {
     if (itsParmDBOnDisk && itsUseH5Parm) {
-      updateParmsH5(bufin.getTime());
+      updateParmsH5(buffer->getTime());
     } else if (itsParmDBOnDisk) {
-      updateParmsParmDB(bufin.getTime());
+      updateParmsParmDB(buffer->getTime());
     } else {
-      if (itsBuffer.GetSolution().size() == 0) {
+      if (buffer->GetSolution().size() == 0) {
         throw std::runtime_error(
             "No buffer stored before OneApplyCal step. Ensure a solution is "
             "computed before this step, or specify a parmdb/h5parm file in "
@@ -390,9 +389,9 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
       }
 
       // Validate that the data is in the correct shape
-      size_t nchan = itsBuffer.GetCasacoreData().shape()[1];
-      size_t n_corrs = itsBuffer.GetSolution()[0].size() / ant_names.size();
-      if (itsBuffer.GetSolution().size() != nchan ||
+      size_t nchan = buffer->GetCasacoreData().shape()[1];
+      size_t n_corrs = buffer->GetSolution()[0].size() / ant_names.size();
+      if (buffer->GetSolution().size() != nchan ||
           (n_corrs != 2 && n_corrs != 4)) {
         throw std::runtime_error(
             "The solution is not in the correct shape. Was the solution "
@@ -400,7 +399,7 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
       }
 
       itsJonesParameters = std::make_unique<JonesParameters>(
-          info().chanFreqs(), times, ant_names, ct, itsBuffer.GetSolution(),
+          info().chanFreqs(), times, ant_names, ct, buffer->GetSolution(),
           itsInvert, itsSigmaMMSE);
     }
     itsTimeStep = 0;
@@ -409,12 +408,12 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
   }
 
   // Loop through all baselines in the buffer.
-  size_t nbl = itsBuffer.GetCasacoreData().shape()[2];
+  const size_t nbl = buffer->GetData().shape(0);
+  const size_t nchan = buffer->GetData().shape(1);
 
-  casacore::Complex* data = itsBuffer.GetData().data();
-  float* weight = itsBuffer.GetWeights().data();
-  bool* flag = itsBuffer.GetFlags().data();
-  size_t nchan = itsBuffer.GetCasacoreData().shape()[1];
+  std::complex<float>* data = buffer->GetData().data();
+  float* weight = buffer->GetWeights().data();
+  bool* flag = buffer->GetFlags().data();
 
   aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
@@ -443,7 +442,7 @@ bool OneApplyCal::process(const DPBuffer& bufin) {
   });
 
   itsTimer.stop();
-  getNextStep()->process(itsBuffer);
+  getNextStep()->process(std::move(buffer));
 
   itsCount++;
   return true;

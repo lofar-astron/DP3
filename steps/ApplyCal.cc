@@ -86,8 +86,8 @@ void ApplyCal::showTimings(std::ostream& os, double duration) const {
   }
 }
 
-bool ApplyCal::process(const DPBuffer& bufin) {
-  getNextStep()->process(bufin);
+bool ApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 

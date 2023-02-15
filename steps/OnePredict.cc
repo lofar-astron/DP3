@@ -599,7 +599,8 @@ bool OnePredict::process(const DPBuffer& bufin) {
 
   // Call ApplyCal step
   if (apply_cal_step_) {
-    apply_cal_step_->process(scratch_buffer);
+    // The static_cast allows using both process() overloads for now.
+    static_cast<Step*>(apply_cal_step_.get())->process(scratch_buffer);
     scratch_buffer = result_step_->get();
     scratch_data = scratch_buffer.GetData().data();
   }
