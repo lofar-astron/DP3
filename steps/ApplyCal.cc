@@ -28,7 +28,7 @@ namespace steps {
 
 ApplyCal::ApplyCal(const common::ParameterSet& parset, const string& prefix,
                    bool substep, string predictDirection)
-    : itsIsSubstep(substep) {
+    : is_sub_step_(substep) {
   std::vector<std::string> subStepNames;
   common::ParameterValue namesPar(parset.getString(prefix + "steps", ""));
 
@@ -50,38 +50,34 @@ ApplyCal::ApplyCal(const common::ParameterSet& parset, const string& prefix,
       // Substeps given, use named parameters like applycal.applySol.parmdb
       subStepPrefix = prefix + subStepName + ".";
     }
-    itsApplyCals.push_back(std::make_shared<OneApplyCal>(
+    apply_cals_.push_back(std::make_shared<OneApplyCal>(
         parset, subStepPrefix, prefix, substep, predictDirection));
   }
 
-  Step::setNextStep(itsApplyCals.front());
-  for (unsigned int step = 0; step < itsApplyCals.size() - 1; ++step) {
-    itsApplyCals[step]->setNextStep(itsApplyCals[step + 1]);
+  Step::setNextStep(apply_cals_.front());
+  for (unsigned int step = 0; step < apply_cals_.size() - 1; ++step) {
+    apply_cals_[step]->setNextStep(apply_cals_[step + 1]);
   }
 }
 
 void ApplyCal::setNextStep(std::shared_ptr<Step> nextStep) {
-  itsApplyCals.back()->setNextStep(nextStep);
+  apply_cals_.back()->setNextStep(nextStep);
 }
 
 void ApplyCal::show(std::ostream& os) const {
   // If not a substep, show will be called by DPRun,
   // through the nextStep() mechanism
-  if (itsIsSubstep) {
-    std::vector<OneApplyCal::ShPtr>::const_iterator applycalIter;
-
-    for (applycalIter = itsApplyCals.begin();
-         applycalIter != itsApplyCals.end(); applycalIter++) {
-      (*applycalIter)->show(os);
+  if (is_sub_step_) {
+    for (const std::shared_ptr<OneApplyCal>& apply_cal : apply_cals_) {
+      apply_cal->show(os);
     }
   }
 }
 
 void ApplyCal::showTimings(std::ostream& os, double duration) const {
-  if (itsIsSubstep) {
-    std::vector<OneApplyCal::ShPtr>::const_iterator iter;
-    for (iter = itsApplyCals.begin(); iter != itsApplyCals.end(); iter++) {
-      (*iter)->showTimings(os, duration);
+  if (is_sub_step_) {
+    for (const std::shared_ptr<OneApplyCal>& apply_cal : apply_cals_) {
+      apply_cal->showTimings(os, duration);
     }
   }
 }

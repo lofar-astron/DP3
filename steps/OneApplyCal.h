@@ -35,9 +35,6 @@ namespace steps {
 
 class OneApplyCal : public Step {
  public:
-  /// Define the shared pointer for this type.
-  typedef std::shared_ptr<OneApplyCal> ShPtr;
-
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   OneApplyCal(const common::ParameterSet&, const std::string& prefix,
