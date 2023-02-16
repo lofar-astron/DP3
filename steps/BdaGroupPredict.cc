@@ -123,7 +123,8 @@ class BdaGroupPredict::BaselineGroup {
   // Results are copied back the the BDA Buffer
   void Flush() {
     // Send data to the OnePredict step
-    predict_step_->process(dpbuffer_);
+    // The static_cast allows using the legacy process() overload for now.
+    static_cast<Step*>(predict_step_.get())->process(dpbuffer_);
 
     // Get the result out of the Result step
     const base::DPBuffer& buf_out = result_step_->get();

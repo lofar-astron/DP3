@@ -115,8 +115,8 @@ void Predict::SetPredictBuffer(
 
 void Predict::show(std::ostream& os) const { os << "Predict" << '\n'; }
 
-bool Predict::process(const base::DPBuffer& buffer) {
-  return getNextStep()->process(buffer);
+bool Predict::process(std::unique_ptr<base::DPBuffer> buffer) {
+  return getNextStep()->process(std::move(buffer));
 }
 
 bool Predict::process(std::unique_ptr<BDABuffer> bda_buffer) {

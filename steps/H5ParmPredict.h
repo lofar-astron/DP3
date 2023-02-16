@@ -51,7 +51,7 @@ class H5ParmPredict : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -67,7 +67,6 @@ class H5ParmPredict : public Step {
 
  private:
   std::string itsName;
-  base::DPBuffer itsBuffer;
 
   std::vector<std::shared_ptr<Predict>> itsPredictSteps;
   /// Buffers used by the predict steps. Normally, each Predict step
