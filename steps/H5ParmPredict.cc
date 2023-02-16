@@ -120,15 +120,14 @@ void H5ParmPredict::showTimings(std::ostream& os, double duration) const {
   os << " H5ParmPredict " << itsName << '\n';
 }
 
-bool H5ParmPredict::process(const DPBuffer& bufin) {
+bool H5ParmPredict::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
-  itsBuffer.copy(bufin);
 
-  itsPredictSteps.front()->process(itsBuffer);
-  itsBuffer = itsResultStep->get();
+  itsPredictSteps.front()->process(std::move(buffer));
+  buffer = itsResultStep->extract();
 
   itsTimer.stop();
-  getNextStep()->process(itsBuffer);
+  getNextStep()->process(std::move(buffer));
   return false;
 }
 
