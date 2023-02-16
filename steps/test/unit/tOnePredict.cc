@@ -164,7 +164,7 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
  *
  * @note The function has been copied from @ref steps/test/unit/tIDGPredict.cc.
  */
-static dp3::base::DPBuffer CreateBuffer(
+static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight = 1.0) {
@@ -198,14 +198,14 @@ static dp3::base::DPBuffer CreateBuffer(
     uvw(2, bl) = bl_value + 2.0;
   }
 
-  dp3::base::DPBuffer buffer;
-  buffer.setTime(time);
-  buffer.setExposure(interval);
-  buffer.setData(data);
-  buffer.setWeights(weights);
-  buffer.setFlags(flags);
-  buffer.setFullResFlags(full_res_flags);
-  buffer.setUVW(uvw);
+  auto buffer = std::make_unique<dp3::base::DPBuffer>();
+  buffer->setTime(time);
+  buffer->setExposure(interval);
+  buffer->setData(data);
+  buffer->setWeights(weights);
+  buffer->setFlags(flags);
+  buffer->setFullResFlags(full_res_flags);
+  buffer->setUVW(uvw);
   return buffer;
 }
 

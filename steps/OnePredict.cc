@@ -171,7 +171,7 @@ void OnePredict::SetApplyCal(const common::ParameterSet& parset,
                              const string& prefix) {
   apply_cal_step_ =
       std::make_shared<ApplyCal>(parset, prefix, true, direction_str_);
-  if (operation_ != "replace" &&
+  if (operation_ != Operation::kReplace &&
       parset.getBool(prefix + "applycal.updateweights", false))
     throw std::invalid_argument(
         "Weights cannot be updated when operation is not replace");
@@ -231,7 +231,7 @@ void OnePredict::initializeThreadData() {
 
 void OnePredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  if (operation_ == "replace")
+  if (operation_ == Operation::kReplace)
     info().setBeamCorrectionMode(
         static_cast<int>(everybeam::CorrectionMode::kNone));
 
@@ -264,11 +264,16 @@ base::Direction OnePredict::GetFirstDirection() const {
 }
 
 void OnePredict::SetOperation(const std::string& operation) {
-  operation_ = operation;
-  if (operation_ != "replace" && operation_ != "add" &&
-      operation_ != "subtract")
+  if (operation == "replace") {
+    operation_ = Operation::kReplace;
+  } else if (operation == "add") {
+    operation_ = Operation::kAdd;
+  } else if (operation == "subtract") {
+    operation_ = Operation::kSubtract;
+  } else {
     throw std::invalid_argument(
         "Operation must be 'replace', 'add' or 'subtract'.");
+  }
 }
 
 void OnePredict::show(std::ostream& os) const {
@@ -295,7 +300,18 @@ void OnePredict::show(std::ostream& os) const {
     os << "   beam proximity limit:   "
        << (beam_proximity_limit_ * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
   }
-  os << "  operation:               " << operation_ << '\n';
+  os << "  operation:               ";
+  switch (operation_) {
+    case Operation::kReplace:
+      os << "replace\n";
+      break;
+    case Operation::kAdd:
+      os << "add\n";
+      break;
+    case Operation::kSubtract:
+      os << "subtract\n";
+      break;
+  }
   os << "  threads:                 " << getInfo().nThreads() << '\n';
   if (apply_cal_step_) {
     apply_cal_step_->show(os);
@@ -323,23 +339,20 @@ void OnePredict::showTimings(std::ostream& os, double duration) const {
   os << " of it spent in apply beam" << '\n';
 }
 
-bool OnePredict::process(const DPBuffer& bufin) {
+bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
-  DPBuffer scratch_buffer;
-  scratch_buffer.copy(bufin);
 
   // Determine the various sizes.
-  // const size_t nDr = patch_list_.size();
   const size_t nSt = info().nantenna();
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nCr = info().ncorr();
   const size_t nBeamValues = stokes_i_only_ ? nBl * nCh : nBl * nCh * nCr;
 
-  base::nsplitUVW(uvw_split_index_, baselines_, scratch_buffer.GetCasacoreUvw(),
+  base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetCasacoreUvw(),
                   station_uvw_);
 
-  double time = scratch_buffer.getTime();
+  double time = buffer->getTime();
   // Set up directions for beam evaluation
   everybeam::vector3r_t refdir, tiledir;
 
@@ -577,51 +590,44 @@ bool OnePredict::process(const DPBuffer& bufin) {
     }
   }
 
+  // Copy the input visibilities if we need them later.
+  if (operation_ == Operation::kAdd || operation_ == Operation::kSubtract) {
+    input_data_ = buffer->GetData();
+  }
+
   // Add all thread model data to one buffer
-  scratch_buffer.ResizeData(nBl, nCh, nCr);
-  scratch_buffer.GetCasacoreData() = casacore::Complex();
-  casacore::Complex* scratch_data = scratch_buffer.GetData().data();
+  buffer->ResizeData(nBl, nCh, nCr);
+  buffer->MakeIndependent(kDataField);
+  buffer->GetData().fill(std::complex<float>());
+  casacore::Complex* data = buffer->GetData().data();
   const size_t nVisibilities = nBl * nCh * nCr;
   for (size_t thread = 0; thread < std::min(pool->NThreads(), n_threads);
        ++thread) {
     if (stokes_i_only_) {
       for (size_t i = 0, j = 0; i < nVisibilities; i += nCr, j++) {
-        scratch_data[i] += predict_buffer_->GetModel(thread).data()[j];
-        scratch_data[i + nCr - 1] +=
-            predict_buffer_->GetModel(thread).data()[j];
+        data[i] += predict_buffer_->GetModel(thread).data()[j];
+        data[i + nCr - 1] += predict_buffer_->GetModel(thread).data()[j];
       }
     } else {
-      std::transform(scratch_data, scratch_data + nVisibilities,
-                     predict_buffer_->GetModel(thread).data(), scratch_data,
+      std::transform(data, data + nVisibilities,
+                     predict_buffer_->GetModel(thread).data(), data,
                      std::plus<dcomplex>());
     }
   }
 
-  // Call ApplyCal step
   if (apply_cal_step_) {
-    // The static_cast allows using both process() overloads for now.
-    static_cast<Step*>(apply_cal_step_.get())->process(scratch_buffer);
-    scratch_buffer = result_step_->get();
-    scratch_data = scratch_buffer.GetData().data();
+    apply_cal_step_->process(std::move(buffer));
+    buffer = result_step_->extract();
   }
 
-  // Put predict result from temp buffer into the 'real' buffer
-  if (operation_ == "replace") {
-    buffer_ = scratch_buffer;
-  } else {
-    buffer_.copy(bufin);
-    casacore::Complex* data = buffer_.GetData().data();
-    if (operation_ == "add") {
-      std::transform(data, data + nVisibilities, scratch_data, data,
-                     std::plus<dcomplex>());
-    } else if (operation_ == "subtract") {
-      std::transform(data, data + nVisibilities, scratch_data, data,
-                     std::minus<dcomplex>());
-    }
+  if (operation_ == Operation::kAdd) {
+    buffer->GetData() += input_data_;
+  } else if (operation_ == Operation::kSubtract) {
+    buffer->GetData() = input_data_ - buffer->GetData();
   }
 
   timer_.stop();
-  getNextStep()->process(buffer_);
+  getNextStep()->process(std::move(buffer));
   return false;
 }
 

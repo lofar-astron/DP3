@@ -50,7 +50,7 @@ class OnePredict : public ModelDataStep {
 
   common::Fields getRequiredFields() const override {
     common::Fields fields = kUvwField;
-    if (operation_ == "add" || operation_ == "subtract") {
+    if (operation_ == Operation::kAdd || operation_ == Operation::kSubtract) {
       fields |= kDataField;
     }
     if (apply_cal_step_) {
@@ -63,7 +63,7 @@ class OnePredict : public ModelDataStep {
     // When operation_ == "replace", the output of apply_cal_step_ is passed to
     // the next step. In all other cases, only kDataField changes.
     common::Fields fields = kDataField;
-    if (operation_ == "replace" && apply_cal_step_) {
+    if (operation_ == Operation::kReplace && apply_cal_step_) {
       std::shared_ptr<Step> step = apply_cal_step_;
       do {
         fields |= step->getProvidedFields();
@@ -99,7 +99,7 @@ class OnePredict : public ModelDataStep {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -120,6 +120,8 @@ class OnePredict : public ModelDataStep {
   base::Direction GetFirstDirection() const override;
 
  private:
+  enum class Operation { kReplace, kAdd, kSubtract };
+
   /// The actual constructor
   void init(const common::ParameterSet&, const std::string& prefix,
             const std::vector<std::string>& sourcePatterns);
@@ -138,10 +140,13 @@ class OnePredict : public ModelDataStep {
                      aocommon::Barrier& barrier, bool stokesIOnly);
 
   std::string name_;
-  base::DPBuffer buffer_;
+  /// Stores the input data if the operation is add or subtract.
+  /// Using a member instead of a local variable avoids allocating memory
+  /// for the input data in each process() call.
+  xt::xtensor<std::complex<float>, 3> input_data_;
   std::string source_db_name_;
   bool correct_freq_smearing_{false};
-  std::string operation_;
+  Operation operation_;
   bool apply_beam_{false};
   bool use_channel_freq_{false};
   bool one_beam_per_patch_{false};
