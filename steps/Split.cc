@@ -26,8 +26,7 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-Split::Split(InputStep* input, const common::ParameterSet& parset,
-             const string& prefix)
+Split::Split(const common::ParameterSet& parset, const string& prefix)
     : name_(prefix),
       replace_parameters_(parset.getStringVector(prefix + "replaceparms")),
       sub_steps_() {
@@ -61,9 +60,8 @@ Split::Split(InputStep* input, const common::ParameterSet& parset,
     for (size_t j = 0; j != num_parameters; ++j) {
       parsetCopy.replace(replace_parameters_[j], replace_values[j][i]);
     }
-    std::shared_ptr<Step> first_step =
-        base::MakeStepsFromParset(parsetCopy, prefix, "steps", *input, true,
-                                  steps::Step::MsType::kRegular);
+    std::shared_ptr<Step> first_step = base::MakeStepsFromParset(
+        parsetCopy, prefix, "steps", "", true, steps::Step::MsType::kRegular);
     if (first_step) {
       first_step->setPrevStep(this);
       sub_steps_.push_back(std::move(first_step));

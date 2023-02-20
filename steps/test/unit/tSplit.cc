@@ -12,7 +12,6 @@
 #include "../../NullStep.h"
 #include "../../PhaseShift.h"
 #include "../../Upsample.h"
-#include "mock/MockInput.h"
 
 using dp3::steps::Split;
 using dp3::steps::Step;
@@ -21,12 +20,11 @@ BOOST_AUTO_TEST_SUITE(split)
 
 // Test that split works when the sub-step list is empty.
 BOOST_AUTO_TEST_CASE(no_sub_steps) {
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
   parset.add("split.replaceparms", "foo_param");
   parset.add("foo_param", "[foo,bar]");
   parset.add("split.steps", "[]");
-  Split no_steps(&input, parset, "split.");
+  Split no_steps(parset, "split.");
 
   BOOST_CHECK_NO_THROW(no_steps.updateInfo(dp3::base::DPInfo()));
   BOOST_CHECK_NO_THROW(no_steps.process(dp3::base::DPBuffer()));
@@ -34,7 +32,6 @@ BOOST_AUTO_TEST_CASE(no_sub_steps) {
 }
 
 BOOST_AUTO_TEST_CASE(fields) {
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
 
   // Create some steps with different non-empty required fields.
@@ -50,15 +47,15 @@ BOOST_AUTO_TEST_CASE(fields) {
   parset.add("split.replaceparms", "foo_param");
   parset.add("foo_param", "[foo,bar]");
   parset.add("split.steps", "[]");
-  const Split no_steps(&input, parset, "split.");
+  const Split no_steps(parset, "split.");
   BOOST_TEST(no_steps.getRequiredFields() == dp3::common::Fields());
 
   parset.replace("split.steps", "[phaseshift]");
-  const Split one_step(&input, parset, "split.");
+  const Split one_step(parset, "split.");
   BOOST_TEST(one_step.getRequiredFields() == phase_shift.getRequiredFields());
 
   parset.replace("split.steps", "[phaseshift,upsample]");
-  const Split two_steps(&input, parset, "split.");
+  const Split two_steps(parset, "split.");
   BOOST_TEST(two_steps.getRequiredFields() ==
              (phase_shift.getRequiredFields() | upsample.getRequiredFields()));
 }

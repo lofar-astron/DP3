@@ -102,8 +102,13 @@ static std::shared_ptr<OutputStep> MakeOutputStep(
   }
 
   // A name equal to . or the last name means an update of the last MS.
-  assert(!currentMSName.empty());
   if (outName.empty() || outName == ".") {
+    // currentMSName is empty when creating sub-steps, e.g, in DDECal and Split.
+    if (currentMSName.empty()) {
+      throw std::runtime_error(
+          "In a series of steps that are part of another step, the first "
+          "output step must have a measurement set name.");
+    }
     outName = currentMSName;
     doUpdate = true;
   } else {
@@ -208,33 +213,14 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = pythondp3::PyStep::create_instance(parset, prefix);
   } else if (type == "null") {
     step = std::make_shared<steps::NullStep>();
-  }
-  return step;
-}
-
-static std::shared_ptr<Step> MakeSingleStep(const std::string& type,
-                                            InputStep* inputStep,
-                                            const common::ParameterSet& parset,
-                                            const std::string& prefix,
-                                            std::string& msName,
-                                            Step::MsType inputType) {
-  std::shared_ptr<Step> step = MakeSingleStep(type, parset, prefix, inputType);
-  if (step) {
-    return step;
-  }
-  if (type == "split" || type == "explode") {
-    step = std::make_shared<steps::Split>(inputStep, parset, prefix);
+  } else if (type == "split" || type == "explode") {
+    step = std::make_shared<steps::Split>(parset, prefix);
   } else if (type == "ddecal") {
     if (inputType == Step::MsType::kRegular) {
-      step = std::make_shared<steps::DDECal>(inputStep, parset, prefix);
+      step = std::make_shared<steps::DDECal>(parset, prefix);
     } else if (inputType == Step::MsType::kBda) {
       step = std::make_shared<steps::BdaDdeCal>(parset, prefix);
     }
-  } else if (type == "out" || type == "output" || type == "msout") {
-    step = MakeOutputStep(parset, prefix, msName, inputType);
-  }
-  if (!step) {
-    throw std::runtime_error("Could not create step of type '" + type + "'");
   }
   return step;
 }
@@ -401,8 +387,10 @@ std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
   std::shared_ptr<InputStep> input_step = InputStep::CreateReader(parset);
   std::shared_ptr<Step> last_step = input_step;
 
+  const std::string ms_name =
+      casacore::Path(input_step->msName()).absoluteName();
   std::shared_ptr<Step> step = MakeStepsFromParset(
-      parset, "", "steps", *input_step, false, input_step->outputs());
+      parset, "", "steps", ms_name, false, input_step->outputs());
   if (step) {
     input_step->setNextStep(step);
 
@@ -443,10 +431,10 @@ std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
 std::shared_ptr<Step> MakeStepsFromParset(const common::ParameterSet& parset,
                                           const std::string& prefix,
                                           const std::string& step_names_key,
-                                          InputStep& inputStep,
+                                          const std::string& input_ms_name,
                                           bool terminateChain,
                                           Step::MsType initial_step_output) {
-  std::string msName = casacore::Path(inputStep.msName()).absoluteName();
+  std::string msName = input_ms_name;
   const std::vector<string> stepNames =
       parset.getStringVector(prefix + step_names_key);
 
@@ -467,7 +455,13 @@ std::shared_ptr<Step> MakeStepsFromParset(const common::ParameterSet& parset,
     Step::MsType inputType =
         lastStep ? lastStep->outputs() : initial_step_output;
     std::shared_ptr<Step> step =
-        MakeSingleStep(type, &inputStep, parset, prefix, msName, inputType);
+        MakeSingleStep(type, parset, prefix, inputType);
+    if (!step && (type == "out" || type == "output" || type == "msout")) {
+      step = MakeOutputStep(parset, prefix, msName, inputType);
+    }
+    if (!step) {
+      throw std::runtime_error("Could not create step of type '" + type + "'");
+    }
 
     if (lastStep) {
       if (!step->accepts(lastStep->outputs())) {

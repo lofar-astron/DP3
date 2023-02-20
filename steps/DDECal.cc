@@ -54,10 +54,8 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-DDECal::DDECal(InputStep* input, const common::ParameterSet& parset,
-               const std::string& prefix)
-    : itsInput(*input),
-      itsSettings(parset, prefix),
+DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
+    : itsSettings(parset, prefix),
       itsAvgTime(0),
       itsSols(),
       itsSolutionWriter(itsSettings.h5parm_name),
@@ -184,9 +182,8 @@ void DDECal::setModelNextSteps(Step& step, const std::string& direction,
   }
 
   if (parset.isDefined(step_names_key)) {
-    Step::ShPtr first_step =
-        base::MakeStepsFromParset(parset, "", step_names_key, itsInput, false,
-                                  steps::Step::MsType::kRegular);
+    Step::ShPtr first_step = base::MakeStepsFromParset(
+        parset, "", step_names_key, "", false, steps::Step::MsType::kRegular);
 
     if (first_step) {
       step.setNextStep(first_step);
