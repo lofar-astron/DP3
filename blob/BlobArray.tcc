@@ -146,7 +146,7 @@ BlobOStream& operator<< (BlobOStream& bs, const casacore::Array<T>& arr)
   const T* data = arr.getStorage(deleteIt);
   const casacore::IPosition& shape = arr.shape();
   std::vector<uint64_t> shp(shape.begin(), shape.end());
-  putBlobArray (bs, data, shp.empty() ? 0 : &shp[0], arr.ndim(), true);
+  putBlobArray (bs, data, shp.empty() ? nullptr : &shp[0], arr.ndim(), true);
   arr.freeStorage (data, deleteIt);
   return bs;
 }
@@ -159,7 +159,7 @@ BlobIStream& operator>> (BlobIStream& bs, casacore::Array<T>& arr)
   uint16_t ndim;
   unsigned int nalign = getBlobArrayStart (bs, fortranOrder, ndim);
   std::vector<uint64_t> shp(ndim);
-  getBlobArrayShape (bs, ndim==0 ? 0 : &shp[0], ndim,
+  getBlobArrayShape (bs, ndim==0 ? nullptr : &shp[0], ndim,
                      !fortranOrder, nalign);
   casacore::IPosition shape(ndim);
   for (unsigned int i=0; i<ndim; i++) {

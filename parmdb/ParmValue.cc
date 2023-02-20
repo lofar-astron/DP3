@@ -13,11 +13,13 @@ using namespace std;
 namespace dp3 {
 namespace parmdb {
 
-ParmValue::ParmValue(double value) : itsErrors(0), itsRowId(-1) {
+ParmValue::ParmValue(double value) : itsErrors(nullptr), itsRowId(-1) {
   setScalar(value);
 }
 
-ParmValue::ParmValue(const ParmValue& that) : itsErrors(0) { copyOther(that); }
+ParmValue::ParmValue(const ParmValue& that) : itsErrors(nullptr) {
+  copyOther(that);
+}
 
 ParmValue& ParmValue::operator=(const ParmValue& that) {
   if (this != &that) {
@@ -33,7 +35,7 @@ void ParmValue::copyOther(const ParmValue& that) {
   itsRowId = that.itsRowId;
   itsValues.assign(that.itsValues);  // ensure a copy is made
   delete itsErrors;
-  itsErrors = 0;
+  itsErrors = nullptr;
   if (that.itsErrors) {
     itsErrors = new Array<double>;
     *itsErrors = *that.itsErrors;

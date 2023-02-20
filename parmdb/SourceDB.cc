@@ -71,7 +71,7 @@ SourceDB& SourceDB::operator=(const SourceDB& that) {
 void SourceDB::decrCount() {
   if (itsRep->unlink() == 0) {
     delete itsRep;
-    itsRep = 0;
+    itsRep = nullptr;
   }
 }
 

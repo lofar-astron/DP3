@@ -214,24 +214,24 @@ void DPBuffer::MergeFullResFlags() {
   // Flag shape is [nbl, newnchan, ncorr].
   // FullRes shape is [nbl, navgtime, orignchan]
   // where orignchan = navgchan * newnchan.
-  const int orignchan = full_res_flags_.shape(2);
-  const int newnchan = flags_.shape(1);
-  const int navgchan = orignchan / newnchan;
-  const int navgtime = full_res_flags_.shape(1);
-  const int nbl = full_res_flags_.shape(0);
+  const size_t orignchan = full_res_flags_.shape(2);
+  const size_t newnchan = flags_.shape(1);
+  const size_t navgchan = orignchan / newnchan;
+  const size_t navgtime = full_res_flags_.shape(1);
+  const size_t nbl = full_res_flags_.shape(0);
   assert(nbl == flags_.shape(0));
-  const int ncorr = flags_.shape(2);
+  const size_t ncorr = flags_.shape(2);
   bool* fullResPtr = full_res_flags_.data();
   const bool* flagPtr = flags_.data();
   // Loop over all baselines and new channels.
   // Only use the first correlation in the loop.
-  for (int j = 0; j < nbl; ++j) {
-    for (int i = 0; i < newnchan; ++i) {
+  for (size_t j = 0; j < nbl; ++j) {
+    for (size_t i = 0; i < newnchan; ++i) {
       // If ta data point is flagged, the flags in the corresponding
       // FullRes window have to be set.
       // This is needed in case a data point is further averaged.
       if (*flagPtr) {
-        for (int i = 0; i < navgtime; ++i) {
+        for (size_t i = 0; i < navgtime; ++i) {
           std::fill(fullResPtr, fullResPtr + navgchan, true);
           fullResPtr += orignchan;
         }

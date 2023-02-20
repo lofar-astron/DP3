@@ -74,7 +74,7 @@ class Parm {
   /// It sets the dirty flag, so the data are written when the ParmCache
   /// is flushed.
   void setCoeff(const Grid::Location&, const double* values,
-                unsigned int nvalues, const double* errors = 0,
+                unsigned int nvalues, const double* errors = nullptr,
                 bool useMask = true);
 
   /// Revert to the original coefficients (as on disk).

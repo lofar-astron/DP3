@@ -588,7 +588,7 @@ int32_t indexValue(const std::string& label, const char indexMarker[2]) {
     return (0);
   }
 
-  return (strtol(label.data() + start + 1, 0, 0));
+  return (strtol(label.data() + start + 1, nullptr, 0));
 }
 
 //

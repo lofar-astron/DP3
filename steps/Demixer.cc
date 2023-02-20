@@ -69,7 +69,7 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
       itsMaxIter(parset.getInt(prefix + "maxiter", 50)),
       itsSelBL(parset, prefix, false, "cross"),
       itsFilter(itsSelBL),
-      itsAvgResultSubtr(0),
+      itsAvgResultSubtr(nullptr),
       itsIgnoreTarget(parset.getBool(prefix + "ignoretarget", false)),
       itsTargetSource(parset.getString(prefix + "targetsource", string())),
       itsSubtrSources(parset.getStringVector(prefix + "subtractsources",
