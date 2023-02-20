@@ -283,7 +283,7 @@ void MSWriter::MakeArrayColumn(ColumnDesc desc, const IPosition& ipos,
     table.removeColumn(desc.name());
   }
   // Use storage manager if given.
-  if (dm == 0) {
+  if (dm == nullptr) {
     table.addColumn(desc);
   } else {
     table.addColumn(desc, *dm);
@@ -405,7 +405,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
 
   // Bind all columns according to dminfo.
   newtab.bindCreate(dminfo);
-  casacore::DataManagerCtor dysco_constructor = 0;
+  casacore::DataManagerCtor dysco_constructor = nullptr;
   Record dysco_spec;
   if (st_man_keys_.stManName == "dysco") {
     dysco_spec = st_man_keys_.GetDyscoSpec();
@@ -538,10 +538,10 @@ void MSWriter::UpdateSpw(const std::string& out_name) {
   channum.fillColumn(getInfo().nchan());
   // Change the column shapes.
   TableDesc tdesc = in_spw.tableDesc();
-  MakeArrayColumn(tdesc["CHAN_FREQ"], shape, 0, out_spw);
-  MakeArrayColumn(tdesc["CHAN_WIDTH"], shape, 0, out_spw);
-  MakeArrayColumn(tdesc["EFFECTIVE_BW"], shape, 0, out_spw);
-  MakeArrayColumn(tdesc["RESOLUTION"], shape, 0, out_spw);
+  MakeArrayColumn(tdesc["CHAN_FREQ"], shape, nullptr, out_spw);
+  MakeArrayColumn(tdesc["CHAN_WIDTH"], shape, nullptr, out_spw);
+  MakeArrayColumn(tdesc["EFFECTIVE_BW"], shape, nullptr, out_spw);
+  MakeArrayColumn(tdesc["RESOLUTION"], shape, nullptr, out_spw);
   // Create the required column objects.
   ArrayColumn<double> out_freq(out_spw, "CHAN_FREQ");
   ArrayColumn<double> out_width(out_spw, "CHAN_WIDTH");

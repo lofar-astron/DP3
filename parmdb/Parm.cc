@@ -132,7 +132,7 @@ void Parm::setCoeff(const Grid::Location& where, const double* newValues,
       // Only copy values where mask is true.
       assert(values.shape().isEqual(mask.shape()) && mask.contiguousStorage());
       double* valp = values.data();
-      double* errp = 0;
+      double* errp = nullptr;
       if (newErrors) {
         errp = errors.data();
       }
@@ -252,7 +252,7 @@ void Parm::getResult(Array<double>& result, const Grid& predictGrid,
     }
   } else {
     // The hardest case; multiple ParmValues, possibly each with its own grid.
-    getResultScalar(result, 0, predictGrid, pvset,
+    getResultScalar(result, nullptr, predictGrid, pvset,
                     itsCache->getAxisMappingCache());
   }
 }
@@ -413,7 +413,7 @@ void Parm::getResultScalar(Array<double>& result, Array<double>* errors,
   bool deleteRes;
   double* resData = result.getStorage(deleteRes);
   bool deleteErr;
-  double* errData = 0;
+  double* errData = nullptr;
   if (errors) {
     errors->resize(result.shape());
     *errors = -1;

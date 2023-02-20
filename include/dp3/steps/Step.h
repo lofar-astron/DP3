@@ -69,7 +69,7 @@ class Step {
       dp3::common::Fields::Single::kUvw};
 
   /// Constructor to initialize.
-  Step() : itsPrevStep(0) {}
+  Step() : itsPrevStep(nullptr) {}
 
   /// Destructor.
   virtual ~Step();

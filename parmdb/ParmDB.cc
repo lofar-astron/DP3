@@ -133,7 +133,7 @@ ParmDB::ParmDB(const ParmDBMeta& ptm, bool forceNew) {
   } else {
     // Some entry has been deleted; reuse it.
     for (dbnr = 0; dbnr < theirParmDBs.size(); ++dbnr) {
-      if (theirParmDBs[dbnr] == 0) {
+      if (theirParmDBs[dbnr] == nullptr) {
         theirParmDBs[dbnr] = itsRep;
         break;
       }
@@ -163,15 +163,15 @@ void ParmDB::decrCount() {
     if (pos == theirDBNames.end())
       throw std::runtime_error("~ParmDB " + tabName + " not found in map");
     assert(theirParmDBs[pos->second] == itsRep);
-    theirParmDBs[pos->second] = 0;
+    theirParmDBs[pos->second] = nullptr;
     theirDBNames.erase(pos);
     delete itsRep;
-    itsRep = 0;
+    itsRep = nullptr;
   }
 }
 
 ParmDB ParmDB::getParmDB(unsigned int index) {
-  if (index >= theirParmDBs.size() || theirParmDBs[index] == 0)
+  if (index >= theirParmDBs.size() || theirParmDBs[index] == nullptr)
     throw std::runtime_error("ParmDB index " + std::to_string(index) +
                              " is unknown");
   return ParmDB(theirParmDBs[index]);

@@ -10,11 +10,11 @@ using namespace casacore;
 namespace dp3 {
 namespace blob {
 
-BlobAipsIO::BlobAipsIO(BlobOStream& os) : itsOBuf(&os), itsIBuf(0) {
+BlobAipsIO::BlobAipsIO(BlobOStream& os) : itsOBuf(&os), itsIBuf(nullptr) {
   itsOBuf->putStart("BlobAipsIO", 1);
 }
 
-BlobAipsIO::BlobAipsIO(BlobIStream& is) : itsOBuf(0), itsIBuf(&is) {
+BlobAipsIO::BlobAipsIO(BlobIStream& is) : itsOBuf(nullptr), itsIBuf(&is) {
   itsIBuf->getStart("BlobAipsIO");
 }
 
@@ -46,9 +46,9 @@ Int BlobAipsIO::read(uInt size, void* buf, Bool) {
 
 Int64 BlobAipsIO::length() { return -1; }
 
-Bool BlobAipsIO::isReadable() const { return itsIBuf != 0; }
+Bool BlobAipsIO::isReadable() const { return itsIBuf != nullptr; }
 
-Bool BlobAipsIO::isWritable() const { return itsOBuf != 0; }
+Bool BlobAipsIO::isWritable() const { return itsOBuf != nullptr; }
 
 Bool BlobAipsIO::isSeekable() const { return false; }
 

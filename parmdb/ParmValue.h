@@ -97,7 +97,7 @@ class ParmValue {
   const Grid& getGrid() const { return itsGrid; }
 
   /// Are there errors? If false, the result of getErrors is undefined.
-  bool hasErrors() const { return itsErrors != 0; }
+  bool hasErrors() const { return itsErrors != nullptr; }
 
   /// Get the arrays with errors. Undefined if \c getErrors()==false.
   ///@{

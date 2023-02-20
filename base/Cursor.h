@@ -99,7 +99,7 @@ class cursor {
 template <typename T>
 class const_cursor {
  public:
-  const_cursor() : itsPointer(0), itsRank(0) {}
+  const_cursor() : itsPointer(nullptr), itsRank(0) {}
 
   const_cursor(const T *pointer) : itsPointer(pointer), itsRank(1) {
     std::fill(itsStrides, itsStrides + MAX_RANK, 0);

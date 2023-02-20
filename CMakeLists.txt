@@ -39,7 +39,16 @@ option(BUILD_TESTING "Include tests in the build" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-add_compile_options(-Wall)
+add_compile_options(
+  -Wall
+  -Wnon-virtual-dtor
+  -Wzero-as-null-pointer-constant
+  -Wduplicated-branches
+  -Wundef
+  -Wvla
+  -Wpointer-arith
+  -Wextra
+  -Wno-unused-parameter)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
   add_compile_options(-O3)
@@ -133,7 +142,7 @@ find_package(
   Casacore
   COMPONENTS casa ms tables fits
   REQUIRED)
-include_directories(${CASACORE_INCLUDE_DIR})
+include_directories(SYSTEM ${CASACORE_INCLUDE_DIR})
 
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
@@ -180,7 +189,7 @@ find_package(
   Boost
   COMPONENTS ${BOOST_COMPONENTS}
   REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
 
@@ -278,7 +287,7 @@ include_directories(${pybind11_INCLUDE_DIR})
 
 # Include schaapcommon
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
-include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
+include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
 # Add cmake information to headers
 configure_file(base/Version.h.in base/Version.h)
