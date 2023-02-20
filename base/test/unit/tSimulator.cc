@@ -1,16 +1,17 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <complex>
+#include <sstream>
+#include <vector>
+
 #include <boost/test/unit_test.hpp>
+#include <xtensor/xtensor.hpp>
 
 #include "../../Simulator.h"
 #include "../../Stokes.h"
 #include <dp3/base/Direction.h>
 #include "../../PointSource.h"
-
-#include <sstream>
-#include <complex>
-#include <vector>
 
 namespace dp3 {
 namespace base {
@@ -24,7 +25,8 @@ const size_t kNStations = 4;
 const size_t kNChan = 2;
 
 Simulator MakeSimulator(bool correct_freq_smearing, bool stokes_i_only,
-                        casacore::Cube<std::complex<double>>& buffer) {
+                        casacore::Cube<std::complex<double>>& buffer,
+                        xt::xtensor<double, 2>& uvw) {
   std::vector<Baseline> baselines;
   for (size_t st1 = 0; st1 < kNStations - 1; ++st1) {
     for (size_t st2 = st1 + 1; st2 < kNStations; ++st2) {
@@ -38,12 +40,11 @@ Simulator MakeSimulator(bool correct_freq_smearing, bool stokes_i_only,
   }
   casacore::Vector<double> chan_widths(kNChan, 1.0e6);
 
-  casacore::Matrix<double> uvw(3, kNStations);
-
+  uvw.resize({kNStations, 3});
   for (size_t st = 0; st < kNStations; ++st) {
-    uvw(0, st) = st * 5000;
-    uvw(1, st) = st * 1000;
-    uvw(2, st) = 0;
+    uvw(st, 0) = st * 5000;
+    uvw(st, 1) = st * 1000;
+    uvw(st, 2) = 0;
   }
 
   return Simulator(kReference, kNStations, baselines, chan_freqs, chan_widths,
@@ -61,8 +62,9 @@ BOOST_AUTO_TEST_CASE(test_pointsource_onlyI) {
 
   const size_t nbaselines = kNStations * (kNStations - 1) / 2;
   casacore::Cube<std::complex<double>> buffer(1, kNChan, nbaselines);
+  xt::xtensor<double, 2> uvw;  // MakeSimulator initializes 'uvw'.
 
-  Simulator sim = MakeSimulator(false, true, buffer);
+  Simulator sim = MakeSimulator(false, true, buffer, uvw);
 
   sim.simulate(pointsource);
 
@@ -81,8 +83,9 @@ BOOST_AUTO_TEST_CASE(test_pointsource_fullstokes) {
 
   const size_t nbaselines = kNStations * (kNStations - 1) / 2;
   casacore::Cube<std::complex<double>> buffer(4, kNChan, nbaselines);
+  xt::xtensor<double, 2> uvw;  // MakeSimulator initializes 'uvw'.
 
-  Simulator sim = MakeSimulator(false, false, buffer);
+  Simulator sim = MakeSimulator(false, false, buffer, uvw);
 
   sim.simulate(phasecenter_point);
 
@@ -108,8 +111,9 @@ BOOST_AUTO_TEST_CASE(test_pointsource_onlyI_freqsmear) {
   const size_t nbaselines = kNStations * (kNStations - 1) / 2;
 
   casacore::Cube<std::complex<double>> buffer(1, kNChan, nbaselines);
+  xt::xtensor<double, 2> uvw;  // MakeSimulator initializes 'uvw'.
 
-  Simulator sim = MakeSimulator(true, true, buffer);
+  Simulator sim = MakeSimulator(true, true, buffer, uvw);
 
   sim.simulate(phasecenter_offset);
 
