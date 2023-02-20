@@ -37,8 +37,7 @@ class DDECal : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  DDECal(InputStep*, const common::ParameterSet& parameterSet,
-         const std::string& prefix);
+  DDECal(const common::ParameterSet& parameterSet, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
     return kDataField | kFlagsField | kWeightsField | kUvwField |
@@ -94,7 +93,6 @@ class DDECal : public Step {
       const std::vector<std::vector<base::DPBuffer>>& input_model_buffers);
   void subtractCorrectedModel(size_t bufferIndex);
 
-  InputStep& itsInput;
   const ddecal::Settings itsSettings;
 
   /// The solution intervals that are buffered, limited by solintcount

@@ -26,7 +26,7 @@ class Split : public OutputStep {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Split(InputStep*, const common::ParameterSet&, const std::string& prefix);
+  Split(const common::ParameterSet&, const std::string& prefix);
 
   common::Fields getRequiredFields() const override;
 

@@ -43,7 +43,7 @@ std::shared_ptr<steps::InputStep> MakeMainSteps(
 /// empty.
 std::shared_ptr<steps::Step> MakeStepsFromParset(
     const common::ParameterSet& parset, const std::string& prefix,
-    const std::string& step_names_key, steps::InputStep& inputStep,
+    const std::string& step_names_key, const std::string& input_ms_name,
     bool terminateChain, steps::Step::MsType initial_step_output);
 
 /// Go through the steps to define which fields of the measurement set should
