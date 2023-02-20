@@ -5,6 +5,14 @@
 // @author Ger van Diepen
 
 #include "DemixWorker.h"
+
+#include <sstream>
+#include <iomanip>
+
+#include <aocommon/xt/span.h>
+#include <xtensor/xio.hpp>
+#include <xtensor/xview.hpp>
+
 #include "Apply.h"
 #include "CursorUtilCasa.h"
 #include <dp3/base/DPBuffer.h>
@@ -47,9 +55,6 @@
 
 #include <EveryBeam/beammode.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
-
-#include <sstream>
-#include <iomanip>
 
 using casacore::Array;
 using casacore::Cube;
@@ -193,9 +198,13 @@ DemixWorker::DemixWorker(const std::string& prefix, const DemixInfo& mixInfo,
   itsFactorBuf.resize(IPosition(4, itsMix->ncorr(), itsMix->nchanIn(),
                                 itsMix->nbl(), nsrc * (nsrc + 1) / 2));
   itsFactorBufSubtr.resize(itsFactorBuf.shape());
-  itsAvgUVW.resize(3, itsMix->nbl());
-  itsStationUVW.resize(3, itsMix->nstation(), itsMix->ntimeOutSubtr());
-  itsUVW.resize(3, itsMix->nstation());
+  itsAvgUVW.resize({itsMix->nbl(), 3});
+  itsStationUVW.reserve(itsMix->ntimeOutSubtr());
+  const std::array<size_t, 2> station_uvw_shape{itsMix->nstation(), 3};
+  for (size_t i = 0; i < itsStationUVW.size(); ++i) {
+    itsStationUVW.emplace_back(station_uvw_shape);
+  }
+  itsUVW.resize({itsMix->nstation(), 3});
   itsSrcSet.reserve(nsrc + 1);
   itsStationsToUse.resize(nsrc);
   itsUnknownsIndex.resize(nsrc + 1);
@@ -392,25 +401,23 @@ unsigned int DemixWorker::avgSplitUVW(const DPBuffer* bufin,
                                       unsigned int nbufin,
                                       unsigned int ntimeAvg,
                                       const std::vector<unsigned int>& selbl) {
-  assert(selbl.size() == size_t(itsAvgUVW.shape()[1]));
+  assert(selbl.size() == itsAvgUVW.shape(0));
   // First average the UVWs to the predict time window.
   unsigned int ntime = (nbufin + ntimeAvg - 1) / ntimeAvg;
   const DPBuffer* buf = bufin;
   unsigned int nleft = nbufin;
   // Loop over nr of output time slots.
-  MatrixIterator<double> uvwIter(itsStationUVW);
-  for (unsigned int i = 0; i < ntime; ++i) {
+  aocommon::xt::Span<double, 2> avgUvwSpan =
+      aocommon::xt::CreateSpan(itsAvgUVW);
+  for (unsigned int time = 0; time < ntime; ++time) {
     // Sum the times for this output time slot.
     // Only take the selected baselines into account.
-    itsAvgUVW = 0.;
+    itsAvgUVW.fill(0.0);
     unsigned int ntodo = std::min(ntimeAvg, nleft);
     for (unsigned int j = 0; j < ntodo; ++j) {
-      double* sumPtr = itsAvgUVW.data();
-      for (unsigned int k = 0; k < selbl.size(); ++k) {
-        const double* uvwPtr = buf->GetUvw().data() + 3 * selbl[k];
-        for (int k1 = 0; k1 < 3; ++k1) {
-          *sumPtr++ += uvwPtr[k1];
-        }
+      for (unsigned int baseline = 0; baseline < selbl.size(); ++baseline) {
+        xt::view(itsAvgUVW, baseline, xt::range(0, 3)) =
+            xt::view(buf->GetUvw(), selbl[baseline], xt::range(0, 3));
       }
       buf++;
     }
@@ -421,12 +428,14 @@ unsigned int DemixWorker::avgSplitUVW(const DPBuffer* bufin,
     }
     nleft -= ntodo;
     // Split the baseline UVW coordinates per station.
-    nsplitUVW(itsMix->uvwSplitIndex(), itsMix->baselines(), itsAvgUVW,
-              uvwIter.matrix());
-    uvwIter.next();
+    nsplitUVW(itsMix->uvwSplitIndex(), itsMix->baselines(), avgUvwSpan,
+              itsStationUVW[time]);
   }
   if (itsMix->verbose() > 12) {
-    std::cout << "stationuwv=" << itsStationUVW;
+    std::cout << "stationuwv=" << std::endl;
+    for (size_t time = 0; time < itsStationUVW.size(); ++time) {
+      std::cout << "Time " << time << ": " << itsStationUVW[time] << std::endl;
+    }
   }
   return ntime;
 }
@@ -439,7 +448,6 @@ void DemixWorker::predictTarget(
   // So no effort is spent on further selection.
   itsTargetAmpl = 0;
   MatrixIterator<float> miter(itsTargetAmpl);
-  MatrixIterator<double> uvwiter(itsStationUVW);
   double t = time;
   for (unsigned int j = 0; j < ntime; ++j) {
     for (unsigned int dr = 0; dr < patchList.size(); ++dr) {
@@ -447,7 +455,7 @@ void DemixWorker::predictTarget(
       Simulator simulator(itsMix->phaseRef(), itsMix->nstation(),
                           itsMix->baselines(),
                           casacore::Vector<double>(itsMix->freqDemix()),
-                          casacore::Vector<double>(), uvwiter.matrix(),
+                          casacore::Vector<double>(), itsStationUVW[j],
                           itsPredictVis, false, false);
       for (size_t i = 0; i < patchList[dr]->nComponents(); ++i) {
         simulator.simulate(patchList[dr]->component(i));
@@ -457,7 +465,6 @@ void DemixWorker::predictTarget(
       addStokesI(miter.matrix());
     }
     miter.next();
-    uvwiter.next();
     t += timeStep;
   }
 }
@@ -486,14 +493,13 @@ void DemixWorker::predictAteam(
   for (unsigned int dr = 0; dr < patchList.size(); ++dr) {
     itsAteamAmpl[dr] = 0;
     MatrixIterator<float> miter(itsAteamAmpl[dr]);
-    MatrixIterator<double> uvwiter(itsStationUVW);
     double t = time;
     for (unsigned int j = 0; j < ntime; ++j) {
       itsPredictVis = dcomplex();
       Simulator simulator(itsMix->phaseRef(), itsMix->nstation(),
                           itsMix->baselines(),
                           casacore::Vector<double>(itsMix->freqDemix()),
-                          casacore::Vector<double>(), uvwiter.matrix(),
+                          casacore::Vector<double>(), itsStationUVW[j],
                           itsPredictVis, false, false);
       for (size_t i = 0; i < patchList[dr]->nComponents(); ++i) {
         simulator.simulate(patchList[dr]->component(i));
@@ -503,7 +509,6 @@ void DemixWorker::predictAteam(
       // Keep the StokesI ampl ((XX+YY)/2).
       addStokesI(miter.matrix());
       miter.next();
-      uvwiter.next();
       t += timeStep;
     }
   }
@@ -1091,6 +1096,7 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
   // Do a solve and subtract for each predict time slot.
   // Determine the time step for the subtract.
   double subtrTimeStep = timeStep / multiplier;
+
   for (size_t ts = 0; ts < nTime; ++ts) {
     itsTimerPredict.start();
     // Compute the model visibilities for each A-team source.
@@ -1099,17 +1105,19 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
       unsigned int drOrig = itsSrcSet[dr];
       // Split the baseline UVW coordinates per station.
       nsplitUVW(itsMix->uvwSplitIndex(), itsMix->baselines(),
-                itsAvgResults[drOrig]->get()[ts].GetCasacoreUvw(), itsUVW);
+                itsAvgResults[drOrig]->get()[ts].GetUvw(), itsUVW);
       if (itsMix->verbose() > 13) {
         std::cout << "uvw" << dr << '=' << itsUVW;
       }
       // Initialize this part of the buffer.
       itsModelVisDemix[dr] = dcomplex();
+
       if (dr == itsNSubtr) {
         // This is the target which consists of multiple components.
         // To each of them the beam must be applied.
         for (unsigned int i = 0; i < itsMix->targetDemixList().size(); ++i) {
           itsPredictVis = dcomplex();
+
           Simulator simulator(itsMix->phaseRef(), nSt, itsMix->baselines(),
                               casacore::Vector<double>(itsMix->freqDemix()),
                               casacore::Vector<double>(), itsUVW, itsPredictVis,
@@ -1213,8 +1221,7 @@ void DemixWorker::demix(std::vector<double>* solutions, double time,
           // Re-simulate if required.
           if (multiplier != 1 || nCh != nChSubtr) {
             nsplitUVW(itsMix->uvwSplitIndex(), itsMix->baselines(),
-                      itsAvgResultSubtr->get()[ts_subtr].GetCasacoreUvw(),
-                      itsUVW);
+                      itsAvgResultSubtr->get()[ts_subtr].GetUvw(), itsUVW);
             // Rotate the UVW coordinates for the target direction to the
             // direction of source to subtract. This is required because at
             // the resolution of the residual the UVW coordinates for

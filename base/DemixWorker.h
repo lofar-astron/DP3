@@ -18,6 +18,8 @@
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
 
+#include <xtensor/xtensor.hpp>
+
 #include <dp3/base/DPBuffer.h>
 
 #include "DemixInfo.h"
@@ -247,9 +249,9 @@ class DemixWorker {
 
   /// Indices telling which Ateam sources to use.
   std::vector<unsigned int> itsSrcSet;
-  casacore::Cube<double> itsStationUVW;    ///< UVW per station
-  casacore::Matrix<double> itsAvgUVW;      ///< temp buffer
-  casacore::Cube<dcomplex> itsPredictVis;  ///< temp buffer
+  std::vector<xt::xtensor<double, 2>> itsStationUVW;  ///< UVW per station
+  xt::xtensor<double, 2> itsAvgUVW;                   ///< temp buffer
+  casacore::Cube<dcomplex> itsPredictVis;             ///< temp buffer
   /// #nfreq x #bl x #time StokesI amplitude per A-source.
   std::vector<casacore::Cube<float>> itsAteamAmpl;
   /// #bl x #src telling if baseline has sufficient Ateam flux.
@@ -275,7 +277,7 @@ class DemixWorker {
   EstimateNew itsEstimate;
   /// Variables for the predict.
   ///@{
-  casacore::Matrix<double> itsUVW;
+  xt::xtensor<double, 2> itsUVW;
   std::vector<casacore::Cube<dcomplex>> itsModelVisDemix;
   std::vector<casacore::Cube<dcomplex>> itsModelVisSubtr;
   unsigned int itsNTimeOut;

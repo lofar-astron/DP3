@@ -188,7 +188,7 @@ void OnePredict::initializeThreadData() {
   const size_t nCr = stokes_i_only_ ? 1 : info().ncorr();
   const size_t nThreads = getInfo().nThreads();
 
-  station_uvw_.resize(3, nSt);
+  station_uvw_.resize({nSt, 3});
 
   std::vector<std::array<double, 3>> antenna_pos(info().antennaPos().size());
   for (unsigned int i = 0; i < info().antennaPos().size(); ++i) {
@@ -349,8 +349,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t nCr = info().ncorr();
   const size_t nBeamValues = stokes_i_only_ ? nBl * nCh : nBl * nCh * nCr;
 
-  base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetCasacoreUvw(),
-                  station_uvw_);
+  base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
 
   double time = buffer->getTime();
   // Set up directions for beam evaluation

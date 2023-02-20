@@ -11,6 +11,8 @@
 
 #include <atomic>
 
+#include <xtensor/xtensor.hpp>
+
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 #include "ResultStep.h"
@@ -172,7 +174,7 @@ class OnePredict : public ModelDataStep {
   std::vector<int> uvw_split_index_;
 
   /// UVW coordinates per station (3 coordinates per station)
-  casacore::Matrix<double> station_uvw_;
+  xt::xtensor<double, 2> station_uvw_;
 
   /// The info needed to calculate the station beams.
   std::shared_ptr<base::PredictBuffer> predict_buffer_;

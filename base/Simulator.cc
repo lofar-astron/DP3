@@ -6,13 +6,13 @@
 //
 // $Id$
 
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/casa/BasicSL/Constants.h>
+
 #include "Simulator.h"
 #include "GaussianSource.h"
 #include "PointSource.h"
 #include "../steps/PhaseShift.h"
-
-#include <casacore/casa/Arrays/MatrixMath.h>
-#include <casacore/casa/BasicSL/Constants.h>
 
 #include "../common/StreamUtil.h"
 
@@ -50,7 +50,7 @@ void radec2lmn(const Direction& reference, const Direction& direction,
  * @param stationPhases Output vector, store per station \f$(x_1,y_1)\f$
  */
 void phases(size_t nStation, size_t nChannel, const double* lmn,
-            const casacore::Matrix<double>& uvw,
+            const xt::xtensor<double, 2>& uvw,
             const casacore::Vector<double>& freq,
             Simulator::DuoMatrix<double>& shift,
             std::vector<double>& stationPhases);
@@ -66,7 +66,7 @@ Simulator::Simulator(const Direction& reference, size_t nStation,
                      const std::vector<Baseline>& baselines,
                      const casacore::Vector<double>& freq,
                      const casacore::Vector<double>& chanWidths,
-                     const casacore::Matrix<double>& stationUVW,
+                     const xt::xtensor<double, 2>& stationUVW,
                      casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
                      bool stokesIOnly)
     : itsReference(reference),
@@ -78,7 +78,7 @@ Simulator::Simulator(const Direction& reference, size_t nStation,
       itsBaselines(baselines),
       itsFreq(freq),
       itsChanWidths(chanWidths),
-      itsStationUVW(stationUVW),
+      itsStationUVW(&stationUVW),
       itsBuffer(buffer),
       itsShiftBuffer(),
       itsSpectrumBuffer() {
@@ -102,7 +102,7 @@ void Simulator::visit(const PointSource& component) {
   radec2lmn(itsReference, component.direction(), lmn);
 
   // Compute station phase shifts.
-  phases(itsNStation, itsNChannel, lmn, itsStationUVW, itsFreq, itsShiftBuffer,
+  phases(itsNStation, itsNChannel, lmn, *itsStationUVW, itsFreq, itsShiftBuffer,
          itsStationPhases);
 
   // Compute component spectrum.
@@ -263,7 +263,7 @@ void Simulator::visit(const GaussianSource& component) {
   radec2lmn(itsReference, component.direction(), lmn);
 
   // Compute station phase shifts.
-  phases(itsNStation, itsNChannel, lmn, itsStationUVW, itsFreq, itsShiftBuffer,
+  phases(itsNStation, itsNChannel, lmn, *itsStationUVW, itsFreq, itsShiftBuffer,
          itsStationPhases);
 
   // Compute component spectrum.
@@ -276,22 +276,31 @@ void Simulator::visit(const GaussianSource& component) {
   const double cosPhi = cos(phi);
   const double sinPhi = sin(phi);
 
-  // Correct for projection and rotation effects: phase shift u, v, w to the
-  // position of the source for evaluating the gaussian
-  casacore::Matrix<double> euler_matrix_phasecenter(3, 3);
-  casacore::Matrix<double> euler_matrix_source(3, 3);
-  dp3::steps::PhaseShift::fillEulerMatrix(euler_matrix_phasecenter,
-                                          itsReference);
-  dp3::steps::PhaseShift::fillEulerMatrix(euler_matrix_source,
-                                          component.direction());
-  casacore::Matrix<double> euler_matrix = casacore::product(
-      casacore::transpose(euler_matrix_source), euler_matrix_phasecenter);
   casacore::Matrix<double> uvwShifted;
 
+  // Create a casacore view on itsStationUVW for now.
+  const casacore::IPosition stationUvwShape(2, itsStationUVW->shape(1),
+                                            itsStationUVW->shape(0));
+  // Creating the view unfortunately requires a const_cast.
+  const casacore::Matrix<double> casaStationUvw(
+      stationUvwShape, const_cast<double*>(itsStationUVW->data()),
+      casacore::SHARE);
+
   if (component.getPositionAngleIsAbsolute()) {
-    uvwShifted = casacore::product(euler_matrix, itsStationUVW);
+    // Correct for projection and rotation effects: phase shift u, v, w to the
+    // position of the source for evaluating the gaussian
+    casacore::Matrix<double> euler_matrix_phasecenter(3, 3);
+    casacore::Matrix<double> euler_matrix_source(3, 3);
+    dp3::steps::PhaseShift::fillEulerMatrix(euler_matrix_phasecenter,
+                                            itsReference);
+    dp3::steps::PhaseShift::fillEulerMatrix(euler_matrix_source,
+                                            component.direction());
+    casacore::Matrix<double> euler_matrix = casacore::product(
+        casacore::transpose(euler_matrix_source), euler_matrix_phasecenter);
+
+    uvwShifted = casacore::product(euler_matrix, casaStationUvw);
   } else {
-    uvwShifted.reference(itsStationUVW);
+    uvwShifted = casaStationUvw;
   }
 
   // Take care of the conversion of axis lengths from FWHM in radians to
@@ -459,7 +468,7 @@ inline float computeSmearterm(double uvw, double halfwidth) {
 
 // Compute station phase shifts.
 inline void phases(size_t nStation, size_t nChannel, const double* lmn,
-                   const casacore::Matrix<double>& uvw,
+                   const xt::xtensor<double, 2>& uvw,
                    const casacore::Vector<double>& freq,
                    Simulator::DuoMatrix<double>& shift,
                    std::vector<double>& stationPhases) {
@@ -468,8 +477,8 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
   const double cinv = casacore::C::_2pi / casacore::C::c;
 #pragma GCC ivdep
   for (size_t st = 0; st < nStation; ++st) {
-    stationPhases[st] = cinv * (uvw(0, st) * lmn[0] + uvw(1, st) * lmn[1] +
-                                uvw(2, st) * (lmn[2] - 1.0));
+    stationPhases[st] = cinv * (uvw(st, 0) * lmn[0] + uvw(st, 1) * lmn[1] +
+                                uvw(st, 2) * (lmn[2] - 1.0));
   }
 
   std::vector<double> phase_terms(nChannel);

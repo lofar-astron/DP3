@@ -803,12 +803,10 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
   Array<casacore::DComplex> newFactors(shape);
   IPosition inShape(2, itsNDir, itsNDir);
   IPosition outShape(2, itsNDir, itsNModel);
-  ///#pragma omp parallel
   {
     Matrix<casacore::DComplex> a(itsNDir, nrDeproject);
     Matrix<casacore::DComplex> ma(itsNDir, itsNModel);
     std::vector<casacore::DComplex> vec(itsNDir);
-    ///#pragma omp for
     for (int i = 0; i < nvis; ++i) {
       // Split the matrix into the modeled and deprojected sources.
       // Copy the columns to the individual matrices.
@@ -854,7 +852,7 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
 namespace {
 struct ThreadPrivateStorage {
   std::vector<double> unknowns;
-  casacore::Matrix<double> uvw;
+  xt::xtensor<double, 2> uvw;
   std::vector<casacore::Cube<dcomplex>> model;
   casacore::Cube<dcomplex> model_subtr;
   size_t count_converged;
@@ -864,7 +862,7 @@ void initThreadPrivateStorage(ThreadPrivateStorage& storage, size_t nDirection,
                               size_t nStation, size_t nBaseline,
                               size_t nChannel, size_t nChannelSubtr) {
   storage.unknowns.resize(nDirection * nStation * 8);
-  storage.uvw.resize(3, nStation);
+  storage.uvw.resize({nStation, 3});
   storage.model.resize(nDirection);
   for (unsigned int dir = 0; dir < nDirection; ++dir) {
     storage.model[dir].resize(4, nChannel, nBaseline);
@@ -921,11 +919,10 @@ void Demixer::demix() {
     // and stored.
     size_t stride_model[3] = {1, nCr, nCr * nCh};
     fill(storage.model.begin(), storage.model.end(), 0.);
+
     for (size_t dr = 0; dr < nDr; ++dr) {
       base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
-                      itsAvgResults[dr]->get()[ts].GetCasacoreUvw(),
-                      storage.uvw);
-      /// cout<<"uvw"<<dr<<'='<<storage.uvw<<'\n';
+                      itsAvgResults[dr]->get()[ts].GetUvw(), storage.uvw);
 
       base::Simulator simulator(
           itsPatchList[dr]->direction(), nSt, itsBaselines,
@@ -935,7 +932,6 @@ void Demixer::demix() {
         simulator.simulate(itsPatchList[dr]->component(i));
       }
     }
-    /// cout<<"modelvis="<<storage.model<<'\n';
 
     // Estimate Jones matrices.
     //
@@ -1000,7 +996,7 @@ void Demixer::demix() {
         // Re-simulate if required.
         if (multiplier != 1 || nCh != nChSubtr) {
           base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
-                          itsAvgResultSubtr->get()[ts_subtr].GetCasacoreUvw(),
+                          itsAvgResultSubtr->get()[ts_subtr].GetUvw(),
                           storage.uvw);
 
           if (itsMovingPhaseRef) {

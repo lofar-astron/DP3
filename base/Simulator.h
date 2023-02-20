@@ -1,20 +1,22 @@
 // Simulator.h: Compute visibilities for different model components types
 // (implementation of ModelComponentVisitor).
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DPPP_SIMULATOR_H
-#define DPPP_SIMULATOR_H
+#ifndef DP3_BASE_SIMULATOR_H_
+#define DP3_BASE_SIMULATOR_H_
+
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Cube.h>
+
+#include <xtensor/xtensor.hpp>
 
 #include "Baseline.h"
 #include "ModelComponent.h"
 #include "ModelComponentVisitor.h"
 #include <dp3/base/Direction.h>
-
-#include <casacore/casa/Arrays/Vector.h>
-#include <casacore/casa/Arrays/Matrix.h>
-#include <casacore/casa/Arrays/Cube.h>
 
 namespace dp3 {
 namespace base {
@@ -67,7 +69,8 @@ class Simulator : public ModelComponentVisitor {
    * @param baselines Vector of Baselines
    * @param freq Channel frequencies (Hz)
    * @param chanWidths Channel widths (Hz)
-   * @param stationUVW Station UVW coordinates
+   * @param stationUVW Station UVW coordinates. This structure has to remain
+   * valid during the lifetime of the Simulator.
    * @param buffer Output buffer, should be of shape (nCor, nFreq, nBaselines),
    * where nCor should be 1 if stokesIOnly is true, else 4
    * @param correctFreqSmearing Correct for frequency smearing
@@ -77,7 +80,7 @@ class Simulator : public ModelComponentVisitor {
             const std::vector<Baseline>& baselines,
             const casacore::Vector<double>& freq,
             const casacore::Vector<double>& chanWidths,
-            const casacore::Matrix<double>& stationUVW,
+            const xt::xtensor<double, 2>& stationUVW,
             casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
             bool stokesIOnly);
 
@@ -126,10 +129,13 @@ class Simulator : public ModelComponentVisitor {
   size_t itsNStation, itsNBaseline, itsNChannel;
   bool itsCorrectFreqSmearing;
   bool itsStokesIOnly;
-  const std::vector<Baseline> itsBaselines;
-  const casacore::Vector<double> itsFreq;
-  const casacore::Vector<double> itsChanWidths;
-  const casacore::Matrix<double> itsStationUVW;
+  std::vector<Baseline> itsBaselines;
+  casacore::Vector<double> itsFreq;
+  casacore::Vector<double> itsChanWidths;
+  /// Non-owning pointer to UVW values for each station. The user of Simulator
+  /// supplies them in the constructor, and ensures they remain valid.
+  /// Using a pointer avoids copying the values.
+  const xt::xtensor<double, 2>* itsStationUVW;
   casacore::Cube<dcomplex> itsBuffer;
   std::vector<double> itsStationPhases;
   DuoMatrix<double> itsShiftBuffer;

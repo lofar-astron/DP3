@@ -178,35 +178,29 @@ std::vector<int> nsetupSplitUVW(
   return bl_idx;
 }
 
-void nsplitUVW(const std::vector<int>& blindex,
+void nsplitUVW(const std::vector<int>& baseline_indices,
                const std::vector<Baseline>& baselines,
-               const Matrix<double>& uvwbl, Matrix<double>& uvwant) {
-  uvwant = 0.;
-  double* uvwl;
-  double* uvwr;
-  const double* uvwb;
-  for (unsigned int i = 0; i < blindex.size(); ++i) {
-    int inx = blindex[i];
-    if (inx < 0) {
+               const aocommon::xt::Span<double, 2>& uvwbl,
+               xt::xtensor<double, 2>& uvwant) {
+  uvwant.fill(0.0);
+  for (unsigned int i = 0; i < baseline_indices.size(); ++i) {
+    int index = baseline_indices[i];
+    if (index < 0) {
       // Ant2 is known.
-      inx = -inx - 1;
-      // ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].first);
-      // ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].second);
-      uvwl = uvwant.data() + 3 * baselines[inx].first;
-      uvwr = uvwant.data() + 3 * baselines[inx].second;
-      uvwb = uvwbl.data() + 3 * inx;
+      index = -index - 1;
+      const size_t first_baseline = baselines[index].first;
+      const size_t second_baseline = baselines[index].second;
       for (int j = 0; j < 3; ++j) {
-        uvwl[j] = uvwr[j] - uvwb[j];
+        uvwant(first_baseline, j) =
+            uvwant(second_baseline, j) - uvwbl(index, j);
       }
     } else {
-      // ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].first);
-      // ASSERT((unsigned int)(uvwant.shape()[1])>baselines[inx].second);
       // Ant1 is known.
-      uvwl = uvwant.data() + 3 * baselines[inx].first;
-      uvwr = uvwant.data() + 3 * baselines[inx].second;
-      uvwb = uvwbl.data() + 3 * inx;
+      const size_t first_baseline = baselines[index].first;
+      const size_t second_baseline = baselines[index].second;
       for (int j = 0; j < 3; ++j) {
-        uvwr[j] = uvwl[j] + uvwb[j];
+        uvwant(second_baseline, j) =
+            uvwant(first_baseline, j) + uvwbl(index, j);
       }
     }
   }
