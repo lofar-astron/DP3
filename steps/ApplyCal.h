@@ -1,5 +1,5 @@
 // ApplyCal.h: DP3 step class to ApplyCal visibilities from a source model
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -74,26 +74,30 @@ class ApplyCal : public Step {
   static void invert(std::complex<NumType>* v, NumType sigmaMMSE = 0);
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-  static void applyDiag(const casacore::Complex* gainA,
-                        const casacore::Complex* gainB, casacore::Complex* vis,
-                        float* weight, bool* flag, unsigned int bl,
-                        unsigned int chan, bool updateWeights,
-                        base::FlagCounter& flagCounter);
+  static void ApplyDiag(const std::complex<float>* gain_a,
+                        const std::complex<float>* gain_b,
+                        base::DPBuffer& buffer, unsigned int baseline,
+                        unsigned int channel, bool update_weights,
+                        base::FlagCounter& flag_counter);
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
   /// where the solution is equal for both polarizations
-  static void applyScalar(const casacore::Complex* gainA,
-                          const casacore::Complex* gainB,
-                          casacore::Complex* vis, float* weight, bool* flag,
-                          unsigned int bl, unsigned int chan,
-                          bool updateWeights, base::FlagCounter& flagCounter);
+  static void ApplyScalar(const std::complex<float>* gain_a,
+                          const std::complex<float>* gain_b,
+                          base::DPBuffer& buffer, unsigned int baseline,
+                          unsigned int channel, bool update_weights,
+                          base::FlagCounter& flag_counter);
 
-  /// Apply a full Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-  static void applyFull(const casacore::Complex* gainA,
-                        const casacore::Complex* gainB, casacore::Complex* vis,
-                        float* weight, bool* flag, unsigned int bl,
-                        unsigned int chan, bool updateWeights,
-                        base::FlagCounter& flagCounter);
+  /// Apply a full Jones matrix to a 2x2 visibilities matrix: A.V.B^H
+  /// @param buffer ApplyFull updates the visibilities, flags and weights in
+  /// this buffer.
+  /// @param baseline The baseline index for the visibility.
+  /// @param channel The channel index for the visibility.
+  static void ApplyFull(const std::complex<float>* gain_a,
+                        const std::complex<float>* gain_b,
+                        base::DPBuffer& buffer, unsigned int baseline,
+                        unsigned int channel, bool update_weights,
+                        base::FlagCounter& flag_counter);
 
   /// Do the same as the combination of BBS + python script
   /// covariance2weight.py (cookbook), except it stores weights per freq.
@@ -103,8 +107,8 @@ class ApplyCal : public Step {
   /// The input covariance matrix C is assumed to be diagonal with elements
   /// w_i (the weights), the result the diagonal of
   /// (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-  static void applyWeights(const casacore::Complex* gainA,
-                           const casacore::Complex* gainB, float* weight);
+  static void ApplyWeights(const std::complex<float>* gain_a,
+                           const std::complex<float>* gain_b, float* weight);
 
  private:
   bool is_sub_step_{false};
