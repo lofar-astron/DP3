@@ -458,43 +458,27 @@ Cube<casacore::Complex> GainCal::invertSol(const Cube<casacore::Complex>& sol) {
 
 void GainCal::applySolution(DPBuffer& buf,
                             const Cube<casacore::Complex>& invsol) {
-  unsigned int nbl = buf.GetCasacoreData().shape()[2];
-  casacore::Complex* data = buf.GetData().data();
-  float* weight = buf.GetWeights().data();  // Not initialized yet
-  bool* flag = buf.GetFlags().data();
-  unsigned int nchan = buf.GetCasacoreData().shape()[1];
+  unsigned int n_bl = buf.GetData().shape(0);
+  unsigned int n_chan = buf.GetData().shape(1);
+  unsigned int n_corr = invsol.shape()[0];
 
-  unsigned int nCr = invsol.shape()[0];
-
-  for (size_t bl = 0; bl < nbl; ++bl) {
-    for (size_t chan = 0; chan < nchan; chan++) {
-      const int antA = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
-      const int antB = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
-      unsigned int freqCell = chan / itsNChan;
-      if (nCr > 2) {
-        ApplyCal::applyFull(
-            &invsol(0, antA, freqCell), &invsol(0, antB, freqCell),
-            &data[bl * 4 * nchan + chan * 4],
-            &weight[bl * 4 * nchan +
-                    chan * 4],  // Not passing weights, any pointer should do
-            &flag[bl * 4 * nchan + chan * 4], bl, chan, false,
-            itsFlagCounter);  // Update weights is disabled here
+  for (size_t bl = 0; bl < n_bl; ++bl) {
+    const int ant_a = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
+    const int ant_b = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
+    for (size_t chan = 0; chan < n_chan; chan++) {
+      const unsigned int freq_cell = chan / itsNChan;
+      const std::complex<float>* gain_a = &invsol(0, ant_a, freq_cell);
+      const std::complex<float>* gain_b = &invsol(0, ant_b, freq_cell);
+      const bool kUpdateWeights = false;
+      if (n_corr > 2) {
+        ApplyCal::ApplyFull(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
+                            itsFlagCounter);
       } else if (scalarMode(itsMode)) {
-        ApplyCal::applyScalar(
-            &invsol(0, antA, freqCell), &invsol(0, antB, freqCell),
-            &data[bl * 4 * nchan + chan * 4],
-            &weight[bl * 4 * nchan +
-                    chan * 4],  // Not passing weights, any pointer should do
-            &flag[bl * 4 * nchan + chan * 4], bl, chan, false,
-            itsFlagCounter);  // Update weights is disabled here
+        ApplyCal::ApplyScalar(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
+                              itsFlagCounter);
       } else {
-        ApplyCal::applyDiag(
-            &invsol(0, antA, freqCell), &invsol(0, antB, freqCell),
-            &data[bl * 4 * nchan + chan * 4],
-            &weight[bl * 4 * nchan +
-                    chan * 4],  // Not passing weights, any pointer should do
-            &flag[bl * 4 * nchan + chan * 4], bl, chan, false,
-            itsFlagCounter);  // Update weights is disabled here
+        ApplyCal::ApplyDiag(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
+                            itsFlagCounter);
       }
     }
   }

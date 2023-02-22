@@ -328,7 +328,7 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
       const aocommon::MC2x2F result = left.Multiply(mat).MultiplyHerm(right);
       result.AssignTo(data);
       if (doUpdateWeights) {
-        ApplyCal::applyWeights(left.Data(), right.Data(),
+        ApplyCal::ApplyWeights(left.Data(), right.Data(),
                                weight0 + bl * 4 * nCh + ch * 4);
       }
     }
@@ -423,7 +423,7 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
       const aocommon::MC2x2F result = left.Multiply(mat).MultiplyHerm(right);
       result.AssignTo(data);
       if (do_update_weights) {
-        ApplyCal::applyWeights(left.Data(), right.Data(),
+        ApplyCal::ApplyWeights(left.Data(), right.Data(),
                                weight0 + bl * 4 * n_channels + ch * 4);
       }
     }

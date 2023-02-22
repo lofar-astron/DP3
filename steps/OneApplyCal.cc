@@ -18,7 +18,6 @@
 #include <aocommon/parallelfor.h>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/OS/File.h>
 
 #include <iostream>
 #include <limits>
@@ -32,7 +31,6 @@ using dp3::base::DPInfo;
 
 typedef JonesParameters::CorrectType CorrectType;
 
-using casacore::Array;
 using std::vector;
 
 namespace dp3 {
@@ -383,15 +381,11 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
         times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
       }
 
-      std::vector<std::string> ant_names;
-      for (const std::string& name : info().antennaNames()) {
-        ant_names.push_back(name);
-      }
-
       // Validate that the data is in the correct shape
-      size_t nchan = buffer->GetCasacoreData().shape()[1];
-      size_t n_corrs = buffer->GetSolution()[0].size() / ant_names.size();
-      if (buffer->GetSolution().size() != nchan ||
+      const size_t n_chan = buffer->GetData().shape(1);
+      const size_t n_corrs =
+          buffer->GetSolution()[0].size() / info().antennaNames().size();
+      if (buffer->GetSolution().size() != n_chan ||
           (n_corrs != 2 && n_corrs != 4)) {
         throw std::runtime_error(
             "The solution is not in the correct shape. Was the solution "
@@ -399,8 +393,8 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
       }
 
       itsJonesParameters = std::make_unique<JonesParameters>(
-          info().chanFreqs(), times, ant_names, ct, buffer->GetSolution(),
-          itsInvert, itsSigmaMMSE);
+          info().chanFreqs(), times, info().antennaNames(), ct,
+          buffer->GetSolution(), itsInvert, itsSigmaMMSE);
     }
     itsTimeStep = 0;
   } else {
@@ -408,35 +402,28 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   // Loop through all baselines in the buffer.
-  const size_t nbl = buffer->GetData().shape(0);
-  const size_t nchan = buffer->GetData().shape(1);
-
-  std::complex<float>* data = buffer->GetData().data();
-  float* weight = buffer->GetWeights().data();
-  bool* flag = buffer->GetFlags().data();
+  const size_t n_bl = buffer->GetData().shape(0);
+  const size_t n_chan = buffer->GetData().shape(1);
+  const casacore::Cube<casacore::Complex>& gains =
+      itsJonesParameters->GetParms();
+  const size_t n_corr = gains.shape()[0];
 
   aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
-  loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
-    for (size_t chan = 0; chan < nchan; chan++) {
-      unsigned int timeFreqOffset = (itsTimeStep * info().nchan()) + chan;
-      unsigned int antA = info().getAnt1()[bl];
-      unsigned int antB = info().getAnt2()[bl];
-      if (itsJonesParameters->GetParms().shape()[0] > 2) {
-        ApplyCal::applyFull(
-            &itsJonesParameters->GetParms()(0, antA, timeFreqOffset),
-            &itsJonesParameters->GetParms()(0, antB, timeFreqOffset),
-            &data[bl * itsNCorr * nchan + chan * itsNCorr],
-            &weight[bl * itsNCorr * nchan + chan * itsNCorr],
-            &flag[bl * itsNCorr * nchan + chan * itsNCorr], bl, chan,
-            itsUpdateWeights, itsFlagCounter);
+  loop.Run(0, n_bl, [&](size_t bl) {
+    const unsigned int ant_a = info().getAnt1()[bl];
+    const unsigned int ant_b = info().getAnt2()[bl];
+
+    for (size_t chan = 0; chan < n_chan; chan++) {
+      const unsigned int time_freq_offset =
+          (itsTimeStep * info().nchan()) + chan;
+      const std::complex<float>* gain_a = &gains(0, ant_a, time_freq_offset);
+      const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
+      if (n_corr > 2) {
+        ApplyCal::ApplyFull(gain_a, gain_b, *buffer, bl, chan, itsUpdateWeights,
+                            itsFlagCounter);
       } else {
-        ApplyCal::applyDiag(
-            &itsJonesParameters->GetParms()(0, antA, timeFreqOffset),
-            &itsJonesParameters->GetParms()(0, antB, timeFreqOffset),
-            &data[bl * itsNCorr * nchan + chan * itsNCorr],
-            &weight[bl * itsNCorr * nchan + chan * itsNCorr],
-            &flag[bl * itsNCorr * nchan + chan * itsNCorr], bl, chan,
-            itsUpdateWeights, itsFlagCounter);
+        ApplyCal::ApplyDiag(gain_a, gain_b, *buffer, bl, chan, itsUpdateWeights,
+                            itsFlagCounter);
       }
     }
   });
@@ -566,7 +553,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
         if (parmvalues[parmExprNum][ant].size() != tfDomainSize)
           throw std::runtime_error("Size of parmvalue != tfDomainSize");
       } else {  // No value found, try default
-        Array<double> defValues;
+        casacore::Array<double> defValues;
         double defValue;
 
         std::string defParmNameAntenna =

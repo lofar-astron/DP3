@@ -1,5 +1,5 @@
-// GainCal.cc: DPPP step class to ApplyCal visibilities
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// ApplyCal.cc: DP3 step class that applies gain solutions to visibilities.
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema
@@ -11,6 +11,8 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+
+#include <xtensor/xview.hpp>
 
 #include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"
@@ -92,66 +94,69 @@ void ApplyCal::finish() {
   getNextStep()->finish();
 }
 
-void ApplyCal::applyDiag(const casacore::Complex* gainA,
-                         const casacore::Complex* gainB, casacore::Complex* vis,
-                         float* weight, bool* flag, unsigned int bl,
-                         unsigned int chan, bool updateWeights,
-                         base::FlagCounter& flagCounter) {
+void ApplyCal::ApplyDiag(const std::complex<float>* gain_a,
+                         const std::complex<float>* gain_b, DPBuffer& buffer,
+                         unsigned int baseline, unsigned int channel,
+                         bool update_weights, base::FlagCounter& flag_counter) {
   // If parameter is NaN or inf, do not apply anything and flag the data
-  if (!(isfinite(gainA[0]) && isfinite(gainB[0]) && isfinite(gainA[1]) &&
-        isfinite(gainB[1]))) {
+  if (!(isfinite(gain_a[0]) && isfinite(gain_b[0]) && isfinite(gain_a[1]) &&
+        isfinite(gain_b[1]))) {
     // Only update flagcounter for first correlation
-    if (!flag[0]) {
-      flagCounter.incrChannel(chan);
-      flagCounter.incrBaseline(bl);
+    if (!buffer.GetFlags()(baseline, channel, 0)) {
+      flag_counter.incrChannel(channel);
+      flag_counter.incrBaseline(baseline);
     }
-    for (unsigned int corr = 0; corr < 4; ++corr) {
-      flag[corr] = true;
-    }
+    xt::view(buffer.GetFlags(), baseline, channel, xt::all()).fill(true);
     return;
   }
 
-  vis[0] *= gainA[0] * conj(gainB[0]);
-  vis[1] *= gainA[0] * conj(gainB[1]);
-  vis[2] *= gainA[1] * conj(gainB[0]);
-  vis[3] *= gainA[1] * conj(gainB[1]);
+  buffer.GetData()(baseline, channel, 0) *= gain_a[0] * std::conj(gain_b[0]);
+  buffer.GetData()(baseline, channel, 1) *= gain_a[0] * std::conj(gain_b[1]);
+  buffer.GetData()(baseline, channel, 2) *= gain_a[1] * std::conj(gain_b[0]);
+  buffer.GetData()(baseline, channel, 3) *= gain_a[1] * std::conj(gain_b[1]);
 
-  if (updateWeights) {
-    weight[0] /= norm(gainA[0]) * norm(gainB[0]);
-    weight[1] /= norm(gainA[0]) * norm(gainB[1]);
-    weight[2] /= norm(gainA[1]) * norm(gainB[0]);
-    weight[3] /= norm(gainA[1]) * norm(gainB[1]);
+  if (update_weights) {
+    aocommon::xt::Span<float, 3>& weights = buffer.GetWeights();
+    weights(baseline, channel, 0) /=
+        std::norm(gain_a[0]) * std::norm(gain_b[0]);
+    weights(baseline, channel, 1) /=
+        std::norm(gain_a[0]) * std::norm(gain_b[1]);
+    weights(baseline, channel, 2) /=
+        std::norm(gain_a[1]) * std::norm(gain_b[0]);
+    weights(baseline, channel, 3) /=
+        std::norm(gain_a[1]) * std::norm(gain_b[1]);
   }
 }
 
-void ApplyCal::applyScalar(const casacore::Complex* gainA,
-                           const casacore::Complex* gainB,
-                           casacore::Complex* vis, float* weight, bool* flag,
-                           unsigned int bl, unsigned int chan,
-                           bool updateWeights, base::FlagCounter& flagCounter) {
+void ApplyCal::ApplyScalar(const std::complex<float>* gain_a,
+                           const std::complex<float>* gain_b, DPBuffer& buffer,
+                           unsigned int baseline, unsigned int channel,
+                           bool update_weights,
+                           base::FlagCounter& flag_counter) {
   // If parameter is NaN or inf, do not apply anything and flag the data
-  if (!(isfinite(gainA[0]) && isfinite(gainB[0]))) {
+  if (!(isfinite(gain_a[0]) && isfinite(gain_b[0]))) {
     // Only update flagcounter for first correlation
-    if (!flag[0]) {
-      flagCounter.incrChannel(chan);
-      flagCounter.incrBaseline(bl);
+    if (!buffer.GetFlags()(baseline, channel, 0)) {
+      flag_counter.incrChannel(channel);
+      flag_counter.incrBaseline(baseline);
     }
-    for (unsigned int corr = 0; corr < 4; ++corr) {
-      flag[corr] = true;
-    }
+    xt::view(buffer.GetFlags(), baseline, channel, xt::all()).fill(true);
     return;
   }
 
-  vis[0] *= gainA[0] * conj(gainB[0]);
-  vis[1] *= gainA[0] * conj(gainB[0]);
-  vis[2] *= gainA[0] * conj(gainB[0]);
-  vis[3] *= gainA[0] * conj(gainB[0]);
+  const std::complex<float> gain_a_b = gain_a[0] * std::conj(gain_b[0]);
+  buffer.GetData()(baseline, channel, 0) *= gain_a_b;
+  buffer.GetData()(baseline, channel, 1) *= gain_a_b;
+  buffer.GetData()(baseline, channel, 2) *= gain_a_b;
+  buffer.GetData()(baseline, channel, 3) *= gain_a_b;
 
-  if (updateWeights) {
-    weight[0] /= norm(gainA[0]) * norm(gainB[0]);
-    weight[1] /= norm(gainA[0]) * norm(gainB[0]);
-    weight[2] /= norm(gainA[0]) * norm(gainB[0]);
-    weight[3] /= norm(gainA[0]) * norm(gainB[0]);
+  if (update_weights) {
+    aocommon::xt::Span<float, 3>& weights = buffer.GetWeights();
+    const float norm_gain_a_b = std::norm(gain_a[0]) * std::norm(gain_b[0]);
+    weights(baseline, channel, 0) /= norm_gain_a_b;
+    weights(baseline, channel, 1) /= norm_gain_a_b;
+    weights(baseline, channel, 2) /= norm_gain_a_b;
+    weights(baseline, channel, 3) /= norm_gain_a_b;
   }
 }
 
@@ -172,63 +177,62 @@ void ApplyCal::invert(std::complex<NumType>* v, NumType sigmaMMSE) {
 template void ApplyCal::invert(std::complex<double>* v, double sigmaMMSE);
 template void ApplyCal::invert(std::complex<float>* v, float sigmaMMSE);
 
-void ApplyCal::applyFull(const casacore::Complex* gainA,
-                         const casacore::Complex* gainB, casacore::Complex* vis,
-                         float* weight, bool* flag, unsigned int bl,
-                         unsigned int chan, bool doUpdateWeights,
-                         base::FlagCounter& flagCounter) {
-  casacore::Complex gainAxvis[4];
+void ApplyCal::ApplyFull(const std::complex<float>* gain_a,
+                         const std::complex<float>* gain_b, DPBuffer& buffer,
+                         unsigned int baseline, unsigned int channel,
+                         bool update_weights, base::FlagCounter& flag_counter) {
+  std::complex<float> gain_a_x_visibility[4];
 
   // If parameter is NaN or inf, do not apply anything and flag the data
   bool anyinfnan = false;
   for (unsigned int corr = 0; corr < 4; ++corr) {
-    if (!(isfinite(gainA[corr]) && isfinite(gainB[corr]))) {
+    if (!(isfinite(gain_a[corr]) && isfinite(gain_b[corr]))) {
       anyinfnan = true;
       break;
     }
   }
   if (anyinfnan) {
     // Only update flag counter for first correlation
-    if (!flag[0]) {
-      flagCounter.incrChannel(chan);
-      flagCounter.incrBaseline(bl);
+    if (!buffer.GetFlags()(baseline, channel, 0)) {
+      flag_counter.incrChannel(channel);
+      flag_counter.incrBaseline(baseline);
     }
-    for (unsigned int corr = 0; corr < 4; ++corr) {
-      flag[corr] = true;
-    }
+    xt::view(buffer.GetFlags(), baseline, channel, xt::all()).fill(true);
     return;
   }
 
-  // gainAxvis = gainA * vis
+  // gain_a_x_visibility = gain_a * visibility
   for (unsigned int row = 0; row < 2; ++row) {
-    for (unsigned int col = 0; col < 2; ++col) {
-      gainAxvis[2 * row + col] =
-          gainA[2 * row + 0] * casacore::Complex(vis[2 * 0 + col]) +
-          gainA[2 * row + 1] * casacore::Complex(vis[2 * 1 + col]);
+    for (unsigned int column = 0; column < 2; ++column) {
+      gain_a_x_visibility[2 * row + column] =
+          gain_a[2 * row + 0] *
+              buffer.GetData()(baseline, channel, 2 * 0 + column) +
+          gain_a[2 * row + 1] *
+              buffer.GetData()(baseline, channel, 2 * 1 + column);
     }
   }
 
-  // vis = gainAxvis * gainB^H
+  // visibility = gain_a_x_visibility * gain_b^H
   for (unsigned int row = 0; row < 2; ++row) {
-    for (unsigned int col = 0; col < 2; ++col) {
-      vis[2 * row + col] =
-          gainAxvis[2 * row + 0] * std::conj(gainB[2 * col + 0]) +
-          gainAxvis[2 * row + 1] * std::conj(gainB[2 * col + 1]);
+    for (unsigned int column = 0; column < 2; ++column) {
+      buffer.GetData()(baseline, channel, 2 * row + column) =
+          gain_a_x_visibility[2 * row + 0] * std::conj(gain_b[2 * column + 0]) +
+          gain_a_x_visibility[2 * row + 1] * std::conj(gain_b[2 * column + 1]);
     }
   }
 
-  if (doUpdateWeights) {
-    applyWeights(gainA, gainB, weight);
+  if (update_weights) {
+    ApplyWeights(gain_a, gain_b, &buffer.GetWeights()(baseline, channel, 0));
   }
 }
 
-void ApplyCal::applyWeights(const casacore::Complex* gainA,
-                            const casacore::Complex* gainB, float* weight) {
+void ApplyCal::ApplyWeights(const std::complex<float>* gain_a,
+                            const std::complex<float>* gain_b, float* weight) {
   float cov[4], normGainA[4], normGainB[4];
   for (unsigned int i = 0; i < 4; ++i) {
     cov[i] = 1. / weight[i];
-    normGainA[i] = std::norm(gainA[i]);
-    normGainB[i] = std::norm(gainB[i]);
+    normGainA[i] = std::norm(gain_a[i]);
+    normGainB[i] = std::norm(gain_b[i]);
   }
 
   weight[0] = cov[0] * (normGainA[0] * normGainB[0]) +
