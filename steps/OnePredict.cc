@@ -7,7 +7,10 @@
 #include "OnePredict.h"
 #include "ApplyBeam.h"
 
+#include <cassert>
 #include <iostream>
+
+#include <xtensor/xview.hpp>
 
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
@@ -347,7 +350,6 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nCr = info().ncorr();
-  const size_t nBeamValues = stokes_i_only_ ? nBl * nCh : nBl * nCh * nCr;
 
   base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
 
@@ -397,16 +399,22 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   simulators.reserve(pool->NThreads());
 
   std::vector<std::pair<size_t, size_t>> baseline_range;
-  std::vector<Cube<dcomplex>> sim_buffer;
+  std::vector<xt::xtensor<std::complex<double>, 3>> sim_buffer;
   std::vector<std::vector<std::pair<size_t, size_t>>> baselines_split;
   std::vector<std::pair<size_t, size_t>> station_range;
   const size_t actual_nCr = (stokes_i_only_ ? 1 : nCr);
   size_t n_threads = pool->NThreads();
   if (thread_over_baselines_) {
-    // make sure each thread has enough baselines to work
-    if (nBl < n_threads) {
+    // All threads process 'baselines_per_thread' baselines.
+    // The first 'remaining_baselines' threads process an extra baseline.
+    const size_t baselines_per_thread = nBl / n_threads;
+    const size_t remaining_baselines = nBl % n_threads;
+
+    // Reduce the number of threads if there are not enough baselines.
+    if (n_threads < nBl) {
       n_threads = nBl;
     }
+
     baseline_range.resize(n_threads);
     sim_buffer.resize(n_threads);
     baselines_split.resize(n_threads);
@@ -414,27 +422,26 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       station_range.resize(n_threads);
     }
 
-    const size_t baselines_thread = (nBl + n_threads - 1) / n_threads;
-    size_t end_index = 0;
-    size_t start_index = 0;
-    for (size_t thread_index = 0;
-         thread_index != n_threads && end_index < baselines_.size();
-         ++thread_index) {
-      auto start_bline =
-          std::next(baselines_.cbegin(), thread_index * baselines_thread);
-      end_index = (thread_index * baselines_thread + baselines_thread >
-                           baselines_.size()
-                       ? baselines_.size()
-                       : thread_index * baselines_thread + baselines_thread);
-      baseline_range[thread_index] = std::make_pair(start_index, end_index);
-      auto end_bline = std::next(baselines_.cbegin(), end_index);
-      baselines_split[thread_index].resize(end_index -
-                                           thread_index * baselines_thread);
-      sim_buffer[thread_index].resize(
-          actual_nCr, nCh, end_index - thread_index * baselines_thread);
-      start_index += baselines_split[thread_index].size();
-      std::copy(start_bline, end_bline, baselines_split[thread_index].begin());
+    // Index of the first baseline for the current thread. The loop below
+    // updates this variable in each iteration.
+    size_t first_baseline = 0;
+    for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
+      const size_t chunk_size =
+          baselines_per_thread + ((thread_index < remaining_baselines) ? 1 : 0);
+
+      baseline_range[thread_index] =
+          std::make_pair(first_baseline, first_baseline + chunk_size);
+      sim_buffer[thread_index].resize({chunk_size, nCh, actual_nCr});
+
+      baselines_split[thread_index].resize(chunk_size);
+      std::copy_n(std::next(baselines_.cbegin(), first_baseline), chunk_size,
+                  baselines_split[thread_index].begin());
+
+      first_baseline += chunk_size;  // Update for the next loop iteration.
     }
+    // Verify that all baselines are assigned to threads.
+    assert(first_baseline == nBl);
+
     // find min,max station indices for this thread
     if (apply_beam_) {
       const size_t stations_thread = (nSt + n_threads - 1) / n_threads;
@@ -456,17 +463,23 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
     aocommon::ParallelFor<size_t> loop(n_threads);
     loop.Run(0, n_threads, [&](size_t thread_index) {
-      predict_buffer_->GetModel(thread_index) = dcomplex();
-      if (apply_beam_)
-        predict_buffer_->GetPatchModel(thread_index) = dcomplex();
-      sim_buffer[thread_index] = dcomplex();
+      const std::complex<double> zero(0.0, 0.0);
+      predict_buffer_->GetModel(thread_index).fill(zero);
+      if (apply_beam_) predict_buffer_->GetPatchModel(thread_index).fill(zero);
+      sim_buffer[thread_index].fill(zero);
     });
 
     // Keep this loop single threaded, I'm not sure if Simulator constructor
     // is thread safe.
     for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
       // When applying beam, simulate into patch vector
-      Cube<dcomplex>& simulatedest = sim_buffer[thread_index];
+      // Create a Casacore view since the Simulator still uses Casacore.
+      xt::xtensor<std::complex<double>, 3>& thread_buffer =
+          sim_buffer[thread_index];
+      const casacore::IPosition shape(3, thread_buffer.shape(2),
+                                      thread_buffer.shape(1),
+                                      thread_buffer.shape(0));
+      Cube<dcomplex> simulatedest(shape, thread_buffer.data(), casacore::SHARE);
 
       simulators.emplace_back(phase_ref_, nSt, baselines_split[thread_index],
                               casacore::Vector<double>(info().chanFreqs()),
@@ -477,14 +490,25 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   } else {
     for (size_t thread_index = 0; thread_index != pool->NThreads();
          ++thread_index) {
-      predict_buffer_->GetModel(thread_index) = dcomplex();
-      if (apply_beam_)
-        predict_buffer_->GetPatchModel(thread_index) = dcomplex();
+      xt::xtensor<std::complex<double>, 3>& model =
+          predict_buffer_->GetModel(thread_index);
+      model.fill(std::complex<double>(0.0, 0.0));
+      std::complex<double>* model_data = model.data();
 
-      // When applying beam, simulate into patch vector
-      Cube<dcomplex>& simulatedest =
-          (apply_beam_ ? predict_buffer_->GetPatchModel(thread_index)
-                       : predict_buffer_->GetModel(thread_index));
+      if (apply_beam_) {
+        xt::xtensor<std::complex<double>, 3>& patch_model =
+            predict_buffer_->GetPatchModel(thread_index);
+        patch_model.fill(std::complex<double>(0.0, 0.0));
+        // When applying beam, simulate into patch vector
+        model_data = patch_model.data();
+      }
+
+      // Create a Casacore view since the Simulator still uses Casacore.
+      // Always use model.shape(), since it's equal to the patch model shape.
+      const casacore::IPosition shape(3, model.shape(2), model.shape(1),
+                                      model.shape(0));
+      Cube<dcomplex> simulatedest(shape, model_data, casacore::SHARE);
+
       simulators.emplace_back(phase_ref_, nSt, baselines_,
                               casacore::Vector<double>(info().chanFreqs()),
                               casacore::Vector<double>(info().chanWidths()),
@@ -503,11 +527,6 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       // OnePredict the source model and apply beam when an entire patch is
       // done
       std::shared_ptr<const base::Patch>& curPatch = curPatches[thread_index];
-      casacore::Slicer slicer_dest(
-          casacore::IPosition(3, 0, 0, baseline_range[thread_index].first),
-          casacore::IPosition(3, actual_nCr, nCh,
-                              baseline_range[thread_index].second -
-                                  baseline_range[thread_index].first));
 
       for (size_t source_index = 0; source_index < source_list_.size();
            ++source_index) {
@@ -517,17 +536,19 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
         if (apply_beam_ && patchIsFinished) {
           // PatchModel <- SimulBuffer
-          Cube<dcomplex>& simulatedest =
+          xt::xtensor<std::complex<double>, 3>& patch_model =
               predict_buffer_->GetPatchModel(thread_index);
-          simulatedest(slicer_dest) = sim_buffer[thread_index];
+          xt::view(patch_model,
+                   xt::range(baseline_range[thread_index].first,
+                             baseline_range[thread_index].second),
+                   xt::all(), xt::all()) = sim_buffer[thread_index];
 
           // Apply the beam and add PatchModel to Model
-          addBeamToData(curPatch, time, thread_index, nBeamValues,
-                        predict_buffer_->GetPatchModel(thread_index).data(),
+          addBeamToData(curPatch, time, thread_index, patch_model,
                         baseline_range[thread_index],
                         station_range[thread_index], barrier, stokes_i_only_);
           // Initialize patchmodel to zero for the next patch
-          sim_buffer[thread_index] = dcomplex();
+          sim_buffer[thread_index].fill(std::complex<double>(0.0, 0.0));
         }
         // Depending on apply_beam_, the following call will add to either
         // the Model or the PatchModel of the predict buffer
@@ -538,18 +559,24 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       // catch last source
       if (apply_beam_ && curPatch != nullptr) {
         // PatchModel <- SimulBuffer
-        Cube<dcomplex>& simulatedest =
+        xt::xtensor<std::complex<double>, 3>& patch_model =
             predict_buffer_->GetPatchModel(thread_index);
-        simulatedest(slicer_dest) = sim_buffer[thread_index];
+        xt::view(patch_model,
+                 xt::range(baseline_range[thread_index].first,
+                           baseline_range[thread_index].second),
+                 xt::all(), xt::all()) = sim_buffer[thread_index];
 
-        addBeamToData(curPatch, time, thread_index, nBeamValues,
-                      predict_buffer_->GetPatchModel(thread_index).data(),
+        addBeamToData(curPatch, time, thread_index, patch_model,
                       baseline_range[thread_index], station_range[thread_index],
                       barrier, stokes_i_only_);
       }
       if (!apply_beam_) {
-        Cube<dcomplex>& simulatedest = predict_buffer_->GetModel(thread_index);
-        simulatedest(slicer_dest) = sim_buffer[thread_index];
+        xt::xtensor<std::complex<double>, 3>& model =
+            predict_buffer_->GetModel(thread_index);
+        xt::view(model,
+                 xt::range(baseline_range[thread_index].first,
+                           baseline_range[thread_index].second),
+                 xt::all(), xt::all()) = sim_buffer[thread_index];
       }
     });
   } else {
@@ -563,11 +590,11 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
           curPatch != source_list_[source_index].second && curPatch != nullptr;
       if (apply_beam_ && patchIsFinished) {
         // Apply the beam and add PatchModel to Model
-        addBeamToData(curPatch, time, thread, nBeamValues,
-                      predict_buffer_->GetPatchModel(thread).data(),
-                      stokes_i_only_);
+        addBeamToData(curPatch, time, thread,
+                      predict_buffer_->GetPatchModel(thread), stokes_i_only_);
         // Initialize patchmodel to zero for the next patch
-        predict_buffer_->GetPatchModel(thread) = dcomplex();
+        predict_buffer_->GetPatchModel(thread).fill(
+            std::complex<double>(0.0, 0.0));
       }
       // Depending on apply_beam_, the following call will add to either
       // the Model or the PatchModel of the predict buffer
@@ -581,9 +608,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
         const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
             scoped_time{predict_time_};
         if (curPatches[thread] != nullptr) {
-          addBeamToData(curPatches[thread], time, thread, nBeamValues,
-                        predict_buffer_->GetPatchModel(thread).data(),
-                        stokes_i_only_);
+          addBeamToData(curPatches[thread], time, thread,
+                        predict_buffer_->GetPatchModel(thread), stokes_i_only_);
         }
       });
     }
@@ -598,19 +624,21 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   buffer->ResizeData(nBl, nCh, nCr);
   buffer->MakeIndependent(kDataField);
   buffer->GetData().fill(std::complex<float>());
-  casacore::Complex* data = buffer->GetData().data();
-  const size_t nVisibilities = nBl * nCh * nCr;
   for (size_t thread = 0; thread < std::min(pool->NThreads(), n_threads);
        ++thread) {
     if (stokes_i_only_) {
-      for (size_t i = 0, j = 0; i < nVisibilities; i += nCr, j++) {
-        data[i] += predict_buffer_->GetModel(thread).data()[j];
-        data[i + nCr - 1] += predict_buffer_->GetModel(thread).data()[j];
-      }
+      // Add the predicted model to the first and last correlation.
+      auto data_view = xt::view(buffer->GetData(), xt::all(), xt::all(),
+                                xt::keep(0, nCr - 1));
+      // Without explicit casts, XTensor does not know what to do.
+      data_view = xt::cast<std::complex<float>>(
+          xt::cast<std::complex<double>>(data_view) +
+          predict_buffer_->GetModel(thread));
     } else {
-      std::transform(data, data + nVisibilities,
-                     predict_buffer_->GetModel(thread).data(), data,
-                     std::plus<dcomplex>());
+      // Without explicit casts, XTensor does not know what to do.
+      buffer->GetData() = xt::cast<std::complex<float>>(
+          xt::cast<std::complex<double>>(buffer->GetData()) +
+          predict_buffer_->GetModel(thread));
     }
   }
 
@@ -642,8 +670,9 @@ everybeam::vector3r_t OnePredict::dir2Itrf(const MDirection& dir,
 }
 
 void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
-                               double time, size_t thread, size_t nBeamValues,
-                               dcomplex* data0, bool stokesIOnly) {
+                               double time, size_t thread,
+                               xt::xtensor<std::complex<double>, 3>& data,
+                               bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
   MDirection dir(MVDirection(patch->direction().ra, patch->direction().dec),
                  MDirection::J2000);
@@ -653,29 +682,28 @@ void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
     const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
         scoped_time{apply_beam_time_};
     ApplyBeam::applyBeamStokesIArrayFactor(
-        info(), time, data0, srcdir, telescope_.get(),
+        info(), time, data.data(), srcdir, telescope_.get(),
         predict_buffer_->GetScalarBeamValues(thread), false, beam_mode_,
         &mutex_);
   } else {
-    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
-        scoped_time{apply_beam_time_};
-    float* dummyweight = nullptr;
-    ApplyBeam::applyBeam(info(), time, data0, dummyweight, srcdir,
-                         telescope_.get(),
-                         predict_buffer_->GetFullBeamValues(thread), false,
-                         beam_mode_, false, &mutex_);
+    {
+      const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
+          scoped_time{apply_beam_time_};
+      float* dummyweight = nullptr;
+      ApplyBeam::applyBeam(info(), time, data.data(), dummyweight, srcdir,
+                           telescope_.get(),
+                           predict_buffer_->GetFullBeamValues(thread), false,
+                           beam_mode_, false, &mutex_);
+    }
   }
 
   // Add temporary buffer to Model
-  std::transform(predict_buffer_->GetModel(thread).data(),
-                 predict_buffer_->GetModel(thread).data() + nBeamValues, data0,
-                 predict_buffer_->GetModel(thread).data(),
-                 std::plus<dcomplex>());
+  predict_buffer_->GetModel(thread) += data;
 }
 
 void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
-                               double time, size_t thread, size_t nBeamValues,
-                               dcomplex* data0,
+                               double time, size_t thread,
+                               xt::xtensor<std::complex<double>, 3>& data,
                                const std::pair<size_t, size_t>& baseline_range,
                                const std::pair<size_t, size_t>& station_range,
                                aocommon::Barrier& barrier, bool stokesIOnly) {
@@ -690,7 +718,7 @@ void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
     const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
         scoped_time{apply_beam_time_};
     ApplyBeam::applyBeamStokesIArrayFactor(
-        info(), time, data0, srcdir, telescope_.get(),
+        info(), time, data.data(), srcdir, telescope_.get(),
         predict_buffer_->GetScalarBeamValues(common_thread), baseline_range,
         station_range, barrier, false, beam_mode_, &mutex_);
   } else {
@@ -698,16 +726,13 @@ void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
         scoped_time{apply_beam_time_};
     float* dummyweight = nullptr;
     ApplyBeam::applyBeam(
-        info(), time, data0, dummyweight, srcdir, telescope_.get(),
+        info(), time, data.data(), dummyweight, srcdir, telescope_.get(),
         predict_buffer_->GetFullBeamValues(common_thread), baseline_range,
         station_range, barrier, false, beam_mode_, false, &mutex_);
   }
 
   // Add temporary buffer to Model
-  std::transform(predict_buffer_->GetModel(thread).data(),
-                 predict_buffer_->GetModel(thread).data() + nBeamValues, data0,
-                 predict_buffer_->GetModel(thread).data(),
-                 std::plus<dcomplex>());
+  predict_buffer_->GetModel(thread) += data;
 }
 
 void OnePredict::finish() {

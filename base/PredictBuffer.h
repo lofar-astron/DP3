@@ -1,4 +1,4 @@
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DP3_BASE_PREDICTBUFFER_H_
@@ -10,6 +10,8 @@
 #include <aocommon/matrix2x2.h>
 
 #include <casacore/casa/Arrays/Cube.h>
+
+#include <xtensor/xtensor.hpp>
 
 #include <EveryBeam/station.h>
 #include <EveryBeam/telescope/telescope.h>
@@ -25,7 +27,7 @@ class PredictBuffer {
               size_t n_baselines, size_t n_stations, bool include_beam) {
     model_visibilities_.resize(n_threads);
     for (size_t i = 0; i != n_threads; ++i) {
-      model_visibilities_[i].resize(n_correlations, n_channels, n_baselines);
+      model_visibilities_[i].resize({n_baselines, n_channels, n_correlations});
     }
 
     if (include_beam) {
@@ -36,19 +38,19 @@ class PredictBuffer {
       scalar_beam_values_.resize(n_threads);
 
       for (size_t i = 0; i != n_threads; ++i) {
-        patch_model_visibilities_[i].resize(n_correlations, n_channels,
-                                            n_baselines);
+        patch_model_visibilities_[i].resize(
+            {n_baselines, n_channels, n_correlations});
         full_beam_values_[i].resize(n_stations * n_channels);
         scalar_beam_values_[i].resize(n_stations * n_channels);
       }
     }
   }
 
-  casacore::Cube<dcomplex>& GetModel(size_t threadIndex) {
+  xt::xtensor<std::complex<double>, 3>& GetModel(size_t threadIndex) {
     return model_visibilities_[threadIndex];
   }
 
-  casacore::Cube<dcomplex>& GetPatchModel(size_t threadIndex) {
+  xt::xtensor<std::complex<double>, 3>& GetPatchModel(size_t threadIndex) {
     return patch_model_visibilities_[threadIndex];
   }
 
@@ -65,8 +67,8 @@ class PredictBuffer {
   }
 
  private:
-  std::vector<casacore::Cube<dcomplex>> model_visibilities_;
-  std::vector<casacore::Cube<dcomplex>> patch_model_visibilities_;
+  std::vector<xt::xtensor<std::complex<double>, 3>> model_visibilities_;
+  std::vector<xt::xtensor<std::complex<double>, 3>> patch_model_visibilities_;
   std::vector<std::vector<aocommon::MC2x2>> full_beam_values_;
   std::vector<std::vector<everybeam::complex_t>> scalar_beam_values_;
   std::vector<std::shared_ptr<everybeam::Station>> station_list_;
