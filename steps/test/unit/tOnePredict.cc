@@ -16,7 +16,6 @@
 
 #include "tPredict.h"
 #include "H5ParmFixture.h"
-#include "mock/MockInput.h"
 
 using dp3::steps::OnePredict;
 using dp3::steps::Step;
@@ -168,44 +167,44 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight = 1.0) {
-  casacore::Cube<casacore::Complex> data(kNCorr, channel_counts.size(),
-                                         n_baselines);
-  casacore::Cube<bool> flags(data.shape(), false);
-  casacore::Cube<float> weights(data.shape(), weight);
-  casacore::Cube<bool> full_res_flags(channel_counts.size(), 1, n_baselines,
-                                      false);
-  casacore::Matrix<double> uvw(3, n_baselines);
-  for (std::size_t bl = 0; bl < n_baselines; ++bl) {
-    // Base value for this baseline.
-    const float bl_value = (bl * 100.0) + (base_value / weight);
-
-    std::size_t chan = 0;
-    float chan_value = bl_value;  // Base value for a group of channels.
-    for (std::size_t ch_count : channel_counts) {
-      // For each channel, increase chan_base by 10.0.
-      // When ch_count == 1, 'value' should equal chan_base.
-      // When ch_count > 1, 'value' should be the average for multiple channels.
-      const float value = chan_value + 5.0 * (ch_count - 1);
-      for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        data(corr, chan, bl) = value + corr;
-        weights(corr, chan, bl) *= ch_count;
-      }
-      ++chan;
-      chan_value += ch_count * 10.0;
-    }
-    uvw(0, bl) = bl_value + 0.0;
-    uvw(1, bl) = bl_value + 1.0;
-    uvw(2, bl) = bl_value + 2.0;
-  }
-
   auto buffer = std::make_unique<dp3::base::DPBuffer>();
   buffer->setTime(time);
   buffer->setExposure(interval);
-  buffer->setData(data);
-  buffer->setWeights(weights);
-  buffer->setFlags(flags);
-  buffer->setFullResFlags(full_res_flags);
-  buffer->setUVW(uvw);
+  buffer->ResizeData(n_baselines, channel_counts.size(), kNCorr);
+  buffer->ResizeWeights(n_baselines, channel_counts.size(), kNCorr);
+  buffer->ResizeFlags(n_baselines, channel_counts.size(), kNCorr);
+  buffer->ResizeFullResFlags(n_baselines, 1, channel_counts.size());
+  buffer->ResizeUvw(n_baselines);
+
+  buffer->GetFlags().fill(false);
+  buffer->GetWeights().fill(weight);
+  buffer->GetFullResFlags().fill(false);
+
+  for (std::size_t baseline = 0; baseline < n_baselines; ++baseline) {
+    // Base value for this baseline.
+    const float baseline_value = (baseline * 100.0) + (base_value / weight);
+
+    std::size_t chan = 0;
+    float channel_value =
+        baseline_value;  // Base value for a group of channels.
+    for (std::size_t channel_count : channel_counts) {
+      // For each channel, increase channel_value by 10.0.
+      // When channel_count == 1, 'value' should equal channel_value.
+      // When channel_count > 1, 'value' should be the average for multiple
+      // channels.
+      const float value = channel_value + 5.0 * (channel_count - 1);
+      for (unsigned int corr = 0; corr < kNCorr; ++corr) {
+        buffer->GetData()(baseline, chan, corr) = value + corr;
+        buffer->GetWeights()(baseline, chan, corr) *= channel_count;
+      }
+      ++chan;
+      channel_value += channel_count * 10.0;
+    }
+    buffer->GetUvw()(baseline, 0) = baseline_value + 0.0;
+    buffer->GetUvw()(baseline, 1) = baseline_value + 1.0;
+    buffer->GetUvw()(baseline, 2) = baseline_value + 2.0;
+  }
+
   return buffer;
 }
 
