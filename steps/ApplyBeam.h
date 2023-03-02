@@ -1,9 +1,9 @@
-// ApplyBeam.h: DPPP step class to ApplyBeam visibilities from a source model
+// ApplyBeam.h: DP3 step class to ApplyBeam visibilities from a source model
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to apply the beam model (optionally inverted)
+/// @brief DP3 step class to apply the beam model (optionally inverted)
 /// @author Tammo Jan Dijkema
 
 #ifndef DP3_STEPS_APPLYBEAM_H_
@@ -26,7 +26,7 @@
 namespace dp3 {
 namespace steps {
 
-/// \brief DPPP step class to ApplyBeam visibilities from a source model
+/// \brief DP3 step class to ApplyBeam visibilities from a source model
 
 /// This class is a Step class to apply the beam model, optionally inverted.
 /// The input MeasurementSet it operates on, must have the LOFAR subtables

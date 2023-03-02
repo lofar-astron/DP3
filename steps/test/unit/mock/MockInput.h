@@ -1,8 +1,8 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef MOCK_INPUT_H
-#define MOCK_INPUT_H
+#ifndef DP3_STEPS_TEST_UNIT_MOCKINPUT_H_
+#define DP3_STEPS_TEST_UNIT_MOCKINPUT_H_
 
 #include <boost/test/unit_test.hpp>
 #include "../../../InputStep.h"

@@ -1,5 +1,5 @@
-// MadFlagger.cc: DPPP step class to flag data based on median filtering
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// MadFlagger.cc: DP3 step class to flag data based on median filtering
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen

@@ -1,9 +1,9 @@
 // Step.h: Abstract base class for a DP3 step
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief Class to hold code for virtual base class for Flaggers in DPPP
+/// @brief Class to hold code for virtual base class for Flaggers in DP3
 /// @author Ger van Diepen
 
 #ifndef DP3_STEPS_STEP_H_

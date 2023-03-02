@@ -1,9 +1,9 @@
-// MadFlagger.h: DPPP step class to flag data based on median filtering
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// MadFlagger.h: DP3 step class to flag data based on median filtering
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to flag data based on median filtering
+/// @brief DP3 step class to flag data based on median filtering
 /// @author Ger van Diepen
 
 #ifndef DP3_STEPS_MADFLAGGER_H_
@@ -20,7 +20,7 @@ class ParameterSet;
 }
 
 namespace steps {
-/// @brief DPPP step class to flag data based on Median Average Deviation
+/// @brief DP3 step class to flag data based on Median Average Deviation
 /// (MAD) filtering
 
 /// This class is a Step class flagging data points based on the median
@@ -34,7 +34,7 @@ namespace steps {
 /// the data are mirrored, thus channels 3,2,1,0,1,2,3 will be used.
 /// For channel 1 the channels 2,1,0,1,2,3,4 will be used.
 /// The test program tMirror.cc can be used to check the correctness of
-/// the alogorithm to determine the channels to use.
+/// the algorithm to determine the channels to use.
 ///
 /// Taking the median is an O(N) operation, thus doing it for all data
 /// points is an O(N^2) operation. The test program tMedian.cc can be
