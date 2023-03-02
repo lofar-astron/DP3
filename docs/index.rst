@@ -83,9 +83,9 @@ Note that in order to insert missing subbands in the data, the names of the miss
 
 The output can be a new MeasurementSet, but it is also possible to update the flags if the input is a single MS. If averaging or phase-shifting to another phase center is done, the only option is to create a new MeasurementSet.
 
-At the end the run time is shown. Note that on a multi-core machine the user time can exceed the elapsed time (user time is counted per core). By default the percentage of time each step took is also shown.
+At the end the run time is shown. Note that on a multi-core machine, the user time can exceed the elapsed time (user time is an accumulated count per core). By default, the percentage of time each step took is also shown.
 
-The AOFlagger, MADFlagger, and Demixer, by far the most expensive parts of DP3, can run multi-threaded if DP3 is built with OpenMP. It is possible to define the number of threads to use by the global key `numthreads`. Is that is not set, it uses the environment variable `OMP_NUM_THREADS`. If also that variable is undefined, an DP3 run uses as many threads as there are CPU cores. Thus if multiple DP3 runs are started on a machine, the default total number of threads will exceed the number of CPU cores.
+The AOFlagger, MADFlagger, and Demixer, by far the most expensive parts of DP3, can run multi-threaded if DP3 is built with OpenMP. It is possible to define the number of threads to use by the global key `numthreads`. If that is not set, it uses the environment variable `OMP_NUM_THREADS`. If also that variable is undefined, a DP3 run uses as many threads as there are CPU cores. Thus, if multiple DP3 runs are started on a machine, the default total number of threads will exceed the number of CPU cores.
 
 MeasurementSet Access
 ---------------------
@@ -287,7 +287,7 @@ For example:
   DP3 DP3.pset parm1=value1 parm2=value2 ...
 
 
-The steps to perform have to be defined in the parset file. They are executed in the given order, where the data are piped from one step to the other until all data are processed. Each step has a name to be used thereafter as a prefix in the keyword names specifying the type and parameters of the step.
+The steps to perform have to be defined in the parset file. They are executed in the given order, where the data are piped from one step to the other until all data are processed. The provided name of each step is used as a prefix in the keyword names that specify the type and parameters of the step.
 
 The most basic parset is as follows. It copies the DATA column of the MS and flags NaN and infinite data.
 

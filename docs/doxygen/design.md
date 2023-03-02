@@ -15,7 +15,7 @@ write out the processed data.
 
 DP3 runs a pipeline in clearly defined stages, to make spotting
 errors as easy as possible.
-* **Initialise** This connects all the processing steps together. This step is data independent.
+* **Initialise** This connects all the processing steps together in a linked list data structure. This stage is data independent.
 * **Get fields to read** At this stage the fields required by each step (data, flags, weights, uvw, full resolution flags) are combined, to get the information on what to read from the measurement set.
 * **Tune At** This stage reads metadata, such as the number of channels, and adjusts the steps accordingly.
 * **Process** This stage pipes the data through the steps, one buffer at a time. The steps define the buffer size.
@@ -39,7 +39,7 @@ For regular MSs the following conditions hold:
 - Only one spectral window can be handled.
 
 ## Built-in steps
-DP3 contains built-in steps that are linked together and process one time slot at a time. This way, DP3 is therefore suitable for large measurement sets.
+DP3 contains built-in steps that are linked together in a linked list, where each step processes one time slot at a time. This way, DP3 is suitable for large measurement sets.
 All the built-in steps derive from the [Step](@ref dp3::steps::Step) class. 
 Its inheritance diagram shows all step types, including the built-in steps.
 
@@ -76,19 +76,25 @@ on the command line. The example also shows that you can
 use the out step to store intermediate results.
 
     msin = [bla.MS, bla2.MS]
+
     steps = [aoflag, avg1, out1, cal, out2, avg2 ]
     avg1.type = average
-    avg1.timestep = 4 # Average down every 4 timeslots
+    avg1.timestep = 4 # Average down every 4 time slots
+
     out1.type = out
     out1.name = myfile_averaged.MS
+
     cal.type = calibrate
     cal.skymodel = 3C196.skymodel
     cal.applysolution = true
     cal.parmdb = instrument.parmdb
+
     out2.type = out
     out2.name = .
     out2.datacolumn = CORRECTED_DATA
+
     avg2.type = average
     avg2.timestep = 2 # average down some more
     avg2.freqstep = 16
+    
     msout = bla_combined.MS
