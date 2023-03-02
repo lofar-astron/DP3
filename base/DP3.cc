@@ -1,5 +1,5 @@
 // DPRun.cc: Class to run steps like averaging and flagging on an MS
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
@@ -197,8 +197,6 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::Upsample>(parset, prefix);
   } else if (type == "interpolate") {
     step = std::make_shared<steps::Interpolate>(parset, prefix);
-  } else if (type == "null") {
-    step = std::make_shared<steps::NullStep>();
   } else if (type == "smartdemixer" || type == "smartdemix") {
     step = std::make_shared<steps::DemixerNew>(parset, prefix);
   } else if (type == "grouppredict") {
@@ -211,8 +209,6 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::Demixer>(parset, prefix);
   } else if (type == "python" || type == "pythondppp") {
     step = pythondp3::PyStep::create_instance(parset, prefix);
-  } else if (type == "null") {
-    step = std::make_shared<steps::NullStep>();
   } else if (type == "split" || type == "explode") {
     step = std::make_shared<steps::Split>(parset, prefix);
   } else if (type == "ddecal") {
@@ -221,6 +217,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     } else if (inputType == Step::MsType::kBda) {
       step = std::make_shared<steps::BdaDdeCal>(parset, prefix);
     }
+  } else if (type == "null") {
+    step = std::make_shared<steps::NullStep>();
   }
   return step;
 }
@@ -270,7 +268,7 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   DPLogger::useLogger = parset.getBool("uselogger", false);
   bool showProgress = parset.getBool("showprogress", true);
   bool showTimings = parset.getBool("showtimings", true);
-  // checkparset is an integer parameter now, but accept a bool as well
+  // checkparset is an integer parameter now, but accepts a bool as well
   // for backward compatibility.
   int checkparset = 0;
   try {
@@ -287,16 +285,10 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   // Create the steps, link them together
   std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
 
-  std::shared_ptr<Step> step = firstStep;
-  std::shared_ptr<Step> lastStep;
-  while (step) {
-    step = step->getNextStep();
-  }
-
   // Tell the reader which fields must be read.
   firstStep->setFieldsToRead(GetChainRequiredFields(firstStep));
 
-  // Call updateInfo()
+  // Call updateInfo() on all steps
   DPInfo dpInfo;
   if (numThreads > 0) {
     dpInfo.setNThreads(numThreads);
@@ -304,7 +296,8 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   dpInfo = firstStep->setInfo(dpInfo);
 
   // Show the steps.
-  step = firstStep;
+  std::shared_ptr<Step> step = firstStep;
+  std::shared_ptr<Step> lastStep;
   while (step) {
     std::ostringstream os;
     step->show(os);
@@ -338,6 +331,7 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
     }
   } else {
     while (firstStep->process(std::make_unique<DPBuffer>())) {
+      // do nothing
     }
   }
   // Finish the processing.
@@ -387,6 +381,8 @@ std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
   std::shared_ptr<InputStep> input_step = InputStep::CreateReader(parset);
   std::shared_ptr<Step> last_step = input_step;
 
+  // Create the second and later steps, as requested by the parset. The chain
+  // is not terminated by a null step yet.
   const std::string ms_name =
       casacore::Path(input_step->msName()).absoluteName();
   std::shared_ptr<Step> step = MakeStepsFromParset(
@@ -398,11 +394,11 @@ std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
     last_step = step;
   }
 
-  // Determine the provided fields of the series of steps. When provided
-  // fields is non-empty, create an output step that writes those fields.
+  // Determine the provided fields of the series of steps. When provided_fields
+  // is non-empty, create an output step that writes those fields.
   const common::Fields provided_fields = SetChainProvidedFields(input_step);
 
-  // Check if the last step is an output step.
+  // Check if the last step is an output step. If not, add it when necessary
   const bool ends_with_output_step = dynamic_cast<OutputStep*>(last_step.get());
 
   if (!ends_with_output_step) {

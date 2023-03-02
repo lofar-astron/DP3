@@ -1,4 +1,4 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DP3_BASE_DP3_H_
@@ -20,7 +20,7 @@ void Execute(const std::string& parsetName, int argc = 0,
 /// @param type Type of the step.
 /// @param parset ParameterSet containing the configuration for the step.
 /// @param prefix Prefix, including trailing dot ("."), to use for looking up
-/// parmeters in the ParameterSet.
+/// parameters in the ParameterSet.
 /// @param input_type Type of input data, BDA or regular.
 /// @return Pointer to the newly created step, or a null pointer if the
 /// type not recognized.

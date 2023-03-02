@@ -1,5 +1,5 @@
 // Averager.h: DP3 step class to average in time and/or freq
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -27,7 +27,7 @@ class ParameterSet;
 
 namespace steps {
 
-/// \brief DPPP step class to average in time and/or freq
+/// \brief DP3 step class to average in time and/or freq
 
 /// This class is a Step class calculating the weighted average of
 /// data in time and/or frequency.

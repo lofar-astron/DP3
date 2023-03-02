@@ -1,9 +1,9 @@
-// DPInfo.h: General info about DPPP data processing attributes like averaging
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// DPInfo.h: General info about DP3 data processing attributes like averaging
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief General info about DPPP data processing attributes like averaging
+/// @brief General info about DP3 data processing attributes like averaging
 /// @author Ger van Diepen
 
 #ifndef DP3_BASE_DPINFO_H_
@@ -18,7 +18,7 @@
 namespace dp3 {
 namespace base {
 
-/// @brief General info about DPPP data processing attributes like averaging
+/// @brief General info about DP3 data processing attributes like averaging
 
 /// This class contains the information about the number of correlations,
 /// channels, baselines, and times.
