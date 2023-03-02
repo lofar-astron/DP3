@@ -92,7 +92,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
          1);  // single polarization (phase only) solutions
 
   size_t nRes = 3;
-  if (mode_ == TECOnlyMode) {
+  if (mode_ == Mode::kTecOnly) {
     nRes = 2;  // TEC and error
   } else {
     nRes = 3;  // TEC, phase and error
@@ -107,7 +107,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   res[0].dims[0] = NAntennas();
   res[0].dims[1] = NSolutions();
   res[0].dims[2] = 1;
-  if (mode_ == TECAndCommonScalarMode) {
+  if (mode_ == Mode::kTecAndCommonScalar) {
     res[1] = res[0];
     res[1].name = "phase";
   }
@@ -142,7 +142,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 
         double alpha;
         double beta = 0.0;
-        if (mode_ == TECOnlyMode) {
+        if (mode_ == Mode::kTecOnly) {
           res.back().vals[antenna_and_solution_index] =
               phase_fitters_[thread].FitDataToTEC1Model(alpha);
         } else {
@@ -153,7 +153,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
 
         res[0].vals[antenna_and_solution_index] = alpha / -8.44797245e9;
         res[0].weights[antenna_and_solution_index] = weight_sum;
-        if (mode_ == TECAndCommonScalarMode) {
+        if (mode_ == Mode::kTecAndCommonScalar) {
           res[1].vals[antenna_and_solution_index] = beta;
           res[1].weights[antenna_and_solution_index] = weight_sum;
         }
