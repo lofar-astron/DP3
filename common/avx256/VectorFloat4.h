@@ -10,6 +10,10 @@
  * This class is an implementation detail of
  * @ref aocommon::Avx256::VectorComplexFloat2, but can be used by itself.
  *
+ * @warning All functions in this header need to use a target attribute
+ * like @c [[gnu::target("avx2,fma")]]. When this is not done the GCC
+ * doesn't adhere to the proper ABI leading to broken code.
+ *
  * @note The class only implements a subset of the vector operations. Other
  * operations will be added on a when-needed basis.
  *
@@ -20,67 +24,76 @@
  */
 
 #include <cassert>
-#include <memory>
-
-#if defined(__AVX2__)
-
 #include <immintrin.h>
+#include <memory>
 
 namespace aocommon::Avx256 {
 
 class VectorFloat4 {
  public:
-  explicit VectorFloat4() noexcept : data_{_mm_setzero_ps()} {}
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4() noexcept
+      : data_{_mm_setzero_ps()} {}
 
-  /* implicit */ VectorFloat4(__m128 data) noexcept : data_{data} {}
+  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorFloat4(
+      __m128 data) noexcept
+      : data_{data} {}
 
-  explicit VectorFloat4(float value) noexcept : data_{_mm_set1_ps(value)} {}
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4(
+      float value) noexcept
+      : data_{_mm_set1_ps(value)} {}
 
-  explicit VectorFloat4(float a, float b, float c, float d) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4(
+      float a, float b, float c, float d) noexcept
       : data_{_mm_setr_ps(a, b, c, d)} {}
 
-  explicit VectorFloat4(const float vector[4]) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4(
+      const float vector[4]) noexcept
       : data_{_mm_loadu_ps(vector)} {}
 
-  [[nodiscard]] float operator[](size_t index) const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] float operator[](
+      size_t index) const noexcept {
     assert(index < 4 && "Index out of bounds.");
     return data_[index];
   }
 
-  [[nodiscard]] __m128 Value() const noexcept { return data_; }
+  [[nodiscard]] [[gnu::target("avx2,fma")]] __m128 Value() const noexcept {
+    return data_;
+  }
 
-  VectorFloat4& operator+=(VectorFloat4 value) noexcept {
+  [[gnu::target("avx2,fma")]] VectorFloat4& operator+=(
+      VectorFloat4 value) noexcept {
     data_ += value.data_;
     return *this;
   }
 
-  VectorFloat4& operator-=(VectorFloat4 value) noexcept {
+  [[gnu::target("avx2,fma")]] VectorFloat4& operator-=(
+      VectorFloat4 value) noexcept {
     data_ -= value.data_;
     return *this;
   }
 
-  [[nodiscard]] friend VectorFloat4 operator+(VectorFloat4 lhs,
-                                              VectorFloat4 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorFloat4 operator+(
+      VectorFloat4 lhs, VectorFloat4 rhs) noexcept {
     return lhs += rhs;
   }
 
-  [[nodiscard]] friend VectorFloat4 operator-(VectorFloat4 lhs,
-                                              VectorFloat4 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorFloat4 operator-(
+      VectorFloat4 lhs, VectorFloat4 rhs) noexcept {
     return lhs -= rhs;
   }
 
-  [[nodiscard]] friend VectorFloat4 operator*(VectorFloat4 lhs,
-                                              VectorFloat4 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorFloat4 operator*(
+      VectorFloat4 lhs, VectorFloat4 rhs) noexcept {
     return _mm_mul_ps(lhs.data_, rhs.data_);
   }
 
-  [[nodiscard]] friend VectorFloat4 operator^(VectorFloat4 lhs,
-                                              VectorFloat4 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorFloat4 operator^(
+      VectorFloat4 lhs, VectorFloat4 rhs) noexcept {
     return _mm_xor_ps(lhs.data_, rhs.data_);
   }
 
-  [[nodiscard]] friend bool operator==(VectorFloat4 lhs,
-                                       VectorFloat4 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
+      VectorFloat4 lhs, VectorFloat4 rhs) noexcept {
     return lhs.data_[0] == rhs.data_[0] && lhs.data_[1] == rhs.data_[1] &&
            lhs.data_[2] == rhs.data_[2] && lhs.data_[3] == rhs.data_[3];
   }
@@ -90,7 +103,5 @@ class VectorFloat4 {
 };
 
 }  // namespace aocommon::Avx256
-
-#endif  // defined(__AVX2__)
 
 #endif  // AOCOMMON_AVX256_VECTOR_FLOAT_4_H

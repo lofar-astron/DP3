@@ -10,6 +10,10 @@
  * This class is an implementation detail of
  * @ref aocommon::Avx256::MatrixComplexDouble2x2, but can be used by itself.
  *
+ * @warning All functions in this header need to use a target attribute
+ * like @c [[gnu::target("avx2,fma")]]. When this is not done the GCC
+ * doesn't adhere to the proper ABI leading to broken code.
+ *
  * @note The class only implements a subset of the vector operations. Other
  * operations will be added on a when-needed basis.
  *
@@ -20,49 +24,51 @@
 
 #include <cassert>
 #include <complex>
-#include <ostream>
-
-#if defined(__AVX2__)
-
 #include <immintrin.h>
+#include <ostream>
 
 namespace aocommon::Avx256 {
 
 class VectorComplexDouble2 {
  public:
-  [[nodiscard]] VectorComplexDouble2() noexcept = default;
+  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexDouble2() noexcept =
+      default;
 
-  [[nodiscard]] /* implicit */ VectorComplexDouble2(VectorDouble4 data) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorComplexDouble2(
+      VectorDouble4 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] explicit VectorComplexDouble2(std::complex<double> a,
-                                              std::complex<double> b) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
+      std::complex<double> a, std::complex<double> b) noexcept
       : data_{VectorDouble4{a.real(), a.imag(), b.real(), b.imag()}} {}
 
-  [[nodiscard]] explicit VectorComplexDouble2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
       const std::complex<float> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
       : data_{VectorDouble4{
             reinterpret_cast<const float*>(std::addressof(vector[0]))}} {}
 
-  [[nodiscard]] explicit VectorComplexDouble2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
       const std::complex<double> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
       : data_{VectorDouble4{
             reinterpret_cast<const double*>(std::addressof(vector[0]))}} {}
 
-  [[nodiscard]] std::complex<double> operator[](size_t index) const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<double> operator[](
+      size_t index) const noexcept {
     assert(index < 2 && "Index out of bounds.");
     return {data_[2 * index], data_[2 * index + 1]};
   }
 
-  [[nodiscard]] explicit operator __m256d() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit operator __m256d()
+      const noexcept {
     return data_.Value();
   }
 
-  [[nodiscard]] VectorComplexDouble2 Conjugate() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexDouble2 Conjugate()
+      const noexcept {
     // Xor-ing a double with  0.0 will not change the value.
     // Xor-ing a double with -0.0 will change the sign of the value.
     __m256d mask = _mm256_setr_pd(0.0, -0.0, 0.0, -0.0);
@@ -70,27 +76,30 @@ class VectorComplexDouble2 {
   }
 
   /** Assign data stored by 2 element complex vector to destination buffer */
-  void AssignTo(std::complex<double>* destination) const noexcept {
+  [[gnu::target("avx2,fma")]] void AssignTo(
+      std::complex<double>* destination) const noexcept {
     data_.AssignTo(reinterpret_cast<double*>(destination));
   }
 
-  VectorComplexDouble2& operator+=(VectorComplexDouble2 value) noexcept {
+  [[gnu::target("avx2,fma")]] VectorComplexDouble2& operator+=(
+      VectorComplexDouble2 value) noexcept {
     data_ += value.data_;
     return *this;
   }
 
-  VectorComplexDouble2& operator-=(VectorComplexDouble2 value) noexcept {
+  [[gnu::target("avx2,fma")]] VectorComplexDouble2& operator-=(
+      VectorComplexDouble2 value) noexcept {
     data_ -= value.data_;
     return *this;
   }
 
-  [[nodiscard]] friend VectorComplexDouble2 operator+(
-      VectorComplexDouble2 lhs, VectorComplexDouble2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexDouble2
+  operator+(VectorComplexDouble2 lhs, VectorComplexDouble2 rhs) noexcept {
     return lhs += rhs;
   }
 
-  [[nodiscard]] friend VectorComplexDouble2 operator-(
-      VectorComplexDouble2 lhs, VectorComplexDouble2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexDouble2
+  operator-(VectorComplexDouble2 lhs, VectorComplexDouble2 rhs) noexcept {
     return lhs -= rhs;
   }
 
@@ -98,8 +107,8 @@ class VectorComplexDouble2 {
   ///
   /// r[0] = lhs[0] * rhs[0]
   /// r[1] = lhs[1] * rhs[1]
-  [[nodiscard]] friend VectorComplexDouble2 operator*(
-      VectorComplexDouble2 lhs, VectorComplexDouble2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexDouble2
+  operator*(VectorComplexDouble2 lhs, VectorComplexDouble2 rhs) noexcept {
     // The complex multiplication L * R is performed by:
     // L * R = (L Re * R Re) - (L Im * R Im) +
     //        ((L Re * R Im) + (L Im * R Re)) i
@@ -144,23 +153,23 @@ class VectorComplexDouble2 {
     return VectorDouble4{_mm256_fmaddsub_pd(Lv1, rhs.data_.Value(), Rv3)};
   }
 
-  [[nodiscard]] friend VectorComplexDouble2 operator*(
-      VectorComplexDouble2 lhs, std::complex<double> rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexDouble2
+  operator*(VectorComplexDouble2 lhs, std::complex<double> rhs) noexcept {
     return lhs * VectorComplexDouble2{rhs, rhs};
   }
 
-  [[nodiscard]] friend VectorComplexDouble2 operator*(
-      std::complex<double> lhs, VectorComplexDouble2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexDouble2
+  operator*(std::complex<double> lhs, VectorComplexDouble2 rhs) noexcept {
     return rhs * lhs;
   }
 
-  [[nodiscard]] friend bool operator==(VectorComplexDouble2 lhs,
-                                       VectorComplexDouble2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
+      VectorComplexDouble2 lhs, VectorComplexDouble2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
   }
 
-  friend std::ostream& operator<<(std::ostream& output,
-                                  VectorComplexDouble2 value) {
+  [[gnu::target("avx2,fma")]] friend std::ostream& operator<<(
+      std::ostream& output, VectorComplexDouble2 value) {
     output << '[' << value[0] << ", " << value[1] << ']';
     return output;
   }
@@ -170,7 +179,5 @@ class VectorComplexDouble2 {
 };
 
 }  // namespace aocommon::Avx256
-
-#endif  // defined(__AVX2__)
 
 #endif  // AOCOMMON_AVX256_VECTOR_COMPLEX_DOUBLE_2_H

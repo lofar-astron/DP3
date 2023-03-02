@@ -9,6 +9,10 @@
  *
  * This class is based on @ref aocommon::MC2x2 but uses AVX-256 instructions.
  *
+ * @warning All functions in this header need to use a target attribute
+ * like @c [[gnu::target("avx2,fma")]]. When this is not done the GCC
+ * doesn't adhere to the proper ABI leading to broken code.
+ *
  * @note The class only implements a subset of the matrix operations. Other
  * operations will be added on a when-needed basis.
  *
@@ -24,35 +28,32 @@
 #include <array>
 #include <cassert>
 #include <complex>
+#include <immintrin.h>
 #include <limits>
 #include <ostream>
-
-#if defined(__AVX2__)
-
-#include <immintrin.h>
 
 namespace aocommon::Avx256 {
 
 class MatrixComplexDouble2x2 {
  public:
-  [[nodiscard]] MatrixComplexDouble2x2() noexcept = default;
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2() noexcept =
+      default;
 
-  [[nodiscard]] /* implicit */ MatrixComplexDouble2x2(
-      std::array<VectorComplexDouble2, 2> data) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */
+  MatrixComplexDouble2x2(std::array<VectorComplexDouble2, 2> data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] explicit MatrixComplexDouble2x2(std::complex<double> a,
-                                                std::complex<double> b,
-                                                std::complex<double> c,
-                                                std::complex<double> d) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
+      std::complex<double> a, std::complex<double> b, std::complex<double> c,
+      std::complex<double> d) noexcept
       : data_{{VectorComplexDouble2{a, b}, VectorComplexDouble2{c, d}}} {}
 
-  [[nodiscard]] explicit MatrixComplexDouble2x2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       const std::complex<float> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  [[nodiscard]] explicit MatrixComplexDouble2x2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       MatrixComplexFloat2x2 matrix) noexcept {
     __m256 tmp = static_cast<__m256>(matrix);
 
@@ -62,39 +63,43 @@ class MatrixComplexDouble2x2 {
     data_[1] = VectorDouble4{_mm256_cvtps_pd(hi)};
   }
 
-  [[nodiscard]] explicit MatrixComplexDouble2x2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       const std::complex<double> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  [[nodiscard]] explicit MatrixComplexDouble2x2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       const aocommon::MC2x2& matrix) noexcept
       : MatrixComplexDouble2x2(matrix.Data()) {}
 
-  [[nodiscard]] std::complex<double> operator[](size_t index) const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<double> operator[](
+      size_t index) const noexcept {
     assert(index < 4 && "Index out of bounds.");
     size_t array = index / 2;
     index %= 2;
     return data_[array][index];
   }
 
-  [[nodiscard]] MatrixComplexDouble2x2 Conjugate() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2 Conjugate()
+      const noexcept {
     return std::array<VectorComplexDouble2, 2>{data_[0].Conjugate(),
                                                data_[1].Conjugate()};
   }
 
-  [[nodiscard]] MatrixComplexDouble2x2 Transpose() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2 Transpose()
+      const noexcept {
     // Note the compiler uses intrinsics without assistance.
     return MatrixComplexDouble2x2{(*this)[0], (*this)[2], (*this)[1],
                                   (*this)[3]};
   }
 
-  [[nodiscard]] MatrixComplexDouble2x2 HermitianTranspose() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2
+  HermitianTranspose() const noexcept {
     return Transpose().Conjugate();
   }
 
   /// @returns the Frobenius norm of the matrix.
-  [[nodiscard]] double Norm() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] double Norm() const noexcept {
     // Norm Matrix Complex 2x2
     // Norm(a) + Norm(b) + Norm(c) + Norm(d)
     //
@@ -158,7 +163,8 @@ class MatrixComplexDouble2x2 {
   }
 
   /** Returns the sum of the diagonal elements. */
-  [[nodiscard]] std::complex<double> Trace() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<double> Trace()
+      const noexcept {
     // Trace = M[0] + M[3]
 
     // Extract M[0] and M[1] as 128-bit AVX vector.
@@ -169,19 +175,22 @@ class MatrixComplexDouble2x2 {
   }
 
   /** Assign data stored by 2x2 complex matrix to destination buffer */
-  void AssignTo(std::complex<double>* destination) const noexcept {
+  [[gnu::target("avx2,fma")]] void AssignTo(
+      std::complex<double>* destination) const noexcept {
     data_[0].AssignTo(destination);
     destination += 2;
     data_[1].AssignTo(destination);
   }
 
-  [[nodiscard]] static MatrixComplexDouble2x2 Unity() noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] static MatrixComplexDouble2x2
+  Unity() noexcept {
     return MatrixComplexDouble2x2{
         std::complex<double>(1.0, 0.0), std::complex<double>(0.0, 0.0),
         std::complex<double>(0.0, 0.0), std::complex<double>(1.0, 0.0)};
   }
 
-  [[nodiscard]] static MatrixComplexDouble2x2 NaN() noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] static MatrixComplexDouble2x2
+  NaN() noexcept {
     return MatrixComplexDouble2x2{
         std::complex<double>{std::numeric_limits<double>::quiet_NaN(),
                              std::numeric_limits<double>::quiet_NaN()},
@@ -193,30 +202,32 @@ class MatrixComplexDouble2x2 {
                              std::numeric_limits<double>::quiet_NaN()}};
   }
 
-  MatrixComplexDouble2x2& operator+=(MatrixComplexDouble2x2 value) noexcept {
+  [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2& operator+=(
+      MatrixComplexDouble2x2 value) noexcept {
     data_[0] += value.data_[0];
     data_[1] += value.data_[1];
     return *this;
   }
 
-  MatrixComplexDouble2x2& operator-=(MatrixComplexDouble2x2 value) noexcept {
+  [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2& operator-=(
+      MatrixComplexDouble2x2 value) noexcept {
     data_[0] -= value.data_[0];
     data_[1] -= value.data_[1];
     return *this;
   }
 
-  [[nodiscard]] friend MatrixComplexDouble2x2 operator+(
-      MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
+  operator+(MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return lhs += rhs;
   }
 
-  [[nodiscard]] friend MatrixComplexDouble2x2 operator-(
-      MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
+  operator-(MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return lhs -= rhs;
   }
 
-  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
-      MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
+  operator*(MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     // The 2x2 matrix multiplication is done using the following algorithm.
 
     // High:
@@ -256,51 +267,56 @@ class MatrixComplexDouble2x2 {
     return std::array<VectorComplexDouble2, 2>{hr, lr};
   }
 
-  [[nodiscard]] DiagonalMatrixComplexDouble2x2 Diagonal() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] DiagonalMatrixComplexDouble2x2
+  Diagonal() const noexcept {
     return DiagonalMatrixComplexDouble2x2(data_[0][0], data_[1][1]);
   }
 
-  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
-      MatrixComplexDouble2x2 lhs, std::complex<double> rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
+  operator*(MatrixComplexDouble2x2 lhs, std::complex<double> rhs) noexcept {
     return std::array<VectorComplexDouble2, 2>{lhs.data_[0] * rhs,
                                                lhs.data_[1] * rhs};
   }
 
-  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
-      std::complex<double> lhs, MatrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
+  operator*(std::complex<double> lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return rhs * lhs;
   }
 
-  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
-      MatrixComplexDouble2x2 lhs, DiagonalMatrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
+  operator*(MatrixComplexDouble2x2 lhs,
+            DiagonalMatrixComplexDouble2x2 rhs) noexcept {
     return std::array<VectorComplexDouble2, 2>{lhs.data_[0] * rhs[0],
                                                lhs.data_[1] * rhs[1]};
   }
 
-  [[nodiscard]] friend MatrixComplexDouble2x2 operator*(
-      DiagonalMatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
+  operator*(DiagonalMatrixComplexDouble2x2 lhs,
+            MatrixComplexDouble2x2 rhs) noexcept {
     return rhs * lhs;
   }
 
-  [[nodiscard]] friend bool operator==(MatrixComplexDouble2x2 lhs,
-                                       MatrixComplexDouble2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
+      MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
   }
 
-  MatrixComplexDouble2x2& operator=(const aocommon::MC2x2& matrix) noexcept {
+  [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2& operator=(
+      const aocommon::MC2x2& matrix) noexcept {
     *this = MatrixComplexDouble2x2(matrix.Data());
     return *this;
   }
 
-  friend std::ostream& operator<<(std::ostream& output,
-                                  MatrixComplexDouble2x2 value) {
+  [[gnu::target("avx2,fma")]] friend std::ostream& operator<<(
+      std::ostream& output, MatrixComplexDouble2x2 value) {
     output << "[{" << value[0] << ", " << value[1] << "}, {" << value[2] << ", "
            << value[3] << "}]";
     return output;
   }
 
   // RAP-133 enabled diagnostic [[deprecated("Use HermitianTranspose")]]
-  [[nodiscard]] MatrixComplexDouble2x2 HermTranspose() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2
+  HermTranspose() const noexcept {
     return HermitianTranspose();
   }
 
@@ -311,8 +327,8 @@ class MatrixComplexDouble2x2 {
 // RAP-133 enabled diagnostic
 // [[deprecated("Use MatrixComplexDouble2x2::HermitianTranspose")]]
 /// MC2x2Base compatibility wrapper.
-[[nodiscard]] inline MatrixComplexDouble2x2 HermTranspose(
-    MatrixComplexDouble2x2 matrix) noexcept {
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline MatrixComplexDouble2x2
+HermTranspose(MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
 }
 
@@ -321,23 +337,22 @@ class MatrixComplexDouble2x2 {
  *
  * @returns the Frobenius norm of the matrix.
  */
-inline double Norm(MatrixComplexDouble2x2 matrix) noexcept {
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline double Norm(
+    MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Norm();
 }
 
 /** Returns the sum of the diagonal elements. */
-[[nodiscard]] inline std::complex<double> Trace(
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline std::complex<double> Trace(
     MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Trace();
 }
 
-[[nodiscard]] inline DiagonalMatrixComplexDouble2x2 Diagonal(
-    MatrixComplexDouble2x2 matrix) noexcept {
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline DiagonalMatrixComplexDouble2x2
+Diagonal(MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Diagonal();
 }
 
 }  // namespace aocommon::Avx256
-
-#endif  // defined(__AVX2__)
 
 #endif  // AOCOMMON_AVX256_MATRIX_COMPLEX_DOUBLE_2X2_H
