@@ -19,11 +19,11 @@ namespace ddecal {
 
 class TECConstraintBase : public Constraint {
  public:
-  enum Mode {
+  enum class Mode {
     /** Solve for both a (differential) TEC and an XX/YY-common scalar */
-    TECAndCommonScalarMode,
+    kTecAndCommonScalar,
     /** Solve only for a (differential) TEC value */
-    TECOnlyMode
+    kTecOnly
   };
 
   TECConstraintBase(Mode mode);

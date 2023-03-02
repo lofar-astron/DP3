@@ -127,8 +127,8 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase: {
       const auto tec_mode = (settings.mode == base::CalType::kTec)
-                                ? TECConstraint::TECOnlyMode
-                                : TECConstraint::TECAndCommonScalarMode;
+                                ? TECConstraint::Mode::kTecOnly
+                                : TECConstraint::Mode::kTecAndCommonScalar;
       std::unique_ptr<TECConstraint> constraint;
 
       if (settings.approximate_tec) {
