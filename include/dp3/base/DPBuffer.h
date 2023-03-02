@@ -26,7 +26,7 @@ namespace base {
 /// It makes heavy use of reference semantics to avoid data copying
 /// when data are pushed from one step to another.
 /// This means that a data array can be shared between Step objects.
-/// So if a Step object changes data in a buffer, it has to be sure
+/// So, if a Step object changes data in a buffer, it has to be sure
 /// it can do it. If needed, Array::unique should be called to ensure
 /// the array is not shared.
 ///
@@ -55,7 +55,7 @@ namespace base {
 ///  <tr>
 ///   <td>WEIGHT</td>
 ///   <td>The data weights as [ncorr,nchan,nbaseline].
-///       Similarly to FLAG the ncorr axis is redundant because the
+///       Similarly to FLAG, the ncorr axis is redundant because the
 ///       same weight is used for all correlations.</td>
 ///  </tr>
 ///  <tr>
@@ -81,10 +81,10 @@ namespace base {
 /// that way as little memory as needed is used. Note that e.g. the AOFlagger
 /// can use a lot of memory if a large time window is used.
 ///
-/// Until early 2015 NDPPP used the strategy of shallow data copies.
+/// Until early 2015, NDPPP used the strategy of shallow data copies.
 /// I.e., a step increased the data reference counter and did not make
 /// an actual copy. Only when data were changed, a new data array was made.
-/// Thus MSReader allocated a new array when it read the data.
+/// Thus, MSReader allocated a new array when it read the data.
 /// However, it appeared this strategy lead to memory fragmentation and
 /// to sudden jumps in memory usage on Linux systems.
 /// <br>Therefore the strategy was changed to having each step preallocate
@@ -93,9 +93,9 @@ namespace base {
 /// but also improved performance, possible due to far less mallocs.
 ///
 /// The buffer/step guidelines are as follows:
-/// 1. If a step keeps a buffer for later processing (e.g. AOFlagger),
-///    it must make a copy of the buffer because the input data arrays
-///    might have changed before that step processes the data.
+/// 1. If a step keeps a buffer of DPBuffers for later processing (e.g.
+///    AOFlagger), it must make a copy of the DPBuffers because the input data
+///    arrays might have changed before that step processes the data.
 /// 2. A shallow copy of a data member can be used if a step processes
 ///    the data immediately (e.g. Averager).
 class DPBuffer {
