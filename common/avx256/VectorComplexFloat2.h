@@ -10,6 +10,10 @@
  * This class is an implementation detail of
  * @ref aocommon::Avx256::MatrixComplexFloat2x2, but can be used by itself.
  *
+ * @warning All functions in this header need to use a target attribute
+ * like @c [[gnu::target("avx2,fma")]]. When this is not done the GCC
+ * doesn't adhere to the proper ABI leading to broken code.
+ *
  * @note The class only implements a subset of the vector operations. Other
  * operations will be added on a when-needed basis.
  *
@@ -20,64 +24,69 @@
 
 #include <cassert>
 #include <complex>
-#include <ostream>
-
-#if defined(__AVX2__)
-
 #include <immintrin.h>
+#include <ostream>
 
 namespace aocommon::Avx256 {
 
 class VectorComplexFloat2 {
  public:
-  [[nodiscard]] VectorComplexFloat2() noexcept = default;
+  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexFloat2() noexcept =
+      default;
 
-  /* implicit */ VectorComplexFloat2(VectorFloat4 data) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorComplexFloat2(
+      VectorFloat4 data) noexcept
       : data_{data} {}
 
-  explicit VectorComplexFloat2(std::complex<float> a,
-                               std::complex<float> b) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexFloat2(
+      std::complex<float> a, std::complex<float> b) noexcept
       : data_{VectorFloat4{a.real(), a.imag(), b.real(), b.imag()}} {}
 
-  explicit VectorComplexFloat2(const std::complex<float> vector[2]) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexFloat2(
+      const std::complex<float> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
       : data_{VectorFloat4{
             reinterpret_cast<const float*>(std::addressof(vector[0]))}} {}
 
-  [[nodiscard]] std::complex<float> operator[](size_t index) const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<float> operator[](
+      size_t index) const noexcept {
     assert(index < 2 && "Index out of bounds.");
     return {data_[2 * index], data_[2 * index + 1]};
   }
 
-  [[nodiscard]] explicit operator __m128() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit operator __m128()
+      const noexcept {
     return data_.Value();
   }
 
-  [[nodiscard]] VectorComplexFloat2 Conjugate() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexFloat2 Conjugate()
+      const noexcept {
     // Xor-ing a float with  0.0 will not change the value.
     // Xor-ing a float with -0.0 will change the sign of the value.
     __m128 mask = _mm_setr_ps(0.0, -0.0, 0.0, -0.0);
     return data_ ^ mask;
   }
 
-  VectorComplexFloat2& operator+=(VectorComplexFloat2 value) noexcept {
+  [[gnu::target("avx2,fma")]] VectorComplexFloat2& operator+=(
+      VectorComplexFloat2 value) noexcept {
     data_ += value.data_;
     return *this;
   }
 
-  VectorComplexFloat2& operator-=(VectorComplexFloat2 value) noexcept {
+  [[gnu::target("avx2,fma")]] VectorComplexFloat2& operator-=(
+      VectorComplexFloat2 value) noexcept {
     data_ -= value.data_;
     return *this;
   }
 
-  [[nodiscard]] friend VectorComplexFloat2 operator+(
-      VectorComplexFloat2 lhs, VectorComplexFloat2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexFloat2
+  operator+(VectorComplexFloat2 lhs, VectorComplexFloat2 rhs) noexcept {
     return lhs += rhs;
   }
 
-  [[nodiscard]] friend VectorComplexFloat2 operator-(
-      VectorComplexFloat2 lhs, VectorComplexFloat2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexFloat2
+  operator-(VectorComplexFloat2 lhs, VectorComplexFloat2 rhs) noexcept {
     return lhs -= rhs;
   }
 
@@ -85,8 +94,8 @@ class VectorComplexFloat2 {
   ///
   /// r[0] = lhs[0] * rhs[0]
   /// r[1] = lhs[1] * rhs[1]
-  [[nodiscard]] friend VectorComplexFloat2 operator*(
-      VectorComplexFloat2 lhs, VectorComplexFloat2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexFloat2
+  operator*(VectorComplexFloat2 lhs, VectorComplexFloat2 rhs) noexcept {
     // The complex multiplication L * R is performed by:
     // L * R = (L Re * R Re) - (L Im * R Im) +
     //        ((L Re * R Im) + (L Im * R Re)) i
@@ -137,23 +146,23 @@ class VectorComplexFloat2 {
     return VectorFloat4{_mm_fmaddsub_ps(Lv1, rhs.data_.Value(), Rv3)};
   }
 
-  friend VectorComplexFloat2 operator*(VectorComplexFloat2 lhs,
-                                       std::complex<float> rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexFloat2
+  operator*(VectorComplexFloat2 lhs, std::complex<float> rhs) noexcept {
     return lhs * VectorComplexFloat2{rhs, rhs};
   }
 
-  friend VectorComplexFloat2 operator*(std::complex<float> lhs,
-                                       VectorComplexFloat2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend VectorComplexFloat2
+  operator*(std::complex<float> lhs, VectorComplexFloat2 rhs) noexcept {
     return rhs * lhs;
   }
 
-  [[nodiscard]] friend bool operator==(VectorComplexFloat2 lhs,
-                                       VectorComplexFloat2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
+      VectorComplexFloat2 lhs, VectorComplexFloat2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
   }
 
-  friend std::ostream& operator<<(std::ostream& output,
-                                  VectorComplexFloat2 value) {
+  [[gnu::target("avx2,fma")]] friend std::ostream& operator<<(
+      std::ostream& output, VectorComplexFloat2 value) {
     output << '[' << value[0] << ", " << value[1] << ']';
     return output;
   }
@@ -163,7 +172,5 @@ class VectorComplexFloat2 {
 };
 
 }  // namespace aocommon::Avx256
-
-#endif  // defined(__AVX2__)
 
 #endif  // AOCOMMON_AVX256_VECTOR_COMPLEX_FLOAT_2_H

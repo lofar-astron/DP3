@@ -9,6 +9,10 @@
  *
  * This class is based on @ref aocommon::MC2x2F but uses AVX-256 instructions.
  *
+ * @warning All functions in this header need to use a target attribute
+ * like @c [[gnu::target("avx2,fma")]]. When this is not done the GCC
+ * doesn't adhere to the proper ABI leading to broken code.
+ *
  * @note The class only implements a subset of the matrix operations. Other
  * operations will be added on a when-needed basis.
  *
@@ -22,69 +26,73 @@
 
 #include <cassert>
 #include <complex>
-#include <ostream>
-
-#if defined(__AVX2__)
-
 #include <immintrin.h>
+#include <ostream>
 
 namespace aocommon::Avx256 {
 
 class MatrixComplexFloat2x2 {
  public:
-  [[nodiscard]] MatrixComplexFloat2x2() noexcept = default;
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2() noexcept =
+      default;
 
-  [[nodiscard]] /* implicit */ MatrixComplexFloat2x2(
-      VectorComplexFloat4 data) noexcept
+  [[nodiscard]] [[gnu::target(
+      "avx2,fma")]] /* implicit */ MatrixComplexFloat2x2(VectorComplexFloat4
+                                                             data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] explicit MatrixComplexFloat2x2(std::complex<float> a,
-                                               std::complex<float> b,
-                                               std::complex<float> c,
-                                               std::complex<float> d) noexcept
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+      std::complex<float> a, std::complex<float> b, std::complex<float> c,
+      std::complex<float> d) noexcept
       : data_{a, b, c, d} {}
 
-  [[nodiscard]] explicit MatrixComplexFloat2x2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const std::complex<float> matrix[4]) noexcept
       : data_(matrix) {}
 
-  [[nodiscard]] explicit MatrixComplexFloat2x2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const std::complex<double> matrix[4]) noexcept
       : data_(matrix) {}
 
-  [[nodiscard]] explicit MatrixComplexFloat2x2(
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const aocommon::MC2x2F& matrix) noexcept
       : data_(matrix.Data()) {}
 
-  [[nodiscard]] std::complex<float> operator[](size_t index) const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<float> operator[](
+      size_t index) const noexcept {
     assert(index < 4 && "Index out of bounds.");
     return data_[index];
   }
 
-  [[nodiscard]] explicit operator MC2x2F() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit operator MC2x2F()
+      const noexcept {
     // Note the compiler uses intrinsics without assistance.
     return {data_[0], data_[1], data_[2], data_[3]};
   }
 
-  [[nodiscard]] MatrixComplexFloat2x2 Conjugate() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2 Conjugate()
+      const noexcept {
     return data_.Conjugate();
   }
 
-  [[nodiscard]] MatrixComplexFloat2x2 Transpose() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2 Transpose()
+      const noexcept {
     // Note the compiler uses intrinsics without assistance.
     return MatrixComplexFloat2x2{data_[0], data_[2], data_[1], data_[3]};
   }
 
-  [[nodiscard]] MatrixComplexFloat2x2 HermitianTranspose() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2
+  HermitianTranspose() const noexcept {
     return Transpose().Conjugate();
   }
 
-  explicit operator __m256() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit operator __m256()
+      const noexcept {
     return static_cast<__m256>(data_);
   }
 
   /// @returns the Frobenius norm of the matrix.
-  [[nodiscard]] float Norm() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] float Norm() const noexcept {
     // This uses the same basic idea as MatrixComplexDouble2x2::Norm except
     // that the underlaying data is stored in one __m256d value.
 
@@ -124,7 +132,8 @@ class MatrixComplexFloat2x2 {
   }
 
   /** Returns the sum of the diagonal elements. */
-  [[nodiscard]] std::complex<float> Trace() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<float> Trace()
+      const noexcept {
     // Trace = M[0] + M[3]
 
     __m256 ret = static_cast<__m256>(data_);
@@ -135,17 +144,20 @@ class MatrixComplexFloat2x2 {
   }
 
   /** Assign data stored by 2x2 complex matrix to destination buffer */
-  void AssignTo(std::complex<float>* destination) const noexcept {
+  [[gnu::target("avx2,fma")]] void AssignTo(
+      std::complex<float>* destination) const noexcept {
     data_.AssignTo(destination);
   }
 
-  [[nodiscard]] static MatrixComplexFloat2x2 Unity() noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] static MatrixComplexFloat2x2
+  Unity() noexcept {
     return MatrixComplexFloat2x2{
         std::complex<float>(1.0f, 0.0f), std::complex<float>(0.0f, 0.0f),
         std::complex<float>(0.0f, 0.0f), std::complex<float>(1.0f, 0.0f)};
   }
 
-  [[nodiscard]] static MatrixComplexFloat2x2 NaN() noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] static MatrixComplexFloat2x2
+  NaN() noexcept {
     return MatrixComplexFloat2x2{
         std::complex<float>{std::numeric_limits<float>::quiet_NaN(),
                             std::numeric_limits<float>::quiet_NaN()},
@@ -157,33 +169,36 @@ class MatrixComplexFloat2x2 {
                             std::numeric_limits<float>::quiet_NaN()}};
   }
 
-  MatrixComplexFloat2x2& operator+=(MatrixComplexFloat2x2 value) noexcept {
+  [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2& operator+=(
+      MatrixComplexFloat2x2 value) noexcept {
     data_ += value.data_;
     return *this;
   }
 
-  MatrixComplexFloat2x2& operator-=(MatrixComplexFloat2x2 value) noexcept {
+  [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2& operator-=(
+      MatrixComplexFloat2x2 value) noexcept {
     data_ -= value.data_;
     return *this;
   }
 
-  [[nodiscard]] friend MatrixComplexFloat2x2 operator+(
-      MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
+  operator+(MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     return lhs += rhs;
   }
 
-  [[nodiscard]] friend MatrixComplexFloat2x2 operator-(
-      MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
+  operator-(MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     return lhs -= rhs;
   }
 
-  MatrixComplexFloat2x2& operator*=(MatrixComplexFloat2x2 value) noexcept {
+  [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2& operator*=(
+      MatrixComplexFloat2x2 value) noexcept {
     data_ = data_ * value.data_;
     return *this;
   }
 
-  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
-      MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
+  operator*(MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     // The 2x2 matrix multiplication is done using the following algorithm.
     // ret.a = lhs.a * rhs.a + lhs.b * rhs.c
     // ret.b = lhs.a * rhs.b + lhs.b * rhs.d
@@ -204,21 +219,22 @@ class MatrixComplexFloat2x2 {
     return s1 + s2;
   }
 
-  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
-      MatrixComplexFloat2x2 lhs, std::complex<float> rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
+  operator*(MatrixComplexFloat2x2 lhs, std::complex<float> rhs) noexcept {
     return lhs.data_ * rhs;
   }
 
-  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
-      std::complex<float> lhs, MatrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
+  operator*(std::complex<float> lhs, MatrixComplexFloat2x2 rhs) noexcept {
     return rhs * lhs;
   }
 
-  [[nodiscard]] DiagonalMatrixComplexFloat2x2 Diagonal() const noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] DiagonalMatrixComplexFloat2x2
+  Diagonal() const noexcept {
     return VectorComplexFloat2{data_[0], data_[3]};
   }
 
-  [[nodiscard]] bool Invert() noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] bool Invert() noexcept {
     // Note it would be possible to optimize further.
     VectorComplexFloat2 a{data_[0], data_[1]};
     VectorComplexFloat2 b{data_[3], data_[2]};
@@ -252,8 +268,9 @@ class MatrixComplexFloat2x2 {
     return true;
   }
 
-  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
-      MatrixComplexFloat2x2 lhs, DiagonalMatrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
+  operator*(MatrixComplexFloat2x2 lhs,
+            DiagonalMatrixComplexFloat2x2 rhs) noexcept {
     // basically this does the same as
     // return lhs.data_ * VectorComplexFloat4{rhs[0], rhs[0], rhs[1], rhs[1]};
     // but this gives better codegen and is slightly faster.
@@ -272,18 +289,19 @@ class MatrixComplexFloat2x2 {
     return lhs.data_ * VectorComplexFloat4{_mm256_set_m128(hi, lo)};
   }
 
-  [[nodiscard]] friend MatrixComplexFloat2x2 operator*(
-      DiagonalMatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
+  operator*(DiagonalMatrixComplexFloat2x2 lhs,
+            MatrixComplexFloat2x2 rhs) noexcept {
     return rhs * lhs;
   }
 
-  [[nodiscard]] friend bool operator==(MatrixComplexFloat2x2 lhs,
-                                       MatrixComplexFloat2x2 rhs) noexcept {
+  [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
+      MatrixComplexFloat2x2 lhs, MatrixComplexFloat2x2 rhs) noexcept {
     return lhs.data_ == rhs.data_;
   }
 
-  friend std::ostream& operator<<(std::ostream& output,
-                                  MatrixComplexFloat2x2 value) {
+  [[gnu::target("avx2,fma")]] friend std::ostream& operator<<(
+      std::ostream& output, MatrixComplexFloat2x2 value) {
     output << "[{" << value[0] << ", " << value[1] << "}, {" << value[2] << ", "
            << value[3] << "}]";
     return output;
@@ -294,8 +312,8 @@ class MatrixComplexFloat2x2 {
 };
 
 /// MC2x2Base compatibility wrapper.
-inline MatrixComplexFloat2x2 HermTranspose(
-    MatrixComplexFloat2x2 matrix) noexcept {
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline MatrixComplexFloat2x2
+HermTranspose(MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.HermitianTranspose();
 }
 
@@ -304,22 +322,22 @@ inline MatrixComplexFloat2x2 HermTranspose(
  *
  * @returns the Frobenius norm of the matrix.
  */
-inline float Norm(MatrixComplexFloat2x2 matrix) noexcept {
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline float Norm(
+    MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.Norm();
 }
 
 /** Returns the sum of the diagonal elements. */
-inline std::complex<float> Trace(MatrixComplexFloat2x2 matrix) noexcept {
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline std::complex<float> Trace(
+    MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.Trace();
 }
 
-[[nodiscard]] inline DiagonalMatrixComplexFloat2x2 Diagonal(
-    MatrixComplexFloat2x2 matrix) noexcept {
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline DiagonalMatrixComplexFloat2x2
+Diagonal(MatrixComplexFloat2x2 matrix) noexcept {
   return matrix.Diagonal();
 }
 
 }  // namespace aocommon::Avx256
-
-#endif  // defined(__AVX2__)
 
 #endif  // AOCOMMON_AVX256_MATRIX_COMPLEX_FLOAT_2X2_H
