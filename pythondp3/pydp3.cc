@@ -15,6 +15,7 @@
 #include <dp3/steps/Step.h>
 #include <dp3/common/Fields.h>
 
+#include "../steps/InputStep.h"
 #include "PyStep.h"
 #include "utils.h"
 
@@ -103,6 +104,10 @@ PYBIND11_MODULE(pydp3, m) {
       .def("write", &ostream_wrapper::write);
 
   m.def("make_step", &dp3::base::MakeSingleStep);
+  m.def("make_main_steps",
+        [](const common::ParameterSet &parset) -> std::shared_ptr<steps::Step> {
+          return dp3::base::MakeMainSteps(parset);
+        });
 
   py::enum_<dp3::steps::Step::MsType>(m, "MsType")
       .value("regular", dp3::steps::Step::MsType::kRegular)
@@ -141,7 +146,7 @@ PYBIND11_MODULE(pydp3, m) {
       .def(
           "process",
           [](dp3::steps::Step &step, const base::DPBuffer &buffer) {
-            step.process(buffer);
+            return step.process(buffer);
           },
           "process buffer")
       .def("finish", &Step::finish,

@@ -285,9 +285,6 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   // Create the steps, link them together
   std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
 
-  // Tell the reader which fields must be read.
-  firstStep->setFieldsToRead(GetChainRequiredFields(firstStep));
-
   // Call updateInfo() on all steps
   DPInfo dpInfo;
   if (numThreads > 0) {
@@ -421,6 +418,10 @@ std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
   if (!dynamic_cast<steps::Split*>(last_step.get())) {
     last_step->setNextStep(std::make_shared<steps::NullStep>());
   }
+
+  // Tell the reader which fields must be read.
+  input_step->setFieldsToRead(GetChainRequiredFields(input_step));
+
   return input_step;
 }
 
