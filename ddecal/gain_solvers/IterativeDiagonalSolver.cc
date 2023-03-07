@@ -117,20 +117,20 @@ void IterativeDiagonalSolver::SolveDirection(
   // sol_a =  ----------------------------------------
   //             sum_b norm(model_ab * solutions_b)
 
-  const size_t n_dir_solutions = cb_data.NSolutionsForDirection(direction);
+  const uint32_t n_dir_solutions = cb_data.NSolutionsForDirection(direction);
   std::vector<MC2x2FDiag> numerator(NAntennas() * n_dir_solutions,
                                     MC2x2FDiag::Zero());
   std::vector<float> denominator(NAntennas() * n_dir_solutions * 2, 0.0);
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
   const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
+  const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const size_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = solution_map[vis_index];
+    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
+    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
+    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
     const DComplex* solution_ant_1 =
         &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
     const DComplex* solution_ant_2 =
@@ -138,12 +138,12 @@ void IterativeDiagonalSolver::SolveDirection(
     const MC2x2F& data = v_residual[vis_index];
     const MC2x2F& model = model_vector[vis_index];
 
-    const uint32_t rel_solution_index = solution_index - solution_map[0];
+    const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
     const MC2x2FDiag solution_1{Complex(solution_ant_2[0]),
                                 Complex(solution_ant_2[1])};
     const MC2x2F cor_model_transp_1(solution_1 * HermTranspose(model));
-    const size_t full_solution_1_index =
+    const uint32_t full_solution_1_index =
         antenna_1 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_1_index] += Diagonal(data * cor_model_transp_1);
     // The indices (0, 2 / 1, 3) are following from the fact that we want
@@ -163,7 +163,7 @@ void IterativeDiagonalSolver::SolveDirection(
                                 Complex(solution_ant_1[1])};
     const MC2x2F cor_model_2(solution_2 * model);
 
-    const size_t full_solution_2_index =
+    const uint32_t full_solution_2_index =
         antenna_2 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_2_index] +=
         Diagonal(HermTranspose(data) * cor_model_2);
@@ -174,9 +174,9 @@ void IterativeDiagonalSolver::SolveDirection(
   }
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
-    for (size_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
-      const uint32_t solution_index = rel_sol + solution_map[0];
-      const size_t index = ant * n_dir_solutions + rel_sol;
+    for (uint32_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
+      const uint32_t solution_index = rel_sol + solution_index0;
+      const uint32_t index = ant * n_dir_solutions + rel_sol;
 
       for (size_t pol = 0; pol != 2; ++pol) {
         if (denominator[index * 2 + pol] == 0.0)
@@ -198,11 +198,10 @@ void IterativeDiagonalSolver::AddOrSubtractDirection(
   const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
     const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = solution_map[vis_index];
+    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
     const DComplex* solution_1 =
         &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
     const DComplex* solution_2 =
