@@ -623,13 +623,12 @@ void addSpectralIndices(ParmMap& fieldValues,
     /// Remove the following lines if not needed anymore for BBS.
     addValue(fieldValues, "SpectralIndexDegree",
              int(spectralIndices.size()) - 1);
+    if (std::abs(spectralIndices[0]) > kMaxSpectralIndex) {
+      std::stringstream message;
+      message << "SpectralIndex " << spectralIndices[0] << " is out of bound.";
+      throw std::runtime_error(message.str());
+    }
     for (unsigned int i = 0; i < spectralIndices.size(); ++i) {
-      if (std::abs(spectralIndices[i]) > kMaxSpectralIndex) {
-        std::stringstream message;
-        message << "SpectralIndex " << spectralIndices[i]
-                << " is out of bound.";
-        throw std::runtime_error(message.str());
-      }
       std::ostringstream ostr;
       ostr << "SpectralIndex:" << i;
       addValue(fieldValues, ostr.str(), spectralIndices[i]);
