@@ -117,20 +117,20 @@ void IterativeScalarSolver::SolveDirection(
   // sol_a =  ----------------------------------------
   //             sum_b norm(model_ab * solutions_b)
 
-  const size_t n_dir_solutions = cb_data.NSolutionsForDirection(direction);
+  const uint32_t n_dir_solutions = cb_data.NSolutionsForDirection(direction);
   std::vector<std::complex<double>> numerator(NAntennas() * n_dir_solutions,
                                               0.0);
   std::vector<double> denominator(NAntennas() * n_dir_solutions, 0.0);
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
   const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
+  const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const size_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const size_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = solution_map[vis_index];
+    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
+    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
+    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
     const Complex solution_ant_1(
         solutions[antenna_1 * NSolutions() + solution_index]);
     const Complex solution_ant_2(
@@ -138,17 +138,17 @@ void IterativeScalarSolver::SolveDirection(
     const MC2x2F& data = v_residual[vis_index];
     const MC2x2F& model = model_vector[vis_index];
 
-    const uint32_t rel_solution_index = solution_index - solution_map[0];
+    const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
     const MC2x2F cor_model_herm_1(HermTranspose(model) * solution_ant_2);
-    const size_t full_solution_1_index =
+    const uint32_t full_solution_1_index =
         antenna_1 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_1_index] += Trace(data * cor_model_herm_1);
     denominator[full_solution_1_index] += Norm(cor_model_herm_1);
 
     // Calculate the contribution of this baseline for antenna2
     const MC2x2F cor_model_2(model * solution_ant_1);
-    const size_t full_solution_2_index =
+    const uint32_t full_solution_2_index =
         antenna_2 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_2_index] +=
         Trace(HermTranspose(data) * cor_model_2);
@@ -156,10 +156,10 @@ void IterativeScalarSolver::SolveDirection(
   }
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
-    for (size_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
-      const uint32_t solution_index = rel_sol + solution_map[0];
+    for (uint32_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
+      const uint32_t solution_index = rel_sol + solution_index0;
       DComplex& destination = next_solutions(ch_block, ant, solution_index, 0);
-      const size_t index = ant * n_dir_solutions + rel_sol;
+      const uint32_t index = ant * n_dir_solutions + rel_sol;
       if (denominator[index] == 0.0)
         destination = std::numeric_limits<float>::quiet_NaN();
       else
@@ -175,11 +175,10 @@ void IterativeScalarSolver::AddOrSubtractDirection(
   const std::vector<MC2x2F>& model_vector =
       cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<uint32_t>& solution_map = cb_data.SolutionMap(direction);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
     const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = solution_map[vis_index];
+    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
     const Complex solution_1(
         solutions[antenna_1 * NSolutions() + solution_index]);
     const Complex solution_2_conj = std::conj(
