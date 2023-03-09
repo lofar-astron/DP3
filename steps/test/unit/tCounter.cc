@@ -53,8 +53,9 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   parset.add("jsonfilename", test_filename);
 
   const std::vector<std::size_t> channel_counts(n_chan, 1);
-  casacore::Cube<casacore::Complex> data(n_corr, n_chan, n_baselines, 0.0);
-  casacore::Cube<bool> flags(data.shape(), false);
+  auto buffer = std::make_unique<dp3::base::DPBuffer>();
+  buffer->ResizeFlags(n_baselines, n_chan, n_corr);
+  buffer->GetFlags().fill(false);
 
   std::vector<std::vector<std::vector<bool>>> flag_values;
   // Define flags for baseline 1 (antennas: 0, 1)
@@ -81,23 +82,19 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
     current_val = !current_val;
     for (unsigned int chan = 0; chan < n_chan; ++chan) {
       for (unsigned int corr = 0; corr < n_corr; ++corr) {
-        flags(corr, chan, bl) = flag_values[bl][chan][corr];
+        buffer->GetFlags()(bl, chan, corr) = flag_values[bl][chan][corr];
       }
     }
   }
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
 
-  dp3::base::DPBuffer buffer;
-  buffer.setData(data);
-  buffer.setFlags(flags);
-
   Counter counter(parset, "");
   counter.setInfo(info);
 
   counter.setNextStep(mock_step);
 
-  counter.process(buffer);
+  counter.process(std::move(buffer));
 
   std::ostringstream os;
   counter.showCounts(os);

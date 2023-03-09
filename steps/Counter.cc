@@ -51,23 +51,19 @@ void Counter::updateInfo(const base::DPInfo& info_in) {
   flag_counter_.init(info_in);
 }
 
-bool Counter::process(const base::DPBuffer& buf) {
-  const casacore::IPosition& shape = buf.GetCasacoreFlags().shape();
-  unsigned int nrcorr = shape[0];
-  unsigned int nrchan = shape[1];
-  unsigned int nrbl = shape[2];
-  const bool* flag_pointer = buf.GetFlags().data();
-  for (unsigned int i = 0; i < nrbl; ++i) {
-    for (unsigned int j = 0; j < nrchan; ++j) {
-      if (*flag_pointer) {
-        flag_counter_.incrBaseline(i);
-        flag_counter_.incrChannel(j);
+bool Counter::process(std::unique_ptr<base::DPBuffer> buffer) {
+  const aocommon::xt::Span<bool, 3>& flags = buffer->GetFlags();
+  const size_t nrbl = flags.shape(0);
+  const size_t nrchan = flags.shape(1);
+  for (size_t baseline = 0; baseline < nrbl; ++baseline) {
+    for (size_t channel = 0; channel < nrchan; ++channel) {
+      if (flags(baseline, channel, 0)) {  // only count 1st correlation
+        flag_counter_.incrBaseline(baseline);
+        flag_counter_.incrChannel(channel);
       }
-      flag_pointer += nrcorr;  // only count 1st corr
     }
   }
-  // Let the next step do its processing.
-  getNextStep()->process(buf);
+  getNextStep()->process(std::move(buffer));
   ++count_;
   return true;
 }
