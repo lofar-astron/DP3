@@ -3,8 +3,6 @@
 
 #include "SolverTester.h"
 
-#include "../../constraints/DiagonalConstraint.h"
-
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/HybridSolver.h"
@@ -188,7 +186,6 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
   dp3::ddecal::FullJonesSolver solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR);
-  solver.AddConstraint(std::make_unique<dp3::ddecal::DiagonalConstraint>(4));
 
   BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 4u);
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
@@ -236,7 +233,6 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones, SolverTester,
   SetDiagonalSolutions(false);
   dp3::ddecal::IterativeFullJonesSolver solver;
   InitializeSolver(solver);
-  solver.AddConstraint(std::make_unique<dp3::ddecal::DiagonalConstraint>(4));
 
   BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 4u);
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
@@ -415,8 +411,6 @@ BOOST_FIXTURE_TEST_CASE(lbfgs_full_jones, SolverTester,
                                   kMinibatches / 2,
                                   dp3::ddecal::LBFGSSolver::kFull);
   InitializeSolver(solver);
-
-  solver.AddConstraint(std::make_unique<dp3::ddecal::DiagonalConstraint>(4));
 
   BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 4u);
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);

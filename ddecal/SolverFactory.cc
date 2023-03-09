@@ -16,7 +16,6 @@
 
 #include "constraints/AmplitudeOnlyConstraint.h"
 #include "constraints/AntennaConstraint.h"
-#include "constraints/PhaseOnlyConstraint.h"
 #include "constraints/RotationConstraint.h"
 #include "constraints/RotationAndDiagonalConstraint.h"
 #ifdef ENABLE_SCREENFITTER
@@ -114,11 +113,9 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
     case base::CalType::kScalar:
     case base::CalType::kDiagonal:
     case base::CalType::kFullJones:
-      // no extra constraints
-      break;
     case base::CalType::kScalarPhase:
     case base::CalType::kDiagonalPhase:
-      solver.AddConstraint(std::make_unique<PhaseOnlyConstraint>());
+      // no extra constraints
       break;
     case base::CalType::kScalarAmplitude:
     case base::CalType::kDiagonalAmplitude:

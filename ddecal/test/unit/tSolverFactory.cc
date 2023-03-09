@@ -7,7 +7,6 @@
 
 #include "../../constraints/AntennaConstraint.h"
 #include "../../constraints/AmplitudeOnlyConstraint.h"
-#include "../../constraints/PhaseOnlyConstraint.h"
 #include "../../constraints/RotationAndDiagonalConstraint.h"
 #include "../../constraints/RotationConstraint.h"
 
@@ -33,7 +32,6 @@ using dp3::ddecal::AntennaConstraint;
 using dp3::ddecal::Constraint;
 using dp3::ddecal::CreateSolver;
 using dp3::ddecal::InitializeSolverConstraints;
-using dp3::ddecal::PhaseOnlyConstraint;
 using dp3::ddecal::Settings;
 using dp3::ddecal::SmoothnessConstraint;
 using dp3::ddecal::SolverBase;
@@ -160,13 +158,6 @@ BOOST_DATA_TEST_CASE(no_constraints,
   const Settings settings(parset, "");
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   BOOST_CHECK(solver->GetConstraints().empty());
-}
-
-BOOST_DATA_TEST_CASE(phase_constraint,
-                     boost::unit_test::data::make({"scalarphase",
-                                                   "diagonalphase"}),
-                     mode) {
-  CheckConstraintType<PhaseOnlyConstraint>(ParsetForMode(mode));
 }
 
 BOOST_DATA_TEST_CASE(amplitude_constraint,
@@ -440,10 +431,9 @@ BOOST_AUTO_TEST_CASE(multiple_constraints) {
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
   const std::vector<std::unique_ptr<dp3::ddecal::Constraint>>& constraints =
       solver->GetConstraints();
-  BOOST_REQUIRE_EQUAL(constraints.size(), 3u);
+  BOOST_REQUIRE_EQUAL(constraints.size(), 2u);
   BOOST_CHECK(dynamic_cast<AntennaConstraint*>(constraints[0].get()));
   BOOST_CHECK(dynamic_cast<SmoothnessConstraint*>(constraints[1].get()));
-  BOOST_CHECK(dynamic_cast<PhaseOnlyConstraint*>(constraints[2].get()));
 }
 
 BOOST_AUTO_TEST_CASE(solver_settings_default) {
