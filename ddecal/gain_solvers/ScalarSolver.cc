@@ -159,6 +159,7 @@ void ScalarSolver::PerformIteration(size_t ch_block,
   // for each antenna.
   const size_t n = NSolutions();
   const size_t nrhs = 1;
+  std::vector<Complex> x0(NSolutions());
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     const size_t m = cb_data.NAntennaVisibilities(ant) * 4;
@@ -166,19 +167,17 @@ void ScalarSolver::PerformIteration(size_t ch_block,
     // reallocations
     std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
     // solve x^H in [g C] x^H  = v
-    std::vector<Complex> x0(NSolutions());
     for (size_t s = 0; s != NSolutions(); ++s) {
       x0[s] = solutions[(ant * NSolutions() + s)];
     }
-    bool success =
-        solver->Solve(g_times_cs[ant].data(), vs[ant].data(), x0.data());
     Matrix& x = vs[ant];
+    bool success = solver->Solve(g_times_cs[ant].data(), x.data(), x0.data());
     if (success && x(0, 0) != Complex(0.0, 0.0)) {
       for (size_t s = 0; s != NSolutions(); ++s)
         next_solutions(ch_block, ant, s, 0) = x(s, 0);
     } else {
-      xt::view(next_solutions, ch_block, ant, xt::all(), 0) =
-          std::numeric_limits<double>::quiet_NaN();
+      xt::view(next_solutions, ch_block, ant, xt::all(), 0)
+          .fill(std::numeric_limits<double>::quiet_NaN());
     }
   }
 }

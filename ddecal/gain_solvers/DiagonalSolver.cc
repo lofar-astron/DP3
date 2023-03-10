@@ -168,12 +168,11 @@ void DiagonalSolver::PerformIteration(
   // for each antenna.
   const size_t n = NSolutions();
   const size_t nrhs = 1;
-
   std::vector<Complex> x0(NSolutions());
+
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (size_t pol = 0; pol != 2; ++pol) {
-      std::vector<Complex>& x = vs[ant * 2 + pol];
-      const size_t m = x.size();
+      const size_t m = cb_data.NAntennaVisibilities(ant) * 2;
       // TODO it would be nice to have a solver resize function to avoid too
       // many reallocations
       std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
@@ -181,14 +180,15 @@ void DiagonalSolver::PerformIteration(
       for (size_t s = 0; s != NSolutions(); ++s) {
         x0[s] = solutions[(ant * NSolutions() + s) * 2 + pol];
       }
+      std::vector<Complex>& x = vs[ant * 2 + pol];
       bool success =
           solver->Solve(g_times_cs[ant * 2 + pol].data(), x.data(), x0.data());
       if (success && x[0] != Complex(0.0, 0.0)) {
         for (size_t s = 0; s != NSolutions(); ++s)
           next_solutions(ch_block, ant, s, pol) = x[s];
       } else {
-        xt::view(next_solutions, ch_block, ant, xt::all(), pol) =
-            std::numeric_limits<double>::quiet_NaN();
+        xt::view(next_solutions, ch_block, ant, xt::all(), pol)
+            .fill(std::numeric_limits<double>::quiet_NaN());
       }
     }
   }
