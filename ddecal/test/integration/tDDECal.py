@@ -818,3 +818,54 @@ def test_bda_constaints():
     np.testing.assert_allclose(
         phase_bda, phase_no_bda, rtol=0.3, atol=0, equal_nan=True
     )
+
+
+@pytest.mark.parametrize(
+    "caltype",
+    [
+        "scalar",
+        "diagonal",
+        "fulljones",
+    ],
+)
+def test_station_with_auto_correlation_only(caltype):
+    """
+    AST-1146: Test passing input to DDECal that contains a station that
+    only has visibilities for its auto-correlation, and no other visibilities.
+    Since DDECal skips auto-correlations, it ends up with a station without
+    visibilities, which can cause issues like empty matrices / null pointers.
+    """
+
+    # Add a station with an auto-correlation to the MS.
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=StationAdded.MS",
+            "steps=[stationadder]",
+            "stationadder.stations={AUTO:[RS106HBA,RS208HBA]}",
+            "stationadder.autocorr=true",
+            "stationadder.sumauto=false",
+        ]
+    )
+
+    # Filter out the non-auto-correlations for the added station and run DDECal.
+    # Since the Filter step uses the input MS when parsing the filter, we cannot
+    # combine the DP3 call above with this call.
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin=StationAdded.MS",
+            "msout=Test.MS",
+            "steps=[filter,ddecal]",
+            # This filter keeps the auto-correlations for station 'AUTO'
+            # and removes all other visibilities for 'AUTO'.
+            "filter.baseline=!AUTO",
+            f"ddecal.mode={caltype}",
+            f"ddecal.sourcedb={MSIN}/sky",
+            "ddecal.solint=2",
+            "ddecal.nchan=0",
+        ]
+    )

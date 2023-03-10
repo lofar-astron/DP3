@@ -32,7 +32,7 @@ class QRSolver final : public LLSSolver {
    * dimension max(M, N) On succesful exit: the solution vectors, stored
    * columnwise (N, NRHS)
    */
-  virtual bool Solve(complex* a, complex* b) override {
+  bool Solve(complex* a, complex* b) override {
     int info;
     char trans = 'N';  // No transpose
     int ldb = std::max(m_, n_);
