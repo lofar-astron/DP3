@@ -16,6 +16,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include <iostream>
+#include <filesystem>
 #include <stdexcept>
 
 #include "../../../steps/NullStep.h"
@@ -99,6 +100,12 @@ const size_t kInputMsTimeSlots = 18;
 const size_t kNCopyMsTimeSlots = kInputMsTimeSlots + 6;
 
 void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
+  // AST-1186: Check that there are no symbolic links in the copy.
+  for (const std::filesystem::directory_entry& entry :
+       std::filesystem::recursive_directory_iterator(out_ms)) {
+    BOOST_CHECK(!entry.is_symlink());
+  }
+
   const std::size_t n_ms = ms_flagged.size();
   Table table_in{kInputMs};
   Table table_out{out_ms};
@@ -245,11 +252,11 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
 }  // namespace
 
 // Common part of test_copy and test_multi_in, which allows reusing CheckCopy().
-void CreateCopyMs() {
+void CreateCopyMs(const std::string& input_ms) {
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
-    ostr << "msin=" << kInputMs << '\n';
+    ostr << "msin=" << input_ms << '\n';
     // Give starttime 35 sec before the first time, hence 1 missing timeslot.
     ostr << "msin.starttime=03-Aug-2000/13:21:45\n";
     // Give endtime 120 sec after the last time. MSReader rounds the end time
@@ -265,8 +272,72 @@ void CreateCopyMs() {
 }
 
 BOOST_FIXTURE_TEST_CASE(test_copy, FixtureDirectory) {
-  CreateCopyMs();
+  CreateCopyMs(kInputMs);
   CheckCopy(kCopyMs, {false});
+}
+
+BOOST_FIXTURE_TEST_CASE(test_copy_symlinks, FixtureDirectory) {
+  // AST-1186: Create a copy of the MS with symbolic links to read-only data,
+  // and verify that DP3 can copy that MS correctly.
+  const std::string kSymbolicMs = "tNDPPP_tmp.symbolic.MS";
+  const std::string kReadOnlyMs = "tNDPPP_tmp.read-only.MS";
+
+  std::filesystem::create_directory(kSymbolicMs);
+  std::filesystem::create_directory(kReadOnlyMs);
+
+  std::filesystem::copy(kInputMs, kSymbolicMs,
+                        std::filesystem::copy_options::recursive);
+  std::filesystem::copy(kInputMs, kReadOnlyMs,
+                        std::filesystem::copy_options::recursive);
+
+  const std::filesystem::path kReadOnlyPath =
+      std::filesystem::current_path() / kReadOnlyMs;
+
+  const std::filesystem::perms kWritePerms =
+      std::filesystem::perms::owner_write |
+      std::filesystem::perms::group_write |
+      std::filesystem::perms::others_write;
+
+  // Make everything in the read only directory read-only.
+  for (const std::filesystem::directory_entry& entry :
+       std::filesystem::recursive_directory_iterator(kReadOnlyPath)) {
+    std::cout << "Path: " << entry.path().relative_path() << std::endl;
+    std::filesystem::permissions(entry.path(), kWritePerms,
+                                 std::filesystem::perm_options::remove);
+  }
+
+  // Replace files in kSymbolicMs by symbolic links to the read-only directory.
+  for (const std::filesystem::directory_entry& entry :
+       std::filesystem::directory_iterator(kSymbolicMs)) {
+    if (entry.is_regular_file()) {
+      std::filesystem::remove(entry.path());
+      std::filesystem::create_symlink(kReadOnlyPath / entry.path().filename(),
+                                      entry.path());
+    } else if (entry.is_directory()) {
+      for (const std::filesystem::directory_entry& sub_entry :
+           std::filesystem::directory_iterator(entry.path())) {
+        // kInputMs has no sub-sub-directories.
+        assert(sub_entry.is_regular_file());
+
+        std::filesystem::remove(sub_entry.path());
+        std::filesystem::create_symlink(kReadOnlyPath /
+                                            entry.path().filename() /
+                                            sub_entry.path().filename(),
+                                        sub_entry.path());
+      }
+    }
+  }
+
+  CreateCopyMs(kSymbolicMs);
+  CheckCopy(kCopyMs, {false});
+
+  // Make everything in the read only directory writable again, otherwise
+  // the fixture cannot remove it.
+  for (const std::filesystem::directory_entry& entry :
+       std::filesystem::recursive_directory_iterator(kReadOnlyMs)) {
+    std::filesystem::permissions(entry.path(), kWritePerms,
+                                 std::filesystem::perm_options::add);
+  }
 }
 
 BOOST_FIXTURE_TEST_CASE(test_copy_column, FixtureDirectory) {
@@ -329,7 +400,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_basic, FixtureDirectory) {
   // Creating the same MS as test_copy allows re-using CheckCopy here.
   // Copying is necessary anyway, since the MultiMSReader cannot handle
   // missing time slots.
-  CreateCopyMs();
+  CreateCopyMs(kInputMs);
 
   // Test basic reading of two inputs MS's into one output MS.
   {
@@ -347,7 +418,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_data, FixtureDirectory) {
   const std::string kMissingDataMS = "tNDPPP_tmp.missingdata.MS";
   const size_t kNBaselinesRemaining = 2;
 
-  CreateCopyMs();
+  CreateCopyMs(kInputMs);
 
   {
     std::ofstream ostr(kParsetFile);
@@ -373,7 +444,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_data, FixtureDirectory) {
 BOOST_FIXTURE_TEST_CASE(test_multi_in_missing_ms, FixtureDirectory) {
   const std::string kMultiMS = "tNDPPP_tmp.multi.MS";
 
-  CreateCopyMs();
+  CreateCopyMs(kInputMs);
 
   {
     std::ofstream ostr(kParsetFile);

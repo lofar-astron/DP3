@@ -6,6 +6,7 @@
 
 #include "MSWriter.h"
 
+#include <algorithm>
 #include <iostream>
 #include <limits>
 
@@ -25,6 +26,7 @@
 #include "../common/ParameterSet.h"
 
 #include <casacore/tables/Tables/TableCopy.h>
+#include <casacore/tables/Tables/TableLocker.h>
 #include <casacore/tables/DataMan/DataManInfo.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
@@ -498,10 +500,8 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   if (keyset.isDefined(base::DP3MS::kBDAFactorsTable)) {
     keyset.removeField(base::DP3MS::kBDAFactorsTable);
   }
-  casacore::Block<casacore::String> omitted_subtables(2);
-  omitted_subtables[0] = base::DP3MS::kBDATimeAxisTable;
-  omitted_subtables[1] = base::DP3MS::kBDAFactorsTable;
-  TableCopy::copySubTables(ms_, temptable, false, omitted_subtables);
+  CopySubTables(original_table);
+
   // Adjust the SPECTRAL_WINDOW and DATA_DESCRIPTION table as needed.
   UpdateSpw(out_name);
   // Adjust the OBSERVATION table as needed.
@@ -512,6 +512,39 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     UpdatePhaseCentre(out_name);
   }
   UpdateBeam(ms_, "DATA", info());
+}
+
+void MSWriter::CopySubTables(casacore::Table& original_table) {
+  // AST-1186: This function is a re-implementation of
+  // casacore::TableCopy::copySubTables.
+  // When a subtable contains symbolic links, casacore::TableCopy::copySubTable
+  // copies the symbolic links. This function copies the subtables by value.
+  const bool kValueCopy = true;
+
+  const casacore::TableRecord& keys_in = original_table.keywordSet();
+  casacore::TableRecord& keys_out = ms_.rwKeywordSet();
+
+  for (casacore::uInt i = 0; i < keys_in.nfields(); ++i) {
+    if (keys_in.type(i) != casacore::TpTable) continue;
+
+    const std::string subtable_name = keys_in.name(i);
+
+    // Skip a subtable that has to be omitted.
+    if (subtable_name == base::DP3MS::kBDATimeAxisTable ||
+        subtable_name == base::DP3MS::kBDAFactorsTable)
+      continue;
+
+    Table subtable_in = keys_in.asTable(i);
+
+    // Lock the subtable / keep the lock if already locked.
+    casacore::TableLocker locker(subtable_in, casacore::FileLocker::Read);
+
+    const casacore::String subtable_path_out =
+        ms_.tableName() + "/" + subtable_name.c_str();
+    subtable_in.deepCopy(subtable_path_out, Table::New, kValueCopy);
+
+    keys_out.defineTable(subtable_name, Table(subtable_path_out));
+  }
 }
 
 void MSWriter::UpdateSpw(const std::string& out_name) {
