@@ -107,6 +107,9 @@ class MSWriter : public OutputStep {
   void CreateMs(const std::string& out_name, unsigned int tile_size,
                 unsigned int tile_n_chan);
 
+  /// Copy subtables from 'original_table` to the output MS.
+  void CopySubTables(casacore::Table& original_table);
+
   /// Update the SPECTRAL_WINDOW table for averaged channels.
   void UpdateSpw(const string& out_name);
 
