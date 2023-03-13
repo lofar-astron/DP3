@@ -124,8 +124,6 @@ void IterativeDiagonalSolver::SolveDirection(
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<MC2x2F>& model_vector =
-      cb_data.ModelVisibilityVector(direction);
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -136,7 +134,7 @@ void IterativeDiagonalSolver::SolveDirection(
     const DComplex* solution_ant_2 =
         &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
     const MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = model_vector[vis_index];
+    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
 
     const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
@@ -195,8 +193,6 @@ template <bool Add>
 void IterativeDiagonalSolver::AddOrSubtractDirection(
     const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
     size_t direction, const std::vector<DComplex>& solutions) {
-  const std::vector<MC2x2F>& model_vector =
-      cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -212,7 +208,7 @@ void IterativeDiagonalSolver::AddOrSubtractDirection(
     const Complex solution_2_1_conj(std::conj(solution_2[1]));
 
     MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = model_vector[vis_index];
+    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
     const MC2x2F contribution(solution_1_0 * model[0] * solution_2_0_conj,
                               solution_1_0 * model[1] * solution_2_1_conj,
                               solution_1_1 * model[2] * solution_2_0_conj,

@@ -124,8 +124,6 @@ void IterativeScalarSolver::SolveDirection(
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<MC2x2F>& model_vector =
-      cb_data.ModelVisibilityVector(direction);
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -136,7 +134,7 @@ void IterativeScalarSolver::SolveDirection(
     const Complex solution_ant_2(
         solutions[antenna_2 * NSolutions() + solution_index]);
     const MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = model_vector[vis_index];
+    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
 
     const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
@@ -172,8 +170,6 @@ template <bool Add>
 void IterativeScalarSolver::AddOrSubtractDirection(
     const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
     size_t direction, const std::vector<DComplex>& solutions) {
-  const std::vector<MC2x2F>& model_vector =
-      cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -184,7 +180,7 @@ void IterativeScalarSolver::AddOrSubtractDirection(
     const Complex solution_2_conj = std::conj(
         Complex(solutions[antenna_2 * NSolutions() + solution_index]));
     MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = model_vector[vis_index];
+    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
     if (Add) {
       data.AddWithFactorAndAssign(model, solution_1 * solution_2_conj);
     } else {
