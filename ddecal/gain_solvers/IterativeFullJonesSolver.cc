@@ -125,8 +125,6 @@ void IterativeFullJonesSolver::SolveDirection(
 
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
-  const std::vector<MC2x2F>& model_vector =
-      cb_data.ModelVisibilityVector(direction);
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -148,7 +146,7 @@ void IterativeFullJonesSolver::SolveDirection(
                    n_solution_pols]);
 
     const Matrix data{v_residual[vis_index]};
-    const Matrix model{model_vector[vis_index]};
+    const Matrix model{cb_data.ModelVisibility(direction, vis_index)};
 
     const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
@@ -192,8 +190,6 @@ void IterativeFullJonesSolver::AddOrSubtractDirection(
     const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
     size_t direction, const std::vector<DComplex>& solutions) {
   constexpr size_t n_solution_polarizations = 4;
-  const std::vector<MC2x2F>& model_vector =
-      cb_data.ModelVisibilityVector(direction);
   const size_t n_visibilities = cb_data.NVisibilities();
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -205,7 +201,8 @@ void IterativeFullJonesSolver::AddOrSubtractDirection(
     const MC2x2F solution_2_herm = HermTranspose(
         MC2x2F(&solutions[(antenna_2 * NSolutions() + solution_index) *
                           n_solution_polarizations]));
-    const MC2x2F& term = solution_1 * model_vector[vis_index] * solution_2_herm;
+    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
+    const MC2x2F& term = solution_1 * model * solution_2_herm;
     if (Add) {
       v_residual[vis_index] += term;
     } else {
