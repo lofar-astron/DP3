@@ -80,14 +80,30 @@ static void Multiply(ankerl::nanobench::Bench& bench, const char* name) {
 }
 
 template <class Matrix>
-static void MultiplyDiagonal(ankerl::nanobench::Bench& bench,
-                             const char* name) {
+static void MatrixMultiplyDiagonal(ankerl::nanobench::Bench& bench,
+                                   const char* name) {
   Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
   auto b{Diagonal(a)};
 
   bench.run(name, [&] {
-    a = a * b;
+    Matrix r = a * b;
     ankerl::nanobench::doNotOptimizeAway(a);
+    ankerl::nanobench::doNotOptimizeAway(b);
+    ankerl::nanobench::doNotOptimizeAway(r);
+  });
+}
+
+template <class Matrix>
+static void DiagonalMultiplyMatrix(ankerl::nanobench::Bench& bench,
+                                   const char* name) {
+  Matrix b{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+  auto a{Diagonal(b)};
+
+  bench.run(name, [&] {
+    Matrix r = a * b;
+    ankerl::nanobench::doNotOptimizeAway(a);
+    ankerl::nanobench::doNotOptimizeAway(b);
+    ankerl::nanobench::doNotOptimizeAway(r);
   });
 }
 
@@ -130,6 +146,14 @@ int main() {
   Trace<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "FMV Trace");
   Multiply<aocommon::MC2x2F>(bench, "    Multiply");
   Multiply<aocommon::Avx256::MatrixComplexFloat2x2>(bench, "AVX Multiply");
+
+  MatrixMultiplyDiagonal<aocommon::MC2x2>(bench, "    MatrixMultiplyDiagonal");
+  MatrixMultiplyDiagonal<aocommon::Avx256::MatrixComplexFloat2x2>(
+      bench, "AVX MatrixMultiplyDiagonal");
+
+  DiagonalMultiplyMatrix<aocommon::MC2x2>(bench, "    DiagonalMultiplyMatrix");
+  DiagonalMultiplyMatrix<aocommon::Avx256::MatrixComplexFloat2x2>(
+      bench, "AVX DiagonalMultiplyMatrix");
 
   Generate("html", ankerl::nanobench::templates::htmlBoxplot(), bench);
   Generate("json", ankerl::nanobench::templates::json(), bench);

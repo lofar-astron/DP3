@@ -271,28 +271,39 @@ class MatrixComplexFloat2x2 {
   [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
   operator*(MatrixComplexFloat2x2 lhs,
             DiagonalMatrixComplexFloat2x2 rhs) noexcept {
-    // basically this does the same as
-    // return lhs.data_ * VectorComplexFloat4{rhs[0], rhs[0], rhs[1], rhs[1]};
-    // but this gives better codegen and is slightly faster.
+    // The multiplication of a 2x2 matrix M with a diagonal 2x2 matrix D is
+    // not commutative and R = M * D can be written as
+    // r[0][0] = m[0][0] * d[0][0] -> lhs[0] * rhs[0]
+    // r[0][1] = m[0][1] * d[1][1] -> lhs[1] * rhs[1]
+    // r[1][0] = m[1][0] * d[0][0] -> lhs[2] * rhs[0]
+    // r[1][1] = m[1][1] * d[1][1] -> lhs[3] * rhs[1]
 
-    // Since there is no direct way to interleave 2 32-bit float pairs, use the
-    // method to interleave 1 64-bit value. (The values are unchanged.)
-
-    // __m128 lo {rhs[0], rhs[0]}
-    __m128 lo =
-        _mm_castpd_ps(_mm_unpacklo_pd(_mm_castps_pd(static_cast<__m128>(rhs)),
-                                      _mm_castps_pd(static_cast<__m128>(rhs))));
-    // __m128 hi {rhs[1], rhs[1]}
-    __m128 hi =
-        _mm_castpd_ps(_mm_unpackhi_pd(_mm_castps_pd(static_cast<__m128>(rhs)),
-                                      _mm_castps_pd(static_cast<__m128>(rhs))));
-    return lhs.data_ * VectorComplexFloat4{_mm256_set_m128(hi, lo)};
+    __m128 lo = static_cast<__m128>(rhs);
+    return lhs.data_ * VectorComplexFloat4{_mm256_set_m128(lo, lo)};
   }
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexFloat2x2
   operator*(DiagonalMatrixComplexFloat2x2 lhs,
             MatrixComplexFloat2x2 rhs) noexcept {
-    return rhs * lhs;
+    // The multiplication of a diagonal 2x2 matrix D with a 2x2 matrix M is
+    // not commutative and R = D * M can be written as:
+    // r[0][0] = d[0][0] * m[0][0] -> lhs[0] * rhs[0]
+    // r[0][1] = d[0][0] * m[0][1] -> lhs[0] * rhs[1]
+    // r[1][0] = d[1][1] * m[1][0] -> lhs[1] * rhs[2]
+    // r[1][1] = d[1][1] * m[1][1] -> lhs[1] * rhs[3]
+
+    __m128 lo = static_cast<__m128>(lhs);
+    __m256 l = _mm256_set_m128(lo, lo);
+
+    // The vector contains the element 0 1 0 1 but it needs 0 0 1 1.  The
+    // intrinsic _mm256_permute_ps does the same permutation for both 128-bit
+    // lanes, which makes it impossible to get the desired output.  Since the
+    // two floats are a complex pair it's possible to pretend they are 64-bit
+    // entities. This makes it possible to use the _mm256_permute_pd intrinsic.
+    // This intrinsic has separate control bits for both 128-bit lanes. (It
+    // does not allow lane crossing, but that's not needed.)
+    l = _mm256_castpd_ps(_mm256_permute_pd(_mm256_castps_pd(l), 0b00'00'11'00));
+    return VectorComplexFloat4{l} * rhs.data_;
   }
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
