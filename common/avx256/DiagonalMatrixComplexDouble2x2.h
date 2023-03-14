@@ -47,6 +47,11 @@ class DiagonalMatrixComplexDouble2x2 {
                                                                 b) noexcept
       : data_{a, b} {}
 
+  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexDouble2 Data()
+      const noexcept {
+    return data_;
+  }
+
   [[nodiscard]] [[gnu::target(
       "avx2,fma")]] explicit DiagonalMatrixComplexDouble2x2(const std::
                                                                 complex<double>

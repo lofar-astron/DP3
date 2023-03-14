@@ -64,6 +64,19 @@ BOOST_AUTO_TEST_CASE(constructor_complex_double_pointer) {
   BOOST_TEST((result[1] == std::complex<double>{3.75, -3.75}));
 }
 
+BOOST_AUTO_TEST_CASE(data) {
+  static_assert(noexcept(aocommon::Avx256::DiagonalMatrixComplexDouble2x2{
+      static_cast<const std::complex<double>*>(nullptr)}
+                             .Data()));
+
+  const aocommon::Avx256::DiagonalMatrixComplexDouble2x2 input{
+      std::complex<double>{-1.0, 1.0}, std::complex<double>{3.75, -3.75}};
+  const aocommon::Avx256::VectorComplexDouble2 result{input.Data()};
+
+  BOOST_TEST((result[0] == std::complex<double>{-1.0, 1.0}));
+  BOOST_TEST((result[1] == std::complex<double>{3.75, -3.75}));
+}
+
 BOOST_AUTO_TEST_CASE(conjugate) {
   static_assert(noexcept(aocommon::Avx256::DiagonalMatrixComplexDouble2x2{
       static_cast<const std::complex<double>*>(nullptr)}

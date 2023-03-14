@@ -286,14 +286,27 @@ class MatrixComplexDouble2x2 {
   [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
   operator*(MatrixComplexDouble2x2 lhs,
             DiagonalMatrixComplexDouble2x2 rhs) noexcept {
-    return std::array<VectorComplexDouble2, 2>{lhs.data_[0] * rhs[0],
-                                               lhs.data_[1] * rhs[1]};
+    // The multiplication of a 2x2 matrix M with a diagonal 2x2 matrix D is
+    // not commutative and R = M * D can be written as
+    // r[0][0] = m[0][0] * d[0][0] -> lhs[0] * rhs[0]
+    // r[0][1] = m[0][1] * d[1][1] -> lhs[1] * rhs[1]
+    // r[1][0] = m[1][0] * d[0][0] -> lhs[2] * rhs[0]
+    // r[1][1] = m[1][1] * d[1][1] -> lhs[3] * rhs[1]
+    return std::array<VectorComplexDouble2, 2>{lhs.data_[0] * rhs.Data(),
+                                               lhs.data_[1] * rhs.Data()};
   }
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] friend MatrixComplexDouble2x2
   operator*(DiagonalMatrixComplexDouble2x2 lhs,
             MatrixComplexDouble2x2 rhs) noexcept {
-    return rhs * lhs;
+    // The multiplication of a diagonal 2x2 matrix D with a 2x2 matrix M is
+    // not commutative and R = D * M can be written as:
+    // r[0][0] = d[0][0] * m[0][0] -> lhs[0] * rhs[0]
+    // r[0][1] = d[0][0] * m[0][1] -> lhs[0] * rhs[1]
+    // r[1][0] = d[1][1] * m[1][0] -> lhs[1] * rhs[2]
+    // r[1][1] = d[1][1] * m[1][1] -> lhs[1] * rhs[3]
+    return std::array<VectorComplexDouble2, 2>{lhs.Data()[0] * rhs.data_[0],
+                                               lhs.Data()[1] * rhs.data_[1]};
   }
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
