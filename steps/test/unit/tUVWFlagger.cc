@@ -1,5 +1,5 @@
 // tUVWFlagger.cc: Test program for class UVWFlagger
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
@@ -99,22 +99,23 @@ class TestInput : public dp3::steps::MockInput {
     if (count_ == n_times_) {
       return false;
     }
-    T buffer = CreateInputBuffer();
+    std::unique_ptr<T> buffer = CreateInputBuffer();
     getNextStep()->process(std::move(buffer));
     ++count_;
     return true;
   };
 
-  T CreateInputBuffer() {
-    T t;
-    return t;
-  };
+  std::unique_ptr<T> CreateInputBuffer() { return std::make_unique<T>(); };
   void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Do nothing / keep the info set in the constructor.
   }
 
-  size_t count_, n_times_, n_baselines_, n_channels_, n_correlations_;
+  size_t count_;
+  size_t n_times_;
+  size_t n_baselines_;
+  size_t n_channels_;
+  size_t n_correlations_;
   double start_frequency_ = 10000000.0;
   double min_channel_width_ = 1000000.0;
   double time_interval_ = 5.0;
@@ -122,32 +123,36 @@ class TestInput : public dp3::steps::MockInput {
 };
 
 template <>
-DPBuffer TestInput<DPBuffer>::CreateInputBuffer() {
+std::unique_ptr<DPBuffer> TestInput<DPBuffer>::CreateInputBuffer() {
+  std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>(
+      n_correlations_ * n_channels_ * n_baselines_ * n_times_);
+
   casacore::Cube<casacore::Complex> data(n_correlations_, n_channels_,
                                          n_baselines_);
   for (size_t i = 0; i < data.size(); ++i) {
     data.data()[i] = casacore::Complex(i + count_ * 10, i - 10 + count_ * 6);
   }
+  buffer->setData(data);
+
   casacore::Matrix<double> uvw(3, n_baselines_);
   for (size_t i = 0; i < n_baselines_; ++i) {
     uvw(0, i) = 1 + count_ + i;
     uvw(1, i) = 2 + count_ + i;
     uvw(2, i) = 3 + count_ + i;
   }
-  DPBuffer buf;
-  buf.setTime(count_ * 30 + first_time_);
-  buf.setData(data);
-  buf.setUVW(uvw);
+  buffer->setUVW(uvw);
+
+  buffer->setTime(count_ * 30 + first_time_);
+
   casacore::Cube<bool> flags(data.shape());
   flags = false;
-  buf.setFlags(flags);
+  buffer->setFlags(flags);
 
-  return buf;
+  return buffer;
 }
 
 template <>
-std::unique_ptr<BDABuffer>
-TestInput<std::unique_ptr<BDABuffer>>::CreateInputBuffer() {
+std::unique_ptr<BDABuffer> TestInput<BDABuffer>::CreateInputBuffer() {
   std::unique_ptr<BDABuffer> buffer = std::make_unique<BDABuffer>(
       n_correlations_ * n_channels_ * n_baselines_ * n_times_);
 
@@ -187,7 +192,7 @@ void TestInput<DPBuffer>::updateInfo(const DPInfo&) {
 }
 
 template <>
-void TestInput<std::unique_ptr<BDABuffer>>::updateInfo(const DPInfo&) {
+void TestInput<BDABuffer>::updateInfo(const DPInfo&) {
   // Define the frequencies for the BDA buffer.
   // Even baselines have a channel averaging factor of 5
   // Odd baselines have a channel averaging factor of 3
@@ -213,7 +218,7 @@ void TestInput<std::unique_ptr<BDABuffer>>::updateInfo(const DPInfo&) {
   info().setChannels(std::move(channel_frequencies), std::move(channel_widths));
 }
 
-// Class to check result of flagged, unaveraged TestInput run by test1.
+// Class to check result of flagged, unaveraged TestInput run by testX.
 template <class T>
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
@@ -227,7 +232,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         test_id_(test_id) {}
 
  private:
-  bool process(const DPBuffer&) override { return false; }
+  bool process(std::unique_ptr<DPBuffer>) override { return false; }
   bool process(std::unique_ptr<BDABuffer>) override { return false; }
   const casacore::Cube<bool> GetResult() const {
     casacore::Cube<bool> result;
@@ -342,27 +347,30 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   }
 
   size_t count_;
-  size_t n_times_, n_baselines_, n_channels_, n_correlations_, test_id_;
+  size_t n_times_;
+  size_t n_baselines_;
+  size_t n_channels_;
+  size_t n_correlations_;
+  size_t test_id_;
 };
 
 template <>
-bool TestOutput<DPBuffer>::process(const DPBuffer& buf) {
+bool TestOutput<DPBuffer>::process(std::unique_ptr<DPBuffer> buffer) {
   // Flag where u,v,w matches intervals given in the requested test.
   const casacore::Cube<bool> expected_result = GetResult();
 
-  BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), expected_result));
+  BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), expected_result));
   count_++;
   return true;
 }
 
 template <>
-bool TestOutput<std::unique_ptr<BDABuffer>>::process(
-    const std::unique_ptr<BDABuffer> buf) {
+bool TestOutput<BDABuffer>::process(const std::unique_ptr<BDABuffer> buffer) {
   // Flag where u,v,w matches intervals given in the requested test.
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
   const casacore::Cube<bool> expected_result = GetResult();
 
-  for (auto row : buf->GetRows()) {
+  for (auto row : buffer->GetRows()) {
     auto flag_ptr = row.flags;
     // Use the scaling factor to get the index corresponding to the current
     // frequency channel in the non-averaged result cube
@@ -442,7 +450,6 @@ void test3(size_t n_times, size_t n_baselines, size_t n_channels,
   dp3::steps::test::Execute({in, flagger, out});
 }
 
-// Test flagging a few baselines on UV in m with a different phase center.
 template <class T>
 void test_constructor(size_t n_times, size_t n_baselines, size_t n_channels,
                       size_t n_correlations, Step::MsType input_type) {
@@ -459,14 +466,12 @@ BOOST_AUTO_TEST_SUITE(uvwflagger)
 
 BOOST_AUTO_TEST_CASE(constructor) {
   test_constructor<DPBuffer>(10, 16, 32, 4, Step::MsType::kRegular);
-  test_constructor<std::unique_ptr<BDABuffer>>(10, 16, 32, 4,
-                                               Step::MsType::kBda);
+  test_constructor<BDABuffer>(10, 16, 32, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(fields) {
   using dp3::steps::Step;
 
-  dp3::steps::MockInput input;
   dp3::common::ParameterSet parset;
   const UVWFlagger degenerate(parset, "", Step::MsType::kRegular);
   BOOST_TEST(degenerate.isDegenerate());
@@ -514,30 +519,30 @@ BOOST_AUTO_TEST_CASE(test7_regular) {
 }
 
 BOOST_AUTO_TEST_CASE(test1_bda) {
-  test1<std::unique_ptr<BDABuffer>>(10, 16, 32, 4, Step::MsType::kBda);
+  test1<BDABuffer>(10, 16, 32, 4, Step::MsType::kBda);
 }
 BOOST_AUTO_TEST_CASE(test2_bda) {
-  test1<std::unique_ptr<BDABuffer>>(100, 105, 32, 4, Step::MsType::kBda);
+  test1<BDABuffer>(100, 105, 32, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test3_bda) {
-  test2<std::unique_ptr<BDABuffer>>(2, 16, 15, 4, Step::MsType::kBda);
+  test2<BDABuffer>(2, 16, 15, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test4_bda) {
-  test2<std::unique_ptr<BDABuffer>>(2, 36, 15, 2, Step::MsType::kBda);
+  test2<BDABuffer>(2, 36, 15, 2, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test5_bda) {
-  test2<std::unique_ptr<BDABuffer>>(10, 16, 30, 4, Step::MsType::kBda);
+  test2<BDABuffer>(10, 16, 30, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test6_bda) {
-  test2<std::unique_ptr<BDABuffer>>(100, 105, 30, 4, Step::MsType::kBda);
+  test2<BDABuffer>(100, 105, 30, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test7_bda) {
-  test3<std::unique_ptr<BDABuffer>>(2, 16, 32, 4, Step::MsType::kBda);
+  test3<BDABuffer>(2, 16, 32, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(sun_as_phase_center) {

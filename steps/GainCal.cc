@@ -371,7 +371,8 @@ bool GainCal::process(const DPBuffer& bufin) {
 
   // UVW flagging happens on a copy of the buffer, so these flags are not
   // written
-  itsUVWFlagStep.process(itsBuf[bufIndex]);
+  // UVWFlagger hides the legacy process() overload.
+  itsUVWFlagStep.process(std::make_unique<DPBuffer>(itsBuf[bufIndex]));
 
   const casacore::Complex* data = itsBuf[bufIndex].GetData().data();
   const float* weight = itsBuf[bufIndex].GetWeights().data();

@@ -1,13 +1,13 @@
-// UVWFlagger.h: DPPP step class to flag data on UVW coordinates
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// UVWFlagger.h: DP3 step class to flag data on UVW coordinates
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to flag data on UVW coordinates
+/// @brief DP3 step class to flag data on UVW coordinates
 /// @author Ger van Diepen
 
-#ifndef DPPP_UVWFLAGGER_H
-#define DPPP_UVWFLAGGER_H
+#ifndef DP3_STEPS_UVWFLAGGER_H_
+#define DP3_STEPS_UVWFLAGGER_H_
 
 #include <dp3/base/BDABuffer.h>
 #include <dp3/base/DPBuffer.h>
@@ -23,7 +23,7 @@ class ParameterValue;
 }  // namespace common
 
 namespace steps {
-/// @brief DPPP step class to flag data on UVW coordinates
+/// @brief DP3 step class to flag data on UVW coordinates
 
 /// This class is a Step class flagging data points based on data
 /// selections given in the parset file.
@@ -43,7 +43,7 @@ class UVWFlagger : public Step {
   /// The antenna names are used to find antenna numbers.
   /// The channel frequencies as they are in the input step must be given
   /// starting at the start-channel.
-  UVWFlagger(const common::ParameterSet&, const string& prefix,
+  UVWFlagger(const common::ParameterSet&, const std::string& prefix,
              MsType inputType);
 
   ~UVWFlagger() override;
@@ -64,7 +64,7 @@ class UVWFlagger : public Step {
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   bool process(std::unique_ptr<base::BDABuffer>) override;
 
@@ -110,23 +110,22 @@ class UVWFlagger : public Step {
   /// Optionally the values are squared to avoid having to take a sqrt
   /// of the data's UVW coordinates.
   std::vector<double> fillUVW(const common::ParameterSet& parset,
-                              const string& prefix, const string& name,
-                              bool square);
+                              const std::string& prefix,
+                              const std::string& name, bool square);
 
   /// Handle the specification of a phase center.
   /// It setups the UVWCalculator.
   void handleCenter();
 
-  base::DPBuffer itsBuffer;
   const MsType itsInputType;
-  string itsName;
+  std::string itsName;
   unsigned int itsNTimes;
 
   /// Wavelengths may differ between baselines when using BDA.
   /// If all baselines have equal channels (i.e. when the input is a DPBuffer),
   /// the outer vector only holds one inner vector. When using BDA (i.e. when
   /// the input is a BDABuffer), each baseline has its own inner vector.
-  std::vector<std::vector<double>> itsRecWavel;  ///< reciprokes of wavelengths
+  std::vector<std::vector<double>> itsRecWavel;  ///< reciprocals of wavelengths
   const std::vector<double> itsRangeUVm;  ///< UV ranges (in m) to be flagged
   const std::vector<double> itsRangeUm;   ///< U  ranges (in m) to be flagged
   const std::vector<double> itsRangeVm;   ///< V  ranges (in m) to be flagged
@@ -141,7 +140,7 @@ class UVWFlagger : public Step {
   const bool itsIsDegenerate;
 
   std::unique_ptr<base::UVWCalculator> itsUVWCalc;
-  const std::vector<string> itsCenter;
+  const std::vector<std::string> itsCenter;
   common::NSTimer itsTimer;
   common::NSTimer itsUVWTimer;
   base::FlagCounter itsFlagCounter;
