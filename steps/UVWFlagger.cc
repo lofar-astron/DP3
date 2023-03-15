@@ -23,13 +23,6 @@
 #include <array>
 #include <iostream>
 
-using casacore::Cube;
-using casacore::IPosition;
-using casacore::Matrix;
-using casacore::MDirection;
-using casacore::MVAngle;
-using casacore::Quantity;
-
 using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -145,19 +138,16 @@ bool UVWFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
 
   itsTimer.start();
   // Loop over the baselines and flag as needed.
-  Cube<bool>& flags = buffer->GetCasacoreFlags();
-  const IPosition& shape = flags.shape();
-  unsigned int n_correlations = shape[0];
-  unsigned int n_channels = shape[1];
-  unsigned int n_baselines = shape[2];
+  unsigned int n_baselines = buffer->GetFlags().shape(0);
+  unsigned int n_channels = buffer->GetFlags().shape(1);
+  unsigned int n_correlations = buffer->GetFlags().shape(2);
   assert(n_channels == itsRecWavel[0].size());
   // Input uvw coordinates are only needed if no new phase center is used.
-  Matrix<double> uvws;
+  const double* uvwPtr = nullptr;
   if (itsCenter.empty()) {
-    uvws.reference(buffer->GetCasacoreUvw());
+    uvwPtr = buffer->GetUvw().data();
   }
-  const double* uvwPtr = uvws.data();
-  bool* flagPtr = flags.data();
+  bool* flagPtr = buffer->GetFlags().data();
 
   // A std::vector<bool> doesn't store a contiguous array of bools, instead it
   // stores 8 bools per byte. Since the code wants to use an array of bools use
@@ -382,35 +372,36 @@ void UVWFlagger::handleCenter() {
   if (itsCenter.size() >= 4)
     throw std::runtime_error(
         "Up to 3 values can be given in UVWFlagger phasecenter");
-  MDirection phaseCenter;
+  casacore::MDirection phaseCenter;
   if (itsCenter.size() == 1) {
     std::string str = boost::to_upper_copy(itsCenter[0]);
-    MDirection::Types tp;
-    if (!MDirection::getType(tp, str))
+    casacore::MDirection::Types tp;
+    if (!casacore::MDirection::getType(tp, str))
       throw std::runtime_error(str +
                                " is an invalid source type"
                                " in UVWFlagger phasecenter");
-    phaseCenter = MDirection(tp);
+    phaseCenter = casacore::MDirection(tp);
   } else {
-    Quantity q0, q1;
-    if (!MVAngle::read(q0, itsCenter[0]))
+    casacore::Quantity q0;
+    casacore::Quantity q1;
+    if (!casacore::MVAngle::read(q0, itsCenter[0]))
       throw std::runtime_error(itsCenter[0] +
                                " is an invalid RA or longitude"
                                " in UVWFlagger phasecenter");
-    if (!MVAngle::read(q1, itsCenter[1]))
+    if (!casacore::MVAngle::read(q1, itsCenter[1]))
       throw std::runtime_error(itsCenter[1] +
                                " is an invalid DEC or latitude"
                                " in UVWFlagger phasecenter");
-    MDirection::Types type = MDirection::J2000;
+    casacore::MDirection::Types type = casacore::MDirection::J2000;
     if (itsCenter.size() > 2) {
       std::string str = boost::to_upper_copy(itsCenter[2]);
-      MDirection::Types tp;
-      if (!MDirection::getType(tp, str))
+      casacore::MDirection::Types tp;
+      if (!casacore::MDirection::getType(tp, str))
         throw std::runtime_error(str +
                                  " is an invalid direction type in UVWFlagger"
                                  " in UVWFlagger phasecenter");
     }
-    phaseCenter = MDirection(q0, q1, type);
+    phaseCenter = casacore::MDirection(q0, q1, type);
   }
   // Create the UVW calculator.
   itsUVWCalc = std::make_unique<base::UVWCalculator>(
