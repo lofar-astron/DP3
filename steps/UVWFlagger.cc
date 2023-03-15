@@ -1,5 +1,5 @@
-// UVWFlagger.cc: DPPP step class to flag data on UVW coordinates
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// UVWFlagger.cc: DP3 step class to flag data on UVW coordinates
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
@@ -38,8 +38,8 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-UVWFlagger::UVWFlagger(const common::ParameterSet& parset, const string& prefix,
-                       MsType inputType)
+UVWFlagger::UVWFlagger(const common::ParameterSet& parset,
+                       const std::string& prefix, MsType inputType)
     : itsInputType(inputType),
       itsName(prefix),
       itsNTimes(0),
@@ -60,7 +60,7 @@ UVWFlagger::UVWFlagger(const common::ParameterSet& parset, const string& prefix,
                       0),
       itsUVWCalc(),
       itsCenter(parset.getStringVector(prefix + "phasecenter",
-                                       std::vector<string>())),
+                                       std::vector<std::string>())),
       itsTimer(),
       itsUVWTimer(),
       itsFlagCounter(parset, prefix + "count.") {}
@@ -94,6 +94,7 @@ void UVWFlagger::showCounts(std::ostream& os) const {
   if (itsIsDegenerate) {
     return;
   }
+
   os << '\n' << "Flags set by UVWFlagger " << itsName;
   os << '\n' << "=======================" << '\n';
   itsFlagCounter.showBaseline(os, itsNTimes);
@@ -101,6 +102,10 @@ void UVWFlagger::showCounts(std::ostream& os) const {
 }
 
 void UVWFlagger::showTimings(std::ostream& os, double duration) const {
+  if (itsIsDegenerate) {
+    return;
+  }
+
   double flagDur = itsTimer.getElapsed();
   os << "  ";
   base::FlagCounter::showPerc1(os, flagDur, duration);
@@ -115,7 +120,7 @@ void UVWFlagger::showTimings(std::ostream& os, double duration) const {
 void UVWFlagger::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
   // Convert the given frequencies to possibly averaged frequencies.
-  // Divide it by speed of light to get reciproke of wavelengths.
+  // Divide it by speed of light to get reciprocal of wavelengths.
   itsRecWavel = infoIn.BdaChanFreqs();
   const double inv_c = 1.0 / casacore::C::c;
 
@@ -132,18 +137,15 @@ void UVWFlagger::updateInfo(const DPInfo& infoIn) {
   itsFlagCounter.init(getInfo());
 }
 
-bool UVWFlagger::process(const DPBuffer& buf) {
+bool UVWFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   if (itsIsDegenerate) {
-    getNextStep()->process(buf);
+    getNextStep()->process(std::move(buffer));
     return true;
   }
 
   itsTimer.start();
-  // Because no buffers are kept, we can reference the filled arrays
-  // in the input buffer instead of copying them.
-  itsBuffer.referenceFilled(buf);
-  Cube<bool>& flags = itsBuffer.GetCasacoreFlags();
   // Loop over the baselines and flag as needed.
+  Cube<bool>& flags = buffer->GetCasacoreFlags();
   const IPosition& shape = flags.shape();
   unsigned int n_correlations = shape[0];
   unsigned int n_channels = shape[1];
@@ -152,7 +154,7 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   // Input uvw coordinates are only needed if no new phase center is used.
   Matrix<double> uvws;
   if (itsCenter.empty()) {
-    uvws.reference(buf.GetCasacoreUvw());
+    uvws.reference(buffer->GetCasacoreUvw());
   }
   const double* uvwPtr = uvws.data();
   bool* flagPtr = flags.data();
@@ -170,7 +172,7 @@ bool UVWFlagger::process(const DPBuffer& buf) {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
       uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[i], getInfo().getAnt2()[i],
-                               buf.getTime());
+                               buffer->getTime());
     }
 
     // Copy the original flags so it's possible to count the number of newly
@@ -192,20 +194,20 @@ bool UVWFlagger::process(const DPBuffer& buf) {
   // Let the next step do its processing.
   itsTimer.stop();
   itsNTimes++;
-  getNextStep()->process(itsBuffer);
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 
-bool UVWFlagger::process(std::unique_ptr<BDABuffer> buf) {
+bool UVWFlagger::process(std::unique_ptr<BDABuffer> buffer) {
   if (itsIsDegenerate) {
-    getNextStep()->process(std::move(buf));
+    getNextStep()->process(std::move(buffer));
     return true;
   }
   itsTimer.start();
 
-  bool* flagPtr = buf->GetFlags();
+  bool* flagPtr = buffer->GetFlags();
 
-  for (auto& row : buf->GetRows()) {
+  for (auto& row : buffer->GetRows()) {
     // Loop over the baselines and flag as needed.
     unsigned int n_correlations = row.n_correlations;
     unsigned int n_channels = row.n_channels;
@@ -241,7 +243,7 @@ bool UVWFlagger::process(std::unique_ptr<BDABuffer> buf) {
 
   itsTimer.stop();
   itsNTimes++;
-  getNextStep()->process(std::move(buf));
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 
@@ -318,32 +320,32 @@ void UVWFlagger::testUVWl(double uvw, const std::vector<double>& ranges,
 }
 
 std::vector<double> UVWFlagger::fillUVW(const common::ParameterSet& parset,
-                                        const string& prefix,
-                                        const string& name, bool square) {
+                                        const std::string& prefix,
+                                        const std::string& name, bool square) {
   // Get possible range, minimum, and maximum.
-  std::vector<string> uvs =
-      parset.getStringVector(prefix + name + "range", std::vector<string>());
+  std::vector<std::string> uvs = parset.getStringVector(
+      prefix + name + "range", std::vector<std::string>());
   double minuv = parset.getDouble(prefix + name + "min", 0.);
   double maxuv = parset.getDouble(prefix + name + "max", 0.);
   // Process the ranges.
   std::vector<double> vals;
   vals.reserve(2 * uvs.size());
-  for (std::vector<string>::const_iterator str = uvs.begin(); str != uvs.end();
-       ++str) {
+  for (std::vector<std::string>::const_iterator str = uvs.begin();
+       str != uvs.end(); ++str) {
     // Each range can be given as st..end or val+-halfwidth.
     // Find the .. or +- token.
     bool usepm = false;
-    string::size_type pos;
+    std::string::size_type pos;
     pos = str->find("..");
-    if (pos == string::npos) {
+    if (pos == std::string::npos) {
       usepm = true;
       pos = str->find("+-");
-      if (pos == string::npos)
+      if (pos == std::string::npos)
         throw std::runtime_error("UVWFlagger " + name + "range '" + *str +
                                  "' should be range using .. or +-");
     }
-    string str1 = str->substr(0, pos);
-    string str2 = str->substr(pos + 2);
+    std::string str1 = str->substr(0, pos);
+    std::string str2 = str->substr(pos + 2);
     double v1 = common::strToDouble(str1);
     double v2 = common::strToDouble(str2);
     if (usepm) {
@@ -382,7 +384,7 @@ void UVWFlagger::handleCenter() {
         "Up to 3 values can be given in UVWFlagger phasecenter");
   MDirection phaseCenter;
   if (itsCenter.size() == 1) {
-    string str = boost::to_upper_copy(itsCenter[0]);
+    std::string str = boost::to_upper_copy(itsCenter[0]);
     MDirection::Types tp;
     if (!MDirection::getType(tp, str))
       throw std::runtime_error(str +
@@ -401,7 +403,7 @@ void UVWFlagger::handleCenter() {
                                " in UVWFlagger phasecenter");
     MDirection::Types type = MDirection::J2000;
     if (itsCenter.size() > 2) {
-      string str = boost::to_upper_copy(itsCenter[2]);
+      std::string str = boost::to_upper_copy(itsCenter[2]);
       MDirection::Types tp;
       if (!MDirection::getType(tp, str))
         throw std::runtime_error(str +

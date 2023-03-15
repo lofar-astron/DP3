@@ -707,7 +707,8 @@ bool DDECal::process(const DPBuffer& bufin) {
 void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
   // UVW flagging happens on the copy of the buffer
   // These flags are later restored and therefore not written
-  itsUVWFlagStep.process(bufin);
+  // UVWFlagger hides the legacy process() overload.
+  itsUVWFlagStep.process(std::make_unique<DPBuffer>(bufin));
 
   itsTimerPredict.start();
 
