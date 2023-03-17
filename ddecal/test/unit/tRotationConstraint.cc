@@ -21,9 +21,30 @@ using std::vector;
 
 BOOST_AUTO_TEST_SUITE(rotationconstraint)
 
+BOOST_AUTO_TEST_CASE(test_rotation_changes_input) {
+  RotationConstraint constraint;
+  constraint.Initialize(1, {1u}, {42.0e6});
+
+  dp3::ddecal::SolutionTensor onesolution_tensor({1, 1, 1, 4});
+  dp3::ddecal::SolutionSpan onesolution =
+      aocommon::xt::CreateSpan(onesolution_tensor);
+
+  onesolution(0, 0, 0, 0) = 1.0;
+  onesolution(0, 0, 0, 1) = 2.0;
+  onesolution(0, 0, 0, 2) = 3.0;
+  onesolution(0, 0, 0, 3) = 4.0;
+
+  constraint.Apply(onesolution, 0.0, nullptr);
+
+  BOOST_CHECK_CLOSE(std::real(onesolution(0, 0, 0, 0)), 0.980581, 1.0e-3);
+  BOOST_CHECK_CLOSE(std::real(onesolution(0, 0, 0, 1)), -0.196116, 1.0e-3);
+  BOOST_CHECK_CLOSE(std::real(onesolution(0, 0, 0, 2)), 0.196116, 1.0e-3);
+  BOOST_CHECK_CLOSE(std::real(onesolution(0, 0, 0, 3)), 0.980581, 1.0e-3);
+}
+
 BOOST_AUTO_TEST_CASE(test_rotation) {
   RotationConstraint constraint;
-  constraint.Initialize(1, {1u}, {42e6});
+  constraint.Initialize(1, {1u}, {42.0e6});
 
   dp3::ddecal::SolutionTensor onesolution_tensor({1, 1, 1, 4});
   dp3::ddecal::SolutionSpan onesolution =

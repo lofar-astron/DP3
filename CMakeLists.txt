@@ -611,6 +611,8 @@ if(BUILD_TESTING)
       ddecal/test/unit/tLinearSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
+      ddecal/test/unit/tAntennaConstraint.cc
+      ddecal/test/unit/tTECConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc
       ddecal/test/unit/tSolverBaseMatrix.cc
       ddecal/test/unit/tSolverFactory.cc
