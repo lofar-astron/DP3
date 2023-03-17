@@ -11,6 +11,10 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xio.hpp>
+#include <xtensor/xview.hpp>
+
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
 #include <dp3/base/BDABuffer.h>
@@ -124,30 +128,24 @@ class TestInput : public dp3::steps::MockInput {
 
 template <>
 std::unique_ptr<DPBuffer> TestInput<DPBuffer>::CreateInputBuffer() {
-  std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>(
-      n_correlations_ * n_channels_ * n_baselines_ * n_times_);
+  std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>();
 
-  casacore::Cube<casacore::Complex> data(n_correlations_, n_channels_,
-                                         n_baselines_);
-  for (size_t i = 0; i < data.size(); ++i) {
-    data.data()[i] = casacore::Complex(i + count_ * 10, i - 10 + count_ * 6);
+  buffer->ResizeData(n_baselines_, n_channels_, n_correlations_);
+  for (size_t i = 0; i < buffer->GetData().size(); ++i) {
+    buffer->GetData().data()[i] =
+        std::complex<float>(i + count_ * 10, i - 10 + count_ * 6);
   }
-  buffer->setData(data);
 
-  casacore::Matrix<double> uvw(3, n_baselines_);
+  buffer->ResizeUvw(n_baselines_);
   for (size_t i = 0; i < n_baselines_; ++i) {
-    uvw(0, i) = 1 + count_ + i;
-    uvw(1, i) = 2 + count_ + i;
-    uvw(2, i) = 3 + count_ + i;
+    buffer->GetUvw()(i, 0) = 1 + count_ + i;
+    buffer->GetUvw()(i, 1) = 2 + count_ + i;
+    buffer->GetUvw()(i, 2) = 3 + count_ + i;
   }
-  buffer->setUVW(uvw);
 
   buffer->setTime(count_ * 30 + first_time_);
-
-  casacore::Cube<bool> flags(data.shape());
-  flags = false;
-  buffer->setFlags(flags);
-
+  buffer->ResizeFlags(n_baselines_, n_channels_, n_correlations_);
+  buffer->GetFlags().fill(false);
   return buffer;
 }
 
@@ -164,7 +162,8 @@ std::unique_ptr<BDABuffer> TestInput<BDABuffer>::CreateInputBuffer() {
     size_t n_channels = channel_frequencies[i].size();
     std::vector<std::complex<float>> data(n_correlations_ * n_channels);
     for (size_t i = 0; i < data.size(); ++i) {
-      data.data()[i] = casacore::Complex(i + count_ * 10, i - 10 + count_ * 6);
+      data.data()[i] =
+          std::complex<float>(i + count_ * 10, i - 10 + count_ * 6);
     }
 
     const double uvw[3]{1.0 + count_ + i, 2.0 + count_ + i, 3.0 + count_ + i};
@@ -234,8 +233,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
  private:
   bool process(std::unique_ptr<DPBuffer>) override { return false; }
   bool process(std::unique_ptr<BDABuffer>) override { return false; }
-  const casacore::Cube<bool> GetResult() const {
-    casacore::Cube<bool> result;
+  const xt::xtensor<bool, 3> GetResult() const {
+    xt::xtensor<bool, 3> result;
     switch (test_id_) {
       case 1:
         result = GetResultTest1();
@@ -250,9 +249,9 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     return result;
   }
 
-  const casacore::Cube<bool> GetResultTest1() const {
-    casacore::Cube<bool> result(n_correlations_, n_channels_, n_baselines_);
-    result = false;
+  const xt::xtensor<bool, 3> GetResultTest1() const {
+    xt::xtensor<bool, 3> result({n_baselines_, n_channels_, n_correlations_});
+    result.fill(false);
     for (size_t i = 0; i < n_baselines_; ++i) {
       double u = 1 + i + count_;
       double v = 2 + i + count_;
@@ -261,19 +260,15 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       if ((uv > 5.5 && uv < 8.5) || (u > 20.5 && u < 23.5) ||
           (u > 31.5 && u < 40.5) || (v > 11.5 && v < 14.5) || w < 3.5 ||
           w > 44.5) {
-        for (size_t j = 0; j < n_channels_; ++j) {
-          for (size_t k = 0; k < n_correlations_; ++k) {
-            result(k, j, i) = true;
-          }
-        }
+        xt::view(result, i, xt::all(), xt::all()).fill(true);
       }
     }
     return result;
   }
 
-  const casacore::Cube<bool> GetResultTest2() const {
-    casacore::Cube<bool> result(n_correlations_, n_channels_, n_baselines_);
-    result = false;
+  const xt::xtensor<bool, 3> GetResultTest2() const {
+    xt::xtensor<bool, 3> result({n_baselines_, n_channels_, n_correlations_});
+    result.fill(false);
     for (size_t i = 0; i < n_baselines_; ++i) {
       for (size_t j = 0; j < n_channels_; ++j) {
         double wavel = 2.99792458e+08 / (10.5e6 + j * 1e6);
@@ -284,16 +279,14 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         if ((uv > 0.2 && uv < 0.31) || (u > 1.55 && u < 1.485) ||
             (u > 0.752 && u < 0.862) || (v > 0.42 && v < 0.53) || w < 0.12 ||
             w > 1.63) {
-          for (size_t k = 0; k < n_correlations_; ++k) {
-            result(k, j, i) = true;
-          }
+          xt::view(result, i, j, xt::all()).fill(true);
         }
       }
     }
     return result;
   }
 
-  const casacore::Cube<bool> GetResultTest3() const {
+  const xt::xtensor<bool, 3> GetResultTest3() const {
     // These are the UVW coordinates as calculated by UVWFlagger for the
     // station positions and times defined in TestInput and phase center
     // defined in test3.
@@ -317,8 +310,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     casacore::Cube<double> uvws(casacore::IPosition(3, 3, 16, 2), uvwvals,
                                 casacore::SHARE);
     // Flag where u,v,w matches intervals given in test3.
-    casacore::Cube<bool> result(n_correlations_, n_channels_, n_baselines_);
-    result = false;
+    xt::xtensor<bool, 3> result({n_baselines_, n_channels_, n_correlations_});
+    result.fill(false);
     for (size_t i = 0; i < n_baselines_; ++i) {
       double u = uvws(0, i, count_);
       double v = uvws(1, i, count_);
@@ -327,11 +320,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       if ((uv > 5.5 && uv < 8.5) || (u > 20.5 && u < 23.5) ||
           (u > 31.5 && u < 40.5) || (v > 11.5 && v < 14.5) || w < 3.5 ||
           w > 44.5) {
-        for (size_t j = 0; j < n_channels_; ++j) {
-          for (size_t k = 0; k < n_correlations_; ++k) {
-            result(k, j, i) = true;
-          }
-        }
+        xt::view(result, i, xt::all(), xt::all()).fill(true);
       }
     }
     return result;
@@ -356,10 +345,9 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
 template <>
 bool TestOutput<DPBuffer>::process(std::unique_ptr<DPBuffer> buffer) {
-  // Flag where u,v,w matches intervals given in the requested test.
-  const casacore::Cube<bool> expected_result = GetResult();
+  const xt::xtensor<bool, 3> expected_result = GetResult();
 
-  BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), expected_result));
+  BOOST_CHECK_EQUAL(buffer->GetFlags(), expected_result);
   count_++;
   return true;
 }
@@ -368,7 +356,7 @@ template <>
 bool TestOutput<BDABuffer>::process(const std::unique_ptr<BDABuffer> buffer) {
   // Flag where u,v,w matches intervals given in the requested test.
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
-  const casacore::Cube<bool> expected_result = GetResult();
+  const xt::xtensor<bool, 3> expected_result = GetResult();
 
   for (auto row : buffer->GetRows()) {
     auto flag_ptr = row.flags;
@@ -380,8 +368,8 @@ bool TestOutput<BDABuffer>::process(const std::unique_ptr<BDABuffer> buffer) {
       double frequency_index = (j + 0.5) * scaling_factor;
       for (size_t k = 0; k < n_correlations_; ++k) {
         BOOST_CHECK(*flag_ptr ==
-                    expected_result(k, static_cast<int>(frequency_index),
-                                    row.baseline_nr));
+                    expected_result(row.baseline_nr,
+                                    static_cast<int>(frequency_index), k));
         ++flag_ptr;
       }
     }
