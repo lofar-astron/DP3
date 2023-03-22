@@ -440,6 +440,15 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       first_baseline += chunk_size;  // Update for the next loop iteration.
     }
     // Verify that all baselines are assigned to threads.
+    // AST-1216: The assertion sometimes fails in tPredict. Print the context
+    // when it happens, so we can further analyze the issue.
+    if (first_baseline != nBl) {
+      std::cerr << "AST-1216 OnePredict Assertion Failure" << std::endl;
+      std::cerr << "First BL: " << first_baseline << " NBL: " << nBl
+                << " NThread: " << n_threads
+                << " Per thread: " << baselines_per_thread
+                << " Remaining: " << remaining_baselines << std::endl;
+    }
     assert(first_baseline == nBl);
 
     // find min,max station indices for this thread
