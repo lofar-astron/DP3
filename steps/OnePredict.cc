@@ -7,6 +7,7 @@
 #include "OnePredict.h"
 #include "ApplyBeam.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 
@@ -405,15 +406,13 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t actual_nCr = (stokes_i_only_ ? 1 : nCr);
   size_t n_threads = pool->NThreads();
   if (thread_over_baselines_) {
+    // Reduce the number of threads if there are not enough baselines.
+    n_threads = std::min(n_threads, nBl);
+
     // All threads process 'baselines_per_thread' baselines.
     // The first 'remaining_baselines' threads process an extra baseline.
     const size_t baselines_per_thread = nBl / n_threads;
     const size_t remaining_baselines = nBl % n_threads;
-
-    // Reduce the number of threads if there are not enough baselines.
-    if (n_threads < nBl) {
-      n_threads = nBl;
-    }
 
     baseline_range.resize(n_threads);
     sim_buffer.resize(n_threads);
@@ -440,15 +439,6 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       first_baseline += chunk_size;  // Update for the next loop iteration.
     }
     // Verify that all baselines are assigned to threads.
-    // AST-1216: The assertion sometimes fails in tPredict. Print the context
-    // when it happens, so we can further analyze the issue.
-    if (first_baseline != nBl) {
-      std::cerr << "AST-1216 OnePredict Assertion Failure" << std::endl;
-      std::cerr << "First BL: " << first_baseline << " NBL: " << nBl
-                << " NThread: " << n_threads
-                << " Per thread: " << baselines_per_thread
-                << " Remaining: " << remaining_baselines << std::endl;
-    }
     assert(first_baseline == nBl);
 
     // find min,max station indices for this thread
