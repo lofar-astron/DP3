@@ -77,11 +77,11 @@ inline size_t ComputeNBaselines(size_t n_antennas) {
  * included.
  */
 inline size_t ComputeBaselineIndex(size_t antenna_a, size_t antenna_b,
-                                   size_t nAntennas, BaselineOrder order) {
+                                   size_t n_antennas, BaselineOrder order) {
   size_t row = std::min(antenna_a, antenna_b);
   size_t col = std::max(antenna_a, antenna_b);
   if (order == BaselineOrder::kRowMajor) {
-    return size_t((row * nAntennas) + col - row * (row + 1) / 2);
+    return size_t((row * n_antennas) + col - row * (row + 1) / 2);
   } else {
     return size_t((col * (col + 1)) / 2) + row;
   }

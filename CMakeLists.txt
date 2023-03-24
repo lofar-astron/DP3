@@ -581,6 +581,7 @@ if(BUILD_TESTING)
   include(CTest)
 
   set(TEST_FILENAMES
+      antennaflagger/test/unit/tFlagger.cc
       common/test/unit/avx256/tDiagonalMatrixComplexDouble2x2.cc
       common/test/unit/avx256/tDiagonalMatrixComplexFloat2x2.cc
       common/test/unit/avx256/tVectorComplexDouble2.cc
