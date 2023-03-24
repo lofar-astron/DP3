@@ -161,7 +161,7 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::MadFlagger>(parset, prefix);
   } else if (type == "preflagger" || type == "preflag") {
     step = std::make_shared<steps::PreFlagger>(parset, prefix);
-  } else if (type == "antennaflagger") {
+  } else if (type == "antennaflagger" || type == "antflag") {
     step = std::make_shared<steps::AntennaFlagger>(parset, prefix);
   } else if (type == "uvwflagger" || type == "uvwflag") {
     step = std::make_shared<steps::UVWFlagger>(parset, prefix, inputType);

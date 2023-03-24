@@ -6,9 +6,6 @@
 
 #include <memory>
 #include <string>
-#include <vector>
-
-#include <xtensor/xtensor.hpp>
 
 #include <dp3/steps/Step.h>
 
@@ -32,25 +29,20 @@ class AntennaFlagger final : public Step {
   void updateInfo(const base::DPInfo& info) override;
   void finish() override;
   void show(std::ostream& ostream) const override;
-  bool process(const base::DPBuffer& buffer) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
   void showTimings(std::ostream& ostream, double duration) const override;
 
  private:
-  // Data fields
-  base::DPBuffer buffer_;
-  xt::xtensor<bool, 2> selection_;
-
   std::string name_;
-  std::string selection_string_;
-  bool do_detect_outliers_;
+  common::BaselineOrder baseline_order_;
   std::unique_ptr<dp3::antennaflagger::Flagger> flagger_;
 
   // AartfaacFlagger parameters
   float antenna_flagging_sigma_;
-  size_t antenna_flagging_maxiters_;
+  size_t antenna_flagging_max_iterations_;
   size_t antenna_flagging_outlier_threshold_;
   float station_flagging_sigma_;
-  size_t station_flagging_maxiters_;
+  size_t station_flagging_max_iterations_;
 
   // TImers
   common::NSTimer initialization_timer_;
