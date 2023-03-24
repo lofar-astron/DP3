@@ -49,6 +49,8 @@ DPBuffer::DPBuffer(double time, double exposure)
       casa_weights_(),
       casa_full_res_flags_(),
       data_(CreateSpan(casa_data_)),
+      extra_data_(),
+      extra_data_span_(),
       flags_(CreateSpan(casa_flags_)),
       weights_(CreateSpan(casa_weights_)),
       uvw_(CreateSpan(casa_uvw_)),
@@ -64,11 +66,13 @@ DPBuffer::DPBuffer(DPBuffer&& that)
       casa_uvw_(std::move(that.casa_uvw_)),
       casa_weights_(std::move(that.casa_weights_)),
       casa_full_res_flags_(std::move(that.casa_full_res_flags_)),
-      data_(CreateSpan(casa_data_)),
-      flags_(CreateSpan(casa_flags_)),
-      weights_(CreateSpan(casa_weights_)),
-      uvw_(CreateSpan(casa_uvw_)),
-      full_res_flags_(CreateSpan(casa_full_res_flags_)),
+      data_(std::move(that.data_)),
+      extra_data_(std::move(that.extra_data_)),
+      extra_data_span_(std::move(that.extra_data_span_)),
+      flags_(std::move(that.flags_)),
+      weights_(std::move(that.weights_)),
+      uvw_(std::move(that.uvw_)),
+      full_res_flags_(std::move(that.full_res_flags_)),
       solution_(that.solution_) {
 #ifndef USE_CASACORE_MOVE_SEMANTICS
   // The copy constructor for casacore::Array creates references. Since
@@ -90,6 +94,7 @@ DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
     solution_ = that.solution_;
     row_numbers_.reference(that.row_numbers_);
     casa_data_.reference(that.casa_data_);
+    extra_data_ = that.extra_data_;
     casa_flags_.reference(that.casa_flags_);
     casa_weights_.reference(that.casa_weights_);
     casa_uvw_.reference(that.casa_uvw_);
@@ -103,6 +108,7 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
   if (this != &that) {
     time_ = that.time_;
     exposure_ = that.exposure_;
+    extra_data_ = std::move(that.extra_data_);
     solution_ = std::move(that.solution_);
 
     // Casacore < 3.4.0 does not support move semantics for casacore::Array.
@@ -180,10 +186,19 @@ void DPBuffer::CreateSpans() {
   weights_ = CreateSpan(casa_weights_);
   uvw_ = CreateSpan(casa_uvw_);
   full_res_flags_ = CreateSpan(casa_full_res_flags_);
+  extra_data_span_.clear();
+  for (auto& extra_element : extra_data_) {
+    const std::string& name = extra_element.first;
+    extra_data_span_.emplace(
+        std::make_pair(name, aocommon::xt::CreateSpan(extra_data_[name])));
+  }
 }
 
 void DPBuffer::referenceFilled(const DPBuffer& that) {
   if (this != &that) {
+    // extra_data does not support the legacy referenceFilled function.
+    assert(that.extra_data_.empty());
+
     time_ = that.time_;
     exposure_ = that.exposure_;
     row_numbers_.reference(that.row_numbers_);
@@ -248,12 +263,38 @@ void DPBuffer::MergeFullResFlags() {
 void DPBuffer::setData(const casacore::Cube<Complex>& data) {
   casa_data_.reference(data);
   data_ = CreateSpan(casa_data_);
+  assert(extra_data_.empty() ||
+         extra_data_.begin()->second.shape() == data_.shape());
+}
+
+void DPBuffer::AddData(const std::string& name) {
+  assert(!name.empty());
+  assert(extra_data_.find(name) == extra_data_.end());
+  extra_data_[name].resize(data_.shape());
+  extra_data_span_.emplace(
+      std::make_pair(name, aocommon::xt::CreateSpan(extra_data_[name])));
+}
+
+void DPBuffer::RemoveData(const std::string& name) {
+  if (name.empty()) {
+    extra_data_.clear();
+    extra_data_span_.clear();
+  } else {
+    extra_data_.erase(name);
+    extra_data_span_.erase(name);
+  }
 }
 
 void DPBuffer::ResizeData(size_t n_baselines, size_t n_channels,
                           size_t n_correlations) {
   casa_data_.resize(n_correlations, n_channels, n_baselines);
   data_ = CreateSpan(casa_data_);
+  for (auto& extra_element : extra_data_) {
+    const std::string& name = extra_element.first;
+    extra_element.second.resize({n_baselines, n_channels, n_correlations});
+    extra_data_span_.find(name)->second =
+        aocommon::xt::CreateSpan(extra_data_[name]);
+  }
 }
 
 void DPBuffer::setFlags(const casacore::Cube<bool>& flags) {
