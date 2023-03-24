@@ -9,10 +9,15 @@
 #ifndef DP3_BASE_DPBUFFER_H_
 #define DP3_BASE_DPBUFFER_H_
 
+#include <map>
+
+#include <xtensor/xtensor.hpp>
+
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Cube.h>
 
 #include <aocommon/xt/span.h>
+#include <aocommon/xt/utensor.h>
 
 #include <dp3/common/Fields.h>
 #include <dp3/common/Types.h>
@@ -133,13 +138,49 @@ class DPBuffer {
 
   /// Set or get the visibility data per corr,chan,baseline.
   void setData(const casacore::Cube<Complex>& data);
+
+  /// Adds an extra visibility buffer.
+  /// The new visibility buffer gets the same shape as the default data buffer.
+  /// @param name Name for the new buffer. The name may not be empty. It may
+  ///        also not equal the name of an existing extra buffer.
+  void AddData(const std::string& name);
+
+  /// Removes extra visibility buffers
+  /// @param name Name of the buffer to remove. If empty, removes all extra data
+  /// buffers.
+  void RemoveData(const std::string& name = "");
+
+  /// Check if the DPBuffer has a data buffer for the given name.
+  /// @param name Name. When empty, check the default data buffer.
+  /// @return If the requested data buffer exists. It can be empty, though.
+  bool HasData(const std::string& name = "") const {
+    return name.empty() || (extra_data_.find(name) != extra_data_.end());
+  }
+
   void ResizeData(size_t n_baselines, size_t n_channels, size_t n_correlations);
   const casacore::Cube<Complex>& GetCasacoreData() const { return casa_data_; }
   casacore::Cube<Complex>& GetCasacoreData() { return casa_data_; }
-  const aocommon::xt::Span<std::complex<float>, 3>& GetData() const {
-    return data_;
+
+  const aocommon::xt::Span<std::complex<float>, 3>& GetData(
+      const std::string& name = "") const {
+    if (name.empty()) {
+      return data_;
+    } else {
+      auto found = extra_data_span_.find(name);
+      assert(found != extra_data_span_.end());
+      return found->second;
+    }
   }
-  aocommon::xt::Span<std::complex<float>, 3>& GetData() { return data_; }
+  aocommon::xt::Span<std::complex<float>, 3>& GetData(
+      const std::string& name = "") {
+    if (name.empty()) {
+      return data_;
+    } else {
+      auto found = extra_data_span_.find(name);
+      assert(found != extra_data_span_.end());
+      return found->second;
+    }
+  }
 
   /// Set or get the flags per corr,chan,baseline.
   void setFlags(const casacore::Cube<bool>& flags);
@@ -235,6 +276,14 @@ class DPBuffer {
 
   /// Visibilities (n_baselines x n_channels x n_correlations)
   aocommon::xt::Span<std::complex<float>, 3> data_;
+  /// Extra visibilities, e.g., containing predictions for different directions.
+  std::map<std::string, aocommon::xt::UTensor<std::complex<float>, 3>>
+      extra_data_;
+  /// For now, create spans for the extra data, so GetData() can always return
+  /// a reference to a span.
+  std::map<std::string, aocommon::xt::Span<std::complex<float>, 3>>
+      extra_data_span_;
+
   /// Flags (n_baselines x n_channels x n_correlations)
   aocommon::xt::Span<bool, 3> flags_;
   /// Weights (n_baselines x n_channels x n_correlations)
