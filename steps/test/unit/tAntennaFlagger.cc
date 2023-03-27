@@ -91,14 +91,13 @@ class TestInput final : public dp3::steps::MockInput {
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (n_time_processed_ == n_time_) {
       return false;
     }
 
     // Initialize data
-    auto buffer = std::make_unique<DPBuffer>();
     buffer->ResizeData(n_baselines_, n_channels_, n_correlations_);
     xt::random::seed(0);
     xt::real(buffer->GetData()) =
@@ -163,7 +162,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         baseline_order_(baseline_order) {}
 
  private:
-  bool process(const DPBuffer& buffer) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     xt::xtensor<bool, 1> result({n_baselines_}, false);
 
     const size_t n_antennas = n_stations_ * n_antennas_per_station_;
@@ -186,10 +185,10 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     for (size_t bl = 0; bl < n_baselines_; ++bl) {
       if (result(bl)) {
         BOOST_CHECK(
-            xt::all(xt::view(buffer.GetFlags(), bl, xt::all(), xt::all())));
+            xt::all(xt::view(buffer->GetFlags(), bl, xt::all(), xt::all())));
       } else {
         BOOST_CHECK(
-            !xt::any(xt::view(buffer.GetFlags(), bl, xt::all(), xt::all())));
+            !xt::any(xt::view(buffer->GetFlags(), bl, xt::all(), xt::all())));
       }
     }
 
