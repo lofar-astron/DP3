@@ -14,8 +14,8 @@ const double kTime = 42.0;
 const double kExposure = 4.0;
 const dp3::common::rownr_t kRowNr = 42;
 const std::complex<float> kDataValue{42.0, -42.0};
-const std::string kFooDataName = "foo";
-const std::string kBarDataName = "bar";
+const std::string kFooDataKey = "foo";
+const std::string kBarDataKey = "bar";
 const std::complex<float> kFooDataValue{43.0, -43.0};
 const std::complex<float> kBarDataValue{44.0, -44.0};
 const float kWeightValue = 0.5;
@@ -41,7 +41,7 @@ void CompareArray(const casacore::Array<T>& left,
 /// casacore references.
 void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_EQUAL(left.getRowNrs().data(), right.getRowNrs().data());
-  BOOST_CHECK_EQUAL(left.GetData().data(), right.GetData().data());
+  BOOST_CHECK_EQUAL(left.GetData("").data(), right.GetData("").data());
   BOOST_CHECK_EQUAL(left.GetFlags().data(), right.GetFlags().data());
   BOOST_CHECK_EQUAL(left.GetUvw().data(), right.GetUvw().data());
   BOOST_CHECK_EQUAL(left.GetWeights().data(), right.GetWeights().data());
@@ -53,11 +53,15 @@ void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
 /// casacore references.
 void CheckIndependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_NE(left.getRowNrs().data(), right.getRowNrs().data());
-  BOOST_CHECK_NE(left.GetData().data(), right.GetData().data());
+  BOOST_CHECK_NE(left.GetData("").data(), right.GetData("").data());
   BOOST_CHECK_NE(left.GetFlags().data(), right.GetFlags().data());
   BOOST_CHECK_NE(left.GetUvw().data(), right.GetUvw().data());
   BOOST_CHECK_NE(left.GetWeights().data(), right.GetWeights().data());
   BOOST_CHECK_NE(left.GetFullResFlags().data(), right.GetFullResFlags().data());
+}
+
+void CheckDefaultBuffer(const DPBuffer& buffer, const std::string& name) {
+  BOOST_CHECK(buffer.GetData().data() == buffer.GetData(name).data());
 }
 
 DPBuffer CreateFilledBuffer() {
@@ -66,15 +70,15 @@ DPBuffer CreateFilledBuffer() {
   buffer.setExposure(kExposure);
   buffer.setRowNrs(casacore::Vector<dp3::common::rownr_t>(kRowNrs, kRowNr));
   buffer.ResizeData(kNBaselines, kNChannels, kNCorrelations);
-  buffer.AddData(kFooDataName);
-  buffer.AddData(kBarDataName);
+  buffer.AddData(kFooDataKey);
+  buffer.AddData(kBarDataKey);
   buffer.ResizeFlags(kNBaselines, kNChannels, kNCorrelations);
   buffer.ResizeWeights(kNBaselines, kNChannels, kNCorrelations);
   buffer.ResizeUvw(kNBaselines);
   buffer.ResizeFullResFlags(kNBaselines, kNTimeAvg, kNChannels);
-  buffer.GetData().fill(kDataValue);
-  buffer.GetData(kFooDataName).fill(kFooDataValue);
-  buffer.GetData(kBarDataName).fill(kBarDataValue);
+  buffer.GetData("").fill(kDataValue);
+  buffer.GetData(kFooDataKey).fill(kFooDataValue);
+  buffer.GetData(kBarDataKey).fill(kBarDataValue);
   buffer.GetFlags().fill(false);
   buffer.GetUvw().fill(kUVWValue);
   buffer.GetWeights().fill(kWeightValue);
@@ -95,9 +99,10 @@ void CheckFilledBuffer(const DPBuffer& buffer) {
   const xt::xtensor<double, 2> uvw({kNBaselines, 3}, kUVWValue);
   const xt::xtensor<float, 3> weights(kShape, kWeightValue);
   const xt::xtensor<bool, 3> full_res_flags(kFRFShape, true);
-  BOOST_CHECK_EQUAL(buffer.GetData(), data);
-  BOOST_CHECK_EQUAL(buffer.GetData(kFooDataName), foo_data);
-  BOOST_CHECK_EQUAL(buffer.GetData(kBarDataName), bar_data);
+  BOOST_CHECK_EQUAL(buffer.GetData(""), data);
+  BOOST_CHECK_EQUAL(buffer.GetData(kFooDataKey), foo_data);
+  BOOST_CHECK_EQUAL(buffer.GetData(kBarDataKey), bar_data);
+  CheckDefaultBuffer(buffer, kBarDataKey);
   BOOST_CHECK_EQUAL(buffer.GetFlags(), flags);
   BOOST_CHECK_EQUAL(buffer.GetUvw(), uvw);
   BOOST_CHECK_EQUAL(buffer.GetWeights(), weights);
@@ -115,7 +120,8 @@ BOOST_AUTO_TEST_CASE(constructor) {
   BOOST_CHECK(buffer.getRowNrs().empty());
   BOOST_CHECK(buffer.GetData().size() == 0);
   BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(!buffer.HasData(kFooDataName));
+  BOOST_CHECK(!buffer.HasData(kFooDataKey));
+  CheckDefaultBuffer(buffer, "");
   BOOST_CHECK(buffer.GetFlags().size() == 0);
   BOOST_CHECK(buffer.GetUvw().size() == 0);
   BOOST_CHECK(buffer.GetWeights().size() == 0);
@@ -188,37 +194,53 @@ BOOST_AUTO_TEST_CASE(resize_data) {
   DPBuffer buffer = CreateFilledBuffer();
   buffer.ResizeData(kNewNBaselines, kNewNChannels, kNCorrelations);
   BOOST_CHECK(buffer.GetData().shape() == kNewShape);
-  BOOST_CHECK(buffer.GetData(kFooDataName).shape() == kNewShape);
-  BOOST_CHECK(buffer.GetData(kBarDataName).shape() == kNewShape);
+  BOOST_CHECK(buffer.GetData(kFooDataKey).shape() == kNewShape);
+  BOOST_CHECK(buffer.GetData(kBarDataKey).shape() == kNewShape);
+}
+
+BOOST_AUTO_TEST_CASE(default_data) {
+  DPBuffer buffer = CreateFilledBuffer();
+  // Test that AddData updated the default data buffer.
+  CheckDefaultBuffer(buffer, kBarDataKey);
+
+  buffer.SetDefaultData("");
+  CheckDefaultBuffer(buffer, "");
+
+  buffer.SetDefaultData(kFooDataKey);
+  CheckDefaultBuffer(buffer, kFooDataKey);
 }
 
 BOOST_AUTO_TEST_CASE(remove_data_one_by_one) {
   DPBuffer buffer = CreateFilledBuffer();
   BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(buffer.HasData(kFooDataName));
-  BOOST_CHECK(buffer.HasData(kBarDataName));
+  BOOST_CHECK(buffer.HasData(kFooDataKey));
+  BOOST_CHECK(buffer.HasData(kBarDataKey));
 
-  buffer.RemoveData(kFooDataName);
+  buffer.RemoveData(kFooDataKey);
   BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(!buffer.HasData(kFooDataName));
-  BOOST_CHECK(buffer.HasData(kBarDataName));
+  BOOST_CHECK(!buffer.HasData(kFooDataKey));
+  BOOST_CHECK(buffer.HasData(kBarDataKey));
+  CheckDefaultBuffer(buffer, kBarDataKey);
 
-  buffer.RemoveData(kBarDataName);
+  buffer.RemoveData(kBarDataKey);
   BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(!buffer.HasData(kFooDataName));
-  BOOST_CHECK(!buffer.HasData(kBarDataName));
+  BOOST_CHECK(!buffer.HasData(kFooDataKey));
+  BOOST_CHECK(!buffer.HasData(kBarDataKey));
+  // Removing the default buffer should reset the default buffer.
+  CheckDefaultBuffer(buffer, "");
 }
 
 BOOST_AUTO_TEST_CASE(remove_data_all_at_once) {
   DPBuffer buffer = CreateFilledBuffer();
   BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(buffer.HasData(kFooDataName));
-  BOOST_CHECK(buffer.HasData(kBarDataName));
+  BOOST_CHECK(buffer.HasData(kFooDataKey));
+  BOOST_CHECK(buffer.HasData(kBarDataKey));
 
   buffer.RemoveData();
   BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(!buffer.HasData(kFooDataName));
-  BOOST_CHECK(!buffer.HasData(kBarDataName));
+  BOOST_CHECK(!buffer.HasData(kFooDataKey));
+  BOOST_CHECK(!buffer.HasData(kBarDataKey));
+  CheckDefaultBuffer(buffer, "");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
