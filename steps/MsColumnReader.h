@@ -1,4 +1,4 @@
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -10,6 +10,8 @@
 #define DP3_STEPS_MSCOLUMNREADER_H_
 
 #include <casacore/tables/Tables/Table.h>
+
+#include <xtensor/xtensor.hpp>
 
 #include <dp3/steps/Step.h>
 
@@ -23,20 +25,13 @@ class MsColumnReader : public ModelDataStep {
   MsColumnReader(const common::ParameterSet&, const std::string& prefix,
                  const std::string& column = "MODEL_DATA");
 
-  common::Fields getRequiredFields() const override {
-    common::Fields fields;
-    if ((operation_ == Operation::kAdd) ||
-        (operation_ == Operation::kSubtract)) {
-      fields |= kDataField;
-    }
-    return fields;
-  }
+  common::Fields getRequiredFields() const override { return common::Fields(); }
 
   common::Fields getProvidedFields() const override { return kDataField; }
 
   /// Reads the given column for the measurementset for the rows of the input
-  /// buffer, copies the buffer and change its data.
-  bool process(const base::DPBuffer& buffer) override;
+  /// buffer and change its data.
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Update the general info.
   void updateInfo(const base::DPInfo&) override;
@@ -50,13 +45,9 @@ class MsColumnReader : public ModelDataStep {
   base::Direction GetFirstDirection() const override;
 
  private:
-  enum class Operation { kReplace, kAdd, kSubtract };
-
   casacore::Table table_;    ///< Input table to read the column from
   std::string name_;         ///< The name of the step (or prefix)
   std::string column_name_;  ///< Name of the column to use from the MS
-  Operation operation_;      ///< Operation to use on the DATA column
-  base::DPBuffer buffer_;    ///< Buffer to copy contents into
 };
 
 }  // namespace steps

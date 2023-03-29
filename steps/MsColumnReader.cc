@@ -1,4 +1,4 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "MsColumnReader.h"
@@ -21,35 +21,20 @@ MsColumnReader::MsColumnReader(const common::ParameterSet& parset,
                                const std::string& column)
     : table_(),
       name_(prefix),
-      column_name_(parset.getString(prefix + "column", column)),
-      operation_(Operation::kReplace),
-      buffer_() {
-  const std::string operation =
-      parset.getString(prefix + "operation", "replace");
-  if (operation == "replace") {
-    operation_ = Operation::kReplace;
-  } else if (operation == "add") {
-    operation_ = Operation::kAdd;
-  } else if (operation == "subtract") {
-    operation_ = Operation::kSubtract;
-  } else {
-    throw std::invalid_argument("Invalid MsColumnReader operation " +
-                                operation);
-  }
-}
+      column_name_(parset.getString(prefix + "column", column)) {}
 
-bool MsColumnReader::process(const DPBuffer& buffer) {
-  buffer_.copy(buffer);
-  ArrayColumn<casacore::Complex> model_col(table_, column_name_);
-  model_col.getColumnCells(buffer.getRowNrs(), buffer_.GetCasacoreData());
+bool MsColumnReader::process(std::unique_ptr<DPBuffer> buffer) {
+  buffer->ResizeData(getInfo().nbaselines(), getInfo().nchan(),
+                     getInfo().ncorr());
+  const casacore::IPosition shape(3, getInfo().ncorr(), getInfo().nchan(),
+                                  getInfo().nbaselines());
+  casacore::Cube<casacore::Complex> data(shape, buffer->GetData().data(),
+                                         casacore::SHARE);
 
-  if (operation_ == Operation::kAdd) {
-    buffer_.setData(buffer.GetCasacoreData() + buffer_.GetCasacoreData());
-  } else if (operation_ == Operation::kSubtract) {
-    buffer_.setData(buffer.GetCasacoreData() - buffer_.GetCasacoreData());
-  }
+  ArrayColumn<casacore::Complex> model_column(table_, column_name_);
+  model_column.getColumnCells(buffer->getRowNrs(), data);
 
-  getNextStep()->process(buffer_);
+  getNextStep()->process(std::move(buffer));
 
   return false;
 }
@@ -64,18 +49,6 @@ void MsColumnReader::finish() { getNextStep()->finish(); }
 void MsColumnReader::show(std::ostream& os) const {
   os << "MsColumnReader " << name_ << '\n';
   os << "  column:      " << column_name_ << '\n';
-  os << "  operation:   ";
-  switch (operation_) {
-    case Operation::kReplace:
-      os << "replace";
-      break;
-    case Operation::kAdd:
-      os << "add";
-      break;
-    case Operation::kSubtract:
-      os << "subtract";
-      break;
-  }
   os << '\n';
 }
 
