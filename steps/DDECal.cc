@@ -59,7 +59,6 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
       itsAvgTime(0),
       itsSols(),
       itsSolutionWriter(itsSettings.h5parm_name),
-      itsTimeStep(0),
       itsRequestedSolInt(itsSettings.solution_interval),
       itsSolutionsPerDirection(itsSettings.n_solutions_per_direction),
       itsSolIntCount(1),
@@ -698,7 +697,6 @@ bool DDECal::process(const DPBuffer& bufin) {
     itsSolIntBuffers.clear();
   }
 
-  ++itsTimeStep;
   itsTimer.stop();
 
   return false;
