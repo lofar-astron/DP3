@@ -196,6 +196,10 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsUVWFlagStep.updateInfo(infoIn);
   itsThreadPool = std::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
 
+  if (itsRequestedSolInt == 0) {
+    itsRequestedSolInt = info().ntime();
+  }
+
   // Update info for substeps and set other required parameters
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
     itsSteps[dir]->setInfo(infoIn);
@@ -214,10 +218,6 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
 
   itsSolver->SetNThreads(getInfo().nThreads());
-
-  if (itsRequestedSolInt == 0) {
-    itsRequestedSolInt = info().ntime();
-  }
 
   itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
