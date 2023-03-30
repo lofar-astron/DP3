@@ -1,4 +1,4 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "IDGPredict.h"
@@ -42,7 +42,7 @@ using dp3::common::ParameterSet;
 namespace dp3 {
 namespace steps {
 
-IDGPredict::IDGPredict(const ParameterSet& parset, const string& prefix)
+IDGPredict::IDGPredict(const ParameterSet& parset, const std::string& prefix)
     : IDGPredict(parset, prefix,
                  GetReaders(parset.getStringVector(prefix + "images",
                                                    std::vector<string>())),
@@ -51,7 +51,7 @@ IDGPredict::IDGPredict(const ParameterSet& parset, const string& prefix)
 
 #ifdef HAVE_IDG
 IDGPredict::IDGPredict(
-    const ParameterSet& parset, const string& prefix,
+    const ParameterSet& parset, const std::string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
         readers,
     std::vector<Facet>&& facets, const std::string& ds9_regions_file)
@@ -234,7 +234,7 @@ bool IDGPredict::process(const DPBuffer& buffer) {
   // will refer to the UVW array in 'buffer', which may change.
   buffers_.back().MakeIndependent(kUvwField);
 
-  if (buffers_.size() == buffer_size_) {
+  if (buffers_.size() >= buffer_size_) {
     flush();
   }
 
@@ -251,16 +251,19 @@ void IDGPredict::flush() {
     return;
   }
 
-  std::vector<DPBuffer> front_prediction = Predict(0);
+  std::vector<casacore::Cube<casacore::Complex>> front_predictions = Predict(0);
 
   for (size_t dir = 1; dir < directions_.size(); ++dir) {
-    auto predictions = Predict(dir);
+    std::vector<casacore::Cube<casacore::Complex>> predictions = Predict(dir);
     for (size_t i = 0; i < predictions.size(); ++i) {
-      front_prediction[i].GetCasacoreData() += predictions[i].GetCasacoreData();
+      front_predictions[i] += predictions[i];
     }
   }
 
-  for (DPBuffer& prediction : front_prediction) {
+  for (size_t i = 0; i < buffers_.size(); i++) {
+    base::DPBuffer& prediction = buffers_[i];
+    prediction.GetCasacoreData() = front_predictions[i];
+
     getNextStep()->process(prediction);
   }
 
@@ -394,7 +397,8 @@ void IDGPredict::InitializeATerms(const casacore::MeasurementSet& ms) {
   }
 }
 
-std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
+std::vector<casacore::Cube<casacore::Complex>> IDGPredict::Predict(
+    const size_t direction) {
   timer_.start();
   const size_t n_terms = readers_.size();
   const size_t term_size =
@@ -405,7 +409,7 @@ std::vector<DPBuffer> IDGPredict::Predict(const size_t direction) {
 
   std::vector<const double*> uvws = InitializeUVWs();
 
-  std::vector<DPBuffer> result =
+  std::vector<casacore::Cube<casacore::Complex>> result =
       ComputeVisibilities(direction, uvws, term_data.data());
 
   CorrectVisibilities(result, term_data.data());
@@ -448,7 +452,7 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   return uvws;
 }
 
-std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
+std::vector<casacore::Cube<casacore::Complex>> IDGPredict::ComputeVisibilities(
     const size_t direction, const std::vector<const double*>& uvws,
     std::complex<float>* term_data) const {
   const size_t n_timesteps = buffers_.size();
@@ -457,11 +461,10 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
   const size_t timestep_size = getInfo().nbaselines() * baseline_size;
   const size_t term_size = n_timesteps * timestep_size;
 
-  std::vector<DPBuffer> result;
+  std::vector<casacore::Cube<casacore::Complex>> result;
   result.reserve(buffers_.size());
-  for (const DPBuffer& buffer : buffers_) {
-    result.emplace_back(buffer);
-    result.back().setData(casacore::Cube<casacore::Complex>(
+  for (std::size_t i = 0; i < buffers_.size(); i++) {
+    result.emplace_back(casacore::Cube<casacore::Complex>(
         getInfo().ncorr(), getInfo().nchan(), getInfo().nbaselines()));
   }
 
@@ -476,7 +479,7 @@ std::vector<DPBuffer> IDGPredict::ComputeVisibilities(
     data_ptrs.clear();
     if (term == 0) {  // data_ptrs point directly to the buffers.
       for (size_t t = 0; t < n_timesteps; ++t) {
-        data_ptrs.push_back(result[t].GetData().data());
+        data_ptrs.push_back(result[t].data());
       }
     } else {  // Use term_data as auxiliary buffers for the other terms.
       std::complex<float>* data = term_data + (term - 1) * term_size;
@@ -551,8 +554,9 @@ aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
   }
 }
 
-void IDGPredict::CorrectVisibilities(std::vector<DPBuffer>& result,
-                                     const std::complex<float>* term_data) {
+void IDGPredict::CorrectVisibilities(
+    std::vector<casacore::Cube<casacore::Complex>>& result,
+    const std::complex<float>* term_data) {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
   const size_t baseline_size = info().nchan() * info().ncorr();
@@ -582,7 +586,7 @@ void IDGPredict::CorrectVisibilities(std::vector<DPBuffer>& result,
   }
 
   for (size_t t = 0; t < n_timesteps; ++t) {
-    std::complex<float>* result_data = result[t].GetData().data();
+    std::complex<float>* result_data = result[t].data();
     for (size_t bl = 0; bl < info().nbaselines(); ++bl) {
       for (size_t ch = 0; ch < info().nchan(); ++ch) {
         float polynomial_factor = 1.0;
@@ -657,7 +661,7 @@ void notCompiled() {
 }  // namespace
 
 IDGPredict::IDGPredict(
-    const ParameterSet& parset, const string& prefix,
+    const ParameterSet& parset, const std::string& prefix,
     std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
         readers,
     std::vector<Facet>&& facets, const std::string& ds9_regions_file) {
