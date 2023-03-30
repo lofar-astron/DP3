@@ -115,7 +115,6 @@ class DDECal : public Step {
 
   ddecal::SolutionWriter itsSolutionWriter;
 
-  size_t itsTimeStep;
   /// Number of timeslots to store per solution interval as requested
   /// by the user in the parset.
   size_t itsRequestedSolInt;
