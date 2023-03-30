@@ -1,4 +1,4 @@
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DP3_STEPS_IDGPREDICT_H_
@@ -34,14 +34,14 @@ namespace steps {
 
 class IDGPredict : public ModelDataStep {
  public:
-  IDGPredict(const common::ParameterSet& parset, const string& prefix,
+  IDGPredict(const common::ParameterSet& parset, const std::string& prefix,
              std::pair<std::vector<aocommon::FitsReader>,
                        std::vector<aocommon::UVector<float>>>
                  readers,
              std::vector<schaapcommon::facets::Facet>&& facets,
              const std::string& ds9_regions_file = "");
 
-  IDGPredict(const common::ParameterSet&, const string& prefix);
+  IDGPredict(const common::ParameterSet&, const std::string& prefix);
 
   common::Fields getRequiredFields() const override { return kUvwField; }
 
@@ -65,7 +65,7 @@ class IDGPredict : public ModelDataStep {
   /// @param direction Index for the requested direction.
   /// @return Buffers with the predicted visibilities. For each buffer added
   ///         with process(), there is one corresponding output buffer.
-  std::vector<base::DPBuffer> Predict(size_t direction);
+  std::vector<casacore::Cube<casacore::Complex>> Predict(size_t direction);
 
   bool IsStarted() const;
 
@@ -114,7 +114,7 @@ class IDGPredict : public ModelDataStep {
   /// @param term_data Buffer for storing results of non-first terms.
   ///        The returned result buffers have the results for the first term.
   /// @return Result buffer.
-  std::vector<base::DPBuffer> ComputeVisibilities(
+  std::vector<casacore::Cube<casacore::Complex>> ComputeVisibilities(
       size_t direction, const std::vector<const double*>& uvws,
       std::complex<float>* term_data) const;
 
@@ -125,8 +125,9 @@ class IDGPredict : public ModelDataStep {
   /// visibilities.
   /// @param result Result buffer, as computed by ComputeVisibilities().
   /// @param term_data Buffer that has results for non-first terms.
-  void CorrectVisibilities(std::vector<base::DPBuffer>& result,
-                           const std::complex<float>* term_data);
+  void CorrectVisibilities(
+      std::vector<casacore::Cube<casacore::Complex>>& result,
+      const std::complex<float>* term_data);
 
   /// Returns the amount of buffers that can be used by this step.
   /// If multiple IDG predicts have to run simultaneously, you can update the
