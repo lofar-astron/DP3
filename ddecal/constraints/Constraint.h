@@ -28,12 +28,11 @@ class Constraint {
   typedef std::complex<double> dcomplex;
   struct Result {
    public:
-    /// Both vals and weights are nAntenna x nChannelBlocks x nPol, pol is
-    /// fastest changing
+    /// Both vals and weights have the dimensions described in dims and axes.
     std::vector<double> vals;
     std::vector<double> weights;
-    std::string
-        axes;  ///< Comma-separated string with axis names, fastest varying last
+    /// Comma-separated string with axis names, fastest varying last.
+    std::string axes;
     std::vector<size_t> dims;
     std::string name;
   };
