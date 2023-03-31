@@ -18,16 +18,19 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/steps/queue.py"
 
 pybind11_add_module(pydp3 MODULE pydp3.cc pydpinfo.cc)
 pybind11_add_module(parameterset MODULE parameterset.cc)
+pybind11_add_module(fitters MODULE pyfitters.cc)
 
-foreach(PYLIB pydp3 parameterset)
+foreach(PYLIB pydp3 parameterset fitters)
   target_link_libraries(${PYLIB} PRIVATE LIBDP3)
 
   # Output the library/module in the pseudo install directory.
   set_target_properties(${PYLIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                             ${PSEUDO_INSTALL_DIRECTORY})
 endforeach()
+target_link_libraries(fitters PRIVATE xtensor)
 
-install(TARGETS parameterset pydp3 DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
+install(TARGETS parameterset pydp3 fitters
+        DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
 install(FILES __init__.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3")
 install(FILES steps/__init__.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3/steps")
 install(FILES steps/queue.py DESTINATION "${PYTHON_INSTALL_DIR}/dp3/steps")

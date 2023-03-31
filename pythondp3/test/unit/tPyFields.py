@@ -1,15 +1,15 @@
-# Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+# Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-These tests are checking that the python bindings for the Fields class behave 
-correctly. The tests check the same functionalities checked in 
+These tests are checking that the python bindings for the Fields class behave
+correctly. The tests check the same functionalities checked in
 DP3/common/test/unit/tFields.cc for the C++ version of the Fields class.
 
 Script can be invoked in two ways:
-- as standalone from the build/pythondp3/test/integration directory,
+- as standalone from the build/pythondp3/test/unit directory,
   using `pytest source/tPyFields.py` (extended with pytest options of your choice)
-- using ctest, see pythondp3/test/integration/CMakeLists.txt
+- using ctest, see pythondp3/test/unit/CMakeLists.txt
 """
 
 # Append current directory to system path in order to import testconfig
