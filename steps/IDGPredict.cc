@@ -228,11 +228,11 @@ void IDGPredict::updateInfo(const dp3::base::DPInfo& info) {
   }
 }
 
-bool IDGPredict::process(const DPBuffer& buffer) {
-  buffers_.emplace_back(buffer);
-  // Ensure that the buffer copy has its own UVW array. Otherwise, the UVW array
-  // will refer to the UVW array in 'buffer', which may change.
-  buffers_.back().MakeIndependent(kUvwField);
+bool IDGPredict::process(std::unique_ptr<base::DPBuffer> buffer) {
+  buffers_.emplace_back(std::move(buffer));
+  // Ensure that the collected buffers_ have their own UVW array. Otherwise,
+  // their UVW array will refer to the UVW array in 'buffer', which may change.
+  buffers_.back()->MakeIndependent(kUvwField);
 
   if (buffers_.size() >= buffer_size_) {
     flush();
@@ -261,10 +261,10 @@ void IDGPredict::flush() {
   }
 
   for (size_t i = 0; i < buffers_.size(); i++) {
-    base::DPBuffer& prediction = buffers_[i];
-    prediction.GetCasacoreData() = front_predictions[i];
+    // Move (accumulated) prediction into corresponding buffered DPBuffer
+    buffers_[i]->GetCasacoreData() = front_predictions[i];
 
-    getNextStep()->process(prediction);
+    getNextStep()->process(std::move(buffers_[i]));
   }
 
   buffers_.clear();
@@ -425,9 +425,9 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   double old_max_w = max_w_;
   const double max_baseline2 = max_baseline_ * max_baseline_;
 
-  for (DPBuffer& buffer : buffers_) {
-    assert(buffer.GetCasacoreUvw().size() == (info().nbaselines() * 3));
-    uvws.push_back(buffer.GetUvw().data());
+  for (std::unique_ptr<base::DPBuffer>& buffer : buffers_) {
+    assert(buffer->GetCasacoreUvw().size() == (info().nbaselines() * 3));
+    uvws.push_back(buffer->GetUvw().data());
 
     const double* uvw = uvws.back();
     for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
@@ -523,7 +523,7 @@ aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
       aterm_values_[direction];
 
   const double time_centroid =
-      0.5 * (buffers_.front().getTime() + buffers_.back().getTime());
+      0.5 * (buffers_.front()->getTime() + buffers_.back()->getTime());
 
   // TODO: field_id should be made generic in case DP3 will be used for
   // other telescopes
@@ -689,7 +689,7 @@ size_t IDGPredict::GetBufferSize() const {
   return 0;
 }
 
-bool IDGPredict::process(const DPBuffer&) {
+bool IDGPredict::process(std::unique_ptr<base::DPBuffer> buffer) {
   notCompiled();
   return false;
 }

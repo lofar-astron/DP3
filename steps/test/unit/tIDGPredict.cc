@@ -1,4 +1,4 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "../../../common/ParameterSet.h"
@@ -265,7 +265,8 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
     DPBuffer buffer = CreateBuffer(kFirstTime + i * kInterval, kInterval,
                                    kNBaselines, kChannelCounts, i * 1000.0);
-    predict.process(buffer);
+    // IDGPredict hides the legacy process() overload
+    predict.process(std::make_unique<DPBuffer>(buffer));
   }
   predict.finish();
 
