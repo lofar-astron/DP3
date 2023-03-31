@@ -49,7 +49,7 @@ class IDGPredict : public ModelDataStep {
 
   /// Add a buffer to the IDG predictor, for use in Predict(), later. Calls
   /// flush if the buffer is full.
-  bool process(const base::DPBuffer& buffer) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   void finish() override;
 
@@ -150,7 +150,7 @@ class IDGPredict : public ModelDataStep {
   };
   std::vector<FacetMetaData> meta_data_;
 
-  std::vector<base::DPBuffer> buffers_;
+  std::vector<std::unique_ptr<base::DPBuffer>> buffers_;
 
   double ref_frequency_;
   double pixel_size_x_, pixel_size_y_;
