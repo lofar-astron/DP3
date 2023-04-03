@@ -107,19 +107,5 @@ const std::complex<float>* SolverBuffer::ModelDataPointer(
   return &buffer.GetCasacoreData()(0, channel, baseline);
 }
 
-void SolverBuffer::CopyDataChannels(size_t time_index, size_t channel_begin,
-                                    size_t channel_end,
-                                    std::complex<float>* destination) const {
-  const size_t baseline_size = n_channels_ * kNCorrelations;
-  const size_t channels_size = (channel_end - channel_begin) * kNCorrelations;
-
-  const std::complex<float>* data = DataPointer(time_index, 0, channel_begin);
-  for (size_t bl = 0; bl < n_baselines_; ++bl) {
-    std::copy_n(data, channels_size, destination);
-    data += baseline_size;
-    destination += channels_size;
-  }
-}
-
 }  // namespace ddecal
 }  // namespace dp3
