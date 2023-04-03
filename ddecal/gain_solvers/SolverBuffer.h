@@ -65,19 +65,6 @@ class SolverBuffer {
                              size_t channel) const;
 
   /**
-   * Copy data from successive channels for all baselines.
-   * Use this function instead of using DataPointer() for copying multiple
-   * channels, since the internal data format of the SolverBuffer may change.
-   * @param time_index The time step index.
-   * @param channel_begin Index of the first channel.
-   * @param channel_end Index of the next channel. Data up to but not including
-   *                    this channel is copied.
-   */
-  void CopyDataChannels(size_t time_index, size_t channel_begin,
-                        size_t channel_end,
-                        std::complex<float>* destination) const;
-
-  /**
    * Get a pointer to the weighted model data for a channel.
    * @param time_index The time step index.
    * @param direction The direction index for the model data.
