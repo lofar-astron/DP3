@@ -1,6 +1,6 @@
 // tAOFlaggerStep.cc: Test program for class AOFlaggerStep
 //
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
@@ -33,7 +33,11 @@ using casacore::Cube;
 using casacore::MPosition;
 using casacore::Quantum;
 
-BOOST_AUTO_TEST_SUITE(aoflaggerstep)
+namespace {
+
+static const float kFirstTime = 100.0;
+static const float kTimeStep = 5.0;
+static const size_t kOutlierIndex = 5;
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all to false.
@@ -49,7 +53,8 @@ class TestInput : public dp3::steps::MockInput {
         itsNCorr(ncorr),
         itsFlag(flag) {
     info() = DPInfo(itsNCorr, itsNChan);
-    info().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
+    info().setTimes(kFirstTime, kFirstTime + (itsNTime - 1) * kTimeStep,
+                    kTimeStep);
 
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
@@ -106,7 +111,7 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer>) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -115,24 +120,25 @@ class TestInput : public dp3::steps::MockInput {
     for (int i = 0; i < int(data.size()); ++i) {
       data.data()[i] = std::complex<float>(1.6, 0.9);
     }
-    if (itsCount == 5) {
+    if (itsCount == kOutlierIndex) {
       data += std::complex<float>(10., 10.);
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
-    buf.setData(data);
+    auto buffer = std::make_unique<DPBuffer>();
+    buffer->setTime(itsCount * kTimeStep +
+                    kFirstTime);  // same interval as in updateAveragInfo
+    buffer->setData(data);
     Cube<float> weights(data.shape());
     weights = 1.;
-    buf.setWeights(weights);
+    buffer->setWeights(weights);
     Cube<bool> flags(data.shape());
     flags = itsFlag;
-    buf.setFlags(flags);
+    buffer->setFlags(flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
     Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = itsFlag;
-    buf.setFullResFlags(fullResFlags);
-    getNextStep()->process(buf);
+    buffer->setFullResFlags(fullResFlags);
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -157,20 +163,20 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsNCorr(ncorr) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Fill expected result in similar way as TestInput.
     Cube<std::complex<float>> result(itsNCorr, itsNChan, itsNBl);
     for (int i = 0; i < int(result.size()); ++i) {
       result.data()[i] = std::complex<float>(1.6, 0.9);
     }
-    if (itsCount == 5) {
+    if (itsCount == kOutlierIndex) {
       result += std::complex<float>(10., 10.);
     }
     // Check the result.
-    /// cout << buf.getData()<< result;
-    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-10));
-    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-10));
-    BOOST_CHECK_CLOSE(buf.getTime(), 2 + 5.0 * itsCount, 1e-8);
+    BOOST_CHECK(allNear(real(buffer->GetCasacoreData()), real(result), 1e-10));
+    BOOST_CHECK(allNear(imag(buffer->GetCasacoreData()), imag(result), 1e-10));
+    BOOST_CHECK_CLOSE(buffer->getTime(), kFirstTime + kTimeStep * itsCount,
+                      1e-8);
     ++itsCount;
     return true;
   }
@@ -180,8 +186,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK(int(info.origNChan()) == itsNChan);
     BOOST_CHECK(int(info.nchan()) == itsNChan);
     BOOST_CHECK(int(info.ntime()) == itsNTime);
-    BOOST_CHECK(info.firstTime() == 100.0);
-    BOOST_CHECK(info.timeInterval() == 5.0);
+    BOOST_CHECK(info.firstTime() == kFirstTime);
+    BOOST_CHECK(info.timeInterval() == kTimeStep);
     BOOST_CHECK(int(info.nchanAvg()) == 1);
     BOOST_CHECK(int(info.ntimeAvg()) == 1);
     BOOST_CHECK(int(info.chanFreqs().size()) == itsNChan);
@@ -217,6 +223,10 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag) {
   Step::ShPtr step3(new TestOutput(ntime, nant, nchan, ncorr));
   dp3::steps::test::Execute({step1, step2, step3});
 }
+
+}  // namespace
+
+BOOST_AUTO_TEST_SUITE(aoflaggerstep)
 
 BOOST_AUTO_TEST_CASE(legacy_test1) {
   for (unsigned int i = 0; i < 2; ++i) {

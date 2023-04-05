@@ -1,6 +1,6 @@
 // AOFlaggerStep.cc: DPPP step class to flag data based on rficonsole
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Andre Offringa, Ger van Diepen
@@ -218,11 +218,14 @@ void AOFlaggerStep::showTimings(std::ostream& os, double duration) const {
 //  n .. 2n+2m
 // 2n .. 3n+2m  etc.
 // and also update the flags in the overlaps
-bool AOFlaggerStep::process(const DPBuffer& buf) {
+bool AOFlaggerStep::process(std::unique_ptr<base::DPBuffer> buffer) {
   total_timer_.start();
   // Accumulate in the time window until the window and overlap are full.
   n_times_++;
-  buffer_[buffer_index_].copy(buf);
+  // AOFlagger reads the data and updates the flags, make these fields
+  // independent.
+  buffer->MakeIndependent(kDataField | kFlagsField);
+  buffer_[buffer_index_] = std::move(buffer);
   ++buffer_index_;
   if (buffer_index_ == window_size_ + 2 * overlap_) {
     flag(2 * overlap_);
@@ -260,9 +263,9 @@ void AOFlaggerStep::addToMS(const string& msName) {
 
 void AOFlaggerStep::flag(unsigned int rightOverlap) {
   // Get the sizes of the axes.
-  size_t nrbl = buffer_[0].GetCasacoreData().shape()[2];
-  size_t ncorr = buffer_[0].GetCasacoreData().shape()[0];
-  if (ncorr != 4)
+  const size_t n_baselines = buffer_[0]->GetCasacoreData().shape()[2];
+  const size_t n_correlations = buffer_[0]->GetCasacoreData().shape()[0];
+  if (n_correlations != 4)
     throw std::runtime_error(
         "AOFlaggerStep can only handle all 4 correlations");
   // Get antenna numbers in case applyautocorr is true.
@@ -270,11 +273,12 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   const std::vector<int>& ant2 = getInfo().getAnt2();
   compute_timer_.start();
 
+  const size_t n_times = window_size_ + rightOverlap;
   aoflagger::Interval interval;
   interval.id = 0;
-  interval.times.resize(buffer_.size());
-  for (std::size_t i = 0; i != buffer_.size(); ++i) {
-    interval.times[i] = buffer_[i].getTime();
+  interval.times.resize(n_times);
+  for (size_t i = 0; i != n_times; ++i) {
+    interval.times[i] = buffer_[i]->getTime();
   }
   aoflagger_.SetIntervalList({interval});
 
@@ -298,7 +302,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   }
 
   aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
-  loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
+  loop.Run(0, n_baselines, [&](size_t ib, size_t thread) {
     // Do autocorrelations only if told so.
     if (ant1[ib] == ant2[ib]) {
       if (flag_auto_correlations_) {
@@ -334,14 +338,14 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   // Let the next step process the buffers.
   // If possible, discard the buffer processed to minimize memory usage.
   for (unsigned int i = 0; i < window_size_; ++i) {
-    getNextStep()->process(buffer_[i]);
+    getNextStep()->process(std::move(buffer_[i]));
   }
   total_timer_.start();
   // Shift the buffers still needed to the beginning of the vector.
   // This is a bit easier than keeping a wrapped vector.
   // Note it is a cheap operation, because shallow copies are made.
   for (unsigned int i = 0; i < rightOverlap; ++i) {
-    buffer_[i].copy(buffer_[i + window_size_]);
+    buffer_[i] = std::move(buffer_[i + window_size_]);
   }
   buffer_index_ = rightOverlap;
 }
@@ -355,22 +359,25 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   common::NSTimer moveTimer, flagTimer, qualTimer;
   moveTimer.start();
   // Get the sizes of the axes.
-  unsigned int ntime = leftOverlap + windowSize + rightOverlap;
-  unsigned int nchan = buffer_[0].GetCasacoreData().shape()[1];
-  unsigned int blsize = nchan * buffer_[0].GetCasacoreData().shape()[0];
+  const size_t n_times = leftOverlap + windowSize + rightOverlap;
+  const size_t n_channels = buffer_[0]->GetCasacoreData().shape()[1];
+  const size_t baseline_size =
+      n_channels * buffer_[0]->GetCasacoreData().shape()[0];
   // Fill the rficonsole buffers and flag.
   // Create the objects for the real and imaginary data of all corr.
-  aoflagger::ImageSet imageSet = aoflagger_.MakeImageSet(ntime, nchan, 8);
+  aoflagger::ImageSet imageSet =
+      aoflagger_.MakeImageSet(n_times, n_channels, 8);
   imageSet.SetAntennas(info().getAnt1()[bl], info().getAnt2()[bl]);
   imageSet.SetInterval(0);
   imageSet.SetBand(0);
-  aoflagger::FlagMask origFlags = aoflagger_.MakeFlagMask(ntime, nchan);
+  aoflagger::FlagMask origFlags = aoflagger_.MakeFlagMask(n_times, n_channels);
   const unsigned int iStride = imageSet.HorizontalStride();
   const unsigned int fStride = origFlags.HorizontalStride();
-  for (unsigned int i = 0; i < ntime; ++i) {
-    const casacore::Complex* data = buffer_[i].GetData().data() + bl * blsize;
-    const bool* flags = buffer_[i].GetFlags().data() + bl * blsize;
-    for (unsigned int j = 0; j < nchan; ++j) {
+  for (unsigned int i = 0; i < n_times; ++i) {
+    const casacore::Complex* data =
+        buffer_[i]->GetData().data() + bl * baseline_size;
+    const bool* flags = buffer_[i]->GetFlags().data() + bl * baseline_size;
+    for (unsigned int j = 0; j < n_channels; ++j) {
       for (unsigned int p = 0; p != 4; ++p) {
         imageSet.ImageBuffer(p * 2)[i + j * iStride] = data->real();
         imageSet.ImageBuffer(p * 2 + 1)[i + j * iStride] = data->imag();
@@ -388,8 +395,8 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   // Put back the true flags and count newly set flags.
   moveTimer.start();
   for (unsigned int i = leftOverlap; i < windowSize + leftOverlap; ++i) {
-    bool* flags = buffer_[i].GetFlags().data() + bl * blsize;
-    for (unsigned int j = 0; j < nchan; ++j) {
+    bool* flags = buffer_[i]->GetFlags().data() + bl * baseline_size;
+    for (unsigned int j = 0; j < n_channels; ++j) {
       // Only set if not already set.
       // If any corr is newly set, set all corr.
       if (!flags[0]) {
