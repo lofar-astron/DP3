@@ -1,7 +1,7 @@
 // AOFlaggerStep.h: DPPP step class to flag data using rficonsole's
 // functionality
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 /// @file
@@ -69,7 +69,7 @@ class AOFlaggerStep : public Step {
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -122,7 +122,7 @@ class AOFlaggerStep : public Step {
   double memory_needed_;  ///< Memory needed for data/flags
   bool flag_auto_correlations_;
   bool collect_statistics_;
-  std::vector<base::DPBuffer> buffer_;
+  std::vector<std::unique_ptr<base::DPBuffer>> buffer_;
   base::FlagCounter flag_counter_;
   common::NSTimer total_timer_;
   common::NSTimer quality_timer_;
