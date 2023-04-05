@@ -55,11 +55,11 @@ dp3::base::DPInfo InitInfo(const std::vector<int>& ant1,
 }
 
 /**
- * Create a buffer with artifical data values.
+ * Create a buffer with artificial data values.
  * @param time Centroid time for the buffer.
  * @param interval Interval duration for the buffer.
  * @param n_baselines Number of baselines in the buffer.
- * @param base_value Base value for the data values, for distinguising buffers.
+ * @param base_value Base value for the data values, for distinguishing buffers.
  *        For distinguishing baselines, this function adds baseline_nr * 100.0.
  *        When the buffer represents averaged data, the base_value should be
  *        the total of the base values of the original buffers.
@@ -71,10 +71,10 @@ dp3::base::DPInfo InitInfo(const std::vector<int>& ant1,
  *        number of averaged input buffers for each output buffer.
  * @param weight Weight value for the data values in the buffer.
  */
-DPBuffer CreateBuffer(const double time, const double interval,
-                      std::size_t n_baselines,
-                      const std::vector<std::size_t>& channel_counts,
-                      const float base_value, const float weight = 1.0) {
+std::unique_ptr<DPBuffer> CreateBuffer(
+    const double time, const double interval, std::size_t n_baselines,
+    const std::vector<std::size_t>& channel_counts, const float base_value,
+    const float weight = 1.0) {
   casacore::Cube<casacore::Complex> data(kNCorr, channel_counts.size(),
                                          n_baselines);
   casacore::Cube<bool> flags(data.shape(), false);
@@ -105,14 +105,14 @@ DPBuffer CreateBuffer(const double time, const double interval,
     uvw(2, bl) = bl_value + 2.0;
   }
 
-  DPBuffer buffer;
-  buffer.setTime(time);
-  buffer.setExposure(interval);
-  buffer.setData(data);
-  buffer.setWeights(weights);
-  buffer.setFlags(flags);
-  buffer.setFullResFlags(full_res_flags);
-  buffer.setUVW(uvw);
+  std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>();
+  buffer->setTime(time);
+  buffer->setExposure(interval);
+  buffer->setData(data);
+  buffer->setWeights(weights);
+  buffer->setFlags(flags);
+  buffer->setFullResFlags(full_res_flags);
+  buffer->setUVW(uvw);
   return buffer;
 }
 
@@ -263,10 +263,10 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
   predict.setInfo(info);
 
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    DPBuffer buffer = CreateBuffer(kFirstTime + i * kInterval, kInterval,
-                                   kNBaselines, kChannelCounts, i * 1000.0);
-    // IDGPredict hides the legacy process() overload
-    predict.process(std::make_unique<DPBuffer>(buffer));
+    std::unique_ptr<DPBuffer> buffer =
+        CreateBuffer(kFirstTime + i * kInterval, kInterval, kNBaselines,
+                     kChannelCounts, i * 1000.0);
+    predict.process(std::move(buffer));
   }
   predict.finish();
 
@@ -311,9 +311,8 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
   reader->setInfo(dp3::base::DPInfo());
   reader->setFieldsToRead(predict->getRequiredFields());
 
-  DPBuffer buffer;
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    reader->process(buffer);
+    reader->process(std::make_unique<DPBuffer>());
   }
   reader->finish();
 
