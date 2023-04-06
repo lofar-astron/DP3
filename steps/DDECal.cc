@@ -537,6 +537,8 @@ void DDECal::doSolve() {
   }
 
   std::vector<ddecal::SolverBase*> solvers = itsSolver->ConstraintSolvers();
+  const size_t n_channel_blocks = itsChanBlockFreqs.size();
+  const size_t n_antennas = info().antennaUsed().size();
   // Declare solver_buffer outside the loop, so it can reuse its memory.
   ddecal::SolverBuffer solver_buffer;
 
@@ -549,9 +551,6 @@ void DDECal::doSolve() {
       storeModelData(model_buffers[i]);
     }
 
-    solver_buffer.AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
-                                  std::move(model_buffers[i]));
-
     ddecal::SolverBase::SolveResult solveResult;
     if (!itsSettings.only_predict) {
       checkMinimumVisibilities(i);
@@ -563,6 +562,9 @@ void DDECal::doSolve() {
         }
       }
 
+      solver_buffer.AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
+                                    std::move(model_buffers[i]));
+
       if (itsSolver->NSolutionPolarizations() == 4)
         initializeFullMatrixSolutions(i);
       else
@@ -570,8 +572,6 @@ void DDECal::doSolve() {
 
       itsTimerSolve.start();
 
-      const size_t n_channel_blocks = itsChanBlockFreqs.size();
-      const size_t n_antennas = info().antennaUsed().size();
       const ddecal::SolveData solve_data(
           solver_buffer, n_channel_blocks, itsDirections.size(), n_antennas,
           itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
