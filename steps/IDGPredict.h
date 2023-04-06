@@ -65,7 +65,8 @@ class IDGPredict : public ModelDataStep {
   /// @param direction Index for the requested direction.
   /// @return Buffers with the predicted visibilities. For each buffer added
   ///         with process(), there is one corresponding output buffer.
-  std::vector<casacore::Cube<casacore::Complex>> Predict(size_t direction);
+  std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> Predict(
+      size_t direction);
 
   bool IsStarted() const;
 
@@ -114,9 +115,9 @@ class IDGPredict : public ModelDataStep {
   /// @param term_data Buffer for storing results of non-first terms.
   ///        The returned result buffers have the results for the first term.
   /// @return Result buffer.
-  std::vector<casacore::Cube<casacore::Complex>> ComputeVisibilities(
-      size_t direction, const std::vector<const double*>& uvws,
-      std::complex<float>* term_data) const;
+  std::vector<aocommon::xt::UTensor<std::complex<float>, 3>>
+  ComputeVisibilities(size_t direction, const std::vector<const double*>& uvws,
+                      std::complex<float>* term_data) const;
 
   /// Computes a multiplication factor for use in CorrectVisibilities().
   double ComputePhaseShiftFactor(const double* uvw, size_t direction) const;
@@ -126,7 +127,7 @@ class IDGPredict : public ModelDataStep {
   /// @param result Result buffer, as computed by ComputeVisibilities().
   /// @param term_data Buffer that has results for non-first terms.
   void CorrectVisibilities(
-      std::vector<casacore::Cube<casacore::Complex>>& result,
+      std::vector<aocommon::xt::UTensor<std::complex<float>, 3>>& result,
       const std::complex<float>* term_data);
 
   /// Returns the amount of buffers that can be used by this step.
