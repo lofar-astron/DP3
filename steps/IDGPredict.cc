@@ -3,15 +3,16 @@
 
 #include "IDGPredict.h"
 
-#include <iostream>
+#include <aocommon/banddata.h>
+#include <aocommon/fits/fitswriter.h>
+#include <aocommon/uvector.h>
+#include <aocommon/xt/utensor.h>
 
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <EveryBeam/aterms/atermconfig.h>
 
-#include <aocommon/uvector.h>
-#include <aocommon/banddata.h>
-#include <aocommon/fits/fitswriter.h>
+#include <iostream>
 
 #include <schaapcommon/facets/ds9facetfile.h>
 
@@ -251,10 +252,12 @@ void IDGPredict::flush() {
     return;
   }
 
-  std::vector<casacore::Cube<casacore::Complex>> front_predictions = Predict(0);
+  std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> front_predictions =
+      Predict(0);
 
   for (size_t dir = 1; dir < directions_.size(); ++dir) {
-    std::vector<casacore::Cube<casacore::Complex>> predictions = Predict(dir);
+    std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> predictions =
+        Predict(dir);
     for (size_t i = 0; i < predictions.size(); ++i) {
       front_predictions[i] += predictions[i];
     }
@@ -262,7 +265,10 @@ void IDGPredict::flush() {
 
   for (size_t i = 0; i < buffers_.size(); i++) {
     // Move (accumulated) prediction into corresponding buffered DPBuffer
-    buffers_[i]->GetCasacoreData() = front_predictions[i];
+    buffers_[i]->ResizeData(front_predictions[i].shape(0),
+                            front_predictions[i].shape(1),
+                            front_predictions[i].shape(2));
+    buffers_[i]->GetData() = front_predictions[i];
 
     getNextStep()->process(std::move(buffers_[i]));
   }
@@ -397,7 +403,7 @@ void IDGPredict::InitializeATerms(const casacore::MeasurementSet& ms) {
   }
 }
 
-std::vector<casacore::Cube<casacore::Complex>> IDGPredict::Predict(
+std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> IDGPredict::Predict(
     const size_t direction) {
   timer_.start();
   const size_t n_terms = readers_.size();
@@ -409,7 +415,7 @@ std::vector<casacore::Cube<casacore::Complex>> IDGPredict::Predict(
 
   std::vector<const double*> uvws = InitializeUVWs();
 
-  std::vector<casacore::Cube<casacore::Complex>> result =
+  std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> result =
       ComputeVisibilities(direction, uvws, term_data.data());
 
   CorrectVisibilities(result, term_data.data());
@@ -426,7 +432,7 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   const double max_baseline2 = max_baseline_ * max_baseline_;
 
   for (std::unique_ptr<base::DPBuffer>& buffer : buffers_) {
-    assert(buffer->GetCasacoreUvw().size() == (info().nbaselines() * 3));
+    assert(buffer->GetUvw().size() == (info().nbaselines() * 3));
     uvws.push_back(buffer->GetUvw().data());
 
     const double* uvw = uvws.back();
@@ -452,21 +458,21 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   return uvws;
 }
 
-std::vector<casacore::Cube<casacore::Complex>> IDGPredict::ComputeVisibilities(
-    const size_t direction, const std::vector<const double*>& uvws,
-    std::complex<float>* term_data) const {
+std::vector<aocommon::xt::UTensor<std::complex<float>, 3>>
+IDGPredict::ComputeVisibilities(const size_t direction,
+                                const std::vector<const double*>& uvws,
+                                std::complex<float>* term_data) const {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
   const size_t baseline_size = getInfo().nchan() * getInfo().ncorr();
   const size_t timestep_size = getInfo().nbaselines() * baseline_size;
   const size_t term_size = n_timesteps * timestep_size;
 
-  std::vector<casacore::Cube<casacore::Complex>> result;
-  result.reserve(buffers_.size());
-  for (std::size_t i = 0; i < buffers_.size(); i++) {
-    result.emplace_back(casacore::Cube<casacore::Complex>(
-        getInfo().ncorr(), getInfo().nchan(), getInfo().nbaselines()));
-  }
+  const std::array<size_t, 3> result_shape = {
+      getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
+  std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> result(
+      buffers_.size(),
+      aocommon::xt::UTensor<std::complex<float>, 3>(result_shape));
 
   // IDG uses a flipped coordinate system
   static const double kUVWFactors[3] = {1.0, -1.0, -1.0};
@@ -555,7 +561,7 @@ aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
 }
 
 void IDGPredict::CorrectVisibilities(
-    std::vector<casacore::Cube<casacore::Complex>>& result,
+    std::vector<aocommon::xt::UTensor<std::complex<float>, 3>>& result,
     const std::complex<float>* term_data) {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
