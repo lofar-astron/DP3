@@ -9,6 +9,8 @@
 
 #include <schaapcommon/facets/facet.h>
 
+#include <xtensor/xcomplex.hpp>
+
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <memory>
@@ -75,13 +77,21 @@ std::unique_ptr<DPBuffer> CreateBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight = 1.0) {
-  casacore::Cube<casacore::Complex> data(kNCorr, channel_counts.size(),
-                                         n_baselines);
-  casacore::Cube<bool> flags(data.shape(), false);
-  casacore::Cube<float> weights(data.shape(), weight);
-  casacore::Cube<bool> full_res_flags(channel_counts.size(), 1, n_baselines,
-                                      false);
-  casacore::Matrix<double> uvw(3, n_baselines);
+  std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>(time, interval);
+
+  buffer->ResizeData(n_baselines, channel_counts.size(), kNCorr);
+
+  buffer->ResizeFlags(n_baselines, channel_counts.size(), kNCorr);
+  buffer->GetFlags().fill(false);
+
+  buffer->ResizeFullResFlags(n_baselines, 1, channel_counts.size());
+  buffer->GetFullResFlags().fill(false);
+
+  buffer->ResizeWeights(n_baselines, channel_counts.size(), kNCorr);
+  buffer->GetWeights().fill(weight);
+
+  buffer->ResizeUvw(n_baselines);
+
   for (std::size_t bl = 0; bl < n_baselines; ++bl) {
     // Base value for this baseline.
     const float bl_value = (bl * 100.0) + (base_value / weight);
@@ -94,25 +104,17 @@ std::unique_ptr<DPBuffer> CreateBuffer(
       // When ch_count > 1, 'value' should be the average for multiple channels.
       const float value = chan_value + 5.0 * (ch_count - 1);
       for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        data(corr, chan, bl) = value + corr;
-        weights(corr, chan, bl) *= ch_count;
+        buffer->GetData()(bl, chan, corr) = value + corr;
+        buffer->GetWeights()(bl, chan, corr) *= ch_count;
       }
       ++chan;
       chan_value += ch_count * 10.0;
     }
-    uvw(0, bl) = bl_value + 0.0;
-    uvw(1, bl) = bl_value + 1.0;
-    uvw(2, bl) = bl_value + 2.0;
+    buffer->GetUvw()(bl, 0) = bl_value + 0.0;
+    buffer->GetUvw()(bl, 1) = bl_value + 1.0;
+    buffer->GetUvw()(bl, 2) = bl_value + 2.0;
   }
 
-  std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>();
-  buffer->setTime(time);
-  buffer->setExposure(interval);
-  buffer->setData(data);
-  buffer->setWeights(weights);
-  buffer->setFlags(flags);
-  buffer->setFullResFlags(full_res_flags);
-  buffer->setUVW(uvw);
   return buffer;
 }
 
@@ -272,8 +274,8 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
 
   BOOST_TEST(result_step->size() == kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    BOOST_TEST(result_step->get()[i].GetCasacoreData()(0, 0, 0).real() == 60.f);
-    BOOST_TEST(result_step->get()[i].GetCasacoreData()(0, 0, 0).imag() == 0.f);
+    BOOST_TEST(xt::real(result_step->get()[i].GetData()(0, 0, 0)) == 60.f);
+    BOOST_TEST(xt::imag(result_step->get()[i].GetData()(0, 0, 0)) == 0.f);
   }
 }
 
@@ -338,16 +340,19 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
 
   BOOST_TEST(result_step->size() == kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    const auto& data = result_step->get()[i].GetCasacoreData();
-    BOOST_TEST_REQUIRE(data.nplane() == reader->getInfo().nbaselines());
-    BOOST_TEST_REQUIRE(data.ncolumn() == reader->getInfo().nchan());
-    BOOST_TEST_REQUIRE(data.nrow() == reader->getInfo().ncorr());
+    const auto& data = result_step->get()[i].GetData();
+    const size_t n_bl = data.shape(0);
+    const size_t n_chan = data.shape(1);
+    const size_t n_corr = data.shape(2);
+
+    BOOST_REQUIRE_EQUAL(n_bl, reader->getInfo().nbaselines());
+    BOOST_REQUIRE_EQUAL(n_chan, reader->getInfo().nchan());
+    BOOST_REQUIRE_EQUAL(n_corr, reader->getInfo().ncorr());
 
     // Take samples of the result values and compare those.
     const std::complex<float>& data0 = data(0, 0, 0);
-    const std::complex<float>& data1 = data(11, 6, 1);
-    const std::complex<float>& data2 =
-        data(data.nplane() - 1, data.ncolumn() - 1, data.nrow() - 1);
+    const std::complex<float>& data1 = data(1, 6, 11);
+    const std::complex<float>& data2 = data(n_corr - 1, n_chan - 1, n_bl - 1);
     BOOST_TEST(data0.real() == kExpectedData[i][0].real());
     BOOST_TEST(data0.imag() == kExpectedData[i][0].imag());
     BOOST_TEST(data1.real() == kExpectedData[i][1].real());
