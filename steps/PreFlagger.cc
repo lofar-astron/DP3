@@ -6,17 +6,14 @@
 
 #include "PreFlagger.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
-
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include <algorithm>
+#include <complex>
+#include <iostream>
+#include <stack>
 
 #include <casacore/tables/TaQL/ExprNode.h>
 #include <casacore/tables/TaQL/RecordGram.h>
 #include <casacore/casa/Containers/Record.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
 #include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/Quanta/MVTime.h>
@@ -30,13 +27,20 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <iostream>
-#include <stack>
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xoperation.hpp>
+#include <xtensor/xview.hpp>
+
+#include <dp3/base/DPBuffer.h>
+#include <dp3/base/DPInfo.h>
+#include "../base/DPLogger.h"
+
+#include "../common/ParameterSet.h"
+#include "../common/StreamUtil.h"
 
 using casacore::Block;
-using casacore::Cube;
 using casacore::IPosition;
-using casacore::Matrix;
 using casacore::MDirection;
 using casacore::MeasFrame;
 using casacore::MEpoch;
@@ -122,31 +126,28 @@ void PreFlagger::updateInfo(const DPInfo& info_in) {
 
 bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
-  unsigned int nrcorr = info().ncorr();
-  unsigned int nrchan = info().nchan();
-  unsigned int nrbl = info().nbaselines();
   buffer->MakeIndependent(kFlagsField);
   if (buffer->GetFlags().size() == 0) {
-    buffer->ResizeFlags(nrbl, nrchan, nrcorr);
+    buffer->ResizeFlags(info().nbaselines(), info().nchan(), info().ncorr());
   }
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.
-  Cube<bool>* flags =
-      itsPSet.process(*buffer, itsCount, Block<bool>(), itsTimer);
-  const bool* inPtr = flags->data();
-  bool* outPtr = buffer->GetFlags().data();
+  const xt::xtensor<bool, 3>* const flags =
+      itsPSet.process(*buffer, itsCount, xt::xtensor<bool, 1>(), itsTimer);
   switch (itsMode) {
     case SetFlag:
-      setFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, true);
+      setFlags(*flags, buffer->GetFlags(), true);
       break;
     case ClearFlag:
-      clearFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, true, *buffer);
+      clearFlags(*flags, buffer->GetFlags(), true, buffer->GetData(),
+                 buffer->GetWeights());
       break;
     case SetComp:
-      setFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, false);
+      setFlags(*flags, buffer->GetFlags(), false);
       break;
     case ClearComp:
-      clearFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, false, *buffer);
+      clearFlags(*flags, buffer->GetFlags(), false, buffer->GetData(),
+                 buffer->GetWeights());
       break;
   }
   itsTimer.stop();
@@ -156,53 +157,43 @@ bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   return true;
 }
 
-void PreFlagger::setFlags(const bool* inPtr, bool* outPtr, unsigned int nrcorr,
-                          unsigned int nrchan, unsigned int nrbl, bool mode) {
-  for (unsigned int i = 0; i < nrbl; ++i) {
-    for (unsigned int j = 0; j < nrchan; ++j) {
-      if (*inPtr == mode && !*outPtr) {
+void PreFlagger::setFlags(const xt::xtensor<bool, 3>& in,
+                          aocommon::xt::Span<bool, 3>& out, bool mode) {
+  assert(in.shape() == out.shape());
+  for (std::size_t baseline = 0; baseline < in.shape(0); ++baseline) {
+    for (std::size_t channel = 0; channel < in.shape(1); ++channel) {
+      if (in(baseline, channel, 0) == mode && !out(baseline, channel, 0)) {
         // Only 1st corr is counted.
-        itsFlagCounter.incrBaseline(i);
-        itsFlagCounter.incrChannel(j);
-        for (unsigned int k = 0; k < nrcorr; ++k) {
-          outPtr[k] = true;
-        }
+        itsFlagCounter.incrBaseline(baseline);
+        itsFlagCounter.incrChannel(channel);
+        xt::view(out, baseline, channel, xt::all()).fill(true);
       }
-      inPtr += nrcorr;
-      outPtr += nrcorr;
     }
   }
 }
 
-void PreFlagger::clearFlags(const bool* inPtr, bool* outPtr,
-                            unsigned int nrcorr, unsigned int nrchan,
-                            unsigned int nrbl, bool mode, const DPBuffer& buf) {
-  const casacore::Complex* dataPtr = buf.GetData().data();
-  const float* weightPtr = buf.GetWeights().data();
-  for (unsigned int i = 0; i < nrbl; ++i) {
-    for (unsigned int j = 0; j < nrchan; ++j) {
-      if (*inPtr == mode) {
-        bool flag = false;
+void PreFlagger::clearFlags(
+    const xt::xtensor<bool, 3>& in, aocommon::xt::Span<bool, 3>& out, bool mode,
+    const aocommon::xt::Span<std::complex<float>, 3>& data,
+    const aocommon::xt::Span<float, 3>& weights) {
+  assert(in.shape() == out.shape());
+  assert(in.shape() == data.shape());
+  assert(in.shape() == weights.shape());
+  for (std::size_t baseline = 0; baseline < in.shape(0); ++baseline) {
+    for (std::size_t channel = 0; channel < in.shape(1); ++channel) {
+      if (in(baseline, channel, 0) == mode) {
         // Flags for invalid data are not cleared.
-        for (unsigned int k = 0; k < nrcorr; ++k) {
-          if (!std::isfinite(dataPtr[k].real()) ||
-              !std::isfinite(dataPtr[k].imag()) || weightPtr[k] == 0) {
-            flag = true;
-            break;
-          }
-        }
-        if (*outPtr != flag) {
-          itsFlagCounter.incrBaseline(i);
-          itsFlagCounter.incrChannel(j);
-          for (unsigned int k = 0; k < nrcorr; ++k) {
-            outPtr[k] = flag;
-          }
+        auto data_view = xt::view(data, baseline, channel, xt::all());
+        auto weights_view = xt::view(weights, baseline, channel, xt::all());
+        const bool flag =
+            xt::any(!xt::isfinite(data_view) || xt::equal(weights_view, 0.0f));
+
+        if (out(baseline, channel, 0) != flag) {
+          itsFlagCounter.incrBaseline(baseline);
+          itsFlagCounter.incrChannel(channel);
+          xt::view(out, baseline, channel, xt::all()).fill(flag);
         }
       }
-      inPtr += nrcorr;
-      outPtr += nrcorr;
-      dataPtr += nrcorr;
-      weightPtr += nrcorr;
     }
   }
 }
@@ -313,10 +304,11 @@ void PreFlagger::PSet::updateInfo(const DPInfo& info) {
          itsFlagOnPhase || itsFlagOnReal || itsFlagOnImag) &&
        itsPSets.empty());
   // Size the object's buffers (used in process) correctly.
-  unsigned int nrcorr = info.ncorr();
-  unsigned int nrchan = info.nchan();
-  itsFlags.resize(nrcorr, nrchan, info.nbaselines());
-  itsMatchBL.resize(info.nbaselines());
+  const size_t nrcorr = info.ncorr();
+  const size_t nrchan = info.nchan();
+  const size_t nrbaselines = info.nbaselines();
+  itsFlags.resize({nrbaselines, nrchan, nrcorr});
+  itsMatchBL.resize({nrbaselines});
   // Determine the channels to be flagged.
   if (!(itsStrChan.empty() && itsStrFreq.empty())) {
     fillChannels(info);
@@ -333,12 +325,12 @@ void PreFlagger::PSet::updateInfo(const DPInfo& info) {
 void PreFlagger::PSet::fillChannels(const DPInfo& info) {
   unsigned int nrcorr = info.ncorr();
   unsigned int nrchan = info.nchan();
-  casacore::Vector<bool> selChan(nrchan);
+  xt::xtensor<bool, 1> selChan(std::array<size_t, 1>{nrchan});
   if (itsStrChan.empty()) {
-    selChan = true;
+    selChan.fill(true);
   } else {
     // Set selChan for channels not exceeding nr of channels.
-    selChan = false;
+    selChan.fill(false);
     Record rec;
     rec.define("nchan", nrchan);
     double result;
@@ -372,28 +364,24 @@ void PreFlagger::PSet::fillChannels(const DPInfo& info) {
                                    itsStrChan[i]);
       }
       if (startch < nrchan) {
-        for (unsigned int ch = startch; ch < std::min(endch + 1, nrchan);
-             ++ch) {
-          selChan[ch] = true;
-        }
+        xt::view(selChan, xt::range(startch, std::min(endch + 1, nrchan)))
+            .fill(true);
       }
     }
   }
   // Now determine which channels to use from given frequency ranges.
   // AND it with the channel selection given above.
   if (!itsStrFreq.empty()) {
-    selChan = selChan && handleFreqRanges(itsInfo->chanFreqs());
+    selChan &= handleFreqRanges(itsInfo->chanFreqs());
   }
   // Turn the channels into a mask.
   itsChannels.clear();
-  itsChanFlags.resize(nrcorr, nrchan);
-  itsChanFlags = false;
-  for (unsigned int i = 0; i < nrchan; ++i) {
-    if (selChan[i]) {
-      itsChannels.push_back(i);
-      for (unsigned int j = 0; j < nrcorr; ++j) {
-        itsChanFlags(j, i) = true;
-      }
+  itsChanFlags.resize({nrchan, nrcorr});
+  itsChanFlags.fill(false);
+  for (unsigned int channel = 0; channel < nrchan; ++channel) {
+    if (selChan[channel]) {
+      itsChannels.push_back(channel);
+      xt::view(itsChanFlags, channel, xt::all()).fill(true);
     }
   }
 }
@@ -462,27 +450,26 @@ void PreFlagger::PSet::show(std::ostream& os, bool showName) const {
   }
 }
 
-Cube<bool>* PreFlagger::PSet::process(DPBuffer& out, unsigned int timeSlot,
-                                      const Block<bool>& matchBL,
-                                      common::NSTimer& timer) {
+xt::xtensor<bool, 3>* PreFlagger::PSet::process(
+    DPBuffer& out, unsigned int timeSlot, const xt::xtensor<bool, 1>& matchBL,
+    common::NSTimer& timer) {
   // No need to process it if the time mismatches or if only time selection.
   if (itsFlagOnTime) {
     if (!matchTime(out.getTime(), timeSlot)) {
-      itsFlags = false;
+      itsFlags.fill(false);
       return &itsFlags;
     }
   }
   if (itsFlagOnTimeOnly) {
-    itsFlags = itsFlagOnTime;
+    itsFlags.fill(itsFlagOnTime);
     return &itsFlags;
   }
   // Initialize the flags.
-  itsFlags = false;
-  const IPosition& shape = out.GetCasacoreFlags().shape();
-  unsigned int nr = shape[0] * shape[1];
+  itsFlags.fill(false);
+  const size_t nr = out.GetFlags().shape(1) * out.GetFlags().shape(2);
   // Take over the baseline info from the parent. Default is all.
-  if (matchBL.empty()) {
-    itsMatchBL = true;
+  if (matchBL.size() == 0) {
+    itsMatchBL.fill(true);
   } else {
     itsMatchBL = matchBL;
   }
@@ -501,7 +488,7 @@ Cube<bool>* PreFlagger::PSet::process(DPBuffer& out, unsigned int timeSlot,
     return &itsFlags;
   }
   // Flag on UV distance if necessary.
-  if (itsFlagOnUV && !flagUV(out.GetCasacoreUvw())) {
+  if (itsFlagOnUV && !flagUV(out.GetUvw())) {
     return &itsFlags;
   }
   // Flag on AzEl is necessary.
@@ -522,16 +509,16 @@ Cube<bool>* PreFlagger::PSet::process(DPBuffer& out, unsigned int timeSlot,
   }
   // Flag on amplitude, phase or real/imaginary if necessary.
   if (itsFlagOnAmpl) {
-    flagAmpl(amplitude(out.GetCasacoreData()));
+    flagAmpl(out.GetData());
   }
   if (itsFlagOnReal) {
-    flagReal(out.GetCasacoreData());
+    flagReal(out.GetData());
   }
   if (itsFlagOnImag) {
-    flagImag(out.GetCasacoreData());
+    flagImag(out.GetData());
   }
   if (itsFlagOnPhase) {
-    flagPhase(out.GetCasacoreData());
+    flagPhase(out.GetData());
   }
   // Evaluate the PSet expression.
   // The expression is in RPN notation. A stack of array pointers is used
@@ -539,26 +526,21 @@ Cube<bool>* PreFlagger::PSet::process(DPBuffer& out, unsigned int timeSlot,
   // are reused to AND or OR subexpressions. This can be done harmlessly
   // and saves the creation of too many arrays.
   if (!itsPSets.empty()) {
-    std::stack<Cube<bool>*> results;
+    std::stack<xt::xtensor<bool, 3>*> results;
     for (int oper : itsRpn) {
       if (oper >= 0) {
         results.push(itsPSets[oper]->process(out, timeSlot, itsMatchBL, timer));
       } else if (oper == OpNot) {
-        Cube<bool>* left = results.top();
-        // No ||= operator exists, so use the transform function.
-        casacore::transformInPlace(left->cbegin(), left->cend(),
-                                   std::logical_not<bool>());
+        xt::xtensor<bool, 3>* left = results.top();
+        *left = !*left;
       } else if (oper == OpOr || oper == OpAnd) {
-        Cube<bool>* right = results.top();
+        xt::xtensor<bool, 3>* right = results.top();
         results.pop();
-        Cube<bool>* left = results.top();
-        // No ||= operator exists, so use the transform function.
+        xt::xtensor<bool, 3>* left = results.top();
         if (oper == OpOr) {
-          casacore::transformInPlace(left->cbegin(), left->cend(),
-                                     right->cbegin(), std::logical_or<bool>());
+          *left |= *right;
         } else {
-          casacore::transformInPlace(left->cbegin(), left->cend(),
-                                     right->cbegin(), std::logical_and<bool>());
+          *left &= *right;
         }
       } else {
         throw std::runtime_error("Expected operation NOT, OR or AND");
@@ -569,9 +551,8 @@ Cube<bool>* PreFlagger::PSet::process(DPBuffer& out, unsigned int timeSlot,
       throw std::runtime_error(
           "Something went wrong while evaluating expression: results.size() != "
           "1");
-    Cube<bool>* mflags = results.top();
-    casacore::transformInPlace(itsFlags.cbegin(), itsFlags.cend(),
-                               mflags->cbegin(), std::logical_and<bool>());
+    xt::xtensor<bool, 3>* mflags = results.top();
+    itsFlags &= *mflags;
   }
   return &itsFlags;
 }
@@ -623,23 +604,21 @@ bool PreFlagger::PSet::matchRange(double v,
   return false;
 }
 
-bool PreFlagger::PSet::flagUV(const Matrix<double>& uvw) {
+bool PreFlagger::PSet::flagUV(const aocommon::xt::Span<double, 2>& uvw) {
   bool match = false;
   unsigned int nrbl = itsMatchBL.size();
-  const double* uvwPtr = uvw.data();
-  for (unsigned int i = 0; i < nrbl; ++i) {
-    if (itsMatchBL[i]) {
+  for (unsigned int bl = 0; bl < nrbl; ++bl) {
+    if (itsMatchBL[bl]) {
       // UV-distance is sqrt(u^2 + v^2).
       // The sqrt is not needed because minuv and maxuv are squared.
-      double uvdist = uvwPtr[0] * uvwPtr[0] + uvwPtr[1] * uvwPtr[1];
+      const double uvdist = uvw(bl, 0) * uvw(bl, 0) + uvw(bl, 1) * uvw(bl, 1);
       if (uvdist >= itsMinUV && uvdist <= itsMaxUV) {
         // UV-dist mismatches, so do not flag baseline.
-        itsMatchBL[i] = false;
+        itsMatchBL[bl] = false;
       } else {
         match = true;
       }
     }
-    uvwPtr += 3;
   }
   return match;
 }
@@ -724,11 +703,13 @@ void PreFlagger::PSet::testAzEl(MDirection::Convert& converter,
   }
 }
 
-void PreFlagger::PSet::flagAmpl(const Cube<float>& values) {
-  const IPosition& shape = values.shape();
-  unsigned int nrcorr = shape[0];
-  unsigned int nr = shape[1] * shape[2];
-  const float* valPtr = values.data();
+void PreFlagger::PSet::flagAmpl(
+    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+  const std::size_t nr = data.shape(0) * data.shape(1);
+  const std::size_t nrcorr = data.shape(2);
+
+  const xt::xtensor<float, 3> amplitudes = xt::abs(data);
+  const float* valPtr = amplitudes.data();
   bool* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
@@ -739,45 +720,43 @@ void PreFlagger::PSet::flagAmpl(const Cube<float>& values) {
       }
     }
     if (!flag) {
-      for (unsigned int j = 0; j < nrcorr; ++j) {
-        flagPtr[j] = false;
-      }
+      std::fill_n(flagPtr, nrcorr, false);
     }
     valPtr += nrcorr;
     flagPtr += nrcorr;
   }
 }
 
-void PreFlagger::PSet::flagPhase(const Cube<casacore::Complex>& values) {
-  const IPosition& shape = values.shape();
-  unsigned int nrcorr = shape[0];
-  unsigned int nr = shape[1] * shape[2];
-  const casacore::Complex* valPtr = values.data();
+void PreFlagger::PSet::flagPhase(
+    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+  const std::size_t nr = data.shape(0) * data.shape(1);
+  const std::size_t nrcorr = data.shape(2);
+
+  const xt::xtensor<float, 3> phases = xt::arg(data);
+  const float* valPtr = phases.data();
   bool* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
-      float phase = arg(valPtr[j]);
-      if (phase < itsPhaseMin[j] || phase > itsPhaseMax[j]) {
+      if (valPtr[j] < itsPhaseMin[j] || valPtr[j] > itsPhaseMax[j]) {
         flag = true;
         break;
       }
     }
     if (!flag) {
-      for (unsigned int j = 0; j < nrcorr; ++j) {
-        flagPtr[j] = false;
-      }
+      std::fill_n(flagPtr, nrcorr, false);
     }
     valPtr += nrcorr;
     flagPtr += nrcorr;
   }
 }
 
-void PreFlagger::PSet::flagReal(const Cube<casacore::Complex>& values) {
-  const IPosition& shape = values.shape();
-  unsigned int nrcorr = shape[0];
-  unsigned int nr = shape[1] * shape[2];
-  const casacore::Complex* valPtr = values.data();
+void PreFlagger::PSet::flagReal(
+    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+  const std::size_t nr = data.shape(0) * data.shape(1);
+  const std::size_t nrcorr = data.shape(2);
+
+  const std::complex<float>* valPtr = data.data();
   bool* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
@@ -789,20 +768,19 @@ void PreFlagger::PSet::flagReal(const Cube<casacore::Complex>& values) {
       }
     }
     if (!flag) {
-      for (unsigned int j = 0; j < nrcorr; ++j) {
-        flagPtr[j] = false;
-      }
+      std::fill_n(flagPtr, nrcorr, false);
     }
     valPtr += nrcorr;
     flagPtr += nrcorr;
   }
 }
 
-void PreFlagger::PSet::flagImag(const Cube<casacore::Complex>& values) {
-  const IPosition& shape = values.shape();
-  unsigned int nrcorr = shape[0];
-  unsigned int nr = shape[1] * shape[2];
-  const casacore::Complex* valPtr = values.data();
+void PreFlagger::PSet::flagImag(
+    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+  const std::size_t nr = data.shape(0) * data.shape(1);
+  const std::size_t nrcorr = data.shape(2);
+
+  const std::complex<float>* valPtr = data.data();
   bool* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
@@ -814,9 +792,7 @@ void PreFlagger::PSet::flagImag(const Cube<casacore::Complex>& values) {
       }
     }
     if (!flag) {
-      for (unsigned int j = 0; j < nrcorr; ++j) {
-        flagPtr[j] = false;
-      }
+      std::fill_n(flagPtr, nrcorr, false);
     }
     valPtr += nrcorr;
     flagPtr += nrcorr;
@@ -824,15 +800,7 @@ void PreFlagger::PSet::flagImag(const Cube<casacore::Complex>& values) {
 }
 
 void PreFlagger::PSet::flagChannels() {
-  const IPosition& shape = itsFlags.shape();
-  unsigned int nr = shape[0] * shape[1];
-  unsigned int nrbl = shape[2];
-  bool* flagPtr = itsFlags.data();
-  for (unsigned int i = 0; i < nrbl; ++i) {
-    casacore::transformInPlace(flagPtr, flagPtr + nr, itsChanFlags.cbegin(),
-                               std::logical_and<bool>());
-    flagPtr += nr;
-  }
+  itsFlags &= xt::broadcast(itsChanFlags, itsFlags.shape());
 }
 
 // See http://montcs.bloomu.edu/~bobmon/Information/RPN/infix2rpn.shtml
@@ -1091,10 +1059,10 @@ void PreFlagger::PSet::fillBLMatrix() {
   }
 }
 
-casacore::Vector<bool> PreFlagger::PSet::handleFreqRanges(
+xt::xtensor<bool, 1> PreFlagger::PSet::handleFreqRanges(
     const std::vector<double>& chanFreqs) {
   unsigned int nrchan = chanFreqs.size();
-  casacore::Vector<bool> selChan(nrchan, false);
+  xt::xtensor<bool, 1> selChan({nrchan}, false);
   // A frequency range can be given as  value..value or value+-value.
   // Units can be given for each value; if one is given it applies to both.
   // Default unit is MHz.

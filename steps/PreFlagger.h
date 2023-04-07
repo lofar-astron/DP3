@@ -11,6 +11,8 @@
 
 #include <casacore/measures/Measures/MDirection.h>
 
+#include <xtensor/xtensor.hpp>
+
 #include <dp3/base/DPBuffer.h>
 #include <dp3/steps/Step.h>
 
@@ -62,9 +64,8 @@ class PreFlagger : public Step {
 
   common::Fields getRequiredFields() const override {
     common::Fields fields;
-
-    if ((itsMode == SetFlag) || (itsMode == SetComp)) {
-      fields |= kFlagsField;
+    if (itsMode == Mode::ClearFlag || itsMode == Mode::ClearComp) {
+      fields |= kDataField | kWeightsField;
     }
     return fields |= itsPSet.getRequiredFields();
   }
@@ -127,8 +128,8 @@ class PreFlagger : public Step {
     }
 
     /// Set and return the flags.
-    casacore::Cube<bool>* process(base::DPBuffer&, unsigned int timeSlot,
-                                  const casacore::Block<bool>& matchBL,
+    xt::xtensor<bool, 3>* process(base::DPBuffer&, unsigned int timeSlot,
+                                  const xt::xtensor<bool, 1>& matchBL,
                                   common::NSTimer& timer);
 
     /// Update the general info.
@@ -151,7 +152,7 @@ class PreFlagger : public Step {
 
     /// Clear itsMatchBL for baselines with mismatching UV distances.
     /// If returns false if no matches were found.
-    bool flagUV(const casacore::Matrix<double>& uvw);
+    bool flagUV(const aocommon::xt::Span<double, 2>& uvw);
 
     /// Clear itsMatchBL for baselines with mismatching AzEl.
     /// If returns false if no matches were found.
@@ -164,15 +165,15 @@ class PreFlagger : public Step {
                   const std::vector<int>& ant2);
 
     /// Set the flags based on amplitude threshold per correlation.
-    void flagAmpl(const casacore::Cube<float>& amplitudes);
+    void flagAmpl(const aocommon::xt::Span<std::complex<float>, 3>& data);
 
     /// Set the flags based on phase threshold per correlation.
-    void flagPhase(const casacore::Cube<casacore::Complex>& data);
+    void flagPhase(const aocommon::xt::Span<std::complex<float>, 3>& data);
 
     /// Set the flags based on real/imaginary threshold per correlation.
     ///@{
-    void flagReal(const casacore::Cube<casacore::Complex>& data);
-    void flagImag(const casacore::Cube<casacore::Complex>& data);
+    void flagReal(const aocommon::xt::Span<std::complex<float>, 3>& data);
+    void flagImag(const aocommon::xt::Span<std::complex<float>, 3>& data);
     ///@}
 
     /// Flag the channels given in itsChannels.
@@ -207,23 +208,23 @@ class PreFlagger : public Step {
 
     /// Handle the frequency ranges given and determine which channels
     /// have to be flagged.
-    casacore::Vector<bool> handleFreqRanges(
-        const std::vector<double>& chanFreqs);
+    xt::xtensor<bool, 1> handleFreqRanges(const std::vector<double>& chanFreqs);
 
     /// Get the value and possible unit.
     /// If no unit is given, the argument is left untouched.
-    void getValue(const string& str, double& value, casacore::String& unit);
+    void getValue(const std::string& str, double& value,
+                  casacore::String& unit);
 
     /// Get the frequency in Hz using the value and unit.
     double getFreqHz(double value, const casacore::String& unit);
 
     /// Convert a PSet expression to Reversed Polish Notation in itsRpn.
     /// It returns the names of all PSets.
-    std::vector<string> exprToRpn(const string& expr);
+    std::vector<std::string> exprToRpn(const string& expr);
 
     const base::DPInfo* itsInfo;
-    string itsName;
-    string itsStrExpr;
+    std::string itsName;
+    std::string itsStrExpr;
     bool itsFlagOnTimeOnly;  ///< true = only flag on time info
     bool itsFlagOnTime;      ///< true = do time based flagging
     bool itsFlagOnUV;        ///< true = do uv distance based flagging
@@ -253,31 +254,34 @@ class PreFlagger : public Step {
     std::vector<float> itsImagMin;          ///< minimum imaginary for each corr
     std::vector<float> itsImagMax;          ///< maximum imaginary for each corr
     std::vector<unsigned int> itsChannels;  ///< channels to be flagged.
-    std::vector<string> itsStrChan;         ///< channel ranges to be flagged.
-    std::vector<string> itsStrFreq;         ///< frequency ranges to be flagged
-    std::vector<string> itsStrTime;         ///< time ranges to be flagged
-    std::vector<string> itsStrLST;          ///< LST ranges to be flagged
-    std::vector<string> itsStrATime;    ///< absolute time ranges to be flagged
-    std::vector<string> itsStrRTime;    ///< relative time ranges to be flagged
-    std::vector<string> itsStrAzim;     ///< azimuth ranges to be flagged
-    std::vector<string> itsStrElev;     ///< elevation ranges to be flagged
-    std::vector<int> itsRpn;            ///< PSet expression in RPN form
-    std::vector<PSet::ShPtr> itsPSets;  ///< PSets used in itsRpn
-    casacore::Matrix<bool> itsChanFlags;  ///< flags for channels to be flagged
-    casacore::Cube<bool> itsFlags;
-    casacore::Block<bool> itsMatchBL;  ///< true = baseline in buffer matches
+    std::vector<std::string> itsStrChan;    ///< channel ranges to be flagged.
+    std::vector<std::string> itsStrFreq;    ///< frequency ranges to be flagged
+    std::vector<std::string> itsStrTime;    ///< time ranges to be flagged
+    std::vector<std::string> itsStrLST;     ///< LST ranges to be flagged
+    std::vector<std::string>
+        itsStrATime;  ///< absolute time ranges to be flagged
+    std::vector<std::string>
+        itsStrRTime;  ///< relative time ranges to be flagged
+    std::vector<std::string> itsStrAzim;  ///< azimuth ranges to be flagged
+    std::vector<std::string> itsStrElev;  ///< elevation ranges to be flagged
+    std::vector<int> itsRpn;              ///< PSet expression in RPN form
+    std::vector<PSet::ShPtr> itsPSets;    ///< PSets used in itsRpn
+    xt::xtensor<bool, 2> itsChanFlags;    ///< flags for channels to be flagged
+    xt::xtensor<bool, 3> itsFlags;
+    xt::xtensor<bool, 1> itsMatchBL;  ///< true = baseline in buffer matches
   };
 
-  /// Set the flags in outPtr where inPtr matches mode.
-  void setFlags(const bool* inPtr, bool* outPtr, unsigned int nrcorr,
-                unsigned int nrchan, unsigned int nrbl, bool mode);
+  /// Set the flags in 'out' where 'in' matches 'mode'.
+  void setFlags(const xt::xtensor<bool, 3>& in,
+                aocommon::xt::Span<bool, 3>& out, bool mode);
 
-  /// Clear the flags in outPtr where inPtr matches mode.
+  /// Clear the flags in 'out' where 'in' matches 'mode'.
   /// If the corresponding data point of a flag is invalid
-  /// (non-finite or zero), it is always flagged.
-  void clearFlags(const bool* inPtr, bool* outPtr, unsigned int nrcorr,
-                  unsigned int nrchan, unsigned int nrbl, bool mode,
-                  const base::DPBuffer& buf);
+  /// (non-finite or zero weight), it is always flagged.
+  void clearFlags(const xt::xtensor<bool, 3>& in,
+                  aocommon::xt::Span<bool, 3>& out, bool mode,
+                  const aocommon::xt::Span<std::complex<float>, 3>& data,
+                  const aocommon::xt::Span<float, 3>& weights);
 
   std::string itsName;
   Mode itsMode;
