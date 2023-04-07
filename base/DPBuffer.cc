@@ -51,7 +51,6 @@ DPBuffer::DPBuffer(double time, double exposure)
       data_(CreateSpan(casa_data_)),
       extra_data_(),
       extra_data_span_(),
-      default_data_key_(""),
       flags_(CreateSpan(casa_flags_)),
       weights_(CreateSpan(casa_weights_)),
       uvw_(CreateSpan(casa_uvw_)),
@@ -70,7 +69,6 @@ DPBuffer::DPBuffer(DPBuffer&& that)
       data_(std::move(that.data_)),
       extra_data_(std::move(that.extra_data_)),
       extra_data_span_(std::move(that.extra_data_span_)),
-      default_data_key_(std::move(that.default_data_key_)),
       flags_(std::move(that.flags_)),
       weights_(std::move(that.weights_)),
       uvw_(std::move(that.uvw_)),
@@ -97,7 +95,6 @@ DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
     row_numbers_.reference(that.row_numbers_);
     casa_data_.reference(that.casa_data_);
     extra_data_ = that.extra_data_;
-    default_data_key_ = that.default_data_key_;
     casa_flags_.reference(that.casa_flags_);
     casa_weights_.reference(that.casa_weights_);
     casa_uvw_.reference(that.casa_uvw_);
@@ -112,7 +109,6 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
     time_ = that.time_;
     exposure_ = that.exposure_;
     extra_data_ = std::move(that.extra_data_);
-    default_data_key_ = std::move(that.default_data_key_);
     solution_ = std::move(that.solution_);
 
     // Casacore < 3.4.0 does not support move semantics for casacore::Array.
@@ -192,9 +188,9 @@ void DPBuffer::CreateSpans() {
   full_res_flags_ = CreateSpan(casa_full_res_flags_);
   extra_data_span_.clear();
   for (auto& extra_element : extra_data_) {
-    const std::string& key = extra_element.first;
+    const std::string& name = extra_element.first;
     extra_data_span_.emplace(
-        std::make_pair(key, aocommon::xt::CreateSpan(extra_data_[key])));
+        std::make_pair(name, aocommon::xt::CreateSpan(extra_data_[name])));
   }
 }
 
@@ -265,39 +261,28 @@ void DPBuffer::MergeFullResFlags() {
 }
 
 void DPBuffer::setData(const casacore::Cube<Complex>& data) {
-  // The legacy setData() call does not support default_data_key_.
-  assert(default_data_key_.empty());
-
   casa_data_.reference(data);
   data_ = CreateSpan(casa_data_);
   assert(extra_data_.empty() ||
          extra_data_.begin()->second.shape() == data_.shape());
 }
 
-void DPBuffer::AddData(const std::string& key) {
-  assert(!key.empty());
-  assert(extra_data_.find(key) == extra_data_.end());
-  extra_data_[key].resize(data_.shape());
+void DPBuffer::AddData(const std::string& name) {
+  assert(!name.empty());
+  assert(extra_data_.find(name) == extra_data_.end());
+  extra_data_[name].resize(data_.shape());
   extra_data_span_.emplace(
-      std::make_pair(key, aocommon::xt::CreateSpan(extra_data_[key])));
-  default_data_key_ = key;
+      std::make_pair(name, aocommon::xt::CreateSpan(extra_data_[name])));
 }
 
-void DPBuffer::RemoveData(const std::string& key) {
-  if (key.empty()) {
+void DPBuffer::RemoveData(const std::string& name) {
+  if (name.empty()) {
     extra_data_.clear();
     extra_data_span_.clear();
-    default_data_key_.clear();
   } else {
-    extra_data_.erase(key);
-    extra_data_span_.erase(key);
-    if (key == default_data_key_) default_data_key_.clear();
+    extra_data_.erase(name);
+    extra_data_span_.erase(name);
   }
-}
-
-void DPBuffer::SetDefaultData(const std::string& key) {
-  assert(HasData(key));
-  default_data_key_ = key;
 }
 
 void DPBuffer::ResizeData(size_t n_baselines, size_t n_channels,
@@ -305,10 +290,10 @@ void DPBuffer::ResizeData(size_t n_baselines, size_t n_channels,
   casa_data_.resize(n_correlations, n_channels, n_baselines);
   data_ = CreateSpan(casa_data_);
   for (auto& extra_element : extra_data_) {
-    const std::string& key = extra_element.first;
+    const std::string& name = extra_element.first;
     extra_element.second.resize({n_baselines, n_channels, n_correlations});
-    extra_data_span_.find(key)->second =
-        aocommon::xt::CreateSpan(extra_data_[key]);
+    extra_data_span_.find(name)->second =
+        aocommon::xt::CreateSpan(extra_data_[name]);
   }
 }
 

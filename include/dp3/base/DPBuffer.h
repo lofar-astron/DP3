@@ -10,7 +10,6 @@
 #define DP3_BASE_DPBUFFER_H_
 
 #include <map>
-#include <string>
 
 #include <xtensor/xtensor.hpp>
 
@@ -138,67 +137,46 @@ class DPBuffer {
   void referenceFilled(const DPBuffer& that);
 
   /// Set or get the visibility data per corr,chan,baseline.
-  /// This legacy function only works if the default data buffer is the
-  /// main data buffer.
   void setData(const casacore::Cube<Complex>& data);
 
-  /// Adds an extra visibility buffer and makes it the default data buffer.
-  /// The new visibility buffer gets the same shape as the main data buffer.
-  /// @param key Key for the new buffer. The key may not be empty. It may
-  ///        also not equal the key of an existing extra data buffer.
-  void AddData(const std::string& key);
+  /// Adds an extra visibility buffer.
+  /// The new visibility buffer gets the same shape as the default data buffer.
+  /// @param name Name for the new buffer. The name may not be empty. It may
+  ///        also not equal the name of an existing extra buffer.
+  void AddData(const std::string& name);
 
-  /// Removes extra visibility buffers.
-  /// If the default data buffer is removed, the default data buffer becomes
-  /// the main data buffer.
-  /// @param key Key of the buffer to remove. If empty, removes all extra data
+  /// Removes extra visibility buffers
+  /// @param name Name of the buffer to remove. If empty, removes all extra data
   /// buffers.
-  void RemoveData(const std::string& key = "");
+  void RemoveData(const std::string& name = "");
 
-  /// Check if the DPBuffer has a data buffer for the given key.
-  /// @param key Data buffer key. When empty, check the main data buffer.
+  /// Check if the DPBuffer has a data buffer for the given name.
+  /// @param name Name. When empty, check the default data buffer.
   /// @return If the requested data buffer exists. It can be empty, though.
-  bool HasData(const std::string& key = "") const {
-    return key.empty() || (extra_data_.find(key) != extra_data_.end());
+  bool HasData(const std::string& name = "") const {
+    return name.empty() || (extra_data_.find(name) != extra_data_.end());
   }
-
-  /// Set the default data buffer, which GetData() should return.
-  /// @param key Buffer key. If empty, the main data buffer becomes the default
-  ///        data buffer. If non-empty, a data buffer with that key must exist.
-  void SetDefaultData(const std::string& key = "");
 
   void ResizeData(size_t n_baselines, size_t n_channels, size_t n_correlations);
   const casacore::Cube<Complex>& GetCasacoreData() const { return casa_data_; }
   casacore::Cube<Complex>& GetCasacoreData() { return casa_data_; }
 
-  /// @return A const reference to the default data buffer.
-  const aocommon::xt::Span<std::complex<float>, 3>& GetData() const {
-    return GetData(default_data_key_);
-  }
-
-  /// @return A non-const reference to the default data buffer.
-  aocommon::xt::Span<std::complex<float>, 3>& GetData() {
-    return GetData(default_data_key_);
-  }
-
-  /// @return A const reference to the requested data buffer.
   const aocommon::xt::Span<std::complex<float>, 3>& GetData(
-      const std::string& key) const {
-    if (key.empty()) {
+      const std::string& name = "") const {
+    if (name.empty()) {
       return data_;
     } else {
-      auto found = extra_data_span_.find(key);
+      auto found = extra_data_span_.find(name);
       assert(found != extra_data_span_.end());
       return found->second;
     }
   }
-
-  /// @return A non-const reference to the requested data buffer.
-  aocommon::xt::Span<std::complex<float>, 3>& GetData(const std::string& key) {
-    if (key.empty()) {
+  aocommon::xt::Span<std::complex<float>, 3>& GetData(
+      const std::string& name = "") {
+    if (name.empty()) {
       return data_;
     } else {
-      auto found = extra_data_span_.find(key);
+      auto found = extra_data_span_.find(name);
       assert(found != extra_data_span_.end());
       return found->second;
     }
@@ -305,9 +283,6 @@ class DPBuffer {
   /// a reference to a span.
   std::map<std::string, aocommon::xt::Span<std::complex<float>, 3>>
       extra_data_span_;
-  /// Key (name) of the default data buffer returned by GetData(). An empty
-  /// string indicates the main data_ buffer.
-  std::string default_data_key_;
 
   /// Flags (n_baselines x n_channels x n_correlations)
   aocommon::xt::Span<bool, 3> flags_;
