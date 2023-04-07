@@ -7,6 +7,8 @@
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Quanta/MVTime.h>
 
+#include <xtensor/xview.hpp>
+
 #include <boost/test/unit_test.hpp>
 
 #include "mock/MockInput.h"
@@ -186,12 +188,14 @@ void TestPSet::testChan1() {
   BOOST_CHECK_EQUAL(pset.itsChannels[1], size_t{11});
   BOOST_CHECK_EQUAL(pset.itsChannels[2], size_t{12});
   BOOST_CHECK_EQUAL(pset.itsChannels[3], size_t{13});
-  BOOST_CHECK_EQUAL(pset.itsChanFlags.shape(), casacore::IPosition(2, 4, 32));
+  BOOST_CHECK_EQUAL(pset.itsChanFlags.shape(0), 32);
+  BOOST_CHECK_EQUAL(pset.itsChanFlags.shape(1), 4);
   for (unsigned int i = 0; i < 32; ++i) {
+    auto view = xt::view(pset.itsChanFlags, i, xt::all());
     if (i == 4 || i == 11 || i == 12 || i == 13) {
-      BOOST_CHECK(allEQ(pset.itsChanFlags.column(i), true));
+      BOOST_CHECK(xt::all(view));
     } else {
-      BOOST_CHECK(allEQ(pset.itsChanFlags.column(i), false));
+      BOOST_CHECK(!xt::any(view));
     }
   }
 }
