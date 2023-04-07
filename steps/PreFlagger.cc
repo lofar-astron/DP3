@@ -120,40 +120,38 @@ void PreFlagger::updateInfo(const DPInfo& info_in) {
   itsFlagCounter.init(info_in);
 }
 
-bool PreFlagger::process(const DPBuffer& buf) {
+bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
-  // Because no buffers are kept, we can reference the filled arrays
-  // in the input buffer instead of copying them.
-  itsBuffer.referenceFilled(buf);
   unsigned int nrcorr = info().ncorr();
   unsigned int nrchan = info().nchan();
   unsigned int nrbl = info().nbaselines();
-  if (itsBuffer.GetCasacoreFlags().empty()) {
-    itsBuffer.ResizeFlags(nrbl, nrchan, nrcorr);
+  buffer->MakeIndependent(kFlagsField);
+  if (buffer->GetFlags().size() == 0) {
+    buffer->ResizeFlags(nrbl, nrchan, nrcorr);
   }
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.
   Cube<bool>* flags =
-      itsPSet.process(buf, itsBuffer, itsCount, Block<bool>(), itsTimer);
+      itsPSet.process(*buffer, itsCount, Block<bool>(), itsTimer);
   const bool* inPtr = flags->data();
-  bool* outPtr = itsBuffer.GetFlags().data();
+  bool* outPtr = buffer->GetFlags().data();
   switch (itsMode) {
     case SetFlag:
       setFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, true);
       break;
     case ClearFlag:
-      clearFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, true, buf);
+      clearFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, true, *buffer);
       break;
     case SetComp:
       setFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, false);
       break;
     case ClearComp:
-      clearFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, false, buf);
+      clearFlags(inPtr, outPtr, nrcorr, nrchan, nrbl, false, *buffer);
       break;
   }
   itsTimer.stop();
   // Let the next step do its processing.
-  getNextStep()->process(itsBuffer);
+  getNextStep()->process(std::move(buffer));
   itsCount++;
   return true;
 }
@@ -180,8 +178,7 @@ void PreFlagger::clearFlags(const bool* inPtr, bool* outPtr,
                             unsigned int nrcorr, unsigned int nrchan,
                             unsigned int nrbl, bool mode, const DPBuffer& buf) {
   const casacore::Complex* dataPtr = buf.GetData().data();
-  Cube<float> weights = buf.GetCasacoreWeights();
-  const float* weightPtr = weights.data();
+  const float* weightPtr = buf.GetWeights().data();
   for (unsigned int i = 0; i < nrbl; ++i) {
     for (unsigned int j = 0; j < nrchan; ++j) {
       if (*inPtr == mode) {
@@ -465,8 +462,7 @@ void PreFlagger::PSet::show(std::ostream& os, bool showName) const {
   }
 }
 
-Cube<bool>* PreFlagger::PSet::process(const DPBuffer& in, DPBuffer& out,
-                                      unsigned int timeSlot,
+Cube<bool>* PreFlagger::PSet::process(DPBuffer& out, unsigned int timeSlot,
                                       const Block<bool>& matchBL,
                                       common::NSTimer& timer) {
   // No need to process it if the time mismatches or if only time selection.
@@ -546,8 +542,7 @@ Cube<bool>* PreFlagger::PSet::process(const DPBuffer& in, DPBuffer& out,
     std::stack<Cube<bool>*> results;
     for (int oper : itsRpn) {
       if (oper >= 0) {
-        results.push(
-            itsPSets[oper]->process(in, out, timeSlot, itsMatchBL, timer));
+        results.push(itsPSets[oper]->process(out, timeSlot, itsMatchBL, timer));
       } else if (oper == OpNot) {
         Cube<bool>* left = results.top();
         // No ||= operator exists, so use the transform function.
