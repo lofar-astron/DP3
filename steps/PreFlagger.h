@@ -1,28 +1,26 @@
-// PreFlagger.h: DPPP step class to flag data on channel, baseline, or time
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// PreFlagger.h: DP3 step class to flag data on channel, baseline, or time
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief DPPP step class to flag data on channel, baseline, or time
 /// @author Ger van Diepen
 
-#ifndef DPPP_PREFLAGGER_H
-#define DPPP_PREFLAGGER_H
-
-#include "InputStep.h"
-
-#include <dp3/base/DPBuffer.h>
-#include "../base/BaselineSelection.h"
+#ifndef DP3_STEPS_PREFLAGGER_H_
+#define DP3_STEPS_PREFLAGGER_H_
 
 #include <casacore/measures/Measures/MDirection.h>
 
-namespace dp3 {
-namespace common {
-class ParameterSet;
-class ParameterValue;
-}  // namespace common
+#include <dp3/base/DPBuffer.h>
+#include <dp3/steps/Step.h>
 
-namespace steps {
+#include "../base/BaselineSelection.h"
+#include "../base/FlagCounter.h"
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
+
+namespace dp3::steps {
+
 /// @brief DPPP step class to flag data on channel, baseline, or time
 
 /// This class is a Step class flagging data points based on data
@@ -75,7 +73,7 @@ class PreFlagger : public Step {
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -129,8 +127,7 @@ class PreFlagger : public Step {
     }
 
     /// Set and return the flags.
-    casacore::Cube<bool>* process(const base::DPBuffer&, base::DPBuffer&,
-                                  unsigned int timeSlot,
+    casacore::Cube<bool>* process(base::DPBuffer&, unsigned int timeSlot,
                                   const casacore::Block<bool>& matchBL,
                                   common::NSTimer& timer);
 
@@ -282,9 +279,7 @@ class PreFlagger : public Step {
                   unsigned int nrchan, unsigned int nrbl, bool mode,
                   const base::DPBuffer& buf);
 
-  string itsName;
-  InputStep* itsInput;
-  base::DPBuffer itsBuffer;
+  std::string itsName;
   Mode itsMode;
   common::NSTimer itsTimer;
   PSet itsPSet;
@@ -292,7 +287,6 @@ class PreFlagger : public Step {
   base::FlagCounter itsFlagCounter;
 };
 
-}  // namespace steps
-}  // namespace dp3
+}  // namespace dp3::steps
 
 #endif
