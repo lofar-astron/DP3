@@ -219,25 +219,21 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 // Test flagging a few antennae and freqs.
 void test1(int ntime, int nbl, int nchan, int ncorr, bool flag, bool clear,
            bool useComplement) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
-  string mode;
   if (clear) {
-    mode = (useComplement ? "clearComplement" : "clear");
+    parset.add("mode", useComplement ? "clearComplement" : "clear");
   } else {
-    mode = (useComplement ? "setComplement" : "set");
+    parset.add("mode", useComplement ? "setComplement" : "set");
   }
-  parset.add("mode", mode);
   parset.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add("countflag", "true");
-  Step::ShPtr step2(new PreFlagger(parset, ""));
-  Step::ShPtr step3(new Counter(parset, "cnt"));
-  Step::ShPtr step4(
-      new TestOutput(ntime, nbl, nchan, ncorr, flag, clear, useComplement));
-  dp3::steps::test::Execute({step1, step2, step3, step4});
+  auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
+  auto counter = std::make_shared<Counter>(parset, "cnt");
+  auto out = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, flag, clear,
+                                          useComplement);
+  dp3::steps::test::Execute({in, pre_flagger, counter, out});
 }
 
 // Class to check result of flagged, unaveraged TestInput run by test2.
@@ -289,32 +285,28 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
 
 // Test flagging a few baselines, freqs, and channels.
 void test2(int ntime, int nbl, int nchan, int ncorr) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, false);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, false);
   ParameterSet parset;
   parset.add("freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("chan", "[11..13, 4, 11, nchan/1000+1000..1000*nchan]");
   parset.add("baseline", "[[rs01.*,rs01.*],[*s*.*2,*s*.*2],[*s*.*2,rs02.*]]");
-  Step::ShPtr step2(new PreFlagger(parset, ""));
-  Step::ShPtr step3(new TestOutput2(ntime, nbl, nchan, ncorr));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
+  auto out = std::make_shared<TestOutput2>(ntime, nbl, nchan, ncorr);
+  dp3::steps::test::Execute({in, pre_flagger, out});
 }
 
 // Test flagging a few antennae or freqs by using multiple steps.
 void test3(int ntime, int nbl, int nchan, int ncorr, bool flag) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("expr", "s1");
   parset.add("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("s1.expr", "s2");
   parset.add("s1.s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
-  Step::ShPtr step2(new PreFlagger(parset, ""));
-  Step::ShPtr step3(
-      new TestOutput(ntime, nbl, nchan, ncorr, flag, false, false));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
+  auto out = std::make_shared<TestOutput>(ntime, nbl, nchan, ncorr, flag, false,
+                                          false);
+  dp3::steps::test::Execute({in, pre_flagger, out});
 }
 
 // Class to check result of flagged, unaveraged TestInput run by test4.
@@ -368,17 +360,15 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
 
 // Test flagging a few antennae and freqs by using multiple steps.
 void test4(int ntime, int nbl, int nchan, int ncorr, bool flag) {
-  // Create the steps.
-  TestInput* in = new TestInput(ntime, nbl, nchan, ncorr, flag);
-  Step::ShPtr step1(in);
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("expr", "(s1&s1),(s2|s2)");
   parset.add("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add("s2.corrtype", "cross");
-  Step::ShPtr step2(new PreFlagger(parset, ""));
-  Step::ShPtr step3(new TestOutput4(ntime, nbl, nchan, ncorr, flag));
-  dp3::steps::test::Execute({step1, step2, step3});
+  auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
+  auto out = std::make_shared<TestOutput4>(ntime, nbl, nchan, ncorr, flag);
+  dp3::steps::test::Execute({in, pre_flagger, out});
 }
 
 typedef bool CheckFunc(casacore::Complex value, double time, int ant1, int ant2,
