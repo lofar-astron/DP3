@@ -102,7 +102,7 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
@@ -118,22 +118,21 @@ class TestInput : public dp3::steps::MockInput {
       uvw(1, i) = 2 + itsCount + i;
       uvw(2, i) = 3 + itsCount + i;
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 3);  // same interval as in updateAveragInfo
-    buf.setData(data);
-    buf.setUVW(uvw);
+    buffer->setTime(itsCount * 5 + 3);  // same interval as in updateAveragInfo
+    buffer->setData(data);
+    buffer->setUVW(uvw);
     casacore::Cube<float> weights(data.shape());
     weights = 1.;
-    buf.setWeights(weights);
+    buffer->setWeights(weights);
     casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
-    buf.setFlags(flags);
+    buffer->setFlags(flags);
     // The fullRes flags are a copy of the XX flags, but differently shaped.
     // They are not averaged, thus only 1 time per row.
     casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
     fullResFlags = itsFlag;
-    buf.setFullResFlags(fullResFlags);
-    getNextStep()->process(buf);
+    buffer->setFullResFlags(fullResFlags);
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -162,7 +161,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsUseComplement(useComplement) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // The result of the selected and complement data depends on the
     // settings of itsFlag, itsClear, and itsUseComplement as follows:
     //    itsFlag itsUseComp itsClear     sel  comp
@@ -196,7 +195,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
+    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }
@@ -252,7 +251,7 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
         itsNCorr(ncorr) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // A few baselines should be flagged (0, 7, 13, 15)
     // Furthermore channel 1,4,5,11,12,13 are flagged.
     casacore::Cube<bool> result(itsNCorr, itsNChan, itsNBl);
@@ -268,7 +267,7 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
+    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }
@@ -330,7 +329,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // All baselines except autocorr should be flagged.
     // Furthermore channel 1,4,5 are flagged.
     casacore::Cube<bool> result(itsNCorr, itsNChan, itsNBl);
@@ -346,7 +345,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
+    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }
@@ -392,9 +391,9 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
   TestOutput5(CheckFunc* cfunc) : itsCount(0), itsCFunc(cfunc) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
-    const casacore::Cube<casacore::Complex>& data = buf.GetCasacoreData();
-    const double* uvw = buf.GetUvw().data();
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    const casacore::Cube<casacore::Complex>& data = buffer->GetCasacoreData();
+    const double* uvw = buffer->GetUvw().data();
     const casacore::IPosition& shp = data.shape();
     casacore::Cube<bool> result(shp);
     for (int i = 0; i < shp[2]; ++i) {
@@ -404,14 +403,15 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
         bool flag = false;
         for (int k = 0; k < shp[0]; ++k) {
           if (!flag)
-            flag = itsCFunc(data(k, j, i), buf.getTime(), a1, a2, uvw + 3 * i);
+            flag =
+                itsCFunc(data(k, j, i), buffer->getTime(), a1, a2, uvw + 3 * i);
         }
         for (int k = 0; k < shp[0]; ++k) {
           result(k, j, i) = flag;
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), result));
+    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
     itsCount++;
     return true;
   }
