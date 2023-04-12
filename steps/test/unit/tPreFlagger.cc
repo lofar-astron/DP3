@@ -423,6 +423,7 @@ void TestOneParameter(const string& key, const string& value, CheckFunc* cfunc,
   parset.add("mode", mode);
   auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
 
+  expected_required_fields |= Step::kFlagsField;
   if ((mode == "clear") || (mode == "clearcomplement") ||
       (mode == "clearother"))
     expected_required_fields |= Step::kDataField | Step::kWeightsField;
@@ -449,6 +450,7 @@ void TestTwoParameters(const string& key1, const string& value1,
   parset.add("mode", mode);
   auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
 
+  expected_required_fields |= Step::kFlagsField;
   if ((mode == "clear") || (mode == "clearcomplement") ||
       (mode == "clearother"))
     expected_required_fields |= Step::kDataField | Step::kWeightsField;

@@ -28,7 +28,8 @@ inputs:
     doc: >-
       Case-insensitive string telling what to do with the flags of the data
       matching (or not matching) the selection criteria given in the other
-      parameters `.`
+      parameters. Must be 'set', 'setcomplement'/'setother', 'clear' or
+      'clearcomplement'/'clearother' `.`
   expr:
     default:  "\"\""
     type: string?
@@ -116,7 +117,7 @@ inputs:
       vector is a range which can be given as start..end or start+-delta. A
       value can be followed by a unit like KHz. If only one value in a range has
       a unit, the unit is also applied to the other value. If a range has no
-      unit, it defaults to MHz. For example: ``freqrange=[1.2 .. 1.4 MHz, 1.8MHz+-50KHz]`` 
+      unit, it defaults to MHz. For example: ``freqrange=[1.2 .. 1.4 MHz, 1.8MHz+-50KHz]``
       flags channels between 1.2MHz and 1.4MHz and between
       1.75MHz and 1.85MHz. The example shows that blanks can be used at will.
   chan:

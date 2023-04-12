@@ -54,7 +54,7 @@ class PreFlagger : public Step {
   friend class TestPSet;
 
  public:
-  enum Mode { SetFlag, ClearFlag, SetComp, ClearComp };
+  enum class Mode { kSetFlag, kClearFlag, kSetComp, kClearComp };
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
@@ -63,8 +63,8 @@ class PreFlagger : public Step {
   ~PreFlagger() override;
 
   common::Fields getRequiredFields() const override {
-    common::Fields fields;
-    if (itsMode == Mode::ClearFlag || itsMode == Mode::ClearComp) {
+    common::Fields fields = kFlagsField;
+    if (itsMode == Mode::kClearFlag || itsMode == Mode::kClearComp) {
       fields |= kDataField | kWeightsField;
     }
     return fields |= itsPSet.getRequiredFields();

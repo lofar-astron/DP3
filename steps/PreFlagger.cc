@@ -7,6 +7,7 @@
 #include "PreFlagger.h"
 
 #include <algorithm>
+#include <cassert>
 #include <complex>
 #include <iostream>
 #include <stack>
@@ -63,17 +64,17 @@ namespace steps {
 
 PreFlagger::PreFlagger(const common::ParameterSet& parset, const string& prefix)
     : itsName(prefix),
-      itsMode(SetFlag),
+      itsMode(Mode::kSetFlag),
       itsPSet(parset, prefix),
       itsCount(0),
       itsFlagCounter(parset, prefix + "count.") {
   string mode = boost::to_lower_copy(parset.getString(prefix + "mode", "set"));
   if (mode == "clear") {
-    itsMode = ClearFlag;
+    itsMode = Mode::kClearFlag;
   } else if (mode == "setcomplement" || mode == "setother") {
-    itsMode = SetComp;
+    itsMode = Mode::kSetComp;
   } else if (mode == "clearcomplement" || mode == "clearother") {
-    itsMode = ClearComp;
+    itsMode = Mode::kClearComp;
   } else {
     if (mode != "set")
       throw std::runtime_error(
@@ -88,16 +89,16 @@ void PreFlagger::show(std::ostream& os) const {
   os << "PreFlagger " << itsName << '\n';
   os << "  mode:           ";
   switch (itsMode) {
-    case SetFlag:
+    case Mode::kSetFlag:
       os << "set";
       break;
-    case ClearFlag:
+    case Mode::kClearFlag:
       os << "clear";
       break;
-    case SetComp:
+    case Mode::kSetComp:
       os << "setcomplement";
       break;
-    case ClearComp:
+    case Mode::kClearComp:
       os << "clearcomplement";
       break;
   }
@@ -127,25 +128,23 @@ void PreFlagger::updateInfo(const DPInfo& info_in) {
 bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
   buffer->MakeIndependent(kFlagsField);
-  if (buffer->GetFlags().size() == 0) {
-    buffer->ResizeFlags(info().nbaselines(), info().nchan(), info().ncorr());
-  }
+  assert(buffer->GetFlags().size() != 0);
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.
   const xt::xtensor<bool, 3>* const flags =
       itsPSet.process(*buffer, itsCount, xt::xtensor<bool, 1>(), itsTimer);
   switch (itsMode) {
-    case SetFlag:
+    case Mode::kSetFlag:
       setFlags(*flags, buffer->GetFlags(), true);
       break;
-    case ClearFlag:
+    case Mode::kClearFlag:
       clearFlags(*flags, buffer->GetFlags(), true, buffer->GetData(),
                  buffer->GetWeights());
       break;
-    case SetComp:
+    case Mode::kSetComp:
       setFlags(*flags, buffer->GetFlags(), false);
       break;
-    case ClearComp:
+    case Mode::kClearComp:
       clearFlags(*flags, buffer->GetFlags(), false, buffer->GetData(),
                  buffer->GetWeights());
       break;
