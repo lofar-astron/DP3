@@ -123,9 +123,12 @@ Matrix<bool> BaselineSelect::convert(Table& anttab, TableExprNode& a1Node,
   BaselineSelectErrorHandler errorHandler(os);
   MSAntennaParse::thisMSAErrorHandler = &errorHandler;
 #else
-  casacore::CountedPtr<MSSelectionErrorHandler> errorHandler(
-      new BaselineSelectErrorHandler(os));
-  MSAntennaParse::thisMSAErrorHandler = errorHandler;
+  // After casacore 3.5.0, the type of MSAntennaParse::thisMSAErrorHandler
+  // changed again from a CountedPtr to a unique_ptr, so derive the appropriate
+  // type:
+  using CasacorePointerType = decltype(MSAntennaParse::thisMSAErrorHandler);
+  CasacorePointerType errorHandler(new common::BaselineSelectErrorHandler(os));
+  MSAntennaParse::thisMSAErrorHandler = std::move(errorHandler);
 #endif
   try {
     // Create a table expression representing the selection.

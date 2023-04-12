@@ -143,9 +143,13 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
     common::BaselineSelectErrorHandler errorHandler(os);
     MSAntennaParse::thisMSAErrorHandler = &errorHandler;
 #else
-    casacore::CountedPtr<MSSelectionErrorHandler> errorHandler(
+    // After casacore 3.5.0, the type of MSAntennaParse::thisMSAErrorHandler
+    // changed again from a CountedPtr to a unique_ptr, so derive the
+    // appropriate type:
+    using CasacorePointerType = decltype(MSAntennaParse::thisMSAErrorHandler);
+    CasacorePointerType errorHandler(
         new common::BaselineSelectErrorHandler(os));
-    MSAntennaParse::thisMSAErrorHandler = errorHandler;
+    MSAntennaParse::thisMSAErrorHandler = std::move(errorHandler);
 #endif
 
     // Set given selection strings.
