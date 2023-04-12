@@ -154,10 +154,9 @@ BOOST_AUTO_TEST_CASE(simple_pystep) {
       common::Fields provided = py_step->getProvidedFields();
       common::Fields required = py_step->getRequiredFields();
       BOOST_CHECK(provided.Data() && provided.Flags() && provided.Weights());
-      BOOST_CHECK((!provided.FullResFlags()) && (!provided.Uvw()));
+      BOOST_CHECK(!provided.Uvw());
       BOOST_CHECK(required.Data() && required.Weights());
-      BOOST_CHECK((!required.Flags()) && (!required.FullResFlags()) &&
-                  (!required.Uvw()));
+      BOOST_CHECK((!required.Flags()) && (!required.Uvw()));
 
       dp3::steps::test::Execute({in_step, py_step, out_step});
     }

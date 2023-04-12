@@ -120,8 +120,6 @@ std::unique_ptr<DPBuffer> CreateBuffer(
                                          n_baselines);
   casacore::Cube<bool> flags(data.shape(), false);
   casacore::Cube<float> weights(data.shape(), weight);
-  casacore::Cube<bool> full_res_flags(channel_counts.size(), 1, n_baselines,
-                                      false);
   casacore::Matrix<double> uvw(3, n_baselines);
   for (std::size_t bl = 0; bl < n_baselines; ++bl) {
     // Base value for this baseline.
@@ -152,7 +150,6 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   buffer->setData(data);
   buffer->setWeights(weights);
   buffer->setFlags(flags);
-  buffer->setFullResFlags(full_res_flags);
   buffer->setUVW(uvw);
 
   return buffer;
@@ -166,8 +163,6 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
                                          n_baselines);
   casacore::Cube<bool> flags(data.shape(), false);
   casacore::Cube<float> weights(data.shape(), weight);
-  casacore::Cube<bool> full_res_flags(channel_counts.size(), 1, n_baselines,
-                                      false);
   casacore::Matrix<double> uvw(3, n_baselines);
 
   for (std::size_t bl = 0; bl < n_baselines; ++bl) {
@@ -188,7 +183,6 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
   buffer->setData(data);
   buffer->setWeights(weights);
   buffer->setFlags(flags);
-  buffer->setFullResFlags(full_res_flags);
   buffer->setUVW(uvw);
 
   return buffer;

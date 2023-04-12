@@ -43,8 +43,7 @@ BOOST_AUTO_TEST_CASE(fields_channel_selection) {
   parset.add("nchan", "2");
   const Filter channel_only(parset, "");
   const dp3::common::Fields kExpectedFields =
-      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
-      Step::kFullResFlagsField;
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField;
   BOOST_CHECK_EQUAL(channel_only.getRequiredFields(), kExpectedFields);
   BOOST_CHECK_EQUAL(channel_only.getProvidedFields(), kExpectedFields);
 
@@ -64,7 +63,7 @@ BOOST_AUTO_TEST_CASE(fields_baseline_selection) {
 
   const dp3::common::Fields kExpectedFields =
       Step::kDataField | Step::kFlagsField | Step::kWeightsField |
-      Step::kFullResFlagsField | Step::kUvwField;
+      Step::kUvwField;
   BOOST_CHECK_EQUAL(baseline_only.getRequiredFields(), kExpectedFields);
   BOOST_CHECK_EQUAL(baseline_only.getProvidedFields(), kExpectedFields);
 
@@ -170,17 +169,6 @@ class TestInput : public dp3::steps::MockInput {
     flags(casacore::IPosition(3, 0), flags.shape() - 1,
           casacore::IPosition(3, 1, 3, 4)) = !itsFlag;
     buf.setFlags(flags);
-    // The fullRes flags are a copy of the XX flags, but differently shaped.
-    // Assume they are averaged for 2 chan, 2 time.
-    casacore::Cube<bool> fullResFlags;
-    if (itsNCorr == 4) {
-      fullResFlags =
-          flags.copy().reform(casacore::IPosition(3, 2 * itsNChan, 2, itsNBl));
-    } else {
-      fullResFlags.resize(casacore::IPosition(3, itsNChan, 1, itsNBl));
-      fullResFlags = true;
-    }
-    buf.setFullResFlags(fullResFlags);
     casacore::Matrix<double> uvw(3, itsNBl);
     indgen(uvw, double(itsCount * 100));
     buf.setUVW(uvw);
@@ -228,16 +216,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     // Set part of the flags to another value.
     flags(casacore::IPosition(3, 0), flags.shape() - 1,
           casacore::IPosition(3, 1, 3, 4)) = !itsFlag;
-    // The fullRes flags are a copy of the XX flags, but differently shaped.
-    // Assume they are averaged for 2 chan, 2 time.
-    casacore::Cube<bool> fullResFlags;
-    if (itsNCorr == 4) {
-      fullResFlags =
-          flags.copy().reform(casacore::IPosition(3, 2 * itsNChan, 2, itsNBl));
-    } else {
-      fullResFlags.resize(casacore::IPosition(3, itsNChan, 1, itsNBl));
-      fullResFlags = true;
-    }
     casacore::Matrix<double> uvw(3, itsNBl);
     indgen(uvw, double(itsCount * 100));
     casacore::Slicer slicer(
@@ -250,19 +228,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK(allEQ(buf.GetCasacoreUvw(),
                       uvw(casacore::IPosition(2, 0, 0),
                           casacore::IPosition(2, 2, itsNBlOut - 1))));
-    if (itsNCorr == 4) {
-      BOOST_CHECK(
-          allEQ(buf.GetCasacoreFullResFlags(),
-                fullResFlags(casacore::Slicer(
-                    casacore::IPosition(3, itsStChan * 2, 0, 0),
-                    casacore::IPosition(3, 2 * itsNChanOut, 2, itsNBlOut)))));
-    } else {
-      BOOST_CHECK(
-          allEQ(buf.GetCasacoreFullResFlags(),
-                fullResFlags(casacore::Slicer(
-                    casacore::IPosition(3, itsStChan, 0, 0),
-                    casacore::IPosition(3, itsNChanOut, 1, itsNBlOut)))));
-    }
     BOOST_CHECK(casacore::near(buf.getTime(), itsCount * 5. + 2));
     BOOST_CHECK(casacore::near(buf.getExposure(), 0.1 * (itsCount + 1)));
     ++itsCount;

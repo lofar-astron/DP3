@@ -19,12 +19,11 @@ class Fields {
    * Values for specifying a single need.
    */
   enum class Single {
-    kData,          ///< Is the visibility data needed?
-    kFlags,         ///< Are the flags needed?
-    kWeights,       ///< Are the weights needed?
-    kFullResFlags,  ///< Are the full res flags needed?
-    kUvw,           ///< Are the uvw needed?
-    kCount          ///< Number of need values. Must be last.
+    kData,     ///< Is the visibility data needed?
+    kFlags,    ///< Are the flags needed?
+    kWeights,  ///< Are the weights needed?
+    kUvw,      ///< Are the uvw needed?
+    kCount     ///< Number of fields. Must be last.
   };
 
   /**
@@ -58,13 +57,6 @@ class Fields {
    */
   constexpr bool Weights() const {
     return value_[static_cast<int>(Single::kWeights)];
-  }
-
-  /**
-   * @return True if full res flags are needed, false if not.
-   */
-  constexpr bool FullResFlags() const {
-    return value_[static_cast<int>(Single::kFullResFlags)];
   }
 
   /**

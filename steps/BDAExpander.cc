@@ -263,13 +263,10 @@ BDAExpander::RegularBufferElement::RegularBufferElement(
   casacore::Cube<casacore::Complex> data(n_corr, n_chan, n_baseline, 0.0);
   casacore::Cube<bool> flags(data.shape(), false);
   casacore::Cube<float> weights(data.shape(), 0.0);
-  casacore::Cube<bool> full_res_flags(kChannelCounts.size(), 1, n_baseline,
-                                      false);
   casacore::Matrix<double> uvw(3, n_baseline, 0.0);
   regular_buffer.setData(data);
   regular_buffer.setWeights(weights);
   regular_buffer.setFlags(flags);
-  regular_buffer.setFullResFlags(full_res_flags);
   regular_buffer.setUVW(uvw);
   regular_buffer.setTime(current_time);
   regular_buffer.setExposure(current_exposure);

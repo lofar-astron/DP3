@@ -61,7 +61,7 @@ common::Fields Filter::getProvidedFields() const {
   common::Fields fields;
   if (itsStartChanStr != "0" || itsNrChanStr != "0" || itsRemoveAnt ||
       itsBaselines.hasSelection()) {
-    fields |= kDataField | kFlagsField | kWeightsField | kFullResFlagsField;
+    fields |= kDataField | kFlagsField | kWeightsField;
 
     if (itsRemoveAnt || itsBaselines.hasSelection()) {
       fields |= kUvwField;
@@ -159,22 +159,11 @@ bool Filter::process(const DPBuffer& buf) {
   const casacore::Array<bool>& flags = buf.GetCasacoreFlags();
   const casacore::Array<float>& weights = buf.GetCasacoreWeights();
   const casacore::Array<double>& uvws = buf.GetCasacoreUvw();
-  const casacore::Array<bool>& frFlags = buf.GetCasacoreFullResFlags();
-  // Size fullResFlags if not done yet.
-  int frfAvg = frFlags.shape()[0] / data.shape()[1];
-  if (itsBuf.GetCasacoreFullResFlags().empty()) {
-    itsBuf.ResizeFullResFlags(getInfo().nbaselines(), frFlags.shape()[1],
-                              getInfo().nchan() * frfAvg);
-  }
   // Form the blc and trc for the channel selection.
   IPosition first(3, 0);
   IPosition last(data.shape() - 1);
   first[1] = itsStartChan;
   last[1] = itsStartChan + getInfo().nchan() - 1;
-  IPosition frfFirst(3, 0);
-  IPosition frfLast(frFlags.shape() - 1);
-  frfFirst[0] = first[1] * frfAvg;
-  frfLast[0] = (last[1] + 1) * frfAvg - 1;
   // Copy the data into the output buffer.
   if (itsSelBL.empty()) {
     // No baseline selection; copy all data for given channels to
@@ -183,9 +172,7 @@ bool Filter::process(const DPBuffer& buf) {
     itsBuf.GetCasacoreData().assign(data(first, last));
     itsBuf.GetCasacoreFlags().assign(flags(first, last));
     itsBuf.GetCasacoreWeights().assign(weights(first, last));
-    itsBuf.GetCasacoreFullResFlags().assign(frFlags(frfFirst, frfLast));
-    itsBuf.MakeIndependent(kDataField | kFlagsField | kWeightsField |
-                           kFullResFlagsField);
+    itsBuf.MakeIndependent(kDataField | kFlagsField | kWeightsField);
     itsBuf.setUVW(buf.GetCasacoreUvw());
     itsBuf.setRowNrs(buf.getRowNrs());
   } else {
@@ -198,7 +185,6 @@ bool Filter::process(const DPBuffer& buf) {
     bool* toFlag = itsBuf.GetFlags().data();
     float* toWeight = itsBuf.GetWeights().data();
     double* toUVW = itsBuf.GetUvw().data();
-    bool* toFrf = itsBuf.GetFullResFlags().data();
     size_t off = data.shape()[0] * first[1];  // offset of first channel
     const casacore::Complex* frData = data.data() + off;
     const bool* frFlag = flags.data() + off;
@@ -207,8 +193,6 @@ bool Filter::process(const DPBuffer& buf) {
     int ndfr = data.shape()[0] * data.shape()[1];
     int ndto = itsBuf.GetCasacoreData().shape()[0] *
                itsBuf.GetCasacoreData().shape()[1];
-    int nffr = frFlags.shape()[0];
-    int nfto = itsBuf.GetCasacoreFullResFlags().shape()[0];
     for (size_t i = 0; i < itsSelBL.size(); ++i) {
       if (!buf.getRowNrs().empty()) {
         rowNrs[i] = buf.getRowNrs()[itsSelBL[i]];
@@ -221,14 +205,6 @@ bool Filter::process(const DPBuffer& buf) {
       toWeight += ndto;
       casacore::objcopy(toUVW, frUVW + itsSelBL[i] * 3, 3);
       toUVW += 3;
-      // Copy FullResFlags for all times.
-      const bool* frFrf = (frFlags.data() + frfFirst[0] +
-                           itsSelBL[i] * nffr * frFlags.shape()[1]);
-      for (size_t j = 0; j <= size_t(frfLast[1]); ++j) {
-        casacore::objcopy(toFrf, frFrf, nfto);
-        toFrf += nfto;
-        frFrf += nffr;
-      }
     }
     itsBuf.setRowNrs(rowNrs);
   }

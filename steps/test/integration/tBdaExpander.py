@@ -103,13 +103,12 @@ def test_bdaaverager_ddecal_bdaexpander(create_skymodel):
             tcf.DP3EXE,
             "checkparset=true",
             f"msin={MSIN_REGULAR}",
-            "msout=out.MS",  # works with "msout=." OR "msout.writefullresflag=false" -> documented
+            "msout=out.MS",
             "msout.overwrite=true",
             "steps=[bdaaverager, ddecal, bdaexpander]",
             "ddecal.onlypredict=true",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
             "ddecal.sourcedb=test.sourcedb",
-            "msout.writefullresflag=false",
         ]
     )
 
@@ -125,7 +124,6 @@ def test_bdaexpander_ddecal(create_skymodel):
             "steps=[bdaexpander, ddecal]",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
             "ddecal.sourcedb=test.sourcedb",
-            "msout.writefullresflag=false",
         ]
     )
 

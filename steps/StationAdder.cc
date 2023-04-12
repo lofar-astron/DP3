@@ -287,12 +287,6 @@ bool StationAdder::process(const DPBuffer& buf) {
   const casacore::Array<bool>& flags = buf.GetCasacoreFlags();
   const casacore::Array<float>& weights = buf.GetCasacoreWeights();
   const casacore::Array<double>& uvws = buf.GetCasacoreUvw();
-  const casacore::Array<bool>& frFlags = buf.GetCasacoreFullResFlags();
-  // Size fullResFlags if not done yet.
-  if (itsBuf.GetCasacoreFullResFlags().empty()) {
-    itsBuf.ResizeFullResFlags(getInfo().nbaselines(), frFlags.shape()[1],
-                              frFlags.shape()[0]);
-  }
   // Copy the data; only the first baselines will be filled.
   std::copy(data.data(), data.data() + data.size(), itsBuf.GetData().data());
   std::copy(flags.data(), flags.data() + flags.size(),
@@ -300,17 +294,13 @@ bool StationAdder::process(const DPBuffer& buf) {
   std::copy(weights.data(), weights.data() + weights.size(),
             itsBuf.GetWeights().data());
   std::copy(uvws.data(), uvws.data() + uvws.size(), itsBuf.GetUvw().data());
-  std::copy(frFlags.data(), frFlags.data() + frFlags.size(),
-            itsBuf.GetFullResFlags().data());
   // Now calculate the data pointers of the new baselines.
   unsigned int nrOldBL = data.shape()[2];
   unsigned int nrcc = data.shape()[0] * data.shape()[1];
-  unsigned int nrfr = frFlags.shape()[0] * frFlags.shape()[1];
   casacore::Complex* dataPtr = itsBuf.GetData().data() + data.size();
   bool* flagPtr = itsBuf.GetFlags().data() + data.size();
   float* wghtPtr = itsBuf.GetWeights().data() + data.size();
   double* uvwPtr = itsBuf.GetUvw().data() + uvws.size();
-  bool* frfPtr = itsBuf.GetFullResFlags().data() + frFlags.size();
   std::vector<unsigned int> npoints(nrcc);
   std::vector<casacore::Complex> dataFlg(nrcc);
   std::vector<float> wghtFlg(nrcc);
@@ -323,9 +313,6 @@ bool StationAdder::process(const DPBuffer& buf) {
       npoints[k] = 0;
       dataFlg[k] = casacore::Complex();
       wghtFlg[k] = 0.;
-    }
-    for (unsigned int k = 0; k < nrfr; ++k) {
-      frfPtr[k] = true;
     }
 
     for (unsigned int k = 0; k < 3; ++k) {
@@ -349,7 +336,6 @@ bool StationAdder::process(const DPBuffer& buf) {
           (itsBuf.GetData().data() + blnr * nrcc);
       const bool* inFlagPtr = (itsBuf.GetFlags().data() + blnr * nrcc);
       const float* inWghtPtr = (itsBuf.GetWeights().data() + blnr * nrcc);
-      const bool* inFrfPtr = (itsBuf.GetFullResFlags().data() + blnr * nrfr);
       const double* inUvwPtr = (itsBuf.GetUvw().data() + blnr * 3);
       // Add the data, uvw, and weights if not flagged.
       // Write 4 loops to avoid having to test inside the loop.
@@ -420,11 +406,6 @@ bool StationAdder::process(const DPBuffer& buf) {
           }
         }
       }
-      // It is a bit hard to say what to do with FULL_RES_FLAGS.
-      // Set it to true (=flagged) if the flag of all baselines is true.
-      for (unsigned int k = 0; k < nrfr; ++k) {
-        frfPtr[k] = frfPtr[k] && inFrfPtr[k];
-      }
     }
     // Set the resulting flags. Average if needed.
     // Set flag if too few unflagged data points; use flagged data too.
@@ -459,7 +440,6 @@ bool StationAdder::process(const DPBuffer& buf) {
     flagPtr += nrcc;
     wghtPtr += nrcc;
     uvwPtr += 3;
-    frfPtr += nrfr;
   }
   itsBuf.setTime(buf.getTime());
   itsBuf.setExposure(buf.getExposure());

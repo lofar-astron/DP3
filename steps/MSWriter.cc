@@ -84,7 +84,6 @@ MSWriter::MSWriter(const std::string& out_name,
       overwrite_(parset.getBool(prefix + "overwrite", false)),
       copy_corr_data_(parset.getBool(prefix + "copycorrecteddata", false)),
       copy_model_data_(parset.getBool(prefix + "copymodeldata", false)),
-      write_full_res_flags_(parset.getBool(prefix + "writefullresflag", true)),
       // Get tile size (default 1024 KBytes).
       tile_size_(parset.getUint(prefix + "tilesize", 1024)),
       tile_n_chan_(parset.getUint(prefix + "tilenchan", 0)),
@@ -222,9 +221,6 @@ void MSWriter::FinishMs() {
 
 void MSWriter::updateInfo(const DPInfo& info_in) {
   OutputStep::updateInfo(info_in);
-  // Input can already be averaged, so take that into account.
-  n_chan_avg_ = info_in.nAveragedFullResolutionChannels() * info_in.nchanAvg();
-  n_time_avg_ = info_in.nAveragedFullResolutionTimes() * info_in.ntimeAvg();
   if (tile_n_chan_ <= 0 || tile_n_chan_ > info_in.nchan()) {
     tile_n_chan_ = info_in.nchan();
   }
@@ -433,19 +429,6 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   TiledColumnStMan tsmf("TiledFlag", tile_shape_f);
   MakeArrayColumn(tdesc["FLAG"], data_shape, &tsmf, ms_);
 
-  if (write_full_res_flags_) {
-    // Add LOFAR_FULL_RES_FLAG column using tsm.
-    // The input can already be averaged and averaging can be done in
-    // this run, so the full resolution is the combination of both.
-    unsigned int orignchan = getInfo().nchan() * n_chan_avg_;
-    IPosition data_shape_f(2, (orignchan + 7) / 8, n_time_avg_);
-    IPosition tile_shape_f(3, (orignchan + 7) / 8, 1024, tile_shape[2]);
-    TiledColumnStMan tsmf("TiledFullResFlag", tile_shape_f);
-    ArrayColumnDesc<unsigned char> padesc("LOFAR_FULL_RES_FLAG",
-                                          "flags in original full resolution",
-                                          data_shape_f, ColumnDesc::FixedShape);
-    MakeArrayColumn(padesc, data_shape_f, &tsmf, ms_);
-  }
   if (st_man_keys_.stManName == "dysco" &&
       st_man_keys_.dyscoWeightBitRate != 0) {
     // Add WEIGHT_SPECTRUM column using Dysco stman.
@@ -726,59 +709,11 @@ void MSWriter::WriteData(Table& out, DPBuffer& buf) {
   ScalarColumn<bool> flag_row_col(out, "FLAG_ROW");
   flag_row_col.putColumn(row_flags);
 
-  if (write_full_res_flags_) {
-    WriteFullResFlags(out, buf);
-  }
-
   // Write UVW
   ArrayColumn<double> uvw_col(out, "UVW");
   const casacore::IPosition shape_uvw(2, 3, getInfo().nbaselines());
   const Matrix<double> uvws(shape_uvw, buf.GetUvw().data(), casacore::SHARE);
   uvw_col.putColumn(uvws);
-}
-
-void MSWriter::WriteFullResFlags(Table& out, const DPBuffer& buf) {
-  const aocommon::xt::Span<bool, 3>& flags = buf.GetFullResFlags();
-  if (flags.shape(2) != n_chan_avg_ * getInfo().nchan()) {
-    throw std::runtime_error(
-        "Full Res Flags channel count " + std::to_string(flags.shape(2)) +
-        " does not equal " + std::to_string(n_chan_avg_) + "*" +
-        std::to_string(getInfo().nchan()) +
-        ".\nTry setting \"msout.writefullresflag=false\" in input parset");
-  }
-  if (flags.shape(1) != n_time_avg_) {
-    throw std::runtime_error(
-        "Full Res Flags time averaging " + std::to_string(flags.shape(1)) +
-        " does not equal " + std::to_string(n_time_avg_) +
-        ".\nTry setting \"msout.writefullresflag=false\" in input parset");
-  }
-
-  // Convert the booleans to unsigned char where each bit represents a boolean.
-  // Casacore expects the dimensions in reverse order wrt. the dimensions in
-  // 'flags'.
-  const size_t kFlagsPerChar = 8;  // An unsigned char has 8 bits.
-  const IPosition char_shape(3, (flags.shape(2) + 7) / 8, flags.shape(1),
-                             flags.shape(0));
-  Cube<unsigned char> chars(char_shape);
-  // If their sizes match, do it all in one go.
-  // Otherwise we have to iterate.
-  if (flags.shape(2) == char_shape[0] * kFlagsPerChar) {
-    casacore::Conversion::boolToBit(chars.data(), flags.data(), flags.size());
-  } else {
-    const bool* flags_ptr = flags.data();
-    unsigned char* chars_ptr = chars.data();
-    for (size_t i = 0; i < flags.shape(1) * flags.shape(0); ++i) {
-      casacore::Conversion::boolToBit(chars_ptr, flags_ptr, flags.shape(2));
-      flags_ptr += flags.shape(2);
-      chars_ptr += char_shape[0];
-    }
-  }
-  ArrayColumn<unsigned char> full_res_col(out, "LOFAR_FULL_RES_FLAG");
-  if (!full_res_col.keywordSet().isDefined("NCHAN_AVG")) {
-    full_res_col.rwKeywordSet().define("NCHAN_AVG", int(n_chan_avg_));
-    full_res_col.rwKeywordSet().define("NTIME_AVG", int(n_time_avg_));
-  }
-  full_res_col.putColumn(chars);
 }
 
 void MSWriter::WriteMeta(Table& out, const DPBuffer& buf) {

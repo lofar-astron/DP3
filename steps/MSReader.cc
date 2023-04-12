@@ -292,7 +292,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Data()) {
     buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
   }
-  if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
+  if (getFieldsToRead().Flags()) {
     buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
   }
   {
@@ -372,7 +372,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
             dataCol.getColumn(itsColSlicer, casa_data);
           }
         }
-        if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
+        if (getFieldsToRead().Flags()) {
           if (itsUseFlags) {
             ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
             casacore::Cube<bool> casa_flags(
@@ -415,7 +415,6 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Uvw())
     getUVW(buffer->getRowNrs(), buffer->getTime(), *buffer);
   if (getFieldsToRead().Weights()) getWeights(buffer->getRowNrs(), *buffer);
-  if (getFieldsToRead().FullResFlags()) FillFullResFlags(*buffer);
 
   getNextStep()->process(std::move(buffer));
   // Do not add to previous time, because it introduces round-off errors.
@@ -555,15 +554,6 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
                                " is missing in " + msName());
     }
   }
-
-  // Test if the full resolution flags are present.
-  itsHasFullResFlags = tdesc.isColumn("LOFAR_FULL_RES_FLAG");
-  if (itsHasFullResFlags) {
-    TableColumn fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-    info().setFullResolutionAveragingFactors(
-        fullResFlagCol.keywordSet().asInt("NCHAN_AVG"),
-        fullResFlagCol.keywordSet().asInt("NTIME_AVG"));
-  }  // else keep the default setting of 1 for the averaging factors.
 
   // Get the main table in the correct order.
   // Determine if the data are stored using LofarStMan.
@@ -852,81 +842,6 @@ void MSReader::autoWeight(DPBuffer& buf) {
       }
     }
   }
-}
-
-void MSReader::FillFullResFlags(DPBuffer& buffer) {
-  bool column_found = getFullResFlags(buffer.getRowNrs(), buffer);
-  aocommon::xt::Span<bool, 3>& full_resolution_flags = buffer.GetFullResFlags();
-  if (!column_found) {
-    // No fullRes flags in input; form them from the flags in the buffer.
-    // Only use the XX polarization for the flags; no averaging done, thus
-    // navgtime=1. (If any averaging was done, the flags would be in the
-    // buffer).
-    const std::array<size_t, 3>& flags_shape = buffer.GetFlags().shape();
-    // The flags have shape (itsNrBl, itsNrChan, itsNrCorr);
-    // The full res flags initialized in the getFullResFlags function (when the
-    // column is not found) have shape (itsNrBl, 1, itsNrChan) If the shapes do
-    // not match, there is an error.
-    if (full_resolution_flags.shape(0) != flags_shape[0] ||
-        full_resolution_flags.shape(1) != 1 ||
-        full_resolution_flags.shape(2) != flags_shape[1]) {
-      throw std::runtime_error("Invalid shape of full res flags");
-    }
-    // Only copy XX by using the number of polarizations as stride.
-    casacore::objcopy(full_resolution_flags.data(), buffer.GetFlags().data(),
-                      full_resolution_flags.size(), 1, flags_shape[2]);
-  }
-}
-
-bool MSReader::getFullResFlags(const RefRows& rowNrs, DPBuffer& buf) {
-  common::NSTimer::StartStop sstime(itsTimer);
-  int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
-  // Resize if needed (probably when called for first time).
-  if (buf.GetFullResFlags().size() == 0) {
-    buf.ResizeFullResFlags(itsNrBl, getInfo().nAveragedFullResolutionTimes(),
-                           norigchan);
-  }
-  aocommon::xt::Span<bool, 3>& flags = buf.GetFullResFlags();
-  // Return false if no fullRes flags available.
-  if (!itsHasFullResFlags) {
-    flags.fill(false);
-    return false;
-  }
-  // Flag everything if data rows are missing.
-  if (rowNrs.rowVector().empty()) {
-    flags.fill(true);
-    return true;
-  }
-  ArrayColumn<unsigned char> fullResFlagCol(itsMS, "LOFAR_FULL_RES_FLAG");
-  int origstart = itsStartChan * getInfo().nAveragedFullResolutionChannels();
-  casacore::Array<unsigned char> chars = fullResFlagCol.getColumnCells(rowNrs);
-  // The original flags are kept per channel, not per corr.
-  // Per row the flags are stored as unsigned char[nchar,navgtime].
-  // Each char contains a bit per channel, thus nchan/8 chars are needed.
-  // ntimeavg is the nr of times used when averaging.
-  // Return it as Cube<bool>[norigchan,ntimeavg,nrbl].
-  IPosition chShape = chars.shape();
-  if (chShape[1] != getInfo().nAveragedFullResolutionTimes() ||
-      chShape[2] != itsNrBl)
-    throw std::runtime_error("Incorrect shape of LOFAR_FULL_RES_FLAG column");
-  // Now expand the bits to bools.
-  // If all bits to convert are contiguous, do it all in one go.
-  // Otherwise we have to iterate.
-  if (norigchan == chShape[0] * 8) {
-    casacore::Conversion::bitToBool(flags.data(), chars.data(), flags.size());
-  } else {
-    if (norigchan > chShape[0] * 8)
-      throw std::runtime_error(
-          "Shape of LOFAR_FULL_RES_FLAG column is inconsistent");
-    const unsigned char* charsPtr = chars.data();
-    bool* flagsPtr = flags.data();
-    for (int i = 0; i < chShape[1] * chShape[2]; ++i) {
-      casacore::Conversion::bitToBool(flagsPtr, charsPtr, origstart, norigchan);
-      flagsPtr += norigchan;
-      charsPtr += chShape[0];
-    }
-  }
-  return true;
 }
 
 }  // namespace steps

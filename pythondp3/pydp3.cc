@@ -259,7 +259,6 @@ PYBIND11_MODULE(pydp3, m) {
       .def_property_readonly("flags", &Fields::Flags)
       .def_property_readonly("uvw", &Fields::Uvw)
       .def_property_readonly("weights", &Fields::Weights)
-      .def_property_readonly("fullresflags", &Fields::FullResFlags)
       .def(
           "update_requirements",
           [](Fields &self, const Fields &a, const Fields &b) {
@@ -285,7 +284,6 @@ PYBIND11_MODULE(pydp3, m) {
   fields_enum.value("DATA", Fields::Single::kData)
       .value("FLAGS", Fields::Single::kFlags)
       .value("WEIGHTS", Fields::Single::kWeights)
-      .value("FULLRESFLAGS", Fields::Single::kFullResFlags)
       .value("UVW", Fields::Single::kUvw);
 
   // Custom export_values(), adaptation of the export_values() function in

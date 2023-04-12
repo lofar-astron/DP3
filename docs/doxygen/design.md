@@ -7,7 +7,7 @@ e.g. freshly correlated data. It was developed for the LOFAR
 telescope, and is used for preprocessing its imaging pipelines.
 DP3 user documentation is found at the [Read The Docs page](../index.html).
 
-For avoiding high memory usage, DP3 reads the input data in chunks instead of reading all input data at once. 
+For avoiding high memory usage, DP3 reads the input data in chunks instead of reading all input data at once.
 For each chunk, it calls all the steps to do the processing on this data. The last step will then
 write out the processed data.
 
@@ -16,7 +16,7 @@ write out the processed data.
 DP3 runs a pipeline in clearly defined stages, to make spotting
 errors as easy as possible.
 * **Initialise** This connects all the processing steps together in a linked list data structure. This stage is data independent.
-* **Get fields to read** At this stage the fields required by each step (data, flags, weights, uvw, full resolution flags) are combined, to get the information on what to read from the measurement set.
+* **Get fields to read** At this stage the fields required by each step (data, flags, weights, uvw) are combined, to get the information on what to read from the measurement set.
 * **Tune At** This stage reads metadata, such as the number of channels, and adjusts the steps accordingly.
 * **Process** This stage pipes the data through the steps, one buffer at a time. The steps define the buffer size.
 
@@ -40,14 +40,14 @@ For regular MSs the following conditions hold:
 
 ## Built-in steps
 DP3 contains built-in steps that are linked together in a linked list, where each step processes one time slot at a time. This way, DP3 is suitable for large measurement sets.
-All the built-in steps derive from the [Step](@ref dp3::steps::Step) class. 
+All the built-in steps derive from the [Step](@ref dp3::steps::Step) class.
 Its inheritance diagram shows all step types, including the built-in steps.
 
 [DPRun](@ref dp3::base::DPRun) initialises and orchestrates the configured steps.
 It begins with setting the required info for the first step and its next step(s).
 Next, each buffer (containing a single time slot) is processed by the first step.
 When processed, it invokes the process function of the next step.
-Once all buffers are processed, DP3 calls the `finish` function of the first step and subsequent steps. 
+Once all buffers are processed, DP3 calls the `finish` function of the first step and subsequent steps.
 This function flushes all remaining data from the steps to their output channel(s).
 Finally, DP3 calls the `addToMS` function on each step for updating the metadata of the MS.
 The figure below gives a graphical overview of the [Step](@ref dp3::steps::Step) flow.
@@ -65,14 +65,14 @@ be defined, following the existing interface description.
 Recompiling DP3 is not necessary: steps are found as shared
 libraries.
 
-A special custom step is the [Python step](@ref dp3::pythondp3::PyStep), which uses a step defined in a Python module. 
+A special custom step is the [Python step](@ref dp3::pythondp3::PyStep), which uses a step defined in a Python module.
 This should make it easy to implement custom steps even for non C++-wizards. An
 example Python step is included in DP3.
 
 ## Example reduction
 Arguments are given to DP3 as a 'parameter set' or 'parset', a simple
 key-value format. Optionally, parameters can be overridden
-on the command line. The example also shows that you can 
+on the command line. The example also shows that you can
 use the out step to store intermediate results.
 
     msin = [bla.MS, bla2.MS]
@@ -96,5 +96,5 @@ use the out step to store intermediate results.
     avg2.type = average
     avg2.timestep = 2 # average down some more
     avg2.freqstep = 16
-    
+
     msout = bla_combined.MS

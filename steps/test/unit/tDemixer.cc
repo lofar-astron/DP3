@@ -67,11 +67,6 @@ class TestInput : public dp3::steps::MockInput {
     casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags(flags);
-    // The fullRes flags are a copy of the XX flags, but differently shaped.
-    // They are not averaged, thus only 1 time per row.
-    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = itsFlag;
-    buf.setFullResFlags(fullResFlags);
     casacore::Matrix<double> uvw(3, itsNBl);
     indgen(uvw, double(itsCount * 100));
     buf.setUVW(uvw);
@@ -113,8 +108,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     // Fill expected result in similar way as TestInput.
     casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
     casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    casacore::Cube<bool> fullResFlags(itsNChan, itsNAvgTime, itsNBl);
-    fullResFlags = true;  // takes care of missing times at the end
     weights = 0;
     if (!itsFlag) {
       for (int j = itsCount * itsNAvgTime;
@@ -124,9 +117,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
           weights.data()[i] += float(1);
         }
       }
-      fullResFlags(casacore::Slicer(
-          casacore::IPosition(3, 0, 0, 0),
-          casacore::IPosition(3, itsNChan, navgtime, itsNBl))) = itsFlag;
     }
     casacore::Cube<casacore::Complex> result(itsNCorr, nchan, itsNBl);
     casacore::Cube<float> resultw(itsNCorr, nchan, itsNBl);
@@ -158,7 +148,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       indgen(uvw, 100 * (itsCount * itsNAvgTime + 0.5 * (itsNAvgTime - 1)));
       BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), fullResFlags));
     ++itsCount;
     return true;
   }

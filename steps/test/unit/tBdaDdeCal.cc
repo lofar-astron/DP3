@@ -227,8 +227,7 @@ BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {
   auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(parset, "");
 
   const dp3::common::Fields kExpectedFields =
-      Step::kFlagsField | Step::kWeightsField | Step::kFullResFlagsField |
-      Step::kUvwField;
+      Step::kFlagsField | Step::kWeightsField | Step::kUvwField;
   BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
 }
 

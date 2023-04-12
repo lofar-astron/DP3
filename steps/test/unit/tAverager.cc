@@ -68,11 +68,6 @@ class TestInput : public dp3::steps::MockInput {
     buffer->ResizeFlags(itsNBl, itsNChan, itsNCorr);
     buffer->GetFlags().fill(itsFlag);
 
-    // The fullRes flags are a copy of the XX flags, but differently shaped.
-    // They are not averaged, thus only 1 time per row.
-    buffer->ResizeFullResFlags(itsNBl, 1, itsNChan);
-    buffer->GetFullResFlags().fill(itsFlag);
-
     buffer->ResizeUvw(itsNBl);
     xt::flatten(buffer->GetUvw()) =
         (itsCount * 100) + xt::arange(buffer->GetUvw().size());
@@ -127,8 +122,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     std::array<size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
     xt::xtensor<std::complex<float>, 3> data(shape, 0.0f);
     xt::xtensor<float, 3> weights(shape, 0.0f);
-    // The 'true' value takes care of missing times at the end.
-    xt::xtensor<bool, 3> full_res_flags({itsNBl, itsNAvgTime, itsNChan}, true);
     for (size_t j = itsCount * itsNAvgTime;
          j < itsCount * itsNAvgTime + navgtime; ++j) {
       for (size_t i = 0; i < data.size(); ++i) {
@@ -136,8 +129,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
             std::complex<float>(i + j * 10, int(i) - 1000 + int(j) * 6);
         weights.data()[i] += 1.0f;
       }
-      xt::view(full_res_flags, xt::all(), xt::range(0, navgtime), xt::all())
-          .fill(itsFlag);
     }
     shape[1] = nchan;
     xt::xtensor<std::complex<float>, 3> result_data(shape, 0.0f);
@@ -175,7 +166,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
           xt::arange(itsNBl * 3).reshape({itsNBl, 3});
       BOOST_CHECK(xt::allclose(buffer->GetUvw(), uvw));
     }
-    BOOST_CHECK(buffer->GetFullResFlags() == full_res_flags);
 
     ++itsCount;
     return true;
@@ -220,7 +210,6 @@ class TestInput3 : public dp3::steps::MockInput {
     buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
     buffer->ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
     buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
-    buffer->ResizeFullResFlags(itsNrBl, 1, itsNrChan);
     int i = 0;
     for (int bl = 0; bl < itsNrBl; ++bl) {
       for (int ch = 0; ch < itsNrChan; ++ch) {
@@ -233,8 +222,6 @@ class TestInput3 : public dp3::steps::MockInput {
               ((itsCount + 2 * bl + 3 * ch) % 7 == 0);
           i++;
         }
-        buffer->GetFullResFlags()(bl, 0, ch) =
-            ((itsCount + 2 * bl + 3 * ch) % 7 == 0);
       }
     }
     buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
@@ -284,7 +271,6 @@ class TestOutput3 : public dp3::steps::test::ThrowStep {
     xt::xtensor<std::complex<float>, 3> result({itsNrBl, 1, itsNrCorr}, 0.0f);
     xt::xtensor<float, 3> weights({itsNrBl, 1, itsNrCorr}, 0.0f);
     xt::xtensor<bool, 3> flags({itsNrBl, 1, itsNrCorr}, true);
-    xt::xtensor<bool, 3> fullResFlags({itsNrBl, itsNrTime, itsNrChan}, true);
     // Create data in the same way as in TestInput3.
     for (size_t time = 0; time < itsNrTime; ++time) {
       int i = 0;
@@ -298,7 +284,6 @@ class TestOutput3 : public dp3::steps::test::ThrowStep {
                   std::complex<float>(i + time * 10, i - 1000 + int(time) * 6);
               weights(bl, 0, corr) += weight;
               flags(bl, 0, corr) = false;
-              fullResFlags(bl, time, ch) = false;
             }
             i++;
           }
@@ -319,7 +304,6 @@ class TestOutput3 : public dp3::steps::test::ThrowStep {
     const xt::xtensor<double, 2> uvw =
         xt::arange(itsNrBl * 3).reshape({itsNrBl, 3});
     BOOST_CHECK(xt::allclose(buffer->GetUvw(), uvw));
-    BOOST_CHECK(buffer->GetFullResFlags() == fullResFlags);
     return true;
   }
 
@@ -386,7 +370,6 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
     xt::xtensor<std::complex<float>, 3> result({itsNrBl, 1, itsNrCorr}, 0.0f);
     xt::xtensor<float, 3> weights({itsNrBl, 1, itsNrCorr}, 0.0f);
     xt::xtensor<bool, 3> flags({itsNrBl, 1, itsNrCorr}, true);
-    xt::xtensor<bool, 3> fullResFlags({itsNrBl, itsNrTime, itsNrChan}, true);
     // Create data in the same way as in TestInput3.
     for (size_t time = 0; time < itsNrTime; ++time) {
       int i = 0;
@@ -405,7 +388,6 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
                                                  i - 1000 + int(time) * 6);
                 weights(bl, 0, corr) += weight;
                 flags(bl, 0, corr) = false;
-                fullResFlags(bl, time, ch) = false;
               }
               i++;
             }
@@ -428,7 +410,6 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
     const xt::xtensor<double, 2> uvw =
         xt::arange(itsNrBl * 3).reshape({itsNrBl, 3});
     BOOST_CHECK(xt::allclose(buffer->GetUvw(), uvw));
-    BOOST_CHECK(buffer->GetFullResFlags() == fullResFlags);
     return true;
   }
 
@@ -527,23 +508,18 @@ void test3(int nrbl, int nrcorr) {
   }
 }
 
-// Do tests with averaging and flagging steps to see if the flags are
-// promoted to the FULLRES flags.
-void test4(int nrbl, int nrcorr, int flagstep) {
-  {
-    // Create the steps.
-    auto step1 = std::make_shared<TestInput3>(4, nrbl, 8, nrcorr);
-    ParameterSet parset1, parset2;
-    parset1.add("freqstep", "2");
-    parset1.add("timestep", "2");
-    parset2.add("freqstep", "4");
-    parset2.add("timestep", "2");
-    auto step2a = std::make_shared<Averager>(parset1, "");
-    auto step2b = std::make_shared<TestFlagger>(flagstep);
-    auto step2c = std::make_shared<Averager>(parset2, "");
-    auto step3 = std::make_shared<TestOutput4>(4, nrbl, 8, nrcorr, flagstep);
-    dp3::steps::test::Execute({step1, step2a, step2b, step2c, step3});
-  }
+void TestAveragingAndFlagging(int nrbl, int nrcorr, int flagstep) {
+  auto step1 = std::make_shared<TestInput3>(4, nrbl, 8, nrcorr);
+  ParameterSet parset1, parset2;
+  parset1.add("freqstep", "2");
+  parset1.add("timestep", "2");
+  parset2.add("freqstep", "4");
+  parset2.add("timestep", "2");
+  auto step2a = std::make_shared<Averager>(parset1, "");
+  auto step2b = std::make_shared<TestFlagger>(flagstep);
+  auto step2c = std::make_shared<Averager>(parset2, "");
+  auto step3 = std::make_shared<TestOutput4>(4, nrbl, 8, nrcorr, flagstep);
+  dp3::steps::test::Execute({step1, step2a, step2b, step2c, step3});
 }
 
 BOOST_AUTO_TEST_CASE(testaverager1) { test1(10, 3, 32, 4, 2, 4, false); }
@@ -551,6 +527,7 @@ BOOST_AUTO_TEST_CASE(testaverager1) { test1(10, 3, 32, 4, 2, 4, false); }
 BOOST_AUTO_TEST_CASE(testaverager2) { test1(10, 3, 30, 1, 3, 3, true); }
 
 BOOST_AUTO_TEST_CASE(testaverager3) { test1(10, 3, 30, 1, 3, 3, false); }
+
 BOOST_AUTO_TEST_CASE(testaverager4) { test1(11, 3, 30, 2, 3, 3, false); }
 
 BOOST_AUTO_TEST_CASE(testaverager5) { test1(10, 3, 32, 4, 1, 32, false); }
@@ -565,9 +542,9 @@ BOOST_AUTO_TEST_CASE(testaverager9) { test3(1, 1); }
 
 BOOST_AUTO_TEST_CASE(testaverager10) { test3(10, 4); }
 
-BOOST_AUTO_TEST_CASE(testaverager11) { test4(1, 4, 3); }
+BOOST_AUTO_TEST_CASE(testaverager11) { TestAveragingAndFlagging(1, 4, 3); }
 
-BOOST_AUTO_TEST_CASE(testaverager12) { test4(20, 4, 5); }
+BOOST_AUTO_TEST_CASE(testaverager12) { TestAveragingAndFlagging(20, 4, 5); }
 
 BOOST_AUTO_TEST_CASE(testresolution1) {
   test1resolution(10, 3, 32, 4, 10., 100000, "Hz", false);

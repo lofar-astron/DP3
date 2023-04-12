@@ -123,9 +123,6 @@ class TestInput : public dp3::steps::MockInput {
     casacore::Cube<bool> flags(data.shape());
     flags = false;
     buf.setFlags(flags);
-    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = false;
-    buf.setFullResFlags(fullResFlags);
     getNextStep()->process(buf);
     ++itsCount;
     return true;
@@ -216,9 +213,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         allEQ(buf.GetCasacoreUvw()(casacore::IPosition(2, 0),
                                    casacore::IPosition(2, 2, itsNBl - 1)),
               uvw));
-    BOOST_CHECK_EQUAL(buf.GetCasacoreFullResFlags().shape(),
-                      casacore::IPosition(3, itsNChan, 1, itsNBl + 2));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
     BOOST_CHECK(allNear(
@@ -374,9 +368,6 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
         allEQ(buf.GetCasacoreUvw()(casacore::IPosition(2, 0),
                                    casacore::IPosition(2, 2, itsNBl - 1)),
               uvw));
-    BOOST_CHECK_EQUAL(buf.GetCasacoreFullResFlags().shape(),
-                      casacore::IPosition(3, itsNChan, 1, itsNBl + 5));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), false));
     // Now check data of new baselines.
     end[2] = itsNBl;
     BOOST_CHECK(allNear(

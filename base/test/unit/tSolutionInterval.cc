@@ -21,7 +21,6 @@ const int kNChan = 1;
 DPBuffer InitBuffer() {
   DPBuffer buffer;
 
-  // Set uvw
   casacore::Matrix<double> uvw(3, kNBL);
   for (int i = 0; i < kNBL; ++i) {
     uvw(0, i) = i * kNBL + 1;
@@ -30,7 +29,6 @@ DPBuffer InitBuffer() {
   }
   buffer.setUVW(uvw);
 
-  // Set data
   casacore::Cube<casacore::Complex> data(kNCorr, kNChan, kNBL);
   for (int i = 0; i < int(data.size()); ++i) {
     data.data()[i] =
@@ -38,19 +36,12 @@ DPBuffer InitBuffer() {
   }
   buffer.setData(data);
 
-  // // Set flags
   casacore::Cube<bool> flags(data.shape());
   flags = false;
   buffer.setFlags(flags);
 
-  // // Set FullResFlags
-  casacore::Cube<bool> fullResFlags(kNChan, 1, kNBL);
-  fullResFlags = false;
-  buffer.setFullResFlags(fullResFlags);
-
-  // Set weights
   casacore::Cube<float> weights(kNCorr, kNChan, kNBL);
-  weights = 1.;
+  weights = 1.0f;
   buffer.setWeights(weights);
 
   return buffer;
@@ -78,8 +69,6 @@ BOOST_AUTO_TEST_CASE(insertion) {
              buffer.GetCasacoreData().tovector());
   BOOST_TEST(solInt[0].GetCasacoreFlags().tovector() ==
              buffer.GetCasacoreFlags().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreFullResFlags().tovector() ==
-             buffer.GetCasacoreFullResFlags().tovector());
   BOOST_TEST(solInt[0].GetCasacoreUvw().tovector() ==
              buffer.GetCasacoreUvw().tovector());
   BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==
@@ -114,8 +103,6 @@ BOOST_AUTO_TEST_CASE(copy) {
              buffer.GetCasacoreData().tovector());
   BOOST_TEST(solInt[0].GetCasacoreFlags().tovector() ==
              buffer.GetCasacoreFlags().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreFullResFlags().tovector() ==
-             buffer.GetCasacoreFullResFlags().tovector());
   BOOST_TEST(solInt[0].GetCasacoreUvw().tovector() ==
              buffer.GetCasacoreUvw().tovector());
   BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==

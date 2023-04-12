@@ -104,7 +104,6 @@ void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
   if (fields.Data()) reader_fields |= kDataField;
   if (fields.Flags()) reader_fields |= kFlagsField;
   if (fields.Weights()) reader_fields |= kWeightsField;
-  if (fields.FullResFlags()) reader_fields |= kFullResFlagsField;
   for (std::shared_ptr<MSReader>& reader : itsReaders) {
     if (reader) {
       reader->setFieldsToRead(reader_fields);
@@ -231,7 +230,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Data()) {
     buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
   }
-  if (getFieldsToRead().Flags() || getFieldsToRead().FullResFlags()) {
+  if (getFieldsToRead().Flags()) {
     buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
   }
   // Loop through all readers and get data and flags.
@@ -278,7 +277,6 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
                                  *buffer);
   }
   if (getFieldsToRead().Weights()) getWeights(*buffer);
-  if (getFieldsToRead().FullResFlags()) getFullResolutionFlags(*buffer);
 
   getNextStep()->process(std::move(buffer));
   return true;
@@ -312,7 +310,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   itsNrChan = 0;
   itsFillNChan = getInfo().nchan();
   itsStartChan = itsReaders[itsFirst]->startChan();
-  itsHasFullResFlags = itsReaders[itsFirst]->hasFullResFlags();
   itsBaseRowNrs = itsReaders[itsFirst]->getBaseRowNrs();
   for (std::size_t i = 0; i < itsMSNames.size(); ++i) {
     if (itsReaders[i]) {
@@ -333,14 +330,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
       if (itsNrBl != rdinfo.nbaselines())
         throw std::runtime_error("Number of baselines of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
-      if (getInfo().nAveragedFullResolutionChannels() !=
-          rdinfo.nAveragedFullResolutionChannels())
-        throw std::runtime_error("FullResNChanAvg of MS " + itsMSNames[i] +
-                                 " differs from " + itsMSNames[itsFirst]);
-      if (getInfo().nAveragedFullResolutionTimes() !=
-          rdinfo.nAveragedFullResolutionTimes())
-        throw std::runtime_error("FullResNTimeAvg of MS " + itsMSNames[i] +
-                                 " differs from " + itsMSNames[itsFirst]);
       if (getInfo().antennaSet() != rdinfo.antennaSet())
         throw std::runtime_error("Antenna set of MS " + itsMSNames[i] +
                                  " differs from " + itsMSNames[itsFirst]);
@@ -353,8 +342,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
                                  itsMSNames[i] + " differs from " +
                                  itsMSNames[itsFirst]);
       itsNrChan += rdinfo.nchan();
-      itsHasFullResFlags =
-          (itsHasFullResFlags && itsReaders[i]->hasFullResFlags());
     }
   }
   // Handle the bands and take care of missing MSs.
@@ -433,37 +420,6 @@ void MultiMSReader::getWeights(DPBuffer& buffer) {
       weights(start, end) = float(0);
     }
     start[1] = end[1] + 1;
-  }
-}
-
-void MultiMSReader::getFullResolutionFlags(DPBuffer& buffer) {
-  const RefRows& rowNrs = buffer.getRowNrs();
-  int norigchan = itsNrChan * getInfo().nAveragedFullResolutionChannels();
-  buffer.ResizeFullResFlags(itsNrBl, getInfo().nAveragedFullResolutionTimes(),
-                            norigchan);
-  Cube<bool>& flags = buffer.GetCasacoreFullResFlags();
-  // Return if no fullRes flags available.
-  if (!itsHasFullResFlags) {
-    flags = false;
-    return;
-  }
-  // Flag everything if data rows are missing.
-  if (rowNrs.rowVector().empty()) {
-    flags = true;
-    return;
-  }
-  // Get the flags from all MSs and combine them.
-  IPosition s(3, 0);
-  IPosition e(flags.shape() - 1);
-  for (const std::shared_ptr<ResultStep>& result : itsResults) {
-    if (result) {
-      e[0] = s[0] + result->get().GetCasacoreFullResFlags().shape()[0] - 1;
-      flags(s, e) = result->get().GetCasacoreFullResFlags();
-    } else {
-      e[0] = s[0] + itsFillNChan - 1;
-      flags(s, e) = true;
-    }
-    s[0] = e[0] + 1;
   }
 }
 

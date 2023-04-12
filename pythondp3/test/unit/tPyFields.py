@@ -44,7 +44,6 @@ def check_fields(fields, set_fields):
     assert fields.flags == ("flags" in set_fields)
     assert fields.weights == ("weights" in set_fields)
     assert fields.uvw == ("uvw" in set_fields)
-    assert fields.fullresflags == ("fullResFlags" in set_fields)
 
 
 def test_constructor():
@@ -65,9 +64,6 @@ def test_constructor():
     uvw_field = dp3.Fields(dp3.Fields.Single.UVW)
     check_fields(uvw_field, ["uvw"])
 
-    fullresflags_field = dp3.Fields(dp3.Fields.Single.FULLRESFLAGS)
-    check_fields(fullresflags_field, ["fullResFlags"])
-
     # Test constructor with combined fields
     check_fields(flag_field | data_field, ["data", "flags"])
 
@@ -77,8 +73,8 @@ def test_or_operator():
     test_fields |= dp3.Fields.FLAGS
     check_fields(test_fields, ["flags"])
 
-    test_fields |= dp3.Fields.FULLRESFLAGS
-    check_fields(test_fields, ["flags", "fullResFlags"])
+    test_fields |= dp3.Fields.WEIGHTS
+    check_fields(test_fields, ["flags", "weights"])
 
     data_field = dp3.Fields.DATA
     uvw_field = dp3.Fields.UVW
@@ -118,10 +114,9 @@ def test_string_operator():
             dp3.Fields.DATA
             | dp3.Fields.FLAGS
             | dp3.Fields.WEIGHTS
-            | dp3.Fields.FULLRESFLAGS
             | dp3.Fields.UVW
         )
-        == "[data, flags, weights, fullresflags, uvw]"
+        == "[data, flags, weights, uvw]"
     )
 
 

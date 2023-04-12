@@ -120,7 +120,6 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
             .table();
     ArrayColumn<Complex> data(t1, "DATA");
     ArrayColumn<bool> flag(t1, "FLAG");
-    ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
     ArrayColumn<float> weight(t1, "WEIGHT_SPECTRUM");
     IPosition dshape(2, 4, 16);
     IPosition dst(2, 0, j * 16);
@@ -131,17 +130,14 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
     BOOST_CHECK_EQUAL(data(0).shape(), IPosition(2, 4, 16 * n_ms));
     BOOST_CHECK_EQUAL(flag(0).shape(), IPosition(2, 4, 16 * n_ms));
     BOOST_CHECK_EQUAL(weight(0).shape(), IPosition(2, 4, 16 * n_ms));
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 16 * n_ms / 8, 1));
     if (ms_flagged[j]) {
       BOOST_CHECK(allEQ(data.getColumn(dslicer), Complex()));
       BOOST_CHECK(allEQ(flag.getColumn(dslicer), true));
-      BOOST_CHECK(allEQ(oflag.getColumn(oflag_slicer), (unsigned char)(255)));
       BOOST_CHECK(allEQ(weight.getColumn(dslicer), 0.0f));
     } else {
       BOOST_CHECK(allEQ(data.getColumn(dslicer),
                         ArrayColumn<Complex>(table_in, "DATA").getColumn()));
       BOOST_CHECK(allEQ(flag.getColumn(dslicer), false));
-      BOOST_CHECK(allEQ(oflag.getColumn(oflag_slicer), (unsigned char)(0)));
       BOOST_CHECK(allEQ(weight.getColumn(dslicer), 1.0f));
     }
 
@@ -168,13 +164,10 @@ void CheckCopy(const std::string& out_ms, std::vector<bool> ms_flagged) {
             .table();
     ArrayColumn<Complex> data(t1, "DATA");
     ArrayColumn<bool> flag(t1, "FLAG");
-    ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(data(0).shape(), IPosition(2, 4, 16 * n_ms));
     BOOST_CHECK_EQUAL(flag(0).shape(), IPosition(2, 4, 16 * n_ms));
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 16 * n_ms / 8, 1));
     BOOST_CHECK(allEQ(data.getColumn(), Complex()));
     BOOST_CHECK(allEQ(flag.getColumn(), true));
-    BOOST_CHECK(allEQ(oflag.getColumn(), (unsigned char)(0xff)));
     BOOST_CHECK(
         allEQ(ArrayColumn<float>(t1, "WEIGHT_SPECTRUM").getColumn(), float(0)));
     BOOST_CHECK(
@@ -475,10 +468,8 @@ void CheckAvg(const std::string& out_ms) {
     Table t1(iterout.table());
     ArrayColumn<Complex> data(t1, "DATA");
     ArrayColumn<bool> flag(t1, "FLAG");
-    ArrayColumn<unsigned char> oflag(t1, "LOFAR_FULL_RES_FLAG");
     BOOST_CHECK_EQUAL(data(0).shape(), IPosition(2, 4, 1));
     BOOST_CHECK_EQUAL(flag(0).shape(), IPosition(2, 4, 1));
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 16 / 8, 20));
     // Average the original data over all channels and times.
     casacore::Array<Complex> dataAvg = partialMeans(
         ArrayColumn<Complex>(t2, "DATA").getColumn(), IPosition(2, 1, 2));
@@ -495,14 +486,6 @@ void CheckAvg(const std::string& out_ms) {
                       20 * kInterval));
     BOOST_CHECK(allEQ(ScalarColumn<double>(t1, "EXPOSURE").getColumn(),
                       20 * kInterval));
-    // Two time entries should be flagged.
-    casacore::Array<unsigned char> of = oflag.getColumn();
-    BOOST_CHECK(allEQ(of(Slicer(IPosition(3, 0, 0, 0), IPosition(3, 2, 3, 1))),
-                      (unsigned char)(0)));
-    BOOST_CHECK(allEQ(of(Slicer(IPosition(3, 0, 3, 0), IPosition(3, 2, 2, 1))),
-                      (unsigned char)(0xff)));
-    BOOST_CHECK(allEQ(of(Slicer(IPosition(3, 0, 5, 0), IPosition(3, 2, 15, 1))),
-                      (unsigned char)(0)));
     iterin.next();
     iterout.next();
   }
@@ -752,91 +735,11 @@ BOOST_FIXTURE_TEST_CASE(test_update_scale, FixtureCopyInput) {
 
 namespace {
 
-void CheckFullResFlags(const std::string& out_ms) {
-  // Only check the FULL_RES_FLAGS and table size.
-  // The flags are created in various ways, but should be the same in all cases.
-  // 3 time slots are averaged to 1.
+casacore::Array<bool> GetFlags(const std::string& out_ms) {
   const std::size_t kNOutputTimeSlots = 4;
   Table table_out(out_ms);
   BOOST_CHECK_EQUAL(table_out.nrow(), kNBaselines * kNOutputTimeSlots);
-  // Check the full-res-flags.
-  // Channels 0,2,6,7,8 are flagged everywhere.
-  {
-    // Input time slots 3,4 are inserted, thus flagged.
-    Table table = tableCommand(
-                      "using style python "
-                      "select from $1 where rownumber() in [0:6]",
-                      table_out)
-                      .table();
-    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
-    casacore::Array<unsigned char> flags = oflag.getColumn();
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 2, 5)),
-                      (unsigned char)(0xc5)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 0, 0), IPosition(3, 1, 2, 5)),
-                      (unsigned char)(0x01)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 3, 0), IPosition(3, 0, 4, 5)),
-                      (unsigned char)(0xff)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 3, 0), IPosition(3, 1, 4, 5)),
-                      (unsigned char)(0x0f)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 5, 0), IPosition(3, 0, 5, 5)),
-                      (unsigned char)(0xc5)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 5, 0), IPosition(3, 1, 5, 5)),
-                      (unsigned char)(0x01)));
-  }
-  {
-    // Input time slots 10,11 are flagged.
-    Table table = tableCommand(
-                      "using style python "
-                      "select from $1 where rownumber() in [6:12]",
-                      table_out)
-                      .table();
-    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
-    casacore::Array<unsigned char> flags = oflag.getColumn();
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 3, 5)),
-                      (unsigned char)(0xc5)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 0, 0), IPosition(3, 1, 3, 5)),
-                      (unsigned char)(0x01)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 4, 0), IPosition(3, 0, 5, 5)),
-                      (unsigned char)(0xff)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 4, 0), IPosition(3, 1, 5, 5)),
-                      (unsigned char)(0x0f)));
-  }
-  {
-    // Input time slots 12-17 are not flagged.
-    Table table = tableCommand(
-                      "using style python "
-                      "select from $1 where rownumber() in [12:18]",
-                      table_out)
-                      .table();
-    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
-    casacore::Array<unsigned char> flags = oflag.getColumn();
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 5, 5)),
-                      (unsigned char)(0xc5)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 0, 0), IPosition(3, 1, 5, 5)),
-                      (unsigned char)(0x01)));
-  }
-  {
-    // Input time slot 20-23 did not exist, thus flagged in average.
-    Table table = tableCommand(
-                      "using style python "
-                      "select from $1 where rownumber() in [18:24]",
-                      table_out)
-                      .table();
-    ArrayColumn<unsigned char> oflag(table, "LOFAR_FULL_RES_FLAG");
-    BOOST_CHECK_EQUAL(oflag(0).shape(), IPosition(2, 2, 6));
-    casacore::Array<unsigned char> flags = oflag.getColumn();
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 0, 1, 5)),
-                      (unsigned char)(0xc5)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 0, 0), IPosition(3, 1, 1, 5)),
-                      (unsigned char)(0x01)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 0, 2, 0), IPosition(3, 0, 5, 5)),
-                      (unsigned char)(0xff)));
-    BOOST_CHECK(allEQ(flags(IPosition(3, 1, 2, 0), IPosition(3, 1, 5, 5)),
-                      (unsigned char)(0x0f)));
-  }
+  return ArrayColumn<bool>(table_out, "FLAG").getColumn();
 }
 
 // Common part of test_flags_basic() and test_clear().
@@ -852,7 +755,7 @@ void CreateFlaggedMs() {
     ostr << "msout.overwrite=true\n";
     ostr << "steps=[preflag,average]\n";
     ostr << "preflag.expr='flag1 or flag2'\n";
-    ostr << "preflag.flag1.timeslot=[10,11]\n";
+    ostr << "preflag.flag1.timeslot=[10..17]\n";
     ostr << "preflag.flag2.chan=[0,2,6..8]\n";
     ostr << "average.timestep=6\n";
   }
@@ -863,7 +766,35 @@ void CreateFlaggedMs() {
 
 BOOST_FIXTURE_TEST_CASE(test_flags_basic, FixtureDirectory) {
   CreateFlaggedMs();
-  CheckFullResFlags(kFlaggedMs);
+
+  const casacore::Array<bool> flags = GetFlags(kFlaggedMs);
+  BOOST_REQUIRE_EQUAL(flags.shape(), IPosition(3, 4, 12, 24));
+
+  // Channels 0,2,6,7,8 are flagged everywhere.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 3, 0, 23)), true));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 2, 0), IPosition(3, 3, 2, 23)), true));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 6, 0), IPosition(3, 3, 8, 23)), true));
+
+  // Input time slots 10-17 are flagged. After averaging, row 12-17 are flagged.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 12), IPosition(3, 3, 11, 17)), true));
+
+  // All other flags are false.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 1, 0), IPosition(3, 3, 1, 11)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 3, 0), IPosition(3, 3, 5, 11)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 9, 0), IPosition(3, 3, 11, 11)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 1, 18), IPosition(3, 3, 1, 23)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 3, 18), IPosition(3, 3, 5, 23)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 9, 18), IPosition(3, 3, 11, 23)), false));
 }
 
 BOOST_FIXTURE_TEST_CASE(test_flags_shifted, FixtureDirectory) {
@@ -891,13 +822,34 @@ BOOST_FIXTURE_TEST_CASE(test_flags_shifted, FixtureDirectory) {
     ostr2 << "msout=" << kFlaggedMs << '\n';
     ostr2 << "msout.overwrite=true\n";
     ostr2 << "steps=[preflag,average]\n";
-    ostr2 << "preflag.timeslot=5\n";  // is 10,11 in input
+    ostr2 << "preflag.timeslot=[5..8]\n";  // is 10..17 in input
     ostr2 << "average.timestep=3\n";
     ostr2 << "average.freqstep=2\n";
   }
   dp3::base::Execute("tNDPPP_tmp.parset1");
   dp3::base::Execute("tNDPPP_tmp.parset2");
-  CheckFullResFlags(kFlaggedMs);
+
+  const casacore::Array<bool> flags = GetFlags(kFlaggedMs);
+  BOOST_REQUIRE_EQUAL(flags.shape(), IPosition(3, 4, 6, 24));
+
+  // Channels 0,2,6,7,8 are flagged everywhere. After averaging by a factor
+  // of 2, only channel 3 (which was 6,7) is flagged.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 3, 0), IPosition(3, 3, 3, 23)), true));
+
+  // Input time slots 10-17 are flagged. After averaging, row 12-17 are flagged.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 12), IPosition(3, 3, 5, 17)), true));
+
+  // All other flags are false.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 3, 2, 11)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 4, 0), IPosition(3, 3, 5, 11)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 18), IPosition(3, 3, 2, 23)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 4, 18), IPosition(3, 3, 5, 23)), false));
 }
 
 BOOST_FIXTURE_TEST_CASE(test_flags_averaged_channel, FixtureDirectory) {
@@ -926,13 +878,28 @@ BOOST_FIXTURE_TEST_CASE(test_flags_averaged_channel, FixtureDirectory) {
     ostr2 << "msout=" << kFlaggedMs << '\n';
     ostr2 << "msout.overwrite=true\n";
     ostr2 << "steps=[preflag,average]\n";
-    ostr2 << "preflag.timeslot=5\n";  // is 10,11 in input
+    ostr2 << "preflag.timeslot=[5..8]\n";  // is [10..17] in input
     ostr2 << "average.timestep=3\n";
     ostr2 << "average.freqstep=2\n";
   }
   dp3::base::Execute("tNDPPP_tmp.parset1");
   dp3::base::Execute("tNDPPP_tmp.parset2");
-  CheckFullResFlags(kFlaggedMs);
+
+  const casacore::Array<bool> flags = GetFlags(kFlaggedMs);
+  BOOST_REQUIRE_EQUAL(flags.shape(), IPosition(3, 4, 2, 24));
+
+  // Channels 0,2,6,7,8 are flagged everywhere. After averaging by a factor
+  // of 6 (3 * 2), no channels are flagged anymore.
+
+  // Input time slots 10-17 are flagged. After averaging, row 12-17 are flagged.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 12), IPosition(3, 3, 1, 17)), true));
+
+  // All other flags are false.
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 0), IPosition(3, 3, 1, 11)), false));
+  BOOST_CHECK(
+      allEQ(flags(IPosition(3, 0, 0, 18), IPosition(3, 3, 1, 23)), false));
 }
 
 BOOST_FIXTURE_TEST_CASE(test_flags_set_clear, FixtureDirectory) {
@@ -957,7 +924,6 @@ BOOST_FIXTURE_TEST_CASE(test_flags_set_clear, FixtureDirectory) {
     ostr << "preflag.baseline=[[*]]\n";
   }
   dp3::base::Execute(kParsetFile);
-  CheckFullResFlags(kAllFlaggedMs);  // Full res flags shouldn't change.
   BOOST_CHECK(
       allEQ(ArrayColumn<bool>(Table(kAllFlaggedMs), "FLAG").getColumn(), true));
 
@@ -973,7 +939,6 @@ BOOST_FIXTURE_TEST_CASE(test_flags_set_clear, FixtureDirectory) {
     ostr << "preflag.baseline=[[*]]\n";
   }
   dp3::base::Execute(kParsetFile);
-  CheckFullResFlags(kAllClearMs);  // Full res flags shouldn't change.
   BOOST_CHECK(
       allEQ(ArrayColumn<bool>(Table(kAllClearMs), "FLAG").getColumn(), false));
 }
@@ -1306,7 +1271,7 @@ BOOST_AUTO_TEST_CASE(test_required_fields) {
 
 BOOST_AUTO_TEST_CASE(test_provided_fields_single_step) {
   const Fields kProvidedFields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kFullResFlags);
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags);
   const Fields kExtraField(Fields::Single::kUvw);
 
   auto output = std::make_shared<TestOutput>();

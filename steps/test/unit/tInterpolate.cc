@@ -115,11 +115,6 @@ class TestInput : public dp3::steps::MockInput {
     casacore::Cube<bool> flags(data.shape());
     flags = itsFlag;
     buf.setFlags(flags);
-    // The fullRes flags are a copy of the XX flags, but differently shaped.
-    // They are not averaged, thus only 1 time per row.
-    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = itsFlag;
-    buf.setFullResFlags(fullResFlags);
     getNextStep()->process(buf);
     ++itsCount;
     return true;

@@ -51,13 +51,11 @@ class StationAdder : public Step {
   ~StationAdder() override;
 
   common::Fields getRequiredFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
-           kUvwField;
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
   common::Fields getProvidedFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
-           kUvwField;
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
   /// Process the data.
