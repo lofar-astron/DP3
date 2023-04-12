@@ -118,8 +118,6 @@ class TestInput : public dp3::steps::MockInput {
     buffer->setTime(kFirstTime + process_count_ * kTimeInterval);
     buffer->ResizeFlags(kNBaselines, kNChannels, kNCorrelations);
     buffer->GetFlags().fill(false);
-    buffer->ResizeFullResFlags(kNBaselines, 1, kNChannels);
-    buffer->GetFullResFlags().fill(false);
     getNextStep()->process(std::move(buffer));
     ++process_count_;
     return true;

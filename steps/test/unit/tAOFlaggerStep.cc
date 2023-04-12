@@ -133,11 +133,6 @@ class TestInput : public dp3::steps::MockInput {
     Cube<bool> flags(data.shape());
     flags = itsFlag;
     buffer->setFlags(flags);
-    // The fullRes flags are a copy of the XX flags, but differently shaped.
-    // They are not averaged, thus only 1 time per row.
-    Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = itsFlag;
-    buffer->setFullResFlags(fullResFlags);
     getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;

@@ -57,10 +57,7 @@ class MSWriter : public OutputStep {
   ~MSWriter() override;
 
   common::Fields getRequiredFields() const override {
-    common::Fields fields =
-        kDataField | kFlagsField | kWeightsField | kUvwField;
-    if (write_full_res_flags_) fields |= kFullResFlagsField;
-    return fields;
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
   /// Process the next data chunk.
@@ -129,11 +126,6 @@ class MSWriter : public OutputStep {
   /// This function does not access @ref internal_buffer_.
   void WriteData(casacore::Table& out, base::DPBuffer& buf);
 
-  /// Write the full resolution flags (flags before any averaging).
-  ///
-  /// This function does not access @ref internal_buffer_.
-  void WriteFullResFlags(casacore::Table& out, const base::DPBuffer& buf);
-
   /// Write all meta data columns for a time slot (ANTENNA1, etc.)
   ///
   /// This function does not access @ref internal_buffer_.
@@ -192,11 +184,8 @@ class MSWriter : public OutputStep {
   bool overwrite_;  ///< Overwrite an existing output MS?
   bool copy_corr_data_;
   bool copy_model_data_;
-  bool write_full_res_flags_;
   unsigned int tile_size_;
   unsigned int tile_n_chan_;
-  unsigned int n_chan_avg_;      ///< nr of channels in input averaged to 1
-  unsigned int n_time_avg_;      ///< nr of times in input averaged to 1
   unsigned int nr_times_flush_;  ///< flush every N time slots (0=no flush)
   unsigned int nr_done_;         ///< nr of time slots written
   /// In seconds, split measurement set in chunks with a given maximum size.

@@ -84,9 +84,6 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   buffer->ResizeFlags(n_baselines, channel_counts.size(), kNCorr);
   buffer->GetFlags().fill(false);
 
-  buffer->ResizeFullResFlags(n_baselines, 1, channel_counts.size());
-  buffer->GetFullResFlags().fill(false);
-
   buffer->ResizeWeights(n_baselines, channel_counts.size(), kNCorr);
   buffer->GetWeights().fill(weight);
 

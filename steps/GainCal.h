@@ -44,8 +44,7 @@ class GainCal final : public Step {
   GainCal(const common::ParameterSet& parset, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kFullResFlagsField |
-           kUvwField;
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
   common::Fields getProvidedFields() const override {

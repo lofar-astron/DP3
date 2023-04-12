@@ -142,9 +142,6 @@ class TestInput : public dp3::steps::MockInput {
     casacore::Cube<bool> flags(data.shape());
     flags = false;
     buf.setFlags(flags);
-    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = false;
-    buf.setFullResFlags(fullResFlags);
     getNextStep()->process(buf);
     ++itsCount;
     return true;

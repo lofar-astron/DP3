@@ -129,7 +129,6 @@ Averaging
 ---------------------
   * Unflagged :ref:`visibility data are averaged<Averager>` in frequency and/or time taking the weights into account. New weights are calculated as the sum of the old weights. Some older LOFAR MSs have weight 0 for unflagged data points. These weights are set to 1.
   * The UVW coordinates are also averaged (not recalculated).
-  * It fills the new column LOFAR_FULL_RES_FLAG with the flags at the original resolution for the channels selected from the input MS. It can be used by BBS to deal with bandwidth and time smearing.
   * Averaging in frequency requires that the average factor fits integrally. E.g. one cannot average every 5 channels when having 256 channels.
   * When averaging in time, dummy time slots will be inserted for the ones missing at the end. In that way the output MeasurementSet is still regular in time.
   * An averaged point can be flagged if too few unflagged input points were available

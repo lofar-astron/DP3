@@ -63,8 +63,6 @@ class Step {
       dp3::common::Fields::Single::kFlags};
   static constexpr dp3::common::Fields kWeightsField{
       dp3::common::Fields::Single::kWeights};
-  static constexpr dp3::common::Fields kFullResFlagsField{
-      dp3::common::Fields::Single::kFullResFlags};
   static constexpr dp3::common::Fields kUvwField{
       dp3::common::Fields::Single::kUvw};
 

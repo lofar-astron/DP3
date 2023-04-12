@@ -117,9 +117,6 @@ class TestInput : public dp3::steps::MockInput {
     casacore::Cube<bool> flags(data.shape());
     flags = false;
     buf.setFlags(flags);
-    casacore::Cube<bool> fullResFlags(itsNChan, 1, itsNBl);
-    fullResFlags = false;
-    buf.setFullResFlags(fullResFlags);
     getNextStep()->process(buf);
     ++itsCount;
     return true;
@@ -192,9 +189,6 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
     BOOST_CHECK(allEQ(buf.GetCasacoreWeights(), weights));
     BOOST_CHECK(allEQ(buf.GetCasacoreUvw(), uvw));
-    BOOST_CHECK_EQUAL(buf.GetCasacoreFullResFlags().shape(),
-                      casacore::IPosition(3, itsNChan, 1, itsNBl));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFullResFlags(), false));
     itsCount++;
     return true;
   }

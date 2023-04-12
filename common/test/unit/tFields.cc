@@ -20,8 +20,6 @@ void CheckFields(const Fields& fields, std::string set_fields) {
               (set_fields.find("flags") != std::string::npos));
   BOOST_CHECK(fields.Weights() ==
               (set_fields.find("weights") != std::string::npos));
-  BOOST_CHECK(fields.FullResFlags() ==
-              (set_fields.find("fullResFlags") != std::string::npos));
   BOOST_CHECK(fields.Uvw() == (set_fields.find("uvw") != std::string::npos));
 }
 
@@ -36,12 +34,10 @@ BOOST_AUTO_TEST_CASE(constructor_single_field) {
   const Fields data(Fields::Single::kData);
   const Fields flags(Fields::Single::kFlags);
   const Fields weights(Fields::Single::kWeights);
-  const Fields full_res_flags(Fields::Single::kFullResFlags);
   const Fields uvw(Fields::Single::kUvw);
   CheckFields(data, "data");
   CheckFields(flags, "flags");
   CheckFields(weights, "weights");
-  CheckFields(full_res_flags, "fullResFlags");
   CheckFields(uvw, "uvw");
 }
 
@@ -83,11 +79,8 @@ BOOST_AUTO_TEST_CASE(outputstream) {
   std::stringstream stream_all;
   stream_all << (Fields(Fields::Single::kData) |
                  Fields(Fields::Single::kWeights) |
-                 Fields(Fields::Single::kFlags) |
-                 Fields(Fields::Single::kFullResFlags) |
-                 Fields(Fields::Single::kUvw));
-  BOOST_CHECK_EQUAL(stream_all.str(),
-                    "[data, flags, weights, fullresflags, uvw]");
+                 Fields(Fields::Single::kFlags) | Fields(Fields::Single::kUvw));
+  BOOST_CHECK_EQUAL(stream_all.str(), "[data, flags, weights, uvw]");
 }
 
 BOOST_AUTO_TEST_CASE(update_requirements) {
@@ -122,8 +115,8 @@ BOOST_AUTO_TEST_CASE(combine) {
   Fields fields;
   fields |= Fields(Fields::Single::kFlags);
   CheckFields(fields, "flags");
-  fields |= Fields(Fields::Single::kFullResFlags);
-  CheckFields(fields, "flags, fullResFlags");
+  fields |= Fields(Fields::Single::kWeights);
+  CheckFields(fields, "flags, weights");
 
   const Fields data(Fields::Single::kData);
   const Fields uvw(Fields::Single::kUvw);

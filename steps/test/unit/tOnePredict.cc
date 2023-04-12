@@ -173,12 +173,10 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
   buffer->ResizeData(n_baselines, channel_counts.size(), kNCorr);
   buffer->ResizeWeights(n_baselines, channel_counts.size(), kNCorr);
   buffer->ResizeFlags(n_baselines, channel_counts.size(), kNCorr);
-  buffer->ResizeFullResFlags(n_baselines, 1, channel_counts.size());
   buffer->ResizeUvw(n_baselines);
 
   buffer->GetFlags().fill(false);
   buffer->GetWeights().fill(weight);
-  buffer->GetFullResFlags().fill(false);
 
   for (std::size_t baseline = 0; baseline < n_baselines; ++baseline) {
     // Base value for this baseline.

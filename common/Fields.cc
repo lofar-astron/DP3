@@ -15,7 +15,6 @@ std::ostream& operator<<(std::ostream& stream, const Fields& fields) {
   if (fields.Data()) strings.push_back("data");
   if (fields.Flags()) strings.push_back("flags");
   if (fields.Weights()) strings.push_back("weights");
-  if (fields.FullResFlags()) strings.push_back("fullresflags");
   if (fields.Uvw()) strings.push_back("uvw");
 
   stream << "[";

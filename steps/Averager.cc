@@ -29,7 +29,7 @@ namespace dp3 {
 namespace steps {
 
 const common::Fields Averager::kRequiredFields =
-    kDataField | kFlagsField | kWeightsField | kFullResFlagsField | kUvwField;
+    kDataField | kFlagsField | kWeightsField | kUvwField;
 const common::Fields Averager::kProvidedFields = kRequiredFields;
 
 Averager::Averager(const common::ParameterSet& parset, const string& prefix)
@@ -154,35 +154,12 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
     assert(!itsBuf);
     itsBuf = std::move(buffer);
     // Ensure `itsBuf` does not refer to data in other DPBuffers.
-    // Full res flags are not needed here, since they are resized below.
     itsBuf->MakeIndependent(kDataField | kWeightsField | kFlagsField |
                             kUvwField);
     itsNPoints.resize(itsBuf->GetData().shape());
     assert(itsBuf->GetData().shape(1) == itsBuf->GetWeights().shape(1));
     itsAvgAll = itsBuf->GetData() * itsBuf->GetWeights();
     itsWeightAll = itsBuf->GetWeights();
-    // Take care of the fullRes flags.
-    // We have to shape the output array and copy to a part of it.
-
-    // Make sure the current fullResFlags are up to date with the flags
-    itsBuf->MergeFullResFlags();
-
-    // Extract fullResFlags before resizing the field in itsBuffer.
-    // Until DPBuffer stores data in XTensor objects, copy the Casacore object
-    // that contains the full resolution flags. After resizing them in itsBuf,
-    // the Casacore object is the only owner of the old flags. 'full_res_flags'
-    // is therefore valid as long as 'casa_full_res_flags' is in scope.
-    casacore::Cube<bool> casa_full_res_flags =
-        itsBuf->GetCasacoreFullResFlags();
-    aocommon::xt::Span<bool, 3> full_res_flags = itsBuf->GetFullResFlags();
-
-    const std::array<size_t, 3> shape = full_res_flags.shape();
-    // More time entries, same chan and bl
-    itsBuf->ResizeFullResFlags(shape[0], shape[1] * itsNTimeAvg, shape[2]);
-    itsBuf->MakeIndependent(kFullResFlagsField);
-    itsBuf->GetFullResFlags().fill(
-        true);  // initialize for times missing at end
-    copyFullResFlags(full_res_flags, itsBuf->GetFlags(), 0);
 
     // Set middle of new interval.
     const double time = itsBuf->getTime() + 0.5 * (getInfo().timeInterval() -
@@ -220,10 +197,6 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
           "Inconsistent buffer sizes in Averager, possibly because of "
           "inconsistent nr of baselines in timeslots");
     itsBuf->GetUvw() += buffer->GetUvw();
-
-    // Make sure the current fullResFlags are up to date with the flags
-    buffer->MergeFullResFlags();
-    copyFullResFlags(buffer->GetFullResFlags(), buffer->GetFlags(), itsNTimes);
 
     // Ignore flagged points.
     auto data_in_iterator = buffer->GetData().cbegin();
@@ -347,56 +320,6 @@ void Averager::average() {
   // The result UVWs are the average of the input.
   // If ever needed, UVWCalculator can be used to calculate the UVWs.
   itsBuf->GetUvw() /= double(itsNTimes);
-}
-
-void Averager::copyFullResFlags(
-    const aocommon::xt::Span<bool, 3>& full_res_flags,
-    const aocommon::xt::Span<bool, 3>& flags, int time_index) {
-  // Copy the fullRes flags to the given index.
-  // Furthermore the appropriate FullRes flags are set for a
-  // flagged data point. It can be the case that an input data point
-  // has been averaged before, thus has fewer channels than FullResFlags.
-  // nchan and nbl are the same for in and out.
-  // ntimout is a multiple of ntimavg.
-  const std::array<size_t, 3> shape_in = full_res_flags.shape();
-  const std::array<size_t, 3> shape_out = itsBuf->GetFullResFlags().shape();
-  const std::array<size_t, 3> shape_flags = flags.shape();
-  // original nr of channels
-  const unsigned int nchan = shape_in[2];
-  // nr of averaged times in input data
-  const unsigned int ntimavg = shape_in[1];
-  // nr of averaged channels in input data
-  const unsigned int nchanavg = nchan / shape_flags[1];
-  // nr of averaged times in output data
-  const unsigned int ntimout = shape_out[1];
-  const unsigned int nbl = shape_in[0];       // nr of baselines
-  const unsigned int ncorr = shape_flags[2];  // nr of correlations (in FLAG)
-  // in has to be copied to the correct time index in out.
-  bool* outBase =
-      itsBuf->GetFullResFlags().data() + nchan * ntimavg * time_index;
-  for (unsigned int k = 0; k < nbl; ++k) {
-    const bool* inPtr = full_res_flags.data() + k * nchan * ntimavg;
-    const bool* flagPtr = flags.data() + k * ncorr * shape_flags[1];
-    bool* outPtr = outBase + k * nchan * ntimout;
-    memcpy(outPtr, inPtr, nchan * ntimavg * sizeof(bool));
-    // Applying the flags only needs to be done if the input data
-    // was already averaged before.
-    if (ntimavg > 1 || nchanavg > 1) {
-      for (unsigned int j = 0; j < shape_flags[1]; ++j) {
-        // If a data point is flagged, the flags in the corresponding
-        // FullRes window have to be set.
-        // Only look at the flags of the first correlation.
-        if (*flagPtr) {
-          bool* avgPtr = outPtr + j * nchanavg;
-          for (unsigned int i = 0; i < ntimavg; ++i) {
-            std::fill(avgPtr, avgPtr + nchanavg, true);
-            avgPtr += nchan;
-          }
-        }
-        flagPtr += ncorr;
-      }
-    }
-  }
 }
 
 double Averager::getFreqHz(const string& freqstr) {

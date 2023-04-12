@@ -87,17 +87,6 @@ namespace steps {
 ///       They are calculated for a missing time slot.
 ///   </td>
 ///  </tr>
-///  <tr>
-///   <td>FULLRESFLAG</td>
-///   <td>For each baseline the LOFAR_FULL_RES_FLAG column is stored as
-///       a uChar array with shape [orignchan/8, ntimeavg]. The bits
-///       represent the flags. They are converted to a Bool array with shape
-///       [orignchan, ntimeavg, nbaseline].
-///       If column LOFAR_FULL_RES_FLAG is not present, the flags are used
-///       and it is assumed that no averaging was done yet (thus ntimeavg=1
-///       and orignchan=nchan).
-///   </td>
-///  </tr>
 /// </table>
 
 class Filter final : public Step {

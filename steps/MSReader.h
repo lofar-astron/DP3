@@ -93,17 +93,6 @@ namespace steps {
 ///       They are calculated for a missing time slot.
 ///   </td>
 ///  </tr>
-///  <tr>
-///   <td>FULLRESFLAG</td>
-///   <td>For each baseline the LOFAR_FULL_RES_FLAG column is stored as
-///       a uChar array with shape [orignchan/8, ntimeavg]. The bits
-///       represent the flags. They are converted to a Bool array with shape
-///       [orignchan, ntimeavg, nbaseline].
-///       If column LOFAR_FULL_RES_FLAG is not present, the flags are used
-///       and it is assumed that no averaging was done yet (thus ntimeavg=1
-///       and orignchan=nchan).
-///   </td>
-///  </tr>
 /// </table>
 
 class MSReader : public InputStep {
@@ -144,14 +133,6 @@ class MSReader : public InputStep {
   /// Read the UVW at the given row numbers into the buffer.
   void getUVW(const casacore::RefRows& rowNrs, double time, base::DPBuffer&);
 
-  /// Fill the fullResFlags field in the DPBuffer.
-  /// If the LOFAR_FULL_RES_FLAG column is present in the MS
-  /// - the full resolution flags are read from the input.
-  /// Else:
-  /// - the full resolution flags are filled using the flags in the
-  /// buffer.
-  void FillFullResFlags(base::DPBuffer& buf);
-
   /// Get the main MS table.
   const casacore::Table& table() const override { return itsMS; }
 
@@ -175,9 +156,6 @@ class MSReader : public InputStep {
 
   /// Get the start channel.
   unsigned int startChan() const { return itsStartChan; }
-
-  /// Tell if the input MS has LOFAR_FULL_RES_FLAG.
-  bool hasFullResFlags() const { return itsHasFullResFlags; }
 
   /// Flags inf and NaN
   static void flagInfNaN(base::DPBuffer& buffer,
@@ -205,12 +183,6 @@ class MSReader : public InputStep {
   /// Read the weights at the given row numbers into the buffer.
   /// Note: the buffer must contain DATA if autoweighting is in effect.
   void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
-
-  /// Read the fullRes flags (LOFAR_FULL_RES_FLAG) at the given row numbers
-  /// into the buffer.
-  /// If there is no such column, the flags are set to false and false is
-  /// returned.
-  bool getFullResFlags(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
  protected:
   casacore::MeasurementSet itsMS;
@@ -247,7 +219,6 @@ class MSReader : public InputStep {
   unsigned int itsNrInserted{0};  ///< nr of inserted time slots
   casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
   casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array
-  bool itsHasFullResFlags{false};
   std::unique_ptr<base::UVWCalculator> itsUVWCalc;
   casacore::Vector<common::rownr_t>
       itsBaseRowNrs;  ///< rownrs for meta of missing times

@@ -47,14 +47,12 @@ DPBuffer::DPBuffer(double time, double exposure)
       casa_flags_(),
       casa_uvw_(),
       casa_weights_(),
-      casa_full_res_flags_(),
       data_(CreateSpan(casa_data_)),
       extra_data_(),
       extra_data_span_(),
       flags_(CreateSpan(casa_flags_)),
       weights_(CreateSpan(casa_weights_)),
       uvw_(CreateSpan(casa_uvw_)),
-      full_res_flags_(CreateSpan(casa_full_res_flags_)),
       solution_() {}
 
 DPBuffer::DPBuffer(DPBuffer&& that)
@@ -65,14 +63,12 @@ DPBuffer::DPBuffer(DPBuffer&& that)
       casa_flags_(std::move(that.casa_flags_)),
       casa_uvw_(std::move(that.casa_uvw_)),
       casa_weights_(std::move(that.casa_weights_)),
-      casa_full_res_flags_(std::move(that.casa_full_res_flags_)),
       data_(std::move(that.data_)),
       extra_data_(std::move(that.extra_data_)),
       extra_data_span_(std::move(that.extra_data_span_)),
       flags_(std::move(that.flags_)),
       weights_(std::move(that.weights_)),
       uvw_(std::move(that.uvw_)),
-      full_res_flags_(std::move(that.full_res_flags_)),
       solution_(that.solution_) {
 #ifndef USE_CASACORE_MOVE_SEMANTICS
   // The copy constructor for casacore::Array creates references. Since
@@ -82,7 +78,6 @@ DPBuffer::DPBuffer(DPBuffer&& that)
   that.casa_flags_.assign(decltype(that.casa_flags_)());
   that.casa_uvw_.assign(decltype(that.casa_uvw_)());
   that.casa_weights_.assign(decltype(that.casa_weights_)());
-  that.casa_full_res_flags_.assign(decltype(that.casa_full_res_flags_)());
 #endif
   that.CreateSpans();
 }
@@ -98,7 +93,6 @@ DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
     casa_flags_.reference(that.casa_flags_);
     casa_weights_.reference(that.casa_weights_);
     casa_uvw_.reference(that.casa_uvw_);
-    casa_full_res_flags_.reference(that.casa_full_res_flags_);
     CreateSpans();
   }
   return *this;
@@ -119,7 +113,6 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
     casa_flags_ = std::move(that.casa_flags_);
     casa_weights_ = std::move(that.casa_weights_);
     casa_uvw_ = std::move(that.casa_uvw_);
-    casa_full_res_flags_ = std::move(that.casa_full_res_flags_);
 #else
     // Create references. Since move assignment does not use reference
     // semantics, clear 'that'.
@@ -128,13 +121,11 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
     casa_flags_.reference(that.casa_flags_);
     casa_weights_.reference(that.casa_weights_);
     casa_uvw_.reference(that.casa_uvw_);
-    casa_full_res_flags_.reference(that.casa_full_res_flags_);
     that.row_numbers_.assign(decltype(that.row_numbers_)());
     that.casa_data_.assign(decltype(that.casa_data_)());
     that.casa_flags_.assign(decltype(that.casa_flags_)());
     that.casa_uvw_.assign(decltype(that.casa_uvw_)());
     that.casa_weights_.assign(decltype(that.casa_weights_)());
-    that.casa_full_res_flags_.assign(decltype(that.casa_full_res_flags_)());
 #endif
     CreateSpans();
     that.CreateSpans();
@@ -153,7 +144,6 @@ void DPBuffer::copy(const DPBuffer& that) {
   casa_flags_.unique();
   casa_weights_.unique();
   casa_uvw_.unique();
-  casa_full_res_flags_.unique();
   CreateSpans();
 }
 
@@ -174,10 +164,6 @@ void DPBuffer::MakeIndependent(const common::Fields& fields) {
     casa_uvw_.unique();
     uvw_ = CreateSpan(casa_uvw_);
   }
-  if (fields.FullResFlags()) {
-    casa_full_res_flags_.unique();
-    full_res_flags_ = CreateSpan(casa_full_res_flags_);
-  }
 }
 
 void DPBuffer::CreateSpans() {
@@ -185,7 +171,6 @@ void DPBuffer::CreateSpans() {
   flags_ = CreateSpan(casa_flags_);
   weights_ = CreateSpan(casa_weights_);
   uvw_ = CreateSpan(casa_uvw_);
-  full_res_flags_ = CreateSpan(casa_full_res_flags_);
   extra_data_span_.clear();
   for (auto& extra_element : extra_data_) {
     const std::string& name = extra_element.first;
@@ -218,45 +203,6 @@ void DPBuffer::referenceFilled(const DPBuffer& that) {
       casa_uvw_.reference(that.casa_uvw_);
       uvw_ = CreateSpan(casa_uvw_);
     }
-    if (!that.casa_full_res_flags_.empty()) {
-      casa_full_res_flags_.reference(that.casa_full_res_flags_);
-      full_res_flags_ = CreateSpan(casa_full_res_flags_);
-    }
-  }
-}
-
-void DPBuffer::MergeFullResFlags() {
-  // Flag shape is [nbl, newnchan, ncorr].
-  // FullRes shape is [nbl, navgtime, orignchan]
-  // where orignchan = navgchan * newnchan.
-  const size_t orignchan = full_res_flags_.shape(2);
-  const size_t newnchan = flags_.shape(1);
-  const size_t navgchan = orignchan / newnchan;
-  const size_t navgtime = full_res_flags_.shape(1);
-  const size_t nbl = full_res_flags_.shape(0);
-  assert(nbl == flags_.shape(0));
-  const size_t ncorr = flags_.shape(2);
-  bool* fullResPtr = full_res_flags_.data();
-  const bool* flagPtr = flags_.data();
-  // Loop over all baselines and new channels.
-  // Only use the first correlation in the loop.
-  for (size_t j = 0; j < nbl; ++j) {
-    for (size_t i = 0; i < newnchan; ++i) {
-      // If ta data point is flagged, the flags in the corresponding
-      // FullRes window have to be set.
-      // This is needed in case a data point is further averaged.
-      if (*flagPtr) {
-        for (size_t i = 0; i < navgtime; ++i) {
-          std::fill(fullResPtr, fullResPtr + navgchan, true);
-          fullResPtr += orignchan;
-        }
-        fullResPtr -= navgtime * orignchan;
-      }
-      flagPtr += ncorr;
-      fullResPtr += navgchan;
-    }
-    // Set pointer to next baseline.
-    fullResPtr += (navgtime - 1) * orignchan;
   }
 }
 
@@ -327,18 +273,6 @@ void DPBuffer::setUVW(const casacore::Matrix<double>& uvw) {
 void DPBuffer::ResizeUvw(size_t n_baselines) {
   casa_uvw_.resize(3, n_baselines);
   uvw_ = CreateSpan(casa_uvw_);
-}
-
-void DPBuffer::setFullResFlags(const casacore::Cube<bool>& flags) {
-  casa_full_res_flags_.reference(flags);
-  full_res_flags_ = CreateSpan(casa_full_res_flags_);
-}
-
-void DPBuffer::ResizeFullResFlags(size_t n_baselines, size_t n_averaged_times,
-                                  size_t n_full_res_channels) {
-  casa_full_res_flags_.resize(n_full_res_channels, n_averaged_times,
-                              n_baselines);
-  full_res_flags_ = CreateSpan(casa_full_res_flags_);
 }
 
 }  // namespace base

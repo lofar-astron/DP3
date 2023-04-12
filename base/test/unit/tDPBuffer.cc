@@ -27,7 +27,6 @@ const size_t kNBaselines = 5;
 const size_t kNTimeAvg = 6;
 const std::array<std::size_t, 3> kShape{kNBaselines, kNChannels,
                                         kNCorrelations};
-const std::array<std::size_t, 3> kFRFShape{kNBaselines, kNTimeAvg, kNChannels};
 
 template <class T>
 void CompareArray(const casacore::Array<T>& left,
@@ -45,8 +44,6 @@ void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_EQUAL(left.GetFlags().data(), right.GetFlags().data());
   BOOST_CHECK_EQUAL(left.GetUvw().data(), right.GetUvw().data());
   BOOST_CHECK_EQUAL(left.GetWeights().data(), right.GetWeights().data());
-  BOOST_CHECK_EQUAL(left.GetFullResFlags().data(),
-                    right.GetFullResFlags().data());
 }
 
 /// Verify that two DPBuffers do not share the same data, e.g., using
@@ -57,7 +54,6 @@ void CheckIndependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_NE(left.GetFlags().data(), right.GetFlags().data());
   BOOST_CHECK_NE(left.GetUvw().data(), right.GetUvw().data());
   BOOST_CHECK_NE(left.GetWeights().data(), right.GetWeights().data());
-  BOOST_CHECK_NE(left.GetFullResFlags().data(), right.GetFullResFlags().data());
 }
 
 DPBuffer CreateFilledBuffer() {
@@ -71,14 +67,12 @@ DPBuffer CreateFilledBuffer() {
   buffer.ResizeFlags(kNBaselines, kNChannels, kNCorrelations);
   buffer.ResizeWeights(kNBaselines, kNChannels, kNCorrelations);
   buffer.ResizeUvw(kNBaselines);
-  buffer.ResizeFullResFlags(kNBaselines, kNTimeAvg, kNChannels);
   buffer.GetData().fill(kDataValue);
   buffer.GetData(kFooDataName).fill(kFooDataValue);
   buffer.GetData(kBarDataName).fill(kBarDataValue);
   buffer.GetFlags().fill(false);
   buffer.GetUvw().fill(kUVWValue);
   buffer.GetWeights().fill(kWeightValue);
-  buffer.GetFullResFlags().fill(true);
   return buffer;
 }
 
@@ -94,14 +88,12 @@ void CheckFilledBuffer(const DPBuffer& buffer) {
   const xt::xtensor<bool, 3> flags(kShape, false);
   const xt::xtensor<double, 2> uvw({kNBaselines, 3}, kUVWValue);
   const xt::xtensor<float, 3> weights(kShape, kWeightValue);
-  const xt::xtensor<bool, 3> full_res_flags(kFRFShape, true);
   BOOST_CHECK_EQUAL(buffer.GetData(), data);
   BOOST_CHECK_EQUAL(buffer.GetData(kFooDataName), foo_data);
   BOOST_CHECK_EQUAL(buffer.GetData(kBarDataName), bar_data);
   BOOST_CHECK_EQUAL(buffer.GetFlags(), flags);
   BOOST_CHECK_EQUAL(buffer.GetUvw(), uvw);
   BOOST_CHECK_EQUAL(buffer.GetWeights(), weights);
-  BOOST_CHECK_EQUAL(buffer.GetFullResFlags(), full_res_flags);
 }
 
 }  // namespace
@@ -119,7 +111,6 @@ BOOST_AUTO_TEST_CASE(constructor) {
   BOOST_CHECK(buffer.GetFlags().size() == 0);
   BOOST_CHECK(buffer.GetUvw().size() == 0);
   BOOST_CHECK(buffer.GetWeights().size() == 0);
-  BOOST_CHECK(buffer.GetFullResFlags().size() == 0);
 }
 
 BOOST_AUTO_TEST_CASE(copy_constructor) {
@@ -174,8 +165,7 @@ BOOST_AUTO_TEST_CASE(make_independent) {
   copy.getRowNrs().unique();  // MakeIndependent does not support row numbers.
   copy.MakeIndependent(
       Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags) |
-      Fields(Fields::Single::kWeights) | Fields(Fields::Single::kFullResFlags) |
-      Fields(Fields::Single::kUvw));
+      Fields(Fields::Single::kWeights) | Fields(Fields::Single::kUvw));
   CheckFilledBuffer(copy);
   CheckIndependent(source, copy);
 }

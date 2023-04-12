@@ -36,10 +36,6 @@ namespace steps {
 /// <tt>sum(data*weight) / sum(weight)</tt> and the sum of the weights
 /// is the weight of the new data point. If all data point to use are
 /// flagged, the resulting data point and weight are set to zero and flagged.
-//
-/// It keeps track of the FullResFlags. It sets them if the corresponding
-/// data point is flagged. Note that multiple FullResFlags elements map to
-/// a single data point if some averaging was done before.
 
 class Averager : public Step {
  public:
@@ -88,13 +84,6 @@ class Averager : public Step {
  private:
   /// Update itsBuf so it contains averages.
   void average();
-
-  /// Copy the fullRes flags in the input buffer to the correct
-  /// time index in the output buffer.
-  /// If a flag is set, set all flags in corresponding FullRes window.
-  void copyFullResFlags(const aocommon::xt::Span<bool, 3>& full_res_flags,
-                        const aocommon::xt::Span<bool, 3>& flags,
-                        int time_index);
 
   std::string itsName;
   std::unique_ptr<base::DPBuffer> itsBuf;

@@ -34,11 +34,6 @@ inputs:
       only the name FLAG can be used. When updating the input MeasurementSet,
       any column name can be used. If not existing, it will be created first.
       When this setting is used, the output step always writes the flags `.`
-  msout&#46;writefullresflag:
-    default: true
-    type: bool
-    doc: >-
-      Write the full resolution flags `?`
   msout&#46;chunkduration:
     default: 0.0
     type: double

@@ -67,26 +67,15 @@ namespace base {
 ///   <td>UVW</td>
 ///   <td>The UVW coordinates in meters as [3,nbaseline].</td>
 ///  </tr>
-///  <tr>
-///   <td>FULLRESFLAG</td>
-///   <td>The flags before any averaging was done. In the MS they are kept
-///       in column LOFAR_FULL_RES_FLAG. They are used to deal in BBS
-///       in a smart way with bandwidth and time smearing.
-///       The shape of the array is [nchan, ntimeavg, nbaseline], where
-///       ntimeavg is the number of time slots averaged to a single one.
-///       The number of channels averaged to a single one can be determined
-///       by dividing nchan by the number of channels in the data (or flags).
-///   </td>
-///  </tr>
 /// </table>
-/// Each data member (DATA, FLAG, UVW, WEIGHTS, FULLRESFLAGS) is filled in if
+/// Each data member (DATA, FLAG, UVW, WEIGHTS) is filled in if
 /// any Step needs it (the information about the required fields per each step
 /// can be read with the getRequiredFields() function). The first Step
 /// (MSReader) will read the requested fields from the MS into the DPBuffer. In
 /// that way as little memory as needed is used. Note that e.g. the AOFlagger
 /// can use a lot of memory if a large time window is used.
 ///
-/// Until early 2015, NDPPP used the strategy of shallow data copies.
+/// Until early 2015 DP3 used the strategy of shallow data copies.
 /// I.e., a step increased the data reference counter and did not make
 /// an actual copy. Only when data were changed, a new data array was made.
 /// Thus, MSReader allocated a new array when it read the data.
@@ -202,21 +191,6 @@ class DPBuffer {
   const aocommon::xt::Span<float, 3>& GetWeights() const { return weights_; }
   aocommon::xt::Span<float, 3>& GetWeights() { return weights_; }
 
-  /// Set or get the flags at the full resolution per chan,timeavg,baseline.
-  void setFullResFlags(const casacore::Cube<bool>& flags);
-  void ResizeFullResFlags(size_t n_baselines, size_t n_averaged_times,
-                          size_t n_full_res_channels);
-  const casacore::Cube<bool>& GetCasacoreFullResFlags() const {
-    return casa_full_res_flags_;
-  }
-  casacore::Cube<bool>& GetCasacoreFullResFlags() {
-    return casa_full_res_flags_;
-  }
-  const aocommon::xt::Span<bool, 3>& GetFullResFlags() const {
-    return full_res_flags_;
-  }
-  aocommon::xt::Span<bool, 3>& GetFullResFlags() { return full_res_flags_; }
-
   /// Get or set the time.
   void setTime(double time) { time_ = time; }
   double getTime() const { return time_; }
@@ -243,10 +217,6 @@ class DPBuffer {
   const aocommon::xt::Span<double, 2>& GetUvw() const { return uvw_; }
   aocommon::xt::Span<double, 2>& GetUvw() { return uvw_; }
 
-  /// Merge the flags into the pre-average flags.
-  /// For each flagged point, the corresponding pre-average flags are set.
-  void MergeFullResFlags();
-
   void SetSolution(
       const std::vector<std::vector<std::complex<double>>>& solution) {
     solution_ = solution;
@@ -268,11 +238,10 @@ class DPBuffer {
   // In the future, the XTensor views will be replaced by xt::xtensor objects
   // that hold the data. The casa_ objects then provide a Casacore view to the
   // data. When the casa_ objects are no longer used, they will be removed.
-  casacore::Cube<Complex> casa_data_;         ///< ncorr,nchan,nbasel
-  casacore::Cube<bool> casa_flags_;           ///< ncorr,nchan,nbasel
-  casacore::Matrix<double> casa_uvw_;         ///< 3,nbasel
-  casacore::Cube<float> casa_weights_;        ///< ncorr,nchan,nbasel
-  casacore::Cube<bool> casa_full_res_flags_;  ///< fullres_nchan,ntimeavg,nbl
+  casacore::Cube<Complex> casa_data_;   ///< ncorr,nchan,nbasel
+  casacore::Cube<bool> casa_flags_;     ///< ncorr,nchan,nbasel
+  casacore::Matrix<double> casa_uvw_;   ///< 3,nbasel
+  casacore::Cube<float> casa_weights_;  ///< ncorr,nchan,nbasel
 
   /// Visibilities (n_baselines x n_channels x n_correlations)
   aocommon::xt::Span<std::complex<float>, 3> data_;
@@ -290,9 +259,6 @@ class DPBuffer {
   aocommon::xt::Span<float, 3> weights_;
   /// UVW coordinates (n_baselines x 3)
   aocommon::xt::Span<double, 2> uvw_;
-  /// LOFAR full resolution flags
-  /// (n_baselines x n_averaged_times x n_full_resolution_channels)
-  aocommon::xt::Span<bool, 3> full_res_flags_;
 
   std::vector<std::vector<std::complex<double>>>
       solution_;  ///< nchan,nant*npol

@@ -40,8 +40,7 @@ class DDECal : public Step {
   DDECal(const common::ParameterSet& parameterSet, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kUvwField |
-           kFullResFlagsField;
+    return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
   common::Fields getProvidedFields() const override {

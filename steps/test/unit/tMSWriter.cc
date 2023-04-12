@@ -24,25 +24,15 @@ BOOST_AUTO_TEST_CASE(insert_number_in_filename) {
 }
 
 BOOST_AUTO_TEST_CASE(fields) {
-  const dp3::common::Fields kAlwaysWritten =
+  const dp3::common::Fields kExpectedRequiredFields =
       Step::kDataField | Step::kFlagsField | Step::kWeightsField |
       Step::kUvwField;
 
   dp3::common::ParameterSet parset;
 
-  {
-    const MSWriter writer("test_mswriter.ms", parset, "");
-    BOOST_TEST(writer.getRequiredFields() ==
-               (kAlwaysWritten | Step::kFullResFlagsField));
-    BOOST_TEST(writer.getProvidedFields() == dp3::common::Fields());
-  }
-
-  {
-    parset.add("writefullresflag", "false");
-    const MSWriter writer("test_mswriter.ms", parset, "");
-    BOOST_TEST(writer.getRequiredFields() == kAlwaysWritten);
-    BOOST_TEST(writer.getProvidedFields() == dp3::common::Fields());
-  }
+  const MSWriter writer("test_mswriter.ms", parset, "");
+  BOOST_TEST(writer.getRequiredFields() == kExpectedRequiredFields);
+  BOOST_TEST(writer.getProvidedFields() == dp3::common::Fields());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

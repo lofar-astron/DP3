@@ -339,13 +339,4 @@ BOOST_AUTO_TEST_CASE(channels_are_regular) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(full_resolution_averaging_factors) {
-  dp3::base::DPInfo info;
-  BOOST_TEST(info.nAveragedFullResolutionChannels() == 1);
-  BOOST_TEST(info.nAveragedFullResolutionTimes() == 1);
-  info.setFullResolutionAveragingFactors(42, 43);
-  BOOST_TEST(info.nAveragedFullResolutionChannels() == 42);
-  BOOST_TEST(info.nAveragedFullResolutionTimes() == 43);
-}
-
 BOOST_AUTO_TEST_SUITE_END()
