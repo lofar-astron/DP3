@@ -106,6 +106,10 @@ class DPBuffer {
   /// The move constructor moves all data without using reference semantics.
   DPBuffer(DPBuffer&&);
 
+  /// This constructor copies the given fields only, without using reference
+  /// semantics. It copies row numbers using reference semantics.
+  DPBuffer(const DPBuffer& that, const common::Fields& fields);
+
   /// Copy assignment uses reference copies.
   DPBuffer& operator=(const DPBuffer&);
 

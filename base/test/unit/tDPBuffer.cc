@@ -8,6 +8,7 @@
 #include <dp3/base/DPBuffer.h>
 
 using dp3::base::DPBuffer;
+using dp3::common::Fields;
 
 namespace {
 const double kTime = 42.0;
@@ -157,8 +158,46 @@ BOOST_AUTO_TEST_CASE(copy_to_reference_copy) {
   CheckIndependent(source, copy);
 }
 
+BOOST_AUTO_TEST_CASE(copy_partially) {
+  const DPBuffer source = CreateFilledBuffer();
+
+  const DPBuffer no_fields(source, Fields());
+  BOOST_CHECK_EQUAL(source.getTime(), no_fields.getTime());
+  BOOST_CHECK_EQUAL(source.getExposure(), no_fields.getExposure());
+  BOOST_CHECK_EQUAL(source.getRowNrs().data(), no_fields.getRowNrs().data());
+  BOOST_CHECK_EQUAL(no_fields.GetData().size(), 0);
+  BOOST_CHECK(!no_fields.HasData(kFooDataName));
+  BOOST_CHECK(!no_fields.HasData(kBarDataName));
+  BOOST_CHECK_EQUAL(no_fields.GetWeights().size(), 0);
+  BOOST_CHECK_EQUAL(no_fields.GetFlags().size(), 0);
+  BOOST_CHECK_EQUAL(no_fields.GetUvw().size(), 0);
+
+  const DPBuffer data_and_uvw(
+      source, Fields(Fields::Single::kData) | Fields(Fields::Single::kUvw));
+  BOOST_CHECK_EQUAL(data_and_uvw.GetWeights().size(), 0);
+  BOOST_CHECK_EQUAL(data_and_uvw.GetFlags().size(), 0);
+  BOOST_CHECK_EQUAL(source.GetData(), data_and_uvw.GetData());
+  // TODO(AST-1241): Test copying extra data when the Fields support it.
+  BOOST_CHECK(!data_and_uvw.HasData(kFooDataName));
+  BOOST_CHECK(!data_and_uvw.HasData(kBarDataName));
+  BOOST_CHECK_EQUAL(source.GetUvw(), data_and_uvw.GetUvw());
+  BOOST_CHECK_NE(source.GetData().data(), data_and_uvw.GetData().data());
+  BOOST_CHECK_NE(source.GetUvw().data(), data_and_uvw.GetUvw().data());
+
+  const DPBuffer weights_and_flags(source, Fields(Fields::Single::kWeights) |
+                                               Fields(Fields::Single::kFlags));
+  BOOST_CHECK_EQUAL(weights_and_flags.GetData().size(), 0);
+  BOOST_CHECK(!weights_and_flags.HasData(kFooDataName));
+  BOOST_CHECK(!weights_and_flags.HasData(kBarDataName));
+  BOOST_CHECK_EQUAL(weights_and_flags.GetUvw().size(), 0);
+  BOOST_CHECK_EQUAL(source.GetWeights(), weights_and_flags.GetWeights());
+  BOOST_CHECK_EQUAL(source.GetFlags(), weights_and_flags.GetFlags());
+  BOOST_CHECK_NE(source.GetWeights().data(),
+                 weights_and_flags.GetWeights().data());
+  BOOST_CHECK_NE(source.GetFlags().data(), weights_and_flags.GetFlags().data());
+}
+
 BOOST_AUTO_TEST_CASE(make_independent) {
-  using dp3::common::Fields;
   const DPBuffer source = CreateFilledBuffer();
   DPBuffer copy(source);  // 'copy' gets references (see copy_constructor test).
   CheckDependent(source, copy);
