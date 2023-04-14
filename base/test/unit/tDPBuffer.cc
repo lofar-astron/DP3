@@ -211,4 +211,93 @@ BOOST_AUTO_TEST_CASE(remove_data_all_at_once) {
   BOOST_CHECK(!buffer.HasData(kBarDataName));
 }
 
+BOOST_AUTO_TEST_CASE(copy_main_data) {
+  const DPBuffer source = CreateFilledBuffer();
+  DPBuffer target;
+  target.CopyData(source, "", kFooDataName);
+  BOOST_CHECK_EQUAL(target.GetData("").size(), 0);
+  BOOST_REQUIRE(target.HasData(kFooDataName));
+
+  const xt::xtensor<std::complex<float>, 3> data(kShape, kDataValue);
+  BOOST_CHECK_EQUAL(target.GetData(kFooDataName), data);
+
+  // Test overwriting existing data.
+  target.GetData(kFooDataName).fill(kFooDataValue);
+  target.CopyData(source, "", kFooDataName);
+  BOOST_CHECK_EQUAL(target.GetData(kFooDataName), data);
+}
+
+BOOST_AUTO_TEST_CASE(copy_extra_data) {
+  const DPBuffer source = CreateFilledBuffer();
+  DPBuffer target;
+  target.CopyData(source, kFooDataName, kBarDataName);
+  BOOST_CHECK_EQUAL(target.GetData("").size(), 0);
+  BOOST_CHECK(!target.HasData(kFooDataName));
+  BOOST_REQUIRE(target.HasData(kBarDataName));
+
+  // The data in kBarDataName originally had kFooDataValue.
+  const xt::xtensor<std::complex<float>, 3> data(kShape, kFooDataValue);
+  BOOST_CHECK_EQUAL(target.GetData(kBarDataName), data);
+
+  // Test overwriting existing data.
+  target.GetData(kBarDataName).fill(kBarDataValue);
+  target.CopyData(source, kFooDataName, kBarDataName);
+  BOOST_CHECK_EQUAL(target.GetData(kBarDataName), data);
+}
+
+BOOST_AUTO_TEST_CASE(move_main_data) {
+  DPBuffer source = CreateFilledBuffer();
+  // TODO(AST-1254) Uncomment when enabling the check below.
+  // const std::complex<float>* source_pointer = source.GetData().data();
+
+  DPBuffer target;
+  target.MoveData(source, "", kFooDataName);
+  BOOST_CHECK_EQUAL(target.GetData("").size(), 0);
+  BOOST_REQUIRE(target.HasData(kFooDataName));
+
+  const xt::xtensor<std::complex<float>, 3> data(kShape, kDataValue);
+  BOOST_CHECK_EQUAL(target.GetData(kFooDataName), data);
+
+  // TODO(AST-1254) when the main data is in an xtensor structure:
+  // Check that the data buffer pointer remained equal.
+  // BOOST_CHECK_EQUAL(target.GetData(kFooDataName).data(), source_pointer);
+
+  BOOST_CHECK_EQUAL(source.GetData("").size(), 0);
+  BOOST_CHECK(source.HasData(kFooDataName));
+  BOOST_CHECK(source.HasData(kBarDataName));
+
+  // Test overwriting existing data.
+  source = CreateFilledBuffer();
+  target.GetData(kFooDataName).fill(kFooDataValue);
+  target.MoveData(source, "", kFooDataName);
+  BOOST_CHECK_EQUAL(target.GetData(kFooDataName), data);
+}
+
+BOOST_AUTO_TEST_CASE(move_extra_data) {
+  DPBuffer source = CreateFilledBuffer();
+  const std::complex<float>* source_pointer =
+      source.GetData(kFooDataName).data();
+
+  DPBuffer target;
+  target.MoveData(source, kFooDataName, kBarDataName);
+  BOOST_CHECK_EQUAL(target.GetData("").size(), 0);
+  BOOST_CHECK(!target.HasData(kFooDataName));
+  BOOST_CHECK(target.HasData(kBarDataName));
+
+  // The data in kBarDataName originally had kFooDataValue.
+  const xt::xtensor<std::complex<float>, 3> data(kShape, kFooDataValue);
+  BOOST_CHECK_EQUAL(target.GetData(kBarDataName), data);
+  BOOST_CHECK_EQUAL(target.GetData(kBarDataName).data(), source_pointer);
+
+  BOOST_CHECK_GT(source.GetData("").size(), 0);
+  BOOST_CHECK(!source.HasData(kFooDataName));
+  BOOST_CHECK(source.HasData(kBarDataName));
+
+  // Test overwriting existing data.
+  source = CreateFilledBuffer();
+  target.GetData(kBarDataName).fill(kBarDataValue);
+  target.MoveData(source, kFooDataName, kBarDataName);
+  BOOST_CHECK_EQUAL(target.GetData(kBarDataName), data);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

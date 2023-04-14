@@ -10,6 +10,7 @@
 #define DP3_BASE_DPBUFFER_H_
 
 #include <map>
+#include <vector>
 
 #include <xtensor/xtensor.hpp>
 
@@ -170,6 +171,28 @@ class DPBuffer {
       return found->second;
     }
   }
+
+  /// Copy a data buffer of another DPBuffer into an extra data buffer
+  /// in the current DPBuffer. Overwrites the extra data buffer if it exists.
+  /// @param source_name Name of a data buffer in 'source'. If empty, uses
+  ///        the main data buffer in 'source'.
+  /// @param target_name Name of the target data buffer.
+  ///        May not be empty: Copying to the main data buffer is not supported.
+  void CopyData(const DPBuffer& source, const std::string& source_name,
+                const std::string& target_name);
+
+  /// Move a data buffer from 'source' into the current buffer.
+  /// If the extra buffer already exists, it is overwritten.
+  /// Note: Moving data from the main data buffer currently requires copying
+  /// the data and then deleting it from 'source', since moving data from a
+  /// casacore to an xtensor object is not possible.
+  /// TODO(AST-1254): Enable true moving in that case.
+  /// @param source_name Name of a data buffer in 'source'. If empty, uses
+  ///        the main data buffer in 'source'.
+  /// @param target_name Name of the target data buffer.
+  ///        May not be empty: Moving to the main data buffer is not supported.
+  void MoveData(DPBuffer& source, const std::string& source_name,
+                const std::string& target_name);
 
   /// Set or get the flags per corr,chan,baseline.
   void setFlags(const casacore::Cube<bool>& flags);

@@ -9,6 +9,7 @@
 #include <cassert>
 
 #include <casacore/casa/version.h>
+#include <casacore/casa/BasicSL/Complexfwd.h>
 
 // Casacore < 3.4 does not support move semantics for casacore::Array
 // and uses reference semantics in the copy constructor.
@@ -240,6 +241,44 @@ void DPBuffer::ResizeData(size_t n_baselines, size_t n_channels,
     extra_element.second.resize({n_baselines, n_channels, n_correlations});
     extra_data_span_.find(name)->second =
         aocommon::xt::CreateSpan(extra_data_[name]);
+  }
+}
+
+void DPBuffer::CopyData(const DPBuffer& source, const std::string& source_name,
+                        const std::string& target_name) {
+  assert(source.HasData(source_name));
+  assert(!target_name.empty());
+
+  extra_data_[target_name] = source.GetData(source_name);
+  extra_data_span_.insert_or_assign(
+      target_name, aocommon::xt::CreateSpan(extra_data_[target_name]));
+}
+
+void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
+                        const std::string& target_name) {
+  assert(source.HasData(source_name));
+  assert(!target_name.empty());
+
+  if (source_name.empty()) {
+    // Copy and delete the data, since moving from a casacore to an xtensor
+    // object is not possible.
+    // TODO(AST-1254): Implement actual moving.
+    extra_data_[target_name] = source.data_;
+    extra_data_span_.insert_or_assign(
+        target_name, aocommon::xt::CreateSpan(extra_data_[target_name]));
+    source.casa_data_.reference(casacore::Cube<casacore::Complex>());
+    source.data_ = CreateSpan(source.casa_data_);
+  } else {
+    auto source_data_iterator = source.extra_data_.find(source_name);
+    auto source_span_iterator = source.extra_data_span_.find(source_name);
+
+    extra_data_.insert_or_assign(target_name,
+                                 std::move(source_data_iterator->second));
+    extra_data_span_.insert_or_assign(target_name,
+                                      std::move(source_span_iterator->second));
+
+    source.extra_data_.erase(source_data_iterator);
+    source.extra_data_span_.erase(source_span_iterator);
   }
 }
 
