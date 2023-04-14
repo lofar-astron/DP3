@@ -83,6 +83,32 @@ DPBuffer::DPBuffer(DPBuffer&& that)
   that.CreateSpans();
 }
 
+DPBuffer::DPBuffer(const DPBuffer& that, const common::Fields& fields)
+    : DPBuffer(that.time_, that.exposure_) {
+  row_numbers_.reference(that.row_numbers_);
+
+  if (fields.Data()) {
+    casa_data_ = that.casa_data_;
+    casa_data_.unique();
+    data_ = CreateSpan(casa_data_);
+  }
+  if (fields.Flags()) {
+    casa_flags_ = that.casa_flags_;
+    casa_flags_.unique();
+    flags_ = CreateSpan(casa_flags_);
+  }
+  if (fields.Weights()) {
+    casa_weights_ = that.casa_weights_;
+    casa_weights_.unique();
+    weights_ = CreateSpan(casa_weights_);
+  }
+  if (fields.Uvw()) {
+    casa_uvw_ = that.casa_uvw_;
+    casa_uvw_.unique();
+    uvw_ = CreateSpan(casa_uvw_);
+  }
+}
+
 DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
   if (this != &that) {
     time_ = that.time_;
