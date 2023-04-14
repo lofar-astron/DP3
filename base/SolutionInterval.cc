@@ -1,27 +1,19 @@
-// SolutionInterval.cc
-//
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SolutionInterval.h"
-
-using dp3::steps::InputStep;
 
 namespace dp3 {
 namespace base {
 
 SolutionInterval::SolutionInterval(const std::size_t n_solution,
-                                   const std::size_t buffer_size,
-                                   common::NSTimer timer)
+                                   const std::size_t buffer_size)
     : buffer_size_(buffer_size),
       n_solution_(n_solution),
-      timer_(timer),
       buffer_index_(0),
       buffers_(buffer_size),
       original_flags_(buffer_size),
       original_weights_(buffer_size) {}
-
-SolutionInterval::~SolutionInterval() {}
 
 void SolutionInterval::PushBack(const DPBuffer& buffer) {
   if (buffer_index_ >= buffers_.size()) {

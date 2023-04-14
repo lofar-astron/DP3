@@ -1,31 +1,23 @@
-// SolutionInterval.h
-//
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
 /// @brief Solution Interval that can buffer multiple DPBuffers and data that is
 /// relevant for using it in DDECal.
 /// @author Lars Krombeen
 
-#ifndef COMMON_SOLUTION_INTERVAL
-#define COMMON_SOLUTION_INTERVAL
-
-#include <dp3/base/DPBuffer.h>
-#include "../steps/InputStep.h"
+#ifndef DP3_BASE_SOLUTION_INTERVAL_
+#define DP3_BASE_SOLUTION_INTERVAL_
 
 #include <casacore/casa/Arrays/Cube.h>
+
+#include <dp3/base/DPBuffer.h>
 
 namespace dp3 {
 namespace base {
 
-class DPBuffer;
-
 class SolutionInterval {
  public:
-  SolutionInterval(std::size_t n_solution, std::size_t buffer_size,
-                   common::NSTimer timer);
-  ~SolutionInterval();
+  explicit SolutionInterval(std::size_t n_solution, std::size_t buffer_size);
 
   // Copy a buffer and append it to the Solution Interval.
   void PushBack(const DPBuffer&);
@@ -56,7 +48,6 @@ class SolutionInterval {
   const std::size_t buffer_size_;
   const std::size_t n_solution_;
 
-  common::NSTimer timer_;  ///< Timer from the step that is using it for metrics
   std::size_t buffer_index_;  ///< Current index where to insert the next buffer
   std::vector<DPBuffer> buffers_;  ///< Vector of DPBuffer copies
 
