@@ -263,8 +263,8 @@ void AOFlaggerStep::addToMS(const string& msName) {
 
 void AOFlaggerStep::flag(unsigned int rightOverlap) {
   // Get the sizes of the axes.
-  const size_t n_baselines = buffer_[0]->GetCasacoreData().shape()[2];
-  const size_t n_correlations = buffer_[0]->GetCasacoreData().shape()[0];
+  const size_t n_baselines = buffer_[0]->GetData().shape()[0];
+  const size_t n_correlations = buffer_[0]->GetData().shape()[2];
   if (n_correlations != 4)
     throw std::runtime_error(
         "AOFlaggerStep can only handle all 4 correlations");
@@ -360,9 +360,8 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   moveTimer.start();
   // Get the sizes of the axes.
   const size_t n_times = leftOverlap + windowSize + rightOverlap;
-  const size_t n_channels = buffer_[0]->GetCasacoreData().shape()[1];
-  const size_t baseline_size =
-      n_channels * buffer_[0]->GetCasacoreData().shape()[0];
+  const size_t n_channels = buffer_[0]->GetData().shape()[1];
+  const size_t baseline_size = n_channels * buffer_[0]->GetData().shape()[2];
   // Fill the rficonsole buffers and flag.
   // Create the objects for the real and imaginary data of all corr.
   aoflagger::ImageSet imageSet =
