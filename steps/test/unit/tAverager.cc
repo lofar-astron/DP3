@@ -56,16 +56,17 @@ class TestInput : public dp3::steps::MockInput {
     }
     buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
 
-    buffer->ResizeData(itsNBl, itsNChan, itsNCorr);
+    const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
+    buffer->ResizeData(shape);
     for (int i = 0; i < int(buffer->GetData().size()); ++i) {
       buffer->GetData().data()[i] =
           std::complex<float>(i + itsCount * 10, i - 1000 + itsCount * 6);
     }
 
-    buffer->ResizeWeights(itsNBl, itsNChan, itsNCorr);
+    buffer->ResizeWeights(shape);
     buffer->GetWeights().fill(1.0f);
 
-    buffer->ResizeFlags(itsNBl, itsNChan, itsNCorr);
+    buffer->ResizeFlags(shape);
     buffer->GetFlags().fill(itsFlag);
 
     buffer->ResizeUvw(itsNBl);
@@ -85,7 +86,7 @@ class TestInput : public dp3::steps::MockInput {
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNChan, 100000.);
-    for (int i = 0; i < itsNChan; i++) {
+    for (std::size_t i = 0; i < itsNChan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
@@ -94,9 +95,9 @@ class TestInput : public dp3::steps::MockInput {
  private:
   int itsCount;
   int itsNTime;
-  int itsNBl;
-  int itsNChan;
-  int itsNCorr;
+  std::size_t itsNBl;
+  std::size_t itsNChan;
+  std::size_t itsNCorr;
   bool itsFlag;
 };
 
@@ -207,13 +208,14 @@ class TestInput3 : public dp3::steps::MockInput {
     if (itsCount == itsNrTime) {
       return false;
     }
-    buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
-    buffer->ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
-    buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
+    const std::array<std::size_t, 3> shape{itsNrBl, itsNrChan, itsNrCorr};
+    buffer->ResizeData(shape);
+    buffer->ResizeWeights(shape);
+    buffer->ResizeFlags(shape);
     int i = 0;
-    for (int bl = 0; bl < itsNrBl; ++bl) {
-      for (int ch = 0; ch < itsNrChan; ++ch) {
-        for (int corr = 0; corr < itsNrCorr; ++corr) {
+    for (std::size_t bl = 0; bl < itsNrBl; ++bl) {
+      for (std::size_t ch = 0; ch < itsNrChan; ++ch) {
+        for (std::size_t corr = 0; corr < itsNrCorr; ++corr) {
           buffer->GetData()(bl, ch, corr) =
               std::complex<float>(i + itsCount * 10, i - 1000 + itsCount * 6);
           buffer->GetWeights()(bl, ch, corr) =
@@ -242,7 +244,7 @@ class TestInput3 : public dp3::steps::MockInput {
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNrChan, 100000.);
-    for (int i = 0; i < itsNrChan; i++) {
+    for (std::size_t i = 0; i < itsNrChan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
@@ -251,9 +253,9 @@ class TestInput3 : public dp3::steps::MockInput {
  private:
   int itsCount;
   int itsNrTime;
-  int itsNrBl;
-  int itsNrChan;
-  int itsNrCorr;
+  std::size_t itsNrBl;
+  std::size_t itsNrChan;
+  std::size_t itsNrCorr;
 };
 
 // Class to check result of averaging TestInput3.

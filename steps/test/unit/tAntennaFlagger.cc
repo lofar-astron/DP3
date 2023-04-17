@@ -98,7 +98,7 @@ class TestInput final : public dp3::steps::MockInput {
     }
 
     // Initialize data
-    buffer->ResizeData(n_baselines_, n_channels_, n_correlations_);
+    buffer->ResizeData({n_baselines_, n_channels_, n_correlations_});
     xt::random::seed(0);
     xt::real(buffer->GetData()) =
         xt::random::randn<float>(buffer->GetData().shape(), 0, 1);

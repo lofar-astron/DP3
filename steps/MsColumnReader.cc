@@ -24,8 +24,8 @@ MsColumnReader::MsColumnReader(const common::ParameterSet& parset,
       column_name_(parset.getString(prefix + "column", column)) {}
 
 bool MsColumnReader::process(std::unique_ptr<DPBuffer> buffer) {
-  buffer->ResizeData(getInfo().nbaselines(), getInfo().nchan(),
-                     getInfo().ncorr());
+  buffer->ResizeData(
+      {getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()});
   const casacore::IPosition shape(3, getInfo().ncorr(), getInfo().nchan(),
                                   getInfo().nbaselines());
   casacore::Cube<casacore::Complex> data(shape, buffer->GetData().data(),

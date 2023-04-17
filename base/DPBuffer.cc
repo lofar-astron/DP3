@@ -258,13 +258,12 @@ void DPBuffer::RemoveData(const std::string& name) {
   }
 }
 
-void DPBuffer::ResizeData(size_t n_baselines, size_t n_channels,
-                          size_t n_correlations) {
-  casa_data_.resize(n_correlations, n_channels, n_baselines);
+void DPBuffer::ResizeData(const std::array<std::size_t, 3>& shape) {
+  casa_data_.resize(shape[2], shape[1], shape[0]);
   data_ = CreateSpan(casa_data_);
   for (auto& extra_element : extra_data_) {
     const std::string& name = extra_element.first;
-    extra_element.second.resize({n_baselines, n_channels, n_correlations});
+    extra_element.second.resize(shape);
     extra_data_span_.find(name)->second =
         aocommon::xt::CreateSpan(extra_data_[name]);
   }
@@ -313,9 +312,8 @@ void DPBuffer::setFlags(const casacore::Cube<bool>& flags) {
   flags_ = CreateSpan(casa_flags_);
 }
 
-void DPBuffer::ResizeFlags(size_t n_baselines, size_t n_channels,
-                           size_t n_correlations) {
-  casa_flags_.resize(n_correlations, n_channels, n_baselines);
+void DPBuffer::ResizeFlags(const std::array<std::size_t, 3>& shape) {
+  casa_flags_.resize(shape[2], shape[1], shape[0]);
   flags_ = CreateSpan(casa_flags_);
 }
 
@@ -324,9 +322,8 @@ void DPBuffer::setWeights(const casacore::Cube<float>& weights) {
   weights_ = CreateSpan(casa_weights_);
 }
 
-void DPBuffer::ResizeWeights(size_t n_baselines, size_t n_channels,
-                             size_t n_correlations) {
-  casa_weights_.resize(n_correlations, n_channels, n_baselines);
+void DPBuffer::ResizeWeights(const std::array<std::size_t, 3>& shape) {
+  casa_weights_.resize(shape[2], shape[1], shape[0]);
   weights_ = CreateSpan(casa_weights_);
 }
 

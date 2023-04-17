@@ -62,11 +62,11 @@ DPBuffer CreateFilledBuffer() {
   buffer.setTime(kTime);
   buffer.setExposure(kExposure);
   buffer.setRowNrs(casacore::Vector<dp3::common::rownr_t>(kRowNrs, kRowNr));
-  buffer.ResizeData(kNBaselines, kNChannels, kNCorrelations);
+  buffer.ResizeData(kShape);
   buffer.AddData(kFooDataName);
   buffer.AddData(kBarDataName);
-  buffer.ResizeFlags(kNBaselines, kNChannels, kNCorrelations);
-  buffer.ResizeWeights(kNBaselines, kNChannels, kNCorrelations);
+  buffer.ResizeFlags(kShape);
+  buffer.ResizeWeights(kShape);
   buffer.ResizeUvw(kNBaselines);
   buffer.GetData().fill(kDataValue);
   buffer.GetData(kFooDataName).fill(kFooDataValue);
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(resize_data) {
   const std::array<size_t, 3> kNewShape{kNewNBaselines, kNewNChannels,
                                         kNCorrelations};
   DPBuffer buffer = CreateFilledBuffer();
-  buffer.ResizeData(kNewNBaselines, kNewNChannels, kNCorrelations);
+  buffer.ResizeData(kNewShape);
   BOOST_CHECK(buffer.GetData().shape() == kNewShape);
   BOOST_CHECK(buffer.GetData(kFooDataName).shape() == kNewShape);
   BOOST_CHECK(buffer.GetData(kBarDataName).shape() == kNewShape);

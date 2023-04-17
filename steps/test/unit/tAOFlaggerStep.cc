@@ -112,7 +112,9 @@ class TestInput : public dp3::steps::MockInput {
     if (count_ == n_times_) {
       return false;
     }
-    buffer->ResizeData(n_baselines_, n_channels_, n_correlations_);
+    const std::array<std::size_t, 3> shape{n_baselines_, n_channels_,
+                                           n_correlations_};
+    buffer->ResizeData(shape);
 
     buffer->GetData().fill(std::complex<float>(1.6, 0.9));
     if (count_ == kOutlierIndex) {
@@ -120,9 +122,9 @@ class TestInput : public dp3::steps::MockInput {
     }
     buffer->setTime(count_ * kTimeStep +
                     kFirstTime);  // same interval as in updateAveragInfo
-    buffer->ResizeWeights(n_baselines_, n_channels_, n_correlations_);
+    buffer->ResizeWeights(shape);
     buffer->GetWeights().fill(1.);
-    buffer->ResizeFlags(n_baselines_, n_channels_, n_correlations_);
+    buffer->ResizeFlags(shape);
     buffer->GetFlags().fill(flag_);
     getNextStep()->process(std::move(buffer));
     ++count_;

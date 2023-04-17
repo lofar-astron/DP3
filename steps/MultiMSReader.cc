@@ -228,10 +228,10 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   buffer->setRowNrs(buf1.getRowNrs());
   // Size the buffers if they should be read.
   if (getFieldsToRead().Data()) {
-    buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
+    buffer->ResizeData({itsNrBl, itsNrChan, itsNrCorr});
   }
   if (getFieldsToRead().Flags()) {
-    buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
+    buffer->ResizeFlags({itsNrBl, itsNrChan, itsNrCorr});
   }
   // Loop through all readers and get data and flags.
   IPosition start(3, 0, 0, 0);
@@ -406,7 +406,7 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
 
 void MultiMSReader::getWeights(DPBuffer& buffer) {
   const RefRows& rowNrs = buffer.getRowNrs();
-  buffer.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
+  buffer.ResizeWeights({itsNrBl, itsNrChan, itsNrCorr});
   Cube<float>& weights = buffer.GetCasacoreWeights();
   IPosition start(3, 0, 0, 0);
   IPosition end(3, itsNrCorr - 1, 0, itsNrBl - 1);
