@@ -5,22 +5,19 @@
 //
 // @author Ger van Diepen
 
-#include "tStepCommon.h"
-#include "mock/ThrowStep.h"
-
 #include <boost/test/unit_test.hpp>
-
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-
-#include "../../AOFlaggerStep.h"
+#include <xtensor/xcomplex.hpp>
 
 #include <dp3/base/DP3.h>
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 
+#include "../../AOFlaggerStep.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
+
+#include "tStepCommon.h"
+#include "mock/ThrowStep.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -29,7 +26,6 @@ using dp3::steps::Step;
 
 using dp3::common::ParameterSet;
 
-using casacore::Cube;
 using casacore::MPosition;
 using casacore::Quantum;
 
@@ -46,25 +42,25 @@ static const size_t kOutlierIndex = 5;
 class TestInput : public dp3::steps::MockInput {
  public:
   TestInput(int ntime, int nant, int nchan, int ncorr, bool flag)
-      : itsCount(0),
-        itsNTime(ntime),
-        itsNBl(nant * (nant + 1) / 2),
-        itsNChan(nchan),
-        itsNCorr(ncorr),
-        itsFlag(flag) {
-    info() = DPInfo(itsNCorr, itsNChan);
-    info().setTimes(kFirstTime, kFirstTime + (itsNTime - 1) * kTimeStep,
+      : count_(0),
+        n_times_(ntime),
+        n_baselines_(nant * (nant + 1) / 2),
+        n_channels_(nchan),
+        n_correlations_(ncorr),
+        flag_(flag) {
+    info() = DPInfo(n_correlations_, n_channels_);
+    info().setTimes(kFirstTime, kFirstTime + (n_times_ - 1) * kTimeStep,
                     kTimeStep);
 
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    std::vector<int> ant1(itsNBl);
-    std::vector<int> ant2(itsNBl);
+    std::vector<int> ant1(n_baselines_);
+    std::vector<int> ant2(n_baselines_);
     int st1 = 0;
     int st2 = 0;
-    for (int i = 0; i < itsNBl; ++i) {
-      ant1[i] = st1;
-      ant2[i] = st2;
+    for (size_t bl = 0; bl < n_baselines_; ++bl) {
+      ant1[bl] = st1;
+      ant2[bl] = st2;
       if (++st2 == 4) {
         st2 = 0;
         if (++st1 == 4) {
@@ -111,30 +107,25 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  bool process(std::unique_ptr<DPBuffer>) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
-    if (itsCount == itsNTime) {
+    if (count_ == n_times_) {
       return false;
     }
-    Cube<std::complex<float>> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] = std::complex<float>(1.6, 0.9);
+    buffer->ResizeData(n_baselines_, n_channels_, n_correlations_);
+
+    buffer->GetData().fill(std::complex<float>(1.6, 0.9));
+    if (count_ == kOutlierIndex) {
+      buffer->GetData() += std::complex<float>(10., 10.);
     }
-    if (itsCount == kOutlierIndex) {
-      data += std::complex<float>(10., 10.);
-    }
-    auto buffer = std::make_unique<DPBuffer>();
-    buffer->setTime(itsCount * kTimeStep +
+    buffer->setTime(count_ * kTimeStep +
                     kFirstTime);  // same interval as in updateAveragInfo
-    buffer->setData(data);
-    Cube<float> weights(data.shape());
-    weights = 1.;
-    buffer->setWeights(weights);
-    Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    buffer->setFlags(flags);
+    buffer->ResizeWeights(n_baselines_, n_channels_, n_correlations_);
+    buffer->GetWeights().fill(1.);
+    buffer->ResizeFlags(n_baselines_, n_channels_, n_correlations_);
+    buffer->GetFlags().fill(flag_);
     getNextStep()->process(std::move(buffer));
-    ++itsCount;
+    ++count_;
     return true;
   }
 
@@ -143,55 +134,57 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
-  bool itsFlag;
+  size_t count_, n_times_, n_baselines_, n_channels_, n_correlations_;
+  bool flag_;
 };
 
 // Class to check result.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
   TestOutput(int ntime, int nant, int nchan, int ncorr)
-      : itsCount(0),
-        itsNTime(ntime),
-        itsNBl(nant * (nant + 1) / 2),
-        itsNChan(nchan),
-        itsNCorr(ncorr) {}
+      : count_(0),
+        n_times_(ntime),
+        n_baselines_(nant * (nant + 1) / 2),
+        n_channels_(nchan),
+        n_correlations_(ncorr) {}
 
  private:
   bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Fill expected result in similar way as TestInput.
-    Cube<std::complex<float>> result(itsNCorr, itsNChan, itsNBl);
+    xt::xtensor<std::complex<float>, 3> result(
+        {n_baselines_, n_channels_, n_correlations_});
     for (int i = 0; i < int(result.size()); ++i) {
       result.data()[i] = std::complex<float>(1.6, 0.9);
     }
-    if (itsCount == kOutlierIndex) {
+    if (count_ == kOutlierIndex) {
       result += std::complex<float>(10., 10.);
     }
     // Check the result.
-    BOOST_CHECK(allNear(real(buffer->GetCasacoreData()), real(result), 1e-10));
-    BOOST_CHECK(allNear(imag(buffer->GetCasacoreData()), imag(result), 1e-10));
-    BOOST_CHECK_CLOSE(buffer->getTime(), kFirstTime + kTimeStep * itsCount,
-                      1e-8);
-    ++itsCount;
+    BOOST_CHECK(
+        xt::allclose(xt::real(buffer->GetData()), xt::real(result), 1e-10));
+    BOOST_CHECK(
+        xt::allclose(xt::imag(buffer->GetData()), xt::imag(result), 1e-10));
+    BOOST_CHECK_CLOSE(buffer->getTime(), kFirstTime + kTimeStep * count_, 1e-8);
+    ++count_;
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
-    BOOST_CHECK(int(info.origNChan()) == itsNChan);
-    BOOST_CHECK(int(info.nchan()) == itsNChan);
-    BOOST_CHECK(int(info.ntime()) == itsNTime);
+    BOOST_CHECK(info.origNChan() == n_channels_);
+    BOOST_CHECK(info.nchan() == n_channels_);
+    BOOST_CHECK(info.ntime() == n_times_);
     BOOST_CHECK(info.firstTime() == kFirstTime);
     BOOST_CHECK(info.timeInterval() == kTimeStep);
     BOOST_CHECK(int(info.nchanAvg()) == 1);
     BOOST_CHECK(int(info.ntimeAvg()) == 1);
-    BOOST_CHECK(int(info.chanFreqs().size()) == itsNChan);
-    BOOST_CHECK(int(info.chanWidths().size()) == itsNChan);
+    BOOST_CHECK(info.chanFreqs().size() == n_channels_);
+    BOOST_CHECK(info.chanWidths().size() == n_channels_);
     BOOST_CHECK(info.msName().empty());
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  size_t count_;
+  size_t n_times_, n_baselines_, n_channels_, n_correlations_;
 };
 
 // Test simple flagging with or without preflagged points.
