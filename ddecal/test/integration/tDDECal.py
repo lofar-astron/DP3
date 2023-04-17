@@ -869,3 +869,93 @@ def test_station_with_auto_correlation_only(caltype):
             "ddecal.nchan=0",
         ]
     )
+
+
+def test_uvwflagging():
+    """
+    Test whether DDECal
+    1) Does not use the visibilities in the solver that are excluded by a UVW selection
+    2) Does not propagate the flags used for UVW selection to the next step
+    """
+
+    # Clear flags
+    taqlcommand_run = f"UPDATE {MSIN} SET FLAG=FALSE"
+    check_output([TAQLEXE, "-noph", taqlcommand_run])
+
+    # UVW Flagging
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=",
+            "steps=[uvwflagger]",
+            "uvwflagger.uvmmax=10000",
+        ]
+    )
+
+    # Verify that the test scenario is sane and does indeed contain flagged UVW values
+    # Check that 84 rows have been flagged
+    assert_taql(f"SELECT FLAG FROM {MSIN} WHERE ANY(FLAG)", 84)
+
+    # Fill DATA column diagonal with valid visibilities of value 4.0, for unflagged data,
+    # or corrupted visibilities with value 8.0, for flagged data
+    taqlcommand_run = f"UPDATE {MSIN} SET DATA=iif(FLAG, 8.0, 4.0)*RESIZE([1,0,0,1],SHAPE(DATA),1)"
+    check_output([TAQLEXE, "-noph", taqlcommand_run])
+
+    # Clear flags
+    taqlcommand_run = f"UPDATE {MSIN} SET FLAG=FALSE"
+    check_output([TAQLEXE, "-noph", taqlcommand_run])
+
+    # Create a sky model
+    import casacore.tables  # Don't import casacore.tables when pytest is only collecting tests.
+
+    t_field = casacore.tables.table(f"{MSIN}::FIELD")
+    ra, dec = t_field[0]["PHASE_DIR"][0]
+    with open("skymodel.txt", "w") as sky_model_file:
+        print(
+            "Format = Name, Type, Ra, Dec, I, SpectralIndex, LogarithmicSI, ReferenceFrequency='150000000', MajorAxis, MinorAxis, Orientation",
+            file=sky_model_file,
+        )
+        print(
+            f"source-0,POINT,{ra},{dec},1.0,[],false,150000000,,,",
+            file=sky_model_file,
+        )
+
+    # Calibrate
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[ddecal]",
+            "ddecal.sourcedb=skymodel.txt",
+            "ddecal.solint=0",
+            "ddecal.nchan=0",
+            "ddecal.h5parm=instrument.h5",
+            "ddecal.mode=complexgain",
+            "ddecal.uvmmax=10000",  # When this line is removed the corrupted visibilities will be used
+            # and the test will fail
+        ]
+    )
+
+    # Check solutions
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
+    with h5py.File("instrument.h5", "r") as h5file:
+        sol = h5file["sol000/amplitude000/val"]
+        # Because of the flags some antennas will have no solution, indicated by a NaN.
+        # Check whether the finite solutions are as expected.
+        # The equation that is solved for is:
+        #   g_i * model_visibility * g_j = visibility.
+        # The visibilities (DATA column) are 4.0, the model visibilities are 1.0
+        # so the gain solutions should be 2.0.
+        assert np.all(np.isclose(sol[np.isfinite(sol)], 2.0, atol=1.0e-3))
+
+    # Check flags
+    # The flags used internally by DDECal to flag unwanted uvw values should not propagate
+    # to the next step/msout step
+    assert_taql(f"SELECT FLAG FROM {MSIN} WHERE ANY(FLAG)")
