@@ -110,13 +110,15 @@ class TestInput : public dp3::steps::MockInput {
     if (process_count_ == kNTimes) {
       return false;
     }
-    buffer->ResizeData(kNBaselines, kNChannels, kNCorrelations);
+    const std::array<std::size_t, 3> shape{kNBaselines, kNChannels,
+                                           kNCorrelations};
+    buffer->ResizeData(shape);
     buffer->GetData().fill(std::complex<float>(1, 0));
-    buffer->ResizeWeights(kNBaselines, kNChannels, kNCorrelations);
+    buffer->ResizeWeights(shape);
     buffer->GetWeights().fill(1.0f);
 
     buffer->setTime(kFirstTime + process_count_ * kTimeInterval);
-    buffer->ResizeFlags(kNBaselines, kNChannels, kNCorrelations);
+    buffer->ResizeFlags(shape);
     buffer->GetFlags().fill(false);
     getNextStep()->process(std::move(buffer));
     ++process_count_;

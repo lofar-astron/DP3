@@ -71,9 +71,11 @@ class BdaGroupPredict::BaselineGroup {
     std::size_t nr_chan = chanFreqs.size();
     info.setChannels(std::move(chanFreqs), std::move(chanWidths));
     predict_step_->setInfo(info);
-    dpbuffer_.ResizeData(nr_baselines, nr_chan, info_in.ncorr());
-    dpbuffer_.ResizeWeights(nr_baselines, nr_chan, info_in.ncorr());
-    dpbuffer_.ResizeFlags(nr_baselines, nr_chan, info_in.ncorr());
+    const std::array<std::size_t, 3> shape{nr_baselines, nr_chan,
+                                           info_in.ncorr()};
+    dpbuffer_.ResizeData(shape);
+    dpbuffer_.ResizeWeights(shape);
+    dpbuffer_.ResizeFlags(shape);
     dpbuffer_.ResizeUvw(nr_baselines);
   }
 

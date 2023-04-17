@@ -264,9 +264,10 @@ void Averager::average() {
   const unsigned int n_chan_in = data_in.shape(1);
   const unsigned int n_chan_out = (n_chan_in + itsNChanAvg - 1) / itsNChanAvg;
   const unsigned int n_corr = data_in.shape(2);
-  itsBuf->ResizeData(n_bl, n_chan_out, n_corr);
-  itsBuf->ResizeWeights(n_bl, n_chan_out, n_corr);
-  itsBuf->ResizeFlags(n_bl, n_chan_out, n_corr);
+  const std::array<std::size_t, 3> out_shape{n_bl, n_chan_out, n_corr};
+  itsBuf->ResizeData(out_shape);
+  itsBuf->ResizeWeights(out_shape);
+  itsBuf->ResizeFlags(out_shape);
   itsBuf->MakeIndependent(kDataField | kWeightsField);
   aocommon::xt::Span<std::complex<float>, 3>& data_out = itsBuf->GetData();
   aocommon::xt::Span<float, 3>& weights_out = itsBuf->GetWeights();

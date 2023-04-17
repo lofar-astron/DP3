@@ -119,9 +119,11 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
     info().update(itsStartChan, nrChan, itsSelBL, itsRemoveAnt);
     if (itsDoSelect) {
       // Shape the arrays in the buffer.
-      itsBuf.ResizeData(getInfo().nbaselines(), nrChan, infoIn.ncorr());
-      itsBuf.ResizeFlags(getInfo().nbaselines(), nrChan, infoIn.ncorr());
-      itsBuf.ResizeWeights(getInfo().nbaselines(), nrChan, infoIn.ncorr());
+      const std::array<std::size_t, 3> shape{getInfo().nbaselines(), nrChan,
+                                             infoIn.ncorr()};
+      itsBuf.ResizeData(shape);
+      itsBuf.ResizeFlags(shape);
+      itsBuf.ResizeWeights(shape);
       if (!itsSelBL.empty()) {
         itsBuf.ResizeUvw(getInfo().nbaselines());
       }

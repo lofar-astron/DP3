@@ -290,10 +290,10 @@ std::string MSReader::msName() const { return itsMS.tableName(); }
 
 bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Data()) {
-    buffer->ResizeData(itsNrBl, itsNrChan, itsNrCorr);
+    buffer->ResizeData({itsNrBl, itsNrChan, itsNrCorr});
   }
   if (getFieldsToRead().Flags()) {
-    buffer->ResizeFlags(itsNrBl, itsNrChan, itsNrCorr);
+    buffer->ResizeFlags({itsNrBl, itsNrChan, itsNrCorr});
   }
   {
     common::NSTimer::StartStop sstime(itsTimer);
@@ -757,7 +757,7 @@ void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
 void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Resize if needed (probably when called for first time).
-  buf.ResizeWeights(itsNrBl, itsNrChan, itsNrCorr);
+  buf.ResizeWeights({itsNrBl, itsNrChan, itsNrCorr});
   aocommon::xt::Span<float, 3>& weights = buf.GetWeights();
   const casacore::IPosition shape(3, itsNrCorr, itsNrChan, itsNrBl);
   casacore::Cube<float> casa_weights(shape, weights.data(), casacore::SHARE);

@@ -245,12 +245,11 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   itsUVWCalc = std::make_unique<base::UVWCalculator>(
       infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);
   // Size the buffer to cater for the new baselines.
-  itsBuf.ResizeData(getInfo().nbaselines(), getInfo().nchan(),
-                    getInfo().ncorr());
-  itsBuf.ResizeFlags(getInfo().nbaselines(), getInfo().nchan(),
-                     getInfo().ncorr());
-  itsBuf.ResizeWeights(getInfo().nbaselines(), getInfo().nchan(),
-                       getInfo().ncorr());
+  const std::array<std::size_t, 3> shape{getInfo().nbaselines(),
+                                         getInfo().nchan(), getInfo().ncorr()};
+  itsBuf.ResizeData(shape);
+  itsBuf.ResizeFlags(shape);
+  itsBuf.ResizeWeights(shape);
   itsBuf.ResizeUvw(getInfo().nbaselines());
 }
 

@@ -161,8 +161,7 @@ bool MadFlagger::process(const DPBuffer& buf) {
   amplitude(itsAmpl[index], dbuf.GetCasacoreData());
   // Fill flags if needed.
   if (dbuf.GetCasacoreFlags().empty()) {
-    dbuf.ResizeFlags(getInfo().nbaselines(), getInfo().nchan(),
-                     getInfo().ncorr());
+    dbuf.ResizeFlags(dbuf.GetData().shape());
     dbuf.GetCasacoreFlags() = false;
   }
   itsNTimes++;

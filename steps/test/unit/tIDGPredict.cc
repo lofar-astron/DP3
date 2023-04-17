@@ -79,12 +79,14 @@ std::unique_ptr<DPBuffer> CreateBuffer(
     const float weight = 1.0) {
   std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>(time, interval);
 
-  buffer->ResizeData(n_baselines, channel_counts.size(), kNCorr);
+  const std::array<std::size_t, 3> shape{n_baselines, channel_counts.size(),
+                                         kNCorr};
+  buffer->ResizeData(shape);
 
-  buffer->ResizeFlags(n_baselines, channel_counts.size(), kNCorr);
+  buffer->ResizeFlags(shape);
   buffer->GetFlags().fill(false);
 
-  buffer->ResizeWeights(n_baselines, channel_counts.size(), kNCorr);
+  buffer->ResizeWeights(shape);
   buffer->GetWeights().fill(weight);
 
   buffer->ResizeUvw(n_baselines);

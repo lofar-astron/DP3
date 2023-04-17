@@ -9,6 +9,7 @@
 #ifndef DP3_BASE_DPBUFFER_H_
 #define DP3_BASE_DPBUFFER_H_
 
+#include <array>
 #include <map>
 #include <vector>
 
@@ -151,7 +152,9 @@ class DPBuffer {
     return name.empty() || (extra_data_.find(name) != extra_data_.end());
   }
 
-  void ResizeData(size_t n_baselines, size_t n_channels, size_t n_correlations);
+  /// Resize the data buffer(s) in the DPBuffer.
+  /// @param shape New shape: { n_baselines, n_channels, n_correlations }
+  void ResizeData(const std::array<std::size_t, 3>& shape);
   const casacore::Cube<Complex>& GetCasacoreData() const { return casa_data_; }
   casacore::Cube<Complex>& GetCasacoreData() { return casa_data_; }
 
@@ -200,8 +203,10 @@ class DPBuffer {
 
   /// Set or get the flags per corr,chan,baseline.
   void setFlags(const casacore::Cube<bool>& flags);
-  void ResizeFlags(size_t n_baselines, size_t n_channels,
-                   size_t n_correlations);
+
+  /// Resize the flags buffer in the DPBuffer.
+  /// @param shape New shape: { n_baselines, n_channels, n_correlations }
+  void ResizeFlags(const std::array<std::size_t, 3>& shape);
   const casacore::Cube<bool>& GetCasacoreFlags() const { return casa_flags_; }
   casacore::Cube<bool>& GetCasacoreFlags() { return casa_flags_; }
   const aocommon::xt::Span<bool, 3>& GetFlags() const { return flags_; }
@@ -209,8 +214,9 @@ class DPBuffer {
 
   /// Set or get the weights per corr,chan,baseline.
   void setWeights(const casacore::Cube<float>& weights);
-  void ResizeWeights(size_t n_baselines, size_t n_channels,
-                     size_t n_correlations);
+  /// Resize the weights buffer in the DPBuffer.
+  /// @param shape New shape: { n_baselines, n_channels, n_correlations }
+  void ResizeWeights(const std::array<std::size_t, 3>& shape);
   const casacore::Cube<float>& GetCasacoreWeights() const {
     return casa_weights_;
   }
