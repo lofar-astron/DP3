@@ -7,7 +7,7 @@ from testconfig import TAQLEXE
 
 
 def assert_taql(command, expected_rows=0):
-    result = check_output([TAQLEXE, "-noph", command]).decode().strip()
+    result = check_output([TAQLEXE, "-noph", "-nopa", command]).decode().strip()
     assert result == f"select result of {expected_rows} rows"
 
 
