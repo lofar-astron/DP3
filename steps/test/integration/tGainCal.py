@@ -3,7 +3,7 @@ import shutil
 import os
 import sys
 import uuid
-from subprocess import check_call
+from subprocess import check_call, check_output
 import numpy as np
 
 # Append current directory to system path in order to import testconfig
@@ -55,6 +55,21 @@ def create_model_data():
             "steps=[predict]",
             f"predict.sourcedb={MSIN}/sky",
             "predict.usebeammodel=false",
+        ]
+    )
+
+
+@pytest.fixture()
+def copy_data_to_model_data():
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=MODEL_DATA",
+            "steps=[]",
         ]
     )
 
@@ -295,7 +310,7 @@ def test_uvwflagging():
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
-            "msout=",
+            "msout=.",
             "steps=[uvwflagger]",
             "uvwflagger.uvmmax=10000",
         ]
@@ -379,3 +394,39 @@ def test_uvwflagging():
     # The flags used internally by DDECal to flag unwanted uvw values should not propagate
     # to the next step/msout step
     assert_taql(f"SELECT FLAG FROM {MSIN} WHERE ANY(FLAG)")
+
+
+def test_usemodelcolumn(copy_data_to_model_data):
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
+    # Multiply MODEL_DATA by 42
+    taqlcommand_run = f"update {MSIN} set MODEL_DATA=MODEL_DATA*42"
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=",
+            "steps=[gaincal]",
+            "gaincal.usemodelcolumn=T",
+            "gaincal.caltype=diagonal",
+            "gaincal.parmdb=instrument-modeldata.h5",
+            "gaincal.solint=2",
+            "gaincal.nchan=3",
+        ]
+    )
+
+    with h5py.File("instrument-modeldata.h5", "r") as h5file:
+        sol = h5file["sol000/amplitude000/val"]
+        # First check one element to get a nice error message
+        # assert sol[0, 0, 0, 0] == pytest.approx(
+        #     1.0 / np.sqrt(42), abs=1.0e-3
+        # )
+        # At least 80% of the solutions are valid
+        assert (np.sum(np.isfinite(sol)) / sol.size) > 0.8
+        assert np.all(
+            np.isclose(sol[np.isfinite(sol)], 1 / np.sqrt(42), atol=1.0e-3)
+        )
