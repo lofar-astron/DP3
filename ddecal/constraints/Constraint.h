@@ -104,7 +104,7 @@ class Constraint {
    * @param n_threads Desired number of threads. If it is zero, it becomes one.
    */
   void SetNThreads(size_t n_threads) {
-    n_threads_ = std::min(n_threads, size_t(1));
+    n_threads_ = std::max(n_threads, size_t(1));
   }
 
   virtual void GetTimings([[maybe_unused]] std::ostream& os,
