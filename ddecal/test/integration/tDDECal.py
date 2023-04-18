@@ -876,6 +876,8 @@ def test_uvwflagging():
     Test whether DDECal
     1) Does not use the visibilities in the solver that are excluded by a UVW selection
     2) Does not propagate the flags used for UVW selection to the next step
+
+    This test is nearly identical to test_uvwflagging() in steps/test/integration/tGainCal.py
     """
 
     # Clear flags
@@ -931,21 +933,26 @@ def test_uvwflagging():
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
-            "steps=[ddecal]",
-            "ddecal.sourcedb=skymodel.txt",
-            "ddecal.solint=0",
-            "ddecal.nchan=0",
-            "ddecal.h5parm=instrument.h5",
-            "ddecal.mode=complexgain",
-            "ddecal.uvmmax=10000",  # When this line is removed the corrupted visibilities will be used
+            "steps=[ddecal1,ddecal2]",
+            "ddecal1.sourcedb=skymodel.txt",
+            "ddecal1.solint=0",
+            "ddecal1.nchan=0",
+            "ddecal1.h5parm=instrument1.h5",
+            "ddecal1.mode=complexgain",
+            "ddecal1.uvmmax=10000",  # When this line is removed the corrupted visibilities will be used
             # and the test will fail
+            "ddecal2.sourcedb=skymodel.txt",
+            "ddecal2.solint=0",
+            "ddecal2.nchan=0",
+            "ddecal2.h5parm=instrument2.h5",
+            "ddecal2.mode=complexgain",
         ]
     )
 
     # Check solutions
     import h5py  # Don't import h5py when pytest is only collecting tests.
 
-    with h5py.File("instrument.h5", "r") as h5file:
+    with h5py.File("instrument1.h5", "r") as h5file:
         sol = h5file["sol000/amplitude000/val"]
         # Because of the flags some antennas will have no solution, indicated by a NaN.
         # Check whether the finite solutions are as expected.
@@ -953,7 +960,16 @@ def test_uvwflagging():
         #   g_i * model_visibility * g_j = visibility.
         # The visibilities (DATA column) are 4.0, the model visibilities are 1.0
         # so the gain solutions should be 2.0.
+        # First check that at least 70% of the solutions are valid
+        assert np.sum(np.isfinite(sol)) / sol.size > 0.7
         assert np.all(np.isclose(sol[np.isfinite(sol)], 2.0, atol=1.0e-3))
+
+    with h5py.File("instrument2.h5", "r") as h5file:
+        sol = h5file["sol000/amplitude000/val"]
+        # The second step has no uvwflaggin, so the result should be incorrect
+        # First check that at least 70% of the solutions are valid
+        assert np.sum(np.isfinite(sol)) / sol.size > 0.7
+        assert not np.all(np.isclose(sol[np.isfinite(sol)], 2.0, atol=1.0e-3))
 
     # Check flags
     # The flags used internally by DDECal to flag unwanted uvw values should not propagate

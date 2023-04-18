@@ -371,12 +371,15 @@ bool GainCal::process(const DPBuffer& bufin) {
 
   // UVW flagging happens on a copy of the buffer, so these flags are not
   // written
-  // UVWFlagger hides the legacy process() overload.
-  itsUVWFlagStep.process(std::make_unique<DPBuffer>(itsBuf[bufIndex]));
+  DPBuffer buffer(itsBuf[bufIndex]);
+  buffer.MakeIndependent(kFlagsField);
 
-  const casacore::Complex* data = itsBuf[bufIndex].GetData().data();
-  const float* weight = itsBuf[bufIndex].GetWeights().data();
-  const bool* flag = itsBuf[bufIndex].GetFlags().data();
+  // UVWFlagger hides the legacy process() overload.
+  itsUVWFlagStep.process(std::make_unique<DPBuffer>(buffer));
+
+  const casacore::Complex* data = buffer.GetData().data();
+  const float* weight = buffer.GetWeights().data();
+  const bool* flag = buffer.GetFlags().data();
 
   // Simulate.
   //
@@ -384,7 +387,7 @@ bool GainCal::process(const DPBuffer& bufin) {
   // and stored.
 
   itsTimerPredict.start();
-  itsFirstSubStep->process(itsBuf[bufIndex]);
+  itsFirstSubStep->process(buffer);
   itsTimerPredict.stop();
 
   itsTimerFill.start();
