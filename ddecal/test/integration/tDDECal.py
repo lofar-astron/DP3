@@ -727,6 +727,8 @@ def test_dd_solution_intervals(solutions_per_direction):
 
 
 def test_modelnextsteps(copy_data_to_model_data):
+    import h5py  # Don't import h5py when pytest is only collecting tests.
+
     # Multiply MODEL_DATA by 42
     taqlcommand_run = f"update {MSIN} set MODEL_DATA=DATA*42"
     check_output([TAQLEXE, "-noph", taqlcommand_run])
@@ -742,7 +744,7 @@ def test_modelnextsteps(copy_data_to_model_data):
             "steps=[ddecal]",
             "ddecal.modeldatacolumns=[MODEL_DATA]",
             "ddecal.modelnextsteps.MODEL_DATA=[scaledata]",
-            "ddecal.h5parm=instrument-modeldata",
+            "ddecal.h5parm=instrument-modeldata.h5",
             "ddecal.solint=2",
             "ddecal.nchan=3",
             "scaledata.stations='*'",
@@ -753,6 +755,16 @@ def test_modelnextsteps(copy_data_to_model_data):
     )
     taql_command = f"select from (select abs(sumsqr(SUBTRACTED_DATA)/sumsqr(DATA)) as diff from {MSIN}) where diff>1.e-6"
     assert_taql(taql_command)
+
+    with h5py.File("instrument-modeldata.h5", "r") as h5file:
+        sol = h5file["sol000/amplitude000/val"]
+        # First check one element to get a nice error message
+        assert sol[0, 0, 0, 0, 0] == pytest.approx(
+            1.0 / np.sqrt(42), abs=1.0e-3
+        )
+        assert np.all(
+            np.isclose(sol[np.isfinite(sol)], 1 / np.sqrt(42), atol=1.0e-3)
+        )
 
 
 def test_bda_constaints():

@@ -711,7 +711,9 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
   itsTimerPredict.start();
 
   itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
-    itsSteps[dir]->process(bufin);
+    DPBuffer new_buffer;
+    new_buffer.copy(bufin);
+    itsSteps[dir]->process(new_buffer);
   });
 
   // Handle weights and flags
