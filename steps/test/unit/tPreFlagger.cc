@@ -1,16 +1,25 @@
 // tPreFlagger.cc: Test program for class PreFlagger
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
 #include "../../PreFlagger.h"
 
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <array>
+#include <complex>
+#include <cstddef>
 
 #include <boost/test/unit_test.hpp>  // Include before test_case
 #include <boost/test/data/test_case.hpp>
+
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MPosition.h>
+
+#include <xtensor/xio.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xview.hpp>
 
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
@@ -107,26 +116,29 @@ class TestInput : public dp3::steps::MockInput {
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 10 + itsCount * 6);
-    }
-    casacore::Matrix<double> uvw(3, itsNBl);
-    for (int i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = 1 + itsCount + i;
-      uvw(1, i) = 2 + itsCount + i;
-      uvw(2, i) = 3 + itsCount + i;
-    }
+
     buffer->setTime(itsCount * 5 + 3);  // same interval as in updateAveragInfo
-    buffer->setData(data);
-    buffer->setUVW(uvw);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buffer->setWeights(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    buffer->setFlags(flags);
+
+    const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
+    buffer->ResizeData(shape);
+    for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
+      buffer->GetData().data()[i] =
+          std::complex<float>(i + itsCount * 10, i - 10 + itsCount * 6);
+    }
+
+    buffer->ResizeUvw(itsNBl);
+    for (std::size_t bl = 0; bl < itsNBl; ++bl) {
+      buffer->GetUvw()(bl, 0) = 1 + itsCount + bl;
+      buffer->GetUvw()(bl, 1) = 2 + itsCount + bl;
+      buffer->GetUvw()(bl, 2) = 3 + itsCount + bl;
+    }
+
+    buffer->ResizeWeights(shape);
+    buffer->GetWeights().fill(1.0);
+
+    buffer->ResizeFlags(shape);
+    buffer->GetFlags().fill(itsFlag);
+
     getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
@@ -137,7 +149,11 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
+  int itsCount;
+  int itsNTime;
+  std::size_t itsNBl;
+  std::size_t itsNChan;
+  std::size_t itsNCorr;
   bool itsFlag;
 };
 
@@ -169,28 +185,26 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     //      T         F         F          T    T
     //      F         F         F          T    F
     // The lines marked with * are the cases in the if below.
-    casacore::Cube<bool> result(itsNCorr, itsNChan, itsNBl);
     bool compFlag = itsFlag;
     bool selFlag = !itsClear;
     if (itsUseComplement && itsFlag == itsClear) {
       compFlag = !itsFlag;
       selFlag = itsClear;
     }
-    result = compFlag;
+    xt::xtensor<bool, 3> result({itsNBl, itsNChan, itsNCorr}, compFlag);
     // All baselines except 2-2 should be selected.
-    // Of them only channel 1,4,5 are selected.
-    for (int i = 0; i < itsNBl; ++i) {
-      if (i % 16 != 10) {
-        for (int j = 0; j < itsNChan; ++j) {
-          if (j == 1 || j == 4 || j == 5) {
-            for (int k = 0; k < itsNCorr; ++k) {
-              result(k, j, i) = selFlag;
-            }
+    // Of them, only channel 1,4,5 are selected.
+    for (std::size_t baseline = 0; baseline < itsNBl; ++baseline) {
+      if (baseline % 16 != 10) {
+        for (std::size_t channel = 0; channel < itsNChan; ++channel) {
+          if (channel == 1 || channel == 4 || channel == 5) {
+            xt::view(result, baseline, channel, xt::all())
+                .fill(selFlag);  // all correlations
           }
         }
       }
     }
-    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
+    BOOST_CHECK_EQUAL(buffer->GetFlags(), result);
     itsCount++;
     return true;
   }
@@ -207,8 +221,13 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   }
 
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
-  bool itsFlag, itsClear, itsUseComplement;
+  int itsNTime;
+  std::size_t itsNBl;
+  std::size_t itsNChan;
+  std::size_t itsNCorr;
+  bool itsFlag;
+  bool itsClear;
+  bool itsUseComplement;
 };
 
 // Test flagging a few antennae and freqs.
@@ -244,21 +263,20 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
  private:
   bool process(std::unique_ptr<DPBuffer> buffer) override {
     // A few baselines should be flagged (0, 7, 13, 15)
-    // Furthermore channel 1,4,5,11,12,13 are flagged.
-    casacore::Cube<bool> result(itsNCorr, itsNChan, itsNBl);
-    result = false;
-    for (int i = 0; i < itsNBl; ++i) {
-      if (i % 16 == 0 || i % 16 == 7 || i % 16 == 13 || i % 16 == 15) {
-        for (int j = 0; j < itsNChan; ++j) {
-          if (j == 4) {
-            for (int k = 0; k < itsNCorr; ++k) {
-              result(k, j, i) = true;
-            }
+    // Of them, only channel 4 is flagged.
+    xt::xtensor<bool, 3> result({itsNBl, itsNChan, itsNCorr}, false);
+    for (std::size_t baseline = 0; baseline < itsNBl; ++baseline) {
+      if (baseline % 16 == 0 || baseline % 16 == 7 || baseline % 16 == 13 ||
+          baseline % 16 == 15) {
+        for (std::size_t channel = 0; channel < itsNChan; ++channel) {
+          if (channel == 4) {
+            xt::view(result, baseline, channel, xt::all())
+                .fill(true);  // all correlations
           }
         }
       }
     }
-    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
+    BOOST_CHECK_EQUAL(buffer->GetFlags(), result);
     itsCount++;
     return true;
   }
@@ -269,13 +287,16 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
     BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
     BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
     BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
-    BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
+    BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5.0);
     BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
     BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
   }
 
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  int itsNTime;
+  std::size_t itsNBl;
+  std::size_t itsNChan;
+  std::size_t itsNCorr;
 };
 
 // Test flagging a few baselines, freqs, and channels.
@@ -307,32 +328,28 @@ void test3(int ntime, int nbl, int nchan, int ncorr, bool flag) {
 // Class to check result of flagged, unaveraged TestInput run by test4.
 class TestOutput4 : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput4(int ntime, int nbl, int nchan, int ncorr, bool flag)
+  TestOutput4(int ntime, int nbl, int nchan, int ncorr)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nbl),
         itsNChan(nchan),
-        itsNCorr(ncorr),
-        itsFlag(flag) {}
+        itsNCorr(ncorr) {}
 
- private:
   bool process(std::unique_ptr<DPBuffer> buffer) override {
     // All baselines except autocorr should be flagged.
     // Furthermore channel 1,4,5 are flagged.
-    casacore::Cube<bool> result(itsNCorr, itsNChan, itsNBl);
-    result = true;
-    for (int i = 0; i < itsNBl; ++i) {
-      if (i % 16 == 0 || i % 16 == 5 || i % 16 == 10 || i % 16 == 15) {
-        for (int j = 0; j < itsNChan; ++j) {
-          if (j != 1 && j != 4 && j != 5) {
-            for (int k = 0; k < itsNCorr; ++k) {
-              result(k, j, i) = itsFlag;
-            }
+    xt::xtensor<bool, 3> result({itsNBl, itsNChan, itsNCorr}, true);
+    for (std::size_t baseline = 0; baseline < itsNBl; ++baseline) {
+      if (baseline % 16 == 0 || baseline % 16 == 5 || baseline % 16 == 10 ||
+          baseline % 16 == 15) {
+        for (std::size_t channel = 0; channel < itsNChan; ++channel) {
+          if (channel != 1 && channel != 4 && channel != 5) {
+            xt::view(result, baseline, channel, xt::all()).fill(false);
           }
         }
       }
     }
-    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
+    BOOST_CHECK_EQUAL(buffer->GetFlags(), result);
     itsCount++;
     return true;
   }
@@ -348,26 +365,29 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
     BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
   }
 
+ private:
   int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
-  bool itsFlag;
+  int itsNTime;
+  std::size_t itsNBl;
+  std::size_t itsNChan;
+  std::size_t itsNCorr;
 };
 
 // Test flagging a few antennae and freqs by using multiple steps.
-void test4(int ntime, int nbl, int nchan, int ncorr, bool flag) {
-  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
+void test4(int ntime, int nbl, int nchan, int ncorr) {
+  auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, false);
   ParameterSet parset;
   parset.add("expr", "(s1&s1),(s2|s2)");
   parset.add("s1.freqrange", "[ 1.1 .. 1.2 MHz, 1.5MHz+-65000Hz]");
   parset.add("s2.baseline", "[rs01.*, *s*.*2, rs02.s01]");
   parset.add("s2.corrtype", "cross");
   auto pre_flagger = std::make_shared<PreFlagger>(parset, "");
-  auto out = std::make_shared<TestOutput4>(ntime, nbl, nchan, ncorr, flag);
+  auto out = std::make_shared<TestOutput4>(ntime, nbl, nchan, ncorr);
   dp3::steps::test::Execute({in, pre_flagger, out});
 }
 
-typedef bool CheckFunc(casacore::Complex value, double time, int ant1, int ant2,
-                       const double* uvw);
+typedef bool CheckFunc(std::complex<float> value, double time, int ant1,
+                       int ant2, const double* uvw);
 
 // Class to check result of flagged, unaveraged TestInput run by
 // TestOneParameter.
@@ -377,26 +397,25 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
 
  private:
   bool process(std::unique_ptr<DPBuffer> buffer) override {
-    const casacore::Cube<casacore::Complex>& data = buffer->GetCasacoreData();
-    const double* uvw = buffer->GetUvw().data();
-    const casacore::IPosition& shp = data.shape();
-    casacore::Cube<bool> result(shp);
-    for (int i = 0; i < shp[2]; ++i) {
-      int a1 = i / 4;
-      int a2 = i % 4;
-      for (int j = 0; j < shp[1]; ++j) {
+    const double time = buffer->getTime();
+    const aocommon::xt::Span<std::complex<float>, 3> data = buffer->GetData();
+    const aocommon::xt::Span<double, 2> uvw = buffer->GetUvw();
+    xt::xtensor<bool, 3> result(data.shape());
+    for (std::size_t baseline = 0; baseline < data.shape(0); ++baseline) {
+      const int antenna1 = baseline / 4;
+      const int antenna2 = baseline % 4;
+      for (std::size_t channel = 0; channel < data.shape(1); ++channel) {
         bool flag = false;
-        for (int k = 0; k < shp[0]; ++k) {
+        for (std::size_t corr = 0; corr < data.shape(2); ++corr) {
           if (!flag)
-            flag =
-                itsCFunc(data(k, j, i), buffer->getTime(), a1, a2, uvw + 3 * i);
+            flag = itsCFunc(data(baseline, channel, corr), time, antenna1,
+                            antenna2, &uvw(baseline, 0));
         }
-        for (int k = 0; k < shp[0]; ++k) {
-          result(k, j, i) = flag;
-        }
+        xt::view(result, baseline, channel, xt::all()).fill(flag);
       }
     }
-    BOOST_CHECK(allEQ(buffer->GetCasacoreFlags(), result));
+
+    BOOST_CHECK_EQUAL(buffer->GetFlags(), result);
     itsCount++;
     return true;
   }
@@ -409,7 +428,8 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
 };
 
 // Test flagging on a single parameter.
-void TestOneParameter(const string& key, const string& value, CheckFunc* cfunc,
+void TestOneParameter(const std::string& key, const std::string& value,
+                      CheckFunc* cfunc,
                       dp3::common::Fields expected_required_fields,
                       const std::string& mode) {
   auto in = std::make_shared<TestInput>(2, 6, 5, 4, false);
@@ -433,8 +453,8 @@ void TestOneParameter(const string& key, const string& value, CheckFunc* cfunc,
 }
 
 // Test flagging on multiple parameters.
-void TestTwoParameters(const string& key1, const string& value1,
-                       const string& key2, const string& value2,
+void TestTwoParameters(const std::string& key1, const std::string& value1,
+                       const std::string& key2, const std::string& value2,
                        CheckFunc* cfunc,
                        dp3::common::Fields expected_required_fields,
                        const std::string& mode) {
@@ -459,55 +479,55 @@ void TestTwoParameters(const string& key1, const string& value1,
   }
 }
 
-bool checkBL(casacore::Complex, double, int a1, int a2, const double*) {
+bool checkBL(std::complex<float>, double, int a1, int a2, const double*) {
   return a1 == a2;
 }
-bool checkAmplMin(casacore::Complex data, double, int, int, const double*) {
+bool checkAmplMin(std::complex<float> data, double, int, int, const double*) {
   return abs(data) < 9.5;
 }
-bool checkAmplMax(casacore::Complex data, double, int, int, const double*) {
+bool checkAmplMax(std::complex<float> data, double, int, int, const double*) {
   return abs(data) > 31.5;
 }
-bool checkPhaseMin(casacore::Complex data, double, int, int, const double*) {
+bool checkPhaseMin(std::complex<float> data, double, int, int, const double*) {
   return arg(data) < 1.4;
 }
-bool checkPhaseMax(casacore::Complex data, double, int, int, const double*) {
+bool checkPhaseMax(std::complex<float> data, double, int, int, const double*) {
   return arg(data) > 2.1;
 }
-bool checkRealMin(casacore::Complex data, double, int, int, const double*) {
+bool checkRealMin(std::complex<float> data, double, int, int, const double*) {
   return real(data) < 5.5;
 }
-bool checkRealMax(casacore::Complex data, double, int, int, const double*) {
+bool checkRealMax(std::complex<float> data, double, int, int, const double*) {
   return real(data) > 29.4;
 }
-bool checkImagMin(casacore::Complex data, double, int, int, const double*) {
+bool checkImagMin(std::complex<float> data, double, int, int, const double*) {
   return imag(data) < -1.4;
 }
-bool checkImagMax(casacore::Complex data, double, int, int, const double*) {
+bool checkImagMax(std::complex<float> data, double, int, int, const double*) {
   return imag(data) > 20.5;
 }
-bool checkUVMin(casacore::Complex, double, int, int, const double* uvw) {
+bool checkUVMin(std::complex<float>, double, int, int, const double* uvw) {
   return sqrt(uvw[0] * uvw[0] + uvw[1] * uvw[1]) <= 30;
 }
-bool checkUVBL(casacore::Complex, double, int a1, int a2, const double* uvw) {
+bool checkUVBL(std::complex<float>, double, int a1, int a2, const double* uvw) {
   return sqrt(uvw[0] * uvw[0] + uvw[1] * uvw[1]) >= 30 && (a1 == 0 || a2 == 0);
 }
-bool checkBLMin(casacore::Complex, double, int a1, int a2, const double*) {
+bool checkBLMin(std::complex<float>, double, int a1, int a2, const double*) {
   return abs(a1 - a2) < 2;
 }  // adjacent ant have bl<145
-bool checkBLMinMax(casacore::Complex, double, int a1, int a2, const double*) {
+bool checkBLMinMax(std::complex<float>, double, int a1, int a2, const double*) {
   return abs(a1 - a2) != 1;
 }  // adjacent ant have bl<145
-bool checkTimeSlot(casacore::Complex, double time, int, int, const double*) {
+bool checkTimeSlot(std::complex<float>, double time, int, int, const double*) {
   return time < 5;
 }
-bool checkNone(casacore::Complex, double, int, int, const double*) {
+bool checkNone(std::complex<float>, double, int, int, const double*) {
   return false;
 }
-bool checkAll(casacore::Complex, double, int, int, const double*) {
+bool checkAll(std::complex<float>, double, int, int, const double*) {
   return true;
 }
-bool checkAmplMaxUvMin(casacore::Complex data, double time, int a1, int a2,
+bool checkAmplMaxUvMin(std::complex<float> data, double time, int a1, int a2,
                        const double* uvw) {
   return checkAmplMax(data, time, a1, a2, uvw) &&
          checkUVMin(data, time, a1, a2, uvw);
@@ -597,6 +617,6 @@ BOOST_AUTO_TEST_CASE(test_11) { test3(3, 16, 32, 4, false); }
 
 BOOST_AUTO_TEST_CASE(test_12) { test3(4, 16, 4, 2, true); }
 
-BOOST_AUTO_TEST_CASE(test_13) { test4(3, 16, 32, 4, false); }
+BOOST_AUTO_TEST_CASE(test_13) { test4(3, 16, 32, 4); }
 
 BOOST_AUTO_TEST_SUITE_END()
