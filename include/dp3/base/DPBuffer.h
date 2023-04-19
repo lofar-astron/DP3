@@ -179,6 +179,34 @@ class DPBuffer {
     }
   }
 
+  /// Returns the data and clears the storage in this object.
+  ///
+  /// Some Steps need to add elements and need to resize the shape of the
+  /// storage. Resizing is "destructive". This function allows callers to
+  /// "steal" the storage before resizing.
+  ///
+  /// Note since the data is stored in Casacore instead of XTensor this
+  /// function returns a copy, just like GetData.
+  /// TODO(AST-1254) Enable the disabled code in the #else part.
+  [[nodiscard]] xt::xtensor<std::complex<float>, 3> TakeData() {
+#if 1
+    xt::xtensor<std::complex<float>, 3> result = data_;
+    casa_data_.reference(casacore::Cube<Complex>());
+    // Note this is a copy of CreateSpan in DPBuffer.cc.
+    // This code will be removed in AST-1254 so this is not a huge issue.
+    data_ = aocommon::xt::CreateSpan(
+        casa_data_.data(),
+        std::array{static_cast<size_t>(casa_data_.shape()[2]),
+                   static_cast<size_t>(casa_data_.shape()[1]),
+                   static_cast<size_t>(casa_data_.shape()[0])});
+    return result;
+#else
+    xt::xtensor<std::complex<float>, 3> result;
+    std::swap(result, data_);
+    return result;
+#endif
+  }
+
   /// Copy a data buffer of another DPBuffer into an extra data buffer
   /// in the current DPBuffer. Overwrites the extra data buffer if it exists.
   /// @param source_name Name of a data buffer in 'source'. If empty, uses
@@ -223,6 +251,34 @@ class DPBuffer {
   casacore::Cube<float>& GetCasacoreWeights() { return casa_weights_; }
   const aocommon::xt::Span<float, 3>& GetWeights() const { return weights_; }
   aocommon::xt::Span<float, 3>& GetWeights() { return weights_; }
+
+  /// Returns the weights and clears the storage in this object.
+  ///
+  /// Some Steps need to add elements and need to resize the shape of the
+  /// storage. Resizing is "destructive". This function allows callers to
+  /// "steal" the storage before resizing.
+  ///
+  /// Note since the data is stored in Casacore instead of XTensor this
+  /// function returns a copy, just like GetData.
+  /// TODO(AST-1254) Enable the disabled code in the #else part.
+  [[nodiscard]] xt::xtensor<float, 3> TakeWeights() {
+#if 1
+    xt::xtensor<float, 3> result = weights_;
+    casa_weights_.reference(casacore::Cube<float>());
+    // Note this is a copy of CreateSpan in DPBuffer.cc.
+    // This code will be removed in AST-1254 so this is not a huge issue.
+    weights_ = aocommon::xt::CreateSpan(
+        casa_weights_.data(),
+        std::array{static_cast<size_t>(casa_weights_.shape()[2]),
+                   static_cast<size_t>(casa_weights_.shape()[1]),
+                   static_cast<size_t>(casa_weights_.shape()[0])});
+    return result;
+#else
+    xt::xtensor<float, 3> result;
+    std::swap(result, weights_);
+    return result;
+#endif
+  }
 
   /// Get or set the time.
   void setTime(double time) { time_ = time; }
