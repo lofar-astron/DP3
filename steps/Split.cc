@@ -116,9 +116,9 @@ void Split::showTimings(std::ostream& os, double duration) const {
   }
 }
 
-bool Split::process(const DPBuffer& bufin) {
+bool Split::process(std::unique_ptr<DPBuffer> buffer) {
   for (std::shared_ptr<Step>& step : sub_steps_) {
-    step->process(bufin);
+    step->process(std::make_unique<DPBuffer>(*buffer));
   }
   return false;
 }

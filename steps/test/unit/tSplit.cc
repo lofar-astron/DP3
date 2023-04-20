@@ -27,7 +27,8 @@ BOOST_AUTO_TEST_CASE(no_sub_steps) {
   Split no_steps(parset, "split.");
 
   BOOST_CHECK_NO_THROW(no_steps.updateInfo(dp3::base::DPInfo()));
-  BOOST_CHECK_NO_THROW(no_steps.process(dp3::base::DPBuffer()));
+  BOOST_CHECK_NO_THROW(
+      no_steps.process(std::make_unique<dp3::base::DPBuffer>()));
   BOOST_CHECK_NO_THROW(no_steps.finish());
 }
 
