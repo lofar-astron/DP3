@@ -44,17 +44,14 @@ void SolverBuffer::AssignAndWeight(
     assert(kNCorrelations == unweighted_data.shape(2));
 
     // Flag all non-finite values in the data and model data buffers.
-    // Create combined flags for all correlations. If one correlation has a
-    // non-finite value, flag all correlations.
-    xt::xtensor<bool, 2> flags =
-        !xt::isfinite(xt::view(unweighted_data, xt::all(), xt::all(), 0));
-    for (DPBuffer& model_buffer : model_buffers_[timestep]) {
-      flags |= !xt::isfinite(
-          xt::view(model_buffer.GetData(), xt::all(), xt::all(), 0));
-    }
-
-    // Merge the flags of the other correlations.
-    for (std::size_t correlation = 1; correlation < kNCorrelations;
+    // There is one flag for all correlations, so if the data for one
+    // correlation has a non-finite value, the other correlations are also
+    // flagged. Although the initialization to false can be avoided by directly
+    // assigning flags for the first correlation, a benchmark showed that the
+    // (simpler) code below gives slightly better performance.
+    xt::xtensor<bool, 2> flags(
+        {unweighted_data.shape(0), unweighted_data.shape(1)}, false);
+    for (std::size_t correlation = 0; correlation < kNCorrelations;
          ++correlation) {
       flags |= !xt::isfinite(
           xt::view(unweighted_data, xt::all(), xt::all(), correlation));
