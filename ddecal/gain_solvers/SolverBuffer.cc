@@ -3,92 +3,78 @@
 
 #include "SolverBuffer.h"
 
-#include <dp3/base/DPBuffer.h>
-
-#include <array>
 #include <cassert>
+
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xoperation.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xview.hpp>
+
+#include <dp3/base/DPBuffer.h>
 
 using dp3::base::DPBuffer;
 
 namespace {
 const size_t kNCorrelations = 4;
-
-bool IsFinite(std::complex<float> c) {
-  return std::isfinite(c.real()) && std::isfinite(c.imag());
-}
 }  // namespace
 
 namespace dp3 {
 namespace ddecal {
 
-SolverBuffer::SolverBuffer()
-    : n_baselines_(0), n_channels_(0), data_(), model_buffers_() {}
+SolverBuffer::SolverBuffer() : data_(), model_buffers_() {}
 
 void SolverBuffer::AssignAndWeight(
     const std::vector<DPBuffer>& unweighted_data_buffers,
     std::vector<std::vector<DPBuffer>>&& model_buffers) {
-  const size_t n_times = model_buffers.size();
+  const std::size_t n_times = model_buffers.size();
   assert(unweighted_data_buffers.size() >= n_times);
   data_.resize(n_times);
   model_buffers_ = std::move(model_buffers);
 
-  for (size_t timestep = 0; timestep != n_times; ++timestep) {
-    const casacore::Cube<std::complex<float>>& unweighted_data =
-        unweighted_data_buffers[timestep].GetCasacoreData();
-    const casacore::Cube<float>& weights =
-        unweighted_data_buffers[timestep].GetCasacoreWeights();
+  for (std::size_t timestep = 0; timestep != n_times; ++timestep) {
+    const aocommon::xt::Span<std::complex<float>, 3>& unweighted_data =
+        unweighted_data_buffers[timestep].GetData();
+    const aocommon::xt::Span<float, 3>& weights =
+        unweighted_data_buffers[timestep].GetWeights();
     assert(unweighted_data.shape() == weights.shape());
     assert(timestep == 0 ||
            unweighted_data.shape() ==
-               unweighted_data_buffers.front().GetCasacoreData().shape());
+               unweighted_data_buffers.front().GetData().shape());
+    assert(kNCorrelations == unweighted_data.shape(2));
 
-    n_baselines_ = unweighted_data.shape()[2];
-    n_channels_ = unweighted_data.shape()[1];
-    assert(kNCorrelations == unweighted_data.shape()[0]);
+    // Flag all non-finite values in the data and model data buffers.
+    // Create combined flags for all correlations. If one correlation has a
+    // non-finite value, flag all correlations.
+    xt::xtensor<bool, 2> flags =
+        !xt::isfinite(xt::view(unweighted_data, xt::all(), xt::all(), 0));
+    for (DPBuffer& model_buffer : model_buffers_[timestep]) {
+      flags |= !xt::isfinite(
+          xt::view(model_buffer.GetData(), xt::all(), xt::all(), 0));
+    }
 
-    data_[timestep].resize(unweighted_data.size());
-    for (size_t bl = 0; bl < n_baselines_; ++bl) {
-      for (size_t ch = 0; ch < n_channels_; ++ch) {
-        const size_t index =
-            &unweighted_data(0, ch, bl) - unweighted_data.data();
-        bool is_flagged = false;
-        const std::array<float, kNCorrelations> w_sqrt{
-            std::sqrt(weights.data()[index + 0]),
-            std::sqrt(weights.data()[index + 1]),
-            std::sqrt(weights.data()[index + 2]),
-            std::sqrt(weights.data()[index + 3])};
-
-        // Copy and weigh the 2x2 data matrix
-        for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-          const std::complex<float> ud = unweighted_data.data()[index + cr];
-          is_flagged = is_flagged || !IsFinite(ud);
-          data_[timestep][index + cr] = ud * w_sqrt[cr];
-        }
-
-        // Weigh the model data. This is done in a separate loop to loop
-        // over the data contiguously in memory.
-        for (DPBuffer& model_buffer : model_buffers_[timestep]) {
-          Complex* model_ptr = model_buffer.GetData().data();
-          for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-            is_flagged = is_flagged || !IsFinite(model_ptr[index + cr]);
-            model_ptr[index + cr] *= w_sqrt[cr];
-          }
-        }
-
-        // If either the data or model data has non-finite values, set both the
-        // data and model data to zero.
-        if (is_flagged) {
-          for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-            data_[timestep][index + cr] = 0.0;
-          }
-          for (DPBuffer& model_buffer : model_buffers_[timestep]) {
-            Complex* model_ptr = model_buffer.GetData().data();
-            for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-              model_ptr[index + cr] = 0.0;
-            }
-          }
-        }
+    // Merge the flags of the other correlations.
+    for (std::size_t correlation = 1; correlation < kNCorrelations;
+         ++correlation) {
+      flags |= !xt::isfinite(
+          xt::view(unweighted_data, xt::all(), xt::all(), correlation));
+      for (DPBuffer& model_buffer : model_buffers_[timestep]) {
+        flags |= !xt::isfinite(xt::view(model_buffer.GetData(), xt::all(),
+                                        xt::all(), correlation));
       }
+    }
+
+    // Copy and weigh the data. Weigh the model data.
+    // If the flag is set, set both the data and model data to zero.
+    // Storing the result in an xtensor (and not in an expression) ensures
+    // that the expression, including the sqrt() calls, is evaluated once.
+    const xt::xtensor<float, 3> weights_sqrt =
+        xt::where(xt::view(flags, xt::all(), xt::all(), xt::newaxis()), 0.0f,
+                  xt::sqrt(weights));
+
+    data_[timestep] = unweighted_data * weights_sqrt;
+    for (DPBuffer& model_buffer : model_buffers_[timestep]) {
+      model_buffer.GetData() *= weights_sqrt;
     }
   }
 }
@@ -96,15 +82,14 @@ void SolverBuffer::AssignAndWeight(
 const std::complex<float>* SolverBuffer::DataPointer(size_t time_index,
                                                      size_t baseline,
                                                      size_t channel) const {
-  return &data_[time_index]
-               [(baseline * n_channels_ + channel) * kNCorrelations];
+  return &data_[time_index](baseline, channel, 0);
 }
 
 const std::complex<float>* SolverBuffer::ModelDataPointer(
     size_t time_index, size_t direction, size_t baseline,
     size_t channel) const {
   const DPBuffer& buffer = model_buffers_[time_index][direction];
-  return &buffer.GetCasacoreData()(0, channel, baseline);
+  return &buffer.GetData()(baseline, channel, 0);
 }
 
 }  // namespace ddecal
