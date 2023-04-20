@@ -1,11 +1,11 @@
-// H5ParmPredict.h: DPPP step class to H5ParmPredict visibilities from a source
+// H5ParmPredict.h: DP3 step class to H5ParmPredict visibilities from a source
 // model
 //
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to H5ParmPredict visibilities from a source model
+/// @brief DP3 step class to H5ParmPredict visibilities from a source model
 /// @author Tammo Jan Dijkema
 
 #ifndef DP3_STEPS_H5PARM_PREDICT_H_
@@ -31,7 +31,7 @@ class H5ParmPredict : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  H5ParmPredict(const common::ParameterSet&, const string& prefix);
+  H5ParmPredict(const common::ParameterSet&, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
     // Combine the result of all sub steps.

@@ -1,5 +1,5 @@
-// GainCal.cc: DPPP step class to H5ParmPredict visibilities
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// GainCal.cc: DP3 step class to H5ParmPredict visibilities
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema
@@ -30,7 +30,7 @@ namespace dp3 {
 namespace steps {
 
 H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
-                             const string& prefix)
+                             const std::string& prefix)
     : itsName(),
       itsPredictSteps(),
       itsPredictBuffer(std::make_shared<PredictBuffer>()),
@@ -45,17 +45,17 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
   if (soltabName == "fulljones") soltabName = "amplitude000";
   SolTab soltab = h5parm.GetSolTab(soltabName);
 
-  std::vector<string> h5directions = soltab.GetStringAxis("dir");
+  std::vector<std::string> h5directions = soltab.GetStringAxis("dir");
   if (h5directions.empty())
     throw std::runtime_error("H5Parm has empty dir axis");
 
-  string operation = parset.getString(prefix + "operation", "replace");
+  std::string operation = parset.getString(prefix + "operation", "replace");
 
   if (itsDirections.empty()) {
     itsDirections = h5directions;
   } else {
     // Check that all specified directions are in the h5parm
-    for (const string& dirStr : itsDirections) {
+    for (const std::string& dirStr : itsDirections) {
       if (find(h5directions.begin(), h5directions.end(), dirStr) ==
           h5directions.end()) {
         throw std::runtime_error("Direction " + dirStr + " not found in " +
