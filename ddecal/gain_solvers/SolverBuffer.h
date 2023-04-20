@@ -7,6 +7,8 @@
 #include <complex>
 #include <vector>
 
+#include <aocommon/xt/utensor.h>
+
 namespace dp3 {
 namespace base {
 class DPBuffer;
@@ -47,12 +49,16 @@ class SolverBuffer {
   /**
    * @return The number of baselines in the buffer.
    */
-  size_t NBaselines() const { return n_baselines_; }
+  size_t NBaselines() const {
+    return data_.empty() ? 0 : data_.front().shape(0);
+  }
 
   /**
    * @return The number of channels in the buffer.
    */
-  size_t NChannels() const { return n_channels_; }
+  size_t NChannels() const {
+    return data_.empty() ? 0 : data_.front().shape(1);
+  }
 
   /**
    * Get a pointer to the weighted data for a channel.
@@ -76,9 +82,7 @@ class SolverBuffer {
                                   size_t baseline, size_t channel) const;
 
  private:
-  size_t n_baselines_;
-  size_t n_channels_;
-  std::vector<std::vector<Complex>> data_;
+  std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> data_;
   std::vector<std::vector<base::DPBuffer>> model_buffers_;
 };
 
