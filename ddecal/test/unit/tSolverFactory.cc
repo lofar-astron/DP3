@@ -325,7 +325,8 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
   const std::vector<double> kFrequencies{42.0};
 
   dp3::common::ParameterSet parset = ParsetForMode("scalar");
-  parset.add("antennaconstraint", "[[foo,bar,7TiMeS6],[Piet,foo],[bar,Jan]]");
+  parset.add("antennaconstraint",
+             "[[foo,bar,7TiMeS6],[Piet,foo],[bar,Jan,nonexistingantenna]]");
   const Settings settings(parset, "");
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
@@ -339,29 +340,6 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
   BOOST_CHECK_EQUAL(constraint.NDirections(), kSourceDirections.size());
   BOOST_CHECK_EQUAL(constraint.NChannelBlocks(), kFrequencies.size());
   BOOST_CHECK(constraint.GetAntennaSets() == kExpectedAntennaSets);
-}
-
-BOOST_AUTO_TEST_CASE(antenna_constraint_invalid) {
-  const std::vector<std::array<double, 3>> kAntennaPositions(2);
-  const std::vector<std::string> kAntennaNames{"foo", "bar"};
-  const size_t kNDirections = 5;
-  const std::vector<dp3::base::Direction> kSourceDirections(kNDirections);
-  const std::vector<double> kFrequencies{42.0};
-  const std::vector<size_t> kSolutionsPerDirecton(kNDirections, 1);
-
-  // Settings::ReadAntennaConstraint already catches syntax errors in the parset
-  // value. The SolverFactory catches semantic errors, such as invalid names.
-  dp3::common::ParameterSet parset = ParsetForMode("scalar");
-  parset.add("antennaconstraint", "[[foo, bar, missing]]");
-  const Settings settings(parset, "");
-
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
-  CheckConstraintType<AntennaConstraint>(*solver);
-
-  BOOST_CHECK_THROW(InitializeSolverConstraints(
-                        *solver, settings, kAntennaPositions, kAntennaNames,
-                        kSolutionsPerDirecton, kSourceDirections, kFrequencies),
-                    std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
