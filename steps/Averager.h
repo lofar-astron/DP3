@@ -12,7 +12,6 @@
 #include <memory>
 
 #include <xtensor/xtensor.hpp>
-#include <casacore/casa/Arrays/Cube.h>
 #include <aocommon/staticfor.h>
 
 #include <dp3/base/DPBuffer.h>

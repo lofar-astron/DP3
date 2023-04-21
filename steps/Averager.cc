@@ -9,9 +9,10 @@
 #include <iomanip>
 
 #include <aocommon/parallelfor.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Utilities/Regex.h>
 #include <boost/algorithm/string/trim.hpp>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Quanta.h>
+#include <casacore/casa/Utilities/Regex.h>
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
@@ -21,9 +22,6 @@
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
-
-using casacore::Cube;
-using casacore::IPosition;
 
 namespace dp3 {
 namespace steps {
@@ -177,7 +175,7 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
       if (*flag_iterator) {
         // Flagged data point
         n = 0;
-        *data_iterator = casacore::Complex();
+        *data_iterator = std::complex<float>{};
         *weight_iterator = 0;
       } else {
         // Weigh the data point
@@ -251,14 +249,11 @@ void Averager::finish() {
 }
 
 void Averager::average() {
-  // Extract the input data and weights before resizing itsBuf.
-  // Until DPBuffer stores data in XTensor objects, Casacore owns the data.
-  // Copying the Casacore objects ensures that the data remains valid, also
-  // in 'data_in' and 'weights_in', which are views on that data.
-  casacore::Cube<casacore::Complex> casa_data_in = itsBuf->GetCasacoreData();
-  casacore::Cube<float> casa_weights_in = itsBuf->GetCasacoreWeights();
-  aocommon::xt::Span<std::complex<float>, 3> data_in = itsBuf->GetData();
-  aocommon::xt::Span<float, 3> weights_in = itsBuf->GetWeights();
+  // Resizing the data and weights of itsBuf destroys the data. Since a
+  // non-destructive resize is needed the values are moved here and restored
+  // after the resize.
+  xt::xtensor<std::complex<float>, 3> data_in = itsBuf->TakeData();
+  xt::xtensor<float, 3> weights_in = itsBuf->TakeWeights();
 
   const unsigned int n_bl = data_in.shape(0);
   const unsigned int n_chan_in = data_in.shape(1);

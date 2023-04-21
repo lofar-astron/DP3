@@ -339,4 +339,30 @@ BOOST_AUTO_TEST_CASE(move_extra_data) {
   BOOST_CHECK_EQUAL(target.GetData(kBarDataName), data);
 }
 
+BOOST_AUTO_TEST_CASE(take_data) {
+  DPBuffer buffer = CreateFilledBuffer();
+
+  xt::xtensor<std::complex<float>, 3> expected = buffer.GetData();
+  BOOST_REQUIRE(buffer.GetData().size() != 0);
+
+  // TakeData behaves like GetData, but it takes ownership of the data and the
+  // buffer's data is empty afterwards.
+  xt::xtensor<std::complex<float>, 3> result = buffer.TakeData();
+  BOOST_CHECK(buffer.GetData().size() == 0);
+  BOOST_CHECK_EQUAL(result, expected);
+}
+
+BOOST_AUTO_TEST_CASE(take_weights) {
+  DPBuffer buffer = CreateFilledBuffer();
+
+  xt::xtensor<std::complex<float>, 3> expected = buffer.GetWeights();
+  BOOST_REQUIRE(buffer.GetWeights().size() != 0);
+
+  // TakeWeights behaves like GetWeights, but it takes ownership of the weights
+  // and the buffer's weights is empty afterwards.
+  xt::xtensor<std::complex<float>, 3> result = buffer.TakeWeights();
+  BOOST_CHECK(buffer.GetWeights().size() == 0);
+  BOOST_CHECK_EQUAL(result, expected);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
