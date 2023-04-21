@@ -3,6 +3,8 @@
 
 #include "SolverFactory.h"
 
+#include <iostream>
+
 #include "Settings.h"
 
 #include "gain_solvers/DiagonalSolver.h"
@@ -284,11 +286,13 @@ void InitializeAntennaConstraint(
       const auto iter = std::find(antenna_names.begin(), antenna_names.end(),
                                   constraint_name);
       if (iter == antenna_names.end()) {
-        throw std::runtime_error("Error in antenna constraint: Antenna '" +
-                                 constraint_name + "' not found.");
+        std::cout << "Warning: antenna constraint specifies antenna "
+                  << constraint_name
+                  << " which is not in the MS, ignoring it\n";
+      } else {
+        constraint_list.back().insert(constraint_list.back().end(),
+                                      iter - antenna_names.begin());
       }
-      constraint_list.back().insert(constraint_list.back().end(),
-                                    iter - antenna_names.begin());
     }
   }
   constraint.SetAntennaSets(std::move(constraint_list));
