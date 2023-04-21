@@ -17,32 +17,29 @@ namespace {
 const int kNBL = 2;
 const int kNCorr = 1;
 const int kNChan = 1;
+const std::array<size_t, 3> kShape{kNBL, kNChan, kNCorr};
 
-DPBuffer InitBuffer() {
-  DPBuffer buffer;
+std::unique_ptr<DPBuffer> InitBuffer() {
+  auto buffer = std::make_unique<DPBuffer>();
 
-  casacore::Matrix<double> uvw(3, kNBL);
+  buffer->ResizeUvw(kNBL);
   for (int i = 0; i < kNBL; ++i) {
-    uvw(0, i) = i * kNBL + 1;
-    uvw(1, i) = i * kNBL + 2;
-    uvw(2, i) = i * kNBL + 3;
+    buffer->GetUvw()(i, 0) = i * kNBL + 1;
+    buffer->GetUvw()(i, 1) = i * kNBL + 2;
+    buffer->GetUvw()(i, 2) = i * kNBL + 3;
   }
-  buffer.setUVW(uvw);
 
-  casacore::Cube<casacore::Complex> data(kNCorr, kNChan, kNBL);
-  for (int i = 0; i < int(data.size()); ++i) {
-    data.data()[i] =
+  buffer->ResizeData(kShape);
+  for (int i = 0; i < int(buffer->GetData().size()); ++i) {
+    buffer->GetData().data()[i] =
         casacore::Complex(i + i * kNBL * 10, i - 1000 + i * kNBL * 6);
   }
-  buffer.setData(data);
 
-  casacore::Cube<bool> flags(data.shape());
-  flags = false;
-  buffer.setFlags(flags);
+  buffer->ResizeFlags(kShape);
+  buffer->GetFlags().fill(false);
 
-  casacore::Cube<float> weights(kNCorr, kNChan, kNBL);
-  weights = 1.0f;
-  buffer.setWeights(weights);
+  buffer->ResizeWeights(kShape);
+  buffer->GetWeights().fill(1.0f);
 
   return buffer;
 }
@@ -53,80 +50,55 @@ BOOST_AUTO_TEST_SUITE(solutioninterval)
 /// Test if buffer inserted is the same
 BOOST_AUTO_TEST_CASE(insertion) {
   size_t buffer_size = 1;
-  DPBuffer buffer = InitBuffer();
+  std::unique_ptr<DPBuffer> buffer = InitBuffer();
+  const DPBuffer* const buffer_pointer = buffer.get();
 
   SolutionInterval solInt(buffer_size);
   BOOST_TEST(solInt.Size() == 0U);
 
-  solInt.PushBack(buffer);
+  solInt.PushBack(std::move(buffer));
   BOOST_TEST_REQUIRE(solInt.Size() == 1U);
 
-  BOOST_TEST(&solInt[0] != &buffer);
-  BOOST_TEST(solInt[0].GetCasacoreData().tovector() ==
-             buffer.GetCasacoreData().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreFlags().tovector() ==
-             buffer.GetCasacoreFlags().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreUvw().tovector() ==
-             buffer.GetCasacoreUvw().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==
-             buffer.GetCasacoreWeights().tovector());
+  BOOST_TEST(&solInt[0] == buffer_pointer);
 }
 
 /// Test that the limit cannot be exceeded
 BOOST_AUTO_TEST_CASE(limit) {
   size_t buffer_size = 1;
-  DPBuffer buffer = InitBuffer();
 
   SolutionInterval solInt(buffer_size);
 
-  solInt.PushBack(buffer);
-  BOOST_CHECK_THROW(solInt.PushBack(buffer), std::runtime_error);
-}
-
-/// Test if buffer is a copy and can be changed
-BOOST_AUTO_TEST_CASE(copy) {
-  size_t buffer_size = 1;
-  DPBuffer buffer = InitBuffer();
-
-  SolutionInterval solInt(buffer_size);
-  solInt.PushBack(buffer);
-
-  BOOST_TEST(&solInt[0] != &buffer);
-  BOOST_TEST(solInt[0].GetCasacoreData().tovector() ==
-             buffer.GetCasacoreData().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreFlags().tovector() ==
-             buffer.GetCasacoreFlags().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreUvw().tovector() ==
-             buffer.GetCasacoreUvw().tovector());
-  BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==
-             buffer.GetCasacoreWeights().tovector());
+  solInt.PushBack(InitBuffer());
+  BOOST_CHECK_THROW(solInt.PushBack(InitBuffer()), std::runtime_error);
 }
 
 /// Copy a buffer, change a weight and test if it is restored
 BOOST_AUTO_TEST_CASE(restore) {
   size_t buffer_size = 1;
-  DPBuffer buffer = InitBuffer();
+  std::unique_ptr<DPBuffer> buffer = InitBuffer();
+  DPBuffer buffer_copy;
+  buffer_copy.copy(*buffer);
 
   SolutionInterval solInt(buffer_size);
-  solInt.PushBack(buffer);
+  solInt.PushBack(std::move(buffer));
 
   // Overwrite the values in the buffer
   casacore::Complex new_data(42.0f, -42.0f);
-  solInt.DataBuffers()[0].GetCasacoreData() = new_data;
+  solInt.DataBuffers()[0]->GetCasacoreData() = new_data;
   float new_weight = 0.5;
-  solInt.DataBuffers()[0].GetCasacoreWeights() = new_weight;
+  solInt.DataBuffers()[0]->GetCasacoreWeights() = new_weight;
 
   BOOST_TEST(solInt[0].GetCasacoreData().tovector() !=
-             buffer.GetCasacoreData().tovector());
+             buffer_copy.GetCasacoreData().tovector());
   BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() !=
-             buffer.GetCasacoreWeights().tovector());
+             buffer_copy.GetCasacoreWeights().tovector());
 
   solInt.RestoreFlagsAndWeights();
 
   BOOST_TEST(solInt[0].GetCasacoreData().tovector() !=
-             buffer.GetCasacoreData().tovector());
+             buffer_copy.GetCasacoreData().tovector());
   BOOST_TEST(solInt[0].GetCasacoreWeights().tovector() ==
-             buffer.GetCasacoreWeights().tovector());
+             buffer_copy.GetCasacoreWeights().tovector());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -88,15 +88,15 @@ BOOST_AUTO_TEST_CASE(regular) {
   const std::vector<size_t> kNSolutionsPerDirection(kNDirections, 1);
   const std::vector<size_t> kExpectedChannelBlockSizes{3, 4};
 
-  std::vector<DPBuffer> data_buffers;
+  std::vector<std::unique_ptr<DPBuffer>> data_buffers;
   std::vector<std::vector<DPBuffer>> model_buffers(kNTimes);
 
   for (size_t time = 0; time < kNTimes; ++time) {
-    data_buffers.emplace_back(time, 1.0);
-    data_buffers.back().setData(casacore::Cube<std::complex<float>>(
+    data_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
+    data_buffers.back()->setData(casacore::Cube<std::complex<float>>(
         kNPolarizations, kNChannels, kNBaselines));
-    FillRegularBuffer(data_buffers.back());
-    data_buffers.back().setWeights(
+    FillRegularBuffer(*data_buffers.back());
+    data_buffers.back()->setWeights(
         casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0f));
 
     model_buffers[time].emplace_back(time, 1.0);
@@ -173,15 +173,15 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
   const std::vector<size_t> kNSolutionsPerDirection{1, 2};
   const std::vector<size_t> kExpectedChannelBlockSizes{3, 4};
 
-  std::vector<DPBuffer> data_buffers;
+  std::vector<std::unique_ptr<DPBuffer>> data_buffers;
   std::vector<std::vector<DPBuffer>> model_buffers(kNTimes);
 
   for (size_t time = 0; time < kNTimes; ++time) {
-    data_buffers.emplace_back(time, 1.0);
-    data_buffers.back().setData(casacore::Cube<std::complex<float>>(
+    data_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
+    data_buffers.back()->setData(casacore::Cube<std::complex<float>>(
         kNPolarizations, kNChannels, kNBaselines));
-    FillRegularBuffer(data_buffers.back());
-    data_buffers.back().setWeights(
+    FillRegularBuffer(*data_buffers.back());
+    data_buffers.back()->setWeights(
         casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0f));
 
     for (size_t direction = 0; direction != kNDirections; ++direction) {

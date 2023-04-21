@@ -98,14 +98,14 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
   }
 
   for (size_t timestep = 0; timestep != kNRegularTimes; ++timestep) {
-    data_buffers_.emplace_back();
-    data_buffers_.back().setData(casacore::Cube<std::complex<float>>(
+    data_buffers_.emplace_back(std::make_unique<DPBuffer>());
+    data_buffers_.back()->setData(casacore::Cube<std::complex<float>>(
         kNPolarizations, kNChannels, kNBaselines, 0));
-    data_buffers_.back().setWeights(
+    data_buffers_.back()->setWeights(
         casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0));
 
     casacore::Cube<std::complex<float>>& time_data =
-        data_buffers_.back().GetCasacoreData();
+        data_buffers_.back()->GetCasacoreData();
 
     model_buffers.emplace_back();
     std::vector<DPBuffer>& model_time_buffers = model_buffers.back();
