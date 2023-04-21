@@ -1,25 +1,30 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <boost/test/unit_test.hpp>
-
-#include "tStepCommon.h"
 #include "../../DDECal.h"
 
+#include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
+
+#include "tStepCommon.h"
+#include "../../MSReader.h"
+#include "../../MultiResultStep.h"
+
 using dp3::steps::DDECal;
+using dp3::steps::test::CreateParameterSet;
 
 BOOST_AUTO_TEST_SUITE(ddecal)
 
 BOOST_AUTO_TEST_CASE(provided_fields) {
   using dp3::steps::Step;
 
-  dp3::common::ParameterSet parset;
-  parset.add("msin", "tDDECal.MS");
-  parset.add("prefix.directions", "[[center]]");
-  parset.add("prefix.sourcedb", "tDDECal.MS/sky.txt");
-  // Errors occur when creating multiple DDECal's that write the same H5 file.
-  // Putting each DDECal object in a different scope also works.
-  parset.add("prefix.h5parm", "tddecal_fields.h5");
+  const dp3::common::ParameterSet parset = CreateParameterSet(
+      {{"msin", "TODO(AST-1271): Remove msin"},
+       {"prefix.directions", "[[center]]"},
+       {"prefix.sourcedb", "tDDECal.MS/sky.txt"},
+       // Errors occur when creating multiple DDECal's that write the same H5
+       // file. Putting each DDECal object in a different scope also works.
+       {"prefix.h5parm", "tddecal_fields.h5"}});
   const DDECal ddecal(parset, "prefix.");
   BOOST_TEST(ddecal.getProvidedFields() == dp3::common::Fields());
 
@@ -41,8 +46,7 @@ BOOST_AUTO_TEST_CASE(provided_fields) {
 static void TestShow(
     const std::string& expected,
     const std::vector<std::pair<std::string, std::string>>& parameters) {
-  const dp3::common::ParameterSet parset =
-      dp3::steps::test::CreateParameterSet(parameters);
+  const dp3::common::ParameterSet parset = CreateParameterSet(parameters);
   const DDECal ddecal(parset, "prefix.");
   BOOST_CHECK_EQUAL(expected, dp3::steps::test::Show(ddecal));
 
@@ -156,6 +160,53 @@ OnePredict prefix.
        {"prefix.smoothnessrefdistance", "48.123"},
        {"prefix.tecscreen.coreconstraint", "49.123"},
        {"prefix.maxiter", "49"}});
+}
+
+BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
+                     boost::unit_test::data::xrange(1, 5), solution_interval) {
+  const size_t kNTimes = 6;  // tDDECal.MS has 6 time slots.
+  const size_t kNChannelBlocks = 8;
+  const size_t kNSolutionsPerChannelBlock = 16;
+
+  auto in = std::make_shared<dp3::steps::MSReader>(
+      casacore::MeasurementSet("tDDECal.MS"), dp3::common::ParameterSet(), "");
+
+  auto ddecal = std::make_shared<DDECal>(
+      CreateParameterSet({{"msin", "TODO(AST-1271): Remove msin"},
+                          {"directions", "[[center]]"},
+                          {"sourcedb", "tDDECal.MS/sky.txt"},
+                          {"h5parm", "tddecal_storebuffer.h5"},
+                          {"storebuffer", "true"},
+                          {"solint", std::to_string(solution_interval)}}),
+      "");
+
+  auto out = std::make_shared<dp3::steps::MultiResultStep>(kNTimes);
+
+  in->setFieldsToRead(ddecal->getRequiredFields());
+
+  dp3::steps::test::Execute({in, ddecal, out});
+
+  BOOST_REQUIRE(out->get().size() == kNTimes);
+  for (size_t i = 0; i < kNTimes; ++i) {
+    const std::vector<std::vector<std::complex<double>>>& solution =
+        out->get()[i].GetSolution();
+
+    if (i % solution_interval == 0) {
+      // Only the first buffer in each solution interval has solutions.
+      // Check that the solutions have the expected shape.
+      // test_oneapplycal_from_buffer in tDDECal.py checks if the solution
+      // values in DPBuffer are correct.
+      BOOST_REQUIRE_EQUAL(solution.size(), kNChannelBlocks);
+      for (const std::vector<std::complex<double>>& channel_block_solution :
+           solution) {
+        BOOST_CHECK_EQUAL(channel_block_solution.size(),
+                          kNSolutionsPerChannelBlock);
+      }
+    } else {
+      // Other buffers should not have solutions.
+      BOOST_CHECK(solution.empty());
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

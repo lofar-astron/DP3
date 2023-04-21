@@ -6,10 +6,8 @@
 namespace dp3 {
 namespace base {
 
-SolutionInterval::SolutionInterval(const std::size_t n_solution,
-                                   const std::size_t buffer_size)
+SolutionInterval::SolutionInterval(const std::size_t buffer_size)
     : buffer_size_(buffer_size),
-      n_solution_(n_solution),
       buffer_index_(0),
       buffers_(buffer_size),
       original_flags_(buffer_size),
