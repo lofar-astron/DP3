@@ -120,7 +120,8 @@ class DDECal : public Step {
   /// For each direction, a number of solutions per solution interval
   std::vector<size_t> itsSolutionsPerDirection;
   size_t itsSolIntCount;  ///< Number of solution intervals to buffer
-  size_t itsNSolInts;     ///< Total number of created solution intervals
+  /// Index of the first solution in the current solution interval set.
+  size_t itsFirstSolutionIndex;
   /// The current amount of solution intervals in itsSolInts
   size_t itsBufferedSolInts;
   size_t itsNChan;

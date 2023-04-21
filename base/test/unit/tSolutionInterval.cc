@@ -52,18 +52,16 @@ BOOST_AUTO_TEST_SUITE(solutioninterval)
 
 /// Test if buffer inserted is the same
 BOOST_AUTO_TEST_CASE(insertion) {
-  size_t n_solution = 0;
   size_t buffer_size = 1;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(n_solution, buffer_size);
+  SolutionInterval solInt(buffer_size);
   BOOST_TEST(solInt.Size() == 0U);
 
   solInt.PushBack(buffer);
   BOOST_TEST_REQUIRE(solInt.Size() == 1U);
 
   BOOST_TEST(&solInt[0] != &buffer);
-  BOOST_TEST(solInt.NSolution() == n_solution);
   BOOST_TEST(solInt[0].GetCasacoreData().tovector() ==
              buffer.GetCasacoreData().tovector());
   BOOST_TEST(solInt[0].GetCasacoreFlags().tovector() ==
@@ -76,11 +74,10 @@ BOOST_AUTO_TEST_CASE(insertion) {
 
 /// Test that the limit cannot be exceeded
 BOOST_AUTO_TEST_CASE(limit) {
-  size_t n_solution = 0;
   size_t buffer_size = 1;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(n_solution, buffer_size);
+  SolutionInterval solInt(buffer_size);
 
   solInt.PushBack(buffer);
   BOOST_CHECK_THROW(solInt.PushBack(buffer), std::runtime_error);
@@ -88,11 +85,10 @@ BOOST_AUTO_TEST_CASE(limit) {
 
 /// Test if buffer is a copy and can be changed
 BOOST_AUTO_TEST_CASE(copy) {
-  size_t n_solution = 0;
   size_t buffer_size = 1;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(n_solution, buffer_size);
+  SolutionInterval solInt(buffer_size);
   solInt.PushBack(buffer);
 
   BOOST_TEST(&solInt[0] != &buffer);
@@ -108,11 +104,10 @@ BOOST_AUTO_TEST_CASE(copy) {
 
 /// Copy a buffer, change a weight and test if it is restored
 BOOST_AUTO_TEST_CASE(restore) {
-  size_t n_solution = 0;
   size_t buffer_size = 1;
   DPBuffer buffer = InitBuffer();
 
-  SolutionInterval solInt(n_solution, buffer_size);
+  SolutionInterval solInt(buffer_size);
   solInt.PushBack(buffer);
 
   // Overwrite the values in the buffer

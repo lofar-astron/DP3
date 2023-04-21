@@ -17,7 +17,7 @@ namespace base {
 
 class SolutionInterval {
  public:
-  explicit SolutionInterval(std::size_t n_solution, std::size_t buffer_size);
+  explicit SolutionInterval(std::size_t buffer_size);
 
   // Copy a buffer and append it to the Solution Interval.
   void PushBack(const DPBuffer&);
@@ -32,7 +32,6 @@ class SolutionInterval {
    * \defgroup Getters
    */
   /**@{*/
-  std::size_t NSolution() const { return n_solution_; }
   std::vector<DPBuffer>& DataBuffers() { return buffers_; }
   /**@}*/
 
@@ -46,7 +45,6 @@ class SolutionInterval {
 
  private:
   const std::size_t buffer_size_;
-  const std::size_t n_solution_;
 
   std::size_t buffer_index_;  ///< Current index where to insert the next buffer
   std::vector<DPBuffer> buffers_;  ///< Vector of DPBuffer copies
