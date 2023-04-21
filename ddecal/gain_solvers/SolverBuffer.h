@@ -5,6 +5,7 @@
 #define DDECAL_SOLVER_BUFFER_H
 
 #include <complex>
+#include <memory>
 #include <vector>
 
 #include <aocommon/xt/utensor.h>
@@ -38,7 +39,7 @@ class SolverBuffer {
    * model buffers and weights the data in place.
    */
   void AssignAndWeight(
-      const std::vector<base::DPBuffer>& data_buffers,
+      const std::vector<std::unique_ptr<base::DPBuffer>>& data_buffers,
       std::vector<std::vector<base::DPBuffer>>&& model_buffers);
 
   /**

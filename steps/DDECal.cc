@@ -222,9 +222,12 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
-  // Each step should be coupled to a resultstep
+  // For each sub step chain, add a resultstep and get required fieilds.
+  itsRequiredFields.reserve(itsSteps.size());
   itsResultSteps.resize(itsSteps.size());
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
+    itsRequiredFields.emplace_back(base::GetChainRequiredFields(itsSteps[dir]));
+
     itsResultSteps[dir] =
         std::make_shared<MultiResultStep>(itsRequestedSolInt * itsSolIntCount);
 
@@ -489,12 +492,13 @@ void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
     }
   }
   // Set the visibility weights to zero
-  for (DPBuffer& buffer : itsSolIntBuffers[bufferIndex].DataBuffers()) {
+  for (std::unique_ptr<DPBuffer>& buffer :
+       itsSolIntBuffers[bufferIndex].DataBuffers()) {
     for (size_t bl = 0; bl < nBl; ++bl) {
       float* begin =
-          &buffer.GetCasacoreWeights()(0, itsChanBlockStart[cbIndex], bl);
+          &buffer->GetCasacoreWeights()(0, itsChanBlockStart[cbIndex], bl);
       float* end =
-          &buffer.GetCasacoreWeights()(0, itsChanBlockStart[cbIndex + 1], bl);
+          &buffer->GetCasacoreWeights()(0, itsChanBlockStart[cbIndex + 1], bl);
       std::fill(begin, end, 0.0f);
     }
   }
@@ -636,7 +640,7 @@ void DDECal::doSolve() {
 
     // Store calibration solution for later calibration application steps.
     if (itsStoreSolutionInBuffer) {
-      itsSolIntBuffers[i].DataBuffers().front().SetSolution(
+      itsSolIntBuffers[i].DataBuffers().front()->SetSolution(
           itsSols[solution_index]);
     }
   }
@@ -654,7 +658,7 @@ void DDECal::doSolve() {
   itsTimer.start();
 }
 
-bool DDECal::process(const DPBuffer& bufin) {
+bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
   itsTimer.start();
 
   // Create a new solution interval if needed
@@ -664,9 +668,9 @@ bool DDECal::process(const DPBuffer& bufin) {
   }
 
   const size_t currentIntervalIndex = itsSolIntBuffers.back().Size();
-  itsSolIntBuffers[itsBufferedSolInts].PushBack(bufin);
-  doPrepare(itsSolIntBuffers.back()[currentIntervalIndex], itsBufferedSolInts,
-            currentIntervalIndex);
+  itsSolIntBuffers[itsBufferedSolInts].PushBack(std::move(bufin));
+  doPrepare(itsSolIntBuffers.back().DataBuffers()[currentIntervalIndex],
+            itsBufferedSolInts, currentIntervalIndex);
 
   if (currentIntervalIndex + 1 == itsRequestedSolInt) {
     ++itsBufferedSolInts;
@@ -694,18 +698,20 @@ bool DDECal::process(const DPBuffer& bufin) {
   return false;
 }
 
-void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
-  // UVW flagging happens on the copy of the buffer
-  // These flags are later restored and therefore not written
-  // UVWFlagger hides the legacy process() overload.
-  itsUVWFlagStep.process(std::make_unique<DPBuffer>(bufin));
+void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
+                       size_t step) {
+  // SolutionInterval::RestoreFlagsAndWeights will restore any flags changed by
+  // the UVWFlagger, before passing the buffer the the next step.
+  if (!itsUVWFlagStep.isDegenerate()) {
+    itsUVWFlagStep.process(std::move(bufin));
+    bufin = itsDataResultStep->extract();
+  }
 
   itsTimerPredict.start();
 
   itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
-    DPBuffer new_buffer;
-    new_buffer.copy(bufin);
-    itsSteps[dir]->process(new_buffer);
+    itsSteps[dir]->process(
+        std::make_unique<DPBuffer>(*bufin, itsRequiredFields[dir]));
   });
 
   // Handle weights and flags
@@ -727,13 +733,13 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
       }
       for (size_t cr = 0; cr < nCr; ++cr) {
         itsVisInInterval[chanblock].second++;  // total nr of vis
-        if (bufin.GetCasacoreFlags()(cr, ch, bl)) {
+        if (bufin->GetCasacoreFlags()(cr, ch, bl)) {
           // Flagged points: set weight to 0
-          DPBuffer& buf_sol = itsSolIntBuffers[sol_int].DataBuffers()[step];
+          DPBuffer& buf_sol = *itsSolIntBuffers[sol_int].DataBuffers()[step];
           buf_sol.GetCasacoreWeights()(cr, ch, bl) = 0;
         } else {
           // Add this weight to both involved antennas
-          double weight = bufin.GetCasacoreWeights()(cr, ch, bl);
+          const double weight = bufin->GetCasacoreWeights()(cr, ch, bl);
           itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
           itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
           if (weight != 0.0) {
@@ -750,8 +756,9 @@ void DDECal::doPrepare(const DPBuffer& bufin, size_t sol_int, size_t step) {
 
   itsTimerPredict.stop();
 
-  itsAvgTime += itsAvgTime + bufin.getTime();
+  itsAvgTime += itsAvgTime + bufin->getTime();
 }
+
 void DDECal::WriteSolutions() {
   itsTimerWrite.start();
 
@@ -855,7 +862,7 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
   const size_t nCh = info().nchan();
   const size_t nDir = itsDirections.size();
   for (size_t time = 0; time != solution_interval.Size(); ++time) {
-    DPBuffer& data_buffer = solution_interval.DataBuffers()[time];
+    DPBuffer& data_buffer = *solution_interval.DataBuffers()[time];
     const std::vector<std::vector<std::complex<float>>>& modelData =
         itsModelData[time];
     for (size_t bl = 0; bl < nBl; ++bl) {

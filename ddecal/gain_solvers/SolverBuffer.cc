@@ -25,7 +25,7 @@ namespace ddecal {
 SolverBuffer::SolverBuffer() : data_(), model_buffers_() {}
 
 void SolverBuffer::AssignAndWeight(
-    const std::vector<DPBuffer>& unweighted_data_buffers,
+    const std::vector<std::unique_ptr<DPBuffer>>& unweighted_data_buffers,
     std::vector<std::vector<DPBuffer>>&& model_buffers) {
   const std::size_t n_times = model_buffers.size();
   assert(unweighted_data_buffers.size() >= n_times);
@@ -34,13 +34,13 @@ void SolverBuffer::AssignAndWeight(
 
   for (std::size_t timestep = 0; timestep != n_times; ++timestep) {
     const aocommon::xt::Span<std::complex<float>, 3>& unweighted_data =
-        unweighted_data_buffers[timestep].GetData();
+        unweighted_data_buffers[timestep]->GetData();
     const aocommon::xt::Span<float, 3>& weights =
-        unweighted_data_buffers[timestep].GetWeights();
+        unweighted_data_buffers[timestep]->GetWeights();
     assert(unweighted_data.shape() == weights.shape());
     assert(timestep == 0 ||
            unweighted_data.shape() ==
-               unweighted_data_buffers.front().GetData().shape());
+               unweighted_data_buffers.front()->GetData().shape());
     assert(kNCorrelations == unweighted_data.shape(2));
 
     // Flag all non-finite values in the data and model data buffers.

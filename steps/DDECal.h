@@ -49,7 +49,7 @@ class DDECal : public Step {
                : common::Fields();
   }
 
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   void checkMinimumVisibilities(size_t bufferIndex);
 
@@ -78,7 +78,8 @@ class DDECal : public Step {
                          const common::ParameterSet& parset,
                          const string& prefix) const;
 
-  void doPrepare(const base::DPBuffer& bufin, size_t sol_int, size_t step);
+  void doPrepare(std::unique_ptr<base::DPBuffer>& bufin, size_t sol_int,
+                 size_t step);
 
   /// Initialize solutions
   void InitializeScalarOrDiagonalSolutions(size_t);
@@ -150,7 +151,10 @@ class DDECal : public Step {
   UVWFlagger itsUVWFlagStep;
   /// Result step for data after UV-flagging
   std::shared_ptr<ResultStep> itsDataResultStep;
+  /// For each direction, the first step in the chain that computes the model.
   std::vector<std::shared_ptr<ModelDataStep>> itsSteps;
+  /// For each direction, the required fields of the step chain.
+  std::vector<common::Fields> itsRequiredFields;
   /// For each directions, a multiresultstep with all times.
   std::vector<std::shared_ptr<MultiResultStep>> itsResultSteps;
 

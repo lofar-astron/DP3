@@ -19,8 +19,8 @@ class SolutionInterval {
  public:
   explicit SolutionInterval(std::size_t buffer_size);
 
-  // Copy a buffer and append it to the Solution Interval.
-  void PushBack(const DPBuffer&);
+  // Append a buffer to the Solution Interval.
+  void PushBack(std::unique_ptr<DPBuffer> buffer);
 
   /// Restore the flags and weights of added buffers to the original values
   void RestoreFlagsAndWeights();
@@ -32,7 +32,7 @@ class SolutionInterval {
    * \defgroup Getters
    */
   /**@{*/
-  std::vector<DPBuffer>& DataBuffers() { return buffers_; }
+  std::vector<std::unique_ptr<DPBuffer>>& DataBuffers() { return buffers_; }
   /**@}*/
 
   /**
@@ -40,14 +40,14 @@ class SolutionInterval {
    */
   /**@{*/
   /// Get a DPBuffer at index @param i
-  const DPBuffer& operator[](int i) const { return buffers_[i]; }
+  const DPBuffer& operator[](int i) const { return *buffers_[i]; }
   /**@}*/
 
  private:
   const std::size_t buffer_size_;
 
   std::size_t buffer_index_;  ///< Current index where to insert the next buffer
-  std::vector<DPBuffer> buffers_;  ///< Vector of DPBuffer copies
+  std::vector<std::unique_ptr<DPBuffer>> buffers_;
 
   std::vector<casacore::Cube<bool>> original_flags_;
   std::vector<casacore::Cube<float>> original_weights_;

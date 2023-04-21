@@ -128,7 +128,7 @@ class SolverTester {
   std::vector<size_t> n_solutions_per_direction_;
   size_t n_solutions_;
 
-  std::vector<base::DPBuffer> data_buffers_;
+  std::vector<std::unique_ptr<base::DPBuffer>> data_buffers_;
   SolverBuffer solver_buffer_;
 
   BdaSolverBuffer bda_solver_buffer_;
