@@ -26,7 +26,7 @@ class SolutionInterval {
   void RestoreFlagsAndWeights();
 
   /// Return the number of added buffers.
-  std::size_t Size() const { return buffer_index_; };
+  std::size_t Size() const { return buffers_.size(); };
 
   /**
    * \defgroup Getters
@@ -44,9 +44,6 @@ class SolutionInterval {
   /**@}*/
 
  private:
-  const std::size_t buffer_size_;
-
-  std::size_t buffer_index_;  ///< Current index where to insert the next buffer
   std::vector<std::unique_ptr<DPBuffer>> buffers_;
 
   std::vector<casacore::Cube<bool>> original_flags_;

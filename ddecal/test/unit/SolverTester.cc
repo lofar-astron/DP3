@@ -80,10 +80,17 @@ SolverTester::SolverTester()
   }
 }
 
-const SolverBuffer& SolverTester::FillDdIntervalData() {
+std::vector<std::string> SolverTester::CreateDirectionNames() {
+  std::vector<std::string> keys;
+  for (size_t i = 0; i < kNDirections; ++i) {
+    keys.emplace_back(std::to_string(i));
+  }
+  return keys;
+}
+
+std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
   std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   std::mt19937 mt(0);
-  std::vector<std::vector<DPBuffer>> model_buffers;
 
   std::vector<std::vector<size_t>> solution_indices(kNDirections);
   size_t first_solution_index = 0;
@@ -97,25 +104,27 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
     first_solution_index += n_solutions_per_direction_[d];
   }
 
+  const std::vector<std::string> direction_names = CreateDirectionNames();
+
+  std::vector<std::unique_ptr<dp3::base::DPBuffer>> unweighted_buffers;
+  std::vector<dp3::base::DPBuffer> weighted_buffers;
   for (size_t timestep = 0; timestep != kNRegularTimes; ++timestep) {
-    data_buffers_.emplace_back(std::make_unique<DPBuffer>());
-    data_buffers_.back()->setData(casacore::Cube<std::complex<float>>(
-        kNPolarizations, kNChannels, kNBaselines, 0));
-    data_buffers_.back()->setWeights(
-        casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0));
+    unweighted_buffers.emplace_back(std::make_unique<base::DPBuffer>());
+    weighted_buffers.emplace_back();
 
-    casacore::Cube<std::complex<float>>& time_data =
-        data_buffers_.back()->GetCasacoreData();
+    unweighted_buffers.back()->ResizeData(kShape);
+    unweighted_buffers.back()->ResizeWeights(kShape);
+    unweighted_buffers.back()->GetWeights().fill(1.0f);
 
-    model_buffers.emplace_back();
-    std::vector<DPBuffer>& model_time_buffers = model_buffers.back();
+    aocommon::xt::Span<std::complex<float>, 3>& time_data =
+        unweighted_buffers.back()->GetData();
+    time_data.fill(std::complex<float>{0.0f, 0.0f});
 
     for (size_t d = 0; d != kNDirections; ++d) {
-      model_time_buffers.emplace_back();
-      model_time_buffers.back().setData(casacore::Cube<std::complex<float>>(
-          kNPolarizations, kNChannels, kNBaselines));
+      const std::string& name = direction_names[d];
+      unweighted_buffers.back()->AddData(name);
       std::complex<float>* this_direction =
-          model_time_buffers.back().GetData().data();
+          unweighted_buffers.back()->GetData(name).data();
 
       for (size_t bl = 0; bl != kNBaselines; ++bl) {
         for (size_t ch = 0; ch != kNChannels; ++ch) {
@@ -137,9 +146,10 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
         for (size_t ch = 0; ch != kNChannels; ++ch) {
           MC2x2 perturbed_model = MC2x2::Zero();
           for (size_t d = 0; d != kNDirections; ++d) {
+            const std::string& name = direction_names[d];
             const size_t solution_index = solution_indices[d][timestep];
-            const MC2x2 val(&model_time_buffers[d].GetCasacoreData()(
-                0, ch, baseline_index));
+            const MC2x2 val(&unweighted_buffers.back()->GetData(name)(
+                baseline_index, ch, 0));
             MC2x2 left(
                 input_solutions_[(a1 * n_solutions_ + solution_index) * 2 + 0],
                 0.0, 0.0,
@@ -155,7 +165,7 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
             perturbed_model += left;
           }
           for (size_t p = 0; p != 4; ++p) {
-            time_data(p, ch, baseline_index) = perturbed_model[p];
+            time_data(baseline_index, ch, p) = perturbed_model[p];
           }
         }
         ++baseline_index;
@@ -163,9 +173,9 @@ const SolverBuffer& SolverTester::FillDdIntervalData() {
     }
   }
 
-  solver_buffer_.AssignAndWeight(data_buffers_, std::move(model_buffers));
-
-  return solver_buffer_;
+  dp3::ddecal::AssignAndWeight(unweighted_buffers, direction_names,
+                               weighted_buffers, false);
+  return weighted_buffers;
 }
 
 const BdaSolverBuffer& SolverTester::FillBDAData() {

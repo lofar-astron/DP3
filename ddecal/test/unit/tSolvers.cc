@@ -19,7 +19,6 @@
 
 using dp3::ddecal::LLSSolverType;
 using dp3::ddecal::SolveData;
-using dp3::ddecal::SolverBuffer;
 using dp3::ddecal::test::SolverTester;
 
 // The solver test suite contains tests that run using a separate
@@ -100,9 +99,10 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_dd_intervals, SolverTester,
   dp3::ddecal::IterativeScalarSolver solver;
   InitializeSolver(solver);
 
-  const SolverBuffer& buffer = FillDdIntervalData();
-  const SolveData data(buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       NSolutionsPerDirection(), Antennas1(), Antennas2());
+  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
+  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
+                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
+                       Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -170,9 +170,10 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_dd_intervals, SolverTester,
   dp3::ddecal::IterativeDiagonalSolver solver;
   InitializeSolver(solver);
 
-  const SolverBuffer& buffer = FillDdIntervalData();
-  const SolveData data(buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       NSolutionsPerDirection(), Antennas1(), Antennas2());
+  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
+  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
+                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
+                       Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -281,9 +282,10 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones_dd_intervals, SolverTester,
   dp3::ddecal::IterativeFullJonesSolver solver;
   InitializeSolver(solver);
 
-  const SolverBuffer& buffer = FillDdIntervalData();
-  const SolveData data(buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       NSolutionsPerDirection(), Antennas1(), Antennas2());
+  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
+  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
+                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
+                       Antennas2());
 
   // The full jones test uses full matrices as solutions and copies the
   // diagonals into the solver solutions from the SolverTester fixture. This

@@ -90,8 +90,7 @@ class DDECal : public Step {
   /// Write all solutions to an H5Parm file using itsSolutionWriter.
   void WriteSolutions();
 
-  void storeModelData(
-      const std::vector<std::vector<base::DPBuffer>>& input_model_buffers);
+  void storeModelData(const base::SolutionInterval& solution_interval);
   void subtractCorrectedModel(size_t bufferIndex);
 
   const ddecal::Settings itsSettings;
@@ -137,11 +136,6 @@ class DDECal : public Step {
   std::vector<std::vector<std::string>> itsDirections;
   /// Maps direction indices to the cluster central direction.
   std::vector<base::Direction> itsSourceDirections;
-  /// Normally, the solver takes the model data and modifies it, thereby
-  /// destroying the original model data. This model data is used to store
-  /// the result of the predictions when they are still required after
-  /// solving (e.g. for subtraction).
-  std::vector<std::vector<std::vector<std::complex<float>>>> itsModelData;
 
   /// First antenna for each baseline. Contains used antennas only.
   std::vector<int> itsAntennas1;
