@@ -4,16 +4,18 @@
 #ifndef DDECAL_SOLVE_DATA_H
 #define DDECAL_SOLVE_DATA_H
 
+#include <cstddef>
+#include <vector>
+
 #include <aocommon/matrix2x2.h>
 #include <xtensor/xtensor.hpp>
 
-#include <vector>
+#include <dp3/base/DPBuffer.h>
 
 namespace dp3 {
 namespace ddecal {
 
 class BdaSolverBuffer;
-class SolverBuffer;
 
 /**
  * Contains exactly the data required for solving: (weighted) data, model_data
@@ -103,9 +105,10 @@ class SolveData {
 
   /**
    * Constructor for regular data.
-   * @param buffer Buffer with regular data for the current solution interval.
+   * @param buffers Weighted data and weighted model data for all time steps in
+   * the current solution interval.
+   * @param directions_names Names of the model data in 'buffers'.
    * @param n_channel_blocks Number of channel blocks / groups.
-   * @param n_directions Number of solver directions.
    * @param n_antennas Number of antennas.
    * @param n_solutions_per_direction For each direction, the number of
    * solutions for this direction. The timesteps in the buffer are split evenly
@@ -115,8 +118,9 @@ class SolveData {
    * @param antennas1 For each baseline, the index of the first antenna.
    * @param antennas2 For each baseline, the index of the second antenna.
    */
-  SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
-            size_t n_directions, size_t n_antennas,
+  SolveData(const std::vector<base::DPBuffer>& buffers,
+            const std::vector<std::string>& direction_names,
+            size_t n_channel_blocks, size_t n_antennas,
             const std::vector<size_t>& n_solutions_per_direction,
             const std::vector<int>& antennas1,
             const std::vector<int>& antennas2);

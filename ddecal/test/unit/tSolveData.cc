@@ -6,7 +6,7 @@
 #include <dp3/base/BDABuffer.h>
 #include <dp3/base/DPBuffer.h>
 #include "../../gain_solvers/BdaSolverBuffer.h"
-#include "../../gain_solvers/SolverBuffer.h"
+#include "../../gain_solvers/SolverTools.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -21,8 +21,10 @@ using ChannelBlockData = dp3::ddecal::SolveData::ChannelBlockData;
 namespace {
 
 const size_t kNPolarizations = 4;
+const size_t kNChannels = 7;
 const size_t kNChannelBlocks = 2;
 const size_t kNBaselines = 3;
+const std::array<size_t, 3> kShape{kNBaselines, kNChannels, kNPolarizations};
 const size_t kNAntennas = 3;
 const std::vector<int> kAntennas1 = {0, 0, 0};
 const std::vector<int> kAntennas2 = {1, 2, 0};
@@ -39,14 +41,14 @@ void FillRandomData(std::vector<std::complex<float>>& data, size_t size) {
   });
 }
 
-void FillRegularBuffer(DPBuffer& buffer) {
+void FillRegularData(aocommon::xt::Span<std::complex<float>, 3>& data) {
   // Reusing these variables ensures that each call generates different data.
   static std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   static std::mt19937 mt(0);
 
-  std::generate_n(
-      buffer.GetCasacoreData().begin(), buffer.GetCasacoreData().size(),
-      []() { return std::complex<float>(uniform_data(mt), uniform_data(mt)); });
+  std::generate_n(data.begin(), data.size(), []() {
+    return std::complex<float>(uniform_data(mt), uniform_data(mt));
+  });
 }
 
 void FillBdaBuffer(BDABuffer& buffer, size_t avg_channels,
@@ -78,38 +80,36 @@ void FillBdaBuffer(BDABuffer& buffer, size_t avg_channels,
 BOOST_AUTO_TEST_SUITE(solve_data, *boost::unit_test::tolerance(0.0f))
 
 BOOST_AUTO_TEST_CASE(regular) {
-  // Test that all data from a SolverBuffer ends up in a SolveData structure.
+  // Test that all data from several DPBuffers ends up in a SolveData structure.
   // The test uses three baselines. The third baseline contains
   // auto-correlations, which SolveData should ignore.
   const size_t kNTimes = 2;
-  const size_t kNChannels = 7;
   const size_t kNSolveDataBaselines = kNBaselines - 1;
   const size_t kNDirections = 1;
+  const std::string kDirectionName = "direction_foo";
   const std::vector<size_t> kNSolutionsPerDirection(kNDirections, 1);
   const std::vector<size_t> kExpectedChannelBlockSizes{3, 4};
 
-  std::vector<std::unique_ptr<DPBuffer>> data_buffers;
-  std::vector<std::vector<DPBuffer>> model_buffers(kNTimes);
+  std::vector<std::unique_ptr<DPBuffer>> unweighted_buffers;
+  std::vector<DPBuffer> weighted_buffers(kNTimes);
 
   for (size_t time = 0; time < kNTimes; ++time) {
-    data_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
-    data_buffers.back()->setData(casacore::Cube<std::complex<float>>(
-        kNPolarizations, kNChannels, kNBaselines));
-    FillRegularBuffer(*data_buffers.back());
-    data_buffers.back()->setWeights(
-        casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0f));
+    unweighted_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
+    unweighted_buffers.back()->ResizeData(kShape);
+    FillRegularData(unweighted_buffers.back()->GetData(""));
 
-    model_buffers[time].emplace_back(time, 1.0);
-    model_buffers[time].back().setData(casacore::Cube<std::complex<float>>(
-        kNPolarizations, kNChannels, kNBaselines));
-    FillRegularBuffer(model_buffers[time].back());
+    unweighted_buffers.back()->AddData(kDirectionName);
+    FillRegularData(unweighted_buffers.back()->GetData(kDirectionName));
+
+    unweighted_buffers.back()->ResizeWeights(kShape);
+    unweighted_buffers.back()->GetWeights().fill(1.0f);
   }
 
-  dp3::ddecal::SolverBuffer solver_buffer;
-  solver_buffer.AssignAndWeight(data_buffers, std::move(model_buffers));
+  dp3::ddecal::AssignAndWeight(unweighted_buffers, {kDirectionName},
+                               weighted_buffers, false);
 
   const dp3::ddecal::SolveData data(
-      solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+      weighted_buffers, {kDirectionName}, kNChannelBlocks, kNAntennas,
       kNSolutionsPerDirection, kAntennas1, kAntennas2);
   BOOST_TEST_REQUIRE(data.NChannelBlocks() == kNChannelBlocks);
 
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(regular) {
       BOOST_TEST(cb_data.Antenna2Index(v) == size_t(kAntennas2[baseline]));
 
       const std::complex<float>* const expected_data =
-          solver_buffer.DataPointer(time, baseline, channel);
+          &weighted_buffers[time].GetData("")(baseline, channel, 0);
       const aocommon::MC2x2F& data = cb_data.Visibility(v);
       for (size_t pol = 0; pol < kNPolarizations; ++pol) {
         BOOST_TEST(expected_data[pol] == data[pol]);
@@ -148,7 +148,8 @@ BOOST_AUTO_TEST_CASE(regular) {
 
       for (size_t direction = 0; direction < kNDirections; ++direction) {
         const std::complex<float>* const expected_model_data =
-            solver_buffer.ModelDataPointer(time, direction, baseline, channel);
+            &weighted_buffers[time].GetData(kDirectionName)(baseline, channel,
+                                                            0);
         const aocommon::MC2x2F& model_data =
             cb_data.ModelVisibility(direction, v);
 
@@ -163,46 +164,43 @@ BOOST_AUTO_TEST_CASE(regular) {
 }
 
 BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
-  // Test that all data from a SolverBuffer ends up in a SolveData structure.
+  // Test that all data from several DPBuffers ends up in a SolveData structure.
   // The test uses three baselines. The third baseline contains
   // auto-correlations, which SolveData should ignore.
   const size_t kNTimes = 2;
-  const size_t kNChannels = 7;
   const size_t kNSolveDataBaselines = kNBaselines - 1;
-  const size_t kNDirections = 2;
+  const std::vector<std::string> kDirectionNames{"foo_direction", "bar_dir"};
   const std::vector<size_t> kNSolutionsPerDirection{1, 2};
   const std::vector<size_t> kExpectedChannelBlockSizes{3, 4};
 
-  std::vector<std::unique_ptr<DPBuffer>> data_buffers;
-  std::vector<std::vector<DPBuffer>> model_buffers(kNTimes);
+  std::vector<std::unique_ptr<DPBuffer>> unweighted_buffers;
+  std::vector<DPBuffer> weighted_buffers(kNTimes);
 
   for (size_t time = 0; time < kNTimes; ++time) {
-    data_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
-    data_buffers.back()->setData(casacore::Cube<std::complex<float>>(
-        kNPolarizations, kNChannels, kNBaselines));
-    FillRegularBuffer(*data_buffers.back());
-    data_buffers.back()->setWeights(
-        casacore::Cube<float>(kNPolarizations, kNChannels, kNBaselines, 1.0f));
+    unweighted_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
+    unweighted_buffers.back()->ResizeData(kShape);
+    FillRegularData(unweighted_buffers.back()->GetData(""));
 
-    for (size_t direction = 0; direction != kNDirections; ++direction) {
-      model_buffers[time].emplace_back(time, 1.0);
-      model_buffers[time].back().setData(casacore::Cube<std::complex<float>>(
-          kNPolarizations, kNChannels, kNBaselines));
-      FillRegularBuffer(model_buffers[time].back());
+    for (const std::string& name : kDirectionNames) {
+      unweighted_buffers.back()->AddData(name);
+      FillRegularData(unweighted_buffers.back()->GetData(name));
     }
+
+    unweighted_buffers.back()->ResizeWeights(kShape);
+    unweighted_buffers.back()->GetWeights().fill(1.0f);
   }
 
-  dp3::ddecal::SolverBuffer solver_buffer;
-  solver_buffer.AssignAndWeight(data_buffers, std::move(model_buffers));
+  dp3::ddecal::AssignAndWeight(unweighted_buffers, kDirectionNames,
+                               weighted_buffers, false);
 
   const dp3::ddecal::SolveData data(
-      solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+      weighted_buffers, kDirectionNames, kNChannelBlocks, kNAntennas,
       kNSolutionsPerDirection, kAntennas1, kAntennas2);
   BOOST_TEST_REQUIRE(data.NChannelBlocks() == kNChannelBlocks);
 
   for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {
     const ChannelBlockData& cb_data = data.ChannelBlock(ch_block);
-    BOOST_TEST_REQUIRE(cb_data.NDirections() == kNDirections);
+    BOOST_TEST_REQUIRE(cb_data.NDirections() == kDirectionNames.size());
     // SolveData does not include baselines with auto-correlations,
     // so it should not contain the last baseline.
     BOOST_TEST_REQUIRE(cb_data.NVisibilities() ==

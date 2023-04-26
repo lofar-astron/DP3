@@ -1,17 +1,16 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_DDECAL_SOLVER_TESTER_H
-#define DP3_DDECAL_SOLVER_TESTER_H
+#ifndef DP3_DDECAL_TEST_UNIT_SOLVER_TESTER_H_
+#define DP3_DDECAL_TEST_UNIT_SOLVER_TESTER_H_
+
+#include <complex>
+#include <memory>
+#include <vector>
 
 #include <dp3/base/DPBuffer.h>
 #include "../../../ddecal/gain_solvers/BdaSolverBuffer.h"
-#include "../../../ddecal/gain_solvers/SolverBuffer.h"
-
-#include <aocommon/uvector.h>
-
-#include <complex>
-#include <vector>
+#include "../../../ddecal/gain_solvers/SolverTools.h"
 
 namespace dp3 {
 namespace ddecal {
@@ -31,7 +30,7 @@ class SolverTester {
   /**
    * Creates regular data with direction-dependent solution intervals.
    */
-  const ddecal::SolverBuffer& FillDdIntervalData();
+  std::vector<base::DPBuffer> FillDdIntervalData();
 
   /**
    * Creates BDA data, for testing BDA solvers.
@@ -92,6 +91,8 @@ class SolverTester {
     return n_solutions_per_direction_;
   }
 
+  static std::vector<std::string> CreateDirectionNames();
+
   static constexpr size_t kNPolarizations = 4;
   static constexpr size_t kNAntennas = 50;
   static constexpr size_t kNDirections = 3;
@@ -102,6 +103,8 @@ class SolverTester {
   // regular data.
   static constexpr size_t kNBDATimes = 128;
   static constexpr size_t kNBaselines = kNAntennas * (kNAntennas - 1) / 2;
+  static constexpr std::array<size_t, 3> kShape{kNBaselines, kNChannels,
+                                                kNPolarizations};
 
   // Default solver settings:
   static constexpr size_t kMaxIterations = 100;
@@ -127,9 +130,6 @@ class SolverTester {
   std::vector<std::vector<std::complex<double>>> solver_solutions_;
   std::vector<size_t> n_solutions_per_direction_;
   size_t n_solutions_;
-
-  std::vector<std::unique_ptr<base::DPBuffer>> data_buffers_;
-  SolverBuffer solver_buffer_;
 
   BdaSolverBuffer bda_solver_buffer_;
 };

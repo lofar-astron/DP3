@@ -33,7 +33,7 @@
 #include "../ddecal/SolutionResampler.h"
 #include "../ddecal/constraints/SmoothnessConstraint.h"
 #include "../ddecal/gain_solvers/SolveData.h"
-#include "../ddecal/gain_solvers/SolverBuffer.h"
+#include "../ddecal/gain_solvers/SolverTools.h"
 #include "../ddecal/linear_solvers/LLSSolver.h"
 
 #include "IDGPredict.h"
@@ -484,14 +484,7 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 }
 
 void DDECal::doSolve() {
-  std::vector<std::vector<std::vector<DPBuffer>>> model_buffers(
-      itsSolIntBuffers.size());
-  for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
-    model_buffers[i].resize(itsSolIntBuffers[i].Size());
-    for (std::vector<DPBuffer>& dir_buffers : model_buffers[i]) {
-      dir_buffers.reserve(itsDirections.size());
-    }
-  }
+  std::vector<std::string> direction_names;
 
   for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
     if (auto s = dynamic_cast<IDGPredict*>(itsSteps[dir].get())) {
@@ -499,31 +492,32 @@ void DDECal::doSolve() {
       s->flush();
       itsTimerPredict.stop();
     }
+    // TODO(AST-1240): Use real names instead of increasing numbers.
+    direction_names.push_back(std::to_string(dir));
     for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
       const size_t sol_int = i / itsRequestedSolInt;
       const size_t timestep = i % itsRequestedSolInt;
-      model_buffers[sol_int][timestep].emplace_back(
-          std::move(itsResultSteps[dir]->get()[i]));
+      itsSolIntBuffers[sol_int].DataBuffers()[timestep]->MoveData(
+          itsResultSteps[dir]->get()[i], "", direction_names.back());
     }
   }
 
   std::vector<ddecal::SolverBase*> solvers = itsSolver->ConstraintSolvers();
   const size_t n_channel_blocks = itsChanBlockFreqs.size();
   const size_t n_antennas = info().antennaUsed().size();
-  // Declare solver_buffer outside the loop, so it can reuse its memory.
-  ddecal::SolverBuffer solver_buffer;
+
+  // Declare weighted_buffers outside the loop, so we can reuse its memory.
+  std::vector<base::DPBuffer> weighted_buffers(itsRequestedSolInt);
+
+  // DDECal requires the unweighted model model when the model is subtracted
+  // after calibration. Since the model data can be large, memory allocation
+  // for this optional feature is done conditionally.
+  const bool subtract_corrected_model =
+      itsSettings.subtract || itsSettings.only_predict;
 
   for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
     const size_t solution_index = itsFirstSolutionIndex + i;
     assert(solution_index < itsSols.size());
-
-    // When the model data is subtracted after calibration, the model data
-    // needs to be stored before solving, because the solver modifies it.
-    // This is done conditionally to prevent using memory when it is
-    // not required (the model data can be large).
-    if (itsSettings.subtract || itsSettings.only_predict) {
-      storeModelData(model_buffers[i]);
-    }
 
     ddecal::SolverBase::SolveResult solveResult;
     if (!itsSettings.only_predict) {
@@ -536,15 +530,19 @@ void DDECal::doSolve() {
         }
       }
 
-      solver_buffer.AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
-                                    std::move(model_buffers[i]));
+      // The last solution interval can be smaller.
+      weighted_buffers.resize(itsSolIntBuffers[i].Size());
+
+      ddecal::AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
+                              direction_names, weighted_buffers,
+                              subtract_corrected_model);
 
       InitializeSolutions(i);
 
       itsTimerSolve.start();
 
       const ddecal::SolveData solve_data(
-          solver_buffer, n_channel_blocks, itsDirections.size(), n_antennas,
+          weighted_buffers, direction_names, n_channel_blocks, n_antennas,
           itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
 
       solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
@@ -557,7 +555,7 @@ void DDECal::doSolve() {
       itsNApproxIter[solution_index] = solveResult.constraint_iterations;
     }
 
-    if (itsSettings.subtract || itsSettings.only_predict) {
+    if (subtract_corrected_model) {
       subtractCorrectedModel(i);
     }
 
@@ -786,28 +784,10 @@ void DDECal::finish() {
   getNextStep()->finish();
 }
 
-void DDECal::storeModelData(
-    const std::vector<std::vector<DPBuffer>>& input_model_buffers) {
-  const size_t n_times = input_model_buffers.size();
-  const size_t n_directions = itsSteps.size();
-  // The model data might already have data in it. By using resize(),
-  // reallocation between timesteps is avoided.
-  itsModelData.resize(n_times);
-  for (size_t timestep = 0; timestep != n_times; ++timestep) {
-    itsModelData[timestep].resize(n_directions);
-    for (size_t dir = 0; dir < n_directions; ++dir) {
-      const casacore::Cube<std::complex<float>>& input_model_data =
-          input_model_buffers[timestep][dir].GetCasacoreData();
-      itsModelData[timestep][dir].assign(input_model_data.begin(),
-                                         input_model_data.end());
-    }
-  }
-}
-
 void DDECal::subtractCorrectedModel(size_t bufferIndex) {
-  // The original data is still in the data buffers (the solver
-  // doesn't change those). Here we apply the solutions to all the model data
-  // directions and subtract them from the data.
+  // The original unweighted data and model data are still in the solution
+  // interval. Here we apply the solutions to all the model data directions and
+  // subtract them from the data.
 
   const size_t n_directions = itsSolutionsPerDirection.size();
   const size_t n_solutions = std::accumulate(
@@ -831,8 +811,6 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
   const size_t nDir = itsDirections.size();
   for (size_t time = 0; time != solution_interval.Size(); ++time) {
     DPBuffer& data_buffer = *solution_interval.DataBuffers()[time];
-    const std::vector<std::vector<std::complex<float>>>& modelData =
-        itsModelData[time];
     for (size_t bl = 0; bl < nBl; ++bl) {
       const size_t ant1 = info().getAnt1()[bl];
       const size_t ant2 = info().getAnt2()[bl];
@@ -843,25 +821,32 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
           chanblock++;
         }
 
-        std::complex<float>* data = &data_buffer.GetCasacoreData()(0, ch, bl);
-        const size_t index = data - data_buffer.GetData().data();
+        std::complex<float>* data = &data_buffer.GetData()(bl, ch, 0);
         if (itsSettings.only_predict) {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
 
-          for (size_t dir = 0; dir != nDir; ++dir)
-            value += aocommon::MC2x2(&modelData[dir][index]);
-
+          for (size_t dir = 0; dir != nDir; ++dir) {
+            // TODO(AST-1240): Use real direction name.
+            const std::string name = std::to_string(dir);
+            const std::complex<float>* model_data =
+                &data_buffer.GetData(name)(bl, ch, 0);
+            value += aocommon::MC2x2(model_data);
+          }
           for (size_t cr = 0; cr < 4; ++cr) data[cr] = value[cr];
         } else {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
           for (size_t dir = 0; dir != nDir; ++dir) {
+            // TODO(AST-1240): Use real direction name.
+            const std::string name = std::to_string(dir);
+            const std::complex<float>* model_data =
+                &data_buffer.GetData(name)(bl, ch, 0);
             if (itsSolver->NSolutionPolarizations() == 4) {
               const aocommon::MC2x2 sol1(
                   &solutions[chanblock][(ant1 * nDir + dir) * 4]);
               const aocommon::MC2x2 sol2(
                   &solutions[chanblock][(ant2 * nDir + dir) * 4]);
-              value += sol1.Multiply(aocommon::MC2x2(&modelData[dir][index]))
-                           .MultiplyHerm(sol2);
+              value +=
+                  sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
             } else if (itsSolver->NSolutionPolarizations() == 2) {
               const aocommon::MC2x2 sol1(
                   solutions[chanblock][(ant1 * nDir + dir) * 2 + 0], 0.0, 0.0,
@@ -869,22 +854,29 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
               const aocommon::MC2x2 sol2(
                   solutions[chanblock][(ant2 * nDir + dir) * 2 + 0], 0.0, 0.0,
                   solutions[chanblock][(ant2 * nDir + dir) * 2 + 1]);
-              value += sol1.Multiply(aocommon::MC2x2(&modelData[dir][index]))
-                           .MultiplyHerm(sol2);
+              value +=
+                  sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
             } else {
               std::complex<double> solfactor(
                   solutions[chanblock][ant1 * nDir + dir] *
                   std::conj(solutions[chanblock][ant2 * nDir + dir]));
               for (size_t cr = 0; cr < 4; ++cr)
-                value[cr] += solfactor *
-                             std::complex<double>(modelData[dir][index + cr]);
+                value[cr] += solfactor * std::complex<double>(model_data[cr]);
             }
           }
           for (size_t cr = 0; cr < 4; ++cr) data[cr] -= value[cr];
         }
       }  // channel loop
     }    // bl loop
-  }      // time loop
+
+    // Remove unweighted model data, since DDECal no longer needs it.
+    // TODO(AST-1243): Making discarding model data optional.
+    for (size_t dir = 0; dir != nDir; ++dir) {
+      // TODO(AST-1240): Use real direction name.
+      const std::string name = std::to_string(dir);
+      data_buffer.RemoveData(name);
+    }
+  }  // time loop
 }
 
 }  // namespace steps

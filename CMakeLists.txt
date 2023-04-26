@@ -367,7 +367,7 @@ add_library(
   ddecal/gain_solvers/LBFGSSolver.cc
   ddecal/gain_solvers/SolveData.cc
   ddecal/gain_solvers/SolverBase.cc
-  ddecal/gain_solvers/SolverBuffer.cc
+  ddecal/gain_solvers/SolverTools.cc
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
 target_link_libraries(DDECal xtensor)

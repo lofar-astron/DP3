@@ -4,7 +4,6 @@
 #include "SolveData.h"
 
 #include "BdaSolverBuffer.h"
-#include "SolverBuffer.h"
 
 #include <xtensor/xview.hpp>
 
@@ -15,17 +14,25 @@ using dp3::base::BDABuffer;
 namespace dp3 {
 namespace ddecal {
 
-SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
-                     size_t n_directions, size_t n_antennas,
+SolveData::SolveData(const std::vector<base::DPBuffer>& buffers,
+                     const std::vector<std::string>& direction_keys,
+                     size_t n_channel_blocks, size_t n_antennas,
                      const std::vector<size_t>& n_solutions_per_direction,
                      const std::vector<int>& antennas1,
                      const std::vector<int>& antennas2)
     : channel_blocks_(n_channel_blocks) {
   std::vector<size_t> channel_begin(n_channel_blocks + 1, 0);
 
+  const size_t n_times = buffers.size();
+  const size_t n_baselines_in_buffers =
+      buffers.empty() ? 0 : buffers.front().GetData().shape(0);
+  const size_t n_channels =
+      buffers.empty() ? 0 : buffers.front().GetData().shape(1);
+  const size_t n_directions = direction_keys.size();
+
   // Count nr of baselines with different antennas.
   size_t n_baselines = 0;
-  for (size_t baseline = 0; baseline < buffer.NBaselines(); ++baseline) {
+  for (size_t baseline = 0; baseline < n_baselines_in_buffers; ++baseline) {
     assert(size_t(antennas1[baseline]) < n_antennas &&
            size_t(antennas2[baseline]) < n_antennas);
     if (antennas1[baseline] != antennas2[baseline]) ++n_baselines;
@@ -36,7 +43,7 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
   channel_blocks_.front().n_solutions_.reserve(n_directions);
   for (size_t direction = 0; direction != n_directions; ++direction) {
     channel_blocks_.front().n_solutions_.emplace_back(
-        std::min(n_solutions_per_direction[direction], buffer.NTimes()));
+        std::min(n_solutions_per_direction[direction], n_times));
   }
 
   // Count nr of visibilities per channel block and allocate memory.
@@ -45,12 +52,11 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
     ChannelBlockData& cb_data = channel_blocks_[channel_block_index];
 
     channel_begin[channel_block_index + 1] =
-        (channel_block_index + 1) * buffer.NChannels() / n_channel_blocks;
+        (channel_block_index + 1) * n_channels / n_channel_blocks;
     const size_t channel_block_size = channel_begin[channel_block_index + 1] -
                                       channel_begin[channel_block_index];
 
-    cb_data.Resize(buffer.NTimes() * n_baselines * channel_block_size,
-                   n_directions);
+    cb_data.Resize(n_times * n_baselines * channel_block_size, n_directions);
 
     cb_data.n_solutions_ = channel_blocks_.front().n_solutions_;
   }
@@ -66,8 +72,11 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
 
   // Fill all channel blocks with data.
   std::vector<size_t> visibility_indices(n_channel_blocks, 0);
-  for (size_t time_index = 0; time_index < buffer.NTimes(); ++time_index) {
-    for (size_t baseline = 0; baseline < buffer.NBaselines(); ++baseline) {
+  for (size_t time_index = 0; time_index < n_times; ++time_index) {
+    const aocommon::xt::Span<std::complex<float>, 3>& data =
+        buffers[time_index].GetData("");
+
+    for (size_t baseline = 0; baseline < n_baselines_in_buffers; ++baseline) {
       const size_t antenna1 = antennas1[baseline];
       const size_t antenna2 = antennas2[baseline];
       if (antenna1 != antenna2) {
@@ -80,24 +89,24 @@ SolveData::SolveData(const SolverBuffer& buffer, size_t n_channel_blocks,
           const size_t channel_block_size = end_channel - first_channel;
 
           for (size_t i = 0; i < channel_block_size; ++i) {
-            cb_data.data_[vis_index + i] = aocommon::MC2x2F(
-                buffer.DataPointer(time_index, baseline, first_channel + i));
+            cb_data.data_[vis_index + i] =
+                aocommon::MC2x2F(&data(baseline, first_channel + i, 0));
             cb_data.antenna_indices_[vis_index + i] =
                 std::pair<uint32_t, uint32_t>(antenna1, antenna2);
           }
 
           for (size_t direction = 0; direction < n_directions; ++direction) {
+            const aocommon::xt::Span<std::complex<float>, 3>& model_data =
+                buffers[time_index].GetData(direction_keys[direction]);
             const size_t n_solutions =
                 channel_blocks_.front().n_solutions_[direction];
             // Calculate the absolute index as required for solution_map_
-            const size_t solution_index =
-                time_index * n_solutions / buffer.NTimes() +
-                solution_start_indices[direction];
+            const size_t solution_index = time_index * n_solutions / n_times +
+                                          solution_start_indices[direction];
 
             for (size_t i = 0; i < channel_block_size; ++i) {
               cb_data.model_data_(direction, vis_index + i) =
-                  aocommon::MC2x2F(buffer.ModelDataPointer(
-                      time_index, direction, baseline, first_channel + i));
+                  aocommon::MC2x2F(&model_data(baseline, first_channel + i, 0));
 
               cb_data.solution_map_(direction, vis_index + i) = solution_index;
             }
