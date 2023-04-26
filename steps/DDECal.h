@@ -81,10 +81,11 @@ class DDECal : public Step {
   void doPrepare(std::unique_ptr<base::DPBuffer>& bufin, size_t sol_int,
                  size_t step);
 
-  /// Initialize solutions
-  void InitializeScalarOrDiagonalSolutions(size_t);
-
-  void initializeFullMatrixSolutions(size_t);
+  /// Initializes solutions for a new solution interval.
+  /// Based on progation settings, either copies the previous solution or
+  /// writes default values to the new solution.
+  /// @param buffer_index Index within the current solution interval set.
+  void InitializeSolutions(size_t buffer_index);
 
   /// Write all solutions to an H5Parm file using itsSolutionWriter.
   void WriteSolutions();

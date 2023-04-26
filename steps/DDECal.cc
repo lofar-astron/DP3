@@ -406,73 +406,44 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   os << "]" << '\n';
 }
 
-void DDECal::InitializeScalarOrDiagonalSolutions(size_t bufferIndex) {
-  const size_t solution_index = itsFirstSolutionIndex + bufferIndex;
+void DDECal::InitializeSolutions(size_t buffer_index) {
+  const size_t solution_index = itsFirstSolutionIndex + buffer_index;
   assert(solution_index < itsSols.size());
 
-  if (solution_index > 0 && itsSettings.propagate_solutions) {
-    if (itsNIter[solution_index - 1] > itsSolver->GetMaxIterations() &&
-        itsSettings.propagate_converged_only) {
-      // initialize solutions with 1.
-      const size_t n_solutions = std::accumulate(
-          itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
-      const size_t n = n_solutions * info().antennaUsed().size() *
-                       itsSolver->NSolutionPolarizations();
-      for (std::vector<casacore::DComplex>& solvec : itsSols[solution_index]) {
-        solvec.assign(n, 1.0);
-      }
-    } else {
-      // initialize solutions with those of the previous step
-      itsSols[solution_index] = itsSols[solution_index - 1];
-    }
+  bool propagate_solutions =
+      solution_index > 0 && itsSettings.propagate_solutions;
+  if (propagate_solutions &&
+      itsNIter[solution_index - 1] > itsSolver->GetMaxIterations() &&
+      itsSettings.propagate_converged_only) {
+    propagate_solutions = false;
+  }
+
+  if (propagate_solutions) {
+    // Initialize solutions with those of the previous step.
+    itsSols[solution_index] = itsSols[solution_index - 1];
   } else {
-    // initialize solutions with 1.
     const size_t n_solutions = std::accumulate(
         itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
-    const size_t n = n_solutions * info().antennaUsed().size() *
-                     itsSolver->NSolutionPolarizations();
-    for (std::vector<casacore::DComplex>& solvec : itsSols[solution_index]) {
-      solvec.assign(n, 1.0);
-    }
-  }
-}
+    const size_t n_solution_values = n_solutions * info().antennaUsed().size() *
+                                     itsSolver->NSolutionPolarizations();
 
-void DDECal::initializeFullMatrixSolutions(size_t bufferIndex) {
-  const size_t solution_index = itsFirstSolutionIndex + bufferIndex;
-  assert(solution_index < itsSols.size());
-
-  if (solution_index > 0 && itsSettings.propagate_solutions) {
-    if (itsNIter[solution_index - 1] > itsSolver->GetMaxIterations() &&
-        itsSettings.propagate_converged_only) {
-      // initialize solutions with unity matrix [1 0 ; 0 1].
-      const size_t n_solutions = std::accumulate(
-          itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
-      const size_t n = n_solutions * info().antennaUsed().size();
-      for (std::vector<casacore::DComplex>& solvec : itsSols[solution_index]) {
-        solvec.resize(n * 4);
-        for (size_t i = 0; i != n; ++i) {
-          solvec[i * 4 + 0] = 1.0;
-          solvec[i * 4 + 1] = 0.0;
-          solvec[i * 4 + 2] = 0.0;
-          solvec[i * 4 + 3] = 1.0;
+    if (itsSolver->NSolutionPolarizations() == 4) {
+      // Initialize solutions with unity matrix [1 0 ; 0 1].
+      for (std::vector<casacore::DComplex>& solution_vector :
+           itsSols[solution_index]) {
+        solution_vector.resize(n_solution_values);
+        for (size_t i = 0; i < n_solution_values; i += 4) {
+          solution_vector[i + 0] = 1.0;
+          solution_vector[i + 1] = 0.0;
+          solution_vector[i + 2] = 0.0;
+          solution_vector[i + 3] = 1.0;
         }
       }
     } else {
-      // initialize solutions with those of the previous step
-      itsSols[solution_index] = itsSols[solution_index - 1];
-    }
-  } else {
-    // initialize solutions with unity matrix [1 0 ; 0 1].
-    const size_t n_solutions = std::accumulate(
-        itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
-    const size_t n = n_solutions * info().antennaUsed().size();
-    for (std::vector<casacore::DComplex>& solvec : itsSols[solution_index]) {
-      solvec.resize(n * 4);
-      for (size_t i = 0; i != n; ++i) {
-        solvec[i * 4 + 0] = 1.0;
-        solvec[i * 4 + 1] = 0.0;
-        solvec[i * 4 + 2] = 0.0;
-        solvec[i * 4 + 3] = 1.0;
+      // Initialize solutions with 1.
+      for (std::vector<casacore::DComplex>& solution_vector :
+           itsSols[solution_index]) {
+        solution_vector.assign(n_solution_values, 1.0);
       }
     }
   }
@@ -568,10 +539,7 @@ void DDECal::doSolve() {
       solver_buffer.AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
                                     std::move(model_buffers[i]));
 
-      if (itsSolver->NSolutionPolarizations() == 4)
-        initializeFullMatrixSolutions(i);
-      else
-        InitializeScalarOrDiagonalSolutions(i);
+      InitializeSolutions(i);
 
       itsTimerSolve.start();
 
