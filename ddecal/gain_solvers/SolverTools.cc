@@ -27,6 +27,8 @@ void AssignAndWeight(
     base::DPBuffer& weighted_buffer = weighted_buffers[timestep];
     const aocommon::xt::Span<std::complex<float>, 3>& unweighted_data =
         unweighted_buffer.GetData();
+    const aocommon::xt::Span<bool, 3>& buffer_flags =
+        unweighted_buffer.GetFlags();
     const aocommon::xt::Span<float, 3>& weights =
         unweighted_buffer.GetWeights();
     assert(unweighted_data.shape() == weights.shape());
@@ -44,8 +46,9 @@ void AssignAndWeight(
         {unweighted_data.shape(0), unweighted_data.shape(1)}, false);
     for (std::size_t correlation = 0; correlation < n_correlations;
          ++correlation) {
-      flags |= !xt::isfinite(
-          xt::view(unweighted_data, xt::all(), xt::all(), correlation));
+      flags |= xt::view(buffer_flags, xt::all(), xt::all(), correlation) |
+               !xt::isfinite(xt::view(unweighted_data, xt::all(), xt::all(),
+                                      correlation));
       for (const std::string& name : direction_names) {
         flags |= !xt::isfinite(xt::view(unweighted_buffer.GetData(name),
                                         xt::all(), xt::all(), correlation));

@@ -97,6 +97,11 @@ class DDECal : public Step {
 
   /// The solution intervals that are buffered, limited by solintcount
   std::vector<base::SolutionInterval> itsSolIntBuffers;
+  /// Original flags of the input buffers for the current solution interval.
+  /// This member is only used if itsUVWFlagger is active.
+  /// Dimensions: ( solution_interval x step_within_interval x baseline x
+  /// channel x correlation )
+  xt::xtensor<bool, 5> itsOriginalFlags;
 
   /// The time of the current buffer (in case of solint, average time)
   double itsAvgTime;

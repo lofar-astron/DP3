@@ -103,6 +103,9 @@ BOOST_AUTO_TEST_CASE(regular) {
 
     unweighted_buffers.back()->ResizeWeights(kShape);
     unweighted_buffers.back()->GetWeights().fill(1.0f);
+
+    unweighted_buffers.back()->ResizeFlags(kShape);
+    unweighted_buffers.back()->GetFlags().fill(false);
   }
 
   dp3::ddecal::AssignAndWeight(unweighted_buffers, {kDirectionName},
@@ -188,6 +191,9 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
 
     unweighted_buffers.back()->ResizeWeights(kShape);
     unweighted_buffers.back()->GetWeights().fill(1.0f);
+
+    unweighted_buffers.back()->ResizeFlags(kShape);
+    unweighted_buffers.back()->GetFlags().fill(false);
   }
 
   dp3::ddecal::AssignAndWeight(unweighted_buffers, kDirectionNames,
