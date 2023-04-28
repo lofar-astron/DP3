@@ -22,9 +22,6 @@ class SolutionInterval {
   // Append a buffer to the Solution Interval.
   void PushBack(std::unique_ptr<DPBuffer> buffer);
 
-  /// Restore the flags and weights of added buffers to the original values
-  void RestoreFlagsAndWeights();
-
   /// Return the number of added buffers.
   std::size_t Size() const { return buffers_.size(); };
 
@@ -45,9 +42,6 @@ class SolutionInterval {
 
  private:
   std::vector<std::unique_ptr<DPBuffer>> buffers_;
-
-  std::vector<casacore::Cube<bool>> original_flags_;
-  std::vector<casacore::Cube<float>> original_weights_;
 };
 
 }  // namespace base

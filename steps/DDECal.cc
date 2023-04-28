@@ -1,5 +1,5 @@
-// DDECal.cc: DPPP step class to do a direction dependent gain calibration
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// DDECal.cc: DP3 step class to do a direction dependent gain calibration
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema & André Offringa
@@ -13,6 +13,8 @@
 #include <utility>
 
 #include <casacore/casa/Quanta/Quantum.h>
+
+#include <xtensor/xview.hpp>
 
 #include <aocommon/matrix2x2.h>
 
@@ -219,8 +221,13 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   itsSolver->SetNThreads(getInfo().nThreads());
 
-  itsDataResultStep = std::make_shared<ResultStep>();
-  itsUVWFlagStep.setNextStep(itsDataResultStep);
+  if (!itsUVWFlagStep.isDegenerate()) {
+    itsDataResultStep = std::make_shared<ResultStep>();
+    itsUVWFlagStep.setNextStep(itsDataResultStep);
+    itsOriginalFlags.resize({itsSolIntCount, itsRequestedSolInt,
+                             infoIn.nbaselines(), infoIn.nchan(),
+                             infoIn.ncorr()});
+  }
 
   // For each sub step chain, add a resultstep and get required fieilds.
   itsRequiredFields.reserve(itsSteps.size());
@@ -530,12 +537,14 @@ void DDECal::doSolve() {
         }
       }
 
-      // The last solution interval can be smaller.
-      weighted_buffers.resize(itsSolIntBuffers[i].Size());
+      std::vector<std::unique_ptr<DPBuffer>>& unweighted_buffers =
+          itsSolIntBuffers[i].DataBuffers();
 
-      ddecal::AssignAndWeight(itsSolIntBuffers[i].DataBuffers(),
-                              direction_names, weighted_buffers,
-                              subtract_corrected_model);
+      // The last solution interval can be smaller.
+      weighted_buffers.resize(unweighted_buffers.size());
+
+      ddecal::AssignAndWeight(unweighted_buffers, direction_names,
+                              weighted_buffers, subtract_corrected_model);
 
       InitializeSolutions(i);
 
@@ -614,8 +623,12 @@ void DDECal::doSolve() {
   itsTimer.stop();
 
   for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
-    itsSolIntBuffers[i].RestoreFlagsAndWeights();
     for (size_t step = 0; step < itsSolIntBuffers[i].Size(); ++step) {
+      if (!itsUVWFlagStep.isDegenerate()) {
+        // Restore original flags, if the UVWFlagger ran.
+        itsSolIntBuffers[i].DataBuffers()[step]->GetFlags() = xt::view(
+            itsOriginalFlags, i, step, xt::all(), xt::all(), xt::all());
+      }
       // Push data (possibly changed) to next step
       getNextStep()->process(itsSolIntBuffers[i][step]);
     }
@@ -666,9 +679,11 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
 
 void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
                        size_t step) {
-  // SolutionInterval::RestoreFlagsAndWeights will restore any flags changed by
-  // the UVWFlagger, before passing the buffer the the next step.
   if (!itsUVWFlagStep.isDegenerate()) {
+    // Save the original flags, so DDECal can restore any flags changed by the
+    // UVWFlagger before passing the buffer to the next step.
+    xt::view(itsOriginalFlags, sol_int, step, xt::all(), xt::all(), xt::all()) =
+        bufin->GetFlags();
     itsUVWFlagStep.process(std::move(bufin));
     bufin = itsDataResultStep->extract();
   }
@@ -699,13 +714,9 @@ void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
       }
       for (size_t cr = 0; cr < nCr; ++cr) {
         itsVisInInterval[chanblock].second++;  // total nr of vis
-        if (bufin->GetCasacoreFlags()(cr, ch, bl)) {
-          // Flagged points: set weight to 0
-          DPBuffer& buf_sol = *itsSolIntBuffers[sol_int].DataBuffers()[step];
-          buf_sol.GetCasacoreWeights()(cr, ch, bl) = 0;
-        } else {
+        if (!bufin->GetFlags()(bl, ch, cr)) {
           // Add this weight to both involved antennas
-          const double weight = bufin->GetCasacoreWeights()(cr, ch, bl);
+          const double weight = bufin->GetWeights()(bl, ch, cr);
           itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
           itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
           if (weight != 0.0) {
