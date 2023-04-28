@@ -6,14 +6,11 @@
 #include <cassert>
 
 #include <xtensor/xcomplex.hpp>
+#include <xtensor/xmasked_view.hpp>
 #include <xtensor/xmath.hpp>
 #include <xtensor/xoperation.hpp>
 #include <xtensor/xtensor.hpp>
 #include <xtensor/xview.hpp>
-
-namespace {
-const size_t kNCorrelations = 4;
-}  // namespace
 
 namespace dp3::ddecal {
 
@@ -35,7 +32,7 @@ void AssignAndWeight(
     assert(unweighted_data.shape() == weights.shape());
     assert(timestep == 0 || unweighted_data.shape() ==
                                 unweighted_buffers.front()->GetData().shape());
-    assert(kNCorrelations == unweighted_data.shape(2));
+    const std::size_t n_correlations = unweighted_data.shape(2);
 
     // Flag all non-finite values in the data and model data buffers.
     // There is one flag for all correlations, so if the data for one
@@ -45,7 +42,7 @@ void AssignAndWeight(
     // (simpler) code below gives slightly better performance.
     xt::xtensor<bool, 2> flags(
         {unweighted_data.shape(0), unweighted_data.shape(1)}, false);
-    for (std::size_t correlation = 0; correlation < kNCorrelations;
+    for (std::size_t correlation = 0; correlation < n_correlations;
          ++correlation) {
       flags |= !xt::isfinite(
           xt::view(unweighted_data, xt::all(), xt::all(), correlation));
@@ -58,13 +55,19 @@ void AssignAndWeight(
     // Copy and weigh the data. Weigh the model data.
     // If the flag is set, set both the data and model data to zero.
     // Storing the result in an xtensor (and not in an expression) ensures
-    // that the expression, including the sqrt() calls, is evaluated once.
-    const xt::xtensor<float, 3> weights_sqrt =
-        xt::where(xt::view(flags, xt::all(), xt::all(), xt::newaxis()), 0.0f,
-                  xt::sqrt(weights));
+    // that the square root is evaluated once for each weight.
+    const xt::xtensor<float, 3> weights_sqrt = xt::sqrt(weights);
+
+    // TODO(AST-1278): Use 'const auto' instead of 'auto' for flags_view.
+    // Although flags_view can be const, it may result in compiler errors.
+    auto flags_view = xt::view(flags, xt::all(), xt::all(), xt::newaxis());
+
+    const std::complex<float> kZeroVisibility(0.0f, 0.0f);
 
     weighted_buffer.ResizeData(unweighted_data.shape());
     weighted_buffer.GetData() = unweighted_data * weights_sqrt;
+    xt::masked_view(weighted_buffer.GetData(), flags_view) = kZeroVisibility;
+
     for (const std::string& name : direction_names) {
       if (keep_unweighted_model_data) {
         if (!weighted_buffer.HasData(name)) weighted_buffer.AddData(name);
@@ -74,6 +77,8 @@ void AssignAndWeight(
         weighted_buffer.MoveData(unweighted_buffer, name, name);
         weighted_buffer.GetData(name) *= weights_sqrt;
       }
+      xt::masked_view(weighted_buffer.GetData(name), flags_view) =
+          kZeroVisibility;
     }
   }
 }
