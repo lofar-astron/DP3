@@ -131,7 +131,7 @@ class DPBuffer {
   /// Reference only the arrays that are filled in that.
   void referenceFilled(const DPBuffer& that);
 
-  /// Set or get the visibility data per corr,chan,baseline.
+  /// Set the visibility data per corr,chan,baseline.
   void setData(const casacore::Cube<Complex>& data);
 
   /// Adds an extra visibility buffer.
@@ -155,9 +155,20 @@ class DPBuffer {
   /// Resize the data buffer(s) in the DPBuffer.
   /// @param shape New shape: { n_baselines, n_channels, n_correlations }
   void ResizeData(const std::array<std::size_t, 3>& shape);
+
+  /// @return A reference to the Casacore object that holds the main data
+  /// buffer.
+  /// @deprecated Use GetData() instead.
   const casacore::Cube<Complex>& GetCasacoreData() const { return casa_data_; }
   casacore::Cube<Complex>& GetCasacoreData() { return casa_data_; }
-
+  /// Accesses data (visibilities) in the DPBuffer.
+  ///
+  /// @param name Data buffer name. An empty string indicates the main data
+  ///        buffer. A non-empty string indicates an extra data buffer.
+  /// @return An XTensor view to the data in the DPBuffer for the given name.
+  ///         The data has shape (n_baselines, n_channels, n_correlations).
+  ///         Note: In the future, this function will return a reference to the
+  ///         XTensor object that holds the data.
   const aocommon::xt::Span<std::complex<float>, 3>& GetData(
       const std::string& name = "") const {
     if (name.empty()) {
@@ -229,26 +240,41 @@ class DPBuffer {
   void MoveData(DPBuffer& source, const std::string& source_name,
                 const std::string& target_name);
 
-  /// Set or get the flags per corr,chan,baseline.
+  /// Set the flags per corr,chan,baseline.
   void setFlags(const casacore::Cube<bool>& flags);
-
   /// Resize the flags buffer in the DPBuffer.
   /// @param shape New shape: { n_baselines, n_channels, n_correlations }
   void ResizeFlags(const std::array<std::size_t, 3>& shape);
+  /// @return A reference to the Casacore object that holds the flags buffer.
+  /// @deprecated Use GetFlags() instead.
   const casacore::Cube<bool>& GetCasacoreFlags() const { return casa_flags_; }
   casacore::Cube<bool>& GetCasacoreFlags() { return casa_flags_; }
+  /// Accesses the flags for the data (visibilities) in the DPBuffer.
+  ///
+  /// @return An XTensor view to the flags in the DPBuffer.
+  ///         The view has shape (n_baselines, n_channels, n_correlations).
+  ///         Note: In the future, this function will return a reference to the
+  ///         XTensor object that holds the flags.
   const aocommon::xt::Span<bool, 3>& GetFlags() const { return flags_; }
   aocommon::xt::Span<bool, 3>& GetFlags() { return flags_; }
 
-  /// Set or get the weights per corr,chan,baseline.
+  /// Set the weights per corr,chan,baseline.
   void setWeights(const casacore::Cube<float>& weights);
   /// Resize the weights buffer in the DPBuffer.
   /// @param shape New shape: { n_baselines, n_channels, n_correlations }
   void ResizeWeights(const std::array<std::size_t, 3>& shape);
+  /// @return A reference to the Casacore object that holds the weights buffer.
+  /// @deprecated Use GetWeights() instead.
   const casacore::Cube<float>& GetCasacoreWeights() const {
     return casa_weights_;
   }
   casacore::Cube<float>& GetCasacoreWeights() { return casa_weights_; }
+  /// Accesses weights for the data (visibilities) in the DPBuffer.
+  ///
+  /// @return An XTensor view to the weights in the DPBuffer.
+  ///         The view has shape (n_baselines, n_channels, n_correlations).
+  ///         Note: In the future, this function will return a reference to the
+  ///         XTensor object that holds the weights.
   const aocommon::xt::Span<float, 3>& GetWeights() const { return weights_; }
   aocommon::xt::Span<float, 3>& GetWeights() { return weights_; }
 
@@ -298,11 +324,21 @@ class DPBuffer {
   }
   casacore::Vector<common::rownr_t>& getRowNrs() { return row_numbers_; }
 
-  /// Get or set the UVW coordinates per baseline.
+  /// Set the UVW coordinates per baseline.
   void setUVW(const casacore::Matrix<double>& uvw);
+  /// Resize the UVW coordinates buffer in the DPBuffer.
+  /// @param n_baselines New shape: { n_baselines, 3 }
   void ResizeUvw(size_t n_baselines);
+  /// @return A reference to the Casacore object that holds the UVW coordinates.
+  /// @deprecated Use GetUvw() instead.
   const casacore::Matrix<double>& GetCasacoreUvw() const { return casa_uvw_; }
   casacore::Matrix<double>& GetCasacoreUvw() { return casa_uvw_; }
+  /// Accesses the UVW coordinates in the DPBuffer.
+  ///
+  /// @return An XTensor view to the UVW coordinates in the DPBuffer.
+  ///         The view has shape (n_baselines, 3).
+  ///         Note: In the future, this function will return a reference to the
+  ///         XTensor object that holds the UVW coordinates.
   const aocommon::xt::Span<double, 2>& GetUvw() const { return uvw_; }
   aocommon::xt::Span<double, 2>& GetUvw() { return uvw_; }
 
