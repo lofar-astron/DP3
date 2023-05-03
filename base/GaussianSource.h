@@ -36,9 +36,7 @@ class GaussianSource : public PointSource {
 
   /// Return whether the position angle (orientation) is absolute, see
   /// documentation of class member.
-  double getPositionAngleIsAbsolute() const {
-    return itsPositionAngleIsAbsolute;
-  }
+  bool getPositionAngleIsAbsolute() const { return itsPositionAngleIsAbsolute; }
 
   /// Set the major axis length (FWHM in radians).
   void setMajorAxis(double fwhm);
