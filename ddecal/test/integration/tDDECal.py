@@ -987,3 +987,55 @@ def test_uvwflagging():
     # The flags used internally by DDECal to flag unwanted uvw values should not propagate
     # to the next step/msout step
     assert_taql(f"SELECT FLAG FROM {MSIN} WHERE ANY(FLAG)")
+
+
+def test_minvisratio(copy_data_to_model_data):
+    """
+    Test whether DDECal
+    1) Applies the "minvisratio" setting correctly.
+    2) Does not modify flags and weights in that case.
+    """
+
+    # Set data values, flags and weights. For the second channel,
+    # set 25% of the flags by flagging the second correlation.
+    taqlcommand_run = f"UPDATE {MSIN} SET DATA=42, MODEL_DATA=42, WEIGHT_SPECTRUM=4, FLAG=FALSE, FLAG[1,1]=TRUE"
+    check_output([TAQLEXE, "-noph", taqlcommand_run])
+
+    # Calibrate
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msout=.",
+            # Force writing flags and weights.
+            # Since DDECal does not have them in its provided fields, the output
+            # step will not write them by default. Force-writing them allows
+            # checking if DDECal indeed does not change the flags and weights.
+            "msout.flagcolumn=DDEFLAG",
+            "msout.weightcolumn=DDEWEIGHTS",
+            "steps=[ddecal]",
+            "ddecal.modeldatacolumns=MODEL_DATA",
+            "ddecal.subtract=true",
+            # With a minvisratio of 80%, DDECal should flag the second channel,
+            # since only 75% is unflagged.
+            "ddecal.minvisratio=0.8",
+        ]
+    )
+
+    # Check output data, flags, and weights.
+    # The data should be NaN for the second channel and zero for the other channels.
+    # The model data, flags and weights should be equal to the input values.
+    assert_taql(f"SELECT FROM {MSIN} WHERE ANY(!ISNAN(DATA[1,]))")
+    assert_taql(f"SELECT FROM {MSIN} WHERE ANY(!NEARABS(DATA[0,], 0, 1e-5))")
+    assert_taql(f"SELECT FROM {MSIN} WHERE ANY(!NEARABS(DATA[2:,], 0, 1e-5))")
+    assert_taql(f"SELECT FROM {MSIN} WHERE ANY(MODEL_DATA!=42)")
+    # Since MSReader flags all correlations if a single correlation is flagged,
+    # the output flags do not match the input flags in this test.
+    # TODO(AST-1280): Convert this test into a C++ unit test, once DDECal can
+    # read model visibilities from a DPBuffer.
+    assert_taql(
+        f"SELECT FROM {MSIN} WHERE NTRUE(DDEFLAG)!=4 OR ANY(DDEFLAG[1,]=FALSE)"
+    )
+    assert_taql(f"SELECT FROM {MSIN} WHERE ANY(DDEWEIGHTS!=4)")

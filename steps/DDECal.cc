@@ -224,6 +224,10 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   if (!itsUVWFlagStep.isDegenerate()) {
     itsDataResultStep = std::make_shared<ResultStep>();
     itsUVWFlagStep.setNextStep(itsDataResultStep);
+  }
+  if (!itsUVWFlagStep.isDegenerate() || itsSettings.min_vis_ratio > 0.0) {
+    // The UVWFlagger and/or flagChannelBlock() may modify the flags.
+    // Create a buffer for storing the original flags.
     itsOriginalFlags.resize({itsSolIntCount, itsRequestedSolInt,
                              infoIn.nbaselines(), infoIn.nchan(),
                              infoIn.ncorr()});
@@ -459,26 +463,21 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
 void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
   const size_t nBl = info().nbaselines();
   const size_t nChanBlocks = itsChanBlockFreqs.size();
+  const size_t channel_begin = itsChanBlockStart[cbIndex];
+  const size_t channel_end = itsChanBlockStart[cbIndex + 1];
   // Set the antenna-based weights to zero
   for (size_t bl = 0; bl < nBl; ++bl) {
     size_t ant1 = info().antennaMap()[info().getAnt1()[bl]];
     size_t ant2 = info().antennaMap()[info().getAnt2()[bl]];
-    for (size_t ch = itsChanBlockStart[cbIndex];
-         ch != itsChanBlockStart[cbIndex + 1]; ++ch) {
-      itsWeightsPerAntenna[ant1 * nChanBlocks + cbIndex] = 0.0;
-      itsWeightsPerAntenna[ant2 * nChanBlocks + cbIndex] = 0.0;
-    }
+    itsWeightsPerAntenna[ant1 * nChanBlocks + cbIndex] = 0.0;
+    itsWeightsPerAntenna[ant2 * nChanBlocks + cbIndex] = 0.0;
   }
-  // Set the visibility weights to zero
+  // Set the visibility flags to true. SolverTools::AssignAndWeight will write
+  // zeroes to the weighted data if it is flagged.
   for (std::unique_ptr<DPBuffer>& buffer :
        itsSolIntBuffers[bufferIndex].DataBuffers()) {
-    for (size_t bl = 0; bl < nBl; ++bl) {
-      float* begin =
-          &buffer->GetCasacoreWeights()(0, itsChanBlockStart[cbIndex], bl);
-      float* end =
-          &buffer->GetCasacoreWeights()(0, itsChanBlockStart[cbIndex + 1], bl);
-      std::fill(begin, end, 0.0f);
-    }
+    xt::view(buffer->GetFlags(), xt::all(),
+             xt::range(channel_begin, channel_end), xt::all()) = true;
   }
 }
 
@@ -528,7 +527,9 @@ void DDECal::doSolve() {
 
     ddecal::SolverBase::SolveResult solveResult;
     if (!itsSettings.only_predict) {
-      checkMinimumVisibilities(i);
+      if (itsSettings.min_vis_ratio > 0.0) {
+        checkMinimumVisibilities(i);
+      }
 
       for (ddecal::SolverBase* solver : solvers) {
         for (const std::unique_ptr<ddecal::Constraint>& constraint :
@@ -624,8 +625,8 @@ void DDECal::doSolve() {
 
   for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
     for (size_t step = 0; step < itsSolIntBuffers[i].Size(); ++step) {
-      if (!itsUVWFlagStep.isDegenerate()) {
-        // Restore original flags, if the UVWFlagger ran.
+      if (itsOriginalFlags.size() > 0) {
+        // Restore original flags, if the UVWFlagger or flagChannelBlock ran.
         itsSolIntBuffers[i].DataBuffers()[step]->GetFlags() = xt::view(
             itsOriginalFlags, i, step, xt::all(), xt::all(), xt::all());
       }
@@ -679,11 +680,13 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
 
 void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
                        size_t step) {
-  if (!itsUVWFlagStep.isDegenerate()) {
+  if (itsOriginalFlags.size() > 0) {
     // Save the original flags, so DDECal can restore any flags changed by the
-    // UVWFlagger before passing the buffer to the next step.
+    // UVWFlagger/flagChannelBlock before passing the buffer to the next step.
     xt::view(itsOriginalFlags, sol_int, step, xt::all(), xt::all(), xt::all()) =
         bufin->GetFlags();
+  }
+  if (!itsUVWFlagStep.isDegenerate()) {
     itsUVWFlagStep.process(std::move(bufin));
     bufin = itsDataResultStep->extract();
   }
@@ -702,9 +705,6 @@ void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
 
   size_t nchanblocks = itsChanBlockFreqs.size();
 
-  double weightFactor =
-      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsRequestedSolInt);
-
   for (size_t bl = 0; bl < nBl; ++bl) {
     size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
            ant2 = info().antennaMap()[info().getAnt2()[bl]];
@@ -717,9 +717,9 @@ void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
         if (!bufin->GetFlags()(bl, ch, cr)) {
           // Add this weight to both involved antennas
           const double weight = bufin->GetWeights()(bl, ch, cr);
-          itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
-          itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
           if (weight != 0.0) {
+            itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
+            itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
             itsVisInInterval[chanblock].first++;  // unflagged nr of vis
           }
         }
@@ -727,7 +727,9 @@ void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
     }
   }
 
-  for (auto& weight : itsWeightsPerAntenna) {
+  const double weightFactor =
+      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsRequestedSolInt);
+  for (double& weight : itsWeightsPerAntenna) {
     weight *= weightFactor;
   }
 
