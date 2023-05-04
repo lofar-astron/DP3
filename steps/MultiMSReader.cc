@@ -215,7 +215,7 @@ void MultiMSReader::fillBands() {
 bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   // Reduce memory allocation overhead by reusing the DPBuffer from the
   // previous iteration.
-  std::unique_ptr<DPBuffer> recycled_buffer = itsResults[itsFirst]->extract();
+  std::unique_ptr<DPBuffer> recycled_buffer = itsResults[itsFirst]->take();
   if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
 
   // Stop if at end.
@@ -241,7 +241,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
       if (int(i) != itsFirst) {
         // Reduce memory allocation overhead by reusing the DPBuffer from the
         // previous iteration.
-        recycled_buffer = itsResults[i]->extract();
+        recycled_buffer = itsResults[i]->take();
         if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
         itsReaders[i]->process(std::move(recycled_buffer));
       }

@@ -41,7 +41,7 @@ class ResultStep : public Step {
   const base::DPBuffer& get() const { return *buffer_; }
 
   /// Extract the result.
-  std::unique_ptr<base::DPBuffer> extract() { return std::move(buffer_); }
+  std::unique_ptr<base::DPBuffer> take() { return std::move(buffer_); }
 
  private:
   std::unique_ptr<base::DPBuffer> buffer_;

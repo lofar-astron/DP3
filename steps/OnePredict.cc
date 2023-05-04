@@ -643,7 +643,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (apply_cal_step_) {
     apply_cal_step_->process(std::move(buffer));
-    buffer = result_step_->extract();
+    buffer = result_step_->take();
   }
 
   if (operation_ == Operation::kAdd) {
