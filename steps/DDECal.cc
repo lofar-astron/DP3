@@ -65,7 +65,6 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
       itsSolutionsPerDirection(itsSettings.n_solutions_per_direction),
       itsSolIntCount(1),
       itsFirstSolutionIndex(0),
-      itsBufferedSolInts(0),
       itsNChan(itsSettings.n_channels),
       itsUVWFlagStep(parset, prefix, Step::MsType::kRegular),
       itsStoreSolutionInBuffer(parset.getBool(prefix + "storebuffer", false)),
@@ -474,8 +473,7 @@ void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
   }
   // Set the visibility flags to true. SolverTools::AssignAndWeight will write
   // zeroes to the weighted data if it is flagged.
-  for (std::unique_ptr<DPBuffer>& buffer :
-       itsSolIntBuffers[bufferIndex].DataBuffers()) {
+  for (std::unique_ptr<DPBuffer>& buffer : itsInputBuffers[bufferIndex]) {
     xt::view(buffer->GetFlags(), xt::all(),
              xt::range(channel_begin, channel_end), xt::all()) = true;
   }
@@ -503,7 +501,7 @@ void DDECal::doSolve() {
     for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
       const size_t sol_int = i / itsRequestedSolInt;
       const size_t timestep = i % itsRequestedSolInt;
-      itsSolIntBuffers[sol_int].DataBuffers()[timestep]->MoveData(
+      itsInputBuffers[sol_int][timestep]->MoveData(
           itsResultSteps[dir]->get()[i], "", direction_names.back());
     }
   }
@@ -521,7 +519,7 @@ void DDECal::doSolve() {
   const bool subtract_corrected_model =
       itsSettings.subtract || itsSettings.only_predict;
 
-  for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
+  for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
     const size_t solution_index = itsFirstSolutionIndex + i;
     assert(solution_index < itsSols.size());
 
@@ -539,7 +537,7 @@ void DDECal::doSolve() {
       }
 
       std::vector<std::unique_ptr<DPBuffer>>& unweighted_buffers =
-          itsSolIntBuffers[i].DataBuffers();
+          itsInputBuffers[i];
 
       // The last solution interval can be smaller.
       weighted_buffers.resize(unweighted_buffers.size());
@@ -616,22 +614,21 @@ void DDECal::doSolve() {
 
     // Store calibration solution for later calibration application steps.
     if (itsStoreSolutionInBuffer) {
-      itsSolIntBuffers[i].DataBuffers().front()->SetSolution(
-          itsSols[solution_index]);
+      itsInputBuffers[i].front()->SetSolution(itsSols[solution_index]);
     }
   }
 
   itsTimer.stop();
 
-  for (size_t i = 0; i < itsSolIntBuffers.size(); ++i) {
-    for (size_t step = 0; step < itsSolIntBuffers[i].Size(); ++step) {
+  for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
+    for (size_t step = 0; step < itsInputBuffers[i].size(); ++step) {
       if (itsOriginalFlags.size() > 0) {
         // Restore original flags, if the UVWFlagger or flagChannelBlock ran.
-        itsSolIntBuffers[i].DataBuffers()[step]->GetFlags() = xt::view(
+        itsInputBuffers[i][step]->GetFlags() = xt::view(
             itsOriginalFlags, i, step, xt::all(), xt::all(), xt::all());
       }
       // Push data (possibly changed) to next step
-      getNextStep()->process(itsSolIntBuffers[i][step]);
+      getNextStep()->process(std::move(itsInputBuffers[i][step]));
     }
   }
 
@@ -642,27 +639,21 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
   itsTimer.start();
 
   // Create a new solution interval if needed
-  if (itsSolIntBuffers.empty() ||
-      itsSolIntBuffers.back().Size() == itsRequestedSolInt) {
-    itsSolIntBuffers.emplace_back(itsRequestedSolInt);
+  if (itsInputBuffers.empty() ||
+      itsInputBuffers.back().size() == itsRequestedSolInt) {
+    itsInputBuffers.emplace_back();
   }
 
-  const size_t currentIntervalIndex = itsSolIntBuffers.back().Size();
-  itsSolIntBuffers[itsBufferedSolInts].PushBack(std::move(bufin));
-  doPrepare(itsSolIntBuffers.back().DataBuffers()[currentIntervalIndex],
-            itsBufferedSolInts, currentIntervalIndex);
+  itsInputBuffers.back().push_back(std::move(bufin));
+  doPrepare();
 
-  if (currentIntervalIndex + 1 == itsRequestedSolInt) {
-    ++itsBufferedSolInts;
-  }
-
-  if (itsBufferedSolInts == itsSolIntCount) {
+  if (itsInputBuffers.size() == itsSolIntCount &&
+      itsInputBuffers.back().size() == itsRequestedSolInt) {
     doSolve();
 
     // Clean up, prepare for next iteration
-    itsFirstSolutionIndex += itsSolIntBuffers.size();
+    itsFirstSolutionIndex += itsInputBuffers.size();
     itsAvgTime = 0;
-    itsBufferedSolInts = 0;
     itsVisInInterval.assign(itsVisInInterval.size(),
                             std::pair<size_t, size_t>(0, 0));
     itsWeightsPerAntenna.assign(itsWeightsPerAntenna.size(), 0.0);
@@ -670,7 +661,7 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
     for (size_t dir = 0; dir < itsResultSteps.size(); ++dir) {
       itsResultSteps[dir]->clear();
     }
-    itsSolIntBuffers.clear();
+    itsInputBuffers.clear();
   }
 
   itsTimer.stop();
@@ -678,24 +669,32 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
   return false;
 }
 
-void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
-                       size_t step) {
+void DDECal::doPrepare() {
+  // When UVW flagging is enabled, this input buffer is passed through the
+  // UVWFlagger by moving it to itsUVWFlagStep and then extracting it again
+  // from itsDataResultStep. itsInputBuffers then holds the updated buffer.
+  std::unique_ptr<DPBuffer>& input_buffer = itsInputBuffers.back().back();
+
   if (itsOriginalFlags.size() > 0) {
     // Save the original flags, so DDECal can restore any flags changed by the
     // UVWFlagger/flagChannelBlock before passing the buffer to the next step.
-    xt::view(itsOriginalFlags, sol_int, step, xt::all(), xt::all(), xt::all()) =
-        bufin->GetFlags();
+    const size_t solution_interval_index = itsInputBuffers.size() - 1;
+    const size_t step_in_solution_interval = itsInputBuffers.back().size() - 1;
+    xt::view(itsOriginalFlags, solution_interval_index,
+             step_in_solution_interval, xt::all(), xt::all(), xt::all()) =
+        input_buffer->GetFlags();
   }
+
   if (!itsUVWFlagStep.isDegenerate()) {
-    itsUVWFlagStep.process(std::move(bufin));
-    bufin = itsDataResultStep->extract();
+    itsUVWFlagStep.process(std::move(input_buffer));
+    input_buffer = itsDataResultStep->extract();
   }
 
   itsTimerPredict.start();
 
   itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
     itsSteps[dir]->process(
-        std::make_unique<DPBuffer>(*bufin, itsRequiredFields[dir]));
+        std::make_unique<DPBuffer>(*input_buffer, itsRequiredFields[dir]));
   });
 
   // Handle weights and flags
@@ -714,9 +713,9 @@ void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
       }
       for (size_t cr = 0; cr < nCr; ++cr) {
         itsVisInInterval[chanblock].second++;  // total nr of vis
-        if (!bufin->GetFlags()(bl, ch, cr)) {
+        if (!input_buffer->GetFlags()(bl, ch, cr)) {
           // Add this weight to both involved antennas
-          const double weight = bufin->GetWeights()(bl, ch, cr);
+          const double weight = input_buffer->GetWeights()(bl, ch, cr);
           if (weight != 0.0) {
             itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
             itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
@@ -735,7 +734,7 @@ void DDECal::doPrepare(std::unique_ptr<DPBuffer>& bufin, size_t sol_int,
 
   itsTimerPredict.stop();
 
-  itsAvgTime += itsAvgTime + bufin->getTime();
+  itsAvgTime += itsAvgTime + input_buffer->getTime();
 }
 
 void DDECal::WriteSolutions() {
@@ -784,13 +783,13 @@ void DDECal::WriteSolutions() {
 void DDECal::finish() {
   itsTimer.start();
 
-  if (itsSolIntBuffers.size() > 0) {
+  if (!itsInputBuffers.empty()) {
     doSolve();
   }
 
   if (!itsSettings.only_predict) WriteSolutions();
 
-  itsSolIntBuffers.clear();
+  itsInputBuffers.clear();
   itsTimer.stop();
 
   // Let the next steps finish.
@@ -816,14 +815,14 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
   std::vector<std::vector<std::complex<double>>>& solutions =
       itsSols[solution_index];
 
-  assert(bufferIndex < itsSolIntBuffers.size());
-  base::SolutionInterval& solution_interval = itsSolIntBuffers[bufferIndex];
+  assert(bufferIndex < itsInputBuffers.size());
+  std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
+      itsInputBuffers[bufferIndex];
 
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nDir = itsDirections.size();
-  for (size_t time = 0; time != solution_interval.Size(); ++time) {
-    DPBuffer& data_buffer = *solution_interval.DataBuffers()[time];
+  for (std::unique_ptr<DPBuffer>& data_buffer : solution_interval) {
     for (size_t bl = 0; bl < nBl; ++bl) {
       const size_t ant1 = info().getAnt1()[bl];
       const size_t ant2 = info().getAnt2()[bl];
@@ -834,7 +833,7 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
           chanblock++;
         }
 
-        std::complex<float>* data = &data_buffer.GetData()(bl, ch, 0);
+        std::complex<float>* data = &data_buffer->GetData()(bl, ch, 0);
         if (itsSettings.only_predict) {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
 
@@ -842,7 +841,7 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
             // TODO(AST-1240): Use real direction name.
             const std::string name = std::to_string(dir);
             const std::complex<float>* model_data =
-                &data_buffer.GetData(name)(bl, ch, 0);
+                &data_buffer->GetData(name)(bl, ch, 0);
             value += aocommon::MC2x2(model_data);
           }
           for (size_t cr = 0; cr < 4; ++cr) data[cr] = value[cr];
@@ -852,7 +851,7 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
             // TODO(AST-1240): Use real direction name.
             const std::string name = std::to_string(dir);
             const std::complex<float>* model_data =
-                &data_buffer.GetData(name)(bl, ch, 0);
+                &data_buffer->GetData(name)(bl, ch, 0);
             if (itsSolver->NSolutionPolarizations() == 4) {
               const aocommon::MC2x2 sol1(
                   &solutions[chanblock][(ant1 * nDir + dir) * 4]);
@@ -887,7 +886,7 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
     for (size_t dir = 0; dir != nDir; ++dir) {
       // TODO(AST-1240): Use real direction name.
       const std::string name = std::to_string(dir);
-      data_buffer.RemoveData(name);
+      data_buffer->RemoveData(name);
     }
   }  // time loop
 }

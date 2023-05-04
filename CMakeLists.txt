@@ -401,7 +401,6 @@ add_library(
   base/ProgressMeter.cc
   base/Simulate.cc
   base/Simulator.cc
-  base/SolutionInterval.cc
   base/SourceDBUtil.cc
   base/Stokes.cc
   base/SubtractMixed.cc
@@ -603,7 +602,6 @@ if(BUILD_TESTING)
       base/test/unit/tDPBuffer.cc
       base/test/unit/tMirror.cc
       base/test/unit/tSimulate.cc
-      base/test/unit/tSolutionInterval.cc
       base/test/unit/tSourceDBUtil.cc
       base/test/unit/tTelescope.cc
       base/test/unit/tUvwCalculator.cc
