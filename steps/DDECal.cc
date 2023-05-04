@@ -687,7 +687,7 @@ void DDECal::doPrepare() {
 
   if (!itsUVWFlagStep.isDegenerate()) {
     itsUVWFlagStep.process(std::move(input_buffer));
-    input_buffer = itsDataResultStep->extract();
+    input_buffer = itsDataResultStep->take();
   }
 
   itsTimerPredict.start();

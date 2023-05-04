@@ -124,7 +124,7 @@ bool H5ParmPredict::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
 
   itsPredictSteps.front()->process(std::move(buffer));
-  buffer = itsResultStep->extract();
+  buffer = itsResultStep->take();
 
   itsTimer.stop();
   getNextStep()->process(std::move(buffer));
