@@ -15,8 +15,6 @@
 
 #include <aocommon/threadpool.h>
 
-#include "../base/SolutionInterval.h"
-
 #include "../common/ParameterSet.h"
 
 #include "../ddecal/Settings.h"
@@ -78,8 +76,7 @@ class DDECal : public Step {
                          const common::ParameterSet& parset,
                          const string& prefix) const;
 
-  void doPrepare(std::unique_ptr<base::DPBuffer>& bufin, size_t sol_int,
-                 size_t step);
+  void doPrepare();
 
   /// Initializes solutions for a new solution interval.
   /// Based on progation settings, either copies the previous solution or
@@ -90,13 +87,13 @@ class DDECal : public Step {
   /// Write all solutions to an H5Parm file using itsSolutionWriter.
   void WriteSolutions();
 
-  void storeModelData(const base::SolutionInterval& solution_interval);
   void subtractCorrectedModel(size_t bufferIndex);
 
   const ddecal::Settings itsSettings;
 
-  /// The solution intervals that are buffered, limited by solintcount
-  std::vector<base::SolutionInterval> itsSolIntBuffers;
+  /// The input data buffers for the current set of solution intervals.
+  /// Maximum dimensions: itsSolIntCount x itsRequestedSolInt
+  std::vector<std::vector<std::unique_ptr<base::DPBuffer>>> itsInputBuffers;
   /// Original flags of the input buffers for the current solution interval.
   /// This member is only used if itsUVWFlagger is active.
   /// Dimensions: ( solution_interval x step_within_interval x baseline x
@@ -128,8 +125,6 @@ class DDECal : public Step {
   size_t itsSolIntCount;  ///< Number of solution intervals to buffer
   /// Index of the first solution in the current solution interval set.
   size_t itsFirstSolutionIndex;
-  /// The current amount of solution intervals in itsSolInts
-  size_t itsBufferedSolInts;
   size_t itsNChan;
   /// For each channel block, the nr of unflagged vis and the total nr of vis.
   std::vector<std::pair<size_t, size_t>> itsVisInInterval;
