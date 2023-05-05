@@ -29,15 +29,14 @@ void DummyStep::showTimings(std::ostream& os, double duration) const {
   os << " DummyStep " << name_ << '\n';
 }
 
-bool DummyStep::process(const DPBuffer& bufin) {
+bool DummyStep::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
-  buffer_.copy(bufin);
 
-  // Do the regular processing here. bufin and buffer_ will contain at least
+  // Do the regular processing here. 'buffer' will contain at least
   // the required fields of the step, as returned from getRequiredFields.
 
   timer_.stop();
-  getNextStep()->process(buffer_);
+  getNextStep()->process(std::move(buffer));
   return false;
 }
 

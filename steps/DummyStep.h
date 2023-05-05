@@ -30,10 +30,8 @@ class DummyStep : public Step {
   /// This implementation is merely an example.
   common::Fields getProvidedFields() const override { return kWeightsField; }
 
-  /// Process the data.
-  /// It keeps the data.
-  /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  /// Process the data. The dummy step forwards the data to its next step.
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   /// Process BDA data. The dummy step forwards the data to its next step.
   bool process(std::unique_ptr<base::BDABuffer>) override;
@@ -52,7 +50,6 @@ class DummyStep : public Step {
 
  private:
   std::string name_;
-  base::DPBuffer buffer_;
   common::NSTimer timer_;
 };
 
