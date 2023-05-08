@@ -658,6 +658,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tLBFGSSolver.cc
       ddecal/test/unit/tSolutionResampler.cc
       ddecal/test/unit/tSolveData.cc
+      ddecal/test/unit/tSolverTools.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc
       steps/test/unit/tApplyBeam.cc
