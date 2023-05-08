@@ -100,6 +100,7 @@ struct Settings {
   const bool flag_diverged_only;
   const bool only_predict;
   const bool subtract;
+  const bool keep_model_data;
   const SolverAlgorithm solver_algorithm;
 
   const size_t solution_interval;

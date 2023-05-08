@@ -49,6 +49,10 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
       predict_timer_(),
       solve_timer_(),
       write_timer_() {
+  if (settings_.keep_model_data) {
+    throw std::runtime_error("BdaDdeCal does not support keeping model data");
+  }
+
   uvw_flagger_step_ =
       std::make_unique<UVWFlagger>(parset, prefix, Step::MsType::kBda);
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();

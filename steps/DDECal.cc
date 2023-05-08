@@ -364,7 +364,8 @@ void DDECal::show(std::ostream& os) const {
   ShowConstraintSettings(os, itsSettings);
   os << "  approximate fitter:  " << itsSettings.approximate_tec << '\n'
      << "  only predict:        " << itsSettings.only_predict << '\n'
-     << "  subtract model:      " << itsSettings.subtract << '\n';
+     << "  subtract model:      " << itsSettings.subtract << '\n'
+     << "  keep model:          " << itsSettings.keep_model_data << '\n';
   for (unsigned int i = 0; i < itsSteps.size(); ++i) {
     std::shared_ptr<Step> step = itsSteps[i];
     os << "Model steps for direction " << itsDirections[i][0] << '\n';
@@ -513,6 +514,8 @@ void DDECal::doSolve() {
   // for this optional feature is done conditionally.
   const bool subtract_corrected_model =
       itsSettings.subtract || itsSettings.only_predict;
+  const bool keep_model_data =
+      subtract_corrected_model || itsSettings.keep_model_data;
 
   for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
     const size_t solution_index = itsFirstSolutionIndex + i;
@@ -538,7 +541,7 @@ void DDECal::doSolve() {
       weighted_buffers.resize(unweighted_buffers.size());
 
       ddecal::AssignAndWeight(unweighted_buffers, itsDirectionNames,
-                              weighted_buffers, subtract_corrected_model);
+                              weighted_buffers, keep_model_data);
 
       InitializeSolutions(i);
 
@@ -872,10 +875,11 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
       }  // channel loop
     }    // bl loop
 
-    // Remove unweighted model data, since DDECal no longer needs it.
-    // TODO(AST-1243): Making discarding model data optional.
-    for (size_t dir = 0; dir != nDir; ++dir) {
-      data_buffer->RemoveData(itsDirectionNames[dir]);
+    if (!itsSettings.keep_model_data) {
+      // Remove unweighted model data, since DDECal no longer needs it.
+      for (size_t dir = 0; dir != nDir; ++dir) {
+        data_buffer->RemoveData(itsDirectionNames[dir]);
+      }
     }
   }  // time loop
 }

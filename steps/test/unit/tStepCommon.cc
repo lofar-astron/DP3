@@ -18,8 +18,10 @@ void Execute(const std::vector<std::shared_ptr<Step>>& steps) {
     steps[i - 1]->setNextStep(steps[i]);
   }
 
-  // Set DPInfo for all steps.
-  steps.front()->setInfo(base::DPInfo());
+  // Set DPInfo for all steps. Use a single thread in tests.
+  base::DPInfo info;
+  info.setNThreads(1);
+  steps.front()->setInfo(info);
 
   // Finally, execute the steps.
   while (steps.front()->process(std::make_unique<base::DPBuffer>()))

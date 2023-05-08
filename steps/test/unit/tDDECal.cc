@@ -6,10 +6,14 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-#include "tStepCommon.h"
+#include <dp3/base/DP3.h>
+
 #include "../../MSReader.h"
 #include "../../MultiResultStep.h"
+#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "tStepCommon.h"
 
+using dp3::common::test::FixtureDirectory;
 using dp3::steps::DDECal;
 using dp3::steps::test::CreateParameterSet;
 
@@ -76,6 +80,7 @@ BOOST_AUTO_TEST_CASE(show_default) {
   approximate fitter:  false
   only predict:        false
   subtract model:      false
+  keep model:          false
 Model steps for direction center
 Predict
 OnePredict prefix.
@@ -125,6 +130,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   approximate fitter:  false
   only predict:        true
   subtract model:      true
+  keep model:          true
 Model steps for direction center
 Predict
 OnePredict prefix.
@@ -150,6 +156,7 @@ OnePredict prefix.
        {"prefix.flagdivergedonly", "true"},
        {"prefix.onlypredict", "true"},
        {"prefix.subtract", "true"},
+       {"prefix.keepmodel", "true"},
        {"prefix.solveralgorithm", "hybrid"},
        {"prefix.solint", "42"},
        {"prefix.minvisratio", "43.123"},
@@ -207,6 +214,94 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
       BOOST_CHECK(solution.empty());
     }
   }
+}
+
+namespace {
+
+// Fixture with common code for the keep_model_data tests.
+class KeepModelDataFixture : public FixtureDirectory {
+ public:
+  KeepModelDataFixture()
+      : reader(std::make_shared<dp3::steps::MSReader>(
+            casacore::MeasurementSet(kMsName), dp3::common::ParameterSet(),
+            "")),
+        result_step(std::make_shared<dp3::steps::MultiResultStep>(kNTimes)) {}
+
+  void Execute(std::shared_ptr<DDECal>& ddecal) {
+    reader->setFieldsToRead(ddecal->getRequiredFields());
+    dp3::steps::test::Execute({reader, ddecal, result_step});
+  }
+
+  void CheckOutput(const std::vector<std::string>& expected_names) {
+    BOOST_CHECK(result_step->get().size() == kNTimes);
+    for (const dp3::base::DPBuffer& buffer : result_step->get()) {
+      for (const std::string& name : expected_names) {
+        BOOST_REQUIRE(buffer.HasData(name));
+        const std::array<std::size_t, 3> shape = buffer.GetData(name).shape();
+        BOOST_CHECK_EQUAL(shape[0], reader->getInfo().nbaselines());
+        BOOST_CHECK_EQUAL(shape[1], reader->getInfo().nchan());
+        BOOST_CHECK_EQUAL(shape[2], reader->getInfo().ncorr());
+      }
+    }
+  }
+
+ public:
+  const std::string kPrefix = "FooPrefix.";
+  const std::string kMsName = "../tDDECal.MS";
+
+ private:
+  const std::size_t kNTimes = 6;  // tDDECal.MS has 6 time slots.
+  std::shared_ptr<dp3::steps::MSReader> reader;
+  std::shared_ptr<dp3::steps::MultiResultStep> result_step;
+};
+}  // namespace
+
+// Because of AST-1281, use separate tests for "keepmodel": One with
+// "modeldatacolumns", one with "directions", and one with "idg.regions".
+BOOST_FIXTURE_TEST_CASE(keep_model_data_columnreader, KeepModelDataFixture) {
+  // tDDECal.MS has an extra foursources_DATA column (see tIDGPredict.py).
+  const std::string kModelDataColumn = "foursources_DATA";
+
+  auto ddecal = std::make_shared<DDECal>(
+      CreateParameterSet({{"msin", "TODO(AST-1271): Remove msin"},
+                          {kPrefix + "modeldatacolumns", kModelDataColumn},
+                          {kPrefix + "keepmodel", "true"},
+                          {kPrefix + "h5parm", "keepmodel_columnreader.h5"}}),
+      kPrefix);
+  Execute(ddecal);
+  CheckOutput({kPrefix + kModelDataColumn});
+}
+
+BOOST_FIXTURE_TEST_CASE(keep_model_data_directions, KeepModelDataFixture) {
+  auto ddecal = std::make_shared<DDECal>(
+      CreateParameterSet(
+          {{"msin", "TODO(AST-1271): Remove msin"},
+           {kPrefix + "sourcedb", kMsName + "/sky.txt"},
+           {kPrefix + "directions", "[[center,dec_off],[ra_off],[radec_off]]"},
+           {kPrefix + "keepmodel", "true"},
+           {kPrefix + "h5parm", "keepmodel_directions.h5"}}),
+      kPrefix);
+  Execute(ddecal);
+
+  // The expected names in the output buffer are the prefix followed by the
+  // names of the first directions.
+  CheckOutput({kPrefix + "center", kPrefix + "ra_off", kPrefix + "radec_off"});
+}
+
+BOOST_FIXTURE_TEST_CASE(keep_model_data_idg, KeepModelDataFixture) {
+  auto ddecal = std::make_shared<DDECal>(
+      CreateParameterSet({{"msin", "TODO(AST-1271): Remove msin"},
+                          {kPrefix + "idg.regions", "../sources.reg"},
+                          {kPrefix + "idg.images", "../sources-model.fits"},
+                          {kPrefix + "keepmodel", "true"},
+                          {kPrefix + "h5parm", "keepmodel_idg.h5"}}),
+      kPrefix);
+  Execute(ddecal);
+
+  // The expected names in the output buffer are the prefix followed by "dir"
+  // followed by an increasing number.
+  CheckOutput(
+      {kPrefix + "dir0", kPrefix + "dir1", kPrefix + "dir2", kPrefix + "dir3"});
 }
 
 BOOST_AUTO_TEST_SUITE_END()
