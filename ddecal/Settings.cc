@@ -69,6 +69,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       flag_diverged_only(GetBool("flagdivergedonly", false)),
       only_predict(GetBool("onlypredict", false)),
       subtract(GetBool("subtract", false)),
+      keep_model_data(GetBool("keepmodel", false)),
       solver_algorithm(
           ParseSolverAlgorithm(GetString("solveralgorithm", "directionsolve"))),
       solution_interval(GetUint("solint", 1)),

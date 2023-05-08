@@ -139,7 +139,7 @@ class IDGPredict : public ModelDataStep {
   size_t GetSubgridCount(size_t direction) const;
 
   std::string name_;
-  const common::ParameterSet& parset_;
+  common::ParameterSet parset_;
 
   std::vector<schaapcommon::facets::FacetImage> images_;
   std::vector<std::unique_ptr<idg::api::BufferSet>> buffersets_;
