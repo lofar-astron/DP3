@@ -119,20 +119,17 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
 }
 
 void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
-                                     const string& prefix) {
+                                     const std::string& prefix) {
   for (const std::string& col : itsSettings.model_data_columns) {
-    if (itsSettings.model_data_columns.size() == 1) {
-      itsDirections.emplace_back(1, "pointing");
-    } else {
-      itsDirections.emplace_back(1, col);
-    }
+    itsDirections.emplace_back(1, col);
+    itsDirectionNames.emplace_back(prefix + col);
     itsSteps.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
     setModelNextSteps(*itsSteps.back(), col, parset, prefix);
   }
 }
 
 void DDECal::initializeIDG(const common::ParameterSet& parset,
-                           const string& prefix) {
+                           const std::string& prefix) {
   // TODO it would be nicer to get a new method in the DS9 reader to first get
   // names of directions and pass that to idgpredict. It will then read it
   // itself instead of DDECal having to do everything. It is better to do it all
@@ -153,6 +150,7 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
       dir_name = facets[i].DirectionLabel();
     }
     itsDirections.emplace_back(1, dir_name);
+    itsDirectionNames.emplace_back(prefix + dir_name);
 
     itsSteps.push_back(std::make_shared<IDGPredict>(
         parset, prefix, readers, std::vector<Facet>{facets[i]}));
@@ -162,13 +160,14 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
 }
 
 void DDECal::initializePredictSteps(const common::ParameterSet& parset,
-                                    const string& prefix) {
+                                    const std::string& prefix) {
   std::vector<std::vector<std::string>> directions =
       base::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
 
   for (std::vector<std::string>& direction : directions) {
     itsSteps.push_back(std::make_shared<Predict>(parset, prefix, direction));
     setModelNextSteps(*itsSteps.back(), direction.front(), parset, prefix);
+    itsDirectionNames.push_back(prefix + direction.front());
     itsDirections.push_back(std::move(direction));
   }
 }
@@ -488,21 +487,17 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 }
 
 void DDECal::doSolve() {
-  std::vector<std::string> direction_names;
-
   for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
     if (auto s = dynamic_cast<IDGPredict*>(itsSteps[dir].get())) {
       itsTimerPredict.start();
       s->flush();
       itsTimerPredict.stop();
     }
-    // TODO(AST-1240): Use real names instead of increasing numbers.
-    direction_names.push_back(std::to_string(dir));
     for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
       const size_t sol_int = i / itsRequestedSolInt;
       const size_t timestep = i % itsRequestedSolInt;
       itsInputBuffers[sol_int][timestep]->MoveData(
-          itsResultSteps[dir]->get()[i], "", direction_names.back());
+          itsResultSteps[dir]->get()[i], "", itsDirectionNames[dir]);
     }
   }
 
@@ -542,7 +537,7 @@ void DDECal::doSolve() {
       // The last solution interval can be smaller.
       weighted_buffers.resize(unweighted_buffers.size());
 
-      ddecal::AssignAndWeight(unweighted_buffers, direction_names,
+      ddecal::AssignAndWeight(unweighted_buffers, itsDirectionNames,
                               weighted_buffers, subtract_corrected_model);
 
       InitializeSolutions(i);
@@ -550,7 +545,7 @@ void DDECal::doSolve() {
       itsTimerSolve.start();
 
       const ddecal::SolveData solve_data(
-          weighted_buffers, direction_names, n_channel_blocks, n_antennas,
+          weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
           itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
 
       solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
@@ -838,20 +833,16 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
 
           for (size_t dir = 0; dir != nDir; ++dir) {
-            // TODO(AST-1240): Use real direction name.
-            const std::string name = std::to_string(dir);
             const std::complex<float>* model_data =
-                &data_buffer->GetData(name)(bl, ch, 0);
+                &data_buffer->GetData(itsDirectionNames[dir])(bl, ch, 0);
             value += aocommon::MC2x2(model_data);
           }
           for (size_t cr = 0; cr < 4; ++cr) data[cr] = value[cr];
         } else {
           aocommon::MC2x2 value(aocommon::MC2x2::Zero());
           for (size_t dir = 0; dir != nDir; ++dir) {
-            // TODO(AST-1240): Use real direction name.
-            const std::string name = std::to_string(dir);
             const std::complex<float>* model_data =
-                &data_buffer->GetData(name)(bl, ch, 0);
+                &data_buffer->GetData(itsDirectionNames[dir])(bl, ch, 0);
             if (itsSolver->NSolutionPolarizations() == 4) {
               const aocommon::MC2x2 sol1(
                   &solutions[chanblock][(ant1 * nDir + dir) * 4]);
@@ -884,9 +875,7 @@ void DDECal::subtractCorrectedModel(size_t bufferIndex) {
     // Remove unweighted model data, since DDECal no longer needs it.
     // TODO(AST-1243): Making discarding model data optional.
     for (size_t dir = 0; dir != nDir; ++dir) {
-      // TODO(AST-1240): Use real direction name.
-      const std::string name = std::to_string(dir);
-      data_buffer->RemoveData(name);
+      data_buffer->RemoveData(itsDirectionNames[dir]);
     }
   }  // time loop
 }

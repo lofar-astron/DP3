@@ -134,6 +134,8 @@ class DDECal : public Step {
   std::vector<double> itsChanBlockFreqs;
   /// For each direction, a vector of patches.
   std::vector<std::vector<std::string>> itsDirections;
+  /// For each direction, the name for the model data in DPBuffer.
+  std::vector<std::string> itsDirectionNames;
   /// Maps direction indices to the cluster central direction.
   std::vector<base::Direction> itsSourceDirections;
 
