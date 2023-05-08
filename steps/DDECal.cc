@@ -710,16 +710,15 @@ void DDECal::doPrepare() {
         chanblock++;
       }
       for (size_t cr = 0; cr < nCr; ++cr) {
+        // Add this weight to both involved antennas
+        const double weight = input_buffer->GetWeights()(bl, ch, cr) *
+                              !input_buffer->GetFlags()(bl, ch, cr);
+        itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
+        itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
+
+        itsVisInInterval[chanblock].first +=
+            (weight > 0);                      // unflagged nr of vis
         itsVisInInterval[chanblock].second++;  // total nr of vis
-        if (!input_buffer->GetFlags()(bl, ch, cr)) {
-          // Add this weight to both involved antennas
-          const double weight = input_buffer->GetWeights()(bl, ch, cr);
-          if (weight != 0.0) {
-            itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
-            itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
-            itsVisInInterval[chanblock].first++;  // unflagged nr of vis
-          }
-        }
       }
     }
   }
