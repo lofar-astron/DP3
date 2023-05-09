@@ -6,12 +6,25 @@
 
 #include "../../MadFlagger.h"
 
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-#include <casacore/casa/BasicMath/Math.h>
+#include <array>
+#include <complex>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <string>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
+
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MPosition.h>
+
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xio.hpp>
 
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
@@ -25,7 +38,6 @@ using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::MadFlagger;
 using dp3::steps::Step;
-using std::vector;
 
 BOOST_AUTO_TEST_SUITE(madflagger)
 
@@ -35,7 +47,7 @@ BOOST_AUTO_TEST_SUITE(madflagger)
 // It can be used with different nr of times, channels, etc.
 class TestInput : public dp3::steps::MockInput {
  public:
-  TestInput(int ntime, int nant, int nchan, int ncorr, bool flag)
+  TestInput(size_t ntime, size_t nant, size_t nchan, size_t ncorr, bool flag)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nant * (nant + 1) / 2),
@@ -44,26 +56,28 @@ class TestInput : public dp3::steps::MockInput {
         itsFlag(flag) {}
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 10 + itsCount * 6);
+
+    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
+
+    const std::array<size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
+    buffer->ResizeData(shape);
+    for (size_t i = 0; i < buffer->GetData().size(); ++i) {
+      buffer->GetData().data()[i] = std::complex<float>(
+          i + itsCount * 10.0f, i - 10.0f + itsCount * 6.0f);
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buf.setWeights(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    buf.setFlags(flags);
-    getNextStep()->process(buf);
+
+    buffer->ResizeWeights(shape);
+    buffer->GetWeights().fill(1.0);
+
+    buffer->ResizeFlags(shape);
+    buffer->GetFlags().fill(itsFlag);
+
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -75,13 +89,13 @@ class TestInput : public dp3::steps::MockInput {
     info().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    vector<int> ant1(itsNBl);
-    vector<int> ant2(itsNBl);
+    std::vector<int> ant1(itsNBl);
+    std::vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
-    for (int i = 0; i < itsNBl; ++i) {
-      ant1[i] = st1;
-      ant2[i] = st2;
+    for (size_t bl = 0; bl < itsNBl; ++bl) {
+      ant1[bl] = st1;
+      ant2[bl] = st2;
       if (++st2 == 4) {
         st2 = 0;
         if (++st1 == 4) {
@@ -89,9 +103,10 @@ class TestInput : public dp3::steps::MockInput {
         }
       }
     }
-    vector<string> antNames{"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
+    std::vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
+                                      "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<casacore::MPosition> antPos(4);
+    std::vector<casacore::MPosition> antPos(4);
     casacore::Vector<double> vals(3);
     vals[0] = 3828763;
     vals[1] = 442449;
@@ -117,25 +132,29 @@ class TestInput : public dp3::steps::MockInput {
     antPos[3] = casacore::MPosition(
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
-    vector<double> antDiam(4, 70.);
+    std::vector<double> antDiam(4, 70.);
     info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNChan, 100000);
-    for (int i = 0; i < itsNChan; i++) {
-      chanFreqs.push_back(1050000. + i * 100000.);
+    for (size_t chan = 0; chan < itsNChan; chan++) {
+      chanFreqs.push_back(1050000. + chan * 100000.);
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
+  size_t itsCount;
+  size_t itsNTime;
+  size_t itsNBl;
+  size_t itsNChan;
+  size_t itsNCorr;
   bool itsFlag;
 };
 
 // Class to check result.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(int ntime, int nant, int nchan, int ncorr, bool flag,
+  TestOutput(size_t ntime, size_t nant, size_t nchan, size_t ncorr, bool flag,
              bool useAutoCorr, bool shortbl)
       : itsCount(0),
         itsNTime(ntime),
@@ -147,59 +166,68 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsShortBL(shortbl) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    std::array<size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
     // Fill expected result in similar way as TestInput.
-    casacore::Cube<casacore::Complex> result(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(result.size()); ++i) {
-      result.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 10 + itsCount * 6);
+    xt::xtensor<std::complex<float>, 3> result_data(shape, 0.0f);
+    for (size_t i = 0; i < result_data.size(); ++i) {
+      result_data.data()[i] = std::complex<float>(i + itsCount * 10.0f,
+                                                  i - 10.0f + itsCount * 6.0f);
     }
     // Check the result.
-    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-10));
-    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-10));
+    BOOST_CHECK(
+        xt::allclose(xt::real(buffer->GetData()), xt::real(result_data)));
+    BOOST_CHECK(
+        xt::allclose(xt::imag(buffer->GetData()), xt::imag(result_data)));
+
     // Check the flags.
     // If autocorrs are used, only the last channel is flagged, but the first
     // channel also for the first time stamp. Thus is only true for a limited
     // nr of baselines (thus do not use nant>2 in test2 with flag=false).
     // If short baselines are used, bl 2,3,7,8,12,13 are not flagged.
     // The others have length 0 or 144.
-    casacore::Cube<bool> expFlag(itsNCorr, itsNChan, itsNBl);
-    expFlag = itsFlag;
+    xt::xtensor<bool, 3> result_flags(shape, itsFlag);
     if (itsUseAutoCorr) {
-      for (int i = 0; i < itsNBl; ++i) {
-        if (!itsShortBL ||
-            !(i == 2 || i == 3 || i == 7 || i == 8 || i == 12 || i == 13)) {
-          for (int j = 0; j < itsNCorr; ++j) {
-            expFlag(j, 0, i) = itsFlag || itsCount == 0;
-            expFlag(j, itsNChan - 1, i) = true;
+      for (size_t bl = 0; bl < itsNBl; ++bl) {
+        if (!itsShortBL || !(bl == 2 || bl == 3 || bl == 7 || bl == 8 ||
+                             bl == 12 || bl == 13)) {
+          for (size_t corr = 0; corr < itsNCorr; ++corr) {
+            result_flags(bl, 0, corr) = itsFlag | (itsCount == 0);
+            result_flags(bl, itsNChan - 1, corr) = true;
           }
         }
       }
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), expFlag));
-    BOOST_CHECK(casacore::near(buf.getTime(), 2 + 5. * itsCount));
+    BOOST_CHECK_EQUAL(buffer->GetFlags(), result_flags);
+    BOOST_CHECK_CLOSE(buffer->getTime(), 2 + 5. * itsCount, 1.0e-3);
+
     ++itsCount;
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
-    BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(info.nchan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(info.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(size_t(info.origNChan()), itsNChan);
+    BOOST_CHECK_EQUAL(size_t(info.nchan()), itsNChan);
+    BOOST_CHECK_EQUAL(size_t(info.ntime()), itsNTime);
     BOOST_CHECK_EQUAL(info.timeInterval(), 5);
-    BOOST_CHECK_EQUAL(int(info.nchanAvg()), 1);
-    BOOST_CHECK_EQUAL(int(info.ntimeAvg()), 1);
+    BOOST_CHECK_EQUAL(size_t(info.nchanAvg()), 1);
+    BOOST_CHECK_EQUAL(size_t(info.ntimeAvg()), 1);
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
-  bool itsFlag, itsUseAutoCorr, itsShortBL;
+  size_t itsCount;
+  size_t itsNTime;
+  size_t itsNBl;
+  size_t itsNChan;
+  size_t itsNCorr;
+  bool itsFlag;
+  bool itsUseAutoCorr;
+  bool itsShortBL;
 };
 
 // Test simple flagging with or without preflagged points.
-void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
-           bool shortbl) {
+void test1(size_t ntime, size_t nant, size_t nchan, size_t ncorr, bool flag,
+           size_t threshold, bool shortbl) {
   // Create the steps.
   auto in = std::make_shared<TestInput>(ntime, nant, nchan, ncorr, flag);
   ParameterSet parset;
@@ -217,8 +245,8 @@ void test1(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
 }
 
 // Test applyautocorr flagging with or without preflagged points.
-void test2(int ntime, int nant, int nchan, int ncorr, bool flag, int threshold,
-           bool shortbl) {
+void test2(size_t ntime, size_t nant, size_t nchan, size_t ncorr, bool flag,
+           size_t threshold, bool shortbl) {
   // Create the steps.
   auto in = std::make_shared<TestInput>(ntime, nant, nchan, ncorr, flag);
   ParameterSet parset;
