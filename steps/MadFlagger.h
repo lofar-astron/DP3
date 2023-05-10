@@ -71,7 +71,7 @@ class MadFlagger : public Step {
 
   /// Process the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -98,7 +98,7 @@ class MadFlagger : public Step {
   /// correlation.
   void computeFactors(const std::vector<unsigned int>& timeEntries,
                       unsigned int bl, int chan, int corr, int nchan, int ncorr,
-                      float& Z1, float& Z2, std::vector<float>& tempBuf,
+                      float& Z1, float& Z2, std::vector<float>& tempBuffer,
                       common::NSTimer& moveTimer, common::NSTimer& medianTimer);
 
   /// Get the values of the expressions for each baseline.
@@ -109,15 +109,15 @@ class MadFlagger : public Step {
                     const std::vector<unsigned int>& timeEntries,
                     unsigned int ib, unsigned int ncorr, unsigned int nchan,
                     const float* bufDataPtr, bool* bufFlagPtr, float& Z1,
-                    float& Z2, std::vector<float>& tempBuf,
+                    float& Z2, std::vector<float>& tempBuffer,
                     base::FlagCounter& counter, common::NSTimer& moveTimer,
                     common::NSTimer& medianTimer);
 
  protected:
-  string itsName;
-  string itsThresholdStr;
-  string itsFreqWindowStr;
-  string itsTimeWindowStr;
+  std::string itsName;
+  std::string itsThresholdStr;
+  std::string itsFreqWindowStr;
+  std::string itsTimeWindowStr;
   std::vector<float> itsThresholdArr;  ///< threshold per baseline
   std::vector<unsigned int>
       itsFreqWindowArr;  ///< freq window size per baseline
@@ -132,11 +132,11 @@ class MadFlagger : public Step {
   bool itsApplyAutoCorr;
   std::vector<int> itsAutoCorrIndex;  ///< baseline index of autocorrelations
   unsigned int itsNrAutoCorr;
-  double itsMinBLength;            ///< minimum baseline length
-  double itsMaxBLength;            ///< maximum baseline length
-  std::vector<double> itsBLength;  ///< length of each baseline
-  std::vector<base::DPBuffer> itsBuf;
-  std::vector<casacore::Cube<float>> itsAmpl;  ///< amplitudes of the data
+  double itsMinBLength;             ///< minimum baseline length
+  double itsMaxBLength;             ///< maximum baseline length
+  std::vector<double> itsBLengths;  ///< length of each baseline
+  std::vector<std::unique_ptr<base::DPBuffer>> itsBuffers;
+  std::vector<casacore::Cube<float>> itsAmplitudes;  ///< amplitudes of the data
   base::FlagCounter itsFlagCounter;
   common::NSTimer itsTimer;
   common::NSTimer itsComputeTimer;  ///< move/median timer
