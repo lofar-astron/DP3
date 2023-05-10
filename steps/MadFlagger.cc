@@ -115,13 +115,14 @@ void MadFlagger::updateInfo(const DPInfo& infoIn) {
         "applyautocorr=True cannot be used if "
         "the data does not contain autocorrelations");
   // Calculate the baseline lengths.
-  itsBLength = info().getBaselineLengths();
+  itsBLengths = info().getBaselineLengths();
   // Evaluate the window size expressions.
   getExprValues(infoIn.nchan(), infoIn.ntime());
-  itsBuf.resize(itsTimeWindow);
-  itsAmpl.resize(itsTimeWindow);
-  for (size_t i = 0; i < itsAmpl.size(); ++i) {
-    itsAmpl[i].resize(infoIn.ncorr(), infoIn.nchan(), infoIn.nbaselines());
+  itsBuffers.resize(itsTimeWindow);
+  itsAmplitudes.resize(itsTimeWindow);
+  for (size_t i = 0; i < itsAmplitudes.size(); ++i) {
+    itsAmplitudes[i].resize(infoIn.ncorr(), infoIn.nchan(),
+                            infoIn.nbaselines());
   }
   // Set or check the correlations to flag on.
   std::vector<unsigned int> flagCorr;
@@ -150,31 +151,35 @@ void MadFlagger::updateInfo(const DPInfo& infoIn) {
   itsFlagCounter.init(getInfo());
 }
 
-bool MadFlagger::process(const DPBuffer& buf) {
+bool MadFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
-  // Accumulate in the time window.
-  // The buffer is wrapped, thus oldest entries are overwritten.
+  // Accumulate buffers in the time window.
+  // The buffers are wrapped, thus oldest entries are overwritten.
   unsigned int index = itsNTimes % itsTimeWindow;
-  itsBuf[index].copy(buf);
-  DPBuffer& dbuf = itsBuf[index];
+  itsBuffers[index] = std::move(buffer);
+  base::DPBuffer& dBuffer = *itsBuffers[index];
   // Calculate amplitudes if needed.
-  amplitude(itsAmpl[index], dbuf.GetCasacoreData());
+  amplitude(itsAmplitudes[index], dBuffer.GetCasacoreData());
   // Fill flags if needed.
-  if (dbuf.GetCasacoreFlags().empty()) {
-    dbuf.ResizeFlags(dbuf.GetData().shape());
-    dbuf.GetCasacoreFlags() = false;
+  if (dBuffer.GetCasacoreFlags().empty()) {
+    dBuffer.ResizeFlags(dBuffer.GetData().shape());
+    dBuffer.GetCasacoreFlags() = false;
   }
   itsNTimes++;
-  // Flag if there are enough time entries in the buffer.
+
+  // Flag if there are enough time entries accumulated in itsBuffers.
   if (itsNTimes > itsTimeWindow / 2) {
     // Fill the vector telling which time entries to use for the medians.
-    // Arrange indices such that any width can be used; thus first center,
-    // then one left and right, second left and right, etc.
-    // If window not entirely full, use copies as needed.
+    // If window is not entirely full, use copies as needed.
     // This is done as follows:
     // Suppose timewindow=9 and we only have entries 0,1,2,3,4.
     // The entries are mirrored, thus we get 4,3,2,1,0,1,2,3,4
     // to obtain sufficient time entries.
+    // Furthermore, indices are arranged such that any width can be used; thus
+    // first center, then one left and right, second left and right, etc.
+    // So,        [4,3,2,1,0,1,2,3,4] (with center 0) yields [0,1,1,2,2,3,3,4,4]
+    // Similarly, [0,1,2,3,4,5,6,7,8] (with center 4) yields [4,3,5,2,6,1,7,0,8]
+    // and        [2,3,4,5,6,7,8,0,1] (with center 6) yields [6,5,7,4,8,3,0,2,1]
     std::vector<unsigned int> timeEntries;
     timeEntries.reserve(itsTimeWindow);
     timeEntries.push_back(itsNTimesDone % itsTimeWindow);  // center
@@ -238,8 +243,8 @@ void MadFlagger::finish() {
 void MadFlagger::flagBaseline(
     const std::vector<int>& ant1, const std::vector<int>& ant2,
     const std::vector<unsigned int>& timeEntries, unsigned int ib,
-    unsigned int ncorr, unsigned int nchan, const float* bufDataPtr,
-    bool* bufFlagPtr, float& Z1, float& Z2, std::vector<float>& tempBuf,
+    unsigned int ncorr, unsigned int nchan, const float* bufferDataPtr,
+    bool* bufferFlagPtr, float& Z1, float& Z2, std::vector<float>& tempBuffer,
     base::FlagCounter& counter, common::NSTimer& moveTimer,
     common::NSTimer& medianTimer) {
   unsigned int blsize = ncorr * nchan;
@@ -248,13 +253,13 @@ void MadFlagger::flagBaseline(
   double threshold = itsThresholdArr[ib];
   // Do only autocorrelations if told so.
   // Otherwise do baseline only if length within min-max.
-  if ((!itsApplyAutoCorr && itsBLength[ib] >= itsMinBLength &&
-       itsBLength[ib] <= itsMaxBLength) ||
+  if ((!itsApplyAutoCorr && itsBLengths[ib] >= itsMinBLength &&
+       itsBLengths[ib] <= itsMaxBLength) ||
       (itsApplyAutoCorr && ant1[ib] == ant2[ib])) {
     for (unsigned int ic = 0; ic < nchan; ++ic) {
       size_t offset = ib * blsize + ic * ncorr;
-      bool* flagPtr = &bufFlagPtr[offset];
-      const float* dataPtr = &bufDataPtr[offset];
+      bool* flagPtr = &bufferFlagPtr[offset];
+      const float* dataPtr = &bufferDataPtr[offset];
       bool corrIsFlagged = false;
 
       // Iterate over given correlations.
@@ -267,8 +272,9 @@ void MadFlagger::flagBaseline(
           break;
         }
         // Calculate values from the median.
-        computeFactors(timeEntries, ib, ic, ip, nchan, ncorr, Z1, Z2, tempBuf,
-                       moveTimer, medianTimer);
+        computeFactors(timeEntries, ib, ic, ip, nchan, ncorr, Z1, Z2,
+                       tempBuffer, moveTimer,
+                       medianTimer);  // main outputs: Z1 & Z2
         if (dataPtr[ip] > Z1 + threshold * Z2 * MAD) {
           corrIsFlagged = true;
           counter.incrBaseline(ib);
@@ -291,41 +297,47 @@ void MadFlagger::flag(unsigned int index,
   // Get antenna numbers in case applyautocorr is true.
   const std::vector<int>& ant1 = getInfo().getAnt1();
   const std::vector<int>& ant2 = getInfo().getAnt2();
-  // Result is 'copy' of the entry at the given time index.
-  DPBuffer buf(itsBuf[index]);
-  casacore::IPosition shp = buf.GetCasacoreData().shape();
+  // MadFlagger requires non-flagged DPBuffers of multiple time steps, of which
+  // it only needs the amplitudes of the data (visibilities) and the flags. The
+  // amplitudes are stored separately in itsAmplitudes.
+  std::unique_ptr<DPBuffer> bufferForNextStep = std::move(itsBuffers[index]);
+  itsBuffers[index] =
+      std::make_unique<DPBuffer>(*bufferForNextStep, kFlagsField);
+
+  casacore::IPosition shp = bufferForNextStep->GetCasacoreData().shape();
   unsigned int ncorr = shp[0];
   unsigned int nchan = shp[1];
   unsigned int blsize = ncorr * nchan;
   int nrbl = shp[2];
-  // Get pointers to data and flags.
-  const float* bufDataPtr = itsAmpl[index].data();
-  bool* bufFlagPtr = buf.GetFlags().data();
+  // Get pointers to amplitudes (of visibility data) and flags.
+  const float* bufferDataPtr = itsAmplitudes[index].data();
+  bool* bufferFlagPtr = bufferForNextStep->GetFlags().data();
   itsComputeTimer.start();
   // Now flag each baseline, channel and correlation for this time window.
   // This can be done in parallel.
   struct ThreadData {
-    std::vector<float> tempBuf;
+    std::vector<float> tempBuffer;
     base::FlagCounter counter;
     common::NSTimer moveTimer;
     common::NSTimer medianTimer;
-    float Z1, Z2;
+    float Z1;  // median
+    float Z2;  // median of absolute difference
   };
   std::vector<ThreadData> threadData(getInfo().nThreads());
 
   // Create thread-private counter.
   for (ThreadData& data : threadData) {
-    data.tempBuf.resize(itsFreqWindow * timeEntries.size());
+    data.tempBuffer.resize(itsFreqWindow * timeEntries.size());
     data.counter.init(getInfo());
   }
 
-  // The for loop can be parallellized. This must be done dynamically,
+  // The for loop can be parallelized. This must be done dynamically,
   // because the execution time of each iteration can vary a lot.
   aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
     ThreadData& data = threadData[thread];
-    flagBaseline(ant1, ant2, timeEntries, ib, ncorr, nchan, bufDataPtr,
-                 bufFlagPtr, data.Z1, data.Z2, data.tempBuf, data.counter,
+    flagBaseline(ant1, ant2, timeEntries, ib, ncorr, nchan, bufferDataPtr,
+                 bufferFlagPtr, data.Z1, data.Z2, data.tempBuffer, data.counter,
                  data.moveTimer, data.medianTimer);
   });  // end of parallel loop
 
@@ -344,8 +356,8 @@ void MadFlagger::flag(unsigned int index,
     for (int ib = 0; ib < nrbl; ++ib) {
       // Flag crosscorr if at least one autocorr is present.
       // Only if baseline length within min-max.
-      if (ant1[ib] != ant2[ib] && itsBLength[ib] >= itsMinBLength &&
-          itsBLength[ib] <= itsMaxBLength) {
+      if (ant1[ib] != ant2[ib] && itsBLengths[ib] >= itsMinBLength &&
+          itsBLengths[ib] <= itsMaxBLength) {
         int inx1 = itsAutoCorrIndex[ant1[ib]];
         int inx2 = itsAutoCorrIndex[ant2[ib]];
         if (inx1 >= 0 || inx2 >= 0) {
@@ -359,11 +371,9 @@ void MadFlagger::flag(unsigned int index,
           }
           // Flag if not flagged yet and if one of autocorr is flagged.
           for (unsigned int ic = 0; ic < nchan; ++ic) {
-            bool* flagPtr = &bufFlagPtr[ib * blsize + ic * ncorr];
-            bool* flagAnt1 =
-                &buf.GetFlags().data()[inx1 * nchan * ncorr + ic * ncorr];
-            bool* flagAnt2 =
-                &buf.GetFlags().data()[inx2 * nchan * ncorr + ic * ncorr];
+            bool* flagPtr = &bufferFlagPtr[ib * blsize + ic * ncorr];
+            bool* flagAnt1 = &bufferFlagPtr[inx1 * nchan * ncorr + ic * ncorr];
+            bool* flagAnt2 = &bufferFlagPtr[inx2 * nchan * ncorr + ic * ncorr];
             if (!*flagPtr && (*flagAnt1 || *flagAnt2)) {
               for (unsigned int ip = 0; ip < ncorr; ++ip) {
                 flagPtr[ip] = true;
@@ -378,14 +388,14 @@ void MadFlagger::flag(unsigned int index,
   }
   // Process the result in the next step.
   itsTimer.stop();
-  getNextStep()->process(buf);
+  getNextStep()->process(std::move(bufferForNextStep));
   itsTimer.start();
 }
 
 void MadFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
                                 unsigned int bl, int chan, int corr, int nchan,
                                 int ncorr, float& Z1, float& Z2,
-                                std::vector<float>& tempBuf,
+                                std::vector<float>& tempBuffer,
                                 common::NSTimer& moveTimer,
                                 common::NSTimer& medianTimer) {
   moveTimer.start();
@@ -412,8 +422,8 @@ void MadFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
   const unsigned int* iter = &(timeEntries[0]);
   const unsigned int* endIter = iter + itsTimeWindowArr[bl];
   for (; iter != endIter; ++iter) {
-    const DPBuffer& inbuf = itsBuf[*iter];
-    const Cube<float>& ampl = itsAmpl[*iter];
+    const base::DPBuffer& inbuf = *itsBuffers[*iter];
+    const Cube<float>& ampl = itsAmplitudes[*iter];
     // Get pointers to given baseline and correlation.
     unsigned int offset = bl * nchan * ncorr + corr;
     const float* dataPtr = ampl.data() + offset;
@@ -421,12 +431,12 @@ void MadFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
     // Now move data from the two channel parts.
     for (int i = s1 * ncorr; i < e1 * ncorr; i += ncorr) {
       if (!flagPtr[i]) {
-        tempBuf[np++] = dataPtr[i];
+        tempBuffer[np++] = dataPtr[i];
       }
     }
     for (int i = s2 * ncorr; i < e2 * ncorr; i += ncorr) {
       if (!flagPtr[i]) {
-        tempBuf[np++] = dataPtr[i];
+        tempBuffer[np++] = dataPtr[i];
       }
     }
   }
@@ -438,11 +448,11 @@ void MadFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
   } else {
     medianTimer.start();
     // Get median of data and get median of absolute difference.
-    Z1 = dp3::common::Median(tempBuf);
+    Z1 = dp3::common::Median(tempBuffer);
     for (unsigned int i = 0; i < np; ++i) {
-      tempBuf[i] = std::abs(tempBuf[i] - Z1);
+      tempBuffer[i] = std::abs(tempBuffer[i] - Z1);
     }
-    Z2 = dp3::common::Median(tempBuf);
+    Z2 = dp3::common::Median(tempBuffer);
     medianTimer.stop();
   }
 }
@@ -456,7 +466,7 @@ void MadFlagger::getExprValues(int maxNChan, int maxNTime) {
   TableExprNode node2(RecordGram::parse(rec, itsTimeWindowStr));
   TableExprNode node3(RecordGram::parse(rec, itsThresholdStr));
   // Size the arrays.
-  size_t nrbl = itsBLength.size();
+  size_t nrbl = itsBLengths.size();
   itsThresholdArr.reserve(nrbl);
   itsTimeWindowArr.reserve(nrbl);
   itsFreqWindowArr.reserve(nrbl);
@@ -468,7 +478,7 @@ void MadFlagger::getExprValues(int maxNChan, int maxNTime) {
   RecordFieldPtr<double> blref(rec, "bl");
   for (unsigned int i = 0; i < nrbl; ++i) {
     // Put the length of each baseline in the record used to evaluate.
-    *blref = itsBLength[i];
+    *blref = itsBLengths[i];
     // Evaluate freqwindow size and make it odd if needed.
     node1.get(rec, result);
     int freqWindow = std::min(std::max(1, int(result + 0.5)), maxNChan);
