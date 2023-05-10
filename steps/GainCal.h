@@ -9,6 +9,11 @@
 #ifndef DP3_STEPS_GAINCAL_H_
 #define DP3_STEPS_GAINCAL_H_
 
+#include <complex>
+#include <vector>
+
+#include <xtensor/xtensor.hpp>
+
 #include <aocommon/parallelfor.h>
 #include <aocommon/threadpool.h>
 
@@ -82,16 +87,16 @@ class GainCal final : public Step {
 
   /// Apply the solution
   void applySolution(base::DPBuffer& buf,
-                     const casacore::Cube<casacore::Complex>& invsol);
+                     const xt::xtensor<std::complex<float>, 3>& invsol);
 
   /// Invert solution (for applying it)
-  casacore::Cube<casacore::Complex> invertSol(
-      const casacore::Cube<casacore::Complex>& sol);
+  xt::xtensor<std::complex<float>, 3> invertSol(
+      const xt::xtensor<std::complex<float>, 3>& sol);
 
   /// Fills the matrices itsVis and itsMVis
-  void fillMatrices(const casacore::Complex* model,
-                    const casacore::Complex* data, const float* weight,
-                    const casacore::Bool* flag);
+  void fillMatrices(const std::complex<float>* model,
+                    const std::complex<float>* data, const float* weight,
+                    const bool* flag);
 
   /// Initialize the parmdb
   void initParmDB();
@@ -126,10 +131,10 @@ class GainCal final : public Step {
 
   bool itsApplySolution;
 
-  std::vector<casacore::Cube<casacore::Complex>>
-      itsSols;  ///< for every timeslot, nCr x nSt x nFreqCells
-  std::vector<casacore::Matrix<double>>
-      itsTECSols;  ///< for every timeslot, 2 x nSt (alpha and beta)
+  /// For every timeslot, nFreqCells x nSt x nCr.
+  std::vector<xt::xtensor<std::complex<float>, 3>> itsSols;
+  /// For every timeslot, nSt x 2 (alpha and beta).
+  std::vector<xt::xtensor<double, 2>> itsTECSols;
   std::vector<double> itsFreqData;  ///< Mean frequency for every freqcell
 
   std::vector<std::unique_ptr<PhaseFitter>> itsPhaseFitters;  ///< Length nSt
@@ -175,8 +180,8 @@ class GainCal final : public Step {
   double itsChunkStartTime;          ///< First time value of chunk to be stored
   unsigned int itsStepInSolInt;      ///< Timestep within solint
 
-  casacore::Array<casacore::DComplex>
-      itsAllSolutions;  ///< Array that holds all solutions for all iterations
+  /// Tensor that holds all solutions for all iterations.
+  xt::xtensor<std::complex<double>, 6> itsAllSolutions;
 
   base::FlagCounter itsFlagCounter;
 

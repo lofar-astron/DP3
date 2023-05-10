@@ -7,6 +7,7 @@
 #include "GainCal.h"
 
 #include <algorithm>
+#include <cmath>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
@@ -26,7 +27,6 @@
 #include "MsColumnReader.h"
 #include "Predict.h"
 
-using casacore::Cube;
 using casacore::IPosition;
 using casacore::Matrix;
 using casacore::Table;
@@ -270,10 +270,11 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
     if (getInfo().nThreads() != 1)
       throw std::runtime_error("nthreads should be 1 in debug mode");
     assert(itsTimeSlotsPerParmUpdate >= info().ntime());
-    itsAllSolutions.resize(IPosition(
-        6, iS[0].numCorrelations(), info().antennaUsed().size(),
-        (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) ? 2 : 1,
-        itsNFreqCells, itsMaxIter, info().ntime()));
+    itsAllSolutions.resize(
+        {info().ntime(), itsMaxIter, itsNFreqCells,
+         (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) ? 2u
+                                                                        : 1u,
+         info().antennaUsed().size(), iS[0].numCorrelations()});
   }
 }
 
@@ -412,7 +413,8 @@ bool GainCal::process(const DPBuffer& bufin) {
     itsStepInParmUpdate++;
 
     if (itsApplySolution) {
-      Cube<casacore::Complex> invsol = invertSol(itsSols.back());
+      const xt::xtensor<std::complex<float>, 3> invsol =
+          invertSol(itsSols.back());
       for (unsigned int stepInSolInt = 0; stepInSolInt < itsSolInt;
            stepInSolInt++) {
         applySolution(itsBuf[stepInSolInt], invsol);
@@ -440,40 +442,38 @@ bool GainCal::process(const DPBuffer& bufin) {
   return false;
 }
 
-Cube<casacore::Complex> GainCal::invertSol(const Cube<casacore::Complex>& sol) {
-  Cube<casacore::Complex> invsol = sol.copy();
-  unsigned int nCr = invsol.shape()[0];
+xt::xtensor<std::complex<float>, 3> GainCal::invertSol(
+    const xt::xtensor<std::complex<float>, 3>& sol) {
+  const std::size_t n_correlations = sol.shape(2);
 
-  // Invert copy of solutions
-  unsigned int nSt = invsol.shape()[1];
-  for (unsigned int st = 0; st < nSt; ++st) {
+  if (n_correlations == 4) {
+    // Invert copy of solutions
+    xt::xtensor<std::complex<float>, 3> invsol = sol;
+    unsigned int nSt = invsol.shape(1);
     for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
-      if (nCr == 4) {
-        ApplyCal::invert(&invsol(0, st, freqCell));
-      } else {
-        for (unsigned int cr = 0; cr < nCr; ++cr) {
-          invsol(cr, st, freqCell) = 1.0f / invsol(cr, st, freqCell);
-        }
+      for (unsigned int st = 0; st < nSt; ++st) {
+        ApplyCal::invert(&invsol(freqCell, st, 0));
       }
     }
+    return invsol;
+  } else {
+    return 1.0f / sol;
   }
-
-  return invsol;
 }
 
 void GainCal::applySolution(DPBuffer& buf,
-                            const Cube<casacore::Complex>& invsol) {
+                            const xt::xtensor<std::complex<float>, 3>& invsol) {
   unsigned int n_bl = buf.GetData().shape(0);
   unsigned int n_chan = buf.GetData().shape(1);
-  unsigned int n_corr = invsol.shape()[0];
+  unsigned int n_corr = invsol.shape(2);
 
   for (size_t bl = 0; bl < n_bl; ++bl) {
     const int ant_a = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
     const int ant_b = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
     for (size_t chan = 0; chan < n_chan; chan++) {
       const unsigned int freq_cell = chan / itsNChan;
-      const std::complex<float>* gain_a = &invsol(0, ant_a, freq_cell);
-      const std::complex<float>* gain_b = &invsol(0, ant_b, freq_cell);
+      const std::complex<float>* gain_a = &invsol(freq_cell, ant_a, 0);
+      const std::complex<float>* gain_b = &invsol(freq_cell, ant_b, 0);
       const bool kUpdateWeights = false;
       if (n_corr > 2) {
         ApplyCal::ApplyFull(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
@@ -492,9 +492,9 @@ void GainCal::applySolution(DPBuffer& buf,
 // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
 // top left, all 11 polarizations in the bottom right, etc.
 // For TEC fitting, it also sets weights for the frequency cells
-void GainCal::fillMatrices(const casacore::Complex* model,
-                           const casacore::Complex* data, const float* weight,
-                           const casacore::Bool* flag) {
+void GainCal::fillMatrices(const std::complex<float>* model,
+                           const std::complex<float>* data, const float* weight,
+                           const bool* flag) {
   const size_t n_baselines = getInfo().nbaselines();
   const size_t n_channels = getInfo().nchan();
   const size_t n_correlations = getInfo().ncorr();
@@ -532,8 +532,7 @@ void GainCal::fillMatrices(const casacore::Complex* model,
       }
 
       for (size_t cr = 0; cr < n_correlations; ++cr) {
-        const float weight_sqrt(sqrtf(weight[bl * n_correlations * n_channels +
-                                             ch * n_correlations + cr]));
+        const float weight_sqrt = std::sqrt(weight_adaptor(bl, ch, cr));
         // The n_crDiv is there such that for n_cr==2 the visibilities end up at
         // (0,0) for cr==0, (1,1) for cr==1
         const size_t n_crDiv = (n_correlations == 4 ? 2 : 1);
@@ -551,9 +550,9 @@ void GainCal::fillMatrices(const casacore::Complex* model,
 
         // conjugate transpose
         iS[ch / itsNChan].getVis()(conjugate_index) =
-            conj(data_adaptor(bl, ch, cr)) * weight_sqrt;
+            std::conj(data_adaptor(bl, ch, cr)) * weight_sqrt;
         iS[ch / itsNChan].getMVis()(conjugate_index) =
-            conj(model_adaptor(bl, ch, cr)) * weight_sqrt;
+            std::conj(model_adaptor(bl, ch, cr)) * weight_sqrt;
       }
     }
   });
@@ -583,8 +582,9 @@ void GainCal::calibrate() {
 
   unsigned int iter = 0;
 
-  casacore::Matrix<double> tecsol(itsMode == CalType::kTecAndPhase ? 2 : 1,
-                                  info().antennaUsed().size(), 0);
+  xt::xtensor<double, 2> tecsol(
+      {info().antennaUsed().size(), itsMode == CalType::kTecAndPhase ? 2u : 1u},
+      0.0);
 
   std::vector<GainCalAlgorithm::Status> converged(
       itsNFreqCells, GainCalAlgorithm::NOTCONVERGED);
@@ -608,9 +608,9 @@ void GainCal::calibrate() {
       for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
         Matrix<std::complex<double>> fullSolution =
             iS[freqCell].getSolution(false);
-        std::copy(fullSolution.begin(), fullSolution.end(),
-                  &(itsAllSolutions(IPosition(6, 0, 0, 0, freqCell, iter,
-                                              itsStepInParmUpdate))));
+        std::copy(
+            fullSolution.begin(), fullSolution.end(),
+            &itsAllSolutions(itsStepInParmUpdate, iter, freqCell, 0, 0, 0));
       }
     }
 
@@ -668,13 +668,11 @@ void GainCal::calibrate() {
         }
 
         if (numpoints > 1) {  // TODO: limit should be higher
-          // cout<<"tecsol(0,"<<st<<")="<<tecsol(0,st)<<",
-          // tecsol(1,"<<st<<")="<<tecsol(1,st)<<'\n';
           if (itsMode == CalType::kTecAndPhase) {
-            itsPhaseFitters[st]->FitDataToTEC2Model(tecsol(0, st),
-                                                    tecsol(1, st));
+            itsPhaseFitters[st]->FitDataToTEC2Model(tecsol(st, 0),
+                                                    tecsol(st, 1));
           } else {  // itsMode==kTec
-            itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(0, st));
+            itsPhaseFitters[st]->FitDataToTEC1Model(tecsol(st, 0));
           }
           // Update solution in GainCalAlgorithm object
           for (unsigned int freqCell = 0; freqCell < itsNFreqCells;
@@ -684,9 +682,9 @@ void GainCal::calibrate() {
                 std::polar(1., phases[freqCell]);
           }
         } else {
-          tecsol(0, st) = 0;  // std::numeric_limits<double>::quiet_NaN();
+          tecsol(st, 0) = 0;  // std::numeric_limits<double>::quiet_NaN();
           if (itsMode == CalType::kTecAndPhase) {
-            tecsol(1, st) = 0;  // std::numeric_limits<double>::quiet_NaN();
+            tecsol(st, 1) = 0;  // std::numeric_limits<double>::quiet_NaN();
           }
         }
 
@@ -695,9 +693,9 @@ void GainCal::calibrate() {
                ++freqCell) {
             Matrix<std::complex<double>> fullSolution =
                 iS[freqCell].getSolution(false);
-            std::copy(fullSolution.begin(), fullSolution.end(),
-                      &(itsAllSolutions(IPosition(6, 0, 0, 1, freqCell, iter,
-                                                  itsStepInParmUpdate))));
+            std::copy(
+                fullSolution.begin(), fullSolution.end(),
+                &itsAllSolutions(itsStepInParmUpdate, iter, freqCell, 1, 0, 0));
           }
         }
       });
@@ -740,12 +738,12 @@ void GainCal::calibrate() {
 
   // Calibrate terminated (either by maxiter or by converging)
 
-  Cube<casacore::Complex> sol(iS[0].numCorrelations(),
-                              info().antennaUsed().size(), itsNFreqCells);
+  unsigned int nSt = info().antennaUsed().size();
+
+  xt::xtensor<std::complex<float>, 3> sol(
+      {itsNFreqCells, nSt, iS[0].numCorrelations()});
 
   unsigned int transpose[2][4] = {{0, 1, 0, 0}, {0, 2, 1, 3}};
-
-  unsigned int nSt = info().antennaUsed().size();
 
   for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
     casacore::Matrix<std::complex<double>> tmpsol =
@@ -756,19 +754,19 @@ void GainCal::calibrate() {
         unsigned int crt = transpose[iS[0].numCorrelations() / 4]
                                     [cr];  // Conjugate transpose ! (only for
                                            // numCorrelations = 4)
-        sol(crt, st, freqCell) = conj(tmpsol(st, cr));  // Conjugate transpose
+        sol(freqCell, st, crt) = conj(tmpsol(st, cr));  // Conjugate transpose
         if (itsMode == CalType::kDiagonal ||
             itsMode == CalType::kDiagonalPhase ||
             itsMode == CalType::kDiagonalAmplitude) {
-          sol(crt + 1, st, freqCell) =
+          sol(freqCell, st, crt + 1) =
               conj(tmpsol(st + nSt, cr));  // Conjugate transpose
         }
       }
     }
   }
-  itsSols.push_back(sol);
+  itsSols.push_back(std::move(sol));
   if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
-    itsTECSols.push_back(tecsol);
+    itsTECSols.push_back(std::move(tecsol));
   }
 
   itsTimerSolve.stop();
@@ -971,13 +969,13 @@ void GainCal::writeSolutionsH5Parm(double) {
       for (unsigned int freqCell = 0; freqCell < nSolFreqs; ++freqCell) {
         for (unsigned int ant = 0; ant < info().antennaUsed().size(); ++ant) {
           for (unsigned int pol = 0; pol < nPol; ++pol) {
-            assert(!itsTECSols[time].empty());
-            tecsols[i] = itsTECSols[time](0, ant) / 8.44797245e9;
+            assert(itsTECSols[time].size() > 0);
+            tecsols[i] = itsTECSols[time](ant, 0) / 8.44797245e9;
             if (!std::isfinite(tecsols[i])) {
               weights[i] = 0.;
             }
             if (itsMode == CalType::kTecAndPhase) {
-              phasesols[i] = -itsTECSols[time](0, ant);
+              phasesols[i] = -itsTECSols[time](ant, 0);
             }
             ++i;
           }
@@ -998,10 +996,10 @@ void GainCal::writeSolutionsH5Parm(double) {
       for (unsigned int freqCell = 0; freqCell < nSolFreqs; ++freqCell) {
         for (unsigned int ant = 0; ant < info().antennaUsed().size(); ++ant) {
           for (unsigned int pol = 0; pol < nPol; ++pol) {
-            assert(!itsSols[time].empty());
-            sols[i] = itsSols[time](pol, ant, freqCell);
+            assert(itsSols[time].size() > 0);
+            sols[i] = itsSols[time](freqCell, ant, pol);
             if (!std::isfinite(sols[i].real())) {
-              weights[i] = 0.;
+              weights[i] = 0.0;
             }
             ++i;
           }
@@ -1191,31 +1189,31 @@ void GainCal::writeSolutionsParmDB(double startTime) {
         for (unsigned int ts = 0; ts < ntime; ++ts) {
           for (unsigned int freqCell = 0; freqCell < nfreqs; ++freqCell) {
             if (itsMode == CalType::kFullJones) {
-              if (realim == 0) {
-                values(freqCell, ts) = real(itsSols[ts](pol, st, freqCell));
-              } else {
-                values(freqCell, ts) = imag(itsSols[ts](pol, st, freqCell));
-              }
+              const std::complex<float>& solution =
+                  itsSols[ts](freqCell, st, pol);
+              values(freqCell, ts) =
+                  (realim == 0) ? solution.real() : solution.imag();
             } else if (itsMode == CalType::kDiagonal) {
-              if (realim == 0) {
-                values(freqCell, ts) = real(itsSols[ts](pol / 3, st, freqCell));
-              } else {
-                values(freqCell, ts) = imag(itsSols[ts](pol / 3, st, freqCell));
-              }
+              const std::complex<float>& solution =
+                  itsSols[ts](freqCell, st, pol / 3);
+              values(freqCell, ts) =
+                  (realim == 0) ? solution.real() : solution.imag();
             } else if (itsMode == CalType::kScalarPhase ||
                        itsMode == CalType::kDiagonalPhase) {
-              values(freqCell, ts) = arg(itsSols[ts](pol / 3, st, freqCell));
+              values(freqCell, ts) =
+                  std::arg(itsSols[ts](freqCell, st, pol / 3));
             } else if (itsMode == CalType::kScalarAmplitude ||
                        itsMode == CalType::kDiagonalAmplitude) {
-              values(freqCell, ts) = abs(itsSols[ts](pol / 3, st, freqCell));
+              values(freqCell, ts) =
+                  std::abs(itsSols[ts](freqCell, st, pol / 3));
             } else if (itsMode == CalType::kTec ||
                        itsMode == CalType::kTecAndPhase) {
               if (realim == 0) {
                 values(freqCell, ts) =
-                    itsTECSols[ts](realim, st) / 8.44797245e9;
+                    itsTECSols[ts](st, realim) / 8.44797245e9;
               } else {
-                values(freqCell, ts) = -itsTECSols[ts](
-                    realim, st);  // TODO: why is there a minus here?
+                // TODO: why is there a minus here?
+                values(freqCell, ts) = -itsTECSols[ts](st, realim);
               }
             } else {
               throw std::runtime_error("Unhandled mode");
@@ -1257,7 +1255,8 @@ void GainCal::finish() {
     calibrate();
 
     if (itsApplySolution) {
-      Cube<casacore::Complex> invsol = invertSol(itsSols.back());
+      const xt::xtensor<std::complex<float>, 3> invsol =
+          invertSol(itsSols.back());
       for (unsigned int stepInSolInt = 0; stepInSolInt < itsStepInSolInt;
            stepInSolInt++) {
         applySolution(itsBuf[stepInSolInt], invsol);
@@ -1278,7 +1277,7 @@ void GainCal::finish() {
       H5::H5File hdf5file = H5::H5File("debug.h5", H5F_ACC_TRUNC);
       std::vector<hsize_t> dims(6);
       for (unsigned int i = 0; i < 6; ++i) {
-        dims[i] = itsAllSolutions.shape()[5 - i];
+        dims[i] = itsAllSolutions.shape(i);
       }
       H5::DataSpace dataspace(dims.size(), &(dims[0]), NULL);
       H5::CompType complex_data_type(sizeof(std::complex<double>));
