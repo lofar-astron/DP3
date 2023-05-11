@@ -22,11 +22,12 @@
 
 #include <aocommon/parallelfor.h>
 
+#include <xtensor/xcomplex.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 
-using casacore::Cube;
 using casacore::Record;
 using casacore::RecordFieldPtr;
 using casacore::RecordGram;
@@ -121,8 +122,8 @@ void MadFlagger::updateInfo(const DPInfo& infoIn) {
   itsBuffers.resize(itsTimeWindow);
   itsAmplitudes.resize(itsTimeWindow);
   for (size_t i = 0; i < itsAmplitudes.size(); ++i) {
-    itsAmplitudes[i].resize(infoIn.ncorr(), infoIn.nchan(),
-                            infoIn.nbaselines());
+    itsAmplitudes[i].resize(
+        {infoIn.nbaselines(), infoIn.nchan(), infoIn.ncorr()});
   }
   // Set or check the correlations to flag on.
   std::vector<unsigned int> flagCorr;
@@ -159,11 +160,11 @@ bool MadFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   itsBuffers[index] = std::move(buffer);
   base::DPBuffer& dBuffer = *itsBuffers[index];
   // Calculate amplitudes if needed.
-  amplitude(itsAmplitudes[index], dBuffer.GetCasacoreData());
+  itsAmplitudes[index] = xt::abs(dBuffer.GetData());
   // Fill flags if needed.
-  if (dBuffer.GetCasacoreFlags().empty()) {
+  if (dBuffer.GetFlags().size() == 0) {
     dBuffer.ResizeFlags(dBuffer.GetData().shape());
-    dBuffer.GetCasacoreFlags() = false;
+    dBuffer.GetFlags().fill(false);
   }
   itsNTimes++;
 
@@ -304,11 +305,11 @@ void MadFlagger::flag(unsigned int index,
   itsBuffers[index] =
       std::make_unique<DPBuffer>(*bufferForNextStep, kFlagsField);
 
-  casacore::IPosition shp = bufferForNextStep->GetCasacoreData().shape();
-  unsigned int ncorr = shp[0];
-  unsigned int nchan = shp[1];
+  const std::array<size_t, 3> shape = bufferForNextStep->GetData().shape();
+  unsigned int ncorr = shape[2];
+  unsigned int nchan = shape[1];
   unsigned int blsize = ncorr * nchan;
-  int nrbl = shp[2];
+  int nrbl = shape[0];
   // Get pointers to amplitudes (of visibility data) and flags.
   const float* bufferDataPtr = itsAmplitudes[index].data();
   bool* bufferFlagPtr = bufferForNextStep->GetFlags().data();
@@ -423,7 +424,7 @@ void MadFlagger::computeFactors(const std::vector<unsigned int>& timeEntries,
   const unsigned int* endIter = iter + itsTimeWindowArr[bl];
   for (; iter != endIter; ++iter) {
     const base::DPBuffer& inbuf = *itsBuffers[*iter];
-    const Cube<float>& ampl = itsAmplitudes[*iter];
+    const xt::xtensor<float, 3>& ampl = itsAmplitudes[*iter];
     // Get pointers to given baseline and correlation.
     unsigned int offset = bl * nchan * ncorr + corr;
     const float* dataPtr = ampl.data() + offset;
