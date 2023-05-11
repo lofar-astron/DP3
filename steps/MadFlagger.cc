@@ -156,16 +156,15 @@ bool MadFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
   // Accumulate buffers in the time window.
   // The buffers are wrapped, thus oldest entries are overwritten.
-  unsigned int index = itsNTimes % itsTimeWindow;
-  itsBuffers[index] = std::move(buffer);
-  base::DPBuffer& dBuffer = *itsBuffers[index];
+  unsigned int index = itsNTimes % itsTimeWindow;  // destination in itsBuffers
   // Calculate amplitudes if needed.
-  itsAmplitudes[index] = xt::abs(dBuffer.GetData());
+  itsAmplitudes[index] = xt::abs(buffer->GetData());
   // Fill flags if needed.
-  if (dBuffer.GetFlags().size() == 0) {
-    dBuffer.ResizeFlags(dBuffer.GetData().shape());
-    dBuffer.GetFlags().fill(false);
+  if (buffer->GetFlags().size() == 0) {
+    buffer->ResizeFlags(buffer->GetData().shape());
+    buffer->GetFlags().fill(false);
   }
+  itsBuffers[index] = std::move(buffer);
   itsNTimes++;
 
   // Flag if there are enough time entries accumulated in itsBuffers.
