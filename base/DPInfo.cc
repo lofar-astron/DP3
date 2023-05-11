@@ -25,8 +25,9 @@
 #include <cmath>
 #include <numeric>
 
-using namespace casacore;
-using namespace std;
+using casacore::MDirection;
+using casacore::MPosition;
+using casacore::MS;
 
 namespace dp3 {
 namespace base {
@@ -289,12 +290,13 @@ void DPInfo::setAntUsed() {
   }
 }
 
-MeasureHolder DPInfo::copyMeasure(const MeasureHolder fromMeas) {
-  Record rec;
-  String msg;
+casacore::MeasureHolder DPInfo::copyMeasure(
+    const casacore::MeasureHolder fromMeas) {
+  casacore::Record rec;
+  casacore::String msg;
   if (!fromMeas.toRecord(msg, rec))
     throw std::runtime_error("Could not copy MeasureHolder record to record");
-  MeasureHolder mh2;
+  casacore::MeasureHolder mh2;
   if (!mh2.fromRecord(msg, rec))
     throw std::runtime_error("Could not copy record to MeasureHolder");
   return mh2;
@@ -356,7 +358,8 @@ void DPInfo::update(std::vector<unsigned int>&& timeAvg) {
 }
 
 void DPInfo::update(unsigned int startChan, unsigned int nchan,
-                    const vector<unsigned int>& baselines, bool removeAnt) {
+                    const std::vector<unsigned int>& baselines,
+                    bool removeAnt) {
   if (channel_frequencies_.size() != 1) {
     throw std::runtime_error("Channel selection does not support BDA");
   }
@@ -423,31 +426,31 @@ void DPInfo::removeUnusedAnt() {
   }
 }
 
-const vector<double>& DPInfo::getBaselineLengths() const {
+const std::vector<double>& DPInfo::getBaselineLengths() const {
   // Calculate the baseline lengths if not done yet.
   if (baseline_lengths_.empty()) {
     // First get the antenna positions.
-    const vector<MPosition>& antPos = antennaPos();
-    vector<Vector<double>> antVec;
+    const std::vector<MPosition>& antPos = antennaPos();
+    std::vector<casacore::Vector<double>> antVec;
     antVec.reserve(antPos.size());
-    for (vector<MPosition>::const_iterator iter = antPos.begin();
+    for (std::vector<MPosition>::const_iterator iter = antPos.begin();
          iter != antPos.end(); ++iter) {
       // Convert to ITRF and keep as x,y,z in m.
       antVec.push_back(
           MPosition::Convert(*iter, MPosition::ITRF)().getValue().getValue());
     }
     // Fill in the length of each baseline.
-    vector<double> blength;
+    std::vector<double> blength;
     baseline_lengths_.reserve(antenna1_.size());
     for (unsigned int i = 0; i < antenna1_.size(); ++i) {
-      Array<double> diff(antVec[antenna2_[i]] - antVec[antenna1_[i]]);
+      casacore::Array<double> diff(antVec[antenna2_[i]] - antVec[antenna1_[i]]);
       baseline_lengths_.push_back(sqrt(sum(diff * diff)));
     }
   }
   return baseline_lengths_;
 }
 
-const vector<int>& DPInfo::getAutoCorrIndex() const {
+const std::vector<int>& DPInfo::getAutoCorrIndex() const {
   if (auto_correlation_indices_.empty()) {
     int nant =
         1 + std::max(*std::max_element(antenna1_.begin(), antenna1_.end()),
