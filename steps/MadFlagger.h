@@ -136,7 +136,7 @@ class MadFlagger : public Step {
   double itsMaxBLength;             ///< maximum baseline length
   std::vector<double> itsBLengths;  ///< length of each baseline
   std::vector<std::unique_ptr<base::DPBuffer>> itsBuffers;
-  std::vector<casacore::Cube<float>> itsAmplitudes;  ///< amplitudes of the data
+  std::vector<xt::xtensor<float, 3>> itsAmplitudes;  ///< amplitudes of the data
   base::FlagCounter itsFlagCounter;
   common::NSTimer itsTimer;
   common::NSTimer itsComputeTimer;  ///< move/median timer
