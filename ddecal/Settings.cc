@@ -57,8 +57,9 @@ Settings::Settings(const common::ParameterSet& _parset,
                    const std::string& _prefix)
     : parset(&_parset),
       name(_prefix),
-      h5parm_name(
-          GetString("h5parm", parset->getString("msin") + "/instrument.h5")),
+      h5parm_name(parset->isDefined(_prefix + "h5parm")
+                      ? GetString("h5parm")
+                      : parset->getString("msin") + "/instrument.h5"),
       stat_filename(GetString("statfilename", "")),
       parset_string(CreateParsetString(_parset)),
       mode(dp3::base::StringToCalType(

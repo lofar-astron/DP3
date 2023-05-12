@@ -23,8 +23,7 @@ BOOST_AUTO_TEST_CASE(provided_fields) {
   using dp3::steps::Step;
 
   const dp3::common::ParameterSet parset = CreateParameterSet(
-      {{"msin", "TODO(AST-1271): Remove msin"},
-       {"prefix.directions", "[[center]]"},
+      {{"prefix.directions", "[[center]]"},
        {"prefix.sourcedb", "tDDECal.MS/sky.txt"},
        // Errors occur when creating multiple DDECal's that write the same H5
        // file. Putting each DDECal object in a different scope also works.
@@ -179,8 +178,7 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
       casacore::MeasurementSet("tDDECal.MS"), dp3::common::ParameterSet(), "");
 
   auto ddecal = std::make_shared<DDECal>(
-      CreateParameterSet({{"msin", "TODO(AST-1271): Remove msin"},
-                          {"directions", "[[center]]"},
+      CreateParameterSet({{"directions", "[[center]]"},
                           {"sourcedb", "tDDECal.MS/sky.txt"},
                           {"h5parm", "tddecal_storebuffer.h5"},
                           {"storebuffer", "true"},
@@ -263,8 +261,7 @@ BOOST_FIXTURE_TEST_CASE(keep_model_data_columnreader, KeepModelDataFixture) {
   const std::string kModelDataColumn = "foursources_DATA";
 
   auto ddecal = std::make_shared<DDECal>(
-      CreateParameterSet({{"msin", "TODO(AST-1271): Remove msin"},
-                          {kPrefix + "modeldatacolumns", kModelDataColumn},
+      CreateParameterSet({{kPrefix + "modeldatacolumns", kModelDataColumn},
                           {kPrefix + "keepmodel", "true"},
                           {kPrefix + "h5parm", "keepmodel_columnreader.h5"}}),
       kPrefix);
@@ -275,8 +272,7 @@ BOOST_FIXTURE_TEST_CASE(keep_model_data_columnreader, KeepModelDataFixture) {
 BOOST_FIXTURE_TEST_CASE(keep_model_data_directions, KeepModelDataFixture) {
   auto ddecal = std::make_shared<DDECal>(
       CreateParameterSet(
-          {{"msin", "TODO(AST-1271): Remove msin"},
-           {kPrefix + "sourcedb", kMsName + "/sky.txt"},
+          {{kPrefix + "sourcedb", kMsName + "/sky.txt"},
            {kPrefix + "directions", "[[center,dec_off],[ra_off],[radec_off]]"},
            {kPrefix + "keepmodel", "true"},
            {kPrefix + "h5parm", "keepmodel_directions.h5"}}),
@@ -290,8 +286,7 @@ BOOST_FIXTURE_TEST_CASE(keep_model_data_directions, KeepModelDataFixture) {
 
 BOOST_FIXTURE_TEST_CASE(keep_model_data_idg, KeepModelDataFixture) {
   auto ddecal = std::make_shared<DDECal>(
-      CreateParameterSet({{"msin", "TODO(AST-1271): Remove msin"},
-                          {kPrefix + "idg.regions", "../sources.reg"},
+      CreateParameterSet({{kPrefix + "idg.regions", "../sources.reg"},
                           {kPrefix + "idg.images", "../sources-model.fits"},
                           {kPrefix + "keepmodel", "true"},
                           {kPrefix + "h5parm", "keepmodel_idg.h5"}}),
