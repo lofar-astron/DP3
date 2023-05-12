@@ -49,7 +49,7 @@ class GainCal final : public Step {
   GainCal(const common::ParameterSet& parset, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
-    return kDataField | kFlagsField | kWeightsField | kUvwField;
+    return kDataField | kFlagsField | kWeightsField | itsSubRequiredFields;
   }
 
   common::Fields getProvidedFields() const override {
@@ -60,7 +60,7 @@ class GainCal final : public Step {
 
   /// Process the data. It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   void finish() override;
 
@@ -116,7 +116,9 @@ class GainCal final : public Step {
   void writeSolutionsH5Parm(double startTime);
 
   std::string itsName;
-  std::vector<base::DPBuffer> itsBuf;
+  /// If itsApplySolution is true, stores the (input) buffers for the current
+  /// solution interval.
+  std::vector<std::unique_ptr<base::DPBuffer>> itsBuffers;
   bool itsUseModelColumn;
   std::string itsModelColumnName;
   std::string itsParmDBName;
@@ -149,8 +151,10 @@ class GainCal final : public Step {
   aocommon::ThreadPool itsThreadPool;
 
   /// The series of sub-steps ends with itsResultStep.
-  std::unique_ptr<Step> itsFirstSubStep;
+  std::shared_ptr<Step> itsFirstSubStep;
   std::shared_ptr<ResultStep> itsResultStep;
+  /// Required fields for the series of sub-steps.
+  common::Fields itsSubRequiredFields;
   bool itsApplyBeamToModelColumn;
 
   base::BaselineSelection itsBaselineSelection;  ///< Filter

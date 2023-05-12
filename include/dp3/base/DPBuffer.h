@@ -109,6 +109,7 @@ class DPBuffer {
 
   /// This constructor copies the given fields only, without using reference
   /// semantics. It copies row numbers using reference semantics.
+  /// It does not copy extra data fields yet (TODO in AST-1241).
   DPBuffer(const DPBuffer& that, const common::Fields& fields);
 
   /// Copy assignment uses reference copies.
@@ -120,6 +121,13 @@ class DPBuffer {
   /// Make a deep copy of all arrays in that to this.
   /// After this call, the buffer is always independent.
   void copy(const DPBuffer& that);
+
+  /// Copy that to this.
+  /// Copy row numbers using reference semantics. Copy all other members (time,
+  /// exposure, fields, solutions) using value semantics.
+  /// Do not copy extra data fields yet (TODO in AST-1241).
+  /// @param fields Copy these fields from that. Do not copy the omitted fields.
+  void Copy(const DPBuffer& that, const common::Fields& fields);
 
   /// Ensure that this buffer has independent copies of data items / that
   /// the data items do not use reference semantics.
