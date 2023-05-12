@@ -6,6 +6,7 @@
 
 #include <dp3/base/DPBuffer.h>
 
+#include <algorithm>
 #include <cassert>
 
 #include <casacore/casa/version.h>
@@ -85,28 +86,7 @@ DPBuffer::DPBuffer(DPBuffer&& that)
 
 DPBuffer::DPBuffer(const DPBuffer& that, const common::Fields& fields)
     : DPBuffer(that.time_, that.exposure_) {
-  row_numbers_.reference(that.row_numbers_);
-
-  if (fields.Data()) {
-    casa_data_ = that.casa_data_;
-    casa_data_.unique();
-    data_ = CreateSpan(casa_data_);
-  }
-  if (fields.Flags()) {
-    casa_flags_ = that.casa_flags_;
-    casa_flags_.unique();
-    flags_ = CreateSpan(casa_flags_);
-  }
-  if (fields.Weights()) {
-    casa_weights_ = that.casa_weights_;
-    casa_weights_.unique();
-    weights_ = CreateSpan(casa_weights_);
-  }
-  if (fields.Uvw()) {
-    casa_uvw_ = that.casa_uvw_;
-    casa_uvw_.unique();
-    uvw_ = CreateSpan(casa_uvw_);
-  }
+  Copy(that, fields);
 }
 
 DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
@@ -172,6 +152,36 @@ void DPBuffer::copy(const DPBuffer& that) {
   casa_weights_.unique();
   casa_uvw_.unique();
   CreateSpans();
+}
+
+namespace {
+// Copies a casacore object / xtensor span combination.
+template <typename SpanType, typename CasaType>
+void CopyField(CasaType& casa_target, SpanType& span_target,
+               const CasaType& casa_source, const SpanType& span_source) {
+  if (span_target.shape() != span_source.shape()) {
+    casa_target.resize(casa_source.shape());
+    span_target = CreateSpan(casa_target);
+  }
+  std::copy_n(span_source.data(), span_source.size(), span_target.data());
+}
+}  // namespace
+
+void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
+  if (this != &that) {
+    time_ = that.time_;
+    exposure_ = that.exposure_;
+    row_numbers_.reference(that.row_numbers_);
+    if (fields.Data())
+      CopyField(casa_data_, data_, that.casa_data_, that.data_);
+    if (fields.Flags())
+      CopyField(casa_flags_, flags_, that.casa_flags_, that.flags_);
+    if (fields.Weights())
+      CopyField(casa_weights_, weights_, that.casa_weights_, that.weights_);
+    if (fields.Uvw()) CopyField(casa_uvw_, uvw_, that.casa_uvw_, that.uvw_);
+    // TODO(AST-1241): Copy extra data fields, too.
+    solution_ = that.solution_;
+  }
 }
 
 void DPBuffer::MakeIndependent(const common::Fields& fields) {

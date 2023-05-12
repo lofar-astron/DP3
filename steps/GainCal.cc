@@ -1,5 +1,5 @@
 // GainCal.cc: DP3 step class to do a gain calibration
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema
@@ -16,6 +16,8 @@
 #include <xtensor/xadapt.hpp>
 
 #include <Version.h>
+
+#include <dp3/base/DP3.h>
 
 #include "../base/DPLogger.h"
 #include "../base/SourceDBUtil.h"
@@ -92,7 +94,7 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
   if (!itsUseModelColumn) {
-    auto predict_step = std::make_unique<Predict>(parset, prefix);
+    auto predict_step = std::make_shared<Predict>(parset, prefix);
     predict_step->SetThreadData(itsThreadPool, nullptr);
     predict_step->setNextStep(itsResultStep);
     itsFirstSubStep = std::move(predict_step);
@@ -120,7 +122,7 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
         parset.getBool(prefix + "applybeamtomodelcolumn", false);
 
     auto column_reader_step =
-        std::make_unique<MsColumnReader>(parset, prefix, itsModelColumnName);
+        std::make_shared<MsColumnReader>(parset, prefix, itsModelColumnName);
     if (itsApplyBeamToModelColumn) {
       auto apply_beam_step = std::make_shared<ApplyBeam>(parset, prefix, true);
       column_reader_step->setNextStep(apply_beam_step);
@@ -131,15 +133,15 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
     itsFirstSubStep = std::move(column_reader_step);
   }
 
+  itsSubRequiredFields = base::GetChainRequiredFields(itsFirstSubStep);
+
   itsNIter.resize(4, 0);
 
   if (itsApplySolution) {
-    itsBuf.resize(itsSolInt);
-  } else {
-    itsBuf.resize(1);
+    itsBuffers.resize(itsSolInt);
   }
 
-  string modestr = parset.getString(prefix + "caltype");
+  std::string modestr = parset.getString(prefix + "caltype");
   itsMode = base::StringToCalType(modestr);
   unsigned int defaultNChan = 0;
   if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
@@ -356,32 +358,31 @@ void GainCal::showTimings(std::ostream& os, double duration) const {
   os << ", failed: " << (itsFailed == 0 ? 0 : itsNIter[3] / itsFailed) << '\n';
 }
 
-bool GainCal::process(const DPBuffer& bufin) {
+bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
 
-  unsigned int bufIndex = 0;
+  const std::complex<float>* data = buffer->GetData().data();
+  const float* weight = buffer->GetWeights().data();
+  const bool* flag = buffer->GetFlags().data();
 
-  if (itsApplySolution) {
-    // Need to keep a copy of all solint buffers in this step
-    bufIndex = itsStepInSolInt;
-    itsBuf[bufIndex].copy(bufin);
-  } else {
-    // We'll read the necessary info from the buffer and pass it on
-    itsBuf[bufIndex].referenceFilled(bufin);
+  if (!itsUVWFlagStep.isDegenerate()) {
+    // UVW flagging happens on a copy of the buffer, so these flags are not
+    // written
+
+    common::Fields uvwflag_fields = itsUVWFlagStep.getRequiredFields();
+
+    // Try reusing an old buffer from itsDataResultStep.
+    std::unique_ptr<DPBuffer> uvwflag_buffer = itsDataResultStep->take();
+    if (!uvwflag_buffer) {
+      uvwflag_buffer = std::make_unique<DPBuffer>(*buffer, uvwflag_fields);
+    } else {
+      uvwflag_buffer->Copy(*buffer, uvwflag_fields);
+    }
+
+    itsUVWFlagStep.process(std::move(uvwflag_buffer));
+    // Use the flags modified by itsUVWFlagStep
+    flag = itsDataResultStep->get().GetFlags().data();
   }
-
-  // UVW flagging happens on a copy of the buffer, so these flags are not
-  // written
-  DPBuffer buffer;
-  buffer.copy(itsBuf[bufIndex]);
-
-  // UVWFlagger hides the legacy process() overload.
-  itsUVWFlagStep.process(std::make_unique<DPBuffer>(buffer));
-
-  const casacore::Complex* data = itsBuf[bufIndex].GetData().data();
-  const float* weight = itsBuf[bufIndex].GetWeights().data();
-  // Use the flags modified by itsUVWFlagStep
-  const bool* flag = buffer.GetFlags().data();
 
   // Simulate.
   //
@@ -389,7 +390,17 @@ bool GainCal::process(const DPBuffer& bufin) {
   // and stored.
 
   itsTimerPredict.start();
-  itsFirstSubStep->process(buffer);
+
+  // Try reusing the result buffer from the previous process() call.
+  std::unique_ptr<DPBuffer> substep_buffer = itsResultStep->take();
+  if (!substep_buffer) {
+    substep_buffer = std::make_unique<DPBuffer>(*buffer, itsSubRequiredFields);
+  } else {
+    // The fields in substep_buffer should already have the correct shape,
+    // from the previous process() call, so we can reuse its memory.
+    substep_buffer->Copy(*buffer, itsSubRequiredFields);
+  }
+  itsFirstSubStep->process(std::move(substep_buffer));
   itsTimerPredict.stop();
 
   itsTimerFill.start();
@@ -406,6 +417,10 @@ bool GainCal::process(const DPBuffer& bufin) {
   fillMatrices(itsResultStep->get().GetData().data(), data, weight, flag);
   itsTimerFill.stop();
 
+  if (itsApplySolution) {
+    itsBuffers[itsStepInSolInt] = std::move(buffer);
+  }
+
   ++itsStepInSolInt;
   if (itsStepInSolInt == itsSolInt) {
     // Solve past solution interval
@@ -417,8 +432,8 @@ bool GainCal::process(const DPBuffer& bufin) {
           invertSol(itsSols.back());
       for (unsigned int stepInSolInt = 0; stepInSolInt < itsSolInt;
            stepInSolInt++) {
-        applySolution(itsBuf[stepInSolInt], invsol);
-        getNextStep()->process(itsBuf[stepInSolInt]);
+        applySolution(*itsBuffers[stepInSolInt], invsol);
+        getNextStep()->process(std::move(itsBuffers[stepInSolInt]));
       }
     }
 
@@ -437,7 +452,7 @@ bool GainCal::process(const DPBuffer& bufin) {
   }
 
   if (!itsApplySolution) {
-    getNextStep()->process(itsBuf[bufIndex]);
+    getNextStep()->process(std::move(buffer));
   }
   return false;
 }
@@ -1257,10 +1272,10 @@ void GainCal::finish() {
     if (itsApplySolution) {
       const xt::xtensor<std::complex<float>, 3> invsol =
           invertSol(itsSols.back());
-      for (unsigned int stepInSolInt = 0; stepInSolInt < itsStepInSolInt;
+      for (std::size_t stepInSolInt = 0; stepInSolInt < itsStepInSolInt;
            stepInSolInt++) {
-        applySolution(itsBuf[stepInSolInt], invsol);
-        getNextStep()->process(itsBuf[stepInSolInt]);
+        applySolution(*itsBuffers[stepInSolInt], invsol);
+        getNextStep()->process(std::move(itsBuffers[stepInSolInt]));
       }
     }
   }

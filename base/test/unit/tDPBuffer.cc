@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(copy_to_reference_copy) {
   CheckIndependent(source, copy);
 }
 
-BOOST_AUTO_TEST_CASE(copy_partially) {
+BOOST_AUTO_TEST_CASE(copy_partially_using_constructor) {
   const DPBuffer source = CreateFilledBuffer();
 
   const DPBuffer no_fields(source, Fields());
@@ -195,6 +195,60 @@ BOOST_AUTO_TEST_CASE(copy_partially) {
   BOOST_CHECK_NE(source.GetWeights().data(),
                  weights_and_flags.GetWeights().data());
   BOOST_CHECK_NE(source.GetFlags().data(), weights_and_flags.GetFlags().data());
+}
+
+BOOST_AUTO_TEST_CASE(copy_partially_using_copy) {
+  const DPBuffer source = CreateFilledBuffer();
+  const float kIncrement = 42.0f;  // Value increment for various fields.
+
+  // Create a target buffer that has the same shape as the source buffer but has
+  // different values.
+  DPBuffer target = CreateFilledBuffer();
+  target.setTime(target.getTime() + kIncrement);
+  target.setExposure(target.getExposure() + kIncrement);
+  target.GetData().fill(kDataValue + kIncrement);
+  target.GetData(kFooDataName).fill(kFooDataValue + kIncrement);
+  target.GetData(kBarDataName).fill(kBarDataValue + kIncrement);
+  target.GetFlags() = !source.GetFlags();
+  target.GetWeights().fill(kWeightValue + kIncrement);
+  target.GetUvw().fill(kUVWValue + kIncrement);
+
+  // Saving data pointers allows verifying that Copy() reused the memory.
+  const std::complex<float>* const data = target.GetData().data();
+  const bool* const flags = target.GetFlags().data();
+  const float* const weights = target.GetWeights().data();
+  const double* const uvw = target.GetUvw().data();
+
+  // First, copy no fields. Data, flags, weights and uvw should not change.
+  target.Copy(source, Fields());
+  BOOST_CHECK_EQUAL(source.getTime(), target.getTime());
+  BOOST_CHECK_EQUAL(source.getExposure(), target.getExposure());
+  BOOST_CHECK_EQUAL(source.getRowNrs().data(), target.getRowNrs().data());
+  BOOST_CHECK_EQUAL(target.GetData(), source.GetData() + kIncrement);
+  BOOST_CHECK_EQUAL(target.GetData(kFooDataName),
+                    source.GetData(kFooDataName) + kIncrement);
+  BOOST_CHECK_EQUAL(target.GetData(kBarDataName),
+                    source.GetData(kBarDataName) + kIncrement);
+  BOOST_CHECK_EQUAL(target.GetWeights(), source.GetWeights() + kIncrement);
+  BOOST_CHECK_EQUAL(target.GetFlags(), !source.GetFlags());
+  BOOST_CHECK_EQUAL(target.GetUvw(), source.GetUvw() + kIncrement);
+
+  // Now, copy all fields.
+  // TODO(AST-1241): Test copying extra data when the Fields support it.
+  target.Copy(source, Fields(Fields::Single::kData) |
+                          Fields(Fields::Single::kFlags) |
+                          Fields(Fields::Single::kWeights) |
+                          Fields(Fields::Single::kUvw));
+  // Verify that the data changed (kIncrement is no longer added).
+  BOOST_CHECK_EQUAL(target.GetData(), source.GetData());
+  BOOST_CHECK_EQUAL(target.GetWeights(), source.GetWeights());
+  BOOST_CHECK_EQUAL(target.GetFlags(), source.GetFlags());
+  BOOST_CHECK_EQUAL(target.GetUvw(), source.GetUvw());
+  // Verify that the pointers remained equal.
+  BOOST_CHECK_EQUAL(target.GetData().data(), data);
+  BOOST_CHECK_EQUAL(target.GetWeights().data(), weights);
+  BOOST_CHECK_EQUAL(target.GetFlags().data(), flags);
+  BOOST_CHECK_EQUAL(target.GetUvw().data(), uvw);
 }
 
 BOOST_AUTO_TEST_CASE(make_independent) {
