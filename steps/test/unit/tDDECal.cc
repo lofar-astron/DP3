@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   write sol to buffer: false
   solint:              42
   nchan:               44
-  directions:          [[center]]
+  directions:          [[REUSE],[center]]
   sols per direction:  [1]
   min visib. ratio:    43.123
   tolerance:           1e-05
@@ -130,6 +130,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   only predict:        true
   subtract model:      true
   keep model:          true
+Direction REUSE reuses data from otherddecal.REUSE
 Model steps for direction center
 Predict
 OnePredict prefix.
@@ -156,6 +157,7 @@ OnePredict prefix.
        {"prefix.onlypredict", "true"},
        {"prefix.subtract", "true"},
        {"prefix.keepmodel", "true"},
+       {"prefix.reusemodel", "[otherddecal.REUSE]"},
        {"prefix.solveralgorithm", "hybrid"},
        {"prefix.solint", "42"},
        {"prefix.minvisratio", "43.123"},

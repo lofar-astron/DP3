@@ -68,6 +68,7 @@ class DDECal : public Step {
  private:
   void initializeColumnReaders(const common::ParameterSet&,
                                const string& prefix);
+  void initializeModelReuse();
   void initializeIDG(const common::ParameterSet& parset, const string& prefix);
   void initializePredictSteps(const common::ParameterSet& parset,
                               const string& prefix);
@@ -149,10 +150,12 @@ class DDECal : public Step {
   /// Result step for data after UV-flagging
   std::shared_ptr<ResultStep> itsDataResultStep;
   /// For each direction, the first step in the chain that computes the model.
+  /// When reusing model data, the step for that direction is empty/null.
   std::vector<std::shared_ptr<ModelDataStep>> itsSteps;
   /// For each direction, the required fields of the step chain.
   std::vector<common::Fields> itsRequiredFields;
   /// For each directions, a multiresultstep with all times.
+  /// When reusing model data, the result step for that direction is empty/null.
   std::vector<std::shared_ptr<MultiResultStep>> itsResultSteps;
 
   /// Store the solution for later steps of processing in DPBuffer. Note: only

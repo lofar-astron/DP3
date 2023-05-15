@@ -15,6 +15,8 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Containers/Record.h>
 
+#include "Direction.h"
+
 namespace dp3 {
 namespace base {
 
@@ -169,6 +171,8 @@ class DPInfo {
   const casacore::MDirection phaseCenterCopy() const {
     return copyMeasure(casacore::MeasureHolder(phase_center_)).asMDirection();
   }
+  /// @return The ra/dec direction corresponding to the phase center.
+  Direction phaseCenterDirection() const;
   const casacore::MDirection& delayCenter() const { return delay_center_; }
   const casacore::MDirection delayCenterCopy() const {
     return copyMeasure(casacore::MeasureHolder(delay_center_)).asMDirection();

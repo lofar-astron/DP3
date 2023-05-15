@@ -16,6 +16,10 @@ inputs:
     default: "[]"
     type: list
     doc: Use model data from the measurement set. All directions from this parameter will be pointing to the measurement set metadata `.`
+  reusemodel:
+    default: "[]"
+    type: list
+    doc: Reuse model data from previous (ddecal) step(s). The list should contain the model data names, as set by a previous step, e.g., "[ddecal1.MODEL_DATA, ddecal1.center]" `.`
   maxiter:
     default: 50
     type: int
@@ -131,7 +135,7 @@ inputs:
   keepmodel:
     default: false
     type: bool
-    doc: If true, pass the uncorrected model data to the next step. DDECal stores the model data using its step name plus the (first) direction name. For example, if "steps=[ddecal]" and "ddecal.directions=[[center,dec_off],[ra_off]]", the model data names are "ddecal.center" and "ddecal.ra_off". If false, delete the model data `.`
+    doc: If true, pass the uncorrected model data to the next step. DDECal stores the model data using its step name plus the (first) direction name. For example, if "steps=[ddecal]" and "ddecal.directions=[[center,dec_off],[ra_off]]", the model data names are "ddecal.center" and "ddecal.ra_off". If false, delete all model data, including the model data from "reusemodel" `.`
   idg&#46;images:
     default: "[]"
     type: list
