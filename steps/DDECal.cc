@@ -76,6 +76,7 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
 
   // Initialize steps
   initializeColumnReaders(parset, prefix);
+  initializeModelReuse();
   initializeIDG(parset, prefix);
   initializePredictSteps(parset, prefix);
 
@@ -125,6 +126,24 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
     itsDirectionNames.emplace_back(prefix + col);
     itsSteps.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
     setModelNextSteps(*itsSteps.back(), col, parset, prefix);
+  }
+}
+
+void DDECal::initializeModelReuse() {
+  for (std::string name : itsSettings.reuse_model_data) {
+    // Keep using the original name in DPBuffers.
+    itsDirectionNames.emplace_back(name);
+
+    // Remove any old prefix from the model data name.
+    std::size_t period_position = name.find(".");
+    if (period_position != name.npos) {
+      name = name.substr(period_position + 1);
+    }
+    itsDirections.emplace_back(1, name);
+
+    // Add a null step for this direction, so there is still an entry in
+    // itsSteps for each direction.
+    itsSteps.emplace_back();
   }
 }
 
@@ -201,18 +220,20 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
 
   // Update info for substeps and set other required parameters
-  for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
-    itsSteps[dir]->setInfo(infoIn);
+  for (std::shared_ptr<ModelDataStep>& step : itsSteps) {
+    if (!step) continue;
 
-    if (auto s = std::dynamic_pointer_cast<Predict>(itsSteps[dir])) {
+    step->setInfo(infoIn);
+
+    if (auto s = std::dynamic_pointer_cast<Predict>(step)) {
       s->SetThreadData(*itsThreadPool, &itsMeasuresMutex);
-    } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(itsSteps[dir])) {
+    } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(step)) {
       itsSolIntCount =
           std::max(itsSolIntCount,
                    s->GetBufferSize() / itsSteps.size() / itsRequestedSolInt);
       // We increment by one so the IDGPredict will not flush in its process
       s->SetBufferSize(itsRequestedSolInt * itsSolIntCount + 1);
-    } else if (!std::dynamic_pointer_cast<MsColumnReader>(itsSteps[dir])) {
+    } else if (!std::dynamic_pointer_cast<MsColumnReader>(step)) {
       throw std::runtime_error("DDECal received an invalid first model step");
     }
   }
@@ -232,10 +253,12 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
 
   // For each sub step chain, add a resultstep and get required fieilds.
-  itsRequiredFields.reserve(itsSteps.size());
+  itsRequiredFields.resize(itsSteps.size());
   itsResultSteps.resize(itsSteps.size());
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
-    itsRequiredFields.emplace_back(base::GetChainRequiredFields(itsSteps[dir]));
+    if (!itsSteps[dir]) continue;
+
+    itsRequiredFields[dir] = base::GetChainRequiredFields(itsSteps[dir]);
 
     itsResultSteps[dir] =
         std::make_shared<MultiResultStep>(itsRequestedSolInt * itsSolIntCount);
@@ -305,7 +328,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   itsSourceDirections.reserve(itsSteps.size());
   for (const std::shared_ptr<ModelDataStep>& s : itsSteps) {
-    itsSourceDirections.push_back(s->GetFirstDirection());
+    itsSourceDirections.push_back(s ? s->GetFirstDirection()
+                                    : getInfo().phaseCenterDirection());
   }
 
   // Prepare positions and names for the used antennas only.
@@ -368,10 +392,15 @@ void DDECal::show(std::ostream& os) const {
      << "  keep model:          " << itsSettings.keep_model_data << '\n';
   for (unsigned int i = 0; i < itsSteps.size(); ++i) {
     std::shared_ptr<Step> step = itsSteps[i];
-    os << "Model steps for direction " << itsDirections[i][0] << '\n';
-    do {
-      step->show(os);
-    } while (step = step->getNextStep());
+    if (step) {
+      os << "Model steps for direction " << itsDirections[i][0] << '\n';
+      do {
+        step->show(os);
+      } while (step = step->getNextStep());
+    } else {
+      os << "Direction " << itsDirections[i][0] << " reuses data from "
+         << itsDirectionNames[i] << "";
+    }
     os << '\n';
   }
   itsUVWFlagStep.show(os);
@@ -400,6 +429,7 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   os << "          ";
   os << "Substeps taken:" << '\n';
   for (auto& step : itsSteps) {
+    if (!step) continue;
     os << "          ";
     step->showTimings(os, duration);
   }
@@ -489,6 +519,10 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 
 void DDECal::doSolve() {
   for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
+    // For directions that reuse model data, the model data should already be
+    // in the input buffer.
+    if (!itsSteps[dir]) continue;
+
     if (auto s = dynamic_cast<IDGPredict*>(itsSteps[dir].get())) {
       itsTimerPredict.start();
       s->flush();
@@ -636,6 +670,17 @@ void DDECal::doSolve() {
 bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
   itsTimer.start();
 
+  // Check that all extra input data is there.
+  // TODO(AST-1241): Handle these dependencies using Fields.
+  for (const std::string& name : itsSettings.reuse_model_data) {
+    if (!bufin->HasData(name)) {
+      throw std::runtime_error("DDECal '" + itsSettings.name +
+                               "' did not receive model data named '" + name +
+                               "'.");
+    }
+    assert(bufin->GetData(name).shape() == bufin->GetData().shape());
+  }
+
   // Create a new solution interval if needed
   if (itsInputBuffers.empty() ||
       itsInputBuffers.back().size() == itsRequestedSolInt) {
@@ -656,8 +701,8 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
                             std::pair<size_t, size_t>(0, 0));
     itsWeightsPerAntenna.assign(itsWeightsPerAntenna.size(), 0.0);
 
-    for (size_t dir = 0; dir < itsResultSteps.size(); ++dir) {
-      itsResultSteps[dir]->clear();
+    for (std::shared_ptr<MultiResultStep>& result_step : itsResultSteps) {
+      if (result_step) result_step->clear();
     }
     itsInputBuffers.clear();
   }
@@ -691,8 +736,10 @@ void DDECal::doPrepare() {
   itsTimerPredict.start();
 
   itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
-    itsSteps[dir]->process(
-        std::make_unique<DPBuffer>(*input_buffer, itsRequiredFields[dir]));
+    if (itsSteps[dir]) {  // When reusing model data, there is no step.
+      itsSteps[dir]->process(
+          std::make_unique<DPBuffer>(*input_buffer, itsRequiredFields[dir]));
+    }
   });
 
   // Handle weights and flags

@@ -3,9 +3,6 @@
 
 #include "MsColumnReader.h"
 
-#include <casacore/casa/Quanta/Quantum.h>
-#include <casacore/measures/Measures/MCDirection.h>
-#include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
 using casacore::ArrayColumn;
@@ -58,12 +55,7 @@ void MsColumnReader::showTimings(std::ostream& os,
 }
 
 base::Direction MsColumnReader::GetFirstDirection() const {
-  using casacore::MDirection;
-  const MDirection dirJ2000(
-      MDirection::Convert(getInfo().phaseCenter(), MDirection::J2000)());
-  const casacore::Quantum<casacore::Vector<double>> angles =
-      dirJ2000.getAngle();
-  return {angles.getBaseValue()[0], angles.getBaseValue()[1]};
+  return getInfo().phaseCenterDirection();
 }
 
 }  // namespace steps

@@ -1,4 +1,4 @@
-# Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+# Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
@@ -1039,3 +1039,45 @@ def test_minvisratio(copy_data_to_model_data):
         f"SELECT FROM {MSIN} WHERE NTRUE(DDEFLAG)!=4 OR ANY(DDEFLAG[1,]=FALSE)"
     )
     assert_taql(f"SELECT FROM {MSIN} WHERE ANY(DDEWEIGHTS!=4)")
+
+
+def test_reuse_model_data():
+    # Apply ddecal directly and generate reference output.
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            "ddecal.h5parm=cal_ref.h5",
+            "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
+            "ddecal.subtract=true",
+            "msout=.",
+            "msout.datacolumn=DATA_REF",
+        ]
+    )
+
+    # Run ddecal twice where the second ddecal reuses model data.
+    check_call(
+        [
+            tcf.DP3EXE,
+            "numthreads=1",
+            f"msin={MSIN}",
+            "steps=[ddecal1,ddecal2]",
+            f"ddecal1.sourcedb={MSIN}/sky",
+            "ddecal1.directions=[[center,dec_off,ra_off,radec_off]]",
+            "ddecal1.onlypredict=true",
+            "ddecal1.keepmodel=true",
+            "ddecal2.reusemodel=[ddecal1.center]",
+            "ddecal2.h5parm=cal_reuse.h5",
+            "ddecal2.subtract=true",
+            "msout=.",
+            "msout.datacolumn=DATA_REUSE",
+        ]
+    )
+
+    assert_taql(
+        f"select from (select abs(gsumsqr(DATA_REUSE-DATA_REF)) as diff from {MSIN}) where diff>1.e-6"
+    )

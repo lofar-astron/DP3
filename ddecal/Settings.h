@@ -137,6 +137,7 @@ struct Settings {
   const size_t lbfgs_minibatches;
 
   const std::vector<std::string> model_data_columns;
+  const std::vector<std::string> reuse_model_data;
 
   const std::string idg_region_filename;
   const std::vector<std::string> idg_image_filenames;

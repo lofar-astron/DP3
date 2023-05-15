@@ -6,24 +6,24 @@
 
 #include <dp3/base/DPInfo.h>
 
-#include "../common/Epsilon.h"
+#include <algorithm>
+#include <cmath>
+#include <numeric>
 
-#include "../steps/InputStep.h"
-
-#include <casacore/measures/Measures/MeasConvert.h>
-#include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/BasicSL/STLIO.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 #include <EveryBeam/correctionmode.h>
 
 #include <aocommon/threadpool.h>
 
-#include <algorithm>
-#include <cmath>
-#include <numeric>
+#include "../common/Epsilon.h"
 
 using casacore::MDirection;
 using casacore::MPosition;
@@ -471,6 +471,14 @@ const std::vector<int>& DPInfo::getAutoCorrIndex() const {
 void DPInfo::setNThreads(const unsigned int n_threads) {
   n_threads_ =
       (n_threads == 0) ? aocommon::system::ProcessorCount() : n_threads;
+}
+
+base::Direction DPInfo::phaseCenterDirection() const {
+  const MDirection j2000_direction(
+      MDirection::Convert(phase_center_, MDirection::J2000)());
+  const casacore::Quantum<casacore::Vector<double>> angles =
+      j2000_direction.getAngle();
+  return {angles.getBaseValue()[0], angles.getBaseValue()[1]};
 }
 
 }  // namespace base

@@ -122,6 +122,7 @@ Settings::Settings(const common::ParameterSet& _parset,
 
       // Column reader settings
       model_data_columns(ReadModelDataColumns()),
+      reuse_model_data(GetStringVector("reusemodel")),
 
       // IDG settings
       idg_region_filename(GetString("idg.regions", "")),
