@@ -6,10 +6,16 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xio.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xview.hpp>
+
 #include <dp3/base/DP3.h>
 
 #include "../../MSReader.h"
 #include "../../MultiResultStep.h"
+#include "../../ResultStep.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 #include "tStepCommon.h"
 
@@ -299,6 +305,113 @@ BOOST_FIXTURE_TEST_CASE(keep_model_data_idg, KeepModelDataFixture) {
   // followed by an increasing number.
   CheckOutput(
       {kPrefix + "dir0", kPrefix + "dir1", kPrefix + "dir2", kPrefix + "dir3"});
+}
+
+BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
+  const std::string kModelName{"model name"};
+  const std::size_t kNCorrelations{4};
+  const std::size_t kNChannels{1};
+  const std::size_t kNStations{5};
+  const std::size_t kNBaselines{(kNStations * (kNStations - 1)) / 2};
+  const std::array<std::size_t, 3> kShape{kNBaselines, kNChannels,
+                                          kNCorrelations};
+  const std::vector<std::string> kAntennaNames(kNStations, "");
+  const std::vector<double> kAntennaDiameters(kNStations, 1);
+  const std::vector<casacore::MPosition> kAntennaPositions(
+      kNStations, casacore::MPosition());
+  const std::complex<float> kDataValue{2.0f, 2.0f};
+  const std::complex<float> kStation0DataValue{4.0f, -4.0f};
+  const std::complex<float> kModelDataValue{8.0f, 8.0f};
+  const std::vector<std::complex<double>> kExpectedSolution{
+      {0.32391142, -0.94158080},
+      {0.47395513, 0.16304438},
+      {0.47395513, 0.16304438},
+      {0.47395513, 0.16304438},
+      {0.47395513, 0.16304438}};
+  // Proof that kExpectedSolution is correct:
+  BOOST_CHECK_CLOSE(kExpectedSolution[0] *
+                        std::complex<double>(kModelDataValue) *
+                        std::conj(kExpectedSolution[1]),
+                    std::complex<double>(kStation0DataValue), 1.0);
+  BOOST_CHECK_CLOSE(kExpectedSolution[1] *
+                        std::complex<double>(kModelDataValue) *
+                        std::conj(kExpectedSolution[1]),
+                    std::complex<double>(kDataValue), 1.0);
+
+  std::vector<int> antenna1;
+  std::vector<int> antenna2;
+  for (std::size_t station1 = 0; station1 < kNStations; ++station1) {
+    for (std::size_t station2 = station1 + 1; station2 < kNStations;
+         ++station2) {
+      antenna1.push_back(static_cast<int>(station1));
+      antenna2.push_back(static_cast<int>(station2));
+    }
+  }
+
+  dp3::base::DPInfo info(kNCorrelations, kNChannels);
+  info.setAntennas(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+                   antenna1, antenna2);
+  info.setChannels(std::vector<double>(kNChannels, 42.0e6),
+                   std::vector<double>(kNChannels, 1.0e6));
+  info.setNThreads(1);
+
+  auto ddecal = std::make_shared<DDECal>(
+      CreateParameterSet({{"keepmodel", "true"},
+                          {"reusemodel", "[" + kModelName + "]"},
+                          {"subtract", "false"},
+                          {"storebuffer", "true"},
+                          {"mode", "scalar"},
+                          {"h5parm", "h5parm_output_is_mandatory.h5"}}),
+      "");
+  auto result_step = std::make_shared<dp3::steps::ResultStep>();
+  ddecal->setNextStep(result_step);
+  ddecal->setInfo(info);
+
+  auto buffer = std::make_unique<dp3::base::DPBuffer>();
+
+  xt::xtensor<std::complex<float>, 3> input_data(kShape, kDataValue);
+  xt::view(input_data, xt::range(0, kNStations - 1), xt::all(), xt::all())
+      .fill(kStation0DataValue);
+
+  buffer->ResizeData(kShape);
+  buffer->GetData().assign(input_data);
+  buffer->AddData(kModelName);
+  buffer->GetData(kModelName).fill(kModelDataValue);
+
+  // Use default flags and weights.
+  buffer->ResizeFlags(kShape);
+  buffer->GetFlags().fill(false);
+  buffer->ResizeWeights(kShape);
+  buffer->GetWeights().fill(1.0f);
+
+  ddecal->process(std::move(buffer));
+  ddecal->finish();
+
+  buffer = result_step->take();
+  BOOST_REQUIRE(buffer);
+
+  // Check model data buffer. It should be close to input data buffer.
+  BOOST_REQUIRE(buffer->HasData(kModelName));
+  // TODO(AST-1278): Try comparing complex numbers with xt::allclose.
+  BOOST_CHECK(xt::allclose(xt::real(buffer->GetData(kModelName)),
+                           xt::real(input_data), 1.0e-2));
+  BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData(kModelName)),
+                           xt::imag(input_data), 1.0e-2));
+
+  // Check that (main) data, weights and flags remained equal.
+  BOOST_CHECK_EQUAL(buffer->GetData(), input_data);
+  BOOST_CHECK_EQUAL(buffer->GetFlags(), (xt::xtensor<bool, 3>(kShape, false)));
+  BOOST_CHECK_EQUAL(buffer->GetWeights(),
+                    (xt::xtensor<float, 3>(kShape, 1.0f)));
+
+  // Check the gains in the solutions.
+  const std::vector<std::vector<std::complex<double>>>& solution =
+      buffer->GetSolution();
+  BOOST_REQUIRE_EQUAL(solution.size(), 1);
+  BOOST_REQUIRE_EQUAL(solution.front().size(), kNStations);
+  for (size_t i = 0; i < kNStations; ++i) {
+    BOOST_CHECK_CLOSE(solution.front()[i], kExpectedSolution[i], 1.0e-3);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

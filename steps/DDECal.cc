@@ -17,6 +17,7 @@
 #include <xtensor/xview.hpp>
 
 #include <aocommon/matrix2x2.h>
+#include <aocommon/matrix2x2diag.h>
 
 #include <schaapcommon/facets/facet.h>
 
@@ -546,10 +547,9 @@ void DDECal::doSolve() {
   // DDECal requires the unweighted model model when the model is subtracted
   // after calibration. Since the model data can be large, memory allocation
   // for this optional feature is done conditionally.
-  const bool subtract_corrected_model =
-      itsSettings.subtract || itsSettings.only_predict;
-  const bool keep_model_data =
-      subtract_corrected_model || itsSettings.keep_model_data;
+  const bool keep_model_data = itsSettings.only_predict ||
+                               itsSettings.subtract ||
+                               itsSettings.keep_model_data;
 
   for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
     const size_t solution_index = itsFirstSolutionIndex + i;
@@ -595,8 +595,10 @@ void DDECal::doSolve() {
       itsNApproxIter[solution_index] = solveResult.constraint_iterations;
     }
 
-    if (subtract_corrected_model) {
-      subtractCorrectedModel(i);
+    if (itsSettings.only_predict) {
+      SumModels(i);
+    } else if (itsSettings.subtract || itsSettings.keep_model_data) {
+      CorrectAndSubtractModels(i);
     }
 
     // Check for nonconvergence and flag if desired. Unconverged solutions are
@@ -840,94 +842,141 @@ void DDECal::finish() {
   getNextStep()->finish();
 }
 
-void DDECal::subtractCorrectedModel(size_t bufferIndex) {
-  // The original unweighted data and model data are still in the solution
-  // interval. Here we apply the solutions to all the model data directions and
-  // subtract them from the data.
+namespace {
+aocommon::MC2x2 ApplyFullJonesSolution(
+    const std::vector<std::complex<double>>& solutions, size_t solution_index1,
+    size_t solution_index2, const std::complex<float>* model_data) {
+  const aocommon::MC2x2 solution1(&solutions[solution_index1 * 4]);
+  const aocommon::MC2x2 solution2(&solutions[solution_index2 * 4]);
+  return solution1.Multiply(aocommon::MC2x2(model_data))
+      .MultiplyHerm(solution2);
+}
 
-  const size_t n_directions = itsSolutionsPerDirection.size();
-  const size_t n_solutions = std::accumulate(
-      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
-  if (n_solutions != n_directions) {
-    throw std::runtime_error(
-        "Subtraction is not implemented for DDECal with direction dependent "
-        "solution intervals");
+aocommon::MC2x2 ApplyDiagonalSolution(
+    const std::vector<std::complex<double>>& solutions, size_t solution_index1,
+    size_t solution_index2, const std::complex<float>* model_data) {
+  const aocommon::MC2x2Diag solution1(&solutions[solution_index1 * 2]);
+  const aocommon::MC2x2Diag solution2(&solutions[solution_index2 * 2]);
+  return solution1 * aocommon::MC2x2(model_data) * solution2.HermTranspose();
+}
+
+aocommon::MC2x2 ApplyScalarSolution(
+    const std::vector<std::complex<double>>& solutions, size_t solution_index1,
+    size_t solution_index2, const std::complex<float>* model_data) {
+  const std::complex<double> solution_factor =
+      solutions[solution_index1] * std::conj(solutions[solution_index2]);
+  return aocommon::MC2x2(model_data) * solution_factor;
+}
+}  // namespace
+
+void DDECal::ApplySolution(
+    DPBuffer& buffer, size_t baseline, size_t channel,
+    const std::vector<std::complex<double>>& solutions) const {
+  const size_t antenna1 = getInfo().getAnt1()[baseline];
+  const size_t antenna2 = getInfo().getAnt2()[baseline];
+  const size_t n_directions = itsDirectionNames.size();
+
+  aocommon::MC2x2 sum_over_directions = aocommon::MC2x2::Zero();
+
+  for (size_t direction = 0; direction != n_directions; ++direction) {
+    const size_t solution_index1 = antenna1 * n_directions + direction;
+    const size_t solution_index2 = antenna2 * n_directions + direction;
+
+    std::complex<float>* model_data =
+        &buffer.GetData(itsDirectionNames[direction])(baseline, channel, 0);
+
+    aocommon::MC2x2 corrected_model_data;
+    if (itsSolver->NSolutionPolarizations() == 4) {
+      corrected_model_data = ApplyFullJonesSolution(
+          solutions, solution_index1, solution_index2, model_data);
+    } else if (itsSolver->NSolutionPolarizations() == 2) {
+      corrected_model_data = ApplyDiagonalSolution(solutions, solution_index1,
+                                                   solution_index2, model_data);
+    } else {
+      assert(itsSolver->NSolutionPolarizations() == 1);
+      corrected_model_data = ApplyScalarSolution(solutions, solution_index1,
+                                                 solution_index2, model_data);
+    }
+
+    // Always update sum_over_directions since 'if (itsSettings.subtract)'
+    // is probably more expensive than adding 8 aligned doubles.
+    sum_over_directions += corrected_model_data;
+
+    if (itsSettings.keep_model_data) {
+      for (size_t correlation = 0; correlation < 4; ++correlation) {
+        model_data[correlation] = corrected_model_data[correlation];
+      }
+    }
   }
 
-  const size_t solution_index = itsFirstSolutionIndex + bufferIndex;
+  if (itsSettings.subtract) {
+    for (size_t correlation = 0; correlation < 4; ++correlation) {
+      buffer.GetData()(baseline, channel, correlation) -=
+          sum_over_directions[correlation];
+    }
+  }
+}
+
+void DDECal::CorrectAndSubtractModels(size_t buffer_index) {
+  // The original unweighted data and model data are still in the solution
+  // interval. Here we apply the solutions to all the model data directions and
+  // subtract them from the data if the "subtract" setting is true.
+
+  const size_t n_solutions = std::accumulate(
+      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+  if (n_solutions != itsSolutionsPerDirection.size()) {
+    throw std::runtime_error(
+        "Model correction is not implemented for DDECal with direction "
+        "dependent solution intervals");
+  }
+
+  const size_t solution_index = itsFirstSolutionIndex + buffer_index;
   assert(solution_index < itsSols.size());
   std::vector<std::vector<std::complex<double>>>& solutions =
       itsSols[solution_index];
 
-  assert(bufferIndex < itsInputBuffers.size());
+  assert(buffer_index < itsInputBuffers.size());
   std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
-      itsInputBuffers[bufferIndex];
+      itsInputBuffers[buffer_index];
 
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
-  const size_t nDir = itsDirections.size();
   for (std::unique_ptr<DPBuffer>& data_buffer : solution_interval) {
-    for (size_t bl = 0; bl < nBl; ++bl) {
-      const size_t ant1 = info().getAnt1()[bl];
-      const size_t ant2 = info().getAnt2()[bl];
+    for (size_t bl = 0; bl < info().nbaselines(); ++bl) {
       size_t chanblock = 0;
 
-      for (size_t ch = 0; ch < nCh; ++ch) {
+      for (size_t ch = 0; ch < info().nchan(); ++ch) {
         if (ch == itsChanBlockStart[chanblock + 1]) {
           chanblock++;
         }
 
-        std::complex<float>* data = &data_buffer->GetData()(bl, ch, 0);
-        if (itsSettings.only_predict) {
-          aocommon::MC2x2 value(aocommon::MC2x2::Zero());
-
-          for (size_t dir = 0; dir != nDir; ++dir) {
-            const std::complex<float>* model_data =
-                &data_buffer->GetData(itsDirectionNames[dir])(bl, ch, 0);
-            value += aocommon::MC2x2(model_data);
-          }
-          for (size_t cr = 0; cr < 4; ++cr) data[cr] = value[cr];
-        } else {
-          aocommon::MC2x2 value(aocommon::MC2x2::Zero());
-          for (size_t dir = 0; dir != nDir; ++dir) {
-            const std::complex<float>* model_data =
-                &data_buffer->GetData(itsDirectionNames[dir])(bl, ch, 0);
-            if (itsSolver->NSolutionPolarizations() == 4) {
-              const aocommon::MC2x2 sol1(
-                  &solutions[chanblock][(ant1 * nDir + dir) * 4]);
-              const aocommon::MC2x2 sol2(
-                  &solutions[chanblock][(ant2 * nDir + dir) * 4]);
-              value +=
-                  sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
-            } else if (itsSolver->NSolutionPolarizations() == 2) {
-              const aocommon::MC2x2 sol1(
-                  solutions[chanblock][(ant1 * nDir + dir) * 2 + 0], 0.0, 0.0,
-                  solutions[chanblock][(ant1 * nDir + dir) * 2 + 1]);
-              const aocommon::MC2x2 sol2(
-                  solutions[chanblock][(ant2 * nDir + dir) * 2 + 0], 0.0, 0.0,
-                  solutions[chanblock][(ant2 * nDir + dir) * 2 + 1]);
-              value +=
-                  sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
-            } else {
-              std::complex<double> solfactor(
-                  solutions[chanblock][ant1 * nDir + dir] *
-                  std::conj(solutions[chanblock][ant2 * nDir + dir]));
-              for (size_t cr = 0; cr < 4; ++cr)
-                value[cr] += solfactor * std::complex<double>(model_data[cr]);
-            }
-          }
-          for (size_t cr = 0; cr < 4; ++cr) data[cr] -= value[cr];
-        }
-      }  // channel loop
-    }    // bl loop
-
-    if (!itsSettings.keep_model_data) {
-      // Remove unweighted model data, since DDECal no longer needs it.
-      for (size_t dir = 0; dir != nDir; ++dir) {
-        data_buffer->RemoveData(itsDirectionNames[dir]);
+        ApplySolution(*data_buffer, bl, ch, solutions[chanblock]);
       }
     }
-  }  // time loop
+    if (!itsSettings.keep_model_data) {
+      for (const std::string& name : itsDirectionNames) {
+        data_buffer->RemoveData(name);
+      }
+    }
+  }
+}
+
+void DDECal::SumModels(size_t buffer_index) {
+  assert(buffer_index < itsInputBuffers.size());
+  std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
+      itsInputBuffers[buffer_index];
+
+  for (std::unique_ptr<DPBuffer>& data_buffer : solution_interval) {
+    for (auto name_iterator = itsDirectionNames.begin();
+         name_iterator != itsDirectionNames.end(); ++name_iterator) {
+      if (itsDirectionNames.begin() == name_iterator) {
+        data_buffer->GetData().assign(data_buffer->GetData(*name_iterator));
+      } else {
+        data_buffer->GetData() += data_buffer->GetData(*name_iterator);
+      }
+      if (!itsSettings.keep_model_data) {
+        data_buffer->RemoveData(*name_iterator);
+      }
+    }
+  }
 }
 
 }  // namespace steps
