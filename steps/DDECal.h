@@ -88,7 +88,23 @@ class DDECal : public Step {
   /// Write all solutions to an H5Parm file using itsSolutionWriter.
   void WriteSolutions();
 
-  void subtractCorrectedModel(size_t bufferIndex);
+  /// Sums all model data buffers into the main data buffer.
+  /// Removes the model data buffers if 'keepmodel' is false.
+  /// This function implements the behavior for the "onlypredict" setting.
+  void SumModels(size_t buffer_index);
+
+  /// Applies a single solution to all directions.
+  /// (Helper function for CorrectAndSubtractModels.)
+  void ApplySolution(
+      base::DPBuffer& buffer, size_t baseline, size_t channel,
+      const std::vector<std::complex<double>>& channel_block_solutions) const;
+
+  /// Applies the solutions to the model data for all directions.
+  /// If "keepmodel" is true, overwrites the model data with the corrected model
+  /// data. If "keepmodel" is false, removes the model data buffers.
+  /// If "subtract" is true, subtracts all corrected model data from the main
+  /// input data buffer.
+  void CorrectAndSubtractModels(size_t buffer_index);
 
   const ddecal::Settings itsSettings;
 
