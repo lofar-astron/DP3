@@ -366,8 +366,8 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
   const bool* flag = buffer->GetFlags().data();
 
   if (!itsUVWFlagStep.isDegenerate()) {
-    // UVW flagging happens on a copy of the buffer, so these flags are not
-    // written
+    // UVW flagging happens on a copy of the buffer, so the input buffer flags
+    // do not change.
 
     common::Fields uvwflag_fields = itsUVWFlagStep.getRequiredFields();
 
@@ -430,7 +430,7 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
     if (itsApplySolution) {
       const xt::xtensor<std::complex<float>, 3> invsol =
           invertSol(itsSols.back());
-      for (unsigned int stepInSolInt = 0; stepInSolInt < itsSolInt;
+      for (std::size_t stepInSolInt = 0; stepInSolInt < itsSolInt;
            stepInSolInt++) {
         applySolution(*itsBuffers[stepInSolInt], invsol);
         getNextStep()->process(std::move(itsBuffers[stepInSolInt]));
