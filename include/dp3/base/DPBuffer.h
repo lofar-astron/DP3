@@ -123,10 +123,10 @@ class DPBuffer {
   void copy(const DPBuffer& that);
 
   /// Copy that to this.
-  /// Copy row numbers using reference semantics. Copy all other members (time,
-  /// exposure, fields, solutions) using value semantics.
+  /// Copy row numbers using reference semantics. Copy all other members using
+  /// value semantics.
   /// Do not copy extra data fields yet (TODO in AST-1241).
-  /// @param fields Copy these fields from that. Do not copy the omitted fields.
+  /// @param fields Copy the given fields from that.
   void Copy(const DPBuffer& that, const common::Fields& fields);
 
   /// Ensure that this buffer has independent copies of data items / that
