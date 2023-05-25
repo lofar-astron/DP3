@@ -11,6 +11,8 @@
 
 #include "InputStep.h"
 
+#include <xtensor/xtensor.hpp>
+
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/BDABuffer.h>
 
@@ -55,7 +57,7 @@ class ScaleData : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   /// Process the DBA data.
   /// It keeps the data.
@@ -80,7 +82,7 @@ class ScaleData : public Step {
 
  private:
   /// Fill the scale factors for stations having different nr of tiles.
-  void fillSizeScaleFactors(unsigned int nNominal, std::vector<double>& fact);
+  void fillSizeScaleFactors(unsigned int nNominal, std::vector<float>& fact);
 
   std::string itsName;
   const MsType itsInputType;
@@ -88,9 +90,9 @@ class ScaleData : public Step {
   bool itsScaleSize;
   std::vector<std::string> itsStationExp;  ///< station regex strings
   std::vector<std::string> itsCoeffStr;    ///< coeff per station regex
-  std::vector<std::vector<double>>
-      itsStationFactors;              ///< scale factor per station,freq
-  casacore::Cube<double> itsFactors;  ///< scale factor per baseline,freq,pol
+  std::vector<std::vector<float>>
+      itsStationFactors;             ///< scale factor per station,freq
+  xt::xtensor<float, 3> itsFactors;  ///< scale factor per baseline,freq,pol
   common::NSTimer itsTimer;
 };
 

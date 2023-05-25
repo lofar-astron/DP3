@@ -23,6 +23,9 @@
 #include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Utilities/Regex.h>
 
+#include <xtensor/xadapt.hpp>
+#include <xtensor/xview.hpp>
+
 #include <cassert>
 #include <iostream>
 
@@ -84,7 +87,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
   // Get the frequencies.
   const std::vector<double>& freqs = infoIn.chanFreqs();
   // Convert the coefficients to scale factors per freq per station regex.
-  std::vector<std::vector<double>> scaleVec(itsStationExp.size());
+  std::vector<std::vector<float>> scaleVec(itsStationExp.size());
   std::vector<Regex> stationRegex(itsStationExp.size());
   for (unsigned int i = 0; i < scaleVec.size(); ++i) {
     // Convert the station string to a proper Regex object.
@@ -94,7 +97,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
     std::vector<double> coeff(coeffPar.getDoubleVector());
     if (coeff.size() <= 0)
       throw std::runtime_error("A ScaleData coeffs vector is empty");
-    std::vector<double>& scales = scaleVec[i];
+    std::vector<float>& scales = scaleVec[i];
     scales.reserve(freqs.size());
     // Evaluate the polynomial for each frequency giving the scale factors.
     for (unsigned int j = 0; j < freqs.size(); ++j) {
@@ -109,7 +112,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
   // If needed, find the nr of tiles/dipoles used for each station and
   // fill the size scale factors.
   unsigned int nant = infoIn.antennaNames().size();
-  std::vector<double> extraFactors(nant, 1.);
+  std::vector<float> extraFactors(nant, 1.);
   if (itsScaleSize || !itsScaleSizeGiven) {
     fillSizeScaleFactors(nNominal, extraFactors);
     if (extraFactors.size() != nant)
@@ -141,13 +144,13 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
   unsigned int nb = infoIn.nbaselines();
   unsigned int nf = freqs.size();
   unsigned int nc = infoIn.ncorr();
-  itsFactors.resize(nc, nf, nb);
-  double* factPtr = itsFactors.data();
+  itsFactors.resize({nb, nf, nc});
+  float* factPtr = itsFactors.data();
   for (unsigned int i = 0; i < nb; ++i) {
-    const std::vector<double>& f1 = itsStationFactors[infoIn.getAnt1()[i]];
-    const std::vector<double>& f2 = itsStationFactors[infoIn.getAnt2()[i]];
+    const std::vector<float>& f1 = itsStationFactors[infoIn.getAnt1()[i]];
+    const std::vector<float>& f2 = itsStationFactors[infoIn.getAnt2()[i]];
     for (unsigned int j = 0; j < nf; ++j) {
-      double fact = sqrt(f1[j] * f2[j]);
+      float fact = sqrt(f1[j] * f2[j]);
       for (unsigned int k = 0; k < nc; ++k) {
         *factPtr++ = fact;
       }
@@ -181,42 +184,27 @@ void ScaleData::showTimings(std::ostream& os, double duration) const {
   os << " ScaleData " << itsName << '\n';
 }
 
-bool ScaleData::process(const DPBuffer& buf) {
+bool ScaleData::process(std::unique_ptr<base::DPBuffer> buf) {
   itsTimer.start();
-  // Apply the scale factors.
-  DPBuffer bufNew(buf);
-  const IPosition shp = itsFactors.shape();
-  assert(buf.GetCasacoreData().shape() == shp);
-  // Multiply the data and factors giving a new data array.
-  casacore::Array<casacore::Complex> data(shp);
-  arrayContTransform(
-      static_cast<const casacore::Array<casacore::Complex>&>(
-          buf.GetCasacoreData()),
-      static_cast<const casacore::Array<double>&>(itsFactors), data,
-      casacore::Multiplies<casacore::Complex, double, casacore::Complex>());
-  bufNew.setData(data);
+  buf->GetData() *= itsFactors;
   itsTimer.stop();
-  getNextStep()->process(bufNew);
+  getNextStep()->process(std::move(buf));
   return true;
 }
 
 bool ScaleData::process(std::unique_ptr<BDABuffer> bda_buffer) {
   itsTimer.start();
-
-  // Apply the scale factors.
   std::vector<BDABuffer::Row> rows = bda_buffer->GetRows();
   for (std::size_t row_nr = 0; row_nr < rows.size(); ++row_nr) {
-    const casacore::Array<double>& factors =
-        itsFactors[rows[row_nr].baseline_nr];
-    // Verify vectors are the same size
-    assert(rows[row_nr].n_correlations * rows[row_nr].n_channels ==
-           factors.size());
+    auto factors =
+        xt::view(itsFactors, rows[row_nr].baseline_nr, xt::all(), xt::all());
+    [[maybe_unused]] const std::size_t n_elements =
+        rows[row_nr].n_correlations * rows[row_nr].n_channels;
+    assert(factors.size() == n_elements);
 
-    std::complex<float>* data = bda_buffer->GetData(row_nr);
-    for (const double& factor : factors) {
-      *data *= factor;
-      ++data;
-    }
+    auto data = xt::adapt(bda_buffer->GetData(row_nr),
+                          std::array{factors.shape()[0], factors.shape()[1]});
+    data *= factors;
   }
 
   itsTimer.stop();
@@ -230,7 +218,7 @@ void ScaleData::finish() {
 }
 
 void ScaleData::fillSizeScaleFactors(unsigned int nNominal,
-                                     std::vector<double>& fact) {
+                                     std::vector<float>& fact) {
   casacore::Table ms(getInfo().msName());
   if (!ms.keywordSet().isDefined("LOFAR_ANTENNA_FIELD"))
     throw std::runtime_error(

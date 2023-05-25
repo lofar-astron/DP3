@@ -4,8 +4,15 @@
 //
 // @author Ger van Diepen
 
+#include <complex>
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
+
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xview.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -35,19 +42,20 @@ BOOST_AUTO_TEST_SUITE(scaledata)
 // It can be used with different nr of times, channels, etc.
 class TestInput : public dp3::steps::MockInput {
  public:
-  TestInput(int ntime, int nbl, int nchan, int ncorr)
-      : itsCount(0),
-        itsNTime(ntime),
-        itsNBl(nbl),
-        itsNChan(nchan),
-        itsNCorr(ncorr) {
+  TestInput(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+            std::size_t ncorr)
+      : count_(0),
+        n_time_(ntime),
+        n_baselines_(nbl),
+        n_channels_(nchan),
+        n_correlations_(ncorr) {
     info() = DPInfo(ncorr, nchan);
     info().setTimes(0.0, (ntime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(nbl);
     vector<int> ant2(nbl);
-    for (int i = 0; i < nbl; ++i) {
+    for (std::size_t i = 0; i < nbl; ++i) {
       ant1[i] = i / 4;
       ant2[i] = i % 4;
     }
@@ -84,41 +92,46 @@ class TestInput : public dp3::steps::MockInput {
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 1e6);
     std::vector<double> chanFreqs;
-    for (int i = 0; i < nchan; i++) {
+    for (std::size_t i = 0; i < nchan; i++) {
       chanFreqs.push_back((kBaseFreq + i) * 1e6);
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<dp3::base::DPBuffer> buffer) override {
     // Stop when all times are done.
-    if (itsCount == itsNTime) {
+    if (count_ == n_time_) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 10 + itsCount * 6);
+
+    buffer->setTime(count_ * 30 + 4472025740.0);
+    const std::array shape{n_baselines_, n_channels_, n_correlations_};
+    buffer->ResizeData(shape);
+    std::generate(buffer->GetData().begin(), buffer->GetData().end(),
+                  [&, i = -1]() mutable {
+                    ++i;
+                    return std::complex<float>(i + count_ * 10,
+                                               i - 10 + count_ * 6);
+                  });
+    buffer->ResizeWeights(shape);
+    std::generate(buffer->GetWeights().begin(), buffer->GetWeights().end(),
+                  [result = 0.5f]() mutable {
+                    result += 0.01f;
+                    return result;
+                  });
+
+    casacore::Matrix<double> uvw(3, n_baselines_);
+    for (std::size_t i = 0; i < n_baselines_; ++i) {
+      uvw(0, i) = 1 + count_ + i;
+      uvw(1, i) = 2 + count_ + i;
+      uvw(2, i) = 3 + count_ + i;
     }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    indgen(weights, 0.5f, 0.01f);
-    casacore::Matrix<double> uvw(3, itsNBl);
-    for (int i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = 1 + itsCount + i;
-      uvw(1, i) = 2 + itsCount + i;
-      uvw(2, i) = 3 + itsCount + i;
-    }
-    DPBuffer buf;
-    buf.setTime(itsCount * 30 + 4472025740.0);
-    buf.setData(data);
-    buf.setWeights(weights);
-    buf.setUVW(uvw);
-    casacore::Cube<bool> flags(data.shape());
-    flags = false;
-    buf.setFlags(flags);
-    getNextStep()->process(buf);
-    ++itsCount;
+    buffer->setUVW(uvw);
+    buffer->ResizeFlags(shape);
+    buffer->GetFlags().fill(false);
+    getNextStep()->process(std::move(buffer));
+    ++count_;
     return true;
   }
 
@@ -127,18 +140,23 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
+  int count_;
+  int n_time_;
+  std::size_t n_baselines_;
+  std::size_t n_channels_;
+  std::size_t n_correlations_;
 };
 
 // Class to check result of TestInput run by TestScaling.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(int ntime, int nbl, int nchan, int ncorr)
-      : itsCount(0),
-        itsNTime(ntime),
-        itsNBl(nbl),
-        itsNChan(nchan),
-        itsNCorr(ncorr) {}
+  TestOutput(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+             std::size_t ncorr)
+      : count_(0),
+        n_time_(ntime),
+        n_baselines_(nbl),
+        n_channels_(nchan),
+        n_correlations_(ncorr) {}
 
  private:
   void addData(casacore::Cube<casacore::Complex>& to,
@@ -152,61 +170,72 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         conj(from(casacore::IPosition(3, 0, 0, bl),
                   casacore::IPosition(3, to.nrow() - 1, to.ncolumn() - 1, bl)));
   }
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Fill data and scale as needed.
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    casacore::Complex* dataPtr = data.data();
+    const std::array shape{n_baselines_, n_channels_, n_correlations_};
+    xt::xtensor<std::complex<float>, 3> data{shape};
+
     int cnt = 0;
-    for (int i = 0; i < itsNBl; ++i) {
-      for (int j = 0; j < itsNChan; ++j) {
+    for (std::size_t i = 0; i < n_baselines_; ++i) {
+      for (std::size_t j = 0; j < n_channels_; ++j) {
         double freq = kBaseFreq + j;
         double coeff1 = 2 + 0.5 * freq;
         double coeff2 = 3 + 2 * freq + 1 * freq * freq;
         // The first antenna uses coeff1, the others use coeff2.
         double sc1 = info().getAnt1()[i] == 0 ? coeff1 : coeff2;
         double sc2 = info().getAnt2()[i] == 0 ? coeff1 : coeff2;
-        double scale = sqrt(sc1 * sc2);
-        for (int k = 0; k < itsNCorr; ++k) {
-          *dataPtr =
-              casacore::Complex(cnt + itsCount * 10, cnt - 10 + itsCount * 6) *
-              float(scale);
-          ++dataPtr;
+        float scale = sqrt(sc1 * sc2);
+        for (std::size_t k = 0; k < n_correlations_; ++k) {
+          data(i, j, k) =
+              std::complex<float>(cnt + count_ * 10, cnt - 10 + count_ * 6) *
+              scale;
           ++cnt;
         }
       }
     }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    indgen(weights, 0.5f, 0.01f);
-    casacore::Matrix<double> uvw(3, itsNBl);
-    for (int i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = 1 + itsCount + i;
-      uvw(1, i) = 2 + itsCount + i;
-      uvw(2, i) = 3 + itsCount + i;
+    xt::xtensor<float, 3> weights{shape};
+    std::generate(weights.begin(), weights.end(), [result = 0.5f]() mutable {
+      result += 0.01f;
+      return result;
+    });
+
+    xt::xtensor<double, 2> uvw({n_baselines_, 3});
+    for (std::size_t i = 0; i < n_baselines_; ++i) {
+      uvw(i, 0) = 1 + count_ + i;
+      uvw(i, 1) = 2 + count_ + i;
+      uvw(i, 2) = 3 + count_ + i;
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreData(), data));
-    BOOST_CHECK_EQUAL(buf.GetCasacoreFlags().shape(),
-                      casacore::IPosition(3, itsNCorr, itsNChan, itsNBl));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
-    BOOST_CHECK(allEQ(buf.GetCasacoreWeights(), weights));
-    BOOST_CHECK(allEQ(buf.GetCasacoreUvw(), uvw));
-    itsCount++;
+    BOOST_CHECK(xt::allclose(xt::real(buffer->GetData()), xt::real(data)));
+    BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData()), xt::imag(data)));
+
+    BOOST_CHECK_EQUAL_COLLECTIONS(buffer->GetFlags().shape().begin(),
+                                  buffer->GetFlags().shape().end(),
+                                  shape.begin(), shape.end());
+    BOOST_CHECK(xt::all(xt::equal(buffer->GetFlags(), false)));
+
+    BOOST_CHECK(xt::allclose(buffer->GetWeights(), weights));
+    BOOST_CHECK(xt::allclose(buffer->GetUvw(), uvw));
+    count_++;
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
-    BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(infoIn.origNChan(), n_channels_);
+    BOOST_CHECK_EQUAL(infoIn.nchan(), n_channels_);
+    BOOST_CHECK_EQUAL(infoIn.ntime(), n_time_);
     BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
     BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
     BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
-    BOOST_CHECK_EQUAL(int(infoIn.nbaselines()), itsNBl);
+    BOOST_CHECK_EQUAL(infoIn.nbaselines(), n_baselines_);
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  int count_;
+  int n_time_;
+  std::size_t n_baselines_;
+  std::size_t n_channels_;
+  std::size_t n_correlations_;
 };
 
 void TestScaling(int ntime, int nbl, int nchan, int ncorr) {
