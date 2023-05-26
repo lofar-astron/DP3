@@ -9,6 +9,7 @@
 #include "DataFormat.h"
 
 #include <complex>
+#include <cstdint>
 
 // If std::complex is used for the complex types, their functions are
 // template specialisations, so they need template<>.
