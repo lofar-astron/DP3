@@ -7,6 +7,7 @@
 #define LOFAR_COMMON_TYPENAMES_H
 
 #include <complex>
+#include <cstdint>
 #include <string>
 
 namespace dp3 {

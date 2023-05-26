@@ -6,6 +6,7 @@
 #ifndef LOFAR_COMMON_STRINGUTIL_H
 #define LOFAR_COMMON_STRINGUTIL_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
