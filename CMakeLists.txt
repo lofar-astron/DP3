@@ -278,7 +278,10 @@ endif()
 
 # Include aocommon
 include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
+# TODO(AST-1278): Try using a new (release) version of XSimd in aocommon.
+set(XSIMD_GIT_TAG 2f5eddf8912c7e2527f0c50895c7560b964d29af)
 include(external/aocommon/CMake/FetchXTensor.cmake)
+add_compile_definitions(XTENSOR_USE_XSIMD)
 
 # Include pybind11
 set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
@@ -370,7 +373,7 @@ add_library(
   ddecal/gain_solvers/SolverTools.cc
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
-target_link_libraries(DDECal xtensor)
+target_link_libraries(DDECal xsimd xtensor)
 
 # 'Base' files and steps are only included in DP3.
 add_library(
@@ -449,7 +452,7 @@ add_library(
   steps/ApplyBeam.cc
   steps/DemixerNew.cc
   steps/NullStokes.cc)
-target_link_libraries(DP3_OBJ xtensor)
+target_link_libraries(DP3_OBJ xsimd xtensor)
 
 add_library(
   ParmDB OBJECT

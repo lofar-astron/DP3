@@ -123,7 +123,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->ResizeData(shape);
     for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
       buffer->GetData().data()[i] =
-          std::complex<float>(i + itsCount * 10, i - 10 + itsCount * 6);
+          std::complex<float>(i + itsCount * 10, int(i) - 10 + itsCount * 6);
     }
 
     buffer->ResizeUvw(itsNBl);

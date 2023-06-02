@@ -17,30 +17,29 @@
 #include "Flagger.h"
 
 namespace {
-xt::xtensor<bool, 1> FindOutliers(float sigma, size_t max_iterations,
-                                  const xt::xtensor<float, 1>& data) {
+xt::xtensor<int, 1> FindOutliers(float sigma, size_t max_iterations,
+                                 xt::xtensor<float, 1>&& data) {
   // All non finite numbers are flagged as outlier
-  xt::xtensor<bool, 1> flags = !xt::isfinite(data);
-  xt::xtensor<float, 1> data_copy = data;
+  xt::xtensor<int, 1> flags = !xt::isfinite(data);
 
   // Take the median of the finite numbers only, otherwise the median is NaN.
   const float median = xt::median(xt::filter(data, !flags));
 
   // Overwrite NaN's with median to workaround limitation of xt::stddev.
-  xt::masked_view(data_copy, flags) = median;
+  xt::masked_view(data, flags) = median;
 
   for (size_t i = 0; i < max_iterations; ++i) {
-    const float stddev = xt::stddev(data_copy)();
+    const float stddev = xt::stddev(data)();
 
     size_t outlier_count = 0;
     const float lower_bound = median - (sigma * stddev);
     const float upper_bound = median + (sigma * stddev);
 
     for (size_t j = 0; j < data.size(); ++j) {
-      const float value = data_copy[j];
+      const float value = data[j];
       if (!flags(j) && (value < lower_bound || value > upper_bound)) {
         flags(j) = true;
-        data_copy(j) = median;
+        data(j) = median;
         ++outlier_count;
       }
     }
@@ -102,32 +101,30 @@ xt::xtensor<std::complex<float>, 3> Flagger::GroupStats(
   return stats_antenna;
 }
 
-xt::xtensor<bool, 2> Flagger::ComputeAntennaFlags(
+xt::xtensor<int, 2> Flagger::ComputeAntennaFlags(
     float sigma, int max_iterations,
     const xt::xtensor<std::complex<float>, 3>& stats) {
   const size_t n_stations = stats.shape(0);
   const size_t n_antennas_per_station = stats.shape(1);
   const size_t n_correlations = stats.shape(2);
 
-  xt::xtensor<bool, 2> flags({n_stations, n_antennas_per_station}, false);
+  xt::xtensor<int, 2> flags({n_stations, n_antennas_per_station}, false);
 
   for (size_t station = 0; station < n_stations; ++station) {
     for (size_t cor = 0; cor < n_correlations; ++cor) {
-      const auto check_sum =
+      const xt::xtensor<std::complex<float>, 1> check_sum =
           xt::log(1.0f + xt::view(stats, station, xt::all(), cor));
-      const xt::xtensor<float, 1> check_sum_real = xt::real(check_sum);
-      const xt::xtensor<float, 1> check_sum_imag = xt::imag(check_sum);
 
       xt::view(flags, station, xt::all()) |=
-          FindOutliers(sigma, max_iterations, check_sum_real) |
-          FindOutliers(sigma, max_iterations, check_sum_imag);
+          FindOutliers(sigma, max_iterations, xt::real(check_sum)) |
+          FindOutliers(sigma, max_iterations, xt::imag(check_sum));
     }
   }
 
   return flags;
 }
 
-xt::xtensor<bool, 2> Flagger::ComputeStationFlags(
+xt::xtensor<int, 2> Flagger::ComputeStationFlags(
     float sigma, int max_iterations,
     const xt::xtensor<std::complex<float>, 3>& stats) {
   const size_t n_stations = stats.shape(0);
@@ -136,7 +133,7 @@ xt::xtensor<bool, 2> Flagger::ComputeStationFlags(
   // In case of n_correlations == 4, use only XX and YY (index 0 and 3),
   // otherwise use only XX (index 0).
   const size_t n_correlations_out = n_correlations == 4 ? 2 : 1;
-  xt::xtensor<bool, 2> flags({n_stations, n_correlations_out}, false);
+  xt::xtensor<int, 2> flags({n_stations, n_correlations_out}, false);
 
   const xt::xtensor<float, 3> stats_real = xt::real(stats);
   const xt::xtensor<float, 3> stats_imag = xt::imag(stats);
@@ -164,14 +161,14 @@ xt::xtensor<bool, 2> Flagger::ComputeStationFlags(
     const float scale_real = xt::median(stats_real_cor);
     const float scale_imag = xt::median(stats_imag_cor);
 
-    const xt::xtensor<float, 1> median_real =
+    xt::xtensor<float, 1> median_real =
         xt::median(stats_real_cor, 1) / scale_real;
-    const xt::xtensor<float, 1> median_imag =
+    xt::xtensor<float, 1> median_imag =
         xt::median(stats_imag_cor, 1) / scale_imag;
 
     xt::view(flags, xt::all(), cor_out) =
-        FindOutliers(sigma, max_iterations, median_real) |
-        FindOutliers(sigma, max_iterations, median_imag);
+        FindOutliers(sigma, max_iterations, std::move(median_real)) |
+        FindOutliers(sigma, max_iterations, std::move(median_imag));
   }
 
   return flags;
@@ -200,44 +197,44 @@ void Flagger::AssertStatsComputed() const {
   assert(stats_antenna_stddev_.shape() == stats_antenna_sum_square_.shape());
 }
 
-xt::xtensor<bool, 1> Flagger::FindBadAntennas(float sigma, int max_iterations) {
+xt::xtensor<int, 1> Flagger::FindBadAntennas(float sigma, int max_iterations) {
   AssertStatsComputed();
 
   find_bad_antennas_timer_.start();
 
-  const xt::xtensor<bool, 2> flags_stddev = Flagger::ComputeAntennaFlags(
+  const xt::xtensor<int, 2> flags_stddev = Flagger::ComputeAntennaFlags(
       sigma, max_iterations, stats_antenna_stddev_);
   assert(flags_stddev.shape(0) == n_stations_);
   assert(flags_stddev.shape(1) == n_antennas_per_station_);
 
-  const xt::xtensor<bool, 2> flags_sum_square = Flagger::ComputeAntennaFlags(
+  const xt::xtensor<int, 2> flags_sum_square = Flagger::ComputeAntennaFlags(
       sigma, max_iterations, stats_antenna_sum_square_);
 
-  const xt::xtensor<bool, 1> flagged_antennas =
-      xt::flatten(flags_stddev) && xt::flatten(flags_sum_square);
+  const xt::xtensor<int, 1> flagged_antennas =
+      xt::flatten(flags_stddev) & xt::flatten(flags_sum_square);
 
   find_bad_antennas_timer_.stop();
 
   return flagged_antennas;
 }
 
-xt::xtensor<bool, 1> Flagger::FindBadStations(float sigma, int max_iterations) {
+xt::xtensor<int, 1> Flagger::FindBadStations(float sigma, int max_iterations) {
   AssertStatsComputed();
 
   find_bad_stations_timer_.start();
 
-  const xt::xtensor<bool, 2> flags_stddev = Flagger::ComputeStationFlags(
+  const xt::xtensor<int, 2> flags_stddev = Flagger::ComputeStationFlags(
       sigma, max_iterations, stats_antenna_stddev_);
   assert(flags_stddev.shape(0) == n_stations_);
   assert(flags_stddev.shape(1) == (n_correlations_ == 4 ? 2 : 1));
 
-  const xt::xtensor<bool, 2> flags_sum_square = Flagger::ComputeStationFlags(
+  const xt::xtensor<int, 2> flags_sum_square = Flagger::ComputeStationFlags(
       sigma, max_iterations, stats_antenna_sum_square_);
 
   const xt::xtensor<size_t, 1> station_indices = xt::flatten_indices(
       xt::where(xt::prod(flags_stddev & flags_sum_square, {1})));
 
-  xt::xtensor<bool, 1> antenna_flags({n_antennas_}, false);
+  xt::xtensor<int, 1> antenna_flags({n_antennas_}, false);
 
   for (size_t station : station_indices) {
     const size_t first_antenna = station * n_antennas_per_station_;

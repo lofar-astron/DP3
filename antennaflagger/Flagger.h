@@ -1,11 +1,11 @@
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DP3_ANTENNAFLAGGER_FLAGGER_H_
 #define DP3_ANTENNAFLAGGER_FLAGGER_H_
 
-#include <vector>
 #include <complex>
+#include <vector>
 
 #include <aocommon/xt/span.h>
 
@@ -63,17 +63,18 @@ class Flagger {
    * @return Flags as a tensor of booleans of length n_stations *
    * n_antennas_per_station.
    */
-  xt::xtensor<bool, 1> FindBadAntennas(float sigma, int max_iterations);
+  xt::xtensor<int, 1> FindBadAntennas(float sigma, int max_iterations);
 
   /**
    * Identify stations that are outliers compared to the other stations.
    * In case of n_antennas_per_station > 1, a per-station statistic over all
    * antennas in a station is used.
    *
-   * @return Flags as a tensor of booleans of length n_stations *
-   * n_antennas_per_station.
+   * @return Flags as a tensor of integers of length n_stations *
+   * n_antennas_per_station. The booleans are 'int' instead of 'bool' since
+   * XSimd otherwise converts booleans to integers and back.
    */
-  xt::xtensor<bool, 1> FindBadStations(float sigma, int max_iterations);
+  xt::xtensor<int, 1> FindBadStations(float sigma, int max_iterations);
 
   /**
    * Compute standard deviation for the real and imaginary component seperately
@@ -111,10 +112,11 @@ class Flagger {
    * The input is assumed to be in the form (n_stations, n_antennas_per_station,
    * n_correlations).
    *
-   * @return Flags as a tensor of booleans in the form (n_stations,
-   * n_antennas_per_station).
+   * @return Flags as a tensor of integers in the form (n_stations,
+   * n_antennas_per_station). The flags are 'int' instead of 'bool' since
+   * XSimd otherwise converts booleans to integers and back.
    */
-  static xt::xtensor<bool, 2> ComputeAntennaFlags(
+  static xt::xtensor<int, 2> ComputeAntennaFlags(
       float sigma, int max_iterations,
       const xt::xtensor<std::complex<float>, 3>& stats);
 
@@ -125,8 +127,10 @@ class Flagger {
    * the form (n_stations, n_antennas_per_station, n_correlations).
    *
    * @return Flags as a tensor of booleans in the form (n_stations, 1 || 2).
+   * The booleans are 'int' instead of 'bool' since XSimd otherwise converts
+   * booleans to integers and back.
    */
-  static xt::xtensor<bool, 2> ComputeStationFlags(
+  static xt::xtensor<int, 2> ComputeStationFlags(
       float sigma, int max_iterations,
       const xt::xtensor<std::complex<float>, 3>& stats);
 

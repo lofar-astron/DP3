@@ -42,7 +42,10 @@ void AssignAndWeight(
     // flagged. Although the initialization to false can be avoided by directly
     // assigning flags for the first correlation, a benchmark showed that the
     // (simpler) code below gives slightly better performance.
-    xt::xtensor<bool, 2> flags(
+    // Use 'int' instead of 'bool' for flags since XSimd uses integers when
+    // or'ing flags. Using integers directly prevents unpacking booleans to
+    // integers beforehand and packing integers to booleans afterwards.
+    xt::xtensor<int, 2> flags(
         {unweighted_data.shape(0), unweighted_data.shape(1)}, false);
     for (std::size_t correlation = 0; correlation < n_correlations;
          ++correlation) {
@@ -50,8 +53,9 @@ void AssignAndWeight(
                !xt::isfinite(xt::view(unweighted_data, xt::all(), xt::all(),
                                       correlation));
       for (const std::string& name : direction_names) {
-        flags |= !xt::isfinite(xt::view(unweighted_buffer.GetData(name),
-                                        xt::all(), xt::all(), correlation));
+        flags |= xt::cast<int>(
+            !xt::isfinite(xt::view(unweighted_buffer.GetData(name), xt::all(),
+                                   xt::all(), correlation)));
       }
     }
 

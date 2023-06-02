@@ -100,7 +100,7 @@ bool AntennaFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   flagger_->ComputeStats(buffer->GetData(), baseline_order_);
 
   // Find outlier antennas
-  const xt::xtensor<bool, 1> antenna_flags =
+  const xt::xtensor<int, 1> antenna_flags =
       flagger_->FindBadAntennas(antenna_flagging_sigma_,
                                 antenna_flagging_max_iterations_) |
       flagger_->FindBadStations(station_flagging_sigma_,
