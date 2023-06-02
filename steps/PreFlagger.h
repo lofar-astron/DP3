@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to flag data on channel, baseline, or time
+/// @brief DP3 step class to flag data on channel, baseline, or time
 /// @author Ger van Diepen
 
 #ifndef DP3_STEPS_PREFLAGGER_H_
@@ -23,7 +23,7 @@
 
 namespace dp3::steps {
 
-/// @brief DPPP step class to flag data on channel, baseline, or time
+/// @brief DP3 step class to flag data on channel, baseline, or time
 
 /// This class is a Step class flagging data points based on data
 /// selections given in the parset file.
@@ -128,9 +128,9 @@ class PreFlagger : public Step {
     }
 
     /// Set and return the flags.
-    xt::xtensor<bool, 3>* process(base::DPBuffer&, unsigned int timeSlot,
-                                  const xt::xtensor<bool, 1>& matchBL,
-                                  common::NSTimer& timer);
+    xt::xtensor<int, 3>* process(base::DPBuffer&, unsigned int timeSlot,
+                                 const xt::xtensor<bool, 1>& matchBL,
+                                 common::NSTimer& timer);
 
     /// Update the general info.
     /// It is used to adjust the parms if needed.
@@ -208,7 +208,7 @@ class PreFlagger : public Step {
 
     /// Handle the frequency ranges given and determine which channels
     /// have to be flagged.
-    xt::xtensor<bool, 1> handleFreqRanges(const std::vector<double>& chanFreqs);
+    xt::xtensor<int, 1> handleFreqRanges(const std::vector<double>& chanFreqs);
 
     /// Get the value and possible unit.
     /// If no unit is given, the argument is left untouched.
@@ -267,7 +267,9 @@ class PreFlagger : public Step {
     std::vector<int> itsRpn;              ///< PSet expression in RPN form
     std::vector<PSet::ShPtr> itsPSets;    ///< PSets used in itsRpn
     xt::xtensor<bool, 2> itsChanFlags;    ///< flags for channels to be flagged
-    xt::xtensor<bool, 3> itsFlags;
+    // Using 'int' instead of 'bool' in itsFlags works better with XSimd, since
+    // XSimd uses an 'int' representation anyway for boolean operations.
+    xt::xtensor<int, 3> itsFlags;
     xt::xtensor<bool, 1> itsMatchBL;  ///< true = baseline in buffer matches
   };
 

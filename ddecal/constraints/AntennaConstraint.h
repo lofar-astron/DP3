@@ -9,6 +9,8 @@
 #include <set>
 #include <vector>
 
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xmasked_view.hpp>
 #include <xtensor/xview.hpp>
 
 namespace dp3 {
@@ -47,17 +49,24 @@ class AntennaConstraint final : public Constraint {
         xt::xtensor<size_t, 2> solution_count_per_set =
             xt::zeros<size_t>({n_directions, n_polarizations});
 
+        // Declaring these variables outside the loop allows reusing memory.
+        xt::xtensor<dcomplex, 2> solution_set;
+        xt::xtensor<std::size_t, 2> solution_set_is_finite;
+
         // Calculate the sum of solutions over the set of stations
         for (size_t antenna_index : antenna_set) {
-          auto solution_set =
+          solution_set =
               xt::view(solutions, ch, antenna_index, xt::all(), xt::all());
-          auto solution_set_is_finite = xt::isfinite(solution_set);
-          solution_per_set += solution_set_is_finite * solution_set;
+          solution_set_is_finite = xt::isfinite(solution_set);
+          xt::masked_view(solution_set, !solution_set_is_finite)
+              .fill(std::complex<double>(0.0, 0.0));
+
+          solution_per_set += solution_set;
           solution_count_per_set += solution_set_is_finite;
         }
 
         // Divide by nr of core stations to get the mean solution
-        solution_per_set /= solution_count_per_set;
+        solution_per_set /= xt::cast<double>(solution_count_per_set);
 
         // Assign all core stations to the mean solution
         for (size_t antenna_index : antenna_set) {

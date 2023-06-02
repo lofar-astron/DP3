@@ -131,7 +131,7 @@ bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   assert(buffer->GetFlags().size() != 0);
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.
-  const xt::xtensor<bool, 3>* const flags =
+  const xt::xtensor<int, 3>* const flags =
       itsPSet.process(*buffer, itsCount, xt::xtensor<bool, 1>(), itsTimer);
   switch (itsMode) {
     case Mode::kSetFlag:
@@ -324,7 +324,7 @@ void PreFlagger::PSet::updateInfo(const DPInfo& info) {
 void PreFlagger::PSet::fillChannels(const DPInfo& info) {
   unsigned int nrcorr = info.ncorr();
   unsigned int nrchan = info.nchan();
-  xt::xtensor<bool, 1> selChan(std::array<size_t, 1>{nrchan});
+  xt::xtensor<int, 1> selChan(std::array<size_t, 1>{nrchan});
   if (itsStrChan.empty()) {
     selChan.fill(true);
   } else {
@@ -449,7 +449,7 @@ void PreFlagger::PSet::show(std::ostream& os, bool showName) const {
   }
 }
 
-xt::xtensor<bool, 3>* PreFlagger::PSet::process(
+xt::xtensor<int, 3>* PreFlagger::PSet::process(
     DPBuffer& out, unsigned int timeSlot, const xt::xtensor<bool, 1>& matchBL,
     common::NSTimer& timer) {
   // No need to process it if the time mismatches or if only time selection.
@@ -495,7 +495,7 @@ xt::xtensor<bool, 3>* PreFlagger::PSet::process(
     return &itsFlags;
   }
   // Convert each baseline flag to a flag per correlation/channel.
-  bool* flagPtr = itsFlags.data();
+  int* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < itsMatchBL.size(); ++i) {
     if (itsMatchBL[i]) {
       std::fill(flagPtr, flagPtr + nr, itsMatchBL[i]);
@@ -525,17 +525,17 @@ xt::xtensor<bool, 3>* PreFlagger::PSet::process(
   // are reused to AND or OR subexpressions. This can be done harmlessly
   // and saves the creation of too many arrays.
   if (!itsPSets.empty()) {
-    std::stack<xt::xtensor<bool, 3>*> results;
+    std::stack<xt::xtensor<int, 3>*> results;
     for (int oper : itsRpn) {
       if (oper >= 0) {
         results.push(itsPSets[oper]->process(out, timeSlot, itsMatchBL, timer));
       } else if (oper == OpNot) {
-        xt::xtensor<bool, 3>* left = results.top();
+        xt::xtensor<int, 3>* left = results.top();
         *left = !*left;
       } else if (oper == OpOr || oper == OpAnd) {
-        xt::xtensor<bool, 3>* right = results.top();
+        xt::xtensor<int, 3>* right = results.top();
         results.pop();
-        xt::xtensor<bool, 3>* left = results.top();
+        xt::xtensor<int, 3>* left = results.top();
         if (oper == OpOr) {
           *left |= *right;
         } else {
@@ -550,7 +550,7 @@ xt::xtensor<bool, 3>* PreFlagger::PSet::process(
       throw std::runtime_error(
           "Something went wrong while evaluating expression: results.size() != "
           "1");
-    xt::xtensor<bool, 3>* mflags = results.top();
+    xt::xtensor<int, 3>* mflags = results.top();
     itsFlags &= *mflags;
   }
   return &itsFlags;
@@ -709,7 +709,7 @@ void PreFlagger::PSet::flagAmpl(
 
   const xt::xtensor<float, 3> amplitudes = xt::abs(data);
   const float* valPtr = amplitudes.data();
-  bool* flagPtr = itsFlags.data();
+  int* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -733,7 +733,7 @@ void PreFlagger::PSet::flagPhase(
 
   const xt::xtensor<float, 3> phases = xt::arg(data);
   const float* valPtr = phases.data();
-  bool* flagPtr = itsFlags.data();
+  int* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -756,7 +756,7 @@ void PreFlagger::PSet::flagReal(
   const std::size_t nrcorr = data.shape(2);
 
   const std::complex<float>* valPtr = data.data();
-  bool* flagPtr = itsFlags.data();
+  int* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -780,7 +780,7 @@ void PreFlagger::PSet::flagImag(
   const std::size_t nrcorr = data.shape(2);
 
   const std::complex<float>* valPtr = data.data();
-  bool* flagPtr = itsFlags.data();
+  int* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -1058,10 +1058,10 @@ void PreFlagger::PSet::fillBLMatrix() {
   }
 }
 
-xt::xtensor<bool, 1> PreFlagger::PSet::handleFreqRanges(
+xt::xtensor<int, 1> PreFlagger::PSet::handleFreqRanges(
     const std::vector<double>& chanFreqs) {
   unsigned int nrchan = chanFreqs.size();
-  xt::xtensor<bool, 1> selChan({nrchan}, false);
+  xt::xtensor<int, 1> selChan({nrchan}, false);
   // A frequency range can be given as  value..value or value+-value.
   // Units can be given for each value; if one is given it applies to both.
   // Default unit is MHz.
