@@ -181,12 +181,15 @@ endif()
 
 # Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
+unset(BOOST_MINIMUM_VERSION)
 set(BOOST_COMPONENTS "filesystem;program_options;system")
 if(BUILD_TESTING)
+  # Boost 1.59 introduced BOOST_TEST. Many tests use this feature.
+  set(BOOST_MINIMUM_VERSION 1.59)
   list(APPEND BOOST_COMPONENTS "unit_test_framework")
 endif()
 find_package(
-  Boost
+  Boost ${BOOST_MINIMUM_VERSION}
   COMPONENTS ${BOOST_COMPONENTS}
   REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
@@ -584,97 +587,78 @@ if(BUILD_TESTING)
 
   set(TEST_FILENAMES
       antennaflagger/test/unit/tFlagger.cc
+      base/test/runtests.cc
+      base/test/unit/tBaselineSelection.cc
+      base/test/unit/tBDABuffer.cc
+      base/test/unit/tDP3.cc
+      base/test/unit/tDPBuffer.cc
+      base/test/unit/tDPInfo.cc
+      base/test/unit/tMirror.cc
+      base/test/unit/tMs.cc
+      base/test/unit/tSimulate.cc
+      base/test/unit/tSimulator.cc
+      base/test/unit/tSourceDBUtil.cc
+      base/test/unit/tTelescope.cc
+      base/test/unit/tUvwCalculator.cc
       common/test/unit/avx256/tDiagonalMatrixComplexDouble2x2.cc
       common/test/unit/avx256/tDiagonalMatrixComplexFloat2x2.cc
-      common/test/unit/avx256/tVectorComplexDouble2.cc
       common/test/unit/avx256/tMatrixComplexDouble2x2.cc
       common/test/unit/avx256/tMatrixComplexFloat2x2.cc
+      common/test/unit/avx256/tVectorComplexDouble2.cc
       common/test/unit/avx256/tVectorComplexFloat2.cc
       common/test/unit/avx256/tVectorComplexFloat4.cc
       common/test/unit/avx256/tVectorDouble4.cc
       common/test/unit/avx256/tVectorFloat4.cc
       common/test/unit/avx256/tVectorFloat8.cc
       common/test/unit/fixtures/fSkymodel.cc
+      common/test/unit/tBaselineUtils.cc
       common/test/unit/tFields.cc
       common/test/unit/tMedian.cc
+      common/test/unit/tMemory.cc
       common/test/unit/tProximityClustering.cc
+      common/test/unit/tStringTools.cc
       common/test/unit/tTimer.cc
-      base/test/runtests.cc
-      base/test/unit/tBaselineSelection.cc
-      base/test/unit/tBDABuffer.cc
-      base/test/unit/tDPBuffer.cc
-      base/test/unit/tMirror.cc
-      base/test/unit/tSimulate.cc
-      base/test/unit/tSourceDBUtil.cc
-      base/test/unit/tTelescope.cc
-      base/test/unit/tUvwCalculator.cc
       ddecal/test/unit/SolverTester.cc
+      ddecal/test/unit/tAntennaConstraint.cc
       ddecal/test/unit/tBdaSolverBuffer.cc
+      ddecal/test/unit/tLBFGSSolver.cc
       ddecal/test/unit/tLinearSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
-      ddecal/test/unit/tAntennaConstraint.cc
-      ddecal/test/unit/tTECConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc
+      ddecal/test/unit/tSolutionResampler.cc
+      ddecal/test/unit/tSolveData.cc
       ddecal/test/unit/tSolverBaseMatrix.cc
       ddecal/test/unit/tSolverFactory.cc
       ddecal/test/unit/tSolvers.cc
+      ddecal/test/unit/tSolverTools.cc
+      ddecal/test/unit/tTECConstraint.cc
+      parmdb/test/unit/tSkymodelToSourceDB.cc
+      parmdb/test/unit/tSourceDB.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
       steps/test/unit/mock/ThrowStep.cc
       steps/test/unit/tAntennaFlagger.cc
       steps/test/unit/tAOFlaggerStep.cc
+      steps/test/unit/tApplyBeam.cc
       steps/test/unit/tApplyCal.cc
       steps/test/unit/tApplyCalH5.cc
       steps/test/unit/tAverager.cc
-      steps/test/unit/tBDAResultStep.cc
-      steps/test/unit/tDummyStep.cc
-      steps/test/unit/tFilter.cc
-      steps/test/unit/tInterpolate.cc
-      steps/test/unit/tMadFlagger.cc
-      steps/test/unit/tPhaseShift.cc
-      steps/test/unit/tUVWFlagger.cc
-      steps/test/unit/tPSet.cc
-      steps/test/unit/tScaleData.cc
-      steps/test/unit/tStationAdder.cc
-      steps/test/unit/tStepCommon.cc)
-  if(${Python3_NumPy_FOUND})
-    list(APPEND TEST_FILENAMES "pythondp3/test/unit/tPyStep.cc")
-  else(${Python3_NumPy_FOUND})
-    message(
-      WARNING "NumPy not found on machine, tPyStep test is excluded from tests."
-    )
-  endif()
-
-  # Boost 1.59 introduced BOOST_TEST. The tests below use this feature.
-  if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.59")
-    list(
-      APPEND
-      TEST_FILENAMES
-      common/test/unit/tBaselineUtils.cc
-      common/test/unit/tMemory.cc
-      common/test/unit/tStringTools.cc
-      base/test/unit/tDP3.cc
-      base/test/unit/tDPInfo.cc
-      base/test/unit/tMs.cc
-      base/test/unit/tSimulator.cc
-      ddecal/test/unit/tLBFGSSolver.cc
-      ddecal/test/unit/tSolutionResampler.cc
-      ddecal/test/unit/tSolveData.cc
-      ddecal/test/unit/tSolverTools.cc
-      parmdb/test/unit/tSkymodelToSourceDB.cc
-      parmdb/test/unit/tSourceDB.cc
-      steps/test/unit/tApplyBeam.cc
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBdaDdeCal.cc
       steps/test/unit/tBDAExpander.cc
       steps/test/unit/tBdaGroupPredict.cc
+      steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tCounter.cc
       steps/test/unit/tDDECal.cc
       steps/test/unit/tDemixer.cc # Parset is no longer valid in this test!
+      steps/test/unit/tDummyStep.cc
+      steps/test/unit/tFilter.cc
       steps/test/unit/tGainCal.cc
       steps/test/unit/tH5ParmPredict.cc
       steps/test/unit/tInputStep.cc
+      steps/test/unit/tInterpolate.cc
+      steps/test/unit/tMadFlagger.cc
       steps/test/unit/tMSBDAReader.cc
       steps/test/unit/tMSBDAWriter.cc
       steps/test/unit/tMsColumnReader.cc
@@ -683,15 +667,25 @@ if(BUILD_TESTING)
       steps/test/unit/tMSWriter.cc
       steps/test/unit/tOneApplyCal.cc
       steps/test/unit/tOnePredict.cc
+      steps/test/unit/tPhaseShift.cc
       steps/test/unit/tPreFlagger.cc
+      steps/test/unit/tPSet.cc
+      steps/test/unit/tScaleData.cc
       steps/test/unit/tScaleDataBDA.cc
       steps/test/unit/tSplit.cc
-      steps/test/unit/tUpsample.cc)
-    if(HAVE_IDG)
-      list(APPEND TEST_FILENAMES steps/test/unit/tIDGPredict.cc)
-    endif()
-  else()
-    message(WARNING "Boost < 1.59 detected. Some unit tests are disabled.")
+      steps/test/unit/tStationAdder.cc
+      steps/test/unit/tStepCommon.cc
+      steps/test/unit/tUpsample.cc
+      steps/test/unit/tUVWFlagger.cc)
+  if(HAVE_IDG)
+    list(APPEND TEST_FILENAMES steps/test/unit/tIDGPredict.cc)
+  endif()
+  if(${Python3_NumPy_FOUND})
+    list(APPEND TEST_FILENAMES "pythondp3/test/unit/tPyStep.cc")
+  else(${Python3_NumPy_FOUND})
+    message(
+      WARNING "NumPy not found on machine, tPyStep test is excluded from tests."
+    )
   endif()
 
   # Add boost dynamic link flag for all test files.
