@@ -92,16 +92,6 @@ void CheckTensor(const aocommon::xt::Span<T, 3>& tensor,
   BOOST_TEST(xt::allclose(tensor, expected_value));
 }
 
-// Specialization for complex numbers, since xt::allclose does not support them.
-// TODO(AST-1278): Try removing this specialization.
-template <>
-void CheckTensor(const aocommon::xt::Span<std::complex<float>, 3>& tensor,
-                 const std::complex<float>& expected_value) {
-  BOOST_TEST(tensor.shape() == kShape);
-  BOOST_TEST(xt::allclose(xt::real(tensor), expected_value.real()));
-  BOOST_TEST(xt::allclose(xt::imag(tensor), expected_value.imag()));
-}
-
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(solvertools)

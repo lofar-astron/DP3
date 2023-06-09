@@ -152,10 +152,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(
-        xt::allclose(xt::real(buffer->GetData()), xt::real(result_data)));
-    BOOST_CHECK(
-        xt::allclose(xt::imag(buffer->GetData()), xt::imag(result_data)));
+    BOOST_CHECK(xt::allclose(buffer->GetData(), result_data));
     BOOST_CHECK(buffer->GetFlags() == result_flags);
     BOOST_CHECK_CLOSE(
         buffer->getTime(),
@@ -297,8 +294,7 @@ class TestOutput3 : public dp3::steps::test::ThrowStep {
       result.data()[i] /= weights.data()[i];
     }
     // Check the averaged result.
-    BOOST_CHECK(xt::allclose(xt::real(buffer->GetData()), xt::real(result)));
-    BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData()), xt::imag(result)));
+    BOOST_CHECK(xt::allclose(buffer->GetData(), result));
     BOOST_CHECK(buffer->GetFlags() == flags);
     BOOST_CHECK_CLOSE(buffer->getTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
                       1.0e-3);
@@ -403,8 +399,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
       }
     }
     // Check the averaged result.
-    BOOST_CHECK(xt::allclose(xt::real(buffer->GetData()), xt::real(result)));
-    BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData()), xt::imag(result)));
+    BOOST_CHECK(xt::allclose(buffer->GetData(), result));
     BOOST_CHECK(buffer->GetFlags() == flags);
     BOOST_CHECK_CLOSE(buffer->getTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
                       1.0e-3);
