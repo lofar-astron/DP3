@@ -175,10 +175,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
                                                   i - 10.0f + itsCount * 6.0f);
     }
     // Check the result.
-    BOOST_CHECK(
-        xt::allclose(xt::real(buffer->GetData()), xt::real(result_data)));
-    BOOST_CHECK(
-        xt::allclose(xt::imag(buffer->GetData()), xt::imag(result_data)));
+    BOOST_CHECK(xt::allclose(buffer->GetData(), result_data));
 
     // Check the flags.
     // If autocorrs are used, only the last channel is flagged, but the first

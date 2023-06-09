@@ -205,8 +205,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       uvw(i, 1) = 2 + count_ + i;
       uvw(i, 2) = 3 + count_ + i;
     }
-    BOOST_CHECK(xt::allclose(xt::real(buffer->GetData()), xt::real(data)));
-    BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData()), xt::imag(data)));
+    BOOST_CHECK(xt::allclose(buffer->GetData(), data));
 
     BOOST_CHECK_EQUAL_COLLECTIONS(buffer->GetFlags().shape().begin(),
                                   buffer->GetFlags().shape().end(),

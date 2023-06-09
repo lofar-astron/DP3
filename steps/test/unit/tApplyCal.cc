@@ -204,14 +204,10 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
 
     if (enabled_tests_ & (DataEquals | DataNotChanged)) {
-      BOOST_CHECK(xt::allclose(xt::real(buffer->GetData()), xt::real(data),
-                               1.0e-7, 1.0e-10));
-      BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData()), xt::imag(data),
-                               1.0e-7, 1.0e-10));
+      BOOST_CHECK(xt::allclose(buffer->GetData(), data, 1.0e-7, 1.0e-10));
     }
     if (enabled_tests_ & DataChanged) {
-      BOOST_CHECK(!xt::allclose(xt::real(buffer->GetData()), xt::real(data),
-                                1.0e-7, 1.0e-10));
+      BOOST_CHECK(!xt::allclose(buffer->GetData(), data, 1.0e-7, 1.0e-10));
     }
     if (enabled_tests_ & WeightsNotChanged) {
       BOOST_CHECK(xt::allclose(buffer->GetWeights(),

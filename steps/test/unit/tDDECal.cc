@@ -392,11 +392,7 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
 
   // Check model data buffer. It should be close to input data buffer.
   BOOST_REQUIRE(buffer->HasData(kModelName));
-  // TODO(AST-1278): Try comparing complex numbers with xt::allclose.
-  BOOST_CHECK(xt::allclose(xt::real(buffer->GetData(kModelName)),
-                           xt::real(input_data), 1.0e-2));
-  BOOST_CHECK(xt::allclose(xt::imag(buffer->GetData(kModelName)),
-                           xt::imag(input_data), 1.0e-2));
+  BOOST_CHECK(xt::allclose(buffer->GetData(kModelName), input_data, 1.0e-2));
 
   // Check that (main) data, weights and flags remained equal.
   BOOST_CHECK_EQUAL(buffer->GetData(), input_data);

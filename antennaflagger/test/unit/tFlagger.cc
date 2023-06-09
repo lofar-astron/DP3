@@ -6,13 +6,15 @@
 #include <aocommon/xt/span.h>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
-#include <xtensor/xtensor.hpp>
 #include <xtensor/xcomplex.hpp>
-#include <xtensor/xrandom.hpp>
-#include <xtensor/xview.hpp>
 #include <xtensor/xio.hpp>
+#include <xtensor/xrandom.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xview.hpp>
 
 #include "common/baseline_indices.h"
+
+namespace {
 
 const dp3::common::BaselineOrder kBaselineOrder =
     dp3::common::BaselineOrder::kRowMajor;
@@ -24,13 +26,9 @@ void CheckStatsStdDev(size_t n_baselines, size_t n_correlations,
     auto baseline_stats = xt::view(stats, bl, xt::all());
     if (baseline_flags[bl]) {
       // The standard deviation should be zero for all flagged baselines.
-      // Because of a bug in xt::allclose, the first operand can not be complex,
-      // therefore it is split in real and imaginary parts.
-      BOOST_CHECK(xt::allclose(xt::real(baseline_stats), 0.0f));
-      BOOST_CHECK(xt::allclose(xt::imag(baseline_stats), 0.0f));
+      BOOST_CHECK(xt::allclose(baseline_stats, 0.0f));
     } else {
-      BOOST_CHECK(xt::all(!xt::isclose(xt::real(baseline_stats), 0.0f)));
-      BOOST_CHECK(xt::all(!xt::isclose(xt::imag(baseline_stats), 0.0f)));
+      BOOST_CHECK(xt::all(!xt::isclose(baseline_stats, 0.0f)));
     }
   }
 }
@@ -52,13 +50,9 @@ void CheckStatsSumSquare(size_t n_baselines, size_t n_correlations,
       // The sum of squares should be the same for all flagged baselines.
       auto first_baseline_stats =
           xt::view(stats, first_flagged_baseline, xt::all());
-      BOOST_CHECK(xt::allclose(xt::real(baseline_stats),
-                               xt::real(first_baseline_stats)));
-      BOOST_CHECK(xt::allclose(xt::imag(baseline_stats),
-                               xt::imag(first_baseline_stats)));
+      BOOST_CHECK(xt::allclose(baseline_stats, first_baseline_stats));
     } else {
-      BOOST_CHECK(xt::all(!xt::isclose(xt::real(baseline_stats), 0.0f)));
-      BOOST_CHECK(xt::all(!xt::isclose(xt::imag(baseline_stats), 0.0f)));
+      BOOST_CHECK(xt::all(!xt::isclose(baseline_stats, 0.0f)));
     }
   }
 }
@@ -133,6 +127,8 @@ xt::xtensor<bool, 1> ComputeBaselineSelectionForStation(
   }
   return selection;
 }
+
+}  // namespace
 
 BOOST_AUTO_TEST_SUITE(antennaflagger)
 

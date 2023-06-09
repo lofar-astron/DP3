@@ -159,14 +159,12 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       result.data()[i] = std::complex<float>(1.6, 0.9);
     }
     if (count_ == kOutlierIndex) {
-      result += std::complex<float>(10., 10.);
+      result += std::complex<float>(10.0, 10.0);
     }
     // Check the result.
-    BOOST_CHECK(
-        xt::allclose(xt::real(buffer->GetData()), xt::real(result), 1e-10));
-    BOOST_CHECK(
-        xt::allclose(xt::imag(buffer->GetData()), xt::imag(result), 1e-10));
-    BOOST_CHECK_CLOSE(buffer->getTime(), kFirstTime + kTimeStep * count_, 1e-8);
+    BOOST_CHECK(xt::allclose(buffer->GetData(), result, 1.0e-10));
+    BOOST_CHECK_CLOSE(buffer->getTime(), kFirstTime + kTimeStep * count_,
+                      1.0e-8);
     ++count_;
     return true;
   }
