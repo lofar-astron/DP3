@@ -38,7 +38,7 @@ class MSUpdater : public OutputStep {
 
   /// Process the next data chunk.
   /// It returns false when at the end.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;

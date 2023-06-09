@@ -152,56 +152,54 @@ bool MSUpdater::addColumn(const string& colName,
   return true;
 }
 
-bool MSUpdater::process(const DPBuffer& buf) {
+bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
   common::NSTimer::StartStop sstime(itsTimer);
   if (GetFieldsToWrite().Flags()) {
-    putFlags(buf.getRowNrs(), buf.GetCasacoreFlags());
+    putFlags(buffer->getRowNrs(), buffer->GetCasacoreFlags());
   }
   if (GetFieldsToWrite().Data()) {
     // If compressing, flagged values need to be set to NaN to decrease the
     // dynamic range
     if (itsStManKeys.stManName == "dysco") {
-      Cube<casacore::Complex> dataCopy = buf.GetCasacoreData().copy();
+      Cube<casacore::Complex> dataCopy = buffer->GetCasacoreData().copy();
       Cube<casacore::Complex>::iterator dataIter = dataCopy.begin();
-      for (Cube<bool>::const_iterator flagIter = buf.GetCasacoreFlags().begin();
-           flagIter != buf.GetCasacoreFlags().end(); ++flagIter) {
-        if (*flagIter) {
+      for (const bool flag : buffer->GetFlags()) {
+        if (flag) {
           *dataIter =
               casacore::Complex(std::numeric_limits<float>::quiet_NaN(),
                                 std::numeric_limits<float>::quiet_NaN());
         }
         ++dataIter;
       }
-      putData(buf.getRowNrs(), dataCopy);
+      putData(buffer->getRowNrs(), dataCopy);
     } else {
-      putData(buf.getRowNrs(), buf.GetCasacoreData());
+      putData(buffer->getRowNrs(), buffer->GetCasacoreData());
     }
   }
   if (GetFieldsToWrite().Weights()) {
-    const Cube<float>& weights = buf.GetCasacoreWeights();
+    const Cube<float>& weights = buffer->GetCasacoreWeights();
 
     // If compressing, set weights of flagged points to zero to decrease the
     // dynamic range
     if (itsStManKeys.stManName == "dysco") {
       Cube<float> weightsCopy = weights.copy();
       Cube<float>::iterator weightsIter = weightsCopy.begin();
-      for (Cube<bool>::const_iterator flagIter = buf.GetCasacoreFlags().begin();
-           flagIter != buf.GetCasacoreFlags().end(); ++flagIter) {
-        if (*flagIter) {
+      for (const bool flag : buffer->GetFlags()) {
+        if (flag) {
           *weightsIter = 0.;
         }
         ++weightsIter;
       }
-      putWeights(buf.getRowNrs(), weightsCopy);
+      putWeights(buffer->getRowNrs(), weightsCopy);
     } else {
-      putWeights(buf.getRowNrs(), weights);
+      putWeights(buffer->getRowNrs(), weights);
     }
   }
   itsNrDone++;
   if (itsNrTimesFlush > 0 && itsNrDone % itsNrTimesFlush == 0) {
     itsMS.flush();
   }
-  getNextStep()->process(buf);
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 
