@@ -30,7 +30,9 @@ inputs:
       When using H5Parm,
       this is for now the name of the soltab;
       the type will be deduced from the metadata in that soltab,
-      except for full Jones, in which case correction should be 'fulljones' `.`
+      except for full Jones, in which case correction should be 'fulljones'.
+      For diagonal solutions (stored as phase and amplitude), use two
+      applycal steps, see the example under applycal.steps `.`
   soltab:
     type: string[]?
     doc: >-
