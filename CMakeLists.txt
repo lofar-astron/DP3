@@ -130,19 +130,26 @@ if(ENABLE_EXPERIMENTAL_SCREENFITTER)
   endif()
 endif()
 
-# Casacore depends on HDF5 -> First load HDF5.
+# Load HDF5 before Casacore, since some Casacore versions do not load HDF5.
 find_package(
   HDF5
   COMPONENTS C CXX
   REQUIRED)
-add_definitions(${HDF5_DEFINITIONS})
-include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(
   Casacore
   COMPONENTS casa ms tables fits
   REQUIRED)
 include_directories(SYSTEM ${CASACORE_INCLUDE_DIR})
+
+# Reload HDF5, since some Casacore versions also load HDF5, but without C++
+# support. ${HDF5_LIBRARIES} then does not include C++ libraries.
+find_package(
+  HDF5
+  COMPONENTS C CXX
+  REQUIRED)
+add_definitions(${HDF5_DEFINITIONS})
+include_directories(${HDF5_INCLUDE_DIRS})
 
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
@@ -562,7 +569,7 @@ set(SOURCEDB_LIBRARIES Blob Common ParmDB ${CASACORE_LIBRARIES}
                        ${Boost_SYSTEM_LIBRARY})
 
 add_executable(DP3 base/Main.cc)
-target_link_libraries(DP3 LIBDP3)
+target_link_libraries(DP3 LIBDP3 ${HDF5_LIBRARIES})
 
 add_executable(makesourcedb parmdb/makesourcedb.cc)
 target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})

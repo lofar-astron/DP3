@@ -4,15 +4,17 @@
 //
 // @author Ger van Diepen
 
-#include <dp3/base/DP3.h>
-
-#include <Version.h>
-
-#include <aocommon/checkblas.h>
-
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
+
+#include <H5Cpp.h>
+
+#include <aocommon/checkblas.h>
+
+#include <dp3/base/DP3.h>
+
+#include <Version.h>
 
 // Define handler that tries to print a backtrace.
 // Exception::TerminateHandler t(Exception::terminate);
@@ -70,8 +72,16 @@ int main(int argc, char* argv[]) {
 
     // Execute the parset file.
     dp3::base::Execute(parsetName, argc, argv);
-  } catch (std::exception& err) {
+  } catch (const std::exception& err) {
     std::cerr << "\nstd exception detected: " << err.what() << '\n';
+    return 1;
+  } catch (const H5::Exception& err) {
+    // Since H5::Exception is not derived from std::exception, DP3 crashes
+    // if it does not catch them -> Print an error message instead.
+    std::cerr << "\nH5 exception detected: " << err.getDetailMsg()
+              << "\nStack trace:\n";
+    err.printErrorStack();
+    std::cerr << '\n';
     return 1;
   }
   return 0;
