@@ -56,7 +56,8 @@ class FixtureCopyInput : public dp3::common::test::FixtureDirectory {
 /**
  * Sets all flags to false, and sets each 42nd value to true.
  */
-void SetTestFlags(casacore::Array<bool>& flags) {
+template <typename T>
+void SetTestFlags(T& flags) {
   for (std::size_t i = 0; i < flags.size(); ++i) {
     flags.data()[i] = ((i % 42) == 0);
   }
@@ -76,15 +77,12 @@ class TestAdjust : public dp3::steps::test::ThrowStep {
     Step::updateInfo(info);
   }
 
-  bool process(const dp3::base::DPBuffer& buffer) override {
-    dp3::base::DPBuffer adjusted = buffer;
-    dp3::common::NSTimer timer;
+  bool process(std::unique_ptr<dp3::base::DPBuffer> buffer) override {
+    buffer->GetData() += kDataAdjustment;
+    SetTestFlags(buffer->GetFlags());
+    buffer->GetWeights() += kWeightAdjustment;
 
-    adjusted.GetCasacoreData() += kDataAdjustment;
-    SetTestFlags(adjusted.GetCasacoreFlags());
-    adjusted.GetCasacoreWeights() += kWeightAdjustment;
-
-    getNextStep()->process(adjusted);
+    getNextStep()->process(std::move(buffer));
     return true;
   }
 
@@ -193,7 +191,9 @@ BOOST_DATA_TEST_CASE_F(
       BOOST_TEST(casacore::allEQ(original_data, updated_data));
     }
 
-    if (fields_to_write.Flags()) SetTestFlags(original_flags);
+    if (fields_to_write.Flags()) {
+      SetTestFlags(original_flags);
+    }
     BOOST_TEST(casacore::allEQ(original_flags, updated_flags));
 
     if (fields_to_write.Weights()) {
