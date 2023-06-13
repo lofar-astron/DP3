@@ -63,7 +63,6 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
       itsSols(),
       itsSolutionWriter(itsSettings.h5parm_name),
       itsRequestedSolInt(itsSettings.solution_interval),
-      itsSolutionsPerDirection(itsSettings.n_solutions_per_direction),
       itsSolIntCount(1),
       itsFirstSolutionIndex(0),
       itsNChan(itsSettings.n_channels),
@@ -87,12 +86,7 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
         "parset or your sourcedb");
   }
 
-  // To be compatible with IDGPredict and a predict with a
-  // provided source_db, fill itsSolutionPerDirection if it's
-  // empty at this stage.
-  if (itsSolutionsPerDirection.empty()) {
-    itsSolutionsPerDirection.assign(itsDirections.size(), 1);
-  }
+  assert(itsSolutionsPerDirection.size() == itsDirections.size());
 
   const size_t max_n_solutions_per_direction = *std::max_element(
       itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end());
@@ -125,6 +119,7 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
   for (const std::string& col : itsSettings.model_data_columns) {
     itsDirections.emplace_back(1, col);
     itsDirectionNames.emplace_back(prefix + col);
+    itsSolutionsPerDirection.emplace_back(1);
     itsSteps.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
     setModelNextSteps(*itsSteps.back(), col, parset, prefix);
   }
@@ -141,6 +136,8 @@ void DDECal::initializeModelReuse() {
       name = name.substr(period_position + 1);
     }
     itsDirections.emplace_back(1, name);
+
+    itsSolutionsPerDirection.emplace_back(1);
 
     // Add a null step for this direction, so there is still an entry in
     // itsSteps for each direction.
@@ -171,6 +168,7 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
     }
     itsDirections.emplace_back(1, dir_name);
     itsDirectionNames.emplace_back(prefix + dir_name);
+    itsSolutionsPerDirection.emplace_back(1);
 
     itsSteps.push_back(std::make_shared<IDGPredict>(
         parset, prefix, readers, std::vector<Facet>{facets[i]}));
@@ -184,11 +182,20 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
   std::vector<std::vector<std::string>> directions =
       base::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
 
+  auto n_solutions_iterator = itsSettings.n_solutions_per_direction.begin();
+
   for (std::vector<std::string>& direction : directions) {
     itsSteps.push_back(std::make_shared<Predict>(parset, prefix, direction));
     setModelNextSteps(*itsSteps.back(), direction.front(), parset, prefix);
     itsDirectionNames.push_back(prefix + direction.front());
     itsDirections.push_back(std::move(direction));
+
+    if (n_solutions_iterator != itsSettings.n_solutions_per_direction.end()) {
+      itsSolutionsPerDirection.emplace_back(*n_solutions_iterator);
+      ++n_solutions_iterator;
+    } else {
+      itsSolutionsPerDirection.emplace_back(1);
+    }
   }
 }
 

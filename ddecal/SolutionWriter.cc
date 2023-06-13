@@ -32,8 +32,14 @@ std::vector<std::string> GetDirectionNames(
 namespace dp3 {
 namespace ddecal {
 
-SolutionWriter::SolutionWriter(const std::string& filename)
-    : h5parm_(filename, true) {}
+SolutionWriter::SolutionWriter(const std::string& filename) {
+  try {
+    h5parm_ = schaapcommon::h5parm::H5Parm(filename, true);
+  } catch (H5::FileIException& e) {
+    throw std::runtime_error("Error opening '" + filename +
+                             "' for writing: " + e.getCDetailMsg());
+  }
+}
 
 void SolutionWriter::AddAntennas(
     const std::vector<std::string>& all_antenna_names,
