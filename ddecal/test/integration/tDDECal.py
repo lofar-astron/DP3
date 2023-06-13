@@ -24,6 +24,7 @@ Script can be invoked in two ways:
 - using ctest, see DP3/ddecal/test/integration/CMakeLists.txt
 """
 
+IDG_RESOURCES = "idg-fits-sources.tbz2"
 MSINTGZ = "tDDECal.in_MS.tgz"
 MSIN = "tDDECal.MS"
 CWD = os.getcwd()
@@ -45,6 +46,12 @@ def source_env():
     # Post-test: clean up
     os.chdir(CWD)
     shutil.rmtree(tmpdir)
+
+
+@pytest.fixture()
+def idgpredict_env():
+    """Extract data for testing DDECal with IDGPredict"""
+    untar_ms(f"{tcf.DDECAL_RESOURCEDIR}/{IDG_RESOURCES}")
 
 
 @pytest.fixture()
@@ -1080,4 +1087,40 @@ def test_reuse_model_data():
 
     assert_taql(
         f"select from (select abs(gsumsqr(DATA_REUSE-DATA_REF)) as diff from {MSIN}) where diff>1.e-6"
+    )
+
+
+def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
+    """Test DDECal with all model data source types enabled"""
+
+    # Multiply MODEL_DATA by 42
+    taqlcommand_run = f"update {MSIN} set MODEL_DATA=DATA*42"
+    check_output([TAQLEXE, "-noph", taqlcommand_run])
+
+    # ddecal2 uses the following model data sources:
+    # - From the skymodel {MSIN}.sky: Directions 'ra_off' and 'dec_off'.
+    # - From foursources-model.fits, using IDGPredict: The directions as
+    #   specified in foursources.reg.
+    # - From the input MS: The visibilities in the 'MODEL_DATA' column.
+    # - From DPBuffer: The 'center' visibilities which ddecal1 added.
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[ddecal1,ddecal2]",
+            f"ddecal1.sourcedb={MSIN}/sky",
+            "ddecal1.directions=center",
+            "ddecal1.onlypredict=true",
+            "ddecal1.keepmodel=true",
+            "ddecal1.h5parm=ddecal1.h5parm",
+            f"ddecal2.sourcedb={MSIN}/sky",
+            "ddecal2.directions=[[ra_off],[dec_off]]",
+            f"ddecal2.idg.regions={tcf.DDECAL_RESOURCEDIR}/foursources.reg",
+            "ddecal2.idg.images=[foursources-model.fits]",
+            "ddecal2.modeldatacolumns=[MODEL_DATA]",
+            "ddecal2.reusemodel=[ddecal1.center]",
+            "ddecal2.h5parm=ddecal2.h5parm",
+        ]
     )

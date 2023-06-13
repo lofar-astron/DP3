@@ -133,24 +133,19 @@ Settings::Settings(const common::ParameterSet& _parset,
           GetSizeTVector("solutions_per_direction",
                          std::vector<size_t>(directions.size(), 1u))),
       source_db(GetString("sourcedb", "")) {
-  if (!directions.empty()) {
-    if (n_solutions_per_direction.size() < directions.size()) {
-      // Append ones to match number of directions
-      const size_t count = directions.size() - n_solutions_per_direction.size();
-      n_solutions_per_direction.insert(n_solutions_per_direction.end(), count,
-                                       1u);
-    } else if (n_solutions_per_direction.size() > directions.size()) {
-      throw std::runtime_error(
-          "The size of ddecal.solutions_per_direction should be less or equal "
-          "than the number of directions.");
-    }
-
-    if (*std::min_element(n_solutions_per_direction.begin(),
-                          n_solutions_per_direction.end()) == 0) {
-      throw std::runtime_error(
-          "All entries in ddecal.solutions_per_direction should be > 0.");
-    }
+  if (n_solutions_per_direction.size() > directions.size()) {
+    throw std::runtime_error(
+        "The size of ddecal.solutions_per_direction should be less or equal "
+        "than the number of directions.");
   }
+
+  if (std::find(n_solutions_per_direction.begin(),
+                n_solutions_per_direction.end(),
+                0) != n_solutions_per_direction.end()) {
+    throw std::runtime_error(
+        "All entries in ddecal.solutions_per_direction should be > 0.");
+  }
+
   // After construction, the parset object will become invalid at some point.
   parset = nullptr;
 }

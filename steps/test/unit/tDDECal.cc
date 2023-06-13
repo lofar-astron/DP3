@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(show_modified) {
   solint:              42
   nchan:               44
   directions:          [[REUSE],[center]]
-  sols per direction:  [1]
+  sols per direction:  [1,1]
   min visib. ratio:    43.123
   tolerance:           1e-05
   max iter:            49
