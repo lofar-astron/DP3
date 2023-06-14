@@ -34,7 +34,6 @@ using casacore::Cube;
 using casacore::DataManager;
 using casacore::DataManagerCtor;
 using casacore::IPosition;
-using casacore::MeasurementSet;
 using casacore::Record;
 using casacore::RefRows;
 using casacore::ScalarColumn;
@@ -153,51 +152,61 @@ bool MSUpdater::addColumn(const string& colName,
 }
 
 bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
-  common::NSTimer::StartStop sstime(itsTimer);
-  if (GetFieldsToWrite().Flags()) {
-    putFlags(buffer->getRowNrs(), buffer->GetCasacoreFlags());
-  }
-  if (GetFieldsToWrite().Data()) {
-    // If compressing, flagged values need to be set to NaN to decrease the
-    // dynamic range
-    if (itsStManKeys.stManName == "dysco") {
-      Cube<casacore::Complex> dataCopy = buffer->GetCasacoreData().copy();
-      Cube<casacore::Complex>::iterator dataIter = dataCopy.begin();
-      for (const bool flag : buffer->GetFlags()) {
-        if (flag) {
-          *dataIter =
-              casacore::Complex(std::numeric_limits<float>::quiet_NaN(),
-                                std::numeric_limits<float>::quiet_NaN());
-        }
-        ++dataIter;
-      }
-      putData(buffer->getRowNrs(), dataCopy);
-    } else {
-      putData(buffer->getRowNrs(), buffer->GetCasacoreData());
+  {
+    common::NSTimer::StartStop sstime(itsTimer);
+    const casacore::IPosition casacore_shape(
+        3, getInfo().ncorr(), getInfo().nchan(), getInfo().nbaselines());
+    if (GetFieldsToWrite().Flags()) {
+      const Cube<bool> flags(casacore_shape, buffer->GetFlags().data(),
+                             casacore::SHARE);
+      putFlags(buffer->getRowNrs(), flags);
     }
-  }
-  if (GetFieldsToWrite().Weights()) {
-    const Cube<float>& weights = buffer->GetCasacoreWeights();
+    if (GetFieldsToWrite().Data()) {
+      const Cube<casacore::Complex> data(
+          casacore_shape, buffer->GetData().data(), casacore::SHARE);
 
-    // If compressing, set weights of flagged points to zero to decrease the
-    // dynamic range
-    if (itsStManKeys.stManName == "dysco") {
-      Cube<float> weightsCopy = weights.copy();
-      Cube<float>::iterator weightsIter = weightsCopy.begin();
-      for (const bool flag : buffer->GetFlags()) {
-        if (flag) {
-          *weightsIter = 0.;
+      // If compressing, flagged values need to be set to NaN to decrease the
+      // dynamic range
+      if (itsStManKeys.stManName == "dysco") {
+        Cube<casacore::Complex> data_copy = data.copy();
+        Cube<casacore::Complex>::iterator data_iterator = data_copy.begin();
+        for (const bool flag : buffer->GetFlags()) {
+          if (flag) {
+            *data_iterator =
+                casacore::Complex(std::numeric_limits<float>::quiet_NaN(),
+                                  std::numeric_limits<float>::quiet_NaN());
+          }
+          ++data_iterator;
         }
-        ++weightsIter;
+        putData(buffer->getRowNrs(), data_copy);
+      } else {
+        putData(buffer->getRowNrs(), data);
       }
-      putWeights(buffer->getRowNrs(), weightsCopy);
-    } else {
-      putWeights(buffer->getRowNrs(), weights);
     }
-  }
-  itsNrDone++;
-  if (itsNrTimesFlush > 0 && itsNrDone % itsNrTimesFlush == 0) {
-    itsMS.flush();
+    if (GetFieldsToWrite().Weights()) {
+      const Cube<float> weights(casacore_shape, buffer->GetWeights().data(),
+                                casacore::SHARE);
+
+      // If compressing, set weights of flagged points to zero to decrease the
+      // dynamic range
+      if (itsStManKeys.stManName == "dysco") {
+        Cube<float> weights_copy = weights.copy();
+        Cube<float>::iterator weights_iterator = weights_copy.begin();
+        for (const bool flag : buffer->GetFlags()) {
+          if (flag) {
+            *weights_iterator = 0.0f;
+          }
+          ++weights_iterator;
+        }
+        putWeights(buffer->getRowNrs(), weights_copy);
+      } else {
+        putWeights(buffer->getRowNrs(), weights);
+      }
+    }
+    itsNrDone++;
+    if (itsNrTimesFlush > 0 && itsNrDone % itsNrTimesFlush == 0) {
+      itsMS.flush();
+    }
   }
   getNextStep()->process(std::move(buffer));
   return true;
