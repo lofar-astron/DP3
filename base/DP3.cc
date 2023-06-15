@@ -43,6 +43,7 @@
 #include "../steps/PhaseShift.h"
 #include "../steps/Predict.h"
 #include "../steps/PreFlagger.h"
+#include "../steps/SagecalPredict.h"
 #include "../steps/ScaleData.h"
 #include "../steps/SetBeam.h"
 #include "../steps/Split.h"
@@ -201,6 +202,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::DemixerNew>(parset, prefix);
   } else if (type == "grouppredict") {
     step = std::make_shared<steps::BdaGroupPredict>(parset, prefix);
+  } else if (type == "sagecalpredict") {
+    step = std::make_shared<steps::SagecalPredict>(parset, prefix);
   } else if (type == "h5parmpredict") {
     step = std::make_shared<steps::H5ParmPredict>(parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
