@@ -194,14 +194,19 @@ void ApplyBeam::showTimings(std::ostream& os, double duration) const {
   os << " ApplyBeam " << itsName << '\n';
 }
 
-bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
+bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
+                                     size_t thread) {
   itsTimer.start();
-  itsBuffer.copy(bufin);
-  casacore::Complex* data = itsBuffer.GetData().data();
 
-  float* weight = itsBuffer.GetWeights().data();
+  // Ensure that data and weight are independent and not references as ApplyBeam
+  // updates both
+  buffer->MakeIndependent(kDataField | kWeightsField);
 
-  const double time = itsBuffer.getTime();
+  std::complex<float>* data = buffer->GetData().data();
+
+  float* weight = buffer->GetWeights().data();
+
+  const double time = buffer->getTime();
 
   // Set up directions for beam evaluation
   everybeam::vector3r_t srcdir;
@@ -242,7 +247,7 @@ bool ApplyBeam::processMultithreaded(const DPBuffer& bufin, size_t thread) {
             itsBeamValues[thread], itsInvert, itsMode, itsUpdateWeights);
 
   itsTimer.stop();
-  getNextStep()->process(itsBuffer);
+  getNextStep()->process(std::move(buffer));
   return false;
 }
 
