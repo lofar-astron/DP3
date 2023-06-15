@@ -42,6 +42,7 @@
 #include "IDGPredict.h"
 #include "MsColumnReader.h"
 #include "Predict.h"
+#include "SagecalPredict.h"
 
 using aocommon::FitsReader;
 
@@ -185,7 +186,12 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
   auto n_solutions_iterator = itsSettings.n_solutions_per_direction.begin();
 
   for (std::vector<std::string>& direction : directions) {
-    itsSteps.push_back(std::make_shared<Predict>(parset, prefix, direction));
+    if (itsSettings.use_sagecal_predict) {
+      itsSteps.push_back(
+          std::make_shared<SagecalPredict>(parset, prefix, direction));
+    } else {
+      itsSteps.push_back(std::make_shared<Predict>(parset, prefix, direction));
+    }
     setModelNextSteps(*itsSteps.back(), direction.front(), parset, prefix);
     itsDirectionNames.push_back(prefix + direction.front());
     itsDirections.push_back(std::move(direction));
@@ -241,6 +247,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
                    s->GetBufferSize() / itsSteps.size() / itsRequestedSolInt);
       // We increment by one so the IDGPredict will not flush in its process
       s->SetBufferSize(itsRequestedSolInt * itsSolIntCount + 1);
+    } else if (auto s = std::dynamic_pointer_cast<SagecalPredict>(step)) {
+      // Divide the full thread count to each step
+      s->setNThreads(std::min<std::size_t>(
+          (getInfo().nThreads() + itsSteps.size() - 1) / itsSteps.size(),
+          getInfo().nThreads()));
     } else if (!std::dynamic_pointer_cast<MsColumnReader>(step)) {
       throw std::runtime_error("DDECal received an invalid first model step");
     }

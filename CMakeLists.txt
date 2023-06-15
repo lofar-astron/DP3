@@ -415,6 +415,7 @@ add_library(
   base/ProgressMeter.cc
   base/Simulate.cc
   base/Simulator.cc
+  base/ComponentInfo.cc
   base/SourceDBUtil.cc
   base/Stokes.cc
   base/SubtractMixed.cc
@@ -462,7 +463,8 @@ add_library(
   steps/UVWFlagger.cc
   steps/ApplyBeam.cc
   steps/DemixerNew.cc
-  steps/NullStokes.cc)
+  steps/NullStokes.cc
+  steps/SagecalPredict.cc)
 target_link_libraries(DP3_OBJ xsimd xtensor)
 
 add_library(
@@ -507,8 +509,15 @@ if(NOT "${LIBDIRAC_PREFIX}" STREQUAL "")
   pkg_search_module(LIBDIRAC libdirac)
 endif()
 if(LIBDIRAC_FOUND)
-  message("-- Found libdirac: ${LIBDIRAC_INCLUDE_DIRS}")
+  message(STATUS "Found libdirac: ${LIBDIRAC_INCLUDE_DIRS}")
   include_directories(${LIBDIRAC_INCLUDE_DIRS})
+  if(HAVE_CUDA)
+    enable_language(CUDA)
+    find_package(CUDA QUIET REQUIRED)
+    find_package(NVML REQUIRED)
+    message(STATUS "CUDA_LIBRARIES ............ = ${CUDA_LIBRARIES}")
+    include_directories(${CUDA_INCLUDE_DIRS})
+  endif()
 endif()
 
 set(DP3_LIBRARIES
@@ -527,10 +536,29 @@ set(DP3_LIBRARIES
 
 # If libdirac is found, use it
 if(LIBDIRAC_FOUND)
-  # add preprocessor def
-  add_definitions(-DHAVE_LIBDIRAC)
-  # add link flags
-  set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
+  if(HAVE_CUDA)
+    # if we use libdirac with CUDA support, we enable a different preprocessor def
+    # so as not to conflict with CPU only version of libdirac
+    add_definitions(-DHAVE_LIBDIRAC_CUDA)
+    add_definitions(-DHAVE_CUDA)
+    # add link flags
+    set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
+    # add preprocessor def
+    add_definitions(-DHAVE_CUDA)
+    set(DP3_LIBRARIES
+        ${DP3_LIBRARIES}
+        ${CUDA_LIBRARIES}
+        ${CUDA_CUBLAS_LIBRARIES}
+        ${CUDA_CUFFT_LIBRARIES}
+        ${CUDA_cusolver_LIBRARY}
+        ${CUDA_cudadevrt_LIBRARY}
+        ${NVML_LIB_PATH})
+  else()
+    # add preprocessor def
+    add_definitions(-DHAVE_LIBDIRAC)
+    # add link flags
+    set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
+  endif()
 endif()
 
 # Perform the BLAS check from aocommon

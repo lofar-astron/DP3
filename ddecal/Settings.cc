@@ -128,6 +128,9 @@ Settings::Settings(const common::ParameterSet& _parset,
       idg_region_filename(GetString("idg.regions", "")),
       idg_image_filenames(GetStringVector("idg.images")),
 
+      // Sagecal predict
+      use_sagecal_predict(GetBool("sagecalpredict", false)),
+
       directions(GetStringVector("directions")),
       n_solutions_per_direction(
           GetSizeTVector("solutions_per_direction",

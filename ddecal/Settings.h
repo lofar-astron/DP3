@@ -142,6 +142,8 @@ struct Settings {
   const std::string idg_region_filename;
   const std::vector<std::string> idg_image_filenames;
 
+  const bool use_sagecal_predict;
+
   const std::vector<std::string> directions;
   std::vector<size_t> n_solutions_per_direction;
   const std::string source_db;

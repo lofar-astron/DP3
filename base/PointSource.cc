@@ -98,6 +98,8 @@ Stokes PointSource::stokes(double freq) const {
   return stokes;
 }
 
+Stokes PointSource::stokes() const { return itsStokes; }
+
 void PointSource::accept(ModelComponentVisitor &visitor) const {
   visitor.visit(*this);
 }

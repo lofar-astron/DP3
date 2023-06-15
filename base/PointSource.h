@@ -42,6 +42,9 @@ class PointSource : public ModelComponent {
   void setRotationMeasure(double fraction, double angle, double rm);
 
   Stokes stokes(double freq) const;
+  Stokes stokes() const;
+  const std::vector<double> &spectrum() const { return itsSpectralTerms; }
+  double referenceFreq() const { return itsRefFreq; }
 
   void accept(ModelComponentVisitor &visitor) const override;
 

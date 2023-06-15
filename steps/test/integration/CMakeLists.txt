@@ -16,3 +16,7 @@ add_python_tests(
   tPredict
   tReadOnly
   tSplit)
+
+if(LIBDIRAC_FOUND)
+  add_python_tests(tSagecalPredict)
+endif()
