@@ -54,13 +54,14 @@ class ApplyBeam : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer& buffer) override {
-    return processMultithreaded(buffer, 0);
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override {
+    return processMultithreaded(std::move(buffer), 0);
   }
 
   /// If apply beam is called from multiple threads, it needs the thread index
   /// to determine what scratch space to use etc.
-  bool processMultithreaded(const base::DPBuffer&, size_t thread);
+  bool processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
+                            size_t thread);
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -125,7 +126,6 @@ class ApplyBeam : public Step {
                                  casacore::MDirection::Convert& measConverter);
 
   string itsName;
-  base::DPBuffer itsBuffer;
   bool itsInvert;
   bool itsUpdateWeights;
   std::vector<string> itsDirectionStr;
