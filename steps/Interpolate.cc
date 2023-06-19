@@ -140,7 +140,6 @@ void Interpolate::interpolateTimestep(size_t index) {
   for (size_t i = 0; i != nthreads; ++i)
     threads.emplace_back(&Interpolate::interpolationThread, this);
 
-  std::vector<casacore::Complex> dataBlock;
   for (size_t bl = 0; bl < nBl; ++bl) {
     bool* flags = _buffers[index].GetFlags().data() + bl * nPerBl;
     for (size_t ch = 0; ch != nChan; ++ch) {
