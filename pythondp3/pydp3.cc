@@ -85,6 +85,7 @@ void register_vector(py::module &m, const char *name) {
 class PublicStep : public Step {
  public:
   using Step::info;
+  using Step::showTimings;
   using Step::updateInfo;
 };
 
@@ -122,6 +123,16 @@ PYBIND11_MODULE(pydp3, m) {
           "redirected to DP3's output stream. Overrides of show() should use "
           "print() "
           "to output a summary of the step.")
+      .def(
+          "show_timings",
+          [](const dp3::steps::Step &step, double elapsed_time) {
+            std::stringstream ss;
+            step.showTimings(ss, elapsed_time);
+            return ss.str();
+          },
+          "Show the processing time of current step. Also provides the "
+          "percentage of time the current step took compared to the total "
+          "elapsed time given as input (in seconds).")
       .def("__str__",
            [](const dp3::steps::Step &step) {
              std::stringstream ss;

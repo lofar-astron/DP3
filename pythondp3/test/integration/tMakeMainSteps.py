@@ -13,6 +13,7 @@ Script can be invoked in two ways:
 import pytest
 import os
 import sys
+import time
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -72,6 +73,19 @@ def test_make_main_steps(tmp_path):
         step.show()
         step = step.get_next_step()
 
+    start_time = time.time()
     while first_step.process(dp3.DPBuffer()):
         print(".")
     first_step.finish()
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    # Assert that the "show_timings" function returns the expected results.
+    msreader = first_step
+    averager = first_step.get_next_step()
+    mswriter = averager.get_next_step()
+
+    assert "ms) MSReader" in msreader.show_timings(elapsed_time)
+    assert "ms) Averager" in averager.show_timings(elapsed_time)
+    assert "ms) MSWriter" in mswriter.show_timings(elapsed_time)
