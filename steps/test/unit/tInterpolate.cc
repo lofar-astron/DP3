@@ -12,16 +12,11 @@
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-#include <casacore/casa/BasicMath/Math.h>
-
 #include <boost/test/unit_test.hpp>
 
 #include <string>
 #include <vector>
 
-using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::steps::Step;
 
@@ -33,7 +28,8 @@ BOOST_AUTO_TEST_SUITE(interpolate)
 // It can be used with different nr of times, channels, etc.
 class TestInput : public dp3::steps::MockInput {
  public:
-  TestInput(int ntime, int nant, int nchan, int ncorr, bool flag)
+  TestInput(std::size_t ntime, std::size_t nant, std::size_t nchan,
+            std::size_t ncorr, bool flag)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nant * (nant + 1) / 2),
@@ -52,7 +48,7 @@ class TestInput : public dp3::steps::MockInput {
     std::vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
-    for (int i = 0; i < itsNBl; ++i) {
+    for (std::size_t i = 0; i < itsNBl; ++i) {
       ant1[i] = st1;
       ant2[i] = st2;
       if (++st2 == 4) {
@@ -87,35 +83,37 @@ class TestInput : public dp3::steps::MockInput {
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(nchan, 100000.);
-    for (int i = 0; i < nchan; i++) {
+    for (std::size_t i = 0; i < nchan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<dp3::base::DPBuffer>) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<std::complex<float>> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
+    const std::array<std::size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> data(data_shape);
+    for (std::size_t i = 0; i < data.size(); ++i) {
       data.data()[i] = std::complex<float>(1.6, 0.9);
     }
     if (itsCount == 5) {
       data += std::complex<float>(10., 10.);
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buf.setWeights(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    buf.setFlags(flags);
-    getNextStep()->process(buf);
+    auto buffer = std::make_unique<dp3::base::DPBuffer>();
+    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
+    buffer->ResizeData(data_shape);
+    buffer->GetData() = data;
+    xt::xtensor<float, 3> weights(data_shape, 1.0);
+    buffer->ResizeWeights(data_shape);
+    buffer->GetWeights() = weights;
+    xt::xtensor<bool, 3> flags(data_shape, itsFlag);
+    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags() = flags;
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -125,14 +123,15 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
 };
 
 // Class to check result.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(int ntime, int nant, int nchan, int ncorr)
+  TestOutput(std::size_t ntime, std::size_t nant, std::size_t nchan,
+             std::size_t ncorr)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nant * (nant + 1) / 2),
@@ -140,38 +139,39 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsNCorr(ncorr) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(
+      const std::unique_ptr<dp3::base::DPBuffer> input_buffer) override {
     // Fill expected result in similar way as TestInput.
-    casacore::Cube<casacore::Complex> result(itsNCorr, itsNChan, itsNBl);
+    const std::array<std::size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> result(data_shape);
     for (std::size_t i = 0; i < result.size(); ++i) {
-      result.data()[i] = casacore::Complex(1.6, 0.9);
+      result.data()[i] = std::complex<float>(1.6, 0.9);
     }
     if (itsCount == 5) {
-      result += casacore::Complex(10., 10.);
+      result += std::complex<float>(10.0, 10.0);
     }
     // Check the result.
-    BOOST_CHECK(casacore::allNear(buf.GetCasacoreData(), result, 1e-10));
-    BOOST_CHECK(casacore::near(buf.getTime(), 2 + 5. * itsCount));
+    BOOST_CHECK(xt::allclose(input_buffer->GetData(), result, 1e-10));
+    BOOST_CHECK(xt::allclose(input_buffer->getTime(), 2 + 5.0 * itsCount));
     ++itsCount;
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
-    BOOST_CHECK_EQUAL(int(info.origNChan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(info.nchan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(info.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(info.origNChan(), itsNChan);
+    BOOST_CHECK_EQUAL(info.nchan(), itsNChan);
+    BOOST_CHECK_EQUAL(info.ntime(), itsNTime);
     BOOST_CHECK_EQUAL(info.firstTime(), 100.0);
     BOOST_CHECK_EQUAL(info.timeInterval(), 5.0);
-    BOOST_CHECK_EQUAL(int(info.nchanAvg()), 1);
-    BOOST_CHECK_EQUAL(int(info.ntimeAvg()), 1);
-    BOOST_CHECK_EQUAL(int(info.chanFreqs().size()), itsNChan);
-    BOOST_CHECK_EQUAL(int(info.chanWidths().size()), itsNChan);
+    BOOST_CHECK_EQUAL(info.nchanAvg(), 1);
+    BOOST_CHECK_EQUAL(info.ntimeAvg(), 1);
+    BOOST_CHECK_EQUAL(info.chanFreqs().size(), itsNChan);
+    BOOST_CHECK_EQUAL(info.chanWidths().size(), itsNChan);
     BOOST_CHECK(info.msName().empty());
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 BOOST_AUTO_TEST_CASE(test1) {

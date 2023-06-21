@@ -15,8 +15,6 @@
 
 #include <aocommon/lane.h>
 
-#include <casacore/casa/Arrays/Cube.h>
-
 namespace dp3 {
 namespace steps {
 
@@ -39,7 +37,7 @@ class Interpolate : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> input_buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -72,7 +70,7 @@ class Interpolate : public Step {
 
   std::string _name;
   size_t _interpolatedPos;
-  std::deque<base::DPBuffer> _buffers;
+  std::deque<std::unique_ptr<base::DPBuffer>> _buffers;
   size_t _windowSize;
   common::NSTimer _timer;
   aocommon::Lane<Sample> _lane;
