@@ -288,9 +288,6 @@ endif()
 
 # Include aocommon
 include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
-# TODO(AST-1278): Try using new (release) versions in aocommon.
-set(XTL_GIT_TAG b3d0091a77af52f1b479b5b768260be4873aa8a7)
-set(XSIMD_GIT_TAG 2f5eddf8912c7e2527f0c50895c7560b964d29af)
 include(external/aocommon/CMake/FetchXTensor.cmake)
 add_compile_definitions(XTENSOR_USE_XSIMD)
 
