@@ -22,7 +22,7 @@ class Interpolate : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Interpolate(const common::ParameterSet&, const string& prefix);
+  Interpolate(const common::ParameterSet&, const std::string& prefix);
 
   ~Interpolate() override = default;
 
@@ -68,13 +68,13 @@ class Interpolate : public Step {
     size_t pol;
   };
 
-  std::string _name;
-  size_t _interpolatedPos;
-  std::deque<std::unique_ptr<base::DPBuffer>> _buffers;
-  size_t _windowSize;
-  common::NSTimer _timer;
-  aocommon::Lane<Sample> _lane;
-  std::vector<float> _kernelLookup;
+  std::string name_;
+  size_t interpolated_pos_;
+  std::deque<std::unique_ptr<base::DPBuffer>> buffers_;
+  size_t window_size_;
+  common::NSTimer timer_;
+  aocommon::Lane<Sample> lane_;
+  std::vector<float> kernel_lookup_;
 };
 
 }  // namespace steps

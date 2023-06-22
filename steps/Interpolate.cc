@@ -23,50 +23,50 @@ namespace dp3 {
 namespace steps {
 
 Interpolate::Interpolate(const common::ParameterSet& parset,
-                         const string& prefix)
-    : _name(prefix),
-      _interpolatedPos(0),
-      _windowSize(parset.getUint(prefix + "windowsize", 15)) {
-  if (_windowSize % 2 != 1)
+                         const std::string& prefix)
+    : name_(prefix),
+      interpolated_pos_(0),
+      window_size_(parset.getUint(prefix + "windowsize", 15)) {
+  if (window_size_ % 2 != 1)
     throw std::runtime_error(
         "Window size of Interpolate action should be an odd number");
 
-  _kernelLookup.reserve(_windowSize * _windowSize);
-  for (int t = 0; t != int(_windowSize); ++t) {
-    int y = t - int(_windowSize / 2);
-    for (int ch = 0; ch != int(_windowSize); ++ch) {
-      int x = ch - int(_windowSize / 2);
-      double windowDist = double(x * x + y * y);
+  kernel_lookup_.reserve(window_size_ * window_size_);
+  for (int t = 0; t != int(window_size_); ++t) {
+    int y = t - int(window_size_ / 2);
+    for (int ch = 0; ch != int(window_size_); ++ch) {
+      int x = ch - int(window_size_ / 2);
+      double window_dist = double(x * x + y * y);
       // Gaussian function with sigma = 1
       // (evaluated with double prec, then converted to floats)
-      double w = std::exp(windowDist * -0.5);
-      _kernelLookup.emplace_back(w);
+      double w = std::exp(window_dist * -0.5);
+      kernel_lookup_.emplace_back(w);
     }
   }
 }
 
 void Interpolate::show(std::ostream& os) const {
-  os << "Interpolate " << _name << '\n';
-  os << "  windowsize:     " << _windowSize << '\n';
+  os << "Interpolate " << name_ << '\n';
+  os << "  windowsize:     " << window_size_ << '\n';
 }
 
 void Interpolate::showTimings(std::ostream& os, double duration) const {
   os << "  ";
-  FlagCounter::showPerc1(os, _timer.getElapsed(), duration);
-  os << " Interpolate " << _name << '\n';
+  FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " Interpolate " << name_ << '\n';
 }
 
 bool Interpolate::process(std::unique_ptr<base::DPBuffer> input_buffer) {
-  _timer.start();
+  timer_.start();
   // Collect the data in buffers.
-  _buffers.emplace_back(std::move(input_buffer));
+  buffers_.emplace_back(std::move(input_buffer));
   // If we have a full window of data, interpolate everything
   // up to the middle of the window
-  if (_buffers.size() >= _windowSize) {
-    size_t mid = _windowSize / 2;
-    while (_interpolatedPos <= mid) {
-      interpolateTimestep(_interpolatedPos);
-      ++_interpolatedPos;
+  if (buffers_.size() >= window_size_) {
+    size_t mid = window_size_ / 2;
+    while (interpolated_pos_ <= mid) {
+      interpolateTimestep(interpolated_pos_);
+      ++interpolated_pos_;
     }
     // Buffers are only pushed to the next step when they are completely
     // out of the window. This is because flags need to be set to false,
@@ -74,14 +74,17 @@ bool Interpolate::process(std::unique_ptr<base::DPBuffer> input_buffer) {
     // interpolation, so these can only be set to false after processing.
     sendFrontBufferToNextStep();
   }
-  _timer.stop();
+  timer_.stop();
   return true;
 }
 
 void Interpolate::sendFrontBufferToNextStep() {
-  auto front_buffer = std::move(_buffers.front());
-  const auto& shp = front_buffer->GetData().shape();
-  size_t nPol = shp[2], nChan = shp[1], nBl = shp[0], n = nPol * nChan * nBl;
+  auto front_buffer = std::move(buffers_.front());
+  const auto& data_shape = front_buffer->GetData().shape();
+  size_t num_pol = data_shape[2];
+  size_t num_channels = data_shape[1];
+  size_t num_baselines = data_shape[0];
+  size_t n = num_pol * num_channels * num_baselines;
   // Set all flags to false
   bool* flags = front_buffer->GetFlags().data();
   std::complex<float>* data = front_buffer->GetData().data();
@@ -96,27 +99,27 @@ void Interpolate::sendFrontBufferToNextStep() {
     }
   }
 
-  _timer.stop();
+  timer_.stop();
   getNextStep()->process(std::move(front_buffer));
-  _timer.start();
+  timer_.start();
 
-  _buffers.pop_front();
-  --_interpolatedPos;
+  buffers_.pop_front();
+  --interpolated_pos_;
 }
 
 void Interpolate::finish() {
-  _timer.start();
+  timer_.start();
 
   // Interpolate everything up to the end of the window
-  while (_interpolatedPos < _buffers.size()) {
-    interpolateTimestep(_interpolatedPos);
-    ++_interpolatedPos;
+  while (interpolated_pos_ < buffers_.size()) {
+    interpolateTimestep(interpolated_pos_);
+    ++interpolated_pos_;
   }
-  while (!_buffers.empty()) {
+  while (!buffers_.empty()) {
     sendFrontBufferToNextStep();
   }
 
-  _timer.stop();
+  timer_.stop();
 
   getNextStep()->finish();
 }
@@ -124,22 +127,24 @@ void Interpolate::finish() {
 #define BUFFER_SIZE 1024
 
 void Interpolate::interpolateTimestep(size_t index) {
-  const auto& shp = _buffers.front()->GetData().shape();
-  const size_t nPol = shp[2], nChan = shp[1], nPerBl = nPol * nChan,
-               nBl = shp[0];
+  const auto& data_shape = buffers_.front()->GetData().shape();
+  const size_t num_pol = data_shape[2];
+  const size_t num_channels = data_shape[1];
+  const size_t num_per_baseline = num_pol * num_channels;
+  const size_t num_baselines = data_shape[0];
 
   std::vector<std::thread> threads;
-  size_t nthreads = std::min<size_t>(getInfo().nThreads(), 8);
-  _lane.resize(nthreads * BUFFER_SIZE);
-  common::lane_write_buffer<Sample> buflane(&_lane, BUFFER_SIZE);
-  threads.reserve(nthreads);
-  for (size_t i = 0; i != nthreads; ++i)
+  size_t num_threads = std::min<size_t>(getInfo().nThreads(), 8);
+  lane_.resize(num_threads * BUFFER_SIZE);
+  common::lane_write_buffer<Sample> buflane(&lane_, BUFFER_SIZE);
+  threads.reserve(num_threads);
+  for (size_t i = 0; i != num_threads; ++i)
     threads.emplace_back(&Interpolate::interpolationThread, this);
 
-  for (size_t bl = 0; bl < nBl; ++bl) {
-    bool* flags = _buffers[index]->GetFlags().data() + bl * nPerBl;
-    for (size_t ch = 0; ch != nChan; ++ch) {
-      for (size_t p = 0; p != nPol; ++p) {
+  for (size_t bl = 0; bl < num_baselines; ++bl) {
+    bool* flags = buffers_[index]->GetFlags().data() + bl * num_per_baseline;
+    for (size_t ch = 0; ch != num_channels; ++ch) {
+      for (size_t p = 0; p != num_pol; ++p) {
         if (*flags) {
           buflane.emplace(index, bl, ch, p);
         }
@@ -153,9 +158,9 @@ void Interpolate::interpolateTimestep(size_t index) {
 }
 
 void Interpolate::interpolationThread() {
-  common::lane_read_buffer<Sample> buflane(&_lane, BUFFER_SIZE);
+  common::lane_read_buffer<Sample> lane_buffer(&lane_, BUFFER_SIZE);
   Sample sample;
-  while (buflane.read(sample)) {
+  while (lane_buffer.read(sample)) {
     interpolateSample(sample.timestep, sample.baseline, sample.channel,
                       sample.pol);
   }
@@ -163,48 +168,50 @@ void Interpolate::interpolationThread() {
 
 void Interpolate::interpolateSample(size_t timestep, size_t baseline,
                                     size_t channel, size_t pol) {
-  const auto& shp = _buffers.front()->GetData().shape();
-  const size_t nPol = shp[2], nChan = shp[1],
-               timestepBegin = (timestep > _windowSize / 2)
-                                   ? (timestep - _windowSize / 2)
-                                   : 0,
-               timestepEnd =
-                   std::min(timestep + _windowSize / 2 + 1, _buffers.size()),
-               channelBegin = (channel > _windowSize / 2)
-                                  ? (channel - _windowSize / 2)
-                                  : 0,
-               channelEnd = std::min(channel + _windowSize / 2 + 1, nChan);
+  const auto& data_shape = buffers_.front()->GetData().shape();
+  const size_t num_pol = data_shape[2];
+  const size_t num_channels = data_shape[1];
+  const size_t timestep_begin =
+      (timestep > window_size_ / 2) ? (timestep - window_size_ / 2) : 0;
+  const size_t timestep_end =
+      std::min(timestep + window_size_ / 2 + 1, buffers_.size());
+  const size_t channel_begin =
+      (channel > window_size_ / 2) ? (channel - window_size_ / 2) : 0;
+  const size_t channel_end =
+      std::min(channel + window_size_ / 2 + 1, num_channels);
 
-  std::complex<float> valueSum = 0.0;
-  float windowSum = 0.0;
+  std::complex<float> value_sum = 0.0;
+  float window_sum = 0.0;
 
-  for (size_t t = timestepBegin; t != timestepEnd; ++t) {
-    std::complex<float>* data = _buffers[t]->GetData().data() +
-                                (baseline * nChan + channelBegin) * nPol + pol;
-    const bool* flags = _buffers[t]->GetFlags().data() +
-                        (baseline * nChan + channelBegin) * nPol + pol;
+  for (size_t t = timestep_begin; t != timestep_end; ++t) {
+    std::complex<float>* data =
+        buffers_[t]->GetData().data() +
+        (baseline * num_channels + channel_begin) * num_pol + pol;
+    const bool* flags = buffers_[t]->GetFlags().data() +
+                        (baseline * num_channels + channel_begin) * num_pol +
+                        pol;
     const float* row =
-        &_kernelLookup[_windowSize * (t + int(_windowSize / 2) - timestep)];
-    for (size_t ch = channelBegin; ch != channelEnd; ++ch) {
+        &kernel_lookup_[window_size_ * (t + int(window_size_ / 2) - timestep)];
+    for (size_t ch = channel_begin; ch != channel_end; ++ch) {
       if (!*flags) {
-        int x = ch + int(_windowSize / 2) - channel;
+        int x = ch + int(window_size_ / 2) - channel;
         float w = row[x];
-        valueSum += *data * w;
-        windowSum += w;
+        value_sum += *data * w;
+        window_sum += w;
       }
 
-      data += nPol;
-      flags += nPol;
+      data += num_pol;
+      flags += num_pol;
     }
   }
   // This write is multithreaded, but is allowed because this value is never
   // read from in the loops above (because flagged values are skipped).
   std::complex<float>& value =
-      _buffers[timestep]
+      buffers_[timestep]
           ->GetData()
-          .data()[(baseline * nChan + channel) * nPol + pol];
-  if (windowSum != 0.0)
-    value = valueSum / windowSum;
+          .data()[(baseline * num_channels + channel) * num_pol + pol];
+  if (window_sum != 0.0)
+    value = value_sum / window_sum;
   else
     value = std::complex<float>(std::numeric_limits<float>::quiet_NaN(),
                                 std::numeric_limits<float>::quiet_NaN());
