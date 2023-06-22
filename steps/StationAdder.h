@@ -61,7 +61,7 @@ class StationAdder : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -94,7 +94,6 @@ class StationAdder : public Step {
                       casacore::Table& antTab);
 
   std::string itsName;
-  base::DPBuffer itsBuf;
   common::ParameterRecord itsStatRec;  ///< stations definitions
   std::vector<casacore::Vector<int>>
       itsParts;  ///< the stations in each superstation
