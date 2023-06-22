@@ -28,7 +28,6 @@
 #include "../base/FlagCounter.h"
 
 using casacore::ArrayColumn;
-using casacore::IPosition;
 using casacore::MPosition;
 using casacore::MVPosition;
 using casacore::Regex;
@@ -142,7 +141,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     }
     // The superstation position is the average of its parts.
     newNames.push_back(iter->first);
-    newPosition *= 1. / parts.size();
+    newPosition *= 1.0 / parts.size();
     newPoss.push_back(MPosition(newPosition, MPosition::ITRF));
     itsParts.push_back(casacore::Vector<int>(parts));
     // Set the diameter of the new station by determining the
@@ -154,7 +153,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
           newPosition -
           MPosition::Convert(antennaPos[inx], MPosition::ITRF)().getValue();
       const casacore::Vector<double>& diff = mvdiff.getValue();
-      double dist = std::sqrt(std::accumulate(diff.cbegin(), diff.cend(), 0.,
+      double dist = std::sqrt(std::accumulate(diff.cbegin(), diff.cend(), 0.0,
                                               casacore::SumSqr<double>()));
       // Add the radius of the station used.
       maxdist = std::max(maxdist, dist + 0.5 * antennaDiam[inx]);
@@ -244,13 +243,6 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   // Setup the UVW calculator (for new baselines).
   itsUVWCalc = std::make_unique<base::UVWCalculator>(
       infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);
-  // Size the buffer to cater for the new baselines.
-  const std::array<std::size_t, 3> shape{getInfo().nbaselines(),
-                                         getInfo().nchan(), getInfo().ncorr()};
-  itsBuf.ResizeData(shape);
-  itsBuf.ResizeFlags(shape);
-  itsBuf.ResizeWeights(shape);
-  itsBuf.ResizeUvw(getInfo().nbaselines());
 }
 
 void StationAdder::show(std::ostream& os) const {
@@ -279,38 +271,51 @@ void StationAdder::showTimings(std::ostream& os, double duration) const {
   os << " StationAdder " << itsName << '\n';
 }
 
-bool StationAdder::process(const DPBuffer& buf) {
+bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
-  // Get the various data arrays.
-  const casacore::Array<casacore::Complex>& data = buf.GetCasacoreData();
-  const casacore::Array<bool>& flags = buf.GetCasacoreFlags();
-  const casacore::Array<float>& weights = buf.GetCasacoreWeights();
-  const casacore::Array<double>& uvws = buf.GetCasacoreUvw();
-  // Copy the data; only the first baselines will be filled.
-  std::copy(data.data(), data.data() + data.size(), itsBuf.GetData().data());
-  std::copy(flags.data(), flags.data() + flags.size(),
-            itsBuf.GetFlags().data());
-  std::copy(weights.data(), weights.data() + weights.size(),
-            itsBuf.GetWeights().data());
-  std::copy(uvws.data(), uvws.data() + uvws.size(), itsBuf.GetUvw().data());
+
+  // Resize of data buffers can be destructive, therefore we must:
+  // 1. Store the data locally.
+  // TODO(AST-1330): Avoid copying the data, e.g., using 'swap'.
+  const xt::xtensor<std::complex<float>, 3> input_data = buffer->GetData();
+  const xt::xtensor<bool, 3> input_flags = buffer->GetFlags();
+  const xt::xtensor<float, 3> input_weights = buffer->GetWeights();
+  const xt::xtensor<double, 2> input_uvws = buffer->GetUvw();
+  // 2. Resize the buffer to the new sizes that were set in our info object
+  const std::array<std::size_t, 3> new_shape{
+      getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
+  buffer->ResizeData(new_shape);
+  buffer->ResizeFlags(new_shape);
+  buffer->ResizeWeights(new_shape);
+  buffer->ResizeUvw(getInfo().nbaselines());
+  // 3. Copy the data back into the resized buffer; only the existing baselines
+  // at the start will be filled the additional new baselines at the end will be
+  // empty.
+  std::copy_n(input_data.data(), input_data.size(), buffer->GetData().data());
+  std::copy_n(input_flags.data(), input_flags.size(),
+              buffer->GetFlags().data());
+  std::copy_n(input_weights.data(), input_weights.size(),
+              buffer->GetWeights().data());
+  std::copy_n(input_uvws.data(), input_uvws.size(), buffer->GetUvw().data());
+
   // Now calculate the data pointers of the new baselines.
-  unsigned int nrOldBL = data.shape()[2];
-  unsigned int nrcc = data.shape()[0] * data.shape()[1];
-  casacore::Complex* dataPtr = itsBuf.GetData().data() + data.size();
-  bool* flagPtr = itsBuf.GetFlags().data() + data.size();
-  float* wghtPtr = itsBuf.GetWeights().data() + data.size();
-  double* uvwPtr = itsBuf.GetUvw().data() + uvws.size();
+  unsigned int nrOldBL = input_data.shape()[0];
+  unsigned int nrcc = input_data.shape()[2] * input_data.shape()[1];
+  std::complex<float>* dataPtr = buffer->GetData().data() + input_data.size();
+  bool* flagPtr = buffer->GetFlags().data() + input_data.size();
+  float* wghtPtr = buffer->GetWeights().data() + input_data.size();
+  double* uvwPtr = buffer->GetUvw().data() + input_uvws.size();
   std::vector<unsigned int> npoints(nrcc);
-  std::vector<casacore::Complex> dataFlg(nrcc);
+  std::vector<std::complex<float>> dataFlg(nrcc);
   std::vector<float> wghtFlg(nrcc);
   // Loop over all new baselines.
   for (unsigned int i = 0; i < itsBufRows.size(); ++i) {
     // Clear the data for the new baseline.
     for (unsigned int k = 0; k < nrcc; ++k) {
-      dataPtr[k] = casacore::Complex();
+      dataPtr[k] = std::complex<float>();
       wghtPtr[k] = 0.;
       npoints[k] = 0;
-      dataFlg[k] = casacore::Complex();
+      dataFlg[k] = std::complex<float>();
       wghtFlg[k] = 0.;
     }
 
@@ -331,11 +336,11 @@ bool StationAdder::process(const DPBuffer& buf) {
       }
       blnr--;  // decrement because blnr+1 is stored in itsBufRows
       // Get pointers to the input baseline data.
-      const casacore::Complex* inDataPtr =
-          (itsBuf.GetData().data() + blnr * nrcc);
-      const bool* inFlagPtr = (itsBuf.GetFlags().data() + blnr * nrcc);
-      const float* inWghtPtr = (itsBuf.GetWeights().data() + blnr * nrcc);
-      const double* inUvwPtr = (itsBuf.GetUvw().data() + blnr * 3);
+      const std::complex<float>* inDataPtr = &buffer->GetData()(blnr, 0, 0);
+      const bool* inFlagPtr = &buffer->GetFlags()(blnr, 0, 0);
+      const float* inWghtPtr = &buffer->GetWeights()(blnr, 0, 0);
+      const double* inUvwPtr = &buffer->GetUvw()(blnr, 0);
+
       // Add the data, uvw, and weights if not flagged.
       // Write 4 loops to avoid having to test inside the loop.
       // Count the flagged points separately, so it can be used
@@ -428,8 +433,9 @@ bool StationAdder::process(const DPBuffer& buf) {
       }
     } else {
       unsigned int blnr = nrOldBL + i;
-      const std::array<double, 3> uvws = itsUVWCalc->getUVW(
-          getInfo().getAnt1()[blnr], getInfo().getAnt2()[blnr], buf.getTime());
+      const std::array<double, 3> uvws =
+          itsUVWCalc->getUVW(getInfo().getAnt1()[blnr],
+                             getInfo().getAnt2()[blnr], buffer->getTime());
       uvwPtr[0] = uvws[0];
       uvwPtr[1] = uvws[1];
       uvwPtr[2] = uvws[2];
@@ -440,10 +446,8 @@ bool StationAdder::process(const DPBuffer& buf) {
     wghtPtr += nrcc;
     uvwPtr += 3;
   }
-  itsBuf.setTime(buf.getTime());
-  itsBuf.setExposure(buf.getExposure());
   itsTimer.stop();
-  getNextStep()->process(itsBuf);
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 
@@ -486,7 +490,7 @@ void StationAdder::addToMS(const string& msName) {
       stat = statCol(0);
     }
   }
-  casacore::Vector<double> offset(3, 0.);
+  casacore::Vector<double> offset(3, 0.0);
   // Put the data for each new antenna.
   for (unsigned int i = origNant; i < getInfo().antennaNames().size(); ++i) {
     antTab.addRow();
