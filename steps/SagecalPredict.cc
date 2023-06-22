@@ -1010,7 +1010,7 @@ void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
   const size_t nCr = info().ncorr();
 
   assert(iodata_.n_baselines >= nBl);
-  assert(iodata_.n_stations == nSt);
+  assert(iodata_.n_stations == getInfo().nantenna());
   assert(iodata_.n_channels == nCh);
   assert(4 == nCr);
 
