@@ -309,6 +309,7 @@ void GainCal::show(std::ostream& os) const {
   os << "  use model column:    " << std::boolalpha << itsUseModelColumn
      << '\n';
   os << "  model column name:   " << itsModelColumnName << '\n';
+  os << "  threads:             " << getInfo().nThreads() << '\n';
   itsBaselineSelection.show(os);
   for (Step* step = itsFirstSubStep.get(); step != nullptr;
        step = step->getNextStep().get()) {
