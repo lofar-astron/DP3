@@ -686,7 +686,7 @@ if(BUILD_TESTING)
       steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tCounter.cc
       steps/test/unit/tDDECal.cc
-      steps/test/unit/tDemixer.cc # Parset is no longer valid in this test!
+      steps/test/unit/tDemixer.cc
       steps/test/unit/tDummyStep.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tGainCal.cc
