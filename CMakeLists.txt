@@ -219,7 +219,8 @@ if(${EVERYBEAM_FOUND})
         "DP3 needs EveryBeam version 0.5.x - with x >= 1 - but found version ${EveryBeam_VERSION}"
     )
   endif()
-  include_directories(${EVERYBEAM_INCLUDE_DIR})
+  # TODO(AST-1336): Remove SYSTEM when EveryBeam no longer includes XTensor headers.
+  include_directories(SYSTEM ${EVERYBEAM_INCLUDE_DIR})
 else(${EVERYBEAM_FOUND})
   message(
     FATAL_ERROR
@@ -239,7 +240,8 @@ if(IDGAPI_FOUND)
   endif()
 endif()
 if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-  include_directories(${IDGAPI_INCLUDE_DIRS})
+  # TODO(AST-1335): Remove SYSTEM when IDG no longer includes XTensor headers.
+  include_directories(SYSTEM ${IDGAPI_INCLUDE_DIRS})
   set(HAVE_IDG TRUE)
   add_definitions(-DHAVE_IDG)
   message(STATUS "Image domain gridder API libraries found.")
