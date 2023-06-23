@@ -355,7 +355,7 @@ void DemixerNew::processData() {
   int ntimeSol =
       ((itsNTime + itsDemixInfo.ntimeAvg() - 1) / itsDemixInfo.ntimeAvg());
   aocommon::ParallelFor<int> loop(getInfo().nThreads());
-  loop.Run(0, lastChunk, [&](int i, size_t thread) {
+  loop.Run(0, lastChunk + 1, [&](int i, size_t thread) {
     if (i == lastChunk) {
       itsWorkers[thread].process(&(itsBufIn[i * timeWindowIn]), lastNTimeIn,
                                  &(itsBufOut[i * timeWindowOut]),

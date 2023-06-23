@@ -31,7 +31,7 @@ DemixInfo::DemixInfo(const common::ParameterSet& parset, const string& prefix)
       itsSelBLTarget(parset, prefix + "target.", false, "cross", "CS*&"),
       itsPredictModelName(parset.getString(prefix + "estimate.skymodel", "")),
       itsDemixModelName(parset.getString(prefix + "ateam.skymodel")),
-      itsTargetModelName(parset.getString(prefix + "target.skymodel")),
+      itsTargetModelName(parset.getString(prefix + "target.skymodel", "")),
       itsSourceNames(parset.getStringVector(prefix + "sources")),
       itsRatio1(parset.getDouble(prefix + "ratio1", 5.)),
       itsRatio2(parset.getDouble(prefix + "ratio2", 0.25)),
@@ -67,8 +67,8 @@ DemixInfo::DemixInfo(const common::ParameterSet& parset, const string& prefix)
   // Get delta in arcsec and take cosine of it (convert to radians first).
   double delta = parset.getDouble(prefix + "target.delta", 60.);
   itsCosTargetDelta = cos(delta / 3600. * casacore::C::pi / 180.);
-  if (itsTargetModelName.empty() || itsDemixModelName.empty())
-    throw std::runtime_error("An empty name is given for a sky model");
+  if (itsDemixModelName.empty())
+    throw std::runtime_error("A-team sky model name is empty");
   // If the estimate source model is given, read it.
   if (!itsPredictModelName.empty()) {
     itsAteamList = makePatchList(itsPredictModelName, itsSourceNames);
@@ -83,7 +83,7 @@ DemixInfo::DemixInfo(const common::ParameterSet& parset, const string& prefix)
     }
   }
   itsAteamDemixList = makePatchList(itsDemixModelName, itsSourceNames);
-  if (itsTargetHandling != 3) {
+  if (itsTargetHandling != 3 && !itsTargetModelName.empty()) {
     itsTargetList = makePatchList(itsTargetModelName, vector<string>());
   }
   // If no estimate model is given, use the demix model.
