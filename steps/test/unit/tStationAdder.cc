@@ -4,10 +4,6 @@
 //
 // @author Ger van Diepen
 
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-#include <casacore/casa/BasicMath/Math.h>
-
 #include <xtensor/xcomplex.hpp>
 #include <xtensor/xio.hpp>
 #include <xtensor/xview.hpp>
@@ -108,30 +104,30 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
 
+    auto buffer = std::make_unique<DPBuffer>();
+    buffer->setTime(itsCount * 30.0 + 4472025740.0);
     const std::array<std::size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
-
-    xt::xtensor<std::complex<float>, 3> data(data_shape);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data[i] = std::complex<float>(i + itsCount * 10.0f,
-                                    i - 10.0f + itsCount * 6.0f);
+    buffer->ResizeData(data_shape);
+    auto& data = buffer->GetData();
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      data.data()[i] = std::complex<float>(
+          i + itsCount * 10.0f,
+          static_cast<int>(i) - 10.0f + static_cast<int>(itsCount) * 6.0f);
     }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    indgen(weights, 0.5f, 0.01f);
-    casacore::Matrix<double> uvw(3, itsNBl);
+    buffer->ResizeWeights(data_shape);
+    const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
+    buffer->GetWeights() =
+        xt::arange<float>(0.5, last_weight, 0.01).reshape(data_shape);
+    buffer->ResizeUvw(itsNBl);
+    auto& uvw = buffer->GetUvw();
     for (std::size_t i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = 1 + itsCount + i;
-      uvw(1, i) = 2 + itsCount + i;
-      uvw(2, i) = 3 + itsCount + i;
+      uvw(i, 0) = 1 + itsCount + i;
+      uvw(i, 1) = 2 + itsCount + i;
+      uvw(i, 2) = 3 + itsCount + i;
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 30 + 4472025740.0);
-    buf.ResizeData(data_shape);
-    buf.GetData() = data;
-    buf.setWeights(weights);
-    buf.setUVW(uvw);
-    buf.ResizeFlags(data_shape);
-    buf.GetFlags().fill(false);
-    getNextStep()->process(buf);
+    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags().fill(false);
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -169,15 +165,18 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
     xt::xtensor<std::complex<float>, 3> data(shape);
 
-    for (int i = 0; i < int(data.size()); ++i) {
-      data[i] = std::complex<float>(i + itsCount * 10, i - 10 + itsCount * 6);
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      data[i] = std::complex<float>(
+          i + itsCount * 10.0f,
+          static_cast<int>(i) - 10.0f + static_cast<int>(itsCount) * 6.0f);
     }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    indgen(weights, 0.5f, 0.01f);
-    xt::xtensor<std::complex<float>, 2> databl0(
-        std::array<std::size_t, 2>{itsNChan, itsNCorr});
-    xt::xtensor<std::complex<float>, 2> databl1(
-        std::array<std::size_t, 2>{itsNChan, itsNCorr});
+
+    const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
+    xt::xtensor<float, 3> weights =
+        xt::arange<float>(0.5, last_weight, 0.01).reshape(shape);
+    const std::array<std::size_t, 2> baseline_shape{itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 2> databl0(baseline_shape);
+    xt::xtensor<std::complex<float>, 2> databl1(baseline_shape);
     // "{ns:[rs01.s01, rs02.s01, cs01.s02]}" was given resulting in 2 new
     // baselines (ns-ns and cs01.s01-ns).
     // Thus adding the baselines below.
@@ -211,21 +210,14 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       uvw(i, 2) = 3 + itsCount + i;
     }
 
-    auto xt_weights = aocommon::xt::CreateSpan(
-        weights.data(),
-        std::array{static_cast<std::size_t>(weights.shape()[2]),
-                   static_cast<std::size_t>(weights.shape()[1]),
-                   static_cast<std::size_t>(weights.shape()[0])});
-
-    BOOST_TEST(data == xt::view(buffer->GetData(), xt::range(0, itsNBl),
-                                xt::all(), xt::all()));
+    BOOST_TEST(xt::view(buffer->GetData(), xt::range(0, itsNBl), xt::all(),
+                        xt::all()) == data);
     BOOST_TEST(buffer->GetFlags().shape() ==
                    (std::array<std::size_t, 3>{itsNBl + 2, itsNChan, itsNCorr}),
                boost::test_tools::per_element());
     BOOST_CHECK(!xt::any(buffer->GetFlags()));
-    BOOST_TEST(xt_weights == xt::view(buffer->GetWeights(),
-                                      xt::range(0, itsNBl), xt::all(),
-                                      xt::all()));
+    BOOST_TEST(weights == xt::view(buffer->GetWeights(), xt::range(0, itsNBl),
+                                   xt::all(), xt::all()));
     BOOST_TEST(uvw ==
                xt::view(buffer->GetUvw(), xt::range(0, itsNBl), xt::all()));
 
@@ -248,23 +240,24 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
-    BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(infoIn.origNChan(), itsNChan);
+    BOOST_CHECK_EQUAL(infoIn.nchan(), itsNChan);
+    BOOST_CHECK_EQUAL(infoIn.ntime(), itsNTime);
     BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
-    BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
-    BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
-    BOOST_CHECK_EQUAL(int(infoIn.nbaselines()), itsNBl + 2);
-    BOOST_CHECK_EQUAL(int(infoIn.antennaNames().size()), 5);
-    BOOST_CHECK_EQUAL(int(infoIn.antennaDiam().size()), 5);
-    BOOST_CHECK_EQUAL(int(infoIn.antennaPos().size()), 5);
+    BOOST_CHECK_EQUAL(infoIn.nchanAvg(), 1);
+    BOOST_CHECK_EQUAL(infoIn.ntimeAvg(), 1);
+    BOOST_CHECK_EQUAL(infoIn.nbaselines(), itsNBl + 2);
+    BOOST_CHECK_EQUAL(infoIn.antennaNames().size(), 5);
+    BOOST_CHECK_EQUAL(infoIn.antennaDiam().size(), 5);
+    BOOST_CHECK_EQUAL(infoIn.antennaPos().size(), 5);
     BOOST_CHECK_EQUAL(infoIn.antennaNames()[4], "ns");
     casacore::Vector<double> pos1(infoIn.antennaPos()[4].getValue().getValue());
-    BOOST_CHECK(
-        casacore::near(pos1[0], (3828763.0 + 3828746.0 + 3828713.0) / 3));
-    BOOST_CHECK(casacore::near(pos1[1], (442449.0 + 442592.0 + 442878.0) / 3));
-    BOOST_CHECK(
-        casacore::near(pos1[2], (5064923.0 + 5064924.0 + 5064926.0) / 3));
+    BOOST_CHECK_CLOSE(pos1[0], (3828763.0 + 3828746.0 + 3828713.0) / 3.0,
+                      1.0e-3);
+    BOOST_CHECK_CLOSE(pos1[1], (442449.0 + 442592.0 + 442878.0) / 3.0, 1.0e-3);
+    BOOST_CHECK_CLOSE(pos1[2], (5064923.0 + 5064924.0 + 5064926.0) / 3.0,
+                      1.0e-3);
+
     // Check diam.
     double d1 = sqrt((pos1[0] - 3828763) * (pos1[0] - 3828763) +
                      (pos1[1] - 442449) * (pos1[1] - 442449) +
@@ -275,19 +268,19 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     double d3 = sqrt((pos1[0] - 3828713) * (pos1[0] - 3828713) +
                      (pos1[1] - 442878) * (pos1[1] - 442878) +
                      (pos1[2] - 5064926) * (pos1[2] - 5064926));
-    BOOST_CHECK(casacore::near(infoIn.antennaDiam()[4],
-                               70 + 2 * std::max(d1, std::max(d2, d3))));
+    BOOST_CHECK_CLOSE(infoIn.antennaDiam()[4],
+                      70.0 + 2.0 * std::max({d1, d2, d3}), 1.0e-3);
   }
 
-  int itsCount;
-  std::size_t itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsSumAuto;
 };
 
 // Class to check result of flagged, unaveraged TestInput run by test2.
 class TestOutput2 : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput2(int ntime, int nbl, int nchan, int ncorr)
+  TestOutput2(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+              std::size_t ncorr)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nbl),
@@ -295,57 +288,45 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
         itsNCorr(ncorr) {}
 
  private:
-  void addData(casacore::Cube<casacore::Complex>& to,
-               const casacore::Cube<casacore::Complex>& from,
-               casacore::Cube<float>& tow, const casacore::Cube<float>& weights,
-               int bl) {
-    casacore::Cube<casacore::Complex> tmp = from.copy();
-    casacore::Cube<casacore::Complex>::iterator tmpit = tmp.begin();
-    casacore::Cube<float>::const_iterator weightit = weights.begin();
-    for (; tmpit != tmp.end() && weightit != weights.end();
-         tmpit++, weightit++) {
-      *tmpit *= *weightit;
-    }
-    to += tmp(casacore::IPosition(3, 0, 0, bl),
-              casacore::IPosition(3, to.nrow() - 1, to.ncolumn() - 1, bl));
-    tow += weights(casacore::IPosition(3, 0, 0, bl),
-                   casacore::IPosition(3, to.nrow() - 1, to.ncolumn() - 1, bl));
+  void addData(xt::xtensor<std::complex<float>, 2>& to,
+               const xt::xtensor<std::complex<float>, 3>& from,
+               xt::xtensor<float, 2>& to_weights,
+               const xt::xtensor<float, 3>& from_weights, int bl) {
+    auto weights_view = xt::view(from_weights, bl, xt::all(), xt::all());
+    to += xt::view(from, bl, xt::all(), xt::all()) * weights_view;
+    to_weights += weights_view;
   }
-  void addConjData(casacore::Cube<casacore::Complex>& to,
-                   const casacore::Cube<casacore::Complex>& from,
-                   casacore::Cube<float>& tow,
-                   const casacore::Cube<float>& weights, int bl) {
-    casacore::Cube<casacore::Complex> tmp = from.copy();
-    casacore::Cube<casacore::Complex>::iterator tmpit = tmp.begin();
-    casacore::Cube<float>::const_iterator weightit = weights.begin();
-    for (; tmpit != tmp.end() && weightit != weights.end();
-         tmpit++, weightit++) {
-      *tmpit *= *weightit;
-    }
-    to +=
-        conj(tmp(casacore::IPosition(3, 0, 0, bl),
-                 casacore::IPosition(3, to.nrow() - 1, to.ncolumn() - 1, bl)));
-    tow += weights(casacore::IPosition(3, 0, 0, bl),
-                   casacore::IPosition(3, to.nrow() - 1, to.ncolumn() - 1, bl));
+  void addConjData(xt::xtensor<std::complex<float>, 2>& to,
+                   const xt::xtensor<std::complex<float>, 3>& from,
+                   xt::xtensor<float, 2>& to_weights,
+                   const xt::xtensor<float, 3>& from_weights, int bl) {
+    auto weights_view = xt::view(from_weights, bl, xt::all(), xt::all());
+    to += xt::conj(xt::view(from, bl, xt::all(), xt::all()) * weights_view);
+    to_weights += weights_view;
   }
-  bool process(const DPBuffer& buf) override {
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 10 + itsCount * 6);
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    const std::array<std::size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> data(data_shape);
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      data[i] = std::complex<float>(
+          i + itsCount * 10.0f,
+          static_cast<int>(i) - 10.0f + static_cast<int>(itsCount) * 6.0f);
     }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    indgen(weights, 0.5f, 0.01f);
-    casacore::Cube<casacore::Complex> databl0(itsNCorr, itsNChan, 1);
-    casacore::Cube<casacore::Complex> databl1(itsNCorr, itsNChan, 1);
-    casacore::Cube<casacore::Complex> databl2(itsNCorr, itsNChan, 1);
-    casacore::Cube<casacore::Complex> databl3(itsNCorr, itsNChan, 1);
-    casacore::Cube<casacore::Complex> databl4(itsNCorr, itsNChan, 1);
-    casacore::Cube<float> weightbl0(itsNCorr, itsNChan, 1, 0.);
-    casacore::Cube<float> weightbl1(itsNCorr, itsNChan, 1, 0.);
-    casacore::Cube<float> weightbl2(itsNCorr, itsNChan, 1, 0.);
-    casacore::Cube<float> weightbl3(itsNCorr, itsNChan, 1, 0.);
-    casacore::Cube<float> weightbl4(itsNCorr, itsNChan, 1, 0.);
+    const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
+    xt::xtensor<float, 3> weights =
+        xt::arange<float>(0.5f, last_weight, 0.01f).reshape(data_shape);
+    const std::array<std::size_t, 2> baseline_shape{itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 2> databl0(baseline_shape);
+    xt::xtensor<std::complex<float>, 2> databl1(baseline_shape);
+    xt::xtensor<std::complex<float>, 2> databl2(baseline_shape);
+    xt::xtensor<std::complex<float>, 2> databl3(baseline_shape);
+    xt::xtensor<std::complex<float>, 2> databl4(baseline_shape);
+    xt::xtensor<float, 2> weightbl0(baseline_shape, 0.0f);
+    xt::xtensor<float, 2> weightbl1(baseline_shape, 0.0f);
+    xt::xtensor<float, 2> weightbl2(baseline_shape, 0.0f);
+    xt::xtensor<float, 2> weightbl3(baseline_shape, 0.0f);
+    xt::xtensor<float, 2> weightbl4(baseline_shape, 0.0f);
+
     // "{ns1:[rs01.s01, rs02.s01], ns2:[cs01.s02, cs01.s01]}" was given.
     addData(databl0, data, weightbl0, weights, 8);
     addData(databl0, data, weightbl0, weights, 9);
@@ -363,65 +344,68 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
     addConjData(databl2, data, weightbl2, weights, 12);
     addConjData(databl3, data, weightbl3, weights, 9);
     addConjData(databl3, data, weightbl3, weights, 13);
-    addConjData(databl4, databl0, weightbl4, weightbl0, 0);
-    addConjData(databl4, databl1, weightbl4, weightbl1, 0);
-    casacore::Matrix<double> uvw(3, itsNBl);
-    for (int i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = 1 + itsCount + i;
-      uvw(1, i) = 2 + itsCount + i;
-      uvw(2, i) = 3 + itsCount + i;
+    const std::array<std::size_t, 3> baseline_slice_shape{1, itsNChan,
+                                                          itsNCorr};
+    addConjData(databl4, xt::reshape_view(databl0, baseline_slice_shape),
+                weightbl4, xt::reshape_view(weightbl0, baseline_slice_shape),
+                0);
+    addConjData(databl4, xt::reshape_view(databl1, baseline_slice_shape),
+                weightbl4, xt::reshape_view(weightbl1, baseline_slice_shape),
+                0);
+
+    xt::xtensor<double, 2> uvw(std::array<std::size_t, 2>{itsNBl, 3});
+    for (std::size_t i = 0; i < itsNBl; ++i) {
+      uvw(i, 0) = 1 + itsCount + i;
+      uvw(i, 1) = 2 + itsCount + i;
+      uvw(i, 2) = 3 + itsCount + i;
     }
-    casacore::IPosition end(3, itsNCorr - 1, itsNChan - 1, itsNBl - 1);
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetData(), xt::range(0, itsNBl), xt::all(), xt::all()),
+        data));
+    BOOST_TEST(buffer->GetFlags().shape() ==
+                   (std::array<std::size_t, 3>{itsNBl + 5, itsNChan, itsNCorr}),
+               boost::test_tools::per_element());
+    BOOST_CHECK(!xt::any(buffer->GetFlags()));
     BOOST_CHECK(
-        allEQ(buf.GetCasacoreData()(casacore::IPosition(3, 0), end), data));
-    BOOST_CHECK_EQUAL(buf.GetCasacoreFlags().shape(),
-                      casacore::IPosition(3, itsNCorr, itsNChan, itsNBl + 5));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
-    BOOST_CHECK(allEQ(buf.GetCasacoreWeights()(casacore::IPosition(3, 0), end),
-                      weights));
-    BOOST_CHECK(
-        allEQ(buf.GetCasacoreUvw()(casacore::IPosition(2, 0),
-                                   casacore::IPosition(2, 2, itsNBl - 1)),
-              uvw));
+        xt::allclose(xt::view(buffer->GetWeights(), xt::range(0, itsNBl),
+                              xt::all(), xt::all()),
+                     weights));
+
+    BOOST_TEST(uvw ==
+               xt::view(buffer->GetUvw(), xt::range(0, itsNBl), xt::all()));
     // Now check data of new baselines.
-    end[2] = itsNBl;
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl), end),
-        databl0, 1e-5));
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl), end),
-        weightbl0, 1e-5));
-    end[2] = itsNBl + 1;
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
-        databl1, 1e-5));
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 1), end),
-        weightbl1, 1e-5));
-    end[2] = itsNBl + 2;
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 2), end),
-        databl2, 1e-5));
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 2), end),
-        weightbl2, 1e-5));
-    end[2] = itsNBl + 3;
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 3), end),
-        databl3, 1e-5));
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 3), end),
-        weightbl3, 1e-5));
-    end[2] = itsNBl + 4;
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreData()(casacore::IPosition(3, 0, 0, itsNBl + 4), end),
-        databl4, 1e-5));
-    BOOST_CHECK(allNear(
-        buf.GetCasacoreWeights()(casacore::IPosition(3, 0, 0, itsNBl + 4), end),
-        weightbl4, 1e-5));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetData(), itsNBl, xt::all(), xt::all()), databl0));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetWeights(), itsNBl, xt::all(), xt::all()),
+        weightbl0));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetData(), itsNBl + 1, xt::all(), xt::all()),
+        databl1));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetWeights(), itsNBl + 1, xt::all(), xt::all()),
+        weightbl1));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetData(), itsNBl + 2, xt::all(), xt::all()),
+        databl2));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetWeights(), itsNBl + 2, xt::all(), xt::all()),
+        weightbl2));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetData(), itsNBl + 3, xt::all(), xt::all()),
+        databl3));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetWeights(), itsNBl + 3, xt::all(), xt::all()),
+        weightbl3));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetData(), itsNBl + 4, xt::all(), xt::all()),
+        databl4));
+    BOOST_CHECK(xt::allclose(
+        xt::view(buffer->GetWeights(), itsNBl + 4, xt::all(), xt::all()),
+        weightbl4));
     itsCount++;
     return true;
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), false));
+    BOOST_CHECK(!xt::any(buffer->GetFlags()));
     itsCount++;
     return true;
   }
@@ -429,55 +413,55 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
-    BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(infoIn.origNChan(), itsNChan);
+    BOOST_CHECK_EQUAL(infoIn.nchan(), itsNChan);
+    BOOST_CHECK_EQUAL(infoIn.ntime(), itsNTime);
     BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
-    BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
-    BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
-    BOOST_CHECK_EQUAL(int(infoIn.nbaselines()), itsNBl + 5);
-    BOOST_CHECK_EQUAL(int(infoIn.antennaNames().size()), 6);
+    BOOST_CHECK_EQUAL(infoIn.nchanAvg(), 1);
+    BOOST_CHECK_EQUAL(infoIn.ntimeAvg(), 1);
+    BOOST_CHECK_EQUAL(infoIn.nbaselines(), itsNBl + 5);
+    BOOST_CHECK_EQUAL(infoIn.antennaNames().size(), 6);
     BOOST_CHECK_EQUAL(infoIn.antennaNames()[4], "ns1");
     BOOST_CHECK_EQUAL(infoIn.antennaNames()[5], "ns2");
     casacore::Vector<double> pos1(infoIn.antennaPos()[4].getValue().getValue());
-    BOOST_CHECK(casacore::near(pos1[0], (3828763. + 3828746.) / 2));
-    BOOST_CHECK(casacore::near(pos1[1], (442449. + 442592.) / 2));
-    BOOST_CHECK(casacore::near(pos1[2], (5064923. + 5064924.) / 2));
+    BOOST_CHECK_CLOSE(pos1[0], (3828763.0 + 3828746.0) / 2.0, 1.0e-3);
+    BOOST_CHECK_CLOSE(pos1[1], (442449.0 + 442592.0) / 2.0, 1.0e-3);
+    BOOST_CHECK_CLOSE(pos1[2], (5064923.0 + 5064924.0) / 2.0, 1.0e-3);
     casacore::Vector<double> pos2(infoIn.antennaPos()[5].getValue().getValue());
-    BOOST_CHECK(casacore::near(pos2[0], (3828729. + 3828713.) / 2));
-    BOOST_CHECK(casacore::near(pos2[1], (442735. + 442878.) / 2));
-    BOOST_CHECK(casacore::near(pos2[2], (5064925. + 5064926.) / 2));
+    BOOST_CHECK_CLOSE(pos2[0], (3828729.0 + 3828713.0) / 2.0, 1.0e-3);
+    BOOST_CHECK_CLOSE(pos2[1], (442735.0 + 442878.0) / 2.0, 1.0e-3);
+    BOOST_CHECK_CLOSE(pos2[2], (5064925.0 + 5064926.0) / 2.0, 1.0e-3);
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
 };
 
 // Class to check result of TestInput run by test4.
 class TestOutput4 : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput4(int ntime, int nbl, int nchan, int /*ncorr*/)
+  TestOutput4(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+              std::size_t /*ncorr*/)
       : itsNTime(ntime), itsNBl(nbl), itsNChan(nchan) {}
 
  private:
-  bool process(const DPBuffer&) override { return true; }
+  bool process(std::unique_ptr<DPBuffer>) override { return true; }
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
-    BOOST_CHECK_EQUAL(int(infoIn.origNChan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.nchan()), itsNChan);
-    BOOST_CHECK_EQUAL(int(infoIn.ntime()), itsNTime);
+    BOOST_CHECK_EQUAL(infoIn.origNChan(), itsNChan);
+    BOOST_CHECK_EQUAL(infoIn.nchan(), itsNChan);
+    BOOST_CHECK_EQUAL(infoIn.ntime(), itsNTime);
     BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5);
-    BOOST_CHECK_EQUAL(int(infoIn.nchanAvg()), 1);
-    BOOST_CHECK_EQUAL(int(infoIn.ntimeAvg()), 1);
-    BOOST_CHECK_EQUAL(int(infoIn.nbaselines()), itsNBl);
-    BOOST_CHECK_EQUAL(int(infoIn.antennaNames().size()), 4);
-    BOOST_CHECK_EQUAL(int(infoIn.antennaDiam().size()), 4);
-    BOOST_CHECK_EQUAL(int(infoIn.antennaPos().size()), 4);
+    BOOST_CHECK_EQUAL(infoIn.nchanAvg(), 1);
+    BOOST_CHECK_EQUAL(infoIn.ntimeAvg(), 1);
+    BOOST_CHECK_EQUAL(infoIn.nbaselines(), itsNBl);
+    BOOST_CHECK_EQUAL(infoIn.antennaNames().size(), 4);
+    BOOST_CHECK_EQUAL(infoIn.antennaDiam().size(), 4);
+    BOOST_CHECK_EQUAL(infoIn.antennaPos().size(), 4);
   }
 
-  int itsNTime, itsNBl, itsNChan;
+  std::size_t itsNTime, itsNBl, itsNChan;
 };
 
 BOOST_DATA_TEST_CASE(test_add_three_stations,
