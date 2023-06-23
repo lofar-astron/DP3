@@ -61,7 +61,7 @@ class PhaseShift : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -81,7 +81,7 @@ class PhaseShift : public Step {
 
   /// Get the phasors resulting from the last process step.
   /// This is used in the Demixer.
-  const casacore::Matrix<casacore::DComplex>& getPhasors() const {
+  const xt::xtensor<std::complex<double>, 2>& getPhasors() const {
     return itsPhasors;
   }
 
@@ -94,12 +94,11 @@ class PhaseShift : public Step {
   casacore::MDirection handleCenter();
 
   std::string itsName;
-  base::DPBuffer itsBuf;
   std::vector<string> itsCenter;
   std::vector<double> itsFreqC;  ///< freq/C
   casacore::Matrix<double> itsEulerMatrix;
   double itsXYZ[3];  ///< numpy.dot((w-w1).T, T)
-  casacore::Matrix<casacore::DComplex>
+  xt::xtensor<std::complex<double>, 2>
       itsPhasors;  ///< phase factor per chan,bl
   common::NSTimer itsTimer;
 
