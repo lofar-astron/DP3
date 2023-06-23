@@ -81,7 +81,9 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
   for (unsigned int i = 0; i < freq.size(); ++i) {
     itsFreqC.push_back(2. * casacore::C::pi * freq[i] / casacore::C::c);
   }
-  itsPhasors.resize(infoIn.nchan(), infoIn.nbaselines());
+
+  std::array<size_t, 2> phasors_shape{infoIn.nbaselines(), infoIn.nchan()};
+  itsPhasors.resize(phasors_shape);
 
   loop_.SetNThreads(infoIn.nThreads());
 }
@@ -97,22 +99,25 @@ void PhaseShift::showTimings(std::ostream& os, double duration) const {
   os << " PhaseShift " << itsName << '\n';
 }
 
-bool PhaseShift::process(const DPBuffer& buf) {
+bool PhaseShift::process(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
-  itsBuf.copy(buf);
-  int ncorr = itsBuf.GetCasacoreData().shape()[0];
-  int nchan = itsBuf.GetCasacoreData().shape()[1];
-  int nbl = itsBuf.GetCasacoreData().shape()[2];
+
+  // Ensure that data and uvw are independent and not references as PhaseShift
+  // updates both
+  buffer->MakeIndependent(kDataField | kUvwField);
+
+  int ncorr = buffer->GetData().shape(2);
+  int nchan = buffer->GetData().shape(1);
+  int nbl = buffer->GetData().shape(0);
   const double* mat1 = itsEulerMatrix.data();
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
   // to process.
   loop_.Run(0, nbl, [&](size_t begin, size_t end) {
     for (unsigned int bl = begin; bl != end; ++bl) {
-      casacore::Complex* __restrict__ data =
-          itsBuf.GetData().data() + bl * nchan * ncorr;
-      double* __restrict__ uvw = itsBuf.GetUvw().data() + bl * 3;
-      casacore::DComplex* __restrict__ phasors = itsPhasors.data() + bl * nchan;
+      std::complex<float>* __restrict__ data = &buffer->GetData()(bl, 0, 0);
+      double* __restrict__ uvw = &buffer->GetUvw()(bl, 0);
+      std::complex<double>* __restrict__ phasors = &itsPhasors(bl, 0);
       double u = uvw[0] * mat1[0] + uvw[1] * mat1[3] + uvw[2] * mat1[6];
       double v = uvw[0] * mat1[1] + uvw[1] * mat1[4] + uvw[2] * mat1[7];
       double w = uvw[0] * mat1[2] + uvw[1] * mat1[5] + uvw[2] * mat1[8];
@@ -124,10 +129,10 @@ bool PhaseShift::process(const DPBuffer& buf) {
         //      u_wvl = u_m / wvl = u_m * freq / c
         // has been done once in the beginning (in updateInfo).
         double phasewvl = phase * itsFreqC[j];
-        casacore::DComplex phasor(cos(phasewvl), sin(phasewvl));
+        std::complex<double> phasor(cos(phasewvl), sin(phasewvl));
         *phasors++ = phasor;
         for (int k = 0; k < ncorr; ++k) {
-          *data = casacore::DComplex(*data) * phasor;
+          *data = std::complex<double>(*data) * phasor;
           data++;
         }
       }
@@ -138,7 +143,7 @@ bool PhaseShift::process(const DPBuffer& buf) {
     }
   });
   itsTimer.stop();
-  getNextStep()->process(itsBuf);
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 
