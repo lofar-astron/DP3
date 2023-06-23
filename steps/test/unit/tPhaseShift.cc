@@ -6,9 +6,6 @@
 
 #include "../../PhaseShift.h"
 
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
@@ -33,7 +30,8 @@ BOOST_AUTO_TEST_SUITE(phaseshift)
 // It can be used with different nr of times, channels, etc.
 class TestInput : public dp3::steps::MockInput {
  public:
-  TestInput(int ntime, int nbl, int nchan, int ncorr, bool flag)
+  TestInput(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+            std::size_t ncorr, bool flag)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nbl),
@@ -48,20 +46,20 @@ class TestInput : public dp3::steps::MockInput {
     info().setArrayInformation(casacore::MPosition(), phaseCenter, phaseCenter,
                                phaseCenter);
     // Define the frequencies.
-    std::vector<double> chanWidth(nchan, 100000.);
+    std::vector<double> chanWidth(nchan, 100000.0);
     std::vector<double> chanFreqs;
-    for (int i = 0; i < nchan; i++) {
-      chanFreqs.push_back(1050000. + i * 100000.);
+    for (std::size_t i = 0; i < nchan; i++) {
+      chanFreqs.push_back(1050000.0 + i * 100000.0);
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
     // Fill the baseline stations.
     // Determine nr of stations using:  na*(na+1)/2 = nbl
     // If many baselines, divide into groups of 6 to test if
     // PhaseShift disentangles it correctly.
-    int nant = int(-0.5 + sqrt(0.25 + 2 * nbl));
+    std::size_t nant = std::size_t(-0.5 + sqrt(0.25 + 2 * nbl));
     if (nant * (nant + 1) / 2 < nbl) ++nant;
     int grpszant = 3;
-    int grpszbl = grpszant * (grpszant + 1) / 2;
+    std::size_t grpszbl = grpszant * (grpszant + 1) / 2;
     if (nbl > grpszbl) {
       nant = grpszant * (nbl + grpszbl - 1) / grpszbl;
     } else {
@@ -73,7 +71,7 @@ class TestInput : public dp3::steps::MockInput {
     int st1 = 0;
     int st2 = 0;
     int lastant = grpszant;
-    for (int i = 0; i < nbl; ++i) {
+    for (std::size_t i = 0; i < nbl; ++i) {
       ant1[i] = st1;
       ant2[i] = st2;
       if (i % grpszbl == grpszbl - 1) {
@@ -88,51 +86,54 @@ class TestInput : public dp3::steps::MockInput {
     }
     vector<string> antNames(nant);
     vector<casacore::MPosition> antPos(nant);
-    vector<double> antDiam(nant, 70.);
+    vector<double> antDiam(nant, 70.0);
     info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
-    itsStatUVW.resize(3, nant);
-    for (int i = 0; i < nant; ++i) {
-      itsStatUVW(0, i) = 0.01 + i * 0.02;
-      itsStatUVW(1, i) = 0.05 + i * 0.03;
-      itsStatUVW(2, i) = 0.015 + i * 0.025;
+    std::array<size_t, 2> stat_uvw_shape{itsNBl, 3};
+    itsStatUVW.resize(stat_uvw_shape);
+    for (std::size_t i = 0; i < nant; ++i) {
+      itsStatUVW(i, 0) = 0.01 + i * 0.02;
+      itsStatUVW(i, 1) = 0.05 + i * 0.03;
+      itsStatUVW(i, 2) = 0.015 + i * 0.025;
     }
   }
 
-  void fillUVW(casacore::Matrix<double>& uvw, int count) {
-    for (int i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = (itsStatUVW(0, getInfo().getAnt2()[i]) + count * 0.002 -
-                   (itsStatUVW(0, getInfo().getAnt1()[i]) + count * 0.002));
-      uvw(1, i) = (itsStatUVW(1, getInfo().getAnt2()[i]) + count * 0.004 -
-                   (itsStatUVW(1, getInfo().getAnt1()[i]) + count * 0.004));
-      uvw(2, i) = (itsStatUVW(2, getInfo().getAnt2()[i]) + count * 0.006 -
-                   (itsStatUVW(2, getInfo().getAnt1()[i]) + count * 0.006));
+  void fillUVW(xt::xtensor<double, 2>& uvw, int count) {
+    for (std::size_t i = 0; i < itsNBl; ++i) {
+      uvw(i, 0) = (itsStatUVW(getInfo().getAnt2()[i], 0) + count * 0.002 -
+                   (itsStatUVW(getInfo().getAnt1()[i], 0) + count * 0.002));
+      uvw(i, 1) = (itsStatUVW(getInfo().getAnt2()[i], 1) + count * 0.004 -
+                   (itsStatUVW(getInfo().getAnt1()[i], 1) + count * 0.004));
+      uvw(i, 2) = (itsStatUVW(getInfo().getAnt2()[i], 2) + count * 0.006 -
+                   (itsStatUVW(getInfo().getAnt1()[i], 2) + count * 0.006));
     }
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer>) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 1000 + itsCount * 6);
+    std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    auto buffer = std::make_unique<DPBuffer>();
+    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
+    buffer->ResizeData(data_shape);
+    auto& data = buffer->GetData();
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      data.data()[i] = std::complex<float>(
+          i + itsCount * 10,
+          static_cast<int>(i) - 1000 + static_cast<int>(itsCount) * 6);
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buf.setWeights(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    buf.setFlags(flags);
-    casacore::Matrix<double> uvw(3, itsNBl);
+    buffer->ResizeWeights(data_shape);
+    buffer->GetWeights().fill(1.0);
+    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags().fill(itsFlag);
+    std::array<size_t, 2> uvw_shape{itsNBl, 3};
+    xt::xtensor<double, 2> uvw(uvw_shape);
     fillUVW(uvw, itsCount);
-    buf.setUVW(uvw);
-    getNextStep()->process(buf);
+    buffer->ResizeUvw(itsNBl);
+    buffer->GetUvw() = uvw;
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -142,16 +143,16 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
-  casacore::Matrix<double> itsStatUVW;
+  xt::xtensor<double, 2> itsStatUVW;
 };
 
 // Class to check result of null phase-shifted TestInput.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(TestInput& input, int ntime, int nbl, int nchan, int ncorr,
-             bool flag)
+  TestOutput(TestInput& input, std::size_t ntime, std::size_t nbl,
+             std::size_t nchan, std::size_t ncorr, bool flag)
       : itsInput(&input),
         itsCount(0),
         itsNTime(ntime),
@@ -161,24 +162,26 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buf) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> result(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(result.size()); ++i) {
-      result.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 1000 + itsCount * 6);
+    std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> expected_result(data_shape);
+    for (std::size_t i = 0; i < expected_result.size(); ++i) {
+      expected_result.data()[i] = std::complex<float>(
+          i + itsCount * 10,
+          static_cast<int>(i) - 1000 + static_cast<int>(itsCount) * 6);
     }
-    casacore::Matrix<double> uvw(3, itsNBl);
+    std::array<size_t, 2> uvw_shape{itsNBl, 3};
+    xt::xtensor<double, 2> uvw(uvw_shape);
     itsInput->fillUVW(uvw, itsCount);
-    // Check the result.
-    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1e-7));
-    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1e-7));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), itsFlag));
-    BOOST_CHECK_CLOSE_FRACTION(buf.getTime(), 2. + 5 * itsCount, 1e-6);
-    BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-7));
+    // Check the expected result against the actual result.
+    BOOST_CHECK(xt::allclose(buf->GetData(), expected_result, 1.0e-7));
+    BOOST_CHECK(xt::all(xt::equal(buf->GetFlags(), itsFlag)));
+    BOOST_CHECK_CLOSE_FRACTION(buf->getTime(), 2.0 + 5 * itsCount, 1.0e-6);
+    BOOST_CHECK(xt::allclose(buf->GetUvw(), uvw, 1.0e-7));
     ++itsCount;
     return true;
   }
@@ -187,21 +190,20 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();
-    BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 45., 1e-6);
-    BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 30., 1e-6);
+    BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 45.0, 1.0e-6);
+    BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 30.0, 1.0e-6);
   }
 
   TestInput* itsInput;
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
 };
 
 // Class to check result of null phase-shifted TestInput.
 class TestOutput1 : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput1(TestInput& input, int ntime, int nbl, int nchan, int ncorr,
-              bool flag)
+  TestOutput1(TestInput& input, std::size_t ntime, std::size_t nbl,
+              std::size_t nchan, std::size_t ncorr, bool flag)
       : itsInput(&input),
         itsCount(0),
         itsNTime(ntime),
@@ -211,26 +213,27 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buf) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> result(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(result.size()); ++i) {
-      result.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 1000 + itsCount * 6);
+    std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> expected_result(data_shape);
+    for (std::size_t i = 0; i < expected_result.size(); ++i) {
+      expected_result.data()[i] = std::complex<float>(
+          i + itsCount * 10,
+          static_cast<int>(i) - 1000 + static_cast<int>(itsCount) * 6);
     }
-    casacore::Matrix<double> uvw(3, itsNBl);
+    std::array<size_t, 2> uvw_shape{itsNBl, 3};
+    xt::xtensor<double, 2> uvw(uvw_shape);
     itsInput->fillUVW(uvw, itsCount);
-    // Check the result.
-    BOOST_CHECK(!allNear(real(buf.GetCasacoreData()), real(result), 1e-5));
-    BOOST_CHECK(!allEQ(real(buf.GetCasacoreData()), real(result)));
-    BOOST_CHECK(!allNear(imag(buf.GetCasacoreData()), imag(result), 1e-5));
-    BOOST_CHECK(!allEQ(imag(buf.GetCasacoreData()), imag(result)));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), itsFlag));
-    BOOST_CHECK_CLOSE_FRACTION(buf.getTime(), 2. + 5 * itsCount, 1e-5);
-    BOOST_CHECK(!allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
+    // Check the expected result against the actual result.
+    BOOST_CHECK(!xt::allclose(buf->GetData(), expected_result));
+    BOOST_CHECK(!xt::all(xt::equal(buf->GetData(), expected_result)));
+    BOOST_CHECK(xt::all(xt::equal(buf->GetFlags(), itsFlag)));
+    BOOST_CHECK_CLOSE_FRACTION(buf->getTime(), 2. + 5 * itsCount, 1.0e-5);
+    BOOST_CHECK(!xt::allclose(buf->GetUvw(), uvw));
     ++itsCount;
     return true;
   }
@@ -239,13 +242,12 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
   void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();
-    BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 50., 1e-5);
-    BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 35., 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 50.0, 1.0e-5);
+    BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 35.0, 1.0e-5);
   }
 
   TestInput* itsInput;
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
 };
 
