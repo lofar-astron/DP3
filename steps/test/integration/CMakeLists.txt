@@ -7,6 +7,7 @@ add_python_tests(
   tBdaExpander
   tBdaPredict
   tDemix
+  tDemixerNew
   tGainCal
   tGainCalH5Parm
   tMsIn

@@ -201,7 +201,7 @@ DemixWorker::DemixWorker(const std::string& prefix, const DemixInfo& mixInfo,
   itsAvgUVW.resize({itsMix->nbl(), 3});
   itsStationUVW.reserve(itsMix->ntimeOutSubtr());
   const std::array<size_t, 2> station_uvw_shape{itsMix->nstation(), 3};
-  for (size_t i = 0; i < itsStationUVW.size(); ++i) {
+  for (size_t i = 0; i < itsMix->ntimeOutSubtr(); ++i) {
     itsStationUVW.emplace_back(station_uvw_shape);
   }
   itsUVW.resize({itsMix->nstation(), 3});
