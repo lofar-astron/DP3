@@ -393,15 +393,12 @@ add_library(
   base/BaselineSelection.cc
   base/BDABuffer.cc
   base/CalType.cc
-  base/DemixInfo.cc
-  base/DemixWorker.cc
   base/DPBuffer.cc
   base/DPInfo.cc
   base/DPLogger.cc
   base/DP3.cc
   base/EstimateMixed.cc
   base/EstimateMixedLBFGS.cc
-  base/EstimateNew.cc
   base/FlagCounter.cc
   base/GainCalAlgorithm.cc
   base/GaussianSource.cc
@@ -418,7 +415,6 @@ add_library(
   base/SourceDBUtil.cc
   base/Stokes.cc
   base/SubtractMixed.cc
-  base/SubtractNew.cc
   base/Telescope.cc
   base/UVWCalculator.cc
   pythondp3/PyStep.cc
@@ -461,7 +457,6 @@ add_library(
   steps/Upsample.cc
   steps/UVWFlagger.cc
   steps/ApplyBeam.cc
-  steps/DemixerNew.cc
   steps/NullStokes.cc
   steps/SagecalPredict.cc)
 target_link_libraries(DP3_OBJ xsimd xtensor)

@@ -25,7 +25,6 @@
 #include "../steps/DDECal.h"
 #include "../steps/BdaDdeCal.h"
 #include "../steps/Demixer.h"
-#include "../steps/DemixerNew.h"
 #include "../steps/Filter.h"
 #include "../steps/GainCal.h"
 #include "../steps/H5ParmPredict.h"
@@ -174,8 +173,6 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::PhaseShift>(parset, prefix);
   } else if (type == "demixer" || type == "demix") {
     step = std::make_shared<steps::Demixer>(parset, prefix);
-  } else if (type == "smartdemixer" || type == "smartdemix") {
-    step = std::make_shared<steps::DemixerNew>(parset, prefix);
   } else if (type == "applybeam") {
     step = std::make_shared<steps::ApplyBeam>(parset, prefix);
   } else if (type == "stationadder" || type == "stationadd") {
@@ -198,8 +195,6 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::Upsample>(parset, prefix);
   } else if (type == "interpolate") {
     step = std::make_shared<steps::Interpolate>(parset, prefix);
-  } else if (type == "smartdemixer" || type == "smartdemix") {
-    step = std::make_shared<steps::DemixerNew>(parset, prefix);
   } else if (type == "grouppredict") {
     step = std::make_shared<steps::BdaGroupPredict>(parset, prefix);
   } else if (type == "sagecalpredict") {
@@ -208,8 +203,6 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::H5ParmPredict>(parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
     step = std::make_shared<steps::GainCal>(parset, prefix);
-  } else if (type == "demixer" || type == "demix") {
-    step = std::make_shared<steps::Demixer>(parset, prefix);
   } else if (type == "python" || type == "pythondppp") {
     step = pythondp3::PyStep::create_instance(parset, prefix);
   } else if (type == "split" || type == "explode") {
