@@ -5,7 +5,6 @@
 // @author Ger van Diepen
 
 #include "../../Demixer.h"
-#include "../../DemixerNew.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
@@ -28,7 +27,6 @@ using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::Demixer;
-using dp3::steps::DemixerNew;
 using dp3::steps::Step;
 
 namespace {
@@ -237,16 +235,8 @@ BOOST_AUTO_TEST_CASE(fields) {
   parset.add("skymodel", dp3::steps::test::kPredictSourceDB);
   Demixer demixer(parset, "");
 
-  ParameterSet parset_new;
-  parset_new.add("ateam.skymodel", dp3::steps::test::kPredictSourceDB);
-  parset_new.add("target.skymodel", dp3::steps::test::kPredictSourceDB);
-  parset_new.add("sources", dp3::steps::test::kPredictDirection);
-  DemixerNew demixer_new(parset_new, "");
-
   BOOST_TEST(demixer.getRequiredFields() == Averager::kRequiredFields);
   BOOST_TEST(demixer.getProvidedFields() == Averager::kProvidedFields);
-  BOOST_TEST(demixer_new.getRequiredFields() == Averager::kRequiredFields);
-  BOOST_TEST(demixer_new.getProvidedFields() == Averager::kProvidedFields);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
