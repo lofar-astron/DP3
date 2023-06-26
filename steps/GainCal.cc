@@ -230,6 +230,8 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
   iS.reserve(itsNFreqCells);
   unsigned int chMax = itsNChan;
+  const unsigned int nThreadsPerCell =
+      std::max(info().nThreads() / itsNFreqCells, 1u);
   for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
     if ((freqCell + 1) * itsNChan >
         info().nchan()) {  // Last cell can be smaller
@@ -261,7 +263,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
     iS.emplace_back(
         GainCalAlgorithm(itsSolInt, chMax, smode, scalarMode(itsMode),
                          itsTolerance, info().antennaUsed().size(),
-                         itsDetectStalling, itsDebugLevel, info().nThreads()));
+                         itsDetectStalling, itsDebugLevel, nThreadsPerCell));
   }
 
   itsFlagCounter.init(getInfo());
