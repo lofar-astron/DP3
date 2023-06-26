@@ -56,7 +56,7 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
     casacore::Cube<casacore::Complex> data(kNCorr, n_channels_, n_baselines_);
-    for (int i = 0; i < int{data.size()}; ++i) {
+    for (int i = 0; i < static_cast<int>(data.size()); ++i) {
       data.data()[i] =
           casacore::Complex(i + count_ * 10, i - 1000 + count_ * 6);
     }
@@ -135,7 +135,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     if (!flag_data_) {
       for (int j = count_ * n_average_time_;
            j < count_ * n_average_time_ + navgtime; ++j) {
-        for (int i = 0; i < int{data.size()}; ++i) {
+        for (int i = 0; i < static_cast<int>(data.size()); ++i) {
           data.data()[i] += casacore::Complex(i + j * 10, i - 1000 + j * 6);
           weights.data()[i] += float(1);
         }
@@ -185,13 +185,12 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   void finish() override {}
   virtual void updateInfo(const DPInfo& info) override {
     BOOST_CHECK_EQUAL(size_t{8}, info.startchan());
-    BOOST_CHECK_EQUAL(n_channels_, int{info.origNChan()});
-    BOOST_CHECK_EQUAL(1 + (n_channels_ - 1) / n_average_channel_,
-                      int{info.nchan()});
-    BOOST_CHECK_EQUAL(1 + (n_times_ - 1) / n_average_time_, int{info.ntime()});
+    BOOST_CHECK_EQUAL(n_channels_, info.origNChan());
+    BOOST_CHECK_EQUAL(1 + (n_channels_ - 1) / n_average_channel_, info.nchan());
+    BOOST_CHECK_EQUAL(1 + (n_times_ - 1) / n_average_time_, info.ntime());
     BOOST_CHECK_EQUAL(5 * n_average_time_, info.timeInterval());
-    BOOST_CHECK_EQUAL(n_average_channel_, int{info.nchanAvg()});
-    BOOST_CHECK_EQUAL(n_average_time_, int{info.ntimeAvg()});
+    BOOST_CHECK_EQUAL(n_average_channel_, info.nchanAvg());
+    BOOST_CHECK_EQUAL(n_average_time_, info.ntimeAvg());
   }
 
   int count_;
