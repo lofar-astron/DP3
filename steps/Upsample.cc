@@ -11,8 +11,7 @@
 #include "../base/UVWCalculator.h"
 #include "../common/ParameterSet.h"
 
-#include <casacore/casa/BasicMath/Math.h>       // nearAbs
-#include <casacore/casa/Arrays/ArrayLogical.h>  // anyTrue
+#include <casacore/casa/BasicMath/Math.h>  // nearAbs
 
 #include <iomanip>
 #include <stddef.h>
@@ -68,36 +67,51 @@ void Upsample::show(std::ostream& os) const {
   os << "  update UVW  : " << std::boolalpha << update_uvw_ << '\n';
 }
 
-bool Upsample::process(const DPBuffer& bufin) {
-  double time0 = bufin.getTime() - 0.5 * info().timeInterval() * time_step_;
-  double exposure = bufin.getExposure() / time_step_;
+void Upsample::UpdateTimeCentroidExposureAndUvw(
+    std::unique_ptr<base::DPBuffer>& buffer, double time, double exposure) {
+  buffer->setTime(time);
+  buffer->setExposure(exposure);
 
-  // Duplicate the input buffer time_step_ times
-  for (unsigned int i = 0; i < time_step_; ++i) {
-    buffers_[i].copy(bufin);
-    // Update the time centroid and time exposure
-    const double time = time0 + info().timeInterval() * (i + 0.5);
-    buffers_[i].setTime(time);
-    buffers_[i].setExposure(exposure);
+  if (update_uvw_) {
+    buffer->ResizeUvw(info().nbaselines());
 
-    if (update_uvw_) {
-      buffers_[i].ResizeUvw(info().nbaselines());
-
-      double* uvw_ptr = buffers_[i].GetUvw().data();
-      for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
-        const std::array<double, 3> uvw = uvw_calculator_->getUVW(
-            info().getAnt1()[bl], info().getAnt2()[bl], time);
-        std::copy_n(uvw.data(), 3, uvw_ptr);
-        uvw_ptr += 3;
-      }
+    double* uvw_ptr = buffer->GetUvw().data();
+    for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
+      const std::array<double, 3> uvw = uvw_calculator_->getUVW(
+          info().getAnt1()[bl], info().getAnt2()[bl], time);
+      std::copy_n(uvw.data(), 3, uvw_ptr);
+      uvw_ptr += 3;
     }
   }
+}
+
+bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
+  double time0 = buffer->getTime() - 0.5 * info().timeInterval() * time_step_;
+  double exposure = buffer->getExposure() / time_step_;
+
+  // Make a copy of the buffer for each time_step_
+  // As an optimisation we re-use the buffer for the last time_step_
+  // reducing the number of copies required by 1
+  for (unsigned int i = 0; i < time_step_ - 1; ++i) {
+    buffers_[i] = std::make_unique<base::DPBuffer>(*buffer);
+    buffers_[i]->MakeIndependent(kDataField | kFlagsField | kWeightsField |
+                                 kUvwField);
+    const double time = time0 + info().timeInterval() * (i + 0.5);
+    UpdateTimeCentroidExposureAndUvw(buffers_[i], time, exposure);
+  }
+  buffers_[time_step_ - 1] = std::move(buffer);
+  UpdateTimeCentroidExposureAndUvw(
+      buffers_[time_step_ - 1],
+      time0 + info().timeInterval() * (time_step_ - 1 + 0.5), exposure);
 
   if (prev_buffers_.empty()) {
     // First time slot, ask for next time slot first
     prev_buffers_.resize(time_step_);
     for (unsigned int i = 0; i < time_step_; ++i) {
-      prev_buffers_[i].copy(buffers_[i]);  // No shallow copy
+      // No shallow copy
+      prev_buffers_[i] = std::make_unique<base::DPBuffer>(*buffers_[i]);
+      prev_buffers_[i]->MakeIndependent(kDataField | kFlagsField |
+                                        kWeightsField | kUvwField);
     }
     return false;
   }
@@ -112,21 +126,22 @@ bool Upsample::process(const DPBuffer& bufin) {
     first_to_flush_ = 0;  // reset for next use
     // Advance curIndex until
     // buffers[curIndex].time >= prevBuffers[prevIndex].time
-    while (prev_buffers_[prevIndex].getTime() > buffers_[curIndex].getTime() &&
-           !casacore::nearAbs(prev_buffers_[prevIndex].getTime(),
-                              buffers_[curIndex].getTime(),
+    while (prev_buffers_[prevIndex]->getTime() >
+               buffers_[curIndex]->getTime() &&
+           !casacore::nearAbs(prev_buffers_[prevIndex]->getTime(),
+                              buffers_[curIndex]->getTime(),
                               0.4 * info().timeInterval())) {
       curIndex++;
     }
-    if (casacore::nearAbs(prev_buffers_[prevIndex].getTime(),
-                          buffers_[curIndex].getTime(),
+    if (casacore::nearAbs(prev_buffers_[prevIndex]->getTime(),
+                          buffers_[curIndex]->getTime(),
                           0.4 * info().timeInterval())) {
       // Found double buffer, choose which one to use
       // If both totally flagged, prefer prevbuffer
-      if (allTrue(buffers_[curIndex].GetCasacoreFlags())) {
+      if (xt::all(xt::equal(buffers_[curIndex]->GetFlags(), true))) {
         // Use prevBuffer
         first_to_flush_ = curIndex + 1;
-        getNextStep()->process(prev_buffers_[prevIndex]);
+        getNextStep()->process(std::move(prev_buffers_[prevIndex]));
       } else {
         // Use next buffer; stop processing prevbuffer.
         // This will uncorrectly give flagged if data has been flagged
@@ -135,7 +150,7 @@ bool Upsample::process(const DPBuffer& bufin) {
       }
     } else {
       // No double buffer, just flush the prevbuffer
-      getNextStep()->process(prev_buffers_[prevIndex]);
+      getNextStep()->process(std::move(prev_buffers_[prevIndex]));
     }
   }
 
@@ -147,7 +162,7 @@ bool Upsample::process(const DPBuffer& bufin) {
 void Upsample::finish() {
   // Flush prev_buffers_
   for (unsigned int i = first_to_flush_; i < time_step_; ++i) {
-    getNextStep()->process(prev_buffers_[i]);
+    getNextStep()->process(std::move(prev_buffers_[i]));
   }
 
   // Let the next steps finish.

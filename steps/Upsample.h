@@ -50,7 +50,7 @@ class Upsample : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -62,12 +62,18 @@ class Upsample : public Step {
   void show(std::ostream&) const override;
 
  private:
+  /// Update the time and exposure of a buffer and if `update_uvw_` is set also
+  /// the uvw. Used internally by process function to populate each of
+  /// `buffers_` for the appropriate time step.
+  void UpdateTimeCentroidExposureAndUvw(std::unique_ptr<base::DPBuffer>& buffer,
+                                        double time, double exposure);
+
   const std::string name_;
   const unsigned int time_step_;
   const bool update_uvw_;
 
-  std::vector<base::DPBuffer> prev_buffers_;
-  std::vector<base::DPBuffer> buffers_;
+  std::vector<std::unique_ptr<base::DPBuffer>> prev_buffers_;
+  std::vector<std::unique_ptr<base::DPBuffer>> buffers_;
   unsigned int first_to_flush_;
   std::unique_ptr<base::UVWCalculator> uvw_calculator_;
 
