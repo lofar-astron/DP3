@@ -46,33 +46,33 @@ class TestInput : public dp3::steps::MockInput {
         uvws_(uvws),
         time_interval_(time_interval) {}
 
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer>) override {
     // Stop when all times are done.
     if (time_step_ == times_.size()) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(kNCorr, kNChannels, kNBaselines);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + time_step_ * 10, i - 1000 + time_step_ * 6);
+    std::array<size_t, 3> data_shape{kNBaselines, kNChannels, kNCorr};
+    auto buffer = std::make_unique<DPBuffer>();
+    buffer->ResizeData(data_shape);
+    for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
+      buffer->GetData().data()[i] = std::complex<float>(
+          i + time_step_ * 10.0,
+          static_cast<int>(i) - 1000 + static_cast<int>(time_step_) * 6.0);
     }
-    DPBuffer buf;
-    buf.setTime(times_[time_step_]);
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buf.setWeights(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = flags_[time_step_];
-    buf.setFlags(flags);
-    buf.setExposure(time_interval_);
+    buffer->setTime(times_[time_step_]);
+    buffer->ResizeWeights(data_shape);
+    buffer->GetWeights().fill(1.0);
+    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags().fill(flags_[time_step_]);
+    buffer->setExposure(time_interval_);
 
     if (!uvws_.empty()) {
-      casacore::Matrix<double> uvw(3, kNBaselines);
-      indgen(uvw, uvws_[time_step_]);
-      buf.setUVW(uvw);
+      buffer->ResizeUvw(kNBaselines);
+      buffer->GetUvw() = xt::arange(uvws_[time_step_],
+                                    uvws_[time_step_] + (kNBaselines * 3), 1)
+                             .reshape(buffer->GetUvw().shape());
     }
-    getNextStep()->process(buf);
+    getNextStep()->process(std::move(buffer));
     ++time_step_;
     return true;
   }
@@ -86,9 +86,9 @@ class TestInput : public dp3::steps::MockInput {
     info().setTimes(times_.front(), times_.back(), time_interval_);
     // Define the frequencies.
     std::vector<double> chan_freqs;
-    std::vector<double> chan_width(kNChannels, 100000.);
-    for (unsigned int i = 0; i < kNChannels; i++) {
-      chan_freqs.push_back(1050000. + i * 100000.);
+    std::vector<double> chan_width(kNChannels, 100000.0);
+    for (std::size_t i = 0; i < kNChannels; i++) {
+      chan_freqs.push_back(1050000.0 + i * 100000.0);
     }
     info().setChannels(std::move(chan_freqs), std::move(chan_width));
 
@@ -125,33 +125,38 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         time_interval_(time_interval),
         update_uvw_(update_uvw) {}
 
-  bool process(const DPBuffer& buf) override {
-    BOOST_CHECK_SMALL(buf.getTime() - times_[time_step_],
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    BOOST_CHECK_SMALL(buffer->getTime() - times_[time_step_],
                       time_interval_ * 0.01);
-    BOOST_CHECK(allTrue(buf.GetCasacoreFlags()) == flags_[time_step_]);
+    BOOST_CHECK(xt::all(xt::equal(buffer->GetFlags(), flags_[time_step_])));
 
-    const casacore::Matrix<double>& buf_uvw = buf.GetCasacoreUvw();
-    BOOST_REQUIRE(buf_uvw.shape() == casacore::IPosition(2, 3, kNBaselines));
+    aocommon::xt::Span<double, 2> buf_uvw = buffer->GetUvw();
+    BOOST_TEST(buf_uvw.shape() == (std::array<std::size_t, 2>{kNBaselines, 3}),
+               boost::test_tools::per_element());
     if (update_uvw_) {
       // The first baseline has auto-correlations. UVW should be zero.
       BOOST_CHECK_CLOSE(buf_uvw(0, 0), 0.0, 1.0e-6);
-      BOOST_CHECK_CLOSE(buf_uvw(1, 0), 0.0, 1.0e-6);
-      BOOST_CHECK_CLOSE(buf_uvw(2, 0), 0.0, 1.0e-6);
+      BOOST_CHECK_CLOSE(buf_uvw(0, 1), 0.0, 1.0e-6);
+      BOOST_CHECK_CLOSE(buf_uvw(0, 2), 0.0, 1.0e-6);
       // For the other baselines, check that Upsample set the UVW correctly.
       dp3::base::UVWCalculator calc(info().phaseCenter(), info().arrayPos(),
                                     info().antennaPos());
-      const std::array<double, 3> uvw_0_2 = calc.getUVW(0, 2, buf.getTime());
-      BOOST_CHECK_CLOSE(buf_uvw(0, 1), uvw_0_2[0], 1.0e-6);
+      const std::array<double, 3> uvw_0_2 =
+          calc.getUVW(0, 2, buffer->getTime());
+      BOOST_CHECK_CLOSE(buf_uvw(1, 0), uvw_0_2[0], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(1, 1), uvw_0_2[1], 1.0e-6);
-      BOOST_CHECK_CLOSE(buf_uvw(2, 1), uvw_0_2[2], 1.0e-6);
-      const std::array<double, 3> uvw_1_2 = calc.getUVW(1, 2, buf.getTime());
-      BOOST_CHECK_CLOSE(buf_uvw(0, 2), uvw_1_2[0], 1.0e-6);
-      BOOST_CHECK_CLOSE(buf_uvw(1, 2), uvw_1_2[1], 1.0e-6);
+      BOOST_CHECK_CLOSE(buf_uvw(1, 2), uvw_0_2[2], 1.0e-6);
+      const std::array<double, 3> uvw_1_2 =
+          calc.getUVW(1, 2, buffer->getTime());
+      BOOST_CHECK_CLOSE(buf_uvw(2, 0), uvw_1_2[0], 1.0e-6);
+      BOOST_CHECK_CLOSE(buf_uvw(2, 1), uvw_1_2[1], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(2, 2), uvw_1_2[2], 1.0e-6);
     } else {
       // Upsample should have copied the original UVW values.
-      casacore::Matrix<double> expected_uvw(3, kNBaselines);
-      indgen(expected_uvw, uvws_[time_step_]);
+      xt::xtensor<double, 2> expected_uvw =
+          xt::arange(uvws_[time_step_], uvws_[time_step_] + (kNBaselines * 3),
+                     1)
+              .reshape(buf_uvw.shape());
       BOOST_CHECK_EQUAL_COLLECTIONS(buf_uvw.begin(), buf_uvw.end(),
                                     expected_uvw.begin(), expected_uvw.end());
     }
@@ -163,7 +168,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
     Step::updateInfo(info);
-    BOOST_CHECK(casacore::near(info.timeInterval(), time_interval_));
+    BOOST_CHECK_CLOSE(info.timeInterval(), time_interval_, 1.0e-3);
   }
 
  private:
