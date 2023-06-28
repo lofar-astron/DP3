@@ -18,6 +18,7 @@ namespace steps {
 Step::~Step() {}
 
 const DPInfo& Step::setInfo(const DPInfo& info) {
+  itsInfoIn = info;
   // Update the info of this step using the given info.
   updateInfo(info);
   // If there is a next step, set its info using the info of this step.

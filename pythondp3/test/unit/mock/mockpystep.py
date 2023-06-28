@@ -4,8 +4,13 @@
 # MockPyStep.py: simple python step, where the MockPyStep inherits from
 # the (py)dp3.DPStep class.
 
-from dp3 import parameterset
-from dp3 import Step, Fields
+from dp3 import parameterset, Fields
+
+# Import raw step from pydp3
+# The extra checks in the higher level interface (dp3.Step) are thereby omitted
+# The raw Step is needed because some unit tests trigger these additional checks
+from dp3.pydp3 import Step
+
 import numpy as np
 
 
