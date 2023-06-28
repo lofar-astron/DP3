@@ -85,6 +85,7 @@ void register_vector(py::module &m, const char *name) {
 class PublicStep : public Step {
  public:
   using Step::info;
+  using Step::infoOut;
   using Step::showTimings;
   using Step::updateInfo;
 };
@@ -109,6 +110,7 @@ PYBIND11_MODULE(pydp3, m) {
         [](const common::ParameterSet &parset) -> std::shared_ptr<steps::Step> {
           return dp3::base::MakeMainSteps(parset);
         });
+  m.def("get_chain_required_fields", &dp3::base::GetChainRequiredFields);
 
   py::enum_<dp3::steps::Step::MsType>(m, "MsType")
       .value("regular", dp3::steps::Step::MsType::kRegular)
@@ -146,14 +148,29 @@ PYBIND11_MODULE(pydp3, m) {
       .def("set_info", &Step::setInfo, py::return_value_policy::reference,
            "Set info object. This will call _update_info() for this step and "
            "all next steps")
-      // Step::getInfo() returns a const reference
-      // Unfortunately there is no way to enforce constness in Python
+      // Step::getInfoIn(), Step::getInfoOut() and Step::getInfo()
+      // return const references.
+      // Unfortunately there is no way to enforce constness in Python.
       // Also there is no guarantee that the Step will outlive the returned
-      // info object. Altough not the most efficient, the safest way
+      // info object. Although not the most efficient, the safest way
       // is returning a copy here.
       .def_property_readonly(
-          "info", &Step::getInfo, py::return_value_policy::copy,
-          "Get a copy of the info object containing metadata")
+          "info_in", &Step::getInfoIn, py::return_value_policy::copy,
+          "Get a copy of the info object containing metadata of the input")
+      .def_property_readonly(
+          "info_out", &Step::getInfoOut, py::return_value_policy::copy,
+          "Get a copy of the info object containing metadata of the output")
+      // Since a python step needs to be able to adjust its info_out in its
+      // _update_info() override, _info_out returns a modifyable reference.
+      .def_property_readonly("_info_out", &PublicStep::infoOut,
+                             py::return_value_policy::reference,
+                             "Get a modifyable reference to info object "
+                             "containing metadata of the output")
+      // Legacy version of info_out
+      .def_property_readonly("info", &PublicStep::getInfo,
+                             py::return_value_policy::reference,
+                             "Get a modifyable reference to info object "
+                             "containing metadata of the output")
       .def(
           "process",
           [](dp3::steps::Step &step, const base::DPBuffer &buffer) {

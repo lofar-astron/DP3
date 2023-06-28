@@ -115,8 +115,15 @@ class Step {
   /// forwarded without modifications.
   virtual dp3::common::Fields getProvidedFields() const = 0;
 
-  /// Get access to the info.
-  const base::DPInfo& getInfo() const { return itsInfo; }
+  /// Get access to the info of the input.
+  const base::DPInfo& getInfoIn() const { return itsInfoIn; }
+
+  /// Get access to the info of the output.
+  const base::DPInfo& getInfoOut() const { return itsInfoOut; }
+
+  /// Legacy version of getInfoOut().
+  /// New code should use getInfoOut() instead of getInfo()
+  const base::DPInfo& getInfo() const { return itsInfoOut; }
 
   /// Show the step parameters.
   virtual void show(std::ostream&) const = 0;
@@ -151,7 +158,12 @@ class Step {
   virtual bool accepts(MsType dt) const { return dt == MsType::kRegular; }
 
  protected:
-  base::DPInfo& info() { return itsInfo; }
+  /// @return Non-const reference to ouput info.
+  base::DPInfo& infoOut() { return itsInfoOut; }
+
+  /// Legacy version of infoOut().
+  /// New code should use infoOut() instead of info().
+  base::DPInfo& info() { return itsInfoOut; }
 
   /// Update the general info (called by setInfo).
   /// The default implementation copies the info.
@@ -165,7 +177,8 @@ class Step {
   Step::ShPtr itsNextStep;
   Step* itsPrevStep;  /// Normal pointer for back links, prevent
                       /// two shared pointers to same object
-  base::DPInfo itsInfo;
+  base::DPInfo itsInfoIn;
+  base::DPInfo itsInfoOut;
   bool recursive_process_ = false;
 };
 
