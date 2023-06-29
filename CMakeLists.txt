@@ -935,10 +935,10 @@ if(BUILD_TESTING)
   endforeach()
 endif() # BUILD_TESTING
 
-# Warning: XTensor and XSimd have 'BUILD_BENCHMARK' options. When enabling that
-# option, as error occurs in the XTensor and/or XSimd CMake code.
-# Therefore, do not rename 'BUILD_BENCHMARKS' to 'BUILD_BENCHMARK'!
-option(BUILD_BENCHMARKS "Build the benchmarks" OFF)
-if(BUILD_BENCHMARKS)
+# Warning: XTensor and XSimd have 'BUILD_BENCHMARK' options, and XTensor-blas uses
+# BUILD_BENCHMARKS. When enabling one of these options, errors occur in the external
+# Therefore, do not rename 'BUILD_DP3_BENCHMARKS' to 'BUILD_BENCHMARK' or 'BUILD_BENCHMARKS'.
+option(BUILD_DP3_BENCHMARKS "Build the benchmarks" OFF)
+if(BUILD_DP3_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
