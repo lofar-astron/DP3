@@ -111,7 +111,7 @@ build-2004:
     # Build and run DP3
     - mkdir build
     - cd build
-    - cmake -G Ninja -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON ..
+    - cmake -G Ninja -DBUILD_TESTING=On -DBUILD_DP3_BENCHMARKS=ON ..
     - ninja install
     - DP3
 
@@ -135,7 +135,7 @@ build-debug-2204:
   extends: [".failable",".needs-base-2204"]
   script:
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DBUILD_DP3_BENCHMARKS=ON -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
     - ninja
     - ninja install
   artifacts:
@@ -147,7 +147,7 @@ build-2204:
   extends: [".failable",".needs-base-2204"]
   script:
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DBUILD_BENCHMARKS=ON ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DBUILD_DP3_BENCHMARKS=ON ..
     - ninja
     - ninja install
   artifacts:
