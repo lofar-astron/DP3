@@ -3,7 +3,9 @@
 
 #include "IterativeFullJonesSolver.h"
 
+#ifdef __AVX2__
 #include "common/avx256/MatrixComplexFloat2x2.h"
+#endif
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
