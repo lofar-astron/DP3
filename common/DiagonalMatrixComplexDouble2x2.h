@@ -5,7 +5,9 @@
 #define AOCOMMON_DIAGONAL_MATRIX_COMPLEX_DOUBLE_2X2_H
 
 #include "common/scalar/DiagonalMatrixComplexDouble2x2.h"
+#ifdef __AVX2__
 #include "common/avx256/DiagonalMatrixComplexDouble2x2.h"
+#endif
 #include "common/MatrixComplexDouble2x2.h"
 
 #include <functional>
