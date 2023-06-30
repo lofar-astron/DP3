@@ -139,7 +139,7 @@ class MultiMSReader final : public MSReader {
   void fillBands();
 
   /// Reads the weights into 'buffer'
-  void getWeights(base::DPBuffer& buffer);
+  void getWeights(std::unique_ptr<base::DPBuffer>& buffer);
 
   bool itsOrderMS;  ///< sort multi MS in order of freq?
   int itsFirst;     ///< first valid MSReader (<0 = none)

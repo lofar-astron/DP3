@@ -22,14 +22,12 @@
 #include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/OS/Conversion.h>
 
+#include <xtensor/xview.hpp>
+
 #include "../base/DPLogger.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
-
-using casacore::Cube;
-using casacore::IPosition;
-using casacore::RefRows;
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -234,8 +232,8 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
     buffer->ResizeFlags({itsNrBl, itsNrChan, itsNrCorr});
   }
   // Loop through all readers and get data and flags.
-  IPosition start(3, 0, 0, 0);
-  IPosition end(3, itsNrCorr - 1, 0, itsNrBl - 1);
+  int first_channel = 0;
+  int last_channel = 0;
   for (unsigned int i = 0; i < itsReaders.size(); ++i) {
     if (itsReaders[i]) {
       if (int(i) != itsFirst) {
@@ -252,23 +250,31 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
             "consecutive; this is not the case for MS " +
             std::to_string(i));
       // Copy data and flags.
-      end[1] = start[1] + itsReaders[i]->getInfo().nchan() - 1;
+      last_channel = first_channel + itsReaders[i]->getInfo().nchan();
       if (getFieldsToRead().Data()) {
-        buffer->GetCasacoreData()(start, end) = msBuf.GetCasacoreData();
+        xt::view(buffer->GetData(), xt::all(),
+                 xt::range(first_channel, last_channel), xt::all()) =
+            msBuf.GetData();
       }
       if (getFieldsToRead().Flags()) {
-        buffer->GetCasacoreFlags()(start, end) = msBuf.GetCasacoreFlags();
+        xt::view(buffer->GetFlags(), xt::all(),
+                 xt::range(first_channel, last_channel), xt::all()) =
+            msBuf.GetFlags();
       }
     } else {
-      end[1] = start[1] + itsFillNChan - 1;
+      last_channel = first_channel + itsFillNChan;
       if (getFieldsToRead().Data()) {
-        buffer->GetCasacoreData()(start, end) = casacore::Complex();
+        xt::view(buffer->GetData(), xt::all(),
+                 xt::range(first_channel, last_channel), xt::all())
+            .fill(std::complex<float>());
       }
       if (getFieldsToRead().Flags()) {
-        buffer->GetCasacoreFlags()(start, end) = true;
+        xt::view(buffer->GetFlags(), xt::all(),
+                 xt::range(first_channel, last_channel), xt::all())
+            .fill(true);
       }
     }
-    start[1] = end[1] + 1;
+    first_channel = last_channel;
   }
 
   if (getFieldsToRead().Uvw()) {
@@ -276,7 +282,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
     itsReaders[itsFirst]->getUVW(buffer->getRowNrs(), buffer->getTime(),
                                  *buffer);
   }
-  if (getFieldsToRead().Weights()) getWeights(*buffer);
+  if (getFieldsToRead().Weights()) getWeights(buffer);
 
   getNextStep()->process(std::move(buffer));
   return true;
@@ -404,22 +410,23 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
   }
 }
 
-void MultiMSReader::getWeights(DPBuffer& buffer) {
-  const RefRows& rowNrs = buffer.getRowNrs();
-  buffer.ResizeWeights({itsNrBl, itsNrChan, itsNrCorr});
-  Cube<float>& weights = buffer.GetCasacoreWeights();
-  IPosition start(3, 0, 0, 0);
-  IPosition end(3, itsNrCorr - 1, 0, itsNrBl - 1);
+void MultiMSReader::getWeights(std::unique_ptr<base::DPBuffer>& buffer) {
+  buffer->ResizeWeights({itsNrBl, itsNrChan, itsNrCorr});
+  int first_channel = 0;
+  int last_channel = 0;
   for (const std::shared_ptr<ResultStep>& result : itsResults) {
     if (result) {
-      const unsigned int n_channels = result->get().GetWeights().shape(1);
-      end[1] = start[1] + n_channels - 1;
-      weights(start, end) = result->get().GetCasacoreWeights();
-    } else {  // Use zero weights for dummy bands.
-      end[1] = start[1] + itsFillNChan - 1;
-      weights(start, end) = float(0);
+      last_channel = first_channel + result->get().GetWeights().shape(1);
+      xt::view(buffer->GetWeights(), xt::all(),
+               xt::range(first_channel, last_channel), xt::all()) =
+          result->get().GetWeights();
+    } else {
+      last_channel = first_channel + itsFillNChan;
+      xt::view(buffer->GetWeights(), xt::all(),
+               xt::range(first_channel, last_channel), xt::all())
+          .fill(0.0f);
     }
-    start[1] = end[1] + 1;
+    first_channel = last_channel;
   }
 }
 
