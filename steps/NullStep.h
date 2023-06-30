@@ -23,7 +23,7 @@ class NullStep : public OutputStep {
   common::Fields getProvidedFields() const override { return {}; }
 
   /// Process regular data. It does nothing.
-  bool process(const base::DPBuffer&) override { return true; }
+  bool process(std::unique_ptr<base::DPBuffer>) override { return true; }
 
   /// Process bda data. It does nothing.
   bool process(std::unique_ptr<base::BDABuffer>) override { return true; }
