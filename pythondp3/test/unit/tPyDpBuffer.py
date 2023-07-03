@@ -4,6 +4,7 @@
 # Append current directory to system path in order to import testconfig
 import sys
 import numpy as np
+import pytest
 
 sys.path.append(".")
 
@@ -52,12 +53,8 @@ def test_weights():
         [[0.01, 0.02, 0.03], [0.04, 0.05, 0.06]], np.float16
     )
 
-    caught_runtime_error = False
-    try:
+    with pytest.raises(RuntimeError):
         pybuffer.set_weights(weights_invalid_shape)
-    except RuntimeError:
-        caught_runtime_error = True
-    assert caught_runtime_error is True
 
     weights = np.array(
         [
@@ -78,12 +75,8 @@ def test_flags():
         [[True, True, True], [False, True, False]], np.bool8
     )
 
-    caught_runtime_error = False
-    try:
+    with pytest.raises(RuntimeError):
         pybuffer.set_flags(flags_invalid_shape)
-    except RuntimeError:
-        caught_runtime_error = True
-    assert caught_runtime_error is True
 
     flags = np.array(
         [
@@ -100,17 +93,16 @@ def test_flags():
 def test_data():
     pybuffer = dp3.DPBuffer()
 
+    with pytest.raises(RuntimeError):
+        pybuffer.get_data("does not exist")
+
     data_invalid_shape = np.array(
         [[1.5 + 4j + 2j, 3.0 + 9j, 1.1 + 33j], [27.0 + 2j, 28.0, 29.5]],
         np.csingle,
     )
 
-    caught_runtime_error = False
-    try:
+    with pytest.raises(RuntimeError):
         pybuffer.set_data(data_invalid_shape)
-    except RuntimeError:
-        caught_runtime_error = True
-    assert caught_runtime_error is True
 
     data = np.array(
         [
@@ -135,9 +127,5 @@ def test_uvw():
 
     uvw_invalid_shape = np.array([[1, 3], [4, 6], [7, 9], [10, 12]], np.double)
 
-    caught_runtime_error = False
-    try:
+    with pytest.raises(RuntimeError):
         pybuffer.set_uvw(uvw_invalid_shape)
-    except RuntimeError:
-        caught_runtime_error = True
-    assert caught_runtime_error is True

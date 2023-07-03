@@ -98,6 +98,13 @@ class DPBuffer {
  public:
   using Complex = std::complex<float>;
 
+  /// Return types for Get* functions. Defining these types in DPBuffer
+  /// simplifies changing types in the transition to XTensor.
+  using DataType = aocommon::xt::Span<std::complex<float>, 3>;
+  using WeightsType = aocommon::xt::Span<float, 3>;
+  using FlagsType = aocommon::xt::Span<bool, 3>;
+  using UvwType = aocommon::xt::Span<double, 2>;
+
   /// Construct object with empty arrays.
   explicit DPBuffer(double time = 0.0, double exposure = 0.0);
 
@@ -177,8 +184,7 @@ class DPBuffer {
   ///         The data has shape (n_baselines, n_channels, n_correlations).
   ///         Note: In the future, this function will return a reference to the
   ///         XTensor object that holds the data.
-  const aocommon::xt::Span<std::complex<float>, 3>& GetData(
-      const std::string& name = "") const {
+  const DataType& GetData(const std::string& name = "") const {
     if (name.empty()) {
       return data_;
     } else {
@@ -187,8 +193,7 @@ class DPBuffer {
       return found->second;
     }
   }
-  aocommon::xt::Span<std::complex<float>, 3>& GetData(
-      const std::string& name = "") {
+  DataType& GetData(const std::string& name = "") {
     if (name.empty()) {
       return data_;
     } else {
@@ -263,8 +268,8 @@ class DPBuffer {
   ///         The view has shape (n_baselines, n_channels, n_correlations).
   ///         Note: In the future, this function will return a reference to the
   ///         XTensor object that holds the flags.
-  const aocommon::xt::Span<bool, 3>& GetFlags() const { return flags_; }
-  aocommon::xt::Span<bool, 3>& GetFlags() { return flags_; }
+  const FlagsType& GetFlags() const { return flags_; }
+  FlagsType& GetFlags() { return flags_; }
 
   /// Set the weights per corr,chan,baseline.
   void setWeights(const casacore::Cube<float>& weights);
@@ -283,8 +288,8 @@ class DPBuffer {
   ///         The view has shape (n_baselines, n_channels, n_correlations).
   ///         Note: In the future, this function will return a reference to the
   ///         XTensor object that holds the weights.
-  const aocommon::xt::Span<float, 3>& GetWeights() const { return weights_; }
-  aocommon::xt::Span<float, 3>& GetWeights() { return weights_; }
+  const WeightsType& GetWeights() const { return weights_; }
+  WeightsType& GetWeights() { return weights_; }
 
   /// Returns the weights and clears the storage in this object.
   ///
@@ -347,8 +352,8 @@ class DPBuffer {
   ///         The view has shape (n_baselines, 3).
   ///         Note: In the future, this function will return a reference to the
   ///         XTensor object that holds the UVW coordinates.
-  const aocommon::xt::Span<double, 2>& GetUvw() const { return uvw_; }
-  aocommon::xt::Span<double, 2>& GetUvw() { return uvw_; }
+  const UvwType& GetUvw() const { return uvw_; }
+  UvwType& GetUvw() { return uvw_; }
 
   void SetSolution(
       const std::vector<std::vector<std::complex<double>>>& solution) {
