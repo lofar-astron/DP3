@@ -202,7 +202,7 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
   BOOST_REQUIRE(out->get().size() == kNTimes);
   for (size_t i = 0; i < kNTimes; ++i) {
     const std::vector<std::vector<std::complex<double>>>& solution =
-        out->get()[i].GetSolution();
+        out->get()[i]->GetSolution();
 
     if (i % solution_interval == 0) {
       // Only the first buffer in each solution interval has solutions.
@@ -240,10 +240,11 @@ class KeepModelDataFixture : public FixtureDirectory {
 
   void CheckOutput(const std::vector<std::string>& expected_names) {
     BOOST_CHECK(result_step->get().size() == kNTimes);
-    for (const dp3::base::DPBuffer& buffer : result_step->get()) {
+    for (const std::unique_ptr<dp3::base::DPBuffer>& buffer :
+         result_step->get()) {
       for (const std::string& name : expected_names) {
-        BOOST_REQUIRE(buffer.HasData(name));
-        const std::array<std::size_t, 3> shape = buffer.GetData(name).shape();
+        BOOST_REQUIRE(buffer->HasData(name));
+        const std::array<std::size_t, 3> shape = buffer->GetData(name).shape();
         BOOST_CHECK_EQUAL(shape[0], reader->getInfo().nbaselines());
         BOOST_CHECK_EQUAL(shape[1], reader->getInfo().nchan());
         BOOST_CHECK_EQUAL(shape[2], reader->getInfo().ncorr());

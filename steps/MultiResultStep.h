@@ -26,7 +26,7 @@ class MultiResultStep : public Step {
   common::Fields getProvidedFields() const override { return {}; }
 
   /// Add the buffer to the vector of kept buffers.
-  bool process(const base::DPBuffer& buffer) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish does not do anything.
   void finish() override { getNextStep()->finish(); }
@@ -36,8 +36,10 @@ class MultiResultStep : public Step {
   void show(std::ostream&) const override{};
 
   /// Get the result.
-  const std::vector<base::DPBuffer>& get() const { return buffers_; }
-  std::vector<base::DPBuffer>& get() { return buffers_; }
+  const std::vector<std::unique_ptr<base::DPBuffer>>& get() const {
+    return buffers_;
+  }
+  std::vector<std::unique_ptr<base::DPBuffer>>& get() { return buffers_; }
 
   /// Get the size of the result.
   size_t size() const { return size_; }
@@ -46,7 +48,7 @@ class MultiResultStep : public Step {
   void clear() { size_ = 0; }
 
  private:
-  std::vector<base::DPBuffer> buffers_;
+  std::vector<std::unique_ptr<base::DPBuffer>> buffers_;
   size_t size_;
 };
 

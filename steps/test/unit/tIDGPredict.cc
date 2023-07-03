@@ -273,8 +273,8 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.1f) *
 
   BOOST_TEST(result_step->size() == kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    BOOST_TEST(xt::real(result_step->get()[i].GetData()(0, 0, 0)) == 60.f);
-    BOOST_TEST(xt::imag(result_step->get()[i].GetData()(0, 0, 0)) == 0.f);
+    BOOST_TEST(xt::real(result_step->get()[i]->GetData()(0, 0, 0)) == 60.f);
+    BOOST_TEST(xt::imag(result_step->get()[i]->GetData()(0, 0, 0)) == 0.f);
   }
 }
 
@@ -339,7 +339,7 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
 
   BOOST_TEST(result_step->size() == kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    const auto& data = result_step->get()[i].GetData();
+    const auto& data = result_step->get()[i]->GetData();
     const size_t n_bl = data.shape(0);
     const size_t n_chan = data.shape(1);
     const size_t n_corr = data.shape(2);
