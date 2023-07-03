@@ -551,7 +551,7 @@ void DDECal::doSolve() {
       const size_t sol_int = i / itsRequestedSolInt;
       const size_t timestep = i % itsRequestedSolInt;
       itsInputBuffers[sol_int][timestep]->MoveData(
-          itsResultSteps[dir]->get()[i], "", itsDirectionNames[dir]);
+          *itsResultSteps[dir]->get()[i], "", itsDirectionNames[dir]);
     }
   }
 
