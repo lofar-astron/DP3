@@ -43,7 +43,7 @@ class BdaGroupPredict::BaselineGroup {
   }
 
   /// Create the predict and result step for this group
-  /// to be called afer all baselines have been added
+  /// to be called after all baselines have been added
   void MakeSteps(base::DPInfo& info_in, const common::ParameterSet& parset,
                  std::string& prefix,
                  std::vector<std::string> source_patterns) {
@@ -73,10 +73,11 @@ class BdaGroupPredict::BaselineGroup {
     predict_step_->setInfo(info);
     const std::array<std::size_t, 3> shape{nr_baselines, nr_chan,
                                            info_in.ncorr()};
-    dpbuffer_.ResizeData(shape);
-    dpbuffer_.ResizeWeights(shape);
-    dpbuffer_.ResizeFlags(shape);
-    dpbuffer_.ResizeUvw(nr_baselines);
+    dpbuffer_ = std::make_unique<base::DPBuffer>();
+    dpbuffer_->ResizeData(shape);
+    dpbuffer_->ResizeWeights(shape);
+    dpbuffer_->ResizeFlags(shape);
+    dpbuffer_->ResizeUvw(nr_baselines);
   }
 
   /// Write information on the predict step for this baseline group to the
@@ -102,17 +103,17 @@ class BdaGroupPredict::BaselineGroup {
 
     // Check whether the time for this baseline is the same as the time for the
     // group
-    if (nr_baselines_requested_ && (abs(dpbuffer_.getTime() - time) > 1e-3)) {
+    if (nr_baselines_requested_ && (abs(dpbuffer_->getTime() - time) > 1e-3)) {
       throw std::runtime_error(
           "Incomplete data: missing baselines in BDA buffer.");
     }
 
     // Copy data from BDA buffer row into the (regular) buffer for this baseline
     // group
-    std::copy(row.uvw, row.uvw + 3, dpbuffer_.GetCasacoreUvw()[bl_idx].begin());
+    std::copy_n(row.uvw, 3, &dpbuffer_->GetUvw()(bl_idx, 0));
 
     write_back_info_[bl_idx] = {row.data, &row_counter};
-    dpbuffer_.setTime(time);
+    dpbuffer_->setTime(time);
     std::size_t nr_baselines = baselines_.size();
 
     // Flush if the baseline group is complete
@@ -125,18 +126,20 @@ class BdaGroupPredict::BaselineGroup {
   // Results are copied back the the BDA Buffer
   void Flush() {
     // Send data to the OnePredict step
-    // The static_cast allows using the legacy process() overload for now.
-    static_cast<Step*>(predict_step_.get())->process(dpbuffer_);
+    predict_step_->process(std::move(dpbuffer_));
 
-    // Get the result out of the Result step
-    const base::DPBuffer& buf_out = result_step_->get();
+    // Get the result out of the Result step and reuse the DPBuffer.
+    dpbuffer_ = result_step_->take();
 
     // Loop over all baselines in baselinegroup
-    std::size_t nr_baselines = baselines_.size();
+    const std::size_t nr_baselines = baselines_.size();
+    assert(dpbuffer_->GetData().shape(0) == nr_baselines);
+    const std::size_t baseline_size =
+        dpbuffer_->GetData().shape(1) * dpbuffer_->GetData().shape(2);
     for (std::size_t bl = 0; bl < nr_baselines; ++bl) {
       // Copy result from regular predict into corresponding BDABuffer in queue
-      std::copy(buf_out.GetCasacoreData()[bl].begin(),
-                buf_out.GetCasacoreData()[bl].end(), write_back_info_[bl].data);
+      std::copy_n(&dpbuffer_->GetData()(bl, 0, 0), baseline_size,
+                  write_back_info_[bl].data);
       // Increment counter of rows filled in BDABuffer
       (*write_back_info_[bl].row_counter)++;
     }
@@ -152,7 +155,7 @@ class BdaGroupPredict::BaselineGroup {
   std::vector<std::size_t> baselines_;
   std::shared_ptr<Predict> predict_step_;
   std::shared_ptr<ResultStep> result_step_;
-  base::DPBuffer dpbuffer_;
+  std::unique_ptr<base::DPBuffer> dpbuffer_;
   struct WriteBackInfo {
     std::complex<float>* data;
     std::size_t* row_counter;
