@@ -98,7 +98,7 @@ def test_bdapredict(create_skymodel, bda_predict_step_type):
     check_call(
         [
             tcf.DP3EXE,
-            "checkparset=true",
+            "checkparset=1",
             f"msin={MSIN_REGULAR}",
             "msout=bdapredict0.MS",
             "steps=[predict,bdaaverager]",
@@ -108,7 +108,7 @@ def test_bdapredict(create_skymodel, bda_predict_step_type):
     check_call(
         [
             tcf.DP3EXE,
-            "checkparset=true",
+            "checkparset=1",
             f"msin={MSIN_REGULAR}",
             "msout=bdapredict1.MS",
             "steps=[bdaaverager, predict]",
@@ -132,7 +132,7 @@ def test_predicted_values_regular_input(
     check_call(
         [
             tcf.DP3EXE,
-            "checkparset=true",
+            "checkparset=1",
             f"msin={MSIN_REGULAR}",
             "msout=bdapredict.MS",
             "msout.overwrite=true",
@@ -162,7 +162,7 @@ def test_predicted_values_bda_input(
     check_call(
         [
             tcf.DP3EXE,
-            "checkparset=true",
+            "checkparset=1",
             f"msin={MSIN_BDA}",
             "msout=bdapredict.MS",
             "msout.overwrite=true",
