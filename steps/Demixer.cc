@@ -1,5 +1,5 @@
-// Demixer.cc: DPPP step class to subtract A-team sources
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Demixer.cc: DP3 step class to subtract A-team sources
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
@@ -386,7 +386,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
         << "WARNING: Demixing with moving phase reference is not tested.\n";
   }
 
-  // Intialize the unknowns.
+  // Initialize the unknowns.
   itsUnknowns.resize(itsNTimeDemix * itsNModel * itsNStation * 8);
   itsPrevSolution.resize(itsNModel * itsNStation * 8);
   std::vector<double>::iterator it = itsPrevSolution.begin();
@@ -594,7 +594,7 @@ void Demixer::handleDemix() {
     mergeSubtractResult();
   }
 
-  // Clear the input buffers.
+  // Clear the input buffers (MultiResultSteps).
   for (size_t i = 0; i < itsAvgResults.size(); ++i) {
     itsAvgResults[i]->clear();
   }
@@ -612,7 +612,7 @@ void Demixer::handleDemix() {
     itsTimer.start();
   }
 
-  // Clear the output buffer.
+  // Clear the output buffer (MultiResultSteps).
   itsAvgResultFull->clear();
   itsAvgResultSubtr->clear();
 
@@ -624,8 +624,8 @@ void Demixer::handleDemix() {
 }
 
 void Demixer::mergeSubtractResult() {
-  // Merge the selected baselines from the subtract buffer into the
-  // full buffer. Do it for all timestamps.
+  // Merge the selected baselines from the subtract buffer (itsAvgResultSubtr)
+  // into the full buffer (itsAvgResultFull). Do it for all timestamps.
   for (unsigned int i = 0; i < itsNTimeOutSubtr; ++i) {
     const Array<casacore::Complex>& arr =
         itsAvgResultSubtr->get()[i]->GetCasacoreData();
@@ -793,8 +793,8 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
   //     v_predict : (N-1) x 1
   //     v_averaged: N x 1
   // where N is the number of modeled sources to use in demixing.
-  // In the general case S sources might not have a source model.
-  // In that case A is the NxS matrix containing all these columns
+  // In the general case, S sources might not have a source model.
+  // In that case, A is the NxS matrix containing all these columns
   // from M and M' is the Nx(N-S) matrix without all these columns.
 
   // Calculate P for all baselines,channels,correlations.
@@ -814,8 +814,7 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
       const casacore::DComplex* inptr = factors.data() + i * itsNDir * itsNDir;
       casacore::DComplex* outptr = newFactors.data() + i * itsNDir * itsNModel;
       Matrix<casacore::DComplex> out(outShape, outptr, casacore::SHARE);
-      // Copying a bit of data is probably faster than taking a matrix
-      // subset.
+      // Copying a bit of data is probably faster than taking a matrix subset.
       casacore::objcopy(ma.data(), inptr, itsNDir * itsNModel);
       casacore::objcopy(a.data(), inptr + itsNDir * itsNModel,
                         itsNDir * nrDeproject);

@@ -43,7 +43,7 @@ class ParameterSet {
   explicit ParameterSet(KeyCompare::Mode mode = KeyCompare::NORMAL);
 
   /// Create an empty collection.
-  /// Tell if keys have to be compared case-insenstitive.
+  /// @param caseInsensitive If keys have to be compared case-insensitive.
   explicit ParameterSet(bool caseInsensitive);
 
   /// Construct a ParameterSet from the contents of \a theFilename. The
@@ -57,7 +57,7 @@ class ParameterSet {
   /// @}
 
   /// Construct a ParameterSet from the contents of \a theFilename.
-  /// Tell if keys have to be compared case-insenstitive.
+  /// @param caseInsensitive If keys have to be compared case-insensitive.
   explicit ParameterSet(const std::string& theFilename, bool caseInsensitive);
 
   /// Copying is allowed.

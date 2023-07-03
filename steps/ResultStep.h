@@ -9,9 +9,9 @@
 namespace dp3 {
 namespace steps {
 
-/// @brief This class defines step in the DP3 pipeline that keeps the result
+/// @brief This class defines a step in the DP3 pipeline that keeps the result
 /// to make it possible to get the result of another step.
-/// It stores the result and does *NOT* call process of the next step.
+/// It stores the result and does *NOT* call process() of the next step.
 
 class ResultStep : public Step {
  public:
@@ -38,9 +38,12 @@ class ResultStep : public Step {
   void show(std::ostream&) const override {}
 
   /// Get the result.
+  /// Does not transfer ownership of the buffer to the caller. If that is
+  /// required, use take() instead.
   const base::DPBuffer& get() const { return *buffer_; }
 
   /// Extract the result.
+  /// Transfers ownership of the buffer to the caller.
   std::unique_ptr<base::DPBuffer> take() { return std::move(buffer_); }
 
  private:

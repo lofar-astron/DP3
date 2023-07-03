@@ -1,5 +1,5 @@
 // Demixer.h: DP3 step class to subtract A-team sources
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DP3_STEPS_DEMIXER_H_
@@ -20,14 +20,14 @@
 namespace dp3 {
 namespace steps {
 
-/// @brief DPPP step class to subtract A-team sources
+/// @brief DP3 step class to subtract A-team sources
 /// This class is a Step class to subtract the strong A-team sources.
 /// It is based on the demixing.py script made by Bas vd Tol and operates
 /// per time chunk as follows:
 /// <ul>
 ///  <li> The data are phase-shifted and averaged for each source.
 ///  <li> Demixing is done using the combined results.
-///  <li> For each source a BBS solve, smooth, and predict is done.
+///  <li> For each source, a BBS solve, smooth, and predict is done.
 ///  <li> The predicted results are subtracted from the averaged data.
 /// </ul>
 
@@ -87,7 +87,7 @@ class Demixer : public Step {
   void dumpSolutions();
 
   /// Merge the data of the selected baselines from the subtract buffer
-  /// into the full buffer.
+  /// (itsAvgResultSubtr) into the full buffer (itsAvgResultFull).
   void mergeSubtractResult();
 
   std::string itsName;
@@ -151,21 +151,29 @@ class Demixer : public Step {
                              ///< model.
 
   /// Accumulator used for computing the demixing weights at the demix
-  /// resolution. The shape of this buffer is #correlations x #channels
-  /// x #baselines x #directions x #directions (fastest axis first).
+  /// resolution. The shape of this buffer is
+  ///     #direction-pairs x #baselines x #channels x #correlations,
+  /// where #direction-pairs equals: #directions x (#directions - 1)/2.
   casacore::Array<casacore::DComplex> itsFactorBuf;
-  /// Buffer of demixing weights at the demix resolution. Each Array is a
-  /// cube of shape #correlations x #channels x #baselines of matrices of
-  /// shape #directions x #directions.
+  /// Buffer of demixing weights at the demix resolution. The shape of each
+  /// Array is
+  ///     #baselines x #channels x #correlations x #directions x #directions.
+  /// Conceptually, for every pair of source directions (i.e. xt::view(
+  /// itsFactors[i], xt::all(), xt::all(), xt::all(), dir1, dir2)),
+  /// this Array thus provides a 3D cube of demixing weights.
   std::vector<casacore::Array<casacore::DComplex>> itsFactors;
 
-  /// Accumulator used for computing the demixing weights. The shape of this
-  /// buffer is #correlations x #channels x #baselines x #directions
-  /// x #directions (fastest axis first).
+  /// Accumulator used for computing the demixing weights at the subtract
+  /// resolution. The shape of this buffer is
+  ///     #direction-pairs x #baselines x #channels x #correlations,
+  /// where #direction-pairs equals: #directions x (#directions - 1)/2.
   casacore::Array<casacore::DComplex> itsFactorBufSubtr;
-  /// Buffer of demixing weights at the subtract resolution. Each Array is a
-  /// cube of shape #correlations x #channels x #baselines of matrices of
-  /// shape #directions x #directions.
+  /// Buffer of demixing weights at the subtract resolution. The shape of each
+  /// Array is
+  ///     #baselines x #channels x #correlations x #directions x #directions.
+  /// Conceptually, for every pair of source directions (i.e. xt::view(
+  /// itsFactorsSubtr[i], xt::all(), xt::all(), xt::all(), dir1, dir2)),
+  /// this Array thus provides a 3D cube of demixing weights.
   std::vector<casacore::Array<casacore::DComplex>> itsFactorsSubtr;
 
   std::vector<std::shared_ptr<base::Patch>> itsPatchList;
