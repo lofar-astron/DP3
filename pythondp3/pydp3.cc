@@ -26,57 +26,6 @@ void WrapDpBuffer(py::module &m);  // Defined in pydpbuffer.cc
 void WrapDpInfo(py::module &m);    // Defined in pydpinfo.cc
 void WrapFields(py::module &m);    // Defined in pyfields.cc
 
-template <typename T>
-void register_cube(py::module &m, const char *name) {
-  py::class_<casacore::Cube<T>>(m, name, py::buffer_protocol())
-      .def_buffer([](casacore::Cube<T> &cube) -> py::buffer_info {
-        return py::buffer_info(
-            cube.data(),                        /* Pointer to buffer */
-            sizeof(T),                          /* Size of one scalar */
-            py::format_descriptor<T>::format(), /* Python struct-style format
-                                                   descriptor */
-            3,                                  /* Number of dimensions */
-            {cube.shape()[2], cube.shape()[1],
-             cube.shape()[0]}, /* Buffer dimensions */
-            {sizeof(T) * cube.shape()[1] *
-                 cube.shape()[0], /* Strides (in bytes) for each index */
-             sizeof(T) * cube.shape()[0], sizeof(T)});
-      });
-}
-
-template <typename T>
-void register_matrix(py::module &m, const char *name) {
-  py::class_<casacore::Matrix<T>>(m, name, py::buffer_protocol())
-      .def_buffer([](casacore::Matrix<T> &matrix) -> py::buffer_info {
-        return py::buffer_info(
-            matrix.data(),                      /* Pointer to buffer */
-            sizeof(T),                          /* Size of one scalar */
-            py::format_descriptor<T>::format(), /* Python struct-style format
-                                                   descriptor */
-            2,                                  /* Number of dimensions */
-            {matrix.shape()[1], matrix.shape()[0]}, /* Buffer dimensions */
-            {sizeof(T) *
-                 matrix.shape()[0], /* Strides (in bytes) for each index */
-             sizeof(T)});
-      });
-}
-
-template <typename T>
-void register_vector(py::module &m, const char *name) {
-  py::class_<casacore::Vector<T>>(m, name, py::buffer_protocol())
-      .def_buffer([](casacore::Vector<T> &vector) -> py::buffer_info {
-        return py::buffer_info(
-            vector.data(),                      /* Pointer to buffer */
-            sizeof(T),                          /* Size of one scalar */
-            py::format_descriptor<T>::format(), /* Python struct-style format
-                                                   descriptor */
-            1,                                  /* Number of dimensions */
-            {vector.shape()[0]},                /* Buffer dimensions */
-            {sizeof(T)} /* Strides (in bytes) for each index */
-        );
-      });
-}
-
 class PublicStep : public Step {
  public:
   using Step::info;
@@ -87,12 +36,6 @@ class PublicStep : public Step {
 
 PYBIND11_MODULE(pydp3, m) {
   m.doc() = "pybind11 example plugin";  // optional module docstring
-
-  register_cube<float>(m, "Cube_float");
-  register_cube<bool>(m, "Cube_bool");
-  register_cube<casacore::Complex>(m, "Cube_complex_float");
-  register_matrix<double>(m, "Matrix_double");
-  register_vector<double>(m, "Vector_double");
 
   WrapDpBuffer(m);
   WrapDpInfo(m);
