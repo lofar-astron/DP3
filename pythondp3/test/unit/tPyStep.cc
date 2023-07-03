@@ -2,20 +2,19 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <sstream>
+#include "../../PyStep.h"
 
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayLogical.h>
-#include <casacore/casa/BasicMath/Math.h>
-#include <casacore/casa/Quanta/Quantum.h>
+#include <sstream>
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../../steps/test/unit/tStepCommon.h"
-#include "../../../steps/test/unit/mock/ThrowStep.h"
-#include "../../PyStep.h"
+#include <xtensor/xtensor.hpp>
+
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
+
+#include "../../../steps/test/unit/tStepCommon.h"
+#include "../../../steps/test/unit/mock/ThrowStep.h"
 #include "../../../common/ParameterSet.h"
 
 using dp3::base::DPBuffer;
@@ -28,6 +27,8 @@ const int kNTimes = 10;
 const int kNBaselines = 3;
 const int kNChannels = 32;
 const int kNCorrelations = 4;
+const std::array<std::size_t, 3> kShape{kNBaselines, kNChannels,
+                                        kNCorrelations};
 }  // namespace
 
 namespace dp3 {
@@ -41,26 +42,24 @@ class TestInput final : public steps::MockInput {
   TestInput() : count_(0) {}
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (count_ == kNTimes) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(kNCorrelations, kNChannels,
-                                           kNBaselines);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] = casacore::Complex(i + count_ * 10, i - count_ * 10);
+    buffer->setTime(count_ * 5 + 2);
+    buffer->ResizeData(kShape);
+    for (int i = 0; i < static_cast<int>(buffer->GetData().size()); ++i) {
+      buffer->GetData().data()[i] =
+          std::complex<float>(i + count_ * 10, i - count_ * 10);
     }
-    DPBuffer buf;
-    buf.setTime(count_ * 5 + 2);
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buf.setWeights(weights);
-    casacore::Matrix<double> uvw(3, kNBaselines);
-    indgen(uvw, double(count_ * 100));
-    buf.setUVW(uvw);
-    getNextStep()->process(buf);
+    buffer->ResizeWeights(kShape);
+    buffer->GetWeights().fill(1.0f);
+    buffer->ResizeUvw(kNBaselines);
+    for (std::size_t i = 0; i < buffer->GetUvw().size(); ++i) {
+      buffer->GetUvw().data()[i] = count_ * 100 + i;
+    }
+    getNextStep()->process(std::move(buffer));
     ++count_;
     return true;
   }
@@ -87,28 +86,22 @@ class TestOutput final : public dp3::steps::test::ThrowStep {
  public:
   TestOutput() : count_(0) {}
 
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Fill expected result in similar way as TestInput, but multiplied with
     // factor 2.
-    casacore::Cube<casacore::Complex> ref_data(kNCorrelations, kNChannels,
-                                               kNBaselines);
-    casacore::Cube<float> weights(kNCorrelations, kNChannels, kNBaselines);
-
-    for (int i = 0; i < int(ref_data.size()); ++i) {
+    xt::xtensor<std::complex<float>, 3> ref_data(kShape);
+    for (int i = 0; i < static_cast<int>(ref_data.size()); ++i) {
       ref_data.data()[i] =
-          casacore::Complex(2 * (i + count_ * 10), 2 * (i - count_ * 10));
+          std::complex<float>(2 * (i + count_ * 10), 2 * (i - count_ * 10));
     }
-
-    casacore::Cube<float> ref_weights(kNCorrelations, kNChannels, kNBaselines);
-    ref_weights = 0.5;
 
     // Check whether the "visibility" data in the buffer is indeed
     // multiplied by a factor 2
-    BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(ref_data), 1e-5));
-    BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(ref_data), 1e-5));
+    BOOST_CHECK(xt::allclose(buffer->GetData(), ref_data));
 
     // Check whether the weights are divided by 2
-    BOOST_CHECK(allNear(buf.GetCasacoreWeights(), ref_weights, 1e-5));
+    const xt::xtensor<float, 3> ref_weights(kShape, 0.5f);
+    BOOST_CHECK(xt::allclose(buffer->GetWeights(), ref_weights));
 
     ++count_;
     return true;
