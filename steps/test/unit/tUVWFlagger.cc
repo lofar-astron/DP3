@@ -97,8 +97,7 @@ class TestInput : public dp3::steps::MockInput {
     info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
   }
 
- private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer>) override {
     // Stop when all times are done.
     if (count_ == n_times_) {
       return false;
@@ -109,6 +108,7 @@ class TestInput : public dp3::steps::MockInput {
     return true;
   };
 
+ private:
   std::unique_ptr<T> CreateInputBuffer() { return std::make_unique<T>(); };
   void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
@@ -353,7 +353,7 @@ bool TestOutput<DPBuffer>::process(std::unique_ptr<DPBuffer> buffer) {
 }
 
 template <>
-bool TestOutput<BDABuffer>::process(const std::unique_ptr<BDABuffer> buffer) {
+bool TestOutput<BDABuffer>::process(std::unique_ptr<BDABuffer> buffer) {
   // Flag where u,v,w matches intervals given in the requested test.
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
   const xt::xtensor<bool, 3> expected_result = GetResult();
