@@ -15,6 +15,7 @@
 #include "../parmdb/ParmDBMeta.h"
 #include "../parmdb/PatchInfo.h"
 #include "../parmdb/SkymodelToSourceDB.h"
+#include "../parmdb/SourceDB.h"
 
 #include <dp3/base/DPInfo.h>
 #include <dp3/base/DPBuffer.h>
@@ -27,15 +28,12 @@
 #include "../base/Telescope.h"
 #include "../base/ComponentInfo.h"
 
-#include "../parmdb/SourceDB.h"
 #include <casacore/casa/Arrays/Cube.h>
-
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/Precession.h>
 #include <casacore/measures/Measures/Nutation.h>
-#include <casacore/casa/Quanta.h>
 #include <casacore/casa/Quanta/Quantum.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
@@ -1030,27 +1028,25 @@ void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
       iodata_.baseline_arr_[row0].sta2 = ant2;
       iodata_.baseline_arr_[row0].flag = 0;
 
-      // shape nCr x nCh x nBl
-      const casacore::Complex* ms_data =
-          &(buffer->GetCasacoreData().data()[bl * nCr * nCh]);
 #pragma GCC ivdep
       for (uint ch = 0; ch < nCh; ch++) {
-        const casacore::Complex* ptr = &(ms_data[nCr * ch]);
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8] = ptr[0].real();
+        const std::complex<float>* data_pointer = &buffer->GetData()(bl, ch, 0);
+        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 0] =
+            data_pointer[0].real();
         iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 1] =
-            ptr[0].imag();
+            data_pointer[0].imag();
         iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 2] =
-            ptr[1].real();
+            data_pointer[1].real();
         iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 3] =
-            ptr[1].imag();
+            data_pointer[1].imag();
         iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 4] =
-            ptr[2].real();
+            data_pointer[2].real();
         iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 5] =
-            ptr[2].imag();
+            data_pointer[2].imag();
         iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 6] =
-            ptr[3].real();
+            data_pointer[3].real();
         iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 7] =
-            ptr[3].imag();
+            data_pointer[3].imag();
       }
       row0++;
     }
@@ -1070,7 +1066,7 @@ void SagecalPredict::writeData(std::unique_ptr<DPBuffer>& buffer) {
   assert(iodata_.n_baselines >= nBl);
   assert(iodata_.n_channels == nCh);
 
-  casacore::Cube<casacore::Complex>& data = buffer->GetCasacoreData();
+  DPBuffer::DataType& data = buffer->GetData();
   size_t row0 = 0;
   // load data, skipping autocorrelations
   for (size_t bl = 0; bl < nBl; bl++) {
@@ -1079,16 +1075,16 @@ void SagecalPredict::writeData(std::unique_ptr<DPBuffer>& buffer) {
     if (ant1 != ant2) {
 #pragma GCC ivdep
       for (uint ch = 0; ch < nCh; ch++) {
-        data(0, ch, bl) = casacore::Complex(
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8],
+        data(bl, ch, 0) = std::complex<float>(
+            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 0],
             iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 1]);
-        data(1, ch, bl) = casacore::Complex(
+        data(bl, ch, 1) = std::complex<float>(
             iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 2],
             iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 3]);
-        data(2, ch, bl) = casacore::Complex(
+        data(bl, ch, 2) = std::complex<float>(
             iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 4],
             iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 5]);
-        data(3, ch, bl) = casacore::Complex(
+        data(bl, ch, 3) = std::complex<float>(
             iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 6],
             iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 7]);
       }
