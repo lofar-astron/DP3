@@ -64,7 +64,8 @@ class Demixer : public Step {
  private:
   /// Add the decorrelation factor contribution for each time slot.
   void addFactors(const base::DPBuffer& newBuf,
-                  casacore::Array<casacore::DComplex>& factorBuf);
+                  casacore::Array<casacore::DComplex>& factorBuf1,
+                  casacore::Array<casacore::DComplex>& factorBuf2);
 
   /// Calculate the decorrelation factors by averaging them.
   /// Apply the P matrix to deproject the sources without a model.
@@ -120,26 +121,26 @@ class Demixer : public Step {
   std::vector<std::string> itsExtraSources;
   std::vector<std::string> itsAllSources;
   bool itsPropagateSolutions;
+  unsigned int itsNBl;
+  unsigned int itsNChanAvg;
+  unsigned int itsNChanAvgSubtr;
+  unsigned int itsNChanIn;
+  unsigned int itsNChanOut;
+  unsigned int itsNChanOutSubtr;
+  unsigned int itsNCorr;
   unsigned int itsNDir;
   unsigned int itsNModel;
   unsigned int itsNStation;
-  unsigned int itsNBl;
-  unsigned int itsNCorr;
-  unsigned int itsNChanIn;
-  unsigned int itsNTimeIn;
-  unsigned int itsNTimeDemix;
-  unsigned int itsNChanAvgSubtr;
+  unsigned int itsNTimeAvg;
   unsigned int itsNTimeAvgSubtr;
-  unsigned int itsNChanOutSubtr;
-  unsigned int itsNTimeOutSubtr;
   unsigned int itsNTimeChunk;
   unsigned int itsNTimeChunkSubtr;
-  unsigned int itsNChanAvg;
-  unsigned int itsNTimeAvg;
+  unsigned int itsNTimeDemix;
+  unsigned int itsNTimeIn;
+  unsigned int itsNTimeOut;
+  unsigned int itsNTimeOutSubtr;
   double itsFreqResolution;
   double itsTimeResolution;
-  unsigned int itsNChanOut;
-  unsigned int itsNTimeOut;
   double itsTimeIntervalAvg;
 
   bool itsUseLBFGS;  ///< if this is not false, use LBFGS solver instead of
