@@ -3,8 +3,12 @@
 
 #include "MsColumnReader.h"
 
-#include <casacore/tables/Tables/ArrayColumn.h>
+#include <string>
 
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/TableIter.h>
+
+#include "../base/DPLogger.h"
 using casacore::ArrayColumn;
 
 using dp3::base::DPBuffer;
@@ -38,7 +42,35 @@ bool MsColumnReader::process(std::unique_ptr<DPBuffer> buffer) {
 
 void MsColumnReader::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
+
   table_ = casacore::Table(_info.msName());
+
+  // Verify that the column being read has the same shape as the buffer which
+  // will be given to this step's process function
+  casacore::TableIterator table_iterator_single_time(
+      table_, casacore::Block<casacore::String>(1, "TIME"),
+      casacore::TableIterator::Ascending, casacore::TableIterator::NoSort);
+  size_t n_baselines_column = table_iterator_single_time.table().nrow();
+
+  ArrayColumn<casacore::Complex> model_column(table_, column_name_);
+
+  if ((_info.ncorr() != model_column.shape(0)[0]) ||
+      (_info.nchan() != model_column.shape(0)[1]) ||
+      _info.nbaselines() != n_baselines_column || _info.metaChanged()) {
+    throw std::runtime_error(
+        "The column " + column_name_ +
+        " has shape NCORR: " + std::to_string(model_column.shape(0)[0]) +
+        ", NCHAN: " + std::to_string(model_column.shape(0)[1]) +
+        ", NBL: " + std::to_string(n_baselines_column) +
+        ", while the input buffer for the current step has shape NCORR: " +
+        std::to_string(_info.ncorr()) +
+        ", NCHAN: " + std::to_string(_info.nchan()) +
+        ", NBL: " + std::to_string(_info.nbaselines()) +
+        ".\nAny operation which alters the number of channels, correlations "
+        "and baselines can cause a shape mismatch (example: filter, average, "
+        "...). Also operations which will change the metadata can cause a "
+        "mismatch (example: phase shift, upsample, station adder, ..) \n\n");
+  }
 }
 
 void MsColumnReader::finish() { getNextStep()->finish(); }

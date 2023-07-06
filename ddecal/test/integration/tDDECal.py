@@ -120,6 +120,29 @@ def create_corrupted_visibilities():
     )
 
 
+def test_modeldata_different_shape(copy_data_to_model_data):
+    base_command = [
+        tcf.DP3EXE,
+        "checkparset=1",
+        "numthreads=1",
+        f"msin={MSIN}",
+        "ddecal.modeldatacolumns=[MODEL_DATA]",
+        "msout=.",
+        "steps=[filter,ddecal]",
+        "filter.startchan=3",
+    ]
+
+    with pytest.raises(CalledProcessError) as e:
+        check_output(base_command, stderr=STDOUT)
+
+        error_string = "The column MODEL_DATA has shape NCORR: 4, NCHAN: 8, "
+        "while the input buffer for the current step has shape NCORR: 4, "
+        "NCHAN: 5.\nAny operation which alters the number of channels, "
+        "correlations and baselines can cause a shape mismatch (example: "
+        "filter, average, ...).\n\n"
+        assert error_string in e.output.decode()
+
+
 @pytest.mark.parametrize(
     "caltype",
     ["complexgain", "scalarcomplexgain", "amplitudeonly", "scalaramplitude"],
