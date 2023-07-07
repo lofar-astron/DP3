@@ -202,7 +202,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   info().setChannels(std::move(freqs), std::move(widths));
 }
 
-bool BDAAverager::process(const DPBuffer& buffer) {
+bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   common::NSTimer::StartStop sstime(timer_);
 
   if (!bda_buffer_) {
@@ -214,19 +214,17 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     }
   }
 
-  DPBuffer dummy_buffer;
-
   const casacore::Cube<float>& weights = use_weights_and_flags_
-                                             ? buffer.GetCasacoreWeights()
+                                             ? buffer->GetCasacoreWeights()
                                              : casacore::Cube<float>{};
 
   const casacore::Cube<bool>& flags = use_weights_and_flags_
-                                          ? buffer.GetCasacoreFlags()
+                                          ? buffer->GetCasacoreFlags()
                                           : casacore::Cube<bool>{};
 
-  const casacore::Matrix<double>& uvw = buffer.GetCasacoreUvw();
+  const casacore::Matrix<double>& uvw = buffer->GetCasacoreUvw();
 
-  if (buffer.GetCasacoreData().shape() != expected_input_shape_ ||
+  if (buffer->GetCasacoreData().shape() != expected_input_shape_ ||
       (use_weights_and_flags_ && (flags.shape() != expected_input_shape_ ||
                                   weights.shape() != expected_input_shape_))) {
     throw std::runtime_error("BDAAverager: Invalid buffer shape");
@@ -239,10 +237,10 @@ bool BDAAverager::process(const DPBuffer& buffer) {
     ++bb.times_added;
 
     if (1 == bb.times_added) {
-      bb.starttime = buffer.getTime() - info().timeInterval() / 2;
+      bb.starttime = buffer->getTime() - info().timeInterval() / 2;
     }
     bb.interval += info().timeInterval();
-    bb.exposure += buffer.getExposure();
+    bb.exposure += buffer->getExposure();
 
     std::complex<float>* bb_data = bb.data.data();
     float* bb_weights = bb.weights.data();
@@ -253,7 +251,7 @@ bool BDAAverager::process(const DPBuffer& buffer) {
         for (std::size_t ich = bb.input_channel_indices[och];
              ich < bb.input_channel_indices[och + 1]; ++ich) {
           for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
-            bb_data[corr] += buffer.GetCasacoreData()(corr, ich, b);
+            bb_data[corr] += buffer->GetCasacoreData()(corr, ich, b);
             bb_weights[corr] += 1.0;
           }
         }
@@ -269,7 +267,7 @@ bool BDAAverager::process(const DPBuffer& buffer) {
             if (!flags(corr, ich, b)) {
               const float weight = weights(corr, ich, b);
 
-              bb_data[corr] += buffer.GetCasacoreData()(corr, ich, b) * weight;
+              bb_data[corr] += buffer->GetCasacoreData()(corr, ich, b) * weight;
               bb_weights[corr] += weight;
             }
           }
