@@ -54,7 +54,7 @@ class BDAAverager : public Step {
     return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   void finish() override;
 
