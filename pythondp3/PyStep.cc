@@ -7,6 +7,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>  // everything needed for embedding
 
+#include "PyDpBuffer.h"
 #include "utils.h"
 
 using dp3::base::DPBuffer;
@@ -54,19 +55,12 @@ void PyStep::finish() {
   if (getNextStep()) getNextStep()->finish();
 }
 
-bool PyStep::process(const DPBuffer& bufin) {
-  // Make a deep copy of the buffer to make the data
-  // persistent across multiple process calls
-  // This is not always necessary, but for python Steps
-  // convenience is more important than performance
-  auto dpbuffer = std::shared_ptr<DPBuffer>(new DPBuffer());
-  dpbuffer->copy(bufin);
-
+bool PyStep::process(std::unique_ptr<DPBuffer> buffer) {
   PYBIND11_OVERRIDE_PURE(
       bool,    /* Return type */
       Step,    /* Parent class */
       process, /* Name of function in C++ (must match Python name) */
-      dpbuffer /* Argument(s) */
+      PyDpBuffer(std::move(buffer)) /* Argument(s) */
   );
 }
 

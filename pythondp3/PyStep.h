@@ -25,7 +25,7 @@ class PyStep final : public steps::Step {
 
   void updateInfo(const base::DPInfo&) override;
 
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   void finish() override;
 };
