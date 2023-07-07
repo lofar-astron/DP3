@@ -31,7 +31,7 @@ class SetBeam final : public Step {
 
   common::Fields getProvidedFields() const override { return {}; }
 
-  bool process(const base::DPBuffer& buffer) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   void finish() override{};
 
