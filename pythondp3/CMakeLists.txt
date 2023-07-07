@@ -16,7 +16,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/steps/__init__.py"
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/steps/queue.py"
                "${PSEUDO_INSTALL_DIRECTORY}/steps/queue.py" COPYONLY)
 
-pybind11_add_module(pydp3 MODULE pydp3.cc pydpbuffer.cc pydpinfo.cc pyfields.cc)
+pybind11_add_module(pydp3 MODULE pydp3.cc PyDpBuffer.cc PyDpInfo.cc PyFields.cc)
 pybind11_add_module(parameterset MODULE parameterset.cc)
 pybind11_add_module(fitters MODULE pyfitters.cc)
 

@@ -1,8 +1,13 @@
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-namespace dp3 {
-namespace pythondp3 {
+#ifndef DP3_PYTHONDP3_UTILS_H_
+#define DP3_PYTHONDP3_UTILS_H_
+
+#include <ostream>
+#include <string>
+
+namespace dp3::pythondp3 {
 
 // The purpose of the ostream_wrapper is to make it possible pass a
 // C++ std::ostream to python to be used there as text stream.
@@ -23,6 +28,6 @@ class ostream_wrapper {
   std::ostream& output_stream_;
 };
 
-}  // namespace pythondp3
+}  // namespace dp3::pythondp3
 
-}  // namespace dp3
+#endif  // DP3_PYTHONDP3_UTILS_H_

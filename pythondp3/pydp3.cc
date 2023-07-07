@@ -12,6 +12,7 @@
 #include <dp3/base/DP3.h>
 #include <dp3/steps/Step.h>
 
+#include "PyDpBuffer.h"
 #include "PyStep.h"
 #include "utils.h"
 
@@ -22,7 +23,7 @@ namespace py = pybind11;
 namespace dp3 {
 namespace pythondp3 {
 
-void WrapDpBuffer(py::module &m);  // Defined in pydpbuffer.cc
+void WrapDpBuffer(py::module &m);  // Defined in PyDpBuffer.cc
 void WrapDpInfo(py::module &m);    // Defined in pydpinfo.cc
 void WrapFields(py::module &m);    // Defined in pyfields.cc
 
@@ -112,8 +113,8 @@ PYBIND11_MODULE(pydp3, m) {
                              "containing metadata of the output")
       .def(
           "process",
-          [](dp3::steps::Step &step, const base::DPBuffer &buffer) {
-            return step.process(buffer);
+          [](dp3::steps::Step &step, PyDpBuffer &buffer) {
+            return step.process(buffer.take());
           },
           "process buffer")
       .def("finish", &Step::finish,

@@ -129,3 +129,20 @@ def test_uvw():
 
     with pytest.raises(RuntimeError):
         pybuffer.set_uvw(uvw_invalid_shape)
+
+
+def test_process_buffer():
+    pybuffer = dp3.DPBuffer()
+    step = dp3.make_step(
+        "null", dp3.parameterset.ParameterSet(), "", dp3.MsType.regular
+    )
+
+    # Using 'step._step' avoids StepWrapper checks.
+    step._step.process(pybuffer)
+
+    # After passing a DPBuffer to step.process, it becomes invalid.
+    with pytest.raises(RuntimeError):
+        pybuffer.get_time()
+
+    with pytest.raises(RuntimeError):
+        step._step.process(pybuffer)
