@@ -1,26 +1,24 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "SetBeam.h"
+
 #include <iostream>
+
+#include <casacore/casa/Quanta/MVAngle.h>
+
+#include <dp3/base/DPInfo.h>
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
-#include <dp3/base/DPInfo.h>
-
-#include "SetBeam.h"
-
-#include <casacore/casa/Quanta/MVAngle.h>
-
-using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
-
 using dp3::common::operator<<;
 
 namespace dp3 {
 namespace steps {
 
-SetBeam::SetBeam(const common::ParameterSet& parset, const string& prefix)
+SetBeam::SetBeam(const common::ParameterSet& parset, const std::string& prefix)
     : name_(prefix),
       direction_strings_(parset.getStringVector(prefix + "direction",
                                                 std::vector<std::string>())),
@@ -61,8 +59,8 @@ void SetBeam::show(std::ostream& os) const {
      << "  direction:         " << direction_strings_ << '\n';
 }
 
-bool SetBeam::process(const DPBuffer& buffer) {
-  getNextStep()->process(buffer);
+bool SetBeam::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
+  getNextStep()->process(std::move(buffer));
   return false;
 }
 
