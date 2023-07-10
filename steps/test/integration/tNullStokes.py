@@ -62,7 +62,7 @@ def test_stokes_Qzero(create_model_data):
             "msout=.",
             "msout.datacolumn=STOKES_QDATA",
             "steps=[nullstokes]",
-            "nullstokes.Qzero=true",
+            "nullstokes.modify_q=true",
         ]
     )
 
@@ -89,7 +89,7 @@ def test_stokes_Uzero(create_model_data):
             "msout=.",
             "msout.datacolumn=STOKES_UDATA",
             "steps=[nullstokes]",
-            "nullstokes.Uzero=true",
+            "nullstokes.modify_u=true",
         ]
     )
 

@@ -696,6 +696,7 @@ if(BUILD_TESTING)
       steps/test/unit/tMSReader.cc
       steps/test/unit/tMSUpdater.cc
       steps/test/unit/tMSWriter.cc
+      steps/test/unit/tNullStokes.cc
       steps/test/unit/tOneApplyCal.cc
       steps/test/unit/tOnePredict.cc
       steps/test/unit/tPhaseShift.cc
