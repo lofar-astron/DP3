@@ -15,6 +15,7 @@ add_python_tests(
   tPhaseshiftPredict
   tPredict
   tReadOnly
+  tNullStokes
   tSplit)
 
 if(LIBDIRAC_FOUND)
