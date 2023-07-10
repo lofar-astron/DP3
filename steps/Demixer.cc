@@ -16,6 +16,8 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/scimath/Mathematics/MatrixMathLA.h>
 
+#include <dp3/base/DP3.h>
+
 #include "../base/Apply.h"
 #include "../base/CursorUtilCasa.h"
 #include "../base/EstimateMixed.h"
@@ -68,7 +70,6 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
       itsDefaultGain(parset.getDouble(prefix + "defaultgain", 1.0)),
       itsMaxIter(parset.getInt(prefix + "maxiter", 50)),
       itsSelBL(parset, prefix, false, "cross"),
-      itsFilter(itsSelBL),
       itsAvgResultSubtr(nullptr),
       itsIgnoreTarget(parset.getBool(prefix + "ignoretarget", false)),
       itsTargetSource(parset.getString(prefix + "targetsource", std::string())),
@@ -138,8 +139,10 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
     throw std::runtime_error(
         "uselbfgssolver=true but libdirac is not available");
 #endif
-  // Add a null step as last step in the filter.
-  itsFilter.setNextStep(std::make_shared<NullStep>());
+  // Add a result step as last step in the filter.
+  itsFilter = std::make_shared<Filter>(itsSelBL);
+  itsFilterResult = std::make_shared<ResultStep>();
+  itsFilter->setNextStep(itsFilterResult);
   // Default nr of time chunks is maximum number of threads.
   if (itsNTimeChunk == 0) {
     itsNTimeChunk = getInfo().nThreads();
@@ -282,8 +285,8 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
     throw std::runtime_error("Demixing requires data with 4 polarizations");
 
   // Handle possible data selection.
-  itsFilter.setInfo(infoIn);
-  const DPInfo& infoSel = itsFilter.getInfo();
+  itsFilter->setInfo(infoIn);
+  const DPInfo& infoSel = itsFilter->getInfo();
   // NB. The number of baselines and stations refer to the number of
   // selected baselines and the number of unique stations that participate
   // in the selected baselines.
@@ -413,9 +416,9 @@ void Demixer::show(std::ostream& os) const {
   os << "  max iterations:     " << itsMaxIter << '\n';
   itsSelBL.show(os);
   if (itsSelBL.hasSelection()) {
-    os << "    demixing " << itsFilter.getInfo().nbaselines() << " out of "
+    os << "    demixing " << itsFilter->getInfo().nbaselines() << " out of "
        << getInfo().nbaselines() << " baselines   ("
-       << itsFilter.getInfo().antennaUsed().size() << " out of "
+       << itsFilter->getInfo().antennaUsed().size() << " out of "
        << getInfo().antennaUsed().size() << " stations)" << '\n';
   }
   os << "  targetsource:       " << itsTargetSource << '\n';
@@ -475,31 +478,32 @@ void Demixer::showTimings(std::ostream& os, double duration) const {
   os << " of it spent in writing gain solutions to disk" << '\n';
 }
 
-bool Demixer::process(const DPBuffer& buf) {
+bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
   // Update the count.
   itsNTimeIn++;
-  // Make sure all required data arrays are filled in.
-  ///      itsBufTmp.referenceFilled (buf);
-  itsBufTmp.copy(buf);
 
   // Do the filter step first.
-  itsFilter.process(itsBufTmp);
-  const DPBuffer& selection_buffer = itsFilter.getBuffer();
+  common::Fields subChainReqFields = base::GetChainRequiredFields(itsFilter);
+  itsFilter->process(std::make_unique<DPBuffer>(*buffer, subChainReqFields));
+  std::unique_ptr<DPBuffer> selection_buffer = itsFilterResult->take();
+
   // Do the next steps (phaseshift and average) on the filter output.
   itsTimerPhaseShift.start();
+  subChainReqFields = base::GetChainRequiredFields(itsFirstSteps[0]);
   for (int i = 0; i < int(itsFirstSteps.size()); ++i) {
-    itsFirstSteps[i]->process(selection_buffer);
+    itsFirstSteps[i]->process(
+        std::make_unique<DPBuffer>(*selection_buffer, subChainReqFields));
   }
   // Do the average and filter step for the output for all data.
-  itsAvgStepSubtr->process(itsBufTmp);
+  itsAvgStepSubtr->process(std::move(buffer));
   itsTimerPhaseShift.stop();
 
   // Per direction pair, calculate the phase rotation factors for the selected
   // data and accumulate them over time. Since the solving and subtract parts
   // apply different averaging parameters, the results are stored separately.
   itsTimerDemix.start();
-  addFactors(selection_buffer, itsFactorBuf, itsFactorBufSubtr);
+  addFactors(std::move(selection_buffer), itsFactorBuf, itsFactorBufSubtr);
   // The solving part
   if (itsNTimeIn % itsNTimeAvg == 0) {
     makeFactors(itsFactorBuf, itsFactors[itsNTimeOut],
@@ -601,14 +605,15 @@ void Demixer::handleDemix() {
   // Let the next step process the data.
   for (unsigned int i = 0; i < itsNTimeOutSubtr; ++i) {
     itsTimer.stop();
-    DPBuffer* bufptr;
+    std::unique_ptr<DPBuffer> buffer_out;
     if (itsSelBL.hasSelection()) {
-      bufptr = itsAvgResultFull->get()[i].get();
+      buffer_out = std::move(itsAvgResultFull->get()[i]);
     } else {
-      bufptr = itsAvgResultSubtr->get()[i].get();
+      buffer_out = std::move(itsAvgResultSubtr->get()[i]);
     }
-    MSReader::flagInfNaN(*bufptr, itsFlagCounter);
-    getNextStep()->process(*bufptr);
+
+    MSReader::flagInfNaN(*buffer_out, itsFlagCounter);
+    getNextStep()->process(std::move(buffer_out));
     itsTimer.start();
   }
 
@@ -632,21 +637,21 @@ void Demixer::mergeSubtractResult() {
     size_t ncc = arr.shape()[0] * arr.shape()[1];  // ncorrelations * nchannels
     const casacore::Complex* in = arr.data();
     casacore::Complex* out = itsAvgResultFull->get()[i]->GetData().data();
-    for (size_t j = 0; j < itsFilter.getIndicesBL().size(); ++j) {
-      size_t inx = itsFilter.getIndicesBL()[j];
+    for (size_t j = 0; j < itsFilter->getIndicesBL().size(); ++j) {
+      size_t inx = itsFilter->getIndicesBL()[j];
       memcpy(out + inx * ncc, in + j * ncc, ncc * sizeof(casacore::Complex));
     }
   }
 }
 
-void Demixer::addFactors(const DPBuffer& newBuf,
+void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf,
                          Array<casacore::DComplex>& factorBuf1,
                          Array<casacore::DComplex>& factorBuf2) {
   if (itsNDir <= 1) return;  // Nothing to do if only target direction.
 
-  int ncorr = newBuf.GetCasacoreData().shape()[0];
-  int nchan = newBuf.GetCasacoreData().shape()[1];
-  int nbl = newBuf.GetCasacoreData().shape()[2];
+  int ncorr = newBuf->GetCasacoreData().shape()[0];
+  int nchan = newBuf->GetCasacoreData().shape()[1];
+  int nbl = newBuf->GetCasacoreData().shape()[2];
   int ncc = ncorr * nchan;
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
@@ -663,8 +668,8 @@ void Demixer::addFactors(const DPBuffer& newBuf,
         // The last direction is the target direction, so no need to
         // combine the factors. Take conj to get shift source to target.
         loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
-          const bool* flagPtr = newBuf.GetFlags().data() + bl * ncc;
-          const float* weightPtr = newBuf.GetWeights().data() + bl * ncc;
+          const bool* flagPtr = newBuf->GetFlags().data() + bl * ncc;
+          const float* weightPtr = newBuf->GetWeights().data() + bl * ncc;
           casacore::DComplex* factorPtr1 =
               factorBuf1.data() + (dirnr * nbl + bl) * ncc;
           casacore::DComplex* factorPtr2 =
@@ -688,8 +693,8 @@ void Demixer::addFactors(const DPBuffer& newBuf,
       } else {
         // Different source directions; take both phase terms into account.
         loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
-          const bool* flagPtr = newBuf.GetFlags().data() + bl * ncc;
-          const float* weightPtr = newBuf.GetWeights().data() + bl * ncc;
+          const bool* flagPtr = newBuf->GetFlags().data() + bl * ncc;
+          const float* weightPtr = newBuf->GetWeights().data() + bl * ncc;
           casacore::DComplex* factorPtr1 =
               factorBuf1.data() + (dirnr * nbl + bl) * ncc;
           casacore::DComplex* factorPtr2 =
@@ -1134,7 +1139,7 @@ void Demixer::dumpSolutions() {
   // stations that participate in one or more baselines. Due to the baseline
   // selection or missing baselines, solutions may be available for less
   // than the total number of station available in the observation.
-  const DPInfo& info = itsFilter.getInfo();
+  const DPInfo& info = itsFilter->getInfo();
   const std::vector<int>& antennaUsed = info.antennaUsed();
   const std::vector<std::string>& antennaNames = info.antennaNames();
 

@@ -76,7 +76,7 @@ class Fields {
 
   /**
    * Updates the current object's Fields based on a step's required and provided
-   * Fields The current object's single field is set to false if the step
+   * Fields. The current object's single field is set to false if the step
    * creates it (provides the field, but does not require it).
    * @param required Step's required Fields.
    * @param provided Step's provided Fields.

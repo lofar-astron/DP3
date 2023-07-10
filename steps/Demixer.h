@@ -8,6 +8,7 @@
 #include <casacore/measures/Measures/MeasFrame.h>
 
 #include "Filter.h"
+#include "ResultStep.h"
 #include "MultiResultStep.h"
 #include "PhaseShift.h"
 
@@ -40,7 +41,7 @@ class Demixer : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer>) override;
 
   common::Fields getRequiredFields() const override;
 
@@ -63,7 +64,7 @@ class Demixer : public Step {
 
  private:
   /// Add the decorrelation factor contribution for each time slot.
-  void addFactors(const base::DPBuffer& newBuf,
+  void addFactors(std::unique_ptr<base::DPBuffer> newBuf,
                   casacore::Array<casacore::DComplex>& factorBuf1,
                   casacore::Array<casacore::DComplex>& factorBuf2);
 
@@ -98,7 +99,8 @@ class Demixer : public Step {
   double itsDefaultGain;
   size_t itsMaxIter;
   base::BaselineSelection itsSelBL;
-  Filter itsFilter;
+  std::shared_ptr<Filter> itsFilter;
+  std::shared_ptr<ResultStep> itsFilterResult;
   std::vector<std::shared_ptr<PhaseShift>> itsPhaseShifts;
   bool itsMovingPhaseRef;
   casacore::MeasFrame itsMeasFrame;
