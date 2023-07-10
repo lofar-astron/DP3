@@ -36,47 +36,32 @@ void NullStokes::showTimings(std::ostream& os, double duration) const {
   os << " NullStokes " << name_ << '\n';
 }
 
-bool NullStokes::process(const base::DPBuffer& buffer) {
+bool NullStokes::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
-  const casacore::IPosition& shape = buffer.GetCasacoreData().shape();
-  const size_t n_channels = shape[1];
-  const size_t n_baselines = shape[2];
-  casacore::Array<casacore::Complex> data(shape);
-  std::complex<float>* output_visibilities = data.data();
-  const std::complex<float>* input_visibilities = buffer.GetData().data();
+  std::complex<float>* visibilities = buffer->GetData().data();
   // The Stokes parameters are defined in terms of correlation of the electric
   // field. The visibilities corresponding to these correlations are denoted by
   // xx, xy, yx, yy. For example, Q = xx - yy, U = xy + yx. Here, the
   // visibilities are modified such that Q and/or U is zero, but I and V
   // unchanged. See e.g. eq. (4.28) and §4.5–4.7.2 of
   // https://link.springer.com/book/10.1007/978-3-319-44431-4
-  for (size_t i = 0; i < n_baselines; ++i) {
-    for (size_t j = 0; j < n_channels; ++j) {
-      std::complex<float> xx = input_visibilities[0];
-      std::complex<float> xy = input_visibilities[1];
-      std::complex<float> yx = input_visibilities[2];
-      std::complex<float> yy = input_visibilities[3];
-      // Zero out appropriate Stokes parameter(s)
-      if (modify_q_) {
-        xx = (xx + yy) / 2.0f;
-        yy = xx;
-      }
-      if (modify_u_) {
-        xy = (xy - yx) / 2.0f;
-        yx = -xy;
-      }
-      output_visibilities[0] = xx;
-      output_visibilities[1] = xy;
-      output_visibilities[2] = yx;
-      output_visibilities[3] = yy;
-      input_visibilities += 4;
-      output_visibilities += 4;
+  for (std::size_t i = 0; i < buffer->GetData().size(); i += 4) {
+    std::complex<float>& xx = visibilities[i];
+    std::complex<float>& xy = visibilities[i + 1];
+    std::complex<float>& yx = visibilities[i + 2];
+    std::complex<float>& yy = visibilities[i + 3];
+    // Zero out appropriate Stokes parameter(s)
+    if (modify_q_) {
+      xx = (xx + yy) / 2.0f;
+      yy = xx;
+    }
+    if (modify_u_) {
+      xy = (xy - yx) / 2.0f;
+      yx = -xy;
     }
   }
-  DPBuffer processedData(buffer);
-  processedData.setData(data);
   timer_.stop();
-  getNextStep()->process(processedData);
+  getNextStep()->process(std::move(buffer));
   return true;
 }
 
