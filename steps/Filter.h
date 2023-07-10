@@ -109,6 +109,7 @@ class Filter final : public Step {
 
   /// Process the next data chunk.
   /// When processed, it invokes the process function of the next step.
+  using Step::process;  // adds the hidden unique-ptr overload (TODO AST-1329)
   bool process(const base::DPBuffer&) override;
 
   /// Finish the processing of this step and subsequent steps.
