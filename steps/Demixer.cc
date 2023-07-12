@@ -729,14 +729,15 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
 
 void Demixer::makeFactors(
     const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
-    Array<casacore::DComplex>& bufOut, const Cube<float>& weightSums,
-    unsigned int nChanOut, unsigned int nChanAvg) {
+    aocommon::xt::UTensor<std::complex<double>, 5>& bufOut,
+    const Cube<float>& weightSums, unsigned int nChanOut,
+    unsigned int nChanAvg) {
   if (itsNDir <= 1) return;  // Nothing to do if only target direction.
   assert(!weightSums.empty());
 
   const size_t kMaxNrCorrelations = 4;
-  bufOut.resize(IPosition(5, itsNDir, itsNDir, itsNCorr, nChanOut, itsNBl));
-  bufOut = casacore::DComplex(1, 0);
+  bufOut.resize({itsNBl, nChanOut, itsNCorr, itsNDir, itsNDir});
+  bufOut.fill(std::complex<double>(1.0, 0.0));
   int ncc = itsNCorr * nChanOut;
   int nccdd = ncc * itsNDir * itsNDir;
   int nccin = itsNCorr * itsNChanIn;
@@ -752,14 +753,14 @@ void Demixer::makeFactors(
       loop.Run(0, itsNBl, [&](size_t bl, size_t /*thread*/) {
         const std::complex<double>* factor_in =
             bufIn.data() + (dirnr * itsNBl + bl) * nccin;
-        casacore::DComplex* factor_out1 =
+        std::complex<double>* factor_out1 =
             bufOut.data() + bl * nccdd + (dir0 * itsNDir + dir1);
-        casacore::DComplex* factor_out2 =
+        std::complex<double>* factor_out2 =
             bufOut.data() + bl * nccdd + (dir1 * itsNDir + dir0);
         const float* weightPtr = weightSums.data() + bl * ncc;
         for (unsigned int c0 = 0; c0 < nChanOut; ++c0) {
           // Sum the factors for the input channels to average.
-          std::array<casacore::DComplex, kMaxNrCorrelations> sum = {0.0};
+          std::array<std::complex<double>, kMaxNrCorrelations> sum = {0.0};
           // In theory, the last output channel could consist of fewer
           // input channels, so take care of that.
           unsigned int nch = std::min(nChanAvg, itsNChanIn - c0 * nChanAvg);
@@ -783,7 +784,7 @@ void Demixer::makeFactors(
   /// cout<<"makefactors "<<weightSums<<bufOut;
 }
 
-void Demixer::deproject(Array<casacore::DComplex>& factors,
+void Demixer::deproject(aocommon::xt::UTensor<std::complex<double>, 5>& factors,
                         unsigned int resultIndex) {
   // Sources without a model have to be deprojected.
   // Optionally no deprojection of target direction.
@@ -794,7 +795,7 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
   // Nothing to do if only target direction or nothing to deproject.
   if (itsNDir <= 1 || nrDeproject == 0) return;
   // Get pointers to the data for the various directions.
-  std::vector<casacore::Complex*> resultPtr(itsNDir);
+  std::vector<std::complex<float>*> resultPtr(itsNDir);
   for (unsigned int j = 0; j < itsNDir; ++j) {
     resultPtr[j] = itsAvgResults[j]->get()[resultIndex]->GetData().data();
   }
@@ -815,21 +816,23 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
   // from M and M' is the Nx(N-S) matrix without all these columns.
 
   // Calculate P for all baselines,channels,correlations.
-  IPosition shape = factors.shape();
-  int nvis = shape[2] * shape[3] * shape[4];
-  shape[1] = itsNModel;
-  Array<casacore::DComplex> newFactors(shape);
+  std::array<size_t, 5> shape = factors.shape();
+  int nvis = shape[0] * shape[1] * shape[2];  // bl * chan * corr
+  shape[3] = itsNModel;
+  aocommon::xt::UTensor<std::complex<double>, 5> newFactors(shape);
   IPosition inShape(2, itsNDir, itsNDir);
   IPosition outShape(2, itsNDir, itsNModel);
   {
     Matrix<casacore::DComplex> a(itsNDir, nrDeproject);
     Matrix<casacore::DComplex> ma(itsNDir, itsNModel);
-    std::vector<casacore::DComplex> vec(itsNDir);
+    std::vector<std::complex<double>> vec(itsNDir);
     for (int i = 0; i < nvis; ++i) {
       // Split the matrix into the modeled and deprojected sources.
       // Copy the columns to the individual matrices.
-      const casacore::DComplex* inptr = factors.data() + i * itsNDir * itsNDir;
-      casacore::DComplex* outptr = newFactors.data() + i * itsNDir * itsNModel;
+      const std::complex<double>* inptr =
+          factors.data() + i * itsNDir * itsNDir;
+      std::complex<double>* outptr =
+          newFactors.data() + i * itsNDir * itsNModel;
       Matrix<casacore::DComplex> out(outShape, outptr, casacore::SHARE);
       // Copying a bit of data is probably faster than taking a matrix subset.
       casacore::objcopy(ma.data(), inptr, itsNDir * itsNModel);
@@ -863,7 +866,7 @@ void Demixer::deproject(Array<casacore::DComplex>& factors,
     }
   }
   // Set the new demixing factors.
-  factors.reference(newFactors);
+  factors = std::move(newFactors);
 }
 
 namespace {
@@ -963,8 +966,13 @@ void Demixer::demix() {
         itsAvgResults[0]->get()[ts]->GetCasacoreFlags());
     base::const_cursor<float> cr_weight = base::casa_const_cursor(
         itsAvgResults[0]->get()[ts]->GetCasacoreWeights());
-    base::const_cursor<dcomplex> cr_mix =
-        base::casa_const_cursor(itsFactors[ts]);
+
+    const IPosition shape(5, itsFactors[ts].shape(4), itsFactors[ts].shape(3),
+                          itsFactors[ts].shape(2), itsFactors[ts].shape(1),
+                          itsFactors[ts].shape(0));
+    const casacore::Array<casacore::DComplex> demix_factor(
+        shape, itsFactors[ts].data(), casacore::SHARE);
+    base::const_cursor<dcomplex> cr_mix = base::casa_const_cursor(demix_factor);
     /// cout << "demixfactor "<<ts<<" = "<<itsFactors[ts]<<'\n';
 
     std::vector<base::const_cursor<fcomplex>> cr_data(nDr);
@@ -1076,19 +1084,22 @@ void Demixer::demix() {
         // convention, i.e. index itsNDir - 1. The directions to subtract
         // have the lowest indices by convention, i.e. indices
         // [0, nDrSubtr).
-        const IPosition& stride_mix_subtr = itsFactorsSubtr[ts_subtr].steps();
+        std::array<size_t, 5> shape = itsFactorsSubtr[ts_subtr].shape();
         size_t stride_mix_subtr_slice[3] = {
-            static_cast<size_t>(stride_mix_subtr[2]),
-            static_cast<size_t>(stride_mix_subtr[3]),
-            static_cast<size_t>(stride_mix_subtr[4])};
-        assert(stride_mix_subtr_slice[0] == itsNDir * itsNDir &&
-               stride_mix_subtr_slice[1] == itsNDir * itsNDir * nCr &&
-               stride_mix_subtr_slice[2] == itsNDir * itsNDir * nCr * nChSubtr);
+            static_cast<size_t>(itsNDir * itsNDir),
+            static_cast<size_t>(itsNDir * itsNDir * nCr),
+            static_cast<size_t>(itsNDir * itsNDir * nCr * nChSubtr)};
+        assert(shape[4] == itsNDir && shape[3] == itsNDir && shape[2] == nCr &&
+               shape[1] == nChSubtr);
+
+        const casacore::Array<casacore::DComplex> demix_factors_subtr(
+            IPosition(5, shape[4], shape[3], shape[2], shape[1], shape[0]),
+            itsFactorsSubtr[ts_subtr].data(), casacore::SHARE);
 
         IPosition offset(5, itsNDir - 1, dr, 0, 0, 0);
         base::const_cursor<dcomplex> cr_mix_subtr =
-            base::const_cursor<dcomplex>(&(itsFactorsSubtr[ts_subtr](offset)),
-                                         3, stride_mix_subtr_slice);
+            base::const_cursor<dcomplex>(&(demix_factors_subtr(offset)), 3,
+                                         stride_mix_subtr_slice);
 
         // Subtract the source.
         subtract(nBl, nChSubtr, cr_baseline, cr_residual, cr_model_subtr,
