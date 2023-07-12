@@ -15,6 +15,8 @@
 #include <casacore/tables/TaQL/RecordGram.h>
 #include <casacore/casa/Containers/Record.h>
 
+#include <xtensor/xview.hpp>
+
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 
@@ -25,7 +27,6 @@
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
-using casacore::IPosition;
 using casacore::Matrix;
 using casacore::Record;
 using casacore::RecordGram;
@@ -154,56 +155,59 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
   filter_buffer->ResizeWeights(filter_shape);
   filter_buffer->ResizeUvw(getInfo().nbaselines());
 
-  // Get the various data arrays.
-  const casacore::Array<casacore::Complex>& data = buffer->GetCasacoreData();
-  const casacore::Array<bool>& flags = buffer->GetCasacoreFlags();
-  const casacore::Array<float>& weights = buffer->GetCasacoreWeights();
-  const casacore::Array<double>& uvws = buffer->GetCasacoreUvw();
-  // Form the blc and trc for the channel selection.
-  IPosition first(3, 0);
-  IPosition last(data.shape() - 1);
-  first[1] = itsStartChan;
-  last[1] = itsStartChan + getInfo().nchan() - 1;
-  // Copy the data into the output buffer.
+  // Select the filtered data and copy it into the new filter_buffer
+  const DPBuffer::DataType& data = buffer->GetData();
+  const DPBuffer::FlagsType& flags = buffer->GetFlags();
+  const DPBuffer::WeightsType& weights = buffer->GetWeights();
+  const DPBuffer::UvwType& uvws = buffer->GetUvw();
   if (itsSelBL.empty()) {
-    // No baseline selection; copy all data for given channels to
+    // filtering on channel not baseline; copy all data for given channels to
     // make them contiguous.
-    // UVW can be referenced, because not dependent on channel.
-    filter_buffer->GetCasacoreData().assign(data(first, last));
-    filter_buffer->GetCasacoreFlags().assign(flags(first, last));
-    filter_buffer->GetCasacoreWeights().assign(weights(first, last));
-    filter_buffer->MakeIndependent(kDataField | kFlagsField | kWeightsField);
-    filter_buffer->setUVW(buffer->GetCasacoreUvw());
+    // UVW is a straight copy with no filtering because it is not dependent on
+    // channel.
+    filter_buffer->GetData() = xt::view(
+        data, xt::all(),
+        xt::range(itsStartChan, itsStartChan + getInfo().nchan()), xt::all());
+    filter_buffer->GetFlags() = xt::view(
+        flags, xt::all(),
+        xt::range(itsStartChan, itsStartChan + getInfo().nchan()), xt::all());
+    filter_buffer->GetWeights() = xt::view(
+        weights, xt::all(),
+        xt::range(itsStartChan, itsStartChan + getInfo().nchan()), xt::all());
+    filter_buffer->GetUvw() = xt::view(uvws, xt::all(), xt::all());
     filter_buffer->setRowNrs(buffer->getRowNrs());
   } else {
+    // Filtering on baseline and/or channel; copy all data for selected
+    // baselines and channels to make them contiguous. UVW needs to be filtered
+    // as well as it is dependent on baselines.
     casacore::Vector<common::rownr_t> rowNrs;
     if (!buffer->getRowNrs().empty()) {
       rowNrs.resize(getInfo().nbaselines());
     }
     // Copy the data of the selected baselines and channels.
-    casacore::Complex* toData = filter_buffer->GetData().data();
+    std::complex<float>* toData = filter_buffer->GetData().data();
     bool* toFlag = filter_buffer->GetFlags().data();
     float* toWeight = filter_buffer->GetWeights().data();
     double* toUVW = filter_buffer->GetUvw().data();
-    size_t off = data.shape()[0] * first[1];  // offset of first channel
-    const casacore::Complex* frData = data.data() + off;
+    std::size_t off = data.shape(2) * itsStartChan;  // offset of first channel
+    const std::complex<float>* frData = data.data() + off;
     const bool* frFlag = flags.data() + off;
     const float* frWeight = weights.data() + off;
     const double* frUVW = uvws.data();
-    int ndfr = data.shape()[0] * data.shape()[1];
-    int ndto = filter_buffer->GetCasacoreData().shape()[0] *
-               filter_buffer->GetCasacoreData().shape()[1];
-    for (size_t i = 0; i < itsSelBL.size(); ++i) {
+    int ndfr = data.shape(2) * data.shape(1);
+    int ndto =
+        filter_buffer->GetData().shape(2) * filter_buffer->GetData().shape(1);
+    for (std::size_t i = 0; i < itsSelBL.size(); ++i) {
       if (!buffer->getRowNrs().empty()) {
         rowNrs[i] = buffer->getRowNrs()[itsSelBL[i]];
       }
-      casacore::objcopy(toData, frData + itsSelBL[i] * ndfr, ndto);
+      std::copy_n(frData + itsSelBL[i] * ndfr, ndto, toData);
       toData += ndto;
-      casacore::objcopy(toFlag, frFlag + itsSelBL[i] * ndfr, ndto);
+      std::copy_n(frFlag + itsSelBL[i] * ndfr, ndto, toFlag);
       toFlag += ndto;
-      casacore::objcopy(toWeight, frWeight + itsSelBL[i] * ndfr, ndto);
+      std::copy_n(frWeight + itsSelBL[i] * ndfr, ndto, toWeight);
       toWeight += ndto;
-      casacore::objcopy(toUVW, frUVW + itsSelBL[i] * 3, 3);
+      std::copy_n(frUVW + itsSelBL[i] * 3, 3, toUVW);
       toUVW += 3;
     }
     filter_buffer->setRowNrs(rowNrs);
