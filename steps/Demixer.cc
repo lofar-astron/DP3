@@ -9,6 +9,7 @@
 #include <iomanip>
 
 #include <aocommon/parallelfor.h>
+#include <aocommon/xt/utensor.h>
 
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/Quanta/MVAngle.h>
@@ -312,9 +313,11 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
 
   // Allocate buffers used to compute the smearing factors.
   itsFactorBuf.resize(
-      IPosition(4, itsNCorr, itsNChanIn, itsNBl, itsNDir * (itsNDir - 1) / 2));
+      {(itsNDir * (itsNDir - 1) / 2), itsNBl, itsNChanIn, itsNCorr});
   itsFactorBufSubtr.resize(
-      IPosition(4, itsNCorr, itsNChanIn, itsNBl, itsNDir * (itsNDir - 1) / 2));
+      {(itsNDir * (itsNDir - 1) / 2), itsNBl, itsNChanIn, itsNCorr});
+  itsFactorBuf.fill(std::complex<double>(0.0, 0.0));
+  itsFactorBufSubtr.fill(std::complex<double>(0.0, 0.0));
 
   // Adapt averaging to available nr of channels and times.
   // Use a copy of the DPInfo, otherwise it is updated multiple times.
@@ -501,9 +504,10 @@ bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
 
   // Per direction pair, calculate the phase rotation factors for the selected
   // data and accumulate them over time. Since the solving and subtract parts
-  // apply different averaging parameters, the results are stored separately.
+  // apply different averaging parameters, the results are stored separately
+  // in itsFactorBuf and itsFactorBufSubtr, respectively.
   itsTimerDemix.start();
-  addFactors(std::move(selection_buffer), itsFactorBuf, itsFactorBufSubtr);
+  addFactors(std::move(selection_buffer));
   // The solving part
   if (itsNTimeIn % itsNTimeAvg == 0) {
     makeFactors(itsFactorBuf, itsFactors[itsNTimeOut],
@@ -511,7 +515,7 @@ bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
                 itsNChanOut, itsNChanAvg);
     // Deproject sources without a model.
     deproject(itsFactors[itsNTimeOut], itsNTimeOut);
-    itsFactorBuf = casacore::Complex();  // Clear summation buffer
+    itsFactorBuf.fill(std::complex<double>(0.0, 0.0));  // Clear buffer
     itsNTimeOut++;
   }
   // The subtract part
@@ -520,7 +524,7 @@ bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
         itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
         itsAvgResultSubtr->get()[itsNTimeOutSubtr]->GetCasacoreWeights(),
         itsNChanOutSubtr, itsNChanAvgSubtr);
-    itsFactorBufSubtr = casacore::Complex();  // Clear summation buffer
+    itsFactorBufSubtr.fill(std::complex<double>(0.0, 0.0));  // Clear buffer
     itsNTimeOutSubtr++;
   }
   itsTimerDemix.stop();
@@ -644,14 +648,12 @@ void Demixer::mergeSubtractResult() {
   }
 }
 
-void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf,
-                         Array<casacore::DComplex>& factorBuf1,
-                         Array<casacore::DComplex>& factorBuf2) {
+void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
   if (itsNDir <= 1) return;  // Nothing to do if only target direction.
 
-  int ncorr = newBuf->GetCasacoreData().shape()[0];
-  int nchan = newBuf->GetCasacoreData().shape()[1];
-  int nbl = newBuf->GetCasacoreData().shape()[2];
+  int nbl = newBuf->GetData().shape(0);
+  int nchan = newBuf->GetData().shape(1);
+  int ncorr = newBuf->GetData().shape(2);
   int ncc = ncorr * nchan;
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
@@ -670,14 +672,14 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf,
         loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
           const bool* flagPtr = newBuf->GetFlags().data() + bl * ncc;
           const float* weightPtr = newBuf->GetWeights().data() + bl * ncc;
-          casacore::DComplex* factorPtr1 =
-              factorBuf1.data() + (dirnr * nbl + bl) * ncc;
-          casacore::DComplex* factorPtr2 =
-              factorBuf2.data() + (dirnr * nbl + bl) * ncc;
-          const casacore::DComplex* phasor0 =
+          std::complex<double>* factorPtr1 =
+              itsFactorBuf.data() + (dirnr * nbl + bl) * ncc;
+          std::complex<double>* factorPtr2 =
+              itsFactorBufSubtr.data() + (dirnr * nbl + bl) * ncc;
+          const std::complex<double>* phasor0 =
               itsPhaseShifts[dir0]->getPhasors().data() + bl * nchan;
           for (int chan = 0; chan < nchan; ++chan) {
-            casacore::DComplex factor = std::conj(*phasor0++);
+            std::complex<double> factor = std::conj(*phasor0++);
             for (int corr = 0; corr < ncorr; ++corr) {
               if (!*flagPtr) {
                 *factorPtr1 += factor * double(*weightPtr);
@@ -695,16 +697,16 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf,
         loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
           const bool* flagPtr = newBuf->GetFlags().data() + bl * ncc;
           const float* weightPtr = newBuf->GetWeights().data() + bl * ncc;
-          casacore::DComplex* factorPtr1 =
-              factorBuf1.data() + (dirnr * nbl + bl) * ncc;
-          casacore::DComplex* factorPtr2 =
-              factorBuf2.data() + (dirnr * nbl + bl) * ncc;
-          const casacore::DComplex* phasor0 =
+          std::complex<double>* factorPtr1 =
+              itsFactorBuf.data() + (dirnr * nbl + bl) * ncc;
+          std::complex<double>* factorPtr2 =
+              itsFactorBufSubtr.data() + (dirnr * nbl + bl) * ncc;
+          const std::complex<double>* phasor0 =
               itsPhaseShifts[dir0]->getPhasors().data() + bl * nchan;
-          const casacore::DComplex* phasor1 =
+          const std::complex<double>* phasor1 =
               itsPhaseShifts[dir1]->getPhasors().data() + bl * nchan;
           for (int chan = 0; chan < nchan; ++chan) {
-            casacore::DComplex factor = *phasor1++ * conj(*phasor0++);
+            std::complex<double> factor = *phasor1++ * conj(*phasor0++);
             for (int corr = 0; corr < ncorr; ++corr) {
               if (!*flagPtr) {
                 *factorPtr1 += factor * double(*weightPtr);
@@ -725,10 +727,10 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf,
   }
 }
 
-void Demixer::makeFactors(const Array<casacore::DComplex>& bufIn,
-                          Array<casacore::DComplex>& bufOut,
-                          const Cube<float>& weightSums, unsigned int nChanOut,
-                          unsigned int nChanAvg) {
+void Demixer::makeFactors(
+    const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
+    Array<casacore::DComplex>& bufOut, const Cube<float>& weightSums,
+    unsigned int nChanOut, unsigned int nChanAvg) {
   if (itsNDir <= 1) return;  // Nothing to do if only target direction.
   assert(!weightSums.empty());
 
@@ -748,7 +750,7 @@ void Demixer::makeFactors(const Array<casacore::DComplex>& bufIn,
       // Note there is a summed weight per baseline,outchan,corr.
       aocommon::ParallelFor<size_t> loop(getInfo().nThreads());
       loop.Run(0, itsNBl, [&](size_t bl, size_t /*thread*/) {
-        const casacore::DComplex* factor_in =
+        const std::complex<double>* factor_in =
             bufIn.data() + (dirnr * itsNBl + bl) * nccin;
         casacore::DComplex* factor_out1 =
             bufOut.data() + bl * nccdd + (dir0 * itsNDir + dir1);
