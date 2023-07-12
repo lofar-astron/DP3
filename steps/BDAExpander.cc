@@ -125,11 +125,11 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
       if (it == RB_elements.end()) {
         // create new element if a RegularBufferElement for the
         // current_time_centroid does not exist yet
-        RegularBufferElement RB = RegularBufferElement(
-            info().nbaselines(), info().ncorr(), info().nchan(),
-            current_timeslot_centroid, current_exposure);
         RB_elements.insert(std::pair<unsigned int, RegularBufferElement>(
-            current_timeslot_index, RB));
+            current_timeslot_index,
+            RegularBufferElement(info().nbaselines(), info().ncorr(),
+                                 info().nchan(), current_timeslot_centroid,
+                                 current_exposure)));
       }
     }
 
@@ -158,11 +158,11 @@ bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
         if (it == RB_elements.end()) {
           // create new element if a RegularBufferElement for the
           // current_time_centroid does not exist yet
-          RegularBufferElement RB = RegularBufferElement(
-              info().nbaselines(), info().ncorr(), info().nchan(),
-              timeslot_center, info().timeInterval());
           RB_elements.insert(std::pair<unsigned int, RegularBufferElement>(
-              timeslot_index, RB));
+              timeslot_index,
+              RegularBufferElement(info().nbaselines(), info().ncorr(),
+                                   info().nchan(), timeslot_center,
+                                   info().timeInterval())));
         }
         RB_elements.at(timeslot_index).baseline_[rows[row_nr].baseline_nr] =
             true;
@@ -203,13 +203,14 @@ void BDAExpander::finish() {
   getNextStep()->finish();
 }
 
-void BDAExpander::CopyData(const BDABuffer::Row &bda_row, DPBuffer &buf_out,
+void BDAExpander::CopyData(const BDABuffer::Row &bda_row,
+                           std::unique_ptr<DPBuffer> &buf_out,
                            unsigned int current_bl,
                            float time_averaging_factor) {
-  casacore::Cube<casacore::Complex> &data = buf_out.GetCasacoreData();
-  casacore::Cube<float> &weights = buf_out.GetCasacoreWeights();
-  casacore::Cube<bool> &flags = buf_out.GetCasacoreFlags();
-  casacore::Matrix<double> &uvw = buf_out.GetCasacoreUvw();
+  casacore::Cube<casacore::Complex> &data = buf_out->GetCasacoreData();
+  casacore::Cube<float> &weights = buf_out->GetCasacoreWeights();
+  casacore::Cube<bool> &flags = buf_out->GetCasacoreFlags();
+  casacore::Matrix<double> &uvw = buf_out->GetCasacoreUvw();
 
   for (unsigned int chan = 0; chan < info().nchan(); ++chan) {
     // Set the pointers to the right value: when channel averaging happens, the
@@ -264,12 +265,12 @@ BDAExpander::RegularBufferElement::RegularBufferElement(
   casacore::Cube<bool> flags(data.shape(), false);
   casacore::Cube<float> weights(data.shape(), 0.0);
   casacore::Matrix<double> uvw(3, n_baseline, 0.0);
-  regular_buffer.setData(data);
-  regular_buffer.setWeights(weights);
-  regular_buffer.setFlags(flags);
-  regular_buffer.setUVW(uvw);
-  regular_buffer.setTime(current_time);
-  regular_buffer.setExposure(current_exposure);
+
+  regular_buffer = std::make_unique<DPBuffer>(current_time, current_exposure);
+  regular_buffer->setData(data);
+  regular_buffer->setWeights(weights);
+  regular_buffer->setFlags(flags);
+  regular_buffer->setUVW(uvw);
 }
 }  // namespace steps
 }  // namespace dp3
