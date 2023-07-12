@@ -11,8 +11,6 @@
 #include <dp3/steps/Step.h>
 #include "../common/Timer.h"
 
-#include <casacore/casa/Arrays/IPosition.h>
-
 #include <vector>
 #include <queue>
 
@@ -122,7 +120,7 @@ class BDAAverager : public Step {
   std::unique_ptr<base::BDABuffer> bda_buffer_;
   std::vector<BaselineBuffer> baseline_buffers_;
 
-  casacore::IPosition expected_input_shape_;
+  std::array<std::size_t, 3> expected_input_shape_;
 
   /// Time averaging factors per baseline (temporarily used to store the
   /// arguments of set_averaging_params())

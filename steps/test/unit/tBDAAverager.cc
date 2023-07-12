@@ -116,11 +116,23 @@ std::unique_ptr<DPBuffer> CreateBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight = 1.0) {
-  casacore::Cube<casacore::Complex> data(kNCorr, channel_counts.size(),
-                                         n_baselines);
-  casacore::Cube<bool> flags(data.shape(), false);
-  casacore::Cube<float> weights(data.shape(), weight);
-  casacore::Matrix<double> uvw(3, n_baselines);
+  const std::array<std::size_t, 3> kShape{n_baselines, channel_counts.size(),
+                                          kNCorr};
+  auto buffer = std::make_unique<DPBuffer>();
+  buffer->setTime(time);
+  buffer->setExposure(interval);
+  buffer->ResizeData(kShape);
+  buffer->ResizeWeights(kShape);
+  buffer->ResizeFlags(kShape);
+  buffer->ResizeUvw(n_baselines);
+
+  DPBuffer::DataType& data = buffer->GetData();
+  DPBuffer::WeightsType& weights = buffer->GetWeights();
+  DPBuffer::UvwType& uvw = buffer->GetUvw();
+
+  buffer->GetWeights().fill(weight);
+  buffer->GetFlags().fill(false);
+
   for (std::size_t bl = 0; bl < n_baselines; ++bl) {
     // Base value for this baseline.
     const float bl_value = (bl * 100.0) + (base_value / weight);
@@ -133,24 +145,16 @@ std::unique_ptr<DPBuffer> CreateBuffer(
       // When ch_count > 1, 'value' should be the average for multiple channels.
       const float value = chan_value + 5.0 * (ch_count - 1);
       for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        data(corr, chan, bl) = value + corr;
-        weights(corr, chan, bl) *= ch_count;
+        data(bl, chan, corr) = value + corr;
+        weights(bl, chan, corr) *= ch_count;
       }
       ++chan;
       chan_value += ch_count * 10.0;
     }
-    uvw(0, bl) = bl_value + 0.0;
-    uvw(1, bl) = bl_value + 1.0;
-    uvw(2, bl) = bl_value + 2.0;
+    uvw(bl, 0) = bl_value + 0.0;
+    uvw(bl, 1) = bl_value + 1.0;
+    uvw(bl, 2) = bl_value + 2.0;
   }
-
-  auto buffer = std::make_unique<DPBuffer>();
-  buffer->setTime(time);
-  buffer->setExposure(interval);
-  buffer->setData(data);
-  buffer->setWeights(weights);
-  buffer->setFlags(flags);
-  buffer->setUVW(uvw);
 
   return buffer;
 }
@@ -159,31 +163,37 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight) {
-  casacore::Cube<casacore::Complex> data(kNCorr, channel_counts.size(),
-                                         n_baselines);
-  casacore::Cube<bool> flags(data.shape(), false);
-  casacore::Cube<float> weights(data.shape(), weight);
-  casacore::Matrix<double> uvw(3, n_baselines);
+  auto buffer = std::make_unique<DPBuffer>();
+  const std::array<std::size_t, 3> kShape{n_baselines, channel_counts.size(),
+                                          kNCorr};
+
+  buffer->setTime(time);
+  buffer->setExposure(interval);
+  buffer->setTime(time);
+  buffer->setExposure(interval);
+  buffer->ResizeData(kShape);
+  buffer->ResizeWeights(kShape);
+  buffer->ResizeFlags(kShape);
+  buffer->ResizeUvw(n_baselines);
+
+  buffer->GetWeights().fill(weight);
+  buffer->GetFlags().fill(false);
+
+  DPBuffer::DataType& data = buffer->GetData();
+  DPBuffer::WeightsType& weights = buffer->GetWeights();
+  DPBuffer::UvwType& uvw = buffer->GetUvw();
 
   for (std::size_t bl = 0; bl < n_baselines; ++bl) {
     for (std::size_t chan = 0; chan < channel_counts[bl]; ++chan) {
       for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        data(corr, chan, bl) = base_value;
-        weights(corr, chan, bl) = weight;
+        data(bl, chan, corr) = base_value;
+        weights(bl, chan, corr) = weight;
       }
     }
-    uvw(0, bl) = 0.0;
-    uvw(1, bl) = 1.0;
-    uvw(2, bl) = 2.0;
+    uvw(bl, 0) = 0.0;
+    uvw(bl, 1) = 1.0;
+    uvw(bl, 2) = 2.0;
   }
-
-  auto buffer = std::make_unique<DPBuffer>();
-  buffer->setTime(time);
-  buffer->setExposure(interval);
-  buffer->setData(data);
-  buffer->setWeights(weights);
-  buffer->setFlags(flags);
-  buffer->setUVW(uvw);
 
   return buffer;
 }
@@ -203,17 +213,17 @@ void CheckData(const std::complex<float>& expected,
  */
 void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
               std::size_t baseline_nr) {
-  const std::size_t n_corr = expected.GetCasacoreData().shape()[0];
-  const std::size_t n_chan = expected.GetCasacoreData().shape()[1];
+  const std::size_t n_corr = expected.GetData().shape(2);
+  const std::size_t n_chan = expected.GetData().shape(1);
 
   BOOST_TEST(expected.getTime() == row.time);
   BOOST_TEST(expected.getExposure() == row.interval);
   // ??? TODO:compare row_nr ???
   BOOST_REQUIRE_EQUAL(baseline_nr, row.baseline_nr);
   BOOST_REQUIRE_EQUAL(n_chan * n_corr, row.GetDataSize());
-  BOOST_TEST(expected.GetCasacoreUvw()(0, 0) == row.uvw[0]);
-  BOOST_TEST(expected.GetCasacoreUvw()(1, 0) == row.uvw[1]);
-  BOOST_TEST(expected.GetCasacoreUvw()(2, 0) == row.uvw[2]);
+  BOOST_TEST(expected.GetUvw()(0, 0) == row.uvw[0]);
+  BOOST_TEST(expected.GetUvw()(0, 1) == row.uvw[1]);
+  BOOST_TEST(expected.GetUvw()(0, 2) == row.uvw[2]);
 
   std::complex<float>* row_data = row.data;
   bool* row_flag = row.flags;
@@ -225,9 +235,9 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   BOOST_REQUIRE(row_full_res_flag);
   for (std::size_t chan = 0; chan < n_chan; ++chan) {
     for (std::size_t corr = 0; corr < n_corr; ++corr) {
-      CheckData(expected.GetCasacoreData()(corr, chan, 0), *row_data);
-      BOOST_TEST(expected.GetCasacoreFlags()(corr, chan, 0) == *row_flag);
-      BOOST_TEST(expected.GetCasacoreWeights()(corr, chan, 0) == *row_weight);
+      CheckData(expected.GetData()(0, chan, corr), *row_data);
+      BOOST_TEST(expected.GetFlags()(0, chan, corr) == *row_flag);
+      BOOST_TEST(expected.GetWeights()(0, chan, corr) == *row_weight);
       // !!! TODO: add proper full res flags test.
       BOOST_TEST(false == *row_full_res_flag);
       ++row_data;
