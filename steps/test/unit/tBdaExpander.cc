@@ -39,14 +39,14 @@ const std::vector<int> kAnt2_2Bl{1, 2};
 
 void CheckData(const DPBuffer& buffer,
                const std::vector<std::complex<float>>& data, int baseline) {
-  BOOST_CHECK_EQUAL(buffer.GetCasacoreData().size() % data.size(), 0u);
+  BOOST_CHECK_EQUAL(buffer.GetData().size() % data.size(), 0u);
   for (unsigned int chan = 0; chan < kNChan; ++chan) {
     for (unsigned int corr = 0; corr < kNCorr; ++corr) {
       // When frequency averaging is present in the input data, the size of the
       // data in the bda input buffer is smaller than the size of the expanded
       // regular buffer. For this reason the indexing of the 'data' variable
       // should restart from the beginning once it reaches its size.
-      BOOST_CHECK_CLOSE(buffer.GetCasacoreData()(corr, chan, baseline),
+      BOOST_CHECK_CLOSE(buffer.GetData()(baseline, chan, corr),
                         data[(chan * kNCorr + corr) % data.size()], 1e-3);
     }
   }
@@ -61,7 +61,7 @@ void CheckWeights(const std::vector<DPBuffer>& buffers,
       for (unsigned int chan = 0; chan < kNChan; ++chan) {
         for (unsigned int corr = 0; corr < kNCorr; ++corr) {
           total_weight_after_expansion +=
-              buffers[i].GetCasacoreWeights()(corr, chan, baseline);
+              buffers[i].GetWeights()(baseline, chan, corr);
         }
       }
     }
@@ -261,8 +261,9 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
 
   for (auto it = mock_step->GetRegularBuffers().begin();
        it != mock_step->GetRegularBuffers().end(); ++it) {
-    BOOST_REQUIRE_EQUAL(it->GetCasacoreData().shape(),
-                        casacore::IPosition(3, kNCorr, kNChan, kNBaselines));
+    BOOST_REQUIRE_EQUAL(it->GetData().shape(0), kNBaselines);
+    BOOST_REQUIRE_EQUAL(it->GetData().shape(1), kNChan);
+    BOOST_REQUIRE_EQUAL(it->GetData().shape(2), kNCorr);
   }
 
   // check if data is correctly copied
