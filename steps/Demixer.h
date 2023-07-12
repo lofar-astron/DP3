@@ -70,7 +70,7 @@ class Demixer : public Step {
   /// Calculate the decorrelation factors by averaging them.
   /// Apply the P matrix to deproject the sources without a model.
   void makeFactors(const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
-                   casacore::Array<casacore::DComplex>& bufOut,
+                   aocommon::xt::UTensor<std::complex<double>, 5>& bufOut,
                    const casacore::Cube<float>& weightSums,
                    unsigned int nChanOut, unsigned int nChanAvg);
 
@@ -78,7 +78,7 @@ class Demixer : public Step {
   void handleDemix();
 
   /// Deproject the sources without a model.
-  void deproject(casacore::Array<casacore::DComplex>& factors,
+  void deproject(aocommon::xt::UTensor<std::complex<double>, 5>& factors,
                  unsigned int resultIndex);
 
   /// Solve gains and subtract sources.
@@ -163,7 +163,7 @@ class Demixer : public Step {
   /// Conceptually, for every pair of source directions (i.e. xt::view(
   /// itsFactors[i], xt::all(), xt::all(), xt::all(), dir1, dir2)),
   /// this Array thus provides a 3D cube of demixing weights.
-  std::vector<casacore::Array<casacore::DComplex>> itsFactors;
+  std::vector<aocommon::xt::UTensor<std::complex<double>, 5>> itsFactors;
 
   /// Accumulator used for computing the demixing weights at the subtract
   /// resolution. The shape of this buffer is
@@ -176,7 +176,7 @@ class Demixer : public Step {
   /// Conceptually, for every pair of source directions (i.e. xt::view(
   /// itsFactorsSubtr[i], xt::all(), xt::all(), xt::all(), dir1, dir2)),
   /// this Array thus provides a 3D cube of demixing weights.
-  std::vector<casacore::Array<casacore::DComplex>> itsFactorsSubtr;
+  std::vector<aocommon::xt::UTensor<std::complex<double>, 5>> itsFactorsSubtr;
 
   std::vector<std::shared_ptr<base::Patch>> itsPatchList;
   base::Direction itsPhaseRef;
