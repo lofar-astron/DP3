@@ -110,7 +110,7 @@ class MSBDAReader : public InputStep {
 
   /// Reads a BDA buffer from the input and passes it to its next step.
   /// @param buffer Dummy input buffer, which is ignored.
-  bool process(const base::DPBuffer& buffer) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Reads a BDA buffer from the input and passes it to its next step.
   /// @param buffer Dummy input buffer, which is ignored.

@@ -60,8 +60,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   reader.setNextStep(mock_step);
   reader.updateInfo(DPInfo());
 
-  dp3::base::DPBuffer buf;
-  reader.process(buf);
+  reader.process(std::unique_ptr<dp3::base::DPBuffer>());
   reader.finish();
 
   auto kExpectedData = std::complex<float>(2.75794, 0.899097);
@@ -90,7 +89,7 @@ BOOST_AUTO_TEST_CASE(process_nan) {
   reader.setNextStep(mock_step);
   reader.updateInfo(DPInfo());
 
-  reader.process(nullptr);
+  reader.process(std::unique_ptr<dp3::base::BDABuffer>());
   reader.finish();
 
   std::complex<float>* data = mock_step->GetBdaBuffers()[0]->GetRows()[0].data;

@@ -119,7 +119,9 @@ MSBDAReader::~MSBDAReader() {}
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
-bool MSBDAReader::process(const base::DPBuffer&) { return process(nullptr); }
+bool MSBDAReader::process(std::unique_ptr<base::DPBuffer>) {
+  return process(std::unique_ptr<base::BDABuffer>());
+}
 
 bool MSBDAReader::process(std::unique_ptr<base::BDABuffer>) {
   common::NSTimer::StartStop sstime(timer_);
