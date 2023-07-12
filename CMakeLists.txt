@@ -677,7 +677,7 @@ if(BUILD_TESTING)
       steps/test/unit/tAverager.cc
       steps/test/unit/tBDAAverager.cc
       steps/test/unit/tBdaDdeCal.cc
-      steps/test/unit/tBDAExpander.cc
+      steps/test/unit/tBdaExpander.cc
       steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tBDAResultStep.cc
       steps/test/unit/tCounter.cc
