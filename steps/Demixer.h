@@ -63,14 +63,13 @@ class Demixer : public Step {
   void showTimings(std::ostream&, double duration) const override;
 
  private:
-  /// Add the decorrelation factor contribution for each time slot.
-  void addFactors(std::unique_ptr<base::DPBuffer> newBuf,
-                  casacore::Array<casacore::DComplex>& factorBuf1,
-                  casacore::Array<casacore::DComplex>& factorBuf2);
+  /// Add the decorrelation factor contribution for each time slot. Results are
+  /// written to two output buffers, itsFactorBuf and itsFactorBufSubtr.
+  void addFactors(std::unique_ptr<base::DPBuffer> newBuf);
 
   /// Calculate the decorrelation factors by averaging them.
   /// Apply the P matrix to deproject the sources without a model.
-  void makeFactors(const casacore::Array<casacore::DComplex>& bufIn,
+  void makeFactors(const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
                    casacore::Array<casacore::DComplex>& bufOut,
                    const casacore::Cube<float>& weightSums,
                    unsigned int nChanOut, unsigned int nChanAvg);
@@ -157,7 +156,7 @@ class Demixer : public Step {
   /// resolution. The shape of this buffer is
   ///     #direction-pairs x #baselines x #channels x #correlations,
   /// where #direction-pairs equals: #directions x (#directions - 1)/2.
-  casacore::Array<casacore::DComplex> itsFactorBuf;
+  aocommon::xt::UTensor<std::complex<double>, 4> itsFactorBuf;
   /// Buffer of demixing weights at the demix resolution. The shape of each
   /// Array is
   ///     #baselines x #channels x #correlations x #directions x #directions.
@@ -170,7 +169,7 @@ class Demixer : public Step {
   /// resolution. The shape of this buffer is
   ///     #direction-pairs x #baselines x #channels x #correlations,
   /// where #direction-pairs equals: #directions x (#directions - 1)/2.
-  casacore::Array<casacore::DComplex> itsFactorBufSubtr;
+  aocommon::xt::UTensor<std::complex<double>, 4> itsFactorBufSubtr;
   /// Buffer of demixing weights at the subtract resolution. The shape of each
   /// Array is
   ///     #baselines x #channels x #correlations x #directions x #directions.
