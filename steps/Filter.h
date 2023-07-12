@@ -109,8 +109,7 @@ class Filter final : public Step {
 
   /// Process the next data chunk.
   /// When processed, it invokes the process function of the next step.
-  using Step::process;  // adds the hidden unique-ptr overload (TODO AST-1329)
-  bool process(const base::DPBuffer&) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -134,9 +133,6 @@ class Filter final : public Step {
   /// Get the indices of the selected baselines.
   const std::vector<unsigned int>& getIndicesBL() const { return itsSelBL; }
 
-  /// Get the buffer.
-  const base::DPBuffer& getBuffer() const { return itsBuf; }
-
  private:
   /// Create the mapping from old to new id (e.g. ANTENNA_ID).
   /// The removed ids get a mapping -1.
@@ -155,8 +151,6 @@ class Filter final : public Step {
       const casacore::Vector<int>& antMap, common::rownr_t& nrId) const;
 
   std::string itsName;
-  base::DPBuffer itsBuf;
-  base::DPBuffer itsBufTmp;
   casacore::String itsStartChanStr;  ///< startchan expression
   casacore::String itsNrChanStr;     ///< nchan expression
   bool itsRemoveAnt;                 ///< Remove from ANTENNA table?
