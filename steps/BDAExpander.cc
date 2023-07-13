@@ -13,8 +13,6 @@
 #include <vector>
 
 #include <casacore/casa/BasicMath/Math.h>
-#include <casacore/casa/Arrays/Vector.h>
-#include <casacore/casa/Arrays/Cube.h>
 
 #include <dp3/common/Types.h>
 
@@ -207,10 +205,10 @@ void BDAExpander::CopyData(const BDABuffer::Row &bda_row,
                            std::unique_ptr<DPBuffer> &buf_out,
                            unsigned int current_bl,
                            float time_averaging_factor) {
-  casacore::Cube<casacore::Complex> &data = buf_out->GetCasacoreData();
-  casacore::Cube<float> &weights = buf_out->GetCasacoreWeights();
-  casacore::Cube<bool> &flags = buf_out->GetCasacoreFlags();
-  casacore::Matrix<double> &uvw = buf_out->GetCasacoreUvw();
+  DPBuffer::DataType &data = buf_out->GetData();
+  DPBuffer::WeightsType &weights = buf_out->GetWeights();
+  DPBuffer::FlagsType &flags = buf_out->GetFlags();
+  DPBuffer::UvwType &uvw = buf_out->GetUvw();
 
   for (unsigned int chan = 0; chan < info().nchan(); ++chan) {
     // Set the pointers to the right value: when channel averaging happens, the
@@ -224,7 +222,7 @@ void BDAExpander::CopyData(const BDABuffer::Row &bda_row,
 
     if (bda_row.data) {
       for (unsigned int corr = 0; corr < info().ncorr(); ++corr) {
-        data(corr, chan, current_bl) = *pointer_to_data;
+        data(current_bl, chan, corr) = *pointer_to_data;
         ++pointer_to_data;
       }
     }
@@ -235,7 +233,7 @@ void BDAExpander::CopyData(const BDABuffer::Row &bda_row,
                      channels_mapping_[current_bl][chan]);
 
       for (unsigned int corr = 0; corr < info().ncorr(); ++corr) {
-        weights(corr, chan, current_bl) = *pointer_to_weights /
+        weights(current_bl, chan, corr) = *pointer_to_weights /
                                           time_averaging_factor /
                                           channel_averaging_factor;
         ++pointer_to_weights;
@@ -243,34 +241,35 @@ void BDAExpander::CopyData(const BDABuffer::Row &bda_row,
     }
     if (bda_row.flags) {
       for (unsigned int corr = 0; corr < info().ncorr(); ++corr) {
-        flags(corr, chan, current_bl) = *pointer_to_flags;
+        flags(current_bl, chan, corr) = *pointer_to_flags;
         ++pointer_to_flags;
       }
     }
 
-    uvw(0, current_bl) = bda_row.uvw[0];
-    uvw(1, current_bl) = bda_row.uvw[1];
-    uvw(2, current_bl) = bda_row.uvw[2];
+    uvw(current_bl, 0) = bda_row.uvw[0];
+    uvw(current_bl, 1) = bda_row.uvw[1];
+    uvw(current_bl, 2) = bda_row.uvw[2];
   }
 }
 
 BDAExpander::RegularBufferElement::RegularBufferElement(
-    int n_baseline, unsigned int n_corr, unsigned int n_chan,
+    size_t n_baseline, unsigned int n_corr, unsigned int n_chan,
     double current_time, double current_exposure) {
   std::vector<bool> baseline(n_baseline, false);
   this->baseline_ = baseline;
 
-  const std::vector<std::size_t> kChannelCounts(n_chan, 1);
-  casacore::Cube<casacore::Complex> data(n_corr, n_chan, n_baseline, 0.0);
-  casacore::Cube<bool> flags(data.shape(), false);
-  casacore::Cube<float> weights(data.shape(), 0.0);
-  casacore::Matrix<double> uvw(3, n_baseline, 0.0);
-
   regular_buffer = std::make_unique<DPBuffer>(current_time, current_exposure);
-  regular_buffer->setData(data);
-  regular_buffer->setWeights(weights);
-  regular_buffer->setFlags(flags);
-  regular_buffer->setUVW(uvw);
+
+  const std::array<std::size_t, 3> shape{n_baseline, n_chan, n_corr};
+  regular_buffer->ResizeData(shape);
+  regular_buffer->ResizeWeights(shape);
+  regular_buffer->ResizeFlags(shape);
+  regular_buffer->ResizeUvw(n_baseline);
+
+  regular_buffer->GetData().fill(0.0);
+  regular_buffer->GetWeights().fill(0.0);
+  regular_buffer->GetFlags().fill(false);
+  regular_buffer->GetUvw().fill(0.0);
 }
 }  // namespace steps
 }  // namespace dp3
