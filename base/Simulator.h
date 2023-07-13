@@ -21,6 +21,43 @@
 namespace dp3 {
 namespace base {
 
+/**
+ * Compute LMN coordinates of \p direction relative to \p reference.
+ * \param[in]   reference
+ * Reference direction on the celestial sphere.
+ * \param[in]   direction
+ * Direction of interest on the celestial sphere.
+ * \param[out]   lmn
+ * Pointer to a buffer of (at least) length three into which the computed LMN
+ * coordinates will be written.
+ */
+inline void radec2lmn(const Direction& reference, const Direction& direction,
+                      double* lmn) {
+  /**
+   * \f{eqnarray*}{
+   *   \ell &= \cos(\delta) \sin(\alpha - \alpha_0) \\
+   *      m &= \sin(\delta) \cos(\delta_0) - \cos(\delta) \sin(\delta_0)
+   *                                         \cos(\alpha - \alpha_0)
+   * \f}
+   */
+  const double delta_ra = direction.ra - reference.ra;
+  const double sin_delta_ra = std::sin(delta_ra);
+  const double cos_delta_ra = std::cos(delta_ra);
+  const double sin_dec = std::sin(direction.dec);
+  const double cos_dec = std::cos(direction.dec);
+  const double sin_dec0 = std::sin(reference.dec);
+  const double cos_dec0 = std::cos(reference.dec);
+
+  lmn[0] = cos_dec * sin_delta_ra;
+  lmn[1] = sin_dec * cos_dec0 - cos_dec * sin_dec0 * cos_delta_ra;
+  // Normally, n is calculated using n = std::sqrt(1.0 - l * l - m * m).
+  // However the sign of n is lost that way, so a calculation is used that
+  // avoids losing the sign. This formula can be found in Perley (1989).
+  // Be aware that we asserted that the sign is wrong in Perley (1989),
+  // so this is corrected.
+  lmn[2] = sin_dec * sin_dec0 + cos_dec * cos_dec0 * cos_delta_ra;
+}
+
 /// @{
 
 typedef std::complex<double> dcomplex;

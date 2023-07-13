@@ -20,17 +20,6 @@ namespace dp3 {
 namespace base {
 
 namespace {
-// Compute LMN coordinates of \p direction relative to \p reference.
-//
-// \param[in]   reference
-// Reference direction on the celestial sphere.
-// \param[in]   direction
-// Direction of interest on the celestial sphere.
-// \param[out]   lmn
-// Pointer to a buffer of (at least) length three into which the computed LMN
-// coordinates will be written.
-void radec2lmn(const Direction& reference, const Direction& direction,
-               double* lmn);
 
 /**
  * Compute station phase shifts.
@@ -433,32 +422,6 @@ void Simulator::visit(const GaussianSource& component) {
 }
 
 namespace {
-/** Compute lmn coordinates
- *  \f{eqnarray*}{
- *   \ell &= \cos(\delta) \sin(\alpha - \alpha_0) \\
- *      m &= \sin(\delta) \cos(\delta_0) - \cos(\delta) \sin(\delta_0)
- *                                         \cos(\alpha - \alpha_0)
- * \f}
- */
-inline void radec2lmn(const Direction& reference, const Direction& direction,
-                      double* lmn) {
-  const double dRA = direction.ra - reference.ra;
-  const double pDEC = direction.dec;
-  const double rDEC = reference.dec;
-
-  // Naming: [sc] for sin/cos, [dpr] for delta, position, reference
-  double sdRA, cdRA, spDEC, cpDEC, srDEC, crDEC;
-  sincos(dRA, &sdRA, &cdRA);
-  sincos(pDEC, &spDEC, &cpDEC);
-  sincos(rDEC, &srDEC, &crDEC);
-
-  const double l = cpDEC * sdRA;
-  const double m = spDEC * crDEC - cpDEC * srDEC * cdRA;
-
-  lmn[0] = l;
-  lmn[1] = m;
-  lmn[2] = sqrt(1.0 - l * l - m * m);
-}
 
 inline float computeSmearterm(double uvw, double halfwidth) {
   float smearterm = uvw * halfwidth;
@@ -492,11 +455,11 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
     }  // Channels.
 #pragma GCC ivdep
     for (size_t ch = 0; ch < nChannel; ++ch) {
-      *shiftdata_im++ = sin(phase_terms[ch]);
+      *shiftdata_im++ = std::sin(phase_terms[ch]);
     }  // Channels.
 #pragma GCC ivdep
     for (size_t ch = 0; ch < nChannel; ++ch) {
-      *shiftdata_re++ = cos(phase_terms[ch]);
+      *shiftdata_re++ = std::cos(phase_terms[ch]);
     }  // Channels.
   }    // Stations.
 }

@@ -121,6 +121,48 @@ BOOST_AUTO_TEST_CASE(test_pointsource_onlyI_freqsmear) {
   BOOST_CHECK_CLOSE(std::abs(buffer(1, 0, kNStations - 1)), 0.759154, 1.0e-3);
 }
 
+BOOST_AUTO_TEST_CASE(radec_to_lmn_conversion_simple) {
+  // RA 0, DEC 90 degrees: (=north celestial pole)
+  const Direction reference(0.0, 0.5 * M_PI);
+  const Direction direction(0.0, 0.5 * M_PI);
+  double lmn[3];
+  radec2lmn(reference, direction, lmn);
+  BOOST_CHECK_LT(std::abs(lmn[0]), 1e-6);
+  BOOST_CHECK_LT(std::abs(lmn[1]), 1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(lmn[2], 1.0, 1e-6);
+}
+
+BOOST_AUTO_TEST_CASE(radec_to_lmn_conversion_negative_n) {
+  // Check sign of N when reference and direction are opposite
+  const Direction reference(0.0, 0.5 * M_PI);
+  const Direction direction(0.0, -0.5 * M_PI);
+  double lmn[3];
+  radec2lmn(reference, direction, lmn);
+  BOOST_CHECK_LT(std::abs(lmn[0]), 1e-6);
+  BOOST_CHECK_LT(std::abs(lmn[1]), 1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(lmn[2], -1.0, 1e-6);
+}
+
+BOOST_AUTO_TEST_CASE(radec_to_lmn_conversion_simple_2) {
+  const Direction reference(0.0, 0.5 * M_PI);
+  const Direction direction(0.0, 0.25 * M_PI);
+  double lmn[3];
+  radec2lmn(reference, direction, lmn);
+  BOOST_CHECK_LT(std::abs(lmn[0]), 1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(lmn[1], -M_SQRT1_2, 1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(lmn[2], M_SQRT1_2, 1e-6);
+}
+
+BOOST_AUTO_TEST_CASE(radec_to_lmn_conversion_negative_n_2) {
+  const Direction reference(0.0, 0.5 * M_PI);
+  const Direction direction(0.0, -0.25 * M_PI);
+  double lmn[3];
+  radec2lmn(reference, direction, lmn);
+  BOOST_CHECK_LT(std::abs(lmn[0]), 1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(lmn[1], -M_SQRT1_2, 1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(lmn[2], -M_SQRT1_2, 1e-6);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }  // namespace test
 }  // namespace base
