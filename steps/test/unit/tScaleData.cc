@@ -121,15 +121,16 @@ class TestInput : public dp3::steps::MockInput {
                     return result;
                   });
 
-    casacore::Matrix<double> uvw(3, n_baselines_);
-    for (std::size_t i = 0; i < n_baselines_; ++i) {
-      uvw(0, i) = 1 + count_ + i;
-      uvw(1, i) = 2 + count_ + i;
-      uvw(2, i) = 3 + count_ + i;
-    }
-    buffer->setUVW(uvw);
     buffer->ResizeFlags(shape);
     buffer->GetFlags().fill(false);
+
+    buffer->ResizeUvw(n_baselines_);
+    for (std::size_t i = 0; i < n_baselines_; ++i) {
+      buffer->GetUvw()(i, 0) = 1 + count_ + i;
+      buffer->GetUvw()(i, 1) = 2 + count_ + i;
+      buffer->GetUvw()(i, 2) = 3 + count_ + i;
+    }
+
     getNextStep()->process(std::move(buffer));
     ++count_;
     return true;
