@@ -29,8 +29,6 @@ using dp3::steps::ApplyCal;
 using dp3::steps::Step;
 using schaapcommon::h5parm::H5Parm;
 using schaapcommon::h5parm::SolTab;
-using std::complex;
-using std::vector;
 
 BOOST_AUTO_TEST_SUITE(applycalh5)
 
@@ -53,8 +51,8 @@ class TestInput : public dp3::steps::MockInput {
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 
-    vector<int> ant1(itsNBl);
-    vector<int> ant2(itsNBl);
+    std::vector<int> ant1(itsNBl);
+    std::vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
     for (int i = 0; i < itsNBl; ++i) {
@@ -67,9 +65,9 @@ class TestInput : public dp3::steps::MockInput {
         }
       }
     }
-    vector<string> antNames{"ant1", "ant2", "ant3"};
+    std::vector<std::string> antNames{"ant1", "ant2", "ant3"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<casacore::MPosition> antPos(3);
+    std::vector<casacore::MPosition> antPos(3);
     casacore::Vector<double> vals(3);
     vals[0] = 3828763;
     vals[1] = 442449;
@@ -92,8 +90,8 @@ class TestInput : public dp3::steps::MockInput {
     std::vector<double> antDiam(3, 70.);
     info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    vector<double> chanWidth(nchan, 100.e6);
-    vector<double> chanFreqs(nchan);
+    std::vector<double> chanWidth(nchan, 100.e6);
+    std::vector<double> chanFreqs(nchan);
     for (unsigned int ch = 0; ch < nchan; ++ch) {
       double freq = 100.e6 + ch * 10.e6;
       if (ch > 2) {
@@ -165,8 +163,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     DataChanged = 4,
     WeightEquals = 8
   };
-  TestOutput(int ntime, int nchan, int doTest, bool solsHadFreqAxis = true,
-             bool solsHadTimeAxis = true,
+  TestOutput(std::size_t ntime, std::size_t nchan, bool doTest,
+             bool solsHadFreqAxis = true, bool solsHadTimeAxis = true,
              JonesParameters::MissingAntennaBehavior missingAntennaBehavior =
                  JonesParameters::MissingAntennaBehavior::kError)
       : itsCount(0),
@@ -183,31 +181,28 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
  private:
   bool process(const DPBuffer& buf) override {
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] = casacore::Complex(1, 0);
-    }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    indgen(weights, 1.0f, 0.0f);
+    const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> data(shape, std::complex<float>{1, 0});
+    xt::xtensor<float, 3> weights(shape, 1.0f);
 
-    vector<double> rightTimes(std::max(itsNTime, 5));
+    std::vector<double> rightTimes(std::max<std::size_t>(itsNTime, 5));
     rightTimes[0] = 0;
     rightTimes[1] = 2;
     rightTimes[2] = 3;
-    for (int t = 3; t < itsNTime; ++t) {
+    for (std::size_t t = 3; t < itsNTime; ++t) {
       rightTimes[t] = 4;
     }
     if (!itsSolsHadTimeAxis) {
       rightTimes.assign(itsNTime, 0);
     }
 
-    vector<double> rightFreqs(std::max(itsNChan, 5));
+    std::vector<double> rightFreqs(std::max<std::size_t>(itsNChan, 5));
     rightFreqs[0] = 1;
     rightFreqs[1] = 1;
     rightFreqs[2] = 2;
     rightFreqs[3] = 2;
     rightFreqs[4] = 2;
-    for (int f = 5; f < itsNChan; ++f) {
+    for (std::size_t f = 5; f < itsNChan; ++f) {
       rightFreqs[f] = 3;
     }
     if (!itsSolsHadFreqAxis) {
@@ -219,13 +214,10 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         unsigned int ant1 = info().getAnt1()[bl];
         unsigned int ant2 = info().getAnt2()[bl];
 
-        for (int chan = 0; chan < itsNChan; ++chan) {
+        for (std::size_t chan = 0; chan < itsNChan; ++chan) {
           // Square root of autocorrelation for first antenna
-          complex<float> val = sqrt(
-              buf.GetData().data()[bl * itsNCorr * itsNChan + chan * itsNCorr]);
-
-          bool flag =
-              buf.GetFlags().data()[bl * itsNCorr * itsNChan + chan * itsNCorr];
+          std::complex<float> val = sqrt(buf.GetData()(bl, chan, 0));
+          bool flag = buf.GetFlags()(bl, chan, 0);
           if ((ant1 == 1 || ant2 == 1) && rightTimes[itsTimeStep] == 2 &&
               rightFreqs[chan] == 2) {
             BOOST_CHECK(flag);
@@ -256,13 +248,13 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
 
     if (itsDoTest & DataNotChanged) {
-      BOOST_CHECK(allNear(buf.GetCasacoreData(), data, 1.e-7));
+      BOOST_CHECK(xt::allclose(buf.GetData(), data, 1.0e-7));
     }
     if (itsDoTest & DataChanged) {
-      BOOST_CHECK(!(allNear(buf.GetCasacoreData(), data, 1.e-7)));
+      BOOST_CHECK(!(xt::allclose(buf.GetData(), data, 1.0e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      BOOST_CHECK(allNear(buf.GetCasacoreWeights(), weights, 1.e-7));
+      BOOST_CHECK(xt::allclose(buf.GetWeights(), weights, 1.0e-7));
     }
     itsCount++;
     itsTimeStep++;
@@ -272,17 +264,23 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
     info() = infoIn;
-    BOOST_CHECK_EQUAL(itsNChan, int(infoIn.origNChan()));
-    BOOST_CHECK_EQUAL(itsNChan, int(infoIn.nchan()));
-    BOOST_CHECK_EQUAL(itsNTime, int(infoIn.ntime()));
+    BOOST_CHECK_EQUAL(itsNChan, infoIn.origNChan());
+    BOOST_CHECK_EQUAL(itsNChan, infoIn.nchan());
+    BOOST_CHECK_EQUAL(itsNTime, infoIn.ntime());
     BOOST_CHECK_EQUAL(itsTimeInterval, infoIn.timeInterval());
-    BOOST_CHECK_EQUAL(itsNBl, int(infoIn.nbaselines()));
+    BOOST_CHECK_EQUAL(itsNBl, infoIn.nbaselines());
   }
 
   int itsCount;
   int itsTimeStep;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsTimeInterval, itsDoTest;
-  bool itsSolsHadFreqAxis, itsSolsHadTimeAxis;
+  std::size_t itsNTime;
+  std::size_t itsNBl;
+  std::size_t itsNChan;
+  std::size_t itsNCorr;
+  std::size_t itsTimeInterval;
+  bool itsDoTest;
+  bool itsSolsHadFreqAxis;
+  bool itsSolsHadTimeAxis;
   JonesParameters::MissingAntennaBehavior itsMissingAntennaBehavior;
 };
 
@@ -328,7 +326,7 @@ void testmissingant(int ntime, int nchan, string missingant,
 }
 
 // Write a temporary H5Parm
-void createH5Parm(vector<double> times, vector<double> freqs,
+void createH5Parm(std::vector<double> times, std::vector<double> freqs,
                   bool missingAnt = false) {
   H5Parm h5parm("tApplyCalH5_tmp.h5", true);
 
@@ -366,8 +364,8 @@ void createH5Parm(vector<double> times, vector<double> freqs,
 
   unsigned int ntimes = max(times.size(), 1);
   unsigned int nfreqs = max(freqs.size(), 1);
-  vector<double> values(ntimes * nfreqs * nAntennas);
-  vector<double> weights(ntimes * nfreqs * nAntennas);
+  std::vector<double> values(ntimes * nfreqs * nAntennas);
+  std::vector<double> weights(ntimes * nfreqs * nAntennas);
   for (unsigned int ant = 0; ant < nAntennas; ++ant) {
     for (unsigned int t = 0; t < ntimes; ++t) {
       for (unsigned int f = 0; f < nfreqs; ++f) {
@@ -384,36 +382,36 @@ void createH5Parm(vector<double> times, vector<double> freqs,
 }
 
 BOOST_AUTO_TEST_CASE(testampl1) {
-  const vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
-                             4472025748.0, 4472025762.0};
-  const vector<double> freqs{90.e6, 139.e6, 170.e6};
+  const std::vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
+                                  4472025748.0, 4472025762.0};
+  const std::vector<double> freqs{90.e6, 139.e6, 170.e6};
   createH5Parm(times, freqs);
   testampl(5, 7, true, true);
 }
 
 BOOST_AUTO_TEST_CASE(testampl2) {
-  const vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
-                             4472025748.0, 4472025762.0};
-  const vector<double> freqs{90.e6, 139.e6, 170.e6};
+  const std::vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
+                                  4472025748.0, 4472025762.0};
+  const std::vector<double> freqs{90.e6, 139.e6, 170.e6};
   createH5Parm(times, freqs);
   testampl(5, 2, true, true);
 }
 
 BOOST_AUTO_TEST_CASE(testampl3) {
-  const vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
-                             4472025748.0, 4472025762.0};
-  createH5Parm(times, vector<double>());
+  const std::vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
+                                  4472025748.0, 4472025762.0};
+  createH5Parm(times, std::vector<double>());
   testampl(8, 9, false, true);
 }
 
 BOOST_AUTO_TEST_CASE(testampl4) {
-  const vector<double> freqs{90.e6, 139.e6, 170.e6};
-  createH5Parm(vector<double>(), freqs);
+  const std::vector<double> freqs{90.e6, 139.e6, 170.e6};
+  createH5Parm(std::vector<double>(), freqs);
   testampl(13, 3, true, false);
 }
 
 BOOST_AUTO_TEST_CASE(testampl5) {
-  createH5Parm(vector<double>(), vector<double>());
+  createH5Parm(std::vector<double>(), std::vector<double>());
   testampl(9, 2, false, false);
 }
 
@@ -424,7 +422,7 @@ bool checkMissingAntError(const std::exception& ex) {
   return true;
 }
 BOOST_AUTO_TEST_CASE(testmissingant_error) {
-  createH5Parm(vector<double>(), vector<double>(), true);
+  createH5Parm(std::vector<double>(), std::vector<double>(), true);
   BOOST_CHECK_EXCEPTION(testmissingant(9, 2, "error"), std::exception,
                         checkMissingAntError);
 }
@@ -436,20 +434,20 @@ bool checkWrongArgError(const std::exception& ex) {
   return true;
 }
 BOOST_AUTO_TEST_CASE(testmissingant_wrongarg) {
-  createH5Parm(vector<double>(), vector<double>(), true);
+  createH5Parm(std::vector<double>(), std::vector<double>(), true);
   BOOST_CHECK_EXCEPTION(testmissingant(9, 2, "wrongargument"), std::exception,
                         checkWrongArgError);
 }
 
 BOOST_AUTO_TEST_CASE(testmissingant_flag) {
-  createH5Parm(vector<double>(), vector<double>(), true);
+  createH5Parm(std::vector<double>(), std::vector<double>(), true);
   testmissingant(9, 2, "flag");
 }
 
 BOOST_AUTO_TEST_CASE(testmissingant_unit) {
-  const vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
-                             4472025748.0, 4472025762.0};
-  const vector<double> freqs{90.e6, 139.e6, 170.e6};
+  const std::vector<double> times{4472025742.0, 4472025745.0, 4472025747.5,
+                                  4472025748.0, 4472025762.0};
+  const std::vector<double> freqs{90.e6, 139.e6, 170.e6};
   createH5Parm(times, freqs, true);
   testmissingant(9, 2, "unit", true, true);
 }
