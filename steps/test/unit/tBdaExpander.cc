@@ -52,7 +52,7 @@ void CheckData(const DPBuffer& buffer,
   }
 }
 
-void CheckWeights(const std::vector<DPBuffer>& buffers,
+void CheckWeights(const std::vector<std::unique_ptr<DPBuffer>>& buffers,
                   const std::vector<std::vector<float>>& weights) {
   float total_weight_after_expansion = 0.0;
   float total_weight_before_expansion = 0.0;
@@ -61,7 +61,7 @@ void CheckWeights(const std::vector<DPBuffer>& buffers,
       for (unsigned int chan = 0; chan < kNChan; ++chan) {
         for (unsigned int corr = 0; corr < kNCorr; ++corr) {
           total_weight_after_expansion +=
-              buffers[i].GetWeights()(baseline, chan, corr);
+              buffers[i]->GetWeights()(baseline, chan, corr);
         }
       }
     }
@@ -150,25 +150,28 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
   BOOST_REQUIRE_EQUAL(mock_step->GetRegularBuffers().size(), kNIntervals);
 
   // check if start times are properly set
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0].getTime(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0]->getTime(),
                     bda_first_time);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1].getTime(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1]->getTime(),
                     bda_first_time + kInterval);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2].getTime(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2]->getTime(),
                     bda_first_time + 2 * kInterval);
 
   // check that interval size is same for all times, and equal to minimal size
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0].getExposure(), kInterval);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1].getExposure(), kInterval);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2].getExposure(), kInterval);
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0]->getExposure(),
+                    kInterval);
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1]->getExposure(),
+                    kInterval);
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2]->getExposure(),
+                    kInterval);
 
   // check if data is correctly copied
-  CheckData(mock_step->GetRegularBuffers()[0], kData1, 0);
-  CheckData(mock_step->GetRegularBuffers()[1], kData2, 0);
-  CheckData(mock_step->GetRegularBuffers()[2], kData3, 0);
-  CheckData(mock_step->GetRegularBuffers()[0], kData4, 1);
-  CheckData(mock_step->GetRegularBuffers()[1], kData4, 1);
-  CheckData(mock_step->GetRegularBuffers()[2], kData4, 1);
+  CheckData(*mock_step->GetRegularBuffers()[0], kData1, 0);
+  CheckData(*mock_step->GetRegularBuffers()[1], kData2, 0);
+  CheckData(*mock_step->GetRegularBuffers()[2], kData3, 0);
+  CheckData(*mock_step->GetRegularBuffers()[0], kData4, 1);
+  CheckData(*mock_step->GetRegularBuffers()[1], kData4, 1);
+  CheckData(*mock_step->GetRegularBuffers()[2], kData4, 1);
 
   // check if weights are correctly processed
   CheckWeights(mock_step->GetRegularBuffers(), kWeights);
@@ -259,20 +262,20 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
 
   BOOST_REQUIRE_EQUAL(mock_step->GetRegularBuffers().size(), 3u);
 
-  for (auto it = mock_step->GetRegularBuffers().begin();
-       it != mock_step->GetRegularBuffers().end(); ++it) {
-    BOOST_REQUIRE_EQUAL(it->GetData().shape(0), kNBaselines);
-    BOOST_REQUIRE_EQUAL(it->GetData().shape(1), kNChan);
-    BOOST_REQUIRE_EQUAL(it->GetData().shape(2), kNCorr);
+  for (const std::unique_ptr<DPBuffer>& buffer :
+       mock_step->GetRegularBuffers()) {
+    BOOST_REQUIRE_EQUAL(buffer->GetData().shape(0), kNBaselines);
+    BOOST_REQUIRE_EQUAL(buffer->GetData().shape(1), kNChan);
+    BOOST_REQUIRE_EQUAL(buffer->GetData().shape(2), kNCorr);
   }
 
   // check if data is correctly copied
-  CheckData(mock_step->GetRegularBuffers()[0], kData1, 0);
-  CheckData(mock_step->GetRegularBuffers()[1], kData3, 0);
-  CheckData(mock_step->GetRegularBuffers()[2], kData5, 0);
-  CheckData(mock_step->GetRegularBuffers()[0], kData2, 1);
-  CheckData(mock_step->GetRegularBuffers()[1], kData4, 1);
-  CheckData(mock_step->GetRegularBuffers()[2], kData6, 1);
+  CheckData(*mock_step->GetRegularBuffers()[0], kData1, 0);
+  CheckData(*mock_step->GetRegularBuffers()[1], kData3, 0);
+  CheckData(*mock_step->GetRegularBuffers()[2], kData5, 0);
+  CheckData(*mock_step->GetRegularBuffers()[0], kData2, 1);
+  CheckData(*mock_step->GetRegularBuffers()[1], kData4, 1);
+  CheckData(*mock_step->GetRegularBuffers()[2], kData6, 1);
 
   // check if weights are correctly processed
   CheckWeights(mock_step->GetRegularBuffers(), kWeights);
