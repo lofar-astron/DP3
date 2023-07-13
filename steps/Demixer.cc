@@ -17,6 +17,9 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/scimath/Mathematics/MatrixMathLA.h>
 
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xview.hpp>
+
 #include <dp3/base/DP3.h>
 
 #include "../base/Apply.h"
@@ -41,8 +44,6 @@
 #include "NullStep.h"
 #include "PhaseShift.h"
 
-using casacore::Array;
-using casacore::Cube;
 using casacore::IPosition;
 using casacore::Matrix;
 using casacore::MDirection;
@@ -511,8 +512,8 @@ bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
   // The solving part
   if (itsNTimeIn % itsNTimeAvg == 0) {
     makeFactors(itsFactorBuf, itsFactors[itsNTimeOut],
-                itsAvgResults[0]->get()[itsNTimeOut]->GetCasacoreWeights(),
-                itsNChanOut, itsNChanAvg);
+                itsAvgResults[0]->get()[itsNTimeOut]->GetWeights(), itsNChanOut,
+                itsNChanAvg);
     // Deproject sources without a model.
     deproject(itsFactors[itsNTimeOut], itsNTimeOut);
     itsFactorBuf.fill(std::complex<double>(0.0, 0.0));  // Clear buffer
@@ -520,10 +521,9 @@ bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
   }
   // The subtract part
   if (itsNTimeIn % itsNTimeAvgSubtr == 0) {
-    makeFactors(
-        itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
-        itsAvgResultSubtr->get()[itsNTimeOutSubtr]->GetCasacoreWeights(),
-        itsNChanOutSubtr, itsNChanAvgSubtr);
+    makeFactors(itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
+                itsAvgResultSubtr->get()[itsNTimeOutSubtr]->GetWeights(),
+                itsNChanOutSubtr, itsNChanAvgSubtr);
     itsFactorBufSubtr.fill(std::complex<double>(0.0, 0.0));  // Clear buffer
     itsNTimeOutSubtr++;
   }
@@ -556,17 +556,16 @@ void Demixer::finish() {
     itsTimerDemix.start();
     if (itsNTimeIn % itsNTimeAvg != 0) {
       makeFactors(itsFactorBuf, itsFactors[itsNTimeOut],
-                  itsAvgResults[0]->get()[itsNTimeOut]->GetCasacoreWeights(),
+                  itsAvgResults[0]->get()[itsNTimeOut]->GetWeights(),
                   itsNChanOut, itsNChanAvg);
       // Deproject sources without a model.
       deproject(itsFactors[itsNTimeOut], itsNTimeOut);
       itsNTimeOut++;
     }
     if (itsNTimeIn % itsNTimeAvgSubtr != 0) {
-      makeFactors(
-          itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
-          itsAvgResultSubtr->get()[itsNTimeOutSubtr]->GetCasacoreWeights(),
-          itsNChanOutSubtr, itsNChanAvgSubtr);
+      makeFactors(itsFactorBufSubtr, itsFactorsSubtr[itsNTimeOutSubtr],
+                  itsAvgResultSubtr->get()[itsNTimeOutSubtr]->GetWeights(),
+                  itsNChanOutSubtr, itsNChanAvgSubtr);
       itsNTimeOutSubtr++;
     }
     itsTimerDemix.stop();
@@ -636,14 +635,12 @@ void Demixer::mergeSubtractResult() {
   // Merge the selected baselines from the subtract buffer (itsAvgResultSubtr)
   // into the full buffer (itsAvgResultFull). Do it for all timestamps.
   for (unsigned int i = 0; i < itsNTimeOutSubtr; ++i) {
-    const Array<casacore::Complex>& arr =
-        itsAvgResultSubtr->get()[i]->GetCasacoreData();
-    size_t ncc = arr.shape()[0] * arr.shape()[1];  // ncorrelations * nchannels
-    const casacore::Complex* in = arr.data();
-    casacore::Complex* out = itsAvgResultFull->get()[i]->GetData().data();
-    for (size_t j = 0; j < itsFilter->getIndicesBL().size(); ++j) {
-      size_t inx = itsFilter->getIndicesBL()[j];
-      memcpy(out + inx * ncc, in + j * ncc, ncc * sizeof(casacore::Complex));
+    const DPBuffer::DataType& arr = itsAvgResultSubtr->get()[i]->GetData();
+    for (size_t baseline_in = 0; baseline_in < itsFilter->getIndicesBL().size();
+         ++baseline_in) {
+      const size_t baseline_out = itsFilter->getIndicesBL()[baseline_in];
+      xt::view(itsAvgResultFull->get()[i]->GetData(), baseline_out, xt::all(),
+               xt::all()) = xt::view(arr, baseline_in, xt::all(), xt::all());
     }
   }
 }
@@ -730,10 +727,10 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
 void Demixer::makeFactors(
     const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
     aocommon::xt::UTensor<std::complex<double>, 5>& bufOut,
-    const Cube<float>& weightSums, unsigned int nChanOut,
+    const DPBuffer::WeightsType& weightSums, unsigned int nChanOut,
     unsigned int nChanAvg) {
   if (itsNDir <= 1) return;  // Nothing to do if only target direction.
-  assert(!weightSums.empty());
+  assert(weightSums.size() != 0);
 
   const size_t kMaxNrCorrelations = 4;
   bufOut.resize({itsNBl, nChanOut, itsNCorr, itsNDir, itsNDir});
@@ -962,10 +959,18 @@ void Demixer::demix() {
     // stations and directions is solved iteratively. The influence of
     // each direction on each other direction is given by the mixing
     // matrix.
-    base::const_cursor<bool> cr_flag = base::casa_const_cursor(
-        itsAvgResults[0]->get()[ts]->GetCasacoreFlags());
-    base::const_cursor<float> cr_weight = base::casa_const_cursor(
-        itsAvgResults[0]->get()[ts]->GetCasacoreWeights());
+    // Legacy port the XTensors to Casacore structures until usage of
+    // (const) cursors gets deprecated in the future.
+    std::unique_ptr<DPBuffer>& source_buffer = itsAvgResults[0]->get()[ts];
+    const IPosition cube_shape(3, source_buffer->GetData().shape(2),
+                               source_buffer->GetData().shape(1),
+                               source_buffer->GetData().shape(0));
+    base::const_cursor<bool> cr_flag =
+        base::casa_const_cursor(casacore::Cube<bool>(
+            cube_shape, source_buffer->GetFlags().data(), casacore::SHARE));
+    base::const_cursor<float> cr_weight =
+        base::casa_const_cursor(casacore::Cube<float>(
+            cube_shape, source_buffer->GetWeights().data(), casacore::SHARE));
 
     const IPosition shape(5, itsFactors[ts].shape(4), itsFactors[ts].shape(3),
                           itsFactors[ts].shape(2), itsFactors[ts].shape(1),
@@ -978,8 +983,9 @@ void Demixer::demix() {
     std::vector<base::const_cursor<fcomplex>> cr_data(nDr);
     std::vector<base::const_cursor<dcomplex>> cr_model(nDr);
     for (size_t dr = 0; dr < nDr; ++dr) {
-      cr_data[dr] = base::casa_const_cursor(
-          itsAvgResults[dr]->get()[ts]->GetCasacoreData());
+      cr_data[dr] = base::casa_const_cursor(casacore::Cube<casacore::Complex>(
+          cube_shape, itsAvgResults[dr]->get()[ts]->GetData().data(),
+          casacore::SHARE));
       cr_model[dr] = base::const_cursor<dcomplex>(storage.model[dr].data(), 3,
                                                   stride_model);
     }
@@ -1070,8 +1076,14 @@ void Demixer::demix() {
         apply(nBl, nChSubtr, cr_baseline, cr_unknowns, cr_model_subtr);
 
         // Subtract the source contribution from the data.
-        base::cursor<fcomplex> cr_residual = base::casa_cursor(
-            itsAvgResultSubtr->get()[ts_subtr]->GetCasacoreData());
+        const IPosition cube_shape(
+            3, itsAvgResultSubtr->get()[ts_subtr]->GetData().shape(2),
+            itsAvgResultSubtr->get()[ts_subtr]->GetData().shape(1),
+            itsAvgResultSubtr->get()[ts_subtr]->GetData().shape(0));
+        casacore::Cube<casacore::Complex> cube_residual(
+            cube_shape, itsAvgResultSubtr->get()[ts_subtr]->GetData().data(),
+            casacore::SHARE);
+        base::cursor<fcomplex> cr_residual = base::casa_cursor(cube_residual);
 
         // Construct a cursor to iterate over a slice of the mixing matrix
         // at the resolution of the residual. The "to" and "from" direction
@@ -1084,7 +1096,7 @@ void Demixer::demix() {
         // convention, i.e. index itsNDir - 1. The directions to subtract
         // have the lowest indices by convention, i.e. indices
         // [0, nDrSubtr).
-        std::array<size_t, 5> shape = itsFactorsSubtr[ts_subtr].shape();
+        const std::array<size_t, 5> shape = itsFactorsSubtr[ts_subtr].shape();
         size_t stride_mix_subtr_slice[3] = {
             static_cast<size_t>(itsNDir * itsNDir),
             static_cast<size_t>(itsNDir * itsNDir * nCr),

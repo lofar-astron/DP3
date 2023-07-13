@@ -71,7 +71,7 @@ class Demixer : public Step {
   /// Apply the P matrix to deproject the sources without a model.
   void makeFactors(const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
                    aocommon::xt::UTensor<std::complex<double>, 5>& bufOut,
-                   const casacore::Cube<float>& weightSums,
+                   const base::DPBuffer::WeightsType& weightSums,
                    unsigned int nChanOut, unsigned int nChanAvg);
 
   /// Do the demixing.
