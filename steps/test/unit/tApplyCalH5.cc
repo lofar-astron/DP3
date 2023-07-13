@@ -55,7 +55,7 @@ class TestInput : public dp3::steps::MockInput {
     std::vector<int> ant2(itsNBl);
     int st1 = 0;
     int st2 = 0;
-    for (int i = 0; i < itsNBl; ++i) {
+    for (std::size_t i = 0; i < itsNBl; ++i) {
       ant1[i] = st1;
       ant2[i] = st2;
       if (++st2 == 3) {
@@ -114,33 +114,32 @@ class TestInput : public dp3::steps::MockInput {
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer>) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] = casacore::Complex(1, 0);
-    }
-    casacore::Cube<float> weights(itsNCorr, itsNChan, itsNBl);
-    weights = 1.;
+    auto buffer = std::make_unique<DPBuffer>();
+    buffer->setTime(itsCount * itsTimeInterval + itsFirstTime);
 
-    casacore::Matrix<double> uvw(3, itsNBl);
-    for (int i = 0; i < itsNBl; ++i) {
-      uvw(0, i) = 1 + itsCount + i;
-      uvw(1, i) = 2 + itsCount + i;
-      uvw(2, i) = 3 + itsCount + i;
+    const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
+    buffer->ResizeData(shape);
+    buffer->GetData().fill(std::complex<float>{1, 0});
+
+    buffer->ResizeWeights(shape);
+    buffer->GetWeights().fill(1.0f);
+
+    buffer->ResizeFlags(shape);
+    buffer->GetFlags().fill(false);
+
+    buffer->ResizeUvw(itsNBl);
+    for (std::size_t i = 0; i < itsNBl; ++i) {
+      buffer->GetUvw()(i, 0) = 1 + itsCount + i;
+      buffer->GetUvw()(i, 1) = 2 + itsCount + i;
+      buffer->GetUvw()(i, 2) = 3 + itsCount + i;
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * itsTimeInterval + itsFirstTime);
-    buf.setData(data);
-    buf.setWeights(weights);
-    buf.setUVW(uvw);
-    casacore::Cube<bool> flags(data.shape());
-    flags = false;
-    buf.setFlags(flags);
-    getNextStep()->process(buf);
+
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -150,7 +149,7 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNChan, itsNBl, itsNCorr, itsTimeInterval;
+  std::size_t itsCount, itsNTime, itsNChan, itsNBl, itsNCorr, itsTimeInterval;
   double itsFirstTime;
 };
 
@@ -180,7 +179,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsMissingAntennaBehavior(missingAntennaBehavior) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
     xt::xtensor<std::complex<float>, 3> data(shape, std::complex<float>{1, 0});
     xt::xtensor<float, 3> weights(shape, 1.0f);
@@ -216,8 +215,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
         for (std::size_t chan = 0; chan < itsNChan; ++chan) {
           // Square root of autocorrelation for first antenna
-          std::complex<float> val = sqrt(buf.GetData()(bl, chan, 0));
-          bool flag = buf.GetFlags()(bl, chan, 0);
+          std::complex<float> val = sqrt(buffer->GetData()(bl, chan, 0));
+          bool flag = buffer->GetFlags()(bl, chan, 0);
           if ((ant1 == 1 || ant2 == 1) && rightTimes[itsTimeStep] == 2 &&
               rightFreqs[chan] == 2) {
             BOOST_CHECK(flag);
@@ -248,13 +247,13 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
 
     if (itsDoTest & DataNotChanged) {
-      BOOST_CHECK(xt::allclose(buf.GetData(), data, 1.0e-7));
+      BOOST_CHECK(xt::allclose(buffer->GetData(), data, 1.0e-7));
     }
     if (itsDoTest & DataChanged) {
-      BOOST_CHECK(!(xt::allclose(buf.GetData(), data, 1.0e-7)));
+      BOOST_CHECK(!(xt::allclose(buffer->GetData(), data, 1.0e-7)));
     }
     if (itsDoTest & WeightsNotChanged) {
-      BOOST_CHECK(xt::allclose(buf.GetWeights(), weights, 1.0e-7));
+      BOOST_CHECK(xt::allclose(buffer->GetWeights(), weights, 1.0e-7));
     }
     itsCount++;
     itsTimeStep++;

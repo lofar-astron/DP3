@@ -57,10 +57,10 @@ class TestInput : public dp3::steps::MockInput {
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
- private:
-  bool process(const dp3::base::DPBuffer&) override { return false; }
+  bool process(std::unique_ptr<dp3::base::DPBuffer>) override { return false; }
   void finish() override {}
 
+ private:
   int itsNChan, itsNCorr;
 };
 
