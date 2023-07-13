@@ -12,6 +12,10 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <xtensor/xio.hpp>
+#include <xtensor/xstrided_view.hpp>
+#include <xtensor/xview.hpp>
+
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 
@@ -80,7 +84,8 @@ BOOST_AUTO_TEST_CASE(fields_baseline_selection) {
 // It can be used with different nr of times, channels, etc.
 class TestInput : public dp3::steps::MockInput {
  public:
-  TestInput(int ntime, int nbl, int nchan, int ncorr, bool flag)
+  TestInput(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+            std::size_t ncorr, bool flag)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nbl),
@@ -95,7 +100,7 @@ class TestInput : public dp3::steps::MockInput {
     std::vector<int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
-    for (int i = 0; i < nbl; ++i) {
+    for (std::size_t i = 0; i < nbl; ++i) {
       ant1[i] = st1;
       ant2[i] = st2;
       if (++st2 == 4) {
@@ -134,45 +139,49 @@ class TestInput : public dp3::steps::MockInput {
     antPos[3] = casacore::MPosition(
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
-    std::vector<double> antDiam(4, 70.);
+    std::vector<double> antDiam(4, 70.0);
     info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
-    std::vector<double> chanWidth(nchan, 100000.);
+    std::vector<double> chanWidth(nchan, 100000.0);
     std::vector<double> chanFreqs;
-    for (int i = 0; i < nchan; i++) {
-      chanFreqs.push_back(1050000. + i * 100000.);
+    for (std::size_t i = 0; i < nchan; i++) {
+      chanFreqs.push_back(1050000.0 + i * 100000.0);
     }
     info().setChannels(std::move(chanFreqs), std::move(chanWidth));
   }
 
  private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer>) override {
     // Stop when all times are done.
     if (itsCount == itsNTime) {
       return false;
     }
-    DPBuffer buf;
-    buf.setTime(itsCount * 5 + 2);
-    buf.setExposure(0.1 * (itsCount + 1));
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 1000 + itsCount * 6);
+    auto buffer = std::make_unique<DPBuffer>();
+    buffer->setTime(itsCount * 5 + 2);
+    buffer->setExposure(0.1 * (itsCount + 1));
+    std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    buffer->ResizeData(data_shape);
+    for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
+      buffer->GetData().data()[i] = std::complex<float>(
+          i + itsCount * 10.0,
+          static_cast<int>(i) - 1000 + static_cast<int>(itsCount) * 6.0);
     }
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    buf.setWeights(weights);
-    indgen(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    // Set part of the flags to another value.
-    flags(casacore::IPosition(3, 0), flags.shape() - 1,
-          casacore::IPosition(3, 1, 3, 4)) = !itsFlag;
-    buf.setFlags(flags);
-    casacore::Matrix<double> uvw(3, itsNBl);
-    indgen(uvw, double(itsCount * 100));
-    buf.setUVW(uvw);
-    getNextStep()->process(buf);
+    buffer->ResizeWeights(data_shape);
+    const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
+    buffer->GetWeights() =
+        xt::arange<float>(0.5, last_weight, 0.01).reshape(data_shape);
+    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags().fill(itsFlag);
+    // Set every third channel for every fourth baseline to the opposite flag to
+    // make incorrect channel or baseline removal detectable.
+    xt::strided_view(buffer->GetFlags(),
+                     {xt::range(0, itsNBl, 4), xt::range(0, itsNChan, 3),
+                      xt::all()}) = !itsFlag;
+    buffer->ResizeUvw(itsNBl);
+    buffer->GetUvw() =
+        xt::arange(itsCount * 100.0, (itsNBl * 3.0) + (itsCount * 100.0), 1.0)
+            .reshape({itsNBl, 3});
+    getNextStep()->process(std::move(buffer));
     ++itsCount;
     return true;
   }
@@ -182,15 +191,16 @@ class TestInput : public dp3::steps::MockInput {
     // Do nothing / keep the info set in the constructor.
   }
 
-  int itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr;
   bool itsFlag;
 };
 
 // Class to check result of averaging TestInput.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(int ntime, int nbl, int nchan, int ncorr, int nblout, int stchan,
-             int nchanOut, bool flag)
+  TestOutput(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+             std::size_t ncorr, std::size_t nblout, std::size_t stchan,
+             std::size_t nchanOut, bool flag)
       : itsCount(0),
         itsNTime(ntime),
         itsNBl(nbl),
@@ -202,56 +212,70 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         itsFlag(flag) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
-    // Fill expected result in similar way as TestInput.
-    casacore::Cube<casacore::Complex> data(itsNCorr, itsNChan, itsNBl);
-    for (int i = 0; i < int(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + itsCount * 10, i - 1000 + itsCount * 6);
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    // Fill expected results to match input
+    std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
+    xt::xtensor<std::complex<float>, 3> data(data_shape);
+    for (std::size_t i = 0; i < data.size(); ++i) {
+      data.data()[i] = std::complex<float>(
+          i + itsCount * 10.0,
+          static_cast<int>(i) - 1000 + static_cast<int>(itsCount) * 6.0);
     }
-    casacore::Cube<float> weights(data.shape());
-    indgen(weights);
-    casacore::Cube<bool> flags(data.shape());
-    flags = itsFlag;
-    // Set part of the flags to another value.
-    flags(casacore::IPosition(3, 0), flags.shape() - 1,
-          casacore::IPosition(3, 1, 3, 4)) = !itsFlag;
-    casacore::Matrix<double> uvw(3, itsNBl);
-    indgen(uvw, double(itsCount * 100));
-    casacore::Slicer slicer(
-        casacore::IPosition(3, 0, itsStChan, 0),
-        casacore::IPosition(3, itsNCorr, itsNChanOut, itsNBlOut));
-    // Check the expected result.
-    BOOST_CHECK(allEQ(buf.GetCasacoreData(), data(slicer)));
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), flags(slicer)));
-    BOOST_CHECK(allEQ(buf.GetCasacoreWeights(), weights(slicer)));
-    BOOST_CHECK(allEQ(buf.GetCasacoreUvw(),
-                      uvw(casacore::IPosition(2, 0, 0),
-                          casacore::IPosition(2, 2, itsNBlOut - 1))));
-    BOOST_CHECK(casacore::near(buf.getTime(), itsCount * 5. + 2));
-    BOOST_CHECK(casacore::near(buf.getExposure(), 0.1 * (itsCount + 1)));
+    const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
+    xt::xtensor<float, 3> weights =
+        xt::arange<float>(0.5, last_weight, 0.01).reshape(data_shape);
+    xt::xtensor<bool, 3> flags(data_shape);
+    flags.fill(itsFlag);
+    // Set every third channel for every fourth baseline to the opposite flag to
+    // make incorrect channel or baseline removal detectable.
+    xt::strided_view(flags, {xt::range(0, itsNBl, 4), xt::range(0, itsNChan, 3),
+                             xt::all()}) = !itsFlag;
+    xt::xtensor<double, 2> uvw =
+        xt::arange(itsCount * 100.0, (itsNBl * 3.0) + (itsCount * 100.0), 1.0)
+            .reshape({itsNBl, 3});
+    BOOST_TEST(buffer->GetData() ==
+                   xt::view(data, xt::range(0, itsNBlOut),
+                            xt::range(itsStChan, itsStChan + itsNChanOut),
+                            xt::range(0, itsNCorr)),
+               boost::test_tools::per_element());
+    BOOST_TEST(buffer->GetFlags() ==
+                   xt::view(flags, xt::range(0, itsNBlOut),
+                            xt::range(itsStChan, itsStChan + itsNChanOut),
+                            xt::range(0, itsNCorr)),
+               boost::test_tools::per_element());
+    BOOST_TEST(buffer->GetWeights() ==
+                   xt::view(weights, xt::range(0, itsNBlOut),
+                            xt::range(itsStChan, itsStChan + itsNChanOut),
+                            xt::range(0, itsNCorr)),
+               boost::test_tools::per_element());
+    BOOST_TEST(
+        buffer->GetUvw() == xt::view(uvw, xt::range(0, itsNBlOut), xt::all()),
+        boost::test_tools::per_element());
+    BOOST_CHECK_CLOSE(buffer->getTime(), itsCount * 5.0 + 2, 1.0e-3);
+    BOOST_CHECK_CLOSE(buffer->getExposure(), 0.1 * (itsCount + 1), 1.0e-3);
     ++itsCount;
     return true;
   }
 
   void finish() override {}
   void updateInfo(const DPInfo& info) override {
-    BOOST_CHECK_EQUAL(itsNChan, int(info.origNChan()));
-    BOOST_CHECK_EQUAL(itsNChanOut, int(info.nchan()));
-    BOOST_CHECK_EQUAL(itsNBlOut, int(info.nbaselines()));
-    BOOST_CHECK_EQUAL(itsNTime, int(info.ntime()));
-    BOOST_CHECK_EQUAL(5., info.timeInterval());
-    BOOST_CHECK_EQUAL(1, int(info.nchanAvg()));
-    BOOST_CHECK_EQUAL(1, int(info.ntimeAvg()));
+    BOOST_CHECK_EQUAL(itsNChan, info.origNChan());
+    BOOST_CHECK_EQUAL(itsNChanOut, info.nchan());
+    BOOST_CHECK_EQUAL(itsNBlOut, info.nbaselines());
+    BOOST_CHECK_EQUAL(itsNTime, info.ntime());
+    BOOST_CHECK_EQUAL(5.0, info.timeInterval());
+    BOOST_CHECK_EQUAL(1, info.nchanAvg());
+    BOOST_CHECK_EQUAL(1, info.ntimeAvg());
   }
 
-  int itsCount;
-  int itsNTime, itsNBl, itsNChan, itsNCorr, itsNBlOut, itsStChan, itsNChanOut;
+  std::size_t itsCount, itsNTime, itsNBl, itsNChan, itsNCorr, itsNBlOut,
+      itsStChan, itsNChanOut;
   bool itsFlag;
 };
 
-void TestChannelsOnly(int ntime, int nbl, int nchan, int ncorr, int startchan,
-                      int nchanout, bool flag) {
+void TestChannelsOnly(std::size_t ntime, std::size_t nbl, std::size_t nchan,
+                      std::size_t ncorr, std::size_t startchan,
+                      std::size_t nchanout, bool flag) {
   auto in = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("startchan", std::to_string(startchan));
@@ -262,8 +286,10 @@ void TestChannelsOnly(int ntime, int nbl, int nchan, int ncorr, int startchan,
   dp3::steps::test::Execute({in, filter, out});
 }
 
-void TestChannelsAndBaselines(int ntime, int nbl, int nchan, int ncorr,
-                              int startchan, int nchanout, bool flag) {
+void TestChannelsAndBaselines(std::size_t ntime, std::size_t nbl,
+                              std::size_t nchan, std::size_t ncorr,
+                              std::size_t startchan, std::size_t nchanout,
+                              bool flag) {
   BOOST_CHECK(nbl <=
               4);  // otherwise baseline selection removes more than the first
 
