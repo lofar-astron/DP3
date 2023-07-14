@@ -45,11 +45,10 @@ DPBuffer::DPBuffer(double time, double exposure)
     : time_(time),
       exposure_(exposure),
       row_numbers_(),
-      casa_flags_(),
       casa_uvw_(),
       data_(),
       extra_data_(),
-      flags_(CreateSpan(casa_flags_)),
+      flags_(),
       weights_(),
       uvw_(CreateSpan(casa_uvw_)),
       solution_() {}
@@ -58,7 +57,6 @@ DPBuffer::DPBuffer(DPBuffer&& that)
     : time_(that.time_),
       exposure_(that.exposure_),
       row_numbers_(std::move(that.row_numbers_)),
-      casa_flags_(std::move(that.casa_flags_)),
       casa_uvw_(std::move(that.casa_uvw_)),
       data_(std::move(that.data_)),
       extra_data_(std::move(that.extra_data_)),
@@ -70,7 +68,6 @@ DPBuffer::DPBuffer(DPBuffer&& that)
   // The copy constructor for casacore::Array creates references. Since
   // moving a buffer does not have reference semantics, clear 'that'.
   that.row_numbers_.assign(decltype(that.row_numbers_)());
-  that.casa_flags_.assign(decltype(that.casa_flags_)());
   that.casa_uvw_.assign(decltype(that.casa_uvw_)());
 #endif
   that.CreateSpans();
@@ -89,7 +86,7 @@ DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
     row_numbers_.reference(that.row_numbers_);
     data_ = that.data_;
     extra_data_ = that.extra_data_;
-    casa_flags_.reference(that.casa_flags_);
+    flags_ = that.flags_;
     weights_ = that.weights_;
     casa_uvw_.reference(that.casa_uvw_);
     CreateSpans();
@@ -103,6 +100,7 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
     exposure_ = that.exposure_;
     data_ = std::move(that.data_);
     extra_data_ = std::move(that.extra_data_);
+    flags_ = std::move(that.flags_);
     weights_ = std::move(that.weights_);
     solution_ = std::move(that.solution_);
 
@@ -110,16 +108,13 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
     // The copy assignment operator for casacore::Array then creates copies.
 #ifdef USE_CASACORE_MOVE_SEMANTICS
     row_numbers_ = std::move(that.row_numbers_);
-    casa_flags_ = std::move(that.casa_flags_);
     casa_uvw_ = std::move(that.casa_uvw_);
 #else
     // Create references. Since move assignment does not use reference
     // semantics, clear 'that'.
     row_numbers_.reference(that.row_numbers_);
-    casa_flags_.reference(that.casa_flags_);
     casa_uvw_.reference(that.casa_uvw_);
     that.row_numbers_.assign(decltype(that.row_numbers_)());
-    that.casa_flags_.assign(decltype(that.casa_flags_)());
     that.casa_uvw_.assign(decltype(that.casa_uvw_)());
 #endif
     CreateSpans();
@@ -135,7 +130,6 @@ void DPBuffer::copy(const DPBuffer& that) {
   // Do it even if 'this == &that', since this/that may contain references,
   // and the result of 'copy' should always be an independent object.
   row_numbers_.unique();
-  casa_flags_.unique();
   casa_uvw_.unique();
   CreateSpans();
 }
@@ -159,8 +153,7 @@ void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
     exposure_ = that.exposure_;
     row_numbers_.reference(that.row_numbers_);
     if (fields.Data()) data_ = that.data_;
-    if (fields.Flags())
-      CopyField(casa_flags_, flags_, that.casa_flags_, that.flags_);
+    if (fields.Flags()) flags_ = that.flags_;
     if (fields.Weights()) weights_ = that.weights_;
     if (fields.Uvw()) CopyField(casa_uvw_, uvw_, that.casa_uvw_, that.uvw_);
     // TODO(AST-1241): Copy extra data fields, too.
@@ -169,20 +162,13 @@ void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
 }
 
 void DPBuffer::MakeIndependent(const common::Fields& fields) {
-  if (fields.Flags()) {
-    casa_flags_.unique();
-    flags_ = CreateSpan(casa_flags_);
-  }
   if (fields.Uvw()) {
     casa_uvw_.unique();
     uvw_ = CreateSpan(casa_uvw_);
   }
 }
 
-void DPBuffer::CreateSpans() {
-  flags_ = CreateSpan(casa_flags_);
-  uvw_ = CreateSpan(casa_uvw_);
-}
+void DPBuffer::CreateSpans() { uvw_ = CreateSpan(casa_uvw_); }
 
 void DPBuffer::AddData(const std::string& name) {
   assert(!name.empty());
@@ -224,8 +210,7 @@ void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
 }
 
 void DPBuffer::ResizeFlags(const std::array<std::size_t, 3>& shape) {
-  casa_flags_.resize(shape[2], shape[1], shape[0]);
-  flags_ = CreateSpan(casa_flags_);
+  flags_.resize(shape);
 }
 
 void DPBuffer::ResizeWeights(const std::array<std::size_t, 3>& shape) {

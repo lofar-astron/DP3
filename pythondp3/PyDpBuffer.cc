@@ -82,15 +82,18 @@ void WrapDpBuffer(py::module& m) {
           "Otherwise, get the extra data buffer with the given name.",
           py::arg("name") = "")
       .def(
+          "get_flags",
+          [](PyDpBuffer& self) {
+            return aocommon::xt::CreateSpan(self->GetFlags());
+          },
+          "Get flags buffer that can be used as numpy array. Shape is "
+          "(nr baselines, nr channels, nr polarizations).")
+      .def(
           "get_weights",
           [](PyDpBuffer& self) {
             return aocommon::xt::CreateSpan(self->GetWeights());
           },
           "Get weights buffer that can be used as numpy array. Shape is "
-          "(nr baselines, nr channels, nr polarizations).")
-      .def(
-          "get_flags", [](const PyDpBuffer& self) { return self->GetFlags(); },
-          "Get flags buffer that can be used as numpy array. Shape is "
           "(nr baselines, nr channels, nr polarizations).")
       .def(
           "get_uvw", [](const PyDpBuffer& self) { return self->GetUvw(); },
