@@ -243,13 +243,6 @@ void DPBuffer::referenceFilled(const DPBuffer& that) {
   }
 }
 
-void DPBuffer::setData(const casacore::Cube<Complex>& data) {
-  casa_data_.reference(data);
-  data_ = CreateSpan(casa_data_);
-  assert(extra_data_.empty() ||
-         extra_data_.begin()->second.shape() == data_.shape());
-}
-
 void DPBuffer::AddData(const std::string& name) {
   assert(!name.empty());
   assert(extra_data_.find(name) == extra_data_.end());
@@ -317,29 +310,14 @@ void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
   }
 }
 
-void DPBuffer::setFlags(const casacore::Cube<bool>& flags) {
-  casa_flags_.reference(flags);
-  flags_ = CreateSpan(casa_flags_);
-}
-
 void DPBuffer::ResizeFlags(const std::array<std::size_t, 3>& shape) {
   casa_flags_.resize(shape[2], shape[1], shape[0]);
   flags_ = CreateSpan(casa_flags_);
 }
 
-void DPBuffer::setWeights(const casacore::Cube<float>& weights) {
-  casa_weights_.reference(weights);
-  weights_ = CreateSpan(casa_weights_);
-}
-
 void DPBuffer::ResizeWeights(const std::array<std::size_t, 3>& shape) {
   casa_weights_.resize(shape[2], shape[1], shape[0]);
   weights_ = CreateSpan(casa_weights_);
-}
-
-void DPBuffer::setUVW(const casacore::Matrix<double>& uvw) {
-  casa_uvw_.reference(uvw);
-  uvw_ = CreateSpan(casa_uvw_);
 }
 
 void DPBuffer::ResizeUvw(size_t n_baselines) {
