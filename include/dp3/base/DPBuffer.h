@@ -101,7 +101,7 @@ class DPBuffer {
   /// Return types for Get* functions. Defining these types in DPBuffer
   /// simplifies changing types in the transition to XTensor.
   using DataType = aocommon::xt::UTensor<std::complex<float>, 3>;
-  using WeightsType = aocommon::xt::Span<float, 3>;
+  using WeightsType = xt::xtensor<float, 3>;
   using FlagsType = aocommon::xt::Span<bool, 3>;
   using UvwType = aocommon::xt::Span<double, 2>;
 
@@ -248,27 +248,10 @@ class DPBuffer {
   /// Some Steps need to add elements and need to resize the shape of the
   /// storage. Resizing is "destructive". This function allows callers to
   /// "steal" the storage before resizing.
-  ///
-  /// Note since the data is stored in Casacore instead of XTensor this
-  /// function returns a copy, just like GetData.
-  /// TODO(AST-1254) Enable the disabled code in the #else part.
-  [[nodiscard]] xt::xtensor<float, 3> TakeWeights() {
-#if 1
-    xt::xtensor<float, 3> result = weights_;
-    casa_weights_.reference(casacore::Cube<float>());
-    // Note this is a copy of CreateSpan in DPBuffer.cc.
-    // This code will be removed in AST-1254 so this is not a huge issue.
-    weights_ = aocommon::xt::CreateSpan(
-        casa_weights_.data(),
-        std::array{static_cast<size_t>(casa_weights_.shape()[2]),
-                   static_cast<size_t>(casa_weights_.shape()[1]),
-                   static_cast<size_t>(casa_weights_.shape()[0])});
-    return result;
-#else
-    xt::xtensor<float, 3> result;
+  [[nodiscard]] WeightsType TakeWeights() {
+    WeightsType result;
     std::swap(result, weights_);
     return result;
-#endif
   }
 
   /// Get or set the time.
@@ -323,9 +306,8 @@ class DPBuffer {
   // In the future, the XTensor views will be replaced by xt::xtensor objects
   // that hold the data. The casa_ objects then provide a Casacore view to the
   // data. When the casa_ objects are no longer used, they will be removed.
-  casacore::Cube<bool> casa_flags_;     ///< ncorr,nchan,nbasel
-  casacore::Matrix<double> casa_uvw_;   ///< 3,nbasel
-  casacore::Cube<float> casa_weights_;  ///< ncorr,nchan,nbasel
+  casacore::Cube<bool> casa_flags_;    ///< ncorr,nchan,nbasel
+  casacore::Matrix<double> casa_uvw_;  ///< 3,nbasel
 
   /// Visibilities (n_baselines x n_channels x n_correlations)
   DataType data_;
