@@ -6,10 +6,24 @@
 
 #include "../../Demixer.h"
 
+#include <array>
+#include <cassert>
+#include <complex>
+#include <cstddef>
+#include <memory>
+#include <utility>
+#include <vector>
+#include <string>
+
+#include <boost/test/unit_test.hpp>
+
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
-#include <boost/test/unit_test.hpp>
+#include <xtensor/xcomplex.hpp>
+#include <xtensor/xmath.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xio.hpp>
 
 #include "tPredict.h"
 #include "tStepCommon.h"
@@ -32,7 +46,7 @@ using dp3::steps::Step;
 namespace {
 
 // Demixer only works with 4 correlations
-const int kNCorr = 4;
+const size_t kNCorr = 4;
 
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
@@ -40,36 +54,43 @@ const int kNCorr = 4;
 // It can be used with different nr of times, channels, baselines.
 class TestInput : public dp3::steps::MockInput {
  public:
-  TestInput(int ntime, int nbl, int nchan, bool flag)
+  TestInput(size_t ntime, size_t nbl, size_t nchan, bool flag)
       : count_(0),
         n_times_(ntime),
         n_baselines_(nbl),
         n_channels_(nchan),
         flag_data_(flag) {}
 
- private:
-  bool process(const DPBuffer&) override {
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
     // Stop when all times are done.
     if (count_ == n_times_) {
       return false;
     }
-    casacore::Cube<casacore::Complex> data(kNCorr, n_channels_, n_baselines_);
-    for (int i = 0; i < static_cast<int>(data.size()); ++i) {
-      data.data()[i] =
-          casacore::Complex(i + count_ * 10, i - 1000 + count_ * 6);
+
+    buffer->setTime(count_ * 5 + 2);  // same interval as in updateAverageInfo
+
+    const std::array<size_t, 3> shape{n_baselines_, n_channels_, kNCorr};
+    buffer->ResizeData(shape);
+    for (int i = 0; i < static_cast<int>(buffer->GetData().size()); ++i) {
+      buffer->GetData().data()[i] =
+          std::complex<float>(i + count_ * 10.0f, i - 1000.0f + count_ * 6.0f);
     }
-    DPBuffer buf;
-    buf.setTime(count_ * 5 + 2);  // same interval as in updateAveragInfo
-    buf.setData(data);
-    casacore::Cube<float> weights(data.shape());
-    weights = 1.;
-    buf.setWeights(weights);
-    casacore::Cube<bool> flags(data.shape(), flag_data_);
-    buf.setFlags(flags);
-    casacore::Matrix<double> uvw(3, n_baselines_);
-    indgen(uvw, double(count_ * 100));
-    buf.setUVW(uvw);
-    getNextStep()->process(buf);
+
+    buffer->ResizeWeights(shape);
+    buffer->GetWeights().fill(1.0);
+
+    buffer->ResizeFlags(shape);
+    buffer->GetFlags().fill(flag_data_);
+
+    buffer->ResizeUvw(n_baselines_);
+    buffer->GetUvw().fill(double(count_ * 100));
+    for (size_t bl = 0; bl < n_baselines_; ++bl) {
+      buffer->GetUvw()(bl, 0) += bl * 3;
+      buffer->GetUvw()(bl, 1) += bl * 3 + 1;
+      buffer->GetUvw()(bl, 2) += bl * 3 + 2;
+    }
+
+    getNextStep()->process(std::move(buffer));
     ++count_;
     return true;
   }
@@ -94,25 +115,26 @@ class TestInput : public dp3::steps::MockInput {
     double start_channel = 8.0;
     std::vector<double> chan_freqs;
     std::vector<double> chan_width(n_channels_, 100000.);
-    for (int i = 0; i < n_channels_; i++) {
+    for (size_t i = 0; i < n_channels_; i++) {
       chan_freqs.push_back(start_channel + i * 100000.);
     }
     info().setChannels(std::move(chan_freqs), std::move(chan_width));
     info().update(start_channel, n_channels_, baselines, false);
   }
 
-  int count_;
-  int n_times_;
-  int n_baselines_;
-  int n_channels_;
+ private:
+  size_t count_;
+  size_t n_times_;
+  size_t n_baselines_;
+  size_t n_channels_;
   bool flag_data_;
 };
 
 // Class to check result of averaging TestInput.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(int ntime, int nbl, int nchan, int navgtime, int navgchan,
-             bool flag)
+  TestOutput(int ntime, size_t nbl, size_t nchan, size_t navgtime,
+             size_t navgchan, bool flag)
       : count_(0),
         n_times_(ntime),
         n_baselines_(nbl),
@@ -122,57 +144,68 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         flag_data_(flag) {}
 
  private:
-  bool process(const DPBuffer& buf) override {
-    int nchan = 1 + (n_channels_ - 1) / n_average_channel_;
-    int navgtime =
+  bool process(std::unique_ptr<DPBuffer> buffer) override {
+    size_t nchan = 1 + (n_channels_ - 1) / n_average_channel_;
+    assert(n_times_ >= count_ * n_average_time_);
+    size_t navgtime =
         std::min(n_average_time_, n_times_ - count_ * n_average_time_);
+
     // Fill expected result in similar way as TestInput.
-    casacore::Cube<casacore::Complex> data(kNCorr, n_channels_, n_baselines_);
-    casacore::Cube<float> weights(kNCorr, n_channels_, n_baselines_);
-    weights = 0;
+    std::array<size_t, 3> shape{n_baselines_, n_channels_, kNCorr};
+    xt::xtensor<std::complex<float>, 3> data(shape, 0.0f);
+    xt::xtensor<float, 3> weights(shape, 0.0f);
     if (!flag_data_) {
-      for (int j = count_ * n_average_time_;
+      for (size_t j = count_ * n_average_time_;
            j < count_ * n_average_time_ + navgtime; ++j) {
-        for (int i = 0; i < static_cast<int>(data.size()); ++i) {
-          data.data()[i] += casacore::Complex(i + j * 10, i - 1000 + j * 6);
-          weights.data()[i] += float(1);
+        for (size_t i = 0; i < data.size(); ++i) {
+          data.data()[i] += std::complex<float>(
+              i + j * 10, static_cast<int>(i) - 1000 + static_cast<int>(j) * 6);
+          weights.data()[i] += 1.0f;
         }
       }
     }
-    casacore::Cube<casacore::Complex> result(kNCorr, nchan, n_baselines_);
-    casacore::Cube<float> resultw(kNCorr, nchan, n_baselines_);
-    resultw = 0;
-    // Average to get the true expected result.
-    for (int k = 0; k < n_baselines_; ++k) {
-      for (int i = 0; i < kNCorr; ++i) {
-        for (int j = 0; j < nchan; ++j) {
-          int jc;
-          for (jc = j * n_average_channel_;
-               jc < std::min((j + 1) * n_average_channel_, n_channels_); ++jc) {
-            result(i, j, k) += data(i, jc, k);
-            resultw(i, j, k) += weights(i, jc, k);
+
+    shape = {n_baselines_, nchan, kNCorr};
+    xt::xtensor<std::complex<float>, 3> result_data(shape, 0.0f);
+    xt::xtensor<float, 3> result_weights(shape, 0.0f);
+    // Average to get the true expected result_data.
+    for (size_t bl = 0; bl < n_baselines_; ++bl) {
+      for (size_t corr = 0; corr < kNCorr; ++corr) {
+        for (size_t ch = 0; ch < nchan; ++ch) {
+          size_t avg_ch = ch * n_average_channel_;
+          for (; avg_ch < std::min((ch + 1) * n_average_channel_, n_channels_);
+               ++avg_ch) {
+            result_data(bl, ch, corr) += data(bl, avg_ch, corr);
+            result_weights(bl, ch, corr) += weights(bl, avg_ch, corr);
           }
-          result(i, j, k) /= float(navgtime * (jc - j * n_average_channel_));
+          result_data(bl, ch, corr) /=
+              float(navgtime * (avg_ch - ch * n_average_channel_));
         }
       }
     }
-    // Check the averaged result. When all the flags are set, do not check the
-    // values of the data and weights, since DP3 should not use those values
+
+    // Check the averaged result_data. When all the flags are set, do not check
+    // the values of the data and weights, since DP3 should not use those values
     // anyway.
     if (!flag_data_) {
-      BOOST_CHECK(allNear(real(buf.GetCasacoreData()), real(result), 1.0e-5));
-      BOOST_CHECK(allNear(imag(buf.GetCasacoreData()), imag(result), 1.0e-5));
-      BOOST_CHECK(allNear(buf.GetCasacoreWeights(), resultw, 1.0e-5));
+      BOOST_CHECK(xt::allclose(buffer->GetData(), result_data));
+      BOOST_CHECK(xt::allclose(buffer->GetWeights(), result_weights));
     }
     if (navgtime == n_average_time_) {
-      casacore::Matrix<double> uvw(3, n_baselines_);
-      indgen(uvw,
-             100 * (count_ * n_average_time_ + 0.5 * (n_average_time_ - 1)));
-      BOOST_CHECK(allNear(buf.GetCasacoreUvw(), uvw, 1e-5));
+      xt::xtensor<double, 2> result_uvw(
+          {n_baselines_, 3},
+          100 * (count_ * n_average_time_ + 0.5 * (n_average_time_ - 1)));
+      for (size_t bl = 0; bl < n_baselines_; ++bl) {
+        result_uvw(bl, 0) += bl * 3;
+        result_uvw(bl, 1) += bl * 3 + 1;
+        result_uvw(bl, 2) += bl * 3 + 2;
+      }
+      BOOST_CHECK(xt::allclose(buffer->GetUvw(), result_uvw));
     }
-    BOOST_CHECK(allEQ(buf.GetCasacoreFlags(), flag_data_));
+    xt::xtensor<bool, 3> result_flags(shape, flag_data_);
+    BOOST_CHECK_EQUAL(buffer->GetFlags(), result_flags);
     BOOST_CHECK_CLOSE(
-        buf.getTime(),
+        buffer->getTime(),
         2.0 + 5.0 * (count_ * n_average_time_ + (n_average_time_ - 1) / 2.0),
         1.0e-3);
 
@@ -193,10 +226,10 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
   int count_;
   int n_times_;
-  int n_baselines_;
-  int n_channels_;
-  int n_average_time_;
-  int n_average_channel_;
+  size_t n_baselines_;
+  size_t n_channels_;
+  size_t n_average_time_;
+  size_t n_average_channel_;
   bool flag_data_;
 };
 
