@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(regular) {
 
   for (size_t time = 0; time < kNTimes; ++time) {
     unweighted_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
-    unweighted_buffers.back()->ResizeData(kShape);
+    unweighted_buffers.back()->GetData().resize(kShape);
     FillRegularData(unweighted_buffers.back()->GetData(""));
 
     unweighted_buffers.back()->AddData(kDirectionName);
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
 
   for (size_t time = 0; time < kNTimes; ++time) {
     unweighted_buffers.emplace_back(std::make_unique<DPBuffer>(time, 1.0));
-    unweighted_buffers.back()->ResizeData(kShape);
+    unweighted_buffers.back()->GetData().resize(kShape);
     FillRegularData(unweighted_buffers.back()->GetData(""));
 
     for (const std::string& name : kDirectionNames) {

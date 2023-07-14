@@ -81,7 +81,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
 
   const std::array<std::size_t, 3> shape{n_baselines, channel_counts.size(),
                                          kNCorr};
-  buffer->ResizeData(shape);
+  buffer->GetData().resize(shape);
 
   buffer->ResizeFlags(shape);
   buffer->GetFlags().fill(false);

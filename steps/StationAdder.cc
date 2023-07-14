@@ -284,7 +284,7 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
   // 2. Resize the buffer to the new sizes that were set in our info object
   const std::array<std::size_t, 3> new_shape{
       getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
-  buffer->ResizeData(new_shape);
+  buffer->GetData().resize(new_shape);
   buffer->ResizeFlags(new_shape);
   buffer->ResizeWeights(new_shape);
   buffer->ResizeUvw(getInfo().nbaselines());

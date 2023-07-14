@@ -43,7 +43,7 @@ bool TestNullStokes(std::size_t n_baselines, std::size_t n_channels,
   const std::array<std::size_t, 2> uvw_shape = {n_baselines, std::size_t{3}};
   // Fill the data with arbitrary values in which we can detect if the correct
   // changes are applied
-  buffer->ResizeData(data_shape);
+  buffer->GetData().resize(data_shape);
   const std::size_t data_size = buffer->GetData().size();
   for (std::size_t i = 0; i < data_size; ++i) {
     buffer->GetData().data()[i] = std::complex<float>(

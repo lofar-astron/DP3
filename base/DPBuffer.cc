@@ -210,13 +210,6 @@ void DPBuffer::RemoveData(const std::string& name) {
   }
 }
 
-void DPBuffer::ResizeData(const std::array<std::size_t, 3>& shape) {
-  data_.resize(shape);
-  for (auto& extra_element : extra_data_) {
-    extra_element.second.resize(shape);
-  }
-}
-
 void DPBuffer::CopyData(const DPBuffer& source, const std::string& source_name,
                         const std::string& target_name) {
   assert(source.HasData(source_name));

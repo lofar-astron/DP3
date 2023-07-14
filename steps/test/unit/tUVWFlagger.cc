@@ -130,7 +130,7 @@ template <>
 std::unique_ptr<DPBuffer> TestInput<DPBuffer>::CreateInputBuffer() {
   std::unique_ptr<DPBuffer> buffer = std::make_unique<DPBuffer>();
 
-  buffer->ResizeData({n_baselines_, n_channels_, n_correlations_});
+  buffer->GetData().resize({n_baselines_, n_channels_, n_correlations_});
   for (size_t i = 0; i < buffer->GetData().size(); ++i) {
     buffer->GetData().data()[i] =
         std::complex<float>(i + count_ * 10, i - 10 + count_ * 6);

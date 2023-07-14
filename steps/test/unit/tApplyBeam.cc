@@ -26,7 +26,7 @@ std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
   std::unique_ptr<dp3::base::DPBuffer> buffer =
       std::make_unique<dp3::base::DPBuffer>(kTime, kExposure);
 
-  buffer->ResizeData(data.shape());
+  buffer->GetData().resize(data.shape());
   buffer->ResizeWeights(weights.shape());
 
   buffer->GetData() = data;

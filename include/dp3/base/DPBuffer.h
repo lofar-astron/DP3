@@ -161,10 +161,6 @@ class DPBuffer {
     return name.empty() || (extra_data_.find(name) != extra_data_.end());
   }
 
-  /// Resize the data buffer(s) in the DPBuffer.
-  /// @param shape New shape: { n_baselines, n_channels, n_correlations }
-  void ResizeData(const std::array<std::size_t, 3>& shape);
-
   /// Accesses data (visibilities) in the DPBuffer.
   ///
   /// @param name Data buffer name. An empty string indicates the main data

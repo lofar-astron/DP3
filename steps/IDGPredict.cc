@@ -265,7 +265,7 @@ void IDGPredict::flush() {
 
   for (size_t i = 0; i < buffers_.size(); i++) {
     // Move (accumulated) prediction into corresponding buffered DPBuffer
-    buffers_[i]->ResizeData(front_predictions[i].shape());
+    buffers_[i]->GetData().resize(front_predictions[i].shape());
     buffers_[i]->GetData() = front_predictions[i];
 
     getNextStep()->process(std::move(buffers_[i]));

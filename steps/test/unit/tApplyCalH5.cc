@@ -123,7 +123,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->setTime(itsCount * itsTimeInterval + itsFirstTime);
 
     const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
-    buffer->ResizeData(shape);
+    buffer->GetData().resize(shape);
     buffer->GetData().fill(std::complex<float>{1, 0});
 
     buffer->ResizeWeights(shape);

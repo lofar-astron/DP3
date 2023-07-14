@@ -114,7 +114,7 @@ class TestInput : public dp3::steps::MockInput {
     }
     const std::array<std::size_t, 3> shape{n_baselines_, n_channels_,
                                            n_correlations_};
-    buffer->ResizeData(shape);
+    buffer->GetData().resize(shape);
 
     buffer->GetData().fill(std::complex<float>(1.6, 0.9));
     if (count_ == kOutlierIndex) {

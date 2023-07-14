@@ -65,7 +65,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
 
     const std::array<size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
-    buffer->ResizeData(shape);
+    buffer->GetData().resize(shape);
     for (size_t i = 0; i < buffer->GetData().size(); ++i) {
       buffer->GetData().data()[i] = std::complex<float>(
           i + itsCount * 10.0f, i - 10.0f + itsCount * 6.0f);

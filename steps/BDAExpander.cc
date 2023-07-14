@@ -261,7 +261,7 @@ BDAExpander::RegularBufferElement::RegularBufferElement(
   regular_buffer = std::make_unique<DPBuffer>(current_time, current_exposure);
 
   const std::array<std::size_t, 3> shape{n_baseline, n_chan, n_corr};
-  regular_buffer->ResizeData(shape);
+  regular_buffer->GetData().resize(shape);
   regular_buffer->ResizeWeights(shape);
   regular_buffer->ResizeFlags(shape);
   regular_buffer->ResizeUvw(n_baseline);

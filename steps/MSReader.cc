@@ -290,7 +290,7 @@ std::string MSReader::msName() const { return itsMS.tableName(); }
 
 bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Data()) {
-    buffer->ResizeData({itsNrBl, itsNrChan, itsNrCorr});
+    buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
   if (getFieldsToRead().Flags()) {
     buffer->ResizeFlags({itsNrBl, itsNrChan, itsNrCorr});

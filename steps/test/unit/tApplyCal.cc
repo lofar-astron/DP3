@@ -112,7 +112,7 @@ class TestInput : public dp3::steps::MockInput {
     }
     const std::array<std::size_t, 3> shape{kNBaselines, kNChannels,
                                            kNCorrelations};
-    buffer->ResizeData(shape);
+    buffer->GetData().resize(shape);
     buffer->GetData().fill(std::complex<float>(1, 0));
     buffer->ResizeWeights(shape);
     buffer->GetWeights().fill(1.0f);

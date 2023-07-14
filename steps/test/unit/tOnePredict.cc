@@ -172,7 +172,7 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
   buffer->setExposure(interval);
   const std::array<std::size_t, 3> shape{n_baselines, channel_counts.size(),
                                          kNCorr};
-  buffer->ResizeData(shape);
+  buffer->GetData().resize(shape);
   buffer->ResizeWeights(shape);
   buffer->ResizeFlags(shape);
   buffer->ResizeUvw(n_baselines);
