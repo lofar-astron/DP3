@@ -382,21 +382,20 @@ class DPBuffer {
   casacore::Cube<float> casa_weights_;  ///< ncorr,nchan,nbasel
 
   /// Visibilities (n_baselines x n_channels x n_correlations)
-  aocommon::xt::Span<std::complex<float>, 3> data_;
+  DataType data_;
   /// Extra visibilities, e.g., containing predictions for different directions.
   std::map<std::string, aocommon::xt::UTensor<std::complex<float>, 3>>
       extra_data_;
   /// For now, create spans for the extra data, so GetData() can always return
   /// a reference to a span.
-  std::map<std::string, aocommon::xt::Span<std::complex<float>, 3>>
-      extra_data_span_;
+  std::map<std::string, DataType> extra_data_span_;
 
   /// Flags (n_baselines x n_channels x n_correlations)
-  aocommon::xt::Span<bool, 3> flags_;
+  FlagsType flags_;
   /// Weights (n_baselines x n_channels x n_correlations)
-  aocommon::xt::Span<float, 3> weights_;
+  WeightsType weights_;
   /// UVW coordinates (n_baselines x 3)
-  aocommon::xt::Span<double, 2> uvw_;
+  UvwType uvw_;
 
   std::vector<std::vector<std::complex<double>>>
       solution_;  ///< nchan,nant*npol

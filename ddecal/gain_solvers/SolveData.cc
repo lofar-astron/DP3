@@ -73,8 +73,7 @@ SolveData::SolveData(const std::vector<base::DPBuffer>& buffers,
   // Fill all channel blocks with data.
   std::vector<size_t> visibility_indices(n_channel_blocks, 0);
   for (size_t time_index = 0; time_index < n_times; ++time_index) {
-    const aocommon::xt::Span<std::complex<float>, 3>& data =
-        buffers[time_index].GetData("");
+    const base::DPBuffer::DataType& data = buffers[time_index].GetData("");
 
     for (size_t baseline = 0; baseline < n_baselines_in_buffers; ++baseline) {
       const size_t antenna1 = antennas1[baseline];
@@ -96,7 +95,7 @@ SolveData::SolveData(const std::vector<base::DPBuffer>& buffers,
           }
 
           for (size_t direction = 0; direction < n_directions; ++direction) {
-            const aocommon::xt::Span<std::complex<float>, 3>& model_data =
+            const base::DPBuffer::DataType& model_data =
                 buffers[time_index].GetData(direction_keys[direction]);
             const size_t n_solutions =
                 channel_blocks_.front().n_solutions_[direction];

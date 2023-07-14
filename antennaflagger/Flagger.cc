@@ -57,7 +57,7 @@ namespace dp3 {
 namespace antennaflagger {
 
 xt::xtensor<std::complex<float>, 2> Flagger::ComputeStatsStdDev(
-    const DataSpan& data) {
+    const dp3::base::DPBuffer::DataType& data) {
   const size_t n_baselines = data.shape(0);
   const size_t n_correlations = data.shape(2);
   xt::xtensor<std::complex<float>, 2> stats({n_baselines, n_correlations});
@@ -67,7 +67,7 @@ xt::xtensor<std::complex<float>, 2> Flagger::ComputeStatsStdDev(
 }
 
 xt::xtensor<std::complex<float>, 2> Flagger::ComputeStatsSumSquare(
-    const DataSpan& data) {
+    const dp3::base::DPBuffer::DataType& data) {
   const size_t n_baselines = data.shape(0);
   const size_t n_correlations = data.shape(2);
   xt::xtensor<std::complex<float>, 2> stats({n_baselines, n_correlations});
@@ -174,7 +174,7 @@ xt::xtensor<int, 2> Flagger::ComputeStationFlags(
   return flags;
 }
 
-void Flagger::ComputeStats(const DataSpan& data,
+void Flagger::ComputeStats(const dp3::base::DPBuffer::DataType& data,
                            common::BaselineOrder baseline_order) {
   compute_statistics_timer_.start();
   xt::xtensor<std::complex<float>, 2> stats_baseline_stddev =

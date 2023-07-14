@@ -118,8 +118,7 @@ std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
     unweighted_buffers.back()->GetWeights().fill(1.0f);
     unweighted_buffers.back()->GetFlags().fill(false);
 
-    aocommon::xt::Span<std::complex<float>, 3>& time_data =
-        unweighted_buffers.back()->GetData();
+    base::DPBuffer::DataType& time_data = unweighted_buffers.back()->GetData();
     time_data.fill(std::complex<float>{0.0f, 0.0f});
 
     for (size_t d = 0; d != kNDirections; ++d) {

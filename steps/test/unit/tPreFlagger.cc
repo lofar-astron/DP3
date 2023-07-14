@@ -398,8 +398,8 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
  private:
   bool process(std::unique_ptr<DPBuffer> buffer) override {
     const double time = buffer->getTime();
-    const aocommon::xt::Span<std::complex<float>, 3> data = buffer->GetData();
-    const aocommon::xt::Span<double, 2> uvw = buffer->GetUvw();
+    const DPBuffer::DataType& data = buffer->GetData();
+    const DPBuffer::UvwType& uvw = buffer->GetUvw();
     xt::xtensor<bool, 3> result(data.shape());
     for (std::size_t baseline = 0; baseline < data.shape(0); ++baseline) {
       const int antenna1 = baseline / 4;

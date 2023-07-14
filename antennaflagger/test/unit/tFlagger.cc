@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(compute_antenna_flags) {
   const size_t antenna1 = 42;
   xt::xtensor<std::complex<float>, 3> data = CreateBrokenAntennaData(
       kNBaselines, kNAntennas, kNChannels, kNCorrelations, antenna1);
-  const dp3::antennaflagger::Flagger::DataSpan data_span =
+  const dp3::base::DPBuffer::DataType data_span =
       aocommon::xt::CreateSpan(data);
   const xt::xtensor<bool, 1> baseline_flags =
       ComputeBaselineSelectionForAntenna(kNBaselines, kNAntennas, antenna1);
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(find_bad_antennas) {
   const size_t antenna1 = 42;
   xt::xtensor<std::complex<float>, 3> data = CreateBrokenAntennaData(
       kNBaselines, kNAntennas, kNChannels, kNCorrelations, antenna1);
-  const dp3::antennaflagger::Flagger::DataSpan data_span =
+  const dp3::base::DPBuffer::DataType data_span =
       aocommon::xt::CreateSpan(data);
 
   // Flagger
@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE(compute_station_flags) {
   xt::xtensor<std::complex<float>, 3> data =
       CreateBrokenStationData(kNBaselines, kNStations, kNAntennasPerStation,
                               kNChannels, kNCorrelations, station1);
-  const dp3::antennaflagger::Flagger::DataSpan data_span =
+  const dp3::base::DPBuffer::DataType data_span =
       aocommon::xt::CreateSpan(data);
 
   const xt::xtensor<bool, 1> baseline_flags =
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(find_bad_stations) {
   xt::xtensor<std::complex<float>, 3> data =
       CreateBrokenStationData(kNBaselines, kNStations, kNAntennasPerStation,
                               kNChannels, kNCorrelations, station);
-  const dp3::antennaflagger::Flagger::DataSpan data_span =
+  const dp3::base::DPBuffer::DataType data_span =
       aocommon::xt::CreateSpan(data);
 
   // Flagger

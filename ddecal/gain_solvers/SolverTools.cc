@@ -25,12 +25,11 @@ void AssignAndWeight(
   for (std::size_t timestep = 0; timestep != n_times; ++timestep) {
     base::DPBuffer& unweighted_buffer = *unweighted_buffers[timestep];
     base::DPBuffer& weighted_buffer = weighted_buffers[timestep];
-    const aocommon::xt::Span<std::complex<float>, 3>& unweighted_data =
+    const base::DPBuffer::DataType& unweighted_data =
         unweighted_buffer.GetData();
-    const aocommon::xt::Span<bool, 3>& buffer_flags =
+    const base::DPBuffer::FlagsType& buffer_flags =
         unweighted_buffer.GetFlags();
-    const aocommon::xt::Span<float, 3>& weights =
-        unweighted_buffer.GetWeights();
+    const base::DPBuffer::WeightsType& weights = unweighted_buffer.GetWeights();
     assert(unweighted_data.shape() == weights.shape());
     assert(timestep == 0 || unweighted_data.shape() ==
                                 unweighted_buffers.front()->GetData().shape());

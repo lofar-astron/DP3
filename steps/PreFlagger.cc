@@ -157,7 +157,7 @@ bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
 }
 
 void PreFlagger::setFlags(const xt::xtensor<bool, 3>& in,
-                          aocommon::xt::Span<bool, 3>& out, bool mode) {
+                          base::DPBuffer::FlagsType& out, bool mode) {
   assert(in.shape() == out.shape());
   for (std::size_t baseline = 0; baseline < in.shape(0); ++baseline) {
     for (std::size_t channel = 0; channel < in.shape(1); ++channel) {
@@ -171,10 +171,10 @@ void PreFlagger::setFlags(const xt::xtensor<bool, 3>& in,
   }
 }
 
-void PreFlagger::clearFlags(
-    const xt::xtensor<bool, 3>& in, aocommon::xt::Span<bool, 3>& out, bool mode,
-    const aocommon::xt::Span<std::complex<float>, 3>& data,
-    const aocommon::xt::Span<float, 3>& weights) {
+void PreFlagger::clearFlags(const xt::xtensor<bool, 3>& in,
+                            base::DPBuffer::FlagsType& out, bool mode,
+                            const base::DPBuffer::DataType& data,
+                            const base::DPBuffer::WeightsType& weights) {
   assert(in.shape() == out.shape());
   assert(in.shape() == data.shape());
   assert(in.shape() == weights.shape());
@@ -603,7 +603,7 @@ bool PreFlagger::PSet::matchRange(double v,
   return false;
 }
 
-bool PreFlagger::PSet::flagUV(const aocommon::xt::Span<double, 2>& uvw) {
+bool PreFlagger::PSet::flagUV(const base::DPBuffer::UvwType& uvw) {
   bool match = false;
   unsigned int nrbl = itsMatchBL.size();
   for (unsigned int bl = 0; bl < nrbl; ++bl) {
@@ -702,8 +702,7 @@ void PreFlagger::PSet::testAzEl(MDirection::Convert& converter,
   }
 }
 
-void PreFlagger::PSet::flagAmpl(
-    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+void PreFlagger::PSet::flagAmpl(const base::DPBuffer::DataType& data) {
   const std::size_t nr = data.shape(0) * data.shape(1);
   const std::size_t nrcorr = data.shape(2);
 
@@ -726,8 +725,7 @@ void PreFlagger::PSet::flagAmpl(
   }
 }
 
-void PreFlagger::PSet::flagPhase(
-    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+void PreFlagger::PSet::flagPhase(const base::DPBuffer::DataType& data) {
   const std::size_t nr = data.shape(0) * data.shape(1);
   const std::size_t nrcorr = data.shape(2);
 
@@ -750,8 +748,7 @@ void PreFlagger::PSet::flagPhase(
   }
 }
 
-void PreFlagger::PSet::flagReal(
-    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+void PreFlagger::PSet::flagReal(const base::DPBuffer::DataType& data) {
   const std::size_t nr = data.shape(0) * data.shape(1);
   const std::size_t nrcorr = data.shape(2);
 
@@ -774,8 +771,7 @@ void PreFlagger::PSet::flagReal(
   }
 }
 
-void PreFlagger::PSet::flagImag(
-    const aocommon::xt::Span<std::complex<float>, 3>& data) {
+void PreFlagger::PSet::flagImag(const base::DPBuffer::DataType& data) {
   const std::size_t nr = data.shape(0) * data.shape(1);
   const std::size_t nrcorr = data.shape(2);
 

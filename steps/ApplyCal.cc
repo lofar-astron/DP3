@@ -116,7 +116,7 @@ void ApplyCal::ApplyDiag(const std::complex<float>* gain_a,
   buffer.GetData()(baseline, channel, 3) *= gain_a[1] * std::conj(gain_b[1]);
 
   if (update_weights) {
-    aocommon::xt::Span<float, 3>& weights = buffer.GetWeights();
+    DPBuffer::WeightsType& weights = buffer.GetWeights();
     weights(baseline, channel, 0) /=
         std::norm(gain_a[0]) * std::norm(gain_b[0]);
     weights(baseline, channel, 1) /=
@@ -151,7 +151,7 @@ void ApplyCal::ApplyScalar(const std::complex<float>* gain_a,
   buffer.GetData()(baseline, channel, 3) *= gain_a_b;
 
   if (update_weights) {
-    aocommon::xt::Span<float, 3>& weights = buffer.GetWeights();
+    DPBuffer::WeightsType& weights = buffer.GetWeights();
     const float norm_gain_a_b = std::norm(gain_a[0]) * std::norm(gain_b[0]);
     weights(baseline, channel, 0) /= norm_gain_a_b;
     weights(baseline, channel, 1) /= norm_gain_a_b;

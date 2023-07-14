@@ -1012,7 +1012,7 @@ void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
   assert(iodata_.n_channels == nCh);
   assert(4 == nCr);
 
-  const aocommon::xt::Span<double, 2>& uvw = buffer->GetUvw();
+  const UvwType& uvw = buffer->GetUvw();
   size_t row0 = 0;
   // load data, skipping autocorrelations
   for (size_t bl = 0; bl < nBl; bl++) {

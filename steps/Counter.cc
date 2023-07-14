@@ -52,7 +52,7 @@ void Counter::updateInfo(const base::DPInfo& info_in) {
 }
 
 bool Counter::process(std::unique_ptr<base::DPBuffer> buffer) {
-  const aocommon::xt::Span<bool, 3>& flags = buffer->GetFlags();
+  const base::DPBuffer::FlagsType& flags = buffer->GetFlags();
   const size_t nrbl = flags.shape(0);
   const size_t nrchan = flags.shape(1);
   for (size_t baseline = 0; baseline < nrbl; ++baseline) {
