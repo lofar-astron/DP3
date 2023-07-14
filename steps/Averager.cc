@@ -264,9 +264,9 @@ void Averager::average() {
   itsBuf->ResizeWeights(out_shape);
   itsBuf->ResizeFlags(out_shape);
   itsBuf->MakeIndependent(kDataField | kWeightsField);
-  aocommon::xt::Span<std::complex<float>, 3>& data_out = itsBuf->GetData();
-  aocommon::xt::Span<float, 3>& weights_out = itsBuf->GetWeights();
-  aocommon::xt::Span<bool, 3>& flags_out = itsBuf->GetFlags();
+  base::DPBuffer::DataType& data_out = itsBuf->GetData();
+  base::DPBuffer::WeightsType& weights_out = itsBuf->GetWeights();
+  base::DPBuffer::FlagsType& flags_out = itsBuf->GetFlags();
   assert(data_in.data() != data_out.data());
   assert(weights_in.data() != weights_out.data());
 

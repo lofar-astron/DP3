@@ -758,7 +758,7 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Resize if needed (probably when called for first time).
   buf.ResizeWeights({itsNrBl, itsNrChan, itsNrCorr});
-  aocommon::xt::Span<float, 3>& weights = buf.GetWeights();
+  DPBuffer::WeightsType& weights = buf.GetWeights();
   const casacore::IPosition shape(3, itsNrCorr, itsNrChan, itsNrBl);
   casacore::Cube<float> casa_weights(shape, weights.data(), casacore::SHARE);
   if (rowNrs.rowVector().empty()) {
@@ -806,7 +806,7 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
 
 void MSReader::autoWeight(DPBuffer& buf) {
   const double* chanWidths = getInfo().chanWidths().data();
-  aocommon::xt::Span<float, 3>& weights = buf.GetWeights();
+  DPBuffer::WeightsType& weights = buf.GetWeights();
   const unsigned int nbl = weights.shape(0);
   const unsigned int nchan = weights.shape(1);
   const unsigned int npol = weights.shape(2);
@@ -815,7 +815,7 @@ void MSReader::autoWeight(DPBuffer& buf) {
   // Calculate the weight for each cross-correlation data point.
   const std::vector<int>& ant1 = getInfo().getAnt1();
   const std::vector<int>& ant2 = getInfo().getAnt2();
-  const aocommon::xt::Span<std::complex<float>, 3>& data = buf.GetData();
+  const DPBuffer::DataType& data = buf.GetData();
   for (unsigned int bl = 0; bl < nbl; ++bl) {
     // Can only be done if both autocorrelations are present.
     if (autoInx[ant1[bl]] >= 0 && autoInx[ant2[bl]] >= 0) {

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <aocommon/xt/span.h>
+#include <dp3/base/DPBuffer.h>
 
 #include "../common/baseline_indices.h"
 #include "../common/Timer.h"
@@ -31,8 +32,6 @@ namespace antennaflagger {
  */
 class Flagger {
  public:
-  using DataSpan = aocommon::xt::Span<std::complex<float>, 3>;
-
   Flagger(size_t n_stations, size_t n_antennas_per_station, size_t n_channels,
           size_t n_correlations)
       : n_stations_(n_stations),
@@ -53,7 +52,8 @@ class Flagger {
    * @param baseline_order Baselines are assumed to be ordered according to this
    * ordering. See common/baseline_indices.h for more details on the ordering.
    */
-  void ComputeStats(const DataSpan& data, common::BaselineOrder baseline_order);
+  void ComputeStats(const dp3::base::DPBuffer::DataType& data,
+                    common::BaselineOrder baseline_order);
 
   /**
    * Identify antennas that are outliers compared to the other antennas
@@ -83,7 +83,7 @@ class Flagger {
    * @return Statistics as a tensor of complex numbers.
    */
   static xt::xtensor<std::complex<float>, 2> ComputeStatsStdDev(
-      const DataSpan& data);
+      const dp3::base::DPBuffer::DataType& data);
 
   /**
    * Compute sum of squares for the real and imaginary component seperately over
@@ -92,7 +92,7 @@ class Flagger {
    * @return Statistics as a tensor of complex numbers.
    */
   static xt::xtensor<std::complex<float>, 2> ComputeStatsSumSquare(
-      const DataSpan& data);
+      const dp3::base::DPBuffer::DataType& data);
 
   /**
    * Compute the per antenna statistics by combining the

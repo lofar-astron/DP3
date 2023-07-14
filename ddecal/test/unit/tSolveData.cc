@@ -41,7 +41,7 @@ void FillRandomData(std::vector<std::complex<float>>& data, size_t size) {
   });
 }
 
-void FillRegularData(aocommon::xt::Span<std::complex<float>, 3>& data) {
+void FillRegularData(DPBuffer::DataType& data) {
   // Reusing these variables ensures that each call generates different data.
   static std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   static std::mt19937 mt(0);

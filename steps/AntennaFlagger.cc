@@ -116,7 +116,7 @@ bool AntennaFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
         {getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()});
     buffer->GetFlags().fill(false);
   }
-  aocommon::xt::Span<bool, 3>& flags = buffer->GetFlags();
+  base::DPBuffer::FlagsType& flags = buffer->GetFlags();
 
   for (size_t antenna1 : flagged_antennas) {
     for (size_t antenna2 = 0; antenna2 < info().nantenna(); ++antenna2) {

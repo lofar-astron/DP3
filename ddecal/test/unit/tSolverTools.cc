@@ -70,8 +70,8 @@ class AssignAndWeightFixture {
   const std::vector<DPBuffer>& WeightedBuffers() const {
     return weighted_buffers_;
   }
-  const aocommon::xt::Span<std::complex<float>, 3>& WeightedData(
-      std::size_t buffer_index, const std::string& name) const {
+  const DPBuffer::DataType& WeightedData(std::size_t buffer_index,
+                                         const std::string& name) const {
     return weighted_buffers_[buffer_index].GetData(name);
   }
 

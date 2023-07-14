@@ -130,7 +130,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
                       time_interval_ * 0.01);
     BOOST_CHECK(xt::all(xt::equal(buffer->GetFlags(), flags_[time_step_])));
 
-    aocommon::xt::Span<double, 2> buf_uvw = buffer->GetUvw();
+    DPBuffer::UvwType buf_uvw = buffer->GetUvw();
     BOOST_TEST(buf_uvw.shape() == (std::array<std::size_t, 2>{kNBaselines, 3}),
                boost::test_tools::per_element());
     if (update_uvw_) {

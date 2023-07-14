@@ -180,8 +180,7 @@ std::vector<int> nsetupSplitUVW(
 
 void nsplitUVW(const std::vector<int>& baseline_indices,
                const std::vector<Baseline>& baselines,
-               const aocommon::xt::Span<double, 2>& uvwbl,
-               xt::xtensor<double, 2>& uvwant) {
+               const DPBuffer::UvwType& uvwbl, xt::xtensor<double, 2>& uvwant) {
   uvwant.fill(0.0);
   for (unsigned int i = 0; i < baseline_indices.size(); ++i) {
     int index = baseline_indices[i];

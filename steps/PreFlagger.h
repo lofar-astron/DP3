@@ -152,7 +152,7 @@ class PreFlagger : public Step {
 
     /// Clear itsMatchBL for baselines with mismatching UV distances.
     /// If returns false if no matches were found.
-    bool flagUV(const aocommon::xt::Span<double, 2>& uvw);
+    bool flagUV(const base::DPBuffer::UvwType& uvw);
 
     /// Clear itsMatchBL for baselines with mismatching AzEl.
     /// If returns false if no matches were found.
@@ -165,15 +165,15 @@ class PreFlagger : public Step {
                   const std::vector<int>& ant2);
 
     /// Set the flags based on amplitude threshold per correlation.
-    void flagAmpl(const aocommon::xt::Span<std::complex<float>, 3>& data);
+    void flagAmpl(const base::DPBuffer::DataType& data);
 
     /// Set the flags based on phase threshold per correlation.
-    void flagPhase(const aocommon::xt::Span<std::complex<float>, 3>& data);
+    void flagPhase(const base::DPBuffer::DataType& data);
 
     /// Set the flags based on real/imaginary threshold per correlation.
     ///@{
-    void flagReal(const aocommon::xt::Span<std::complex<float>, 3>& data);
-    void flagImag(const aocommon::xt::Span<std::complex<float>, 3>& data);
+    void flagReal(const base::DPBuffer::DataType& data);
+    void flagImag(const base::DPBuffer::DataType& data);
     ///@}
 
     /// Flag the channels given in itsChannels.
@@ -274,16 +274,16 @@ class PreFlagger : public Step {
   };
 
   /// Set the flags in 'out' where 'in' matches 'mode'.
-  void setFlags(const xt::xtensor<bool, 3>& in,
-                aocommon::xt::Span<bool, 3>& out, bool mode);
+  void setFlags(const xt::xtensor<bool, 3>& in, base::DPBuffer::FlagsType& out,
+                bool mode);
 
   /// Clear the flags in 'out' where 'in' matches 'mode'.
   /// If the corresponding data point of a flag is invalid
   /// (non-finite or zero weight), it is always flagged.
   void clearFlags(const xt::xtensor<bool, 3>& in,
-                  aocommon::xt::Span<bool, 3>& out, bool mode,
-                  const aocommon::xt::Span<std::complex<float>, 3>& data,
-                  const aocommon::xt::Span<float, 3>& weights);
+                  base::DPBuffer::FlagsType& out, bool mode,
+                  const base::DPBuffer::DataType& data,
+                  const base::DPBuffer::WeightsType& weights);
 
   std::string itsName;
   Mode itsMode;
