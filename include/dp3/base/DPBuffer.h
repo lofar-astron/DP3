@@ -102,7 +102,7 @@ class DPBuffer {
   /// simplifies changing types in the transition to XTensor.
   using DataType = aocommon::xt::UTensor<std::complex<float>, 3>;
   using WeightsType = xt::xtensor<float, 3>;
-  using FlagsType = aocommon::xt::Span<bool, 3>;
+  using FlagsType = xt::xtensor<bool, 3>;
   using UvwType = aocommon::xt::Span<double, 2>;
 
   /// Construct object with empty arrays.
@@ -306,7 +306,6 @@ class DPBuffer {
   // In the future, the XTensor views will be replaced by xt::xtensor objects
   // that hold the data. The casa_ objects then provide a Casacore view to the
   // data. When the casa_ objects are no longer used, they will be removed.
-  casacore::Cube<bool> casa_flags_;    ///< ncorr,nchan,nbasel
   casacore::Matrix<double> casa_uvw_;  ///< 3,nbasel
 
   /// Visibilities (n_baselines x n_channels x n_correlations)
