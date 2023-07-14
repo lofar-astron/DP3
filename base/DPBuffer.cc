@@ -45,13 +45,11 @@ DPBuffer::DPBuffer(double time, double exposure)
     : time_(time),
       exposure_(exposure),
       row_numbers_(),
-      casa_data_(),
       casa_flags_(),
       casa_uvw_(),
       casa_weights_(),
-      data_(CreateSpan(casa_data_)),
+      data_(),
       extra_data_(),
-      extra_data_span_(),
       flags_(CreateSpan(casa_flags_)),
       weights_(CreateSpan(casa_weights_)),
       uvw_(CreateSpan(casa_uvw_)),
@@ -61,13 +59,11 @@ DPBuffer::DPBuffer(DPBuffer&& that)
     : time_(that.time_),
       exposure_(that.exposure_),
       row_numbers_(std::move(that.row_numbers_)),
-      casa_data_(std::move(that.casa_data_)),
       casa_flags_(std::move(that.casa_flags_)),
       casa_uvw_(std::move(that.casa_uvw_)),
       casa_weights_(std::move(that.casa_weights_)),
       data_(std::move(that.data_)),
       extra_data_(std::move(that.extra_data_)),
-      extra_data_span_(std::move(that.extra_data_span_)),
       flags_(std::move(that.flags_)),
       weights_(std::move(that.weights_)),
       uvw_(std::move(that.uvw_)),
@@ -76,7 +72,6 @@ DPBuffer::DPBuffer(DPBuffer&& that)
   // The copy constructor for casacore::Array creates references. Since
   // moving a buffer does not have reference semantics, clear 'that'.
   that.row_numbers_.assign(decltype(that.row_numbers_)());
-  that.casa_data_.assign(decltype(that.casa_data_)());
   that.casa_flags_.assign(decltype(that.casa_flags_)());
   that.casa_uvw_.assign(decltype(that.casa_uvw_)());
   that.casa_weights_.assign(decltype(that.casa_weights_)());
@@ -95,7 +90,7 @@ DPBuffer& DPBuffer::operator=(const DPBuffer& that) {
     exposure_ = that.exposure_;
     solution_ = that.solution_;
     row_numbers_.reference(that.row_numbers_);
-    casa_data_.reference(that.casa_data_);
+    data_ = that.data_;
     extra_data_ = that.extra_data_;
     casa_flags_.reference(that.casa_flags_);
     casa_weights_.reference(that.casa_weights_);
@@ -109,6 +104,7 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
   if (this != &that) {
     time_ = that.time_;
     exposure_ = that.exposure_;
+    data_ = std::move(that.data_);
     extra_data_ = std::move(that.extra_data_);
     solution_ = std::move(that.solution_);
 
@@ -116,7 +112,6 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
     // The copy assignment operator for casacore::Array then creates copies.
 #ifdef USE_CASACORE_MOVE_SEMANTICS
     row_numbers_ = std::move(that.row_numbers_);
-    casa_data_ = std::move(that.casa_data_);
     casa_flags_ = std::move(that.casa_flags_);
     casa_weights_ = std::move(that.casa_weights_);
     casa_uvw_ = std::move(that.casa_uvw_);
@@ -124,12 +119,10 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
     // Create references. Since move assignment does not use reference
     // semantics, clear 'that'.
     row_numbers_.reference(that.row_numbers_);
-    casa_data_.reference(that.casa_data_);
     casa_flags_.reference(that.casa_flags_);
     casa_weights_.reference(that.casa_weights_);
     casa_uvw_.reference(that.casa_uvw_);
     that.row_numbers_.assign(decltype(that.row_numbers_)());
-    that.casa_data_.assign(decltype(that.casa_data_)());
     that.casa_flags_.assign(decltype(that.casa_flags_)());
     that.casa_uvw_.assign(decltype(that.casa_uvw_)());
     that.casa_weights_.assign(decltype(that.casa_weights_)());
@@ -147,7 +140,6 @@ void DPBuffer::copy(const DPBuffer& that) {
   // Do it even if 'this == &that', since this/that may contain references,
   // and the result of 'copy' should always be an independent object.
   row_numbers_.unique();
-  casa_data_.unique();
   casa_flags_.unique();
   casa_weights_.unique();
   casa_uvw_.unique();
@@ -172,8 +164,7 @@ void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
     time_ = that.time_;
     exposure_ = that.exposure_;
     row_numbers_.reference(that.row_numbers_);
-    if (fields.Data())
-      CopyField(casa_data_, data_, that.casa_data_, that.data_);
+    if (fields.Data()) data_ = that.data_;
     if (fields.Flags())
       CopyField(casa_flags_, flags_, that.casa_flags_, that.flags_);
     if (fields.Weights())
@@ -185,10 +176,6 @@ void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
 }
 
 void DPBuffer::MakeIndependent(const common::Fields& fields) {
-  if (fields.Data()) {
-    casa_data_.unique();
-    data_ = CreateSpan(casa_data_);
-  }
   if (fields.Flags()) {
     casa_flags_.unique();
     flags_ = CreateSpan(casa_flags_);
@@ -204,71 +191,29 @@ void DPBuffer::MakeIndependent(const common::Fields& fields) {
 }
 
 void DPBuffer::CreateSpans() {
-  data_ = CreateSpan(casa_data_);
   flags_ = CreateSpan(casa_flags_);
   weights_ = CreateSpan(casa_weights_);
   uvw_ = CreateSpan(casa_uvw_);
-  extra_data_span_.clear();
-  for (auto& extra_element : extra_data_) {
-    const std::string& name = extra_element.first;
-    extra_data_span_.emplace(
-        std::make_pair(name, aocommon::xt::CreateSpan(extra_data_[name])));
-  }
-}
-
-void DPBuffer::referenceFilled(const DPBuffer& that) {
-  if (this != &that) {
-    // extra_data does not support the legacy referenceFilled function.
-    assert(that.extra_data_.empty());
-
-    time_ = that.time_;
-    exposure_ = that.exposure_;
-    row_numbers_.reference(that.row_numbers_);
-    if (!that.casa_data_.empty()) {
-      casa_data_.reference(that.casa_data_);
-      data_ = CreateSpan(casa_data_);
-    }
-    if (!that.casa_flags_.empty()) {
-      casa_flags_.reference(that.casa_flags_);
-      flags_ = CreateSpan(casa_flags_);
-    }
-    if (!that.casa_weights_.empty()) {
-      casa_weights_.reference(that.casa_weights_);
-      weights_ = CreateSpan(casa_weights_);
-    }
-    if (!that.casa_uvw_.empty()) {
-      casa_uvw_.reference(that.casa_uvw_);
-      uvw_ = CreateSpan(casa_uvw_);
-    }
-  }
 }
 
 void DPBuffer::AddData(const std::string& name) {
   assert(!name.empty());
   assert(extra_data_.find(name) == extra_data_.end());
   extra_data_[name].resize(data_.shape());
-  extra_data_span_.emplace(
-      std::make_pair(name, aocommon::xt::CreateSpan(extra_data_[name])));
 }
 
 void DPBuffer::RemoveData(const std::string& name) {
   if (name.empty()) {
     extra_data_.clear();
-    extra_data_span_.clear();
   } else {
     extra_data_.erase(name);
-    extra_data_span_.erase(name);
   }
 }
 
 void DPBuffer::ResizeData(const std::array<std::size_t, 3>& shape) {
-  casa_data_.resize(shape[2], shape[1], shape[0]);
-  data_ = CreateSpan(casa_data_);
+  data_.resize(shape);
   for (auto& extra_element : extra_data_) {
-    const std::string& name = extra_element.first;
     extra_element.second.resize(shape);
-    extra_data_span_.find(name)->second =
-        aocommon::xt::CreateSpan(extra_data_[name]);
   }
 }
 
@@ -278,8 +223,6 @@ void DPBuffer::CopyData(const DPBuffer& source, const std::string& source_name,
   assert(!target_name.empty());
 
   extra_data_[target_name] = source.GetData(source_name);
-  extra_data_span_.insert_or_assign(
-      target_name, aocommon::xt::CreateSpan(extra_data_[target_name]));
 }
 
 void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
@@ -288,25 +231,14 @@ void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
   assert(!target_name.empty());
 
   if (source_name.empty()) {
-    // Copy and delete the data, since moving from a casacore to an xtensor
-    // object is not possible.
-    // TODO(AST-1254): Implement actual moving.
-    extra_data_[target_name] = source.data_;
-    extra_data_span_.insert_or_assign(
-        target_name, aocommon::xt::CreateSpan(extra_data_[target_name]));
-    source.casa_data_.reference(casacore::Cube<casacore::Complex>());
-    source.data_ = CreateSpan(source.casa_data_);
+    extra_data_[target_name] = std::move(source.data_);
   } else {
     auto source_data_iterator = source.extra_data_.find(source_name);
-    auto source_span_iterator = source.extra_data_span_.find(source_name);
 
     extra_data_.insert_or_assign(target_name,
                                  std::move(source_data_iterator->second));
-    extra_data_span_.insert_or_assign(target_name,
-                                      std::move(source_span_iterator->second));
 
     source.extra_data_.erase(source_data_iterator);
-    source.extra_data_span_.erase(source_span_iterator);
   }
 }
 
