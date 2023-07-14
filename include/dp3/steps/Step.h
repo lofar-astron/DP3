@@ -72,25 +72,13 @@ class Step {
   /// Destructor.
   virtual ~Step();
 
-  /// Process the data (legacy interface).
-  /// When processed, it invokes the process function of the next step.
-  /// It should return False at the end.
-  /// A Step should either implement this legacy overload or the new overload
-  /// that accepts a unique pointer.
-  /// This base implementation tries calling the unique pointer overload,
-  /// and throws if a Step does not implement that overload, too.
-  virtual bool process(const base::DPBuffer& buffer);
-
   /// Process the data.
   /// When processed, the step should invoke the process function of the next
   /// step with the same buffer as argument.
-  /// This base implementation tries calling the legacy process() overload,
-  /// and throws if a Step does not implement that overload, too.
-  /// When all Steps use this new overload, we should remove the legacy overload
-  /// and this base implementation should always throw (similarly to the BDA
-  /// overload below).
   /// @return False at the end of the input. True if there is more input.
-  virtual bool process(std::unique_ptr<base::DPBuffer> buffer);
+  virtual bool process(std::unique_ptr<base::DPBuffer> buffer) {
+    throw std::runtime_error("Step does not support regular data processing.");
+  }
 
   /// Process the BDA data.
   /// When processed, it invokes the process function of the next step.
@@ -174,12 +162,11 @@ class Step {
   virtual void addToMS(const std::string& msName);
 
  private:
-  Step::ShPtr itsNextStep;
+  std::shared_ptr<Step> itsNextStep;
   Step* itsPrevStep;  /// Normal pointer for back links, prevent
                       /// two shared pointers to same object
   base::DPInfo itsInfoIn;
   base::DPInfo itsInfoOut;
-  bool recursive_process_ = false;
 };
 
 /// Common interface for steps that produce model data.

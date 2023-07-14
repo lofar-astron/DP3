@@ -30,40 +30,6 @@ const DPInfo& Step::setInfo(const DPInfo& info) {
 
 void Step::updateInfo(const DPInfo& infoIn) { info() = infoIn; }
 
-bool Step::process(const base::DPBuffer& buffer) {
-  if (recursive_process_) {
-    throw std::runtime_error("Step does not support regular data processing.");
-  }
-  recursive_process_ = true;
-  bool result;
-  try {
-    // Call the new overload using a reference-copy of 'buffer'.
-    result = process(std::make_unique<base::DPBuffer>(buffer));
-  } catch (const std::exception&) {
-    recursive_process_ = false;
-    throw;
-  }
-  recursive_process_ = false;
-  return result;
-}
-
-bool Step::process(std::unique_ptr<base::DPBuffer> buffer) {
-  if (recursive_process_) {
-    throw std::runtime_error("Step does not support regular data processing.");
-  }
-  recursive_process_ = true;
-  bool result;
-  try {
-    // Call the legacy overload.
-    result = process(*buffer);
-  } catch (const std::exception&) {
-    recursive_process_ = false;
-    throw;
-  }
-  recursive_process_ = false;
-  return result;
-}
-
 void Step::addToMS(const std::string& msName) {
   if (itsPrevStep) itsPrevStep->addToMS(msName);
 }
