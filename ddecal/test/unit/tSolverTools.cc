@@ -86,8 +86,8 @@ class AssignAndWeightFixture {
 };
 
 template <typename T>
-void CheckTensor(const aocommon::xt::Span<T, 3>& tensor,
-                 const T& expected_value) {
+void CheckTensor(const T& tensor,
+                 const typename T::value_type& expected_value) {
   BOOST_TEST(tensor.shape() == kShape);
   BOOST_TEST(xt::allclose(tensor, expected_value));
 }

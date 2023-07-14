@@ -41,7 +41,6 @@ void CompareArray(const casacore::Array<T>& left,
 /// casacore references.
 void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_EQUAL(left.getRowNrs().data(), right.getRowNrs().data());
-  BOOST_CHECK_EQUAL(left.GetData().data(), right.GetData().data());
   BOOST_CHECK_EQUAL(left.GetFlags().data(), right.GetFlags().data());
   BOOST_CHECK_EQUAL(left.GetUvw().data(), right.GetUvw().data());
   BOOST_CHECK_EQUAL(left.GetWeights().data(), right.GetWeights().data());

@@ -176,6 +176,7 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
   buffer->ResizeFlags(kShape);
   buffer->ResizeUvw(n_baselines);
 
+  buffer->GetData().fill(std::complex{0, 0});
   buffer->GetWeights().fill(weight);
   buffer->GetFlags().fill(false);
 
@@ -196,12 +197,6 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
   }
 
   return buffer;
-}
-
-void CheckData(const std::complex<float>& expected,
-               const std::complex<float>& actual) {
-  BOOST_TEST(expected.real() == actual.real());
-  BOOST_TEST(expected.imag() == actual.imag());
 }
 
 /**
@@ -235,7 +230,8 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   BOOST_REQUIRE(row_full_res_flag);
   for (std::size_t chan = 0; chan < n_chan; ++chan) {
     for (std::size_t corr = 0; corr < n_corr; ++corr) {
-      CheckData(expected.GetData()(0, chan, corr), *row_data);
+      BOOST_TEST(expected.GetData()(0, chan, corr).real() == row_data->real());
+      BOOST_TEST(expected.GetData()(0, chan, corr).imag() == row_data->imag());
       BOOST_TEST(expected.GetFlags()(0, chan, corr) == *row_flag);
       BOOST_TEST(expected.GetWeights()(0, chan, corr) == *row_weight);
       // !!! TODO: add proper full res flags test.

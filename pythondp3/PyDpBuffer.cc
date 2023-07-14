@@ -15,12 +15,15 @@ namespace pythondp3 {
 
 namespace {
 
-template <typename TensorType>
-void RegisterTensor(py::module& m, const char* name) {
-  py::class_<TensorType>(m, name, py::buffer_protocol())
-      .def_buffer([](TensorType& tensor) {
-        using ValueType = typename TensorType::value_type;
-        constexpr std::size_t value_size = sizeof(ValueType);
+/// Use Spans as datatype, and not the actual xtensor type, since pybind11
+/// may copy the value. Copying a span does not hurt: It still points to the
+/// same data.
+template <typename T, size_t Dimensions>
+void RegisterSpan(py::module& m, const char* name) {
+  using SpanType = aocommon::xt::Span<T, Dimensions>;
+  py::class_<SpanType>(m, name, py::buffer_protocol())
+      .def_buffer([](SpanType& tensor) {
+        constexpr std::size_t value_size = sizeof(T);
         auto strides = tensor.strides();
         for (auto& stride : strides) stride *= value_size;
         return py::buffer_info(tensor.data(), tensor.shape(), strides);
@@ -37,10 +40,10 @@ std::array<std::size_t, 3> ConvertShape(const pybind11::ssize_t* shape) {
 }  // namespace
 
 void WrapDpBuffer(py::module& m) {
-  RegisterTensor<DPBuffer::DataType>(m, "DPBuffer_Data");
-  RegisterTensor<DPBuffer::WeightsType>(m, "DPBuffer_Weights");
-  RegisterTensor<DPBuffer::FlagsType>(m, "DPBuffer_Flags");
-  RegisterTensor<DPBuffer::UvwType>(m, "DPBuffer_Uvw");
+  RegisterSpan<std::complex<float>, 3>(m, "DPBuffer_Data");
+  RegisterSpan<float, 3>(m, "DPBuffer_Weights");
+  RegisterSpan<bool, 3>(m, "DPBuffer_Flags");
+  RegisterSpan<double, 2>(m, "DPBuffer_Uvw");
 
   py::class_<PyDpBuffer>(m, "DPBuffer")
       .def(py::init<>())
@@ -65,13 +68,13 @@ void WrapDpBuffer(py::module& m) {
           "Set the exposure duration of this buffer.")
       .def(
           "get_data",
-          [](const PyDpBuffer& self, const std::string& name) {
-            const DPBuffer& buffer = *self;
+          [](PyDpBuffer& self, const std::string& name) {
+            DPBuffer& buffer = *self;
             if (!buffer.HasData(name)) {
               throw std::runtime_error("Buffer has no data named '" + name +
                                        "'");
             }
-            return buffer.GetData(name);
+            return aocommon::xt::CreateSpan(buffer.GetData(name));
           },
           "Get data buffer that can be used as numpy array. Shape is "
           "(nr baselines, nr channels, nr polarizations). If the 'name' "

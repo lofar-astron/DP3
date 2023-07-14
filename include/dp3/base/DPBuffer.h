@@ -100,7 +100,7 @@ class DPBuffer {
 
   /// Return types for Get* functions. Defining these types in DPBuffer
   /// simplifies changing types in the transition to XTensor.
-  using DataType = aocommon::xt::Span<std::complex<float>, 3>;
+  using DataType = aocommon::xt::UTensor<std::complex<float>, 3>;
   using WeightsType = aocommon::xt::Span<float, 3>;
   using FlagsType = aocommon::xt::Span<bool, 3>;
   using UvwType = aocommon::xt::Span<double, 2>;
@@ -143,9 +143,6 @@ class DPBuffer {
   /// @param fields The fields that should be independent copies.
   void MakeIndependent(const common::Fields& fields);
 
-  /// Reference only the arrays that are filled in that.
-  void referenceFilled(const DPBuffer& that);
-
   /// Adds an extra visibility buffer.
   /// The new visibility buffer gets the same shape as the default data buffer.
   /// @param name Name for the new buffer. The name may not be empty. It may
@@ -180,8 +177,8 @@ class DPBuffer {
     if (name.empty()) {
       return data_;
     } else {
-      auto found = extra_data_span_.find(name);
-      assert(found != extra_data_span_.end());
+      auto found = extra_data_.find(name);
+      assert(found != extra_data_.end());
       return found->second;
     }
   }
@@ -189,8 +186,8 @@ class DPBuffer {
     if (name.empty()) {
       return data_;
     } else {
-      auto found = extra_data_span_.find(name);
-      assert(found != extra_data_span_.end());
+      auto found = extra_data_.find(name);
+      assert(found != extra_data_.end());
       return found->second;
     }
   }
@@ -200,27 +197,10 @@ class DPBuffer {
   /// Some Steps need to add elements and need to resize the shape of the
   /// storage. Resizing is "destructive". This function allows callers to
   /// "steal" the storage before resizing.
-  ///
-  /// Note since the data is stored in Casacore instead of XTensor this
-  /// function returns a copy, just like GetData.
-  /// TODO(AST-1254) Enable the disabled code in the #else part.
-  [[nodiscard]] xt::xtensor<std::complex<float>, 3> TakeData() {
-#if 1
-    xt::xtensor<std::complex<float>, 3> result = data_;
-    casa_data_.reference(casacore::Cube<Complex>());
-    // Note this is a copy of CreateSpan in DPBuffer.cc.
-    // This code will be removed in AST-1254 so this is not a huge issue.
-    data_ = aocommon::xt::CreateSpan(
-        casa_data_.data(),
-        std::array{static_cast<size_t>(casa_data_.shape()[2]),
-                   static_cast<size_t>(casa_data_.shape()[1]),
-                   static_cast<size_t>(casa_data_.shape()[0])});
-    return result;
-#else
-    xt::xtensor<std::complex<float>, 3> result;
+  [[nodiscard]] DataType TakeData() {
+    DataType result;
     std::swap(result, data_);
     return result;
-#endif
   }
 
   /// Copy a data buffer of another DPBuffer into an extra data buffer
@@ -234,10 +214,6 @@ class DPBuffer {
 
   /// Move a data buffer from 'source' into the current buffer.
   /// If the extra buffer already exists, it is overwritten.
-  /// Note: Moving data from the main data buffer currently requires copying
-  /// the data and then deleting it from 'source', since moving data from a
-  /// casacore to an xtensor object is not possible.
-  /// TODO(AST-1254): Enable true moving in that case.
   /// @param source_name Name of a data buffer in 'source'. If empty, uses
   ///        the main data buffer in 'source'.
   /// @param target_name Name of the target data buffer.
@@ -351,7 +327,6 @@ class DPBuffer {
   // In the future, the XTensor views will be replaced by xt::xtensor objects
   // that hold the data. The casa_ objects then provide a Casacore view to the
   // data. When the casa_ objects are no longer used, they will be removed.
-  casacore::Cube<Complex> casa_data_;   ///< ncorr,nchan,nbasel
   casacore::Cube<bool> casa_flags_;     ///< ncorr,nchan,nbasel
   casacore::Matrix<double> casa_uvw_;   ///< 3,nbasel
   casacore::Cube<float> casa_weights_;  ///< ncorr,nchan,nbasel
@@ -361,9 +336,6 @@ class DPBuffer {
   /// Extra visibilities, e.g., containing predictions for different directions.
   std::map<std::string, aocommon::xt::UTensor<std::complex<float>, 3>>
       extra_data_;
-  /// For now, create spans for the extra data, so GetData() can always return
-  /// a reference to a span.
-  std::map<std::string, DataType> extra_data_span_;
 
   /// Flags (n_baselines x n_channels x n_correlations)
   FlagsType flags_;

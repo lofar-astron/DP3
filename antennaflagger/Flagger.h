@@ -7,7 +7,6 @@
 #include <complex>
 #include <vector>
 
-#include <aocommon/xt/span.h>
 #include <dp3/base/DPBuffer.h>
 
 #include "../common/baseline_indices.h"
