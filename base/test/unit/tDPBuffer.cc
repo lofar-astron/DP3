@@ -43,7 +43,6 @@ void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_EQUAL(left.getRowNrs().data(), right.getRowNrs().data());
   BOOST_CHECK_EQUAL(left.GetFlags().data(), right.GetFlags().data());
   BOOST_CHECK_EQUAL(left.GetUvw().data(), right.GetUvw().data());
-  BOOST_CHECK_EQUAL(left.GetWeights().data(), right.GetWeights().data());
 }
 
 /// Verify that two DPBuffers do not share the same data, e.g., using

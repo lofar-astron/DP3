@@ -83,7 +83,9 @@ void WrapDpBuffer(py::module& m) {
           py::arg("name") = "")
       .def(
           "get_weights",
-          [](const PyDpBuffer& self) { return self->GetWeights(); },
+          [](PyDpBuffer& self) {
+            return aocommon::xt::CreateSpan(self->GetWeights());
+          },
           "Get weights buffer that can be used as numpy array. Shape is "
           "(nr baselines, nr channels, nr polarizations).")
       .def(
