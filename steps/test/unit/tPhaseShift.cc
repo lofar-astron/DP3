@@ -117,7 +117,7 @@ class TestInput : public dp3::steps::MockInput {
     std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
     auto buffer = std::make_unique<DPBuffer>();
     buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
-    buffer->ResizeData(data_shape);
+    buffer->GetData().resize(data_shape);
     auto& data = buffer->GetData();
     for (std::size_t i = 0; i < data.size(); ++i) {
       data.data()[i] = std::complex<float>(

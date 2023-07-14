@@ -226,7 +226,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   buffer->setRowNrs(buf1.getRowNrs());
   // Size the buffers if they should be read.
   if (getFieldsToRead().Data()) {
-    buffer->ResizeData({itsNrBl, itsNrChan, itsNrCorr});
+    buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
   if (getFieldsToRead().Flags()) {
     buffer->ResizeFlags({itsNrBl, itsNrChan, itsNrCorr});

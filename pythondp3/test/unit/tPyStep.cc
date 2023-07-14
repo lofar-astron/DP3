@@ -48,7 +48,7 @@ class TestInput final : public steps::MockInput {
       return false;
     }
     buffer->setTime(count_ * 5 + 2);
-    buffer->ResizeData(kShape);
+    buffer->GetData().resize(kShape);
     for (int i = 0; i < static_cast<int>(buffer->GetData().size()); ++i) {
       buffer->GetData().data()[i] =
           std::complex<float>(i + count_ * 10, i - count_ * 10);

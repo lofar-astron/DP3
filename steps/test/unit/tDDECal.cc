@@ -374,7 +374,7 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
   xt::view(input_data, xt::range(0, kNStations - 1), xt::all(), xt::all())
       .fill(kStation0DataValue);
 
-  buffer->ResizeData(kShape);
+  buffer->GetData().resize(kShape);
   buffer->GetData().assign(input_data);
   buffer->AddData(kModelName);
   buffer->GetData(kModelName).fill(kModelDataValue);

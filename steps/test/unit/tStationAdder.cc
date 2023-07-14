@@ -107,7 +107,7 @@ class TestInput : public dp3::steps::MockInput {
     auto buffer = std::make_unique<DPBuffer>();
     buffer->setTime(itsCount * 30.0 + 4472025740.0);
     const std::array<std::size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
-    buffer->ResizeData(data_shape);
+    buffer->GetData().resize(data_shape);
     auto& data = buffer->GetData();
     for (std::size_t i = 0; i < data.size(); ++i) {
       data.data()[i] = std::complex<float>(

@@ -620,7 +620,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   // Add all thread model data to one buffer
-  buffer->ResizeData({nBl, nCh, nCr});
+  buffer->GetData().resize({nBl, nCh, nCr});
   buffer->MakeIndependent(kDataField);
   buffer->GetData().fill(std::complex<float>());
   for (size_t thread = 0; thread < std::min(pool->NThreads(), n_threads);

@@ -53,7 +53,7 @@ class TestInput : public dp3::steps::MockInput {
     }
     std::array<size_t, 3> data_shape{kNBaselines, kNChannels, kNCorr};
     auto buffer = std::make_unique<DPBuffer>();
-    buffer->ResizeData(data_shape);
+    buffer->GetData().resize(data_shape);
     for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
       buffer->GetData().data()[i] = std::complex<float>(
           i + time_step_ * 10.0,

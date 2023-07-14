@@ -112,7 +112,7 @@ std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
     unweighted_buffers.emplace_back(std::make_unique<base::DPBuffer>());
     weighted_buffers.emplace_back();
 
-    unweighted_buffers.back()->ResizeData(kShape);
+    unweighted_buffers.back()->GetData().resize(kShape);
     unweighted_buffers.back()->ResizeWeights(kShape);
     unweighted_buffers.back()->ResizeFlags(kShape);
     unweighted_buffers.back()->GetWeights().fill(1.0f);

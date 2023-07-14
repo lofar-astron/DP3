@@ -70,7 +70,7 @@ void AssignAndWeight(
 
     const std::complex<float> kZeroVisibility(0.0f, 0.0f);
 
-    weighted_buffer.ResizeData(unweighted_data.shape());
+    weighted_buffer.GetData().resize(unweighted_data.shape());
     weighted_buffer.GetData() = unweighted_data * weights_sqrt;
     xt::masked_view(weighted_buffer.GetData(), flags_view) = kZeroVisibility;
 

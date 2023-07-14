@@ -121,7 +121,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   auto buffer = std::make_unique<DPBuffer>();
   buffer->setTime(time);
   buffer->setExposure(interval);
-  buffer->ResizeData(kShape);
+  buffer->GetData().resize(kShape);
   buffer->ResizeWeights(kShape);
   buffer->ResizeFlags(kShape);
   buffer->ResizeUvw(n_baselines);
@@ -171,7 +171,7 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
   buffer->setExposure(interval);
   buffer->setTime(time);
   buffer->setExposure(interval);
-  buffer->ResizeData(kShape);
+  buffer->GetData().resize(kShape);
   buffer->ResizeWeights(kShape);
   buffer->ResizeFlags(kShape);
   buffer->ResizeUvw(n_baselines);

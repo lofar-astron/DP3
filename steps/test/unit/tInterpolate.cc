@@ -109,7 +109,7 @@ class TestInput : public dp3::steps::MockInput {
     auto buffer = std::make_unique<dp3::base::DPBuffer>();
     buffer->setTime(process_count_ * 5.0 +
                     2.0);  // same interval as in updateAveragInfo
-    buffer->ResizeData(data_shape);
+    buffer->GetData().resize(data_shape);
     buffer->GetData() = data;
     xt::xtensor<float, 3> weights(data_shape, 1.0);
     buffer->ResizeWeights(data_shape);

@@ -160,7 +160,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->setTime(itsCount * 5 + 2);
     buffer->setExposure(0.1 * (itsCount + 1));
     std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
-    buffer->ResizeData(data_shape);
+    buffer->GetData().resize(data_shape);
     for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
       buffer->GetData().data()[i] = std::complex<float>(
           i + itsCount * 10.0,
