@@ -1005,14 +1005,14 @@ base::Direction SagecalPredict::GetFirstDirection() const {
 void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
-  const size_t nCr = info().ncorr();
+  [[maybe_unused]] const size_t nCr = info().ncorr();
 
   assert(iodata_.n_baselines >= nBl);
   assert(iodata_.n_stations == getInfo().nantenna());
   assert(iodata_.n_channels == nCh);
   assert(4 == nCr);
 
-  const UvwType& uvw = buffer->GetUvw();
+  const DPBuffer::UvwType& uvw = buffer->GetUvw();
   size_t row0 = 0;
   // load data, skipping autocorrelations
   for (size_t bl = 0; bl < nBl; bl++) {
