@@ -808,12 +808,7 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
       iodata_.cluster_arr_[cl].mm[ci] =
           s_dec * c_dec0 - c_dec * s_dec0 * c_radiff;
       iodata_.cluster_arr_[cl].nn[ci] =
-          sqrt(1.0 -
-               iodata_.cluster_arr_[cl].ll[ci] *
-                   iodata_.cluster_arr_[cl].ll[ci] -
-               iodata_.cluster_arr_[cl].mm[ci] *
-                   iodata_.cluster_arr_[cl].mm[ci]) -
-          1.0;
+          s_dec * s_dec0 + c_dec * c_dec0 * c_radiff - 1.0;
       if (iodata_.cluster_arr_[cl].stype[ci] == STYPE_GAUSSIAN) {
         exinfo_gaussian* exg =
             static_cast<exinfo_gaussian*>(iodata_.cluster_arr_[cl].ex[ci]);
