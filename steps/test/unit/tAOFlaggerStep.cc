@@ -124,7 +124,7 @@ class TestInput : public dp3::steps::MockInput {
                     kFirstTime);  // same interval as in updateAveragInfo
     buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.);
-    buffer->ResizeFlags(shape);
+    buffer->GetFlags().resize(shape);
     buffer->GetFlags().fill(flag_);
     getNextStep()->process(std::move(buffer));
     ++count_;

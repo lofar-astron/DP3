@@ -151,7 +151,7 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
   const std::array<std::size_t, 3> filter_shape{
       getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
   filter_buffer->GetData().resize(filter_shape);
-  filter_buffer->ResizeFlags(filter_shape);
+  filter_buffer->GetFlags().resize(filter_shape);
   filter_buffer->GetWeights().resize(filter_shape);
   filter_buffer->ResizeUvw(getInfo().nbaselines());
 

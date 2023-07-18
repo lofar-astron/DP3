@@ -174,7 +174,7 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
                                          kNCorr};
   buffer->GetData().resize(shape);
   buffer->GetWeights().resize(shape);
-  buffer->ResizeFlags(shape);
+  buffer->GetFlags().resize(shape);
   buffer->ResizeUvw(n_baselines);
 
   buffer->GetFlags().fill(false);

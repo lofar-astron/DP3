@@ -62,7 +62,7 @@ DPBuffer CreateFilledBuffer() {
   buffer.GetData().resize(kShape);
   buffer.AddData(kFooDataName);
   buffer.AddData(kBarDataName);
-  buffer.ResizeFlags(kShape);
+  buffer.GetFlags().resize(kShape);
   buffer.GetWeights().resize(kShape);
   buffer.ResizeUvw(kNBaselines);
   buffer.GetData().fill(kDataValue);

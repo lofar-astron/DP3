@@ -112,7 +112,7 @@ bool AntennaFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   flagging_timer_.start();
 
   if (buffer->GetFlags().size() == 0) {
-    buffer->ResizeFlags(
+    buffer->GetFlags().resize(
         {getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()});
     buffer->GetFlags().fill(false);
   }

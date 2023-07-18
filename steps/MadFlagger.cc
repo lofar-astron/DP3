@@ -161,7 +161,7 @@ bool MadFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   itsAmplitudes[index] = xt::abs(buffer->GetData());
   // Fill flags if needed.
   if (buffer->GetFlags().size() == 0) {
-    buffer->ResizeFlags(buffer->GetData().shape());
+    buffer->GetFlags().resize(buffer->GetData().shape());
     buffer->GetFlags().fill(false);
   }
   itsBuffers[index] = std::move(buffer);

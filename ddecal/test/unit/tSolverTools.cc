@@ -44,7 +44,7 @@ class AssignAndWeightFixture {
       buffer.GetData().fill(kBaseDataValue + static_cast<float>(i));
       buffer.GetWeights().resize(kShape);
       buffer.GetWeights().fill(kWeightValue);
-      buffer.ResizeFlags(kShape);
+      buffer.GetFlags().resize(kShape);
       buffer.GetFlags().fill(false);
       for (const std::string& name : kDirectionNames) {
         buffer.AddData(name);

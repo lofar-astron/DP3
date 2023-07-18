@@ -66,7 +66,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.0f);
 
-    buffer->ResizeFlags(shape);
+    buffer->GetFlags().resize(shape);
     buffer->GetFlags().fill(itsFlag);
 
     buffer->ResizeUvw(itsNBl);
@@ -208,7 +208,7 @@ class TestInput3 : public dp3::steps::MockInput {
     const std::array<std::size_t, 3> shape{itsNrBl, itsNrChan, itsNrCorr};
     buffer->GetData().resize(shape);
     buffer->GetWeights().resize(shape);
-    buffer->ResizeFlags(shape);
+    buffer->GetFlags().resize(shape);
     int i = 0;
     for (std::size_t bl = 0; bl < itsNrBl; ++bl) {
       for (std::size_t ch = 0; ch < itsNrChan; ++ch) {

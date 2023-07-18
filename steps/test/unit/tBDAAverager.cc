@@ -123,7 +123,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   buffer->setExposure(interval);
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
-  buffer->ResizeFlags(kShape);
+  buffer->GetFlags().resize(kShape);
   buffer->ResizeUvw(n_baselines);
 
   DPBuffer::DataType& data = buffer->GetData();
@@ -173,7 +173,7 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
   buffer->setExposure(interval);
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
-  buffer->ResizeFlags(kShape);
+  buffer->GetFlags().resize(kShape);
   buffer->ResizeUvw(n_baselines);
 
   buffer->GetData().fill(std::complex{0, 0});

@@ -118,7 +118,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->GetWeights().fill(1.0f);
 
     buffer->setTime(kFirstTime + process_count_ * kTimeInterval);
-    buffer->ResizeFlags(shape);
+    buffer->GetFlags().resize(shape);
     buffer->GetFlags().fill(false);
     getNextStep()->process(std::move(buffer));
     ++process_count_;

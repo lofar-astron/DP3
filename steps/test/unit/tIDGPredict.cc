@@ -83,7 +83,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
                                          kNCorr};
   buffer->GetData().resize(shape);
 
-  buffer->ResizeFlags(shape);
+  buffer->GetFlags().resize(shape);
   buffer->GetFlags().fill(false);
 
   buffer->GetWeights().resize(shape);
