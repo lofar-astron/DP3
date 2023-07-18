@@ -114,7 +114,7 @@ class TestInput : public dp3::steps::MockInput {
                     return std::complex<float>(i + count_ * 10,
                                                i - 10 + count_ * 6);
                   });
-    buffer->ResizeWeights(shape);
+    buffer->GetWeights().resize(shape);
     std::generate(buffer->GetWeights().begin(), buffer->GetWeights().end(),
                   [result = 0.5f]() mutable {
                     result += 0.01f;

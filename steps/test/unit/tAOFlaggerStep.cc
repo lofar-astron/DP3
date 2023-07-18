@@ -122,7 +122,7 @@ class TestInput : public dp3::steps::MockInput {
     }
     buffer->setTime(count_ * kTimeStep +
                     kFirstTime);  // same interval as in updateAveragInfo
-    buffer->ResizeWeights(shape);
+    buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.);
     buffer->ResizeFlags(shape);
     buffer->GetFlags().fill(flag_);

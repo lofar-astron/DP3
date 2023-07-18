@@ -411,7 +411,7 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
 }
 
 void MultiMSReader::getWeights(std::unique_ptr<base::DPBuffer>& buffer) {
-  buffer->ResizeWeights({itsNrBl, itsNrChan, itsNrCorr});
+  buffer->GetWeights().resize({itsNrBl, itsNrChan, itsNrCorr});
   int first_channel = 0;
   int last_channel = 0;
   for (const std::shared_ptr<ResultStep>& result : itsResults) {

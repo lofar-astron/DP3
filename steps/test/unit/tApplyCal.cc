@@ -114,7 +114,7 @@ class TestInput : public dp3::steps::MockInput {
                                            kNCorrelations};
     buffer->GetData().resize(shape);
     buffer->GetData().fill(std::complex<float>(1, 0));
-    buffer->ResizeWeights(shape);
+    buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.0f);
 
     buffer->setTime(kFirstTime + process_count_ * kTimeInterval);

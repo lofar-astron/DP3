@@ -86,7 +86,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   buffer->ResizeFlags(shape);
   buffer->GetFlags().fill(false);
 
-  buffer->ResizeWeights(shape);
+  buffer->GetWeights().resize(shape);
   buffer->GetWeights().fill(weight);
 
   buffer->ResizeUvw(n_baselines);

@@ -230,10 +230,6 @@ class DPBuffer {
   const FlagsType& GetFlags() const { return flags_; }
   FlagsType& GetFlags() { return flags_; }
 
-  /// Resize the weights buffer in the DPBuffer.
-  /// @param shape New shape: { n_baselines, n_channels, n_correlations }
-  void ResizeWeights(const std::array<std::size_t, 3>& shape);
-
   /// Accesses weights for the data (visibilities) in the DPBuffer.
   ///
   /// @return An XTensor view to the weights in the DPBuffer.

@@ -76,7 +76,7 @@ class TestInput : public dp3::steps::MockInput {
           std::complex<float>(i + count_ * 10.0f, i - 1000.0f + count_ * 6.0f);
     }
 
-    buffer->ResizeWeights(shape);
+    buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.0);
 
     buffer->ResizeFlags(shape);

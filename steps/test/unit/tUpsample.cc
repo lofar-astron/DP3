@@ -60,7 +60,7 @@ class TestInput : public dp3::steps::MockInput {
           static_cast<int>(i) - 1000 + static_cast<int>(time_step_) * 6.0);
     }
     buffer->setTime(times_[time_step_]);
-    buffer->ResizeWeights(data_shape);
+    buffer->GetWeights().resize(data_shape);
     buffer->GetWeights().fill(1.0);
     buffer->ResizeFlags(data_shape);
     buffer->GetFlags().fill(flags_[time_step_]);

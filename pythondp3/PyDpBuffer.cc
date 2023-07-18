@@ -124,7 +124,7 @@ void WrapDpBuffer(py::module& m) {
                   "n_channels, n_correlations).");
             }
             DPBuffer& buffer = *self;
-            buffer.ResizeWeights(ConvertShape(numpy_weights.shape()));
+            buffer.GetWeights().resize(ConvertShape(numpy_weights.shape()));
             std::copy_n(numpy_weights.data(), buffer.GetWeights().size(),
                         buffer.GetWeights().data());
           },
