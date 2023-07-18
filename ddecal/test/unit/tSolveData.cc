@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(regular) {
     unweighted_buffers.back()->AddData(kDirectionName);
     FillRegularData(unweighted_buffers.back()->GetData(kDirectionName));
 
-    unweighted_buffers.back()->ResizeWeights(kShape);
+    unweighted_buffers.back()->GetWeights().resize(kShape);
     unweighted_buffers.back()->GetWeights().fill(1.0f);
 
     unweighted_buffers.back()->ResizeFlags(kShape);
@@ -189,7 +189,7 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
       FillRegularData(unweighted_buffers.back()->GetData(name));
     }
 
-    unweighted_buffers.back()->ResizeWeights(kShape);
+    unweighted_buffers.back()->GetWeights().resize(kShape);
     unweighted_buffers.back()->GetWeights().fill(1.0f);
 
     unweighted_buffers.back()->ResizeFlags(kShape);

@@ -133,7 +133,7 @@ class TestInput : public dp3::steps::MockInput {
       buffer->GetUvw()(bl, 2) = 3 + itsCount + bl;
     }
 
-    buffer->ResizeWeights(shape);
+    buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.0);
 
     buffer->ResizeFlags(shape);

@@ -71,7 +71,7 @@ class TestInput : public dp3::steps::MockInput {
           i + itsCount * 10.0f, i - 10.0f + itsCount * 6.0f);
     }
 
-    buffer->ResizeWeights(shape);
+    buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.0);
 
     buffer->ResizeFlags(shape);

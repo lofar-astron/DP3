@@ -124,7 +124,7 @@ class TestInput : public dp3::steps::MockInput {
           i + itsCount * 10,
           static_cast<int>(i) - 1000 + static_cast<int>(itsCount) * 6);
     }
-    buffer->ResizeWeights(data_shape);
+    buffer->GetWeights().resize(data_shape);
     buffer->GetWeights().fill(1.0);
     buffer->ResizeFlags(data_shape);
     buffer->GetFlags().fill(itsFlag);

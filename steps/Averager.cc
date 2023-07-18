@@ -261,7 +261,7 @@ void Averager::average() {
   const unsigned int n_corr = data_in.shape(2);
   const std::array<std::size_t, 3> out_shape{n_bl, n_chan_out, n_corr};
   itsBuf->GetData().resize(out_shape);
-  itsBuf->ResizeWeights(out_shape);
+  itsBuf->GetWeights().resize(out_shape);
   itsBuf->ResizeFlags(out_shape);
   itsBuf->MakeIndependent(kDataField | kWeightsField);
   base::DPBuffer::DataType& data_out = itsBuf->GetData();

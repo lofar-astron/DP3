@@ -55,7 +55,7 @@ bool TestNullStokes(std::size_t n_baselines, std::size_t n_channels,
   buffer->ResizeFlags(data_shape);
   buffer->GetFlags().fill(false);
   xt::xtensor<bool, 3> expected_flags = buffer->GetFlags();
-  buffer->ResizeWeights(data_shape);
+  buffer->GetWeights().resize(data_shape);
   buffer->GetWeights() =
       xt::arange(0.0,
                  kWeightStepSize * n_baselines * n_channels * n_correlations,

@@ -757,7 +757,7 @@ void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
 void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Resize if needed (probably when called for first time).
-  buf.ResizeWeights({itsNrBl, itsNrChan, itsNrCorr});
+  buf.GetWeights().resize({itsNrBl, itsNrChan, itsNrCorr});
   DPBuffer::WeightsType& weights = buf.GetWeights();
   const casacore::IPosition shape(3, itsNrCorr, itsNrChan, itsNrBl);
   casacore::Cube<float> casa_weights(shape, weights.data(), casacore::SHARE);

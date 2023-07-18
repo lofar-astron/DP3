@@ -166,7 +166,7 @@ class TestInput : public dp3::steps::MockInput {
           i + itsCount * 10.0,
           static_cast<int>(i) - 1000 + static_cast<int>(itsCount) * 6.0);
     }
-    buffer->ResizeWeights(data_shape);
+    buffer->GetWeights().resize(data_shape);
     const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
     buffer->GetWeights() =
         xt::arange<float>(0.5, last_weight, 0.01).reshape(data_shape);

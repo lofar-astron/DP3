@@ -213,10 +213,6 @@ void DPBuffer::ResizeFlags(const std::array<std::size_t, 3>& shape) {
   flags_.resize(shape);
 }
 
-void DPBuffer::ResizeWeights(const std::array<std::size_t, 3>& shape) {
-  weights_.resize(shape);
-}
-
 void DPBuffer::ResizeUvw(size_t n_baselines) {
   casa_uvw_.resize(3, n_baselines);
   uvw_ = CreateSpan(casa_uvw_);

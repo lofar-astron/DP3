@@ -382,7 +382,7 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
   // Use default flags and weights.
   buffer->ResizeFlags(kShape);
   buffer->GetFlags().fill(false);
-  buffer->ResizeWeights(kShape);
+  buffer->GetWeights().resize(kShape);
   buffer->GetWeights().fill(1.0f);
 
   ddecal->process(std::move(buffer));

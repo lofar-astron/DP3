@@ -42,7 +42,7 @@ class AssignAndWeightFixture {
       DPBuffer& buffer = *unweighted_buffers_.back();
       buffer.GetData().resize(kShape);
       buffer.GetData().fill(kBaseDataValue + static_cast<float>(i));
-      buffer.ResizeWeights(kShape);
+      buffer.GetWeights().resize(kShape);
       buffer.GetWeights().fill(kWeightValue);
       buffer.ResizeFlags(kShape);
       buffer.GetFlags().fill(false);

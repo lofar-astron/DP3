@@ -75,7 +75,7 @@ class BdaGroupPredict::BaselineGroup {
                                            info_in.ncorr()};
     dpbuffer_ = std::make_unique<base::DPBuffer>();
     dpbuffer_->GetData().resize(shape);
-    dpbuffer_->ResizeWeights(shape);
+    dpbuffer_->GetWeights().resize(shape);
     dpbuffer_->ResizeFlags(shape);
     dpbuffer_->ResizeUvw(nr_baselines);
   }

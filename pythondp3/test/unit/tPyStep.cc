@@ -53,7 +53,7 @@ class TestInput final : public steps::MockInput {
       buffer->GetData().data()[i] =
           std::complex<float>(i + count_ * 10, i - count_ * 10);
     }
-    buffer->ResizeWeights(kShape);
+    buffer->GetWeights().resize(kShape);
     buffer->GetWeights().fill(1.0f);
     buffer->ResizeUvw(kNBaselines);
     for (std::size_t i = 0; i < buffer->GetUvw().size(); ++i) {

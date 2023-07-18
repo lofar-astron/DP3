@@ -112,7 +112,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->GetData().resize(data_shape);
     buffer->GetData() = data;
     xt::xtensor<float, 3> weights(data_shape, 1.0);
-    buffer->ResizeWeights(data_shape);
+    buffer->GetWeights().resize(data_shape);
     buffer->GetWeights() = weights;
     xt::xtensor<bool, 3> flags(data_shape, flag_);
     buffer->ResizeFlags(data_shape);

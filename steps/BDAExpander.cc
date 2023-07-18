@@ -262,7 +262,7 @@ BDAExpander::RegularBufferElement::RegularBufferElement(
 
   const std::array<std::size_t, 3> shape{n_baseline, n_chan, n_corr};
   regular_buffer->GetData().resize(shape);
-  regular_buffer->ResizeWeights(shape);
+  regular_buffer->GetWeights().resize(shape);
   regular_buffer->ResizeFlags(shape);
   regular_buffer->ResizeUvw(n_baseline);
 
