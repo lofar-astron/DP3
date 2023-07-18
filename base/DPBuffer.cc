@@ -209,10 +209,6 @@ void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
   }
 }
 
-void DPBuffer::ResizeFlags(const std::array<std::size_t, 3>& shape) {
-  flags_.resize(shape);
-}
-
 void DPBuffer::ResizeUvw(size_t n_baselines) {
   casa_uvw_.resize(3, n_baselines);
   uvw_ = CreateSpan(casa_uvw_);

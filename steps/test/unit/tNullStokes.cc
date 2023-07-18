@@ -52,7 +52,7 @@ bool TestNullStokes(std::size_t n_baselines, std::size_t n_channels,
   // Fill the flags, weights and uvw with arbitrary values so that we can detect
   // any unwanted changes
   xt::xtensor<std::complex<float>, 3> input_data = buffer->GetData();
-  buffer->ResizeFlags(data_shape);
+  buffer->GetFlags().resize(data_shape);
   buffer->GetFlags().fill(false);
   xt::xtensor<bool, 3> expected_flags = buffer->GetFlags();
   buffer->GetWeights().resize(data_shape);

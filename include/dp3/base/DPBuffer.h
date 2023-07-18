@@ -217,10 +217,6 @@ class DPBuffer {
   void MoveData(DPBuffer& source, const std::string& source_name,
                 const std::string& target_name);
 
-  /// Resize the flags buffer in the DPBuffer.
-  /// @param shape New shape: { n_baselines, n_channels, n_correlations }
-  void ResizeFlags(const std::array<std::size_t, 3>& shape);
-
   /// Accesses the flags for the data (visibilities) in the DPBuffer.
   ///
   /// @return An XTensor view to the flags in the DPBuffer.

@@ -115,7 +115,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->GetWeights().resize(data_shape);
     buffer->GetWeights() = weights;
     xt::xtensor<bool, 3> flags(data_shape, flag_);
-    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags().resize(data_shape);
     buffer->GetFlags() = flags;
     getNextStep()->process(std::move(buffer));
     ++process_count_;

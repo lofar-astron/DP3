@@ -380,7 +380,7 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
   buffer->GetData(kModelName).fill(kModelDataValue);
 
   // Use default flags and weights.
-  buffer->ResizeFlags(kShape);
+  buffer->GetFlags().resize(kShape);
   buffer->GetFlags().fill(false);
   buffer->GetWeights().resize(kShape);
   buffer->GetWeights().fill(1.0f);

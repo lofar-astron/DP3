@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
 
   const std::vector<std::size_t> channel_counts(n_chan, 1);
   auto buffer = std::make_unique<dp3::base::DPBuffer>();
-  buffer->ResizeFlags({n_baselines, n_chan, n_corr});
+  buffer->GetFlags().resize({n_baselines, n_chan, n_corr});
   buffer->GetFlags().fill(false);
 
   std::vector<std::vector<std::vector<bool>>> flag_values;

@@ -121,7 +121,7 @@ class TestInput : public dp3::steps::MockInput {
                     return result;
                   });
 
-    buffer->ResizeFlags(shape);
+    buffer->GetFlags().resize(shape);
     buffer->GetFlags().fill(false);
 
     buffer->ResizeUvw(n_baselines_);

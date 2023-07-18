@@ -170,7 +170,7 @@ class TestInput : public dp3::steps::MockInput {
     const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
     buffer->GetWeights() =
         xt::arange<float>(0.5, last_weight, 0.01).reshape(data_shape);
-    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags().resize(data_shape);
     buffer->GetFlags().fill(itsFlag);
     // Set every third channel for every fourth baseline to the opposite flag to
     // make incorrect channel or baseline removal detectable.

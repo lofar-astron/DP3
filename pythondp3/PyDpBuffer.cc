@@ -139,7 +139,7 @@ void WrapDpBuffer(py::module& m) {
                   "n_channels, n_correlations).");
             }
             DPBuffer& buffer = *self;
-            buffer.ResizeFlags(ConvertShape(numpy_flags.shape()));
+            buffer.GetFlags().resize(ConvertShape(numpy_flags.shape()));
             std::copy_n(numpy_flags.data(), buffer.GetFlags().size(),
                         buffer.GetFlags().data());
           },

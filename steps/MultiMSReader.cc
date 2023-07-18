@@ -229,7 +229,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
     buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
   if (getFieldsToRead().Flags()) {
-    buffer->ResizeFlags({itsNrBl, itsNrChan, itsNrCorr});
+    buffer->GetFlags().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
   // Loop through all readers and get data and flags.
   int first_channel = 0;

@@ -293,7 +293,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
     buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
   if (getFieldsToRead().Flags()) {
-    buffer->ResizeFlags({itsNrBl, itsNrChan, itsNrCorr});
+    buffer->GetFlags().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
   {
     common::NSTimer::StartStop sstime(itsTimer);

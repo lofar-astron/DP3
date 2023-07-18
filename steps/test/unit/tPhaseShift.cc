@@ -126,7 +126,7 @@ class TestInput : public dp3::steps::MockInput {
     }
     buffer->GetWeights().resize(data_shape);
     buffer->GetWeights().fill(1.0);
-    buffer->ResizeFlags(data_shape);
+    buffer->GetFlags().resize(data_shape);
     buffer->GetFlags().fill(itsFlag);
     std::array<size_t, 2> uvw_shape{itsNBl, 3};
     xt::xtensor<double, 2> uvw(uvw_shape);
