@@ -110,6 +110,12 @@ class DPInfo {
 
   /// Update the info from the given selection parameters.
   /// Optionally unused stations are really removed from the antenna lists.
+  ///
+  /// @pre The range [startChan, startChan + nchan) does not exceed the ranges
+  ///      of the interal vector of the class.
+  ///
+  /// @param startChan The first channal to use.
+  /// @param nchan The number of channels to use.
   void update(unsigned int startChan, unsigned int nchan,
               const std::vector<unsigned int>& baselines, bool remove);
 

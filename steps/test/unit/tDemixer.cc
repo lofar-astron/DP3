@@ -48,6 +48,11 @@ namespace {
 // Demixer only works with 4 correlations
 const size_t kNCorr = 4;
 
+// Number of input channels before selection
+// Needs to be at least start_channel + n_channels
+// where start_channel and n_channels specify the selected channel range
+const size_t kNOrigChannels = 40;
+
 // Simple class to generate input arrays.
 // It can only set all flags to true or all false.
 // Weights are always 1.
@@ -112,11 +117,12 @@ class TestInput : public dp3::steps::MockInput {
     info().setAntennas(ant_names, ant_diameter, ant_position, antenna1,
                        antenna2);
 
-    double start_channel = 8.0;
+    const size_t start_channel = 8;
+    const double start_frequency = 5.0e7;  // 50.0 MHz
     std::vector<double> chan_freqs;
-    std::vector<double> chan_width(n_channels_, 100000.);
-    for (size_t i = 0; i < n_channels_; i++) {
-      chan_freqs.push_back(start_channel + i * 100000.);
+    std::vector<double> chan_width(kNOrigChannels, 100000.);
+    for (size_t i = 0; i < kNOrigChannels; i++) {
+      chan_freqs.push_back(start_frequency + i * 100000.);
     }
     info().setChannels(std::move(chan_freqs), std::move(chan_width));
     info().update(start_channel, n_channels_, baselines, false);
