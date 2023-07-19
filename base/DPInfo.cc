@@ -363,6 +363,22 @@ void DPInfo::update(unsigned int startChan, unsigned int nchan,
   if (channel_frequencies_.size() != 1) {
     throw std::runtime_error("Channel selection does not support BDA");
   }
+
+  assert(channel_frequencies_.front().size() ==
+             channel_widths_.front().size() &&
+         "The number of elements of the channel frequencies and channel widths "
+         "should be equal.");
+  assert(channel_frequencies_.front().size() == resolutions_.front().size() &&
+         "The number of elements of the channel frequencies and resolutions "
+         "should be equal.");
+  assert(channel_frequencies_.front().size() ==
+             effective_bandwidth_.front().size() &&
+         "The number of elements of the channel frequencies and effective "
+         "bandwidths should be equal.");
+  if (startChan + nchan > channel_frequencies_.front().size()) {
+    throw std::invalid_argument("Channel range is out of bounds.");
+  }
+
   start_channel_ = startChan;
   auto freqs_begin = channel_frequencies_.front().begin() + startChan;
   auto widths_begin = channel_widths_.front().begin() + startChan;

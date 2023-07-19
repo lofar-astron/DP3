@@ -152,6 +152,26 @@ BOOST_AUTO_TEST_CASE(set_channels) {
   BOOST_TEST(kTotalWidth == info.totalBW());
 }
 
+BOOST_AUTO_TEST_CASE(update) {
+  const std::vector<double> kFreqs{10.0, 20.0};
+  const std::vector<double> kWidths{5.0, 6.0};
+
+  DPInfo info;
+  info.setChannels(std::vector<double>(kFreqs), std::vector<double>(kWidths));
+
+  const unsigned int kStartChannel = 1;
+  const unsigned int kNChannel = 1;
+  const std::vector<unsigned int> kBaselines;
+  const bool kRemove = false;
+  // Select only the second channel
+  BOOST_CHECK_NO_THROW(
+      info.update(kStartChannel, kNChannel, kBaselines, kRemove));
+  // Try to select only the second channel again
+  // This should fail because only one channel is left
+  BOOST_CHECK_THROW(info.update(kStartChannel, kNChannel, kBaselines, kRemove),
+                    std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_CASE(set_bda_channels) {
   const std::vector<std::vector<double>> kFreqs{
       {30.0}, {10.0, 20.0, 30.0, 40.0, 50.0}, {20.0, 45.0}};
