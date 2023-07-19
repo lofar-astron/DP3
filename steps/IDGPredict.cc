@@ -231,9 +231,6 @@ void IDGPredict::updateInfo(const dp3::base::DPInfo& info) {
 
 bool IDGPredict::process(std::unique_ptr<base::DPBuffer> buffer) {
   buffers_.emplace_back(std::move(buffer));
-  // Ensure that the collected buffers_ have their own UVW array. Otherwise,
-  // their UVW array will refer to the UVW array in 'buffer', which may change.
-  buffers_.back()->MakeIndependent(kUvwField);
 
   if (buffers_.size() >= buffer_size_) {
     flush();

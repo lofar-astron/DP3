@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include <casacore/casa/Arrays/Cube.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/TableIter.h>
 

@@ -198,10 +198,6 @@ bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
                                      size_t thread) {
   itsTimer.start();
 
-  // Ensure that data and weight are independent and not references as ApplyBeam
-  // updates both
-  buffer->MakeIndependent(kDataField | kWeightsField);
-
   std::complex<float>* data = buffer->GetData().data();
 
   float* weight = buffer->GetWeights().data();

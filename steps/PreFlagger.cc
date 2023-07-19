@@ -127,7 +127,6 @@ void PreFlagger::updateInfo(const DPInfo& info_in) {
 
 bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
-  buffer->MakeIndependent(kFlagsField);
   assert(buffer->GetFlags().size() != 0);
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.

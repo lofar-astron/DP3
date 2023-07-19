@@ -41,7 +41,6 @@ void CompareArray(const casacore::Array<T>& left,
 /// casacore references.
 void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
   BOOST_CHECK_EQUAL(left.getRowNrs().data(), right.getRowNrs().data());
-  BOOST_CHECK_EQUAL(left.GetUvw().data(), right.GetUvw().data());
 }
 
 /// Verify that two DPBuffers do not share the same data, e.g., using
@@ -252,10 +251,9 @@ BOOST_AUTO_TEST_CASE(make_independent) {
   const DPBuffer source = CreateFilledBuffer();
   DPBuffer copy(source);  // 'copy' gets references (see copy_constructor test).
   CheckDependent(source, copy);
-  copy.getRowNrs().unique();  // MakeIndependent does not support row numbers.
-  copy.MakeIndependent(
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags) |
-      Fields(Fields::Single::kWeights) | Fields(Fields::Single::kUvw));
+  // Ensure that the "copy" buffer has independent copy of row_numbers_ (not
+  // using reference semantics).
+  copy.getRowNrs().unique();
   CheckFilledBuffer(copy);
   CheckIndependent(source, copy);
 }

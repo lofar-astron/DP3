@@ -8,6 +8,7 @@
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/Cube.h>
 
 #include <boost/test/unit_test.hpp>
 
