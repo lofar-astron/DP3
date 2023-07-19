@@ -94,8 +94,6 @@ bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
   // reducing the number of copies required by 1
   for (unsigned int i = 0; i < time_step_ - 1; ++i) {
     buffers_[i] = std::make_unique<base::DPBuffer>(*buffer);
-    buffers_[i]->MakeIndependent(kDataField | kFlagsField | kWeightsField |
-                                 kUvwField);
     const double time = time0 + info().timeInterval() * (i + 0.5);
     UpdateTimeCentroidExposureAndUvw(buffers_[i], time, exposure);
   }
@@ -110,8 +108,6 @@ bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
     for (unsigned int i = 0; i < time_step_; ++i) {
       // No shallow copy
       prev_buffers_[i] = std::make_unique<base::DPBuffer>(*buffers_[i]);
-      prev_buffers_[i]->MakeIndependent(kDataField | kFlagsField |
-                                        kWeightsField | kUvwField);
     }
     return false;
   }

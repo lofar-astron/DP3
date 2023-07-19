@@ -151,9 +151,6 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
     // and adding thereafter.
     assert(!itsBuf);
     itsBuf = std::move(buffer);
-    // Ensure `itsBuf` does not refer to data in other DPBuffers.
-    itsBuf->MakeIndependent(kDataField | kWeightsField | kFlagsField |
-                            kUvwField);
     itsNPoints.resize(itsBuf->GetData().shape());
     assert(itsBuf->GetData().shape(1) == itsBuf->GetWeights().shape(1));
     itsAvgAll = itsBuf->GetData() * itsBuf->GetWeights();
@@ -263,7 +260,6 @@ void Averager::average() {
   itsBuf->GetData().resize(out_shape);
   itsBuf->GetWeights().resize(out_shape);
   itsBuf->GetFlags().resize(out_shape);
-  itsBuf->MakeIndependent(kDataField | kWeightsField);
   base::DPBuffer::DataType& data_out = itsBuf->GetData();
   base::DPBuffer::WeightsType& weights_out = itsBuf->GetWeights();
   base::DPBuffer::FlagsType& flags_out = itsBuf->GetFlags();

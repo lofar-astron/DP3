@@ -16,6 +16,7 @@
 #include <casacore/tables/Tables/ColumnDesc.h>
 #include <casacore/tables/DataMan/StandardStMan.h>
 #include <casacore/tables/DataMan/TiledColumnStMan.h>
+#include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>

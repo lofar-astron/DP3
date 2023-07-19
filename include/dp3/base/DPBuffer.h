@@ -16,9 +16,6 @@
 #include <xtensor/xtensor.hpp>
 
 #include <casacore/casa/Arrays/Vector.h>
-#include <casacore/casa/Arrays/Cube.h>
-
-#include <aocommon/xt/span.h>
 #include <aocommon/xt/utensor.h>
 
 #include <dp3/common/Fields.h>
@@ -103,7 +100,7 @@ class DPBuffer {
   using DataType = aocommon::xt::UTensor<std::complex<float>, 3>;
   using WeightsType = xt::xtensor<float, 3>;
   using FlagsType = xt::xtensor<bool, 3>;
-  using UvwType = aocommon::xt::Span<double, 2>;
+  using UvwType = xt::xtensor<double, 2>;
 
   /// Construct object with empty arrays.
   explicit DPBuffer(double time = 0.0, double exposure = 0.0);
@@ -135,13 +132,6 @@ class DPBuffer {
   /// Do not copy extra data fields yet (TODO in AST-1241).
   /// @param fields Copy the given fields from that.
   void Copy(const DPBuffer& that, const common::Fields& fields);
-
-  /// Ensure that this buffer has independent copies of data items / that
-  /// the data items do not use reference semantics.
-  /// When DPBuffer will store its data in XTensor objects instead of Casacore
-  /// objects, a DPBuffer is always independent and this function can go away.
-  /// @param fields The fields that should be independent copies.
-  void MakeIndependent(const common::Fields& fields);
 
   /// Adds an extra visibility buffer.
   /// The new visibility buffer gets the same shape as the default data buffer.
@@ -286,19 +276,9 @@ class DPBuffer {
   }
 
  private:
-  /// (Re)create the XTensor views on the Casacore data.
-  void CreateSpans();
-
   double time_;
   double exposure_;
   casacore::Vector<common::rownr_t> row_numbers_;
-
-  // The casa_ objects hold the actual data. The aocommon::xt::Span objects
-  // below provide XTensor views to the data in the casa_ objects.
-  // In the future, the XTensor views will be replaced by xt::xtensor objects
-  // that hold the data. The casa_ objects then provide a Casacore view to the
-  // data. When the casa_ objects are no longer used, they will be removed.
-  casacore::Matrix<double> casa_uvw_;  ///< 3,nbasel
 
   /// Visibilities (n_baselines x n_channels x n_correlations)
   DataType data_;

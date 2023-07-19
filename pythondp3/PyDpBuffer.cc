@@ -5,6 +5,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <aocommon/xt/span.h>
 
 using dp3::base::DPBuffer;
 
@@ -96,7 +97,10 @@ void WrapDpBuffer(py::module& m) {
           "Get weights buffer that can be used as numpy array. Shape is "
           "(nr baselines, nr channels, nr polarizations).")
       .def(
-          "get_uvw", [](const PyDpBuffer& self) { return self->GetUvw(); },
+          "get_uvw",
+          [](PyDpBuffer& self) {
+            return aocommon::xt::CreateSpan(self->GetUvw());
+          },
           "Get UVW buffer that can be used as numpy array. Shape is "
           "(nr baselines, 3).")
       .def(

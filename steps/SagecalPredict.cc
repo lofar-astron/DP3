@@ -492,7 +492,6 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t nCr = info().ncorr();
 
   buffer->GetData().resize({nBl, nCh, nCr});
-  buffer->MakeIndependent(kDataField);
 
   if (parm_on_disk_ && (buffer->getTime() > time_last_)) {
     timestep_ = 0;

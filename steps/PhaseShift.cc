@@ -102,10 +102,6 @@ void PhaseShift::showTimings(std::ostream& os, double duration) const {
 bool PhaseShift::process(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
 
-  // Ensure that data and uvw are independent and not references as PhaseShift
-  // updates both
-  buffer->MakeIndependent(kDataField | kUvwField);
-
   int ncorr = buffer->GetData().shape(2);
   int nchan = buffer->GetData().shape(1);
   int nbl = buffer->GetData().shape(0);

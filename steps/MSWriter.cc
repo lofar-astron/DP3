@@ -38,6 +38,7 @@
 #include <casacore/measures/Measures/MCDirection.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/version.h>
@@ -785,7 +786,6 @@ void MSWriter::WriteQueueProcess() {
 void MSWriter::CreateTask(std::unique_ptr<base::DPBuffer> buffer) {
   const common::NSTimer::StartStop timer(create_task_timer_);
 
-  buffer->MakeIndependent(getRequiredFields());
   write_queue_.write(std::move(buffer));
 }
 

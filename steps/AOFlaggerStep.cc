@@ -224,7 +224,6 @@ bool AOFlaggerStep::process(std::unique_ptr<base::DPBuffer> buffer) {
   n_times_++;
   // AOFlagger reads the data and updates the flags, make these fields
   // independent.
-  buffer->MakeIndependent(kDataField | kFlagsField);
   buffer_[buffer_index_] = std::move(buffer);
   ++buffer_index_;
   if (buffer_index_ == window_size_ + 2 * overlap_) {
