@@ -287,7 +287,7 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
   buffer->GetData().resize(new_shape);
   buffer->GetFlags().resize(new_shape);
   buffer->GetWeights().resize(new_shape);
-  buffer->ResizeUvw(getInfo().nbaselines());
+  buffer->GetUvw().resize({getInfo().nbaselines(), 3});
   // 3. Copy the data back into the resized buffer; only the existing baselines
   // at the start will be filled the additional new baselines at the end will be
   // empty.

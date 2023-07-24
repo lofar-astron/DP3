@@ -118,7 +118,7 @@ class TestInput : public dp3::steps::MockInput {
     const float last_weight = 0.5f + (itsNCorr * itsNChan * itsNBl * 0.01f);
     buffer->GetWeights() =
         xt::arange<float>(0.5, last_weight, 0.01).reshape(data_shape);
-    buffer->ResizeUvw(itsNBl);
+    buffer->GetUvw().resize({itsNBl, 3});
     auto& uvw = buffer->GetUvw();
     for (std::size_t i = 0; i < itsNBl; ++i) {
       uvw(i, 0) = 1 + itsCount + i;

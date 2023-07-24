@@ -264,7 +264,7 @@ BDAExpander::RegularBufferElement::RegularBufferElement(
   regular_buffer->GetData().resize(shape);
   regular_buffer->GetWeights().resize(shape);
   regular_buffer->GetFlags().resize(shape);
-  regular_buffer->ResizeUvw(n_baseline);
+  regular_buffer->GetUvw().resize({n_baseline, 3});
 
   regular_buffer->GetData().fill(0.0);
   regular_buffer->GetWeights().fill(0.0);

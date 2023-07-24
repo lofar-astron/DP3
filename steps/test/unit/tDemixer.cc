@@ -87,7 +87,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->GetFlags().resize(shape);
     buffer->GetFlags().fill(flag_data_);
 
-    buffer->ResizeUvw(n_baselines_);
+    buffer->GetUvw().resize({n_baselines_, 3});
     buffer->GetUvw().fill(double(count_ * 100));
     for (size_t bl = 0; bl < n_baselines_; ++bl) {
       buffer->GetUvw()(bl, 0) += bl * 3;

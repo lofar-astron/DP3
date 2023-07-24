@@ -124,7 +124,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->GetFlags().resize(shape);
     buffer->GetFlags().fill(false);
 
-    buffer->ResizeUvw(n_baselines_);
+    buffer->GetUvw().resize({n_baselines_, 3});
     for (std::size_t i = 0; i < n_baselines_; ++i) {
       buffer->GetUvw()(i, 0) = 1 + count_ + i;
       buffer->GetUvw()(i, 1) = 2 + count_ + i;

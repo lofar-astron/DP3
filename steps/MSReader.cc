@@ -736,7 +736,7 @@ void MSReader::skipFirstTimes() {
 
 void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
-  buf.ResizeUvw(itsNrBl);
+  buf.GetUvw().resize({itsNrBl, 3});
   if (rowNrs.rowVector().empty()) {
     // Calculate UVWs if empty rownrs (i.e., missing data).
     const std::vector<int>& ant1 = getInfo().getAnt1();

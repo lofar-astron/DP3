@@ -62,7 +62,7 @@ bool TestNullStokes(std::size_t n_baselines, std::size_t n_channels,
                  kWeightStepSize)
           .reshape(data_shape);
   xt::xtensor<float, 3> expected_weights = buffer->GetWeights();
-  buffer->ResizeUvw(n_baselines);
+  buffer->GetUvw().resize({n_baselines, 3});
   buffer->GetUvw() =
       xt::arange(0.0, kUvwStepSize * n_baselines * n_channels * n_correlations,
                  kUvwStepSize)

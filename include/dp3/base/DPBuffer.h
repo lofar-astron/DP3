@@ -254,10 +254,6 @@ class DPBuffer {
   }
   casacore::Vector<common::rownr_t>& getRowNrs() { return row_numbers_; }
 
-  /// Resize the UVW coordinates buffer in the DPBuffer.
-  /// @param n_baselines New shape: { n_baselines, 3 }
-  void ResizeUvw(size_t n_baselines);
-
   /// Accesses the UVW coordinates in the DPBuffer.
   ///
   /// @return An XTensor view to the UVW coordinates in the DPBuffer.

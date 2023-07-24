@@ -77,7 +77,7 @@ class BdaGroupPredict::BaselineGroup {
     dpbuffer_->GetData().resize(shape);
     dpbuffer_->GetWeights().resize(shape);
     dpbuffer_->GetFlags().resize(shape);
-    dpbuffer_->ResizeUvw(nr_baselines);
+    dpbuffer_->GetUvw().resize({nr_baselines, 3});
   }
 
   /// Write information on the predict step for this baseline group to the
