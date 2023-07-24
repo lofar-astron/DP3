@@ -131,7 +131,7 @@ class TestInput : public dp3::steps::MockInput {
     std::array<size_t, 2> uvw_shape{itsNBl, 3};
     xt::xtensor<double, 2> uvw(uvw_shape);
     fillUVW(uvw, itsCount);
-    buffer->ResizeUvw(itsNBl);
+    buffer->GetUvw().resize({itsNBl, 3});
     buffer->GetUvw() = uvw;
     getNextStep()->process(std::move(buffer));
     ++itsCount;

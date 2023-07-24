@@ -55,7 +55,7 @@ class TestInput final : public steps::MockInput {
     }
     buffer->GetWeights().resize(kShape);
     buffer->GetWeights().fill(1.0f);
-    buffer->ResizeUvw(kNBaselines);
+    buffer->GetUvw().resize({kNBaselines, 3});
     for (std::size_t i = 0; i < buffer->GetUvw().size(); ++i) {
       buffer->GetUvw().data()[i] = count_ * 100 + i;
     }

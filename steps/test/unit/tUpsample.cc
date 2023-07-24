@@ -67,7 +67,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->setExposure(time_interval_);
 
     if (!uvws_.empty()) {
-      buffer->ResizeUvw(kNBaselines);
+      buffer->GetUvw().resize({kNBaselines, 3});
       buffer->GetUvw() = xt::arange(uvws_[time_step_],
                                     uvws_[time_step_] + (kNBaselines * 3), 1)
                              .reshape(buffer->GetUvw().shape());

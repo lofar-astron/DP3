@@ -73,7 +73,7 @@ void Upsample::UpdateTimeCentroidExposureAndUvw(
   buffer->setExposure(exposure);
 
   if (update_uvw_) {
-    buffer->ResizeUvw(info().nbaselines());
+    buffer->GetUvw().resize({info().nbaselines(), 3});
 
     double* uvw_ptr = buffer->GetUvw().data();
     for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {

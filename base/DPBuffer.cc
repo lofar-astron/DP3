@@ -157,7 +157,5 @@ void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
   }
 }
 
-void DPBuffer::ResizeUvw(size_t n_baselines) { uvw_.resize({n_baselines, 3}); }
-
 }  // namespace base
 }  // namespace dp3

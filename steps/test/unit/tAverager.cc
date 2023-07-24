@@ -69,7 +69,7 @@ class TestInput : public dp3::steps::MockInput {
     buffer->GetFlags().resize(shape);
     buffer->GetFlags().fill(itsFlag);
 
-    buffer->ResizeUvw(itsNBl);
+    buffer->GetUvw().resize({itsNBl, 3});
     xt::flatten(buffer->GetUvw()) =
         (itsCount * 100) + xt::arange(buffer->GetUvw().size());
 
@@ -226,7 +226,7 @@ class TestInput3 : public dp3::steps::MockInput {
     buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
     casacore::Vector<dp3::common::rownr_t> rownrs(1, itsCount);
     buffer->setRowNrs(rownrs);
-    buffer->ResizeUvw(itsNrBl);
+    buffer->GetUvw().resize({itsNrBl, 3});
     xt::flatten(buffer->GetUvw()) = xt::arange(buffer->GetUvw().size());
     getNextStep()->process(std::move(buffer));
     ++itsCount;

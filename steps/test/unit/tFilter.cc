@@ -177,7 +177,7 @@ class TestInput : public dp3::steps::MockInput {
     xt::strided_view(buffer->GetFlags(),
                      {xt::range(0, itsNBl, 4), xt::range(0, itsNChan, 3),
                       xt::all()}) = !itsFlag;
-    buffer->ResizeUvw(itsNBl);
+    buffer->GetUvw().resize({itsNBl, 3});
     buffer->GetUvw() =
         xt::arange(itsCount * 100.0, (itsNBl * 3.0) + (itsCount * 100.0), 1.0)
             .reshape({itsNBl, 3});

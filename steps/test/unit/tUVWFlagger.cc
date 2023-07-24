@@ -137,7 +137,7 @@ std::unique_ptr<DPBuffer> TestInput<DPBuffer>::CreateInputBuffer() {
         std::complex<float>(i + count_ * 10, i - 10 + count_ * 6);
   }
 
-  buffer->ResizeUvw(n_baselines_);
+  buffer->GetUvw().resize({n_baselines_, 3});
   for (size_t i = 0; i < n_baselines_; ++i) {
     buffer->GetUvw()(i, 0) = 1 + count_ + i;
     buffer->GetUvw()(i, 1) = 2 + count_ + i;

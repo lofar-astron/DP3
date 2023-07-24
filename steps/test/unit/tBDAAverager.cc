@@ -124,7 +124,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
-  buffer->ResizeUvw(n_baselines);
+  buffer->GetUvw().resize({n_baselines, 3});
 
   DPBuffer::DataType& data = buffer->GetData();
   DPBuffer::WeightsType& weights = buffer->GetWeights();
@@ -174,7 +174,7 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
-  buffer->ResizeUvw(n_baselines);
+  buffer->GetUvw().resize({n_baselines, 3});
 
   buffer->GetData().fill(std::complex{0, 0});
   buffer->GetWeights().fill(weight);

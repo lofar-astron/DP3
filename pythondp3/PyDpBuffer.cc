@@ -162,7 +162,7 @@ void WrapDpBuffer(py::module& m) {
                   "Each baseline should have 3 uvw values.");
             }
             DPBuffer& buffer = *self;
-            buffer.ResizeUvw(numpy_uvw.shape(0));
+            buffer.GetUvw().resize({numpy_uvw.shape(0), 3});
             std::copy_n(numpy_uvw.data(), buffer.GetUvw().size(),
                         buffer.GetUvw().data());
           },

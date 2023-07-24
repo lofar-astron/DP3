@@ -153,7 +153,7 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
   filter_buffer->GetData().resize(filter_shape);
   filter_buffer->GetFlags().resize(filter_shape);
   filter_buffer->GetWeights().resize(filter_shape);
-  filter_buffer->ResizeUvw(getInfo().nbaselines());
+  filter_buffer->GetUvw().resize({getInfo().nbaselines(), 3});
 
   // Select the filtered data and copy it into the new filter_buffer
   const DPBuffer::DataType& data = buffer->GetData();

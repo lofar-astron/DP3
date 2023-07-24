@@ -126,7 +126,7 @@ class TestInput : public dp3::steps::MockInput {
           std::complex<float>(i + itsCount * 10, int(i) - 10 + itsCount * 6);
     }
 
-    buffer->ResizeUvw(itsNBl);
+    buffer->GetUvw().resize({itsNBl, 3});
     for (std::size_t bl = 0; bl < itsNBl; ++bl) {
       buffer->GetUvw()(bl, 0) = 1 + itsCount + bl;
       buffer->GetUvw()(bl, 1) = 2 + itsCount + bl;

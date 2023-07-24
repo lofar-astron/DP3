@@ -89,7 +89,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
   buffer->GetWeights().resize(shape);
   buffer->GetWeights().fill(weight);
 
-  buffer->ResizeUvw(n_baselines);
+  buffer->GetUvw().resize({n_baselines, 3});
 
   for (std::size_t bl = 0; bl < n_baselines; ++bl) {
     // Base value for this baseline.
