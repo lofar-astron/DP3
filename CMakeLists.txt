@@ -513,6 +513,11 @@ if(LIBDIRAC_FOUND)
     message(STATUS "CUDA_LIBRARIES ............ = ${CUDA_LIBRARIES}")
     include_directories(${CUDA_INCLUDE_DIRS})
   endif()
+else()
+  message(
+    STATUS
+      "Libdirac NOT found; LBFGS solve algorithm not available. Set LIBDIRAC_PREFIX to enable."
+  )
 endif()
 
 set(DP3_LIBRARIES
