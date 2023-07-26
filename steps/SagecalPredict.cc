@@ -531,6 +531,12 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
       casacore::MVDirection newdir = rotat * pos;
       beam_data_.p_ra0 = newdir.get()[0];
       beam_data_.p_dec0 = newdir.get()[1];
+      casacore::MVDirection pos_tile(
+          casacore::Quantity(beam_data_.b_ra0, "rad"),
+          casacore::Quantity(beam_data_.b_dec0, "rad"));
+      casacore::MVDirection newdir_tile = rotat * pos_tile;
+      beam_data_.b_ra0 = newdir_tile.get()[0];
+      beam_data_.b_dec0 = newdir_tile.get()[1];
       beam_data_.sources_prec = true;
     }
   }
@@ -558,7 +564,8 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
           tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
           nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
-          time_smear_factor, phase_ref_.dec, beam_data_.p_ra0,
+          time_smear_factor, phase_ref_.dec, beam_data_.beamformer_type,
+          beam_data_.b_ra0, beam_data_.b_dec0, beam_data_.p_ra0,
           beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
           beam_data_.sy.data(), beam_data_.time_utc.data(),
           beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
@@ -584,6 +591,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
           iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
           iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
+          beam_data_.beamformer_type, beam_data_.b_ra0, beam_data_.b_dec0,
           beam_data_.p_ra0, beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
           beam_data_.sy.data(), beam_data_.time_utc.data(),
           beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
@@ -599,11 +607,13 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
         iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
         tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
         nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
-        time_smear_factor, phase_ref_.dec, beam_data_.p_ra0, beam_data_.p_dec0,
-        iodata_.f0, beam_data_.sx.data(), beam_data_.sy.data(),
-        beam_data_.time_utc.data(), beam_data_.n_elem.data(),
-        beam_data_.xx.data(), beam_data_.yy.data(), beam_data_.zz.data(),
-        &beam_data_.ecoeff, beam_mode_, n_threads_, operation);
+        time_smear_factor, phase_ref_.dec, beam_data_.beamformer_type,
+        beam_data_.b_ra0, beam_data_.b_dec0, beam_data_.p_ra0,
+        beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
+        beam_data_.sy.data(), beam_data_.time_utc.data(),
+        beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
+        beam_data_.zz.data(), &beam_data_.ecoeff, beam_mode_, n_threads_,
+        operation);
   } else {
     predict_visibilities_withsol_withbeam_gpu(
         iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
@@ -612,6 +622,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
         iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
         iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
         iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
+        beam_data_.beamformer_type, beam_data_.b_ra0, beam_data_.b_dec0,
         beam_data_.p_ra0, beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
         beam_data_.sy.data(), beam_data_.time_utc.data(),
         beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
@@ -1134,11 +1145,8 @@ void SagecalPredict::readAuxData(const DPInfo& _info) {
   }
 
   if (isHBA) {
-    double cones[16];
-    for (int ci = 0; ci < 16; ci++) {
-      cones[ci] = 1.0;
-    }
-    double tempT[3 * 16];
+    beam_data_.beamformer_type = STAT_TILE;
+    double tempT[3 * HBA_TILE_SIZE];
     /* now read in element offsets, also transform them to local coordinates */
     for (size_t ci = 0; ci < beam_data_.n_stations; ci++) {
       casacore::Array<double> _off = offset(ci);
@@ -1153,7 +1161,8 @@ void SagecalPredict::readAuxData(const DPInfo& _info) {
       double* tempC = new double[3 * beam_data_.n_elem[ci]];
       my_dgemm('T', 'N', beam_data_.n_elem[ci], 3, 3, 1.0, off, 3, coordmat, 3,
                0.0, tempC, beam_data_.n_elem[ci]);
-      my_dgemm('T', 'N', 16, 3, 3, 1.0, toff, 3, coordmat, 3, 0.0, tempT, 16);
+      my_dgemm('T', 'N', HBA_TILE_SIZE, 3, 3, 1.0, toff, 3, coordmat, 3, 0.0,
+               tempT, HBA_TILE_SIZE);
 
       /* now inspect the element flag table to see if any of the dipoles are
        * flagged */
@@ -1164,22 +1173,27 @@ void SagecalPredict::readAuxData(const DPInfo& _info) {
         }
       }
 
-      beam_data_.xx[ci] = new double[16 * (beam_data_.n_elem[ci] - fcount)];
-      beam_data_.yy[ci] = new double[16 * (beam_data_.n_elem[ci] - fcount)];
-      beam_data_.zz[ci] = new double[16 * (beam_data_.n_elem[ci] - fcount)];
-      /* copy unflagged coords, 16 times for each dipole */
+      beam_data_.xx[ci] =
+          new double[HBA_TILE_SIZE + (beam_data_.n_elem[ci] - fcount)];
+      beam_data_.yy[ci] =
+          new double[HBA_TILE_SIZE + (beam_data_.n_elem[ci] - fcount)];
+      beam_data_.zz[ci] =
+          new double[HBA_TILE_SIZE + (beam_data_.n_elem[ci] - fcount)];
+      my_dcopy(HBA_TILE_SIZE, &tempT[0], 1, &(beam_data_.xx[ci][0]), 1);
+      my_dcopy(HBA_TILE_SIZE, &tempT[HBA_TILE_SIZE], 1, &(beam_data_.yy[ci][0]),
+               1);
+      my_dcopy(HBA_TILE_SIZE, &tempT[2 * HBA_TILE_SIZE], 1,
+               &(beam_data_.zz[ci][0]), 1);
+      /* copy unflagged tile centroids */
       fcount = 0;
       for (int cj = 0; cj < beam_data_.n_elem[ci]; cj++) {
         if (!(ef[2 * cj] == 1 || ef[2 * cj + 1] == 1)) {
-          my_dcopy(16, &tempT[0], 1, &(beam_data_.xx[ci][fcount]), 1);
-          my_daxpy(16, cones, tempC[cj], &(beam_data_.xx[ci][fcount]));
-          my_dcopy(16, &tempT[16], 1, &(beam_data_.yy[ci][fcount]), 1);
-          my_daxpy(16, cones, tempC[cj + beam_data_.n_elem[ci]],
-                   &(beam_data_.yy[ci][fcount]));
-          my_dcopy(16, &tempT[24], 1, &(beam_data_.zz[ci][fcount]), 1);
-          my_daxpy(16, cones, tempC[cj + 2 * beam_data_.n_elem[ci]],
-                   &(beam_data_.zz[ci][fcount]));
-          fcount += 16;
+          beam_data_.xx[ci][HBA_TILE_SIZE + fcount] = tempC[cj];
+          beam_data_.yy[ci][HBA_TILE_SIZE + fcount] =
+              tempC[cj + beam_data_.n_elem[ci]];
+          beam_data_.zz[ci][HBA_TILE_SIZE + fcount] =
+              tempC[cj + 2 * beam_data_.n_elem[ci]];
+          fcount++;
         }
       }
       beam_data_.n_elem[ci] = fcount;
@@ -1187,6 +1201,7 @@ void SagecalPredict::readAuxData(const DPInfo& _info) {
       delete[] tempC;
     }
   } else { /* LBA */
+    beam_data_.beamformer_type = STAT_SINGLE;
     /* read in element offsets, also transform them to local coordinates */
     for (size_t ci = 0; ci < beam_data_.n_stations; ci++) {
       casacore::Array<double> _off = offset(ci);
@@ -1232,6 +1247,12 @@ void SagecalPredict::readAuxData(const DPInfo& _info) {
   double* pc = pdir.data();
   beam_data_.p_ra0 = pc[0];
   beam_data_.p_dec0 = pc[1];
+  /* read tile beam pointing direction */
+  casacore::ROArrayColumn<double> tile_dir(_field, "LOFAR_TILE_BEAM_DIR");
+  casacore::Array<double> tdir = tile_dir(0);
+  double* tc = tdir.data();
+  beam_data_.b_ra0 = tc[0];
+  beam_data_.b_dec0 = tc[1];
 
   if (beam_mode_ == DOBEAM_FULL || beam_mode_ == DOBEAM_ELEMENT) {
     set_elementcoeffs((iodata_.f0 < 100e6 ? ELEM_LBA : ELEM_HBA), iodata_.f0,

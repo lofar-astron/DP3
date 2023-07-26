@@ -65,6 +65,11 @@ class SagecalPredict : public ModelDataStep {
                     station, size Nelem[]x1 */
     std::vector<double*> yy; /* y ... */
     std::vector<double*> zz; /* z ... */
+
+    /* LOFAR HBA tile beam pointing center */
+    double b_ra0;
+    double b_dec0;
+
     /* pointing center of beams (only one) (could be different from phase
      * center) */
     double p_ra0;
@@ -72,6 +77,9 @@ class SagecalPredict : public ModelDataStep {
 
     /* flag to indicate this beam is only a dipole */
     bool isDipole;
+
+    /* beamformer type STAT_NONE, STAT_SINGLE or STAT_TILE */
+    int beamformer_type;
 
     elementcoeff ecoeff;
     bool sources_prec;
