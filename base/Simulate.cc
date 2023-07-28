@@ -34,8 +34,8 @@ std::vector<int> nsetupSplitUVW(unsigned int nant, const std::vector<int>& ant1,
   // are relative to it using the baseline UVWs.
   // Also note that nr of groups can be derived from the size of the returned
   // vector (because it contains no entry for the first antenna in a group).
-  std::vector<int> uvwbl;
-  uvwbl.reserve(nant);
+  std::vector<int> uvw_bl;
+  uvw_bl.reserve(nant);
   Block<bool> known(nant, false);
   unsigned int nset = 0;
   // Loop until all stations are set.
@@ -65,12 +65,12 @@ std::vector<int> nsetupSplitUVW(unsigned int nant, const std::vector<int>& ant1,
         // The unknown station becomes member of the group.
         if (known[a1] != known[a2]) {
           if (a1 == refst) {
-            uvwbl.push_back(i);
+            uvw_bl.push_back(i);
             members.push_back(a2);
             known[a2] = true;
             ++nset;
           } else if (a2 == refst) {
-            uvwbl.push_back(-(i + 1));
+            uvw_bl.push_back(-(i + 1));
             members.push_back(a1);
             known[a1] = true;
             ++nset;
@@ -79,7 +79,7 @@ std::vector<int> nsetupSplitUVW(unsigned int nant, const std::vector<int>& ant1,
       }
     }
   }
-  return uvwbl;
+  return uvw_bl;
 }
 
 std::vector<int> nsetupSplitUVW(
@@ -180,8 +180,9 @@ std::vector<int> nsetupSplitUVW(
 
 void nsplitUVW(const std::vector<int>& baseline_indices,
                const std::vector<Baseline>& baselines,
-               const DPBuffer::UvwType& uvwbl, xt::xtensor<double, 2>& uvwant) {
-  uvwant.fill(0.0);
+               const DPBuffer::UvwType& uvw_bl,
+               xt::xtensor<double, 2>& uvw_ant) {
+  uvw_ant.fill(0.0);
   for (unsigned int i = 0; i < baseline_indices.size(); ++i) {
     int index = baseline_indices[i];
     if (index < 0) {
@@ -190,16 +191,16 @@ void nsplitUVW(const std::vector<int>& baseline_indices,
       const size_t first_baseline = baselines[index].first;
       const size_t second_baseline = baselines[index].second;
       for (int j = 0; j < 3; ++j) {
-        uvwant(first_baseline, j) =
-            uvwant(second_baseline, j) - uvwbl(index, j);
+        uvw_ant(first_baseline, j) =
+            uvw_ant(second_baseline, j) - uvw_bl(index, j);
       }
     } else {
       // Ant1 is known.
       const size_t first_baseline = baselines[index].first;
       const size_t second_baseline = baselines[index].second;
       for (int j = 0; j < 3; ++j) {
-        uvwant(second_baseline, j) =
-            uvwant(first_baseline, j) + uvwbl(index, j);
+        uvw_ant(second_baseline, j) =
+            uvw_ant(first_baseline, j) + uvw_bl(index, j);
       }
     }
   }

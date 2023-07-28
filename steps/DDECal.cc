@@ -163,18 +163,17 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
       itsSettings.idg_region_filename, readers.first.front());
 
   for (size_t i = 0; i < facets.size(); ++i) {
-    std::string dir_name = "dir" + std::to_string(i);
-    if (!facets[i].DirectionLabel().empty()) {
-      dir_name = facets[i].DirectionLabel();
-    }
+    std::string facet_dir_label = facets[i].DirectionLabel();
+    std::string dir_name =
+        facet_dir_label.empty() ? ("dir" + std::to_string(i)) : facet_dir_label;
+
     itsDirections.emplace_back(1, dir_name);
     itsDirectionNames.emplace_back(prefix + dir_name);
     itsSolutionsPerDirection.emplace_back(1);
 
     itsSteps.push_back(std::make_shared<IDGPredict>(
         parset, prefix, readers, std::vector<Facet>{facets[i]}));
-    setModelNextSteps(*itsSteps.back(), facets[i].DirectionLabel(), parset,
-                      prefix);
+    setModelNextSteps(*itsSteps.back(), facet_dir_label, parset, prefix);
   }
 }
 
@@ -271,7 +270,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
                              infoIn.ncorr()});
   }
 
-  // For each sub step chain, add a resultstep and get required fieilds.
+  // For each sub step chain, add a resultstep and get required fields.
   itsRequiredFields.resize(itsSteps.size());
   itsResultSteps.resize(itsSteps.size());
   for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
@@ -538,16 +537,21 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
 
 void DDECal::doSolve() {
   for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
-    // For directions that reuse model data, the model data should already be
-    // in the input buffer.
+    // For directions that reuse model data, the model data of the various
+    // time steps should already be in the input buffers.
     if (!itsSteps[dir]) continue;
 
+    // For directions that do not, the model data has been computed in the
+    // substeps now and is waiting in the tailing MultiResultStep of each
+    // substep chain. Move the model data from there to the input buffers.
     if (auto s = dynamic_cast<IDGPredict*>(itsSteps[dir].get())) {
       itsTimerPredict.start();
       s->flush();
       itsTimerPredict.stop();
     }
     for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
+      // In the MultiResultStep, DPBuffers are stored flattened (1D vector) as
+      // compared to the target shape of the input buffers (vector of vectors):
       const size_t sol_int = i / itsRequestedSolInt;
       const size_t timestep = i % itsRequestedSolInt;
       itsInputBuffers[sol_int][timestep]->MoveData(
@@ -652,7 +656,7 @@ void DDECal::doSolve() {
       }
     }
 
-    // Store constraint solutions if any constaint has a non-empty result
+    // Store constraint solutions if any constraint has a non-empty result
     bool someConstraintHasResult = false;
     for (const auto& constraint_results : solveResult.results) {
       if (!constraint_results.empty()) {
@@ -672,15 +676,17 @@ void DDECal::doSolve() {
 
   itsTimer.stop();
 
-  for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
-    for (size_t step = 0; step < itsInputBuffers[i].size(); ++step) {
+  for (size_t sol_int = 0; sol_int < itsInputBuffers.size(); ++sol_int) {
+    for (size_t timestep = 0; timestep < itsInputBuffers[sol_int].size();
+         ++timestep) {
       if (itsOriginalFlags.size() > 0) {
         // Restore original flags, if the UVWFlagger or flagChannelBlock ran.
-        itsInputBuffers[i][step]->GetFlags() = xt::view(
-            itsOriginalFlags, i, step, xt::all(), xt::all(), xt::all());
+        itsInputBuffers[sol_int][timestep]->GetFlags() =
+            xt::view(itsOriginalFlags, sol_int, timestep, xt::all(), xt::all(),
+                     xt::all());
       }
       // Push data (possibly changed) to next step
-      getNextStep()->process(std::move(itsInputBuffers[i][step]));
+      getNextStep()->process(std::move(itsInputBuffers[sol_int][timestep]));
     }
   }
 

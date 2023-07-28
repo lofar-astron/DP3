@@ -41,42 +41,37 @@ Predict::Predict(const common::ParameterSet& parset, const string& prefix,
 
 void Predict::Initialize(const common::ParameterSet& parset,
                          const string& prefix, MsType input_type) {
-  if (input_type == MsType::kBda) {
-    steps_before_predict_.push_back(std::make_shared<BDAExpander>(prefix));
-  }
-
   const unsigned int time_smearing_factor =
       parset.getUint(prefix + "correcttimesmearing", 1);
+
+  // Create the steps that this step manages, in order of how they need to be
+  // connected. These are called 'internal' steps here to differentiate them
+  // from the other steps outside Predict, but they are not substeps.
+  if (input_type == MsType::kBda) {
+    internal_steps_.push_back(std::make_shared<BDAExpander>(prefix));
+  }
   if (time_smearing_factor > 1) {
-    steps_before_predict_.push_back(std::make_shared<Upsample>(
+    internal_steps_.push_back(std::make_shared<Upsample>(
         prefix + "upsample", time_smearing_factor, true));
-    steps_after_predict_.push_back(std::make_shared<Averager>(
-        prefix + "averager", 1, time_smearing_factor));
   }
 
+  internal_steps_.push_back(predict_step_);
+
+  if (time_smearing_factor > 1) {
+    internal_steps_.push_back(std::make_shared<Averager>(prefix + "averager", 1,
+                                                         time_smearing_factor));
+  }
   if (input_type == MsType::kBda) {
     bda_averager_ = std::make_shared<BDAAverager>(parset, prefix, false);
-    steps_after_predict_.push_back(bda_averager_);
+    internal_steps_.push_back(bda_averager_);
   }
 
-  if (!steps_before_predict_.empty()) {
-    Step::setNextStep(steps_before_predict_.front());
-
-    steps_before_predict_.push_back(predict_step_);
-
-    for (size_t i = 1; i < steps_before_predict_.size(); ++i) {
-      steps_before_predict_[i - 1]->setNextStep(steps_before_predict_[i]);
-    }
-    steps_before_predict_.back()->setNextStep(steps_after_predict_.front());
-
-    for (size_t i = 1; i < steps_after_predict_.size(); ++i) {
-      steps_after_predict_[i - 1]->setNextStep(steps_after_predict_[i]);
-    }
-
-  } else {
-    // Without time smearing or bda, extra steps are not needed.
-    Step::setNextStep(predict_step_);
+  // Connect the steps
+  Step::setNextStep(internal_steps_.front());
+  for (size_t i = 1; i < internal_steps_.size(); ++i) {
+    internal_steps_[i - 1]->setNextStep(internal_steps_[i]);
   }
+  // The last 'internal' step is connected in Predict::setNextStep()
 }
 
 void Predict::updateInfo(const DPInfo& infoIn) {
@@ -93,11 +88,7 @@ base::Direction Predict::GetFirstDirection() const {
 }
 
 void Predict::setNextStep(std::shared_ptr<Step> next_step) {
-  if (!steps_after_predict_.empty()) {
-    steps_after_predict_.back()->setNextStep(next_step);
-  } else {
-    predict_step_->setNextStep(next_step);
-  }
+  internal_steps_.back()->setNextStep(next_step);
 }
 
 void Predict::SetOperation(const std::string& operation) {

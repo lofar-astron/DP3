@@ -105,10 +105,9 @@ class Predict : public ModelDataStep {
   /// Input and output measurement set type: Regular (default) or Bda
   const MsType ms_type_;
 
-  std::vector<std::shared_ptr<Step>> steps_before_predict_;
+  std::vector<std::shared_ptr<Step>> internal_steps_;
   std::shared_ptr<BDAAverager> bda_averager_;
   std::shared_ptr<OnePredict> predict_step_;
-  std::vector<std::shared_ptr<Step>> steps_after_predict_;
 };
 
 }  // namespace steps
