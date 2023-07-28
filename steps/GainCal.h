@@ -189,6 +189,11 @@ class GainCal final : public Step {
 
   base::FlagCounter itsFlagCounter;
 
+  /// If not empty, GainCal will read the model data from the DPBuffer with the
+  /// requested name and skip the predict step. If data associated with the
+  /// requested name is not found, an exception is thrown.
+  std::string itsModelDataName;
+
   common::NSTimer itsTimer;
   common::NSTimer itsTimerPredict;
   common::NSTimer itsTimerSolve;
