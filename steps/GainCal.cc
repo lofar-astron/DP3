@@ -74,7 +74,8 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
       itsStepInParmUpdate(0),
       itsChunkStartTime(0),
       itsStepInSolInt(0),
-      itsAllSolutions() {
+      itsAllSolutions(),
+      itsModelDataName(parset.getString(prefix + "reusemodel", "")) {
   std::stringstream ss;
   ss << parset;
   itsParsetString = ss.str();
@@ -93,12 +94,12 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
   itsDataResultStep = std::make_shared<ResultStep>();
   itsUVWFlagStep.setNextStep(itsDataResultStep);
 
-  if (!itsUseModelColumn) {
+  if (!itsUseModelColumn && itsModelDataName.empty()) {
     auto predict_step = std::make_shared<Predict>(parset, prefix);
     predict_step->SetThreadData(itsThreadPool, nullptr);
     predict_step->setNextStep(itsResultStep);
     itsFirstSubStep = std::move(predict_step);
-  } else {
+  } else if (itsUseModelColumn) {
     // Remain compatible with the old situation, where the input step read the
     // model data and the input step had the model column name.
     const std::string column_key = prefix + "modelcolumn";
@@ -175,7 +176,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   itsParallelFor.SetNThreads(info().nThreads());
   itsUVWFlagStep.updateInfo(infoIn);
 
-  itsFirstSubStep->setInfo(infoIn);
+  if (itsFirstSubStep) itsFirstSubStep->setInfo(infoIn);
 
   if (itsSolInt == 0) {
     itsSolInt = info().ntime();
@@ -364,6 +365,20 @@ void GainCal::showTimings(std::ostream& os, double duration) const {
 bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
 
+  if (!itsModelDataName.empty()) {
+    if (!buffer->HasData(itsModelDataName)) {
+      throw std::runtime_error(
+          "Gaincal step did not receive model data named '" + itsModelDataName +
+          "'.");
+    }
+    if (buffer->GetData(itsModelDataName).shape() !=
+        buffer->GetData().shape()) {
+      throw std::runtime_error(
+          "The shape of '" + itsModelDataName +
+          "' data does not match the shape of the main buffer.");
+    }
+  }
+
   const std::complex<float>* data = buffer->GetData().data();
   const float* weight = buffer->GetWeights().data();
   const bool* flag = buffer->GetFlags().data();
@@ -391,21 +406,22 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
   //
   // Model visibilities for each direction of interest will be computed
   // and stored.
-
   itsTimerPredict.start();
-
-  // Try reusing the result buffer from the previous process() call.
-  std::unique_ptr<DPBuffer> substep_buffer = itsResultStep->take();
-  if (!substep_buffer) {
-    substep_buffer = std::make_unique<DPBuffer>(*buffer, itsSubRequiredFields);
-  } else {
-    // The fields in substep_buffer should already have the correct shape,
-    // from the previous process() call, so we can reuse its memory.
-    substep_buffer->Copy(*buffer, itsSubRequiredFields);
+  if (itsModelDataName.empty()) {
+    // Try reusing the result buffer from the previous process() call.
+    std::unique_ptr<DPBuffer> substep_buffer = itsResultStep->take();
+    if (!substep_buffer) {
+      substep_buffer =
+          std::make_unique<DPBuffer>(*buffer, itsSubRequiredFields);
+    } else {
+      // The fields in substep_buffer should already have the correct shape,
+      // from the previous process() call, so we can reuse its memory.
+      substep_buffer->Copy(*buffer, itsSubRequiredFields);
+    }
+    itsFirstSubStep->process(std::move(substep_buffer));
   }
-  itsFirstSubStep->process(std::move(substep_buffer));
-  itsTimerPredict.stop();
 
+  itsTimerPredict.stop();
   itsTimerFill.start();
 
   if (itsStepInSolInt == 0) {
@@ -417,7 +433,11 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   // Store data in the GainCalAlgorithm object
-  fillMatrices(itsResultStep->get().GetData().data(), data, weight, flag);
+  if (itsModelDataName.empty()) {
+    fillMatrices(itsResultStep->get().GetData().data(), data, weight, flag);
+  } else {
+    fillMatrices(buffer->GetData(itsModelDataName).data(), data, weight, flag);
+  }
   itsTimerFill.stop();
 
   if (itsApplySolution) {

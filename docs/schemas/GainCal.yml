@@ -96,6 +96,10 @@ inputs:
     type: string
     doc: >-
       Same as in :ref:`Predict` step `.`
+  reusemodel:
+    type: string
+    doc: >-
+      Reuse model data from previous steps. The string should contain the model data name, as set by a previous step, e.g., `ddecal.center` `.`
   sources:
     default: "[]"
     type: string?
