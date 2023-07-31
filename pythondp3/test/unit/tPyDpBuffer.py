@@ -146,3 +146,39 @@ def test_process_buffer():
 
     with pytest.raises(RuntimeError):
         step._step.process(pybuffer)
+
+
+def test_extra_data():
+    pybuffer = dp3.DPBuffer()
+
+    n_baselines = 1
+    n_channels = 3
+    n_correlations = 4
+    data = np.ones((n_baselines, n_channels, n_correlations), dtype=np.csingle)
+
+    pybuffer.set_data(data)
+
+    modeldata = 5 * np.ones(
+        (n_baselines, n_channels, n_correlations), dtype=np.csingle
+    )
+
+    # Test that the "model_data" column cannot be filled if it does not exist yet
+    with pytest.raises(RuntimeError) as e:
+        pybuffer.set_extra_data("model_data", modeldata)
+    assert (
+        "No data named 'model_data' is found in the current DPBuffer"
+        in str(e.value)
+    )
+
+    # Add and fill in the "model_data" column
+    pybuffer.add_data("model_data")
+    pybuffer.set_extra_data("model_data", modeldata)
+
+    assert (pybuffer.get_data() == data).all()
+    assert (pybuffer.get_data("model_data") == modeldata).all()
+
+    # Remove the "model_data" column and check that it is correctly removed
+    pybuffer.remove_data("model_data")
+    with pytest.raises(RuntimeError) as e:
+        pybuffer.get_data("model_data")
+    assert "Buffer has no data named 'model_data'" in str(e.value)

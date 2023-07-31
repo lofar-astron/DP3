@@ -164,7 +164,11 @@ class DPBuffer {
       return data_;
     } else {
       auto found = extra_data_.find(name);
-      assert(found != extra_data_.end());
+      if (found == extra_data_.end()) {
+        throw std::runtime_error("No data named '" + name +
+                                 "' is found in the current DPBuffer");
+      }
+
       return found->second;
     }
   }
@@ -173,7 +177,10 @@ class DPBuffer {
       return data_;
     } else {
       auto found = extra_data_.find(name);
-      assert(found != extra_data_.end());
+      if (found == extra_data_.end()) {
+        throw std::runtime_error("No data named '" + name +
+                                 "' is found in the current DPBuffer");
+      }
       return found->second;
     }
   }
