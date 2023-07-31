@@ -110,7 +110,8 @@ void WrapDpBuffer(py::module& m) {
             if (numpy_data.ndim() != 3) {
               throw std::runtime_error(
                   "Provided array should have three dimensions (n_baselines, "
-                  "n_channels, n_correlations).");
+                  "n_channels, n_correlations); the input provided contains " +
+                  std::to_string(numpy_data.ndim()) + " dimensions.");
             }
             DPBuffer& buffer = *self;
             buffer.GetData().resize(ConvertShape(numpy_data.shape()));
@@ -118,6 +119,30 @@ void WrapDpBuffer(py::module& m) {
                         buffer.GetData().data());
           },
           "Set buffer data from a 3-D numpy array of complex float type.")
+      .def(
+          "set_extra_data",
+          [](PyDpBuffer& self, std::string name,
+             py::array_t<std::complex<float>, py::array::c_style>& numpy_data) {
+            if (numpy_data.ndim() != 3) {
+              throw std::runtime_error(
+                  "Provided array should have three dimensions (n_baselines, "
+                  "n_channels, n_correlations); the input provided contains " +
+                  std::to_string(numpy_data.ndim()) + " dimensions.");
+            }
+            self->GetData(name).resize(ConvertShape(numpy_data.shape()));
+            std::copy_n(numpy_data.data(), self->GetData(name).size(),
+                        self->GetData(name).data());
+          },
+          "Set buffer data with the given name from a 3-D numpy array of "
+          "complex float type.")
+      .def(
+          "add_data",
+          [](PyDpBuffer& self, std::string name) { self->AddData(name); },
+          "Add a new data field in the DPBuffer with the given name.")
+      .def(
+          "remove_data",
+          [](PyDpBuffer& self, std::string name) { self->RemoveData(name); },
+          "Remove the data field in the DPBuffer with the given name.")
       .def(
           "set_weights",
           [](PyDpBuffer& self,
