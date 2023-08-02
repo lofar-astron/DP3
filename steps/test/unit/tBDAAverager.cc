@@ -339,8 +339,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
     buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
                                    kNBaselines, kChannelCounts, i * 1000.0));
-    expected.push_back(std::make_unique<DPBuffer>());
-    expected.back()->copy(*buffers.back());
+    expected.push_back(std::make_unique<DPBuffer>(*buffers.back()));
   }
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
@@ -393,8 +392,7 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
       CreateBuffer(averaged_centroid_time, averaged_interval, kNBaselines,
                    kChannelCounts, 0.0 + 1000.0, 2.0);
   // The buffer average02 is equal to buffer2
-  std::unique_ptr<DPBuffer> average02 = std::make_unique<DPBuffer>();
-  average02->copy(*buffer2);
+  std::unique_ptr<DPBuffer> average02 = std::make_unique<DPBuffer>(*buffer2);
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
@@ -639,8 +637,8 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   for (int i = 0; i < 5; ++i) {
     buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
                                    kNBaselines, kChannelCounts, i * 1000.0));
-    expected_long_baseline.push_back(std::make_unique<DPBuffer>());
-    expected_long_baseline.back()->copy(*buffers.back());
+    expected_long_baseline.push_back(
+        std::make_unique<DPBuffer>(*buffers.back()));
   }
 
   // Create the expected output data for the second baseline. The third buffer
@@ -745,8 +743,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
     const double time = kStartTime + i * kInterval;
     buffers.push_back(CreateBuffer(time, kInterval, kNBaselines,
                                    kInputChannelCounts, i * 1000.0));
-    expected1.push_back(std::make_unique<DPBuffer>());
-    expected1.back()->copy(*buffers.back());
+    expected1.push_back(std::make_unique<DPBuffer>(*buffers.back()));
     expected2.push_back(CreateBuffer(time, kInterval, 1, kOutputChannelCounts2,
                                      i * 1000.0 + 100.0));
     expected3.push_back(CreateBuffer(time, kInterval, 1, kOutputChannelCounts3,

@@ -105,7 +105,8 @@ class DPBuffer {
   /// Construct object with empty arrays.
   explicit DPBuffer(double time = 0.0, double exposure = 0.0);
 
-  /// The copy constructor uses reference copies.
+  /// The copy constructor copies all data from the source buffer.
+  /// It copies row numbers using reference semantics.
   DPBuffer(const DPBuffer&) = default;
 
   /// The move constructor moves all data without using reference semantics.
@@ -116,15 +117,12 @@ class DPBuffer {
   /// It does not copy extra data fields yet (TODO in AST-1241).
   DPBuffer(const DPBuffer& that, const common::Fields& fields);
 
-  /// Copy assignment uses reference copies.
+  /// Copy assignment copies all data from the source buffer.
+  /// It copies row numbers using reference semantics.
   DPBuffer& operator=(const DPBuffer&);
 
   /// Move assignment moves all data without using reference semantics.
   DPBuffer& operator=(DPBuffer&&);
-
-  /// Make a deep copy of all arrays in that to this.
-  /// After this call, the buffer is always independent.
-  void copy(const DPBuffer& that);
 
   /// Copy that to this.
   /// Copy row numbers using reference semantics. Copy all other members using

@@ -138,22 +138,6 @@ BOOST_AUTO_TEST_CASE(move_assignment) {
   CheckIndependent(source, move_assigned);
 }
 
-BOOST_AUTO_TEST_CASE(copy_to_empty) {
-  const DPBuffer source = CreateFilledBuffer();
-  DPBuffer copy;
-  copy.copy(source);
-  CheckFilledBuffer(copy);
-  CheckIndependent(source, copy);
-}
-
-BOOST_AUTO_TEST_CASE(copy_to_reference_copy) {
-  const DPBuffer source = CreateFilledBuffer();
-  DPBuffer copy(source);  // 'copy' gets references (see copy_constructor test).
-  copy.copy(source);      // 'copy' becomes indedependent.
-  CheckFilledBuffer(copy);
-  CheckIndependent(source, copy);
-}
-
 BOOST_AUTO_TEST_CASE(copy_partially_using_constructor) {
   const DPBuffer source = CreateFilledBuffer();
 
