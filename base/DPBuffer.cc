@@ -95,15 +95,6 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
   return *this;
 }
 
-void DPBuffer::copy(const DPBuffer& that) {
-  operator=(that);  // 'Copy' the data in 'that', by referencing it.
-
-  // Ensure that this buffer is independent of the data in 'that'.
-  // Do it even if 'this == &that', since this/that may contain references,
-  // and the result of 'copy' should always be an independent object.
-  row_numbers_.unique();
-}
-
 void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
   if (this != &that) {
     time_ = that.time_;
