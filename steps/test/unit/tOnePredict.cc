@@ -167,9 +167,8 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight = 1.0) {
-  auto buffer = std::make_unique<dp3::base::DPBuffer>();
-  buffer->setTime(time);
-  buffer->setExposure(interval);
+  auto buffer = std::make_unique<dp3::base::DPBuffer>(time, interval);
+
   const std::array<std::size_t, 3> shape{n_baselines, channel_counts.size(),
                                          kNCorr};
   buffer->GetData().resize(shape);

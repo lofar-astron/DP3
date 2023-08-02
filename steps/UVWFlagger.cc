@@ -162,7 +162,7 @@ bool UVWFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
       uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[i], getInfo().getAnt2()[i],
-                               buffer->getTime());
+                               buffer->GetTime());
     }
 
     // Copy the original flags so it's possible to count the number of newly

@@ -37,27 +37,31 @@ void CompareArray(const casacore::Array<T>& left,
                                 right.end());
 }
 
-/// Verify that two DPBuffers do share the same data, e.g., using
-/// casacore references.
-void CheckDependent(const DPBuffer& left, const DPBuffer& right) {
-  BOOST_CHECK_EQUAL(left.getRowNrs().data(), right.getRowNrs().data());
+/// Verify that two DPBuffers use value semantics for most data and
+/// reference semantics for row numbers when copying.
+void CheckCopySemantics(const DPBuffer& source, const DPBuffer& target) {
+  BOOST_CHECK_NE(source.GetData().data(), target.GetData().data());
+  BOOST_CHECK_NE(source.GetFlags().data(), target.GetFlags().data());
+  BOOST_CHECK_NE(source.GetUvw().data(), target.GetUvw().data());
+  BOOST_CHECK_NE(source.GetWeights().data(), target.GetWeights().data());
+  BOOST_CHECK_EQUAL(source.GetRowNumbers().data(),
+                    target.GetRowNumbers().data());
 }
 
-/// Verify that two DPBuffers do not share the same data, e.g., using
-/// casacore references.
-void CheckIndependent(const DPBuffer& left, const DPBuffer& right) {
-  BOOST_CHECK_NE(left.getRowNrs().data(), right.getRowNrs().data());
-  BOOST_CHECK_NE(left.GetData().data(), right.GetData().data());
-  BOOST_CHECK_NE(left.GetFlags().data(), right.GetFlags().data());
-  BOOST_CHECK_NE(left.GetUvw().data(), right.GetUvw().data());
-  BOOST_CHECK_NE(left.GetWeights().data(), right.GetWeights().data());
+/// Verify that the source buffer is empty after a move.
+void CheckMove(const DPBuffer& source) {
+  BOOST_CHECK_EQUAL(0, source.GetData().size());
+  BOOST_CHECK_EQUAL(0, source.GetFlags().size());
+  BOOST_CHECK_EQUAL(0, source.GetWeights().size());
+  BOOST_CHECK_EQUAL(0, source.GetUvw().size());
+  BOOST_CHECK(source.GetRowNumbers().empty());
 }
 
 DPBuffer CreateFilledBuffer() {
   DPBuffer buffer;
-  buffer.setTime(kTime);
-  buffer.setExposure(kExposure);
-  buffer.setRowNrs(casacore::Vector<dp3::common::rownr_t>(kRowNrs, kRowNr));
+  buffer.SetTime(kTime);
+  buffer.SetExposure(kExposure);
+  buffer.SetRowNumbers(casacore::Vector<dp3::common::rownr_t>(kRowNrs, kRowNr));
   buffer.GetData().resize(kShape);
   buffer.AddData(kFooDataName);
   buffer.AddData(kBarDataName);
@@ -74,9 +78,9 @@ DPBuffer CreateFilledBuffer() {
 }
 
 void CheckFilledBuffer(const DPBuffer& buffer) {
-  BOOST_CHECK(buffer.getTime() == kTime);
-  BOOST_CHECK(buffer.getExposure() == kExposure);
-  CompareArray(buffer.getRowNrs(),
+  BOOST_CHECK(buffer.GetTime() == kTime);
+  BOOST_CHECK(buffer.GetExposure() == kExposure);
+  CompareArray(buffer.GetRowNumbers(),
                casacore::Vector<dp3::common::rownr_t>(kRowNrs, kRowNr));
 
   const xt::xtensor<std::complex<float>, 3> data(kShape, kDataValue);
@@ -99,9 +103,9 @@ BOOST_AUTO_TEST_SUITE(dpbuffer)
 
 BOOST_AUTO_TEST_CASE(constructor) {
   const DPBuffer buffer;
-  BOOST_CHECK(buffer.getTime() == 0.0);
-  BOOST_CHECK(buffer.getExposure() == 0.0);
-  BOOST_CHECK(buffer.getRowNrs().empty());
+  BOOST_CHECK(buffer.GetTime() == 0.0);
+  BOOST_CHECK(buffer.GetExposure() == 0.0);
+  BOOST_CHECK(buffer.GetRowNumbers().empty());
   BOOST_CHECK(buffer.GetData().size() == 0);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(!buffer.HasData(kFooDataName));
@@ -116,7 +120,17 @@ BOOST_AUTO_TEST_CASE(copy_constructor) {
 
   const DPBuffer copy_constructed(source);
   CheckFilledBuffer(copy_constructed);
-  CheckDependent(source, copy_constructed);
+  CheckCopySemantics(source, copy_constructed);
+}
+
+BOOST_AUTO_TEST_CASE(copy_assignment) {
+  const DPBuffer source = CreateFilledBuffer();
+  DPBuffer copy_assigned;
+  CheckFilledBuffer(source);
+
+  copy_assigned = source;
+  CheckFilledBuffer(copy_assigned);
+  CheckCopySemantics(source, copy_assigned);
 }
 
 BOOST_AUTO_TEST_CASE(move_constructor) {
@@ -125,7 +139,7 @@ BOOST_AUTO_TEST_CASE(move_constructor) {
 
   DPBuffer move_constructed(std::move(source));
   CheckFilledBuffer(move_constructed);
-  CheckIndependent(source, move_constructed);
+  CheckMove(source);
 }
 
 BOOST_AUTO_TEST_CASE(move_assignment) {
@@ -135,16 +149,17 @@ BOOST_AUTO_TEST_CASE(move_assignment) {
 
   move_assigned = std::move(source);
   CheckFilledBuffer(move_assigned);
-  CheckIndependent(source, move_assigned);
+  CheckMove(source);
 }
 
 BOOST_AUTO_TEST_CASE(copy_partially_using_constructor) {
   const DPBuffer source = CreateFilledBuffer();
 
   const DPBuffer no_fields(source, Fields());
-  BOOST_CHECK_EQUAL(source.getTime(), no_fields.getTime());
-  BOOST_CHECK_EQUAL(source.getExposure(), no_fields.getExposure());
-  BOOST_CHECK_EQUAL(source.getRowNrs().data(), no_fields.getRowNrs().data());
+  BOOST_CHECK_EQUAL(source.GetTime(), no_fields.GetTime());
+  BOOST_CHECK_EQUAL(source.GetExposure(), no_fields.GetExposure());
+  BOOST_CHECK_EQUAL(source.GetRowNumbers().data(),
+                    no_fields.GetRowNumbers().data());
   BOOST_CHECK_EQUAL(no_fields.GetData().size(), 0);
   BOOST_CHECK(!no_fields.HasData(kFooDataName));
   BOOST_CHECK(!no_fields.HasData(kBarDataName));
@@ -184,8 +199,8 @@ BOOST_AUTO_TEST_CASE(copy_partially_using_copy) {
   // Create a target buffer that has the same shape as the source buffer but has
   // different values.
   DPBuffer target = CreateFilledBuffer();
-  target.setTime(target.getTime() + kIncrement);
-  target.setExposure(target.getExposure() + kIncrement);
+  target.SetTime(target.GetTime() + kIncrement);
+  target.SetExposure(target.GetExposure() + kIncrement);
   target.GetData().fill(kDataValue + kIncrement);
   target.GetData(kFooDataName).fill(kFooDataValue + kIncrement);
   target.GetData(kBarDataName).fill(kBarDataValue + kIncrement);
@@ -201,9 +216,10 @@ BOOST_AUTO_TEST_CASE(copy_partially_using_copy) {
 
   // First, copy no fields. Data, flags, weights and uvw should not change.
   target.Copy(source, Fields());
-  BOOST_CHECK_EQUAL(source.getTime(), target.getTime());
-  BOOST_CHECK_EQUAL(source.getExposure(), target.getExposure());
-  BOOST_CHECK_EQUAL(source.getRowNrs().data(), target.getRowNrs().data());
+  BOOST_CHECK_EQUAL(source.GetTime(), target.GetTime());
+  BOOST_CHECK_EQUAL(source.GetExposure(), target.GetExposure());
+  BOOST_CHECK_EQUAL(source.GetRowNumbers().data(),
+                    target.GetRowNumbers().data());
   BOOST_CHECK_EQUAL(target.GetData(), source.GetData() + kIncrement);
   BOOST_CHECK_EQUAL(target.GetData(kFooDataName),
                     source.GetData(kFooDataName) + kIncrement);
@@ -229,17 +245,6 @@ BOOST_AUTO_TEST_CASE(copy_partially_using_copy) {
   BOOST_CHECK_EQUAL(target.GetWeights().data(), weights);
   BOOST_CHECK_EQUAL(target.GetFlags().data(), flags);
   BOOST_CHECK_EQUAL(target.GetUvw().data(), uvw);
-}
-
-BOOST_AUTO_TEST_CASE(make_independent) {
-  const DPBuffer source = CreateFilledBuffer();
-  DPBuffer copy(source);  // 'copy' gets references (see copy_constructor test).
-  CheckDependent(source, copy);
-  // Ensure that the "copy" buffer has independent copy of row_numbers_ (not
-  // using reference semantics).
-  copy.getRowNrs().unique();
-  CheckFilledBuffer(copy);
-  CheckIndependent(source, copy);
 }
 
 BOOST_AUTO_TEST_CASE(remove_data_one_by_one) {

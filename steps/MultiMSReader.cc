@@ -221,9 +221,9 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
     return false;  // end of input
   }
   const DPBuffer& buf1 = itsResults[itsFirst]->get();
-  buffer->setTime(buf1.getTime());
-  buffer->setExposure(buf1.getExposure());
-  buffer->setRowNrs(buf1.getRowNrs());
+  buffer->SetTime(buf1.GetTime());
+  buffer->SetExposure(buf1.GetExposure());
+  buffer->SetRowNumbers(buf1.GetRowNumbers());
   // Size the buffers if they should be read.
   if (getFieldsToRead().Data()) {
     buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
@@ -244,7 +244,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
         itsReaders[i]->process(std::move(recycled_buffer));
       }
       const DPBuffer& msBuf = itsResults[i]->get();
-      if (msBuf.getRowNrs().empty())
+      if (msBuf.GetRowNumbers().empty())
         throw std::runtime_error(
             "When using multiple MSs, the times in all MSs have to be "
             "consecutive; this is not the case for MS " +
@@ -279,7 +279,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (getFieldsToRead().Uvw()) {
     // All Measurement Sets have the same UVWs, so use the first one.
-    itsReaders[itsFirst]->getUVW(buffer->getRowNrs(), buffer->getTime(),
+    itsReaders[itsFirst]->getUVW(buffer->GetRowNumbers(), buffer->GetTime(),
                                  *buffer);
   }
   if (getFieldsToRead().Weights()) getWeights(buffer);

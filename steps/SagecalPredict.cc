@@ -493,10 +493,10 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
 
   buffer->GetData().resize({nBl, nCh, nCr});
 
-  if (parm_on_disk_ && (buffer->getTime() > time_last_)) {
+  if (parm_on_disk_ && (buffer->GetTime() > time_last_)) {
     timestep_ = 0;
     // Update solutions (also aux info such as time_last_ ...)
-    updateFromH5(buffer->getTime());
+    updateFromH5(buffer->GetTime());
   } else {
     timestep_++;
   }

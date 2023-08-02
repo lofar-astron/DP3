@@ -120,7 +120,7 @@ class TestInput : public dp3::steps::MockInput {
     if (count_ == kOutlierIndex) {
       buffer->GetData() += std::complex<float>(10., 10.);
     }
-    buffer->setTime(count_ * kTimeStep +
+    buffer->SetTime(count_ * kTimeStep +
                     kFirstTime);  // same interval as in updateAveragInfo
     buffer->GetWeights().resize(shape);
     buffer->GetWeights().fill(1.);
@@ -163,7 +163,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
     // Check the result.
     BOOST_CHECK(xt::allclose(buffer->GetData(), result, 1.0e-10));
-    BOOST_CHECK_CLOSE(buffer->getTime(), kFirstTime + kTimeStep * count_,
+    BOOST_CHECK_CLOSE(buffer->GetTime(), kFirstTime + kTimeStep * count_,
                       1.0e-8);
     ++count_;
     return true;

@@ -453,7 +453,7 @@ xt::xtensor<int, 3>* PreFlagger::PSet::process(
     common::NSTimer& timer) {
   // No need to process it if the time mismatches or if only time selection.
   if (itsFlagOnTime) {
-    if (!matchTime(out.getTime(), timeSlot)) {
+    if (!matchTime(out.GetTime(), timeSlot)) {
       itsFlags.fill(false);
       return &itsFlags;
     }
@@ -490,7 +490,7 @@ xt::xtensor<int, 3>* PreFlagger::PSet::process(
     return &itsFlags;
   }
   // Flag on AzEl is necessary.
-  if (itsFlagOnAzEl && !flagAzEl(out.getTime())) {
+  if (itsFlagOnAzEl && !flagAzEl(out.GetTime())) {
     return &itsFlags;
   }
   // Convert each baseline flag to a flag per correlation/channel.

@@ -804,7 +804,7 @@ void DDECal::doPrepare() {
 
   itsTimerPredict.stop();
 
-  itsAvgTime += itsAvgTime + input_buffer->getTime();
+  itsAvgTime += itsAvgTime + input_buffer->GetTime();
 }
 
 void DDECal::WriteSolutions() {

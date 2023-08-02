@@ -116,7 +116,7 @@ class TestInput : public dp3::steps::MockInput {
     }
     std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
     auto buffer = std::make_unique<DPBuffer>();
-    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
+    buffer->SetTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
     buffer->GetData().resize(data_shape);
     auto& data = buffer->GetData();
     for (std::size_t i = 0; i < data.size(); ++i) {
@@ -180,7 +180,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     // Check the expected result against the actual result.
     BOOST_CHECK(xt::allclose(buf->GetData(), expected_result, 1.0e-7));
     BOOST_CHECK(xt::all(xt::equal(buf->GetFlags(), itsFlag)));
-    BOOST_CHECK_CLOSE_FRACTION(buf->getTime(), 2.0 + 5 * itsCount, 1.0e-6);
+    BOOST_CHECK_CLOSE_FRACTION(buf->GetTime(), 2.0 + 5 * itsCount, 1.0e-6);
     BOOST_CHECK(xt::allclose(buf->GetUvw(), uvw, 1.0e-7));
     ++itsCount;
     return true;
@@ -232,7 +232,7 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
     BOOST_CHECK(!xt::allclose(buf->GetData(), expected_result));
     BOOST_CHECK(!xt::all(xt::equal(buf->GetData(), expected_result)));
     BOOST_CHECK(xt::all(xt::equal(buf->GetFlags(), itsFlag)));
-    BOOST_CHECK_CLOSE_FRACTION(buf->getTime(), 2. + 5 * itsCount, 1.0e-5);
+    BOOST_CHECK_CLOSE_FRACTION(buf->GetTime(), 2. + 5 * itsCount, 1.0e-5);
     BOOST_CHECK(!xt::allclose(buf->GetUvw(), uvw));
     ++itsCount;
     return true;

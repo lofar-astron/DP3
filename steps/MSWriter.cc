@@ -123,13 +123,13 @@ std::string MSWriter::InsertNumberInFilename(const std::string& name,
 }
 
 bool MSWriter::process(std::unique_ptr<DPBuffer> buffer) {
-  if (chunk_start_time_ == 0.0) chunk_start_time_ = buffer->getTime();
+  if (chunk_start_time_ == 0.0) chunk_start_time_ = buffer->GetTime();
 
   if (chunk_duration_ != 0.0 &&
-      buffer->getTime() - chunk_start_time_ >= chunk_duration_) {
+      buffer->GetTime() - chunk_start_time_ >= chunk_duration_) {
     FinishMs();
     ++current_chunk_index_;
-    chunk_start_time_ = buffer->getTime();
+    chunk_start_time_ = buffer->GetTime();
     StartNewMs();
   }
 
@@ -170,7 +170,7 @@ void MSWriter::ProcessBuffer(DPBuffer& buffer) {
   }
   // Replace the rownrs in the buffer which is needed if in a later
   // step the MS gets updated.
-  buffer.setRowNrs(rownrs);
+  buffer.SetRowNumbers(rownrs);
 }
 
 void MSWriter::finish() {
@@ -724,9 +724,9 @@ void MSWriter::WriteMeta(Table& out, const DPBuffer& buf) {
   ant1col.putColumn(casacore::Vector<int>(getInfo().getAnt1()));
   ant2col.putColumn(casacore::Vector<int>(getInfo().getAnt2()));
   // Fill all rows that do not change.
-  FillSca<double>(buf.getTime(), out, "TIME");
-  FillSca<double>(buf.getTime(), out, "TIME_CENTROID");
-  FillSca<double>(buf.getExposure(), out, "EXPOSURE");
+  FillSca<double>(buf.GetTime(), out, "TIME");
+  FillSca<double>(buf.GetTime(), out, "TIME_CENTROID");
+  FillSca<double>(buf.GetExposure(), out, "EXPOSURE");
   FillSca<double>(getInfo().timeInterval(), out, "INTERVAL");
   FillSca<int>(0, out, "FEED1");
   FillSca<int>(0, out, "FEED2");

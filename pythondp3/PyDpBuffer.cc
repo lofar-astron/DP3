@@ -51,20 +51,20 @@ void WrapDpBuffer(py::module& m) {
       .def(py::init<double, double>(),
            "Constructor with arguments: time, exposure")
       .def(
-          "get_time", [](const PyDpBuffer& self) { return self->getTime(); },
+          "get_time", [](const PyDpBuffer& self) { return self->GetTime(); },
           "Get the time of this buffer.")
       .def(
           "set_time",
-          [](PyDpBuffer& self, double time) { self->setTime(time); },
+          [](PyDpBuffer& self, double time) { self->SetTime(time); },
           "Set the time of this buffer.")
       .def(
           "get_exposure",
-          [](const PyDpBuffer& self) { return self->getExposure(); },
+          [](const PyDpBuffer& self) { return self->GetExposure(); },
           "Get the exposure duration of this buffer.")
       .def(
           "set_exposure",
           [](PyDpBuffer& self, double exposure) {
-            self->setExposure(exposure);
+            self->SetExposure(exposure);
           },
           "Set the exposure duration of this buffer.")
       .def(

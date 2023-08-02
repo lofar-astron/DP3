@@ -69,8 +69,8 @@ void Upsample::show(std::ostream& os) const {
 
 void Upsample::UpdateTimeCentroidExposureAndUvw(
     std::unique_ptr<base::DPBuffer>& buffer, double time, double exposure) {
-  buffer->setTime(time);
-  buffer->setExposure(exposure);
+  buffer->SetTime(time);
+  buffer->SetExposure(exposure);
 
   if (update_uvw_) {
     buffer->GetUvw().resize({info().nbaselines(), 3});
@@ -86,8 +86,8 @@ void Upsample::UpdateTimeCentroidExposureAndUvw(
 }
 
 bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
-  double time0 = buffer->getTime() - 0.5 * info().timeInterval() * time_step_;
-  double exposure = buffer->getExposure() / time_step_;
+  double time0 = buffer->GetTime() - 0.5 * info().timeInterval() * time_step_;
+  double exposure = buffer->GetExposure() / time_step_;
 
   // Make a copy of the buffer for each time_step_
   // As an optimisation we re-use the buffer for the last time_step_
@@ -122,15 +122,15 @@ bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
     first_to_flush_ = 0;  // reset for next use
     // Advance curIndex until
     // buffers[curIndex].time >= prevBuffers[prevIndex].time
-    while (prev_buffers_[prevIndex]->getTime() >
-               buffers_[curIndex]->getTime() &&
-           !casacore::nearAbs(prev_buffers_[prevIndex]->getTime(),
-                              buffers_[curIndex]->getTime(),
+    while (prev_buffers_[prevIndex]->GetTime() >
+               buffers_[curIndex]->GetTime() &&
+           !casacore::nearAbs(prev_buffers_[prevIndex]->GetTime(),
+                              buffers_[curIndex]->GetTime(),
                               0.4 * info().timeInterval())) {
       curIndex++;
     }
-    if (casacore::nearAbs(prev_buffers_[prevIndex]->getTime(),
-                          buffers_[curIndex]->getTime(),
+    if (casacore::nearAbs(prev_buffers_[prevIndex]->GetTime(),
+                          buffers_[curIndex]->GetTime(),
                           0.4 * info().timeInterval())) {
       // Found double buffer, choose which one to use
       // If both totally flagged, prefer prevbuffer

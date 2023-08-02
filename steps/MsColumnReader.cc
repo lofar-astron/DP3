@@ -34,7 +34,7 @@ bool MsColumnReader::process(std::unique_ptr<DPBuffer> buffer) {
                                          casacore::SHARE);
 
   ArrayColumn<casacore::Complex> model_column(table_, column_name_);
-  model_column.getColumnCells(buffer->getRowNrs(), data);
+  model_column.getColumnCells(buffer->GetRowNumbers(), data);
 
   getNextStep()->process(std::move(buffer));
 

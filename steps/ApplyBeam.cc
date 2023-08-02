@@ -202,7 +202,7 @@ bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
 
   float* weight = buffer->GetWeights().data();
 
-  const double time = buffer->getTime();
+  const double time = buffer->GetTime();
 
   // Set up directions for beam evaluation
   everybeam::vector3r_t srcdir;

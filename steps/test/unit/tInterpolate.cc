@@ -107,7 +107,7 @@ class TestInput : public dp3::steps::MockInput {
       data += std::complex<float>(10.0, 10.0);
     }
     auto buffer = std::make_unique<dp3::base::DPBuffer>();
-    buffer->setTime(process_count_ * 5.0 +
+    buffer->SetTime(process_count_ * 5.0 +
                     2.0);  // same interval as in updateAveragInfo
     buffer->GetData().resize(data_shape);
     buffer->GetData() = data;
@@ -159,7 +159,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     // Check the result.
     BOOST_CHECK(xt::allclose(input_buffer->GetData(), expected_result, 1e-10));
     BOOST_CHECK(
-        xt::allclose(input_buffer->getTime(), 2 + 5.0 * process_count_));
+        xt::allclose(input_buffer->GetTime(), 2 + 5.0 * process_count_));
     ++process_count_;
     return true;
   }

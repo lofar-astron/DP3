@@ -228,10 +228,10 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
     ++bb.times_added;
 
     if (1 == bb.times_added) {
-      bb.starttime = buffer->getTime() - info().timeInterval() / 2;
+      bb.starttime = buffer->GetTime() - info().timeInterval() / 2;
     }
     bb.interval += info().timeInterval();
-    bb.exposure += buffer->getExposure();
+    bb.exposure += buffer->GetExposure();
 
     std::complex<float>* bb_data = bb.data.data();
     float* bb_weights = bb.weights.data();

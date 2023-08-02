@@ -150,19 +150,19 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
   BOOST_REQUIRE_EQUAL(mock_step->GetRegularBuffers().size(), kNIntervals);
 
   // check if start times are properly set
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0]->getTime(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0]->GetTime(),
                     bda_first_time);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1]->getTime(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1]->GetTime(),
                     bda_first_time + kInterval);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2]->getTime(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2]->GetTime(),
                     bda_first_time + 2 * kInterval);
 
   // check that interval size is same for all times, and equal to minimal size
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0]->getExposure(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[0]->GetExposure(),
                     kInterval);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1]->getExposure(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[1]->GetExposure(),
                     kInterval);
-  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2]->getExposure(),
+  BOOST_CHECK_EQUAL(mock_step->GetRegularBuffers()[2]->GetExposure(),
                     kInterval);
 
   // check if data is correctly copied

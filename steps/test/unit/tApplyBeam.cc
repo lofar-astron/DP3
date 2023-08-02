@@ -84,8 +84,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_TEST(buffer->GetWeights() == expected_weights_,
                boost::test_tools::per_element());
 
-    BOOST_CHECK(buffer->getTime() == kTime);
-    BOOST_CHECK(buffer->getExposure() == kExposure);
+    BOOST_CHECK(buffer->GetTime() == kTime);
+    BOOST_CHECK(buffer->GetExposure() == kExposure);
     return true;
   }
   void finish() override {}

@@ -277,7 +277,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   interval.id = 0;
   interval.times.resize(n_times);
   for (size_t i = 0; i != n_times; ++i) {
-    interval.times[i] = buffer_[i]->getTime();
+    interval.times[i] = buffer_[i]->GetTime();
   }
   aoflagger_.SetIntervalList({interval});
 

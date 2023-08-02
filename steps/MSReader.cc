@@ -336,28 +336,28 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       return false;
     }
     // Fill the buffer.
-    buffer->setTime(itsNextTime);
+    buffer->SetTime(itsNextTime);
     if (!useIter) {
       // Need to insert a fully flagged time slot.
-      buffer->setRowNrs(casacore::Vector<common::rownr_t>());
-      buffer->setExposure(itsTimeInterval);
+      buffer->SetRowNumbers(casacore::Vector<common::rownr_t>());
+      buffer->SetExposure(itsTimeInterval);
       buffer->GetFlags().fill(true);
       if (getFieldsToRead().Data()) {
         buffer->GetData().fill(std::complex<float>());
       }
       itsNrInserted++;
     } else {
-      buffer->setRowNrs(itsIter.table().rowNumbers(itsMS, true));
+      buffer->SetRowNumbers(itsIter.table().rowNumbers(itsMS, true));
       if (itsMissingData) {
         // Data column not present, so fill a fully flagged time slot.
-        buffer->setExposure(itsTimeInterval);
+        buffer->SetExposure(itsTimeInterval);
         buffer->GetFlags().fill(true);
         if (getFieldsToRead().Data()) {
           buffer->GetData().fill(std::complex<float>());
         }
       } else {
         // Set exposure.
-        buffer->setExposure(
+        buffer->SetExposure(
             ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
         // Get data and flags from the MS.
         const casacore::IPosition casa_shape(3, itsNrCorr, itsNrChan, itsNrBl);
@@ -413,8 +413,8 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   }  // end of scope stops the timer.
 
   if (getFieldsToRead().Uvw())
-    getUVW(buffer->getRowNrs(), buffer->getTime(), *buffer);
-  if (getFieldsToRead().Weights()) getWeights(buffer->getRowNrs(), *buffer);
+    getUVW(buffer->GetRowNumbers(), buffer->GetTime(), *buffer);
+  if (getFieldsToRead().Weights()) getWeights(buffer->GetRowNumbers(), *buffer);
 
   getNextStep()->process(std::move(buffer));
   // Do not add to previous time, because it introduces round-off errors.

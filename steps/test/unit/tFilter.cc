@@ -157,8 +157,8 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
     auto buffer = std::make_unique<DPBuffer>();
-    buffer->setTime(itsCount * 5 + 2);
-    buffer->setExposure(0.1 * (itsCount + 1));
+    buffer->SetTime(itsCount * 5 + 2);
+    buffer->SetExposure(0.1 * (itsCount + 1));
     std::array<size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
     buffer->GetData().resize(data_shape);
     for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
@@ -251,8 +251,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_TEST(
         buffer->GetUvw() == xt::view(uvw, xt::range(0, itsNBlOut), xt::all()),
         boost::test_tools::per_element());
-    BOOST_CHECK_CLOSE(buffer->getTime(), itsCount * 5.0 + 2, 1.0e-3);
-    BOOST_CHECK_CLOSE(buffer->getExposure(), 0.1 * (itsCount + 1), 1.0e-3);
+    BOOST_CHECK_CLOSE(buffer->GetTime(), itsCount * 5.0 + 2, 1.0e-3);
+    BOOST_CHECK_CLOSE(buffer->GetExposure(), 0.1 * (itsCount + 1), 1.0e-3);
     ++itsCount;
     return true;
   }

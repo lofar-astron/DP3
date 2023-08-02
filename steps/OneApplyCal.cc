@@ -352,11 +352,11 @@ void OneApplyCal::showTimings(std::ostream& os, double duration) const {
 bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
 
-  if (buffer->getTime() > itsLastTime) {
+  if (buffer->GetTime() > itsLastTime) {
     if (itsParmDBOnDisk && itsUseH5Parm) {
-      updateParmsH5(buffer->getTime());
+      updateParmsH5(buffer->GetTime());
     } else if (itsParmDBOnDisk) {
-      updateParmsParmDB(buffer->getTime());
+      updateParmsParmDB(buffer->GetTime());
     } else {
       if (buffer->GetSolution().size() == 0) {
         throw std::runtime_error(

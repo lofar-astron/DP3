@@ -105,7 +105,7 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
 
-    buffer->setTime(count_ * 30 + 4472025740.0);
+    buffer->SetTime(count_ * 30 + 4472025740.0);
     const std::array shape{n_baselines_, n_channels_, n_correlations_};
     buffer->GetData().resize(shape);
     std::generate(buffer->GetData().begin(), buffer->GetData().end(),

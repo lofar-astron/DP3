@@ -47,7 +47,7 @@ class TestInput final : public steps::MockInput {
     if (count_ == kNTimes) {
       return false;
     }
-    buffer->setTime(count_ * 5 + 2);
+    buffer->SetTime(count_ * 5 + 2);
     buffer->GetData().resize(kShape);
     for (int i = 0; i < static_cast<int>(buffer->GetData().size()); ++i) {
       buffer->GetData().data()[i] =
