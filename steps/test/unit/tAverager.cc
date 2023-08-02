@@ -54,7 +54,7 @@ class TestInput : public dp3::steps::MockInput {
     if (itsCount == itsNTime) {
       return false;
     }
-    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
+    buffer->SetTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
 
     const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
     buffer->GetData().resize(shape);
@@ -155,7 +155,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK(xt::allclose(buffer->GetData(), result_data));
     BOOST_CHECK(buffer->GetFlags() == result_flags);
     BOOST_CHECK_CLOSE(
-        buffer->getTime(),
+        buffer->GetTime(),
         2 + 5 * (itsCount * itsNAvgTime + (itsNAvgTime - 1) / 2.0), 1.0e-3);
     BOOST_CHECK(xt::allclose(buffer->GetWeights(), result_weights));
     if (navgtime == itsNAvgTime) {
@@ -223,9 +223,9 @@ class TestInput3 : public dp3::steps::MockInput {
         }
       }
     }
-    buffer->setTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
+    buffer->SetTime(itsCount * 5 + 2);  // same interval as in updateAveragInfo
     casacore::Vector<dp3::common::rownr_t> rownrs(1, itsCount);
-    buffer->setRowNrs(rownrs);
+    buffer->SetRowNumbers(rownrs);
     buffer->GetUvw().resize({itsNrBl, 3});
     xt::flatten(buffer->GetUvw()) = xt::arange(buffer->GetUvw().size());
     getNextStep()->process(std::move(buffer));
@@ -296,7 +296,7 @@ class TestOutput3 : public dp3::steps::test::ThrowStep {
     // Check the averaged result.
     BOOST_CHECK(xt::allclose(buffer->GetData(), result));
     BOOST_CHECK(buffer->GetFlags() == flags);
-    BOOST_CHECK_CLOSE(buffer->getTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
+    BOOST_CHECK_CLOSE(buffer->GetTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
                       1.0e-3);
     BOOST_CHECK(xt::allclose(buffer->GetWeights(), weights));
     const xt::xtensor<double, 2> uvw =
@@ -401,7 +401,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
     // Check the averaged result.
     BOOST_CHECK(xt::allclose(buffer->GetData(), result));
     BOOST_CHECK(buffer->GetFlags() == flags);
-    BOOST_CHECK_CLOSE(buffer->getTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
+    BOOST_CHECK_CLOSE(buffer->GetTime(), 2.0 + 5 * (itsNrTime - 1) / 2.0,
                       1.0e-3);
     BOOST_CHECK(xt::allclose(buffer->GetWeights(), weights));
     const xt::xtensor<double, 2> uvw =

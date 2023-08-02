@@ -72,8 +72,8 @@ bool TestNullStokes(std::size_t n_baselines, std::size_t n_channels,
   null_stokes_step->process(std::move(buffer));
 
   // Ensure nothing other than the data has changed
-  BOOST_CHECK(result_step->get().getTime() == kTime);
-  BOOST_CHECK(result_step->get().getExposure() == kExposure);
+  BOOST_CHECK(result_step->get().GetTime() == kTime);
+  BOOST_CHECK(result_step->get().GetExposure() == kExposure);
   BOOST_TEST(result_step->get().GetWeights() == expected_weights);
   BOOST_TEST(result_step->get().GetFlags() == expected_flags);
   BOOST_TEST(result_step->get().GetUvw() == expected_uvw);

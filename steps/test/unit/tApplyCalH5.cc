@@ -120,7 +120,7 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
     auto buffer = std::make_unique<DPBuffer>();
-    buffer->setTime(itsCount * itsTimeInterval + itsFirstTime);
+    buffer->SetTime(itsCount * itsTimeInterval + itsFirstTime);
 
     const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
     buffer->GetData().resize(shape);

@@ -144,7 +144,7 @@ std::unique_ptr<DPBuffer> TestInput<DPBuffer>::CreateInputBuffer() {
     buffer->GetUvw()(i, 2) = 3 + count_ + i;
   }
 
-  buffer->setTime(count_ * 30 + first_time_);
+  buffer->SetTime(count_ * 30 + first_time_);
   buffer->GetFlags().resize({n_baselines_, n_channels_, n_correlations_});
   buffer->GetFlags().fill(false);
   return buffer;

@@ -354,7 +354,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
   base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
 
-  double time = buffer->getTime();
+  double time = buffer->GetTime();
   // Set up directions for beam evaluation
   everybeam::vector3r_t refdir, tiledir;
 

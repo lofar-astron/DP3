@@ -118,9 +118,7 @@ std::unique_ptr<DPBuffer> CreateBuffer(
     const float weight = 1.0) {
   const std::array<std::size_t, 3> kShape{n_baselines, channel_counts.size(),
                                           kNCorr};
-  auto buffer = std::make_unique<DPBuffer>();
-  buffer->setTime(time);
-  buffer->setExposure(interval);
+  auto buffer = std::make_unique<DPBuffer>(time, interval);
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
@@ -163,14 +161,10 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight) {
-  auto buffer = std::make_unique<DPBuffer>();
+  auto buffer = std::make_unique<DPBuffer>(time, interval);
+
   const std::array<std::size_t, 3> kShape{n_baselines, channel_counts.size(),
                                           kNCorr};
-
-  buffer->setTime(time);
-  buffer->setExposure(interval);
-  buffer->setTime(time);
-  buffer->setExposure(interval);
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
@@ -211,8 +205,8 @@ void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
   const std::size_t n_corr = expected.GetData().shape(2);
   const std::size_t n_chan = expected.GetData().shape(1);
 
-  BOOST_TEST(expected.getTime() == row.time);
-  BOOST_TEST(expected.getExposure() == row.interval);
+  BOOST_TEST(expected.GetTime() == row.time);
+  BOOST_TEST(expected.GetExposure() == row.interval);
   // ??? TODO:compare row_nr ???
   BOOST_REQUIRE_EQUAL(baseline_nr, row.baseline_nr);
   BOOST_REQUIRE_EQUAL(n_chan * n_corr, row.GetDataSize());

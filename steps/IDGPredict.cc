@@ -524,7 +524,7 @@ aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
       aterm_values_[direction];
 
   const double time_centroid =
-      0.5 * (buffers_.front()->getTime() + buffers_.back()->getTime());
+      0.5 * (buffers_.front()->GetTime() + buffers_.back()->GetTime());
 
   // TODO: field_id should be made generic in case DP3 will be used for
   // other telescopes

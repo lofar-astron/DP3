@@ -117,7 +117,7 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
 
-    buffer->setTime(itsCount * 5 + 3);  // same interval as in updateAveragInfo
+    buffer->SetTime(itsCount * 5 + 3);  // same interval as in updateAveragInfo
 
     const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
     buffer->GetData().resize(shape);
@@ -397,7 +397,7 @@ class TestOutput5 : public dp3::steps::test::ThrowStep {
 
  private:
   bool process(std::unique_ptr<DPBuffer> buffer) override {
-    const double time = buffer->getTime();
+    const double time = buffer->GetTime();
     const DPBuffer::DataType& data = buffer->GetData();
     const DPBuffer::UvwType& uvw = buffer->GetUvw();
     xt::xtensor<bool, 3> result(data.shape());

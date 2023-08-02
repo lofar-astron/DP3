@@ -103,7 +103,7 @@ class BdaGroupPredict::BaselineGroup {
 
     // Check whether the time for this baseline is the same as the time for the
     // group
-    if (nr_baselines_requested_ && (abs(dpbuffer_->getTime() - time) > 1e-3)) {
+    if (nr_baselines_requested_ && (abs(dpbuffer_->GetTime() - time) > 1e-3)) {
       throw std::runtime_error(
           "Incomplete data: missing baselines in BDA buffer.");
     }
@@ -113,7 +113,7 @@ class BdaGroupPredict::BaselineGroup {
     std::copy_n(row.uvw, 3, &dpbuffer_->GetUvw()(bl_idx, 0));
 
     write_back_info_[bl_idx] = {row.data, &row_counter};
-    dpbuffer_->setTime(time);
+    dpbuffer_->SetTime(time);
     std::size_t nr_baselines = baselines_.size();
 
     // Flush if the baseline group is complete

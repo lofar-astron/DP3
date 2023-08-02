@@ -72,7 +72,7 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
 
-    buffer->setTime(count_ * 5 + 2);  // same interval as in updateAverageInfo
+    buffer->SetTime(count_ * 5 + 2);  // same interval as in updateAverageInfo
 
     const std::array<size_t, 3> shape{n_baselines_, n_channels_, kNCorr};
     buffer->GetData().resize(shape);
@@ -211,7 +211,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     xt::xtensor<bool, 3> result_flags(shape, flag_data_);
     BOOST_CHECK_EQUAL(buffer->GetFlags(), result_flags);
     BOOST_CHECK_CLOSE(
-        buffer->getTime(),
+        buffer->GetTime(),
         2.0 + 5.0 * (count_ * n_average_time_ + (n_average_time_ - 1) / 2.0),
         1.0e-3);
 

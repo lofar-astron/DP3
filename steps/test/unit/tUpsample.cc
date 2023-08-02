@@ -52,19 +52,18 @@ class TestInput : public dp3::steps::MockInput {
       return false;
     }
     std::array<size_t, 3> data_shape{kNBaselines, kNChannels, kNCorr};
-    auto buffer = std::make_unique<DPBuffer>();
+    auto buffer =
+        std::make_unique<DPBuffer>(times_[time_step_], time_interval_);
     buffer->GetData().resize(data_shape);
     for (std::size_t i = 0; i < buffer->GetData().size(); ++i) {
       buffer->GetData().data()[i] = std::complex<float>(
           i + time_step_ * 10.0,
           static_cast<int>(i) - 1000 + static_cast<int>(time_step_) * 6.0);
     }
-    buffer->setTime(times_[time_step_]);
     buffer->GetWeights().resize(data_shape);
     buffer->GetWeights().fill(1.0);
     buffer->GetFlags().resize(data_shape);
     buffer->GetFlags().fill(flags_[time_step_]);
-    buffer->setExposure(time_interval_);
 
     if (!uvws_.empty()) {
       buffer->GetUvw().resize({kNBaselines, 3});
@@ -126,7 +125,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
         update_uvw_(update_uvw) {}
 
   bool process(std::unique_ptr<DPBuffer> buffer) override {
-    BOOST_CHECK_SMALL(buffer->getTime() - times_[time_step_],
+    BOOST_CHECK_SMALL(buffer->GetTime() - times_[time_step_],
                       time_interval_ * 0.01);
     BOOST_CHECK(xt::all(xt::equal(buffer->GetFlags(), flags_[time_step_])));
 
@@ -142,12 +141,12 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       dp3::base::UVWCalculator calc(info().phaseCenter(), info().arrayPos(),
                                     info().antennaPos());
       const std::array<double, 3> uvw_0_2 =
-          calc.getUVW(0, 2, buffer->getTime());
+          calc.getUVW(0, 2, buffer->GetTime());
       BOOST_CHECK_CLOSE(buf_uvw(1, 0), uvw_0_2[0], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(1, 1), uvw_0_2[1], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(1, 2), uvw_0_2[2], 1.0e-6);
       const std::array<double, 3> uvw_1_2 =
-          calc.getUVW(1, 2, buffer->getTime());
+          calc.getUVW(1, 2, buffer->GetTime());
       BOOST_CHECK_CLOSE(buf_uvw(2, 0), uvw_1_2[0], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(2, 1), uvw_1_2[1], 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(2, 2), uvw_1_2[2], 1.0e-6);

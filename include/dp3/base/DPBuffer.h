@@ -95,12 +95,13 @@ class DPBuffer {
  public:
   using Complex = std::complex<float>;
 
-  /// Return types for Get* functions. Defining these types in DPBuffer
-  /// simplifies changing types in the transition to XTensor.
+  // Return types for Get* functions.
   using DataType = aocommon::xt::UTensor<std::complex<float>, 3>;
   using WeightsType = xt::xtensor<float, 3>;
   using FlagsType = xt::xtensor<bool, 3>;
   using UvwType = xt::xtensor<double, 2>;
+  /// For every channel, contains n_antennas x n_polarizations solutions.
+  using SolutionType = std::vector<std::vector<std::complex<double>>>;
 
   /// Construct object with empty arrays.
   explicit DPBuffer(double time = 0.0, double exposure = 0.0);
@@ -145,7 +146,7 @@ class DPBuffer {
   /// Check if the DPBuffer has a data buffer for the given name.
   /// @param name Name. When empty, check the default data buffer.
   /// @return If the requested data buffer exists. It can be empty, though.
-  bool HasData(const std::string& name = "") const {
+  [[nodiscard]] bool HasData(const std::string& name = "") const {
     return name.empty() || (extra_data_.find(name) != extra_data_.end());
   }
 
@@ -157,7 +158,7 @@ class DPBuffer {
   ///         The data has shape (n_baselines, n_channels, n_correlations).
   ///         Note: In the future, this function will return a reference to the
   ///         XTensor object that holds the data.
-  const DataType& GetData(const std::string& name = "") const {
+  [[nodiscard]] const DataType& GetData(const std::string& name = "") const {
     if (name.empty()) {
       return data_;
     } else {
@@ -170,7 +171,7 @@ class DPBuffer {
       return found->second;
     }
   }
-  DataType& GetData(const std::string& name = "") {
+  [[nodiscard]] DataType& GetData(const std::string& name = "") {
     if (name.empty()) {
       return data_;
     } else {
@@ -218,8 +219,8 @@ class DPBuffer {
   ///         The view has shape (n_baselines, n_channels, n_correlations).
   ///         Note: In the future, this function will return a reference to the
   ///         XTensor object that holds the flags.
-  const FlagsType& GetFlags() const { return flags_; }
-  FlagsType& GetFlags() { return flags_; }
+  [[nodiscard]] const FlagsType& GetFlags() const { return flags_; }
+  [[nodiscard]] FlagsType& GetFlags() { return flags_; }
 
   /// Accesses weights for the data (visibilities) in the DPBuffer.
   ///
@@ -227,8 +228,8 @@ class DPBuffer {
   ///         The view has shape (n_baselines, n_channels, n_correlations).
   ///         Note: In the future, this function will return a reference to the
   ///         XTensor object that holds the weights.
-  const WeightsType& GetWeights() const { return weights_; }
-  WeightsType& GetWeights() { return weights_; }
+  [[nodiscard]] const WeightsType& GetWeights() const { return weights_; }
+  [[nodiscard]] WeightsType& GetWeights() { return weights_; }
 
   /// Returns the weights and clears the storage in this object.
   ///
@@ -242,39 +243,31 @@ class DPBuffer {
   }
 
   /// Get or set the time.
-  void setTime(double time) { time_ = time; }
-  double getTime() const { return time_; }
+  void SetTime(double time) { time_ = time; }
+  [[nodiscard]] double GetTime() const { return time_; }
 
   /// Get or set the exposure.
-  void setExposure(double exposure) { exposure_ = exposure; }
-  double getExposure() const { return exposure_; }
+  void SetExposure(double exposure) { exposure_ = exposure; }
+  [[nodiscard]] double GetExposure() const { return exposure_; }
 
   /// Get or set the row numbers used by the InputStep class.
   /// It can be empty (e.g. when MSReader inserted a dummy time slot).
-  void setRowNrs(const casacore::Vector<common::rownr_t>& rownrs) {
+  void SetRowNumbers(const casacore::Vector<common::rownr_t>& rownrs) {
     row_numbers_.reference(rownrs);
   }
-  const casacore::Vector<common::rownr_t>& getRowNrs() const {
+  [[nodiscard]] const casacore::Vector<common::rownr_t>& GetRowNumbers() const {
     return row_numbers_;
   }
-  casacore::Vector<common::rownr_t>& getRowNrs() { return row_numbers_; }
 
   /// Accesses the UVW coordinates in the DPBuffer.
   ///
-  /// @return An XTensor view to the UVW coordinates in the DPBuffer.
-  ///         The view has shape (n_baselines, 3).
-  ///         Note: In the future, this function will return a reference to the
-  ///         XTensor object that holds the UVW coordinates.
-  const UvwType& GetUvw() const { return uvw_; }
-  UvwType& GetUvw() { return uvw_; }
+  /// @return An XTensor object with the UVW coordinates in the DPBuffer.
+  ///         The object has shape (n_baselines, 3).
+  [[nodiscard]] const UvwType& GetUvw() const { return uvw_; }
+  [[nodiscard]] UvwType& GetUvw() { return uvw_; }
 
-  void SetSolution(
-      const std::vector<std::vector<std::complex<double>>>& solution) {
-    solution_ = solution;
-  }
-  const std::vector<std::vector<std::complex<double>>>& GetSolution() const {
-    return solution_;
-  }
+  void SetSolution(const SolutionType& solution) { solution_ = solution; }
+  [[nodiscard]] const SolutionType& GetSolution() const { return solution_; }
 
  private:
   double time_;
@@ -284,8 +277,7 @@ class DPBuffer {
   /// Visibilities (n_baselines x n_channels x n_correlations)
   DataType data_;
   /// Extra visibilities, e.g., containing predictions for different directions.
-  std::map<std::string, aocommon::xt::UTensor<std::complex<float>, 3>>
-      extra_data_;
+  std::map<std::string, DataType> extra_data_;
 
   /// Flags (n_baselines x n_channels x n_correlations)
   FlagsType flags_;
@@ -294,8 +286,7 @@ class DPBuffer {
   /// UVW coordinates (n_baselines x 3)
   UvwType uvw_;
 
-  std::vector<std::vector<std::complex<double>>>
-      solution_;  ///< nchan,nant*npol
+  SolutionType solution_;  ///< nchan,nant*npol
 };
 
 }  // namespace base

@@ -147,7 +147,8 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   // Create the new buffer and reshape it based on the sizes set in updateInfo
-  std::unique_ptr<DPBuffer> filter_buffer = std::make_unique<DPBuffer>();
+  std::unique_ptr<DPBuffer> filter_buffer =
+      std::make_unique<DPBuffer>(buffer->GetTime(), buffer->GetExposure());
   const std::array<std::size_t, 3> filter_shape{
       getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
   filter_buffer->GetData().resize(filter_shape);
@@ -175,13 +176,13 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
         weights, xt::all(),
         xt::range(itsStartChan, itsStartChan + getInfo().nchan()), xt::all());
     filter_buffer->GetUvw() = xt::view(uvws, xt::all(), xt::all());
-    filter_buffer->setRowNrs(buffer->getRowNrs());
+    filter_buffer->SetRowNumbers(buffer->GetRowNumbers());
   } else {
     // Filtering on baseline and/or channel; copy all data for selected
     // baselines and channels to make them contiguous. UVW needs to be filtered
     // as well as it is dependent on baselines.
     casacore::Vector<common::rownr_t> rowNrs;
-    if (!buffer->getRowNrs().empty()) {
+    if (!buffer->GetRowNumbers().empty()) {
       rowNrs.resize(getInfo().nbaselines());
     }
     // Copy the data of the selected baselines and channels.
@@ -198,8 +199,8 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
     int ndto =
         filter_buffer->GetData().shape(2) * filter_buffer->GetData().shape(1);
     for (std::size_t i = 0; i < itsSelBL.size(); ++i) {
-      if (!buffer->getRowNrs().empty()) {
-        rowNrs[i] = buffer->getRowNrs()[itsSelBL[i]];
+      if (!buffer->GetRowNumbers().empty()) {
+        rowNrs[i] = buffer->GetRowNumbers()[itsSelBL[i]];
       }
       std::copy_n(frData + itsSelBL[i] * ndfr, ndto, toData);
       toData += ndto;
@@ -210,10 +211,8 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
       std::copy_n(frUVW + itsSelBL[i] * 3, 3, toUVW);
       toUVW += 3;
     }
-    filter_buffer->setRowNrs(rowNrs);
+    filter_buffer->SetRowNumbers(rowNrs);
   }
-  filter_buffer->setTime(buffer->getTime());
-  filter_buffer->setExposure(buffer->getExposure());
   itsTimer.stop();
   getNextStep()->process(std::move(filter_buffer));
   return true;

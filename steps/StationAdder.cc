@@ -435,7 +435,7 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
       unsigned int blnr = nrOldBL + i;
       const std::array<double, 3> uvws =
           itsUVWCalc->getUVW(getInfo().getAnt1()[blnr],
-                             getInfo().getAnt2()[blnr], buffer->getTime());
+                             getInfo().getAnt2()[blnr], buffer->GetTime());
       uvwPtr[0] = uvws[0];
       uvwPtr[1] = uvws[1];
       uvwPtr[2] = uvws[2];

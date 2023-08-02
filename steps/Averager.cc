@@ -157,10 +157,10 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
     itsWeightAll = itsBuf->GetWeights();
 
     // Set middle of new interval.
-    const double time = itsBuf->getTime() + 0.5 * (getInfo().timeInterval() -
+    const double time = itsBuf->GetTime() + 0.5 * (getInfo().timeInterval() -
                                                    itsOriginalTimeInterval);
-    itsBuf->setTime(time);
-    itsBuf->setExposure(getInfo().timeInterval());
+    itsBuf->SetTime(time);
+    itsBuf->SetExposure(getInfo().timeInterval());
     // Only set.
     itsNPoints.fill(1);
     // Set flagged points to zero.

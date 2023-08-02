@@ -160,7 +160,7 @@ bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
     if (GetFieldsToWrite().Flags()) {
       const Cube<bool> flags(casacore_shape, buffer->GetFlags().data(),
                              casacore::SHARE);
-      putFlags(buffer->getRowNrs(), flags);
+      putFlags(buffer->GetRowNumbers(), flags);
     }
     if (GetFieldsToWrite().Data()) {
       const Cube<casacore::Complex> data(
@@ -179,9 +179,9 @@ bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
           }
           ++data_iterator;
         }
-        putData(buffer->getRowNrs(), data_copy);
+        putData(buffer->GetRowNumbers(), data_copy);
       } else {
-        putData(buffer->getRowNrs(), data);
+        putData(buffer->GetRowNumbers(), data);
       }
     }
     if (GetFieldsToWrite().Weights()) {
@@ -199,9 +199,9 @@ bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
           }
           ++weights_iterator;
         }
-        putWeights(buffer->getRowNrs(), weights_copy);
+        putWeights(buffer->GetRowNumbers(), weights_copy);
       } else {
-        putWeights(buffer->getRowNrs(), weights);
+        putWeights(buffer->GetRowNumbers(), weights);
       }
     }
     itsNrDone++;
