@@ -3,5 +3,9 @@
 
 # The .cc tests are added in the top level CMakeLists.txt file.
 
-add_python_tests(tPyDpBuffer tPyDpInfo tPyFields tPyFitters tPyStep
-                 tQueueOutput)
+if("${CMAKE_CXX_FLAGS}" MATCHES "-fsanitize=address")
+  message(STATUS "The Python tests do not work with address sanitizer enabled.")
+else()
+  add_python_tests(tPyDpBuffer tPyDpInfo tPyFields tPyFitters tPyStep
+                   tQueueOutput)
+endif()
