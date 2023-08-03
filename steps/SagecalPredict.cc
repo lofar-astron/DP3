@@ -505,7 +505,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
 
   // update time
   if (beam_mode_ != DOBEAM_NONE) {
-    beam_data_.time_utc[0] = (buffer->getTime() / 86400.0 + 2400000.5);
+    beam_data_.time_utc[0] = (buffer->GetTime() / 86400.0 + 2400000.5);
     // precess source positions
     if (!beam_data_.sources_prec) {
       casacore::Precession prec(casacore::Precession::IAU2000);
