@@ -38,12 +38,11 @@ class OnePredictFixture {
     predict_ = std::make_shared<OnePredict>(parset, "fixture.",
                                             std::vector<std::string>());
     predict_->setNextStep(std::make_shared<dp3::steps::NullStep>());
-    SetInfo();
+    SetInfo(predict_);
   }
 
-  void SetInfo() {
-    const unsigned int kNChannels = 1;
-    dp3::base::DPInfo info(1, kNChannels);
+  static void SetInfo(std::shared_ptr<dp3::steps::OnePredict> predict) {
+    dp3::base::DPInfo info(kNCorr, kNChan);
     info.setTimes(0.5, 9.5, 1.0);
 
     const std::vector<int> kAnt1{0, 0, 1};
@@ -53,11 +52,11 @@ class OnePredictFixture {
     const std::vector<casacore::MPosition> kAntPos(3);
     info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
 
-    std::vector<double> chan_freqs(kNChannels, 10.0e6);
-    std::vector<double> chan_widths(kNChannels, 3.0e6);
+    std::vector<double> chan_freqs(kNChan, 10.0e6);
+    std::vector<double> chan_widths(kNChan, 3.0e6);
 
     info.setChannels(std::move(chan_freqs), std::move(chan_widths));
-    predict_->setInfo(info);
+    predict->setInfo(info);
   }
 
  protected:
@@ -145,11 +144,11 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
 }
 
 /**
- * Create a buffer with artifical data values.
+ * Create a buffer with artificial data values.
  * @param time Start time for the buffer.
  * @param interval Interval duration for the buffer.
  * @param n_baselines Number of baselines in the buffer.
- * @param base_value Base value for the data values, for distinguising buffers.
+ * @param base_value Base value for the data values, for distinguishing buffers.
  *        For distinguishing baselines, this function adds baseline_nr * 100.0.
  *        When the buffer represents averaged data, the base_value should be
  *        the total of the base values of the original buffers.
@@ -184,8 +183,7 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     const float baseline_value = (baseline * 100.0) + (base_value / weight);
 
     std::size_t chan = 0;
-    float channel_value =
-        baseline_value;  // Base value for a group of channels.
+    float channel_value = baseline_value;  // Base value for a group of channels
     for (std::size_t channel_count : channel_counts) {
       // For each channel, increase channel_value by 10.0.
       // When channel_count == 1, 'value' should equal channel_value.
@@ -231,7 +229,7 @@ BOOST_FIXTURE_TEST_CASE(showTimings, OnePredictFixture) {
     BOOST_CHECK(std::regex_match(output.begin(), output.end(), regex));
   }
   {
-    // At the moment no beam is applied so the percentages are fixed.
+    // At the moment no beam is applied, so the percentages are fixed.
     // TODO Add an additional test to test with a beam applied.
     const std::regex regex{
         R"(  (1[0-9]| [ 0-9])[0-9]\.[0-9]% \([ 0-9]{5} [m ]s\) OnePredict fixture.\n)"
@@ -239,6 +237,51 @@ BOOST_FIXTURE_TEST_CASE(showTimings, OnePredictFixture) {
         R"(            0\.0% \(    0 ms\) of it spent in apply beam\n)"};
     BOOST_CHECK(std::regex_match(output.begin(), output.end(), regex));
   }
+}
+
+BOOST_AUTO_TEST_CASE(outputmodelname) {
+  std::unique_ptr<dp3::base::DPBuffer> input_buffer = CreateBuffer(
+      kStartTime * kInterval, kInterval, kNBaselines, kChannelCounts, 0.);
+  std::string output_model_name = "a_model_name";
+
+  // Predict visibilities to main data buffer, replacing the input visibilities.
+  // Make step chain
+  dp3::common::ParameterSet parset;
+  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  auto predict =
+      std::make_shared<OnePredict>(parset, "", std::vector<std::string>());
+  auto predict_result = std::make_shared<dp3::steps::ResultStep>();
+  predict->setNextStep(predict_result);
+  OnePredictFixture::SetInfo(predict);
+
+  // Process and verify
+  predict->process(std::make_unique<dp3::base::DPBuffer>(*input_buffer));
+  std::unique_ptr<dp3::base::DPBuffer> result_main = predict_result->take();
+
+  BOOST_CHECK(!(result_main->HasData(output_model_name)));
+  BOOST_CHECK(!xt::allclose(result_main->GetData(), input_buffer->GetData()));
+
+  // Predict visibilities to an extra data buffer in the output DPBuffer.
+  // Make step chain (with extra parset pair)
+  parset.add("outputmodelname", output_model_name);
+  predict =
+      std::make_shared<OnePredict>(parset, "", std::vector<std::string>());
+  predict_result = std::make_shared<dp3::steps::ResultStep>();
+  predict->setNextStep(predict_result);
+  OnePredictFixture::SetInfo(predict);
+
+  // Process and verify
+  predict->process(std::make_unique<dp3::base::DPBuffer>(*input_buffer));
+  std::unique_ptr<dp3::base::DPBuffer> result_extra = predict_result->take();
+
+  // Verify main data buffer still contains the original visibilities
+  BOOST_CHECK(xt::allclose(result_extra->GetData(), input_buffer->GetData()));
+  // Verify predicted visibilities are present and identical
+  BOOST_CHECK(xt::allclose(result_extra->GetData(output_model_name),
+                           result_main->GetData()));
+  // Verify fields differ from the 'fields_defaults' test
+  BOOST_TEST(predict->getRequiredFields() == Step::kUvwField);
+  BOOST_TEST(predict->getProvidedFields() == dp3::common::Fields());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

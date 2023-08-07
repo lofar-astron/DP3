@@ -1,5 +1,5 @@
 // OnePredict.h: DP3 step class to predict visibilities from a source model
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -63,8 +63,17 @@ class OnePredict : public ModelDataStep {
 
   common::Fields getProvidedFields() const override {
     // When operation_ == "replace", the output of apply_cal_step_ is passed to
-    // the next step. In all other cases, only kDataField changes.
-    common::Fields fields = kDataField;
+    // the next step. For all other operations, the predicted visibility data
+    // is the only provided output.
+    common::Fields fields;
+
+    if (output_data_name_.empty()) {
+      // The predicted visibilities go to the main data buffer
+      fields |= kDataField;
+    } else {
+      // TODO(AST-1241): Handle these dependencies using Fields.
+    }
+
     if (operation_ == Operation::kReplace && apply_cal_step_) {
       std::shared_ptr<Step> step = apply_cal_step_;
       do {
@@ -75,7 +84,7 @@ class OnePredict : public ModelDataStep {
     return fields;
   }
 
-  /// Set the applycal substep
+  /// Set the ApplyCal substep and connect it to a ResultStep
   void SetApplyCal(const common::ParameterSet&, const std::string& prefix);
 
   /// Set the operation type
@@ -148,6 +157,7 @@ class OnePredict : public ModelDataStep {
   std::string source_db_name_;
   bool correct_freq_smearing_{false};
   Operation operation_;
+  std::string output_data_name_;
   bool apply_beam_{false};
   bool use_channel_freq_{false};
   bool one_beam_per_patch_{false};

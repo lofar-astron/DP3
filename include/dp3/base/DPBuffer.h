@@ -144,7 +144,8 @@ class DPBuffer {
   void RemoveData(const std::string& name = "");
 
   /// Check if the DPBuffer has a data buffer for the given name.
-  /// @param name Name. When empty, check the default data buffer.
+  /// @param name Name. An empty string indicates the main data buffer (always
+  ///        exists). A non-empty string indicates an extra data buffer.
   /// @return If the requested data buffer exists. It can be empty, though.
   [[nodiscard]] bool HasData(const std::string& name = "") const {
     return name.empty() || (extra_data_.find(name) != extra_data_.end());
@@ -204,8 +205,8 @@ class DPBuffer {
   void CopyData(const DPBuffer& source, const std::string& source_name,
                 const std::string& target_name);
 
-  /// Move a data buffer from 'source' into the current buffer.
-  /// If the extra buffer already exists, it is overwritten.
+  /// Move a data buffer from 'source' into an extra data buffer of the
+  /// current DPBuffer. If the target buffer already exists, it is overwritten.
   /// @param source_name Name of a data buffer in 'source'. If empty, uses
   ///        the main data buffer in 'source'.
   /// @param target_name Name of the target data buffer.

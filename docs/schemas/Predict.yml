@@ -23,7 +23,11 @@ inputs:
   operation:
     default: replace
     type: string
-    doc: Should the predicted visibilities replace those being processed (``replace``, default), should they be subtracted from those being processed (``subtract``) or added to them (``add``) `.`
+    doc: Should the predicted visibilities be output as is (``replace``, default), should they be subtracted from the input visibilities (``subtract``) or added to them (``add``) `.`
+  outputmodelname:
+    default: "\"\""
+    type: string
+    doc: Name for writing the predicted visibilities in the output DPBuffer. If empty (default), write the output in the main/default visibility buffer, thereby replacing the input visibilities. Otherwise, write the output to an extra (model) data buffer in the output DPBuffer with the given name `.` 
   applycal&#46;*:
     doc: Set of options for applycal to apply to this predict. For this applycal-substep, .invert is off by default, so the predicted visibilities will be corrupted with the parmdb `.`
   beamproximitylimit:
