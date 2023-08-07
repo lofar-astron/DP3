@@ -1,5 +1,5 @@
-// OnePredict.cc: DPPP step class that predicts visibilities.
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// OnePredict.cc: DP3 step class that predicts visibilities.
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Tammo Jan Dijkema
@@ -88,6 +88,8 @@ void OnePredict::init(const common::ParameterSet& parset, const string& prefix,
   correct_freq_smearing_ =
       parset.getBool(prefix + "correctfreqsmearing", false);
   SetOperation(parset.getString(prefix + "operation", "replace"));
+  output_data_name_ = parset.getString(prefix + "outputmodelname", "");
+
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
   thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
@@ -122,7 +124,7 @@ void OnePredict::init(const common::ParameterSet& parset, const string& prefix,
     beam_mode_ = everybeam::ParseCorrectionMode(
         parset.getString(prefix + "beammode", "default"));
 
-    string element_model = boost::to_lower_copy(
+    std::string element_model = boost::to_lower_copy(
         parset.getString(prefix + "elementmodel", "hamaker"));
     if (element_model == "hamaker") {
       element_response_model_ = everybeam::ElementResponseModel::kHamaker;
@@ -161,8 +163,8 @@ void OnePredict::init(const common::ParameterSet& parset, const string& prefix,
 
   source_list_ = makeSourceList(patch_list_);
 
-  // Determine whether any sources are polarized. If not, enable Stokes-I-
-  // only mode (note that this mode cannot be used with apply_beam_)
+  // Determine whether any sources are polarized. If not, enable
+  // Stokes-I-only mode (note that this mode cannot be used with apply_beam_)
   if (apply_beam_ && beam_mode_ != everybeam::CorrectionMode::kArrayFactor) {
     stokes_i_only_ = false;
   } else {
@@ -239,9 +241,8 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
     info().setBeamCorrectionMode(
         static_cast<int>(everybeam::CorrectionMode::kNone));
 
-  const size_t nBl = info().nbaselines();
-  for (size_t i = 0; i != nBl; ++i) {
-    baselines_.emplace_back(info().getAnt1()[i], info().getAnt2()[i]);
+  for (size_t bl = 0; bl != info().nbaselines(); ++bl) {
+    baselines_.emplace_back(info().getAnt1()[bl], info().getAnt2()[bl]);
   }
 
   try {
@@ -388,7 +389,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   aocommon::ThreadPool* pool = thread_pool_;
   if (pool == nullptr) {
     // If no ThreadPool was specified, we create a temporary one just
-    // for executation of this part.
+    // for execution of this part.
     localThreadPool = std::make_unique<aocommon::ThreadPool>(info().nThreads());
     pool = localThreadPool.get();
   } else {
@@ -614,30 +615,35 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     }
   }
 
-  // Copy the input visibilities if we need them later.
-  if (operation_ == Operation::kAdd || operation_ == Operation::kSubtract) {
-    input_data_ = buffer->GetData();
+  // Take ownership of the input visibilities if we need them later.
+  if (operation_ == Operation::kAdd || operation_ == Operation::kSubtract ||
+      !output_data_name_.empty()) {
+    input_data_ = buffer->TakeData();
   }
 
+  // Determine destination of the predicted visibilities
+  if (!output_data_name_.empty()) {
+    buffer->AddData(output_data_name_);
+  }
+  DPBuffer::DataType& data = buffer->GetData(output_data_name_);
+
   // Add all thread model data to one buffer
-  buffer->GetData().resize({nBl, nCh, nCr});
-  buffer->GetData().fill(std::complex<float>());
-  for (size_t thread = 0; thread < std::min(pool->NThreads(), n_threads);
+  data.resize({nBl, nCh, nCr});
+  data.fill(std::complex<float>(0.0, 0.0));
+  for (size_t thread = 1; thread < std::min(pool->NThreads(), n_threads);
        ++thread) {
-    if (stokes_i_only_) {
-      // Add the predicted model to the first and last correlation.
-      auto data_view = xt::view(buffer->GetData(), xt::all(), xt::all(),
-                                xt::keep(0, nCr - 1));
-      // Without explicit casts, XTensor does not know what to do.
-      data_view = xt::cast<std::complex<float>>(
-          xt::cast<std::complex<double>>(data_view) +
-          predict_buffer_->GetModel(thread));
-    } else {
-      // Without explicit casts, XTensor does not know what to do.
-      buffer->GetData() = xt::cast<std::complex<float>>(
-          xt::cast<std::complex<double>>(buffer->GetData()) +
-          predict_buffer_->GetModel(thread));
-    }
+    // Sum thread model data in their own container (doubles) to prevent
+    // rounding errors when writing to the data member of the DPBuffer (floats).
+    predict_buffer_->GetModel(0) += predict_buffer_->GetModel(thread);
+  }
+  if (stokes_i_only_) {
+    // Add the predicted model to the first and last correlation.
+    auto data_view = xt::view(data, xt::all(), xt::all(), xt::keep(0, nCr - 1));
+    // Without explicit casts, XTensor does not know what to do.
+    data_view = xt::cast<std::complex<float>>(predict_buffer_->GetModel(0));
+  } else {
+    // Without explicit casts, XTensor does not know what to do.
+    data = xt::cast<std::complex<float>>(predict_buffer_->GetModel(0));
   }
 
   if (apply_cal_step_) {
@@ -646,9 +652,13 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   if (operation_ == Operation::kAdd) {
-    buffer->GetData() += input_data_;
+    data += input_data_;
   } else if (operation_ == Operation::kSubtract) {
-    buffer->GetData() = input_data_ - buffer->GetData();
+    data = input_data_ - data;
+  }
+  if (!output_data_name_.empty()) {
+    // Put the input visibilities back to the main buffer when needed.
+    buffer->GetData() = std::move(input_data_);
   }
 
   timer_.stop();
