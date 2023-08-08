@@ -74,28 +74,6 @@ def copy_data_to_model_data():
     )
 
 
-@pytest.fixture()
-def convert_skymodel_to_text():
-    # Fixture to convert a skymodel from a sourcedb format to text, and group all sources in a single patch.
-    skymodel_text_format = (
-        check_output([tcf.SHOWSOURCEDBEXE, f"in={MSIN}/sky", "mode=skymodel"])
-        .decode("utf-8")
-        .split("\n", 1)[-1]
-    )
-
-    x = skymodel_text_format.splitlines()
-    with open("skymodel_text_format.txt", "a") as f:
-        f.write(
-            "FORMAT = Name, Type, Patch, Ra, Dec, I, ReferenceFrequency, SpectralIndex='[]', LogarithmicSI, MajorAxis, MinorAxis, Orientation, OrientationIsAbsolute\n"
-        )
-        f.write(" , , Patch_0, 0:05:36.8709, 32.44.45.9182\n")
-        for line in x:
-            if line[0] not in {",", "#"}:
-                c = line.split(",")
-                c[2] = " Patch_0"
-                f.write(",".join(c) + "\n")
-
-
 def test_caltype_diagonal(create_model_data):
     check_call(
         [
@@ -403,14 +381,14 @@ def test_uvwflagging():
         # so the gain solutions should be 2.0.
         # First check that at least 70% of the solutions are valid
         assert np.sum(np.isfinite(sol)) / sol.size > 0.7
-        assert np.all(np.isclose(sol[np.isfinite(sol)], 2.0, atol=1.0e-3))
+        assert np.allclose(sol[np.isfinite(sol)], 2.0, atol=1.0e-3)
 
     with h5py.File("instrument2.h5", "r") as h5file:
         sol = h5file["sol000/amplitude000/val"]
         # The second step has no uvwflaggin, so the result should be incorrect
         # First check that at least 70% of the solutions are valid
         assert np.sum(np.isfinite(sol)) / sol.size > 0.7
-        assert not np.all(np.isclose(sol[np.isfinite(sol)], 2.0, atol=1.0e-3))
+        assert not np.allclose(sol[np.isfinite(sol)], 2.0, atol=1.0e-3)
 
     # Check flags
     # The flags used internally by DDECal to flag unwanted uvw values should not propagate
@@ -449,19 +427,15 @@ def test_usemodelcolumn(copy_data_to_model_data):
         # )
         # At least 80% of the solutions are valid
         assert (np.sum(np.isfinite(sol)) / sol.size) > 0.8
-        assert np.all(
-            np.isclose(sol[np.isfinite(sol)], 1 / np.sqrt(42), atol=1.0e-3)
-        )
+        assert np.allclose(sol[np.isfinite(sol)], 1 / np.sqrt(42), atol=1.0e-3)
 
 
-def test_reuse_modeldata_from_buffer(convert_skymodel_to_text):
+def test_reuse_modeldata_from_buffer():
     # This test checks that Gaincal can correctly use the model data saved in the DPBuffer by another step.
 
-    # Run ddecal to predict the model data and save them in the dpbuffer
-    # Run gaincal reusing the model data saved into the dpbuffer by ddecal
+    # Run predict to calculate the model data and save them in the dpbuffer
+    # Run gaincal reusing the model data saved into the dpbuffer by predict
 
-    # TODO AST-1368: use Predict instead of DDECal
-    skymodel = "skymodel_text_format.txt"
     check_call(
         [
             tcf.DP3EXE,
@@ -469,12 +443,10 @@ def test_reuse_modeldata_from_buffer(convert_skymodel_to_text):
             "numthreads=1",
             f"msin={MSIN}",
             "msout=",
-            "steps=[ddecal,gaincal]",
-            f"ddecal.sourcedb={skymodel}",
-            "ddecal.directions=[[Patch_0]]",
-            "ddecal.onlypredict=true",
-            "ddecal.keepmodel=true",
-            "gaincal.reusemodel=ddecal.Patch_0",
+            "steps=[predict,gaincal]",
+            f"predict.sourcedb={MSIN}/sky",
+            "predict.outputmodelname=predicted_model",
+            "gaincal.reusemodel=predicted_model",
             "gaincal.caltype=diagonal",
             "gaincal.parmdb=solutions_1.h5",
             "gaincal.solint=2",
@@ -491,7 +463,7 @@ def test_reuse_modeldata_from_buffer(convert_skymodel_to_text):
             f"msin={MSIN}",
             "msout=",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={skymodel}",
+            f"gaincal.sourcedb={MSIN}/sky",
             "gaincal.caltype=diagonal",
             "gaincal.parmdb=solutions_2.h5",
             "gaincal.solint=2",
@@ -508,10 +480,6 @@ def test_reuse_modeldata_from_buffer(convert_skymodel_to_text):
         sol_1 = solutions_1["sol000/amplitude000/val"]
         sol_2 = solutions_2["sol000/amplitude000/val"]
 
-        assert np.all(
-            np.isclose(
-                sol_1[np.isfinite(sol_1)],
-                sol_2[np.isfinite(sol_2)],
-                atol=1.0e-3,
-            )
+        assert np.allclose(
+            sol_1[np.isfinite(sol_1)], sol_2[np.isfinite(sol_2)], atol=1.0e-3
         )
