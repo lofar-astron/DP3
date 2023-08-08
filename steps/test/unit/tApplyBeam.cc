@@ -20,7 +20,7 @@ const double kExposure{10.0139};
 }  // namespace
 
 // Create and populate a buffer with the bare minimum values required to run
-// ApplyBeam succesfully
+// ApplyBeam successfully
 std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     xt::xtensor<std::complex<float>, 3>& data, xt::xtensor<float, 3>& weights) {
   std::unique_ptr<dp3::base::DPBuffer> buffer =
@@ -36,7 +36,7 @@ std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
 }
 
 // Create and populate an info object with the bare minimum values required to
-// run ApplyBeam succesfully
+// run ApplyBeam successfully
 dp3::base::DPInfo MakeInfo() {
   dp3::base::DPInfo info(4, 8, 0, "HBA_DUAL_INNER");
   info.setMsName("tNDPPP-generic.MS");

@@ -166,13 +166,13 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight = 1.0) {
-  auto buffer = std::make_unique<dp3::base::DPBuffer>(time, interval);
+  const std::array<std::size_t, 3> kShape{n_baselines, channel_counts.size(),
+                                          kNCorr};
 
-  const std::array<std::size_t, 3> shape{n_baselines, channel_counts.size(),
-                                         kNCorr};
-  buffer->GetData().resize(shape);
-  buffer->GetWeights().resize(shape);
-  buffer->GetFlags().resize(shape);
+  auto buffer = std::make_unique<dp3::base::DPBuffer>(time, interval);
+  buffer->GetData().resize(kShape);
+  buffer->GetWeights().resize(kShape);
+  buffer->GetFlags().resize(kShape);
   buffer->GetUvw().resize({n_baselines, 3});
 
   buffer->GetFlags().fill(false);
@@ -182,7 +182,7 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     // Base value for this baseline.
     const float baseline_value = (baseline * 100.0) + (base_value / weight);
 
-    std::size_t chan = 0;
+    std::size_t channel = 0;
     float channel_value = baseline_value;  // Base value for a group of channels
     for (std::size_t channel_count : channel_counts) {
       // For each channel, increase channel_value by 10.0.
@@ -191,10 +191,10 @@ static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
       // channels.
       const float value = channel_value + 5.0 * (channel_count - 1);
       for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        buffer->GetData()(baseline, chan, corr) = value + corr;
-        buffer->GetWeights()(baseline, chan, corr) *= channel_count;
+        buffer->GetData()(baseline, channel, corr) = value + corr;
+        buffer->GetWeights()(baseline, channel, corr) *= channel_count;
       }
-      ++chan;
+      ++channel;
       channel_value += channel_count * 10.0;
     }
     buffer->GetUvw()(baseline, 0) = baseline_value + 0.0;

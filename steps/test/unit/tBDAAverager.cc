@@ -96,11 +96,11 @@ void Finish(BDAAverager& averager, dp3::steps::MockStep& mock_step) {
 }
 
 /**
- * Create a buffer with artifical data values.
+ * Create a buffer with artificial data values.
  * @param time Start time for the buffer.
  * @param interval Interval duration for the buffer.
  * @param n_baselines Number of baselines in the buffer.
- * @param base_value Base value for the data values, for distinguising buffers.
+ * @param base_value Base value for the data values, for distinguishing buffers.
  *        For distinguishing baselines, this function adds baseline_nr * 100.0.
  *        When the buffer represents averaged data, the base_value should be
  *        the total of the base values of the original buffers.
@@ -111,47 +111,47 @@ void Finish(BDAAverager& averager, dp3::steps::MockStep& mock_step) {
  *        When generating expected output data, this list should contain the
  *        number of averaged input buffers for each output buffer.
  * @param weight Weight value for the data values in the buffer.
+ *
+ * @note The function has been copied from @ref steps/test/unit/tIDGPredict.cc.
  */
-std::unique_ptr<DPBuffer> CreateBuffer(
+std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
     const double time, const double interval, std::size_t n_baselines,
     const std::vector<std::size_t>& channel_counts, const float base_value,
     const float weight = 1.0) {
   const std::array<std::size_t, 3> kShape{n_baselines, channel_counts.size(),
                                           kNCorr};
-  auto buffer = std::make_unique<DPBuffer>(time, interval);
+
+  auto buffer = std::make_unique<dp3::base::DPBuffer>(time, interval);
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
   buffer->GetUvw().resize({n_baselines, 3});
 
-  DPBuffer::DataType& data = buffer->GetData();
-  DPBuffer::WeightsType& weights = buffer->GetWeights();
-  DPBuffer::UvwType& uvw = buffer->GetUvw();
-
-  buffer->GetWeights().fill(weight);
   buffer->GetFlags().fill(false);
+  buffer->GetWeights().fill(weight);
 
-  for (std::size_t bl = 0; bl < n_baselines; ++bl) {
+  for (std::size_t baseline = 0; baseline < n_baselines; ++baseline) {
     // Base value for this baseline.
-    const float bl_value = (bl * 100.0) + (base_value / weight);
+    const float baseline_value = (baseline * 100.0) + (base_value / weight);
 
-    std::size_t chan = 0;
-    float chan_value = bl_value;  // Base value for a group of channels.
-    for (std::size_t ch_count : channel_counts) {
-      // For each channel, increase chan_base by 10.0.
-      // When ch_count == 1, 'value' should equal chan_base.
-      // When ch_count > 1, 'value' should be the average for multiple channels.
-      const float value = chan_value + 5.0 * (ch_count - 1);
+    std::size_t channel = 0;
+    float channel_value = baseline_value;  // Base value for a group of channels
+    for (std::size_t channel_count : channel_counts) {
+      // For each channel, increase channel_value by 10.0.
+      // When channel_count == 1, 'value' should equal channel_value.
+      // When channel_count > 1, 'value' should be the average for multiple
+      // channels.
+      const float value = channel_value + 5.0 * (channel_count - 1);
       for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        data(bl, chan, corr) = value + corr;
-        weights(bl, chan, corr) *= ch_count;
+        buffer->GetData()(baseline, channel, corr) = value + corr;
+        buffer->GetWeights()(baseline, channel, corr) *= channel_count;
       }
-      ++chan;
-      chan_value += ch_count * 10.0;
+      ++channel;
+      channel_value += channel_count * 10.0;
     }
-    uvw(bl, 0) = bl_value + 0.0;
-    uvw(bl, 1) = bl_value + 1.0;
-    uvw(bl, 2) = bl_value + 2.0;
+    buffer->GetUvw()(baseline, 0) = baseline_value + 0.0;
+    buffer->GetUvw()(baseline, 1) = baseline_value + 1.0;
+    buffer->GetUvw()(baseline, 2) = baseline_value + 2.0;
   }
 
   return buffer;

@@ -38,7 +38,7 @@ static const float kChannelWidth = 1.0;
  * - For another station, all antennas are broken. 'Corrupt' the data for the
  *   affected baselines a bit by multiplying the data with a factor of 2x.
  *
- * The goal of this test is to have artifical data in which both the single
+ * The goal of this test is to have artificial data in which both the single
  * broken antenna, as well as all antennas in the broken station can be detected
  * by the flagger.
  */
