@@ -130,6 +130,7 @@ SagecalPredict::~SagecalPredict() {
     delete[] iodata_.cluster_arr_[patch_index].spec_idx2;
     delete[] iodata_.cluster_arr_[patch_index].ra;
     delete[] iodata_.cluster_arr_[patch_index].dec;
+    delete[] iodata_.cluster_arr_[patch_index].p;
   }
 
   if (beam_mode_ != DOBEAM_NONE) {
