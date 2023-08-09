@@ -49,6 +49,11 @@ add_compile_options(
   -Wpointer-arith
   -Wextra
   -Wno-unused-parameter)
+if("${CMAKE_CXX_FLAGS}" MATCHES "-fsanitize=undefined")
+  message(
+    STATUS "Wduplicated-branches and undefined behavior sanitizer conflict.")
+  add_compile_options(-Wno-duplicated-branches)
+endif()
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
   add_compile_options(-O3)
