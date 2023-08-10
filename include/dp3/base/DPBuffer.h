@@ -91,8 +91,6 @@ namespace base {
 ///    the DPBuffer it receives and forward the updated buffer to the next Step.
 class DPBuffer {
  public:
-  using Complex = std::complex<float>;
-
   // Return types for Get* functions.
   using DataType = aocommon::xt::UTensor<std::complex<float>, 3>;
   using WeightsType = xt::xtensor<float, 3>;
