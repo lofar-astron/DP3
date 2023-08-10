@@ -26,13 +26,7 @@ namespace base {
 
 /// @brief Buffer holding the data of a timeslot/band
 
-/// This class holds the data for one time slot in Array variables.
-/// It makes heavy use of reference semantics to avoid data copying
-/// when data are pushed from one step to another.
-/// This means that a data array can be shared between Step objects.
-/// So, if a Step object changes data in a buffer, it has to be sure
-/// it can do it. If needed, Array::unique should be called to ensure
-/// the array is not shared.
+/// This class holds the data for one time slot in XTensor objects.
 ///
 /// The following data can be kept in a DPBuffer object.
 /// <table>
@@ -47,50 +41,54 @@ namespace base {
 ///  </tr>
 ///  <tr>
 ///   <td>DATA</td>
-///   <td>The visibility data as [ncorr,nchan,nbaseline].</td>
+///   <td>The visibility data as [n_baselines,n_channels,n_correlations].</td>
 ///  </tr>
 ///  <tr>
 ///   <td>FLAG</td>
-///   <td>The data flags as [ncorr,nchan,nbaseline] (True is bad).
-///       Note that the ncorr axis is redundant because NDPPP will always
-///       have the same flag for all correlations. The reason all
-///       correlations are there is because the MS expects them.</td>
+///   <td>The data flags as [n_baselines,n_channels,n_correlations] (True is
+///       bad). Note that the n_correlations axis is redundant because DP3 will
+///       always have the same flag for all correlations. The reason all
+///       correlations are there is because the MS expects them.
+///       TODO(AST-1373): Investigate using a single flag for all correlations.
+///       </td>
 ///  </tr>
 ///  <tr>
 ///   <td>WEIGHT</td>
-///   <td>The data weights as [ncorr,nchan,nbaseline].
-///       Similarly to FLAG, the ncorr axis is redundant because the
-///       same weight is used for all correlations.</td>
+///   <td>The data weights as [n_baselines,n_channels,n_correlations].</td>
 ///  </tr>
 ///  <tr>
 ///   <td>UVW</td>
-///   <td>The UVW coordinates in meters as [3,nbaseline].</td>
+///   <td>The UVW coordinates in meters as [n_baselines,3].</td>
 ///  </tr>
 /// </table>
 /// Each data member (DATA, FLAG, UVW, WEIGHTS) is filled in if
-/// any Step needs it (the information about the required fields per each step
+/// any Step needs it (the information about the required fields per each Step
 /// can be read with the getRequiredFields() function). The first Step
 /// (MSReader) will read the requested fields from the MS into the DPBuffer. In
-/// that way as little memory as needed is used. Note that e.g. the AOFlagger
+/// that way, as little memory as needed is used. Note that e.g. the AOFlagger
 /// can use a lot of memory if a large time window is used.
 ///
-/// Until early 2015 DP3 used the strategy of shallow data copies.
-/// I.e., a step increased the data reference counter and did not make
+/// Until early 2015, DP3 used the strategy of shallow data copies.
+/// I.e., a Step increased the data reference counter and did not make
 /// an actual copy. Only when data were changed, a new data array was made.
 /// Thus, MSReader allocated a new array when it read the data.
 /// However, it appeared this strategy lead to memory fragmentation and
 /// to sudden jumps in memory usage on Linux systems.
-/// <br>Therefore the strategy was changed to having each step preallocate
-/// its buffers and making deep copies when moving data from one step to
-/// the next one. It appeared that it not only improved memory usage,
+/// <br>Therefore, the strategy was changed to having each Step preallocate
+/// its buffers and, at that time, making deep copies when moving data from one
+/// Step to the next one. It appeared that it not only improved memory usage,
 /// but also improved performance, possible due to far less mallocs.
+/// Since 2023, DP3 uses a new strategy where it stores DPBuffers in unique
+/// pointers, which allows moving the buffers from one Step to the next without
+/// making deep copies.
 ///
-/// The buffer/step guidelines are as follows:
-/// 1. If a step keeps a buffer of DPBuffers for later processing (e.g.
-///    AOFlagger), it must make a copy of the DPBuffers because the input data
-///    arrays might have changed before that step processes the data.
-/// 2. A shallow copy of a data member can be used if a step processes
-///    the data immediately (e.g. Averager).
+/// The Buffer/Step guidelines are as follows:
+/// 1. If a Step accumulates DPBuffers for later processing (e.g. AOFlagger),
+///    it can move the DPBuffers it receives to its internal list.
+///    After processing the buffers on that list, it can move them from the
+///    list and forward them to the next Step without making deep copies.
+/// 2. If a Step processes the data immediately (e.g. Averager), it can update
+///    the DPBuffer it receives and forward the updated buffer to the next Step.
 class DPBuffer {
  public:
   using Complex = std::complex<float>;
@@ -151,14 +149,12 @@ class DPBuffer {
     return name.empty() || (extra_data_.find(name) != extra_data_.end());
   }
 
-  /// Accesses data (visibilities) in the DPBuffer.
+  /// Accesses the data (visibilities) in the DPBuffer.
   ///
   /// @param name Data buffer name. An empty string indicates the main data
   ///        buffer. A non-empty string indicates an extra data buffer.
-  /// @return An XTensor view to the data in the DPBuffer for the given name.
+  /// @return An XTensor object with the data of the given name.
   ///         The data has shape (n_baselines, n_channels, n_correlations).
-  ///         Note: In the future, this function will return a reference to the
-  ///         XTensor object that holds the data.
   [[nodiscard]] const DataType& GetData(const std::string& name = "") const {
     if (name.empty()) {
       return data_;
@@ -216,19 +212,15 @@ class DPBuffer {
 
   /// Accesses the flags for the data (visibilities) in the DPBuffer.
   ///
-  /// @return An XTensor view to the flags in the DPBuffer.
-  ///         The view has shape (n_baselines, n_channels, n_correlations).
-  ///         Note: In the future, this function will return a reference to the
-  ///         XTensor object that holds the flags.
+  /// @return An XTensor object with the flags.
+  ///         The object has shape (n_baselines, n_channels, n_correlations).
   [[nodiscard]] const FlagsType& GetFlags() const { return flags_; }
   [[nodiscard]] FlagsType& GetFlags() { return flags_; }
 
   /// Accesses weights for the data (visibilities) in the DPBuffer.
   ///
-  /// @return An XTensor view to the weights in the DPBuffer.
-  ///         The view has shape (n_baselines, n_channels, n_correlations).
-  ///         Note: In the future, this function will return a reference to the
-  ///         XTensor object that holds the weights.
+  /// @return An XTensor object with the weights.
+  ///         The object has shape (n_baselines, n_channels, n_correlations).
   [[nodiscard]] const WeightsType& GetWeights() const { return weights_; }
   [[nodiscard]] WeightsType& GetWeights() { return weights_; }
 
@@ -262,7 +254,7 @@ class DPBuffer {
 
   /// Accesses the UVW coordinates in the DPBuffer.
   ///
-  /// @return An XTensor object with the UVW coordinates in the DPBuffer.
+  /// @return An XTensor object with the UVW coordinates.
   ///         The object has shape (n_baselines, 3).
   [[nodiscard]] const UvwType& GetUvw() const { return uvw_; }
   [[nodiscard]] UvwType& GetUvw() { return uvw_; }
@@ -287,7 +279,8 @@ class DPBuffer {
   /// UVW coordinates (n_baselines x 3)
   UvwType uvw_;
 
-  SolutionType solution_;  ///< nchan,nant*npol
+  /// Solutions (for every channel, n_antennas x n_polarizations)
+  SolutionType solution_;
 };
 
 }  // namespace base
