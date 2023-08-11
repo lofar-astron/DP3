@@ -7,6 +7,9 @@
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/HybridSolver.h"
 #include "../../gain_solvers/IterativeDiagonalSolver.h"
+#if defined(HAVE_CUDA)
+#include "../../gain_solvers/IterativeDiagonalSolverCuda.h"
+#endif
 #include "../../gain_solvers/IterativeFullJonesSolver.h"
 #include "../../gain_solvers/IterativeScalarSolver.h"
 #include "../../gain_solvers/ScalarSolver.h"
@@ -141,28 +144,43 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
 }
 
-BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
-                        *boost::unit_test::label("slow")) {
-  SetDiagonalSolutions(false);
-  dp3::ddecal::IterativeDiagonalSolver solver;
-  InitializeSolver(solver);
+inline void TestIterativeDiagonal(dp3::ddecal::SolverBase& solver) {
+  SolverTester solver_tester;
+  solver_tester.SetDiagonalSolutions(false);
+  solver_tester.InitializeSolver(solver);
 
   BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 2u);
   BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
   BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
 
-  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
-  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer =
+      solver_tester.FillBDAData();
+  const SolveData data(solver_buffer, SolverTester::kNChannelBlocks,
+                       SolverTester::kNDirections, SolverTester::kNAntennas,
+                       solver_tester.Antennas1(), solver_tester.Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, solver_tester.GetSolverSolutions(), 0.0, nullptr);
 
-  CheckDiagonalResults(1.0E-2);
+  solver_tester.CheckDiagonalResults(1.0E-2);
   // The iterative solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
-  BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+  BOOST_CHECK_LE(result.iterations, SolverTester::kMaxIterations + 1);
 }
+
+BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  dp3::ddecal::IterativeDiagonalSolver solver;
+  TestIterativeDiagonal(solver);
+}
+
+#if defined(HAVE_CUDA)
+BOOST_FIXTURE_TEST_CASE(iterative_diagonal_cuda, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  dp3::ddecal::IterativeDiagonalSolverCuda solver;
+  TestIterativeDiagonal(solver);
+}
+#endif
 
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal_dd_intervals, SolverTester,
                         *boost::unit_test::label("slow")) {

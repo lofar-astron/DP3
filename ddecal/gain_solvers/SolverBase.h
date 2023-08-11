@@ -270,6 +270,13 @@ class SolverBase {
    * intervals.
    */
   size_t NSolutions() const { return n_solutions_; }
+  /**
+   * Total number of visibilities over all channel blocks
+   */
+  size_t NVisibilities() const {
+    return NChannelBlocks() * NAntennas() * NSolutions() *
+           NSolutionPolarizations();
+  }
 
   /**
    * Create an LLSSolver with the given matrix dimensions.

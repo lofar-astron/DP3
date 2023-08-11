@@ -63,6 +63,8 @@ class SolveData {
       return solution_map_(direction_index, visibility_index);
     }
 
+    const uint32_t* SolutionMapData() const { return solution_map_.data(); }
+
     const aocommon::MC2x2F& Visibility(size_t index) const {
       return data_[index];
     }

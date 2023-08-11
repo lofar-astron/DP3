@@ -119,6 +119,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       lbfgs_minibatches((solver_algorithm == SolverAlgorithm::kLBFGS)
                             ? GetUint("solverlbfgs.minibatches", 1)
                             : 1),
+      use_gpu(GetBool("usegpu", 0)),
 
       // Column reader settings
       model_data_columns(ReadModelDataColumns()),

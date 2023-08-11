@@ -21,7 +21,32 @@ else()
   message(FATAL_ERROR "Failed to parse DP3_VERSION='${DP3_VERSION}'")
 endif()
 
-project(DP3 VERSION ${DP3_VERSION})
+option(BUILD_WITH_CUDA "Build with CUDA support" FALSE)
+if(BUILD_WITH_CUDA)
+  project(
+    DP3
+    VERSION ${DP3_VERSION}
+    LANGUAGES CUDA C CXX)
+  set(CUDA_PROPAGATE_HOST_FLAGS FALSE)
+  set(CMAKE_CUDA_ARCHITECTURES
+      "70"
+      CACHE STRING "Specify GPU architecture(s) to compile for")
+  add_definitions(-DHAVE_CUDA)
+  find_package(CUDAToolkit REQUIRED)
+
+  # Necessary to find the cuda.h file in iterativediagonalsolver as a result of resolving SolverFactory
+  include_directories(${CUDAToolkit_INCLUDE_DIRS})
+
+  include(FetchContent)
+  FetchContent_Declare(
+    cudawrappers
+    GIT_REPOSITORY https://github.com/nlesc-recruit/cudawrappers.git
+    GIT_TAG main)
+  FetchContent_MakeAvailable(cudawrappers)
+
+else()
+  project(DP3 VERSION ${DP3_VERSION})
+endif()
 
 include(CheckCXXCompilerFlag)
 include(FetchContent)
@@ -391,6 +416,36 @@ add_library(
   ${DDE_ARMADILLO_FILES})
 target_link_libraries(DDECal xsimd xtensor)
 
+if(BUILD_WITH_CUDA)
+  target_link_libraries(DDECal cudawrappers::cu)
+
+  add_library(
+    CudaSolvers SHARED ddecal/gain_solvers/IterativeDiagonalSolverCuda.cc
+                       ddecal/gain_solvers/kernels/IterativeDiagonal.cu)
+
+  target_compile_options(
+    CudaSolvers
+    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+            --use_fast_math
+            -Xcompiler
+            -fPIC
+            -shared
+            -dc
+            >)
+
+  target_link_libraries(CudaSolvers PUBLIC cudawrappers::cu CUDA::nvToolsExt
+                                           CUDA::cudart_static xsimd xtensor)
+  set_target_properties(
+    CudaSolvers
+    PROPERTIES CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES}
+               CUDA_RESOLVE_DEVICE_SYMBOLS ON
+               CUDA_SEPARABLE_COMPILATION ON
+               POSITION_INDEPENDENT_CODE ON
+               RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build")
+
+  install(TARGETS CudaSolvers)
+endif()
+
 # 'Base' files and steps are only included in DP3.
 add_library(
   DP3_OBJ OBJECT
@@ -538,6 +593,10 @@ set(DP3_LIBRARIES
     schaapcommon
     Threads::Threads
     pybind11::embed)
+
+if(BUILD_WITH_CUDA)
+  list(APPEND DP3_LIBRARIES CudaSolvers)
+endif()
 
 # If libdirac is found, use it
 if(LIBDIRAC_FOUND)
@@ -778,6 +837,9 @@ if(BUILD_TESTING)
 
   add_executable(unittests ${TEST_FILENAMES})
   target_include_directories(unittests PRIVATE "${CMAKE_SOURCE_DIR}")
+  if(BUILD_WITH_CUDA)
+    set_target_properties(unittests PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+  endif()
   target_link_libraries(unittests LIBDP3 ${DP3_LIBRARIES} xtensor)
   add_dependencies(unittests schaapcommon)
 
