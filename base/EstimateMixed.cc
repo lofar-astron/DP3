@@ -49,10 +49,11 @@ void makeIndex(std::size_t n_direction, std::size_t n_station,
 
 bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
               size_t nChannel, const_cursor<Baseline> baselines,
-              vector<const_cursor<fcomplex>> data,
-              vector<const_cursor<dcomplex>> model, const_cursor<bool> flag,
-              const_cursor<float> weight, const_cursor<dcomplex> mix,
-              double *unknowns, size_t maxiter) {
+              std::vector<const_cursor<std::complex<float>>> data,
+              std::vector<const_cursor<std::complex<double>>> model,
+              const_cursor<bool> flag, const_cursor<float> weight,
+              const_cursor<std::complex<double>> mix, double *unknowns,
+              size_t maxiter) {
   assert(data.size() == nDirection && model.size() == nDirection);
 
   // Initialize LSQ solver.
@@ -70,8 +71,8 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
   vector<unsigned int> dIndex(4 * nPartial);
 
   // Allocate space for intermediate results.
-  vector<dcomplex> M(nDirection * 4), dM(nDirection * 16);
-  vector<double> dR(nPartial), dI(nPartial);
+  std::vector<std::complex<double>> M(nDirection * 4), dM(nDirection * 16);
+  std::vector<double> dR(nPartial), dI(nPartial);
 
   // Iterate until convergence.
   size_t nIterations = 0;
@@ -88,30 +89,30 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
           for (size_t dr = 0; dr < nDirection; ++dr) {
             // Jones matrix for station P.
             const double *Jp = &(unknowns[dr * nStation * 8 + p * 8]);
-            const dcomplex Jp_00(Jp[0], Jp[1]);
-            const dcomplex Jp_01(Jp[2], Jp[3]);
-            const dcomplex Jp_10(Jp[4], Jp[5]);
-            const dcomplex Jp_11(Jp[6], Jp[7]);
+            const std::complex<double> Jp_00(Jp[0], Jp[1]);
+            const std::complex<double> Jp_01(Jp[2], Jp[3]);
+            const std::complex<double> Jp_10(Jp[4], Jp[5]);
+            const std::complex<double> Jp_11(Jp[6], Jp[7]);
 
             // Jones matrix for station Q, conjugated.
             const double *Jq = &(unknowns[dr * nStation * 8 + q * 8]);
-            const dcomplex Jq_00(Jq[0], -Jq[1]);
-            const dcomplex Jq_01(Jq[2], -Jq[3]);
-            const dcomplex Jq_10(Jq[4], -Jq[5]);
-            const dcomplex Jq_11(Jq[6], -Jq[7]);
+            const std::complex<double> Jq_00(Jq[0], -Jq[1]);
+            const std::complex<double> Jq_01(Jq[2], -Jq[3]);
+            const std::complex<double> Jq_10(Jq[4], -Jq[5]);
+            const std::complex<double> Jq_11(Jq[6], -Jq[7]);
 
             // Fetch model visibilities for the current direction.
-            const dcomplex xx = model[dr][0];
-            const dcomplex xy = model[dr][1];
-            const dcomplex yx = model[dr][2];
-            const dcomplex yy = model[dr][3];
+            const std::complex<double> xx = model[dr][0];
+            const std::complex<double> xy = model[dr][1];
+            const std::complex<double> yx = model[dr][2];
+            const std::complex<double> yy = model[dr][3];
 
             // Precompute terms involving conj(Jq) and the model
             // visibilities.
-            const dcomplex Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
-            const dcomplex Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
-            const dcomplex Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
-            const dcomplex Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
+            const std::complex<double> Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
+            const std::complex<double> Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
+            const std::complex<double> Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
+            const std::complex<double> Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
 
             // Precompute (Jp x conj(Jq)) * vec(data), where 'x'
             // denotes the Kronecker product. This is the model
@@ -152,16 +153,16 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
           {
             if (!flag[cr]) {
               for (size_t tg = 0; tg < nDirection; ++tg) {
-                dcomplex visibility(0.0, 0.0);
+                std::complex<double> visibility(0.0, 0.0);
                 for (size_t dr = 0; dr < nDirection; ++dr) {
                   // Look-up mixing weight.
-                  const dcomplex mix_weight = *mix;
+                  const std::complex<double> mix_weight = *mix;
 
                   // Weight model visibility.
                   visibility += mix_weight * M[dr * 4 + cr];
 
                   // Compute weighted partial derivatives.
-                  dcomplex derivative(0.0, 0.0);
+                  std::complex<double> derivative(0.0, 0.0);
                   derivative = mix_weight * dM[dr * 16 + cr * 4];
                   dR[dr * 8] = real(derivative);  // for cr==0: Re(d/dRe(p_00)))
                   dI[dr * 8] = imag(derivative);  // for cr==0: Re(d/dIm(p_00)))
@@ -205,16 +206,14 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
                 }  // Source directions.
 
                 // Compute the residual.
-                dcomplex residual =
-                    static_cast<dcomplex>(data[tg][cr]) - visibility;
+                std::complex<double> residual =
+                    std::complex<double>{data[tg][cr]} - visibility;
 
                 // Update the normal equations.
                 solver.makeNorm(nPartial, &(dIndex[cr * nPartial]), &(dR[0]),
-                                static_cast<double>(weight[cr]),
-                                real(residual));
+                                double{weight[cr]}, residual.real());
                 solver.makeNorm(nPartial, &(dIndex[cr * nPartial]), &(dI[0]),
-                                static_cast<double>(weight[cr]),
-                                imag(residual));
+                                double{weight[cr]}, residual.imag());
 
                 // Move to next target direction.
                 mix.backward(1, nDirection);

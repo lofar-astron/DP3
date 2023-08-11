@@ -57,10 +57,10 @@ namespace base {
 /// A pointer to a buffer of unknowns of size nDirection * nStation * 8.
 bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
               size_t nChannel, const_cursor<Baseline> baselines,
-              std::vector<const_cursor<fcomplex>> data,
-              std::vector<const_cursor<dcomplex>> model,
+              std::vector<const_cursor<std::complex<float>>> data,
+              std::vector<const_cursor<std::complex<double>>> model,
               const_cursor<bool> flag, const_cursor<float> weight,
-              const_cursor<dcomplex> mix, double* unknowns,
+              const_cursor<std::complex<double>> mix, double* unknowns,
               size_t maxiter = 50);
 
 #ifdef HAVE_LIBDIRAC
@@ -73,10 +73,10 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 bool estimate(std::size_t n_direction, std::size_t n_station,
               std::size_t n_baseline, std::size_t n_channel,
               const_cursor<Baseline> baselines,
-              std::vector<const_cursor<fcomplex>> data,
-              std::vector<const_cursor<dcomplex>> model,
+              std::vector<const_cursor<std::complex<float>>> data,
+              std::vector<const_cursor<std::complex<double>>> model,
               const_cursor<bool> flag, const_cursor<float> weight,
-              const_cursor<dcomplex> mix, double* unknowns,
+              const_cursor<std::complex<double>> mix, double* unknowns,
               std::size_t lbfgs_mem, double robust_nu,
               std::size_t max_iter = 50);
 #endif /* HAVE_LIBDIRAC */

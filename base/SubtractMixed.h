@@ -34,8 +34,10 @@ namespace base {
 /// A cursor for a 3-D buffer of mixing weight of shape
 /// (\p nBaseline, \p nChannel, 4).
 void subtract(size_t nBaseline, size_t nChannel,
-              const_cursor<Baseline> baselines, cursor<fcomplex> data,
-              const_cursor<dcomplex> model, const_cursor<dcomplex> weight);
+              const_cursor<Baseline> baselines,
+              cursor<std::complex<float>> data,
+              const_cursor<std::complex<double>> model,
+              const_cursor<std::complex<double>> weight);
 
 }  // namespace base
 }  // namespace dp3

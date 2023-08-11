@@ -12,8 +12,10 @@ namespace dp3 {
 namespace base {
 
 void subtract(size_t nBaseline, size_t nChannel,
-              const_cursor<Baseline> baselines, cursor<fcomplex> data,
-              const_cursor<dcomplex> model, const_cursor<dcomplex> weight) {
+              const_cursor<Baseline> baselines,
+              cursor<std::complex<float>> data,
+              const_cursor<std::complex<double>> model,
+              const_cursor<std::complex<double>> weight) {
   for (size_t bl = 0; bl < nBaseline; ++bl) {
     const size_t p = baselines->first;
     const size_t q = baselines->second;
@@ -21,19 +23,19 @@ void subtract(size_t nBaseline, size_t nChannel,
     if (p != q) {
       for (size_t ch = 0; ch < nChannel; ++ch) {
         // Subtract weighted model from data.
-        *data -= static_cast<fcomplex>((*weight) * (*model));
+        *data -= std::complex<float>((*weight) * (*model));
         ++weight;
         ++model;
         ++data;
-        *data -= static_cast<fcomplex>((*weight) * (*model));
+        *data -= std::complex<float>((*weight) * (*model));
         ++weight;
         ++model;
         ++data;
-        *data -= static_cast<fcomplex>((*weight) * (*model));
+        *data -= std::complex<float>((*weight) * (*model));
         ++weight;
         ++model;
         ++data;
-        *data -= static_cast<fcomplex>((*weight) * (*model));
+        *data -= std::complex<float>((*weight) * (*model));
         ++weight;
         ++model;
         ++data;
