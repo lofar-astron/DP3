@@ -18,6 +18,9 @@
 #include <iostream>
 #ifdef HAVE_LIBDIRAC
 #include <Dirac.h>
+// Dirac.h incorrectly defines "complex".
+// -> Undefining it avoids conflicts with std::complex.
+#undef complex
 #endif /* HAVE_LIBDIRAC */
 
 using dp3::common::operator<<;
@@ -33,18 +36,18 @@ struct LBFGSData {
   std::size_t n_baseline;
   std::size_t n_channel;
   const_cursor<Baseline> baselines;
-  std::vector<const_cursor<fcomplex>> data;
-  std::vector<const_cursor<dcomplex>> model;
+  std::vector<const_cursor<std::complex<float>>> data;
+  std::vector<const_cursor<std::complex<double>>> model;
   const_cursor<bool> flag;
   const_cursor<float> weight;
-  const_cursor<dcomplex> mix;
+  const_cursor<std::complex<double>> mix;
   double robust_nu;
   LBFGSData(std::size_t n_dir_, std::size_t n_st_, std::size_t n_base_,
             std::size_t n_chan_, const_cursor<Baseline> baselines_,
-            std::vector<const_cursor<fcomplex>> data_,
-            std::vector<const_cursor<dcomplex>> model_,
+            std::vector<const_cursor<std::complex<float>>> data_,
+            std::vector<const_cursor<std::complex<double>>> model_,
             const_cursor<bool> flag_, const_cursor<float> weight_,
-            const_cursor<dcomplex> mix_, double robust_nu_ = 2.0)
+            const_cursor<std::complex<double>> mix_, double robust_nu_ = 2.0)
       : n_direction(n_dir_),
         n_station(n_st_),
         n_baseline(n_base_),
@@ -69,7 +72,7 @@ double cost_func(double *unknowns, int m, void *adata) {
   assert(static_cast<std::size_t>(m) == t->n_direction * t->n_station * 4 * 2);
 
   // Allocate space for intermediate results.
-  std::vector<dcomplex> M(t->n_direction * 4);
+  std::vector<std::complex<double>> M(t->n_direction * 4);
 
   double fcost = 0.0;
 
@@ -83,30 +86,30 @@ double cost_func(double *unknowns, int m, void *adata) {
         for (std::size_t dr = 0; dr < t->n_direction; ++dr) {
           // Jones matrix for station P.
           const double *Jp = &(unknowns[dr * t->n_station * 8 + p * 8]);
-          const dcomplex Jp_00(Jp[0], Jp[1]);
-          const dcomplex Jp_01(Jp[2], Jp[3]);
-          const dcomplex Jp_10(Jp[4], Jp[5]);
-          const dcomplex Jp_11(Jp[6], Jp[7]);
+          const std::complex<double> Jp_00(Jp[0], Jp[1]);
+          const std::complex<double> Jp_01(Jp[2], Jp[3]);
+          const std::complex<double> Jp_10(Jp[4], Jp[5]);
+          const std::complex<double> Jp_11(Jp[6], Jp[7]);
 
           // Jones matrix for station Q, conjugated.
           const double *Jq = &(unknowns[dr * t->n_station * 8 + q * 8]);
-          const dcomplex Jq_00(Jq[0], -Jq[1]);
-          const dcomplex Jq_01(Jq[2], -Jq[3]);
-          const dcomplex Jq_10(Jq[4], -Jq[5]);
-          const dcomplex Jq_11(Jq[6], -Jq[7]);
+          const std::complex<double> Jq_00(Jq[0], -Jq[1]);
+          const std::complex<double> Jq_01(Jq[2], -Jq[3]);
+          const std::complex<double> Jq_10(Jq[4], -Jq[5]);
+          const std::complex<double> Jq_11(Jq[6], -Jq[7]);
 
           // Fetch model visibilities for the current direction.
-          const dcomplex xx = t->model[dr][0];
-          const dcomplex xy = t->model[dr][1];
-          const dcomplex yx = t->model[dr][2];
-          const dcomplex yy = t->model[dr][3];
+          const std::complex<double> xx = t->model[dr][0];
+          const std::complex<double> xy = t->model[dr][1];
+          const std::complex<double> yx = t->model[dr][2];
+          const std::complex<double> yy = t->model[dr][3];
 
           // Precompute terms involving conj(Jq) and the model
           // visibilities.
-          const dcomplex Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
-          const dcomplex Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
-          const dcomplex Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
-          const dcomplex Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
+          const std::complex<double> Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
+          const std::complex<double> Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
+          const std::complex<double> Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
+          const std::complex<double> Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
 
           // Precompute (Jp x conj(Jq)) * vec(data), where 'x'
           // denotes the Kronecker product. This is the model
@@ -124,10 +127,10 @@ double cost_func(double *unknowns, int m, void *adata) {
           if (!(t->flag[cr])) {
             const double mwt = static_cast<double>(t->weight[cr]);
             for (std::size_t tg = 0; tg < t->n_direction; ++tg) {
-              dcomplex visibility(0.0, 0.0);
+              std::complex<double> visibility(0.0, 0.0);
               for (std::size_t dr = 0; dr < t->n_direction; ++dr) {
                 // Look-up mixing weight.
-                const dcomplex mix_weight = *(t->mix);
+                const std::complex<double> mix_weight = *(t->mix);
 
                 // Weight model visibility.
                 visibility += mix_weight * M[dr * 4 + cr];
@@ -137,17 +140,17 @@ double cost_func(double *unknowns, int m, void *adata) {
               }  // Source directions.
 
               // Compute the residual.
-              dcomplex residual =
-                  static_cast<dcomplex>(t->data[tg][cr]) - visibility;
+              std::complex<double> residual =
+                  std::complex<double>{t->data[tg][cr]} - visibility;
 
               // sum up cost
               // For reference: Gaussian cost is
-              // fcost += mwt * (real(residual) * real(residual) +
-              //                  imag(residual) * imag(residual));
+              // fcost += mwt * (residual.real() * residual.real() +
+              //                 residual.imag() * residual.imag());
               // Robust cost function
-              fcost += std::log(1.0 + mwt * real(residual) * real(residual) /
+              fcost += std::log(1.0 + mwt * residual.real() * residual.real() /
                                           t->robust_nu);
-              fcost += std::log(1.0 + mwt * imag(residual) * imag(residual) /
+              fcost += std::log(1.0 + mwt * residual.imag() * residual.imag() /
                                           t->robust_nu);
 
               // Move to next target direction.
@@ -236,8 +239,8 @@ void grad_func(double *unknowns, double *grad, int m, void *adata) {
       t->n_direction * 8;  // note: this for real,imag separately
 
   // Allocate space for intermediate results.
-  std::vector<dcomplex> M(t->n_direction * 4);
-  std::vector<dcomplex> dM(t->n_direction * 16);
+  std::vector<std::complex<double>> M(t->n_direction * 4);
+  std::vector<std::complex<double>> dM(t->n_direction * 16);
   std::vector<double> dR(n_partial);
   std::vector<double> dI(n_partial);
   std::vector<unsigned int> dIndex(4 * n_partial);  // 4 correlations
@@ -257,30 +260,30 @@ void grad_func(double *unknowns, double *grad, int m, void *adata) {
         for (std::size_t dr = 0; dr < t->n_direction; ++dr) {
           // Jones matrix for station P.
           const double *Jp = &(unknowns[dr * t->n_station * 8 + p * 8]);
-          const dcomplex Jp_00(Jp[0], Jp[1]);
-          const dcomplex Jp_01(Jp[2], Jp[3]);
-          const dcomplex Jp_10(Jp[4], Jp[5]);
-          const dcomplex Jp_11(Jp[6], Jp[7]);
+          const std::complex<double> Jp_00(Jp[0], Jp[1]);
+          const std::complex<double> Jp_01(Jp[2], Jp[3]);
+          const std::complex<double> Jp_10(Jp[4], Jp[5]);
+          const std::complex<double> Jp_11(Jp[6], Jp[7]);
 
           // Jones matrix for station Q, conjugated.
           const double *Jq = &(unknowns[dr * t->n_station * 8 + q * 8]);
-          const dcomplex Jq_00(Jq[0], -Jq[1]);
-          const dcomplex Jq_01(Jq[2], -Jq[3]);
-          const dcomplex Jq_10(Jq[4], -Jq[5]);
-          const dcomplex Jq_11(Jq[6], -Jq[7]);
+          const std::complex<double> Jq_00(Jq[0], -Jq[1]);
+          const std::complex<double> Jq_01(Jq[2], -Jq[3]);
+          const std::complex<double> Jq_10(Jq[4], -Jq[5]);
+          const std::complex<double> Jq_11(Jq[6], -Jq[7]);
 
           // Fetch model coherencies for the current direction.
-          const dcomplex xx = t->model[dr][0];
-          const dcomplex xy = t->model[dr][1];
-          const dcomplex yx = t->model[dr][2];
-          const dcomplex yy = t->model[dr][3];
+          const std::complex<double> xx = t->model[dr][0];
+          const std::complex<double> xy = t->model[dr][1];
+          const std::complex<double> yx = t->model[dr][2];
+          const std::complex<double> yy = t->model[dr][3];
 
           // Precompute terms involving conj(Jq) and the model
           // visibilities.
-          const dcomplex Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
-          const dcomplex Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
-          const dcomplex Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
-          const dcomplex Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
+          const std::complex<double> Jq_00xx_01xy = Jq_00 * xx + Jq_01 * xy;
+          const std::complex<double> Jq_00yx_01yy = Jq_00 * yx + Jq_01 * yy;
+          const std::complex<double> Jq_10xx_11xy = Jq_10 * xx + Jq_11 * xy;
+          const std::complex<double> Jq_10yx_11yy = Jq_10 * yx + Jq_11 * yy;
 
           // Precompute (Jp x conj(Jq)) * vec(model), where 'x'
           // denotes the Kronecker product. This is the model
@@ -322,75 +325,75 @@ void grad_func(double *unknowns, double *grad, int m, void *adata) {
           if (!(t->flag[cr])) {
             const double mwt = static_cast<double>(t->weight[cr]);
             for (std::size_t tg = 0; tg < t->n_direction; ++tg) {
-              dcomplex visibility(0.0, 0.0);
+              std::complex<double> visibility(0.0, 0.0);
               for (std::size_t dr = 0; dr < t->n_direction; ++dr) {
                 // Look-up mixing weight.
-                const dcomplex mix_weight = *(t->mix);
+                const std::complex<double> mix_weight = *(t->mix);
 
                 // Weight model visibility.
                 visibility += mix_weight * M[dr * 4 + cr];
 
                 // Compute weighted partial derivatives.
-                dcomplex derivative(0.0, 0.0);
+                std::complex<double> derivative(0.0, 0.0);
                 derivative = mix_weight * dM[dr * 16 + cr * 4];
-                dR[dr * 8] = real(derivative);  // for cr==0: Re(d/dRe(p_00)))
-                dI[dr * 8] = imag(derivative);  // for cr==0: Re(d/dIm(p_00)))
+                dR[dr * 8] = derivative.real();  // for cr==0: Re(d/dRe(p_00)))
+                dI[dr * 8] = derivative.imag();  // for cr==0: Re(d/dIm(p_00)))
                 dR[dr * 8 + 1] =
-                    -imag(derivative);  // for cr==0: Im(d/dRe(p_00)))
+                    -derivative.imag();  // for cr==0: Im(d/dRe(p_00)))
                 dI[dr * 8 + 1] =
-                    real(derivative);  // for cr==0: Im(d/dIm(p_00)))
+                    derivative.real();  // for cr==0: Im(d/dIm(p_00)))
 
                 derivative = mix_weight * dM[dr * 16 + cr * 4 + 1];
                 dR[dr * 8 + 2] =
-                    real(derivative);  // for cr==0: Re(d/dRe(p_01)))
+                    derivative.real();  // for cr==0: Re(d/dRe(p_01)))
                 dI[dr * 8 + 2] =
-                    imag(derivative);  // for cr==0: Re(d/dIm(p_01)))
+                    derivative.imag();  // for cr==0: Re(d/dIm(p_01)))
                 dR[dr * 8 + 3] =
-                    -imag(derivative);  // for cr==0: Im(d/dRe(p_01)))
+                    -derivative.imag();  // for cr==0: Im(d/dRe(p_01)))
                 dI[dr * 8 + 3] =
-                    real(derivative);  // for cr==0: Im(d/dIm(p_01)))
+                    derivative.real();  // for cr==0: Im(d/dIm(p_01)))
 
                 derivative = mix_weight * dM[dr * 16 + cr * 4 + 2];
                 dR[dr * 8 + 4] =
-                    real(derivative);  // for cr==0: Re(d/dRe(q_00)))
+                    derivative.real();  // for cr==0: Re(d/dRe(q_00)))
                 dI[dr * 8 + 4] =
-                    imag(derivative);  // for cr==0: Re(d/dIm(q_00)))
+                    derivative.imag();  // for cr==0: Re(d/dIm(q_00)))
                 dR[dr * 8 + 5] =
-                    imag(derivative);  // for cr==0: Im(d/dRe(q_00)))
+                    derivative.imag();  // for cr==0: Im(d/dRe(q_00)))
                 dI[dr * 8 + 5] =
-                    -real(derivative);  // for cr==0: Im(d/dIm(q_00)))
+                    -derivative.real();  // for cr==0: Im(d/dIm(q_00)))
 
                 derivative = mix_weight * dM[dr * 16 + cr * 4 + 3];
                 dR[dr * 8 + 6] =
-                    real(derivative);  // for cr==0: Re(d/dRe(q_01)))
+                    derivative.real();  // for cr==0: Re(d/dRe(q_01)))
                 dI[dr * 8 + 6] =
-                    imag(derivative);  // for cr==0: Re(d/dIm(q_01)))
+                    derivative.imag();  // for cr==0: Re(d/dIm(q_01)))
                 dR[dr * 8 + 7] =
-                    imag(derivative);  // for cr==0: Im(d/dRe(q_01)))
+                    derivative.imag();  // for cr==0: Im(d/dRe(q_01)))
                 dI[dr * 8 + 7] =
-                    -real(derivative);  // for cr==0: Im(d/dIm(q_01)))
+                    -derivative.real();  // for cr==0: Im(d/dIm(q_01)))
 
                 // Move to next source direction.
                 t->mix.forward(1);
               }  // Source directions.
 
               // Compute the residual.
-              dcomplex residual =
-                  static_cast<dcomplex>(t->data[tg][cr]) - visibility;
+              const std::complex<double> residual =
+                  std::complex<double>{t->data[tg][cr]} - visibility;
 
               // accumulate gradient (for this correlation 'cr')
               // For reference, gradient for Gaussian noise is:
               //  grad[dIndex[cr * n_partial + ci]] +=
-              //      2.0 * dR[ci] * mwt * real(residual);
+              //      2.0 * dR[ci] * mwt * residual.real();
               //  grad[dIndex[cr * n_partial + ci]] +=
-              //      2.0 * dI[ci] * mwt * imag(residual);
+              //      2.0 * dI[ci] * mwt * residual.imag();
               for (std::size_t ci = 0; ci < n_partial; ci++) {
                 grad[dIndex[cr * n_partial + ci]] -=
-                    2.0 * dR[ci] * mwt * real(residual) /
-                    (t->robust_nu + mwt * real(residual) * real(residual));
+                    2.0 * dR[ci] * mwt * residual.real() /
+                    (t->robust_nu + mwt * residual.real() * residual.real());
                 grad[dIndex[cr * n_partial + ci]] -=
-                    2.0 * dI[ci] * mwt * imag(residual) /
-                    (t->robust_nu + mwt * imag(residual) * imag(residual));
+                    2.0 * dI[ci] * mwt * residual.imag() /
+                    (t->robust_nu + mwt * residual.imag() * residual.imag());
               }
 
               // Move to next target direction.
@@ -456,10 +459,10 @@ void grad_func(double *unknowns, double *grad, int m, void *adata) {
 bool estimate(std::size_t n_direction, std::size_t n_station,
               std::size_t n_baseline, std::size_t n_channel,
               const_cursor<Baseline> baselines,
-              std::vector<const_cursor<fcomplex>> data,
-              std::vector<const_cursor<dcomplex>> model,
+              std::vector<const_cursor<std::complex<float>>> data,
+              std::vector<const_cursor<std::complex<double>>> model,
               const_cursor<bool> flag, const_cursor<float> weight,
-              const_cursor<dcomplex> mix, double *unknowns,
+              const_cursor<std::complex<double>> mix, double *unknowns,
               std::size_t lbfgs_mem, double robust_nu, std::size_t max_iter) {
   LBFGSData t(n_direction, n_station, n_baseline, n_channel, baselines, data,
               model, flag, weight, mix, robust_nu);

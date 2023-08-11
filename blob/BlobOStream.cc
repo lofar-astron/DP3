@@ -137,11 +137,11 @@ BlobOStream& BlobOStream::operator<<(const double& var) {
   putBuf(&var, sizeof(var));
   return *this;
 }
-BlobOStream& BlobOStream::operator<<(const fcomplex& var) {
+BlobOStream& BlobOStream::operator<<(const std::complex<float>& var) {
   putBuf(&var, sizeof(var));
   return *this;
 }
-BlobOStream& BlobOStream::operator<<(const dcomplex& var) {
+BlobOStream& BlobOStream::operator<<(const std::complex<double>& var) {
   putBuf(&var, sizeof(var));
   return *this;
 }
@@ -201,11 +201,11 @@ void BlobOStream::put(const float* values, uint64_t nrval) {
 void BlobOStream::put(const double* values, uint64_t nrval) {
   putBuf(values, nrval * sizeof(double));
 }
-void BlobOStream::put(const fcomplex* values, uint64_t nrval) {
-  putBuf(values, nrval * sizeof(fcomplex));
+void BlobOStream::put(const std::complex<float>* values, uint64_t nrval) {
+  putBuf(values, nrval * sizeof(std::complex<float>));
 }
-void BlobOStream::put(const dcomplex* values, uint64_t nrval) {
-  putBuf(values, nrval * sizeof(dcomplex));
+void BlobOStream::put(const std::complex<double>* values, uint64_t nrval) {
+  putBuf(values, nrval * sizeof(std::complex<double>));
 }
 void BlobOStream::put(const std::string* values, uint64_t nrval) {
   for (uint64_t i = 0; i < nrval; i++) {

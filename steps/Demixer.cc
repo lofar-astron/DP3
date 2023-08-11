@@ -870,8 +870,8 @@ namespace {
 struct ThreadPrivateStorage {
   std::vector<double> unknowns;
   xt::xtensor<double, 2> uvw;
-  std::vector<casacore::Cube<dcomplex>> model;
-  casacore::Cube<dcomplex> model_subtr;
+  std::vector<casacore::Cube<std::complex<double>>> model;
+  casacore::Cube<std::complex<double>> model_subtr;
   size_t count_converged;
 };
 
@@ -977,17 +977,18 @@ void Demixer::demix() {
                           itsFactors[ts].shape(0));
     const casacore::Array<casacore::DComplex> demix_factor(
         shape, itsFactors[ts].data(), casacore::SHARE);
-    base::const_cursor<dcomplex> cr_mix = base::casa_const_cursor(demix_factor);
+    base::const_cursor<std::complex<double>> cr_mix =
+        base::casa_const_cursor(demix_factor);
     /// cout << "demixfactor "<<ts<<" = "<<itsFactors[ts]<<'\n';
 
-    std::vector<base::const_cursor<fcomplex>> cr_data(nDr);
-    std::vector<base::const_cursor<dcomplex>> cr_model(nDr);
+    std::vector<base::const_cursor<std::complex<float>>> cr_data(nDr);
+    std::vector<base::const_cursor<std::complex<double>>> cr_model(nDr);
     for (size_t dr = 0; dr < nDr; ++dr) {
       cr_data[dr] = base::casa_const_cursor(casacore::Cube<casacore::Complex>(
           cube_shape, itsAvgResults[dr]->get()[ts]->GetData().data(),
           casacore::SHARE));
-      cr_model[dr] = base::const_cursor<dcomplex>(storage.model[dr].data(), 3,
-                                                  stride_model);
+      cr_model[dr] = base::const_cursor<std::complex<double>>(
+          storage.model[dr].data(), 3, stride_model);
     }
 
     const bool converged =
@@ -1021,8 +1022,8 @@ void Demixer::demix() {
          ts_subtr != ts_subtr_end; ++ts_subtr) {
       for (size_t dr = 0; dr < nDrSubtr; ++dr) {
         // Re-use simulation used for estimating Jones matrices if possible.
-        base::cursor<dcomplex> cr_model_subtr(storage.model[dr].data(), 3,
-                                              stride_model);
+        base::cursor<std::complex<double>> cr_model_subtr(
+            storage.model[dr].data(), 3, stride_model);
 
         // Re-simulate if required.
         if (multiplier != 1 || nCh != nChSubtr) {
@@ -1051,12 +1052,12 @@ void Demixer::demix() {
                     storage.uvw.data());
 
           // Zero the visibility buffer.
-          storage.model_subtr = dcomplex();
+          storage.model_subtr = std::complex<double>();
 
           // Simulate visibilities at the resolution of the residual.
           size_t stride_model_subtr[3] = {1, nCr, nCr * nChSubtr};
-          cr_model_subtr = base::cursor<dcomplex>(storage.model_subtr.data(), 3,
-                                                  stride_model_subtr);
+          cr_model_subtr = base::cursor<std::complex<double>>(
+              storage.model_subtr.data(), 3, stride_model_subtr);
 
           base::Simulator simulator(itsPatchList[dr]->direction(), nSt,
                                     itsBaselines,
@@ -1083,7 +1084,8 @@ void Demixer::demix() {
         casacore::Cube<casacore::Complex> cube_residual(
             cube_shape, itsAvgResultSubtr->get()[ts_subtr]->GetData().data(),
             casacore::SHARE);
-        base::cursor<fcomplex> cr_residual = base::casa_cursor(cube_residual);
+        base::cursor<std::complex<float>> cr_residual =
+            base::casa_cursor(cube_residual);
 
         // Construct a cursor to iterate over a slice of the mixing matrix
         // at the resolution of the residual. The "to" and "from" direction
@@ -1109,9 +1111,8 @@ void Demixer::demix() {
             itsFactorsSubtr[ts_subtr].data(), casacore::SHARE);
 
         IPosition offset(5, itsNDir - 1, dr, 0, 0, 0);
-        base::const_cursor<dcomplex> cr_mix_subtr =
-            base::const_cursor<dcomplex>(&(demix_factors_subtr(offset)), 3,
-                                         stride_mix_subtr_slice);
+        base::const_cursor<std::complex<double>> cr_mix_subtr(
+            &(demix_factors_subtr(offset)), 3, stride_mix_subtr_slice);
 
         // Subtract the source.
         subtract(nBl, nChSubtr, cr_baseline, cr_residual, cr_model_subtr,

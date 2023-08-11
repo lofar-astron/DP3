@@ -55,7 +55,6 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
-using casacore::Cube;
 using casacore::MDirection;
 using casacore::MEpoch;
 using casacore::MVDirection;
@@ -479,7 +478,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       const casacore::IPosition shape(3, thread_buffer.shape(2),
                                       thread_buffer.shape(1),
                                       thread_buffer.shape(0));
-      Cube<dcomplex> simulatedest(shape, thread_buffer.data(), casacore::SHARE);
+      casacore::Cube<std::complex<double>> simulatedest(
+          shape, thread_buffer.data(), casacore::SHARE);
 
       simulators.emplace_back(phase_ref_, nSt, baselines_split[thread_index],
                               casacore::Vector<double>(info().chanFreqs()),
@@ -507,7 +507,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       // Always use model.shape(), since it's equal to the patch model shape.
       const casacore::IPosition shape(3, model.shape(2), model.shape(1),
                                       model.shape(0));
-      Cube<dcomplex> simulatedest(shape, model_data, casacore::SHARE);
+      casacore::Cube<std::complex<double>> simulatedest(shape, model_data,
+                                                        casacore::SHARE);
 
       simulators.emplace_back(phase_ref_, nSt, baselines_,
                               casacore::Vector<double>(info().chanFreqs()),

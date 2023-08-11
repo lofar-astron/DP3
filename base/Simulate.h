@@ -119,7 +119,7 @@ void simulate(const Direction& reference,
               const std::shared_ptr<const Patch>& patch, size_t nStation,
               size_t nBaseline, size_t nChannel,
               const_cursor<Baseline> baselines, const_cursor<double> freq,
-              const_cursor<double> uvw, cursor<dcomplex> buffer);
+              const_cursor<double> uvw, cursor<std::complex<double>> buffer);
 
 }  // namespace base
 }  // namespace dp3

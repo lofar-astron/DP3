@@ -80,6 +80,7 @@ const std::string& typeName(const std::complex<float>*) {
   static std::string str("fcomplex");
   return str;
 }
+
 const std::string& typeName(const std::complex<double>*) {
   static std::string str("dcomplex");
   return str;

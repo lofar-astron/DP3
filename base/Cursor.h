@@ -3,14 +3,11 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DPPP_CURSOR_H
-#define DPPP_CURSOR_H
+#ifndef DP3_BASE_CURSOR_H_
+#define DP3_BASE_CURSOR_H_
 
 #include <cassert>
 #include <complex>
-
-typedef std::complex<double> dcomplex;
-typedef std::complex<float> fcomplex;
 
 namespace dp3 {
 namespace base {

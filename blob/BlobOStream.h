@@ -14,9 +14,6 @@
 #include <complex>
 #include <cstring>
 
-typedef std::complex<double> dcomplex;
-typedef std::complex<float> fcomplex;
-
 namespace dp3 {
 namespace blob {
 
@@ -83,12 +80,6 @@ class BlobOStream {
 
   /// Put a single value.
   /// A string will be stored as a length followed by the characters.
-  /// Note that a function is defined for the standard complex class
-  /// and for the types fcomplex, dcomplex, i16complex and u16complex.
-  /// This should be fine for the case where fcomplex is the builtin
-  /// complex type and the case where it is the standard class.
-  /// In the first case the fcomplex function is a separate function,
-  /// in the second case a specialisation of the templated function.
   /// @{
   BlobOStream& operator<<(const bool& value);
   BlobOStream& operator<<(const char& value);
@@ -102,13 +93,8 @@ class BlobOStream {
   BlobOStream& operator<<(const uint64_t& value);
   BlobOStream& operator<<(const float& value);
   BlobOStream& operator<<(const double& value);
-  template <class T>
-  BlobOStream& operator<<(const std::complex<T>& value);
-  // BlobOStream& operator<< (const i4complex& value);
-  // BlobOStream& operator<< (const i16complex& value);
-  // BlobOStream& operator<< (const u16complex& value);
-  BlobOStream& operator<<(const fcomplex& value);
-  BlobOStream& operator<<(const dcomplex& value);
+  BlobOStream& operator<<(const std::complex<float>& value);
+  BlobOStream& operator<<(const std::complex<double>& value);
   BlobOStream& operator<<(const std::string& value);
   BlobOStream& operator<<(const char* value);
   /// @}
@@ -128,13 +114,8 @@ class BlobOStream {
   void put(const uint64_t* values, uint64_t nrval);
   void put(const float* values, uint64_t nrval);
   void put(const double* values, uint64_t nrval);
-  template <class T>
-  void put(const std::complex<T>* values, uint64_t nrval);
-  // void put (const i4complex* values, uint64_t nrval);
-  // void put (const i16complex* values, uint64_t nrval);
-  // void put (const u16complex* values, uint64_t nrval);
-  void put(const fcomplex* values, uint64_t nrval);
-  void put(const dcomplex* values, uint64_t nrval);
+  void put(const std::complex<float>* values, uint64_t nrval);
+  void put(const std::complex<double>* values, uint64_t nrval);
   void put(const std::string* values, uint64_t nrval);
   /// @}
 
@@ -216,16 +197,6 @@ inline unsigned int BlobOStream::putStart(const char* objectType,
 }
 
 inline int64_t BlobOStream::tellPos() const { return itsStream->tellPos(); }
-
-template <class T>
-inline BlobOStream& BlobOStream::operator<<(const std::complex<T>& value) {
-  putBuf(&value, sizeof(value));
-  return *this;
-}
-template <class T>
-inline void BlobOStream::put(const std::complex<T>* values, uint64_t nrval) {
-  putBuf(values, nrval * sizeof(std::complex<T>));
-}
 
 template <class T>
 inline void BlobOStream::put(const std::vector<T>& vec) {
