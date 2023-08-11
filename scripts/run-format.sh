@@ -12,6 +12,9 @@ SOURCE_DIR=$(dirname "$0")/..
 #relative to SOURCE_DIR.
 EXCLUDE_DIRS=(external build CMake)
 
+#The patterns of the C++ source files, which clang-format should format.
+CXX_SOURCES=(*.cc *.h *.cu *.cuh)
+
 # clang-format version 12 and 14 produce slightly different results for
 # pythondp3/parameterset.cc, so hard-code this to 14.
 CLANG_FORMAT_BINARY=clang-format-14

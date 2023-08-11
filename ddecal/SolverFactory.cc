@@ -12,6 +12,9 @@
 #include "gain_solvers/LBFGSSolver.h"
 #include "gain_solvers/HybridSolver.h"
 #include "gain_solvers/IterativeDiagonalSolver.h"
+#if defined(HAVE_CUDA)
+#include "gain_solvers/IterativeDiagonalSolverCuda.h"
+#endif
 #include "gain_solvers/IterativeFullJonesSolver.h"
 #include "gain_solvers/IterativeScalarSolver.h"
 #include "gain_solvers/ScalarSolver.h"
@@ -56,6 +59,23 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
 
 std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
                                                  const Settings& settings) {
+#if defined(HAVE_CUDA)
+  if (settings.use_gpu) {
+    switch (algorithm) {
+      case SolverAlgorithm::kDirectionIterative:
+        return std::make_unique<IterativeDiagonalSolverCuda>();
+      default:
+        throw std::runtime_error(
+            "usegpu=true, but no GPU implementation for solver algorithm is "
+            "available.");
+    }
+  }
+#else
+  if (settings.use_gpu) {
+    throw std::runtime_error(
+        "usegpu=true, but DP3 is built without CUDA support.");
+  }
+#endif
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
       return std::make_unique<IterativeDiagonalSolver>();

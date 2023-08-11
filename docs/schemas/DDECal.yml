@@ -213,3 +213,9 @@ inputs:
     default: false
     type: bool
     doc: Setting this to true will store the solution of DDECal into the buffer, allowing the usage of this solution in a later step. For example, a pipeline with  DDECal -> OneApplyCal  would be able to apply solutions to the data without requiring an intermediate format to be stored to disk. Note that it currently only works for single-direction solutions.
+  usegpu:
+    default: false
+    type: bool
+    doc: >-
+      Use GPU solver. This is an experimental feature only available for the iterative
+      diagonal solver and requires DP3 to be built with BUILD_WITH_CUDA=1 `.`

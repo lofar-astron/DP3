@@ -135,6 +135,7 @@ struct Settings {
   const size_t lbfgs_history_size;
   // LBFGS minibatches
   const size_t lbfgs_minibatches;
+  const bool use_gpu;
 
   const std::vector<std::string> model_data_columns;
   const std::vector<std::string> reuse_model_data;
