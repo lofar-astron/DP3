@@ -18,6 +18,7 @@ DP3 comes with quite some predefined steps, but it is possible to plugin arbitra
   :hidden:
 
   self
+  changelog
 
 .. toctree::
   :maxdepth: 2
