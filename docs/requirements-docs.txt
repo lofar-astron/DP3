@@ -4,3 +4,4 @@
 # Required python packages for building on ReadTheDocs.
 # See .readthedocs.yaml in the root of this repository.
 jsonschema2rst
+myst-parser
