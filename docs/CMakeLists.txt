@@ -44,6 +44,9 @@ if(SPHINX_FOUND AND JSONSCHEMA2RST_EXECUTABLE)
   set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/docs/)
   # Sphinx needs index.rst in the same directory as conf.py.
   configure_file(index.rst index.rst COPYONLY)
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../pythondp3/test/unit/mock/mockpystep.py
+    mockpystep.py COPYONLY)
   configure_file(../CHANGELOG.md changelog.md COPYONLY)
   configure_file(conf.py.in conf.py)
   add_custom_target(

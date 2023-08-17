@@ -1,20 +1,23 @@
 description: |-
   Run a user defined python step. Parameters are passed to python.
+  Python steps can be used both from command-line invocations of DP3 and from
+  the DP3 python bindings.
+
+  **Note**: The documentation on how to call DP3 from python is currently work in progress.
+
   To make a python step work, make sure that the python libraries of DP3 are
   in the python path, e.g. by setting
 
   .. code-block:: sh
 
-      export PYTHONPATH=/path/to/dp3/lib64/python3.6/site-packages:$PYTHONPATH
+      export PYTHONPATH=/path/to/dp3/lib64/python3.10/site-packages:$PYTHONPATH
 
   The example below shows a minimal example of a python step.
 
-  .. include:: ../../steps/test/unit/mock/mockpystep.py
-     :code: python
+  .. literalinclude:: ../mockpystep.py
+     :language: python
 
-  **Note**: :code:`import dp3` does not work from a python interpreter directly, it only works if the python code is run by DP3.
-
-   For a complete list of DP3 functions available in python see the source code of pydp3.cc
+  For a complete list of DP3 functions available in python see the source code of pydp3.cc
 
 inputs:
   type:
