@@ -29,8 +29,6 @@
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
-typedef JonesParameters::CorrectType CorrectType;
-
 using std::vector;
 
 namespace dp3 {
@@ -136,10 +134,13 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
         parset.isDefined(prefix + "correction")
             ? parset.getString(prefix + "correction")
             : parset.getString(defaultPrefix + "correction", "gain"));
-    itsCorrectType = JonesParameters::StringToCorrectType(correctTypeStr);
+    // TODO this shouldn't be dependent on the H5 parm type, but use
+    // more logical names (e.g. "diagonal" instead of "gain").
+    itsCorrectType =
+        JonesParameters::H5ParmTypeStringToGainType(correctTypeStr);
   }
 
-  if (itsCorrectType == CorrectType::FULLJONES && itsUpdateWeights) {
+  if (itsCorrectType == GainType::kFullJones && itsUpdateWeights) {
     if (!itsInvert)
       throw std::runtime_error(
           "Updating weights has not been implemented for invert=false and "
@@ -158,16 +159,17 @@ void OneApplyCal::setCorrectType(std::vector<std::string>& solTabs) {
     itsSolTabName =
         solTabs[0] + ", " +
         solTabs[1];  // this is only so that show() shows these tables
-    itsCorrectType = CorrectType::FULLJONES;
+    itsCorrectType = GainType::kFullJones;
   } else {
     itsSolTab = itsH5Parm.GetSolTab(itsSolTabName);
-    itsCorrectType = JonesParameters::StringToCorrectType(itsSolTab.GetType());
+    itsCorrectType =
+        JonesParameters::H5ParmTypeStringToGainType(itsSolTab.GetType());
   }
-  if (itsCorrectType == CorrectType::PHASE && nPol("") == 1) {
-    itsCorrectType = CorrectType::SCALARPHASE;
+  if (itsCorrectType == GainType::kDiagonalPhase && nPol("") == 1) {
+    itsCorrectType = GainType::kScalarPhase;
   }
-  if (itsCorrectType == CorrectType::AMPLITUDE && nPol("") == 1) {
-    itsCorrectType = CorrectType::SCALARAMPLITUDE;
+  if (itsCorrectType == GainType::kDiagonalAmplitude && nPol("") == 1) {
+    itsCorrectType = GainType::kScalarAmplitude;
   }
 }
 
@@ -190,17 +192,17 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
 
     // Detect if full jones solutions are present
     if (!itsUseH5Parm &&
-        (itsCorrectType == CorrectType::GAIN ||
-         itsCorrectType == CorrectType::FULLJONES) &&
+        (itsCorrectType == GainType::kDiagonalComplex ||
+         itsCorrectType == GainType::kFullJones) &&
         (itsParmDB->getNames("Gain:0:1:*").size() +
              itsParmDB->getDefNames("Gain:0:1:*").size() >
          0)) {
-      itsCorrectType = CorrectType::FULLJONES;
+      itsCorrectType = GainType::kFullJones;
     }
 
     // Detect if solutions are saved as Real/Imag or Ampl/Phase
-    if (itsCorrectType == CorrectType::GAIN ||
-        itsCorrectType == CorrectType::FULLJONES) {
+    if (itsCorrectType == GainType::kDiagonalComplex ||
+        itsCorrectType == GainType::kFullJones) {
       if (itsUseH5Parm) {
         // H5Parm uses amplitude / phase by definition
         itsUseAP = true;
@@ -226,7 +228,7 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
       }
     }
 
-    if (itsCorrectType == CorrectType::GAIN) {
+    if (itsCorrectType == GainType::kDiagonalComplex) {
       if (itsUseAP) {
         itsParmExprs.push_back("Gain:0:0:Ampl");
         itsParmExprs.push_back("Gain:0:0:Phase");
@@ -238,7 +240,7 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
         itsParmExprs.push_back("Gain:1:1:Real");
         itsParmExprs.push_back("Gain:1:1:Imag");
       }
-    } else if (itsCorrectType == CorrectType::FULLJONES) {
+    } else if (itsCorrectType == GainType::kFullJones) {
       if (itsUseAP) {
         itsParmExprs.push_back("Gain:0:0:Ampl");
         itsParmExprs.push_back("Gain:0:0:Phase");
@@ -258,34 +260,34 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
         itsParmExprs.push_back("Gain:1:1:Real");
         itsParmExprs.push_back("Gain:1:1:Imag");
       }
-    } else if (itsCorrectType == CorrectType::TEC) {
+    } else if (itsCorrectType == GainType::kTec) {
       if (nPol("TEC") == 1) {
         itsParmExprs.push_back("TEC");
       } else {
         itsParmExprs.push_back("TEC:0");
         itsParmExprs.push_back("TEC:1");
       }
-    } else if (itsCorrectType == CorrectType::CLOCK) {
+    } else if (itsCorrectType == GainType::kClock) {
       if (nPol("Clock") == 1) {
         itsParmExprs.push_back("Clock");
       } else {
         itsParmExprs.push_back("Clock:0");
         itsParmExprs.push_back("Clock:1");
       }
-    } else if (itsCorrectType == CorrectType::ROTATIONANGLE) {
+    } else if (itsCorrectType == GainType::kRotationAngle) {
       itsParmExprs.push_back("{Common,}RotationAngle");
-    } else if (itsCorrectType == CorrectType::SCALARPHASE) {
+    } else if (itsCorrectType == GainType::kScalarPhase) {
       itsParmExprs.push_back("{Common,}ScalarPhase");
-    } else if (itsCorrectType == CorrectType::ROTATIONMEASURE) {
+    } else if (itsCorrectType == GainType::kRotationMeasure) {
       itsParmExprs.push_back("RotationMeasure");
-    } else if (itsCorrectType == CorrectType::SCALARAMPLITUDE) {
+    } else if (itsCorrectType == GainType::kScalarAmplitude) {
       itsParmExprs.push_back("{Common,}ScalarAmplitude");
-    } else if (itsCorrectType == CorrectType::PHASE) {
+    } else if (itsCorrectType == GainType::kDiagonalPhase) {
       if (!itsUseH5Parm)
         throw std::runtime_error("A H5Parm is required for phase correction");
       itsParmExprs.push_back("Phase:0");
       itsParmExprs.push_back("Phase:1");
-    } else if (itsCorrectType == CorrectType::AMPLITUDE) {
+    } else if (itsCorrectType == GainType::kDiagonalAmplitude) {
       if (!itsUseH5Parm)
         throw std::runtime_error(
             "A H5Parm is required for amplitude correction");
@@ -294,7 +296,8 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
     } else {
       throw std::runtime_error(
           "Correction type " +
-          JonesParameters::CorrectTypeToString(itsCorrectType) + " is unknown");
+          JonesParameters::GainTypeToHumanReadableString(itsCorrectType) +
+          " is unknown");
     }
   }
 
@@ -330,9 +333,9 @@ void OneApplyCal::show(std::ostream& os) const {
        << "\n";
   }
   os << "  Correction:       "
-     << JonesParameters::CorrectTypeToString(itsCorrectType) << '\n';
-  if (itsCorrectType == CorrectType::GAIN ||
-      itsCorrectType == CorrectType::FULLJONES) {
+     << JonesParameters::GainTypeToHumanReadableString(itsCorrectType) << '\n';
+  if (itsCorrectType == GainType::kDiagonalComplex ||
+      itsCorrectType == GainType::kFullJones) {
     os << "    Ampl/Phase:   " << std::boolalpha << itsUseAP << '\n';
   }
   os << "  Update weights:   " << std::boolalpha << itsUpdateWeights << '\n';
@@ -368,11 +371,11 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
        * Read solutions from buffer instead.
        */
       // Make parameters complex
-      JonesParameters::CorrectType ct = itsCorrectType;
-      if (itsCorrectType == CorrectType::GAIN && !itsUseAP) {
-        ct = CorrectType::GAIN_RE_IM;
-      } else if (itsCorrectType == CorrectType::FULLJONES && !itsUseAP) {
-        ct = CorrectType::FULLJONES_RE_IM;
+      GainType gain_type = itsCorrectType;
+      if (itsCorrectType == GainType::kDiagonalComplex && !itsUseAP) {
+        gain_type = GainType::kDiagonalRealImaginary;
+      } else if (itsCorrectType == GainType::kFullJones && !itsUseAP) {
+        gain_type = GainType::kFullJonesRealImaginary;
       }
 
       vector<double> times(info().ntime());
@@ -393,7 +396,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
       }
 
       itsJonesParameters = std::make_unique<JonesParameters>(
-          info().chanFreqs(), times, info().antennaNames(), ct,
+          info().chanFreqs(), times, info().antennaNames(), gain_type,
           buffer->GetSolution(), itsInvert, itsSigmaMMSE);
     }
     itsTimeStep = 0;
@@ -594,11 +597,11 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     throw std::runtime_error("Parameter was found multiple times in ParmDB");
 
   // Make parameters complex
-  JonesParameters::CorrectType ct = itsCorrectType;
-  if (itsCorrectType == CorrectType::GAIN && !itsUseAP) {
-    ct = CorrectType::GAIN_RE_IM;
-  } else if (itsCorrectType == CorrectType::FULLJONES && !itsUseAP) {
-    ct = CorrectType::FULLJONES_RE_IM;
+  GainType gain_type = itsCorrectType;
+  if (itsCorrectType == GainType::kDiagonalComplex && !itsUseAP) {
+    gain_type = GainType::kDiagonalRealImaginary;
+  } else if (itsCorrectType == GainType::kFullJones && !itsUseAP) {
+    gain_type = GainType::kFullJonesRealImaginary;
   }
 
   std::vector<std::string> ant_names;
@@ -607,7 +610,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
   }
 
   itsJonesParameters = std::make_unique<JonesParameters>(
-      info().chanFreqs(), times, ant_names, ct, itsInterpolationType,
+      info().chanFreqs(), times, ant_names, gain_type, itsInterpolationType,
       itsDirection, std::move(parmvalues), itsInvert, itsSigmaMMSE);
 }
 

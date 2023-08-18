@@ -90,7 +90,7 @@ IDGPredict::IDGPredict(
   for (const Facet& facet : facets) {
     std::cout << "Facet: Ra,Dec: " << facet.RA() << "," << facet.Dec()
               << " Vertices:";
-    for (const schaapcommon::facets::Pixel& pixel : facet.GetPixels()) {
+    for (const schaapcommon::facets::PixelPosition& pixel : facet.GetPixels()) {
       std::cout << " (" << pixel.x << "," << pixel.y << ")";
     }
     std::cout << '\n';
