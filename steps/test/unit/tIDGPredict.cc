@@ -155,7 +155,8 @@ BOOST_AUTO_TEST_CASE(getfacets, *boost::unit_test::tolerance(1e-6)) {
   BOOST_TEST(facets[0].RA() == 0.3877368);
   BOOST_TEST(facets[0].Dec() == 0.5417391);
 
-  const std::vector<schaapcommon::facets::Pixel>& p0 = facets[0].GetPixels();
+  const std::vector<schaapcommon::facets::PixelPosition>& p0 =
+      facets[0].GetPixels();
   BOOST_TEST_REQUIRE(p0.size() == 4u);
   BOOST_TEST(p0[0].x == 378);
   BOOST_TEST(p0[0].y == 0);
@@ -166,7 +167,8 @@ BOOST_AUTO_TEST_CASE(getfacets, *boost::unit_test::tolerance(1e-6)) {
   BOOST_TEST(p0[3].x == 512);
   BOOST_TEST(p0[3].y == 0);
 
-  const std::vector<schaapcommon::facets::Pixel>& p1 = facets[1].GetPixels();
+  const std::vector<schaapcommon::facets::PixelPosition>& p1 =
+      facets[1].GetPixels();
   BOOST_TEST_REQUIRE(p1.size() == 4u);
   BOOST_TEST(p1[0].x == 512);
   BOOST_TEST(p1[0].y == 304);

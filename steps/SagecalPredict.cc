@@ -46,7 +46,6 @@ using dp3::common::operator<<;
 
 using schaapcommon::h5parm::H5Parm;
 using schaapcommon::h5parm::SolTab;
-typedef JonesParameters::CorrectType CorrectType;
 
 namespace dp3 {
 namespace steps {
@@ -177,26 +176,28 @@ void SagecalPredict::setCorrectType(std::vector<std::string>& solTabs) {
     sol_tab_ = h5_parm_.GetSolTab(solTabs[0]);
     sol_tab2_ = h5_parm_.GetSolTab(solTabs[1]);
     soltab_name_ = solTabs[0] + "," + solTabs[1];
-    corr_type_ = CorrectType::FULLJONES;
+    gain_type_ = GainType::kFullJones;
   } else if (soltab_name_ == "gain") {
     sol_tab_ = h5_parm_.GetSolTab(solTabs[0]);
     if (solTabs.size() == 2) {
       sol_tab2_ = h5_parm_.GetSolTab(solTabs[1]);
       soltab_name_ = solTabs[0] + "," + solTabs[1];
-      corr_type_ = CorrectType::GAIN;
+      gain_type_ = GainType::kDiagonalComplex;
     } else {
       soltab_name_ = solTabs[0];
-      corr_type_ = JonesParameters::StringToCorrectType(sol_tab_.GetType());
+      gain_type_ =
+          JonesParameters::H5ParmTypeStringToGainType(sol_tab_.GetType());
     }
   } else {
     sol_tab_ = h5_parm_.GetSolTab(soltab_name_);
-    corr_type_ = JonesParameters::StringToCorrectType(sol_tab_.GetType());
+    gain_type_ =
+        JonesParameters::H5ParmTypeStringToGainType(sol_tab_.GetType());
   }
-  if (corr_type_ == CorrectType::PHASE && nPol("") == 1) {
-    corr_type_ = CorrectType::SCALARPHASE;
+  if (gain_type_ == GainType::kDiagonalPhase && nPol("") == 1) {
+    gain_type_ = GainType::kScalarPhase;
   }
-  if (corr_type_ == CorrectType::AMPLITUDE && nPol("") == 1) {
-    corr_type_ = CorrectType::SCALARAMPLITUDE;
+  if (gain_type_ == GainType::kDiagonalAmplitude && nPol("") == 1) {
+    gain_type_ = GainType::kScalarAmplitude;
   }
 }
 
@@ -397,7 +398,7 @@ void SagecalPredict::updateFromH5(const double startTime) {
     hsize_t direction_index = sol_tab_.GetDirIndex(dir);
     std::unique_ptr<JonesParameters> Jones_params_ =
         std::make_unique<JonesParameters>(
-            info().chanFreqs(), times, info().antennaNames(), corr_type_,
+            info().chanFreqs(), times, info().antennaNames(), gain_type_,
             interp_type_, direction_index, &sol_tab_, &sol_tab2_, invert_,
             sigma_mmse_, parm_expressions_.size(), missing_ant_behavior_);
 
@@ -859,11 +860,11 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
     time_interval_ = _info.timeInterval();
     // Read in solutions for all timeslots
     timeslots_per_parmupdate_ = info().ntime();
-    if (corr_type_ == CorrectType::GAIN ||
-        corr_type_ == CorrectType::FULLJONES) {
+    if (gain_type_ == GainType::kDiagonalComplex ||
+        gain_type_ == GainType::kFullJones) {
       use_amp_phase_ = true;
     }
-    if (corr_type_ == CorrectType::GAIN) {
+    if (gain_type_ == GainType::kDiagonalComplex) {
       if (use_amp_phase_) {
         parm_expressions_.push_back("Gain:0:0:Ampl");
         parm_expressions_.push_back("Gain:0:0:Phase");
@@ -875,7 +876,7 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
         parm_expressions_.push_back("Gain:1:1:Real");
         parm_expressions_.push_back("Gain:1:1:Imag");
       }
-    } else if (corr_type_ == CorrectType::FULLJONES) {
+    } else if (gain_type_ == GainType::kFullJones) {
       if (use_amp_phase_) {
         parm_expressions_.push_back("Gain:0:0:Ampl");
         parm_expressions_.push_back("Gain:0:0:Phase");
@@ -895,38 +896,39 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
         parm_expressions_.push_back("Gain:1:1:Real");
         parm_expressions_.push_back("Gain:1:1:Imag");
       }
-    } else if (corr_type_ == CorrectType::TEC) {
+    } else if (gain_type_ == GainType::kTec) {
       if (nPol("TEC") == 1) {
         parm_expressions_.push_back("TEC");
       } else {
         parm_expressions_.push_back("TEC:0");
         parm_expressions_.push_back("TEC:1");
       }
-    } else if (corr_type_ == CorrectType::CLOCK) {
+    } else if (gain_type_ == GainType::kClock) {
       if (nPol("Clock") == 1) {
         parm_expressions_.push_back("Clock");
       } else {
         parm_expressions_.push_back("Clock:0");
         parm_expressions_.push_back("Clock:1");
       }
-    } else if (corr_type_ == CorrectType::ROTATIONANGLE) {
+    } else if (gain_type_ == GainType::kRotationAngle) {
       parm_expressions_.push_back("{Common,}RotationAngle");
-    } else if (corr_type_ == CorrectType::SCALARPHASE) {
+    } else if (gain_type_ == GainType::kScalarPhase) {
       parm_expressions_.push_back("{Common,}ScalarPhase");
-    } else if (corr_type_ == CorrectType::ROTATIONMEASURE) {
+    } else if (gain_type_ == GainType::kRotationMeasure) {
       parm_expressions_.push_back("RotationMeasure");
-    } else if (corr_type_ == CorrectType::SCALARAMPLITUDE) {
+    } else if (gain_type_ == GainType::kScalarAmplitude) {
       parm_expressions_.push_back("{Common,}ScalarAmplitude");
-    } else if (corr_type_ == CorrectType::PHASE) {
+    } else if (gain_type_ == GainType::kDiagonalPhase) {
       parm_expressions_.push_back("Phase:0");
       parm_expressions_.push_back("Phase:1");
-    } else if (corr_type_ == CorrectType::AMPLITUDE) {
+    } else if (gain_type_ == GainType::kDiagonalAmplitude) {
       parm_expressions_.push_back("Amplitude:0");
       parm_expressions_.push_back("Amplitude:1");
     } else {
       throw std::runtime_error(
           "Correction type " +
-          JonesParameters::CorrectTypeToString(corr_type_) + " unknown");
+          JonesParameters::GainTypeToHumanReadableString(gain_type_) +
+          " unknown");
     }
   }
 }

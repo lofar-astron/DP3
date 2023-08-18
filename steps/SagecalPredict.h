@@ -170,7 +170,7 @@ class SagecalPredict : public ModelDataStep {
   bool parm_on_disk_{false};
   bool use_amp_phase_{false};
   double sigma_mmse_;
-  JonesParameters::CorrectType corr_type_;
+  GainType gain_type_;
   JonesParameters::InterpolationType interp_type_;
   JonesParameters::MissingAntennaBehavior missing_ant_behavior_;
   schaapcommon::h5parm::SolTab sol_tab_;

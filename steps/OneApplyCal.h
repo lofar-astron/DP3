@@ -24,6 +24,7 @@
 #include "../parmdb/ParmSet.h"
 #include "../parmdb/Parm.h"
 
+using schaapcommon::h5parm::GainType;
 using schaapcommon::h5parm::JonesParameters;
 
 namespace dp3 {
@@ -108,7 +109,7 @@ class OneApplyCal : public Step {
   schaapcommon::h5parm::SolTab itsSolTab;
   schaapcommon::h5parm::SolTab itsSolTab2;  ///< in the case of full Jones, amp
                                             ///< and phase table need to be open
-  JonesParameters::CorrectType itsCorrectType;
+  GainType itsCorrectType;
   bool itsInvert;
   JonesParameters::InterpolationType itsInterpolationType;
   unsigned int itsTimeSlotsPerParmUpdate;
