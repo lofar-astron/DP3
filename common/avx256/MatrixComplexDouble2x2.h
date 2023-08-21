@@ -183,6 +183,11 @@ class MatrixComplexDouble2x2 {
   }
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] static MatrixComplexDouble2x2
+  Zero() noexcept {
+    return {};
+  }
+
+  [[nodiscard]] [[gnu::target("avx2,fma")]] static MatrixComplexDouble2x2
   Unity() noexcept {
     return MatrixComplexDouble2x2{
         std::complex<double>(1.0, 0.0), std::complex<double>(0.0, 0.0),
