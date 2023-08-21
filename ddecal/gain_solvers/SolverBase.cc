@@ -4,13 +4,14 @@
 #include "SolverBase.h"
 
 #include <aocommon/parallelfor.h>
-#include <aocommon/matrix2x2.h>
 
 #include <algorithm>
 #include <iostream>
 #include <numeric>
 
 #include <xtensor/xview.hpp>
+
+#include "common/MatrixComplexDouble2x2.h"
 
 using aocommon::ParallelFor;
 
@@ -194,10 +195,11 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
         }
       } else {
         assert(n_solution_pols == 4);
-        const aocommon::MC2x2 s(&solutions[chBlock][i]);
-        aocommon::MC2x2 sInv(s);
+        const aocommon::MatrixComplexDouble2x2 s(&solutions[chBlock][i]);
+        aocommon::MatrixComplexDouble2x2 sInv(s);
         if (sInv.Invert()) {
-          aocommon::MC2x2 ns(&new_solutions_view(chBlock, i / 4, 0));
+          aocommon::MatrixComplexDouble2x2 ns(
+              &new_solutions_view(chBlock, i / 4, 0));
           ns -= s;
           ns *= sInv;
           const double sumabs = std::abs(ns[0]) + std::abs(ns[1]) +
