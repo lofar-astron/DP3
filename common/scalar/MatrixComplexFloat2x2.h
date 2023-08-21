@@ -7,7 +7,7 @@
 #include <aocommon/matrix2x2.h>
 
 namespace aocommon::Scalar {
-using MatrixComplexFloat2x2 = MC2x2;
+using MatrixComplexFloat2x2 = MC2x2F;
 }  // namespace aocommon::Scalar
 
 #endif  // AOCOMMON_COMMON_SCALAR_MATRIX_COMPLEX_FLOAT_2X2_H
