@@ -301,6 +301,12 @@ class MatrixComplexFloat2x2 {
     });
   }
 
+  void AssignTo(std::complex<double>* destination) const noexcept {
+    ExecuteCall([](auto object) -> MatrixComplexFloat2x2 {
+      object.AssignTo(destination)();
+    });
+  }
+
   [[nodiscard]] DiagnoalMatrixComplexFloat2x2 Diagonal() const noexcept {
     switch (GetDispatch()) {
       case Dispatch::Scalar:

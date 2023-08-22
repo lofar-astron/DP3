@@ -72,6 +72,14 @@ class VectorFloat8 {
     _mm256_storeu_ps(destination, data_);
   }
 
+  [[gnu::target("avx2,fma")]] void AssignTo(
+      double* destination) const noexcept {
+    _mm256_storeu_pd(destination,
+                     _mm256_cvtps_pd(_mm256_castps256_ps128(data_)));
+    _mm256_storeu_pd(destination + 4,
+                     _mm256_cvtps_pd(_mm256_extractf128_ps(data_, 1)));
+  }
+
   [[gnu::target("avx2,fma")]] VectorFloat8& operator+=(
       VectorFloat8 value) noexcept {
     data_ += value.data_;

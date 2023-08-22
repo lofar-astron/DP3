@@ -83,6 +83,11 @@ class VectorComplexFloat4 {
     data_.AssignTo(reinterpret_cast<float*>(destination));
   }
 
+  [[gnu::target("avx2,fma")]] void AssignTo(
+      std::complex<double>* destination) const noexcept {
+    data_.AssignTo(reinterpret_cast<double*>(destination));
+  }
+
   [[gnu::target("avx2,fma")]] VectorComplexFloat4& operator+=(
       VectorComplexFloat4 value) noexcept {
     data_ += value.data_;

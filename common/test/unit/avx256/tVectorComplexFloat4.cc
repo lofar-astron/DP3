@@ -170,10 +170,11 @@ BOOST_AUTO_TEST_CASE(conjugate) {
                         {-1.0, 2.0}, {-10, 11}, {-100, 101}, {-1000, 1001}}));
 }
 
-BOOST_AUTO_TEST_CASE(assign_to) {
-  static_assert(noexcept(aocommon::Avx256::VectorComplexFloat4{
-      static_cast<const std::complex<float>*>(nullptr)}
-                             .AssignTo(nullptr)));
+BOOST_AUTO_TEST_CASE(assign_to_float) {
+  static_assert(
+      noexcept(aocommon::Avx256::VectorComplexFloat4{
+          static_cast<const std::complex<float>*>(nullptr)}
+                   .AssignTo(static_cast<std::complex<float>*>(nullptr))));
 
   const aocommon::Avx256::VectorComplexFloat4 input{
       std::complex<float>{-1.0, 1.0}, std::complex<float>{3.75, -3.75},
@@ -188,6 +189,27 @@ BOOST_AUTO_TEST_CASE(assign_to) {
   BOOST_TEST(result[3] == (std::complex<float>{99.0, -99.0}));
   BOOST_TEST(result[4] == (std::complex<float>{1.5, -1.5}));
   BOOST_TEST(result[5] == (std::complex<float>{0.0, 0.0}));
+}
+
+BOOST_AUTO_TEST_CASE(assign_to_double) {
+  static_assert(
+      noexcept(aocommon::Avx256::VectorComplexFloat4{
+          static_cast<const std::complex<float>*>(nullptr)}
+                   .AssignTo(static_cast<std::complex<double>*>(nullptr))));
+
+  const aocommon::Avx256::VectorComplexFloat4 input{
+      std::complex<float>{-1.0, 1.0}, std::complex<float>{3.75, -3.75},
+      std::complex<float>{99.0, -99.0}, std::complex<float>{1.5, -1.5}};
+
+  std::vector<std::complex<double>> result(6);
+  input.AssignTo(std::addressof(result[1]));
+
+  BOOST_TEST(result[0] == (std::complex<double>{0.0, 0.0}));
+  BOOST_TEST(result[1] == (std::complex<double>{-1.0, 1.0}));
+  BOOST_TEST(result[2] == (std::complex<double>{3.75, -3.75}));
+  BOOST_TEST(result[3] == (std::complex<double>{99.0, -99.0}));
+  BOOST_TEST(result[4] == (std::complex<double>{1.5, -1.5}));
+  BOOST_TEST(result[5] == (std::complex<double>{0.0, 0.0}));
 }
 
 BOOST_AUTO_TEST_CASE(operator_plus_equal) {
