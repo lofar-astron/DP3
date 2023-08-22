@@ -314,6 +314,12 @@ class MatrixComplexDouble2x2 {
                                                lhs.Data()[1] * rhs.data_[1]};
   }
 
+  [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2& operator*=(
+      MatrixComplexDouble2x2 value) noexcept {
+    *this = *this * value;
+    return *this;
+  }
+
   [[nodiscard]] [[gnu::target("avx2,fma")]] friend bool operator==(
       MatrixComplexDouble2x2 lhs, MatrixComplexDouble2x2 rhs) noexcept {
     return lhs.data_ == rhs.data_;

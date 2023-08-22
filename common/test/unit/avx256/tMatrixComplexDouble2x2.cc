@@ -455,6 +455,68 @@ BOOST_AUTO_TEST_CASE(multiply) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(operator_multiply_equal) {
+  {
+    aocommon::Avx256::MatrixComplexDouble2x2 value{
+        {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+    const aocommon::Avx256::MatrixComplexDouble2x2 rhs{
+        {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+    static_assert(noexcept(value *= rhs));
+    value *= rhs;
+
+    BOOST_CHECK_CLOSE(value[0].real(), -456, 1e-6);
+    BOOST_CHECK_CLOSE(value[0].imag(), 8456, 1e-6);
+    BOOST_CHECK_CLOSE(value[1].real(), -4092, 1e-6);
+    BOOST_CHECK_CLOSE(value[1].imag(), 84164, 1e-6);
+    BOOST_CHECK_CLOSE(value[2].real(), -4812, 1e-6);
+    BOOST_CHECK_CLOSE(value[2].imag(), 805604, 1e-6);
+    BOOST_CHECK_CLOSE(value[3].real(), -8448, 1e-6);
+    BOOST_CHECK_CLOSE(value[3].imag(), 8016440, 1e-6);
+  }
+
+  // Emulate Matrix * Diagonal Matrix
+  {
+    aocommon::Avx256::MatrixComplexDouble2x2 value{
+        {1.0, 2.0}, {10, 11}, {100, 101}, {1000, 1001}};
+
+    const aocommon::Avx256::MatrixComplexDouble2x2 rhs{
+        {4, 8}, {0, 0}, {0, 0}, {4000, 4004}};
+
+    value *= rhs;
+
+    BOOST_CHECK_CLOSE(value[0].real(), -12, 1e-6);
+    BOOST_CHECK_CLOSE(value[0].imag(), 16, 1e-6);
+    BOOST_CHECK_CLOSE(value[1].real(), -4044, 1e-6);
+    BOOST_CHECK_CLOSE(value[1].imag(), 84040, 1e-6);
+    BOOST_CHECK_CLOSE(value[2].real(), -408, 1e-6);
+    BOOST_CHECK_CLOSE(value[2].imag(), 1204, 1e-6);
+    BOOST_CHECK_CLOSE(value[3].real(), -8004, 1e-6);
+    BOOST_CHECK_CLOSE(value[3].imag(), 8008000, 1e-6);
+  }
+
+  // Emulate Diagonal Matrix * Matrix
+  {
+    aocommon::Avx256::MatrixComplexDouble2x2 value{
+        {1.0, 2.0}, {0, 0}, {0, 0}, {1000, 1001}};
+
+    const aocommon::Avx256::MatrixComplexDouble2x2 rhs{
+        {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
+
+    value *= rhs;
+
+    BOOST_CHECK_CLOSE(value[0].real(), -12, 1e-6);
+    BOOST_CHECK_CLOSE(value[0].imag(), 16, 1e-6);
+    BOOST_CHECK_CLOSE(value[1].real(), -48, 1e-6);
+    BOOST_CHECK_CLOSE(value[1].imag(), 124, 1e-6);
+    BOOST_CHECK_CLOSE(value[2].real(), -4404, 1e-6);
+    BOOST_CHECK_CLOSE(value[2].imag(), 804400, 1e-6);
+    BOOST_CHECK_CLOSE(value[3].real(), -8004, 1e-6);
+    BOOST_CHECK_CLOSE(value[3].imag(), 8008000, 1e-6);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(multiply_matrix_and_value) {
   const aocommon::Avx256::MatrixComplexDouble2x2 lhs{
       {4, 8}, {40, 44}, {400, 404}, {4000, 4004}};
