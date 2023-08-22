@@ -149,6 +149,11 @@ class MatrixComplexFloat2x2 {
     data_.AssignTo(destination);
   }
 
+  [[gnu::target("avx2,fma")]] void AssignTo(
+      std::complex<double>* destination) const noexcept {
+    data_.AssignTo(destination);
+  }
+
   [[nodiscard]] [[gnu::target("avx2,fma")]] static MatrixComplexFloat2x2
   Unity() noexcept {
     return MatrixComplexFloat2x2{
