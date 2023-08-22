@@ -344,6 +344,10 @@ class MatrixComplexDouble2x2 {
     return HermitianTranspose();
   }
 
+  const std::array<VectorComplexDouble2, 2>& Data() const noexcept {
+    return data_;
+  }
+
  private:
   std::array<VectorComplexDouble2, 2> data_;
 };
@@ -375,6 +379,15 @@ HermTranspose(MatrixComplexDouble2x2 matrix) noexcept {
 [[nodiscard]] [[gnu::target("avx2,fma")]] inline DiagonalMatrixComplexDouble2x2
 Diagonal(MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Diagonal();
+}
+
+[[nodiscard]] [[gnu::target("avx2,fma")]] inline MatrixComplexFloat2x2::
+    MatrixComplexFloat2x2(const MatrixComplexDouble2x2& matrix) noexcept {
+  __m256 lo = _mm256_castps128_ps256(
+      _mm256_cvtpd_ps(static_cast<__m256d>(matrix.Data()[0])));
+  __m128 hi = _mm256_cvtpd_ps(static_cast<__m256d>(matrix.Data()[1]));
+
+  *this = VectorComplexFloat4{_mm256_insertf128_ps(lo, hi, 1)};
 }
 
 }  // namespace aocommon::Avx256

@@ -31,6 +31,8 @@
 
 namespace aocommon::Avx256 {
 
+class MatrixComplexDouble2x2;
+
 class MatrixComplexFloat2x2 {
  public:
   [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2() noexcept =
@@ -57,6 +59,12 @@ class MatrixComplexFloat2x2 {
   [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const aocommon::MC2x2F& matrix) noexcept
       : data_(matrix.Data()) {}
+
+  // Supplied as a const ref argument implemented in
+  // common/avx256/MatrixComplexDouble2x2.h. This avoids circular dependencies
+  // in the headers.
+  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+      const MatrixComplexDouble2x2& matrix) noexcept;
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<float> operator[](
       size_t index) const noexcept {

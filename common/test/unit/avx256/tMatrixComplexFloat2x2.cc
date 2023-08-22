@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "common/avx256/MatrixComplexFloat2x2.h"
+#include "common/avx256/MatrixComplexDouble2x2.h"
 
 #include <type_traits>
 
@@ -101,6 +102,20 @@ BOOST_AUTO_TEST_CASE(constructor_MC2x2F) {
       std::is_nothrow_constructible_v<aocommon::Avx256::MatrixComplexFloat2x2,
                                       const aocommon::MC2x2F&>);
   const aocommon::MC2x2F input{
+      {-1.0, 1.0}, {3.75, -3.75}, {99.0, -99.0}, {1.5, -1.5}};
+  const aocommon::Avx256::MatrixComplexFloat2x2 result{input};
+
+  BOOST_TEST(result[0] == (std::complex<float>{-1.0, 1.0}));
+  BOOST_TEST(result[1] == (std::complex<float>{3.75, -3.75}));
+  BOOST_TEST(result[2] == (std::complex<float>{99.0, -99.0}));
+  BOOST_TEST(result[3] == (std::complex<float>{1.5, -1.5}));
+}
+
+BOOST_AUTO_TEST_CASE(constructor_MatrixComplexDouble2x2) {
+  static_assert(std::is_nothrow_constructible_v<
+                aocommon::Avx256::MatrixComplexFloat2x2,
+                const aocommon::Avx256::MatrixComplexDouble2x2&>);
+  const aocommon::Avx256::MatrixComplexDouble2x2 input{
       {-1.0, 1.0}, {3.75, -3.75}, {99.0, -99.0}, {1.5, -1.5}};
   const aocommon::Avx256::MatrixComplexFloat2x2 result{input};
 
