@@ -296,6 +296,14 @@ BOOST_AUTO_TEST_CASE(assign_to) {
   BOOST_TEST(result[5] == (std::complex<double>{0.0, 0.0}));
 }
 
+BOOST_AUTO_TEST_CASE(Zero) {
+  static_assert(noexcept(aocommon::Avx256::MatrixComplexDouble2x2::Zero()));
+
+  BOOST_CHECK_EQUAL(
+      aocommon::Avx256::MatrixComplexDouble2x2{aocommon::MC2x2::Zero()},
+      aocommon::Avx256::MatrixComplexDouble2x2::Zero());
+}
+
 BOOST_AUTO_TEST_CASE(Unity) {
   static_assert(noexcept(aocommon::Avx256::MatrixComplexDouble2x2::Unity()));
 
