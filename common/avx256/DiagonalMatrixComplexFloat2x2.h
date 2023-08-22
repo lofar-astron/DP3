@@ -76,6 +76,11 @@ class DiagonalMatrixComplexFloat2x2 {
     return Conjugate();
   }
 
+  [[nodiscard]] [[gnu::target("avx2,fma")]] static DiagonalMatrixComplexFloat2x2
+  Zero() noexcept {
+    return {};
+  }
+
   [[gnu::target("avx2,fma")]] DiagonalMatrixComplexFloat2x2 operator+=(
       DiagonalMatrixComplexFloat2x2 value) noexcept {
     return data_ += value.data_;

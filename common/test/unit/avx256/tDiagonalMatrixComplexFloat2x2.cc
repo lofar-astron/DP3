@@ -176,6 +176,17 @@ BOOST_AUTO_TEST_CASE(hermitian_transpose) {
                                                        {-10, 11}}));
 }
 
+BOOST_AUTO_TEST_CASE(Zero) {
+  static_assert(
+      noexcept(aocommon::Avx256::DiagonalMatrixComplexFloat2x2::Zero()));
+
+  const aocommon::Avx256::DiagonalMatrixComplexFloat2x2 result =
+      aocommon::Avx256::DiagonalMatrixComplexFloat2x2::Zero();
+
+  BOOST_TEST(result[0] == (std::complex<float>{0.0, 0.0}));
+  BOOST_TEST(result[1] == (std::complex<float>{0.0, 0.0}));
+}
+
 BOOST_AUTO_TEST_CASE(operator_plus_equal) {
   aocommon::Avx256::DiagonalMatrixComplexFloat2x2 r{{1.0, 2.0}, {10, 11}};
 
