@@ -98,6 +98,33 @@ class MatrixComplexDouble2x2 {
     return Transpose().Conjugate();
   }
 
+  [[nodiscard]] [[gnu::target("avx2,fma")]] bool Invert() noexcept {
+    VectorComplexDouble2 v =
+        data_[0] * VectorComplexDouble2{(*this)[3], (*this)[2]};
+
+    std::complex<double> d = v[0] - v[1];
+    if (d == std::complex<double>{}) return false;
+
+    double n = std::norm(d);
+    d.imag(-d.imag());
+    __m256d reciprocal = _mm256_setr_pd(d.real(), d.imag(), d.real(), d.imag());
+
+    v = VectorComplexDouble2{_mm256_div_pd(reciprocal, _mm256_set1_pd(n))};
+
+    __m256d lo =
+        _mm256_permute2f128_pd(static_cast<__m256d>(data_[0]),
+                               static_cast<__m256d>(data_[1]), 0b0001'0011);
+    __m256d hi =
+        _mm256_permute2f128_pd(static_cast<__m256d>(data_[0]),
+                               static_cast<__m256d>(data_[1]), 0b0000'0010);
+    // XOR with +0.0 leaves the number unchanged.
+    // XOR with -0.0 changes the sign of the value.
+    lo = _mm256_xor_pd(lo, _mm256_setr_pd(0.0, 0.0, -0.0, -0.0));
+    hi = _mm256_xor_pd(hi, _mm256_setr_pd(-0.0, -0.0, 0.0, 0.0));
+    data_ = {VectorComplexDouble2{lo} * v, VectorComplexDouble2{hi} * v};
+    return true;
+  }
+
   /// @returns the Frobenius norm of the matrix.
   [[nodiscard]] [[gnu::target("avx2,fma")]] double Norm() const noexcept {
     // Norm Matrix Complex 2x2
