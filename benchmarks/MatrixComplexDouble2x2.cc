@@ -108,6 +108,19 @@ static void DiagonalMultiplyMatrix(ankerl::nanobench::Bench& bench,
   });
 }
 
+template <class Matrix>
+static void Invert(ankerl::nanobench::Bench& bench, const char* name) {
+  Matrix a{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+  Matrix r{{1, 2}, {10, 11}, {100, 101}, {1000, 1001}};
+
+  [[maybe_unused]] bool b = true;
+  bench.run(name, [&] {
+    b = a.Invert();
+    ankerl::nanobench::doNotOptimizeAway(a);
+    a = r;
+  });
+}
+
 static void Generate(const std::string& extension, char const* output_template,
                      const ankerl::nanobench::Bench& bench) {
   std::ofstream output("MatrixComplextFloat2x2.render." + extension);
@@ -149,6 +162,9 @@ int main() {
       bench, "AVX DiagonalMultiplyMatrix");
   DiagonalMultiplyMatrix<aocommon::MatrixComplexDouble2x2>(
       bench, "FMV DiagonalMultiplyMatrix");
+  Invert<aocommon::MC2x2>(bench, "    Invert");
+  Invert<aocommon::Avx256::MatrixComplexDouble2x2>(bench, "AVX Invert");
+  Invert<aocommon::MatrixComplexDouble2x2>(bench, "FMV Invert");
 
   Generate("html", ankerl::nanobench::templates::htmlBoxplot(), bench);
   Generate("json", ankerl::nanobench::templates::json(), bench);

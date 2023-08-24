@@ -258,9 +258,9 @@ class MatrixComplexFloat2x2 {
 
     float n = std::norm(d);
     d.imag(-d.imag());
-    __m256 reprocical = _mm256_setr_ps(d.real(), d.imag(), d.real(), d.imag(),
+    __m256 reciprocal = _mm256_setr_ps(d.real(), d.imag(), d.real(), d.imag(),
                                        d.real(), d.imag(), d.real(), d.imag());
-    reprocical = _mm256_div_ps(reprocical, _mm256_set1_ps(n));
+    reciprocal = _mm256_div_ps(reciprocal, _mm256_set1_ps(n));
 
     // std::swap(data[0],data[3]);
     // Using the fact that extracting as a double, the value has the number of
@@ -276,7 +276,7 @@ class MatrixComplexFloat2x2 {
     __m256 mask = _mm256_setr_ps(0.0, 0.0, -0.0, -0.0, -0.0, -0.0, 0.0, 0.0);
     result = _mm256_xor_ps(result, mask);
 
-    data_ = VectorComplexFloat4{result} * VectorComplexFloat4{reprocical};
+    data_ = VectorComplexFloat4{result} * VectorComplexFloat4{reciprocal};
 
     return true;
   }

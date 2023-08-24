@@ -267,6 +267,11 @@ class MatrixComplexDouble2x2 {
     });
   }
 
+  [[nodiscard]] bool Invert() const {
+    return ExecuteCall(
+        [](auto object) -> MatrixComplexDouble2x2 { return object.Invert(); });
+  }
+
   [[nodiscard]] double Norm() const noexcept {
     return ExecuteCall([](const auto& object) {
       if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<

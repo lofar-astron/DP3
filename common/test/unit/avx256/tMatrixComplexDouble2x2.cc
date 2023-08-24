@@ -189,6 +189,38 @@ BOOST_AUTO_TEST_CASE(hermitian_transpose) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(invert) {
+  static_assert(noexcept(aocommon::Avx256::MatrixComplexDouble2x2{
+      static_cast<const std::complex<double>*>(nullptr)}
+                             .Invert()));
+  const aocommon::MC2x2 input{
+      std::complex<double>{1.0, 2.0}, std::complex<double>{10, 11},
+      std::complex<double>{100, 101}, std::complex<double>{1000, 1001}};
+
+  const aocommon::Avx256::MatrixComplexDouble2x2 expected{[&] {
+    aocommon::MC2x2 result{input};
+    bool b = result.Invert();
+    BOOST_REQUIRE(b);
+    return result;
+  }()};
+
+  const aocommon::Avx256::MatrixComplexDouble2x2 result{[&] {
+    aocommon::Avx256::MatrixComplexDouble2x2 result{input};
+    bool b = result.Invert();
+    BOOST_REQUIRE(b);
+    return result;
+  }()};
+
+  BOOST_CHECK_CLOSE(result[0].real(), expected[0].real(), 1e-3);
+  BOOST_CHECK_CLOSE(result[0].imag(), expected[0].imag(), 1e-3);
+  BOOST_CHECK_CLOSE(result[1].real(), expected[1].real(), 1e-3);
+  BOOST_CHECK_CLOSE(result[1].imag(), expected[1].imag(), 1e-3);
+  BOOST_CHECK_CLOSE(result[2].real(), expected[2].real(), 1e-3);
+  BOOST_CHECK_CLOSE(result[2].imag(), expected[2].imag(), 1e-3);
+  BOOST_CHECK_CLOSE(result[3].real(), expected[3].real(), 1e-3);
+  BOOST_CHECK_CLOSE(result[3].imag(), expected[3].imag(), 1e-3);
+}
+
 BOOST_AUTO_TEST_CASE(norm) {
   static_assert(noexcept(aocommon::Avx256::MatrixComplexDouble2x2{
       static_cast<const std::complex<double>*>(nullptr)}
