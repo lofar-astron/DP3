@@ -123,3 +123,19 @@ def test_unflag_all():
     # Assert that all FLAG are set to True
     taql_command = f"select from {MSIN} where all(FLAG=True)"
     assert_taql(taql_command, 168)
+
+
+def test_autoweight():
+    """Check that DP3 runs successfully when autoweight is set and there is a step which requires weights"""
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "msout=out.ms",
+            "steps=[average]",
+            "msin.autoweight=true",
+            "msin.forceautoweight=true",
+            "average.timestep=5",
+        ]
+    )

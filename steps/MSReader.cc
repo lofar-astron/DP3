@@ -276,12 +276,6 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   itsFlagCounter.init(getInfo());
 }
 
-common::Fields MSReader::getProvidedFields() const {
-  common::Fields fields = InputStep::getProvidedFields();
-  if (itsAutoWeight || itsAutoWeightForce) fields |= kWeightsField;
-  return fields;
-}
-
 void MSReader::updateInfo(const DPInfo& dpInfo) {
   info().setNThreads(dpInfo.nThreads());
 }
