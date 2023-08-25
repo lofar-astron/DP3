@@ -103,10 +103,6 @@ class MSReader : public InputStep {
   MSReader(const casacore::MeasurementSet& ms, const common::ParameterSet&,
            const std::string& prefix, bool missingData = false);
 
-  /// Override InputStep::getProvidedFields, since autoweight settings may add a
-  /// field.
-  common::Fields getProvidedFields() const override;
-
   /// Process the next data chunk.
   /// It returns false when at the end.
   bool process(std::unique_ptr<base::DPBuffer> buffer) override;

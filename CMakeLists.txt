@@ -762,7 +762,6 @@ if(BUILD_TESTING)
       steps/test/unit/tMSBDAReader.cc
       steps/test/unit/tMSBDAWriter.cc
       steps/test/unit/tMsColumnReader.cc
-      steps/test/unit/tMSReader.cc
       steps/test/unit/tMSUpdater.cc
       steps/test/unit/tMSWriter.cc
       steps/test/unit/tNullStokes.cc

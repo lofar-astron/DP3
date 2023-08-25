@@ -416,7 +416,8 @@ std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
   }
 
   // Tell the reader which fields must be read.
-  input_step->setFieldsToRead(GetChainRequiredFields(input_step));
+  input_step->setFieldsToRead(
+      GetChainRequiredFields(input_step->getNextStep()));
 
   return input_step;
 }
