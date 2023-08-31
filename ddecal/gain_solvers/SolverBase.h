@@ -90,7 +90,7 @@ class SolverBase {
 
   /**
    * Get the constraints for the solver.
-   * @return A non-modifyable list of modifyable Constraints. All pointers in
+   * @return A non-modifiable list of modifiable Constraints. All pointers in
    *         the list are valid.
    */
   const std::vector<std::unique_ptr<Constraint>>& GetConstraints() {

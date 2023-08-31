@@ -101,15 +101,15 @@ PYBIND11_MODULE(pydp3, m) {
           "info_out", &Step::getInfoOut, py::return_value_policy::copy,
           "Get a copy of the info object containing metadata of the output")
       // Since a python step needs to be able to adjust its info_out in its
-      // _update_info() override, _info_out returns a modifyable reference.
+      // _update_info() override, _info_out returns a modifiable reference.
       .def_property_readonly("_info_out", &PublicStep::infoOut,
                              py::return_value_policy::reference,
-                             "Get a modifyable reference to info object "
+                             "Get a modifiable reference to info object "
                              "containing metadata of the output")
       // Legacy version of info_out
       .def_property_readonly("info", &PublicStep::getInfo,
                              py::return_value_policy::reference,
-                             "Get a modifyable reference to info object "
+                             "Get a modifiable reference to info object "
                              "containing metadata of the output")
       .def(
           "process",
