@@ -1,5 +1,5 @@
-// DDE.h: DP3 step class to calibrate direction dependent gains
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// DDECal.h: DP3 step class to calibrate direction dependent gains
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
@@ -29,8 +29,7 @@
 namespace dp3 {
 namespace steps {
 
-/// @brief This class is a Step class to calibrate (direction independent)
-/// gains.
+/// @brief This class is a Step class to calibrate (direction dependent) gains.
 class DDECal : public Step {
  public:
   /// Construct the object.

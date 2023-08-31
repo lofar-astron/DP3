@@ -47,12 +47,12 @@ class Constraint {
    *
    * Unlike Apply(), this method is not thread safe.
    *
-   * @param bool This can be used to specify whether the previous solution
-   * "step" is smaller than the requested precision, i.e. calibration with the
-   * constrained has converged. This allows a constraint to apply its constraint
-   * in steps: apply a better-converging constraint as long as the solutions are
-   * far from the correct answer, then switch to a different constraint when
-   * hasReachedPrecision=true.
+   * @param hasReachedPrecision This can be used to specify whether the previous
+   * solution "step" is smaller than the requested precision, i.e. calibration
+   * with the constraint has converged. This allows a constraint to apply its
+   * constraint in steps: apply a better-converging constraint as long as the
+   * solutions are far from the correct answer, then switch to a different
+   * constraint when hasReachedPrecision=true.
    */
   virtual void PrepareIteration([[maybe_unused]] bool hasReachedPrecision,
                                 [[maybe_unused]] size_t iteration,
@@ -93,8 +93,8 @@ class Constraint {
   }
 
   /**
-   * Set weights. The vector should contain an array of size nAntennas *
-   * nChannelBlocks, where the channel index varies fastest.
+   * Set weights. The vector should contain the flattened version of an array of
+   * size nAntennas * nChannelBlocks, where the channel index varies fastest.
    */
   virtual void SetWeights([[maybe_unused]] const std::vector<double>& weights) {
   }

@@ -24,7 +24,7 @@ const size_t kNChannelBlocks = 5;
 SmoothnessConstraint makeConstraint(size_t n_antennas, size_t n_directions) {
   const std::vector<double> frequencies{1.0e6, 2.0e6, 3.0e6, 4.0e6, 5.0e6};
   const std::vector<double> weights(kNChannelBlocks, 1.0);
-  std::vector<double> antenna_distance_factors{1};
+  std::vector<double> antenna_distance_factors{1.0};
 
   SmoothnessConstraint c(bandwidth_hz, bandwidth_ref_frequency_hz);
   c.SetNThreads(1);
@@ -50,6 +50,7 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
   // The first three columns test smoothing a delta function.
   // The fourth and fifth columns are constant, and when the input is constant,
   // the smoother should not modify it.
+  // The sixth column tests smoothing a fixed slope.
 
   std::vector<std::complex<double>> solutions_vector{
       0.0, 1.0, 0.0,  1.0, 0.0, 5.0,  // channel block 0
@@ -74,8 +75,8 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
       {0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753},
   };
 
-  for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
-    for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
+  for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
+    for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
       const std::complex<double>& solution =
           solutions_vector[cb * kNSolutionsPerChannelBlock + i];
       const std::complex<double>& reference_solution =
@@ -124,8 +125,8 @@ BOOST_AUTO_TEST_CASE(flagged_channels) {
       {0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753},
   };
 
-  for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
-    for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
+  for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
+    for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
       const std::complex<double>& solution =
           solutions_vector[cb * kNSolutionsPerChannelBlock + i];
       const std::complex<double>& reference_solution =

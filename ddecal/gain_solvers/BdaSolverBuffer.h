@@ -83,7 +83,7 @@ class BdaSolverBuffer {
 
   /**
    * Get the data for the current solution interval.
-   * @return Non-modifyable rows with weighted visibilities.
+   * @return Non-modifiable rows with weighted visibilities.
    */
   const std::vector<const base::BDABuffer::Row*>& GetDataRows() const {
     return data_rows_[0].weighted;
