@@ -13,6 +13,7 @@ Script can be invoked in two ways:
 
 import numpy as np
 import sys
+import copy
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -32,7 +33,7 @@ N_FREQUENCIES = 42
 N_ANTENNAS = 5
 
 
-def test_fit_single_antenna():
+def test_fit_tec_single_antenna():
     frequencies = np.linspace(100e6, 110e6, N_FREQUENCIES)
     tec_value = 0.42
     clean_gains = np.exp((0 + 1j) * tec_value * TEC_CONSTANT / frequencies)
@@ -87,6 +88,7 @@ def test_fit_single_antenna():
     assert phase_result.weights == [N_FREQUENCIES]
     assert error_result.weights == [N_FREQUENCIES]
 
+    # Check the fitted noisy_gains
     assert np.isclose(np.abs(noisy_gains), 1).all()
     diff_angles = np.angle(clean_gains) - np.angle(noisy_gains)
     atol_angle = 0.03
@@ -118,7 +120,7 @@ def test_fit_tec_only():
     assert np.isclose(np.abs(noisy_gains), 1).all()
 
     tec_result, error_result = dp3.fitters.fit_tec(
-        noisy_gains, frequencies, mode="tec_only"
+        gains=noisy_gains, frequencies=frequencies, time=0.0, mode="tec_only"
     )
 
     assert tec_result.name == "tec"
@@ -148,3 +150,48 @@ def test_fit_tec_only():
             or np.isclose(diff_angle, 2 * np.pi, atol=atol_angle)
             or np.isclose(diff_angle, -2 * np.pi, atol=atol_angle)
         )
+
+
+def test_fit_smooth():
+    # This test is inspired by the C++ unit test, it tests 6 individual simple
+    # cases: 3x a delta function, 2x constants and a fixed slope
+    frequencies = np.array([1.0e6, 2.0e6, 3.0e6, 4.0e6, 5.0e6])
+
+    # each column is the data for one test:
+    gains_in = np.array(
+        [
+            [0.0, 1.0, 0.0, 1.0, 0.0, 5.0],  # freq. 0
+            [0.0, 0.0, 0.0, 1.0, 0.0, 4.0],  # freq. 1
+            [1.0, 0.0, 0.0, 1.0, 0.0, 3.0],  # freq. 2
+            [0.0, 0.0, 0.0, 1.0, 0.0, 2.0],  # freq. 3
+            [0.0, 0.0, 10.0, 1.0, 0.0, 1.0],  # freq. 4
+        ],
+        dtype=np.complex_,
+    )
+    gains_out = np.zeros_like(gains_in)
+
+    expected_gains_out = np.array(
+        [
+            [0.000121798, 0.902597, 0.0, 1.0, 0.0, 4.90247],
+            [0.0886568, 0.0886568, 0.0, 1.0, 0.0, 3.99978],
+            [0.822484, 0.000110987, 0.00110987, 1.0, 0.0, 3],
+            [0.0886568, 0.0, 0.886568, 1.0, 0.0, 2.00022],
+            [0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753],
+        ],
+        dtype=np.complex_,
+    )
+
+    # Smooth each column individually
+    for i in range(gains_in.shape[1]):
+        # Pybind is not able to reference sliced arrays
+        gains_i = copy.deepcopy(gains_in[:, i])
+
+        dp3.fitters.fit_smooth(
+            gains=gains_i,
+            frequencies=frequencies,
+            bandwidth_hz=2.01e6,
+            bandwidth_ref_frequency_hz=0.0,
+        )
+        gains_out[:, i] = gains_i
+
+    assert np.allclose(gains_out, expected_gains_out)

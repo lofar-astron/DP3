@@ -18,8 +18,10 @@ class SmoothnessConstraint final : public Constraint {
   typedef KernelSmoother<dcomplex, double> Smoother;
 
   /**
-   * @param bandwidthRefFrequencyHz may be zero to have a constant kernel size
-   * over frequency.
+   * @param bandwidth_hz Size of the kernel (smoothing strength)
+   * @param bandwidth_ref_frequency_hz Reference frequency for the kernel size,
+   * may be zero to have a constant kernel size over frequency.
+   * More details on this are in the KernelSmoother documentation.
    */
   SmoothnessConstraint(double bandwidth_hz, double bandwidth_ref_frequency_hz);
 

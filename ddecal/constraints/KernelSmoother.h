@@ -39,12 +39,16 @@ class KernelSmoother {
 
   /**
    * Construct and initialize kernel smoother.
-   * @param frequencies Array size of @c n defining the grid: frequencies[i]
-   * specifies the frequency of channel i in Hz.
-   * @param n Size of the grid (number of channels).
+   * @param frequencies Vector defining the channel frequencies: frequencies[i]
+   * specifies the frequency of channel i in Hz. The size of this vector (number
+   * of channels) defines the size of the grid @c n.
    * @param kernelType Type of kernel to use for smoothing
-   * @param kernelBandwidth size of the kernel (smoothing strength) in frequency
-   * units (Hz). May be 0.0 to disable frequency correction of the kernel size.
+   * @param kernelBandwidth Size of the kernel (smoothing strength) in frequency
+   * units (Hz).
+   * @param bandwidthRefFrequency Reference frequency for computing the
+   * bandwidth that is effectively used for smoothing. May be zero to have a
+   * constant kernel size over frequency, i.e. the bandwidth for smoothing
+   * equals the @c kernelBandwidth exactly.
    */
   KernelSmoother(const std::vector<NumType>& frequencies, KernelType kernelType,
                  NumType kernelBandwidth, NumType bandwidthRefFrequency)

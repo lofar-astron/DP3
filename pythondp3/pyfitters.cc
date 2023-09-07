@@ -8,9 +8,11 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
+#include "../ddecal/constraints/SmoothnessConstraint.h"
 #include "../ddecal/constraints/TECConstraint.h"
 
 using dp3::ddecal::Constraint;
+using dp3::ddecal::SmoothnessConstraint;
 using dp3::ddecal::TECConstraint;
 
 namespace py = pybind11;
@@ -34,6 +36,7 @@ TECConstraint::Mode TecModeFromString(const std::string& mode) {
 PYBIND11_MODULE(fitters, m) {
   m.doc() = "DP3 spectral fitters";
 
+  // Expose the class of the return variable of the fitter functions to Python.
   py::class_<Constraint::Result>(m, "Result",
                                  "Constraint result for a single type. "
                                  "The values are in result.values.")
@@ -80,6 +83,8 @@ PYBIND11_MODULE(fitters, m) {
         return stream.str();
       });
 
+  // Create bindings for the internal fitter functions, which allows using these
+  // functions directly from Python.
   m.def(
       "fit_tec",
       [](py::array_t<std::complex<double>, py::array::c_style>& gains,
@@ -135,18 +140,78 @@ zero. The phases for the other antennas are relative to the first antenna.
 With a single antenna, this phase referencing is disabled.
 
 Parameters:
-  spectrum: 1-D or 2-D numpy array with complex values:
-            (frequencies) or (frequencies, antennas)
-            If there is one dimension, the number of antennas is always one.
-            The number of frequencies (first dimension) must match the length
-            of the 'frequencies' argument.
-            The TEC fitter adjusts the values in this parameter.
+  gains: 1-D or 2-D numpy array with complex values:
+        (frequencies) or (frequencies, antennas)
+        If there is one dimension, the number of antennas is always one.
+        The number of frequencies (first dimension) must match the length
+        of the 'frequencies' argument.
+        The TEC fitter adjusts the values in this parameter.
   frequencies: Channel frequencies in Hz.
   time: Optional. Time in seconds. The TEC fitter does not use this parameter.
   mode: Optional. Fitting mode: "tec_and_common_scalar" (default) or "tec_only".
 
-Returns: Result with the values for tec or tec and common scalar phase, along
-         with an error.)");
+Returns: A list of two or three dp3.fitters.Result items. When the mode is 
+        "tec_and_common_scalar", it contains: [TEC, common scalar phase, error], 
+        and otherwise [TEC, error].)");
+
+  m.def(
+      "fit_smooth",
+      [](py::array_t<std::complex<double>, py::array::c_style>& gains,
+         const std::vector<double>& frequencies, double time,
+         const double bandwidth_hz, const double bandwidth_ref_frequency_hz) {
+        if ((gains.ndim() != 1 && gains.ndim() != 2) ||
+            static_cast<size_t>(gains.shape(0)) != frequencies.size()) {
+          throw std::invalid_argument("Incorrect gains shape");
+        }
+        if (bandwidth_hz == 0.0) {
+          throw std::invalid_argument("bandwidth_hz may not be zero");
+        }
+
+        const std::size_t n_channel_blocks = frequencies.size();
+        const std::size_t n_antennas = (gains.ndim() == 1) ? 1 : gains.shape(1);
+        const std::size_t kNDirections = 1;
+        const std::size_t kNPolarizations = 1;
+        const std::vector<uint32_t> kNSolutionsPerDirection(kNDirections, 1);
+
+        const std::vector<double> weights(n_channel_blocks, 1.0);
+        std::vector<double> antenna_distance_factors{1.0};
+
+        SmoothnessConstraint constraint(bandwidth_hz,
+                                        bandwidth_ref_frequency_hz);
+        constraint.Initialize(n_antennas, kNSolutionsPerDirection, frequencies);
+        constraint.SetDistanceFactors(std::move(antenna_distance_factors));
+        constraint.SetWeights(weights);
+
+        const std::array<std::size_t, 4> shape{n_channel_blocks, n_antennas,
+                                               kNDirections, kNPolarizations};
+        aocommon::xt::Span<std::complex<double>, 4> gains_span =
+            aocommon::xt::CreateSpan(gains.mutable_data(), shape);
+
+        constraint.Apply(gains_span, time, nullptr);
+      },
+      py::arg("gains"), py::arg("frequencies"), py::arg("time") = 0.0,
+      py::arg("bandwidth_hz"), py::arg("bandwidth_ref_frequency_hz") = 0.0,
+      R"(Apply a Smoothness fitter to complex gains.
+
+The fitter smooths a series of possibly irregularly gridded values by a given 
+Gaussian kernel. The Gaussian kernel is trimmed off at 3 sigma, and further 
+defined by two bandwidth parameters.
+
+Parameters:
+  gains: 2-D (or 1-D) numpy array with complex values of shape 
+          (frequencies, antennas) or (frequencies).
+        If the number of antennas is one, it can be provided as a 1-D array.
+        The number of frequencies (first dimension) must match the length
+        of the 'frequencies' argument.
+        The Smoothness fitter adjusts the values in this parameter.
+  frequencies: Array defining the frequency of each channel, in Hz.
+  time: Optional. Time in seconds. The fitter does not use this parameter.
+  bandwidth_hz: Size, in frequency units (Hz), of the Gaussian kernel 
+                (smoothing strength) that is used for smoothing. May not be zero.
+  bandwidthRefFrequencyHz: Optional. Kernel size over frequency. May be zero 
+                          (default) to have a constant kernel size over frequency.
+
+Returns: None. The actual return is written in-place to the gains argument.)");
 }
 
 }  // namespace pythondp3
