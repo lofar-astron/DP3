@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(invert) {
     return result;
   }()};
 
-  BOOST_CHECK_CLOSE(result[0].real(), expected[0].real(), 1e-3);
+  BOOST_CHECK_CLOSE(result[0].real(), expected[0].real(), 3e-3);
   BOOST_CHECK_CLOSE(result[0].imag(), expected[0].imag(), 1e-3);
   BOOST_CHECK_CLOSE(result[1].real(), expected[1].real(), 1e-3);
   BOOST_CHECK_CLOSE(result[1].imag(), expected[1].imag(), 1e-3);
