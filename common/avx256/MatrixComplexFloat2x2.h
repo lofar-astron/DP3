@@ -264,7 +264,7 @@ class MatrixComplexFloat2x2 {
 
     // std::swap(data[0],data[3]);
     // Using the fact that extracting as a double, the value has the number of
-    // bits is the same as a complex gloat
+    // bits is the same as a complex float.
     __m256d data = _mm256_castps_pd(static_cast<__m256>(data_));
     data = _mm256_permute4x64_pd(data, 0b00'10'01'11);
     __m256 result = _mm256_castpd_ps(data);
