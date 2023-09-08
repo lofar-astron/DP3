@@ -7,14 +7,14 @@
 #include <complex>
 #include <vector>
 
-#include <aocommon/matrix2x2.h>
-
 #include <casacore/casa/Arrays/Cube.h>
 
 #include <xtensor/xtensor.hpp>
 
 #include <EveryBeam/station.h>
 #include <EveryBeam/telescope/telescope.h>
+
+#include "common/MatrixComplexDouble2x2.h"
 
 namespace dp3 {
 namespace base {
@@ -54,7 +54,8 @@ class PredictBuffer {
     return patch_model_visibilities_[threadIndex];
   }
 
-  std::vector<aocommon::MC2x2>& GetFullBeamValues(size_t threadIndex) {
+  std::vector<aocommon::MatrixComplexDouble2x2>& GetFullBeamValues(
+      size_t threadIndex) {
     return full_beam_values_[threadIndex];
   }
 
@@ -69,7 +70,7 @@ class PredictBuffer {
  private:
   std::vector<xt::xtensor<std::complex<double>, 3>> model_visibilities_;
   std::vector<xt::xtensor<std::complex<double>, 3>> patch_model_visibilities_;
-  std::vector<std::vector<aocommon::MC2x2>> full_beam_values_;
+  std::vector<std::vector<aocommon::MatrixComplexDouble2x2>> full_beam_values_;
   std::vector<std::vector<everybeam::complex_t>> scalar_beam_values_;
   std::vector<std::shared_ptr<everybeam::Station>> station_list_;
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;

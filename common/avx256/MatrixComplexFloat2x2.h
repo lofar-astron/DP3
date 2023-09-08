@@ -331,6 +331,12 @@ class MatrixComplexFloat2x2 {
     return output;
   }
 
+  // RAP-133 enabled diagnostic [[deprecated("Use HermitianTranspose")]]
+  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2
+  HermTranspose() const noexcept {
+    return HermitianTranspose();
+  }
+
  private:
   VectorComplexFloat4 data_;
 };
