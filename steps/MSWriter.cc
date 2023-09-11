@@ -378,6 +378,13 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   if (tsmnrow < 1024) {
     tsmnrow = 1024;
   }
+  // Make sure that the UVW column is stored as a fixed shape column.
+  {
+    ColumnDesc& cdesc = newdesc.rwColumnDesc("UVW");
+    if (cdesc.shape().empty()) {
+      cdesc.setShape(IPosition(1, 3), true);
+    }
+  }
   DataManInfo::setTiledStMan(
       dminfo, casacore::Vector<casacore::String>(1, "UVW"), "TiledColumnStMan",
       "TiledUVW", IPosition(2, 3, tsmnrow));
