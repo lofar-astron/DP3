@@ -460,8 +460,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       }
     }
 
-    aocommon::ParallelFor<size_t> loop(n_threads);
-    loop.Run(0, n_threads, [&](size_t thread_index) {
+    pool->For(0, n_threads, [&](size_t thread_index, size_t) {
       const std::complex<double> zero(0.0, 0.0);
       predict_buffer_->GetModel(thread_index).fill(zero);
       if (apply_beam_) predict_buffer_->GetPatchModel(thread_index).fill(zero);
@@ -521,6 +520,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (thread_over_baselines_) {
     aocommon::Barrier barrier(n_threads);
+    // We need to create local threads here because we need to
+    // sync only those using the barrier
     aocommon::ParallelFor<size_t> loop(n_threads);
     loop.Run(0, n_threads, [&](size_t thread_index) {
       const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
