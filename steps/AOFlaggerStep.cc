@@ -48,8 +48,8 @@ AOFlaggerStep::AOFlaggerStep(const common::ParameterSet& parset,
         aoflagger_.FindStrategyFile(aoflagger::TelescopeId::LOFAR_TELESCOPE);
 
   window_size_ = parset.getUint(prefix + "timewindow", 0);
-  memory_ = parset.getUint(prefix + "memorymax", 0);
-  memory_percentage_ = parset.getUint(prefix + "memoryperc", 0);
+  memory_ = parset.getDouble(prefix + "memorymax", 0);
+  memory_percentage_ = parset.getDouble(prefix + "memoryperc", 0.0);
   overlap_ = parset.getUint(prefix + "overlapmax", 0);
   // Also look for keyword overlap for backward compatibility.
   if (overlap_ == 0) {
