@@ -14,7 +14,7 @@
 #undef complex
 #endif /* HAVE_LIBDIRAC */
 
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 #include <xtensor/xadapt.hpp>
 #include <xtensor/xcomplex.hpp>
 #include <xtensor/xlayout.hpp>
@@ -555,7 +555,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
   step_magnitudes.reserve(GetMaxIterations());
 
   do {
-    aocommon::ParallelFor<size_t> loop(GetNThreads());
+    aocommon::DynamicFor<size_t> loop(GetNThreads());
     switch (mode) {
       case LBFGSSolver::kFull:
         MakeSolutionsFinite4Pol(solutions);

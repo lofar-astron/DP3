@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include <aocommon/threadpool.h>
+#include <aocommon/recursivefor.h>
 
 #include "../common/ParameterSet.h"
 
@@ -183,7 +183,7 @@ class DDECal : public Step {
   common::NSTimer itsTimerWrite;
   std::mutex itsMeasuresMutex;
   std::unique_ptr<ddecal::SolverBase> itsSolver;
-  std::unique_ptr<aocommon::ThreadPool> itsThreadPool;
+  std::unique_ptr<aocommon::RecursiveFor> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;
 };
 

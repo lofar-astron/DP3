@@ -21,7 +21,7 @@
 
 #include <EveryBeam/correctionmode.h>
 
-#include <aocommon/threadpool.h>
+#include <aocommon/recursivefor.h>
 
 #include "../common/Epsilon.h"
 

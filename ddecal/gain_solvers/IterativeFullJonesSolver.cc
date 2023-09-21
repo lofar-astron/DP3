@@ -9,7 +9,7 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 
 #include <algorithm>
 
@@ -56,7 +56,7 @@ IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
   do {
     MakeSolutionsFinite4Pol(solutions);
 
-    aocommon::ParallelFor<size_t> loop(GetNThreads());
+    aocommon::DynamicFor<size_t> loop(GetNThreads());
     loop.Run(0, NChannelBlocks(),
              [&](size_t ch_block, [[maybe_unused]] size_t thread) {
                PerformIteration(ch_block, data.ChannelBlock(ch_block),

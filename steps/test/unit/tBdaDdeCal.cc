@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <boost/test/unit_test.hpp>
-#include <aocommon/threadpool.h>
+#include <aocommon/recursivefor.h>
 
 #include "tPredict.h"
 #include "tStepCommon.h"

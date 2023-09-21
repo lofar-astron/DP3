@@ -14,8 +14,8 @@
 
 #include <xtensor/xtensor.hpp>
 
-#include <aocommon/parallelfor.h>
-#include <aocommon/threadpool.h>
+#include <aocommon/dynamicfor.h>
+#include <aocommon/recursivefor.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
 
@@ -147,8 +147,8 @@ class GainCal final : public Step {
   std::shared_ptr<ResultStep>
       itsDataResultStep;  ///< Result step for data after UV-flagging
 
-  aocommon::ParallelFor<size_t> itsParallelFor;
-  aocommon::ThreadPool itsThreadPool;
+  aocommon::DynamicFor<size_t> itsParallelFor;
+  aocommon::RecursiveFor itsThreadPool;
 
   /// The series of sub-steps ends with itsResultStep.
   std::shared_ptr<Step> itsFirstSubStep;

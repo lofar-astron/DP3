@@ -3,7 +3,7 @@
 
 #include "TECConstraint.h"
 
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 
 #include <xtensor/xmath.hpp>
 #include <xtensor/xview.hpp>
@@ -117,7 +117,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   // Divide out the reference antenna
   if (do_phase_reference_) applyReferenceAntenna(solutions);
 
-  aocommon::ParallelFor<size_t> loop(NThreads());
+  aocommon::DynamicFor<size_t> loop(NThreads());
   loop.Run(
       0, NAntennas() * NSolutions(),
       [&](size_t antenna_and_solution_index, size_t thread) {
@@ -180,7 +180,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
   } else {
     if (do_phase_reference_) applyReferenceAntenna(solutions);
 
-    aocommon::ParallelFor<size_t> loop(NThreads());
+    aocommon::DynamicFor<size_t> loop(NThreads());
     loop.Run(0, NAntennas() * NSolutions(),
              [&](size_t antenna_and_solution_index, size_t thread) {
                const size_t antenna_index =

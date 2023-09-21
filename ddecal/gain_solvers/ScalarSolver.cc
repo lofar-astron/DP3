@@ -7,7 +7,7 @@
 #include "../linear_solvers/LLSSolver.h"
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 #include <xtensor/xview.hpp>
 
 #include <iostream>
@@ -48,7 +48,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<Matrix>> thread_vs(n_threads);
 
-  aocommon::ParallelFor<size_t> loop(n_threads);
+  aocommon::DynamicFor<size_t> loop(n_threads);
   do {
     MakeSolutionsFinite1Pol(solutions);
 

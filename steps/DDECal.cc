@@ -225,7 +225,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
   itsUVWFlagStep.updateInfo(infoIn);
-  itsThreadPool = std::make_unique<aocommon::ThreadPool>(getInfo().nThreads());
+  itsThreadPool =
+      std::make_unique<aocommon::RecursiveFor>(getInfo().nThreads());
 
   if (itsRequestedSolInt == 0) {
     itsRequestedSolInt = info().ntime();

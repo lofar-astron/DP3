@@ -9,7 +9,7 @@
 #include <mutex>
 
 namespace aocommon {
-class ThreadPool;
+class RecursiveFor;
 }
 
 namespace dp3 {
@@ -90,7 +90,7 @@ class Predict : public ModelDataStep {
    * Forwards thread synchronization structures to its predict sub-step.
    * @see OnePredict::SetThreadData().
    */
-  void SetThreadData(aocommon::ThreadPool& pool, std::mutex* mutex);
+  void SetThreadData(aocommon::RecursiveFor& pool, std::mutex* mutex);
 
   void SetPredictBuffer(std::shared_ptr<base::PredictBuffer> predict_buffer);
 
