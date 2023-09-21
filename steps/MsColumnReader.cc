@@ -33,6 +33,8 @@ bool MsColumnReader::process(std::unique_ptr<DPBuffer> buffer) {
   casacore::Cube<casacore::Complex> data(shape, buffer->GetData().data(),
                                          casacore::SHARE);
 
+  assert(buffer->GetRowNumbers().size() == buffer->GetData().shape(0));
+
   ArrayColumn<casacore::Complex> model_column(table_, column_name_);
   model_column.getColumnCells(buffer->GetRowNumbers(), data);
 
@@ -57,7 +59,7 @@ void MsColumnReader::updateInfo(const DPInfo& _info) {
 
   if ((_info.ncorr() != model_column.shape(0)[0]) ||
       (_info.nchan() != model_column.shape(0)[1]) ||
-      _info.nbaselines() != n_baselines_column || _info.metaChanged()) {
+      _info.nbaselines() > n_baselines_column || _info.metaChanged()) {
     throw std::runtime_error(
         "The column " + column_name_ +
         " has shape NCORR: " + std::to_string(model_column.shape(0)[0]) +
@@ -68,9 +70,9 @@ void MsColumnReader::updateInfo(const DPInfo& _info) {
         ", NCHAN: " + std::to_string(_info.nchan()) +
         ", NBL: " + std::to_string(_info.nbaselines()) +
         ".\nAny operation which alters the number of channels, correlations "
-        "and baselines can cause a shape mismatch (example: filter, average, "
-        "...). Also operations which will change the metadata can cause a "
-        "mismatch (example: phase shift, upsample, station adder, ..) \n\n");
+        "can cause a shape mismatch (example: filter, average, ...). "
+        "Also operations which will change the metadata can cause a "
+        "mismatch (example: phase shift, upsample, station adder, ..)\n\n");
   }
 }
 
