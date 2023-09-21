@@ -32,9 +32,9 @@
 
 #include "../parmdb/SourceDB.h"
 
-#include <aocommon/threadpool.h>
-#include <aocommon/parallelfor.h>
 #include <aocommon/barrier.h>
+#include <aocommon/dynamicfor.h>
+#include <aocommon/recursivefor.h>
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -384,12 +384,13 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
         base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   }
 
-  std::unique_ptr<aocommon::ThreadPool> localThreadPool;
-  aocommon::ThreadPool* pool = thread_pool_;
+  std::unique_ptr<aocommon::RecursiveFor> localThreadPool;
+  aocommon::RecursiveFor* pool = thread_pool_;
   if (pool == nullptr) {
     // If no ThreadPool was specified, we create a temporary one just
     // for execution of this part.
-    localThreadPool = std::make_unique<aocommon::ThreadPool>(info().nThreads());
+    localThreadPool =
+        std::make_unique<aocommon::RecursiveFor>(info().nThreads());
     pool = localThreadPool.get();
   } else {
     if (pool->NThreads() != info().nThreads())
@@ -522,7 +523,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     aocommon::Barrier barrier(n_threads);
     // We need to create local threads here because we need to
     // sync only those using the barrier
-    aocommon::ParallelFor<size_t> loop(n_threads);
+    aocommon::DynamicFor<size_t> loop(n_threads);
     loop.Run(0, n_threads, [&](size_t thread_index) {
       const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
           scoped_time{predict_time_};

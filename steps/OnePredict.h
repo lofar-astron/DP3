@@ -24,7 +24,7 @@
 #include "../base/SourceDBUtil.h"
 
 namespace aocommon {
-class ThreadPool;
+class RecursiveFor;
 }  // namespace aocommon
 
 namespace dp3 {
@@ -98,7 +98,7 @@ class OnePredict : public ModelDataStep {
   ///
   /// It is also possible to make the predict steps share the same threadpool
   /// without further synchronisation, by setting measures_mutex to nullptr.
-  void SetThreadData(aocommon::ThreadPool& pool, std::mutex* measures_mutex) {
+  void SetThreadData(aocommon::RecursiveFor& pool, std::mutex* measures_mutex) {
     thread_pool_ = &pool;
     measures_mutex_ = measures_mutex;
   }
@@ -222,7 +222,7 @@ class OnePredict : public ModelDataStep {
    */
   std::atomic<int64_t> apply_beam_time_{0};
 
-  aocommon::ThreadPool* thread_pool_;
+  aocommon::RecursiveFor* thread_pool_;
   std::mutex* measures_mutex_;
   std::mutex mutex_;
 };

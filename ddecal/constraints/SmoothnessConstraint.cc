@@ -3,7 +3,7 @@
 
 #include "KernelSmoother.h"
 #include "SmoothnessConstraint.h"
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 
 namespace dp3 {
 namespace ddecal {
@@ -25,7 +25,7 @@ void SmoothnessConstraint::SetDistanceFactors(
     std::vector<double>&& antenna_distance_factors) {
   antenna_distance_factors_ = std::move(antenna_distance_factors);
   if (!loop_) {
-    loop_ = std::make_unique<aocommon::ParallelFor<size_t>>(NThreads());
+    loop_ = std::make_unique<aocommon::DynamicFor<size_t>>(NThreads());
   }
   for (size_t i = 0; i != NThreads(); ++i)
     fit_data_.emplace_back(frequencies_, kernel_type_, bandwidth_,

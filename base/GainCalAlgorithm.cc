@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-#include "aocommon/parallelfor.h"
+#include "aocommon/dynamicfor.h"
 
 using casacore::IPosition;
 using casacore::Vector;
@@ -345,7 +345,7 @@ void GainCalAlgorithm::doStep_polarized() {
 void GainCalAlgorithm::doStep_unpolarized() {
   _gold = _g;
 
-  aocommon::ParallelFor<unsigned int> parallel(_nThreads);
+  aocommon::DynamicFor<unsigned int> parallel(_nThreads);
   parallel.Run(0, _nUn,
                [&](unsigned int ant) { _h(ant, 0) = conj(_g(ant, 0)); });
 

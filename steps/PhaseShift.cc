@@ -13,7 +13,7 @@
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/Quanta/Quantum.h>

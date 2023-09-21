@@ -3,7 +3,7 @@
 
 #include "SolverBase.h"
 
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 
 #include <algorithm>
 #include <iostream>
@@ -13,7 +13,7 @@
 
 #include "common/MatrixComplexDouble2x2.h"
 
-using aocommon::ParallelFor;
+using aocommon::DynamicFor;
 
 namespace {
 template <typename T>
@@ -78,7 +78,7 @@ void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
                       SolutionSpan& nextSolutions) const {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
-  ParallelFor<size_t> loop(n_threads_);
+  DynamicFor<size_t> loop(n_threads_);
   loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
     const size_t n_antennas = nextSolutions.shape(1);
     const size_t n_solutions = nextSolutions.shape(2);

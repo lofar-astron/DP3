@@ -8,7 +8,7 @@
 
 #include <iomanip>
 
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 #include <boost/algorithm/string/trim.hpp>
 #include <casacore/casa/BasicSL/String.h>
 #include <casacore/casa/Quanta.h>

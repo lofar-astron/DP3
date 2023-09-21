@@ -100,7 +100,7 @@ void ScreenConstraint::SetTime(double time) {
 
     CalculatePiercepoints();
 
-    aocommon::ParallelFor<size_t> loop(NThreads());
+    aocommon::DynamicFor<size_t> loop(NThreads());
     if (mode_ == "station") {
       loop.Run(0, NAntennas(), [&](size_t ipos, size_t /*thread*/) {
         screen_fitters_[ipos].calculateCorrMatrix(pierce_points_[ipos]);
@@ -249,7 +249,7 @@ std::vector<Constraint::Result> ScreenConstraint::Apply(
 
   // TODOEstimate Weights
 
-  aocommon::ParallelFor<size_t> loop(NThreads());
+  aocommon::DynamicFor<size_t> loop(NThreads());
   loop.Run(0, NAntennas(), [&](size_t antIndex, size_t /*thread*/) {
     int foundantcs = -999;
     int foundantoth = -999;

@@ -4,7 +4,7 @@
 #include "Constraint.h"
 #include "KernelSmoother.h"
 
-#include <aocommon/parallelfor.h>
+#include <aocommon/dynamicfor.h>
 
 #ifndef DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
 #define DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
@@ -68,7 +68,7 @@ class SmoothnessConstraint final : public Constraint {
   Smoother::KernelType kernel_type_;
   double bandwidth_;
   double bandwidth_ref_frequency_;
-  std::unique_ptr<aocommon::ParallelFor<size_t>> loop_;
+  std::unique_ptr<aocommon::DynamicFor<size_t>> loop_;
 };
 
 }  // namespace ddecal
