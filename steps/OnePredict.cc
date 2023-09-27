@@ -214,7 +214,8 @@ void OnePredict::initializeThreadData() {
     telescope_ = base::GetTelescope(info().msName(), element_response_model_,
                                     use_channel_freq_);
   }
-  predict_buffer_->resize(nThreads, nCr, nCh, nBl, nSt, apply_beam_);
+  predict_buffer_->resize(nThreads, nCr, nCh, nBl, nSt, apply_beam_,
+                          !stokes_i_only_);
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.
   meas_convertors_.resize(nThreads);
