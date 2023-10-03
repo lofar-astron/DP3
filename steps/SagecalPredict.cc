@@ -107,17 +107,15 @@ SagecalPredict::~SagecalPredict() {
     delete[] iodata_.cluster_arr_[patch_index].sQ;
     delete[] iodata_.cluster_arr_[patch_index].sU;
     delete[] iodata_.cluster_arr_[patch_index].sV;
-    delete[] iodata_.cluster_arr_[patch_index].stype;
     // Extra data
     for (int ci = 0; ci < iodata_.cluster_arr_[patch_index].N; ci++) {
       if (iodata_.cluster_arr_[patch_index].stype[ci] == STYPE_GAUSSIAN) {
         exinfo_gaussian* exg = static_cast<exinfo_gaussian*>(
             iodata_.cluster_arr_[patch_index].ex[ci]);
-        if (exg) {
-          delete exg;
-        }
+        delete exg;
       }
     }
+    delete[] iodata_.cluster_arr_[patch_index].stype;
     delete[] iodata_.cluster_arr_[patch_index].ex;
     delete[] iodata_.cluster_arr_[patch_index].sI0;
     delete[] iodata_.cluster_arr_[patch_index].sQ0;
