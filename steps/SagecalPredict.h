@@ -48,43 +48,84 @@ class SagecalPredict : public ModelDataStep {
 
    private:
   };
+
+  // The following class is unique to each instance of SagecalPredict
+  // and will be updated during each process() call.
   class BeamData {
    public:
-    BeamData() { sources_prec = false; };
-    size_t n_stations;            /* N */
-    std::vector<double> time_utc; /* time coord UTC (s), size tileszx1,
-                       convert from MJD (s) to JD (days) */
-    std::vector<int> n_elem;      /* no of elements in each station, size Nx1 */
+    BeamData() { sources_prec_ = false; }
+    // The following are for beam calculation, but will be updated
+    // at each process() call, hence they belong here
+    /* time coord UTC (s), size tileszx1,
+     convert from MJD (s) to JD (days) */
+    std::vector<double> time_utc_;
+    bool sources_prec_;
+    /* LOFAR HBA tile beam pointing center */
+    double b_ra0_;
+    double b_dec0_;
+    /* pointing center of beams (only one) (could be different from phase
+     * center) */
+    double p_ra0_;
+    double p_dec0_;
+
+   private:
+  };
+
+  // The following class is a singleton.
+  // Only updated during updateInfo(), and reused (read only) by all
+  // SagecalPredict instances.
+  class BeamDataSingle {
+   private:
+    explicit BeamDataSingle() : is_updated_(false) {}
+    std::mutex mutex_;
+    bool is_updated_;
+
+   public:
+    BeamDataSingle(BeamDataSingle const&) = delete;
+    BeamDataSingle& operator=(BeamDataSingle const&) = delete;
+    ~BeamDataSingle();
+
+    static BeamDataSingle* get_instance() {
+      static BeamDataSingle instance;
+      return &instance;
+    }
+
+    void update_metadata(const base::DPInfo& _info, const double freq_f0,
+                         const size_t n_channels,
+                         std::vector<double>& freq_channel,
+                         const int beam_mode);
+
+    size_t n_stations_; /* N */
+    /* number of elements in each station, size Nx1 */
+    std::vector<int> n_elem_;
     /* position (ITRF) of stations (m)
-     later changed to logitude,latitude,height (rad,rad,m) */
-    std::vector<double> sx; /* x: size Nx1 */
-    std::vector<double> sy; /* y: ... */
-    std::vector<double> sz; /* z: ... */
+     later changed to longitude,latitude,height (rad,rad,m) */
+    std::vector<double> sx_; /* x: size Nx1 */
+    std::vector<double> sy_; /* y: ... */
+    std::vector<double> sz_; /* z: ... */
     /* x,y,z coords of elements, projected, converted to ITRF (m) */
-    std::vector<double*> xx; /* x coord pointer, size Nx1, each *x: x coord of
+    std::vector<double*> xx_; /* x coord pointer, size Nx1, each *x: x coord of
                     station, size Nelem[]x1 */
-    std::vector<double*> yy; /* y ... */
-    std::vector<double*> zz; /* z ... */
+    std::vector<double*> yy_; /* y ... */
+    std::vector<double*> zz_; /* z ... */
+
+    /* flag to indicate this beam is only a dipole */
+    bool is_dipole_;
+
+    /* beamformer type STAT_NONE, STAT_SINGLE or STAT_TILE */
+    int beamformer_type_;
 
     /* LOFAR HBA tile beam pointing center */
-    double b_ra0;
-    double b_dec0;
+    double b_ra0_;
+    double b_dec0_;
 
     /* pointing center of beams (only one) (could be different from phase
      * center) */
-    double p_ra0;
-    double p_dec0;
+    double p_ra0_;
+    double p_dec0_;
 
-    /* flag to indicate this beam is only a dipole */
-    bool isDipole;
-
-    /* beamformer type STAT_NONE, STAT_SINGLE or STAT_TILE */
-    int beamformer_type;
-
+    int beam_mode_{DOBEAM_NONE};
     elementcoeff ecoeff;
-    bool sources_prec;
-
-   private:
   };
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
@@ -193,7 +234,8 @@ class SagecalPredict : public ModelDataStep {
 
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   IOData iodata_;
-  BeamData beam_data_;
+  BeamData runtime_beam_data_;
+  BeamDataSingle* beam_data_{nullptr};
   void loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer);
   void writeData(std::unique_ptr<dp3::base::DPBuffer>& buffer);
   void readAuxData(const base::DPInfo&);
