@@ -248,9 +248,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       s->SetBufferSize(itsRequestedSolInt * itsSolIntCount + 1);
     } else if (auto s = std::dynamic_pointer_cast<SagecalPredict>(step)) {
       // Divide the full thread count to each step
-      s->setNThreads(std::min<std::size_t>(
-          (getInfo().nThreads() + itsSteps.size() - 1) / itsSteps.size(),
-          getInfo().nThreads()));
+      // But at least allocate 4
+      s->setNThreads(std::max<std::size_t>(
+          4, std::min<std::size_t>(
+                 (getInfo().nThreads() + itsSteps.size() - 1) / itsSteps.size(),
+                 getInfo().nThreads())));
     } else if (!std::dynamic_pointer_cast<MsColumnReader>(step)) {
       throw std::runtime_error("DDECal received an invalid first model step");
     }

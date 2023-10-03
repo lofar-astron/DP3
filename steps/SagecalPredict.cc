@@ -132,19 +132,187 @@ SagecalPredict::~SagecalPredict() {
     delete[] iodata_.cluster_arr_[patch_index].p;
   }
 
-  if (beam_mode_ != DOBEAM_NONE) {
-    for (size_t ci = 0; ci < beam_data_.n_stations; ci++) {
-      delete[] beam_data_.xx[ci];
-      delete[] beam_data_.yy[ci];
-      delete[] beam_data_.zz[ci];
-    }
-    if (beam_mode_ == DOBEAM_FULL || beam_mode_ == DOBEAM_ELEMENT ||
-        beam_mode_ == DOBEAM_FULL_WB || beam_mode_ == DOBEAM_ELEMENT_WB) {
-      free_elementcoeffs(beam_data_.ecoeff);
-    }
-  }
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 }
+
+#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
+void SagecalPredict::BeamDataSingle::update_metadata(
+    const DPInfo& _info, const double freq_f0, const size_t n_channels,
+    std::vector<double>& freq_channel, const int beam_mode) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (is_updated_) {
+    return;
+  }
+  beam_mode_ = beam_mode;
+  n_stations_ = _info.nantenna();
+  casacore::Table ms(_info.msName());
+  is_dipole_ = false;
+  try {
+    n_elem_.resize(n_stations_);
+    sx_.resize(n_stations_);
+    sy_.resize(n_stations_);
+    sz_.resize(n_stations_);
+    xx_.resize(n_stations_);
+    yy_.resize(n_stations_);
+    zz_.resize(n_stations_);
+  } catch (const std::bad_alloc& e) {
+    throw std::runtime_error("Allocating memory failure");
+  }
+
+  if (!ms.keywordSet().isDefined("LOFAR_ANTENNA_FIELD"))
+    throw std::runtime_error("subtable LOFAR_ANTENNA_FIELD is missing");
+  casacore::Table antfield(ms.keywordSet().asTable("LOFAR_ANTENNA_FIELD"));
+  casacore::ROArrayColumn<double> position(antfield, "POSITION");
+  casacore::ROArrayColumn<double> offset(antfield, "ELEMENT_OFFSET");
+  casacore::ROArrayColumn<double> coord(antfield, "COORDINATE_AXES");
+  casacore::ROArrayColumn<bool> eflag(antfield, "ELEMENT_FLAG");
+  casacore::ROArrayColumn<double> tileoffset(antfield, "TILE_ELEMENT_OFFSET");
+  casacore::Table _field(ms.keywordSet().asTable("FIELD"));
+  // check if TILE_ELEMENT_OFFSET has any rows, if no rows present,
+  //      we know this is LBA
+  bool isHBA = tileoffset.hasContent(0);
+  /* read positions, also setup memory for element coords */
+  for (size_t ci = 0; ci < n_stations_; ci++) {
+    casacore::Array<double> _pos = position(ci);
+    double* tx = _pos.data();
+    sz_[ci] = tx[2];
+
+    casacore::MPosition stnpos(casacore::MVPosition(tx[0], tx[1], tx[2]),
+                               casacore::MPosition::ITRF);
+    casacore::Array<double> _radpos = stnpos.getAngle("rad").getValue();
+    tx = _radpos.data();
+
+    sx_[ci] = tx[0];
+    sy_[ci] = tx[1];
+    n_elem_[ci] = offset.shape(ci)[1];
+  }
+
+  if (isHBA) {
+    beamformer_type_ = STAT_TILE;
+    double tempT[3 * HBA_TILE_SIZE];
+    /* now read in element offsets, also transform them to local coordinates */
+    for (size_t ci = 0; ci < n_stations_; ci++) {
+      casacore::Array<double> _off = offset(ci);
+      double* off = _off.data();
+      casacore::Array<double> _coord = coord(ci);
+      double* coordmat = _coord.data();
+      casacore::Array<bool> _eflag = eflag(ci);
+      bool* ef = _eflag.data();
+      casacore::Array<double> _toff = tileoffset(ci);
+      double* toff = _toff.data();
+
+      double* tempC = new double[3 * n_elem_[ci]];
+      my_dgemm('T', 'N', n_elem_[ci], 3, 3, 1.0, off, 3, coordmat, 3, 0.0,
+               tempC, n_elem_[ci]);
+      my_dgemm('T', 'N', HBA_TILE_SIZE, 3, 3, 1.0, toff, 3, coordmat, 3, 0.0,
+               tempT, HBA_TILE_SIZE);
+
+      /* now inspect the element flag table to see if any of the dipoles are
+       * flagged */
+      size_t fcount = 0;
+      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+        if (ef[2 * cj] == 1 || ef[2 * cj + 1] == 1) {
+          fcount++;
+        }
+      }
+
+      xx_[ci] = new double[HBA_TILE_SIZE + (n_elem_[ci] - fcount)];
+      yy_[ci] = new double[HBA_TILE_SIZE + (n_elem_[ci] - fcount)];
+      zz_[ci] = new double[HBA_TILE_SIZE + (n_elem_[ci] - fcount)];
+      my_dcopy(HBA_TILE_SIZE, &tempT[0], 1, &(xx_[ci][0]), 1);
+      my_dcopy(HBA_TILE_SIZE, &tempT[HBA_TILE_SIZE], 1, &(yy_[ci][0]), 1);
+      my_dcopy(HBA_TILE_SIZE, &tempT[2 * HBA_TILE_SIZE], 1, &(zz_[ci][0]), 1);
+      /* copy unflagged tile centroids */
+      fcount = 0;
+      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+        if (!(ef[2 * cj] == 1 || ef[2 * cj + 1] == 1)) {
+          xx_[ci][HBA_TILE_SIZE + fcount] = tempC[cj];
+          yy_[ci][HBA_TILE_SIZE + fcount] = tempC[cj + n_elem_[ci]];
+          zz_[ci][HBA_TILE_SIZE + fcount] = tempC[cj + 2 * n_elem_[ci]];
+          fcount++;
+        }
+      }
+      n_elem_[ci] = fcount;
+
+      delete[] tempC;
+    }
+  } else { /* LBA */
+    beamformer_type_ = STAT_SINGLE;
+    /* read in element offsets, also transform them to local coordinates */
+    for (size_t ci = 0; ci < n_stations_; ci++) {
+      casacore::Array<double> _off = offset(ci);
+      double* off = _off.data();
+      casacore::Array<double> _coord = coord(ci);
+      double* coordmat = _coord.data();
+      casacore::Array<bool> _eflag = eflag(ci);
+      bool* ef = _eflag.data();
+
+      double* tempC = new double[3 * n_elem_[ci]];
+      my_dgemm('T', 'N', n_elem_[ci], 3, 3, 1.0, off, 3, coordmat, 3, 0.0,
+               tempC, n_elem_[ci]);
+
+      /* now inspect the element flag table to see if any of the dipoles are
+       * flagged */
+      size_t fcount = 0;
+      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+        if (ef[2 * cj] == 1 || ef[2 * cj + 1] == 1) {
+          fcount++;
+        }
+      }
+
+      xx_[ci] = new double[(n_elem_[ci] - fcount)];
+      yy_[ci] = new double[(n_elem_[ci] - fcount)];
+      zz_[ci] = new double[(n_elem_[ci] - fcount)];
+      /* copy unflagged coords for each dipole */
+      fcount = 0;
+      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+        if (!(ef[2 * cj] == 1 || ef[2 * cj + 1] == 1)) {
+          xx_[ci][fcount] = tempC[cj];
+          yy_[ci][fcount] = tempC[cj + n_elem_[ci]];
+          zz_[ci][fcount] = tempC[cj + 2 * n_elem_[ci]];
+          fcount++;
+        }
+      }
+      n_elem_[ci] = fcount;
+      delete[] tempC;
+    }
+  }
+  /* read beam pointing direction */
+  casacore::ROArrayColumn<double> point_dir(_field, "REFERENCE_DIR");
+  casacore::Array<double> pdir = point_dir(0);
+  double* pc = pdir.data();
+  p_ra0_ = pc[0];
+  p_dec0_ = pc[1];
+  /* read tile beam pointing direction */
+  casacore::ROArrayColumn<double> tile_dir(_field, "LOFAR_TILE_BEAM_DIR");
+  casacore::Array<double> tdir = tile_dir(0);
+  double* tc = tdir.data();
+  b_ra0_ = tc[0];
+  b_dec0_ = tc[1];
+
+  if (beam_mode_ == DOBEAM_FULL || beam_mode_ == DOBEAM_ELEMENT) {
+    set_elementcoeffs((freq_f0 < 100e6 ? ELEM_LBA : ELEM_HBA), freq_f0,
+                      &ecoeff);
+  } else if (beam_mode_ == DOBEAM_FULL_WB || beam_mode_ == DOBEAM_ELEMENT_WB) {
+    set_elementcoeffs_wb((freq_f0 < 100e6 ? ELEM_LBA : ELEM_HBA),
+                         freq_channel.data(), n_channels, &ecoeff);
+  }
+
+  is_updated_ = true;
+}
+
+SagecalPredict::BeamDataSingle::~BeamDataSingle() {
+  for (size_t ci = 0; ci < n_stations_; ci++) {
+    delete[] xx_[ci];
+    delete[] yy_[ci];
+    delete[] zz_[ci];
+  }
+  if (beam_mode_ == DOBEAM_FULL || beam_mode_ == DOBEAM_ELEMENT ||
+      beam_mode_ == DOBEAM_FULL_WB || beam_mode_ == DOBEAM_ELEMENT_WB) {
+    free_elementcoeffs(ecoeff);
+  }
+}
+#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
 void SagecalPredict::SetOperation(const std::string& operation) {
   if (operation == "replace") {
@@ -371,6 +539,8 @@ void SagecalPredict::init(
     ignore_list_.resize(patch_list_.size());
     memset(ignore_list_.data(), 0, sizeof(int) * patch_list_.size());
   }
+  // Create singleton if apply_beam is set
+  beam_data_ = SagecalPredict::BeamDataSingle::get_instance();
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 }
 
@@ -487,6 +657,7 @@ void SagecalPredict::updateFromH5(const double startTime) {
 
 bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
+#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   // Determine the various sizes.
   const size_t nDr = patch_list_.size();
   const size_t nBl = info().nbaselines();
@@ -502,18 +673,19 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   } else {
     timestep_++;
   }
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   loadData(buffer);
 
   // update time
   if (beam_mode_ != DOBEAM_NONE) {
-    beam_data_.time_utc[0] = (buffer->GetTime() / 86400.0 + 2400000.5);
+    runtime_beam_data_.time_utc_[0] = (buffer->GetTime() / 86400.0 + 2400000.5);
     // precess source positions
-    if (!beam_data_.sources_prec) {
+    if (!runtime_beam_data_.sources_prec_) {
       casacore::Precession prec(casacore::Precession::IAU2000);
-      casacore::RotMatrix rotat_prec(prec(beam_data_.time_utc[0] - 2400000.5));
+      casacore::RotMatrix rotat_prec(
+          prec(runtime_beam_data_.time_utc_[0] - 2400000.5));
       casacore::Nutation nut(casacore::Nutation::IAU2000);
-      casacore::RotMatrix rotat_nut(nut(beam_data_.time_utc[0] - 2400000.5));
+      casacore::RotMatrix rotat_nut(
+          nut(runtime_beam_data_.time_utc_[0] - 2400000.5));
 
       casacore::RotMatrix rotat = rotat_prec * rotat_nut;
       rotat.transpose();
@@ -528,18 +700,19 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           iodata_.cluster_arr_[cl].dec[ci] = newdir.get()[1];
         }
       }
-      casacore::MVDirection pos(casacore::Quantity(beam_data_.p_ra0, "rad"),
-                                casacore::Quantity(beam_data_.p_dec0, "rad"));
+      casacore::MVDirection pos(
+          casacore::Quantity(runtime_beam_data_.p_ra0_, "rad"),
+          casacore::Quantity(runtime_beam_data_.p_dec0_, "rad"));
       casacore::MVDirection newdir = rotat * pos;
-      beam_data_.p_ra0 = newdir.get()[0];
-      beam_data_.p_dec0 = newdir.get()[1];
+      runtime_beam_data_.p_ra0_ = newdir.get()[0];
+      runtime_beam_data_.p_dec0_ = newdir.get()[1];
       casacore::MVDirection pos_tile(
-          casacore::Quantity(beam_data_.b_ra0, "rad"),
-          casacore::Quantity(beam_data_.b_dec0, "rad"));
+          casacore::Quantity(runtime_beam_data_.b_ra0_, "rad"),
+          casacore::Quantity(runtime_beam_data_.b_dec0_, "rad"));
       casacore::MVDirection newdir_tile = rotat * pos_tile;
-      beam_data_.b_ra0 = newdir_tile.get()[0];
-      beam_data_.b_dec0 = newdir_tile.get()[1];
-      beam_data_.sources_prec = true;
+      runtime_beam_data_.b_ra0_ = newdir_tile.get()[0];
+      runtime_beam_data_.b_dec0_ = newdir_tile.get()[1];
+      runtime_beam_data_.sources_prec_ = true;
     }
   }
 
@@ -566,12 +739,13 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
           tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
           nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
-          time_smear_factor, phase_ref_.dec, beam_data_.beamformer_type,
-          beam_data_.b_ra0, beam_data_.b_dec0, beam_data_.p_ra0,
-          beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
-          beam_data_.sy.data(), beam_data_.time_utc.data(),
-          beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
-          beam_data_.zz.data(), &beam_data_.ecoeff, beam_mode_, n_threads_,
+          time_smear_factor, phase_ref_.dec, beam_data_->beamformer_type_,
+          runtime_beam_data_.b_ra0_, runtime_beam_data_.b_dec0_,
+          runtime_beam_data_.p_ra0_, runtime_beam_data_.p_dec0_, iodata_.f0,
+          beam_data_->sx_.data(), beam_data_->sy_.data(),
+          runtime_beam_data_.time_utc_.data(), beam_data_->n_elem_.data(),
+          beam_data_->xx_.data(), beam_data_->yy_.data(),
+          beam_data_->zz_.data(), &beam_data_->ecoeff, beam_mode_, n_threads_,
           operation);
     }
   } else {
@@ -593,12 +767,13 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
           iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
           iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
-          beam_data_.beamformer_type, beam_data_.b_ra0, beam_data_.b_dec0,
-          beam_data_.p_ra0, beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
-          beam_data_.sy.data(), beam_data_.time_utc.data(),
-          beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
-          beam_data_.zz.data(), &beam_data_.ecoeff, beam_mode_, n_threads_,
-          operation, -1, 0.0, false);
+          beam_data_->beamformer_type_, runtime_beam_data_.b_ra0_,
+          runtime_beam_data_.b_dec0_, runtime_beam_data_.p_ra0_,
+          runtime_beam_data_.p_dec0_, iodata_.f0, beam_data_->sx_.data(),
+          beam_data_->sy_.data(), runtime_beam_data_.time_utc_.data(),
+          beam_data_->n_elem_.data(), beam_data_->xx_.data(),
+          beam_data_->yy_.data(), beam_data_->zz_.data(), &beam_data_->ecoeff,
+          beam_mode_, n_threads_, operation, -1, 0.0, false);
     }
   }
 #endif                    /* HAVE_LIBDIRAC */
@@ -609,13 +784,13 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
         iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
         tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
         nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
-        time_smear_factor, phase_ref_.dec, beam_data_.beamformer_type,
-        beam_data_.b_ra0, beam_data_.b_dec0, beam_data_.p_ra0,
-        beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
-        beam_data_.sy.data(), beam_data_.time_utc.data(),
-        beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
-        beam_data_.zz.data(), &beam_data_.ecoeff, beam_mode_, n_threads_,
-        operation);
+        time_smear_factor, phase_ref_.dec, beam_data_->beamformer_type_,
+        runtime_beam_data_.b_ra0_, runtime_beam_data_.b_dec0_,
+        runtime_beam_data_.p_ra0_, runtime_beam_data_.p_dec0_, iodata_.f0,
+        beam_data_->sx_.data(), beam_data_->sy_.data(),
+        runtime_beam_data_.time_utc_.data(), beam_data_->n_elem_.data(),
+        beam_data_->xx_.data(), beam_data_->yy_.data(), beam_data_->zz_.data(),
+        &beam_data_->ecoeff, beam_mode_, n_threads_, operation);
   } else {
     predict_visibilities_withsol_withbeam_gpu(
         iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
@@ -624,12 +799,13 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
         iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
         iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
         iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
-        beam_data_.beamformer_type, beam_data_.b_ra0, beam_data_.b_dec0,
-        beam_data_.p_ra0, beam_data_.p_dec0, iodata_.f0, beam_data_.sx.data(),
-        beam_data_.sy.data(), beam_data_.time_utc.data(),
-        beam_data_.n_elem.data(), beam_data_.xx.data(), beam_data_.yy.data(),
-        beam_data_.zz.data(), &beam_data_.ecoeff, beam_mode_, n_threads_,
-        operation, -1, 0.0, false);
+        beam_data_->beamformer_type_, runtime_beam_data_.b_ra0_,
+        runtime_beam_data_.b_dec0_, runtime_beam_data_.p_ra0_,
+        runtime_beam_data_.p_dec0_, iodata_.f0, beam_data_->sx_.data(),
+        beam_data_->sy_.data(), runtime_beam_data_.time_utc_.data(),
+        beam_data_->n_elem_.data(), beam_data_->xx_.data(),
+        beam_data_->yy_.data(), beam_data_->zz_.data(), &beam_data_->ecoeff,
+        beam_mode_, n_threads_, operation, -1, 0.0, false);
   }
 #endif /* HAVE_LIBDIRAC_CUDA */
   writeData(buffer);
@@ -642,10 +818,6 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
 }
 
 void SagecalPredict::updateInfo(const DPInfo& _info) {
-  const size_t n_directions = patch_list_.size();
-  const size_t n_stations = _info.nantenna();
-  const size_t n_given_baselines = _info.nbaselines();
-  const size_t n_channels = _info.nchan();
   const size_t n_correlations = _info.ncorr();
 
   if (n_correlations != 4) {
@@ -654,15 +826,6 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
 
   if (n_threads_ == 0) {
     setNThreads(_info.nThreads());
-  }
-
-  // Some data will not have autocorrelations, in that case
-  // n_baselines = n_stations*(n_stations-1)/2, otherwise
-  // n_baselines = n_stations*(n_stations-1)/2+n_stations
-  // we only need baselines without autocorrelations
-  size_t n_baselines = n_given_baselines;
-  if (n_given_baselines == n_stations * (n_stations - 1) / 2 + n_stations) {
-    n_baselines = n_stations * (n_stations - 1) / 2;
   }
 
   Step::updateInfo(_info);
@@ -679,6 +842,20 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
   }
 
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
+  const size_t n_directions = patch_list_.size();
+  const size_t n_channels = _info.nchan();
+  const size_t n_stations = _info.nantenna();
+  const size_t n_given_baselines = _info.nbaselines();
+
+  // Some data will not have autocorrelations, in that case
+  // n_baselines = n_stations*(n_stations-1)/2, otherwise
+  // n_baselines = n_stations*(n_stations-1)/2+n_stations
+  // we only need baselines without autocorrelations
+  size_t n_baselines = n_given_baselines;
+  if (n_given_baselines == n_stations * (n_stations - 1) / 2 + n_stations) {
+    n_baselines = n_stations * (n_stations - 1) / 2;
+  }
+
   try {
     iodata_.cluster_arr_.resize(n_directions);
     iodata_.baseline_arr_.resize(n_baselines);
@@ -1102,168 +1279,17 @@ void SagecalPredict::writeData(std::unique_ptr<DPBuffer>& buffer) {
 }
 
 void SagecalPredict::readAuxData(const DPInfo& _info) {
-  beam_data_.n_stations = _info.nantenna();
-  casacore::Table ms(_info.msName());
+  beam_data_->update_metadata(_info, iodata_.f0, iodata_.n_channels,
+                              iodata_.freqs_, beam_mode_);
+  runtime_beam_data_.p_ra0_ = beam_data_->p_ra0_;
+  runtime_beam_data_.p_dec0_ = beam_data_->p_dec0_;
+  runtime_beam_data_.b_ra0_ = beam_data_->b_ra0_;
+  runtime_beam_data_.b_dec0_ = beam_data_->b_dec0_;
   const size_t tile_size = 1;
-  beam_data_.isDipole = false;
   try {
-    beam_data_.time_utc.resize(tile_size);
-    beam_data_.n_elem.resize(beam_data_.n_stations);
-    beam_data_.sx.resize(beam_data_.n_stations);
-    beam_data_.sy.resize(beam_data_.n_stations);
-    beam_data_.sz.resize(beam_data_.n_stations);
-    beam_data_.xx.resize(beam_data_.n_stations);
-    beam_data_.yy.resize(beam_data_.n_stations);
-    beam_data_.zz.resize(beam_data_.n_stations);
+    runtime_beam_data_.time_utc_.resize(tile_size);
   } catch (const std::bad_alloc& e) {
     throw std::runtime_error("Allocating memory failure");
-  }
-
-  if (!ms.keywordSet().isDefined("LOFAR_ANTENNA_FIELD"))
-    throw std::runtime_error("subtable LOFAR_ANTENNA_FIELD is missing");
-  casacore::Table antfield(ms.keywordSet().asTable("LOFAR_ANTENNA_FIELD"));
-  casacore::ROArrayColumn<double> position(antfield, "POSITION");
-  casacore::ROArrayColumn<double> offset(antfield, "ELEMENT_OFFSET");
-  casacore::ROArrayColumn<double> coord(antfield, "COORDINATE_AXES");
-  casacore::ROArrayColumn<bool> eflag(antfield, "ELEMENT_FLAG");
-  casacore::ROArrayColumn<double> tileoffset(antfield, "TILE_ELEMENT_OFFSET");
-  casacore::Table _field(ms.keywordSet().asTable("FIELD"));
-  // check if TILE_ELEMENT_OFFSET has any rows, of no rows present,
-  //      we know this is LBA
-  bool isHBA = tileoffset.hasContent(0);
-  /* read positions, also setup memory for element coords */
-  for (size_t ci = 0; ci < beam_data_.n_stations; ci++) {
-    casacore::Array<double> _pos = position(ci);
-    double* tx = _pos.data();
-    beam_data_.sz[ci] = tx[2];
-
-    casacore::MPosition stnpos(casacore::MVPosition(tx[0], tx[1], tx[2]),
-                               casacore::MPosition::ITRF);
-    casacore::Array<double> _radpos = stnpos.getAngle("rad").getValue();
-    tx = _radpos.data();
-
-    beam_data_.sx[ci] = tx[0];
-    beam_data_.sy[ci] = tx[1];
-    beam_data_.n_elem[ci] = offset.shape(ci)[1];
-  }
-
-  if (isHBA) {
-    beam_data_.beamformer_type = STAT_TILE;
-    double tempT[3 * HBA_TILE_SIZE];
-    /* now read in element offsets, also transform them to local coordinates */
-    for (size_t ci = 0; ci < beam_data_.n_stations; ci++) {
-      casacore::Array<double> _off = offset(ci);
-      double* off = _off.data();
-      casacore::Array<double> _coord = coord(ci);
-      double* coordmat = _coord.data();
-      casacore::Array<bool> _eflag = eflag(ci);
-      bool* ef = _eflag.data();
-      casacore::Array<double> _toff = tileoffset(ci);
-      double* toff = _toff.data();
-
-      double* tempC = new double[3 * beam_data_.n_elem[ci]];
-      my_dgemm('T', 'N', beam_data_.n_elem[ci], 3, 3, 1.0, off, 3, coordmat, 3,
-               0.0, tempC, beam_data_.n_elem[ci]);
-      my_dgemm('T', 'N', HBA_TILE_SIZE, 3, 3, 1.0, toff, 3, coordmat, 3, 0.0,
-               tempT, HBA_TILE_SIZE);
-
-      /* now inspect the element flag table to see if any of the dipoles are
-       * flagged */
-      size_t fcount = 0;
-      for (int cj = 0; cj < beam_data_.n_elem[ci]; cj++) {
-        if (ef[2 * cj] == 1 || ef[2 * cj + 1] == 1) {
-          fcount++;
-        }
-      }
-
-      beam_data_.xx[ci] =
-          new double[HBA_TILE_SIZE + (beam_data_.n_elem[ci] - fcount)];
-      beam_data_.yy[ci] =
-          new double[HBA_TILE_SIZE + (beam_data_.n_elem[ci] - fcount)];
-      beam_data_.zz[ci] =
-          new double[HBA_TILE_SIZE + (beam_data_.n_elem[ci] - fcount)];
-      my_dcopy(HBA_TILE_SIZE, &tempT[0], 1, &(beam_data_.xx[ci][0]), 1);
-      my_dcopy(HBA_TILE_SIZE, &tempT[HBA_TILE_SIZE], 1, &(beam_data_.yy[ci][0]),
-               1);
-      my_dcopy(HBA_TILE_SIZE, &tempT[2 * HBA_TILE_SIZE], 1,
-               &(beam_data_.zz[ci][0]), 1);
-      /* copy unflagged tile centroids */
-      fcount = 0;
-      for (int cj = 0; cj < beam_data_.n_elem[ci]; cj++) {
-        if (!(ef[2 * cj] == 1 || ef[2 * cj + 1] == 1)) {
-          beam_data_.xx[ci][HBA_TILE_SIZE + fcount] = tempC[cj];
-          beam_data_.yy[ci][HBA_TILE_SIZE + fcount] =
-              tempC[cj + beam_data_.n_elem[ci]];
-          beam_data_.zz[ci][HBA_TILE_SIZE + fcount] =
-              tempC[cj + 2 * beam_data_.n_elem[ci]];
-          fcount++;
-        }
-      }
-      beam_data_.n_elem[ci] = fcount;
-
-      delete[] tempC;
-    }
-  } else { /* LBA */
-    beam_data_.beamformer_type = STAT_SINGLE;
-    /* read in element offsets, also transform them to local coordinates */
-    for (size_t ci = 0; ci < beam_data_.n_stations; ci++) {
-      casacore::Array<double> _off = offset(ci);
-      double* off = _off.data();
-      casacore::Array<double> _coord = coord(ci);
-      double* coordmat = _coord.data();
-      casacore::Array<bool> _eflag = eflag(ci);
-      bool* ef = _eflag.data();
-
-      double* tempC = new double[3 * beam_data_.n_elem[ci]];
-      my_dgemm('T', 'N', beam_data_.n_elem[ci], 3, 3, 1.0, off, 3, coordmat, 3,
-               0.0, tempC, beam_data_.n_elem[ci]);
-
-      /* now inspect the element flag table to see if any of the dipoles are
-       * flagged */
-      size_t fcount = 0;
-      for (int cj = 0; cj < beam_data_.n_elem[ci]; cj++) {
-        if (ef[2 * cj] == 1 || ef[2 * cj + 1] == 1) {
-          fcount++;
-        }
-      }
-
-      beam_data_.xx[ci] = new double[(beam_data_.n_elem[ci] - fcount)];
-      beam_data_.yy[ci] = new double[(beam_data_.n_elem[ci] - fcount)];
-      beam_data_.zz[ci] = new double[(beam_data_.n_elem[ci] - fcount)];
-      /* copy unflagged coords for each dipole */
-      fcount = 0;
-      for (int cj = 0; cj < beam_data_.n_elem[ci]; cj++) {
-        if (!(ef[2 * cj] == 1 || ef[2 * cj + 1] == 1)) {
-          beam_data_.xx[ci][fcount] = tempC[cj];
-          beam_data_.yy[ci][fcount] = tempC[cj + beam_data_.n_elem[ci]];
-          beam_data_.zz[ci][fcount] = tempC[cj + 2 * beam_data_.n_elem[ci]];
-          fcount++;
-        }
-      }
-      beam_data_.n_elem[ci] = fcount;
-      delete[] tempC;
-    }
-  }
-  /* read beam pointing direction */
-  casacore::ROArrayColumn<double> point_dir(_field, "REFERENCE_DIR");
-  casacore::Array<double> pdir = point_dir(0);
-  double* pc = pdir.data();
-  beam_data_.p_ra0 = pc[0];
-  beam_data_.p_dec0 = pc[1];
-  /* read tile beam pointing direction */
-  casacore::ROArrayColumn<double> tile_dir(_field, "LOFAR_TILE_BEAM_DIR");
-  casacore::Array<double> tdir = tile_dir(0);
-  double* tc = tdir.data();
-  beam_data_.b_ra0 = tc[0];
-  beam_data_.b_dec0 = tc[1];
-
-  if (beam_mode_ == DOBEAM_FULL || beam_mode_ == DOBEAM_ELEMENT) {
-    set_elementcoeffs((iodata_.f0 < 100e6 ? ELEM_LBA : ELEM_HBA), iodata_.f0,
-                      &beam_data_.ecoeff);
-  } else if (beam_mode_ == DOBEAM_FULL_WB || beam_mode_ == DOBEAM_ELEMENT_WB) {
-    set_elementcoeffs_wb((iodata_.f0 < 100e6 ? ELEM_LBA : ELEM_HBA),
-                         iodata_.freqs_.data(), iodata_.n_channels,
-                         &beam_data_.ecoeff);
   }
 }
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
