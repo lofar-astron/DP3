@@ -22,9 +22,14 @@ xt::xtensor<int, 1> FindOutliers(float sigma, size_t max_iterations,
   // All non finite numbers are flagged as outlier
   xt::xtensor<int, 1> flags = !xt::isfinite(data);
 
+  // If all the data is infinite, return the flags
+  // without detecting outliers
+  if (xt::sum(flags)() == static_cast<int>(flags.size())) {
+    return flags;
+  }
+
   // Take the median of the finite numbers only, otherwise the median is NaN.
   const float median = xt::median(xt::filter(data, !flags));
-
   // Overwrite NaN's with median to workaround limitation of xt::stddev.
   xt::masked_view(data, flags) = median;
 
