@@ -189,8 +189,6 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
       used_antenna_positions.push_back(antenna_pos[ant]);
     }
 
-    solver_->SetNThreads(info().nThreads());
-
     const std::vector<base::Direction> source_directions =
         GetSourceDirections();
     const std::vector<double> channel_block_frequencies =

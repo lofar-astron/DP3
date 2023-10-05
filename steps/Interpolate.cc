@@ -15,6 +15,8 @@
 #include <iomanip>
 #include <thread>
 
+#include <aocommon/threadpool.h>
+
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
@@ -133,13 +135,10 @@ void Interpolate::interpolateTimestep(size_t index) {
   const size_t num_per_baseline = num_pol * num_channels;
   const size_t num_baselines = data_shape[0];
 
-  std::vector<std::thread> threads;
-  size_t num_threads = std::min<size_t>(getInfo().nThreads(), 8);
-  lane_.resize(num_threads * BUFFER_SIZE);
+  lane_.resize(aocommon::ThreadPool::GetInstance().NThreads() * BUFFER_SIZE);
   common::lane_write_buffer<Sample> buflane(&lane_, BUFFER_SIZE);
-  threads.reserve(num_threads);
-  for (size_t i = 0; i != num_threads; ++i)
-    threads.emplace_back(&Interpolate::interpolationThread, this);
+  aocommon::ThreadPool::GetInstance().StartParallelExecution(
+      [&](size_t) { interpolationThread(); });
 
   for (size_t bl = 0; bl < num_baselines; ++bl) {
     bool* flags = buffers_[index]->GetFlags().data() + bl * num_per_baseline;
@@ -154,7 +153,7 @@ void Interpolate::interpolateTimestep(size_t index) {
   }
   buflane.write_end();
 
-  for (std::thread& t : threads) t.join();
+  aocommon::ThreadPool::GetInstance().FinishParallelExecution();
 }
 
 void Interpolate::interpolationThread() {

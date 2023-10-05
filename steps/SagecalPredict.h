@@ -170,8 +170,6 @@ class SagecalPredict : public ModelDataStep {
 
   base::Direction GetFirstDirection() const override;
 
-  void setNThreads(const size_t n_threads) { n_threads_ = n_threads; }
-
  private:
   enum class Operation { kReplace, kAdd, kSubtract };
 
@@ -228,9 +226,6 @@ class SagecalPredict : public ModelDataStep {
   base::Direction phase_ref_;
 
   common::NSTimer timer_;
-
-  // This should be set in updateInfo()
-  size_t n_threads_{0};
 
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   IOData iodata_;

@@ -38,6 +38,8 @@
 
 #include <schaapcommon/h5parm/h5parm.h>
 
+#include <aocommon/threadpool.h>
+
 #include "SagecalPredict.h"
 
 using dp3::base::DPBuffer;
@@ -722,6 +724,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
   const int tile_size = 1;
   const double time_smear_factor = 1.0;
+  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
 #ifdef HAVE_LIBDIRAC /* mutually exclusive with HAVE_LIBDIRAC_CUDA */
   if (!parm_on_disk_) {
     if (beam_mode_ == DOBEAM_NONE) {
@@ -730,7 +733,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
           tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
           nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
-          time_smear_factor, phase_ref_.dec, n_threads_, operation);
+          time_smear_factor, phase_ref_.dec, n_threads, operation);
     } else {
       predict_visibilities_multifreq_withbeam(
           iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
@@ -743,7 +746,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           beam_data_->sx_.data(), beam_data_->sy_.data(),
           runtime_beam_data_.time_utc_.data(), beam_data_->n_elem_.data(),
           beam_data_->xx_.data(), beam_data_->yy_.data(),
-          beam_data_->zz_.data(), &beam_data_->ecoeff, beam_mode_, n_threads_,
+          beam_data_->zz_.data(), &beam_data_->ecoeff, beam_mode_, n_threads,
           operation);
     }
   } else {
@@ -755,7 +758,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
           iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
           iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
-          n_threads_, operation, -1, 0.0, false);
+          n_threads, operation, -1, 0.0, false);
 
     } else {
       predict_visibilities_multifreq_withsol_withbeam(
@@ -771,7 +774,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
           beam_data_->sy_.data(), runtime_beam_data_.time_utc_.data(),
           beam_data_->n_elem_.data(), beam_data_->xx_.data(),
           beam_data_->yy_.data(), beam_data_->zz_.data(), &beam_data_->ecoeff,
-          beam_mode_, n_threads_, operation, -1, 0.0, false);
+          beam_mode_, n_threads, operation, -1, 0.0, false);
     }
   }
 #endif                    /* HAVE_LIBDIRAC */
@@ -788,7 +791,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
         beam_data_->sx_.data(), beam_data_->sy_.data(),
         runtime_beam_data_.time_utc_.data(), beam_data_->n_elem_.data(),
         beam_data_->xx_.data(), beam_data_->yy_.data(), beam_data_->zz_.data(),
-        &beam_data_->ecoeff, beam_mode_, n_threads_, operation);
+        &beam_data_->ecoeff, beam_mode_, n_threads, operation);
   } else {
     predict_visibilities_withsol_withbeam_gpu(
         iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
@@ -803,7 +806,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
         beam_data_->sy_.data(), runtime_beam_data_.time_utc_.data(),
         beam_data_->n_elem_.data(), beam_data_->xx_.data(),
         beam_data_->yy_.data(), beam_data_->zz_.data(), &beam_data_->ecoeff,
-        beam_mode_, n_threads_, operation, -1, 0.0, false);
+        beam_mode_, n_threads, operation, -1, 0.0, false);
   }
 #endif /* HAVE_LIBDIRAC_CUDA */
   writeData(buffer);
@@ -820,10 +823,6 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
 
   if (n_correlations != 4) {
     throw std::invalid_argument("Can only predict with all 4 correlations.");
-  }
-
-  if (n_threads_ == 0) {
-    setNThreads(_info.nThreads());
   }
 
   Step::updateInfo(_info);
@@ -1162,7 +1161,6 @@ void SagecalPredict::show(std::ostream& os) const {
       break;
   }
   os << '\n';
-  os << "  threads: " << n_threads_ << '\n';
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
   if (parm_on_disk_) {
     os << "H5 name " << h5_name_ << "\n";

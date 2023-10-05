@@ -6,6 +6,7 @@
 #include "tStepCommon.h"
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
+#include <aocommon/threadpool.h>
 
 namespace dp3 {
 namespace steps {
@@ -20,7 +21,7 @@ void Execute(const std::vector<std::shared_ptr<Step>>& steps) {
 
   // Set DPInfo for all steps. Use a single thread in tests.
   base::DPInfo info;
-  info.setNThreads(1);
+  aocommon::ThreadPool::GetInstance().SetNThreads(1);
   steps.front()->setInfo(info);
 
   // Finally, execute the steps.

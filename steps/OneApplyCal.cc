@@ -411,7 +411,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
       itsJonesParameters->GetParms();
   const size_t n_corr = gains.shape()[0];
 
-  aocommon::DynamicFor<size_t> loop(getInfo().nThreads());
+  aocommon::DynamicFor<size_t> loop;
   loop.Run(0, n_bl, [&](size_t bl) {
     const unsigned int ant_a = info().getAnt1()[bl];
     const unsigned int ant_b = info().getAnt2()[bl];

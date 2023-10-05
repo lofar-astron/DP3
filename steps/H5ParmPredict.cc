@@ -98,8 +98,6 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
 void H5ParmPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
-  itsThreadPool.SetNThreads(infoIn.nThreads());
-
   itsPredictSteps.front()->setInfo(infoIn);
 }
 

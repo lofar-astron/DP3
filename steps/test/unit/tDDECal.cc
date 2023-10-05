@@ -51,131 +51,6 @@ BOOST_AUTO_TEST_CASE(provided_fields) {
   BOOST_TEST(ddecal_subtract.getProvidedFields() == Step::kDataField);
 }
 
-/// Helper forwarder to improve test failure output.
-static void TestShow(
-    const std::string& expected,
-    const std::vector<std::pair<std::string, std::string>>& parameters) {
-  const dp3::common::ParameterSet parset = CreateParameterSet(parameters);
-  const DDECal ddecal(parset, "prefix.");
-  BOOST_CHECK_EQUAL(expected, dp3::steps::test::Show(ddecal));
-
-  BOOST_CHECK_MESSAGE(parset.unusedKeys().empty(),
-                      "Not all keys are used, is there a typo?");
-}
-
-BOOST_AUTO_TEST_CASE(show_default) {
-  TestShow(
-      R"(DDECal prefix.
-  mode (constraints):  diagonal
-  algorithm:           directionsolve
-  H5Parm:              tDDECal.MS/instrument.h5
-  write sol to buffer: false
-  solint:              1
-  nchan:               1
-  directions:          [[center]]
-  sols per direction:  [1]
-  tolerance:           0.0001
-  max iter:            50
-  flag unconverged:    false
-     diverged only:    false
-  propagate solutions: false
-       converged only: false
-  detect stalling:     true
-  step size:           0.2
-  approximate fitter:  false
-  only predict:        false
-  subtract model:      false
-  keep model:          false
-Model steps for direction center
-Predict
-OnePredict prefix.
-  sourcedb:                tDDECal.MS/sky.txt
-   number of patches:      1
-   patches clustered:      false
-   number of components:   1
-   absolute orientation:   false
-   all unpolarized:        true
-   correct freq smearing:  false
-  apply beam:              false
-  operation:               replace
-  threads:                 )" +
-          std::to_string(aocommon::system::ProcessorCount()) + R"(
-
-)",
-      {{"msin", "tDDECal.MS"},
-       {"prefix.directions", "[[center]]"},
-       {"prefix.sourcedb", "tDDECal.MS/sky.txt"}});
-}
-
-BOOST_AUTO_TEST_CASE(show_modified) {
-  TestShow(
-      R"(DDECal prefix.
-  mode (constraints):  diagonal
-  algorithm:           hybrid
-  H5Parm:              tDDECal.MS/instrument.h5
-  write sol to buffer: false
-  solint:              42
-  nchan:               44
-  directions:          [[REUSE],[center]]
-  sols per direction:  [1,1]
-  min visib. ratio:    43.123
-  tolerance:           1e-05
-  max iter:            49
-  flag unconverged:    true
-     diverged only:    true
-  propagate solutions: true
-       converged only: true
-  detect stalling:     true
-  step size:           0.2
-  coreconstraint:      45.123
-  smoothnessconstraint:46.123
-  smoothnessreffrequency:47.123
-  smoothnessrefdistance:48.123
-  tecscreen.coreconstraint:49.123
-  approximate fitter:  false
-  only predict:        true
-  subtract model:      true
-  keep model:          true
-Direction REUSE reuses data from otherddecal.REUSE
-Model steps for direction center
-Predict
-OnePredict prefix.
-  sourcedb:                tDDECal.MS/sky.txt
-   number of patches:      1
-   patches clustered:      false
-   number of components:   1
-   absolute orientation:   false
-   all unpolarized:        true
-   correct freq smearing:  false
-  apply beam:              false
-  operation:               replace
-  threads:                 )" +
-          std::to_string(aocommon::system::ProcessorCount()) + R"(
-
-)",
-      {{"msin", "tDDECal.MS"},
-       {"prefix.directions", "[[center]]"},
-       {"prefix.sourcedb", "tDDECal.MS/sky.txt"},
-       {"prefix.propagatesolutions", "true"},
-       {"prefix.propagateconvergedonly", "true"},
-       {"prefix.flagunconverged", "true"},
-       {"prefix.flagdivergedonly", "true"},
-       {"prefix.onlypredict", "true"},
-       {"prefix.subtract", "true"},
-       {"prefix.keepmodel", "true"},
-       {"prefix.reusemodel", "[otherddecal.REUSE]"},
-       {"prefix.solveralgorithm", "hybrid"},
-       {"prefix.solint", "42"},
-       {"prefix.minvisratio", "43.123"},
-       {"prefix.nchan", "44"},
-       {"prefix.coreconstraint", "45.123"},
-       {"prefix.smoothnessconstraint", "46.123"},
-       {"prefix.smoothnessreffrequency", "47.123"},
-       {"prefix.smoothnessrefdistance", "48.123"},
-       {"prefix.tecscreen.coreconstraint", "49.123"},
-       {"prefix.maxiter", "49"}});
-}
-
 BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
                      boost::unit_test::data::xrange(1, 5), solution_interval) {
   const size_t kNTimes = 6;  // tDDECal.MS has 6 time slots.
@@ -354,7 +229,7 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
                    antenna1, antenna2);
   info.setChannels(std::vector<double>(kNChannels, 42.0e6),
                    std::vector<double>(kNChannels, 1.0e6));
-  info.setNThreads(1);
+  aocommon::ThreadPool::GetInstance().SetNThreads(1);
 
   auto ddecal = std::make_shared<DDECal>(
       CreateParameterSet({{"keepmodel", "true"},

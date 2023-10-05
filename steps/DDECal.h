@@ -105,6 +105,8 @@ class DDECal : public Step {
   /// input data buffer.
   void CorrectAndSubtractModels(size_t buffer_index);
 
+  void SetPredictThreadingInfo(aocommon::RecursiveFor& recursive_for);
+
   const ddecal::Settings itsSettings;
 
   /// The input data buffers for the current set of solution intervals.
@@ -183,7 +185,6 @@ class DDECal : public Step {
   common::NSTimer itsTimerWrite;
   std::mutex itsMeasuresMutex;
   std::unique_ptr<ddecal::SolverBase> itsSolver;
-  std::unique_ptr<aocommon::RecursiveFor> itsThreadPool;
   std::unique_ptr<std::ofstream> itsStatStream;
 };
 
