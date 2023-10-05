@@ -26,7 +26,8 @@ void TECConstraintBase::Initialize(
           "intervals");
   }
 
-  phase_fitters_.resize(NThreads());
+  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  phase_fitters_.resize(n_threads);
   for (PhaseFitter& fitter : phase_fitters_) fitter.Initialize(frequencies);
 
   weights_.assign(NChannelBlocks() * NAntennas(), 1.0);
@@ -38,7 +39,8 @@ void TECConstraintBase::SetWeights(const std::vector<double>& weights) {
 }
 
 void ApproximateTECConstraint::initializeChild() {
-  pw_fitters_.resize(NThreads());
+  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  pw_fitters_.resize(n_threads);
   thread_data_.resize(pw_fitters_.size());
   thread_fitted_data_.resize(pw_fitters_.size());
   thread_weights_.resize(pw_fitters_.size());
@@ -117,7 +119,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   // Divide out the reference antenna
   if (do_phase_reference_) applyReferenceAntenna(solutions);
 
-  aocommon::DynamicFor<size_t> loop(NThreads());
+  aocommon::DynamicFor<size_t> loop;
   loop.Run(
       0, NAntennas() * NSolutions(),
       [&](size_t antenna_and_solution_index, size_t thread) {
@@ -180,7 +182,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
   } else {
     if (do_phase_reference_) applyReferenceAntenna(solutions);
 
-    aocommon::DynamicFor<size_t> loop(NThreads());
+    aocommon::DynamicFor<size_t> loop;
     loop.Run(0, NAntennas() * NSolutions(),
              [&](size_t antenna_and_solution_index, size_t thread) {
                const size_t antenna_index =

@@ -225,8 +225,6 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
   itsUVWFlagStep.updateInfo(infoIn);
-  itsThreadPool =
-      std::make_unique<aocommon::RecursiveFor>(getInfo().nThreads());
 
   if (itsRequestedSolInt == 0) {
     itsRequestedSolInt = info().ntime();
@@ -238,27 +236,18 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
     step->setInfo(infoIn);
 
-    if (auto s = std::dynamic_pointer_cast<Predict>(step)) {
-      s->SetThreadData(*itsThreadPool, &itsMeasuresMutex);
-    } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(step)) {
+    if (auto s = std::dynamic_pointer_cast<IDGPredict>(step)) {
       itsSolIntCount =
           std::max(itsSolIntCount,
                    s->GetBufferSize() / itsSteps.size() / itsRequestedSolInt);
       // We increment by one so the IDGPredict will not flush in its process
       s->SetBufferSize(itsRequestedSolInt * itsSolIntCount + 1);
-    } else if (auto s = std::dynamic_pointer_cast<SagecalPredict>(step)) {
-      // Divide the full thread count to each step
-      // But at least allocate 4
-      s->setNThreads(std::max<std::size_t>(
-          4, std::min<std::size_t>(
-                 (getInfo().nThreads() + itsSteps.size() - 1) / itsSteps.size(),
-                 getInfo().nThreads())));
-    } else if (!std::dynamic_pointer_cast<MsColumnReader>(step)) {
+    } else if (!std::dynamic_pointer_cast<MsColumnReader>(step) &&
+               !std::dynamic_pointer_cast<Predict>(step) &&
+               !std::dynamic_pointer_cast<SagecalPredict>(step)) {
       throw std::runtime_error("DDECal received an invalid first model step");
     }
   }
-
-  itsSolver->SetNThreads(getInfo().nThreads());
 
   if (!itsUVWFlagStep.isDegenerate()) {
     itsDataResultStep = std::make_shared<ResultStep>();
@@ -537,6 +526,14 @@ void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
   }
 }
 
+void DDECal::SetPredictThreadingInfo(aocommon::RecursiveFor& recursive_for) {
+  for (std::shared_ptr<ModelDataStep>& step : itsSteps) {
+    if (auto predict = std::dynamic_pointer_cast<Predict>(step)) {
+      predict->SetThreadData(recursive_for, &itsMeasuresMutex);
+    }
+  }
+}
+
 void DDECal::doSolve() {
   for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
     // For directions that reuse model data, the model data of the various
@@ -763,12 +760,17 @@ void DDECal::doPrepare() {
 
   itsTimerPredict.start();
 
-  itsThreadPool->For(0, itsSteps.size(), [&](size_t dir, size_t) {
-    if (itsSteps[dir]) {  // When reusing model data, there is no step.
-      itsSteps[dir]->process(
-          std::make_unique<DPBuffer>(*input_buffer, itsRequiredFields[dir]));
-    }
-  });
+  // Enclose the recursive_for
+  {
+    aocommon::RecursiveFor recursive_for;
+    SetPredictThreadingInfo(recursive_for);
+    recursive_for.Run(0, itsSteps.size(), [&](size_t dir, size_t) {
+      if (itsSteps[dir]) {  // When reusing model data, there is no step.
+        itsSteps[dir]->process(
+            std::make_unique<DPBuffer>(*input_buffer, itsRequiredFields[dir]));
+      }
+    });
+  }
 
   // Handle weights and flags
   const size_t nBl = info().nbaselines();

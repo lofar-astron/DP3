@@ -42,14 +42,6 @@ class HybridSolver final : public SolverBase {
                             : solvers_.front().first->NSolutionPolarizations();
   }
 
-  void SetNThreads(size_t n_threads) override {
-    SolverBase::SetNThreads(n_threads);
-    for (std::pair<std::unique_ptr<SolverBase>, size_t>& solver_info :
-         solvers_) {
-      solver_info.first->SetNThreads(n_threads);
-    }
-  }
-
   /**
    * Add a solver. Solvers should be added in the order that they should
    * be called, and each solver should have its maximum number of iterations set

@@ -12,6 +12,8 @@
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
+#include <aocommon/recursivefor.h>
+
 namespace dp3 {
 
 namespace base {
@@ -26,8 +28,7 @@ class GainCalAlgorithm {
   /// mode can be "diagonal", "fulljones", "phaseonly", "scalarphase"
   GainCalAlgorithm(unsigned int solInt, unsigned int nChan, Mode mode,
                    bool scalar, double tolerance, unsigned int maxAntennas,
-                   bool detectStalling, unsigned int debugLevel,
-                   unsigned int nThreads);
+                   bool detectStalling, unsigned int debugLevel);
 
   /// Sets visibility matrices to zero
   void resetVis();
@@ -40,7 +41,7 @@ class GainCalAlgorithm {
 
   /// Perform an iteration of gaincal. Returns CONVERGED, NOTCONVERGED
   /// or STALLED
-  Status doStep(unsigned int iter);
+  Status doStep(unsigned int iter, aocommon::RecursiveFor& recursive_for);
 
   /// Returns the solution. The return matrix has a length of maxAntennas,
   /// which is zero for antennas for which no solution was computed.
@@ -77,7 +78,7 @@ class GainCalAlgorithm {
   }
 
   void doStep_polarized();
-  void doStep_unpolarized();
+  void doStep_unpolarized(aocommon::RecursiveFor& recursive_for);
 
   double getAverageUnflaggedSolution();
 
@@ -111,7 +112,6 @@ class GainCalAlgorithm {
   double _totalWeight;
   bool _detectStalling;
   unsigned int _debugLevel;
-  unsigned int _nThreads;
 
   double _dg, _dgx;          ///< previous convergence
   std::vector<double> _dgs;  ///< convergence history

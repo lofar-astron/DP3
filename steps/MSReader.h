@@ -110,12 +110,12 @@ class MSReader : public InputStep {
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
 
-  /// Update the general info.
-  void updateInfo(const base::DPInfo&) override;
+  /// Do nothing, since MSReader sets its info in the constructor.
+  void updateInfo(const base::DPInfo&) override {}
 
   /// Add some data to the MeasurementSet written/updated.
   /// Do nothing.
-  void addToMS(const string&) override{};
+  void addToMS(const std::string&) override{};
 
   /// Show the step parameters.
   void show(std::ostream&) const override;
