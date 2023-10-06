@@ -104,10 +104,9 @@ void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
 
   // Determine how much buffer space is needed per time slot.
   // The flagger needs 3 extra work buffers (data+flags) per thread.
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
   double timeSize = (sizeof(casacore::Complex) + sizeof(bool)) *
-                    (infoIn.nbaselines() + 3 * n_threads) * infoIn.nchan() *
-                    infoIn.ncorr();
+                    (infoIn.nbaselines() + 3 * getInfo().nThreads()) *
+                    infoIn.nchan() * infoIn.ncorr();
   // If no overlap percentage is given, set it to 1%.
   if (overlap_percentage_ < 0 && overlap_ == 0) {
     overlap_percentage_ = 1;
@@ -290,10 +289,9 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     aoflagger::QualityStatistics qstats;
     aoflagger::Strategy strategy;
   };
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
-  std::vector<ThreadData> threadData(n_threads);
+  std::vector<ThreadData> threadData(getInfo().nThreads());
   // Create thread-private objects.
-  for (size_t t = 0; t != n_threads; ++t) {
+  for (size_t t = 0; t != getInfo().nThreads(); ++t) {
     threadData[t].counter.init(getInfo());
     // Create a statistics object for all polarizations.
     threadData[t].qstats = aoflagger_.MakeQualityStatistics(
@@ -302,7 +300,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     threadData[t].strategy = aoflagger_.LoadStrategyFile(strategy_name_);
   }
 
-  aocommon::DynamicFor<size_t> loop;
+  aocommon::DynamicFor<size_t> loop(getInfo().nThreads());
   loop.Run(0, n_baselines, [&](size_t ib, size_t thread) {
     // Do autocorrelations only if told so.
     if (ant1[ib] == ant2[ib]) {
@@ -319,7 +317,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   });  // end of parallel for
 
   // Add the counters to the overall object.
-  for (size_t t = 0; t != n_threads; ++t) {
+  for (size_t t = 0; t != getInfo().nThreads(); ++t) {
     flag_counter_.add(threadData[t].counter);
     if (collect_statistics_) {
       quality_timer_.start();

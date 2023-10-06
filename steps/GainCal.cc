@@ -19,9 +19,6 @@
 
 #include <dp3/base/DP3.h>
 
-#include <aocommon/dynamicfor.h>
-#include <aocommon/recursivefor.h>
-
 #include "../base/DPLogger.h"
 #include "../base/SourceDBUtil.h"
 
@@ -30,6 +27,7 @@
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 #include "MsColumnReader.h"
+#include "Predict.h"
 
 using casacore::IPosition;
 using casacore::Matrix;
@@ -58,6 +56,8 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
       itsDetectStalling(parset.getBool(prefix + "detectstalling", true)),
       itsApplySolution(parset.getBool(prefix + "applysolution", false)),
       itsUVWFlagStep(parset, prefix, Step::MsType::kRegular),
+      itsParallelFor(1),
+      itsThreadPool(1),
       itsFirstSubStep(),
       itsResultStep(std::make_shared<ResultStep>()),
       itsBaselineSelection(parset, prefix),
@@ -96,6 +96,7 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
 
   if (!itsUseModelColumn && itsModelDataName.empty()) {
     auto predict_step = std::make_shared<Predict>(parset, prefix);
+    predict_step->SetThreadData(itsThreadPool, nullptr);
     predict_step->setNextStep(itsResultStep);
     itsFirstSubStep = std::move(predict_step);
   } else if (itsUseModelColumn) {
@@ -169,6 +170,10 @@ void GainCal::setAntennaUsed() {
 void GainCal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
+  // By giving a thread pool to the predicter, the threads are
+  // sustained.
+  itsThreadPool.SetNThreads(info().nThreads());
+  itsParallelFor.SetNThreads(info().nThreads());
   itsUVWFlagStep.updateInfo(infoIn);
 
   if (itsFirstSubStep) itsFirstSubStep->setInfo(infoIn);
@@ -224,8 +229,10 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
     }
   }
 
-  algorithms_.reserve(itsNFreqCells);
+  iS.reserve(itsNFreqCells);
   unsigned int chMax = itsNChan;
+  const unsigned int nThreadsPerCell =
+      std::max(info().nThreads() / itsNFreqCells, 1u);
   for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
     if ((freqCell + 1) * itsNChan >
         info().nchan()) {  // Last cell can be smaller
@@ -254,9 +261,10 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
         throw std::runtime_error("Unhandled mode");
     }
 
-    algorithms_.emplace_back(GainCalAlgorithm(
-        itsSolInt, chMax, smode, scalarMode(itsMode), itsTolerance,
-        info().antennaUsed().size(), itsDetectStalling, itsDebugLevel));
+    iS.emplace_back(
+        GainCalAlgorithm(itsSolInt, chMax, smode, scalarMode(itsMode),
+                         itsTolerance, info().antennaUsed().size(),
+                         itsDetectStalling, itsDebugLevel, nThreadsPerCell));
   }
 
   itsFlagCounter.init(getInfo());
@@ -264,14 +272,14 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   itsChunkStartTime = info().startTime();
 
   if (itsDebugLevel > 0) {
-    if (aocommon::ThreadPool::GetInstance().NThreads() != 1)
+    if (getInfo().nThreads() != 1)
       throw std::runtime_error("nthreads should be 1 in debug mode");
     assert(itsTimeSlotsPerParmUpdate >= info().ntime());
     itsAllSolutions.resize(
         {info().ntime(), itsMaxIter, itsNFreqCells,
          (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) ? 2u
                                                                         : 1u,
-         info().antennaUsed().size(), algorithms_[0].numCorrelations()});
+         info().antennaUsed().size(), iS[0].numCorrelations()});
   }
 }
 
@@ -304,6 +312,7 @@ void GainCal::show(std::ostream& os) const {
   os << "  use model column:    " << std::boolalpha << itsUseModelColumn
      << '\n';
   os << "  model column name:   " << itsModelColumnName << '\n';
+  os << "  threads:             " << getInfo().nThreads() << '\n';
   itsBaselineSelection.show(os);
   for (Step* step = itsFirstSubStep.get(); step != nullptr;
        step = step->getNextStep().get()) {
@@ -393,7 +402,7 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
     flag = itsDataResultStep->get().GetFlags().data();
   }
 
-  // Predict the model data.
+  // Simulate.
   //
   // Model visibilities for each direction of interest will be computed
   // and stored.
@@ -417,10 +426,9 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (itsStepInSolInt == 0) {
     // Start new solution interval
-    aocommon::DynamicFor<size_t> loop;
-    loop.Run(0, itsNFreqCells, [&](size_t freqCell) {
-      algorithms_[freqCell].clearStationFlagged();
-      algorithms_[freqCell].resetVis();
+    itsParallelFor.Run(0, itsNFreqCells, [&](size_t freqCell) {
+      iS[freqCell].clearStationFlagged();
+      iS[freqCell].resetVis();
     });
   }
 
@@ -541,8 +549,7 @@ void GainCal::fillMatrices(const std::complex<float>* model,
   auto weight_adaptor = xt::adapt(weight, size, xt::no_ownership(), shape);
   auto flag_adaptor = xt::adapt(flag, size, xt::no_ownership(), shape);
 
-  aocommon::DynamicFor<size_t> loop;
-  loop.Run(0, n_channels, [&](size_t ch) {
+  itsParallelFor.Run(0, n_channels, [&](size_t ch) {
     for (size_t bl = 0; bl < n_baselines; ++bl) {
       if (!itsSelectedBL[bl]) {
         continue;
@@ -551,17 +558,17 @@ void GainCal::fillMatrices(const std::complex<float>* model,
       const int ant1 = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
       const int ant2 = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
 
-      const bool skip = (ant1 == ant2 ||
-                         algorithms_[ch / itsNChan].getStationFlagged()[ant1] ||
-                         algorithms_[ch / itsNChan].getStationFlagged()[ant2] ||
-                         flag_adaptor(bl, ch, 0));
+      const bool skip =
+          (ant1 == ant2 || iS[ch / itsNChan].getStationFlagged()[ant1] ||
+           iS[ch / itsNChan].getStationFlagged()[ant2] ||
+           flag_adaptor(bl, ch, 0));
 
       if (skip) {  // Only check flag of cr==0
         continue;
       }
 
       if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
-        algorithms_[ch / itsNChan].incrementWeight(weight_adaptor(bl, ch, 0));
+        iS[ch / itsNChan].incrementWeight(weight_adaptor(bl, ch, 0));
       }
 
       for (size_t cr = 0; cr < n_correlations; ++cr) {
@@ -573,18 +580,18 @@ void GainCal::fillMatrices(const std::complex<float>* model,
         const IPosition index(6, ant1, cr / n_crDiv, itsStepInSolInt,
                               ch % itsNChan, cr % 2, ant2);
 
-        algorithms_[ch / itsNChan].getVis()(index) =
+        iS[ch / itsNChan].getVis()(index) =
             data_adaptor(bl, ch, cr) * weight_sqrt;
-        algorithms_[ch / itsNChan].getMVis()(index) =
+        iS[ch / itsNChan].getMVis()(index) =
             model_adaptor(bl, ch, cr) * weight_sqrt;
 
         const IPosition conjugate_index(6, ant2, cr % 2, itsStepInSolInt,
                                         ch % itsNChan, cr / n_crDiv, ant1);
 
         // conjugate transpose
-        algorithms_[ch / itsNChan].getVis()(conjugate_index) =
+        iS[ch / itsNChan].getVis()(conjugate_index) =
             std::conj(data_adaptor(bl, ch, cr)) * weight_sqrt;
-        algorithms_[ch / itsNChan].getMVis()(conjugate_index) =
+        iS[ch / itsNChan].getMVis()(conjugate_index) =
             std::conj(model_adaptor(bl, ch, cr)) * weight_sqrt;
       }
     }
@@ -605,8 +612,12 @@ bool GainCal::diagonalMode(CalType caltype) {
 void GainCal::calibrate() {
   itsTimerSolve.start();
 
-  for (GainCalAlgorithm& algorithm : algorithms_) {
-    algorithm.init(!itsPropagateSolutions);
+  for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
+    if (itsPropagateSolutions) {
+      iS[freqCell].init(false);
+    } else {
+      iS[freqCell].init(true);
+    }
   }
 
   unsigned int iter = 0;
@@ -620,23 +631,23 @@ void GainCal::calibrate() {
 
   for (; iter < itsMaxIter; ++iter) {
     bool allConverged = true;
-    aocommon::RecursiveFor recursive_for;
-    recursive_for.Run(0, itsNFreqCells, [&](size_t freqCell, size_t) {
-      // Do another step when stalled and not all converged
-      if (converged[freqCell] != GainCalAlgorithm::CONVERGED) {
-        converged[freqCell] = algorithms_[freqCell].doStep(iter, recursive_for);
-        // Only continue if there are steps worth continuing
-        // (so not converged, failed or stalled)
-        if (converged[freqCell] == GainCalAlgorithm::NOTCONVERGED) {
-          allConverged = false;
-        }
-      }
-    });
+    itsParallelFor.Run(
+        0, itsNFreqCells, [&](size_t freqCell, size_t /*thread*/) {
+          // Do another step when stalled and not all converged
+          if (converged[freqCell] != GainCalAlgorithm::CONVERGED) {
+            converged[freqCell] = iS[freqCell].doStep(iter);
+            // Only continue if there are steps worth continuing
+            // (so not converged, failed or stalled)
+            if (converged[freqCell] == GainCalAlgorithm::NOTCONVERGED) {
+              allConverged = false;
+            }
+          }
+        });
 
     if (itsDebugLevel > 0) {
       for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
         Matrix<std::complex<double>> fullSolution =
-            algorithms_[freqCell].getSolution(false);
+            iS[freqCell].getSolution(false);
         std::copy(
             fullSolution.begin(), fullSolution.end(),
             &itsAllSolutions(itsStepInParmUpdate, iter, freqCell, 0, 0, 0));
@@ -654,11 +665,11 @@ void GainCal::calibrate() {
       // TODO: set phase reference to something smarter than station 0
       for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
         casacore::Matrix<std::complex<double>> sol =
-            algorithms_[freqCell].getSolution(false);
-        if (algorithms_[freqCell].getStationFlagged()[0]) {
+            iS[freqCell].getSolution(false);
+        if (iS[freqCell].getStationFlagged()[0]) {
           // If reference station flagged, flag whole channel
           for (unsigned int st = 0; st < info().antennaUsed().size(); ++st) {
-            algorithms_[freqCell].getStationFlagged()[st] = true;
+            iS[freqCell].getStationFlagged()[st] = true;
           }
         } else {
           for (unsigned int st = 0; st < info().antennaUsed().size(); ++st) {
@@ -669,12 +680,12 @@ void GainCal::calibrate() {
       }
 
       // Fit the data for each station
-      recursive_for.Run(0, nSt, [&](size_t st, size_t) {
+      itsParallelFor.Run(0, nSt, [&](size_t st, size_t /*thread*/) {
         unsigned int numpoints = 0;
         double* phases = itsPhaseFitters[st]->PhaseData();
         double* weights = itsPhaseFitters[st]->WeightData();
         for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
-          if (algorithms_[freqCell].getStationFlagged()[st % nSt] ||
+          if (iS[freqCell].getStationFlagged()[st % nSt] ||
               converged[freqCell] == GainCalAlgorithm::FAILED) {
             phases[freqCell] = 0;
             weights[freqCell] = 0;
@@ -686,8 +697,8 @@ void GainCal::calibrate() {
                         << '\n';
               assert(std::isfinite(phases[freqCell]));
             }
-            assert(algorithms_[freqCell].getWeight() > 0);
-            weights[freqCell] = algorithms_[freqCell].getWeight();
+            assert(iS[freqCell].getWeight() > 0);
+            weights[freqCell] = iS[freqCell].getWeight();
             numpoints++;
           }
         }
@@ -707,7 +718,7 @@ void GainCal::calibrate() {
           for (unsigned int freqCell = 0; freqCell < itsNFreqCells;
                ++freqCell) {
             assert(std::isfinite(phases[freqCell]));
-            algorithms_[freqCell].getSolution(false)(st, 0) =
+            iS[freqCell].getSolution(false)(st, 0) =
                 std::polar(1., phases[freqCell]);
           }
         } else {
@@ -721,7 +732,7 @@ void GainCal::calibrate() {
           for (unsigned int freqCell = 0; freqCell < itsNFreqCells;
                ++freqCell) {
             Matrix<std::complex<double>> fullSolution =
-                algorithms_[freqCell].getSolution(false);
+                iS[freqCell].getSolution(false);
             std::copy(
                 fullSolution.begin(), fullSolution.end(),
                 &itsAllSolutions(itsStepInParmUpdate, iter, freqCell, 1, 0, 0));
@@ -770,17 +781,17 @@ void GainCal::calibrate() {
   unsigned int nSt = info().antennaUsed().size();
 
   xt::xtensor<std::complex<float>, 3> sol(
-      {itsNFreqCells, nSt, algorithms_[0].numCorrelations()});
+      {itsNFreqCells, nSt, iS[0].numCorrelations()});
 
   unsigned int transpose[2][4] = {{0, 1, 0, 0}, {0, 2, 1, 3}};
 
   for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
     casacore::Matrix<std::complex<double>> tmpsol =
-        algorithms_[freqCell].getSolution(true);
+        iS[freqCell].getSolution(true);
 
     for (unsigned int st = 0; st < nSt; st++) {
-      for (unsigned int cr = 0; cr < algorithms_[0].nCr(); ++cr) {
-        unsigned int crt = transpose[algorithms_[0].numCorrelations() / 4]
+      for (unsigned int cr = 0; cr < iS[0].nCr(); ++cr) {
+        unsigned int crt = transpose[iS[0].numCorrelations() / 4]
                                     [cr];  // Conjugate transpose ! (only for
                                            // numCorrelations = 4)
         sol(freqCell, st, crt) = conj(tmpsol(st, cr));  // Conjugate transpose

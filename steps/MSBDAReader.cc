@@ -249,6 +249,7 @@ void MSBDAReader::updateInfo(const DPInfo& info_in) {
   const unsigned int start_channel = 0;
   const std::string antenna_set = base::ReadAntennaSet(ms_);
   info() = DPInfo(ncorr, max_n_channels, start_channel, antenna_set);
+  info().setNThreads(info_in.nThreads());
 
   // Set time info.
 

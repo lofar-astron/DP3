@@ -68,6 +68,7 @@ class SmoothnessConstraint final : public Constraint {
   Smoother::KernelType kernel_type_;
   double bandwidth_;
   double bandwidth_ref_frequency_;
+  std::unique_ptr<aocommon::DynamicFor<size_t>> loop_;
 };
 
 }  // namespace ddecal

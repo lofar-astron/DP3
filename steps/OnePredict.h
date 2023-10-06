@@ -96,10 +96,10 @@ class OnePredict : public ModelDataStep {
   /// (like currently in H5ParmPredict), this function should not be called, as
   /// otherwise they will synchronize needlessly.
   ///
-  /// It is also possible to make the predict steps share the same RecursiveFor
+  /// It is also possible to make the predict steps share the same threadpool
   /// without further synchronisation, by setting measures_mutex to nullptr.
-  void SetThreadData(aocommon::RecursiveFor& loop, std::mutex* measures_mutex) {
-    recursive_for_ = &loop;
+  void SetThreadData(aocommon::RecursiveFor& pool, std::mutex* measures_mutex) {
+    thread_pool_ = &pool;
     measures_mutex_ = measures_mutex;
   }
 
@@ -222,7 +222,7 @@ class OnePredict : public ModelDataStep {
    */
   std::atomic<int64_t> apply_beam_time_{0};
 
-  aocommon::RecursiveFor* recursive_for_;
+  aocommon::RecursiveFor* thread_pool_;
   std::mutex* measures_mutex_;
   std::mutex mutex_;
 };

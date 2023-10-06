@@ -44,14 +44,15 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
   double avg_squared_diff = 1.0E4;
 
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  // Using more threads wastes CPU and memory resources.
+  const size_t n_threads = std::min(NChannelBlocks(), GetNThreads());
   // For each thread:
   // - Model matrix 2 x ant x [2N x D]
   // - Visibility vector 2 x ant x [2N]
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<std::vector<Complex>>> thread_vs(n_threads);
 
-  aocommon::DynamicFor<size_t> loop;
+  aocommon::DynamicFor<size_t> loop(n_threads);
   do {
     MakeSolutionsFinite2Pol(solutions);
 

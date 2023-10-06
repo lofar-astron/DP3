@@ -33,8 +33,10 @@
 #include "../steps/MadFlagger.h"
 #include "../steps/MSBDAWriter.h"
 #include "../steps/MsColumnReader.h"
+#include "../steps/MSReader.h"
 #include "../steps/MSUpdater.h"
 #include "../steps/MSWriter.h"
+#include "../steps/MultiMSReader.h"
 #include "../steps/NullStep.h"
 #include "../steps/NullStokes.h"
 #include "../steps/PhaseShift.h"
@@ -274,16 +276,17 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
 
   bool showcounts = parset.getBool("showcounts", true);
 
-  size_t n_threads = parset.getInt("numthreads", 0);
-  if (n_threads == 0) n_threads = aocommon::system::ProcessorCount();
-  aocommon::ThreadPool::GetInstance().SetNThreads(n_threads);
-  Step::SetThreadingIsInitialized();
+  unsigned int numThreads = parset.getInt("numthreads", 0);
 
   // Create the steps, link them together
   std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
 
   // Call updateInfo() on all steps
-  DPInfo dpInfo = firstStep->setInfo(DPInfo());
+  DPInfo dpInfo;
+  if (numThreads > 0) {
+    dpInfo.setNThreads(numThreads);
+  }
+  dpInfo = firstStep->setInfo(dpInfo);
 
   // Show the steps.
   std::shared_ptr<Step> step = firstStep;

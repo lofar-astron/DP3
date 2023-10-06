@@ -28,7 +28,6 @@
 #include <casacore/measures/Measures/MeasConvert.h>
 
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/threadpool.h>
 
 #include <cassert>
 #include <ostream>
@@ -153,7 +152,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   const size_t nSt = info().nantenna();
   const size_t nCh = info().nchan();
 
-  const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t nThreads = getInfo().nThreads();
   itsBeamValues.resize(nThreads);
 
   // Create the Measure ITRF conversion info given the array position.
@@ -221,8 +220,7 @@ bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
    */
   bool undoInputBeam =
       itsInvert && itsModeAtStart != everybeam::CorrectionMode::kNone;
-  const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
-  for (size_t threadIter = 0; threadIter < nThreads; ++threadIter) {
+  for (size_t threadIter = 0; threadIter < getInfo().nThreads(); ++threadIter) {
     itsMeasFrames[threadIter].resetEpoch(
         MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
     // Do a conversion on all threads, because converters are not
