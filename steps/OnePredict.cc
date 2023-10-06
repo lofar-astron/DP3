@@ -33,6 +33,7 @@
 #include "../parmdb/SourceDB.h"
 
 #include <aocommon/barrier.h>
+#include <aocommon/dynamicfor.h>
 #include <aocommon/recursivefor.h>
 
 #include <casacore/casa/Arrays/Array.h>
@@ -43,14 +44,14 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/tables/Tables/RefRows.h>
 
-#include <algorithm>
-#include <cstddef>
-#include <numeric>
-#include <optional>
-#include <sstream>
+#include <stddef.h>
 #include <string>
+#include <sstream>
 #include <utility>
 #include <vector>
+
+#include <numeric>
+#include <algorithm>
 
 #include <boost/algorithm/string/case_conv.hpp>
 
@@ -67,10 +68,9 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-OnePredict::OnePredict(const common::ParameterSet& parset,
-                       const std::string& prefix,
-                       const std::vector<std::string>& source_patterns)
-    : recursive_for_(nullptr), measures_mutex_(nullptr) {
+OnePredict::OnePredict(const common::ParameterSet& parset, const string& prefix,
+                       const std::vector<string>& source_patterns)
+    : thread_pool_(nullptr), measures_mutex_(nullptr) {
   if (!source_patterns.empty()) {
     init(parset, prefix, source_patterns);
   } else {
@@ -80,9 +80,8 @@ OnePredict::OnePredict(const common::ParameterSet& parset,
   }
 }
 
-void OnePredict::init(const common::ParameterSet& parset,
-                      const std::string& prefix,
-                      const std::vector<std::string>& sourcePatterns) {
+void OnePredict::init(const common::ParameterSet& parset, const string& prefix,
+                      const std::vector<string>& sourcePatterns) {
   name_ = prefix;
   source_db_name_ = parset.getString(prefix + "sourcedb");
   correct_freq_smearing_ =
@@ -192,7 +191,7 @@ void OnePredict::initializeThreadData() {
   const size_t nSt = info().nantenna();
   const size_t nCh = info().nchan();
   const size_t nCr = stokes_i_only_ ? 1 : info().ncorr();
-  const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t nThreads = getInfo().nThreads();
 
   station_uvw_.resize({nSt, 3});
 
@@ -318,6 +317,7 @@ void OnePredict::show(std::ostream& os) const {
       os << "subtract\n";
       break;
   }
+  os << "  threads:                 " << getInfo().nThreads() << '\n';
   if (apply_cal_step_) {
     apply_cal_step_->show(os);
   }
@@ -359,7 +359,6 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   // Set up directions for beam evaluation
   everybeam::vector3r_t refdir, tiledir;
 
-  size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
   const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
   if (need_meas_converters) {
     // Because multiple predict steps might be predicting simultaneously, and
@@ -367,7 +366,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     std::unique_lock<std::mutex> lock;
     if (measures_mutex_ != nullptr)
       lock = std::unique_lock<std::mutex>(*measures_mutex_);
-    for (size_t thread = 0; thread != n_threads; ++thread) {
+    for (size_t thread = 0; thread != getInfo().nThreads(); ++thread) {
       meas_frame_[thread].resetEpoch(
           MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
       // Do a conversion on all threads
@@ -386,22 +385,28 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
         base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
   }
 
-  std::optional<aocommon::RecursiveFor> local_recursive_for;
-  aocommon::RecursiveFor* recursive_for = recursive_for_;
-  if (recursive_for == nullptr) {
+  std::unique_ptr<aocommon::RecursiveFor> localThreadPool;
+  aocommon::RecursiveFor* pool = thread_pool_;
+  if (pool == nullptr) {
     // If no ThreadPool was specified, we create a temporary one just
     // for execution of this part.
-    local_recursive_for.emplace();
-    recursive_for = &local_recursive_for.value();
+    localThreadPool =
+        std::make_unique<aocommon::RecursiveFor>(info().nThreads());
+    pool = localThreadPool.get();
+  } else {
+    if (pool->NThreads() != info().nThreads())
+      throw std::runtime_error(
+          "Thread pool has inconsistent number of threads!");
   }
   std::vector<base::Simulator> simulators;
-  simulators.reserve(n_threads);
+  simulators.reserve(pool->NThreads());
 
   std::vector<std::pair<size_t, size_t>> baseline_range;
   std::vector<xt::xtensor<std::complex<double>, 3>> sim_buffer;
   std::vector<std::vector<std::pair<size_t, size_t>>> baselines_split;
   std::vector<std::pair<size_t, size_t>> station_range;
   const size_t actual_nCr = (stokes_i_only_ ? 1 : nCr);
+  size_t n_threads = pool->NThreads();
   if (thread_over_baselines_) {
     // Reduce the number of threads if there are not enough baselines.
     n_threads = std::min(n_threads, nBl);
@@ -457,7 +462,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       }
     }
 
-    recursive_for->Run(0, n_threads, [&](size_t thread_index, size_t) {
+    pool->For(0, n_threads, [&](size_t thread_index, size_t) {
       const std::complex<double> zero(0.0, 0.0);
       predict_buffer_->GetModel(thread_index).fill(zero);
       if (apply_beam_) predict_buffer_->GetPatchModel(thread_index).fill(zero);
@@ -484,7 +489,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
                               correct_freq_smearing_, stokes_i_only_);
     }
   } else {
-    for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
+    for (size_t thread_index = 0; thread_index != pool->NThreads();
+         ++thread_index) {
       xt::xtensor<std::complex<double>, 3>& model =
           predict_buffer_->GetModel(thread_index);
       model.fill(std::complex<double>(0.0, 0.0));
@@ -512,13 +518,14 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
                               correct_freq_smearing_, stokes_i_only_);
     }
   }
-  std::vector<std::shared_ptr<const base::Patch>> curPatches(n_threads);
+  std::vector<std::shared_ptr<const base::Patch>> curPatches(pool->NThreads());
 
   if (thread_over_baselines_) {
     aocommon::Barrier barrier(n_threads);
     // We need to create local threads here because we need to
     // sync only those using the barrier
-    recursive_for->Run(0, n_threads, [&](size_t thread_index, size_t) {
+    aocommon::DynamicFor<size_t> loop(n_threads);
+    loop.Run(0, n_threads, [&](size_t thread_index) {
       const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
           scoped_time{predict_time_};
       // OnePredict the source model and apply beam when an entire patch is
@@ -577,34 +584,31 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       }
     });
   } else {
-    recursive_for->Run(
-        0, source_list_.size(), [&](size_t source_index, size_t thread) {
-          const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
-              scoped_time{predict_time_};
-          // OnePredict the source model and apply beam when an entire patch is
-          // done
-          std::shared_ptr<const base::Patch>& curPatch = curPatches[thread];
-          const bool patchIsFinished =
-              curPatch != source_list_[source_index].second &&
-              curPatch != nullptr;
-          if (apply_beam_ && patchIsFinished) {
-            // Apply the beam and add PatchModel to Model
-            addBeamToData(curPatch, time, thread,
-                          predict_buffer_->GetPatchModel(thread),
-                          stokes_i_only_);
-            // Initialize patchmodel to zero for the next patch
-            predict_buffer_->GetPatchModel(thread).fill(
-                std::complex<double>(0.0, 0.0));
-          }
-          // Depending on apply_beam_, the following call will add to either
-          // the Model or the PatchModel of the predict buffer
-          simulators[thread].simulate(source_list_[source_index].first);
+    pool->For(0, source_list_.size(), [&](size_t source_index, size_t thread) {
+      const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
+          scoped_time{predict_time_};
+      // OnePredict the source model and apply beam when an entire patch is
+      // done
+      std::shared_ptr<const base::Patch>& curPatch = curPatches[thread];
+      const bool patchIsFinished =
+          curPatch != source_list_[source_index].second && curPatch != nullptr;
+      if (apply_beam_ && patchIsFinished) {
+        // Apply the beam and add PatchModel to Model
+        addBeamToData(curPatch, time, thread,
+                      predict_buffer_->GetPatchModel(thread), stokes_i_only_);
+        // Initialize patchmodel to zero for the next patch
+        predict_buffer_->GetPatchModel(thread).fill(
+            std::complex<double>(0.0, 0.0));
+      }
+      // Depending on apply_beam_, the following call will add to either
+      // the Model or the PatchModel of the predict buffer
+      simulators[thread].simulate(source_list_[source_index].first);
 
-          curPatch = source_list_[source_index].second;
-        });
+      curPatch = source_list_[source_index].second;
+    });
     // Apply beam to the last patch
     if (apply_beam_) {
-      recursive_for->Run(0, n_threads, [&](size_t thread, size_t) {
+      pool->For(0, pool->NThreads(), [&](size_t thread, size_t) {
         const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
             scoped_time{predict_time_};
         if (curPatches[thread] != nullptr) {
@@ -630,7 +634,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   // Add all thread model data to one buffer
   data.resize({nBl, nCh, nCr});
   data.fill(std::complex<float>(0.0, 0.0));
-  for (size_t thread = 1; thread < n_threads; ++thread) {
+  for (size_t thread = 1; thread < std::min(pool->NThreads(), n_threads);
+       ++thread) {
     // Sum thread model data in their own container (doubles) to prevent
     // rounding errors when writing to the data member of the DPBuffer (floats).
     predict_buffer_->GetModel(0) += predict_buffer_->GetModel(thread);
@@ -660,10 +665,6 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     buffer->GetData() = std::move(input_data_);
   }
 
-  // Threads must be released before calling next process(), otherwise
-  // aocommon::*For structures in process() will block since the global thread
-  // pool is still busy.
-  local_recursive_for.reset();
   timer_.stop();
   getNextStep()->process(std::move(buffer));
   return false;

@@ -66,7 +66,10 @@ class Step {
   static constexpr dp3::common::Fields kUvwField{
       dp3::common::Fields::Single::kUvw};
 
-  Step();
+  /// Constructor to initialize.
+  Step() : itsPrevStep(nullptr) {}
+
+  /// Destructor.
   virtual ~Step();
 
   /// Process the data.
@@ -142,16 +145,6 @@ class Step {
   /// Boolean if this step can process this type of data.
   virtual bool accepts(MsType dt) const { return dt == MsType::kRegular; }
 
-  /**
-   * Prevents that the first Step constructor will initialize the thread pool
-   * with the system's number of cpus. This mechanism makes sure that individual
-   * steps that would e.g. be created through the Python interface use an
-   * appropriate number of threads, while simultaneously making it possible to
-   * override the number of threads in a parset, as is done at the start of
-   * Dp3.
-   */
-  static void SetThreadingIsInitialized() { threading_is_initialized_ = true; }
-
  protected:
   /// @return Non-const reference to ouput info.
   base::DPInfo& infoOut() { return itsInfoOut; }
@@ -170,11 +163,10 @@ class Step {
 
  private:
   std::shared_ptr<Step> itsNextStep;
-  Step* itsPrevStep = nullptr;  /// Normal pointer for back links, prevent
-                                /// two shared pointers to same object
+  Step* itsPrevStep;  /// Normal pointer for back links, prevent
+                      /// two shared pointers to same object
   base::DPInfo itsInfoIn;
   base::DPInfo itsInfoOut;
-  inline static bool threading_is_initialized_ = false;
 };
 
 /// Common interface for steps that produce model data.

@@ -56,7 +56,8 @@ DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
       resolutions_(1),          // can retrieve a first list.
       effective_bandwidth_(1),
       total_bandwidth_(0.0),
-      spectral_window_(0) {}
+      spectral_window_(0),
+      n_threads_(aocommon::system::ProcessorCount()) {}
 
 void DPInfo::setTimes(double first_time, double last_time,
                       double time_interval) {
@@ -481,6 +482,11 @@ const std::vector<int>& DPInfo::getAutoCorrIndex() const {
     }
   }
   return auto_correlation_indices_;
+}
+
+void DPInfo::setNThreads(const unsigned int n_threads) {
+  n_threads_ =
+      (n_threads == 0) ? aocommon::system::ProcessorCount() : n_threads;
 }
 
 base::Direction DPInfo::phaseCenterDirection() const {

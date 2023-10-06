@@ -287,6 +287,7 @@ void SolverTester::InitializeSolverSettings(SolverBase& solver) const {
   for (SolverBase* s : solvers) {
     s->SetAccuracy(kAccuracy);
     s->SetStepSize(kStepSize);
+    s->SetNThreads(kNThreads);
     s->SetPhaseOnly(kPhaseOnly);
   }
   // Because the maximum number of iterations need to be set before adding

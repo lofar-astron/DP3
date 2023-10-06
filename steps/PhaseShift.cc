@@ -84,6 +84,8 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
 
   std::array<size_t, 2> phasors_shape{infoIn.nbaselines(), infoIn.nchan()};
   itsPhasors.resize(phasors_shape);
+
+  loop_.SetNThreads(infoIn.nThreads());
 }
 
 void PhaseShift::show(std::ostream& os) const {
@@ -107,9 +109,7 @@ bool PhaseShift::process(std::unique_ptr<base::DPBuffer> buffer) {
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
   // to process.
-
-  aocommon::StaticFor<size_t> loop;
-  loop.Run(0, nbl, [&](size_t begin, size_t end) {
+  loop_.Run(0, nbl, [&](size_t begin, size_t end) {
     for (unsigned int bl = begin; bl != end; ++bl) {
       std::complex<float>* __restrict__ data = &buffer->GetData()(bl, 0, 0);
       double* __restrict__ uvw = &buffer->GetUvw()(bl, 0);

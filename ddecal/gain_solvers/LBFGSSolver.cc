@@ -555,7 +555,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
   step_magnitudes.reserve(GetMaxIterations());
 
   do {
-    aocommon::DynamicFor<size_t> loop;
+    aocommon::DynamicFor<size_t> loop(GetNThreads());
     switch (mode) {
       case LBFGSSolver::kFull:
         MakeSolutionsFinite4Pol(solutions);

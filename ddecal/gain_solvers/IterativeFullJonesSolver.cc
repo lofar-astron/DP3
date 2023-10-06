@@ -56,7 +56,7 @@ IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
   do {
     MakeSolutionsFinite4Pol(solutions);
 
-    aocommon::DynamicFor<size_t> loop;
+    aocommon::DynamicFor<size_t> loop(GetNThreads());
     loop.Run(0, NChannelBlocks(),
              [&](size_t ch_block, [[maybe_unused]] size_t thread) {
                PerformIteration(ch_block, data.ChannelBlock(ch_block),

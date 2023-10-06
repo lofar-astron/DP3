@@ -8,6 +8,7 @@
 
 #include <iomanip>
 
+#include <aocommon/dynamicfor.h>
 #include <boost/algorithm/string/trim.hpp>
 #include <casacore/casa/BasicSL/String.h>
 #include <casacore/casa/Quanta.h>
@@ -109,6 +110,8 @@ void Averager::updateInfo(const base::DPInfo& infoIn) {
   // Adapt averaging to available nr of channels and times.
   itsNTimeAvg = std::min(itsNTimeAvg, infoIn.ntime());
   itsNChanAvg = info().update(itsNChanAvg, itsNTimeAvg);
+
+  if (!itsNoAvg) loop_.SetNThreads(getInfo().nThreads());
 }
 
 void Averager::show(std::ostream& os) const {
@@ -263,8 +266,7 @@ void Averager::average() {
   assert(data_in.data() != data_out.data());
   assert(weights_in.data() != weights_out.data());
 
-  aocommon::StaticFor<size_t> loop;
-  loop.Run(0, n_bl, [&](size_t bl_begin, size_t bl_end) {
+  loop_.Run(0, n_bl, [&](size_t bl_begin, size_t bl_end) {
     for (unsigned int bl = bl_begin; bl < bl_end; ++bl) {
       for (unsigned int corr = 0; corr < n_corr; ++corr) {
         for (unsigned int chan_out = 0; chan_out < n_chan_out; ++chan_out) {

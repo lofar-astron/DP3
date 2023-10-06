@@ -12,6 +12,8 @@
 
 #include <iostream>
 
+#include "aocommon/dynamicfor.h"
+
 using casacore::IPosition;
 using casacore::Vector;
 
@@ -21,7 +23,8 @@ namespace base {
 GainCalAlgorithm::GainCalAlgorithm(unsigned int solInt, unsigned int nChan,
                                    Mode mode, bool scalar, double tolerance,
                                    unsigned int maxAntennas,
-                                   bool detectStalling, unsigned int debugLevel)
+                                   bool detectStalling, unsigned int debugLevel,
+                                   unsigned int nThreads)
     : _nSt(maxAntennas),
       _badIters(0),
       _veryBadIters(0),
@@ -32,7 +35,8 @@ GainCalAlgorithm::GainCalAlgorithm(unsigned int solInt, unsigned int nChan,
       _tolerance(tolerance),
       _totalWeight(0.),
       _detectStalling(detectStalling),
-      _debugLevel(debugLevel) {
+      _debugLevel(debugLevel),
+      _nThreads(nThreads) {
   resetVis();
 
   _nSt = maxAntennas;
@@ -177,8 +181,7 @@ double GainCalAlgorithm::getAverageUnflaggedSolution() {
   }
 }
 
-GainCalAlgorithm::Status GainCalAlgorithm::doStep(
-    unsigned int iter, aocommon::RecursiveFor& recursive_for) {
+GainCalAlgorithm::Status GainCalAlgorithm::doStep(unsigned int iter) {
   _gxx = _gx;
   _gx = _g;
 
@@ -198,8 +201,8 @@ GainCalAlgorithm::Status GainCalAlgorithm::doStep(
     doStep_polarized();
     return relax(2 * iter);
   } else {
-    doStep_unpolarized(recursive_for);
-    doStep_unpolarized(recursive_for);
+    doStep_unpolarized();
+    doStep_unpolarized();
     return relax(2 * iter);
   }
 }
@@ -339,15 +342,14 @@ void GainCalAlgorithm::doStep_polarized() {
   }
 }
 
-void GainCalAlgorithm::doStep_unpolarized(
-    aocommon::RecursiveFor& recursive_for) {
+void GainCalAlgorithm::doStep_unpolarized() {
   _gold = _g;
 
-  for (size_t ant = 0; ant != _nUn; ++ant) {
-    _h(ant, 0) = conj(_g(ant, 0));
-  }
+  aocommon::DynamicFor<unsigned int> parallel(_nThreads);
+  parallel.Run(0, _nUn,
+               [&](unsigned int ant) { _h(ant, 0) = conj(_g(ant, 0)); });
 
-  recursive_for.Run(0, _nUn, [&](size_t st1, size_t) {
+  parallel.Run(0, _nUn, [&](size_t st1) {
     if (_stationFlagged[st1 % _nSt]) {
       return;
     }

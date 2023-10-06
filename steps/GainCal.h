@@ -14,6 +14,9 @@
 
 #include <xtensor/xtensor.hpp>
 
+#include <aocommon/dynamicfor.h>
+#include <aocommon/recursivefor.h>
+
 #include <schaapcommon/h5parm/h5parm.h>
 
 /// Convince HDF5 to use new API, even when system is configured to use 1.6 API
@@ -31,7 +34,6 @@
 #include "../parmdb/ParmDB.h"
 
 #include "InputStep.h"
-#include "Predict.h"
 #include "ResultStep.h"
 #include "UVWFlagger.h"
 
@@ -139,14 +141,15 @@ class GainCal final : public Step {
 
   std::vector<std::unique_ptr<PhaseFitter>> itsPhaseFitters;  ///< Length nSt
 
-  std::vector<base::GainCalAlgorithm> algorithms_;
+  std::vector<base::GainCalAlgorithm> iS;
 
   UVWFlagger itsUVWFlagStep;
   std::shared_ptr<ResultStep>
       itsDataResultStep;  ///< Result step for data after UV-flagging
 
-  /// The first step in the sequence of steps that generate the
-  /// model data used for calibration.
+  aocommon::DynamicFor<size_t> itsParallelFor;
+  aocommon::RecursiveFor itsThreadPool;
+
   /// The series of sub-steps ends with itsResultStep.
   std::shared_ptr<Step> itsFirstSubStep;
   std::shared_ptr<ResultStep> itsResultStep;

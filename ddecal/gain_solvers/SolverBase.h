@@ -165,6 +165,18 @@ class SolverBase {
   /** @} */
 
   /**
+   * Number of threads to use in parts that can be parallelized.
+   * The solving is parallelized over channel blocks.
+   */
+  virtual void SetNThreads(size_t n_threads) {
+    n_threads_ = n_threads;
+    for (std::unique_ptr<Constraint>& constraint : constraints_) {
+      constraint->SetNThreads(n_threads);
+    }
+  }
+  size_t GetNThreads() const { return n_threads_; }
+
+  /**
    * Output timing information to a stream.
    */
   void GetTimings(std::ostream& os, double duration) const;
@@ -285,6 +297,7 @@ class SolverBase {
    */
   size_t min_iterations_;
   size_t max_iterations_;
+  size_t n_threads_;
   double accuracy_;
   double constraint_accuracy_;
   double step_size_;
