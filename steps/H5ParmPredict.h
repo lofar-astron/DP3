@@ -11,8 +11,6 @@
 #ifndef DP3_STEPS_H5PARM_PREDICT_H_
 #define DP3_STEPS_H5PARM_PREDICT_H_
 
-#include <aocommon/recursivefor.h>
-
 #include <dp3/base/DP3.h>
 #include <dp3/steps/Step.h>
 
@@ -79,7 +77,6 @@ class H5ParmPredict : public Step {
   std::vector<std::string> itsDirections;
 
   common::NSTimer itsTimer;
-  aocommon::RecursiveFor itsThreadPool;
 };
 
 }  // namespace steps

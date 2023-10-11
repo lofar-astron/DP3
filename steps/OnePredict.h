@@ -23,10 +23,6 @@
 #include "../base/PredictBuffer.h"
 #include "../base/SourceDBUtil.h"
 
-namespace aocommon {
-class RecursiveFor;
-}  // namespace aocommon
-
 namespace dp3 {
 namespace common {
 class ParameterSet;
@@ -91,15 +87,11 @@ class OnePredict : public ModelDataStep {
   void SetOperation(const std::string& type);
 
   /// When multiple OnePredict steps are running in parallel from multiple
-  /// threads, they require synchronisation. This is done with these two
-  /// synchronisation structures. When multiple Predicts steps run serially
+  /// threads, they require synchronisation. This is done with this mutex.
+  /// When multiple Predicts steps run serially
   /// (like currently in H5ParmPredict), this function should not be called, as
   /// otherwise they will synchronize needlessly.
-  ///
-  /// It is also possible to make the predict steps share the same threadpool
-  /// without further synchronisation, by setting measures_mutex to nullptr.
-  void SetThreadData(aocommon::RecursiveFor& pool, std::mutex* measures_mutex) {
-    thread_pool_ = &pool;
+  void SetThreadData(std::mutex* measures_mutex) {
     measures_mutex_ = measures_mutex;
   }
 
@@ -222,7 +214,6 @@ class OnePredict : public ModelDataStep {
    */
   std::atomic<int64_t> apply_beam_time_{0};
 
-  aocommon::RecursiveFor* thread_pool_;
   std::mutex* measures_mutex_;
   std::mutex mutex_;
 };

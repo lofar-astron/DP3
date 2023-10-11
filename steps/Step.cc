@@ -6,7 +6,10 @@
 
 #include <dp3/steps/Step.h>
 
-#include <assert.h>
+#include <cassert>
+
+#include <aocommon/system.h>
+#include <aocommon/threadpool.h>
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -15,7 +18,15 @@ using dp3::common::Fields;
 namespace dp3 {
 namespace steps {
 
-Step::~Step() {}
+Step::Step() {
+  if (!threading_is_initialized_) {
+    aocommon::ThreadPool::GetInstance().SetNThreads(
+        aocommon::system::ProcessorCount());
+    threading_is_initialized_ = true;
+  }
+}
+
+Step::~Step() = default;
 
 const DPInfo& Step::setInfo(const DPInfo& info) {
   itsInfoIn = info;

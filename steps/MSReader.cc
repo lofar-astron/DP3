@@ -276,10 +276,6 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   itsFlagCounter.init(getInfo());
 }
 
-void MSReader::updateInfo(const DPInfo& dpInfo) {
-  info().setNThreads(dpInfo.nThreads());
-}
-
 std::string MSReader::msName() const { return itsMS.tableName(); }
 
 bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {

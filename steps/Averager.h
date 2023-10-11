@@ -99,7 +99,6 @@ class Averager : public Step {
   double itsOriginalTimeInterval;
   bool itsNoAvg;  ///< No averaging (i.e. both 1)?
   common::NSTimer itsTimer;
-  aocommon::StaticFor<size_t> loop_{0};
 };
 
 }  // namespace steps

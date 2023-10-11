@@ -797,7 +797,7 @@ def test_modelnextsteps(copy_data_to_model_data):
         )
 
 
-def test_bda_constaints():
+def test_bda_constraints():
     import h5py  # Don't import h5py when pytest is only collecting tests.
 
     common = [

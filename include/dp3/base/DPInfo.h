@@ -239,13 +239,6 @@ class DPInfo {
   /// Get the lengths of the baselines (in meters).
   const std::vector<double>& getBaselineLengths() const;
 
-  /// Set the number of threads.
-  /// @param n_threads Desired number of threads. If 0, use the number of
-  /// threads supported by the system.
-  void setNThreads(unsigned int n_threads);
-
-  unsigned int nThreads() const { return n_threads_; }
-
   /// Get the beam correction mode.
   /// @return An integer representation of an everybeam::CorrectionMode value.
   int beamCorrectionMode() const { return beam_correction_mode_; }
@@ -324,8 +317,6 @@ class DPInfo {
   mutable std::vector<double> baseline_lengths_;
   /// For each antenna, the auto correlation index.
   mutable std::vector<int> auto_correlation_indices_;
-  /// Number of threads. Is always at least 1.
-  unsigned int n_threads_;
 };
 
 }  // namespace base

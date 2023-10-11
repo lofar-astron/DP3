@@ -48,7 +48,7 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
   do {
     MakeSolutionsFinite1Pol(solutions);
 
-    aocommon::DynamicFor<size_t> loop(GetNThreads());
+    aocommon::DynamicFor<size_t> loop;
     loop.Run(0, NChannelBlocks(),
              [&](size_t ch_block, [[maybe_unused]] size_t thread) {
                PerformIteration(ch_block, data.ChannelBlock(ch_block),

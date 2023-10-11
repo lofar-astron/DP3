@@ -69,15 +69,14 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  // Using more threads wastes CPU and memory resources.
-  const size_t n_threads = std::min(NChannelBlocks(), GetNThreads());
+  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
   // For each thread:
   // - Model matrix: n_antennas x [2N x 2D]
   // - Visibility matrix: n_antennas x [2N x 2]
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<Matrix>> thread_vs(n_threads);
 
-  aocommon::DynamicFor<size_t> loop(n_threads);
+  aocommon::DynamicFor<size_t> loop;
   do {
     MakeSolutionsFinite4Pol(solutions);
 

@@ -101,8 +101,6 @@ class PhaseShift : public Step {
   xt::xtensor<std::complex<double>, 2>
       itsPhasors;  ///< phase factor per chan,bl
   common::NSTimer itsTimer;
-
-  aocommon::StaticFor<size_t> loop_{0};
 };
 
 }  // namespace steps
