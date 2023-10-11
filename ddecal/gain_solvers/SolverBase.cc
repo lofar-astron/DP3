@@ -78,7 +78,7 @@ void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
                       SolutionSpan& nextSolutions) const {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
-  DynamicFor<size_t> loop(n_threads_);
+  DynamicFor<size_t> loop;
   loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
     const size_t n_antennas = nextSolutions.shape(1);
     const size_t n_solutions = nextSolutions.shape(2);

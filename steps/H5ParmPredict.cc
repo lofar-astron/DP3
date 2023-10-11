@@ -38,8 +38,7 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
       itsH5ParmName(parset.getString(prefix + "applycal.parmdb")),
       itsDirections(
           parset.getStringVector(prefix + "directions", std::vector<string>())),
-      itsTimer(),
-      itsThreadPool() {
+      itsTimer() {
   H5Parm h5parm = H5Parm(itsH5ParmName, false);
   std::string soltabName = parset.getString(prefix + "applycal.correction");
   if (soltabName == "fulljones") soltabName = "amplitude000";
@@ -82,7 +81,6 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
     } else {
       predictStep->SetOperation(operation);
     }
-    predictStep->SetThreadData(itsThreadPool, nullptr);
     predictStep->SetPredictBuffer(itsPredictBuffer);
 
     if (!itsPredictSteps.empty()) {
@@ -97,8 +95,6 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
 
 void H5ParmPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-
-  itsThreadPool.SetNThreads(infoIn.nThreads());
 
   itsPredictSteps.front()->setInfo(infoIn);
 }

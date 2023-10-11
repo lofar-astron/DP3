@@ -147,7 +147,7 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
   itsFilter->setNextStep(itsFilterResult);
   // Default nr of time chunks is maximum number of threads.
   if (itsNTimeChunk == 0) {
-    itsNTimeChunk = getInfo().nThreads();
+    itsNTimeChunk = aocommon::ThreadPool::GetInstance().NThreads();
   }
   // Check that time windows fit integrally.
   // This check will be done later when using time/freq resolution
@@ -660,7 +660,7 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
   // source direction. By combining them you get the shift from one
   // source direction to another.
   int dirnr = 0;  // direction pair number
-  aocommon::DynamicFor<size_t> loop(getInfo().nThreads());
+  aocommon::DynamicFor<size_t> loop;
   for (unsigned int dir0 = 0; dir0 < itsNDir - 1; ++dir0) {
     for (unsigned int dir1 = dir0 + 1; dir1 < itsNDir; ++dir1) {
       if (dir1 == itsNDir - 1) {
@@ -746,7 +746,7 @@ void Demixer::makeFactors(
       // Note that summing in time is done in addFactors.
       // The sum per output channel is divided by the summed weight.
       // Note there is a summed weight per baseline,outchan,corr.
-      aocommon::DynamicFor<size_t> loop(getInfo().nThreads());
+      aocommon::DynamicFor<size_t> loop;
       loop.Run(0, itsNBl, [&](size_t bl, size_t /*thread*/) {
         const std::complex<double>* factor_in =
             bufIn.data() + (dirnr * itsNBl + bl) * nccin;
@@ -890,7 +890,7 @@ void initThreadPrivateStorage(ThreadPrivateStorage& storage, size_t nDirection,
 }  // end unnamed namespace
 
 void Demixer::demix() {
-  const size_t nThread = getInfo().nThreads();
+  const size_t nThread = aocommon::ThreadPool::GetInstance().NThreads();
   const size_t nTime = itsAvgResults[0]->size();
   const size_t nTimeSubtr = itsAvgResultSubtr->size();
   const size_t multiplier = itsNTimeAvg / itsNTimeAvgSubtr;
@@ -919,7 +919,7 @@ void Demixer::demix() {
 
   base::const_cursor<base::Baseline> cr_baseline(&(itsBaselines[0]));
 
-  aocommon::DynamicFor<size_t> loop(getInfo().nThreads());
+  aocommon::DynamicFor<size_t> loop;
   loop.Run(0, nTime, [&](size_t ts, size_t thread) {
     ThreadPrivateStorage& storage = threadStorage[thread];
 

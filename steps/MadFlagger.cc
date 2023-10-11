@@ -323,7 +323,8 @@ void MadFlagger::flag(unsigned int index,
     float Z1;  // median
     float Z2;  // median of absolute difference
   };
-  std::vector<ThreadData> threadData(getInfo().nThreads());
+  std::vector<ThreadData> threadData(
+      aocommon::ThreadPool::GetInstance().NThreads());
 
   // Create thread-private counter.
   for (ThreadData& data : threadData) {
@@ -333,7 +334,7 @@ void MadFlagger::flag(unsigned int index,
 
   // The for loop can be parallelized. This must be done dynamically,
   // because the execution time of each iteration can vary a lot.
-  aocommon::DynamicFor<size_t> loop(getInfo().nThreads());
+  aocommon::DynamicFor<size_t> loop;
   loop.Run(0, nrbl, [&](size_t ib, size_t thread) {
     ThreadData& data = threadData[thread];
     flagBaseline(ant1, ant2, timeEntries, ib, ncorr, nchan, bufferDataPtr,

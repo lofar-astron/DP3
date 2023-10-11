@@ -95,8 +95,8 @@ void Predict::SetOperation(const std::string& operation) {
   predict_step_->SetOperation(operation);
 }
 
-void Predict::SetThreadData(aocommon::RecursiveFor& pool, std::mutex* mutex) {
-  predict_step_->SetThreadData(pool, mutex);
+void Predict::SetThreadData(std::mutex* mutex) {
+  predict_step_->SetThreadData(mutex);
 }
 
 void Predict::SetPredictBuffer(

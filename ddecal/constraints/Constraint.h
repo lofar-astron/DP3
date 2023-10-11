@@ -99,14 +99,6 @@ class Constraint {
   virtual void SetWeights([[maybe_unused]] const std::vector<double>& weights) {
   }
 
-  /**
-   * Set the number of threads for parallel loops etc.
-   * @param n_threads Desired number of threads. If it is zero, it becomes one.
-   */
-  void SetNThreads(size_t n_threads) {
-    n_threads_ = std::max(n_threads, size_t(1));
-  }
-
   virtual void GetTimings([[maybe_unused]] std::ostream& os,
                           [[maybe_unused]] double duration) const {}
 
@@ -118,7 +110,6 @@ class Constraint {
    */
   size_t NSolutions() const { return n_solutions_; }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
-  size_t NThreads() const { return n_threads_; }
 
   static bool isfinite(const dcomplex& value) {
     return std::isfinite(value.real()) && std::isfinite(value.imag());
@@ -127,7 +118,6 @@ class Constraint {
  private:
   size_t n_antennas_ = 0;
   size_t n_channel_blocks_ = 0;
-  size_t n_threads_ = 1;
   size_t n_solutions_ = 0;
   std::vector<uint32_t> solutions_per_direction_;
 };

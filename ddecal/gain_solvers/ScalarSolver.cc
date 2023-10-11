@@ -40,15 +40,14 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
   double avg_squared_diff = 1.0E4;
 
-  // Using more threads wastes CPU and memory resources.
-  const size_t n_threads = std::min(NChannelBlocks(), GetNThreads());
+  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
   // For each thread:
   // - Model matrix ant x [N x D] and
   // - Visibility vector ant x [N x 1]
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<Matrix>> thread_vs(n_threads);
 
-  aocommon::DynamicFor<size_t> loop(n_threads);
+  aocommon::DynamicFor<size_t> loop;
   do {
     MakeSolutionsFinite1Pol(solutions);
 
