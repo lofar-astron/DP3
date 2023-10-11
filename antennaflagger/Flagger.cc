@@ -96,7 +96,7 @@ xt::xtensor<std::complex<float>, 3> Flagger::GroupStats(
       const size_t antenna2 = station * n_antennas_per_station + antenna1;
       const std::vector<size_t> baseline_indices =
           common::ComputeBaselineList(antenna2, n_antennas, baseline_order);
-      xt::view(stats_antenna, station, antenna1, xt::all()) += xt::sum(
+      xt::view(stats_antenna, station, antenna1, xt::all()) += xt::nansum(
           xt::view(stats_baseline, xt::keep(baseline_indices), xt::all()), 0);
     }
   }
