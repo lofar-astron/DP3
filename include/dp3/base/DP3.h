@@ -63,6 +63,14 @@ dp3::common::Fields SetChainProvidedFields(
     std::shared_ptr<steps::Step> first_step,
     dp3::common::Fields provided_fields = dp3::common::Fields());
 
+/// Get the number of threads used in DP3. This function is needed since
+/// each library / application has its own aocommon Threadpool object.
+size_t GetNThreads();
+
+/// Set the number of threads used in DP3. This function is needed since
+/// each library / application has its own aocommon Threadpool object.
+void SetNThreads(size_t n_threads);
+
 }  // namespace base
 }  // namespace dp3
 

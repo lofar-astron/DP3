@@ -67,6 +67,8 @@ from .pydp3 import MsType
 from .pydp3 import DPBuffer
 from .pydp3 import Fields
 from .pydp3 import get_chain_required_fields
+from .pydp3 import get_n_threads
+from .pydp3 import set_n_threads
 
 
 class Step(pydp3.Step):

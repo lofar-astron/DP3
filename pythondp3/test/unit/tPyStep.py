@@ -3,13 +3,14 @@
 
 """
 Script can be invoked in two ways:
-- as standalone from the build/pythondp3/test/integration directory,
+- as standalone from the build/pythondp3/test/unit directory,
   using `pytest source/tPyStep.py` (extended with pytest options of your choice)
 - using ctest, see DP3/pythondp3/test/integration/CMakeLists.txt
 """
-# Append current directory to system path in order to import testconfig
+import multiprocessing
 import sys
 
+# Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import testconfig as tcf
@@ -111,3 +112,20 @@ def test_info():
     assert step_info.first_time == first_time + 1.0
     assert step_info.last_time == last_time + 2.0
     assert step_info.time_interval == time_interval + 3.0
+
+
+def test_n_threads():
+    class TestNThreadsStep(dp3.Step):
+        def __init__(self, expected_n_threads):
+            dp3.Step.__init__(self)
+            assert dp3.get_n_threads() == expected_n_threads
+
+    # Create a Step without setting dp3.n_threads beforehand
+    # It does not matter if other tests already created other steps:
+    # Those tests do not adjust the default setting.
+    TestNThreadsStep(multiprocessing.cpu_count())
+
+    # Create Step after setting dp3.n_threads. Use 3 threads, since systems
+    # typically do not have 3 cores.
+    dp3.set_n_threads(3)
+    TestNThreadsStep(3)
