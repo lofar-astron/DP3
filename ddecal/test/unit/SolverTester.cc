@@ -6,6 +6,7 @@
 #include "../../../ddecal/gain_solvers/SolverBase.h"
 
 #include <aocommon/matrix2x2.h>
+#include <aocommon/threadpool.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -78,6 +79,10 @@ SolverTester::SolverTester()
       antennas2_.push_back(ant2);
     }
   }
+
+  // Use 4 threads in the solver tests. This value corresponds to the
+  // PROCESSORS setting in CMakeLists.txt for the solver tests.
+  aocommon::ThreadPool::GetInstance().SetNThreads(4);
 }
 
 std::vector<std::string> SolverTester::CreateDirectionNames() {

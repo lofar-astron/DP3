@@ -144,8 +144,8 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
 }
 
-inline void TestIterativeDiagonal(dp3::ddecal::SolverBase& solver) {
-  SolverTester solver_tester;
+inline void TestIterativeDiagonal(SolverTester& solver_tester,
+                                  dp3::ddecal::SolverBase& solver) {
   solver_tester.SetDiagonalSolutions(false);
   solver_tester.InitializeSolver(solver);
 
@@ -171,14 +171,14 @@ inline void TestIterativeDiagonal(dp3::ddecal::SolverBase& solver) {
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
                         *boost::unit_test::label("slow")) {
   dp3::ddecal::IterativeDiagonalSolver solver;
-  TestIterativeDiagonal(solver);
+  TestIterativeDiagonal(*this, solver);
 }
 
 #if defined(HAVE_CUDA)
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal_cuda, SolverTester,
                         *boost::unit_test::label("slow")) {
   dp3::ddecal::IterativeDiagonalSolverCuda solver;
-  TestIterativeDiagonal(solver);
+  TestIterativeDiagonal(*this, solver);
 }
 #endif
 

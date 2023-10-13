@@ -2,19 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "DiagonalSolver.h"
-#include "SolveData.h"
-
-#include "../linear_solvers/LLSSolver.h"
-
-#include <aocommon/matrix2x2.h>
-#include <aocommon/dynamicfor.h>
-#include <xtensor/xview.hpp>
-
-using aocommon::DynamicFor;
 
 #include <algorithm>
 #include <iomanip>
-#include <iostream>
+#include <ostream>
+
+#include <aocommon/dynamicfor.h>
+#include <aocommon/matrix2x2.h>
+#include <xtensor/xview.hpp>
+
+#include "../linear_solvers/LLSSolver.h"
+
+#include "SolveData.h"
 
 namespace dp3 {
 namespace ddecal {
@@ -51,22 +50,24 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<std::vector<Complex>>> thread_vs(n_threads);
 
+  // Use a DynamicFor, since the number of iterations inside the LAPACK calls
+  // in the solver may vary.
   aocommon::DynamicFor<size_t> loop;
+
   do {
     MakeSolutionsFinite2Pol(solutions);
 
-    loop.Run(0, NChannelBlocks(),
-             [&](size_t ch_block, [[maybe_unused]] size_t thread) {
-               const SolveData::ChannelBlockData& channel_block =
-                   data.ChannelBlock(ch_block);
+    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t thread) {
+      const SolveData::ChannelBlockData& channel_block =
+          data.ChannelBlock(ch_block);
 
-               std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread];
-               std::vector<std::vector<Complex>>& vs = thread_vs[thread];
-               InitializeModelMatrix(channel_block, g_times_cs, vs);
+      std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread];
+      std::vector<std::vector<Complex>>& vs = thread_vs[thread];
+      InitializeModelMatrix(channel_block, g_times_cs, vs);
 
-               PerformIteration(ch_block, channel_block, g_times_cs, vs,
-                                solutions[ch_block], next_solutions);
-             });
+      PerformIteration(ch_block, channel_block, g_times_cs, vs,
+                       solutions[ch_block], next_solutions);
+    });
 
     Step(solutions, next_solutions);
 

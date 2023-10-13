@@ -3,17 +3,15 @@
 
 #include "SolverBase.h"
 
-#include <aocommon/dynamicfor.h>
-
 #include <algorithm>
 #include <iostream>
 #include <numeric>
 
+#include <aocommon/staticfor.h>
+
 #include <xtensor/xview.hpp>
 
 #include "common/MatrixComplexDouble2x2.h"
-
-using aocommon::DynamicFor;
 
 namespace {
 template <typename T>
@@ -78,30 +76,35 @@ void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
                       SolutionSpan& nextSolutions) const {
   // Move the solutions towards nextSolutions
   // (the moved solutions are stored in 'nextSolutions')
-  DynamicFor<size_t> loop;
-  loop.Run(0, n_channel_blocks_, [&](size_t chBlock, size_t /*thread*/) {
+  aocommon::StaticFor<size_t> loop;
+  loop.Run(0, n_channel_blocks_, [&](size_t start_block, size_t end_block) {
     const size_t n_antennas = nextSolutions.shape(1);
     const size_t n_solutions = nextSolutions.shape(2);
     const size_t n_polarizations = nextSolutions.shape(3);
-    for (size_t a = 0; a != n_antennas; ++a) {
-      for (size_t s = 0; s != n_solutions_; ++s) {
-        for (size_t p = 0; p != n_polarizations; ++p) {
-          const std::complex<double>& solution =
-              solutions[chBlock][(a * n_solutions + s) * n_polarizations + p];
-          std::complex<double>& next_solution = nextSolutions(chBlock, a, s, p);
-          if (phase_only_) {
-            // In phase only mode, a step is made along the complex circle,
-            // towards the shortest direction.
-            double phaseFrom = std::arg(solution);
-            double distance = std::arg(next_solution) - phaseFrom;
-            if (distance > M_PI)
-              distance = distance - 2.0 * M_PI;
-            else if (distance < -M_PI)
-              distance = distance + 2.0 * M_PI;
-            next_solution = std::polar(1.0, phaseFrom + step_size_ * distance);
-          } else {
-            next_solution =
-                solution * (1.0 - step_size_) + next_solution * step_size_;
+    for (size_t ch_block = start_block; ch_block < end_block; ++ch_block) {
+      for (size_t a = 0; a != n_antennas; ++a) {
+        for (size_t s = 0; s != n_solutions_; ++s) {
+          for (size_t p = 0; p != n_polarizations; ++p) {
+            const std::complex<double>& solution =
+                solutions[ch_block]
+                         [(a * n_solutions + s) * n_polarizations + p];
+            std::complex<double>& next_solution =
+                nextSolutions(ch_block, a, s, p);
+            if (phase_only_) {
+              // In phase only mode, a step is made along the complex circle,
+              // towards the shortest direction.
+              double phaseFrom = std::arg(solution);
+              double distance = std::arg(next_solution) - phaseFrom;
+              if (distance > M_PI)
+                distance = distance - 2.0 * M_PI;
+              else if (distance < -M_PI)
+                distance = distance + 2.0 * M_PI;
+              next_solution =
+                  std::polar(1.0, phaseFrom + step_size_ * distance);
+            } else {
+              next_solution =
+                  solution * (1.0 - step_size_) + next_solution * step_size_;
+            }
           }
         }
       }
@@ -230,11 +233,14 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
 
 void SolverBase::MakeSolutionsFinite1Pol(
     std::vector<std::vector<DComplex>>& solutions) {
-  for (std::vector<DComplex>& solVector : solutions) {
+  // Parallelizing this loop using StaticFor proved not effective:
+  // In the solvers/scalar test, the total loop took 7 microseconds while
+  // it took 16 microseconds, on average, when using StaticFor.
+  for (std::vector<DComplex>& solution_vector : solutions) {
     // Find the average solutions for this channel
     size_t count = 0;
     double average = 0.0;
-    for (const std::complex<double>& solution : solVector) {
+    for (const std::complex<double>& solution : solution_vector) {
       if (IsFinite(solution)) {
         average += std::abs(solution);
         ++count;
@@ -245,7 +251,7 @@ void SolverBase::MakeSolutionsFinite1Pol(
       average = 1.0;
     else
       average /= count;
-    for (std::complex<double>& solution : solVector) {
+    for (std::complex<double>& solution : solution_vector) {
       if (!IsFinite(solution)) solution = average;
     }
   }
@@ -253,12 +259,15 @@ void SolverBase::MakeSolutionsFinite1Pol(
 
 void SolverBase::MakeSolutionsFinite2Pol(
     std::vector<std::vector<DComplex>>& solutions) {
-  for (std::vector<DComplex>& solVector : solutions) {
+  // Parallelizing this loop using StaticFor proved not effective:
+  // In the solvers/diagonal test, the total loop took 8 microseconds while
+  // it took 14 microseconds, on average, when using StaticFor.
+  for (std::vector<DComplex>& solution_vector : solutions) {
     // Find the average abs solution for this channel
     size_t count = 0;
     double average[2] = {0.0, 0.0};
-    for (std::vector<DComplex>::iterator iter = solVector.begin();
-         iter != solVector.end(); iter += 2) {
+    for (std::vector<DComplex>::iterator iter = solution_vector.begin();
+         iter != solution_vector.end(); iter += 2) {
       if (IsFinite(*iter) && IsFinite(*(iter + 1))) {
         for (size_t p = 0; p != 2; ++p) average[p] += std::abs(iter[0]);
         ++count;
@@ -270,8 +279,8 @@ void SolverBase::MakeSolutionsFinite2Pol(
     } else {
       for (size_t p = 0; p != 2; ++p) average[p] /= count;
     }
-    for (std::vector<DComplex>::iterator iter = solVector.begin();
-         iter != solVector.end(); iter += 2) {
+    for (std::vector<DComplex>::iterator iter = solution_vector.begin();
+         iter != solution_vector.end(); iter += 2) {
       if (!IsFinite(*iter) || !IsFinite(*(iter + 1))) {
         for (size_t p = 0; p != 2; ++p) iter[p] = average[p];
       }
@@ -281,12 +290,15 @@ void SolverBase::MakeSolutionsFinite2Pol(
 
 void SolverBase::MakeSolutionsFinite4Pol(
     std::vector<std::vector<DComplex>>& solutions) {
-  for (std::vector<DComplex>& sol_vector : solutions) {
+  // Parallelizing this loop using StaticFor proved not effective:
+  // In the solvers/full_jones test, the total loop took 10 microseconds
+  // while it took 15 microseconds, on average, when using StaticFor.
+  for (std::vector<DComplex>& solution_vector : solutions) {
     // Find the average abs solution for this channel
     size_t count = 0;
     double average[4] = {0.0, 0.0, 0.0, 0.0};
-    for (std::vector<DComplex>::iterator iter = sol_vector.begin();
-         iter != sol_vector.end(); iter += 4) {
+    for (std::vector<DComplex>::iterator iter = solution_vector.begin();
+         iter != solution_vector.end(); iter += 4) {
       if (aocommon::Matrix2x2::IsFinite(&*iter)) {
         for (size_t p = 0; p != 4; ++p) average[p] += std::abs(iter[0]);
         ++count;
@@ -300,8 +312,8 @@ void SolverBase::MakeSolutionsFinite4Pol(
     } else {
       for (size_t p = 0; p != 4; ++p) average[p] /= count;
     }
-    for (std::vector<DComplex>::iterator iter = sol_vector.begin();
-         iter != sol_vector.end(); iter += 4) {
+    for (std::vector<DComplex>::iterator iter = solution_vector.begin();
+         iter != solution_vector.end(); iter += 4) {
       if (!aocommon::Matrix2x2::IsFinite(&*iter)) {
         for (size_t p = 0; p != 4; ++p) iter[p] = average[p];
       }

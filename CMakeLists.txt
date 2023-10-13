@@ -840,7 +840,6 @@ if(BUILD_TESTING)
     set_target_properties(unittests PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
   endif()
   target_link_libraries(unittests LIBDP3 ${DP3_LIBRARIES} xtensor)
-  add_dependencies(unittests schaapcommon)
 
   # Automatically (re)build the unit tests on every ctest run.
   add_test(buildunittests ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target
@@ -887,13 +886,16 @@ if(BUILD_TESTING)
     set(XMLNAME "unittest_${XMLNAME}.xml")
     add_test(NAME ${TEST} COMMAND unittests -t ${TEST} -f JUNIT -k ${XMLNAME}
                                   --catch_system_error=yes)
-    # The COST indicators are merely very rough indicators of the relative run
-    # times, where one COST unit (originally) represents 10 seconds of run time.
-    # On the gitlab runners on CI, these times may vary a lot between runs.
-    set(COST $<IF:${TEST} MATCHES solver,10,1>)
     set_tests_properties(
       ${TEST} PROPERTIES LABELS "unit;slow" FIXTURES_REQUIRED
-                         "unittests;extract_resources" COST ${COST})
+                         "unittests;extract_resources")
+    if(${TEST} MATCHES solvers)
+      # The COST indicators are merely very rough indicators of the relative run
+      # times, where one COST unit (originally) represents 10 seconds of run time.
+      # On the gitlab runners on CI, these times may vary a lot between runs.
+      # Using 4 PROCESSORS corresponds to the SolverTester constructor.
+      set_tests_properties(${TEST} PROPERTIES COST 10 PROCESSORS 4)
+    endif()
   endforeach()
 
   execute_process(

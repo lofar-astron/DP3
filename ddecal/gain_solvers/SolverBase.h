@@ -1,17 +1,18 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DDECAL_SOLVER_BASE_H
 #define DDECAL_SOLVER_BASE_H
 
-#include "../constraints/Constraint.h"
-#include "../linear_solvers/LLSSolver.h"
-
 #include <algorithm>
 #include <cassert>
 #include <complex>
-#include <vector>
+#include <iosfwd>
 #include <memory>
+#include <vector>
+
+#include "../constraints/Constraint.h"
+#include "../linear_solvers/LLSSolver.h"
 
 namespace dp3 {
 namespace ddecal {
