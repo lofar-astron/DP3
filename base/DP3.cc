@@ -6,12 +6,14 @@
 
 #include <dp3/base/DP3.h>
 
+#include <aocommon/threadpool.h>
+
+#include <boost/algorithm/string.hpp>
+
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include "DPLogger.h"
 #include "ProgressMeter.h"
-
-#include <boost/algorithm/string.hpp>
 
 #include "../steps/AntennaFlagger.h"
 #include "../steps/AOFlaggerStep.h"
@@ -474,6 +476,13 @@ std::shared_ptr<Step> MakeStepsFromParset(const common::ParameterSet& parset,
   }
 
   return firstStep;
+}
+
+size_t GetNThreads() { return aocommon::ThreadPool::GetInstance().NThreads(); }
+
+void SetNThreads(size_t n_threads) {
+  aocommon::ThreadPool::GetInstance().SetNThreads(n_threads);
+  Step::SetThreadingIsInitialized();
 }
 
 }  // namespace base

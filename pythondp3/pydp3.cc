@@ -36,7 +36,7 @@ class PublicStep : public Step {
 };
 
 PYBIND11_MODULE(pydp3, m) {
-  m.doc() = "pybind11 example plugin";  // optional module docstring
+  m.doc() = "DP3 Python bindings";
 
   WrapDpBuffer(m);
   WrapDpInfo(m);
@@ -51,6 +51,11 @@ PYBIND11_MODULE(pydp3, m) {
           return dp3::base::MakeMainSteps(parset);
         });
   m.def("get_chain_required_fields", &dp3::base::GetChainRequiredFields);
+  m.def("get_n_threads", &dp3::base::GetNThreads,
+        "Get the number of threads DP3 currently uses.");
+  m.def("set_n_threads", &dp3::base::SetNThreads,
+        "Set the number of threads DP3 should use. By default, DP3 uses one "
+        "thread for each core.");
 
   py::enum_<dp3::steps::Step::MsType>(m, "MsType")
       .value("regular", dp3::steps::Step::MsType::kRegular)
