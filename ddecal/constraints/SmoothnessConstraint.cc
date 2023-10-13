@@ -1,9 +1,9 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "KernelSmoother.h"
 #include "SmoothnessConstraint.h"
-#include <aocommon/dynamicfor.h>
+
+#include <aocommon/staticfor.h>
 
 namespace dp3 {
 namespace ddecal {
@@ -40,29 +40,33 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
   auto solutions_view =
       xt::reshape_view(solutions, {NChannelBlocks(), n_smoothed});
 
-  aocommon::DynamicFor<size_t> loop;
-  loop.Run(0, n_smoothed, [&](size_t smoothing_index, size_t thread) {
-    size_t ant_index = smoothing_index / (NSolutions() * n_polarizations);
-    for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-      // Flag channels where calibration yielded inf or nan
-      if (isfinite(solutions_view(ch, smoothing_index))) {
-        fit_data_[thread].data[ch] = solutions_view(ch, smoothing_index);
-        fit_data_[thread].weight[ch] =
-            weights_[ant_index * NChannelBlocks() + ch];
-      } else {
-        fit_data_[thread].data[ch] = 0.0;
-        fit_data_[thread].weight[ch] = 0.0;
-      }
-    }
+  aocommon::StaticFor<size_t> loop;
+  loop.Run(
+      0, n_smoothed, [&](size_t begin_index, size_t end_index, size_t thread) {
+        for (size_t smoothing_index = begin_index; smoothing_index < end_index;
+             ++smoothing_index) {
+          size_t ant_index = smoothing_index / (NSolutions() * n_polarizations);
+          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+            // Flag channels where calibration yielded inf or nan
+            if (isfinite(solutions_view(ch, smoothing_index))) {
+              fit_data_[thread].data[ch] = solutions_view(ch, smoothing_index);
+              fit_data_[thread].weight[ch] =
+                  weights_[ant_index * NChannelBlocks() + ch];
+            } else {
+              fit_data_[thread].data[ch] = 0.0;
+              fit_data_[thread].weight[ch] = 0.0;
+            }
+          }
 
-    fit_data_[thread].smoother.Smooth(fit_data_[thread].data.data(),
-                                      fit_data_[thread].weight.data(),
-                                      antenna_distance_factors_[ant_index]);
+          fit_data_[thread].smoother.Smooth(
+              fit_data_[thread].data.data(), fit_data_[thread].weight.data(),
+              antenna_distance_factors_[ant_index]);
 
-    for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-      solutions_view(ch, smoothing_index) = fit_data_[thread].data[ch];
-    }
-  });
+          for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+            solutions_view(ch, smoothing_index) = fit_data_[thread].data[ch];
+          }
+        }
+      });
 
   return std::vector<Constraint::Result>();
 }

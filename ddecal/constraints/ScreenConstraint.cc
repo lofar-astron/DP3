@@ -100,6 +100,8 @@ void ScreenConstraint::SetTime(double time) {
 
     CalculatePiercepoints();
 
+    // This DynamicFor can be replaced by a StaticFor.
+    // Since the ScreenFitter is unmaintained, it's not done yet.
     aocommon::DynamicFor<size_t> loop(NThreads());
     if (mode_ == "station") {
       loop.Run(0, NAntennas(), [&](size_t ipos, size_t /*thread*/) {
