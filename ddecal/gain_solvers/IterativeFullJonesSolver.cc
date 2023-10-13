@@ -1,24 +1,18 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "IterativeFullJonesSolver.h"
 
-#ifdef __AVX2__
-#include "common/avx256/MatrixComplexFloat2x2.h"
-#endif
+#include <algorithm>
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/dynamicfor.h>
+#include <aocommon/staticfor.h>
 
-#include <algorithm>
+#include "common/MatrixComplexFloat2x2.h"
 
 using aocommon::MC2x2F;
-#if defined(__AVX2__)
-using Matrix2x2 = aocommon::Avx256::MatrixComplexFloat2x2;
-#else
-using Matrix2x2 = aocommon::MC2x2F;
-#endif
+using Matrix2x2 = aocommon::MatrixComplexFloat2x2;
 
 namespace dp3 {
 namespace ddecal {
@@ -53,16 +47,18 @@ IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
+  aocommon::StaticFor<size_t> loop;
+
   do {
     MakeSolutionsFinite4Pol(solutions);
 
-    aocommon::DynamicFor<size_t> loop;
-    loop.Run(0, NChannelBlocks(),
-             [&](size_t ch_block, [[maybe_unused]] size_t thread) {
-               PerformIteration(ch_block, data.ChannelBlock(ch_block),
-                                v_residual[ch_block], solutions[ch_block],
-                                next_solutions);
-             });
+    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t end_index) {
+      for (; ch_block < end_index; ++ch_block) {
+        PerformIteration(ch_block, data.ChannelBlock(ch_block),
+                         v_residual[ch_block], solutions[ch_block],
+                         next_solutions);
+      }
+    });
 
     Step(solutions, next_solutions);
 

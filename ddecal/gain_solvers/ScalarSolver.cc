@@ -2,15 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ScalarSolver.h"
-#include "SolveData.h"
+
+#include <ostream>
+
+#include <aocommon/dynamicfor.h>
+#include <aocommon/matrix2x2.h>
+#include <xtensor/xview.hpp>
 
 #include "../linear_solvers/LLSSolver.h"
 
-#include <aocommon/matrix2x2.h>
-#include <aocommon/dynamicfor.h>
-#include <xtensor/xview.hpp>
-
-#include <iostream>
+#include "SolveData.h"
 
 namespace dp3 {
 namespace ddecal {
@@ -47,6 +48,8 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<Matrix>> thread_vs(n_threads);
 
+  // Use a DynamicFor, since the number of iterations inside the LAPACK calls
+  // in the solver may vary.
   aocommon::DynamicFor<size_t> loop;
   do {
     MakeSolutionsFinite1Pol(solutions);

@@ -559,7 +559,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
     switch (mode) {
       case LBFGSSolver::kFull:
         MakeSolutionsFinite4Pol(solutions);
-        loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
+        loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
           PerformIterationFull(ch_block, data.ChannelBlock(ch_block),
                                solutions[ch_block], next_solutions, NAntennas(),
                                NSolutions(), GetRobustDOF(), GetMaxIter(),
@@ -569,7 +569,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
         break;
       case LBFGSSolver::kDiagonal:
         MakeSolutionsFinite2Pol(solutions);
-        loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
+        loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
           PerformIterationDiagonal(ch_block, data.ChannelBlock(ch_block),
                                    solutions[ch_block], next_solutions,
                                    NAntennas(), NSolutions(), GetRobustDOF(),
@@ -579,7 +579,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
         break;
       case LBFGSSolver::kScalar:
         MakeSolutionsFinite1Pol(solutions);
-        loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t /*thread*/) {
+        loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
           PerformIterationScalar(ch_block, data.ChannelBlock(ch_block),
                                  solutions[ch_block], next_solutions,
                                  NAntennas(), NSolutions(), GetRobustDOF(),

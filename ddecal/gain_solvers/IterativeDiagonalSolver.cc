@@ -3,11 +3,11 @@
 
 #include "IterativeDiagonalSolver.h"
 
+#include <algorithm>
+
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/dynamicfor.h>
-
-#include <algorithm>
+#include <aocommon/staticfor.h>
 
 using aocommon::MC2x2F;
 using aocommon::MC2x2FDiag;
@@ -45,16 +45,18 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
+  aocommon::StaticFor<size_t> loop;
+
   do {
     MakeSolutionsFinite2Pol(solutions);
 
-    aocommon::DynamicFor<size_t> loop;
-    loop.Run(0, NChannelBlocks(),
-             [&](size_t ch_block, [[maybe_unused]] size_t thread) {
-               PerformIteration(ch_block, data.ChannelBlock(ch_block),
-                                v_residual[ch_block], solutions[ch_block],
-                                next_solutions);
-             });
+    loop.Run(0, NChannelBlocks(), [&](size_t start_block, size_t end_block) {
+      for (size_t ch_block = start_block; ch_block < end_block; ++ch_block) {
+        PerformIteration(ch_block, data.ChannelBlock(ch_block),
+                         v_residual[ch_block], solutions[ch_block],
+                         next_solutions);
+      }
+    });
 
     Step(solutions, next_solutions);
 

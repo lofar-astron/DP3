@@ -1,17 +1,17 @@
-// Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "FullJonesSolver.h"
 
+#include <ostream>
+
+#include <aocommon/dynamicfor.h>
+#include <aocommon/matrix2x2.h>
+#include <xtensor/xview.hpp>
+
 #include "../linear_solvers/QRSolver.h"
 
 #include "common/MatrixComplexDouble2x2.h"
-
-#include <aocommon/matrix2x2.h>
-#include <aocommon/dynamicfor.h>
-#include <xtensor/xview.hpp>
-
-#include <iostream>
 
 namespace dp3 {
 namespace ddecal {
@@ -76,7 +76,10 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
   std::vector<std::vector<Matrix>> thread_vs(n_threads);
 
+  // Use a DynamicFor, since the number of iterations inside the LAPACK calls
+  // in the solver may vary.
   aocommon::DynamicFor<size_t> loop;
+
   do {
     MakeSolutionsFinite4Pol(solutions);
 
