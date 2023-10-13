@@ -1,22 +1,17 @@
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
-
-#include "Constraint.h"
-#include "KernelSmoother.h"
-
-#include <aocommon/dynamicfor.h>
 
 #ifndef DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
 #define DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
+
+#include "Constraint.h"
+#include "KernelSmoother.h"
 
 namespace dp3 {
 namespace ddecal {
 
 class SmoothnessConstraint final : public Constraint {
  public:
-  typedef std::complex<double> dcomplex;
-  typedef KernelSmoother<dcomplex, double> Smoother;
-
   /**
    * @param bandwidth_hz Size of the kernel (smoothing strength)
    * @param bandwidth_ref_frequency_hz Reference frequency for the kernel size,
@@ -48,6 +43,9 @@ class SmoothnessConstraint final : public Constraint {
     return antenna_distance_factors_;
   }
 
+ private:
+  using Smoother = KernelSmoother<std::complex<double>, double>;
+
   struct FitData {
     FitData(const std::vector<double>& frequencies,
             Smoother::KernelType kernel_type, double kernel_bandwidth,
@@ -58,7 +56,7 @@ class SmoothnessConstraint final : public Constraint {
           weight(frequencies.size()) {}
 
     Smoother smoother;
-    std::vector<dcomplex> data;
+    std::vector<std::complex<double>> data;
     std::vector<double> weight;
   };
   std::vector<FitData> fit_data_;

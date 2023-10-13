@@ -4,6 +4,7 @@
 #include "TECConstraint.h"
 
 #include <aocommon/dynamicfor.h>
+#include <aocommon/staticfor.h>
 
 #include <xtensor/xmath.hpp>
 #include <xtensor/xview.hpp>
@@ -119,6 +120,8 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   // Divide out the reference antenna
   if (do_phase_reference_) applyReferenceAntenna(solutions);
 
+  // Use a DynamicFor, since the ternarySearch functions in PhaseFitter.cc run
+  // a variable number of iterations.
   aocommon::DynamicFor<size_t> loop;
   loop.Run(
       0, NAntennas() * NSolutions(),
@@ -182,42 +185,47 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
   } else {
     if (do_phase_reference_) applyReferenceAntenna(solutions);
 
-    aocommon::DynamicFor<size_t> loop;
-    loop.Run(0, NAntennas() * NSolutions(),
-             [&](size_t antenna_and_solution_index, size_t thread) {
-               const size_t antenna_index =
-                   antenna_and_solution_index / NSolutions();
-               const size_t solution_index =
-                   antenna_and_solution_index % NSolutions();
-               std::vector<double>& data = thread_data_[thread];
-               std::vector<double>& fitted_data = thread_fitted_data_[thread];
-               std::vector<double>& weights = thread_weights_[thread];
+    // Use a StaticFor, since PieceWisePhaseFitter.cc has no dynamic code.
+    aocommon::StaticFor<size_t> loop;
+    loop.Run(
+        0, NAntennas() * NSolutions(),
+        [&](size_t antenna_and_solution_index, size_t end_index,
+            size_t thread) {
+          for (; antenna_and_solution_index < end_index;
+               ++antenna_and_solution_index) {
+            const size_t antenna_index =
+                antenna_and_solution_index / NSolutions();
+            const size_t solution_index =
+                antenna_and_solution_index % NSolutions();
+            std::vector<double>& data = thread_data_[thread];
+            std::vector<double>& fitted_data = thread_fitted_data_[thread];
+            std::vector<double>& weights = thread_weights_[thread];
 
-               // Flag channels where calibration yielded inf or nan
-               for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-                 const std::complex<double>& solution =
-                     solutions(ch, antenna_index, solution_index, 0);
-                 if (isfinite(solution)) {
-                   data[ch] = std::arg(solution);
-                   weights[ch] =
-                       weights_[antenna_index * NChannelBlocks() + ch];
-                 } else {
-                   data[ch] = 0.0;
-                   weights[ch] = 0.0;
-                 }
-               }
+            // Flag channels where calibration yielded inf or nan
+            for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+              const std::complex<double>& solution =
+                  solutions(ch, antenna_index, solution_index, 0);
+              if (isfinite(solution)) {
+                data[ch] = std::arg(solution);
+                weights[ch] = weights_[antenna_index * NChannelBlocks() + ch];
+              } else {
+                data[ch] = 0.0;
+                weights[ch] = 0.0;
+              }
+            }
 
-               // TODO might be nice to make it a user option whether to break
-               // or not
-               pw_fitters_[thread].SlidingFitWithBreak(
-                   phase_fitters_[thread].GetFrequencies().data(), data.data(),
-                   weights.data(), fitted_data.data(), data.size());
+            // TODO might be nice to make it a user option whether to break
+            // or not
+            pw_fitters_[thread].SlidingFitWithBreak(
+                phase_fitters_[thread].GetFrequencies().data(), data.data(),
+                weights.data(), fitted_data.data(), data.size());
 
-               for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-                 solutions(ch, antenna_index, solution_index, 0) =
-                     std::polar<double>(1.0, fitted_data[ch]);
-               }
-             });
+            for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+              solutions(ch, antenna_index, solution_index, 0) =
+                  std::polar<double>(1.0, fitted_data[ch]);
+            }
+          }
+        });
 
     return std::vector<Constraint::Result>();
   }
