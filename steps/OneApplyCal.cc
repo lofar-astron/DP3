@@ -15,7 +15,7 @@
 #include "../common/ParameterSet.h"
 #include "../common/StringTools.h"
 
-#include <aocommon/dynamicfor.h>
+#include <aocommon/staticfor.h>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 
@@ -411,25 +411,27 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
       itsJonesParameters->GetParms();
   const size_t n_corr = gains.shape()[0];
 
-  aocommon::DynamicFor<size_t> loop;
-  loop.Run(0, n_bl, [&](size_t bl) {
-    const unsigned int ant_a = info().getAnt1()[bl];
-    const unsigned int ant_b = info().getAnt2()[bl];
+  aocommon::StaticFor<size_t> loop;
+  loop.Run(0, n_bl, [&](size_t start_baseline, size_t end_baseline) {
+    for (size_t bl = start_baseline; bl < end_baseline; ++bl) {
+      const unsigned int ant_a = info().getAnt1()[bl];
+      const unsigned int ant_b = info().getAnt2()[bl];
 
-    for (size_t chan = 0; chan < n_chan; chan++) {
-      const unsigned int time_freq_offset =
-          (itsTimeStep * info().nchan()) + chan;
-      const std::complex<float>* gain_a = &gains(0, ant_a, time_freq_offset);
-      const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
-      if (n_corr > 2) {
-        ApplyCal::ApplyFull(aocommon::MatrixComplexFloat2x2{gain_a},
-                            aocommon::MatrixComplexFloat2x2{gain_b}, *buffer,
-                            bl, chan, itsUpdateWeights, itsFlagCounter);
-      } else {
-        ApplyCal::ApplyDiag(aocommon::DiagonalMatrixComplexFloat2x2{gain_a},
-                            aocommon::DiagonalMatrixComplexFloat2x2{gain_b},
-                            *buffer, bl, chan, itsUpdateWeights,
-                            itsFlagCounter);
+      for (size_t chan = 0; chan < n_chan; chan++) {
+        const unsigned int time_freq_offset =
+            (itsTimeStep * info().nchan()) + chan;
+        const std::complex<float>* gain_a = &gains(0, ant_a, time_freq_offset);
+        const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
+        if (n_corr > 2) {
+          ApplyCal::ApplyFull(aocommon::MatrixComplexFloat2x2{gain_a},
+                              aocommon::MatrixComplexFloat2x2{gain_b}, *buffer,
+                              bl, chan, itsUpdateWeights, itsFlagCounter);
+        } else {
+          ApplyCal::ApplyDiag(aocommon::DiagonalMatrixComplexFloat2x2{gain_a},
+                              aocommon::DiagonalMatrixComplexFloat2x2{gain_b},
+                              *buffer, bl, chan, itsUpdateWeights,
+                              itsFlagCounter);
+        }
       }
     }
   });

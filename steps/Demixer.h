@@ -72,7 +72,7 @@ class Demixer : public Step {
   void makeFactors(const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
                    aocommon::xt::UTensor<std::complex<double>, 5>& bufOut,
                    const base::DPBuffer::WeightsType& weightSums,
-                   unsigned int nChanOut, unsigned int nChanAvg);
+                   size_t nChanOut, size_t nChanAvg);
 
   /// Do the demixing.
   void handleDemix();
