@@ -302,16 +302,12 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     threadData[t].strategy = aoflagger_.LoadStrategyFile(strategy_name_);
   }
 
+  // Use a dynamic for, since the strategy may handle different baselines
+  // differently.
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, n_baselines, [&](size_t ib, size_t thread) {
     // Do autocorrelations only if told so.
-    if (ant1[ib] == ant2[ib]) {
-      if (flag_auto_correlations_) {
-        flagBaseline(0, window_size_ + rightOverlap, 0, ib,
-                     threadData[thread].counter, threadData[thread].strategy,
-                     threadData[thread].qstats);
-      }
-    } else {
+    if (ant1[ib] != ant2[ib] || flag_auto_correlations_) {
       flagBaseline(0, window_size_ + rightOverlap, 0, ib,
                    threadData[thread].counter, threadData[thread].strategy,
                    threadData[thread].qstats);

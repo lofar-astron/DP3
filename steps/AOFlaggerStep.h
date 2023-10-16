@@ -110,10 +110,10 @@ class AOFlaggerStep : public Step {
                 const aoflagger::FlagMask& rfiMask,
                 const aoflagger::FlagMask& origMask, int bl);
 
-  string name_;
+  std::string name_;
   unsigned int buffer_index_;
   unsigned int n_times_;
-  string strategy_name_;
+  std::string strategy_name_;
   unsigned int window_size_;
   unsigned int overlap_;  ///< extra time slots on both sides
   double overlap_percentage_;

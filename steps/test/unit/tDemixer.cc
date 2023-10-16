@@ -139,7 +139,7 @@ class TestInput : public dp3::steps::MockInput {
 // Class to check result of averaging TestInput.
 class TestOutput : public dp3::steps::test::ThrowStep {
  public:
-  TestOutput(int ntime, size_t nbl, size_t nchan, size_t navgtime,
+  TestOutput(size_t ntime, size_t nbl, size_t nchan, size_t navgtime,
              size_t navgchan, bool flag)
       : count_(0),
         n_times_(ntime),
@@ -230,8 +230,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     BOOST_CHECK_EQUAL(n_average_time_, info.ntimeAvg());
   }
 
-  int count_;
-  int n_times_;
+  size_t count_;
+  size_t n_times_;
   size_t n_baselines_;
   size_t n_channels_;
   size_t n_average_time_;
@@ -240,8 +240,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 };
 
 // This test only tests the averager functionality of the Demixer.
-void TestDemixer(int ntime, int nbl, int nchan, int navgtime, int navgchan,
-                 bool flag) {
+void TestDemixer(size_t ntime, size_t nbl, size_t nchan, size_t navgtime,
+                 size_t navgchan, bool flag) {
   auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, flag);
   ParameterSet parset;
   parset.add("freqstep", std::to_string(navgchan));

@@ -648,10 +648,13 @@ void Demixer::mergeSubtractResult() {
 void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
   if (itsNDir <= 1) return;  // Nothing to do if only target direction.
 
-  int nbl = newBuf->GetData().shape(0);
-  int nchan = newBuf->GetData().shape(1);
-  int ncorr = newBuf->GetData().shape(2);
-  int ncc = ncorr * nchan;
+  const size_t nbl = newBuf->GetData().shape(0);
+  const size_t nchan = newBuf->GetData().shape(1);
+  const size_t ncorr = newBuf->GetData().shape(2);
+
+  const DPBuffer::FlagsType& flags = newBuf->GetFlags();
+  const DPBuffer::WeightsType& weights = newBuf->GetWeights();
+
   // If ever in the future a time dependent phase center is used,
   // the machine must be reset for each new time, thus each new call
   // to process.
@@ -660,66 +663,52 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
   // source direction. By combining them you get the shift from one
   // source direction to another.
   int dirnr = 0;  // direction pair number
-  aocommon::DynamicFor<size_t> loop;
+  aocommon::StaticFor<size_t> loop;
   for (unsigned int dir0 = 0; dir0 < itsNDir - 1; ++dir0) {
+    const xt::xtensor<std::complex<double>, 2>& phasors0 =
+        itsPhaseShifts[dir0]->getPhasors();
     for (unsigned int dir1 = dir0 + 1; dir1 < itsNDir; ++dir1) {
       if (dir1 == itsNDir - 1) {
         // The last direction is the target direction, so no need to
         // combine the factors. Take conj to get shift source to target.
-        loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
-          const bool* flagPtr = newBuf->GetFlags().data() + bl * ncc;
-          const float* weightPtr = newBuf->GetWeights().data() + bl * ncc;
-          std::complex<double>* factorPtr1 =
-              itsFactorBuf.data() + (dirnr * nbl + bl) * ncc;
-          std::complex<double>* factorPtr2 =
-              itsFactorBufSubtr.data() + (dirnr * nbl + bl) * ncc;
-          const std::complex<double>* phasor0 =
-              itsPhaseShifts[dir0]->getPhasors().data() + bl * nchan;
-          for (int chan = 0; chan < nchan; ++chan) {
-            std::complex<double> factor = std::conj(*phasor0++);
-            for (int corr = 0; corr < ncorr; ++corr) {
-              if (!*flagPtr) {
-                *factorPtr1 += factor * double(*weightPtr);
-                *factorPtr2 += factor * double(*weightPtr);
+        loop.Run(0, nbl, [&](size_t start_baseline, size_t end_baseline) {
+          for (size_t bl = start_baseline; bl < end_baseline; ++bl) {
+            for (size_t chan = 0; chan < nchan; ++chan) {
+              const std::complex<double> factor = std::conj(phasors0(bl, chan));
+              for (size_t corr = 0; corr < ncorr; ++corr) {
+                const std::complex<double> weighted_factor =
+                    factor *
+                    double(!flags(bl, chan, corr) * weights(bl, chan, corr));
+                itsFactorBuf(dirnr, bl, chan, corr) += weighted_factor;
+                itsFactorBufSubtr(dirnr, bl, chan, corr) += weighted_factor;
               }
-              flagPtr++;
-              weightPtr++;
-              factorPtr1++;
-              factorPtr2++;
             }
           }
         });  // end parallel for
       } else {
         // Different source directions; take both phase terms into account.
-        loop.Run(0, nbl, [&](size_t bl, size_t /*thread*/) {
-          const bool* flagPtr = newBuf->GetFlags().data() + bl * ncc;
-          const float* weightPtr = newBuf->GetWeights().data() + bl * ncc;
-          std::complex<double>* factorPtr1 =
-              itsFactorBuf.data() + (dirnr * nbl + bl) * ncc;
-          std::complex<double>* factorPtr2 =
-              itsFactorBufSubtr.data() + (dirnr * nbl + bl) * ncc;
-          const std::complex<double>* phasor0 =
-              itsPhaseShifts[dir0]->getPhasors().data() + bl * nchan;
-          const std::complex<double>* phasor1 =
-              itsPhaseShifts[dir1]->getPhasors().data() + bl * nchan;
-          for (int chan = 0; chan < nchan; ++chan) {
-            std::complex<double> factor = *phasor1++ * conj(*phasor0++);
-            for (int corr = 0; corr < ncorr; ++corr) {
-              if (!*flagPtr) {
-                *factorPtr1 += factor * double(*weightPtr);
-                *factorPtr2 += factor * double(*weightPtr);
+        const xt::xtensor<std::complex<double>, 2>& phasors1 =
+            itsPhaseShifts[dir1]->getPhasors();
+
+        loop.Run(0, nbl, [&](size_t start_baseline, size_t end_baseline) {
+          for (size_t bl = start_baseline; bl < end_baseline; ++bl) {
+            for (size_t chan = 0; chan < nchan; ++chan) {
+              const std::complex<double> factor =
+                  phasors1(bl, chan) * std::conj(phasors0(bl, chan));
+              for (size_t corr = 0; corr < ncorr; ++corr) {
+                const std::complex<double> weighted_factor =
+                    factor *
+                    double(!flags(bl, chan, corr) * weights(bl, chan, corr));
+                itsFactorBuf(dirnr, bl, chan, corr) += weighted_factor;
+                itsFactorBufSubtr(dirnr, bl, chan, corr) += weighted_factor;
               }
-              flagPtr++;
-              weightPtr++;
-              factorPtr1++;
-              factorPtr2++;
             }
           }
         });  // end parallel for
       }
 
       // Next direction pair.
-      dirnr++;
+      ++dirnr;
     }
   }
 }
@@ -727,55 +716,49 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
 void Demixer::makeFactors(
     const aocommon::xt::UTensor<std::complex<double>, 4>& bufIn,
     aocommon::xt::UTensor<std::complex<double>, 5>& bufOut,
-    const DPBuffer::WeightsType& weightSums, unsigned int nChanOut,
-    unsigned int nChanAvg) {
+    const DPBuffer::WeightsType& weightSums, size_t nChanOut, size_t nChanAvg) {
   if (itsNDir <= 1) return;  // Nothing to do if only target direction.
   assert(weightSums.size() != 0);
 
   const size_t kMaxNrCorrelations = 4;
   bufOut.resize({itsNBl, nChanOut, itsNCorr, itsNDir, itsNDir});
   bufOut.fill(std::complex<double>(1.0, 0.0));
-  int ncc = itsNCorr * nChanOut;
-  int nccdd = ncc * itsNDir * itsNDir;
-  int nccin = itsNCorr * itsNChanIn;
   // Fill the factors for each combination of different directions.
   unsigned int dirnr = 0;  // direction pair number of the input buffer
+  aocommon::StaticFor<size_t> loop;
   for (unsigned int dir0 = 0; dir0 < itsNDir - 1; ++dir0) {
     for (unsigned int dir1 = dir0 + 1; dir1 < itsNDir; ++dir1) {
       // Average factors by summing channels.
       // Note that summing in time is done in addFactors.
       // The sum per output channel is divided by the summed weight.
       // Note there is a summed weight per baseline,outchan,corr.
-      aocommon::DynamicFor<size_t> loop;
-      loop.Run(0, itsNBl, [&](size_t bl, size_t /*thread*/) {
-        const std::complex<double>* factor_in =
-            bufIn.data() + (dirnr * itsNBl + bl) * nccin;
-        std::complex<double>* factor_out1 =
-            bufOut.data() + bl * nccdd + (dir0 * itsNDir + dir1);
-        std::complex<double>* factor_out2 =
-            bufOut.data() + bl * nccdd + (dir1 * itsNDir + dir0);
-        const float* weightPtr = weightSums.data() + bl * ncc;
-        for (unsigned int c0 = 0; c0 < nChanOut; ++c0) {
-          // Sum the factors for the input channels to average.
-          std::array<std::complex<double>, kMaxNrCorrelations> sum = {0.0};
-          // In theory, the last output channel could consist of fewer
-          // input channels, so take care of that.
-          unsigned int nch = std::min(nChanAvg, itsNChanIn - c0 * nChanAvg);
-          for (unsigned int c1 = 0; c1 < nch; ++c1) {
-            for (unsigned int corr = 0; corr < itsNCorr; ++corr) {
-              sum[corr] += *factor_in++;
+      loop.Run(0, itsNBl, [&](size_t start_baseline, size_t end_baseline) {
+        for (size_t bl = start_baseline; bl < end_baseline; ++bl) {
+          size_t ch_in = 0;
+          for (size_t ch_out = 0; ch_out < nChanOut; ++ch_out) {
+            // Sum the factors for the input channels to average.
+            std::array<std::complex<double>, kMaxNrCorrelations> sum = {0.0};
+            // In theory, the last output channel could consist of fewer
+            // input channels, so take care of that.
+            const size_t n_input_channels =
+                std::min(nChanAvg, itsNChanIn - ch_out * nChanAvg);
+            const size_t last_input_channel = ch_in + n_input_channels;
+            for (; ch_in < last_input_channel; ++ch_in) {
+              for (unsigned int corr = 0; corr < itsNCorr; ++corr) {
+                sum[corr] += bufIn(dirnr, bl, ch_in, corr);
+              }
             }
-          }
-          for (unsigned int corr = 0; corr < itsNCorr; ++corr) {
-            *factor_out1 = sum[corr] / double(*weightPtr++);
-            *factor_out2 = conj(*factor_out1);
-            factor_out1 += itsNDir * itsNDir;
-            factor_out2 += itsNDir * itsNDir;
+            for (unsigned int corr = 0; corr < itsNCorr; ++corr) {
+              const std::complex<double> factor_out =
+                  sum[corr] / double(weightSums(bl, ch_out, corr));
+              bufOut(bl, ch_out, corr, dir0, dir1) = factor_out;
+              bufOut(bl, ch_out, corr, dir1, dir0) = std::conj(factor_out);
+            }
           }
         }
       });  // end parallel for
       // Next input direction pair.
-      dirnr++;
+      ++dirnr;
     }
   }
   /// cout<<"makefactors "<<weightSums<<bufOut;
@@ -926,8 +909,8 @@ void Demixer::demix() {
     // If solution propagation is disabled, re-initialize the thread-private
     // vector of unknowns.
     if (!itsPropagateSolutions) {
-      copy(itsPrevSolution.begin(), itsPrevSolution.end(),
-           storage.unknowns.begin());
+      std::copy(itsPrevSolution.begin(), itsPrevSolution.end(),
+                storage.unknowns.begin());
     }
 
     // Simulate.
@@ -935,7 +918,7 @@ void Demixer::demix() {
     // Model visibilities for each direction of interest will be computed
     // and stored.
     size_t stride_model[3] = {1, nCr, nCr * nCh};
-    fill(storage.model.begin(), storage.model.end(), 0.);
+    std::fill(storage.model.begin(), storage.model.end(), 0.0);
 
     for (size_t dr = 0; dr < nDr; ++dr) {
       base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
@@ -1121,15 +1104,15 @@ void Demixer::demix() {
     }
 
     // Copy solutions to global solution array.
-    copy(storage.unknowns.begin(), storage.unknowns.end(),
-         &(itsUnknowns[(itsTimeIndex + ts) * nDr * nSt * 8]));
+    std::copy(storage.unknowns.begin(), storage.unknowns.end(),
+              &(itsUnknowns[(itsTimeIndex + ts) * nDr * nSt * 8]));
   });
 
   // Store last known solutions.
   if (itsPropagateSolutions && nTime > 0) {
-    copy(&(itsUnknowns[(itsTimeIndex + nTime - 1) * nDr * nSt * 8]),
-         &(itsUnknowns[(itsTimeIndex + nTime) * nDr * nSt * 8]),
-         itsPrevSolution.begin());
+    std::copy(&(itsUnknowns[(itsTimeIndex + nTime - 1) * nDr * nSt * 8]),
+              &(itsUnknowns[(itsTimeIndex + nTime) * nDr * nSt * 8]),
+              itsPrevSolution.begin());
   }
 
   // Update convergence count.
