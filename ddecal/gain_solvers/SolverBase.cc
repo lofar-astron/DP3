@@ -9,6 +9,8 @@
 
 #include <aocommon/staticfor.h>
 
+#include <xsimd/xsimd.hpp>
+
 #include <xtensor/xview.hpp>
 
 #include "common/MatrixComplexDouble2x2.h"
@@ -73,43 +75,74 @@ bool SolverBase::DetectStall(size_t iteration,
 }
 
 void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
-                      SolutionSpan& nextSolutions) const {
-  // Move the solutions towards nextSolutions
-  // (the moved solutions are stored in 'nextSolutions')
-  aocommon::StaticFor<size_t> loop;
-  loop.Run(0, n_channel_blocks_, [&](size_t start_block, size_t end_block) {
-    const size_t n_antennas = nextSolutions.shape(1);
-    const size_t n_solutions = nextSolutions.shape(2);
-    const size_t n_polarizations = nextSolutions.shape(3);
-    for (size_t ch_block = start_block; ch_block < end_block; ++ch_block) {
-      for (size_t a = 0; a != n_antennas; ++a) {
-        for (size_t s = 0; s != n_solutions_; ++s) {
-          for (size_t p = 0; p != n_polarizations; ++p) {
-            const std::complex<double>& solution =
-                solutions[ch_block]
-                         [(a * n_solutions + s) * n_polarizations + p];
-            std::complex<double>& next_solution =
-                nextSolutions(ch_block, a, s, p);
-            if (phase_only_) {
-              // In phase only mode, a step is made along the complex circle,
-              // towards the shortest direction.
-              double phaseFrom = std::arg(solution);
-              double distance = std::arg(next_solution) - phaseFrom;
-              if (distance > M_PI)
-                distance = distance - 2.0 * M_PI;
-              else if (distance < -M_PI)
-                distance = distance + 2.0 * M_PI;
-              next_solution =
-                  std::polar(1.0, phaseFrom + step_size_ * distance);
-            } else {
-              next_solution =
-                  solution * (1.0 - step_size_) + next_solution * step_size_;
-            }
-          }
-        }
+                      SolutionSpan& next_solutions) const {
+  // Move the solutions towards next_solutions
+  // (the moved solutions are stored in 'next_solutions')
+
+  const size_t n_antennas = next_solutions.shape(1);
+  const size_t n_solutions = next_solutions.shape(2);
+  const size_t n_polarizations = next_solutions.shape(3);
+  const size_t solution_size = n_antennas * n_solutions * n_polarizations;
+
+  // Parallelizing this loop using StaticFor proved not effective:
+  // When setting kPhaseOnly to true in SolverTester.h, the total loop takes
+  // about 13 microseconds in the solvers/scalar test and 17 microseconds
+  // in the solvers/diagonal test. With kPhaseOnly == false, the loops
+  // typically take less than 5 microseconds.
+  // Using a StaticFor increases the time to more than 21 microseconds per loop,
+  // when using 4 threads.
+  for (size_t ch_block = 0; ch_block < n_channel_blocks_; ++ch_block) {
+    assert(solutions[ch_block].size() == solution_size);
+    const std::complex<double>* solution = solutions[ch_block].data();
+    std::complex<double>* next_solution = &next_solutions(ch_block, 0, 0, 0);
+
+    if (!phase_only_) {
+      // Using XSimd is not necessary: The compiler vectorizes this simple loop.
+      for (size_t i = 0; i < solution_size; ++i) {
+        next_solution[i] =
+            solution[i] * (1.0 - step_size_) + next_solution[i] * step_size_;
+      }
+    } else {
+      // In phase only mode, a step is made along the complex circle,
+      // towards the shortest direction.
+
+      using BatchComplex = xsimd::batch<std::complex<double>>;
+      constexpr size_t kBatchSize = BatchComplex::size;
+
+      const xsimd::batch<double> zero = xsimd::broadcast(0.0);
+      const xsimd::batch<double> one = xsimd::broadcast(1.0);
+      const xsimd::batch<double> pi = xsimd::broadcast(M_PI);
+      const xsimd::batch<double> two_pi = xsimd::broadcast(2.0 * M_PI);
+
+      size_t i = 0;
+      for (; i < (solution_size / kBatchSize) * kBatchSize; i += kBatchSize) {
+        const BatchComplex solution_batch =
+            BatchComplex::load_unaligned(&solution[i]);
+        BatchComplex next_solution_batch =
+            BatchComplex::load_aligned(&next_solution[i]);
+
+        const xsimd::batch<double> phase_from = xsimd::arg(solution_batch);
+        xsimd::batch<double> distance =
+            xsimd::arg(next_solution_batch) - phase_from;
+        distance -= xsimd::select(xsimd::gt(distance, pi), two_pi, zero);
+        distance += xsimd::select(xsimd::lt(distance, -pi), two_pi, zero);
+
+        next_solution_batch =
+            xsimd::polar(one, phase_from + step_size_ * distance);
+        next_solution_batch.store_aligned(&next_solution[i]);
+      }
+
+      for (; i < solution_size; ++i) {
+        const double phase_from = std::arg(solution[i]);
+        double distance = std::arg(next_solution[i]) - phase_from;
+        if (distance > M_PI)
+          distance -= 2.0 * M_PI;
+        else if (distance < -M_PI)
+          distance += 2.0 * M_PI;
+        next_solution[i] = std::polar(1.0, phase_from + step_size_ * distance);
       }
     }
-  });
+  }
 }
 
 void SolverBase::PrepareConstraints() {
