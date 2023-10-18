@@ -92,9 +92,10 @@ class GainCal final : public Step {
       const xt::xtensor<std::complex<float>, 3>& sol);
 
   /// Fills the matrices itsVis and itsMVis
-  void fillMatrices(const std::complex<float>* model,
-                    const std::complex<float>* data, const float* weight,
-                    const bool* flag);
+  void fillMatrices(const base::DPBuffer::DataType& model,
+                    const base::DPBuffer::DataType& data,
+                    const base::DPBuffer::WeightsType& weights,
+                    const base::DPBuffer::FlagsType& flags);
 
   /// Initialize the parmdb
   void initParmDB();
