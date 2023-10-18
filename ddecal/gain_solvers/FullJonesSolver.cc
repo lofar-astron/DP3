@@ -54,9 +54,8 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionTensor next_solutions_tensor(
+  SolutionTensor next_solutions(
       {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
-  SolutionSpan next_solutions = aocommon::xt::CreateSpan(next_solutions_tensor);
 
   ///
   /// Start iterating
@@ -133,7 +132,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
 void FullJonesSolver::PerformIteration(
     size_t ch_block, const SolveData::ChannelBlockData& cb_data,
     std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs,
-    const std::vector<DComplex>& solutions, SolutionSpan& next_solutions) {
+    const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   using aocommon::MC2x2;
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {

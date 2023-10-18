@@ -39,7 +39,7 @@ class LBFGSSolver final : public SolverBase {
   /// @param ch_block Channel block index for next_solutions.
   /// @param d_storage An 1D xtensor. The first and second halves contain the
   ///                  real and imaginary parts of the solutions, respectively.
-  static void MergeSolutions(SolutionSpan& next_solutions, size_t ch_block,
+  static void MergeSolutions(SolutionTensor& next_solutions, size_t ch_block,
                              const xt::xtensor<double, 1>& d_storage);
 
   SolveResult Solve(const SolveData& data,

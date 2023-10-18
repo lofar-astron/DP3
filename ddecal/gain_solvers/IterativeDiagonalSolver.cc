@@ -20,9 +20,8 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
 
-  SolutionTensor next_solutions_tensor(
+  SolutionTensor next_solutions(
       {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
-  SolutionSpan next_solutions = aocommon::xt::CreateSpan(next_solutions_tensor);
 
   SolveResult result;
 
@@ -87,7 +86,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
 void IterativeDiagonalSolver::PerformIteration(
     size_t ch_block, const SolveData::ChannelBlockData& cb_data,
     std::vector<MC2x2F>& v_residual, const std::vector<DComplex>& solutions,
-    SolutionSpan& next_solutions) {
+    SolutionTensor& next_solutions) {
   // Fill v_residual
   std::copy(cb_data.DataBegin(), cb_data.DataEnd(), v_residual.begin());
 
@@ -112,7 +111,7 @@ void IterativeDiagonalSolver::PerformIteration(
 void IterativeDiagonalSolver::SolveDirection(
     size_t ch_block, const SolveData::ChannelBlockData& cb_data,
     const std::vector<MC2x2F>& v_residual, size_t direction,
-    const std::vector<DComplex>& solutions, SolutionSpan& next_solutions) {
+    const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   // Calculate this equation, given ant a:
   //
   //          sum_b data_ab * solutions_b * model_ab^*

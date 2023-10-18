@@ -26,9 +26,8 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionTensor next_solutions_tensor(
+  SolutionTensor next_solutions(
       {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
-  SolutionSpan next_solutions = aocommon::xt::CreateSpan(next_solutions_tensor);
 
   ///
   /// Start iterating
@@ -106,7 +105,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 void DiagonalSolver::PerformIteration(
     size_t ch_block, const SolveData::ChannelBlockData& cb_data,
     std::vector<Matrix>& g_times_cs, std::vector<std::vector<Complex>>& vs,
-    const std::vector<DComplex>& solutions, SolutionSpan& next_solutions) {
+    const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   for (size_t ant_and_pol = 0; ant_and_pol != NAntennas() * 2; ++ant_and_pol) {
     g_times_cs[ant_and_pol].SetZero();
     vs[ant_and_pol].assign(vs[ant_and_pol].size(), 0);

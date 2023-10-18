@@ -72,6 +72,8 @@ class Constraint {
    * @param solutions A 4D array with dimensions n_channel_blocks x n_antennas
    * x n_solutions x n_pol solutions.
    * n_pol is the dimension with the fastest changing index.
+   * Using a span instead of a real tensor as argument type avoids the need
+   * for copying data in Python bindings.
    * @param time Central time of interval.
    */
   virtual std::vector<Result> Apply(SolutionSpan& solutions, double time,
