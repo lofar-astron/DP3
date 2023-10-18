@@ -8,6 +8,7 @@
 #include <numeric>
 
 #include <aocommon/staticfor.h>
+#include <aocommon/xt/span.h>
 
 #include <xsimd/xsimd.hpp>
 
@@ -75,7 +76,7 @@ bool SolverBase::DetectStall(size_t iteration,
 }
 
 void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
-                      SolutionSpan& next_solutions) const {
+                      SolutionTensor& next_solutions) const {
   // Move the solutions towards next_solutions
   // (the moved solutions are stored in 'next_solutions')
 
@@ -154,12 +155,14 @@ void SolverBase::PrepareConstraints() {
 bool SolverBase::ApplyConstraints(size_t iteration, double time,
                                   bool has_previously_converged,
                                   SolveResult& result,
-                                  SolutionSpan& next_solutions,
+                                  SolutionTensor& next_solutions,
                                   std::ostream* stat_stream) const {
   bool constraints_satisfied = true;
 
   result.results.resize(constraints_.size());
   auto result_iterator = result.results.begin();
+
+  SolutionSpan next_solutions_span = aocommon::xt::CreateSpan(next_solutions);
 
   for (const std::unique_ptr<Constraint>& c : constraints_) {
     // PrepareIteration() might change Satisfied(), and since we always want
@@ -168,7 +171,7 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
     constraints_satisfied = c->Satisfied() && constraints_satisfied;
     c->PrepareIteration(has_previously_converged, iteration,
                         iteration + 1 >= GetMaxIterations());
-    *result_iterator = c->Apply(next_solutions, time, stat_stream);
+    *result_iterator = c->Apply(next_solutions_span, time, stat_stream);
     ++result_iterator;
   }
 
@@ -180,7 +183,7 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
 }
 
 bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
-                                 SolutionSpan& newSolutions,
+                                 SolutionTensor& newSolutions,
                                  bool useConstraintAccuracy, double& avgAbsDiff,
                                  std::vector<double>& stepMagnitudes) const {
   assert(newSolutions.shape(0) == NChannelBlocks());

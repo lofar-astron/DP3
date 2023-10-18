@@ -41,8 +41,6 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
   const size_t kNAntennas = 1;
   const size_t kNDirections = 3;
   const size_t kNPolarizations = 2;
-  const size_t kNSolutionsPerChannelBlock =
-      kNAntennas * kNDirections * kNPolarizations;
 
   // The columns form the polarizations and directions.
   // Each polarization (2x) and each direction (3x) is individually smoothed
@@ -50,40 +48,34 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
   // The fourth and fifth columns are constant, and when the input is constant,
   // the smoother should not modify it.
   // The sixth column tests smoothing a fixed slope.
+  // The imaginary part of the solution is always zero in this test.
 
-  std::vector<std::complex<double>> solutions_vector{
-      0.0, 1.0, 0.0,  1.0, 0.0, 5.0,  // channel block 0
-      0.0, 0.0, 0.0,  1.0, 0.0, 4.0,  // channel block 1
-      1.0, 0.0, 0.0,  1.0, 0.0, 3.0,  // channel block 2
-      0.0, 0.0, 0.0,  1.0, 0.0, 2.0,  // channel block 3
-      0.0, 0.0, 10.0, 1.0, 0.0, 1.0   // channel block 4
+  dp3::ddecal::SolutionTensor solutions{
+      {{{0.0, 1.0}, {0.0, 1.0}, {0.0, 5.0}}},  // channel block 0
+      {{{0.0, 0.0}, {0.0, 1.0}, {0.0, 4.0}}},  // channel block 1
+      {{{1.0, 0.0}, {0.0, 1.0}, {0.0, 3.0}}},  // channel block 2
+      {{{0.0, 0.0}, {0.0, 1.0}, {0.0, 2.0}}},  // channel block 3
+      {{{0.0, 0.0}, {10.0, 1.0}, {0.0, 1.0}}}  // channel block 4
   };
-  const std::array<size_t, 4> shape{kNChannelBlocks, kNAntennas, kNDirections,
-                                    kNPolarizations};
-  dp3::ddecal::SolutionSpan solutions =
-      aocommon::xt::CreateSpan(solutions_vector, shape);
+  BOOST_REQUIRE(solutions.shape(0) == kNChannelBlocks);
+  BOOST_REQUIRE(solutions.shape(1) == kNAntennas);
+  BOOST_REQUIRE(solutions.shape(2) == kNDirections);
+  BOOST_REQUIRE(solutions.shape(3) == kNPolarizations);
 
   SmoothnessConstraint constraint = makeConstraint(kNAntennas, kNDirections);
-  constraint.Apply(solutions, solution_time, nullptr);
+  dp3::ddecal::SolutionSpan solutions_span =
+      aocommon::xt::CreateSpan(solutions);
+  constraint.Apply(solutions_span, solution_time, nullptr);
 
-  const std::vector<std::vector<std::complex<double>>> reference_solutions{
-      {0.000121798, 0.902597, 0.0, 1.0, 0.0, 4.90247},
-      {0.0886568, 0.0886568, 0.0, 1.0, 0.0, 3.99978},
-      {0.822484, 0.000110987, 0.00110987, 1.0, 0.0, 3},
-      {0.0886568, 0.0, 0.886568, 1.0, 0.0, 2.00022},
-      {0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753},
+  const dp3::ddecal::SolutionTensor reference_solutions{
+      {{{0.000121798, 0.902597}, {0.0, 1.0}, {0.0, 4.90247}}},
+      {{{0.0886568, 0.0886568}, {0.0, 1.0}, {0.0, 3.99978}}},
+      {{{0.822484, 0.000110987}, {0.00110987, 1.0}, {0.0, 3}}},
+      {{{0.0886568, 0.0}, {0.886568, 1.0}, {0.0, 2.00022}}},
+      {{{0.000121798, 0.0}, {9.02597, 1.0}, {0.0, 1.09753}}},
   };
 
-  for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
-    for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
-      const std::complex<double>& solution =
-          solutions_vector[cb * kNSolutionsPerChannelBlock + i];
-      const std::complex<double>& reference_solution =
-          reference_solutions[cb][i];
-      BOOST_CHECK_CLOSE(solution.real(), reference_solution.real(), 1.0e-3);
-      BOOST_CHECK_CLOSE(solution.imag(), reference_solution.imag(), 1.0e-3);
-    }
-  }
+  BOOST_CHECK(xt::allclose(solutions, reference_solutions));
 }
 
 BOOST_AUTO_TEST_CASE(flagged_channels) {
@@ -93,8 +85,6 @@ BOOST_AUTO_TEST_CASE(flagged_channels) {
   // Indexing using (ch, 0, 0, solution_index), where solution_index > 1,
   // does not work anymore in that case.
   const size_t kNPolarizations = 1;
-  const size_t kNSolutionsPerChannelBlock =
-      kNAntennas * kNDirections * kNPolarizations;
 
   SmoothnessConstraint constraint = makeConstraint(kNAntennas, kNDirections);
   // Flagged channels should be ignored by the constraint, but still
@@ -102,38 +92,31 @@ BOOST_AUTO_TEST_CASE(flagged_channels) {
   // The first two channels are flagged:
   constraint.SetWeights({0.0, 0.0, 1.0, 1.0, 1.0});
 
-  std::vector<std::complex<double>> solutions_vector{
-      0.0, 1.0, 0.0,  1.0, 0.0, 5.0,  // channel block 0
-      0.0, 0.0, 0.0,  1.0, 0.0, 4.0,  // channel block 1
-      1.0, 0.0, 0.0,  1.0, 0.0, 3.0,  // channel block 2
-      0.0, 0.0, 0.0,  1.0, 0.0, 2.0,  // channel block 3
-      0.0, 0.0, 10.0, 1.0, 0.0, 1.0   // channel block 4
+  dp3::ddecal::SolutionTensor solutions{
+      {{{0.0}, {1.0}, {0.0}, {1.0}, {0.0}, {5.0}}},  // channel block 0
+      {{{0.0}, {0.0}, {0.0}, {1.0}, {0.0}, {4.0}}},  // channel block 1
+      {{{1.0}, {0.0}, {0.0}, {1.0}, {0.0}, {3.0}}},  // channel block 2
+      {{{0.0}, {0.0}, {0.0}, {1.0}, {0.0}, {2.0}}},  // channel block 3
+      {{{0.0}, {0.0}, {10.0}, {1.0}, {0.0}, {1.0}}}  // channel block 4
   };
-  const std::array<size_t, 4> shape{kNChannelBlocks, kNAntennas, kNDirections,
-                                    kNPolarizations};
-  dp3::ddecal::SolutionSpan solutions =
-      aocommon::xt::CreateSpan(solutions_vector, shape);
+  BOOST_REQUIRE(solutions.shape(0) == kNChannelBlocks);
+  BOOST_REQUIRE(solutions.shape(1) == kNAntennas);
+  BOOST_REQUIRE(solutions.shape(2) == kNDirections);
+  BOOST_REQUIRE(solutions.shape(3) == kNPolarizations);
 
-  constraint.Apply(solutions, solution_time, nullptr);
+  dp3::ddecal::SolutionSpan solutions_span =
+      aocommon::xt::CreateSpan(solutions);
+  constraint.Apply(solutions_span, solution_time, nullptr);
 
-  const std::vector<std::vector<std::complex<double>>> reference_solutions{
-      {1.0, 0.0, 0.0, 1.0, 0.0, 3.0},
-      {0.99875, 0.0, 0.0, 1.0, 0.0, 2.99875},
-      {0.902597, 0.0, 0.00121798, 1.0, 0.0, 2.90247},
-      {0.0886666, 0.0, 0.886666, 1.0, 0.0, 2},
-      {0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753},
+  const dp3::ddecal::SolutionTensor reference_solutions{
+      {{{1.0}, {0.0}, {0.0}, {1.0}, {0.0}, {3.0}}},
+      {{{0.99875}, {0.0}, {0.0, 1.0}, {0.0}, {2.99875}}},
+      {{{0.902597}, {0.0}, {0.00121798}, {1.0}, {0.0}, {2.90247}}},
+      {{{0.0886666}, {0.0}, {0.886666}, {1.0}, {0.0}, {2.0}}},
+      {{{0.000121798}, {0.0}, {9.02597}, {1.0}, {0.0}, {1.09753}}},
   };
 
-  for (size_t cb = 0; cb != kNChannelBlocks; ++cb) {
-    for (size_t i = 0; i != kNSolutionsPerChannelBlock; ++i) {
-      const std::complex<double>& solution =
-          solutions_vector[cb * kNSolutionsPerChannelBlock + i];
-      const std::complex<double>& reference_solution =
-          reference_solutions[cb][i];
-      BOOST_CHECK_CLOSE(solution.real(), reference_solution.real(), 1.0e-3);
-      BOOST_CHECK_CLOSE(solution.imag(), reference_solution.imag(), 1.0e-3);
-    }
-  }
+  BOOST_CHECK(xt::allclose(solutions, reference_solutions));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

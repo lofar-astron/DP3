@@ -409,10 +409,11 @@ void ScalarGradient(double* unknowns, double* gradient, int n_unknowns,
 void PerformIterationFull(size_t ch_block,
                           const SolveData::ChannelBlockData& cb_data,
                           const std::vector<SolverBase::DComplex>& solutions,
-                          SolutionSpan& next_solutions, std::size_t n_antennas,
-                          std::size_t n_directions, double robust_nu,
-                          std::size_t max_iter, std::size_t history_size,
-                          std::size_t minibatches, persistent_data_t& pt) {
+                          SolutionTensor& next_solutions,
+                          std::size_t n_antennas, std::size_t n_directions,
+                          double robust_nu, std::size_t max_iter,
+                          std::size_t history_size, std::size_t minibatches,
+                          persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
   const std::size_t n_solutions_2 = n_antennas * n_directions * 4;
   const std::size_t n_solutions = n_solutions_2 * 2;
@@ -435,7 +436,7 @@ void PerformIterationFull(size_t ch_block,
 void PerformIterationDiagonal(
     size_t ch_block, const SolveData::ChannelBlockData& cb_data,
     const std::vector<SolverBase::DComplex>& solutions,
-    SolutionSpan& next_solutions, std::size_t n_antennas,
+    SolutionTensor& next_solutions, std::size_t n_antennas,
     std::size_t n_directions, double robust_nu, std::size_t max_iter,
     std::size_t history_size, std::size_t minibatches, persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
@@ -460,7 +461,7 @@ void PerformIterationDiagonal(
 void PerformIterationScalar(size_t ch_block,
                             const SolveData::ChannelBlockData& cb_data,
                             const std::vector<SolverBase::DComplex>& solutions,
-                            SolutionSpan& next_solutions,
+                            SolutionTensor& next_solutions,
                             std::size_t n_antennas, std::size_t n_directions,
                             double robust_nu, std::size_t max_iter,
                             std::size_t history_size, std::size_t minibatches,
@@ -498,7 +499,8 @@ xt::xtensor<double, 1> LBFGSSolver::SplitSolutions(
   return d_storage;
 }
 
-void LBFGSSolver::MergeSolutions(SolutionSpan& next_solutions, size_t ch_block,
+void LBFGSSolver::MergeSolutions(SolutionTensor& next_solutions,
+                                 size_t ch_block,
                                  const xt::xtensor<double, 1>& d_storage) {
   auto flat_next_solutions = xt::flatten(
       xt::view(next_solutions, ch_block, xt::all(), xt::all(), xt::all()));
@@ -510,7 +512,7 @@ void LBFGSSolver::MergeSolutions(SolutionSpan& next_solutions, size_t ch_block,
       xt::view(d_storage, xt::range(n_solutions, n_solutions * 2));
 
   flat_next_solutions = xt::vectorize([](double r, double i) {
-    return SolverBase::DComplex(r, i);
+    return std::complex<double>(r, i);
   })(d_storage_real, d_storage_imag);
 }
 
@@ -527,9 +529,8 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
 
   SolverMode mode(GetMode());
 
-  SolutionTensor next_solutions_tensor(
+  SolutionTensor next_solutions(
       {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
-  SolutionSpan next_solutions = aocommon::xt::CreateSpan(next_solutions_tensor);
 
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
     const SolveData::ChannelBlockData& channel_block_data =

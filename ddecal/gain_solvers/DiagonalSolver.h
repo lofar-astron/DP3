@@ -26,7 +26,7 @@ class DiagonalSolver final : public SolverBase {
                         std::vector<Matrix>& g_times_cs,
                         std::vector<std::vector<Complex>>& vs,
                         const std::vector<DComplex>& solutions,
-                        SolutionSpan& next_solutions);
+                        SolutionTensor& next_solutions);
 
   /**
    * Initialize the model matrix for a channel block.

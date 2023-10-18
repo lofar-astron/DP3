@@ -7,7 +7,6 @@
 
 #ifdef HAVE_LIBDIRAC
 using dp3::ddecal::LBFGSSolver;
-using dp3::ddecal::SolutionSpan;
 using dp3::ddecal::SolutionTensor;
 
 BOOST_AUTO_TEST_SUITE(lbfgs_solver)
@@ -55,12 +54,10 @@ BOOST_AUTO_TEST_CASE(split_solutions) {
 BOOST_AUTO_TEST_CASE(merge_solutions) {
   {
     const xt::xtensor<double, 1> empty_input;
-    std::complex<double>* empty_pointer = nullptr;
-    const std::array<size_t, 4> shape{0, 0, 0, 0};
-    SolutionSpan solution_span = aocommon::xt::CreateSpan(empty_pointer, shape);
+    SolutionTensor empty_solution;
 
     BOOST_CHECK_NO_THROW(
-        LBFGSSolver::MergeSolutions(solution_span, 42, empty_input));
+        LBFGSSolver::MergeSolutions(empty_solution, 42, empty_input));
   }
   {  // Test with a single complex number. Use multiple channel blocks.
     const double kReal = 42.0;
@@ -70,16 +67,15 @@ BOOST_AUTO_TEST_CASE(merge_solutions) {
     const int kChannelBlock = 41;
     const size_t kNChannelBlocks = 42;
     const xt::xtensor<double, 1> d_storage{kReal, kImaginary};
-    std::vector<std::complex<double>> vector(kNChannelBlocks, kDefaultValue);
     const std::array<size_t, 4> shape{kNChannelBlocks, 1, 1, 1};
-    SolutionSpan solution_span = aocommon::xt::CreateSpan(vector, shape);
+    SolutionTensor solution(shape, kDefaultValue);
 
-    LBFGSSolver::MergeSolutions(solution_span, kChannelBlock, d_storage);
+    LBFGSSolver::MergeSolutions(solution, kChannelBlock, d_storage);
 
     for (int i = 0; i < kChannelBlock; ++i) {
-      BOOST_TEST(vector[i] == kDefaultValue);
+      BOOST_TEST(solution(i, 0, 0, 0) == kDefaultValue);
     }
-    BOOST_TEST(vector[kChannelBlock] == kNewValue);
+    BOOST_TEST(solution(kChannelBlock, 0, 0, 0) == kNewValue);
   }
   {  // Test with five complex numbers. Use a single channel block.
     const double kFirstReal = 42.0;
@@ -92,16 +88,15 @@ BOOST_AUTO_TEST_CASE(merge_solutions) {
       d_storage(i) = kFirstReal + i;
       d_storage(i + kNValues) = kFirstImaginary + i;
     }
-    std::vector<std::complex<double>> vector(kNValues);
     const std::array<size_t, 4> shape{1, kNValues, 1, 1};
-    SolutionSpan solution_span = aocommon::xt::CreateSpan(vector, shape);
+    SolutionTensor solution(shape);
 
-    LBFGSSolver::MergeSolutions(solution_span, kChannelBlock, d_storage);
+    LBFGSSolver::MergeSolutions(solution, kChannelBlock, d_storage);
 
     for (int i = 0; i < kNValues; ++i) {
       const std::complex<double> expected_value{kFirstReal + i,
                                                 kFirstImaginary + i};
-      BOOST_TEST(vector[i] == expected_value);
+      BOOST_TEST(solution(0, i, 0, 0) == expected_value);
     }
   }
 }

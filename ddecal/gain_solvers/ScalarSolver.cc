@@ -24,9 +24,8 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionTensor next_solutions_tensor(
+  SolutionTensor next_solutions(
       {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
-  SolutionSpan next_solutions = aocommon::xt::CreateSpan(next_solutions_tensor);
 
   ///
   /// Start iterating
@@ -105,7 +104,7 @@ void ScalarSolver::PerformIteration(size_t ch_block,
                                     std::vector<Matrix>& g_times_cs,
                                     std::vector<Matrix>& vs,
                                     const std::vector<DComplex>& solutions,
-                                    SolutionSpan& next_solutions) {
+                                    SolutionTensor& next_solutions) {
   const size_t n_visibilities = cb_data.NVisibilities();
   const size_t p1_to_p2[4] = {0, 2, 1, 3};
 
