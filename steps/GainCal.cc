@@ -370,9 +370,7 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
     }
   }
 
-  const std::complex<float>* data = buffer->GetData().data();
-  const float* weight = buffer->GetWeights().data();
-  const bool* flag = buffer->GetFlags().data();
+  const DPBuffer* flags_buffer = buffer.get();
 
   if (!itsUVWFlagStep.isDegenerate()) {
     // UVW flagging happens on a copy of the buffer, so the input buffer flags
@@ -390,7 +388,7 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
 
     itsUVWFlagStep.process(std::move(uvwflag_buffer));
     // Use the flags modified by itsUVWFlagStep
-    flag = itsDataResultStep->get().GetFlags().data();
+    flags_buffer = &itsDataResultStep->get();
   }
 
   // Predict the model data.
@@ -417,19 +415,19 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (itsStepInSolInt == 0) {
     // Start new solution interval
-    aocommon::DynamicFor<size_t> loop;
-    loop.Run(0, itsNFreqCells, [&](size_t freqCell) {
-      algorithms_[freqCell].clearStationFlagged();
-      algorithms_[freqCell].resetVis();
-    });
+    for (GainCalAlgorithm& algorithm : algorithms_) {
+      algorithm.clearStationFlagged();
+      algorithm.resetVis();
+    }
   }
 
   // Store data in the GainCalAlgorithm object
-  if (itsModelDataName.empty()) {
-    fillMatrices(itsResultStep->get().GetData().data(), data, weight, flag);
-  } else {
-    fillMatrices(buffer->GetData(itsModelDataName).data(), data, weight, flag);
-  }
+  const DPBuffer::DataType& model_data =
+      itsModelDataName.empty() ? itsResultStep->get().GetData()
+                               : buffer->GetData(itsModelDataName);
+  fillMatrices(model_data, buffer->GetData(), buffer->GetWeights(),
+               flags_buffer->GetFlags());
+
   itsTimerFill.stop();
 
   if (itsApplySolution) {
@@ -524,22 +522,14 @@ void GainCal::applySolution(DPBuffer& buf,
 // Fills itsVis and itsMVis as matrices with all 00 polarizations in the
 // top left, all 11 polarizations in the bottom right, etc.
 // For TEC fitting, it also sets weights for the frequency cells
-void GainCal::fillMatrices(const std::complex<float>* model,
-                           const std::complex<float>* data, const float* weight,
-                           const bool* flag) {
+void GainCal::fillMatrices(const DPBuffer::DataType& model,
+                           const DPBuffer::DataType& data,
+                           const DPBuffer::WeightsType& weights,
+                           const DPBuffer::FlagsType& flags) {
   const size_t n_baselines = getInfo().nbaselines();
   const size_t n_channels = getInfo().nchan();
   const size_t n_correlations = getInfo().ncorr();
   assert(n_correlations == 4 || n_correlations == 2 || n_correlations == 1);
-
-  const std::vector<std::size_t> shape = {n_baselines, n_channels,
-                                          n_correlations};
-  const size_t size = std::accumulate(shape.begin(), shape.end(), 1,
-                                      std::multiplies<std::size_t>());
-  auto model_adaptor = xt::adapt(model, size, xt::no_ownership(), shape);
-  auto data_adaptor = xt::adapt(data, size, xt::no_ownership(), shape);
-  auto weight_adaptor = xt::adapt(weight, size, xt::no_ownership(), shape);
-  auto flag_adaptor = xt::adapt(flag, size, xt::no_ownership(), shape);
 
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, n_channels, [&](size_t ch) {
@@ -554,38 +544,38 @@ void GainCal::fillMatrices(const std::complex<float>* model,
       const bool skip = (ant1 == ant2 ||
                          algorithms_[ch / itsNChan].getStationFlagged()[ant1] ||
                          algorithms_[ch / itsNChan].getStationFlagged()[ant2] ||
-                         flag_adaptor(bl, ch, 0));
+                         flags(bl, ch, 0));
 
       if (skip) {  // Only check flag of cr==0
         continue;
       }
 
       if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
-        algorithms_[ch / itsNChan].incrementWeight(weight_adaptor(bl, ch, 0));
+        algorithms_[ch / itsNChan].incrementWeight(weights(bl, ch, 0));
       }
 
       for (size_t cr = 0; cr < n_correlations; ++cr) {
-        const float weight_sqrt = std::sqrt(weight_adaptor(bl, ch, cr));
-        // The n_crDiv is there such that for n_cr==2 the visibilities end up at
-        // (0,0) for cr==0, (1,1) for cr==1
+        const float weight_sqrt = std::sqrt(weights(bl, ch, cr));
+        // The n_crDiv is there such that for n_cr==2 the visibilities end up
+        // at (0,0) for cr==0, (1,1) for cr==1
         const size_t n_crDiv = (n_correlations == 4 ? 2 : 1);
 
         const IPosition index(6, ant1, cr / n_crDiv, itsStepInSolInt,
                               ch % itsNChan, cr % 2, ant2);
 
         algorithms_[ch / itsNChan].getVis()(index) =
-            data_adaptor(bl, ch, cr) * weight_sqrt;
+            data(bl, ch, cr) * weight_sqrt;
         algorithms_[ch / itsNChan].getMVis()(index) =
-            model_adaptor(bl, ch, cr) * weight_sqrt;
+            model(bl, ch, cr) * weight_sqrt;
 
         const IPosition conjugate_index(6, ant2, cr % 2, itsStepInSolInt,
                                         ch % itsNChan, cr / n_crDiv, ant1);
 
         // conjugate transpose
         algorithms_[ch / itsNChan].getVis()(conjugate_index) =
-            std::conj(data_adaptor(bl, ch, cr)) * weight_sqrt;
+            std::conj(data(bl, ch, cr)) * weight_sqrt;
         algorithms_[ch / itsNChan].getMVis()(conjugate_index) =
-            std::conj(model_adaptor(bl, ch, cr)) * weight_sqrt;
+            std::conj(model(bl, ch, cr)) * weight_sqrt;
       }
     }
   });
@@ -621,7 +611,7 @@ void GainCal::calibrate() {
   for (; iter < itsMaxIter; ++iter) {
     bool allConverged = true;
     aocommon::RecursiveFor recursive_for;
-    recursive_for.Run(0, itsNFreqCells, [&](size_t freqCell, size_t) {
+    recursive_for.Run(0, itsNFreqCells, [&](size_t freqCell) {
       // Do another step when stalled and not all converged
       if (converged[freqCell] != GainCalAlgorithm::CONVERGED) {
         converged[freqCell] = algorithms_[freqCell].doStep(iter, recursive_for);
