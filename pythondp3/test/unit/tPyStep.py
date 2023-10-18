@@ -7,7 +7,7 @@ Script can be invoked in two ways:
   using `pytest source/tPyStep.py` (extended with pytest options of your choice)
 - using ctest, see DP3/pythondp3/test/integration/CMakeLists.txt
 """
-import multiprocessing
+import os
 import sys
 
 # Append current directory to system path in order to import testconfig
@@ -123,7 +123,7 @@ def test_n_threads():
     # Create a Step without setting dp3.n_threads beforehand
     # It does not matter if other tests already created other steps:
     # Those tests do not adjust the default setting.
-    TestNThreadsStep(multiprocessing.cpu_count())
+    TestNThreadsStep(len(os.sched_getaffinity(0)))
 
     # Create Step after setting dp3.n_threads. Use 3 threads, since systems
     # typically do not have 3 cores.
