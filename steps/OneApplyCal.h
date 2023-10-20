@@ -87,12 +87,20 @@ class OneApplyCal : public Step {
 
   void initDataArrays();
 
-  /// Check the number of polarizations in the parmdb or h5parm
+  /// Check the number of polarizations in the h5parm
+  unsigned int nPol(schaapcommon::h5parm::SolTab& solution_table);
+
+  // Check the number of polarizations in the parmdb
   unsigned int nPol(const std::string& parmName);
 
   /// Replace values by NaN on places where weight is zero
   static void applyFlags(std::vector<double>& values,
                          const std::vector<double>& weights);
+
+  /// in the case of full Jones, amp and phase table need to be open
+  std::vector<schaapcommon::h5parm::SolTab> MakeSolTabs(
+      schaapcommon::h5parm::H5Parm& h5parm,
+      std::vector<std::string>& solution_table_names);
 
   std::string itsName;
   std::string itsParmDBName;
@@ -103,12 +111,9 @@ class OneApplyCal : public Step {
   bool itsUseH5Parm;
   std::string itsSolSetName;
   std::shared_ptr<parmdb::ParmFacade> itsParmDB;
-  schaapcommon::h5parm::H5Parm itsH5Parm;
   std::string itsSolTabName;
+  size_t n_polarizations_in_sol_tab_ = 0;
   JonesParameters::MissingAntennaBehavior itsMissingAntennaBehavior;
-  schaapcommon::h5parm::SolTab itsSolTab;
-  schaapcommon::h5parm::SolTab itsSolTab2;  ///< in the case of full Jones, amp
-                                            ///< and phase table need to be open
   GainType itsCorrectType;
   bool itsInvert;
   JonesParameters::InterpolationType itsInterpolationType;
@@ -133,9 +138,9 @@ class OneApplyCal : public Step {
   bool itsUseAP;  ///< use ampl/phase or real/imag
   hsize_t itsDirection;
   common::NSTimer itsTimer;
+  std::vector<std::string> solution_tables_names_;
 
   static std::mutex theirHDF5Mutex;  ///< Prevent parallel access to HDF5
-  void setCorrectType(std::vector<std::string>& solTabs);
 };
 
 }  // namespace steps
