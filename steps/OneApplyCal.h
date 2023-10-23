@@ -97,6 +97,9 @@ class OneApplyCal : public Step {
   static void applyFlags(std::vector<double>& values,
                          const std::vector<double>& weights);
 
+  std::vector<double> CalculateBufferTimes(double buffer_start_time,
+                                           bool use_end);
+
   /// in the case of full Jones, amp and phase table need to be open
   std::vector<schaapcommon::h5parm::SolTab> MakeSolTabs(
       schaapcommon::h5parm::H5Parm& h5parm,
@@ -132,7 +135,6 @@ class OneApplyCal : public Step {
   std::unique_ptr<JonesParameters> itsJonesParameters;
   unsigned int itsTimeStep;  ///< time step within current chunk
   unsigned int itsNCorr;
-  double itsTimeInterval;
   double itsLastTime;  ///< last time of current chunk
   base::FlagCounter itsFlagCounter;
   bool itsUseAP;  ///< use ampl/phase or real/imag

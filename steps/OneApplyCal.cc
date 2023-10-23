@@ -29,8 +29,6 @@
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
-using std::vector;
-
 namespace dp3 {
 namespace steps {
 // Initialize private static
@@ -60,7 +58,6 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       itsJonesParameters(nullptr),
       itsTimeStep(0),
       itsNCorr(0),
-      itsTimeInterval(-1),
       itsLastTime(-1),
       itsUseAP(false) {
   if (substep) {
@@ -71,6 +68,10 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
                      : parset.getBool(defaultPrefix + "invert", true));
   }
 
+  itsTimeSlotsPerParmUpdate =
+      parset.isDefined(prefix + "timeslotsperparmupdate")
+          ? parset.getInt(prefix + "timeslotsperparmupdate")
+          : parset.getInt(defaultPrefix + "timeslotsperparmupdate", 200);
   if (itsUseH5Parm) {
     const std::string interpolationStr =
         (parset.isDefined(prefix + "interpolation")
@@ -84,7 +85,6 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       throw std::runtime_error("Unsupported interpolation mode: " +
                                interpolationStr);
     }
-    itsTimeSlotsPerParmUpdate = 0;
     const std::string directionStr =
         (parset.isDefined(prefix + "direction")
              ? parset.getString(prefix + "direction")
@@ -128,10 +128,6 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
     }
   } else {
     itsMissingAntennaBehavior = JonesParameters::MissingAntennaBehavior::kError;
-    itsTimeSlotsPerParmUpdate =
-        parset.isDefined(prefix + "timeslotsperparmupdate")
-            ? parset.getInt(prefix + "timeslotsperparmupdate")
-            : parset.getInt(defaultPrefix + "timeslotsperparmupdate", 500);
     const std::string correctTypeStr = boost::to_lower_copy(
         parset.isDefined(prefix + "correction")
             ? parset.getString(prefix + "correction")
@@ -185,16 +181,14 @@ OneApplyCal::~OneApplyCal() {}
 
 void OneApplyCal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  itsTimeInterval = infoIn.timeInterval();
   itsNCorr = infoIn.ncorr();
 
   if (itsNCorr != 4)
     throw std::runtime_error("Applycal only works with 4 correlations");
 
   if (itsParmDBOnDisk) {
-    if (itsUseH5Parm) {
-      itsTimeSlotsPerParmUpdate = info().ntime();
-    } else {  // Use ParmDB
+    if (!itsUseH5Parm) {
+      // Use ParmDB
       itsParmDB = std::make_shared<parmdb::ParmFacade>(itsParmDBName);
     }
 
@@ -386,7 +380,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
         gain_type = GainType::kFullJonesRealImaginary;
       }
 
-      vector<double> times(info().ntime());
+      std::vector<double> times(info().ntime());
       for (size_t t = 0; t < times.size(); ++t) {
         // time centroids
         times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
@@ -456,16 +450,33 @@ void OneApplyCal::finish() {
   getNextStep()->finish();
 }
 
-void OneApplyCal::updateParmsH5(const double bufStartTime) {
-  itsLastTime = bufStartTime - 0.5 * itsTimeInterval +
-                itsTimeSlotsPerParmUpdate * itsTimeInterval;
-
+std::vector<double> OneApplyCal::CalculateBufferTimes(double buffer_start_time,
+                                                      bool use_end) {
+  itsLastTime = buffer_start_time - 0.5 * info().timeInterval() +
+                itsTimeSlotsPerParmUpdate * info().timeInterval();
+  size_t n_times = itsTimeSlotsPerParmUpdate;
+  // If calculated time is past the last timestep in the ms,
+  // move it back.
   const double lastMSTime =
-      info().startTime() + info().ntime() * itsTimeInterval;
+      info().startTime() + info().ntime() * info().timeInterval();
   if (itsLastTime > lastMSTime &&
       !casacore::nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
     itsLastTime = lastMSTime;
+    n_times = info().ntime() % itsTimeSlotsPerParmUpdate;
   }
+  std::vector<double> times;
+  times.reserve(n_times);
+  for (size_t t = 0; t < n_times; ++t) {
+    // TODO(AST-1078) for investigating the 0.5 offset.
+    double time = use_end ? t + 0.5 : t;
+    // buffer_start_time is the mid point of the first timestep in the buffer
+    times.emplace_back(buffer_start_time + time * info().timeInterval());
+  }
+  return times;
+}
+
+void OneApplyCal::updateParmsH5(const double bufStartTime) {
+  const std::vector<double> times = CalculateBufferTimes(bufStartTime, false);
 
   std::lock_guard<std::mutex> lock(theirHDF5Mutex);
   schaapcommon::h5parm::H5Parm h5parm(itsParmDBName, false, false,
@@ -481,18 +492,14 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
     throw std::runtime_error("Fastest varying axis should be freq");
   }
 
-  std::vector<double> times(info().ntime());
-  for (size_t t = 0; t < times.size(); ++t) {
-    // TODO(AST-1078) for investigating the 0.5 offset.
-    // time centroids
-    times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
-  }
-
   std::vector<std::string> ant_names;
   for (const std::string& name : info().antennaNames()) {
     ant_names.push_back(name);
   }
 
+  // Explicitly reset beforehand to not have two buffers alive
+  // at the same time
+  itsJonesParameters.reset();
   itsJonesParameters = std::make_unique<JonesParameters>(
       info().chanFreqs(), times, ant_names, itsCorrectType,
       itsInterpolationType, itsDirection, &solution_tables[0],
@@ -503,7 +510,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
 void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
   unsigned int numAnts = info().antennaNames().size();
 
-  vector<vector<vector<double>>> parmvalues;
+  std::vector<std::vector<std::vector<double>>> parmvalues;
   parmvalues.resize(itsParmExprs.size());
   for (size_t i = 0; i < parmvalues.size(); ++i) {
     parmvalues[i].resize(numAnts);
@@ -516,35 +523,21 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
   }
   double minFreq(info().chanFreqs()[0] - 0.5 * freqInterval);
   double maxFreq(info().chanFreqs()[numFreqs - 1] + 0.5 * freqInterval);
-  itsLastTime = bufStartTime - 0.5 * itsTimeInterval +
-                itsTimeSlotsPerParmUpdate * itsTimeInterval;
-  unsigned int numTimes = itsTimeSlotsPerParmUpdate;
 
-  double lastMSTime = info().startTime() + info().ntime() * itsTimeInterval;
-  if (itsLastTime > lastMSTime &&
-      !casacore::nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
-    itsLastTime = lastMSTime;
-    numTimes = info().ntime() % itsTimeSlotsPerParmUpdate;
-  }
-
-  std::vector<double> times(numTimes);
-  for (size_t t = 0; t < times.size(); ++t) {
-    // time centroids
-    times[t] = bufStartTime + (t + 0.5) * itsTimeInterval;
-  }
+  const std::vector<double> times = CalculateBufferTimes(bufStartTime, true);
 
   std::map<std::string, std::vector<double>> parmMap;
   std::map<std::string, std::vector<double>>::iterator parmIt;
 
-  unsigned int tfDomainSize = numTimes * numFreqs;
+  const unsigned int tfDomainSize = times.size() * numFreqs;
 
   for (unsigned int parmExprNum = 0; parmExprNum < itsParmExprs.size();
        ++parmExprNum) {
     // parmMap contains parameter values for all antennas
     parmMap = itsParmDB->getValuesMap(
         itsParmExprs[parmExprNum] + "{:phase_center,}*", minFreq, maxFreq,
-        freqInterval, bufStartTime - 0.5 * itsTimeInterval, itsLastTime,
-        itsTimeInterval, true);
+        freqInterval, bufStartTime - 0.5 * info().timeInterval(), itsLastTime,
+        info().timeInterval(), true);
 
     std::string parmExpr = itsParmExprs[parmExprNum];
 
@@ -613,7 +606,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     }
   }
 
-  if (parmvalues[0][0].size() > tfDomainSize)  // Catches multiple matches
+  if (parmvalues[0][0].size() > tfDomainSize)
     throw std::runtime_error("Parameter was found multiple times in ParmDB");
 
   // Make parameters complex

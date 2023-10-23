@@ -60,11 +60,13 @@ inputs:
      Invert the corrections, to correct the data. Default is true.
      If you want to corrupt the data, set it to ``false``
   timeslotsperparmupdate:
+    default: 200
     type: int?
     doc: >-
-      Number of time slots to handle after one read of the parameter file.
-      Optimization to prevent spurious reading from the parmdb.
-      This parameter has no effect if a H5 file was specified `.`
+      Number of time slots of the gain solution file that are buffered.
+      This optimization balances between reading too many times and the
+      required memory size. It applies both to the reading of h5parm and
+      parmdb formats `.`
   steps:
     default: "[]"
     type: list
