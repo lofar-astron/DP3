@@ -7,6 +7,8 @@ import os
 import uuid
 from subprocess import check_call, check_output
 
+import numpy as np
+
 # Append current directory to system path in order to import testconfig
 import sys
 
@@ -47,6 +49,27 @@ def source_env():
     shutil.rmtree(tmpdir)
 
 
+@pytest.fixture
+def make_h5parm():
+    """
+    Create minimal H5Parm with scalar value. By omitting all of the dimensions
+    time, ant, freq, dir, pol, the value is broadcast along all of those
+    dimensions. So all times, frequencies, antennas get the value 3.
+    """
+
+    import h5py  # Don't import h5py when pytest is only collecting tests
+
+    with h5py.File("test.h5", "w") as h5file:
+        soltab = h5file.create_group("solset000/soltab000")
+        soltab.attrs["TITLE"] = np.void(b"amplitude")
+        dataset = soltab.create_dataset("val", shape=(1), dtype=float)
+        dataset.attrs["AXES"] = np.void(b"none")
+        h5file["solset000/soltab000/val"][:] = 3.0
+        weights = soltab.create_dataset("weight", shape=(1), dtype=float)
+        h5file["solset000/soltab000/weight"][:] = 1.0
+        weights.attrs["AXES"] = np.void(b"none")
+
+
 def test_with_beam_subtract():
     check_call(
         [
@@ -85,23 +108,23 @@ def test_without_beam_add():
     assert_taql(taql_command)
 
 
-# This sub-test is disabled since it uses parmdbm, which is deprecated.
-# This code was copied from tPredict.sh but not converted to python yet.
-#
-# echo; echo "Test without beam, with applycal, subtract (like peeling)"; echo
-# parmdbm <<EOL
-# open table="tPredict.parmdb"
-# adddef Gain:0:0:Real values=3.
-# adddef Gain:1:1:Real values=3.
-# EOL
-# cmd="$dp3exe msin=tNDPPP-generic.MS msout=. msout.datacolumn=MODEL_DATA steps=[predict] predict.sourcedb=tNDPPP-generic.MS/sky predict.applycal.parmdb=tPredict.parmdb predict.operation=subtract"
-# echo $cmd
-# $cmd
-## Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
-# taqlcmd='select from tNDPPP-generic.MS t1, tPredict.tab t2 where not all(near(t1.MODEL_DATA,t1.DATA-9.0*t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))'
-# echo $taqlcmd
-# $taqlexe $taqlcmd > taql.out
-# diff taql.out taql.ref  ||  exit 1
+def test_with_applycal(make_h5parm):
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=MODEL_DATA",
+            "steps=[predict]",
+            f"predict.sourcedb={MSIN}/sky",
+            "predict.applycal.parmdb=test.h5",
+            "predict.applycal.correction=soltab000",
+            "predict.operation=subtract",
+        ]
+    )
+    # Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
+    taql_command = f"select from {MSIN} t1, {MSPREDICT} t2 where not all(near(t1.MODEL_DATA,t1.DATA-9.0*t2.PREDICT_nobeam,5e-2) || (isnan(t1.DATA) && isnan(t2.PREDICT_nobeam)))"
+    assert_taql(taql_command)
 
 
 @pytest.mark.parametrize("use_beam", [False, True])
