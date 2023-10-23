@@ -695,6 +695,7 @@ if(BUILD_TESTING)
       base/test/unit/tDPInfo.cc
       base/test/unit/tMirror.cc
       base/test/unit/tMs.cc
+      base/test/unit/tPredictModel.cc
       base/test/unit/tSimulate.cc
       base/test/unit/tSimulator.cc
       base/test/unit/tSourceDBUtil.cc

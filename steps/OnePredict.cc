@@ -62,6 +62,7 @@ using casacore::Quantum;
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
+using dp3::base::PredictModel;
 using dp3::common::operator<<;
 
 namespace dp3 {
@@ -211,7 +212,7 @@ void OnePredict::initializeThreadData() {
   if (!predict_buffer_) {
     predict_buffer_ = std::make_shared<base::PredictBuffer>();
   }
-  if (apply_beam_ && predict_buffer_->GetStationList().empty()) {
+  if (apply_beam_) {
     telescope_ = base::GetTelescope(info().msName(), element_response_model_,
                                     use_channel_freq_);
   }
@@ -352,6 +353,10 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t nBl = info().nbaselines();
   const size_t nCh = info().nchan();
   const size_t nCr = info().ncorr();
+  const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
+
+  std::unique_ptr<PredictModel> model_buffer = std::make_unique<PredictModel>(
+      nThreads, stokes_i_only_ ? 1 : info().ncorr(), nCh, nBl, apply_beam_);
 
   base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
 
@@ -451,8 +456,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
     aocommon::RecursiveFor::NestedRun(0, n_threads, [&](size_t thread_index) {
       const std::complex<double> zero(0.0, 0.0);
-      predict_buffer_->GetModel(thread_index).fill(zero);
-      if (apply_beam_) predict_buffer_->GetPatchModel(thread_index).fill(zero);
+      model_buffer->GetModel(thread_index).fill(zero);
+      if (apply_beam_) model_buffer->GetPatchModel(thread_index).fill(zero);
       sim_buffer[thread_index].fill(zero);
     });
 
@@ -477,14 +482,14 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     }
   } else {
     for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
-      xt::xtensor<std::complex<double>, 3>& model =
-          predict_buffer_->GetModel(thread_index);
+      aocommon::xt::UTensor<std::complex<double>, 3>& model =
+          model_buffer->GetModel(thread_index);
       model.fill(std::complex<double>(0.0, 0.0));
       std::complex<double>* model_data = model.data();
 
       if (apply_beam_) {
-        xt::xtensor<std::complex<double>, 3>& patch_model =
-            predict_buffer_->GetPatchModel(thread_index);
+        aocommon::xt::UTensor<std::complex<double>, 3>& patch_model =
+            model_buffer->GetPatchModel(thread_index);
         patch_model.fill(std::complex<double>(0.0, 0.0));
         // When applying beam, simulate into patch vector
         model_data = patch_model.data();
@@ -525,16 +530,16 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
         if (apply_beam_ && patchIsFinished) {
           // PatchModel <- SimulBuffer
-          xt::xtensor<std::complex<double>, 3>& patch_model =
-              predict_buffer_->GetPatchModel(thread_index);
+          aocommon::xt::UTensor<std::complex<double>, 3>& patch_model =
+              model_buffer->GetPatchModel(thread_index);
           xt::view(patch_model,
                    xt::range(baseline_range[thread_index].first,
                              baseline_range[thread_index].second),
                    xt::all(), xt::all()) = sim_buffer[thread_index];
 
           // Apply the beam and add PatchModel to Model
-          addBeamToData(curPatch, time, thread_index, patch_model,
-                        baseline_range[thread_index],
+          addBeamToData(*curPatch, model_buffer->GetModel(thread_index), time,
+                        thread_index, patch_model, baseline_range[thread_index],
                         station_range[thread_index], barrier, stokes_i_only_);
           // Initialize patchmodel to zero for the next patch
           sim_buffer[thread_index].fill(std::complex<double>(0.0, 0.0));
@@ -548,20 +553,20 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       // catch last source
       if (apply_beam_ && curPatch != nullptr) {
         // PatchModel <- SimulBuffer
-        xt::xtensor<std::complex<double>, 3>& patch_model =
-            predict_buffer_->GetPatchModel(thread_index);
+        aocommon::xt::UTensor<std::complex<double>, 3>& patch_model =
+            model_buffer->GetPatchModel(thread_index);
         xt::view(patch_model,
                  xt::range(baseline_range[thread_index].first,
                            baseline_range[thread_index].second),
                  xt::all(), xt::all()) = sim_buffer[thread_index];
 
-        addBeamToData(curPatch, time, thread_index, patch_model,
-                      baseline_range[thread_index], station_range[thread_index],
-                      barrier, stokes_i_only_);
+        addBeamToData(*curPatch, model_buffer->GetModel(thread_index), time,
+                      thread_index, patch_model, baseline_range[thread_index],
+                      station_range[thread_index], barrier, stokes_i_only_);
       }
       if (!apply_beam_) {
-        xt::xtensor<std::complex<double>, 3>& model =
-            predict_buffer_->GetModel(thread_index);
+        aocommon::xt::UTensor<std::complex<double>, 3>& model =
+            model_buffer->GetModel(thread_index);
         xt::view(model,
                  xt::range(baseline_range[thread_index].first,
                            baseline_range[thread_index].second),
@@ -581,11 +586,11 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
               curPatch != nullptr;
           if (apply_beam_ && patchIsFinished) {
             // Apply the beam and add PatchModel to Model
-            addBeamToData(curPatch, time, thread,
-                          predict_buffer_->GetPatchModel(thread),
+            addBeamToData(*curPatch, model_buffer->GetModel(thread), time,
+                          thread, model_buffer->GetPatchModel(thread),
                           stokes_i_only_);
             // Initialize patchmodel to zero for the next patch
-            predict_buffer_->GetPatchModel(thread).fill(
+            model_buffer->GetPatchModel(thread).fill(
                 std::complex<double>(0.0, 0.0));
           }
           // Depending on apply_beam_, the following call will add to either
@@ -600,8 +605,9 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
         const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
             scoped_time{predict_time_};
         if (curPatches[thread] != nullptr) {
-          addBeamToData(curPatches[thread], time, thread,
-                        predict_buffer_->GetPatchModel(thread), stokes_i_only_);
+          addBeamToData(*curPatches[thread], model_buffer->GetModel(thread),
+                        time, thread, model_buffer->GetPatchModel(thread),
+                        stokes_i_only_);
         }
       });
     }
@@ -625,16 +631,16 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   for (size_t thread = 1; thread < n_threads; ++thread) {
     // Sum thread model data in their own container (doubles) to prevent
     // rounding errors when writing to the data member of the DPBuffer (floats).
-    predict_buffer_->GetModel(0) += predict_buffer_->GetModel(thread);
+    model_buffer->GetModel(0) += model_buffer->GetModel(thread);
   }
   if (stokes_i_only_) {
     // Add the predicted model to the first and last correlation.
     auto data_view = xt::view(data, xt::all(), xt::all(), xt::keep(0, nCr - 1));
     // Without explicit casts, XTensor does not know what to do.
-    data_view = xt::cast<std::complex<float>>(predict_buffer_->GetModel(0));
+    data_view = xt::cast<std::complex<float>>(model_buffer->GetModel(0));
   } else {
     // Without explicit casts, XTensor does not know what to do.
-    data = xt::cast<std::complex<float>>(predict_buffer_->GetModel(0));
+    data = xt::cast<std::complex<float>>(model_buffer->GetModel(0));
   }
 
   if (apply_cal_step_) {
@@ -653,6 +659,9 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   timer_.stop();
+
+  // Free temporary memory before calling the next step(s).
+  model_buffer.reset();
   getNextStep()->process(std::move(buffer));
   return false;
 }
@@ -668,12 +677,13 @@ everybeam::vector3r_t OnePredict::dir2Itrf(const MDirection& dir,
   return vec;
 }
 
-void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
-                               double time, size_t thread,
-                               xt::xtensor<std::complex<double>, 3>& data,
-                               bool stokesIOnly) {
+void OnePredict::addBeamToData(
+    const base::Patch& patch,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
+    size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
+    bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
-  MDirection dir(MVDirection(patch->direction().ra, patch->direction().dec),
+  MDirection dir(MVDirection(patch.direction().ra, patch.direction().dec),
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
@@ -685,29 +695,28 @@ void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
         predict_buffer_->GetScalarBeamValues(thread), false, beam_mode_,
         &mutex_);
   } else {
-    {
-      const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
-          scoped_time{apply_beam_time_};
-      float* dummyweight = nullptr;
-      ApplyBeam::applyBeam(info(), time, data.data(), dummyweight, srcdir,
-                           telescope_.get(),
-                           predict_buffer_->GetFullBeamValues(thread), false,
-                           beam_mode_, false, &mutex_);
-    }
+    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
+        scoped_time{apply_beam_time_};
+    float* dummyweight = nullptr;
+    ApplyBeam::applyBeam(info(), time, data.data(), dummyweight, srcdir,
+                         telescope_.get(),
+                         predict_buffer_->GetFullBeamValues(thread), false,
+                         beam_mode_, false, &mutex_);
   }
 
   // Add temporary buffer to Model
-  predict_buffer_->GetModel(thread) += data;
+  model_data += data;
 }
 
-void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
-                               double time, size_t thread,
-                               xt::xtensor<std::complex<double>, 3>& data,
-                               const std::pair<size_t, size_t>& baseline_range,
-                               const std::pair<size_t, size_t>& station_range,
-                               aocommon::Barrier& barrier, bool stokesIOnly) {
+void OnePredict::addBeamToData(
+    const base::Patch& patch,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
+    size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
+    const std::pair<size_t, size_t>& baseline_range,
+    const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
+    bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
-  MDirection dir(MVDirection(patch->direction().ra, patch->direction().dec),
+  MDirection dir(MVDirection(patch.direction().ra, patch.direction().dec),
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
@@ -731,7 +740,7 @@ void OnePredict::addBeamToData(std::shared_ptr<const base::Patch> patch,
   }
 
   // Add temporary buffer to Model
-  predict_buffer_->GetModel(thread) += data;
+  model_data += data;
 }
 
 void OnePredict::finish() {

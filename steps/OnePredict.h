@@ -21,6 +21,7 @@
 #include "../base/ModelComponent.h"
 #include "../base/Patch.h"
 #include "../base/PredictBuffer.h"
+#include "../base/PredictModel.h"
 #include "../base/SourceDBUtil.h"
 
 namespace dp3 {
@@ -132,11 +133,17 @@ class OnePredict : public ModelDataStep {
   void initializeThreadData();
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
-  void addBeamToData(std::shared_ptr<const base::Patch> patch, double time,
-                     size_t thread, xt::xtensor<std::complex<double>, 3>& data0,
+
+  void addBeamToData(const base::Patch& patch,
+                     aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+                     double time, size_t thread,
+                     aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      bool stokesIOnly);
-  void addBeamToData(std::shared_ptr<const base::Patch> patch, double time,
-                     size_t thread, xt::xtensor<std::complex<double>, 3>& data0,
+
+  void addBeamToData(const base::Patch& patch,
+                     aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+                     double time, size_t thread,
+                     aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      const std::pair<size_t, size_t>& baseline_range,
                      const std::pair<size_t, size_t>& station_range,
                      aocommon::Barrier& barrier, bool stokesIOnly);
