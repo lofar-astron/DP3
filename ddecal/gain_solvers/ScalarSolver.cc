@@ -41,11 +41,14 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   double avg_squared_diff = 1.0E4;
 
   const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const bool index_by_thread = n_threads < NChannelBlocks();
+  const size_t space_required = std::min(n_threads, NChannelBlocks());
+
   // For each thread:
   // - Model matrix ant x [N x D] and
   // - Visibility vector ant x [N x 1]
-  std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
-  std::vector<std::vector<Matrix>> thread_vs(n_threads);
+  std::vector<std::vector<Matrix>> thread_g_times_cs(space_required);
+  std::vector<std::vector<Matrix>> thread_vs(space_required);
 
   // Use a DynamicFor, since the number of iterations inside the LAPACK calls
   // in the solver may vary.
@@ -57,8 +60,12 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
       const SolveData::ChannelBlockData& channel_block =
           data.ChannelBlock(ch_block);
 
-      std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread];
-      std::vector<Matrix>& vs = thread_vs[thread];
+      // Make sure the index never exceeds min(n_ch_blocks, n_threads),
+      // otherwise more memory would be required. This is because the
+      // thread indices used in each iteration will be different.
+      const size_t index = index_by_thread ? thread : ch_block;
+      std::vector<Matrix>& g_times_cs = thread_g_times_cs[index];
+      std::vector<Matrix>& vs = thread_vs[index];
       InitializeModelMatrix(channel_block, g_times_cs, vs);
 
       PerformIteration(ch_block, channel_block, g_times_cs, vs,

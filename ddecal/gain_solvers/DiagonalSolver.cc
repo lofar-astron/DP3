@@ -43,16 +43,18 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   double avg_squared_diff = 1.0E4;
 
   const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const bool index_by_thread = n_threads < NChannelBlocks();
+  const size_t space_required = std::min(n_threads, NChannelBlocks());
+
   // For each thread:
   // - Model matrix 2 x ant x [2N x D]
   // - Visibility vector 2 x ant x [2N]
-  std::vector<std::vector<Matrix>> thread_g_times_cs(n_threads);
-  std::vector<std::vector<std::vector<Complex>>> thread_vs(n_threads);
+  std::vector<std::vector<Matrix>> thread_g_times_cs(space_required);
+  std::vector<std::vector<std::vector<Complex>>> thread_vs(space_required);
 
   // Use a DynamicFor, since the number of iterations inside the LAPACK calls
   // in the solver may vary.
   aocommon::DynamicFor<size_t> loop;
-
   do {
     MakeSolutionsFinite2Pol(solutions);
 
@@ -60,8 +62,12 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
       const SolveData::ChannelBlockData& channel_block =
           data.ChannelBlock(ch_block);
 
-      std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread];
-      std::vector<std::vector<Complex>>& vs = thread_vs[thread];
+      // Make sure the index never exceeds min(n_ch_blocks, n_threads),
+      // otherwise more memory would be required. This is because the
+      // thread indices used in each iteration will be different.
+      const size_t index = index_by_thread ? thread : ch_block;
+      std::vector<Matrix>& g_times_cs = thread_g_times_cs[index];
+      std::vector<std::vector<Complex>>& vs = thread_vs[index];
       InitializeModelMatrix(channel_block, g_times_cs, vs);
 
       PerformIteration(ch_block, channel_block, g_times_cs, vs,

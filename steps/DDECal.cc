@@ -555,9 +555,6 @@ void DDECal::doSolve() {
   const size_t n_channel_blocks = itsChanBlockFreqs.size();
   const size_t n_antennas = info().antennaUsed().size();
 
-  // Declare weighted_buffers outside the loop, so we can reuse its memory.
-  std::vector<base::DPBuffer> weighted_buffers(itsRequestedSolInt);
-
   // DDECal requires the unweighted model model when the model is subtracted
   // after calibration. Since the model data can be large, memory allocation
   // for this optional feature is done conditionally.
@@ -582,13 +579,10 @@ void DDECal::doSolve() {
         }
       }
 
-      std::vector<std::unique_ptr<DPBuffer>>& unweighted_buffers =
-          itsInputBuffers[i];
-
       // The last solution interval can be smaller.
-      weighted_buffers.resize(unweighted_buffers.size());
+      std::vector<base::DPBuffer> weighted_buffers(itsInputBuffers[i].size());
 
-      ddecal::AssignAndWeight(unweighted_buffers, itsDirectionNames,
+      ddecal::AssignAndWeight(itsInputBuffers[i], itsDirectionNames,
                               weighted_buffers, keep_model_data);
 
       InitializeSolutions(i);
@@ -598,6 +592,7 @@ void DDECal::doSolve() {
       const ddecal::SolveData solve_data(
           weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
           itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+      weighted_buffers.clear();
 
       solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
                                      itsAvgTime / itsRequestedSolInt,
