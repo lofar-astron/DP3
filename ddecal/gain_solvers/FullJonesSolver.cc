@@ -5,8 +5,9 @@
 
 #include <ostream>
 
-#include <aocommon/dynamicfor.h>
 #include <aocommon/matrix2x2.h>
+#include <aocommon/recursivefor.h>
+
 #include <xtensor/xview.hpp>
 
 #include "../linear_solvers/QRSolver.h"
@@ -69,36 +70,38 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   step_magnitudes.reserve(GetMaxIterations());
 
   const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
-  const bool index_by_thread = n_threads < NChannelBlocks();
-  const size_t space_required = std::min(n_threads, NChannelBlocks());
+  // Max 8 threads are used in the outer loop, to limit the required memory.
+  // TODO this could be smarter; e.g. check required vs available memory.
+  const size_t n_outer_threads = std::min<size_t>(8, n_threads);
 
   // For each thread:
   // - Model matrix: n_antennas x [2N x 2D]
   // - Visibility matrix: n_antennas x [2N x 2]
-  std::vector<std::vector<Matrix>> thread_g_times_cs(space_required);
-  std::vector<std::vector<Matrix>> thread_vs(space_required);
+  std::vector<std::vector<Matrix>> thread_g_times_cs(n_outer_threads);
+  std::vector<std::vector<Matrix>> thread_vs(n_outer_threads);
 
-  // Use a DynamicFor, since the number of iterations inside the LAPACK calls
-  // in the solver may vary.
-  aocommon::DynamicFor<size_t> loop;
+  // A RecursiveFor is started to allow nested parallelization over antennas
+  // in PerformIteration.
+  aocommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite4Pol(solutions);
 
-    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t thread) {
-      const SolveData::ChannelBlockData& channel_block =
-          data.ChannelBlock(ch_block);
+    recursive_for.ConstrainedRun(
+        0, NChannelBlocks(), n_outer_threads,
+        [&](size_t start_block, size_t end_block, size_t thread_index) {
+          for (size_t ch_block = start_block; ch_block != end_block;
+               ++ch_block) {
+            const SolveData::ChannelBlockData& channel_block =
+                data.ChannelBlock(ch_block);
 
-      // Make sure the index never exceeds min(n_ch_blocks, n_threads),
-      // otherwise more memory would be required. This is because the
-      // thread indices used in each iteration will be different.
-      const size_t index = index_by_thread ? thread : ch_block;
-      std::vector<Matrix>& g_times_cs = thread_g_times_cs[index];
-      std::vector<Matrix>& vs = thread_vs[index];
-      InitializeModelMatrix(channel_block, g_times_cs, vs);
+            std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread_index];
+            std::vector<Matrix>& vs = thread_vs[thread_index];
+            InitializeModelMatrix(channel_block, g_times_cs, vs);
 
-      PerformIteration(ch_block, channel_block, g_times_cs, vs,
-                       solutions[ch_block], next_solutions);
-    });
+            PerformIteration(ch_block, channel_block, g_times_cs, vs,
+                             solutions[ch_block], next_solutions);
+          }
+        });
 
     Step(solutions, next_solutions);
 
@@ -230,7 +233,7 @@ void FullJonesSolver::PerformIteration(
   const size_t n = NSolutions() * 2;
   const size_t n_rhs = 2;
 
-  for (size_t ant = 0; ant != NAntennas(); ++ant) {
+  aocommon::RecursiveFor::NestedRun(0, NAntennas(), [&](size_t ant) {
     const size_t m = cb_data.NAntennaVisibilities(ant) * 2;
     // TODO it would be nice to have a solver resize function to avoid too many
     // reallocations
@@ -252,7 +255,7 @@ void FullJonesSolver::PerformIteration(
       xt::view(next_solutions, ch_block, ant, xt::all(), xt::all()) =
           std::numeric_limits<double>::quiet_NaN();
     }
-  }
+  });
 }
 
 void FullJonesSolver::InitializeModelMatrix(

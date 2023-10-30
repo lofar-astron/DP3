@@ -7,8 +7,9 @@
 #include <iomanip>
 #include <ostream>
 
-#include <aocommon/dynamicfor.h>
 #include <aocommon/matrix2x2.h>
+#include <aocommon/recursivefor.h>
+
 #include <xtensor/xview.hpp>
 
 #include "../linear_solvers/LLSSolver.h"
@@ -43,36 +44,38 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
   double avg_squared_diff = 1.0E4;
 
   const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
-  const bool index_by_thread = n_threads < NChannelBlocks();
-  const size_t space_required = std::min(n_threads, NChannelBlocks());
+  // Max 8 threads are used in the outer loop, to limit the required memory.
+  // TODO this could be smarter; e.g. check required vs available memory.
+  const size_t n_outer_threads = std::min<size_t>(8, n_threads);
 
   // For each thread:
   // - Model matrix 2 x ant x [2N x D]
   // - Visibility vector 2 x ant x [2N]
-  std::vector<std::vector<Matrix>> thread_g_times_cs(space_required);
-  std::vector<std::vector<std::vector<Complex>>> thread_vs(space_required);
+  std::vector<std::vector<Matrix>> thread_g_times_cs(n_outer_threads);
+  std::vector<std::vector<std::vector<Complex>>> thread_vs(n_outer_threads);
 
-  // Use a DynamicFor, since the number of iterations inside the LAPACK calls
-  // in the solver may vary.
-  aocommon::DynamicFor<size_t> loop;
+  // A RecursiveFor is started to allow nested parallelization over antennas
+  // in PerformIteration.
+  aocommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite2Pol(solutions);
 
-    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t thread) {
-      const SolveData::ChannelBlockData& channel_block =
-          data.ChannelBlock(ch_block);
+    recursive_for.ConstrainedRun(
+        0, NChannelBlocks(), n_outer_threads,
+        [&](size_t start_block, size_t end_block, size_t thread_index) {
+          for (size_t ch_block = start_block; ch_block != end_block;
+               ++ch_block) {
+            const SolveData::ChannelBlockData& channel_block =
+                data.ChannelBlock(ch_block);
 
-      // Make sure the index never exceeds min(n_ch_blocks, n_threads),
-      // otherwise more memory would be required. This is because the
-      // thread indices used in each iteration will be different.
-      const size_t index = index_by_thread ? thread : ch_block;
-      std::vector<Matrix>& g_times_cs = thread_g_times_cs[index];
-      std::vector<std::vector<Complex>>& vs = thread_vs[index];
-      InitializeModelMatrix(channel_block, g_times_cs, vs);
+            std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread_index];
+            std::vector<std::vector<Complex>>& vs = thread_vs[thread_index];
+            InitializeModelMatrix(channel_block, g_times_cs, vs);
 
-      PerformIteration(ch_block, channel_block, g_times_cs, vs,
-                       solutions[ch_block], next_solutions);
-    });
+            PerformIteration(ch_block, channel_block, g_times_cs, vs,
+                             solutions[ch_block], next_solutions);
+          }
+        });
 
     Step(solutions, next_solutions);
 
@@ -173,30 +176,28 @@ void DiagonalSolver::PerformIteration(
   // for each antenna.
   const size_t n = NSolutions();
   const size_t nrhs = 1;
-  std::vector<Complex> x0(NSolutions());
 
-  for (size_t ant = 0; ant != NAntennas(); ++ant) {
-    for (size_t pol = 0; pol != 2; ++pol) {
-      const size_t m = cb_data.NAntennaVisibilities(ant) * 2;
-      // TODO it would be nice to have a solver resize function to avoid too
-      // many reallocations
-      std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
-      // solve x^H in [g C] x^H  = v
-      for (size_t s = 0; s != NSolutions(); ++s) {
-        x0[s] = solutions[(ant * NSolutions() + s) * 2 + pol];
-      }
-      std::vector<Complex>& x = vs[ant * 2 + pol];
-      bool success =
-          solver->Solve(g_times_cs[ant * 2 + pol].data(), x.data(), x0.data());
-      if (success && x[0] != Complex(0.0, 0.0)) {
-        for (size_t s = 0; s != NSolutions(); ++s)
-          next_solutions(ch_block, ant, s, pol) = x[s];
-      } else {
-        xt::view(next_solutions, ch_block, ant, xt::all(), pol)
-            .fill(std::numeric_limits<double>::quiet_NaN());
-      }
+  aocommon::RecursiveFor::NestedRun(0, NAntennas() * 2, [&](size_t i) {
+    const size_t ant = i / 2;
+    const size_t pol = i % 2;
+    const size_t m = cb_data.NAntennaVisibilities(ant) * 2;
+    std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
+    // solve x^H in [g C] x^H  = v
+    std::vector<Complex> x0(NSolutions());
+    for (size_t s = 0; s != NSolutions(); ++s) {
+      x0[s] = solutions[(ant * NSolutions() + s) * 2 + pol];
     }
-  }
+    std::vector<Complex>& x = vs[ant * 2 + pol];
+    bool success =
+        solver->Solve(g_times_cs[ant * 2 + pol].data(), x.data(), x0.data());
+    if (success && x[0] != Complex(0.0, 0.0)) {
+      for (size_t s = 0; s != NSolutions(); ++s)
+        next_solutions(ch_block, ant, s, pol) = x[s];
+    } else {
+      xt::view(next_solutions, ch_block, ant, xt::all(), pol)
+          .fill(std::numeric_limits<double>::quiet_NaN());
+    }
+  });
 }
 
 // Based on SolverBase::Matrix::Reset.
