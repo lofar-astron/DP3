@@ -33,6 +33,7 @@ class QRSolver final : public LLSSolver {
    * columnwise (N, NRHS)
    */
   bool Solve(complex* a, complex* b) override {
+    if (m_ < n_) return false;
     int info;
     char trans = 'N';  // No transpose
     int ldb = std::max(m_, n_);
