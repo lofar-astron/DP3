@@ -35,11 +35,12 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include "../base/DPLogger.h"
 #include "../base/MS.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/BaselineSelect.h"
+
+#include <aocommon/logger.h>
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;
@@ -104,7 +105,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   int startTimeSlot = parset.getInt(prefix + "starttimeslot", 0);
   // Try to open the MS and get its full name.
   if (itsMissingData && ms.isNull()) {
-    DPLOG_WARN_STR("MeasurementSet is empty; dummy data used");
+    aocommon::Logger::Warn << "MeasurementSet is empty; dummy data used\n";
     return;
   }
   assert(!HasBda(ms));
@@ -112,8 +113,8 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   // We assume that DATA_DESC_ID and SPW_ID map 1-1.
   int spectralWindow = parset.getInt(prefix + "band", -1);
   if (spectralWindow >= 0) {
-    DPLOG_INFO_STR(" MSReader selecting spectral window " +
-                   std::to_string(spectralWindow) + " ...");
+    aocommon::Logger::Info << " MSReader selecting spectral window "
+                           << spectralWindow << " ...\n";
     Table subset = itsSelMS(itsSelMS.col("DATA_DESC_ID") == spectralWindow);
     // If not all is selected, use the selection.
     if (subset.nrow() < itsSelMS.nrow()) {
@@ -127,7 +128,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   }
   // See if a selection on baseline needs to be done.
   if (!itsSelBL.empty()) {
-    DPLOG_INFO_STR(" MSReader selecting baselines ...");
+    aocommon::Logger::Info << " MSReader selecting baselines ...\n";
     MSSelection select;
 
     // Overwrite the error handler to ignore errors for unknown antennas.
@@ -294,10 +295,9 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
       // Skip time slot and give warning if MS data is not in time order.
       if (mstime < itsLastMSTime) {
-        DPLOG_WARN_STR("Time at rownr " +
-                       std::to_string(itsIter.table().rowNumbers(itsMS)[0]) +
-                       " of MS " + msName() +
-                       " is less than previous time slot");
+        aocommon::Logger::Warn
+            << "Time at rownr " << itsIter.table().rowNumbers(itsMS)[0]
+            << " of MS " << msName() << " is less than previous time slot\n";
       } else {
         // Use the time slot if near or < nexttime, but > starttime.
         // In this way we cater for irregular times in some WSRT MSs.
@@ -495,7 +495,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   info() = DPInfo(itsNrCorr, itsNrChan, itsStartChan, antenna_set);
 
   if (itsSelMS.nrow() == 0) {
-    DPLOG_WARN_STR("The selected input does not contain any data.");
+    aocommon::Logger::Warn << "The selected input does not contain any data.\n";
   }
   TableDesc tdesc = itsMS.tableDesc();
 
@@ -509,8 +509,9 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
       itsHasWeightSpectrum =
           ArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
       if (!itsHasWeightSpectrum && itsWeightColName != "WEIGHT_SPECTRUM") {
-        DPLOG_WARN_STR("Specified weight column " + itsWeightColName +
-                       "is not a valid column, using WEIGHT instead");
+        aocommon::Logger::Warn
+            << "Specified weight column " << itsWeightColName
+            << "is not a valid column, using WEIGHT instead\n";
       }
     }
   }
@@ -537,8 +538,8 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   } else {
     if (itsMissingData) {
       // Only give warning if a missing data column is allowed.
-      DPLOG_WARN_STR("Data column " + itsDataColName + " is missing in " +
-                     msName());
+      aocommon::Logger::Warn << "Data column " << itsDataColName
+                             << " is missing in " << msName() << '\n';
     } else {
       throw std::runtime_error("Data column " + itsDataColName +
                                " is missing in " + msName());
@@ -693,9 +694,9 @@ void MSReader::skipFirstTimes() {
     double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
     // Skip time slot and give warning if MS data is not in time order.
     if (mstime < itsLastMSTime) {
-      DPLOG_WARN_STR("Time at rownr " +
-                     std::to_string(itsIter.table().rowNumbers(itsMS)[0]) +
-                     " of MS " + msName() + " is less than previous time slot");
+      aocommon::Logger::Warn
+          << "Time at rownr " << itsIter.table().rowNumbers(itsMS)[0]
+          << " of MS " << msName() << " is less than previous time slot\n";
     } else {
       // Stop skipping if time equal to itsFirstTime.
       if (casacore::near(mstime, itsFirstTime)) {

@@ -35,7 +35,6 @@
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"

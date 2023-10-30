@@ -20,7 +20,6 @@
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 
-#include "../base/DPLogger.h"
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"
 

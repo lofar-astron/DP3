@@ -8,7 +8,6 @@
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
 
 #include "../common/Median.h"
 #include "../common/ParameterSet.h"
@@ -27,6 +26,8 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+
+#include <aocommon/logger.h>
 
 using casacore::Record;
 using casacore::RecordFieldPtr;
@@ -142,8 +143,8 @@ void MadFlagger::updateInfo(const DPInfo& infoIn) {
     }
     // If no valid left, use first one.
     if (flagCorr.empty()) {
-      DPLOG_INFO_STR("No valid correlations given in MadFlagger " + itsName +
-                     "; first one will be used");
+      aocommon::Logger::Info << "No valid correlations given in MadFlagger "
+                             << itsName << "; first one will be used\n";
       flagCorr.push_back(0);
     }
   }

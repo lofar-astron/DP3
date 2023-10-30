@@ -9,7 +9,6 @@
 #include <dp3/base/BDABuffer.h>
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
 #include "../base/MS.h"
 
 #include "../common/ParameterSet.h"
@@ -41,6 +40,8 @@
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
 #include <EveryBeam/telescope/phasedarray.h>
+
+#include <aocommon/logger.h>
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;
@@ -157,8 +158,9 @@ bool MSBDAReader::process(std::unique_ptr<base::BDABuffer>) {
 
     if (ms_time + ms_interval / 2 <
         last_ms_time_ + last_ms_interval_ / 2 - 0.001) {
-      DPLOG_WARN_STR("Time at rownr " + std::to_string(nread_) + " of MS " +
-                     msName() + " is less than previous time slot");
+      aocommon::Logger::Warn << "Time at rownr " << nread_ << " of MS "
+                             << msName()
+                             << " is less than previous time slot\n";
       ++i;
       ++nread_;
       continue;

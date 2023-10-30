@@ -19,7 +19,6 @@
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
-#include "../base/DPLogger.h"
 #include "../base/MS.h"
 
 #include "../common/VdsMaker.h"
@@ -42,6 +41,8 @@
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/version.h>
+
+#include <aocommon/logger.h>
 
 using casacore::Array;
 using casacore::ArrayColumn;
@@ -188,7 +189,7 @@ void MSWriter::StartNewMs() {
   // Write the parset info into the history.
   WriteHistory(ms_, parset_);
   ms_.flush(true, true);
-  DPLOG_INFO("Finished preparing output MS", false);
+  aocommon::Logger::Info << "Finished preparing output MS\n";
   info().clearMetaChanged();
 
   use_write_thread_ = dynamic_cast<NullStep*>(getNextStep().get()) != nullptr;
@@ -484,7 +485,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     TiledColumnStMan tsmm("ModelData", tile_shape);
     MakeArrayColumn(mdesc, data_shape, &tsmm, ms_);
   }
-  DPLOG_INFO(" copying info and subtables ...", false);
+  aocommon::Logger::Info << " copying info and subtables ...\n";
   // Copy the info and subtables.
   TableCopy::copyInfo(ms_, temptable);
   TableRecord& keyset = ms_.rwKeywordSet();

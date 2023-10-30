@@ -23,7 +23,6 @@
 
 #include <dp3/base/DPBuffer.h>
 
-#include "../base/DPLogger.h"
 #include "../common/ParameterSet.h"
 
 #include "InputStep.h"

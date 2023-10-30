@@ -6,7 +6,6 @@
 
 #include "../common/ParameterSet.h"
 #include <dp3/base/BDABuffer.h>
-#include "../base/DPLogger.h"
 #include "../base/MS.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -20,6 +19,8 @@
 #include <casacore/tables/TaQL/TableParse.h>
 
 #include <map>
+
+#include <aocommon/logger.h>
 
 using casacore::Array;
 using casacore::ArrayColumn;
@@ -80,7 +81,7 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
 
   MSWriter::WriteHistory(ms_, parset_);
   ms_.flush(true, true);
-  DPLOG_INFO("Finished preparing output MS", false);
+  aocommon::Logger::Info << "Finished preparing output MS\n";
 }
 
 bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
@@ -204,7 +205,7 @@ void MSBDAWriter::CreateMainTable() {
   // Create empty subtables.
   MeasurementSet(ms_).createDefaultSubtables(Table::New);
   if (!getInfo().msName().empty()) {
-    DPLOG_INFO("Copying info and subtables ...", false);
+    aocommon::Logger::Info << "Copying info and subtables ...\n";
     casacore::Table original_table(getInfo().msName());
     TableCopy::copyInfo(ms_, original_table);
 

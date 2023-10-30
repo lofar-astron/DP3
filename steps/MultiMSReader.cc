@@ -24,8 +24,6 @@
 
 #include <xtensor/xview.hpp>
 
-#include "../base/DPLogger.h"
-
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 

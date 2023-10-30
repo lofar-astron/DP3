@@ -31,8 +31,3 @@ inputs:
     type: integer
     doc: >-
       What to do if parameters in the ParSet file are not used. -1 means ignore. 0 means give a warning showing those parameters. In this way misspelled parameters can be detected. 1 means give an error and stop. For backward compatibility False (0) and True (1) can also be given `.`
-  uselogger:
-    default: false
-    type: bool
-    doc: >-
-      If false, all DP3 messages are written on stdout. If true, the logging framework is used `.`
