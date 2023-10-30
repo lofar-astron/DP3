@@ -24,8 +24,9 @@
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 
-#include "../base/DPLogger.h"
 #include "../base/FlagCounter.h"
+
+#include <aocommon/logger.h>
 
 using casacore::ArrayColumn;
 using casacore::MPosition;
@@ -81,8 +82,9 @@ std::vector<int> StationAdder::getMatchingStations(
       }
     }
     if (n == 0) {
-      DPLOG_WARN_STR("StationAdder: no matching stations found for pattern "
-                     << *iter);
+      aocommon::Logger::Warn
+          << "StationAdder: no matching stations found for pattern " << *iter
+          << '\n';
     }
   }
   std::vector<int> parts;
@@ -227,7 +229,8 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     // Copy the new baselines for this superstation to the baseline list.
     // Give a warning if nothing found.
     if (newAnt1.empty()) {
-      DPLOG_WARN_STR("StationAdder: no baseline found for superstation");
+      aocommon::Logger::Warn
+          << "StationAdder: no baseline found for superstation\n";
     } else {
       unsigned int oldsz = ant1.size();
       ant1.resize(oldsz + newAnt1.size(), true);

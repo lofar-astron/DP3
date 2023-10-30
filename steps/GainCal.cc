@@ -20,9 +20,9 @@
 #include <dp3/base/DP3.h>
 
 #include <aocommon/dynamicfor.h>
+#include <aocommon/logger.h>
 #include <aocommon/recursivefor.h>
 
-#include "../base/DPLogger.h"
 #include "../base/SourceDBUtil.h"
 
 #include "../parmdb/ParmValue.h"
@@ -110,10 +110,10 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
             column_key +
             " setting. Please remove the deprecated setting from the input.");
       }
-      DPLOG_WARN_STR(
-          "Warning: The input contains the deprecated msin.modelcolumn "
-          "setting. Please use " +
-          column_key + " instead.");
+      aocommon::Logger::Warn
+          << "Warning: The input contains the deprecated msin.modelcolumn "
+             "setting. Please use "
+          << column_key << " instead.\n";
       itsModelColumnName = parset.getString("msin.modelcolumn");
     } else {
       itsModelColumnName = parset.getString(column_key, "MODEL_DATA");
@@ -811,8 +811,8 @@ void GainCal::initParmDB() {
   string parmname = parmName() + "*";
 
   if (!itsParmDB->getNames(parmname).empty()) {
-    DPLOG_WARN_STR("Solutions for " << parmname << " already in "
-                                    << itsParmDBName << ", these are removed");
+    aocommon::Logger::Warn << "Solutions for " << parmname << " already in "
+                           << itsParmDBName << ", these are removed\n";
     // Specify entire domain of this MS; only to specify that the existing
     // values should be deleted for this domain
     parmdb::Axis::ShPtr tdomAxis(new parmdb::RegularAxis(

@@ -6,13 +6,13 @@
 
 #include <dp3/base/DP3.h>
 
+#include <aocommon/logger.h>
 #include <aocommon/threadpool.h>
 
 #include <boost/algorithm/string.hpp>
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
-#include "DPLogger.h"
 #include "ProgressMeter.h"
 
 #include "../steps/AntennaFlagger.h"
@@ -261,7 +261,6 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   }
   // Adopt possible parameters given at the command line.
   parset.adoptArgv(argc, argv);  ///< works fine if argc==0 and argv==0
-  DPLogger::useLogger = parset.getBool("uselogger", false);
   bool showProgress = parset.getBool("showprogress", true);
   bool showTimings = parset.getBool("showtimings", true);
   // checkparset is an integer parameter now, but accepts a bool as well
@@ -270,7 +269,8 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   try {
     checkparset = parset.getInt("checkparset", 0);
   } catch (...) {
-    DPLOG_WARN_STR("Parameter checkparset should be an integer value");
+    aocommon::Logger::Warn
+        << "Parameter checkparset should be an integer value\n";
     checkparset = parset.getBool("checkparset") ? 1 : 0;
   }
 
@@ -293,7 +293,7 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   while (step) {
     std::ostringstream os;
     step->show(os);
-    DPLOG_INFO(os.str(), true);
+    aocommon::Logger::Info << os.str();
     lastStep = step;
     step = step->getNextStep();
   }
@@ -301,17 +301,19 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
     // Show unused parameters (might be misspelled).
     std::vector<std::string> unused = parset.unusedKeys();
     if (!unused.empty()) {
-      DPLOG_WARN_STR(
-          "\n*** WARNING: the following parset keywords were not used ***"
+      aocommon::Logger::Warn
+          << "\n*** WARNING: the following parset keywords were not used ***"
           << "\n             maybe they are misspelled"
-          << "\n    " << unused << std::endl);
+          << "\n    ";
+      for (const std::string& s : unused) aocommon::Logger::Warn << s;
+      aocommon::Logger::Warn << '\n';
       if (checkparset != 0)
         throw std::runtime_error("Unused parset keywords found");
     }
   }
   // Process until the end.
   unsigned int ntodo = firstStep->getInfo().ntime();
-  DPLOG_INFO_STR("Processing " << ntodo << " time slots ...");
+  aocommon::Logger::Info << "Processing " << ntodo << " time slots ...\n";
   if (showProgress) {
     double ndone = 0;
     ProgressMeter progress(ndone, ntodo, "DP3", "Time slots processed", "", "",
@@ -327,7 +329,7 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
     }
   }
   // Finish the processing.
-  DPLOG_INFO_STR("Finishing processing ...");
+  aocommon::Logger::Info << "Finishing processing ...\n";
   firstStep->finish();
 
   // Show the counts where needed.
@@ -336,7 +338,7 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
     while (step) {
       std::ostringstream os;
       step->showCounts(os);
-      DPLOG_INFO(os.str(), true);
+      aocommon::Logger::Info << os.str();
       step = step->getNextStep();
     }
   }
@@ -344,13 +346,11 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   nstimer.stop();
   double duration = nstimer.getElapsed();
   std::ostringstream ostr;
-  ostr << std::endl;
+  ostr << '\n';
   // Output special line for pipeline use.
-  if (DPLogger::useLogger) {
-    ostr << "Start timer output" << std::endl;
-  }
+  aocommon::Logger::Debug << "Start timer output\n";
   timer.show(ostr, "Total DP3 time");
-  DPLOG_INFO(ostr.str(), true);
+  aocommon::Logger::Info << ostr.str();
   if (showTimings) {
     // Show the timings per step.
     step = firstStep;
@@ -358,14 +358,12 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
       std::ostringstream os;
       step->showTimings(os, duration);
       if (!os.str().empty()) {
-        DPLOG_INFO(os.str(), true);
+        aocommon::Logger::Info << os.str();
       }
       step = step->getNextStep();
     }
   }
-  if (DPLogger::useLogger) {
-    ostr << "End timer output\n";
-  }
+  aocommon::Logger::Debug << "End timer output\n";
   // The destructors are called automatically at this point.
 }
 

@@ -5,7 +5,6 @@
 // @author Ger van Diepen
 
 #include "BaselineSelection.h"
-#include "DPLogger.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -19,9 +18,13 @@
 
 #include <vector>
 
+#include <aocommon/logger.h>
+
 using casacore::IPosition;
 using casacore::Matrix;
 using dp3::common::operator<<;
+
+using aocommon::Logger;
 
 namespace dp3 {
 namespace base {
@@ -50,7 +53,7 @@ BaselineSelection::BaselineSelection(const common::ParameterSet& parset,
   }
   if (itsRangeBL.size() % 2 != 0)
     throw std::runtime_error(
-        "NDPPP error: uneven number of lengths in baseline range");
+        "DP3 error: uneven number of lengths in baseline range");
 }
 
 bool BaselineSelection::hasSelection() const {
@@ -128,12 +131,7 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
     Matrix<bool> sel(common::BaselineSelect::convert(msName, itsStrBL, os));
     // Show possible messages about unknown stations.
     if (!os.str().empty()) {
-      std::vector<std::string> messages;
-      string message_str = os.str();  // Boost<1.68 split wants non-const lvalue
-      boost::algorithm::split(messages, message_str, boost::is_any_of("\n"));
-      for (size_t i = 0; i < messages.size(); ++i) {
-        DPLOG_WARN_STR(messages[i]);
-      }
+      Logger::Warn << os.str();
     }
     // The resulting matrix can be smaller because new stations might have
     // been added that are not present in the MS's ANTENNA table.
@@ -159,9 +157,9 @@ Matrix<bool> BaselineSelection::handleBLVector(
   // Note that [ant1,ant2] is somewhat ambiguous; it means two antennae,
   // but one might think it means a baseline [[ant1,ant2]].
   if (pairs.size() == 2 && !(pairs[0].isVector() || pairs[1].isVector())) {
-    DPLOG_WARN_STR("PreFlagger baseline " + pvBL.get() +
-                   " means two antennae, but is somewhat ambigious; " +
-                   "it's more clear to use [[ant1],[ant2]]");
+    Logger::Warn << "PreFlagger baseline " << pvBL.get()
+                 << " means two antennae, but is somewhat ambigious; "
+                    "it's more clear to use [[ant1],[ant2]]\n";
   }
   for (unsigned int i = 0; i < pairs.size(); ++i) {
     std::vector<string> bl = pairs[i].getStringVector();
@@ -181,8 +179,8 @@ Matrix<bool> BaselineSelection::handleBLVector(
         }
       }
       if (nmatch == 0) {
-        DPLOG_WARN_STR("PreFlagger: no matches for antenna name pattern ["
-                       << bl[0] << "]");
+        Logger::Warn << "PreFlagger: no matches for antenna name pattern ["
+                     << bl[0] << "]\n";
       }
     } else {
       if (bl.size() != 2)
@@ -207,8 +205,8 @@ Matrix<bool> BaselineSelection::handleBLVector(
         }
       }
       if (nmatch == 0) {
-        DPLOG_WARN_STR("PreFlagger: no matches for baseline name pattern ["
-                       << bl[0] << ',' << bl[1] << "]");
+        Logger::Warn << "PreFlagger: no matches for baseline name pattern ["
+                     << bl[0] << ',' << bl[1] << "]\n";
       }
     }
   }

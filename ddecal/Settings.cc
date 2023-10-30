@@ -3,12 +3,13 @@
 
 #include "Settings.h"
 #include "../base/CalType.h"
-#include "../base/DPLogger.h"
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <sstream>
+
+#include <aocommon/logger.h>
 
 using dp3::base::CalType;
 
@@ -216,10 +217,11 @@ std::vector<std::string> Settings::ReadModelDataColumns() const {
   // DP3 msin.modelcolumn=MY_MODEL_DATA ddecal.usemodelcolumn=true
   // msin=tDDECal.MS msout=.
   if (columns.empty() && GetBool("usemodelcolumn", false)) {
-    DPLOG_WARN_STR("Warning: The input contains the deprecated " + name +
-                   "usemodelcolumn setting, possibly combined with the "
-                   "deprecated msin.modelcolumn setting. Please use " +
-                   name + "modeldatacolumns instead.");
+    aocommon::Logger::Warn
+        << "Warning: The input contains the deprecated " + name +
+               "usemodelcolumn setting, possibly combined with the "
+               "deprecated msin.modelcolumn setting. Please use " +
+               name + "modeldatacolumns instead.\n";
     columns.push_back(parset->getString("msin.modelcolumn", "MODEL_DATA"));
   }
 

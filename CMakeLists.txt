@@ -456,7 +456,6 @@ add_library(
   base/CalType.cc
   base/DPBuffer.cc
   base/DPInfo.cc
-  base/DPLogger.cc
   base/DP3.cc
   base/EstimateMixed.cc
   base/EstimateMixedLBFGS.cc

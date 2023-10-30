@@ -9,7 +9,6 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/TableIter.h>
 
-#include "../base/DPLogger.h"
 using casacore::ArrayColumn;
 
 using dp3::base::DPBuffer;
