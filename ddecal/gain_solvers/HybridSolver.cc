@@ -5,6 +5,8 @@
 
 #include <cassert>
 
+#include <aocommon/logger.h>
+
 namespace dp3 {
 namespace ddecal {
 
@@ -43,6 +45,7 @@ bool HybridSolver::RunSolver(SolverBase& solver, size_t& available_iterations,
                              double time, std::ostream* stat_stream) {
   if (solver.GetMaxIterations() > available_iterations)
     solver.SetMaxIterations(available_iterations);
+  aocommon::Logger::Debug << "Starting next hybrid solver stage.\n";
   SolveResult nextResult =
       solver.Solve(solve_data, solutions, time, stat_stream);
   result.iterations += nextResult.iterations;
