@@ -33,6 +33,7 @@
 #include "../parmdb/SourceDB.h"
 
 #include <aocommon/barrier.h>
+#include <aocommon/logger.h>
 #include <aocommon/recursivefor.h>
 
 #include <casacore/casa/Arrays/Array.h>
@@ -101,6 +102,9 @@ void OnePredict::init(const common::ParameterSet& parset,
   ss << sourcePatterns;
   direction_str_ = ss.str();
 
+  aocommon::Logger::Debug << "Loading " << source_db_name_
+                          << " in predict step for direction " << direction_str_
+                          << ".\n";
   base::SourceDB source_db{source_db_name_, sourcePatterns,
                            base::SourceDB::FilterMode::kPattern};
   try {
@@ -146,6 +150,8 @@ void OnePredict::init(const common::ParameterSet& parset,
     if (!one_beam_per_patch_) {
       if (beam_proximity_limit_ > 0.0) {
         // Rework patch list to cluster proximate sources
+        aocommon::Logger::Debug << "Clustering proximate sources for direction "
+                                << direction_str_ << ".\n";
         patch_list_ =
             clusterProximateSources(patch_list_, beam_proximity_limit_);
       } else {

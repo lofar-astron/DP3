@@ -15,6 +15,7 @@
 #include "../common/ParameterSet.h"
 #include "../common/StringTools.h"
 
+#include <aocommon/logger.h>
 #include <aocommon/staticfor.h>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -476,6 +477,8 @@ std::vector<double> OneApplyCal::CalculateBufferTimes(double buffer_start_time,
 }
 
 void OneApplyCal::updateParmsH5(const double bufStartTime) {
+  aocommon::Logger::Debug << "Reading and gridding H5Parm for direction "
+                          << itsDirection << ".\n";
   const std::vector<double> times = CalculateBufferTimes(bufStartTime, false);
 
   std::lock_guard<std::mutex> lock(theirHDF5Mutex);

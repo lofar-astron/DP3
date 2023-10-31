@@ -16,6 +16,8 @@
 
 #include <xtensor/xview.hpp>
 
+#include <aocommon/logger.h>
+
 #include <schaapcommon/facets/facet.h>
 
 #include <Version.h>
@@ -579,6 +581,9 @@ void DDECal::doSolve() {
         }
       }
 
+      aocommon::Logger::Debug
+          << "Initializing DDECal solver for current calibration interval.\n";
+
       // The last solution interval can be smaller.
       std::vector<base::DPBuffer> weighted_buffers(itsInputBuffers[i].size());
 
@@ -593,6 +598,9 @@ void DDECal::doSolve() {
           weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
           itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
       weighted_buffers.clear();
+
+      aocommon::Logger::Debug
+          << "Running DDECal solver for current calibration interval.\n";
 
       solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
                                      itsAvgTime / itsRequestedSolInt,
@@ -747,7 +755,8 @@ void DDECal::doPrepare() {
   }
 
   itsTimerPredict.start();
-
+  aocommon::Logger::Debug
+      << "Acquiring one timestep of model data for DDECal.\n";
   // Enclose the recursive_for
   {
     aocommon::RecursiveFor recursive_for;

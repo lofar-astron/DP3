@@ -261,6 +261,15 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   }
   // Adopt possible parameters given at the command line.
   parset.adoptArgv(argc, argv);  ///< works fine if argc==0 and argv==0
+
+  // Immediately initialize logger such that output will follow requested
+  // verbosity
+  aocommon::Logger::SetVerbosity(aocommon::StringToLogVerbosityLevel(
+      parset.getString("verbosity", "normal")));
+  aocommon::Logger::SetLogTime(parset.getBool("time_logging", false));
+  aocommon::Logger::SetLogMemory(parset.getBool("memory_logging", false));
+  aocommon::Logger::Debug << "Dp3 started.\n";
+
   bool showProgress = parset.getBool("showprogress", true);
   bool showTimings = parset.getBool("showtimings", true);
   // checkparset is an integer parameter now, but accepts a bool as well
