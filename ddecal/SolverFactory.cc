@@ -12,7 +12,7 @@
 #include "gain_solvers/LBFGSSolver.h"
 #include "gain_solvers/HybridSolver.h"
 #include "gain_solvers/IterativeDiagonalSolver.h"
-#if defined(HAVE_CUDA)
+#if defined(HAVE_CUDA_SOLVER)
 #include "gain_solvers/IterativeDiagonalSolverCuda.h"
 #endif
 #include "gain_solvers/IterativeFullJonesSolver.h"
@@ -59,7 +59,7 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
 
 std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
                                                  const Settings& settings) {
-#if defined(HAVE_CUDA)
+#if defined(HAVE_CUDA_SOLVER)
   if (settings.use_gpu) {
     switch (algorithm) {
       case SolverAlgorithm::kDirectionIterative:

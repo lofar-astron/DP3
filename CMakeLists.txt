@@ -31,7 +31,7 @@ if(BUILD_WITH_CUDA)
   set(CMAKE_CUDA_ARCHITECTURES
       "70"
       CACHE STRING "Specify GPU architecture(s) to compile for")
-  add_definitions(-DHAVE_CUDA)
+  add_definitions(-DHAVE_CUDA_SOLVER)
   find_package(CUDAToolkit REQUIRED)
 
   # Necessary to find the cuda.h file in iterativediagonalsolver as a result of resolving SolverFactory

@@ -7,7 +7,7 @@
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/HybridSolver.h"
 #include "../../gain_solvers/IterativeDiagonalSolver.h"
-#if defined(HAVE_CUDA)
+#if defined(HAVE_CUDA_SOLVER)
 #include "../../gain_solvers/IterativeDiagonalSolverCuda.h"
 #endif
 #include "../../gain_solvers/IterativeFullJonesSolver.h"
@@ -174,7 +174,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
   TestIterativeDiagonal(*this, solver);
 }
 
-#if defined(HAVE_CUDA)
+#if defined(HAVE_CUDA_SOLVER)
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal_cuda, SolverTester,
                         *boost::unit_test::label("slow")) {
   dp3::ddecal::IterativeDiagonalSolverCuda solver;
