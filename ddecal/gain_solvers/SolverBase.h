@@ -159,8 +159,9 @@ class SolverBase {
    * Whether stalling of the solutions should abort the solving.
    * @{
    */
-  void SetDetectStalling(bool detect_stalling) {
+  void SetDetectStalling(bool detect_stalling, double step_diff_sigma) {
     detect_stalling_ = detect_stalling;
+    step_diff_sigma_ = step_diff_sigma;
   }
   bool GetDetectStalling() const { return detect_stalling_; }
   /** @} */
@@ -209,7 +210,7 @@ class SolverBase {
             SolutionTensor& next_solutions) const;
 
   bool DetectStall(size_t iteration,
-                   const std::vector<double>& step_magnitudes) const;
+                   const std::vector<double>& step_magnitudes);
 
   static void MakeSolutionsFinite1Pol(
       std::vector<std::vector<DComplex>>& solutions);
@@ -237,9 +238,9 @@ class SolverBase {
                        bool use_constraint_accuracy, double& avg_abs_diff,
                        std::vector<double>& step_magnitudes) const;
 
-  bool ReachedStoppingCriterion(
-      size_t iteration, bool has_converged, bool constraints_satisfied,
-      const std::vector<double>& step_magnitudes) const {
+  bool ReachedStoppingCriterion(size_t iteration, bool has_converged,
+                                bool constraints_satisfied,
+                                const std::vector<double>& step_magnitudes) {
     bool has_stalled = false;
     if (detect_stalling_ && constraints_satisfied)
       has_stalled = DetectStall(iteration, step_magnitudes);
@@ -290,11 +291,20 @@ class SolverBase {
   double constraint_accuracy_;
   double step_size_;
   bool detect_stalling_;
+  double step_diff_sigma_;
 
   bool phase_only_;
   std::vector<std::unique_ptr<Constraint>> constraints_;
 
   LLSSolverType lls_solver_type_;
+
+  /**
+   * variables for calculating mean/variance of step size vector
+   * to determine stalling
+   */
+  size_t n_var_count_;
+  double step_mean_;
+  double step_var_;
   /** @} */
 };
 

@@ -28,6 +28,10 @@ inputs:
     default: true
     type: bool
     doc: Stop iterating when no improvement is measured anymore (after a minimum of 30 iterations) `.`
+  stepsigma:
+    default: 0.1
+    type: double
+    doc: Threshold for stalling detection, stop iterating when the running mean of the step sizes is less than stepsigma times their running standard deviation, i.e., the step size is just noise `.`
   stepsize:
     default: 0.2
     type: double
