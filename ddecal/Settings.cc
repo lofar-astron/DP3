@@ -90,6 +90,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       tolerance(GetDouble("tolerance", 1.e-4)),
       step_size(GetDouble("stepsize", 0.2)),
       detect_stalling(GetBool("detectstalling", true)),
+      step_diff_sigma(detect_stalling ? GetDouble("stepsigma", 0.1) : 0.1),
       // Only read these settings when needed: If it is defined, but not used,
       // the application will give a warning.
       approximate_tec((mode == CalType::kTec || mode == CalType::kTecAndPhase)

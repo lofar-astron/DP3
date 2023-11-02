@@ -36,6 +36,7 @@ SolverBase::SolverBase()
       constraint_accuracy_(1e-4),
       step_size_(0.2),
       detect_stalling_(true),
+      step_diff_sigma_(0.1),
       phase_only_(false),
       lls_solver_type_(LLSSolverType::QR) {}
 
@@ -62,16 +63,27 @@ void SolverBase::Initialize(
 }
 
 bool SolverBase::DetectStall(size_t iteration,
-                             const std::vector<double>& step_magnitudes) const {
+                             const std::vector<double>& step_magnitudes) {
+  if (iteration == 1) {
+    /* starting a new solve cycle, so reset */
+    n_var_count_ = 1;
+    step_mean_ = step_magnitudes[iteration - 1];
+    step_var_ = 0.0;
+  } else {
+    n_var_count_ += 1;
+    double delta_1 = step_magnitudes[iteration - 1] - step_mean_;
+    step_mean_ += delta_1 / (double)n_var_count_;
+    double delta_2 = step_magnitudes[iteration - 1] - step_mean_;
+    step_var_ += delta_1 * delta_2;
+  }
+
   if (iteration < 30) {
     return false;
   } else {
-    return std::abs(step_magnitudes[iteration - 1] /
-                        step_magnitudes[iteration - 2] -
-                    1) < 1.e-4 &&
-           std::abs(step_magnitudes[iteration - 2] /
-                        step_magnitudes[iteration - 3] -
-                    1) < 1.e-4;
+    /* stalled when runtime mean of step sizes
+     * is less than runtime standard deviation of step sizes */
+    return step_mean_ <
+           step_diff_sigma_ * std::sqrt(step_var_ / (double)n_var_count_);
   }
 }
 

@@ -121,6 +121,7 @@ struct Settings {
   const double tolerance;
   const double step_size;
   const bool detect_stalling;
+  const double step_diff_sigma;
   const bool approximate_tec;
   const bool phase_reference;
   const double approx_tolerance;

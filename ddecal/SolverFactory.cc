@@ -191,7 +191,7 @@ void InitializeSolver(SolverBase& solver, const Settings& settings) {
   solver.SetAccuracy(settings.tolerance);
   solver.SetConstraintAccuracy(settings.approx_tolerance);
   solver.SetStepSize(settings.step_size);
-  solver.SetDetectStalling(settings.detect_stalling);
+  solver.SetDetectStalling(settings.detect_stalling, settings.step_diff_sigma);
 }
 
 std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
