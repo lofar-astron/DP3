@@ -14,6 +14,7 @@
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include "ProgressMeter.h"
+#include "SkyModelCache.h"
 
 #include "../steps/AntennaFlagger.h"
 #include "../steps/AOFlaggerStep.h"
@@ -320,6 +321,10 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
         throw std::runtime_error("Unused parset keywords found");
     }
   }
+
+  // All steps should have finished reading the sky model, so clear the cache
+  SkyModelCache::GetInstance().Clear();
+
   // Process until the end.
   unsigned int ntodo = firstStep->getInfo().ntime();
   aocommon::Logger::Info << "Processing " << ntodo << " time slots ...\n";

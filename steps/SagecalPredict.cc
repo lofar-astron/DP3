@@ -27,6 +27,7 @@
 #include "../base/GaussianSource.h"
 #include "../base/Telescope.h"
 #include "../base/ComponentInfo.h"
+#include "../base/SkyModelCache.h"
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/tables/Tables/Table.h>
@@ -500,8 +501,10 @@ void SagecalPredict::init(
 
   patch_list_.clear();
 
-  base::SourceDB source_db{source_db_name_, source_patterns,
-                           base::SourceDB::FilterMode::kPattern};
+  base::SourceDBWrapper source_db =
+      base::SkyModelCache::GetInstance().GetSkyModel(source_db_name_);
+  source_db.Filter(source_patterns,
+                   base::SourceDBWrapper::FilterMode::kPattern);
 
   try {
     patch_list_ = source_db.MakePatchList();

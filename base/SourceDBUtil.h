@@ -11,6 +11,7 @@
 #define DP3_BASE_SOURCEDBUTIL_H_
 
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -21,6 +22,17 @@
 
 namespace dp3 {
 namespace base {
+
+inline bool HasSkymodelExtension(const std::string &source_db_name) {
+  static const std::string_view kSymodelExtension = ".skymodel";
+  static const std::string_view kTxtExtension = ".txt";
+  return (source_db_name.size() >= kSymodelExtension.size() &&
+          std::equal(kSymodelExtension.rbegin(), kSymodelExtension.rend(),
+                     source_db_name.rbegin())) ||
+         (source_db_name.size() >= kTxtExtension.size() &&
+          std::equal(kTxtExtension.rbegin(), kTxtExtension.rend(),
+                     source_db_name.rbegin()));
+}
 
 std::vector<std::shared_ptr<Patch>> makePatches(
     parmdb::SourceDB &sourceDB, const std::vector<std::string> &patchNames,
@@ -82,35 +94,34 @@ bool CheckAnyOrientationIsAbsolute(const parmdb::SourceDBSkymodel &source_db,
 /// A SourceDB can be read as a SourceDB database or a .skymodel file. This
 /// class abstracts the processing of the data regardless of the data source
 /// used.
-class SourceDB {
+class SourceDBWrapper {
  public:
   /// The method used to filter the supplied patches.
   enum class FilterMode {
     /// Filter as a pattern.
     ///
-    /// When used the @p patch_names_ is initialised with the found patches
+    /// When used the @c patch_names_ is initialised with the found patches
     /// sorted in alphabetic order.
     kPattern,
     /// Filter as a value.
     ///
-    /// When used the @p patch_names_ is initialised filter as list of values.
+    /// When used the @c patch_names_ is initialised filter as list of values.
     /// They are stored in the same order as supplied to the constructor.
     kValue
   };
 
-  /// Constructor
-  ///
   /// @param source_db_name The name of the source DB to create. The name can
-  ///                       either be the name of a binary textual source DB.
+  ///                       either be the name of a binary or textual source DB.
   ///                       The entension of the name determines which is used:
   ///                       * If .txt and .skymodel textual
   ///                       * else binary
-  /// @param filter         The list of patches to filter. The interpretation
-  ///                       of the filter depends on the @a filter_mode.
-  /// @param filter_mode    Determines how the @a filter is applied.
-  explicit SourceDB(const std::string &source_db_name,
-                    const std::vector<std::string> &filter,
-                    FilterMode filter_mode);
+  explicit SourceDBWrapper(const std::string &source_db_name);
+
+  /// @param filter The list of patches to filter. The interpretation
+  ///               of the filter depends on the @a filter_mode.
+  /// @param filter_mode Determines how the @a filter is applied.
+  SourceDBWrapper &Filter(const std::vector<std::string> &filter,
+                          FilterMode filter_mode);
 
   std::vector<std::shared_ptr<Patch>> MakePatchList();
 
@@ -132,24 +143,6 @@ class SourceDB {
   bool HoldsAlternative() const {
     return std::holds_alternative<T>(source_db_);
   }
-
-  /// Helper for the constructor.
-  ///
-  /// @pre @code HasSkymodelExtension(source_db_name) @endcode
-  ///
-  /// The arguments are forwarded from the constructor.
-  void InitialiseUsingSkymodel(const std::string &source_db_name,
-                               const std::vector<std::string> &filter,
-                               FilterMode filter_mode);
-
-  /// Helper for the constructor.
-  ///
-  /// @pre @code !HasSkymodelExtension(source_db_name) @endcode
-  ///
-  /// The arguments are forwarded from the constructor.
-  void InitialiseUsingSourceDb(const std::string &source_db_name,
-                               const std::vector<std::string> &filter,
-                               FilterMode filter_mode);
 };
 
 }  // namespace base

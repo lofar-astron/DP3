@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(cluster_proximate_sources_multi) {
   BOOST_CHECK_CLOSE(output[1]->component(0)->direction().dec, 1.1, 1e-5);
 }
 
-static void TestPatches(dp3::base::SourceDB&& source_db,
+static void TestPatches(dp3::base::SourceDBWrapper& source_db,
                         const std::vector<test_source_db::Patch>& expected) {
   const std::vector<std::shared_ptr<Patch>> patches = source_db.MakePatchList();
   BOOST_REQUIRE_EQUAL(patches.size(), expected.size());
@@ -121,12 +121,14 @@ BOOST_AUTO_TEST_CASE(source_db_make_patch_list_empty_pattern) {
   const std::vector<test_source_db::Patch> expected{
       test_source_db::Expected.begin(), test_source_db::Expected.end()};
 
-  TestPatches(dp3::base::SourceDB{kSkymodelName, filter,
-                                  dp3::base::SourceDB::FilterMode::kPattern},
-              expected);
-  TestPatches(dp3::base::SourceDB{kSourceDBName, filter,
-                                  dp3::base::SourceDB::FilterMode::kPattern},
-              expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSkymodelName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern),
+      expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSourceDBName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern),
+      expected);
 }
 
 BOOST_AUTO_TEST_CASE(source_db_make_patch_list_non_empty_pattern) {
@@ -136,23 +138,27 @@ BOOST_AUTO_TEST_CASE(source_db_make_patch_list_non_empty_pattern) {
   const std::vector<test_source_db::Patch> expected{
       test_source_db::Expected[0], test_source_db::Expected[2]};
 
-  TestPatches(dp3::base::SourceDB{kSkymodelName, filter,
-                                  dp3::base::SourceDB::FilterMode::kPattern},
-              expected);
-  TestPatches(dp3::base::SourceDB{kSourceDBName, filter,
-                                  dp3::base::SourceDB::FilterMode::kPattern},
-              expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSkymodelName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern),
+      expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSourceDBName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern),
+      expected);
 }
 
 BOOST_AUTO_TEST_CASE(source_db_make_patch_list_empty_values) {
   const std::vector<std::string> filter;
   const std::vector<test_source_db::Patch> expected;
-  TestPatches(dp3::base::SourceDB{kSkymodelName, filter,
-                                  dp3::base::SourceDB::FilterMode::kValue},
-              expected);
-  TestPatches(dp3::base::SourceDB{kSourceDBName, filter,
-                                  dp3::base::SourceDB::FilterMode::kValue},
-              expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSkymodelName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kValue),
+      expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSourceDBName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kValue),
+      expected);
 }
 
 BOOST_AUTO_TEST_CASE(source_db_make_patch_list_non_empty_values) {
@@ -162,15 +168,17 @@ BOOST_AUTO_TEST_CASE(source_db_make_patch_list_non_empty_values) {
   const std::vector<test_source_db::Patch> expected{
       test_source_db::Expected[2], test_source_db::Expected[0]};
 
-  TestPatches(dp3::base::SourceDB{kSkymodelName, filter,
-                                  dp3::base::SourceDB::FilterMode::kValue},
-              expected);
-  TestPatches(dp3::base::SourceDB{kSourceDBName, filter,
-                                  dp3::base::SourceDB::FilterMode::kValue},
-              expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSkymodelName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kValue),
+      expected);
+  TestPatches(
+      dp3::base::SourceDBWrapper(kSourceDBName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kValue),
+      expected);
 }
 
-static void TestPatchesExplicit(dp3::base::SourceDB&& source_db) {
+static void TestPatchesExplicit(dp3::base::SourceDBWrapper& source_db) {
   const std::vector<std::shared_ptr<Patch>> patches = source_db.MakePatchList();
   BOOST_REQUIRE_EQUAL(patches.size(), 2);
   CheckEqual(*patches[0],
@@ -197,33 +205,35 @@ VirA2, point, VirAx , 21.1deg, 10.1deg, 2)"}};
 
   const std::vector<std::string> filter;
 
-  TestPatchesExplicit(dp3::base::SourceDB{
-      kSkymodel, filter, dp3::base::SourceDB::FilterMode::kPattern});
-  TestPatchesExplicit(dp3::base::SourceDB{
-      kSourceDB, filter, dp3::base::SourceDB::FilterMode::kPattern});
+  TestPatchesExplicit(dp3::base::SourceDBWrapper(kSkymodel).Filter(
+      filter, dp3::base::SourceDBWrapper::FilterMode::kPattern));
+  TestPatchesExplicit(dp3::base::SourceDBWrapper(kSourceDB).Filter(
+      filter, dp3::base::SourceDBWrapper::FilterMode::kPattern));
 }
 
-static void TestPolarized(dp3::base::SourceDB&& source_db) {
+static void TestPolarized(dp3::base::SourceDBWrapper& source_db) {
   BOOST_CHECK_EQUAL(source_db.CheckPolarized(), false);
 }
 
 BOOST_AUTO_TEST_CASE(source_db_check_polarised) {
   const std::vector<std::string> filter;
-  TestPolarized(dp3::base::SourceDB{kSkymodelName, filter,
-                                    dp3::base::SourceDB::FilterMode::kPattern});
-  TestPolarized(dp3::base::SourceDB{kSourceDBName, filter,
-                                    dp3::base::SourceDB::FilterMode::kPattern});
+  TestPolarized(
+      dp3::base::SourceDBWrapper(kSkymodelName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern));
+  TestPolarized(
+      dp3::base::SourceDBWrapper(kSourceDBName)
+          .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern));
 }
 
 BOOST_AUTO_TEST_CASE(source_db_empty_source_pattern_string) {
   const std::vector<std::string> filter{""};
   BOOST_CHECK_THROW(
-      (dp3::base::SourceDB{kSkymodelName, filter,
-                           dp3::base::SourceDB::FilterMode::kPattern}),
+      (dp3::base::SourceDBWrapper(kSkymodelName)
+           .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern)),
       std::runtime_error);
   BOOST_CHECK_THROW(
-      (dp3::base::SourceDB{kSourceDBName, filter,
-                           dp3::base::SourceDB::FilterMode::kPattern}),
+      (dp3::base::SourceDBWrapper(kSourceDBName)
+           .Filter(filter, dp3::base::SourceDBWrapper::FilterMode::kPattern)),
       std::runtime_error);
 }
 
