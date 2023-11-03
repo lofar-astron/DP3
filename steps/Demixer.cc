@@ -29,6 +29,7 @@
 #include "../base/SubtractMixed.h"
 #include "../base/Simulate.h"
 #include "../base/Simulator.h"
+#include "../base/SkyModelCache.h"
 
 #include "../parmdb/Axis.h"
 #include "../parmdb/SourceDB.h"
@@ -184,8 +185,10 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
           "Currently no extrasources can "
           "be given if the targetsource is given");
   }
+  base::SkyModelCache& cache = base::SkyModelCache::GetInstance();
   itsPatchList =
-      base::SourceDB(itsSkyName, patchNames, base::SourceDB::FilterMode::kValue)
+      cache.GetSkyModel(itsSkyName)
+          .Filter(patchNames, base::SourceDBWrapper::FilterMode::kValue)
           .MakePatchList();
   assert(itsPatchList.size() == itsNModel);
 

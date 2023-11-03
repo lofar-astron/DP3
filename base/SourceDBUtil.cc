@@ -19,7 +19,6 @@
 #include <mutex>
 #include <numeric>
 #include <set>
-#include <string_view>
 #include <vector>
 
 namespace dp3 {
@@ -313,10 +312,11 @@ std::vector<std::vector<std::string>> MakeDirectionList(
 
   if (packed_directions.empty() && !source_db_filename.empty()) {
     // Use all patches from the SourceDB if the user did not give directions.
+    SourceDBWrapper source_db(source_db_filename);
+    source_db.Filter(std::vector<std::string>{},
+                     SourceDBWrapper::FilterMode::kPattern);
     const std::vector<std::shared_ptr<Patch>> patches =
-        SourceDB(source_db_filename, std::vector<std::string>{},
-                 SourceDB::FilterMode::kPattern)
-            .MakePatchList();
+        std::move(source_db).MakePatchList();
 
     for (const auto& patch : patches) {
       directions.emplace_back(1, patch->name());
@@ -405,34 +405,18 @@ bool CheckAnyOrientationIsAbsolute(
   return false;
 }
 
-static bool HasSkymodelExtension(const std::string& source_db_name) {
-  static const std::string_view kSymodelExtension = ".skymodel";
-  static const std::string_view kTxtExtension = ".txt";
-  return (source_db_name.size() >= kSymodelExtension.size() &&
-          std::equal(kSymodelExtension.rbegin(), kSymodelExtension.rend(),
-                     source_db_name.rbegin())) ||
-         (source_db_name.size() >= kTxtExtension.size() &&
-          std::equal(kTxtExtension.rbegin(), kTxtExtension.rend(),
-                     source_db_name.rbegin()));
-}
-
-SourceDB::SourceDB(const std::string& source_db_name,
-                   const std::vector<std::string>& filter,
-                   FilterMode filter_mode) {
-  if (std::find(filter.cbegin(), filter.cend(), "") != filter.end()) {
-    throw std::runtime_error("Empty source pattern not allowed");
-  }
-
+SourceDBWrapper::SourceDBWrapper(const std::string& source_db_name) {
   if (HasSkymodelExtension(source_db_name)) {
-    InitialiseUsingSkymodel(source_db_name, filter, filter_mode);
+    source_db_ = parmdb::skymodel_to_source_db::MakeSourceDBSkymodel(
+        source_db_name,
+        parmdb::skymodel_to_source_db::ReadFormat("", source_db_name));
   } else {
-    InitialiseUsingSourceDb(source_db_name, filter, filter_mode);
+    source_db_ =
+        parmdb::SourceDB(parmdb::ParmDBMeta("", source_db_name), true, false);
   }
 }
 
-std::vector<std::shared_ptr<Patch>> SourceDB::MakePatchList() {
-  assert(!HoldsAlternative<std::monostate>() &&
-         "The constructor should have properly initialized the source_db_");
+std::vector<std::shared_ptr<Patch>> SourceDBWrapper::MakePatchList() {
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
     return base::MakePatches(Get<parmdb::SourceDBSkymodel>(), patch_names_);
 
@@ -440,10 +424,7 @@ std::vector<std::shared_ptr<Patch>> SourceDB::MakePatchList() {
                            patch_names_.size());
 }
 
-bool SourceDB::CheckPolarized() {
-  assert(!HoldsAlternative<std::monostate>() &&
-         "The constructor should have properly initialized the source_db_");
-
+bool SourceDBWrapper::CheckPolarized() {
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
     return base::CheckPolarized(Get<parmdb::SourceDBSkymodel>(), patch_names_);
 
@@ -451,10 +432,7 @@ bool SourceDB::CheckPolarized() {
                               patch_names_.size());
 }
 
-bool SourceDB::CheckAnyOrientationIsAbsolute() {
-  assert(!HoldsAlternative<std::monostate>() &&
-         "The constructor should have properly initialized the source_db_");
-
+bool SourceDBWrapper::CheckAnyOrientationIsAbsolute() {
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
     return base::CheckAnyOrientationIsAbsolute(Get<parmdb::SourceDBSkymodel>(),
                                                patch_names_);
@@ -463,42 +441,25 @@ bool SourceDB::CheckAnyOrientationIsAbsolute() {
                                              patch_names_, patch_names_.size());
 }
 
-void SourceDB::InitialiseUsingSkymodel(const std::string& source_db_name,
-                                       const std::vector<std::string>& filter,
-                                       FilterMode filter_mode) {
-  assert(HasSkymodelExtension(source_db_name) &&
-         "Use InitialiseUsingSourceDb instead.");
+SourceDBWrapper& SourceDBWrapper::Filter(const std::vector<std::string>& filter,
+                                         FilterMode filter_mode) {
+  if (std::find(filter.cbegin(), filter.cend(), "") != filter.end()) {
+    throw std::runtime_error("Empty source pattern not allowed");
+  }
 
-  source_db_ = parmdb::skymodel_to_source_db::MakeSourceDBSkymodel(
-      source_db_name,
-      parmdb::skymodel_to_source_db::ReadFormat("", source_db_name));
   switch (filter_mode) {
     case FilterMode::kPattern:
-      patch_names_ =
-          base::MakePatchList(Get<parmdb::SourceDBSkymodel>(), filter);
+      if (HoldsAlternative<parmdb::SourceDBSkymodel>())
+        patch_names_ =
+            base::MakePatchList(Get<parmdb::SourceDBSkymodel>(), filter);
+      else
+        patch_names_ = base::makePatchList(Get<parmdb::SourceDB>(), filter);
       break;
     case FilterMode::kValue:
       patch_names_ = filter;
       break;
   }
-}
-
-void SourceDB::InitialiseUsingSourceDb(const std::string& source_db_name,
-                                       const std::vector<std::string>& filter,
-                                       FilterMode filter_mode) {
-  assert(!HasSkymodelExtension(source_db_name) &&
-         "Use InitialiseUsingSourceSkymodel instead.");
-
-  source_db_ =
-      parmdb::SourceDB(parmdb::ParmDBMeta("", source_db_name), true, false);
-  switch (filter_mode) {
-    case FilterMode::kPattern:
-      patch_names_ = base::makePatchList(Get<parmdb::SourceDB>(), filter);
-      break;
-    case FilterMode::kValue:
-      patch_names_ = filter;
-      break;
-  }
+  return *this;
 }
 
 }  // namespace base

@@ -23,11 +23,12 @@
 
 #include <dp3/base/DPInfo.h>
 #include "../base/FlagCounter.h"
+#include "../base/GaussianSource.h"
+#include "../base/PointSource.h"
 #include "../base/Simulate.h"
 #include "../base/Simulator.h"
+#include "../base/SkyModelCache.h"
 #include "../base/Stokes.h"
-#include "../base/PointSource.h"
-#include "../base/GaussianSource.h"
 #include "../base/Telescope.h"
 
 #include "../parmdb/SourceDB.h"
@@ -105,8 +106,9 @@ void OnePredict::init(const common::ParameterSet& parset,
   aocommon::Logger::Debug << "Loading " << source_db_name_
                           << " in predict step for direction " << direction_str_
                           << ".\n";
-  base::SourceDB source_db{source_db_name_, sourcePatterns,
-                           base::SourceDB::FilterMode::kPattern};
+  base::SourceDBWrapper source_db =
+      base::SkyModelCache::GetInstance().GetSkyModel(source_db_name_);
+  source_db.Filter(sourcePatterns, base::SourceDBWrapper::FilterMode::kPattern);
   try {
     patch_list_ = source_db.MakePatchList();
     if (patch_list_.empty()) {
@@ -192,7 +194,7 @@ void OnePredict::SetApplyCal(const common::ParameterSet& parset,
   apply_cal_step_->setNextStep(result_step_);
 }
 
-OnePredict::~OnePredict() {}
+OnePredict::~OnePredict() = default;
 
 void OnePredict::initializeThreadData() {
   const size_t nBl = info().nbaselines();
