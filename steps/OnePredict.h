@@ -149,6 +149,9 @@ class OnePredict : public ModelDataStep {
                      const std::pair<size_t, size_t>& station_range,
                      aocommon::Barrier& barrier, bool stokesIOnly);
 
+  void PredictWithPatchParallelization(base::PredictModel& model_buffer,
+                                       double time);
+
   std::string name_;
   /// Stores the input data if the operation is add or subtract.
   /// Using a member instead of a local variable avoids allocating memory
