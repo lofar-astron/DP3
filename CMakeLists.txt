@@ -41,7 +41,7 @@ if(BUILD_WITH_CUDA)
   FetchContent_Declare(
     cudawrappers
     GIT_REPOSITORY https://github.com/nlesc-recruit/cudawrappers.git
-    GIT_TAG main)
+    GIT_TAG 0.5.0)
   FetchContent_MakeAvailable(cudawrappers)
 
 else()
@@ -418,9 +418,13 @@ target_link_libraries(DDECal xsimd xtensor)
 
 if(BUILD_WITH_CUDA)
   target_link_libraries(DDECal cudawrappers::cu)
-
+  # The cudasolvers library is built as static for two reasons
+  # 1) if built as an object the kernel simbol is not exported propery by
+  # the cuda ecosystem
+  # 2) if built as a shared library the dependencies of DDECal are missing
+  # when DP3 is built in debug mode
   add_library(
-    CudaSolvers SHARED ddecal/gain_solvers/IterativeDiagonalSolverCuda.cc
+    CudaSolvers STATIC ddecal/gain_solvers/IterativeDiagonalSolverCuda.cc
                        ddecal/gain_solvers/kernels/IterativeDiagonal.cu)
 
   target_compile_options(
