@@ -760,7 +760,7 @@ void DDECal::doPrepare() {
   // Enclose the recursive_for
   {
     aocommon::RecursiveFor recursive_for;
-    recursive_for.Run(0, itsSteps.size(), [&](size_t dir, size_t) {
+    recursive_for.Run(0, itsSteps.size(), [&](size_t dir) {
       if (itsSteps[dir]) {  // When reusing model data, there is no step.
         itsSteps[dir]->process(
             std::make_unique<DPBuffer>(*input_buffer, itsRequiredFields[dir]));
