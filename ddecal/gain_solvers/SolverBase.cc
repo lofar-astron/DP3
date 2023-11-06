@@ -169,12 +169,20 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
                                   SolveResult& result,
                                   SolutionTensor& next_solutions,
                                   std::ostream* stat_stream) const {
+  SolutionSpan next_solutions_span = aocommon::xt::CreateSpan(next_solutions);
+  return ApplyConstraints(iteration, time, has_previously_converged, result,
+                          next_solutions_span, stat_stream);
+}
+
+bool SolverBase::ApplyConstraints(size_t iteration, double time,
+                                  bool has_previously_converged,
+                                  SolveResult& result,
+                                  SolutionSpan& next_solutions,
+                                  std::ostream* stat_stream) const {
   bool constraints_satisfied = true;
 
   result.results.resize(constraints_.size());
   auto result_iterator = result.results.begin();
-
-  SolutionSpan next_solutions_span = aocommon::xt::CreateSpan(next_solutions);
 
   for (const std::unique_ptr<Constraint>& c : constraints_) {
     // PrepareIteration() might change Satisfied(), and since we always want
@@ -183,7 +191,7 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
     constraints_satisfied = c->Satisfied() && constraints_satisfied;
     c->PrepareIteration(has_previously_converged, iteration,
                         iteration + 1 >= GetMaxIterations());
-    *result_iterator = c->Apply(next_solutions_span, time, stat_stream);
+    *result_iterator = c->Apply(next_solutions, time, stat_stream);
     ++result_iterator;
   }
 
@@ -195,7 +203,7 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
 }
 
 bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
-                                 SolutionTensor& newSolutions,
+                                 SolutionSpan& newSolutions,
                                  bool useConstraintAccuracy, double& avgAbsDiff,
                                  std::vector<double>& stepMagnitudes) const {
   assert(newSolutions.shape(0) == NChannelBlocks());
@@ -278,7 +286,14 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
     return stepMagnitude <= accuracy_;
   }
 }
-
+bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
+                                 SolutionTensor& newSolutions,
+                                 bool useConstraintAccuracy, double& avgAbsDiff,
+                                 std::vector<double>& stepMagnitudes) const {
+  SolutionSpan new_solutions_span = aocommon::xt::CreateSpan(newSolutions);
+  return AssignSolutions(solutions, new_solutions_span, useConstraintAccuracy,
+                         avgAbsDiff, stepMagnitudes);
+}
 void SolverBase::MakeSolutionsFinite1Pol(
     std::vector<std::vector<DComplex>>& solutions) {
   // Parallelizing this loop using StaticFor proved not effective:

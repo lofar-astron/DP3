@@ -18,7 +18,7 @@ namespace ddecal {
 
 class IterativeDiagonalSolverCuda final : public SolverBase {
  public:
-  IterativeDiagonalSolverCuda();
+  IterativeDiagonalSolverCuda(bool keep_buffers = false);
   SolveResult Solve(const SolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
@@ -29,7 +29,7 @@ class IterativeDiagonalSolverCuda final : public SolverBase {
 
  private:
   void AllocateGPUBuffers(const SolveData& data);
-
+  void DeallocateHostBuffers();
   void AllocateHostBuffers(const SolveData& data);
 
   void CopyHostToHost(size_t ch_block, bool first_iteration,
@@ -49,9 +49,14 @@ class IterativeDiagonalSolverCuda final : public SolverBase {
                       std::vector<double>& step_magnitudes,
                       std::ostream* stat_stream);
 
-  /// If this variable is false, gpu_buffers_ and host_buffers are not
-  /// initialized
-  bool buffers_initialized_ = false;
+  /// If this variable if false gpu buffers are not initialized
+  bool gpu_buffers_initialized_ = false;
+  /// if this variable is false host buffers are not initialized
+  bool host_buffers_initialized_ = false;
+
+  /// If this variable is false the host buffers are deallocated
+  /// at the end of each Solve call
+  bool keep_buffers_ = false;
 
   std::unique_ptr<cu::Device> device_;
   std::unique_ptr<cu::Context> context_;

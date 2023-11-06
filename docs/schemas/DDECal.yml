@@ -223,3 +223,9 @@ inputs:
     doc: >-
       Use GPU solver. This is an experimental feature only available for the iterative
       diagonal solver and requires DP3 to be built with BUILD_WITH_CUDA=1 `.`
+  keep_host_buffers:
+    default: false
+    type: bool
+    doc: >-
+      Setting this to true will cause the host buffers to be kept during the execution if used in combination with the GPU solver.
+      This can cause an higher consumption of memory but saves execution time.

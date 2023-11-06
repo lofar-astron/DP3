@@ -63,7 +63,8 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
   if (settings.use_gpu) {
     switch (algorithm) {
       case SolverAlgorithm::kDirectionIterative:
-        return std::make_unique<IterativeDiagonalSolverCuda>();
+        return std::make_unique<IterativeDiagonalSolverCuda>(
+            settings.keep_host_buffers);
       default:
         throw std::runtime_error(
             "usegpu=true, but no GPU implementation for solver algorithm is "

@@ -155,7 +155,8 @@ std::tuple<size_t, size_t, size_t> ComputeArrayDimensions(
 namespace dp3 {
 namespace ddecal {
 
-IterativeDiagonalSolverCuda::IterativeDiagonalSolverCuda() {
+IterativeDiagonalSolverCuda::IterativeDiagonalSolverCuda(bool keep_buffers)
+    : keep_buffers_{keep_buffers} {
   cu::init();
   device_ = std::make_unique<cu::Device>(0);
   context_ = std::make_unique<cu::Context>(0, *device_);
@@ -221,6 +222,15 @@ void IterativeDiagonalSolverCuda::AllocateHostBuffers(const SolveData& data) {
           channel_block_data.Antenna2Index(visibility_index);
     }
   }
+}
+void IterativeDiagonalSolverCuda::DeallocateHostBuffers() {
+  host_buffers_.next_solutions.reset();
+  host_buffers_.model.clear();
+  host_buffers_.residual.clear();
+  host_buffers_.solutions.clear();
+  host_buffers_.antenna_pairs.clear();
+  host_buffers_.solution_map.clear();
+  host_buffers_initialized_ = false;
 }
 
 void IterativeDiagonalSolverCuda::CopyHostToHost(
@@ -321,10 +331,13 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
   /*
    * Allocate buffers
    */
-  if (!buffers_initialized_) {
+  if (!host_buffers_initialized_) {
     AllocateHostBuffers(data);
+    host_buffers_initialized_ = true;
+  }
+  if (!gpu_buffers_initialized_) {
     AllocateGPUBuffers(data);
-    buffers_initialized_ = true;
+    gpu_buffers_initialized_ = true;
   }
 
   const std::array<size_t, 4> next_solutions_shape = {
@@ -451,6 +464,8 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
   } else {
     result.iterations = iteration + 1;
   }
+
+  if (!keep_buffers_) DeallocateHostBuffers();
   return result;
 }
 
