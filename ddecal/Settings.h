@@ -137,6 +137,9 @@ struct Settings {
   // LBFGS minibatches
   const size_t lbfgs_minibatches;
   const bool use_gpu;
+  // keep host buffers between solve iteration
+  // for the GPU solver
+  const bool keep_host_buffers;
 
   const std::vector<std::string> model_data_columns;
   const std::vector<std::string> reuse_model_data;

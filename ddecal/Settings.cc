@@ -121,7 +121,7 @@ Settings::Settings(const common::ParameterSet& _parset,
                             ? GetUint("solverlbfgs.minibatches", 1)
                             : 1),
       use_gpu(GetBool("usegpu", 0)),
-
+      keep_host_buffers(GetBool("keep_host_buffers", 0)),
       // Column reader settings
       model_data_columns(ReadModelDataColumns()),
       reuse_model_data(GetStringVector("reusemodel")),

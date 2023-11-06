@@ -227,7 +227,10 @@ class SolverBase {
                         bool has_previously_converged, SolveResult& result,
                         SolutionTensor& next_solutions,
                         std::ostream* stat_stream) const;
-
+  bool ApplyConstraints(size_t iteration, double time,
+                        bool has_previously_converged, SolveResult& result,
+                        SolutionSpan& next_solutions,
+                        std::ostream* stat_stream) const;
   /**
    * Assign the solutions in nextSolutions to the solutions.
    * @returns whether the solutions have converged. Appends the current step
@@ -235,6 +238,10 @@ class SolverBase {
    */
   bool AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
                        SolutionTensor& new_solutions,
+                       bool use_constraint_accuracy, double& avg_abs_diff,
+                       std::vector<double>& step_magnitudes) const;
+  bool AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
+                       SolutionSpan& new_solutions,
                        bool use_constraint_accuracy, double& avg_abs_diff,
                        std::vector<double>& step_magnitudes) const;
 
