@@ -139,3 +139,56 @@ def test_autoweight():
             "average.timestep=5",
         ]
     )
+
+
+@pytest.fixture
+def make_multiple_bands():
+    # Split input MS into four chunks, delete one
+    for startchan in range(0, 8, 2):
+        check_call(
+            [
+                tcf.DP3EXE,
+                f"msin={MSIN}",
+                f"msout=chunk{startchan//2}.MS",
+                f"msin.startchan={startchan}",
+                f"msin.nchan=2",
+                "steps=[]",
+            ]
+        )
+
+
+def test_multimsin_missingdata(make_multiple_bands):
+    shutil.rmtree("chunk2.MS")
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            "msin=[chunk0.MS,chunk1.MS,DOESNOTEXIST,chunk3.MS]",
+            "steps=[]",
+            "msout=joined.MS",
+            "msin.missingdata=true",
+            "msin.orderms=false",
+        ]
+    )
+
+    taql_command = f"select from joined.MS::SPECTRAL_WINDOW where shape(CHAN_FREQ)[0] == 8"
+    assert_taql(taql_command, 1)
+
+
+@pytest.mark.parametrize("order_ms", [True, False])
+def test_multimsin_orderms(make_multiple_bands, order_ms):
+    check_call(
+        [
+            tcf.DP3EXE,
+            "msin=[chunk0.MS,chunk2.MS,chunk1.MS,chunk3.MS]",
+            "steps=[]",
+            "msout=joined.MS",
+            f"msin.orderms={order_ms}",
+        ]
+    )
+
+    taql_command = f"select from joined.MS::SPECTRAL_WINDOW WHERE CHAN_FREQ[4] > CHAN_FREQ[3]"
+    if order_ms:
+        assert_taql(taql_command, 1)
+    else:
+        assert_taql(taql_command, 0)

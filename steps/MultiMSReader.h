@@ -144,9 +144,12 @@ class MultiMSReader final : public MSReader {
   bool itsOrderMS;  ///< sort multi MS in order of freq?
   int itsFirst;     ///< first valid MSReader (<0 = none)
   int itsNMissing;  ///< nr of missing MSs
-  std::vector<string> itsMSNames;
-  std::vector<std::shared_ptr<MSReader>> itsReaders;
-  std::vector<std::shared_ptr<ResultStep>> itsResults;
+  struct Reader {
+    std::string name;
+    std::shared_ptr<MSReader> ms_reader;
+    std::shared_ptr<ResultStep> result;
+  };
+  std::vector<Reader> readers_;
   unsigned int itsFillNChan;  ///< nr of chans for missing MSs
   base::FlagCounter itsFlagCounter;
 };
