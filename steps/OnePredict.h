@@ -149,8 +149,17 @@ class OnePredict : public ModelDataStep {
                      const std::pair<size_t, size_t>& station_range,
                      aocommon::Barrier& barrier, bool stokesIOnly);
 
-  void PredictWithPatchParallelization(base::PredictModel& model_buffer,
-                                       double time);
+  void PredictWithSourceParallelization(base::DPBuffer::DataType& destination,
+                                        double time);
+  void PredictSourceRange(
+      aocommon::xt::UTensor<std::complex<double>, 3>& result, size_t start,
+      size_t end, size_t thread_index, std::mutex& mutex, double time);
+
+  /// Assigns @p buffer to @p destination. If @c stokes_i_only_ is set,
+  /// only the first and last correlations (e.g. XX and YY) are copied.
+  void CopyPredictBufferToData(
+      base::DPBuffer::DataType& destination,
+      const aocommon::xt::UTensor<std::complex<double>, 3>& buffer);
 
   std::string name_;
   /// Stores the input data if the operation is add or subtract.
