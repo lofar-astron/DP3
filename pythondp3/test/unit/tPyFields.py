@@ -28,14 +28,6 @@ except ImportError:
     pass
 
 
-def import_fields():
-    """Validates the module can be imported.
-
-    Importing a module may fail while running pytest --collect-only,
-    but it should work when running the tests."""
-    import dp3
-
-
 def check_fields(fields, set_fields):
     """Check whether the fields set in `fields` (a `Fields` object) are those
     in `set_fields` (a list of strings)."""
