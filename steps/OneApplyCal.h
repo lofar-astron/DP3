@@ -102,8 +102,7 @@ class OneApplyCal : public Step {
 
   /// in the case of full Jones, amp and phase table need to be open
   std::vector<schaapcommon::h5parm::SolTab> MakeSolTabs(
-      schaapcommon::h5parm::H5Parm& h5parm,
-      std::vector<std::string>& solution_table_names);
+      schaapcommon::h5parm::H5Parm& h5parm) const;
 
   std::string itsName;
   std::string itsParmDBName;
@@ -114,7 +113,7 @@ class OneApplyCal : public Step {
   bool itsUseH5Parm;
   std::string itsSolSetName;
   std::shared_ptr<parmdb::ParmFacade> itsParmDB;
-  std::string itsSolTabName;
+  std::string specified_correction_;
   size_t n_polarizations_in_sol_tab_ = 0;
   JonesParameters::MissingAntennaBehavior itsMissingAntennaBehavior;
   GainType itsCorrectType;
@@ -140,7 +139,7 @@ class OneApplyCal : public Step {
   bool itsUseAP;  ///< use ampl/phase or real/imag
   hsize_t itsDirection;
   common::NSTimer itsTimer;
-  std::vector<std::string> solution_tables_names_;
+  std::vector<std::string> solution_table_names_;
 
   static std::mutex theirHDF5Mutex;  ///< Prevent parallel access to HDF5
 };
