@@ -269,7 +269,6 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
       parset.getString("verbosity", "normal")));
   aocommon::Logger::SetLogTime(parset.getBool("time_logging", false));
   aocommon::Logger::SetLogMemory(parset.getBool("memory_logging", false));
-  aocommon::Logger::Debug << "Dp3 started.\n";
 
   bool showProgress = parset.getBool("showprogress", true);
   bool showTimings = parset.getBool("showtimings", true);
@@ -290,6 +289,7 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
   if (n_threads == 0) n_threads = aocommon::system::ProcessorCount();
   aocommon::ThreadPool::GetInstance().SetNThreads(n_threads);
   Step::SetThreadingIsInitialized();
+  aocommon::Logger::Debug << "DP3 started with " << n_threads << " threads.\n";
 
   // Create the steps, link them together
   std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
