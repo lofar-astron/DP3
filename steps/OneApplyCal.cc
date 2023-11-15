@@ -100,17 +100,47 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
         missingAntennaBehaviorStr);
 
     if (itsParmDBOnDisk) {
-      // The correction only makes sense if the parmdb is being read from disk.
-      itsSolTabName = (parset.isDefined(prefix + "correction")
-                           ? parset.getString(prefix + "correction")
-                           : parset.getString(defaultPrefix + "correction"));
-      solution_tables_names_ = parset.getStringVector(
-          prefix + "soltab", std::vector<string>{"amplitude000", "phase000"});
+      // The correction is only relevant when the h5/parmdb is being read from
+      // disk.
+      specified_correction_ =
+          (parset.isDefined(prefix + "correction")
+               ? parset.getString(prefix + "correction")
+               : parset.getString(defaultPrefix + "correction"));
+      const std::vector<std::string> default_tables =
+          (specified_correction_ == "fulljones")
+              ? std::vector<std::string>{"amplitude000", "phase000"}
+              : std::vector<std::string>{"amplitude000"};
+      solution_table_names_ =
+          parset.getStringVector(prefix + "soltab", default_tables);
 
       schaapcommon::h5parm::H5Parm h5parm(itsParmDBName, false, false,
                                           itsSolSetName);
       std::vector<schaapcommon::h5parm::SolTab> solution_tables =
-          MakeSolTabs(h5parm, solution_tables_names_);
+          MakeSolTabs(h5parm);
+      if (specified_correction_ == "fulljones") {
+        if (solution_table_names_.size() != 2)
+          throw std::runtime_error(
+              "The soltab parameter requires two soltabs for fulljones "
+              "correction (amplitude and phase)");
+        itsCorrectType = GainType::kFullJones;
+        specified_correction_ =
+            solution_table_names_[0] + ", " +
+            solution_table_names_[1];  // this is only so that show()
+                                       // shows these tables
+      } else {
+        if (solution_table_names_.size() != 1)
+          throw std::runtime_error("The soltab parameter requires one soltab");
+        itsCorrectType = JonesParameters::H5ParmTypeStringToGainType(
+            solution_tables[0].GetType());
+        if (itsCorrectType == GainType::kDiagonalPhase &&
+            nPol(solution_tables[0]) == 1) {
+          itsCorrectType = GainType::kScalarPhase;
+        }
+        if (itsCorrectType == GainType::kDiagonalAmplitude &&
+            nPol(solution_tables[0]) == 1) {
+          itsCorrectType = GainType::kScalarAmplitude;
+        }
+      }
       n_polarizations_in_sol_tab_ = nPol(solution_tables[0]);
 
       itsDirection = 0;
@@ -148,32 +178,13 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
 }
 
 std::vector<schaapcommon::h5parm::SolTab> OneApplyCal::MakeSolTabs(
-    schaapcommon::h5parm::H5Parm& h5parm,
-    std::vector<std::string>& solution_table_names) {
+    schaapcommon::h5parm::H5Parm& h5parm) const {
   std::vector<schaapcommon::h5parm::SolTab> solution_tables;
-  if (itsSolTabName == "fulljones") {
-    if (solution_table_names.size() != 2)
-      throw std::runtime_error(
-          "The soltab parameter requires two soltabs for fulljones "
-          "correction (amplitude and phase)");
-    solution_tables = {h5parm.GetSolTab(solution_table_names[0]),
-                       h5parm.GetSolTab(solution_table_names[1])};
-    itsSolTabName = solution_table_names[0] + ", " +
-                    solution_table_names[1];  // this is only so that show()
-                                              // shows these tables
-    itsCorrectType = GainType::kFullJones;
+  if (solution_table_names_.size() == 2) {
+    solution_tables = {h5parm.GetSolTab(solution_table_names_[0]),
+                       h5parm.GetSolTab(solution_table_names_[1])};
   } else {
-    solution_tables = {h5parm.GetSolTab(itsSolTabName)};
-    itsCorrectType = JonesParameters::H5ParmTypeStringToGainType(
-        solution_tables[0].GetType());
-  }
-  if (itsCorrectType == GainType::kDiagonalPhase &&
-      nPol(solution_tables[0]) == 1) {
-    itsCorrectType = GainType::kScalarPhase;
-  }
-  if (itsCorrectType == GainType::kDiagonalAmplitude &&
-      nPol(solution_tables[0]) == 1) {
-    itsCorrectType = GainType::kScalarAmplitude;
+    solution_tables = {h5parm.GetSolTab(specified_correction_)};
   }
   return solution_tables;
 }
@@ -318,7 +329,7 @@ void OneApplyCal::show(std::ostream& os) const {
   if (itsUseH5Parm) {
     os << "  H5Parm:         " << itsParmDBName << '\n';
     os << "    SolSet:       " << itsSolSetName << '\n';
-    os << "    SolTab:       " << itsSolTabName << '\n';
+    os << "    SolTab:       " << specified_correction_ << '\n';
     os << "  Direction:      " << itsDirection << '\n';
     os << "  Interpolation:  "
        << (itsInterpolationType == JonesParameters::InterpolationType::NEAREST
@@ -485,7 +496,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime) {
   schaapcommon::h5parm::H5Parm h5parm(itsParmDBName, false, false,
                                       itsSolSetName);
   std::vector<schaapcommon::h5parm::SolTab> solution_tables =
-      MakeSolTabs(h5parm, solution_tables_names_);
+      MakeSolTabs(h5parm);
 
   // Figure out whether time or frequency is first axis
   if (solution_tables[0].HasAxis("freq") &&

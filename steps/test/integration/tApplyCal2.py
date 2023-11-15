@@ -126,3 +126,33 @@ def test_rotation_angle():
             f"showcounts=false",
         ]
     )
+
+
+def test_full_jones():
+    # Produce a trivial h5parm with full Jones solutions
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            f"msout=",
+            f"msout.datacolumn=DATA3",
+            f"steps=[ddecal]",
+            f"ddecal.h5parm=full-jones-solutions.h5",
+            f"ddecal.mode=fulljones",
+            f"ddecal.modeldatacolumns=[DATA]",
+        ]
+    )
+    # apply it
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            f"msout=",
+            f"msout.datacolumn=DATA3",
+            f"steps=[applycal]",
+            f"applycal.parmdb=full-jones-solutions.h5",
+            f"applycal.correction=fulljones",
+            f"applycal.solset = sol000",
+            f"applycal.soltab = [amplitude000,phase000]",
+        ]
+    )
