@@ -377,8 +377,9 @@ void DDECal::show(std::ostream& os) const {
      << "  H5Parm:              " << itsSettings.h5parm_name << '\n'
      << "  write sol to buffer: " << std::boolalpha << itsStoreSolutionInBuffer
      << '\n'
-     << "  solint:              " << itsRequestedSolInt << '\n'
+     << "  solution interval:   " << itsRequestedSolInt << '\n'
      << "  nchan:               " << itsNChan << '\n'
+     << "  direction count:     " << itsDirections.size() << '\n'
      << "  directions:          " << itsDirections << '\n'
      << "  sols per direction:  " << itsSolutionsPerDirection << '\n';
   if (itsSettings.min_vis_ratio != 0.0) {
