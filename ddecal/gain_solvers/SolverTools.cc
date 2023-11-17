@@ -5,6 +5,8 @@
 
 #include <cassert>
 
+#include <xsimd/xsimd.hpp>
+
 #include <xtensor/xcomplex.hpp>
 #include <xtensor/xmasked_view.hpp>
 #include <xtensor/xmath.hpp>
@@ -12,7 +14,67 @@
 #include <xtensor/xtensor.hpp>
 #include <xtensor/xview.hpp>
 
+using dp3::base::DPBuffer;
+
+namespace {
+
+/**
+ * XSimd mask generator for distributing 'low' values in a batch.
+ * For example, [ a, b, c, d ] becomes [ a, a, b, b ].
+ */
+struct DuplicateLow {
+  static constexpr unsigned int get(unsigned int i, unsigned int) {
+    return i / 2;
+  }
+};
+
+/**
+ * XSimd mask generator for distributing 'high' values in a batch.
+ * For example, [ a, b, c, d ] becomes [ c, c, d, d ].
+ */
+struct DuplicateHigh {
+  static constexpr unsigned int get(unsigned int i, unsigned int n) {
+    return (i / 2) + (n / 2);
+  }
+};
+
+}  // namespace
+
 namespace dp3::ddecal {
+
+void Weigh(const DPBuffer::DataType& in, DPBuffer::DataType& out,
+           const DPBuffer::WeightsType& weights) {
+  using Batch = xsimd::batch<float>;
+  using BatchMask = xsimd::batch<unsigned int>;
+
+  assert(in.shape() == out.shape() && in.shape() == weights.shape());
+
+  constexpr auto kLowMask =
+      xsimd::make_batch_constant<BatchMask, DuplicateLow>();
+  constexpr auto kHighMask =
+      xsimd::make_batch_constant<BatchMask, DuplicateHigh>();
+
+  // Process two 'data' batches and one 'weights' batch in each iteration.
+  size_t i = 0;
+  const float* const in_data = reinterpret_cast<const float*>(in.data());
+  const float* const weights_data = weights.data();
+  float* const out_data = reinterpret_cast<float*>(out.data());
+  for (; i < (in.size() / Batch::size) * Batch::size; i += Batch::size) {
+    Batch data_0 = Batch::load_aligned(in_data + i * 2);
+    Batch data_1 = Batch::load_aligned(in_data + i * 2 + Batch::size);
+    Batch batch_weights = Batch::load_aligned(weights_data + i);
+    data_0 *= xsimd::swizzle(batch_weights, kLowMask);
+    data_1 *= xsimd::swizzle(batch_weights, kHighMask);
+    data_0.store_aligned(out_data + i * 2);
+    data_1.store_aligned(out_data + i * 2 + Batch::size);
+  }
+
+#pragma GCC unroll 0  // Vectorizing the remaining iterations makes no sense.
+  for (; i < in.size(); ++i) {
+    out_data[i * 2 + 0] = in_data[i * 2 + 0] * weights_data[i];
+    out_data[i * 2 + 1] = in_data[i * 2 + 1] * weights_data[i];
+  }
+}
 
 void AssignAndWeight(
     std::vector<std::unique_ptr<base::DPBuffer>>& unweighted_buffers,
@@ -46,6 +108,7 @@ void AssignAndWeight(
     // integers beforehand and packing integers to booleans afterwards.
     xt::xtensor<int, 2> flags(
         {unweighted_data.shape(0), unweighted_data.shape(1)}, false);
+
     for (std::size_t correlation = 0; correlation < n_correlations;
          ++correlation) {
       flags |= xt::view(buffer_flags, xt::all(), xt::all(), correlation) |
@@ -63,25 +126,24 @@ void AssignAndWeight(
     // Storing the result in an xtensor (and not in an expression) ensures
     // that the square root is evaluated once for each weight.
     const xt::xtensor<float, 3> weights_sqrt = xt::sqrt(weights);
+    weighted_buffer.GetData().resize(unweighted_data.shape());
+    Weigh(unweighted_data, weighted_buffer.GetData(), weights_sqrt);
 
+    const std::complex<float> kZeroVisibility(0.0f, 0.0f);
     // TODO(AST-1278): Use 'const auto' instead of 'auto' for flags_view.
     // Although flags_view can be const, it may result in compiler errors.
     auto flags_view = xt::view(flags, xt::all(), xt::all(), xt::newaxis());
-
-    const std::complex<float> kZeroVisibility(0.0f, 0.0f);
-
-    weighted_buffer.GetData().resize(unweighted_data.shape());
-    weighted_buffer.GetData() = unweighted_data * weights_sqrt;
     xt::masked_view(weighted_buffer.GetData(), flags_view) = kZeroVisibility;
 
     for (const std::string& name : direction_names) {
       if (keep_unweighted_model_data) {
         if (!weighted_buffer.HasData(name)) weighted_buffer.AddData(name);
-        weighted_buffer.GetData(name) =
-            unweighted_buffer.GetData(name) * weights_sqrt;
+        Weigh(unweighted_buffer.GetData(name), weighted_buffer.GetData(name),
+              weights_sqrt);
       } else {
         weighted_buffer.MoveData(unweighted_buffer, name, name);
-        weighted_buffer.GetData(name) *= weights_sqrt;
+        DPBuffer::DataType& direction_buffer = weighted_buffer.GetData(name);
+        Weigh(direction_buffer, direction_buffer, weights_sqrt);
       }
       xt::masked_view(weighted_buffer.GetData(name), flags_view) =
           kZeroVisibility;

@@ -96,6 +96,28 @@ void CheckTensor(const T& tensor,
 
 BOOST_AUTO_TEST_SUITE(solvertools)
 
+// Ensure that 'data_size' also includes odd numbers, so the loop that
+// processes the remaining values also has coverage.
+BOOST_DATA_TEST_CASE(weigh, boost::unit_test::data::make({0, 1, 2, 4, 32, 35}),
+                     data_size) {
+  const std::array<size_t, 3> shape{1, 1, size_t(data_size)};
+
+  DPBuffer::DataType in(shape);
+  DPBuffer::WeightsType weights(shape);
+  for (int i = 0; i < data_size; ++i) {
+    in(0, 0, i) = std::complex<float>(2 + i, -i);
+    weights(0, 0, i) = -5.0f + i;
+  }
+
+  DPBuffer::DataType out(shape);
+
+  dp3::ddecal::Weigh(in, out, weights);
+
+  const DPBuffer::DataType expected_out = in * weights;
+
+  BOOST_CHECK(xt::allclose(out, expected_out));
+}
+
 BOOST_DATA_TEST_CASE_F(AssignAndWeightFixture<1>,
                        assign_and_weight_move_or_keep_data,
                        boost::unit_test::data::make({false, true}),

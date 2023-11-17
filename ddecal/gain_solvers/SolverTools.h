@@ -12,6 +12,25 @@
 namespace dp3::ddecal {
 
 /**
+ * Weighs input data by multiplying it with weight values.
+ * All arguments must have the same shape.
+ *
+ * This function is a manually simdized version of
+ * xt::noalias(out) = in * weights;
+ * (xt::noalias avoids an intermediate buffer for the result.)
+ *
+ * On an Intel Xeon E5-2660, this function is ~3 x faster than
+ * xt::noalias(out) = in * weights;
+ * when keep_unweighted_model_data == false in AssignAndWeight.
+ *
+ * @param in Input data buffer.
+ * @param out Output data buffer. May be equal to 'in'.
+ * @param weights Weights buffer.
+ */
+void Weigh(const base::DPBuffer::DataType& in, base::DPBuffer::DataType& out,
+           const base::DPBuffer::WeightsType& weights);
+
+/**
  * This function takes (unweighted) data and model data, as well as a
  * weights array, weights these and writes the result.
  *
