@@ -13,9 +13,13 @@ for py_version in 310 39 38 37 36; do
     sed -i "s=\(master_wheel\)[0-9]*=\1${py_version}=" docker/py310_wheel.docker
     grep wheel3 docker/py310_wheel.docker
 
-    #docker build -t dp3-py${py_version} -f docker/py310_wheel.docker .
-    #dockerid=$(docker create dp3-py${py_version})
-    #docker cp $dockerid:/output/ output-${py_version}
-    #docker rm ${dockerid}
+    ## Build docker image from docker-file. The current wheel is created there
+    #docker build -t dp3-py${py_version}-$USER -f docker/py310_wheel.docker .
+    ## Create a docker container from that image, and extract the wheel
+    #containerid=$(docker create dp3-py${py_version}-$USER)
+    #echo "Docker container ID is: $containerid"
+    #docker cp $containerid:/output/ output-${py_version}  # Copies whole dir
+    #docker rm ${containerid}
+    #docker image rm dp3-py${py_version}-$USER
     popd
 done

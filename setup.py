@@ -111,7 +111,7 @@ class CMakeBuild(build_ext):
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="DP3",
-    version="6.0.0",
+    version="6.0.1",
     author="Astron",
     author_email="dijkema@astron.nl",
     description="DP3",
@@ -124,7 +124,14 @@ setup(
         (
             "../../DP3.libs/aoflagger/strategies",
             glob("/usr/local/share/aoflagger/strategies/*.lua"),
-        )
+        ),
+        # Also include the DP3 executable (renamed). Using it requires setting LD_LIBRARY_PATH and LD_PRELOAD,
+        # for example: LD_LIBRARY_PATH=~/.local/lib/python3.9/site-packages/DP3.libs \
+        # LD_PRELOAD=/path/to/lib/libpython3.9.so __DP3_from_pip__
+        (
+            "bin",
+            ["/dp3/build/temp.linux-x86_64-cpython-39/dp3/__DP3_from_pip__"],
+        ),
     ],
     url="https://dp3.readthedocs.io/",
     classifiers=[
