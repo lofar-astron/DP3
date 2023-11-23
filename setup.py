@@ -130,7 +130,7 @@ setup(
         # LD_PRELOAD=/path/to/lib/libpython3.9.so __DP3_from_pip__
         (
             "bin",
-            ["/dp3/build/temp.linux-x86_64-cpython-39/dp3/__DP3_from_pip__"],
+            ["build/__DP3_from_pip__"],
         ),
     ],
     url="https://dp3.readthedocs.io/",
