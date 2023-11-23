@@ -191,6 +191,52 @@ build-package-2204:
     - if: '$CI_COMMIT_TAG'
     - if: '$UPLOAD_PACKAGE'
 
+.build-wheel:
+  stage: build
+  needs: []
+  image: docker:20.10
+  services:
+    - docker:20.10-dind
+  tags:
+    - das6
+  before_script:
+    - apk add bash
+  script:
+    - cd docker
+    - USER=root ./make_wheels.sh $PYTHON_VERSION
+  artifacts:
+    paths:
+    - output-*/*
+  rules:
+    - <<: *if_astron_repo
+  when: manual
+  allow_failure: true
+
+build-wheel-36:
+  extends: .build-wheel
+  variables:
+    PYTHON_VERSION: 36
+
+build-wheel-37:
+  extends: .build-wheel
+  variables:
+    PYTHON_VERSION: 37
+
+build-wheel-38:
+  extends: .build-wheel
+  variables:
+    PYTHON_VERSION: 38
+
+build-wheel-39:
+  extends: .build-wheel
+  variables:
+    PYTHON_VERSION: 39
+
+build-wheel-310:
+  extends: .build-wheel
+  variables:
+    PYTHON_VERSION: 310
+
 linting-2204:
   stage: linting
   extends: [".failable",".needs-base-2204"]
@@ -359,6 +405,35 @@ deploy-package-2204:
       when: never
     - if: '$UPLOAD_PACKAGE'
 
+.deploy-wheel:
+  stage: publish
+  image: python:latest
+  script:
+    - pip install twine
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi output-*/*.whl
+  when: manual
+  allow_failure: true
+
+deploy-wheel-36:
+  extends: .deploy-wheel
+  needs: ["build-wheel-36"]
+
+deploy-wheel-37:
+  extends: .deploy-wheel
+  needs: ["build-wheel-37"]
+
+deploy-wheel-38:
+  extends: .deploy-wheel
+  needs: ["build-wheel-38"]
+
+deploy-wheel-39:
+  extends: .deploy-wheel
+  needs: ["build-wheel-39"]
+
+deploy-wheel-310:
+  extends: .deploy-wheel
+  needs: ["build-wheel-310"]
+
 pages-2204:
   stage: pages
   needs: ["versioning","build-debug-2204","unit-test-2204","integration-test-2204"]
@@ -385,6 +460,5 @@ pages-2204:
       coverage_report:
         coverage_format: cobertura
         path: public/build/reports/code-coverage.xml
-
   rules:
     - <<: *if_not_astron_repo
