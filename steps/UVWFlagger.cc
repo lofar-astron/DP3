@@ -145,6 +145,7 @@ bool UVWFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   // Input uvw coordinates are only needed if no new phase center is used.
   const double* uvwPtr = nullptr;
   if (itsCenter.empty()) {
+    assert(buffer->GetUvw().size() != 0);
     uvwPtr = buffer->GetUvw().data();
   }
   bool* flagPtr = buffer->GetFlags().data();
