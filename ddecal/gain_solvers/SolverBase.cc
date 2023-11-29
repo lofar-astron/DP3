@@ -131,8 +131,9 @@ void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
       for (; i < (solution_size / kBatchSize) * kBatchSize; i += kBatchSize) {
         const BatchComplex solution_batch =
             BatchComplex::load_unaligned(&solution[i]);
+        // next_solution should be aligned, but load_aligned does not work
         BatchComplex next_solution_batch =
-            BatchComplex::load_aligned(&next_solution[i]);
+            BatchComplex::load_unaligned(&next_solution[i]);
 
         const xsimd::batch<double> phase_from = xsimd::arg(solution_batch);
         xsimd::batch<double> distance =
@@ -142,7 +143,7 @@ void SolverBase::Step(const std::vector<std::vector<DComplex>>& solutions,
 
         next_solution_batch =
             xsimd::polar(one, phase_from + step_size_ * distance);
-        next_solution_batch.store_aligned(&next_solution[i]);
+        next_solution_batch.store_unaligned(&next_solution[i]);
       }
 
       for (; i < solution_size; ++i) {
