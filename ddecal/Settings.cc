@@ -134,26 +134,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       use_sagecal_predict(GetBool("sagecalpredict", false)),
 
       directions(GetStringVector("directions")),
-      n_solutions_per_direction(
-          GetSizeTVector("solutions_per_direction",
-                         std::vector<size_t>(directions.size(), 1u))),
-      source_db(GetString("sourcedb", "")) {
-  if (n_solutions_per_direction.size() > directions.size()) {
-    throw std::runtime_error(
-        "The size of ddecal.solutions_per_direction should be less or equal "
-        "than the number of directions.");
-  }
-
-  if (std::find(n_solutions_per_direction.begin(),
-                n_solutions_per_direction.end(),
-                0) != n_solutions_per_direction.end()) {
-    throw std::runtime_error(
-        "All entries in ddecal.solutions_per_direction should be > 0.");
-  }
-
-  // After construction, the parset object will become invalid at some point.
-  parset = nullptr;
-}
+      source_db(GetString("sourcedb", "")) {}
 
 bool Settings::GetBool(const std::string& key, bool default_value) const {
   return parset->getBool(name + key, default_value);
