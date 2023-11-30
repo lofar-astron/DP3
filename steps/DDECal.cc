@@ -88,7 +88,26 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
         "parset or your sourcedb");
   }
 
-  assert(itsSolutionsPerDirection.size() == itsDirections.size());
+  if (parset.isDefined(prefix + "solutions_per_direction")) {
+    itsSolutionsPerDirection =
+        parset.getUint64Vector(prefix + "solutions_per_direction");
+  }
+
+  if (itsSolutionsPerDirection.size() > itsDirections.size()) {
+    throw std::runtime_error(
+        "The size of ddecal.solutions_per_direction should be less or equal "
+        "than the number of directions.");
+  }
+
+  // Pad itsSolutionsPerDirection with 1s
+  itsSolutionsPerDirection.resize(itsDirections.size(), 1);
+
+  if (std::find(itsSolutionsPerDirection.begin(),
+                itsSolutionsPerDirection.end(),
+                0) != itsSolutionsPerDirection.end()) {
+    throw std::runtime_error(
+        "All entries in ddecal.solutions_per_direction should be > 0.");
+  }
 
   const size_t max_n_solutions_per_direction = *std::max_element(
       itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end());
@@ -97,7 +116,9 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
     if (itsRequestedSolInt % val) {
       throw std::runtime_error(
           "Values in ddecal.solutions_per_direction should be integer divisors "
-          "of solint");
+          "of solint (" +
+          std::to_string(itsRequestedSolInt) + "), " + std::to_string(val) +
+          " is not.");
     }
   }
 
@@ -121,7 +142,6 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
   for (const std::string& col : itsSettings.model_data_columns) {
     itsDirections.emplace_back(1, col);
     itsDirectionNames.emplace_back(prefix + col);
-    itsSolutionsPerDirection.emplace_back(1);
     itsSteps.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
     setModelNextSteps(*itsSteps.back(), col, parset, prefix);
   }
@@ -138,8 +158,6 @@ void DDECal::initializeModelReuse() {
       name = name.substr(period_position + 1);
     }
     itsDirections.emplace_back(1, name);
-
-    itsSolutionsPerDirection.emplace_back(1);
 
     // Add a null step for this direction, so there is still an entry in
     // itsSteps for each direction.
@@ -170,7 +188,6 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
 
     itsDirections.emplace_back(1, dir_name);
     itsDirectionNames.emplace_back(prefix + dir_name);
-    itsSolutionsPerDirection.emplace_back(1);
 
     itsSteps.push_back(std::make_shared<IDGPredict>(
         parset, prefix, readers, std::vector<Facet>{facets[i]}));
@@ -183,8 +200,6 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
   std::vector<std::vector<std::string>> directions =
       base::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
 
-  auto n_solutions_iterator = itsSettings.n_solutions_per_direction.begin();
-
   for (std::vector<std::string>& direction : directions) {
     if (itsSettings.use_sagecal_predict) {
       itsSteps.push_back(
@@ -195,13 +210,6 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
     setModelNextSteps(*itsSteps.back(), direction.front(), parset, prefix);
     itsDirectionNames.push_back(prefix + direction.front());
     itsDirections.push_back(std::move(direction));
-
-    if (n_solutions_iterator != itsSettings.n_solutions_per_direction.end()) {
-      itsSolutionsPerDirection.emplace_back(*n_solutions_iterator);
-      ++n_solutions_iterator;
-    } else {
-      itsSolutionsPerDirection.emplace_back(1);
-    }
   }
 }
 

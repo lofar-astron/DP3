@@ -150,7 +150,6 @@ struct Settings {
   const bool use_sagecal_predict;
 
   const std::vector<std::string> directions;
-  std::vector<size_t> n_solutions_per_direction;
   const std::string source_db;
 };
 

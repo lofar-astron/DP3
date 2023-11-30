@@ -742,7 +742,7 @@ def test_dd_solution_intervals(solutions_per_direction):
         # mismatch errors. Therefore check if the output contains the exception.
         if solutions_per_direction == [5, 5, 5]:
             if (
-                not "\nstd exception detected: Values in ddecal.solutions_per_direction should be integer divisors of solint\n"
+                not "\nstd exception detected: Values in ddecal.solutions_per_direction should be integer divisors of solint"
                 in e.output.decode()
             ):
                 raise e
@@ -1144,6 +1144,9 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
             "ddecal2.idg.images=[foursources-model.fits]",
             "ddecal2.modeldatacolumns=[MODEL_DATA]",
             "ddecal2.reusemodel=[ddecal1.center]",
+            "ddecal2.solutions_per_direction=[1,2,4,4,4,1,4,2]",
+            "ddecal2.solint=4",
             "ddecal2.h5parm=ddecal2.h5parm",
+            "ddecal2.solveralgorithm=directioniterative",
         ]
     )
