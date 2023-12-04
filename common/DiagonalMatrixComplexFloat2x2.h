@@ -44,13 +44,11 @@ class DiagonalMatrixComplexFloat2x2 {
   }
 
   /// Converting constructor using a scalar matrix.
-  [[nodiscard]] /* implicit */ DiagonalMatrixComplexFloat2x2(
-      Scalar::DiagonalMatrixComplexFloat2x2 scalar)
+  DiagonalMatrixComplexFloat2x2(Scalar::DiagonalMatrixComplexFloat2x2 scalar)
       : scalar_{scalar} {}
 
   /// Converting constructor using an AVX  matrix.
-  [[nodiscard]] /* implicit */ DiagonalMatrixComplexFloat2x2(
-      Avx256::DiagonalMatrixComplexFloat2x2 avx)
+  DiagonalMatrixComplexFloat2x2(Avx256::DiagonalMatrixComplexFloat2x2 avx)
       : avx_{avx} {}
 
   template <class Function, class... Args>
@@ -65,11 +63,8 @@ class DiagonalMatrixComplexFloat2x2 {
   }
 
  public:
-  [[nodiscard]] [[gnu::target(
-      "default")]] explicit DiagonalMatrixComplexFloat2x2(const std::
-                                                              complex<double>
-                                                                  matrix
-                                                                      [2]) noexcept
+  [[gnu::target("default")]] explicit DiagonalMatrixComplexFloat2x2(
+      const std::complex<double> matrix[2]) noexcept
       : scalar_{matrix} {}
 
  private:

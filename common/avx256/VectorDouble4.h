@@ -27,26 +27,26 @@ namespace aocommon::Avx256 {
 
 class VectorDouble4 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorDouble4() noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorDouble4() noexcept
       : data_{_mm256_setzero_pd()} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] [[gnu::target(
+  [[gnu::target("avx2,fma")]] [[gnu::target(
       "avx2,fma")]] /* implicit */ VectorDouble4(__m256d data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorDouble4(
-      double value) noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorDouble4(double value) noexcept
       : data_{_mm256_set1_pd(value)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorDouble4(
-      double a, double b, double c, double d) noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorDouble4(double a, double b,
+                                                     double c,
+                                                     double d) noexcept
       : data_{_mm256_setr_pd(a, b, c, d)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorDouble4(
+  [[gnu::target("avx2,fma")]] explicit VectorDouble4(
       const double vector[4]) noexcept
       : data_{_mm256_loadu_pd(vector)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorDouble4(
+  [[gnu::target("avx2,fma")]] explicit VectorDouble4(
       const float vector[4]) noexcept
       : data_(_mm256_cvtps_pd(_mm_loadu_ps(std::addressof(vector[0])))) {}
 

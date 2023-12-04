@@ -31,18 +31,16 @@ namespace aocommon::Avx256 {
 
 class VectorComplexFloat2 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexFloat2() noexcept =
-      default;
+  [[gnu::target("avx2,fma")]] VectorComplexFloat2() noexcept = default;
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorComplexFloat2(
-      VectorFloat4 data) noexcept
+  [[gnu::target("avx2,fma")]] VectorComplexFloat2(VectorFloat4 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexFloat2(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexFloat2(
       std::complex<float> a, std::complex<float> b) noexcept
       : data_{VectorFloat4{a.real(), a.imag(), b.real(), b.imag()}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexFloat2(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexFloat2(
       const std::complex<float> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
@@ -60,8 +58,7 @@ class VectorComplexFloat2 {
     return data_.Value();
   }
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexFloat2 Conjugate()
-      const noexcept {
+  [[gnu::target("avx2,fma")]] VectorComplexFloat2 Conjugate() const noexcept {
     // Xor-ing a float with  0.0 will not change the value.
     // Xor-ing a float with -0.0 will change the sign of the value.
     __m128 mask = _mm_setr_ps(0.0, -0.0, 0.0, -0.0);

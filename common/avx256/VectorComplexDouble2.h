@@ -31,25 +31,23 @@ namespace aocommon::Avx256 {
 
 class VectorComplexDouble2 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexDouble2() noexcept =
-      default;
+  [[gnu::target("avx2,fma")]] VectorComplexDouble2() noexcept = default;
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorComplexDouble2(
-      VectorDouble4 data) noexcept
+  [[gnu::target("avx2,fma")]] VectorComplexDouble2(VectorDouble4 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
       std::complex<double> a, std::complex<double> b) noexcept
       : data_{VectorDouble4{a.real(), a.imag(), b.real(), b.imag()}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
       const std::complex<float> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
       : data_{VectorDouble4{
             reinterpret_cast<const float*>(std::addressof(vector[0]))}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexDouble2(
       const std::complex<double> vector[2]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)

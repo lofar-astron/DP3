@@ -31,27 +31,26 @@ namespace aocommon::Avx256 {
 
 class VectorComplexFloat4 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexFloat4() noexcept
+  [[gnu::target("avx2,fma")]] VectorComplexFloat4() noexcept
       : data_{_mm256_setzero_ps()} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorComplexFloat4(
-      VectorFloat8 data) noexcept
+  [[gnu::target("avx2,fma")]] VectorComplexFloat4(VectorFloat8 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexFloat4(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexFloat4(
       std::complex<float> a, std::complex<float> b, std::complex<float> c,
       std::complex<float> d) noexcept
       : data_{VectorFloat8{a.real(), a.imag(), b.real(), b.imag(), c.real(),
                            c.imag(), d.real(), d.imag()}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexFloat4(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexFloat4(
       const std::complex<float> vector[4]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
       : data_{VectorFloat8{
             reinterpret_cast<const float*>(std::addressof(vector[0]))}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorComplexFloat4(
+  [[gnu::target("avx2,fma")]] explicit VectorComplexFloat4(
       const std::complex<double> vector[4]) noexcept
       // reinterpret_cast explicitly allowed per [complex.numbers.general]/4.
       // (http://www.eelis.net/c++draft/complex.numbers#general-4)
