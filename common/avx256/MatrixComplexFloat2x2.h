@@ -35,35 +35,33 @@ class MatrixComplexDouble2x2;
 
 class MatrixComplexFloat2x2 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2() noexcept =
-      default;
+  [[gnu::target("avx2,fma")]] MatrixComplexFloat2x2() noexcept = default;
 
-  [[nodiscard]] [[gnu::target(
-      "avx2,fma")]] /* implicit */ MatrixComplexFloat2x2(VectorComplexFloat4
-                                                             data) noexcept
+  [[gnu::target("avx2,fma")]] /* implicit */ MatrixComplexFloat2x2(
+      VectorComplexFloat4 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       std::complex<float> a, std::complex<float> b, std::complex<float> c,
       std::complex<float> d) noexcept
       : data_{a, b, c, d} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const std::complex<float> matrix[4]) noexcept
       : data_(matrix) {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const std::complex<double> matrix[4]) noexcept
       : data_(matrix) {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const aocommon::MC2x2F& matrix) noexcept
       : data_(matrix.Data()) {}
 
   // Supplied as a const ref argument implemented in
   // common/avx256/MatrixComplexDouble2x2.h. This avoids circular dependencies
   // in the headers.
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const MatrixComplexDouble2x2& matrix) noexcept;
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<float> operator[](

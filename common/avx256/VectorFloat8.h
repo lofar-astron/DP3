@@ -28,27 +28,25 @@ namespace aocommon::Avx256 {
 
 class VectorFloat8 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat8() noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorFloat8() noexcept
       : data_{_mm256_setzero_ps()} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorFloat8(
-      __m256 data) noexcept
+  [[gnu::target("avx2,fma")]] VectorFloat8(__m256 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat8(
-      float value) noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorFloat8(float value) noexcept
       : data_{_mm256_set1_ps(value)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat8(
-      float a, float b, float c, float d, float e, float f, float g,
-      float h) noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorFloat8(float a, float b, float c,
+                                                    float d, float e, float f,
+                                                    float g, float h) noexcept
       : data_{_mm256_setr_ps(a, b, c, d, e, f, g, h)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat8(
+  [[gnu::target("avx2,fma")]] explicit VectorFloat8(
       const float vector[8]) noexcept
       : data_{_mm256_loadu_ps(vector)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat8(
+  [[gnu::target("avx2,fma")]] explicit VectorFloat8(
       const double vector[8]) noexcept {
     __m256 lo = _mm256_castps128_ps256(
         _mm256_cvtpd_ps(_mm256_loadu_pd(std::addressof(vector[0]))));

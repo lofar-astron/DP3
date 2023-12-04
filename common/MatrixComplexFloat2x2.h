@@ -85,14 +85,11 @@ class MatrixComplexFloat2x2 {
   }
 
   /// Converting constructor using a scalar matrix.
-  [[nodiscard]] /* implicit */ MatrixComplexFloat2x2(
-      Scalar::MatrixComplexFloat2x2 scalar)
+  MatrixComplexFloat2x2(Scalar::MatrixComplexFloat2x2 scalar)
       : scalar_{scalar} {}
 
   /// Converting constructor using an AVX  matrix.
-  [[nodiscard]] /* implicit */ MatrixComplexFloat2x2(
-      Avx256::MatrixComplexFloat2x2 avx)
-      : avx_{avx} {}
+  MatrixComplexFloat2x2(Avx256::MatrixComplexFloat2x2 avx) : avx_{avx} {}
 
   /**
    * Executes a function call on the proper underlying matrix.
@@ -181,29 +178,29 @@ class MatrixComplexFloat2x2 {
   //
   // These need to use FMV to store the data in the proper matrix.
   //
-  [[nodiscard]] [[gnu::target("default")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("default")]] explicit MatrixComplexFloat2x2(
       std::complex<double> a, std::complex<double> b, std::complex<double> c,
       std::complex<double> d) noexcept
       : scalar_{a, b, c, d} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       std::complex<double> a, std::complex<double> b, std::complex<double> c,
       std::complex<double> d) noexcept
       : avx_{a, b, c, d} {}
 
-  [[nodiscard]] [[gnu::target("default")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("default")]] explicit MatrixComplexFloat2x2(
       const std::complex<float> matrix[4]) noexcept
       : scalar_{matrix} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const std::complex<float> matrix[4]) noexcept
       : avx_{matrix} {}
 
-  [[nodiscard]] [[gnu::target("default")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("default")]] explicit MatrixComplexFloat2x2(
       const std::complex<double> matrix[4]) noexcept
       : scalar_{matrix} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexFloat2x2(
       const std::complex<double> matrix[4]) noexcept
       : avx_{matrix} {}
 

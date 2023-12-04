@@ -293,7 +293,9 @@ void ApplyBeam::applyBeam(
           beamValues[nCh * st + ch] = point_response->Response(
               mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
           if (invert) {
-            beamValues[nCh * st + ch].Invert();
+            // Terminate if the matrix is not invertible.
+            [[maybe_unused]] bool status = beamValues[nCh * st + ch].Invert();
+            assert(status);
           }
         }
         break;
@@ -376,7 +378,10 @@ void ApplyBeam::applyBeam(
             beam_values[n_channels * st + ch] = point_response->Response(
                 mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
             if (invert) {
-              beam_values[n_channels * st + ch].Invert();
+              // Terminate if the matrix is not invertible.
+              [[maybe_unused]] bool status =
+                  beam_values[n_channels * st + ch].Invert();
+              assert(status);
             }
           }
           break;

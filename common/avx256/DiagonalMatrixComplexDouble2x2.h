@@ -31,20 +31,15 @@ namespace aocommon::Avx256 {
 
 class DiagonalMatrixComplexDouble2x2 {
  public:
-  [[nodiscard]] [[gnu::target(
-      "avx2,fma")]] DiagonalMatrixComplexDouble2x2() noexcept = default;
+  [[gnu::target("avx2,fma")]] DiagonalMatrixComplexDouble2x2() noexcept =
+      default;
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */
-  DiagonalMatrixComplexDouble2x2(VectorComplexDouble2 data) noexcept
+  [[gnu::target("avx2,fma")]] DiagonalMatrixComplexDouble2x2(
+      VectorComplexDouble2 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target(
-      "avx2,fma")]] explicit DiagonalMatrixComplexDouble2x2(const std::
-                                                                complex<double>
-                                                                    a,
-                                                            const std::complex<
-                                                                double>
-                                                                b) noexcept
+  [[gnu::target("avx2,fma")]] explicit DiagonalMatrixComplexDouble2x2(
+      const std::complex<double> a, const std::complex<double> b) noexcept
       : data_{a, b} {}
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] VectorComplexDouble2 Data()
@@ -52,11 +47,8 @@ class DiagonalMatrixComplexDouble2x2 {
     return data_;
   }
 
-  [[nodiscard]] [[gnu::target(
-      "avx2,fma")]] explicit DiagonalMatrixComplexDouble2x2(const std::
-                                                                complex<double>
-                                                                    matrix
-                                                                        [2]) noexcept
+  [[gnu::target("avx2,fma")]] explicit DiagonalMatrixComplexDouble2x2(
+      const std::complex<double> matrix[2]) noexcept
       : data_{VectorComplexDouble2{std::addressof(matrix[0])}} {}
 
   [[nodiscard]] [[gnu::target("avx2,fma")]] std::complex<double> operator[](

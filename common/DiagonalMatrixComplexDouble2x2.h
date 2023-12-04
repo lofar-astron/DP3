@@ -46,13 +46,11 @@ class DiagonalMatrixComplexDouble2x2 {
   }
 
   /// Converting constructor using a scalar matrix.
-  [[nodiscard]] /* implicit */ DiagonalMatrixComplexDouble2x2(
-      Scalar::DiagonalMatrixComplexDouble2x2 scalar)
+  DiagonalMatrixComplexDouble2x2(Scalar::DiagonalMatrixComplexDouble2x2 scalar)
       : scalar_{scalar} {}
 
   /// Converting constructor using an AVX  matrix.
-  [[nodiscard]] /* implicit */ DiagonalMatrixComplexDouble2x2(
-      Avx256::DiagonalMatrixComplexDouble2x2 avx)
+  DiagonalMatrixComplexDouble2x2(Avx256::DiagonalMatrixComplexDouble2x2 avx)
       : avx_{avx} {}
 
   template <class Function, class... Args>
@@ -67,11 +65,8 @@ class DiagonalMatrixComplexDouble2x2 {
   }
 
  public:
-  [[nodiscard]] [[gnu::target(
-      "default")]] explicit DiagonalMatrixComplexDouble2x2(const std::
-                                                               complex<double>
-                                                                   matrix
-                                                                       [2]) noexcept
+  [[gnu::target("default")]] explicit DiagonalMatrixComplexDouble2x2(
+      const std::complex<double> matrix[2]) noexcept
       : scalar_{matrix} {}
 
   //

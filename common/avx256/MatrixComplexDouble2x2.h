@@ -36,24 +36,23 @@ namespace aocommon::Avx256 {
 
 class MatrixComplexDouble2x2 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2() noexcept =
-      default;
+  [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2() noexcept = default;
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */
-  MatrixComplexDouble2x2(std::array<VectorComplexDouble2, 2> data) noexcept
+  [[gnu::target("avx2,fma")]] MatrixComplexDouble2x2(
+      std::array<VectorComplexDouble2, 2> data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       std::complex<double> a, std::complex<double> b, std::complex<double> c,
       std::complex<double> d) noexcept
       : data_{{VectorComplexDouble2{a, b}, VectorComplexDouble2{c, d}}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       const std::complex<float> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       MatrixComplexFloat2x2 matrix) noexcept {
     __m256 tmp = static_cast<__m256>(matrix);
 
@@ -63,12 +62,12 @@ class MatrixComplexDouble2x2 {
     data_[1] = VectorDouble4{_mm256_cvtps_pd(hi)};
   }
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       const std::complex<double> matrix[4]) noexcept
       : data_{{VectorComplexDouble2{std::addressof(matrix[0])},
                VectorComplexDouble2{std::addressof(matrix[2])}}} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
+  [[gnu::target("avx2,fma")]] explicit MatrixComplexDouble2x2(
       const aocommon::MC2x2& matrix) noexcept
       : MatrixComplexDouble2x2(matrix.Data()) {}
 
@@ -408,8 +407,8 @@ Diagonal(MatrixComplexDouble2x2 matrix) noexcept {
   return matrix.Diagonal();
 }
 
-[[nodiscard]] [[gnu::target("avx2,fma")]] inline MatrixComplexFloat2x2::
-    MatrixComplexFloat2x2(const MatrixComplexDouble2x2& matrix) noexcept {
+[[gnu::target("avx2,fma")]] inline MatrixComplexFloat2x2::MatrixComplexFloat2x2(
+    const MatrixComplexDouble2x2& matrix) noexcept {
   __m256 lo = _mm256_castps128_ps256(
       _mm256_cvtpd_ps(static_cast<__m256d>(matrix.Data()[0])));
   __m128 hi = _mm256_cvtpd_ps(static_cast<__m256d>(matrix.Data()[1]));

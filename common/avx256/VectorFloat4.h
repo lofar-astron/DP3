@@ -31,22 +31,20 @@ namespace aocommon::Avx256 {
 
 class VectorFloat4 {
  public:
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4() noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorFloat4() noexcept
       : data_{_mm_setzero_ps()} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] /* implicit */ VectorFloat4(
-      __m128 data) noexcept
+  [[gnu::target("avx2,fma")]] VectorFloat4(__m128 data) noexcept
       : data_{data} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4(
-      float value) noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorFloat4(float value) noexcept
       : data_{_mm_set1_ps(value)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4(
-      float a, float b, float c, float d) noexcept
+  [[gnu::target("avx2,fma")]] explicit VectorFloat4(float a, float b, float c,
+                                                    float d) noexcept
       : data_{_mm_setr_ps(a, b, c, d)} {}
 
-  [[nodiscard]] [[gnu::target("avx2,fma")]] explicit VectorFloat4(
+  [[gnu::target("avx2,fma")]] explicit VectorFloat4(
       const float vector[4]) noexcept
       : data_{_mm_loadu_ps(vector)} {}
 
