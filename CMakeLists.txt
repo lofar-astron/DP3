@@ -454,6 +454,7 @@ endif()
 add_library(
   DP3_OBJ OBJECT
   antennaflagger/Flagger.cc
+  base/AartfaacSubtableWriter.cc
   base/Apply.cc
   base/BaselineSelection.cc
   base/BDABuffer.cc
@@ -691,6 +692,7 @@ if(BUILD_TESTING)
   set(TEST_FILENAMES
       antennaflagger/test/unit/tFlagger.cc
       base/test/runtests.cc
+      base/test/unit/tAartfaacSubtableWriter.cc
       base/test/unit/tBaselineSelection.cc
       base/test/unit/tBDABuffer.cc
       base/test/unit/tDP3.cc
