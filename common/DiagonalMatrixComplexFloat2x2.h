@@ -5,7 +5,9 @@
 #define AOCOMMON_DIAGONAL_MATRIX_COMPLEX_FLOAT_2X2_H
 
 #include "common/scalar/DiagonalMatrixComplexFloat2x2.h"
+#ifdef __AVX2__
 #include "common/avx256/DiagonalMatrixComplexFloat2x2.h"
+#endif
 #include "common/MatrixComplexFloat2x2.h"
 
 #include <functional>
