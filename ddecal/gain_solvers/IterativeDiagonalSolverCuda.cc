@@ -322,6 +322,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
     std::vector<std::vector<std::complex<double>>>& solutions, double time,
     std::ostream* stat_stream) {
   PrepareConstraints();
+  context_->setCurrent();
 
   const bool phase_only = GetPhaseOnly();
   const double step_size = GetStepSize();
@@ -374,7 +375,6 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
       const SolveData::ChannelBlockData& channel_block_data =
           data.ChannelBlock(ch_block);
       const int buffer_id = ch_block % 2;
-
       // Copy input data for first channel block
       if (ch_block == 0) {
         CopyHostToHost(ch_block, iteration == 0, data, solutions[ch_block],
