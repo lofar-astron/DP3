@@ -496,6 +496,7 @@ add_library(
   steps/Filter.cc
   steps/GainCal.cc
   steps/H5ParmPredict.cc
+  steps/IDGImager.cc
   steps/IDGPredict.cc
   steps/InputStep.cc
   steps/Interpolate.cc
@@ -763,6 +764,7 @@ if(BUILD_TESTING)
       steps/test/unit/tFilter.cc
       steps/test/unit/tGainCal.cc
       steps/test/unit/tH5ParmPredict.cc
+      steps/test/unit/tIDGImager.cc
       steps/test/unit/tInputStep.cc
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMadFlagger.cc

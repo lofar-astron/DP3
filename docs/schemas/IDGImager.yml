@@ -1,0 +1,32 @@
+description: >- 
+  The IDGImager step it is an experimental step to produce snapshots images of an AARTFAAC observation at each time step.
+  It leverages the Image Domain Gridder library (https://git.astron.nl/RD/idg).
+
+inputs:
+  image_size:
+    default: 1024
+    type: integer
+    doc: Linear resolution of the images to produce `.` It is assumed to have a equal number of pixels in ra and dec `.`
+  image_name:
+    default: image_t%t.fits
+    type: string
+    doc: Image name format`.` The %t will be replaced with the time sample id`.`
+  dl:
+    default: 0.0
+    type: double
+    doc: Offset in l of the phase center `.`
+  dm:
+    default: 0.0
+    type: double
+    doc: Offset in m of the phase center `.`
+  scale:
+    default: -1.0
+    type: double
+    doc: Scale in degrees of the pixel `.` If -1 is provided it will choose a suitable scale to fit the whole sky `.`
+  proxy_type:
+    default: CPU_OPTIMIZED
+    type: enum
+    symbols: CPU_OPTIMIZED, CUDA_GENERIC, CPU_REFERENCE, HYBRID
+    doc: >-
+      Type of algorithm to do the gridding with IDG. The options are  `CPU_OPTIMIZED`, `CUDA_GENERIC`, `CPU_REFERENCE` or 
+      `HYBRID`. Note that `CUDA_GENERIC` and `HYBRID` have to make use of a CUDA compatible GPU.
