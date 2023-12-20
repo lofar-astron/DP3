@@ -10,6 +10,7 @@ add_python_tests(
   tDemix
   tGainCal
   tGainCalH5Parm
+  tIDGImager
   tMsIn
   tMsOut
   tMultiApplyCal

@@ -32,6 +32,7 @@
 #include "../steps/GainCal.h"
 #include "../steps/H5ParmPredict.h"
 #include "../steps/IDGPredict.h"
+#include "../steps/IDGImager.h"
 #include "../steps/Interpolate.h"
 #include "../steps/MadFlagger.h"
 #include "../steps/MSBDAWriter.h"
@@ -192,6 +193,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::Predict>(parset, prefix, inputType);
   } else if (type == "idgpredict") {
     step = std::make_shared<steps::IDGPredict>(parset, prefix);
+  } else if (type == "idgimager") {
+    step = std::make_shared<steps::IDGImager>(parset, prefix);
   } else if (type == "upsample") {
     step = std::make_shared<steps::Upsample>(parset, prefix);
   } else if (type == "interpolate") {
