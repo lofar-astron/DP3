@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(frequency_and_bandwidth_from_mode_number) {
 BOOST_AUTO_TEST_CASE(antenna_type_from_number) {
   BOOST_CHECK_EQUAL(RcuMode::FromNumber(1).AntennaType(), "LBA");
   BOOST_CHECK_EQUAL(RcuMode::FromNumber(7).AntennaType(), "HBA");
-  BOOST_CHECK_EQUAL(RcuMode::FromNumber(10).AntennaType(), "?");
+  BOOST_CHECK_THROW(RcuMode::FromNumber(10).AntennaType(), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(string_from_code) {

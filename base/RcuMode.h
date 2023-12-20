@@ -24,7 +24,7 @@ namespace dp3::base {
 class RcuMode {
  public:
   enum Mode {
-    Unused = 0,         // 0 = Unused
+    Unused = 0,         // 0 = Unused - Mode set when RCUs are disabled
     LBAOuter10_90 = 1,  // 1 = LBA_OUTER, 10-90 MHz Analog filter
     LBAOuter30_90 = 2,  // Mode 2 = LBA_OUTER, 30-90 MHz Analog filter
     LBAInner10_90 = 3,  // Mode 3 = LBA_INNER, 10-90 MHz Analog filter
@@ -32,6 +32,7 @@ class RcuMode {
     HBA110_190 = 5,     // Mode 5 = HBA, 110-190MHz Analog filter
     HBA170_230 = 6,     // Mode 6 = HBA, 170-230MHz Analog filter
     HBA210_270 = 7      // Mode 7 = HBA, 210-270MHz Analog filter
+    // The last mode should be HBA210_270
   } mode;
 
   RcuMode(const Mode& m) : mode(m){};
@@ -81,8 +82,12 @@ class RcuMode {
   }
   bool operator==(const Mode& _mode) const { return _mode == mode; }
 
-  static RcuMode FromNumber(const int& modeNumber) {
-    return {static_cast<Mode>(modeNumber)};
+  static RcuMode FromNumber(const int& mode_number) {
+    if (mode_number >= Mode::Unused && mode_number <= Mode::HBA210_270) {
+      return {static_cast<Mode>(mode_number)};
+    } else {
+      throw std::runtime_error("invalid mode " + std::to_string(mode_number));
+    }
   }
 
   double Bandwidth() const {
