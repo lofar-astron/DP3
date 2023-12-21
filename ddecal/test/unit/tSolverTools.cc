@@ -113,9 +113,14 @@ BOOST_DATA_TEST_CASE(weigh, boost::unit_test::data::make({0, 1, 2, 4, 32, 35}),
 
   dp3::ddecal::Weigh(in, out, weights);
 
-  const DPBuffer::DataType expected_out = in * weights;
-
-  BOOST_CHECK(xt::allclose(out, expected_out));
+  if (data_size == 0) {
+    // When the output is empty, the undefined behavior sanitizer triggers on
+    // the xt::allclose() below -> Only check if output is empty in that case.
+    BOOST_CHECK(out.size() == 0);
+  } else {
+    const DPBuffer::DataType expected_out = in * weights;
+    BOOST_CHECK(xt::allclose(out, expected_out));
+  }
 }
 
 BOOST_DATA_TEST_CASE_F(AssignAndWeightFixture<1>,
