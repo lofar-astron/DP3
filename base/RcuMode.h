@@ -13,8 +13,8 @@
 /// A reference for this modes can be found in
 /// https://science.astron.nl/telescopes/lofar/lofar-system-overview/technical-specification/frequency-subband-selection-and-rfi/.
 
-#ifndef DP3_BASE_RCU_MODE_H
-#define DP3_BASE_RCU_MODE_H
+#ifndef DP3_BASE_RCU_MODE_H_
+#define DP3_BASE_RCU_MODE_H_
 
 #include <string>
 #include <stdexcept>

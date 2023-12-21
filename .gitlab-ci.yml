@@ -122,6 +122,7 @@ build-no-idg-2204:
     - rm -r /usr/lib/cmake/*idg*
     - rm -r /usr/lib/cmake/*IDGAPITargets*
     - rm -r /usr/lib/*idg*
+    - rm -rf /usr/include/idg-*
   script:
     - mkdir build
     - cd build
