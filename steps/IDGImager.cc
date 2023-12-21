@@ -4,14 +4,12 @@
 #include "IDGImager.h"
 
 #include <iostream>
-
 #include <sstream>
-#include <base/FlagCounter.h>
-#include <base/IDGConfiguration.h>
 
 #ifdef HAVE_IDG
 #include <idg-api.h>
 #endif
+
 #include <xtensor/xcomplex.hpp>
 #include <xtensor/xindex_view.hpp>
 #include <xtensor/xio.hpp>
@@ -21,6 +19,11 @@
 #include <aocommon/staticfor.h>
 #include <aocommon/fits/fitswriter.h>
 #include <casacore/casa/BasicSL/Constants.h>
+
+#include <base/FlagCounter.h>
+#ifdef HAVE_IDG
+#include <base/IDGConfiguration.h>
+#endif
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

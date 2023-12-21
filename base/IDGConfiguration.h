@@ -1,8 +1,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef IDG_CONFIGURATION_H
-#define IDG_CONFIGURATION_H
+#ifndef DP3_BASE_IDG_CONFIGURATION_H_
+#define DP3_BASE_IDG_CONFIGURATION_H_
 
 #include <idg-api.h>
 
