@@ -278,7 +278,7 @@ linting-2204:
     - cd build
     - mkdir coverage-unit
     # Collect coverage in json, xml and html formats.
-    - gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json run-unit.json --xml coverage.xml --html-details coverage-unit/coverage.html
+    - gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '_deps/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json run-unit.json --xml coverage.xml --html-details coverage-unit/coverage.html
     # Read json coverage and output in text format.
     - gcovr --add-tracefile run-unit.json
     - tar cfz coverage-unit.tar.gz coverage-unit/
