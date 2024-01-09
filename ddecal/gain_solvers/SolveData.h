@@ -35,6 +35,10 @@ class SolveData {
       n_solutions_.resize(n_directions);
       solution_map_.resize({n_directions, n_visibilities});
     }
+    void ResizeWeights(size_t n_visibilities) {
+      constexpr size_t kNCorrelations = 4;
+      weights_.resize({n_visibilities, kNCorrelations});
+    }
     size_t NDirections() const { return model_data_.shape(0); }
     size_t NVisibilities() const { return data_.size(); }
     /***
@@ -65,6 +69,7 @@ class SolveData {
 
     const uint32_t* SolutionMapData() const { return solution_map_.data(); }
 
+    const float& Weight(size_t index) const { return weights_(index, 0); }
     const aocommon::MC2x2F& Visibility(size_t index) const {
       return data_[index];
     }
@@ -92,6 +97,9 @@ class SolveData {
     void InitializeSolutionIndices();
 
     std::vector<aocommon::MC2x2F> data_;
+    // weights_(i, pol) contains the weight for data_[i][pol]. The vector will
+    // be left empty when the algorithm does not need the weights.
+    xt::xtensor<float, 2> weights_;
     // model_data_(d, i) is the model data for direction d, element i
     xt::xtensor<aocommon::MC2x2F, 2> model_data_;
     // Element i contains the first and second antenna corresponding with
@@ -139,7 +147,7 @@ class SolveData {
   SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
             size_t n_directions, size_t n_antennas,
             const std::vector<int>& antennas1,
-            const std::vector<int>& antennas2);
+            const std::vector<int>& antennas2, bool with_weights);
 
   size_t NChannelBlocks() const { return channel_blocks_.size(); }
 

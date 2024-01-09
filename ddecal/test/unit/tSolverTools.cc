@@ -77,7 +77,8 @@ class AssignAndWeightFixture {
 
   void DoAssignAndWeight(const bool keep_original_model_data) {
     dp3::ddecal::AssignAndWeight(unweighted_buffers_, kDirectionNames,
-                                 weighted_buffers_, keep_original_model_data);
+                                 weighted_buffers_, keep_original_model_data,
+                                 false);
   }
 
  private:

@@ -417,7 +417,7 @@ void DDECal::show(std::ostream& os) const {
       os << "Model steps for direction " << itsDirections[i][0] << '\n';
       do {
         step->show(os);
-      } while (step = step->getNextStep());
+      } while (nullptr != (step = step->getNextStep()));
     } else {
       os << "Direction " << itsDirections[i][0] << " reuses data from "
          << itsDirectionNames[i] << "";
@@ -596,8 +596,9 @@ void DDECal::doSolve() {
       // The last solution interval can be smaller.
       std::vector<base::DPBuffer> weighted_buffers(itsInputBuffers[i].size());
 
+      const bool linear_mode = false;
       ddecal::AssignAndWeight(itsInputBuffers[i], itsDirectionNames,
-                              weighted_buffers, keep_model_data);
+                              weighted_buffers, keep_model_data, linear_mode);
 
       InitializeSolutions(i);
 

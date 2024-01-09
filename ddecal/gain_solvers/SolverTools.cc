@@ -80,7 +80,7 @@ void AssignAndWeight(
     std::vector<std::unique_ptr<base::DPBuffer>>& unweighted_buffers,
     const std::vector<std::string>& direction_names,
     std::vector<base::DPBuffer>& weighted_buffers,
-    bool keep_unweighted_model_data) {
+    bool keep_unweighted_model_data, bool linear_weighting_mode) {
   const std::size_t n_times = unweighted_buffers.size();
   assert(weighted_buffers.size() >= n_times);
 
@@ -125,25 +125,33 @@ void AssignAndWeight(
     // If the flag is set, set both the data and model data to zero.
     // Storing the result in an xtensor (and not in an expression) ensures
     // that the square root is evaluated once for each weight.
-    const xt::xtensor<float, 3> weights_sqrt = xt::sqrt(weights);
+    xt::xtensor<float, 3> prepared_weights;
     weighted_buffer.GetData().resize(unweighted_data.shape());
-    Weigh(unweighted_data, weighted_buffer.GetData(), weights_sqrt);
+    if (linear_weighting_mode) {
+      prepared_weights = weights;
+      weighted_buffer.GetWeights().resize(unweighted_data.shape());
+      weighted_buffer.GetWeights() = prepared_weights;
+    } else {
+      prepared_weights = xt::sqrt(weights);
+    }
+    Weigh(unweighted_data, weighted_buffer.GetData(), prepared_weights);
 
-    const std::complex<float> kZeroVisibility(0.0f, 0.0f);
     // TODO(AST-1278): Use 'const auto' instead of 'auto' for flags_view.
     // Although flags_view can be const, it may result in compiler errors.
     auto flags_view = xt::view(flags, xt::all(), xt::all(), xt::newaxis());
+
+    constexpr std::complex<float> kZeroVisibility(0.0f, 0.0f);
     xt::masked_view(weighted_buffer.GetData(), flags_view) = kZeroVisibility;
 
     for (const std::string& name : direction_names) {
       if (keep_unweighted_model_data) {
         if (!weighted_buffer.HasData(name)) weighted_buffer.AddData(name);
         Weigh(unweighted_buffer.GetData(name), weighted_buffer.GetData(name),
-              weights_sqrt);
+              prepared_weights);
       } else {
         weighted_buffer.MoveData(unweighted_buffer, name, name);
         DPBuffer::DataType& direction_buffer = weighted_buffer.GetData(name);
-        Weigh(direction_buffer, direction_buffer, weights_sqrt);
+        Weigh(direction_buffer, direction_buffer, prepared_weights);
       }
       xt::masked_view(weighted_buffer.GetData(name), flags_view) =
           kZeroVisibility;

@@ -41,7 +41,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -63,7 +63,7 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -85,7 +85,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -135,7 +135,7 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -157,7 +157,8 @@ inline void TestIterativeDiagonal(SolverTester& solver_tester,
       solver_tester.FillBDAData();
   const SolveData data(solver_buffer, SolverTester::kNChannelBlocks,
                        SolverTester::kNDirections, SolverTester::kNAntennas,
-                       solver_tester.Antennas1(), solver_tester.Antennas2());
+                       solver_tester.Antennas1(), solver_tester.Antennas2(),
+                       false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, solver_tester.GetSolverSolutions(), 0.0, nullptr);
@@ -218,7 +219,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   // The full jones test uses full matrices as solutions and copies the
   // diagonals into the solver solutions from the SolverTester fixture. This
@@ -265,7 +266,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   dp3::ddecal::SolveData data(solver_buffer, kNChannelBlocks, kNDirections,
-                              kNAntennas, Antennas1(), Antennas2());
+                              kNAntennas, Antennas1(), Antennas2(), false);
 
   // The full jones test uses full matrices as solutions and copies the
   // diagonals into the solver solutions from the SolverTester fixture. This
@@ -354,7 +355,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -374,7 +375,7 @@ BOOST_FIXTURE_TEST_CASE(min_iterations, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -396,7 +397,7 @@ BOOST_FIXTURE_TEST_CASE(lbfgs_diagonal, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -419,7 +420,7 @@ BOOST_FIXTURE_TEST_CASE(lbfgs_scalar, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
@@ -444,7 +445,7 @@ BOOST_FIXTURE_TEST_CASE(lbfgs_full_jones, SolverTester,
 
   const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
   const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
-                       Antennas1(), Antennas2());
+                       Antennas1(), Antennas2(), false);
 
   // The full jones test uses full matrices as solutions and copies the
   // diagonals into the solver solutions from the SolverTester fixture. This
