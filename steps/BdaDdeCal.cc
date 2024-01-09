@@ -397,7 +397,7 @@ void BdaDdeCal::SolveCurrentInterval() {
 
   dp3::ddecal::SolveData data(*solver_buffer_, n_channel_blocks,
                               patches_.size(), n_antennas, antennas1_,
-                              antennas2_);
+                              antennas2_, false);
 
   const int current_interval = solutions_.size();
   assert(current_interval == solver_buffer_->GetCurrentInterval());

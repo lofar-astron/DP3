@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(regular) {
   }
 
   dp3::ddecal::AssignAndWeight(unweighted_buffers, {kDirectionName},
-                               weighted_buffers, false);
+                               weighted_buffers, false, false);
 
   const dp3::ddecal::SolveData data(
       weighted_buffers, {kDirectionName}, kNChannelBlocks, kNAntennas,
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
   }
 
   dp3::ddecal::AssignAndWeight(unweighted_buffers, kDirectionNames,
-                               weighted_buffers, false);
+                               weighted_buffers, false, false);
 
   const dp3::ddecal::SolveData data(
       weighted_buffers, kDirectionNames, kNChannelBlocks, kNAntennas,
@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE(bda) {
 
   const dp3::ddecal::SolveData solve_data(solver_buffer, kNChannelBlocks,
                                           kNDirections, kNAntennas, kAntennas1,
-                                          kAntennas2);
+                                          kAntennas2, true);
   BOOST_TEST_REQUIRE(solve_data.NChannelBlocks() == kNChannelBlocks);
 
   for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {

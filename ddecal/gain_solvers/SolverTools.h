@@ -45,12 +45,18 @@ void Weigh(const base::DPBuffer::DataType& in, base::DPBuffer::DataType& out,
  * unweighted_buffers and create new model data buffers in weighted_buffers.
  * If false, avoid creating new model data buffers by moving the model data
  * from unweighted_buffers to weighted_buffers and weighing the data in-place.
+ * @param linear_weighting_mode If true, it has two effects: the data
+ * will be linearly weighted instead of weighting them by the sqrt of the
+ * weights, and the weights are stored in the buffer. Gradient descent and
+ * conjugate gradient-like methods require sqrt weighted data but do not need
+ * the weights, whereas a rank-based approache requires linear weighted data and
+ * needs to know the applied weights.
  */
 void AssignAndWeight(
     std::vector<std::unique_ptr<base::DPBuffer>>& unweighted_buffers,
     const std::vector<std::string>& direction_names,
     std::vector<base::DPBuffer>& weighted_buffers,
-    bool keep_unweighted_model_data);
+    bool keep_unweighted_model_data, bool linear_weighting_mode);
 
 }  // namespace dp3::ddecal
 

@@ -180,7 +180,7 @@ std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
   }
 
   dp3::ddecal::AssignAndWeight(unweighted_buffers, direction_names,
-                               weighted_buffers, false);
+                               weighted_buffers, false, false);
   return weighted_buffers;
 }
 
