@@ -92,7 +92,8 @@ void IterativeDiagonalSolver::PerformIteration(
 
   // Subtract all directions with their current solutions
   for (size_t direction = 0; direction != NDirections(); ++direction)
-    AddOrSubtractDirection<false>(cb_data, v_residual, direction, solutions);
+    DiagonalAddOrSubtractDirection<false>(cb_data, v_residual, direction,
+                                          NSolutions(), solutions);
 
   const std::vector<MC2x2F> v_copy = v_residual;
 
@@ -101,7 +102,8 @@ void IterativeDiagonalSolver::PerformIteration(
     // solutions, because the new solutions have not been constrained yet. Add
     // this direction back before solving
     if (direction != 0) v_residual = v_copy;
-    AddOrSubtractDirection<true>(cb_data, v_residual, direction, solutions);
+    DiagonalAddOrSubtractDirection<true>(cb_data, v_residual, direction,
+                                         NSolutions(), solutions);
 
     SolveDirection(ch_block, cb_data, v_residual, direction, solutions,
                    next_solutions);
@@ -187,37 +189,6 @@ void IterativeDiagonalSolver::SolveDirection(
               double(denominator[index * 2 + pol]);
       }
     }
-  }
-}
-
-template <bool Add>
-void IterativeDiagonalSolver::AddOrSubtractDirection(
-    const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
-    size_t direction, const std::vector<DComplex>& solutions) {
-  const size_t n_visibilities = cb_data.NVisibilities();
-  for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
-    const DComplex* solution_1 =
-        &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
-    const DComplex* solution_2 =
-        &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
-    const Complex solution_1_0(solution_1[0]);
-    const Complex solution_1_1(solution_1[1]);
-    const Complex solution_2_0_conj(std::conj(solution_2[0]));
-    const Complex solution_2_1_conj(std::conj(solution_2[1]));
-
-    MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
-    const MC2x2F contribution(solution_1_0 * model[0] * solution_2_0_conj,
-                              solution_1_0 * model[1] * solution_2_1_conj,
-                              solution_1_1 * model[2] * solution_2_0_conj,
-                              solution_1_1 * model[3] * solution_2_1_conj);
-    if (Add)
-      data += contribution;
-    else
-      data -= contribution;
   }
 }
 

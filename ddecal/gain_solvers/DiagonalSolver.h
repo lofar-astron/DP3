@@ -43,4 +43,4 @@ class DiagonalSolver final : public SolverBase {
 }  // namespace ddecal
 }  // namespace dp3
 
-#endif  // DDECAL_SCALAR_SOLVER_H
+#endif  // DDECAL_DIAGONAL_SOLVER_H

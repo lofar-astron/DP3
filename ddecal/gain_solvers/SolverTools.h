@@ -49,7 +49,7 @@ void Weigh(const base::DPBuffer::DataType& in, base::DPBuffer::DataType& out,
  * will be linearly weighted instead of weighting them by the sqrt of the
  * weights, and the weights are stored in the buffer. Gradient descent and
  * conjugate gradient-like methods require sqrt weighted data but do not need
- * the weights, whereas a rank-based approache requires linear weighted data and
+ * the weights, whereas a rank-based approach requires linear weighted data and
  * needs to know the applied weights.
  */
 void AssignAndWeight(
