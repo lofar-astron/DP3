@@ -27,12 +27,6 @@ class IterativeDiagonalSolver final : public SolverBase {
                         const std::vector<DComplex>& solutions,
                         SolutionTensor& next_solutions);
 
-  template <bool Add>
-  void AddOrSubtractDirection(const SolveData::ChannelBlockData& cb_data,
-                              std::vector<aocommon::MC2x2F>& v_residual,
-                              size_t direction,
-                              const std::vector<DComplex>& solutions);
-
   void SolveDirection(size_t ch_block,
                       const SolveData::ChannelBlockData& cb_data,
                       const std::vector<aocommon::MC2x2F>& v_residual,
