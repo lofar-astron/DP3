@@ -395,9 +395,11 @@ void BdaDdeCal::SolveCurrentInterval() {
   const size_t n_channel_blocks = chan_block_start_freqs_.size() - 1;
   const size_t n_antennas = info().antennaUsed().size();
 
+  const bool linear_mode =
+      settings_.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
   dp3::ddecal::SolveData data(*solver_buffer_, n_channel_blocks,
                               patches_.size(), n_antennas, antennas1_,
-                              antennas2_, false);
+                              antennas2_, linear_mode);
 
   const int current_interval = solutions_.size();
   assert(current_interval == solver_buffer_->GetCurrentInterval());

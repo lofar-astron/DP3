@@ -25,7 +25,9 @@ std::string CreateParsetString(const dp3::common::ParameterSet& parset) {
 
 SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
   const std::string lowercase = boost::to_lower_copy(str);
-  if (lowercase == "directionsolve")
+  if (lowercase == "lowrank")
+    return SolverAlgorithm::kLowRank;
+  else if (lowercase == "directionsolve")
     return SolverAlgorithm::kDirectionSolve;
   else if (lowercase == "directioniterative")
     return SolverAlgorithm::kDirectionIterative;
@@ -41,6 +43,8 @@ SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
 
 std::string ToString(SolverAlgorithm algorithm) {
   switch (algorithm) {
+    case SolverAlgorithm::kLowRank:
+      return "lowrank";
     case SolverAlgorithm::kDirectionSolve:
       return "directionsolve";
     case SolverAlgorithm::kDirectionIterative:
@@ -122,6 +126,12 @@ Settings::Settings(const common::ParameterSet& _parset,
                             : 1),
       use_gpu(GetBool("usegpu", 0)),
       keep_host_buffers(GetBool("keep_host_buffers", 0)),
+      n_lra_iterations((solver_algorithm == SolverAlgorithm::kLowRank)
+                           ? GetUint("lra.iterations", 25)
+                           : 1),
+      n_lra_power_iterations((solver_algorithm == SolverAlgorithm::kLowRank)
+                                 ? GetUint("lra.power_iterations", 10)
+                                 : 1),
       // Column reader settings
       model_data_columns(ReadModelDataColumns()),
       reuse_model_data(GetStringVector("reusemodel")),

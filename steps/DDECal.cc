@@ -596,7 +596,8 @@ void DDECal::doSolve() {
       // The last solution interval can be smaller.
       std::vector<base::DPBuffer> weighted_buffers(itsInputBuffers[i].size());
 
-      const bool linear_mode = false;
+      const bool linear_mode =
+          itsSettings.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
       ddecal::AssignAndWeight(itsInputBuffers[i], itsDirectionNames,
                               weighted_buffers, keep_model_data, linear_mode);
 

@@ -3,6 +3,7 @@
 
 #include "SolverTester.h"
 
+#include "../../gain_solvers/DiagonalLowRankSolver.h"
 #include "../../gain_solvers/DiagonalSolver.h"
 #include "../../gain_solvers/FullJonesSolver.h"
 #include "../../gain_solvers/HybridSolver.h"
@@ -70,6 +71,57 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
 
   CheckScalarResults(1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(diagonal_low_rank_solver, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
+  constexpr size_t kSolveIterations = 100;
+  constexpr size_t kNLraIterations = 25;
+  constexpr size_t kNPowerIterations = 10;
+  dp3::ddecal::DiagonalLowRankSolver solver(kNLraIterations, kNPowerIterations);
+  InitializeSolver(solver);
+  solver.SetMaxIterations(kSolveIterations);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 2u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2(), true);
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckDiagonalResults(1.0E-3);
+  BOOST_CHECK_EQUAL(result.iterations, kSolveIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(diagonal_low_rank_full_step_solver, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
+  constexpr size_t kSolveIterations = 25;
+  constexpr size_t kNLraIterations = 25;
+  constexpr size_t kNPowerIterations = 10;
+  dp3::ddecal::DiagonalLowRankSolver solver(kNLraIterations, kNPowerIterations);
+  InitializeSolver(solver);
+  solver.SetStepSize(1.0);
+  solver.SetMaxIterations(kSolveIterations);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 2u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNDirections, kNAntennas,
+                       Antennas1(), Antennas2(), true);
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckDiagonalResults(1.0E-3);
+  BOOST_CHECK_EQUAL(result.iterations, kSolveIterations + 1);
 }
 
 BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
