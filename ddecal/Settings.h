@@ -21,6 +21,7 @@ class ParameterSet;
 namespace ddecal {
 
 enum class SolverAlgorithm {
+  kLowRank,
   kDirectionSolve,
   kDirectionIterative,
   kHybrid,
@@ -140,6 +141,10 @@ struct Settings {
   // keep host buffers between solve iteration
   // for the GPU solver
   const bool keep_host_buffers;
+  // Number of iterations for the low-rank approximation (LRA) method
+  const size_t n_lra_iterations;
+  // In each lra iteration, the number of power-method iterations to take
+  const size_t n_lra_power_iterations;
 
   const std::vector<std::string> model_data_columns;
   const std::vector<std::string> reuse_model_data;

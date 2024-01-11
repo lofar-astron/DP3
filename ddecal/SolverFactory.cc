@@ -7,6 +7,7 @@
 
 #include "Settings.h"
 
+#include "gain_solvers/DiagonalLowRankSolver.h"
 #include "gain_solvers/DiagonalSolver.h"
 #include "gain_solvers/FullJonesSolver.h"
 #include "gain_solvers/LBFGSSolver.h"
@@ -41,6 +42,9 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
       return std::make_unique<IterativeScalarSolver>();
     case SolverAlgorithm::kDirectionSolve:
       return std::make_unique<ScalarSolver>();
+    case SolverAlgorithm::kLowRank:
+      throw std::runtime_error(
+          "Low-rank algorithm only supports diagonal solving");
     case SolverAlgorithm::kLBFGS:
 #ifdef HAVE_LIBDIRAC
       return std::make_unique<LBFGSSolver>(
@@ -82,6 +86,9 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
       return std::make_unique<IterativeDiagonalSolver>();
     case SolverAlgorithm::kDirectionSolve:
       return std::make_unique<DiagonalSolver>();
+    case SolverAlgorithm::kLowRank:
+      return std::make_unique<DiagonalLowRankSolver>(
+          settings.n_lra_iterations, settings.n_lra_power_iterations);
     case SolverAlgorithm::kLBFGS:
 #ifdef HAVE_LIBDIRAC
       return std::make_unique<LBFGSSolver>(
@@ -105,6 +112,9 @@ std::unique_ptr<SolverBase> CreateFullJonesSolver(SolverAlgorithm algorithm,
       return std::make_unique<IterativeFullJonesSolver>();
     case SolverAlgorithm::kDirectionSolve:
       return std::make_unique<FullJonesSolver>();
+    case SolverAlgorithm::kLowRank:
+      throw std::runtime_error(
+          "Low-rank algorithm only supports diagonal solving");
     case SolverAlgorithm::kLBFGS:
 #ifdef HAVE_LIBDIRAC
       return std::make_unique<LBFGSSolver>(
