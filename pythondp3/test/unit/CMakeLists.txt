@@ -6,6 +6,12 @@
 if("${CMAKE_CXX_FLAGS}" MATCHES "-fsanitize=address")
   message(STATUS "The Python tests do not work with address sanitizer enabled.")
 else()
-  add_python_tests(tPyDpBuffer tPyDpInfo tPyFields tPyFitters tPyStep
-                   tQueueOutput)
+  add_python_tests(
+    tPyDpBuffer
+    tPyDpInfo
+    tPyFields
+    tPyFitters
+    tPyParameterSet
+    tPyStep
+    tQueueOutput)
 endif()
