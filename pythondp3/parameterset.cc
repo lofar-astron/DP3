@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "../common/ParameterSet.h"
 
 using dp3::common::ParameterSet;
+using dp3::common::ParameterValue;
 
 namespace py = pybind11;
 
@@ -57,7 +59,20 @@ PYBIND11_MODULE(parameterset, m) {
                ParameterSet::getString)
       .def("get_string", (std::string(ParameterSet::*)(
                              const std::string &, const std::string &) const) &
-                             ParameterSet::getString);
+                             ParameterSet::getString)
+      .def("__contains__", &ParameterSet::isDefined)
+      .def("__getitem__", &ParameterSet::get);
+
+  py::class_<ParameterValue,
+             std::shared_ptr<ParameterValue>  // holder type
+             >(m, "ParameterValue")
+      .def("__str__", &ParameterValue::getString)
+      .def("__int__", &ParameterValue::getInt)
+      .def("__float__", &ParameterValue::getDouble)
+      .def("__bool__", &ParameterValue::getBool)
+      .def("__iter__", [](const ParameterValue &v) {
+        return py::cast(v.getVector()).attr("__iter__")();
+      });
 }
 
 }  // namespace pythondp3
