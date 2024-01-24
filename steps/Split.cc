@@ -42,7 +42,7 @@ Split::Split(const common::ParameterSet& parset, const string& prefix)
           "items (expected " +
           std::to_string(replace_values.front().size()) + ", got " +
           std::to_string(replace_values.back().size()) + " for step " +
-          replace_parameter);
+          replace_parameter + ")");
     }
   }
 
