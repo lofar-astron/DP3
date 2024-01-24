@@ -5,3 +5,4 @@
 # See .readthedocs.yaml in the root of this repository.
 jsonschema2rst
 myst-parser
+sphinx-rtd-theme
