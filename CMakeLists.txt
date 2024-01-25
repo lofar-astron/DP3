@@ -889,7 +889,7 @@ if(BUILD_TESTING)
       solvers/hybrid
       solvers/min_iterations)
 
-  if(LIBDIRAC_FOUND)
+  if(LIBDIRAC_FOUND AND NOT HAVE_CUDA)
     list(APPEND SLOW_TESTS solvers/lbfgs_scalar solvers/lbfgs_diagonal
          solvers/lbfgs_full_jones)
   endif()
