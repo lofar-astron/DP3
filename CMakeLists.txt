@@ -21,6 +21,13 @@ else()
   message(FATAL_ERROR "Failed to parse DP3_VERSION='${DP3_VERSION}'")
 endif()
 
+# Get the latest abbreviated commit hash of the working branch
+execute_process(
+  COMMAND git describe
+  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+  OUTPUT_VARIABLE DP3_GIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 option(BUILD_WITH_CUDA "Build with CUDA support" FALSE)
 if(BUILD_WITH_CUDA)
   project(

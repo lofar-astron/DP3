@@ -11,11 +11,19 @@
 
 #define DP3_INSTALL_PATH     "@CMAKE_INSTALL_PREFIX@"
 
+#define DP3_COMMIT_HASH       "@DP3_GIT_HASH@"
+
 #include <string>
 
 class DP3Version {
  public:
-  static std::string AsString() { return "DP3 " + std::string(DP3_VERSION); }
+  static std::string AsString(bool add_commit_hash = false) {
+    std::string version = "DP3 " + std::string(DP3_VERSION);
+    std::string commit_hash = std::string(DP3_COMMIT_HASH).empty()
+                                  ? "Commit hash undefined"
+                                  : std::string(DP3_COMMIT_HASH);
+    return add_commit_hash ? version + "\n" + commit_hash : version;
+  }
 };
 
 #endif
