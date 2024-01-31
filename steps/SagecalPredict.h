@@ -129,6 +129,29 @@ class SagecalPredict : public ModelDataStep {
   };
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
+  // Singleton to open and read H5 file only by one thread
+  // But H5Parm itself is assumed thread-safe
+  class H5ParmSingle {
+   private:
+    explicit H5ParmSingle() : is_opened_(false) {}
+    std::mutex mutex_;
+    bool is_opened_;
+
+   public:
+    H5ParmSingle(H5ParmSingle const&) = delete;
+    H5ParmSingle& operator=(H5ParmSingle const&) = delete;
+    ~H5ParmSingle(){};
+
+    static H5ParmSingle* get_instance() {
+      static H5ParmSingle instance;
+      return &instance;
+    }
+
+    schaapcommon::h5parm::H5Parm& open_file(const std::string& h5_name);
+
+    schaapcommon::h5parm::H5Parm h5_parm_;
+  };
+
  public:
   SagecalPredict(const common::ParameterSet&, const std::string& prefix,
                  MsType input_type = MsType::kRegular);
@@ -203,6 +226,7 @@ class SagecalPredict : public ModelDataStep {
 
   // H5 solutions handling
   schaapcommon::h5parm::H5Parm h5_parm_;
+  H5ParmSingle* h5_parm_reference_{nullptr};
   std::string solset_name_;
   std::string soltab_name_;
   bool invert_{false};

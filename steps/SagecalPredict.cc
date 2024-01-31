@@ -315,6 +315,20 @@ SagecalPredict::BeamDataSingle::~BeamDataSingle() {
 }
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
+schaapcommon::h5parm::H5Parm& SagecalPredict::H5ParmSingle::open_file(
+    const std::string& h5_name) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (is_opened_) {
+    return h5_parm_;
+  }
+
+  h5_parm_ = H5Parm(h5_name, false);
+
+  is_opened_ = true;
+
+  return h5_parm_;
+}
+
 void SagecalPredict::SetOperation(const std::string& operation) {
   if (operation == "replace") {
     operation_ = Operation::kReplace;
@@ -434,7 +448,9 @@ void SagecalPredict::init(
   }
   std::vector<std::string> h5directions;
   if (parm_on_disk_) {
-    h5_parm_ = H5Parm(h5_name_, false);
+    // Create a singleton to only open and read the H5 file once
+    h5_parm_reference_ = SagecalPredict::H5ParmSingle::get_instance();
+    h5_parm_ = h5_parm_reference_->open_file(h5_name_);
     // Check to see soltab is initialized at the constructor
     if (soltab_name_.empty()) {
       soltab_name_ = parset.getString(prefix + "applycal.correction");
