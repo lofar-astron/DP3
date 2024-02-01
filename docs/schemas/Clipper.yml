@@ -1,0 +1,23 @@
+description: >-
+  Simulates visibilities from a given skymodel and uses the result to clip bright sources from the data`.`
+  Because this steps performs prediction, options of the Predict step are also valid`.`
+inputs:
+  step_name:
+    type: string
+    doc: unique name for the step `.`
+    default: clipper
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'clipper' `.`
+    default: clipper
+  amplmax:
+    type: float
+    doc: >-
+      Sets the clip level for the data`.`
+    default: 50.0 for LBA, 5.0 for HBA
+  timestep:
+    type: int
+    doc: >-
+      Perform the visibility prediction only once every `timestep` steps`.`
+      The next `timestep-1` will use these visibilities until the next prediction`.`
+    default: 5

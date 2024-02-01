@@ -498,6 +498,7 @@ add_library(
   steps/BDAAverager.cc
   steps/BDAExpander.cc
   steps/BdaGroupPredict.cc
+  steps/Clipper.cc
   steps/Counter.cc
   steps/Demixer.cc
   steps/DummyStep.cc
