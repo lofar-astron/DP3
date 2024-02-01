@@ -6,6 +6,7 @@ add_python_tests(
   tApplyCal2
   tBdaExpander
   tBdaPredict
+  tClipper
   tColumnReader
   tDemix
   tGainCal
