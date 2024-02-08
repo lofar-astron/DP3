@@ -17,6 +17,8 @@
 #include <xtensor/xview.hpp>
 
 #include <aocommon/logger.h>
+#include <aocommon/matrix2x2.h>
+#include <aocommon/matrix2x2diag.h>
 
 #include <schaapcommon/facets/facet.h>
 
@@ -27,8 +29,6 @@
 #include "../base/SourceDBUtil.h"
 
 #include "../common/StreamUtil.h"
-#include "common/DiagonalMatrixComplexDouble2x2.h"
-#include "common/MatrixComplexDouble2x2.h"
 
 #include "../ddecal/SolverFactory.h"
 #ifdef ENABLE_SCREENFITTER
@@ -878,34 +878,29 @@ void DDECal::finish() {
 }
 
 namespace {
-aocommon::MatrixComplexDouble2x2 ApplyFullJonesSolution(
+aocommon::MC2x2 ApplyFullJonesSolution(
     const std::vector<std::complex<double>>& solutions, size_t solution_index1,
     size_t solution_index2, const std::complex<float>* model_data) {
-  const aocommon::MatrixComplexDouble2x2 solution1(
-      &solutions[solution_index1 * 4]);
-  const aocommon::MatrixComplexDouble2x2 solution2(
-      &solutions[solution_index2 * 4]);
-  return solution1 * aocommon::MatrixComplexDouble2x2(model_data) *
-         solution2.HermTranspose();
+  const aocommon::MC2x2 solution1(&solutions[solution_index1 * 4]);
+  const aocommon::MC2x2 solution2(&solutions[solution_index2 * 4]);
+  return solution1.Multiply(aocommon::MC2x2(model_data))
+      .MultiplyHerm(solution2);
 }
 
-aocommon::MatrixComplexDouble2x2 ApplyDiagonalSolution(
+aocommon::MC2x2 ApplyDiagonalSolution(
     const std::vector<std::complex<double>>& solutions, size_t solution_index1,
     size_t solution_index2, const std::complex<float>* model_data) {
-  const aocommon::DiagonalMatrixComplexDouble2x2 solution1(
-      &solutions[solution_index1 * 2]);
-  const aocommon::DiagonalMatrixComplexDouble2x2 solution2(
-      &solutions[solution_index2 * 2]);
-  return solution1 * aocommon::MatrixComplexDouble2x2(model_data) *
-         solution2.HermTranspose();
+  const aocommon::MC2x2Diag solution1(&solutions[solution_index1 * 2]);
+  const aocommon::MC2x2Diag solution2(&solutions[solution_index2 * 2]);
+  return solution1 * aocommon::MC2x2(model_data) * solution2.HermTranspose();
 }
 
-aocommon::MatrixComplexDouble2x2 ApplyScalarSolution(
+aocommon::MC2x2 ApplyScalarSolution(
     const std::vector<std::complex<double>>& solutions, size_t solution_index1,
     size_t solution_index2, const std::complex<float>* model_data) {
   const std::complex<double> solution_factor =
       solutions[solution_index1] * std::conj(solutions[solution_index2]);
-  return aocommon::MatrixComplexDouble2x2(model_data) * solution_factor;
+  return aocommon::MC2x2(model_data) * solution_factor;
 }
 }  // namespace
 
@@ -916,8 +911,7 @@ void DDECal::ApplySolution(
   const size_t antenna2 = getInfo().getAnt2()[baseline];
   const size_t n_directions = itsDirectionNames.size();
 
-  aocommon::MatrixComplexDouble2x2 sum_over_directions =
-      aocommon::MatrixComplexDouble2x2::Zero();
+  aocommon::MC2x2 sum_over_directions = aocommon::MC2x2::Zero();
 
   for (size_t direction = 0; direction != n_directions; ++direction) {
     const size_t solution_index1 = antenna1 * n_directions + direction;
@@ -926,7 +920,7 @@ void DDECal::ApplySolution(
     std::complex<float>* model_data =
         &buffer.GetData(itsDirectionNames[direction])(baseline, channel, 0);
 
-    aocommon::MatrixComplexDouble2x2 corrected_model_data;
+    aocommon::MC2x2 corrected_model_data;
     if (itsSolver->NSolutionPolarizations() == 4) {
       corrected_model_data = ApplyFullJonesSolution(
           solutions, solution_index1, solution_index2, model_data);
