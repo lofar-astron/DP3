@@ -1,0 +1,35 @@
+# Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+.dind:
+  services:
+    - docker:20.10-dind
+
+include: .gitlab-ci.common.yml
+
+pages-2204:
+  stage: pages
+  needs: ["versioning","build-debug-2204","unit-test-2204","integration-test-2204"]
+  image: $BASE_IMAGE_2204
+  before_script:
+    - apt-get update
+    - apt-get -y install curl
+  script:
+    - mkdir -p .public/build/reports
+    - cd .public
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
+    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
+    - cp ../build/unittests.xml build/reports/unit-tests.xml
+    # Create and upload GitLab badges
+    - chmod -R 700 ../ci
+    - python3 ../ci/.produce-ci-metrics.py build/reports > ci-metrics.json
+    - sh ../ci/ci-badges-func.sh
+    - cd ..
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: public/build/reports/code-coverage.xml
