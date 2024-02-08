@@ -7,14 +7,13 @@
 #include <iostream>
 #include <numeric>
 
+#include <aocommon/matrix2x2.h>
 #include <aocommon/staticfor.h>
 #include <aocommon/xt/span.h>
 
 #include <xsimd/xsimd.hpp>
 
 #include <xtensor/xview.hpp>
-
-#include "common/MatrixComplexDouble2x2.h"
 
 namespace {
 template <typename T>
@@ -255,11 +254,10 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
         }
       } else {
         assert(n_solution_pols == 4);
-        const aocommon::MatrixComplexDouble2x2 s(&solutions[chBlock][i]);
-        aocommon::MatrixComplexDouble2x2 sInv(s);
+        const aocommon::MC2x2 s(&solutions[chBlock][i]);
+        aocommon::MC2x2 sInv(s);
         if (sInv.Invert()) {
-          aocommon::MatrixComplexDouble2x2 ns(
-              &new_solutions_view(chBlock, i / 4, 0));
+          aocommon::MC2x2 ns(&new_solutions_view(chBlock, i / 4, 0));
           ns -= s;
           ns *= sInv;
           const double sumabs = std::abs(ns[0]) + std::abs(ns[1]) +
