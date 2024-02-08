@@ -1,4 +1,4 @@
-# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 workflow:
@@ -17,11 +17,6 @@ variables:
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
-
-.astron_repo: &if_astron_repo
-  if: '$CI_SERVER_HOST == "git.astron.nl"'
-.not_astron_repo: &if_not_astron_repo
-  if: '$CI_SERVER_HOST != "git.astron.nl"'
 
 stages:
   - versioning
@@ -48,12 +43,10 @@ versioning:
       dotenv: versions.env
 
 .prepare:
-  extends: .failable
+  extends: [".failable",".dind"]
   stage: prepare
   needs: ["versioning"]
   image: docker:20.10
-  services:
-    - docker:20.10-dind
   before_script:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
@@ -191,52 +184,6 @@ build-package-2204:
     - if: '$CI_COMMIT_BRANCH == "master"'
     - if: '$CI_COMMIT_TAG'
     - if: '$UPLOAD_PACKAGE'
-
-.build-wheel:
-  stage: build
-  needs: []
-  image: docker:20.10
-  services:
-    - docker:20.10-dind
-  tags:
-    - das6
-  before_script:
-    - apk add bash
-  script:
-    - cd docker
-    - USER=root ./make_wheels.sh $PYTHON_VERSION
-  artifacts:
-    paths:
-    - output-*/*
-  rules:
-    - <<: *if_astron_repo
-  when: manual
-  allow_failure: true
-
-build-wheel-36:
-  extends: .build-wheel
-  variables:
-    PYTHON_VERSION: 36
-
-build-wheel-37:
-  extends: .build-wheel
-  variables:
-    PYTHON_VERSION: 37
-
-build-wheel-38:
-  extends: .build-wheel
-  variables:
-    PYTHON_VERSION: 38
-
-build-wheel-39:
-  extends: .build-wheel
-  variables:
-    PYTHON_VERSION: 39
-
-build-wheel-310:
-  extends: .build-wheel
-  variables:
-    PYTHON_VERSION: 310
 
 linting-2204:
   stage: linting
@@ -405,61 +352,3 @@ deploy-package-2204:
     - if: '$CI_COMMIT_BRANCH != "master"'
       when: never
     - if: '$UPLOAD_PACKAGE'
-
-.deploy-wheel:
-  stage: publish
-  image: python:latest
-  script:
-    - pip install twine
-    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi output-*/*.whl
-  when: manual
-  allow_failure: true
-
-deploy-wheel-36:
-  extends: .deploy-wheel
-  needs: ["build-wheel-36"]
-
-deploy-wheel-37:
-  extends: .deploy-wheel
-  needs: ["build-wheel-37"]
-
-deploy-wheel-38:
-  extends: .deploy-wheel
-  needs: ["build-wheel-38"]
-
-deploy-wheel-39:
-  extends: .deploy-wheel
-  needs: ["build-wheel-39"]
-
-deploy-wheel-310:
-  extends: .deploy-wheel
-  needs: ["build-wheel-310"]
-
-pages-2204:
-  stage: pages
-  needs: ["versioning","build-debug-2204","unit-test-2204","integration-test-2204"]
-  image: $BASE_IMAGE_2204
-  before_script:
-    - apt-get update
-    - apt-get -y install curl
-  script:
-    - mkdir -p .public/build/reports
-    - cd .public
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
-    - cp ../build/unittests.xml build/reports/unit-tests.xml
-    # Create and upload GitLab badges
-    - chmod -R 700 ../ci
-    - python3 ../ci/.produce-ci-metrics.py build/reports > ci-metrics.json
-    - sh ../ci/ci-badges-func.sh
-    - cd ..
-    - mv .public public
-  artifacts:
-    paths:
-      - public
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: public/build/reports/code-coverage.xml
-  rules:
-    - <<: *if_not_astron_repo
