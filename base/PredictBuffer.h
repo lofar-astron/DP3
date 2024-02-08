@@ -11,8 +11,6 @@
 #include <EveryBeam/station.h>
 #include <EveryBeam/telescope/telescope.h>
 
-#include "common/MatrixComplexDouble2x2.h"
-
 namespace dp3 {
 namespace base {
 
@@ -42,8 +40,7 @@ class PredictBuffer {
     full_beam_ = full_beam;
   }
 
-  std::vector<aocommon::MatrixComplexDouble2x2>& GetFullBeamValues(
-      size_t threadIndex) {
+  std::vector<aocommon::MC2x2>& GetFullBeamValues(size_t threadIndex) {
     assert(full_beam_);
     return full_beam_values_[threadIndex];
   }
@@ -54,7 +51,7 @@ class PredictBuffer {
   }
 
  private:
-  std::vector<std::vector<aocommon::MatrixComplexDouble2x2>> full_beam_values_;
+  std::vector<std::vector<aocommon::MC2x2>> full_beam_values_;
   std::vector<std::vector<everybeam::complex_t>> scalar_beam_values_;
   bool full_beam_{false};
 };

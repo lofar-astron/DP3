@@ -15,13 +15,13 @@
 
 #include <EveryBeam/telescope/telescope.h>
 
+#include <aocommon/matrix2x2.h>
 #include <aocommon/barrier.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
 
 #include "../common/ParameterSet.h"
-#include "common/MatrixComplexDouble2x2.h"
 
 namespace dp3 {
 namespace steps {
@@ -78,25 +78,27 @@ class ApplyBeam : public Step {
   bool invert() { return itsInvert; }
 
   template <typename T>
-  static void applyBeam(
-      const base::DPInfo& info, double time, T* data0, float* weight0,
-      const everybeam::vector3r_t& srcdir,
-      const everybeam::telescope::Telescope* telescope,
-      std::vector<aocommon::MatrixComplexDouble2x2>& beamValues, bool invert,
-      everybeam::CorrectionMode mode, bool doUpdateWeights = false,
-      std::mutex* mutex = nullptr);
+  static void applyBeam(const base::DPInfo& info, double time, T* data0,
+                        float* weight0, const everybeam::vector3r_t& srcdir,
+                        const everybeam::telescope::Telescope* telescope,
+                        std::vector<aocommon::MC2x2>& beamValues, bool invert,
+                        everybeam::CorrectionMode mode,
+                        bool doUpdateWeights = false,
+                        std::mutex* mutex = nullptr);
   // This method applies the beam for processing when parallelizing over
   // baselines. Because the beam is a per-antenna effect, this requires
   // synchronisation, which is performed with the provided barrier.
-  static void applyBeam(
-      const base::DPInfo& info, double time, std::complex<double>* data0,
-      float* weight0, const everybeam::vector3r_t& srcdir,
-      const everybeam::telescope::Telescope* telescope,
-      std::vector<aocommon::MatrixComplexDouble2x2>& beam_values,
-      const std::pair<size_t, size_t>& baseline_range,
-      const std::pair<size_t, size_t>& station_range,
-      aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
-      bool do_update_weights = false, std::mutex* mutex = nullptr);
+  static void applyBeam(const base::DPInfo& info, double time,
+                        std::complex<double>* data0, float* weight0,
+                        const everybeam::vector3r_t& srcdir,
+                        const everybeam::telescope::Telescope* telescope,
+                        std::vector<aocommon::MC2x2>& beam_values,
+                        const std::pair<size_t, size_t>& baseline_range,
+                        const std::pair<size_t, size_t>& station_range,
+                        aocommon::Barrier& barrier, bool invert,
+                        everybeam::CorrectionMode mode,
+                        bool do_update_weights = false,
+                        std::mutex* mutex = nullptr);
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
@@ -149,7 +151,7 @@ class ApplyBeam : public Step {
   std::vector<size_t> ant_to_msindex_;
   std::vector<casacore::MeasFrame> itsMeasFrames;
   std::vector<casacore::MDirection::Convert> itsMeasConverters;
-  std::vector<std::vector<aocommon::MatrixComplexDouble2x2>> itsBeamValues;
+  std::vector<std::vector<aocommon::MC2x2>> itsBeamValues;
   ///@}
 
   common::NSTimer itsTimer;

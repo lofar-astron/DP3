@@ -18,33 +18,18 @@
 #include "../common/ParameterValue.h"
 #include "../common/Timer.h"
 
-using dp3::base::DPBuffer;
-using dp3::base::DPInfo;
-
-namespace {
-
 inline bool isfinite(casacore::DComplex val) {
   return casacore::isFinite(val.real()) && casacore::isFinite(val.imag());
 }
 
-inline void CheckBuffer(const DPBuffer& buffer, std::size_t baseline,
-                        std::size_t channel) {
-  assert(baseline < buffer.GetData().shape(0));
-  assert(channel < buffer.GetData().shape(1));
-  assert(4 == buffer.GetData().shape(2));
-
-  assert(buffer.GetFlags().shape(0) == buffer.GetData().shape(0));
-  assert(buffer.GetFlags().shape(1) == buffer.GetData().shape(1));
-}
-
-}  // namespace
+using dp3::base::DPBuffer;
+using dp3::base::DPInfo;
 
 namespace dp3 {
 namespace steps {
 
-ApplyCal::ApplyCal(const common::ParameterSet& parset,
-                   const std::string& prefix, bool substep,
-                   string predictDirection)
+ApplyCal::ApplyCal(const common::ParameterSet& parset, const string& prefix,
+                   bool substep, string predictDirection)
     : is_sub_step_(substep) {
   std::vector<std::string> subStepNames;
   common::ParameterValue namesPar(parset.getString(prefix + "steps", ""));
@@ -109,13 +94,10 @@ void ApplyCal::finish() {
   getNextStep()->finish();
 }
 
-void ApplyCal::ApplyDiag(const aocommon::DiagonalMatrixComplexFloat2x2& gain_a,
-                         const aocommon::DiagonalMatrixComplexFloat2x2& gain_b,
-                         DPBuffer& buffer, unsigned int baseline,
-                         unsigned int channel, bool update_weights,
-                         base::FlagCounter& flag_counter) {
-  CheckBuffer(buffer, baseline, channel);
-
+void ApplyCal::ApplyDiag(const std::complex<float>* gain_a,
+                         const std::complex<float>* gain_b, DPBuffer& buffer,
+                         unsigned int baseline, unsigned int channel,
+                         bool update_weights, base::FlagCounter& flag_counter) {
   // If parameter is NaN or inf, do not apply anything and flag the data
   if (!(isfinite(gain_a[0]) && isfinite(gain_b[0]) && isfinite(gain_a[1]) &&
         isfinite(gain_b[1]))) {
@@ -128,10 +110,10 @@ void ApplyCal::ApplyDiag(const aocommon::DiagonalMatrixComplexFloat2x2& gain_a,
     return;
   }
 
-  aocommon::MatrixComplexFloat2x2 visibilities{
-      &buffer.GetData()(baseline, channel, 0)};
-  visibilities = gain_a * visibilities * gain_b.HermTranspose();
-  visibilities.AssignTo(&buffer.GetData()(baseline, channel, 0));
+  buffer.GetData()(baseline, channel, 0) *= gain_a[0] * std::conj(gain_b[0]);
+  buffer.GetData()(baseline, channel, 1) *= gain_a[0] * std::conj(gain_b[1]);
+  buffer.GetData()(baseline, channel, 2) *= gain_a[1] * std::conj(gain_b[0]);
+  buffer.GetData()(baseline, channel, 3) *= gain_a[1] * std::conj(gain_b[1]);
 
   if (update_weights) {
     DPBuffer::WeightsType& weights = buffer.GetWeights();
@@ -146,15 +128,13 @@ void ApplyCal::ApplyDiag(const aocommon::DiagonalMatrixComplexFloat2x2& gain_a,
   }
 }
 
-void ApplyCal::ApplyScalar(const std::complex<float>& gain_a,
-                           const std::complex<float>& gain_b, DPBuffer& buffer,
+void ApplyCal::ApplyScalar(const std::complex<float>* gain_a,
+                           const std::complex<float>* gain_b, DPBuffer& buffer,
                            unsigned int baseline, unsigned int channel,
                            bool update_weights,
                            base::FlagCounter& flag_counter) {
-  CheckBuffer(buffer, baseline, channel);
-
   // If parameter is NaN or inf, do not apply anything and flag the data
-  if (!(isfinite(gain_a) && isfinite(gain_b))) {
+  if (!(isfinite(gain_a[0]) && isfinite(gain_b[0]))) {
     // Only update flagcounter for first correlation
     if (!buffer.GetFlags()(baseline, channel, 0)) {
       flag_counter.incrChannel(channel);
@@ -164,14 +144,15 @@ void ApplyCal::ApplyScalar(const std::complex<float>& gain_a,
     return;
   }
 
-  aocommon::MatrixComplexFloat2x2 visibilities{
-      &buffer.GetData()(baseline, channel, 0)};
-  visibilities = visibilities * (gain_a * std::conj(gain_b));
-  visibilities.AssignTo(&buffer.GetData()(baseline, channel, 0));
+  const std::complex<float> gain_a_b = gain_a[0] * std::conj(gain_b[0]);
+  buffer.GetData()(baseline, channel, 0) *= gain_a_b;
+  buffer.GetData()(baseline, channel, 1) *= gain_a_b;
+  buffer.GetData()(baseline, channel, 2) *= gain_a_b;
+  buffer.GetData()(baseline, channel, 3) *= gain_a_b;
 
   if (update_weights) {
     DPBuffer::WeightsType& weights = buffer.GetWeights();
-    const float norm_gain_a_b = std::norm(gain_a) * std::norm(gain_b);
+    const float norm_gain_a_b = std::norm(gain_a[0]) * std::norm(gain_b[0]);
     weights(baseline, channel, 0) /= norm_gain_a_b;
     weights(baseline, channel, 1) /= norm_gain_a_b;
     weights(baseline, channel, 2) /= norm_gain_a_b;
@@ -196,12 +177,11 @@ void ApplyCal::invert(std::complex<NumType>* v, NumType sigmaMMSE) {
 template void ApplyCal::invert(std::complex<double>* v, double sigmaMMSE);
 template void ApplyCal::invert(std::complex<float>* v, float sigmaMMSE);
 
-void ApplyCal::ApplyFull(const aocommon::MatrixComplexFloat2x2& gain_a,
-                         const aocommon::MatrixComplexFloat2x2& gain_b,
-                         DPBuffer& buffer, unsigned int baseline,
-                         unsigned int channel, bool update_weights,
-                         base::FlagCounter& flag_counter) {
-  CheckBuffer(buffer, baseline, channel);
+void ApplyCal::ApplyFull(const std::complex<float>* gain_a,
+                         const std::complex<float>* gain_b, DPBuffer& buffer,
+                         unsigned int baseline, unsigned int channel,
+                         bool update_weights, base::FlagCounter& flag_counter) {
+  std::complex<float> gain_a_x_visibility[4];
 
   // If parameter is NaN or inf, do not apply anything and flag the data
   bool anyinfnan = false;
@@ -221,19 +201,33 @@ void ApplyCal::ApplyFull(const aocommon::MatrixComplexFloat2x2& gain_a,
     return;
   }
 
-  aocommon::MatrixComplexFloat2x2 visibilities{
-      &buffer.GetData()(baseline, channel, 0)};
-  visibilities = gain_a * visibilities * gain_b.HermTranspose();
-  visibilities.AssignTo(&buffer.GetData()(baseline, channel, 0));
+  // gain_a_x_visibility = gain_a * visibility
+  for (unsigned int row = 0; row < 2; ++row) {
+    for (unsigned int column = 0; column < 2; ++column) {
+      gain_a_x_visibility[2 * row + column] =
+          gain_a[2 * row + 0] *
+              buffer.GetData()(baseline, channel, 2 * 0 + column) +
+          gain_a[2 * row + 1] *
+              buffer.GetData()(baseline, channel, 2 * 1 + column);
+    }
+  }
+
+  // visibility = gain_a_x_visibility * gain_b^H
+  for (unsigned int row = 0; row < 2; ++row) {
+    for (unsigned int column = 0; column < 2; ++column) {
+      buffer.GetData()(baseline, channel, 2 * row + column) =
+          gain_a_x_visibility[2 * row + 0] * std::conj(gain_b[2 * column + 0]) +
+          gain_a_x_visibility[2 * row + 1] * std::conj(gain_b[2 * column + 1]);
+    }
+  }
 
   if (update_weights) {
     ApplyWeights(gain_a, gain_b, &buffer.GetWeights()(baseline, channel, 0));
   }
 }
 
-void ApplyCal::ApplyWeights(const aocommon::MatrixComplexFloat2x2& gain_a,
-                            const aocommon::MatrixComplexFloat2x2& gain_b,
-                            float* weight) {
+void ApplyCal::ApplyWeights(const std::complex<float>* gain_a,
+                            const std::complex<float>* gain_b, float* weight) {
   float cov[4], normGainA[4], normGainB[4];
   for (unsigned int i = 0; i < 4; ++i) {
     cov[i] = 1. / weight[i];

@@ -504,16 +504,14 @@ void GainCal::applySolution(DPBuffer& buf,
       const std::complex<float>* gain_b = &invsol(freq_cell, ant_b, 0);
       const bool kUpdateWeights = false;
       if (n_corr > 2) {
-        ApplyCal::ApplyFull(aocommon::MatrixComplexFloat2x2{gain_a},
-                            aocommon::MatrixComplexFloat2x2{gain_b}, buf, bl,
-                            chan, kUpdateWeights, itsFlagCounter);
+        ApplyCal::ApplyFull(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
+                            itsFlagCounter);
       } else if (scalarMode(itsMode)) {
-        ApplyCal::ApplyScalar(*gain_a, *gain_b, buf, bl, chan, kUpdateWeights,
+        ApplyCal::ApplyScalar(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
                               itsFlagCounter);
       } else {
-        ApplyCal::ApplyDiag(aocommon::DiagonalMatrixComplexFloat2x2{gain_a},
-                            aocommon::DiagonalMatrixComplexFloat2x2{gain_b},
-                            buf, bl, chan, kUpdateWeights, itsFlagCounter);
+        ApplyCal::ApplyDiag(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
+                            itsFlagCounter);
       }
     }
   }

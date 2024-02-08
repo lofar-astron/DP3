@@ -437,14 +437,11 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
         const std::complex<float>* gain_a = &gains(0, ant_a, time_freq_offset);
         const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
         if (n_corr > 2) {
-          ApplyCal::ApplyFull(aocommon::MatrixComplexFloat2x2{gain_a},
-                              aocommon::MatrixComplexFloat2x2{gain_b}, *buffer,
-                              bl, chan, itsUpdateWeights, itsFlagCounter);
+          ApplyCal::ApplyFull(gain_a, gain_b, *buffer, bl, chan,
+                              itsUpdateWeights, itsFlagCounter);
         } else {
-          ApplyCal::ApplyDiag(aocommon::DiagonalMatrixComplexFloat2x2{gain_a},
-                              aocommon::DiagonalMatrixComplexFloat2x2{gain_b},
-                              *buffer, bl, chan, itsUpdateWeights,
-                              itsFlagCounter);
+          ApplyCal::ApplyDiag(gain_a, gain_b, *buffer, bl, chan,
+                              itsUpdateWeights, itsFlagCounter);
         }
       }
     }
