@@ -1003,9 +1003,15 @@ if(BUILD_TESTING)
           string(REGEX REPLACE ".*${TEST}.py::" "" PYTEST ${PYTEST})
           add_test(
             NAME ${TEST}::${PYTEST}
+            # Without the explicit --rootdir argument, pytest uses
+            # ${CMAKE_SOURCE_DIR} as root directory. pytest >= 8.0 then tries
+            # loading ${CMAKE_SOURCE_DIR}/pythondp3/__init__.py and fails,
+            # since it only works in the the pseudo install directory created
+            # by pythondp3/CMakeLists.txt.
             COMMAND
               python3 -m pytest --exitfirst -v -k ${PYTEST}
               --junitxml=${CMAKE_BINARY_DIR}/pytest_${TEST}_${PYTEST}.xml
+              --rootdir=${CMAKE_CURRENT_SOURCE_DIR}
               ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py)
           set_tests_properties(${TEST}::${PYTEST} PROPERTIES LABELS "${LABELS}")
         endforeach()
@@ -1013,9 +1019,11 @@ if(BUILD_TESTING)
         # Create one ctest for all sub-tests in a python test file.
         add_test(
           NAME ${TEST}
+          # The comment in add_test above explains why --rootdir is needed.
           COMMAND
             python3 -m pytest --exitfirst -v
             --junitxml=${CMAKE_BINARY_DIR}/pytest_${TEST}.xml
+            --rootdir=${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.py)
         set_tests_properties(${TEST} PROPERTIES LABELS "${LABELS}")
       endif()
