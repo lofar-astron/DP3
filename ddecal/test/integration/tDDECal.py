@@ -731,10 +731,12 @@ def test_dd_solution_intervals(solutions_per_direction):
     ]
     try:
         check_output(
-            base_command
-            if solutions_per_direction is None
-            else base_command
-            + [f"ddecal.solutions_per_direction={solutions_per_direction}"],
+            (
+                base_command
+                if solutions_per_direction is None
+                else base_command
+                + [f"ddecal.solutions_per_direction={solutions_per_direction}"]
+            ),
             stderr=STDOUT,
         )
     except CalledProcessError as e:
