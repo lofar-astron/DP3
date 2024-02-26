@@ -1,5 +1,10 @@
 # DP3 Changelog
 
+## Next release
+
+### Improvements
+- DP3 now requires EveryBeam v0.5.4
+
 ## [6.0] - 2023-08-11
 
 ### New features
