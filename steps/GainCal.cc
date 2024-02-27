@@ -21,6 +21,8 @@
 
 #include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>
+#include <aocommon/matrix2x2.h>
+#include <aocommon/matrix2x2diag.h>
 #include <aocommon/recursivefor.h>
 
 #include "../base/SourceDBUtil.h"
@@ -504,14 +506,15 @@ void GainCal::applySolution(DPBuffer& buf,
       const std::complex<float>* gain_b = &invsol(freq_cell, ant_b, 0);
       const bool kUpdateWeights = false;
       if (n_corr > 2) {
-        ApplyCal::ApplyFull(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
-                            itsFlagCounter);
+        ApplyCal::ApplyFull(aocommon::MC2x2F(gain_a), aocommon::MC2x2F(gain_b),
+                            buf, bl, chan, kUpdateWeights, itsFlagCounter);
       } else if (scalarMode(itsMode)) {
-        ApplyCal::ApplyScalar(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
+        ApplyCal::ApplyScalar(*gain_a, *gain_b, buf, bl, chan, kUpdateWeights,
                               itsFlagCounter);
       } else {
-        ApplyCal::ApplyDiag(gain_a, gain_b, buf, bl, chan, kUpdateWeights,
-                            itsFlagCounter);
+        ApplyCal::ApplyDiag(aocommon::MC2x2FDiag(gain_a),
+                            aocommon::MC2x2FDiag(gain_b), buf, bl, chan,
+                            kUpdateWeights, itsFlagCounter);
       }
     }
   }

@@ -453,12 +453,17 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   auto data_buffer = std::make_unique<BDABuffer>(kNRows * kNCorrelations);
   auto model_buffer = std::make_unique<BDABuffer>(kNRows * kNCorrelations);
 
+  std::complex<float> kDataValue_array[4];
+  kDataValue.AssignTo(kDataValue_array);
+  std::complex<float> kModelValue_array[4];
+  kModelValue.AssignTo(kModelValue_array);
+
   double time = kFirstTime;
   for (size_t row = 0; row < kNRows; ++row) {
     data_buffer->AddRow(time, kInterval, kInterval, 0, 1, kNCorrelations,
-                        kDataValue.Data(), nullptr, kWeight.data());
+                        kDataValue_array, nullptr, kWeight.data());
     model_buffer->AddRow(time, kInterval, kInterval, 0, 1, kNCorrelations,
-                         kModelValue.Data(), nullptr, kWeight.data());
+                         kModelValue_array, nullptr, kWeight.data());
     time += kInterval;
   }
 
@@ -485,10 +490,10 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const std::complex<float>* data_scalar = data_out.front()->GetData(2);
   const std::complex<float>* data_uncorrected = data_out.front()->GetData(3);
   for (size_t c = 0; c < kNCorrelations; ++c) {
-    CheckComplex(data_fulljones[c], kFullJonesResult.Data()[c]);
-    CheckComplex(data_diagonal[c], kDiagonalResult.Data()[c]);
+    CheckComplex(data_fulljones[c], kFullJonesResult[c]);
+    CheckComplex(data_diagonal[c], kDiagonalResult[c]);
     CheckComplex(data_scalar[c], kScalarResult[c]);
-    BOOST_CHECK_EQUAL(data_uncorrected[c], kDataValue.Data()[c]);
+    BOOST_CHECK_EQUAL(data_uncorrected[c], kDataValue[c]);
   }
 }
 

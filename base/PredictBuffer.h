@@ -8,6 +8,8 @@
 #include <complex>
 #include <vector>
 
+#include <aocommon/matrix2x2.h>
+
 #include <EveryBeam/station.h>
 #include <EveryBeam/telescope/telescope.h>
 

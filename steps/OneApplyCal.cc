@@ -1,4 +1,4 @@
-// OneApplyCal.cc: DPPP step class to apply a calibration correction to the data
+// OneApplyCal.cc: DP3 step class to apply a calibration correction to the data
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
@@ -16,6 +16,8 @@
 #include "../common/StringTools.h"
 
 #include <aocommon/logger.h>
+#include <aocommon/matrix2x2.h>
+#include <aocommon/matrix2x2diag.h>
 #include <aocommon/staticfor.h>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -437,10 +439,12 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
         const std::complex<float>* gain_a = &gains(0, ant_a, time_freq_offset);
         const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
         if (n_corr > 2) {
-          ApplyCal::ApplyFull(gain_a, gain_b, *buffer, bl, chan,
+          ApplyCal::ApplyFull(aocommon::MC2x2F(gain_a),
+                              aocommon::MC2x2F(gain_b), *buffer, bl, chan,
                               itsUpdateWeights, itsFlagCounter);
         } else {
-          ApplyCal::ApplyDiag(gain_a, gain_b, *buffer, bl, chan,
+          ApplyCal::ApplyDiag(aocommon::MC2x2FDiag(gain_a),
+                              aocommon::MC2x2FDiag(gain_b), *buffer, bl, chan,
                               itsUpdateWeights, itsFlagCounter);
         }
       }

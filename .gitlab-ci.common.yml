@@ -199,11 +199,11 @@ linting-2204:
   image: $BASE_IMAGE_2204
   script:
     - cd build
-    # The is an issue running cmake with existing build artifacts. This may
+    # There is an issue running cmake with existing build artifacts. This may
     # cause the pytest collection to segfault. Therefore clear the old artifacts
     # before re-running cmake.
     - ninja clean
-    - echo configuring with CMake flags $CMAKE_FLAGS and CXX flags $CXX_FLAGS
+    - echo Configuring with CMake flags \"$CMAKE_FLAGS\" and CXX flags \"$CXX_FLAGS\"
     - cmake $CMAKE_FLAGS -DCMAKE_CXX_FLAGS="$CXX_FLAGS" .
     - ninja
     - ctest --output-on-failure -j$(nproc) $CTEST_FLAGS |& tee ctest.out
