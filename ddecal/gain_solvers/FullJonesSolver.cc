@@ -12,8 +12,6 @@
 
 #include "../linear_solvers/QRSolver.h"
 
-#include "common/MatrixComplexDouble2x2.h"
-
 namespace dp3 {
 namespace ddecal {
 
@@ -142,8 +140,6 @@ void FullJonesSolver::PerformIteration(
     size_t ch_block, const SolveData::ChannelBlockData& cb_data,
     std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs,
     const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
-  using aocommon::MC2x2;
-
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     g_times_cs[ant].SetZero();
     vs[ant].SetZero();
@@ -211,13 +207,13 @@ void FullJonesSolver::PerformIteration(
       // precision for the computation below, reduced the performance.
       // -> Keep using double precision until 'solutions' uses single precision.
 
-      using Matrix = aocommon::MatrixComplexDouble2x2;
+      using aocommon::MC2x2;
 
-      const Matrix model_data(cb_data.ModelVisibility(s, vis_index).Data());
-      const Matrix solutions1(&solutions[(antenna1 * NSolutions() + s) * 4]);
-      const Matrix solutions2(&solutions[(antenna2 * NSolutions() + s) * 4]);
-      const Matrix g_times_c2_data = solutions1 * model_data;
-      const Matrix g_times_c1_data = solutions2 * HermTranspose(model_data);
+      const MC2x2 model_data(cb_data.ModelVisibility(s, vis_index));
+      const MC2x2 solutions1(&solutions[(antenna1 * NSolutions() + s) * 4]);
+      const MC2x2 solutions2(&solutions[(antenna2 * NSolutions() + s) * 4]);
+      const MC2x2 g_times_c2_data = solutions1 * model_data;
+      const MC2x2 g_times_c1_data = solutions2.MultiplyHerm(model_data);
 
       for (size_t p = 0; p != 4; ++p) {
         g_times_c2(a2pos + (p / 2), (s * 2) + (p % 2)) = g_times_c2_data[p];

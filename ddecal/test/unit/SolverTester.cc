@@ -164,11 +164,7 @@ std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
                 input_solutions_[(a2 * n_solutions_ + solution_index) * 2 + 0],
                 0.0, 0.0,
                 input_solutions_[(a2 * n_solutions_ + solution_index) * 2 + 1]);
-            MC2x2 res;
-            MC2x2::ATimesB(res, left, val);
-            // Use 'left' as scratch for the result.
-            MC2x2::ATimesHermB(left, res, right);
-            perturbed_model += left;
+            perturbed_model += left * val.MultiplyHerm(right);
           }
           for (size_t p = 0; p != 4; ++p) {
             time_data(baseline_index, ch, p) = perturbed_model[p];
@@ -252,11 +248,7 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
                        input_solutions_[ant1_index + 1]);
             MC2x2 right(input_solutions_[ant2_index], 0.0, 0.0,
                         input_solutions_[ant2_index + 1]);
-            MC2x2 res;
-            MC2x2::ATimesB(res, left, val);
-            // Use 'left' as scratch for the result.
-            MC2x2::ATimesHermB(left, res, right);
-            perturbed_model += left;
+            perturbed_model += left * val.MultiplyHerm(right);
           }
           for (size_t p = 0; p != kNPolarizations; ++p) {
             data.emplace_back(perturbed_model[p]);

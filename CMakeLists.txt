@@ -717,16 +717,6 @@ if(BUILD_TESTING)
       base/test/unit/tSourceDBUtil.cc
       base/test/unit/tTelescope.cc
       base/test/unit/tUvwCalculator.cc
-      common/test/unit/avx256/tDiagonalMatrixComplexDouble2x2.cc
-      common/test/unit/avx256/tDiagonalMatrixComplexFloat2x2.cc
-      common/test/unit/avx256/tMatrixComplexDouble2x2.cc
-      common/test/unit/avx256/tMatrixComplexFloat2x2.cc
-      common/test/unit/avx256/tVectorComplexDouble2.cc
-      common/test/unit/avx256/tVectorComplexFloat2.cc
-      common/test/unit/avx256/tVectorComplexFloat4.cc
-      common/test/unit/avx256/tVectorDouble4.cc
-      common/test/unit/avx256/tVectorFloat4.cc
-      common/test/unit/avx256/tVectorFloat8.cc
       common/test/unit/fixtures/fSkymodel.cc
       common/test/unit/tBaselineUtils.cc
       common/test/unit/tFields.cc
@@ -1038,11 +1028,3 @@ if(BUILD_TESTING)
     add_subdirectory(${PYTHON_TEST_DIR})
   endforeach()
 endif() # BUILD_TESTING
-
-# Warning: XTensor and XSimd have 'BUILD_BENCHMARK' options, and XTensor-blas uses
-# BUILD_BENCHMARKS. When enabling one of these options, errors occur in the external
-# Therefore, do not rename 'BUILD_DP3_BENCHMARKS' to 'BUILD_BENCHMARK' or 'BUILD_BENCHMARKS'.
-option(BUILD_DP3_BENCHMARKS "Build the benchmarks" OFF)
-if(BUILD_DP3_BENCHMARKS)
-  add_subdirectory(benchmarks)
-endif()

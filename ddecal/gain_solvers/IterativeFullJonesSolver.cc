@@ -9,10 +9,7 @@
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/staticfor.h>
 
-#include "common/MatrixComplexFloat2x2.h"
-
 using aocommon::MC2x2F;
-using Matrix2x2 = aocommon::MatrixComplexFloat2x2;
 
 namespace dp3 {
 namespace ddecal {
@@ -133,20 +130,20 @@ void IterativeFullJonesSolver::SolveDirection(
     const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
 
-    const Matrix2x2 solution_ant_1(
+    const MC2x2F solution_ant_1(
         &solutions[(antenna_1 * NSolutions() + solution_index) *
                    n_solution_pols]);
 
-    const Matrix2x2 solution_ant_2(
+    const MC2x2F solution_ant_2(
         &solutions[(antenna_2 * NSolutions() + solution_index) *
                    n_solution_pols]);
 
-    const Matrix2x2 data{v_residual[vis_index]};
-    const Matrix2x2 model{cb_data.ModelVisibility(direction, vis_index)};
+    const MC2x2F data(v_residual[vis_index]);
+    const MC2x2F model(cb_data.ModelVisibility(direction, vis_index));
 
     const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
-    const Matrix2x2 cor_model_herm_1(solution_ant_2 * HermTranspose(model));
+    const MC2x2F cor_model_herm_1(solution_ant_2.MultiplyHerm(model));
     const uint32_t full_solution_1_index =
         antenna_1 * n_dir_solutions + rel_solution_index;
 
@@ -157,7 +154,7 @@ void IterativeFullJonesSolver::SolveDirection(
         static_cast<MC2x2F>(HermTranspose(cor_model_herm_1) * cor_model_herm_1);
 
     // Calculate the contribution of this baseline for antenna_2
-    const Matrix2x2 cor_model_2(solution_ant_1 * model);
+    const MC2x2F cor_model_2(solution_ant_1 * model);
     const uint32_t full_solution_2_index =
         antenna_2 * n_dir_solutions + rel_solution_index;
     // sum(D^H J M) [ sum(M^H J^H J M) ]^-1
@@ -191,16 +188,15 @@ void IterativeFullJonesSolver::AddOrSubtractDirection(
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
     const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
-    const Matrix2x2 solution_1(
+    const MC2x2F solution_1(
         &solutions[(antenna_1 * NSolutions() + solution_index) *
                    n_solution_polarizations]);
-    const Matrix2x2 solution_2(
+    const MC2x2F solution_2(
         &solutions[(antenna_2 * NSolutions() + solution_index) *
                    n_solution_polarizations]);
-    const Matrix2x2 solution_2_herm = HermTranspose(solution_2);
-    const Matrix2x2 model(cb_data.ModelVisibility(direction, vis_index));
+    const MC2x2F model(cb_data.ModelVisibility(direction, vis_index));
     const MC2x2F term =
-        static_cast<MC2x2F>(solution_1 * model * solution_2_herm);
+        static_cast<MC2x2F>(solution_1 * model.MultiplyHerm(solution_2));
     if (Add) {
       v_residual[vis_index] += term;
     } else {

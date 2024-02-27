@@ -11,6 +11,9 @@
 
 #include <utility>
 
+#include <aocommon/matrix2x2.h>
+#include <aocommon/matrix2x2diag.h>
+
 #include <dp3/base/DPBuffer.h>
 #include "OneApplyCal.h"
 
@@ -21,7 +24,7 @@ class ParameterSet;
 
 namespace steps {
 
-/// \brief DPPP step class to ApplyCal visibilities from a source model
+/// \brief DP3 step class to ApplyCal visibilities from a source model
 
 /// This class is a Step class to apply multiple ParmDB or H5Parm
 /// solutions to data.
@@ -74,16 +77,16 @@ class ApplyCal : public Step {
   static void invert(std::complex<NumType>* v, NumType sigmaMMSE = 0);
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
-  static void ApplyDiag(const std::complex<float>* gain_a,
-                        const std::complex<float>* gain_b,
+  static void ApplyDiag(const aocommon::MC2x2FDiag& gain_a,
+                        const aocommon::MC2x2FDiag& gain_b,
                         base::DPBuffer& buffer, unsigned int baseline,
                         unsigned int channel, bool update_weights,
                         base::FlagCounter& flag_counter);
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
   /// where the solution is equal for both polarizations
-  static void ApplyScalar(const std::complex<float>* gain_a,
-                          const std::complex<float>* gain_b,
+  static void ApplyScalar(const std::complex<float>& gain_a,
+                          const std::complex<float>& gain_b,
                           base::DPBuffer& buffer, unsigned int baseline,
                           unsigned int channel, bool update_weights,
                           base::FlagCounter& flag_counter);
@@ -93,11 +96,10 @@ class ApplyCal : public Step {
   /// this buffer.
   /// @param baseline The baseline index for the visibility.
   /// @param channel The channel index for the visibility.
-  static void ApplyFull(const std::complex<float>* gain_a,
-                        const std::complex<float>* gain_b,
-                        base::DPBuffer& buffer, unsigned int baseline,
-                        unsigned int channel, bool update_weights,
-                        base::FlagCounter& flag_counter);
+  static void ApplyFull(const aocommon::MC2x2F& gain_a,
+                        const aocommon::MC2x2F& gain_b, base::DPBuffer& buffer,
+                        unsigned int baseline, unsigned int channel,
+                        bool update_weights, base::FlagCounter& flag_counter);
 
   /// Do the same as the combination of BBS + python script
   /// covariance2weight.py (cookbook), except it stores weights per freq.
@@ -107,8 +109,8 @@ class ApplyCal : public Step {
   /// The input covariance matrix C is assumed to be diagonal with elements
   /// w_i (the weights), the result the diagonal of
   /// (gainA kronecker gainB^H).C.(gainA kronecker gainB^H)^H
-  static void ApplyWeights(const std::complex<float>* gain_a,
-                           const std::complex<float>* gain_b, float* weight);
+  static void ApplyWeights(const aocommon::MC2x2F& gain_a,
+                           const aocommon::MC2x2F& gain_b, float* weight);
 
  private:
   bool is_sub_step_{false};

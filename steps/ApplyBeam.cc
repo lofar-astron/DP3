@@ -325,16 +325,12 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
     for (size_t bl = 0; bl < nBl; ++bl) {
       T* data = data0 + bl * 4 * nCh + ch * 4;
       const aocommon::MC2x2F mat(data);
-      //
-      const aocommon::MC2x2F left(
-          beamValues[nCh * info.getAnt1()[bl] + ch].Data());
-      const aocommon::MC2x2F right(
-          beamValues[nCh * info.getAnt2()[bl] + ch].Data());
-      const aocommon::MC2x2F result = left.Multiply(mat).MultiplyHerm(right);
+      const aocommon::MC2x2F left(beamValues[nCh * info.getAnt1()[bl] + ch]);
+      const aocommon::MC2x2F right(beamValues[nCh * info.getAnt2()[bl] + ch]);
+      const aocommon::MC2x2F result = left * mat.MultiplyHerm(right);
       result.AssignTo(data);
       if (doUpdateWeights) {
-        ApplyCal::ApplyWeights(left.Data(), right.Data(),
-                               weight0 + bl * 4 * nCh + ch * 4);
+        ApplyCal::ApplyWeights(left, right, weight0 + bl * 4 * nCh + ch * 4);
       }
     }
   }
@@ -417,21 +413,20 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
 
   barrier.wait();
   for (size_t ch = 0; ch < n_channels; ++ch) {
-    // Apply beam for channel ch on the baselines handeled by this thread
+    // Apply beam for channel ch on the baselines handled by this thread
     // For mode=ARRAY_FACTOR, too much work is done here because we know
     // that r and l are diagonal
     for (size_t bl = baseline_range.first; bl < baseline_range.second; ++bl) {
       std::complex<double>* data = data0 + bl * 4 * n_channels + ch * 4;
       const aocommon::MC2x2F mat(data);
-      //
       const aocommon::MC2x2F left(
-          beam_values[n_channels * info.getAnt1()[bl] + ch].Data());
+          beam_values[n_channels * info.getAnt1()[bl] + ch]);
       const aocommon::MC2x2F right(
-          beam_values[n_channels * info.getAnt2()[bl] + ch].Data());
-      const aocommon::MC2x2F result = left.Multiply(mat).MultiplyHerm(right);
+          beam_values[n_channels * info.getAnt2()[bl] + ch]);
+      const aocommon::MC2x2F result = left * mat.MultiplyHerm(right);
       result.AssignTo(data);
       if (do_update_weights) {
-        ApplyCal::ApplyWeights(left.Data(), right.Data(),
+        ApplyCal::ApplyWeights(left, right,
                                weight0 + bl * 4 * n_channels + ch * 4);
       }
     }

@@ -182,10 +182,11 @@ void IterativeScalarSolver::AddOrSubtractDirection(
         Complex(solutions[antenna_2 * NSolutions() + solution_index]));
     MC2x2F& data = v_residual[vis_index];
     const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
+    const MC2x2F corrected_model = model * solution_1 * solution_2_conj;
     if (Add) {
-      data.AddWithFactorAndAssign(model, solution_1 * solution_2_conj);
+      data += corrected_model;
     } else {
-      data.AddWithFactorAndAssign(model, -solution_1 * solution_2_conj);
+      data -= corrected_model;
     }
   }
 }

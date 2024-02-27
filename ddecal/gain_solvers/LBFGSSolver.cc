@@ -4,8 +4,8 @@
 #include "LBFGSSolver.h"
 
 // Include before Dirac.h to avoid compilation issue with complex's definition.
-#include "common/MatrixComplexDouble2x2.h"
-#include "common/DiagonalMatrixComplexDouble2x2.h"
+#include <aocommon/matrix2x2.h>
+#include <aocommon/matrix2x2diag.h>
 
 #ifdef HAVE_LIBDIRAC
 #include <Dirac.h>
@@ -23,6 +23,9 @@
 
 #include <algorithm>
 #include <iostream>
+
+using aocommon::MC2x2;
+using aocommon::MC2x2Diag;
 
 namespace dp3 {
 namespace ddecal {
@@ -64,21 +67,16 @@ double FullCost(double* unknowns, int n_uknowns, void* extra_data) {
   double cost = 0.0;
   for (size_t vis_index = lbfgs_dat->start_baseline;
        vis_index < lbfgs_dat->end_baseline; ++vis_index) {
-    aocommon::MatrixComplexDouble2x2 res(
-        lbfgs_dat->cb_data.Visibility(vis_index));
+    MC2x2 res(lbfgs_dat->cb_data.Visibility(vis_index));
     const size_t antenna1 = lbfgs_dat->cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = lbfgs_dat->cb_data.Antenna2Index(vis_index);
 #pragma GCC ivdep
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
-      const aocommon::MatrixComplexDouble2x2 J1(
-          &solutions[(antenna1 * lbfgs_dat->n_directions + d) * 4]);
-      const aocommon::MatrixComplexDouble2x2 J2(
-          &solutions[(antenna2 * lbfgs_dat->n_directions + d) * 4]);
-      const aocommon::MatrixComplexDouble2x2 J1_M = J1 * model_data;
-      const aocommon::MatrixComplexDouble2x2 J1_M_J2H =
-          J1_M * J2.HermTranspose();
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2 J1(&solutions[(antenna1 * lbfgs_dat->n_directions + d) * 4]);
+      const MC2x2 J2(&solutions[(antenna2 * lbfgs_dat->n_directions + d) * 4]);
+      const MC2x2 J1_M = J1 * model_data;
+      const MC2x2 J1_M_J2H = J1_M.MultiplyHerm(J2);
       res -= J1_M_J2H;
     }
     // For LS, cost += Norm(res);
@@ -110,22 +108,17 @@ void FullGradient(double* unknowns, double* gradient, int n_unknowns,
       1.0 / (double(lbfgs_dat->end_baseline - lbfgs_dat->start_baseline));
   for (size_t vis_index = lbfgs_dat->start_baseline;
        vis_index < lbfgs_dat->end_baseline; ++vis_index) {
-    aocommon::MatrixComplexDouble2x2 res(
-        lbfgs_dat->cb_data.Visibility(vis_index));
+    MC2x2 res(lbfgs_dat->cb_data.Visibility(vis_index));
     const size_t antenna1 = lbfgs_dat->cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = lbfgs_dat->cb_data.Antenna2Index(vis_index);
     // loop for residual calculation
 #pragma GCC ivdep
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
-      const aocommon::MatrixComplexDouble2x2 J1(
-          &solutions[(antenna1 * lbfgs_dat->n_directions + d) * 4]);
-      const aocommon::MatrixComplexDouble2x2 J2(
-          &solutions[(antenna2 * lbfgs_dat->n_directions + d) * 4]);
-      const aocommon::MatrixComplexDouble2x2 J1_M = J1 * model_data;
-      const aocommon::MatrixComplexDouble2x2 J1_M_J2H =
-          J1_M * J2.HermTranspose();
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2 J1(&solutions[(antenna1 * lbfgs_dat->n_directions + d) * 4]);
+      const MC2x2 J2(&solutions[(antenna2 * lbfgs_dat->n_directions + d) * 4]);
+      const MC2x2 J1_M = J1 * model_data;
+      const MC2x2 J1_M_J2H = J1_M.MultiplyHerm(J2);
       res -= J1_M_J2H;
     }
     // Scale factor for robust gradient, divided by number_of_baselines
@@ -135,16 +128,12 @@ void FullGradient(double* unknowns, double* gradient, int n_unknowns,
         (lbfgs_dat->robust_nu + Norm(res));  //-ve for -ve grad direction
     // loop for grad calculation
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
-      const aocommon::MatrixComplexDouble2x2 J1(
-          &solutions[(antenna1 * lbfgs_dat->n_directions + d) * 4]);
-      const aocommon::MatrixComplexDouble2x2 J2(
-          &solutions[(antenna2 * lbfgs_dat->n_directions + d) * 4]);
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2 J1(&solutions[(antenna1 * lbfgs_dat->n_directions + d) * 4]);
+      const MC2x2 J2(&solutions[(antenna2 * lbfgs_dat->n_directions + d) * 4]);
 
-      const aocommon::MatrixComplexDouble2x2 res_J2 = res * J2;
-      const aocommon::MatrixComplexDouble2x2 res_J2_modH =
-          res_J2 * model_data.HermTranspose();
+      const MC2x2 res_J2 = res * J2;
+      const MC2x2 res_J2_modH = res_J2.MultiplyHerm(model_data);
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 4] +=
           scale_factor * res_J2_modH[0];
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 4 + 1] +=
@@ -154,8 +143,8 @@ void FullGradient(double* unknowns, double* gradient, int n_unknowns,
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 4 + 3] +=
           scale_factor * res_J2_modH[3];
 
-      const aocommon::MatrixComplexDouble2x2 resH_J1 = res.HermTranspose() * J1;
-      const aocommon::MatrixComplexDouble2x2 resH_J1_mod = resH_J1 * model_data;
+      const MC2x2 resH_J1 = res.HermTranspose() * J1;
+      const MC2x2 resH_J1_mod = resH_J1 * model_data;
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 4] +=
           scale_factor * resH_J1_mod[0];
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 4 + 1] +=
@@ -188,21 +177,18 @@ double DiagonalCost(double* unknowns, int n_uknowns, void* extra_data) {
   double cost = 0.0;
   for (size_t vis_index = lbfgs_dat->start_baseline;
        vis_index < lbfgs_dat->end_baseline; ++vis_index) {
-    aocommon::MatrixComplexDouble2x2 res(
-        lbfgs_dat->cb_data.Visibility(vis_index));
+    MC2x2 res(lbfgs_dat->cb_data.Visibility(vis_index));
     const size_t antenna1 = lbfgs_dat->cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = lbfgs_dat->cb_data.Antenna2Index(vis_index);
 #pragma GCC ivdep
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
-      const aocommon::DiagonalMatrixComplexDouble2x2 J1(
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2Diag J1(
           &solutions[(antenna1 * lbfgs_dat->n_directions + d) * 2]);
-      const aocommon::DiagonalMatrixComplexDouble2x2 J2(
+      const MC2x2Diag J2(
           &solutions[(antenna2 * lbfgs_dat->n_directions + d) * 2]);
-      const aocommon::MatrixComplexDouble2x2 J1_M = J1 * model_data;
-      const aocommon::MatrixComplexDouble2x2 J1_M_J2H =
-          J1_M * J2.HermTranspose();
+      const MC2x2 J1_M = J1 * model_data;
+      const MC2x2 J1_M_J2H = J1_M * J2.HermTranspose();
       res -= J1_M_J2H;
     }
     // For LS, cost += Norm(res);
@@ -234,22 +220,19 @@ void DiagonalGradient(double* unknowns, double* gradient, int n_unknowns,
       1.0 / (double(lbfgs_dat->end_baseline - lbfgs_dat->start_baseline));
   for (size_t vis_index = lbfgs_dat->start_baseline;
        vis_index < lbfgs_dat->end_baseline; ++vis_index) {
-    aocommon::MatrixComplexDouble2x2 res(
-        lbfgs_dat->cb_data.Visibility(vis_index));
+    MC2x2 res(lbfgs_dat->cb_data.Visibility(vis_index));
     const size_t antenna1 = lbfgs_dat->cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = lbfgs_dat->cb_data.Antenna2Index(vis_index);
     // loop for residual calculation
 #pragma GCC ivdep
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
-      const aocommon::DiagonalMatrixComplexDouble2x2 J1(
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2Diag J1(
           &solutions[(antenna1 * lbfgs_dat->n_directions + d) * 2]);
-      const aocommon::DiagonalMatrixComplexDouble2x2 J2(
+      const MC2x2Diag J2(
           &solutions[(antenna2 * lbfgs_dat->n_directions + d) * 2]);
-      const aocommon::MatrixComplexDouble2x2 J1_M = J1 * model_data;
-      const aocommon::MatrixComplexDouble2x2 J1_M_J2H =
-          J1_M * J2.HermTranspose();
+      const MC2x2 J1_M = J1 * model_data;
+      const MC2x2 J1_M_J2H = J1_M * J2.HermTranspose();
       res -= J1_M_J2H;
     }
     // Scale factor for robust gradient, divided by number_of_baselines
@@ -260,15 +243,14 @@ void DiagonalGradient(double* unknowns, double* gradient, int n_unknowns,
     // loop for grad calculation
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
       // C
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
       const SolverBase::DComplex* g_1 =
           &solutions[(antenna1 * lbfgs_dat->n_directions + d) * 2];
       const SolverBase::DComplex* g_2 =
           &solutions[(antenna2 * lbfgs_dat->n_directions + d) * 2];
 
       // Hadamard product R o C^*
-      const aocommon::MatrixComplexDouble2x2 R_Cconj(
+      const MC2x2 R_Cconj(
           res[0] * std::conj(model_data[0]), res[1] * std::conj(model_data[1]),
           res[2] * std::conj(model_data[2]), res[3] * std::conj(model_data[3]));
 
@@ -309,14 +291,12 @@ double ScalarCost(double* unknowns, int n_uknowns, void* extra_data) {
   double cost = 0.0;
   for (size_t vis_index = lbfgs_dat->start_baseline;
        vis_index < lbfgs_dat->end_baseline; ++vis_index) {
-    aocommon::MatrixComplexDouble2x2 res(
-        lbfgs_dat->cb_data.Visibility(vis_index));
+    MC2x2 res(lbfgs_dat->cb_data.Visibility(vis_index));
     const size_t antenna1 = lbfgs_dat->cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = lbfgs_dat->cb_data.Antenna2Index(vis_index);
 #pragma GCC ivdep
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
       const SolverBase::DComplex* g_1 =
           &solutions[(antenna1 * lbfgs_dat->n_directions + d)];
       const SolverBase::DComplex* g_2 =
@@ -352,15 +332,13 @@ void ScalarGradient(double* unknowns, double* gradient, int n_unknowns,
       1.0 / (double(lbfgs_dat->end_baseline - lbfgs_dat->start_baseline));
   for (size_t vis_index = lbfgs_dat->start_baseline;
        vis_index < lbfgs_dat->end_baseline; ++vis_index) {
-    aocommon::MatrixComplexDouble2x2 res(
-        lbfgs_dat->cb_data.Visibility(vis_index));
+    MC2x2 res(lbfgs_dat->cb_data.Visibility(vis_index));
     const size_t antenna1 = lbfgs_dat->cb_data.Antenna1Index(vis_index);
     const size_t antenna2 = lbfgs_dat->cb_data.Antenna2Index(vis_index);
     // loop for residual calculation
 #pragma GCC ivdep
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
       const SolverBase::DComplex* g_1 =
           &solutions[(antenna1 * lbfgs_dat->n_directions + d)];
       const SolverBase::DComplex* g_2 =
@@ -375,8 +353,7 @@ void ScalarGradient(double* unknowns, double* gradient, int n_unknowns,
     // loop for grad calculation
     for (size_t d = 0; d != lbfgs_dat->n_directions; ++d) {
       // C
-      const aocommon::MatrixComplexDouble2x2 model_data(
-          lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
+      const MC2x2 model_data(lbfgs_dat->cb_data.ModelVisibility(d, vis_index));
       const SolverBase::DComplex* g_1 =
           &solutions[(antenna1 * lbfgs_dat->n_directions + d)];
       const SolverBase::DComplex* g_2 =

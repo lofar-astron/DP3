@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief DPPP step class to apply a calibration correction to the data
+/// @brief DP3 step class to apply a calibration correction to the data
 /// @author Tammo Jan Dijkema
 
 #ifndef DP3_STEPS_ONEAPPLYCAL_H_
@@ -29,7 +29,7 @@ using schaapcommon::h5parm::JonesParameters;
 
 namespace dp3 {
 namespace steps {
-/// @brief DPPP step class to apply a calibration correction to the data
+/// @brief DP3 step class to apply a calibration correction to the data
 
 /// This class is a Step class applying calibration parameters to the data.
 /// It only applies one correction.
