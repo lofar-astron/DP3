@@ -700,6 +700,7 @@ if(BUILD_TESTING)
   include(CTest)
 
   set(TEST_FILENAMES
+      aartfaacreader/test/unit/tAntennaConfig.cc
       antennaflagger/test/unit/tFlagger.cc
       base/test/runtests.cc
       base/test/unit/tAartfaacSubtableWriter.cc
