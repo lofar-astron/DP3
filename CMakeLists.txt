@@ -253,7 +253,7 @@ if(${EVERYBEAM_FOUND})
                                                   VERSION_GREATER_EQUAL "0.6.0")
     message(
       FATAL_ERROR
-        "DP3 needs EveryBeam version 0.5.x - with x >= 1 - but found version ${EveryBeam_VERSION}"
+        "DP3 needs EveryBeam version 0.5.x - with x >= 4 - but found version ${EveryBeam_VERSION}"
     )
   endif()
   # TODO(AST-1336): Remove SYSTEM when EveryBeam no longer includes XTensor headers.
@@ -337,6 +337,7 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
 include_directories(${pybind11_INCLUDE_DIR})
 
 # Include schaapcommon
+set(SCHAAPCOMMON_MODULES facets h5parm)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 

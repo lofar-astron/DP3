@@ -1,6 +1,7 @@
 # Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# At SKA GitLab, docker-in-docker jobs require a service.
 .dind:
   services:
     - docker:20.10-dind

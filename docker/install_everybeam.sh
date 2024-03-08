@@ -7,7 +7,11 @@
 
 set -euo pipefail
 
-yum -y install wget
+EVERYBEAM_VERSION=$1
+
+# On CentOS7, the 'blas' package does not provide cblas functions.
+# -> Install OpenBLAS, which does provide them. CMake will prefer OpenBLAS.
+yum -y install openblas-devel wget
 
 pushd /tmp
 
@@ -34,3 +38,6 @@ echo "Cleaning up unnecessary EveryBeam files"
 rm -r EveryBeam
 
 popd
+
+echo "Cleaning up development libraries"
+yum -y erase openblas-devel wget

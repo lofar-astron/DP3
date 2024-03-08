@@ -3,9 +3,11 @@
 # Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Script to install HDF5 from source
+# Script to install HDF5 from source. CentOS 7 has a too old version.
 
 set -euo pipefail
+
+HDF5_VERSION=$1
 
 echo "Installing zlib with yum"
 yum -y install zlib-devel
@@ -36,4 +38,5 @@ rm hdf5-${HDF5_VERSION}.tar.gz
 
 popd
 
+echo "Cleaning up development libraries"
 yum -y erase zlib-devel

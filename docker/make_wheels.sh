@@ -12,16 +12,15 @@
 # If <python versions> is empty, it becomes: 310 39 38 37 36 .
 
 set -euo pipefail
-for py_version in ${@:-310 39 38 37 36}; do
+for py_version in ${@:-312 311 310 39 38 37}; do
     pushd ..
 
-    # Use the Python3.10 dockerfile as a template, even for Python3.10.
-    dockerfile=$(mktemp make_wheels.docker.XXXXXX)
-    cat docker/py310_wheel.docker > $dockerfile
-    sed -i "s=\(casacore:master_wheel\)310=\1${py_version}=" $dockerfile
-
-    ## Build docker image from docker-file. The current wheel is created there
-    docker build -t dp3-py${py_version}-$USER -f $dockerfile .
+    ## Build docker image from docker-file. The current wheel is created there.
+    [ ${py_version:1} -le 7 ] && py_unicode="m" || py_unicode=
+    docker build -t dp3-py${py_version}-$USER -f docker/py_wheel.docker \
+      --build-arg PYMAJOR=${py_version:0:1} \
+      --build-arg PYMINOR=${py_version:1} \
+      --build-arg PYUNICODE=${py_unicode} .
     ## Create a docker container from that image, and extract the wheel
     containerid=$(docker create dp3-py${py_version}-$USER)
     echo "Docker container ID is: $containerid"
@@ -29,6 +28,5 @@ for py_version in ${@:-310 39 38 37 36}; do
     docker rm ${containerid}
     docker image rm dp3-py${py_version}-$USER
 
-    rm $dockerfile
     popd
 done

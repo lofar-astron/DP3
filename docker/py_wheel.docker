@@ -1,36 +1,46 @@
 # Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-FROM quay.io/casacore/casacore:master_wheel310
+# Also put PYMAJOR and PYMINOR above 'FROM', so 'FROM' can use them.
+ARG PYMAJOR
+ARG PYMINOR
 
-ENV AOFLAGGER_VERSION 3.2.0
-ENV EVERYBEAM_VERSION 0.5.4
-ENV HDF5_VERSION 1.12.2
-ENV FFTW_VERSION 3.3.8
-ENV LUA_VERSION 5.3.6
+FROM quay.io/casacore/casacore:py${PYMAJOR}${PYMINOR}_master
+
+ARG AOFLAGGER_VERSION=3.2.0
+ARG EVERYBEAM_VERSION=0.5.6
+ARG HDF5_VERSION=1.12.2
+ARG FFTW_VERSION=3.3.8
+ARG LUA_VERSION=5.3.6
+# ARG's must be repeated after each 'FROM'
+ARG PYMAJOR
+ARG PYMINOR
+ARG PYUNICODE
+
+ENV THREADS=4
 
 COPY docker/install_boost.sh /
 RUN bash /install_boost.sh
 
 COPY docker/install_fftw.sh /
-RUN bash /install_fftw.sh
+RUN bash /install_fftw.sh ${FFTW_VERSION}
 
 COPY docker/install_hdf5.sh /
-RUN bash /install_hdf5.sh
+RUN bash /install_hdf5.sh ${HDF5_VERSION}
 
 COPY docker/install_lua.sh /
-RUN bash /install_lua.sh
+RUN bash /install_lua.sh ${LUA_VERSION}
 
 # Create fake libpython to stop the linker from complaining. The wheel should find the user's libpython at runtime.
 RUN touch /usr/lib64/libpython${PYMAJOR}.${PYMINOR}${PYUNICODE}.so
 
 # EveryBeam uses FFTW, HDF5
 COPY docker/install_everybeam.sh /
-RUN bash /install_everybeam.sh
+RUN bash /install_everybeam.sh ${EVERYBEAM_VERSION}
 
 # AOFlagger uses FFTW, HDF5, LUA.
 COPY docker/install_aoflagger.sh /
-RUN bash /install_aoflagger.sh
+RUN bash /install_aoflagger.sh ${AOFLAGGER_VERSION} ${PYMAJOR}.${PYMINOR}
 
 ADD . /dp3
 WORKDIR /dp3
