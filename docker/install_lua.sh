@@ -3,8 +3,12 @@
 # Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Script to install lua
+# Script to install Lua 5.3, which is required for aoflagger.
+# CentOS 7 only has Lua 5.1.
+
 set -euo pipefail
+
+LUA_VERSION=$1
 
 pushd /tmp
 

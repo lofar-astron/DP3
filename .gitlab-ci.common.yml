@@ -27,6 +27,8 @@ stages:
   - publish
   - pages
 
+include: .gitlab-ci.wheels.yml
+
 # The 'IMAGE' variables allow reusing docker images between different pipelines.
 # See https://confluence.skatelescope.org/display/SE/Caching+Docker+images+using+GitLab+CI+registry
 versioning:

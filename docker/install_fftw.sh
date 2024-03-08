@@ -7,6 +7,8 @@
 
 set -euo pipefail
 
+FFTW_VERSION=$1
+
 pushd /tmp
 
 echo "Downloading & unpacking FFTW ${FFTW_VERSION}"

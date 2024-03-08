@@ -3,12 +3,20 @@
 # Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Script to install AOFlagger from source
+# Script to install AOFlagger from source.
 
 set -euo pipefail
 
+AOFLAGGER_VERSION=$1
+PYTHON_VERSION=$2
+
+if [ -z "$PYTHON_VERSION" ]; then
+  echo "Usage: $0 <aoflagger version> <python version>"
+  exit 1
+fi
+
 echo "Installing development libraries with yum"
-yum -y install libpng-devel lua-devel zlib-devel
+yum -y install libpng-devel zlib-devel
 
 pushd /tmp
 
@@ -26,7 +34,7 @@ pushd aoflagger-v${AOFLAGGER_VERSION}
 sed -i '/find_package(PythonLibs 3 REQUIRED)/d' CMakeLists.txt
 
 # Ensure AOFlagger uses the correct python version and finds it before pybind11 does.
-sed -i "s=# Include aocommon/pybind11 headers=find_package(PythonInterp ${PYMAJOR}.${PYMINOR} EXACT REQUIRED)=" CMakeLists.txt
+sed -i "s=# Include aocommon/pybind11 headers=find_package(PythonInterp ${PYTHON_VERSION} EXACT REQUIRED)=" CMakeLists.txt
 
 # The patches below are already in the AOFlagger master, and should be removed
 # for AOFlagger > 3.2.0. See MR 204 and MR 205.
@@ -97,4 +105,4 @@ rm aoflagger-v${AOFLAGGER_VERSION}.bz2
 popd
 
 echo "Cleaning up development libraries"
-yum -y erase libpng-devel lua-devel zlib-devel
+yum -y erase libpng-devel zlib-devel
