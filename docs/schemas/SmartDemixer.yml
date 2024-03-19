@@ -1,5 +1,5 @@
 description: >-
-  Demix in a new, smarter way.
+  Alternative variant of demixing, where not all the sources are demixed during the whole observation.
 inputs:
   type:
     type: string
@@ -19,7 +19,7 @@ inputs:
     default: cross
     type: string
     doc: >-
-      Baselines to demix. Correlation type to match? Must be auto, cross, or an empty string `.`
+      Baselines to demix. Correlation type to match? Must be ``auto``, ``cross``, or an empty string `.`
   target&#46;baseline:
     default: "CS*&"
     type: string
@@ -34,7 +34,7 @@ inputs:
     default: cross
     type: string
     doc: >-
-      Baselines to use in prediction of median target amplitude. Correlation type to match? Must be auto, cross, or an empty string `.`
+      Baselines to use in prediction of median target amplitude. Correlation type to match? Must be ``auto``, ``cross``, or an empty string `.`
   timestep:
     default: 1
     type: integer

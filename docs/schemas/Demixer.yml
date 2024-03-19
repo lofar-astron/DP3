@@ -1,5 +1,8 @@
 description: >-
-  Demix in the old way.
+  Demix bright sources, i.e. calibrate in the direction of the birght sources and
+  subtract the bright sources from the data. Note that the calibration solution
+  is assumed to be constant over the entire frequency range, so this will only
+  work on relatively small bandwidth (e.g. a single sub-band).
 inputs:
   step_name:
     type: string
@@ -12,16 +15,16 @@ inputs:
   baseline:
     default: "\"\""
     type: string
-    doc: Baselines to demix. See Description of baseline selection parameters `.`
+    doc: Baselines to demix. See :ref:`Description of baseline selection parameters`
   blrange:
     default: []
     type: double[]
-    doc: Baselines to demix. See Description of baseline selection parameters `.`
+    doc: Baselines to demix. See :ref:`Description of baseline selection parameters`
   corrtype:
     default: cross
     type: string
     doc: >-
-      Baselines to demix. Correlation type to match? Must be auto, cross, or an
+      Baselines to demix. Correlation type to match? Must be ``auto``, ``cross``, or an
       empty string `.`
   timestep:
     default: 1
@@ -49,7 +52,7 @@ inputs:
     type: float
     doc: >-
       Time resolution to use when demixing, in seconds. If this is given, and is greater than
-      zero, it overrides `<step>.demixtimestep` `.`
+      zero, it overrides ``<step>.demixtimestep`` `.`
   demixfreqstep:
     default: 0
     type: int
@@ -74,7 +77,7 @@ inputs:
   skymodel:
     default: sky
     type: string
-    doc: Sourcedb (created with `makesourcedb`) with the sky model to calibrate on `.` When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.
+    doc: Sourcedb (created with ``makesourcedb``) with the sky model to calibrate on. When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.
   instrumentmodel:
     default: instrument
     type: string
@@ -99,7 +102,7 @@ inputs:
     default: "\"\""
     type: string
     doc: >-
-      It can be used to specify the name of the source model of the target. If
+      This setting can be used to specify the name of the source model of the target. If
       given, the target source model (its patch in the SourceDB) is taken into
       account when solving; in this case parameter ``othersources`` cannot be given.
       It cannot be given if ``ignoretarget=true``. If not given, the target is
