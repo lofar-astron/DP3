@@ -72,11 +72,11 @@ inputs:
   corrtype:
     default: "\"\""
     type: string
-    doc: Correlation type to match? Must be auto, cross, or an empty string (= all) `.`
+    doc: Correlation type to match? Must be ``auto``, ``cross``, or an empty string (= all) `.`
   blrange:
     default: "[]"
     type: double?
-    doc: Zero or more ranges of physical baseline lengths (in m). A baseline matches if its length is within one of the ranges. E.g., ``blrange=[0,10000, 100000, 1e30]`` `.`
+    doc: Zero or more ranges of physical baseline lengths (in m). A baseline matches if its length is within one of the ranges. E.g., ``blrange=[0,10000, 100000, 1e30]`` matches baselines shorter than 10km and baselines longer than 100km `.`
   baseline:
     default: "\"\""
     type: baseline?
