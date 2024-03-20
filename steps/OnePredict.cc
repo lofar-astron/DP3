@@ -222,11 +222,14 @@ void OnePredict::initializeThreadData() {
   if (!predict_buffer_) {
     predict_buffer_ = std::make_shared<base::PredictBuffer>();
   }
+  bool is_dish_telescope = false;
   if (apply_beam_) {
     telescope_ = base::GetTelescope(info().msName(), element_response_model_,
                                     use_channel_freq_);
+    is_dish_telescope = base::IsDish(*telescope_);
   }
-  predict_buffer_->resize(nThreads, nCr, nCh, nBl, nSt, apply_beam_,
+  predict_buffer_->resize(nThreads, nCr, nCh, nBl,
+                          (is_dish_telescope ? 1 : nSt), apply_beam_,
                           !stokes_i_only_);
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.

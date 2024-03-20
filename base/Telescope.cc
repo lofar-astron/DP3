@@ -3,8 +3,6 @@
 
 #include "Telescope.h"
 
-#include <EveryBeam/telescope/phasedarray.h>
-
 // Support both old and new return value types of PhasedArray::GetStation().
 // TODO(AST-1001): Remove support for the old type in 2023.
 namespace {
@@ -25,14 +23,14 @@ namespace base {
 std::vector<size_t> SelectStationIndices(
     const everybeam::telescope::Telescope& telescope,
     const std::vector<std::string>& station_names) {
+  if (IsDish(telescope)) {
+    // For a dish telescope, the beam of all stations is assumed to be identical
+    return {0};
+  }
+
+  // If the telescope is not a dish, it is a phased array
   auto phased_array =
       dynamic_cast<const everybeam::telescope::PhasedArray*>(&telescope);
-  if (phased_array == nullptr) {
-    throw std::runtime_error(
-        "Currently, only PhasedArray telescopes accepted as input, i.e. "
-        "OSKAR or LOFAR. Support for other telescopes may become available "
-        "soon.");
-  }
 
   // Copy only those stations for which the name matches.
   // Note: the order of the station names in both vectors match,

@@ -148,8 +148,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
         static_cast<int>(everybeam::CorrectionMode::kNone));
   }
 
-  const size_t nSt = info().nantenna();
-  const size_t nCh = info().nchan();
+  const size_t n_stations = info().nantenna();
+  const size_t n_channels = info().nchan();
 
   const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
   itsBeamValues.resize(nThreads);
@@ -161,7 +161,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   telescopes_.resize(nThreads);
 
   for (size_t thread = 0; thread < nThreads; ++thread) {
-    itsBeamValues[thread].resize(nSt * nCh);
+    itsBeamValues[thread].resize(n_stations * n_channels);
     itsMeasFrames[thread].set(info().arrayPosCopy());
     itsMeasFrames[thread].set(
         MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
@@ -267,13 +267,12 @@ template <typename T>
 void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
                           float* weight0, const everybeam::vector3r_t& srcdir,
                           const everybeam::telescope::Telescope* telescope,
-                          std::vector<aocommon::MC2x2>& beamValues, bool invert,
-                          everybeam::CorrectionMode mode, bool doUpdateWeights,
-                          std::mutex* mutex) {
+                          std::vector<aocommon::MC2x2>& beam_values,
+                          bool invert, everybeam::CorrectionMode mode,
+                          bool doUpdateWeights, std::mutex* mutex) {
   // Get the beam values for each station.
-  const size_t nCh = info.chanFreqs().size();
-  const size_t nSt = beamValues.size() / nCh;
-  const size_t nBl = info.nbaselines();
+  const size_t n_channels = info.chanFreqs().size();
+  const size_t n_baselines = info.nbaselines();
 
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
       telescope->GetPointResponse(time);
@@ -281,26 +280,29 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
   const std::vector<size_t> station_indices =
       base::SelectStationIndices(*telescope, info.antennaNames());
 
+  const size_t n_stations = station_indices.size();
+
   // Apply the beam values of both stations to the ApplyBeamed data.
-  for (size_t ch = 0; ch < nCh; ++ch) {
+  for (size_t ch = 0; ch < n_channels; ++ch) {
     switch (mode) {
       case everybeam::CorrectionMode::kFull:
       case everybeam::CorrectionMode::kElement:
-        // Fill beamValues for channel ch
-        for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] = point_response->Response(
+        // Fill beam_values for channel ch
+        for (size_t st = 0; st < n_stations; ++st) {
+          beam_values[n_channels * st + ch] = point_response->Response(
               mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
           if (invert) {
             // Terminate if the matrix is not invertible.
-            [[maybe_unused]] bool status = beamValues[nCh * st + ch].Invert();
+            [[maybe_unused]] bool status =
+                beam_values[n_channels * st + ch].Invert();
             assert(status);
           }
         }
         break;
       case everybeam::CorrectionMode::kArrayFactor: {
         aocommon::MC2x2 af_tmp;
-        // Fill beamValues for channel ch
-        for (size_t st = 0; st < nSt; ++st) {
+        // Fill beam_values for channel ch
+        for (size_t st = 0; st < n_stations; ++st) {
           af_tmp = point_response->Response(
               mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
 
@@ -308,13 +310,13 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
             af_tmp[0] = 1. / af_tmp[0];
             af_tmp[3] = 1. / af_tmp[3];
           }
-          beamValues[nCh * st + ch] = af_tmp;
+          beam_values[n_channels * st + ch] = af_tmp;
         }
         break;
       }
       case everybeam::CorrectionMode::kNone:  // this should not happen
-        for (size_t st = 0; st < nSt; ++st) {
-          beamValues[nCh * st + ch] = aocommon::MC2x2::Unity();
+        for (size_t st = 0; st < n_stations; ++st) {
+          beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
         }
         break;
     }
@@ -322,15 +324,23 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
     // Apply beam for channel ch on all baselines
     // For mode=ARRAY_FACTOR, too much work is done here because we know
     // that r and l are diagonal
-    for (size_t bl = 0; bl < nBl; ++bl) {
-      T* data = data0 + bl * 4 * nCh + ch * 4;
+    for (size_t bl = 0; bl < n_baselines; ++bl) {
+      T* data = data0 + bl * 4 * n_channels + ch * 4;
       const aocommon::MC2x2F mat(data);
-      const aocommon::MC2x2F left(beamValues[nCh * info.getAnt1()[bl] + ch]);
-      const aocommon::MC2x2F right(beamValues[nCh * info.getAnt2()[bl] + ch]);
+
+      // If the beam is the same for all stations (i.e. when n_stations = 1),
+      // all baselines will have the same beam values
+      size_t index_left =
+          (n_stations == 1 ? ch : n_channels * info.getAnt1()[bl] + ch);
+      size_t index_right =
+          (n_stations == 1 ? ch : n_channels * info.getAnt2()[bl] + ch);
+      const aocommon::MC2x2F left(beam_values[index_left]);
+      const aocommon::MC2x2F right(beam_values[index_right]);
       const aocommon::MC2x2F result = left * mat.MultiplyHerm(right);
       result.AssignTo(data);
       if (doUpdateWeights) {
-        ApplyCal::ApplyWeights(left, right, weight0 + bl * 4 * nCh + ch * 4);
+        ApplyCal::ApplyWeights(left, right,
+                               weight0 + bl * 4 * n_channels + ch * 4);
       }
     }
   }
@@ -340,7 +350,7 @@ template void ApplyBeam::applyBeam(
     const DPInfo& info, double time, std::complex<double>* data0,
     float* weight0, const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
-    std::vector<aocommon::MC2x2>& beamValues, bool invert,
+    std::vector<aocommon::MC2x2>& beam_values, bool invert,
     everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
 
 void ApplyBeam::applyBeam(const DPInfo& info, double time,
@@ -355,13 +365,13 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
                           bool do_update_weights, std::mutex* mutex) {
   // Get the beam values for each station.
   const size_t n_channels = info.chanFreqs().size();
-  const size_t n_stations = beam_values.size() / n_channels;
 
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
       telescope->GetPointResponse(time);
 
   const std::vector<size_t> station_indices =
       base::SelectStationIndices(*telescope, info.antennaNames());
+  const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
 
@@ -419,10 +429,13 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
     for (size_t bl = baseline_range.first; bl < baseline_range.second; ++bl) {
       std::complex<double>* data = data0 + bl * 4 * n_channels + ch * 4;
       const aocommon::MC2x2F mat(data);
-      const aocommon::MC2x2F left(
-          beam_values[n_channels * info.getAnt1()[bl] + ch]);
-      const aocommon::MC2x2F right(
-          beam_values[n_channels * info.getAnt2()[bl] + ch]);
+      size_t index_left =
+          (n_stations == 1 ? ch : n_channels * info.getAnt1()[bl] + ch);
+      size_t index_right =
+          (n_stations == 1 ? ch : n_channels * info.getAnt2()[bl] + ch);
+      const aocommon::MC2x2F left(beam_values[index_left]);
+      const aocommon::MC2x2F right(beam_values[index_right]);
+
       const aocommon::MC2x2F result = left * mat.MultiplyHerm(right);
       result.AssignTo(data);
       if (do_update_weights) {
@@ -440,37 +453,42 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, T* data0,
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
-    std::vector<everybeam::complex_t>& beamValues, bool invert,
+    std::vector<everybeam::complex_t>& beam_values, bool invert,
     everybeam::CorrectionMode mode, std::mutex* mutex) {
   assert(mode == everybeam::CorrectionMode::kArrayFactor);
   // Get the beam values for each station.
-  const size_t nCh = info.chanFreqs().size();
-  const size_t nSt = beamValues.size() / nCh;
-  const size_t nBl = info.nbaselines();
+  const size_t n_channels = info.chanFreqs().size();
+  const size_t n_baselines = info.nbaselines();
 
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
       telescope->GetPointResponse(time);
 
   const std::vector<size_t> station_indices =
       base::SelectStationIndices(*telescope, info.antennaNames());
+  const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
-  for (size_t ch = 0; ch < nCh; ++ch) {
-    // Fill beamValues for channel ch
-    for (size_t st = 0; st < nSt; ++st) {
-      beamValues[nCh * st + ch] = point_response->Response(
+  for (size_t ch = 0; ch < n_channels; ++ch) {
+    // Fill beam_values for channel ch
+    for (size_t st = 0; st < n_stations; ++st) {
+      beam_values[n_channels * st + ch] = point_response->Response(
           everybeam::BeamMode::kArrayFactor, station_indices[st],
           info.chanFreqs()[ch], srcdir, mutex)[0];
       if (invert) {
-        beamValues[nCh * st + ch] = 1. / beamValues[nCh * st + ch];
+        beam_values[n_channels * st + ch] =
+            1. / beam_values[n_channels * st + ch];
       }
     }
 
     // Apply beam for channel ch on all baselines
-    for (size_t bl = 0; bl < nBl; ++bl) {
-      T* data = data0 + bl * nCh + ch;
-      everybeam::complex_t* left = &(beamValues[nCh * info.getAnt1()[bl]]);
-      everybeam::complex_t* right = &(beamValues[nCh * info.getAnt2()[bl]]);
+    for (size_t bl = 0; bl < n_baselines; ++bl) {
+      T* data = data0 + bl * n_channels + ch;
+      size_t index_left =
+          (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
+      size_t index_right =
+          (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
+      everybeam::complex_t* left = &(beam_values[index_left]);
+      everybeam::complex_t* right = &(beam_values[index_right]);
       data[0] = left[ch] * std::complex<double>(data[0]) * conj(right[ch]);
 
       // TODO: update weights?
@@ -482,7 +500,7 @@ template void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, std::complex<double>* data0,
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
-    std::vector<everybeam::complex_t>& beamValues, bool invert,
+    std::vector<everybeam::complex_t>& beam_values, bool invert,
     everybeam::CorrectionMode mode, std::mutex* mutex);
 
 void ApplyBeam::applyBeamStokesIArrayFactor(
@@ -496,13 +514,13 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
   assert(mode == everybeam::CorrectionMode::kArrayFactor);
   // Get the beam values for each station.
   const size_t n_channels = info.chanFreqs().size();
-  const size_t n_stations = beam_values.size() / n_channels;
 
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
       telescope->GetPointResponse(time);
 
   const std::vector<size_t> station_indices =
       base::SelectStationIndices(*telescope, info.antennaNames());
+  const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
   if (station_range.first < n_stations) {
@@ -525,10 +543,12 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     // Apply beam for channel ch on the baselines handeled by this thread
     for (size_t bl = baseline_range.first; bl < baseline_range.second; ++bl) {
       std::complex<double>* data = data0 + bl * n_channels + ch;
-      everybeam::complex_t* left =
-          &(beam_values[n_channels * info.getAnt1()[bl]]);
-      everybeam::complex_t* right =
-          &(beam_values[n_channels * info.getAnt2()[bl]]);
+      size_t index_left =
+          (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
+      size_t index_right =
+          (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
+      everybeam::complex_t* left = &(beam_values[index_left]);
+      everybeam::complex_t* right = &(beam_values[index_right]);
       data[0] = left[ch] * std::complex<double>(data[0]) * conj(right[ch]);
 
       // TODO: update weights?
