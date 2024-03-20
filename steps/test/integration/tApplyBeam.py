@@ -13,7 +13,7 @@ import sys
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, untar_ms
+from utils import assert_taql, untar_ms, get_taql_result
 
 """
 Tests for applying the beam model.
@@ -25,8 +25,23 @@ Script can be invoked in two ways:
 """
 
 MSIN = "tNDPPP-generic.MS"
+DISH_MSIN = "tDish.MS"
 MSAPPLYBEAM = "tApplyBeam.tab"
 CWD = os.getcwd()
+
+"""
+The tDish.MS is a reduced version of a MEERKAT dataset, generated with the following command:
+
+DP3 \
+msin=MKT_CDFS_2_5_856_963MHz.ms \
+msout=tDish.MS \
+msout.overwrite=true \
+steps=[filter] \
+msin.starttime='29-Jun-2019/05:08:00.581' \
+msin.ntimes=5 \
+msin.nchan=5 \
+filter.blrange="[0,100,0,100]"
+"""
 
 
 @pytest.fixture(autouse=True)
@@ -37,6 +52,7 @@ def source_env():
     os.chdir(tmpdir)
 
     untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
+    untar_ms(f"{tcf.RESOURCEDIR}/{DISH_MSIN}.tgz")
     untar_ms(f"{tcf.SRCDIR}/{MSAPPLYBEAM}.tgz")
 
     # Tests are executed here
@@ -111,3 +127,46 @@ def test_with_updateweights():
     )
     taql_command = f"select from {MSIN} where all(near(WEIGHT_SPECTRUM, NEW_WEIGHT_SPECTRUM))"
     assert_taql(taql_command)
+
+
+from testconfig import TAQLEXE
+
+
+def test_dish_beam():
+    # Apply the beam with an offset of [0.01,-0.02] to the phase center
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={DISH_MSIN}",
+            f"msout=beam_applied.ms",
+            "msout.overwrite=true",
+            "steps=[applybeam]",
+            "applybeam.usechannelfreq=true",
+            "applybeam.direction=[0.91848969rad,-0.50149271rad]",
+        ]
+    )
+
+    # Assert that there are 25 elements which are zeroes before and after applying the beam
+    zero_elements = f"select t1.DATA[0,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[0,0])==0.0 AND abs(t2.DATA[0,0])==0.0"
+    assert_taql(zero_elements, 25)
+
+    # Assert that all other elements have changed after applying the beam
+    different_elements = f"select t1.DATA[0,0] from {DISH_MSIN} t1, beam_applied.ms t2 where (abs(t1.DATA[0,0]-t2.DATA[0,0])>1e-1) AND abs(t2.DATA[0,0])!=0.0"
+    assert_taql(different_elements, 425)
+
+    # Assert that the beam value is correct per each channel
+    assert_taql(
+        f"select t1.DATA[0,0]/t2.DATA[0,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[0,0] / t2.DATA[0,0] - 0.146382) > 1e-6 AND abs(t2.DATA[0,0])!=0.0"
+    )
+    assert_taql(
+        f"select t1.DATA[1,0]/t2.DATA[1,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[1,0] / t2.DATA[1,0] - 0.146003) > 1e-6 AND abs(t2.DATA[1,0])!=0.0"
+    )
+    assert_taql(
+        f"select t1.DATA[2,0]/t2.DATA[2,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[2,0] / t2.DATA[2,0] - 0.145628) > 1e-6 AND abs(t2.DATA[2,0])!=0.0"
+    )
+    assert_taql(
+        f"select t1.DATA[3,0]/t2.DATA[3,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[3,0] / t2.DATA[3,0] - 0.145258) > 1e-6 AND abs(t2.DATA[3,0])!=0.0"
+    )
+    assert_taql(
+        f"select t1.DATA[4,0]/t2.DATA[4,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[4,0] / t2.DATA[4,0] - 0.144933) > 1e-6 AND abs(t2.DATA[4,0])!=0.0"
+    )

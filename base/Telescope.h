@@ -5,6 +5,8 @@
 #define DP3_BASE_TELESCOPE_H_
 
 #include <EveryBeam/load.h>
+#include <EveryBeam/telescope/phasedarray.h>
+#include <EveryBeam/telescope/dish.h>
 
 namespace dp3 {
 namespace base {
@@ -24,10 +26,20 @@ inline std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
   return telescope;
 }
 
+inline bool IsPhasedArray(const everybeam::telescope::Telescope& telescope) {
+  auto phased_array =
+      dynamic_cast<const everybeam::telescope::PhasedArray*>(&telescope);
+  return phased_array != nullptr;
+}
+
+inline bool IsDish(const everybeam::telescope::Telescope& telescope) {
+  auto dish = dynamic_cast<const everybeam::telescope::Dish*>(&telescope);
+  return dish != nullptr;
+}
+
 /**
  * Find stations in a telescope by name and return their indices.
  * @param telescope The telescope, which contains antennae / stations.
- *        Only PhasedArray telescopes are currently supported.
  * @param station_names A list of station names. The order of the names in this
  *        list should match the order in which they occur in the telescope.
  * @return The indices corresponding to the station names. Because of the

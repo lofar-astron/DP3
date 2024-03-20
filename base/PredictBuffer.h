@@ -19,7 +19,7 @@ namespace base {
 class PredictBuffer {
  public:
   void resize(size_t n_threads, size_t n_correlations, size_t n_channels,
-              size_t n_baselines, size_t n_stations, bool include_beam,
+              size_t n_baselines, size_t n_stations_beam, bool include_beam,
               bool full_beam) {
     if (include_beam) {
       // The full buffer is not used when Stokes I is used -- conditionally
@@ -32,9 +32,9 @@ class PredictBuffer {
 
       for (size_t i = 0; i != n_threads; ++i) {
         if (full_beam) {
-          full_beam_values_[i].resize(n_stations * n_channels);
+          full_beam_values_[i].resize(n_stations_beam * n_channels);
         } else {
-          scalar_beam_values_[i].resize(n_stations * n_channels);
+          scalar_beam_values_[i].resize(n_stations_beam * n_channels);
         }
       }
     }
