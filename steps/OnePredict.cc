@@ -631,6 +631,10 @@ void OnePredict::PredictSourceRange(
   const size_t n_channels = info().nchan();
   const size_t n_buffer_correlations = stokes_i_only_ ? 1 : info().ncorr();
 
+  if (apply_beam_) {
+    telescope_->SetTime(time);
+  }
+
   aocommon::xt::UTensor<std::complex<double>, 3> model_data(
       {n_baselines, n_channels, n_buffer_correlations},
       std::complex<double>(0.0, 0.0));

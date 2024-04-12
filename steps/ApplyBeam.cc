@@ -170,6 +170,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
         MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
     telescopes_[thread] = base::GetTelescope(
         info().msName(), itsElementResponseModel, itsUseChannelFreq);
+
+    telescopes_[thread]->SetTime(info().startTime());
   }
 }
 
@@ -230,6 +232,8 @@ bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
     else
       srcdir = dir2Itrf(itsDirection, itsMeasConverters[threadIter]);
   }
+
+  telescopes_[thread]->SetTime(time);
 
   if (undoInputBeam) {
     // A beam was previously applied to this MS, and a different direction

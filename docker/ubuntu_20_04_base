@@ -2,83 +2,83 @@ FROM ubuntu:20.04
 
 # TODO: needs to be bumped before next DP3 release
 # ENV IDG_VERSION=0.8
-ENV EVERYBEAM_VERSION=v0.5.7
+ENV EVERYBEAM_VERSION=v0.5.8
 ENV IDG_VERSION=6b61c038883ad3f807d20047c4f9e1a1f0b8d98a
 ENV AOFLAGGER_VERSION=65d5fba4f4c12797386d3fd9cd76734956a8b233
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
 	apt-get install -y \
-		bison \
-		build-essential \
-		casacore-dev \
-		casacore-tools \
-		cmake \
-		doxygen \
-		flex \
-		gfortran \
-		git \
-		libarmadillo-dev \
-		libboost-date-time-dev \
-		libboost-filesystem-dev \
-		libboost-program-options-dev \
-		libboost-python-dev \
-		libboost-system-dev \
-		libboost-test-dev \
-		libcfitsio-dev \
-		libfftw3-dev \
-		libgtkmm-3.0-dev \
-		libhdf5-serial-dev \
-		liblua5.3-dev \
-		libpng-dev \
-		ninja-build \
-		pkg-config \
-		pybind11-dev \
-		python3-dev \
-		python3-numpy \
-		python3-pip \
-		wcslib-dev \
-		wget \
+	bison \
+	build-essential \
+	casacore-dev \
+	casacore-tools \
+	cmake \
+	doxygen \
+	flex \
+	gfortran \
+	git \
+	libarmadillo-dev \
+	libboost-date-time-dev \
+	libboost-filesystem-dev \
+	libboost-program-options-dev \
+	libboost-python-dev \
+	libboost-system-dev \
+	libboost-test-dev \
+	libcfitsio-dev \
+	libfftw3-dev \
+	libgtkmm-3.0-dev \
+	libhdf5-serial-dev \
+	liblua5.3-dev \
+	libpng-dev \
+	ninja-build \
+	pkg-config \
+	pybind11-dev \
+	python3-dev \
+	python3-numpy \
+	python3-pip \
+	wcslib-dev \
+	wget \
 	&& \
 	rm -rf /var/lib/apt/lists/*
 # Build aoflagger3
 RUN mkdir /aoflagger && cd /aoflagger \
-    && git clone https://gitlab.com/aroffringa/aoflagger.git src \
-    && ( cd src/ && git checkout ${AOFLAGGER_VERSION} ) \
-    && mkdir build && cd build \
-    && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
-    && ninja install \
-    && cd / && rm -rf aoflagger
+	&& git clone https://gitlab.com/aroffringa/aoflagger.git src \
+	&& ( cd src/ && git checkout ${AOFLAGGER_VERSION} ) \
+	&& mkdir build && cd build \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
+	&& ninja install \
+	&& cd / && rm -rf aoflagger
 # Build IDG
 # (PORTABLE: it may run on a different node than where it was compiled)
 RUN mkdir /idg && cd /idg \
-    && git clone https://git.astron.nl/RD/idg.git src \
-    && ( cd src/ && git checkout ${IDG_VERSION} ) \
-    && mkdir build && cd build \
-    && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
-    && ninja install \
-    && cd / && rm -rf idg
+	&& git clone https://git.astron.nl/RD/idg.git src \
+	&& ( cd src/ && git checkout ${IDG_VERSION} ) \
+	&& mkdir build && cd build \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
+	&& ninja install \
+	&& cd / && rm -rf idg
 # Build EveryBeam
 RUN mkdir /everybeam && cd /everybeam \
-    && git clone https://git.astron.nl/RD/EveryBeam.git src \
-    && ( cd src/ && git checkout ${EVERYBEAM_VERSION} ) \
-    && mkdir build && cd build \
-    && cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
-    && ninja install \
-    && cd / && rm -rf everybeam
+	&& git clone https://git.astron.nl/RD/EveryBeam.git src \
+	&& ( cd src/ && git checkout ${EVERYBEAM_VERSION} ) \
+	&& mkdir build && cd build \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+	&& ninja install \
+	&& cd / && rm -rf everybeam
 # Install WSRT Measures (extra casacore data, for integration tests)
 # Note: The file on the ftp site is updated daily. When warnings regarding leap
 # seconds appear, ignore them or regenerate the docker image.
 RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
-    && cd /var/lib/casacore/data \
-    && tar xfz /WSRT_Measures.ztar \
-    && rm /WSRT_Measures.ztar
+	&& cd /var/lib/casacore/data \
+	&& tar xfz /WSRT_Measures.ztar \
+	&& rm /WSRT_Measures.ztar
 # Install pip dependencies
 RUN pip3 install \
-		autosemver==0.5.5 \
-		gcovr \
-		h5py \
-		jsonschema2rst==0.1.0 \
-		sphinx \
-		sphinx-rtd-theme \
+	autosemver==0.5.5 \
+	gcovr \
+	h5py \
+	jsonschema2rst==0.1.0 \
+	sphinx \
+	sphinx-rtd-theme \
 	;
