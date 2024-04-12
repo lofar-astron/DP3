@@ -249,7 +249,7 @@ include_directories(${AOFLAGGER_INCLUDE_DIR})
 # make it somewhat more explicit
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
-  if(${EVERYBEAM_VERSION} VERSION_LESS "0.5.4" OR ${EVERYBEAM_VERSION}
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.5.8" OR ${EVERYBEAM_VERSION}
                                                   VERSION_GREATER_EQUAL "0.6.0")
     message(
       FATAL_ERROR
