@@ -7,12 +7,14 @@
 #include "GainCal.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
+#include <aocommon/xt/span.h>
 #include <xtensor/xadapt.hpp>
 
 #include <Version.h>
@@ -46,6 +48,25 @@ using dp3::base::GainCalAlgorithm;
 using schaapcommon::h5parm::AxisInfo;
 using schaapcommon::h5parm::H5Parm;
 using schaapcommon::h5parm::SolTab;
+
+namespace {
+template <int D, typename T>
+aocommon::xt::Span<T, D> CreateSpanFromCasacore(
+    casacore::Array<T> casacore_array) {
+  if (casacore_array.ndim() != D) {
+    throw std::runtime_error("Number of casacore array dimensions (" +
+                             std::to_string(casacore_array.ndim()) +
+                             ") does not match number of xtensor " +
+                             "dimensions (" + std::to_string(D) + ")");
+  }
+  const casacore::IPosition casacore_shape = casacore_array.shape();
+  std::array<size_t, D> xtensor_shape;
+  for (size_t dimension = 0; dimension < D; dimension++) {
+    xtensor_shape[dimension] = casacore_shape[D - dimension - 1];
+  }
+  return aocommon::xt::CreateSpan(casacore_array.data(), xtensor_shape);
+}
+}  // namespace
 
 namespace dp3 {
 namespace steps {
@@ -534,6 +555,14 @@ void GainCal::fillMatrices(const DPBuffer::DataType& model,
 
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, n_channels, [&](size_t ch) {
+    constexpr size_t kNumDimensions = 6;
+    dp3::base::GainCalAlgorithm& algorithm = algorithms_[ch / itsNChan];
+    aocommon::xt::Span<std::complex<double>, kNumDimensions> visibilities =
+        CreateSpanFromCasacore<6>(algorithm.getVis());
+    aocommon::xt::Span<std::complex<double>, kNumDimensions>
+        model_visibilities =
+            CreateSpanFromCasacore<kNumDimensions>(algorithm.getMVis());
+
     for (size_t bl = 0; bl < n_baselines; ++bl) {
       if (!itsSelectedBL[bl]) {
         continue;
@@ -561,21 +590,18 @@ void GainCal::fillMatrices(const DPBuffer::DataType& model,
         // at (0,0) for cr==0, (1,1) for cr==1
         const size_t n_crDiv = (n_correlations == 4 ? 2 : 1);
 
-        const IPosition index(6, ant1, cr / n_crDiv, itsStepInSolInt,
-                              ch % itsNChan, cr % 2, ant2);
+        visibilities(ant2, cr % 2, ch % itsNChan, itsStepInSolInt, cr / n_crDiv,
+                     ant1) = data(bl, ch, cr) * weight_sqrt;
 
-        algorithms_[ch / itsNChan].getVis()(index) =
-            data(bl, ch, cr) * weight_sqrt;
-        algorithms_[ch / itsNChan].getMVis()(index) =
+        model_visibilities(ant2, cr % 2, ch % itsNChan, itsStepInSolInt,
+                           cr / n_crDiv, ant1) =
             model(bl, ch, cr) * weight_sqrt;
 
-        const IPosition conjugate_index(6, ant2, cr % 2, itsStepInSolInt,
-                                        ch % itsNChan, cr / n_crDiv, ant1);
-
-        // conjugate transpose
-        algorithms_[ch / itsNChan].getVis()(conjugate_index) =
-            std::conj(data(bl, ch, cr)) * weight_sqrt;
-        algorithms_[ch / itsNChan].getMVis()(conjugate_index) =
+        // conjugate transpose along antenna and polarization axes
+        visibilities(ant1, cr / n_crDiv, ch % itsNChan, itsStepInSolInt, cr % 2,
+                     ant2) = std::conj(data(bl, ch, cr)) * weight_sqrt;
+        model_visibilities(ant1, cr / n_crDiv, ch % itsNChan, itsStepInSolInt,
+                           cr % 2, ant2) =
             std::conj(model(bl, ch, cr)) * weight_sqrt;
       }
     }
