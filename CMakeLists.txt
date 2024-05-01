@@ -250,10 +250,10 @@ include_directories(${AOFLAGGER_INCLUDE_DIR})
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
   if(${EVERYBEAM_VERSION} VERSION_LESS "0.5.8" OR ${EVERYBEAM_VERSION}
-                                                  VERSION_GREATER_EQUAL "0.6.0")
+                                                  VERSION_GREATER_EQUAL "0.7.0")
     message(
       FATAL_ERROR
-        "DP3 needs EveryBeam version 0.5.x - with x >= 4 - but found version ${EveryBeam_VERSION}"
+        "DP3 needs EveryBeam version >= 0.5.8 and < 0.7.0 - but found version ${EveryBeam_VERSION}"
     )
   endif()
   # TODO(AST-1336): Remove SYSTEM when EveryBeam no longer includes XTensor headers.
