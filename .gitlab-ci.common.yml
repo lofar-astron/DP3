@@ -106,7 +106,7 @@ build-2004:
     # Build and run DP3
     - mkdir build
     - cd build
-    - cmake -G Ninja -DBUILD_TESTING=On -DBUILD_DP3_BENCHMARKS=ON ..
+    - cmake -G Ninja -DBUILD_TESTING=On ..
     - ninja install
     - DP3
 
@@ -131,7 +131,7 @@ build-debug-2204:
   extends: [".failable",".needs-base-2204"]
   script:
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DBUILD_DP3_BENCHMARKS=ON -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
     - ninja
     - ninja install
   artifacts:
@@ -143,7 +143,7 @@ build-2204:
   extends: [".failable",".needs-base-2204"]
   script:
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DBUILD_DP3_BENCHMARKS=ON ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On ..
     - ninja
     - ninja install
   artifacts:
@@ -319,22 +319,6 @@ integration-test-2204:
       - build/pytest_*.xml
     reports:
       junit: build/pytest_*.xml
-
-benchmark-2204:
-  stage: test
-  extends: .failable
-  needs: ["versioning","build-2204"]
-  image: $BASE_IMAGE_2204
-  script:
-    - cd build
-    # Needed when ran on different containers with different timestamps.
-    # The build may fail when compilers differ between containers for unknown
-    # reasons. Rebuild everything in that case.
-    - if ! ninja; then ninja clean; ninja; fi
-    - ctest -V -L benchmark
-  artifacts:
-    paths:
-    - build/benchmarks/*
 
 deploy-package-2204:
   stage: publish
