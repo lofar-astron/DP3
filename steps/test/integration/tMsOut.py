@@ -4,8 +4,6 @@
 import pytest
 import os
 import re
-import shutil
-import uuid
 from subprocess import check_call
 
 # Append current directory to system path in order to import testconfig
@@ -14,27 +12,14 @@ import sys
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import untar_ms, get_taql_result, check_output
+from utils import check_output, get_taql_result, run_in_tmp_path, untar
 
 MSIN = "tNDPPP-generic.MS"
-CWD = os.getcwd()
 
 
 @pytest.fixture(autouse=True)
-def source_env():
-    os.chdir(CWD)
-    tmpdir = str(uuid.uuid4())
-    os.mkdir(tmpdir)
-    os.chdir(tmpdir)
-
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
-
-    # Tests are executed here
-    yield
-
-    # Post-test: clean up
-    os.chdir(CWD)
-    shutil.rmtree(tmpdir)
+def source_env(run_in_tmp_path):
+    untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
 
 
 def test_chunking():
