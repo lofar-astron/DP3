@@ -2,9 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
-import os
-import shutil
-import uuid
 import numpy as np
 from subprocess import check_call, check_output, run, CalledProcessError
 
@@ -14,7 +11,7 @@ import sys
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, untar_ms
+from utils import assert_taql, run_in_tmp_path, untar
 
 """
 Script can be invoked in two ways:
@@ -25,26 +22,13 @@ Script can be invoked in two ways:
 
 MSIN = "tNDPPP-bda.MS"
 MSIN_REGULAR = "tNDPPP-generic.MS"
-CWD = os.getcwd()
 CORRUPTIONS = 3, 4, 7  # Corruption gain factors per antenna
 
 
 @pytest.fixture(autouse=True)
-def source_env():
-    os.chdir(CWD)
-    tmpdir = str(uuid.uuid4())
-    os.mkdir(tmpdir)
-    os.chdir(tmpdir)
-
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN_REGULAR}.tgz")
-
-    # Tests are executed here
-    yield
-
-    # Post-test: clean up
-    os.chdir(CWD)
-    shutil.rmtree(tmpdir)
+def source_env(run_in_tmp_path):
+    untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
+    untar(f"{tcf.RESOURCEDIR}/{MSIN_REGULAR}.tgz")
 
 
 @pytest.fixture()

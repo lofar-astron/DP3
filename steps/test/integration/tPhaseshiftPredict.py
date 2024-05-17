@@ -1,15 +1,12 @@
 import pytest
-import shutil
-import os
 import sys
-import uuid
 from subprocess import check_call
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import get_taql_result, untar_ms
+from utils import get_taql_result, run_in_tmp_path, untar
 
 """
 Tests for predicting gaussian sources
@@ -24,17 +21,8 @@ MSIN = "tNDPPP-generic.MS"
 
 
 @pytest.fixture(autouse=True)
-def source_env(tmpdir_factory):
-    tmpdir = str(tmpdir_factory.mktemp("data"))
-    os.chdir(tmpdir)
-
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
-
-    # Tests are executed here
-    yield
-
-    # Post-test: clean up
-    shutil.rmtree(tmpdir)
+def source_env(run_in_tmp_path):
+    untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
 
 
 testdata = [

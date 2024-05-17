@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-These tests are checking the python bindings of the DP3::makeMainSteps function. 
+These tests are checking the python bindings of the DP3::makeMainSteps function.
 
 Script can be invoked in two ways:
 - as standalone from the build/pythondp3/test/integration directory,
@@ -21,7 +21,7 @@ import testconfig as tcf
 
 sys.path.insert(0, tcf.PYTHONDIR)
 
-from utils import assert_taql, untar_ms
+from utils import assert_taql, run_in_tmp_path, untar
 
 try:
     "The import may fail while running pytest --collect-only"
@@ -30,34 +30,20 @@ except ImportError:
     pass
 
 MSIN = "tNDPPP-generic.MS"
-CWD = os.getcwd()
 
 
-@pytest.fixture(autouse=True)
-def source_env(tmp_path):
-    os.chdir(tmp_path)
-
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
-
-    # Tests are executed here
-    yield
-
-    # Post-test: clean up
-    os.chdir(CWD)
-
-
-def test_make_main_steps(tmp_path):
+def test_make_main_steps(run_in_tmp_path):
     """
     This test creates an input, averaging and output step by calling the
     make_main_steps() factory function.
     """
 
-    msout = str(tmp_path / "averaged_tmp.MS")
+    untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
 
     parset = dp3.parameterset.ParameterSet()
 
     parset.add("msin", MSIN)
-    parset.add("msout", msout)
+    parset.add("msout", "averaged_tmp.MS")
     parset.add("msout.overwrite", "true")
     parset.add("steps", "[average]")
     parset.add("average.timestep", "2")

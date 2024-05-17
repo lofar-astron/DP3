@@ -942,7 +942,7 @@ if(BUILD_TESTING)
 
     configure_file(${CMAKE_SOURCE_DIR}/scripts/test/testconfig.py.in
                    testconfig.py)
-    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py.in utils.py)
+    configure_file(${CMAKE_SOURCE_DIR}/scripts/test/utils.py utils.py COPYONLY)
 
     # The 'source' symbolic link simplifies running the tests manually inside
     # ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'source/tApplyBeam.sh' instead

@@ -2,17 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
-import shutil
-import os
 import sys
-import uuid
 from subprocess import check_call
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, untar_ms
+from utils import assert_taql, run_in_tmp_path, untar
 
 """
 Script can be invoked in two ways:
@@ -27,25 +24,12 @@ Script can be invoked in two ways:
 
 MSIN_REGULAR = "tNDPPP-generic.MS"
 MSIN_BDA = "tNDPPP-bda.MS"
-CWD = os.getcwd()
 
 
 @pytest.fixture(autouse=True)
-def source_env():
-    os.chdir(CWD)
-    tmpdir = str(uuid.uuid4())
-    os.mkdir(tmpdir)
-    os.chdir(tmpdir)
-
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN_REGULAR}.tgz")
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN_BDA}.tgz")
-
-    # Tests are executed here
-    yield
-
-    # Post-test: clean up
-    os.chdir(CWD)
-    shutil.rmtree(tmpdir)
+def source_env(run_in_tmp_path):
+    untar(f"{tcf.RESOURCEDIR}/{MSIN_REGULAR}.tgz")
+    untar(f"{tcf.RESOURCEDIR}/{MSIN_BDA}.tgz")
 
 
 @pytest.fixture()

@@ -2,9 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
-import os
-import shutil
-import uuid
 from subprocess import check_call, check_output, CalledProcessError, STDOUT
 import numpy as np
 
@@ -15,7 +12,7 @@ sys.path.append(".")
 
 import testconfig as tcf
 from testconfig import TAQLEXE
-from utils import assert_taql, untar_ms, get_taql_result
+from utils import assert_taql, run_in_tmp_path, untar, get_taql_result
 
 """
 Script can be invoked in two ways:
@@ -27,31 +24,18 @@ Script can be invoked in two ways:
 IDG_RESOURCES = "idg-fits-sources.tbz2"
 MSINTGZ = "tDDECal.in_MS.tgz"
 MSIN = "tDDECal.MS"
-CWD = os.getcwd()
 
 
 @pytest.fixture(autouse=True)
-def source_env():
-    os.chdir(CWD)
-    tmpdir = str(uuid.uuid4())
-    os.mkdir(tmpdir)
-    os.chdir(tmpdir)
-
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSINTGZ}")
+def source_env(run_in_tmp_path):
+    untar(f"{tcf.RESOURCEDIR}/{MSINTGZ}")
     check_call([tcf.MAKESOURCEDBEXE, f"in={MSIN}/sky.txt", f"out={MSIN}/sky"])
-
-    # Tests are executed here
-    yield
-
-    # Post-test: clean up
-    os.chdir(CWD)
-    shutil.rmtree(tmpdir)
 
 
 @pytest.fixture()
 def idgpredict_env():
     """Extract data for testing DDECal with IDGPredict"""
-    untar_ms(f"{tcf.DDECAL_RESOURCEDIR}/{IDG_RESOURCES}")
+    untar(f"{tcf.DDECAL_RESOURCEDIR}/{IDG_RESOURCES}")
 
 
 @pytest.fixture()

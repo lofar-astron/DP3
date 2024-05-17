@@ -2,17 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
-import shutil
-import os
 import sys
-import uuid
 from subprocess import check_call
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, untar_ms
+from utils import assert_taql, run_in_tmp_path, untar
 
 """
 Tests for applying the beam model.
@@ -24,7 +21,6 @@ Script can be invoked in two ways:
 """
 
 MSIN = "tDemix.in_MS"
-CWD = os.getcwd()
 
 common_args = [
     "msin=tDemix_tmp/tDemix.MS",
@@ -47,13 +43,8 @@ skymodel_arg = "demix.skymodel='tDemix_tmp/{}'"
 
 
 @pytest.fixture(autouse=True)
-def source_env():
-    os.chdir(CWD)
-    tmpdir = str(uuid.uuid4())
-    os.mkdir(tmpdir)
-    os.chdir(tmpdir)
-
-    untar_ms(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
+def source_env(run_in_tmp_path):
+    untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
     check_call(
         [
             tcf.MAKESOURCEDBEXE,
@@ -61,13 +52,6 @@ def source_env():
             "out=tDemix_tmp/sourcedb",
         ]
     )
-
-    # Tests are executed here
-    yield
-
-    # Post-test: clean up
-    os.chdir(CWD)
-    shutil.rmtree(tmpdir)
 
 
 @pytest.mark.parametrize("skymodel", ["sky.txt", "sourcedb"])
