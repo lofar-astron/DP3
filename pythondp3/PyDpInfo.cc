@@ -173,7 +173,10 @@ The start time equals the first time minus half a time interval)")
 
       /* Other properties */
       .def_property("ms_name", &DPInfo::msName, &DPInfo::setMsName,
-                    "The name of the measurement set");
+                    "The name of the measurement set")
+      .def_property("polarizations", &DPInfo::polarizations,
+                    &DPInfo::setPolarizations,
+                    "Polarizations of the measurement set");
 }
 
 }  // namespace pythondp3

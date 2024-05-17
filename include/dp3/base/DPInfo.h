@@ -9,6 +9,10 @@
 #ifndef DP3_BASE_DPINFO_H_
 #define DP3_BASE_DPINFO_H_
 
+#include <set>
+
+#include <aocommon/polarization.h>
+
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MeasureHolder.h>
@@ -127,6 +131,11 @@ class DPInfo {
 
   void setPhaseCenter(const casacore::MDirection& phase_center) {
     phase_center_ = phase_center;
+  }
+
+  void setPolarizations(
+      const std::set<aocommon::PolarizationEnum>& polarizations) {
+    polarizations_ = polarizations;
   }
 
   /// Get the info.
@@ -258,6 +267,10 @@ class DPInfo {
   /// Determine if the channels have a regular layout.
   bool channelsAreRegular() const;
 
+  const std::set<aocommon::PolarizationEnum>& polarizations() const {
+    return polarizations_;
+  }
+
  private:
   /// Set which antennae are actually used.
   void setAntUsed();
@@ -317,6 +330,7 @@ class DPInfo {
   mutable std::vector<double> baseline_lengths_;
   /// For each antenna, the auto correlation index.
   mutable std::vector<int> auto_correlation_indices_;
+  std::set<aocommon::PolarizationEnum> polarizations_;
 };
 
 }  // namespace base

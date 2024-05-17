@@ -686,6 +686,29 @@ void MSReader::prepare2(int spectralWindow) {
                        std::vector<double>(effbwBegin, effbwBegin + itsNrChan),
                        refFreq, spectralWindow);
   }
+
+  std::set<aocommon::PolarizationEnum> polarizations;
+  casacore::MSDataDescription data_description_table = itsMS.dataDescription();
+  casacore::ScalarColumn<int> polarization_index_column(
+      data_description_table,
+      casacore::MSDataDescription::columnName(
+          casacore::MSDataDescription::POLARIZATION_ID));
+  const size_t polarization_index = polarization_index_column(spectralWindow);
+  // Populate the polarization
+  casacore::MSPolarization pol_table = itsMS.polarization();
+  casacore::ArrayColumn<int> corr_type_column(
+      pol_table, casacore::MSPolarization::columnName(
+                     casacore::MSPolarizationEnums::CORR_TYPE));
+  casacore::Array<int> corr_type_vec(corr_type_column(polarization_index));
+  for (casacore::Array<int>::const_contiter p = corr_type_vec.cbegin();
+       p != corr_type_vec.cend(); ++p) {
+    polarizations.emplace(aocommon::Polarization::AipsIndexToEnum(*p));
+  }
+  if (polarizations.size() != 4) {
+    throw std::runtime_error(
+        "DP3 expects a measurement set with 4 polarizations");
+  }
+  info().setPolarizations(polarizations);
 }
 
 void MSReader::skipFirstTimes() {
