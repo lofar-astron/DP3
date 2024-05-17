@@ -54,7 +54,8 @@ DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
       resolutions_(1),          // can retrieve a first list.
       effective_bandwidth_(1),
       total_bandwidth_(0.0),
-      spectral_window_(0) {}
+      spectral_window_(0),
+      polarizations_() {}
 
 void DPInfo::setTimes(double first_time, double last_time,
                       double time_interval) {
