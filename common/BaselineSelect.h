@@ -33,23 +33,21 @@ namespace common {
 
 class BaselineSelect {
  public:
-  /// Parse the MSSelection baseline string and create a Matrix telling
+  /// Parse an MSSelection baseline string and create a Matrix telling
   /// which baselines are selected.
-  /// Possible messages from the parser are written to the ostream.
-  static casacore::Matrix<bool> convert(const string& msName,
-                                        const string& baselineSelection,
-                                        std::ostream&);
-
-  /// Parse the MSSelection baseline string and create a Matrix telling
-  /// which baselines are selected.
-  /// The input is a vector of station names and positions.
-  /// Possible messages from the parser are written to the ostream.
+  /// @param names Name for each station/antenna.
+  /// @param positions Position for each station/antenna.
+  /// @param antenna1 For each baseline, the index of the first antenna.
+  /// @param antenna2 For each baseline, the index of the second antenna.
+  /// @param baseline_selection Selection string in MSSelection format.
+  /// @param os Possible messages from the parser are written to this stream.
+  /// @return An n_stations x n_stations Matrix, which holds true for selected
+  //          baselines and false for the other baselines.
   static casacore::Matrix<bool> convert(
-      const casacore::Vector<casacore::String>& names,
-      const std::vector<casacore::MPosition>& pos,
-      const casacore::Vector<casacore::Int>& ant1,
-      const casacore::Vector<casacore::Int>& ant2,
-      const string& baselineSelection, std::ostream&);
+      const std::vector<std::string>& names,
+      const std::vector<casacore::MPosition>& positions,
+      const std::vector<int>& antenna1, const std::vector<int>& antenna2,
+      const std::string& baseline_selection, std::ostream&);
 
  private:
   static casacore::Matrix<bool> convert(casacore::Table& anttab,

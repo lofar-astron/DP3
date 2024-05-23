@@ -134,7 +134,6 @@ def test_time_freq_resolution(demix_ms):
     assert_taql(taql_command)
 
 
-@pytest.mark.skip(reason="Issue #268 is not fixed yet")
 def test_multiple_baseline_selection(generic_ms):
     # Test for https://git.astron.nl/RD/DP3/-/issues/268, where the baseline
     # selection for demix was already applied using msin and filter.
