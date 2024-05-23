@@ -71,19 +71,19 @@ void BaselineSelection::show(std::ostream& os,
 
 Matrix<bool> BaselineSelection::apply(const DPInfo& info) const {
   // Size and initialize the selection matrix.
-  int nant = info.antennaNames().size();
-  Matrix<bool> selectBL(nant, nant, true);
+  const std::size_t n_antennas = info.antennaNames().size();
+  Matrix<bool> selection(n_antennas, n_antennas, true);
   // Apply the various parts if given.
   if (!itsStrBL.empty() && itsStrBL != "[]") {
-    handleBL(selectBL, info);
+    handleBL(selection, info);
   }
   if (!itsCorrType.empty()) {
-    handleCorrType(selectBL);
+    handleCorrType(selection);
   }
   if (!itsRangeBL.empty()) {
-    handleLength(selectBL, info);
+    handleLength(selection, info);
   }
-  return selectBL;
+  return selection;
 }
 
 casacore::Vector<bool> BaselineSelection::applyVec(const DPInfo& info) const {
@@ -125,24 +125,16 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
                                              info.antennaNames()));
   } else {
     // Specified in casacore's MSSelection format.
-    string msName = info.msName();
-    if (msName.empty()) throw std::runtime_error("Empty measurement set name");
     std::ostringstream os;
-    Matrix<bool> sel(common::BaselineSelect::convert(msName, itsStrBL, os));
+    const casacore::Matrix<bool> sel = common::BaselineSelect::convert(
+        info.antennaNames(), info.antennaPos(), info.getAnt1(), info.getAnt2(),
+        itsStrBL, os);
     // Show possible messages about unknown stations.
     if (!os.str().empty()) {
       Logger::Warn << os.str();
     }
-    // The resulting matrix can be smaller because new stations might have
-    // been added that are not present in the MS's ANTENNA table.
-    if (sel.nrow() == selectBL.nrow()) {
-      selectBL = selectBL && sel;
-    } else {
-      // Only and the subset.
-      Matrix<bool> selBL =
-          selectBL(IPosition(2, 0), IPosition(2, sel.nrow() - 1));
-      selBL = selBL && sel;
-    }
+    assert(sel.nrow() == selectBL.nrow());
+    selectBL = selectBL && sel;
   }
 }
 
