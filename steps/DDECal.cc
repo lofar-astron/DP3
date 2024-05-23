@@ -90,7 +90,7 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
 
   if (parset.isDefined(prefix + "solutions_per_direction")) {
     itsSolutionsPerDirection =
-        parset.getUint64Vector(prefix + "solutions_per_direction");
+        parset.getSizeTVector(prefix + "solutions_per_direction");
   }
 
   if (itsSolutionsPerDirection.size() > itsDirections.size()) {

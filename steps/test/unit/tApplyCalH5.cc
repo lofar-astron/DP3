@@ -21,7 +21,6 @@
 #include "../../../common/StringTools.h"
 #include "../../../common/StreamUtil.h"
 
-using casacore::max;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
@@ -361,13 +360,13 @@ void createH5Parm(std::vector<double> times, std::vector<double> freqs,
   soltab.SetFreqs(freqs);
   soltab.SetAntennas(antNames);
 
-  unsigned int ntimes = max(times.size(), 1);
-  unsigned int nfreqs = max(freqs.size(), 1);
+  const size_t ntimes = std::max<size_t>(times.size(), 1u);
+  const size_t nfreqs = std::max<size_t>(freqs.size(), 1u);
   std::vector<double> values(ntimes * nfreqs * nAntennas);
   std::vector<double> weights(ntimes * nfreqs * nAntennas);
-  for (unsigned int ant = 0; ant < nAntennas; ++ant) {
-    for (unsigned int t = 0; t < ntimes; ++t) {
-      for (unsigned int f = 0; f < nfreqs; ++f) {
+  for (size_t ant = 0; ant < nAntennas; ++ant) {
+    for (size_t t = 0; t < ntimes; ++t) {
+      for (size_t f = 0; f < nfreqs; ++f) {
         values[ant * ntimes * nfreqs + t * nfreqs + f] =
             1. / (100. * (t % 100) + (1 + f));
         weights[ant * ntimes * nfreqs + t * nfreqs + f] = 1.;
