@@ -293,6 +293,20 @@ class ParameterSet {
   std::vector<uint64_t> getUint64Vector(const std::string& aKey,
                                         const std::vector<uint64_t>& aValue,
                                         bool expandable = false) const;
+  std::vector<size_t> getSizeTVector(const std::string& aKey,
+                                     bool expandable = false) const {
+    static_assert(sizeof(size_t) == 8 || sizeof(size_t) == 4);
+    // Lambda is necessary because returning the wrong type won't compile in the
+    // main function, even when inside a if constexpr.
+    auto pick_overload = [&](const std::string& aKey, bool expandable = false) {
+      if constexpr (sizeof(size_t) == 8) {
+        return getUint64Vector(aKey, expandable);
+      } else if constexpr (sizeof(size_t) == 4) {
+        return getUint32Vector(aKey, expandable);
+      }
+    };
+    return pick_overload(aKey, expandable);
+  }
   std::vector<float> getFloatVector(const std::string& aKey,
                                     bool expandable = false) const;
   std::vector<float> getFloatVector(const std::string& aKey,
