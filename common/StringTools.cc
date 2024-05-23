@@ -223,11 +223,10 @@ double strToDouble(const std::string& aString) {
   return val;
 }
 
-static_assert(sizeof(int64_t) == sizeof(long) ||
-                  sizeof(int64_t) != sizeof(long long),
-              "strToInt64: sizeof(int64) cannot be handled");
-
 int64_t strToInt64(const std::string& aString) {
+  static_assert(
+      sizeof(int64_t) == sizeof(long) || sizeof(int64_t) == sizeof(long long),
+      "strToInt64: sizeof(int64) cannot be handled");
   if (sizeof(int64_t) == sizeof(long)) return strToLong(aString);
   const char* str = aString.c_str();
   int st = lskipws(aString, 0, aString.size());
@@ -251,11 +250,10 @@ int64_t strToInt64(const std::string& aString) {
   return val;
 }
 
-static_assert(sizeof(int64_t) == sizeof(long) ||
-                  sizeof(int64_t) != sizeof(long long),
-              "strToUint64: sizeof(uint64) cannot be handled");
-
 uint64_t strToUint64(const std::string& aString) {
+  static_assert(
+      sizeof(int64_t) == sizeof(long) || sizeof(int64_t) == sizeof(long long),
+      "strToUint64: sizeof(uint64) cannot be handled");
   if (sizeof(uint64_t) == sizeof(unsigned long)) return strToUlong(aString);
   const char* str = aString.c_str();
   int st = lskipws(aString, 0, aString.size());
