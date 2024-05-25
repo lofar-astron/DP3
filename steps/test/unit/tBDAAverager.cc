@@ -804,9 +804,9 @@ BOOST_AUTO_TEST_CASE(max_interval) {
   averager.setNextStep(mock_step);
 
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    BOOST_TEST(averager.process(
-        std::move(CreateBuffer(kStartTime + i * kInterval, kInterval,
-                               kNBaselines, kChannelCounts, 0.0))));
+    BOOST_TEST(
+        averager.process(CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                      kNBaselines, kChannelCounts, 0.0)));
     BOOST_TEST(mock_step->GetBdaBuffers().size() == (i + 1) / kFactor);
   }
 
