@@ -6,28 +6,71 @@
 
 #include "BaselineSelection.h"
 
+#include <vector>
+
 #include <boost/algorithm/string.hpp>
 
-#include <casacore/casa/Utilities/Regex.h>
 #include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Utilities/Regex.h>
+#include <casacore/casa/version.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/ms/MeasurementSets/MSAntenna.h>
+#include <casacore/ms/MeasurementSets/MSAntennaColumns.h>
+#include <casacore/ms/MSSel/MSAntennaGram.h>
+#include <casacore/tables/Tables/ScaColDesc.h>
+#include <casacore/tables/Tables/SetupNewTab.h>
+#include <casacore/tables/Tables/Table.h>
 
-#include "../common/BaselineSelect.h"
+#include <aocommon/logger.h>
+
 #include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"
 #include "../common/StreamUtil.h"
 
-#include <vector>
-
-#include <aocommon/logger.h>
-
 using casacore::IPosition;
 using casacore::Matrix;
+using casacore::MS;
+using casacore::MSAntenna;
+using casacore::MSAntennaParse;
+using casacore::SetupNewTable;
+using casacore::Table;
 using dp3::common::operator<<;
 
 using aocommon::Logger;
 
 namespace dp3 {
 namespace base {
+
+LogAntennaParseErrors::LogAntennaParseErrors()
+    : old_handler_(MSAntennaParse::thisMSAErrorHandler) {
+  // The new handler logs all errors as warnings and does not throw exceptions.
+  class ErrorHandler : public casacore::MSSelectionErrorHandler {
+   public:
+    ErrorHandler() = default;
+    ~ErrorHandler() override = default;
+    void reportError(const char* token,
+                     const casacore::String message) override {
+      Logger::Warn << message << token << '\n';
+    }
+  };
+
+  // This syntax works both when ErrorHandlerPointer is a raw pointer
+  // (casacore < 3.1.2) and when it's a smart pointer.
+  MSAntennaParse::thisMSAErrorHandler = ErrorHandlerPointer(new ErrorHandler());
+}
+
+LogAntennaParseErrors::~LogAntennaParseErrors() {
+#if CASACORE_MAJOR_VERSION < 3 ||    \
+    (CASACORE_MAJOR_VERSION == 3 &&  \
+     (CASACORE_MINOR_VERSION == 0 || \
+      (CASACORE_MINOR_VERSION == 1 && CASACORE_PATCH_VERSION < 2)))
+  // In casacore < 3.1.2 thisMSAErrorHandler is a raw pointer,
+  // From casacore 3.1.2. it's a CountedPtr or another smart pointer.
+  delete MSAntennaParse::thisMSAErrorHandler;
+#endif
+
+  MSAntennaParse::thisMSAErrorHandler = old_handler_;
+}
 
 BaselineSelection::BaselineSelection() {}
 
@@ -125,17 +168,79 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
                                              info.antennaNames()));
   } else {
     // Specified in casacore's MSSelection format.
-    std::ostringstream os;
-    const casacore::Matrix<bool> sel = common::BaselineSelect::convert(
-        info.antennaNames(), info.antennaPos(), info.getAnt1(), info.getAnt2(),
-        itsStrBL, os);
-    // Show possible messages about unknown stations.
-    if (!os.str().empty()) {
-      Logger::Warn << os.str();
-    }
-    assert(sel.nrow() == selectBL.nrow());
-    selectBL = selectBL && sel;
+    selectBL = selectBL && HandleMsSelection(info);
   }
+}
+
+Matrix<bool> BaselineSelection::HandleMsSelection(const DPInfo& info) const {
+  const casacore::String& antenna1_string = MS::columnName(MS::ANTENNA1);
+  const casacore::String& antenna2_string = MS::columnName(MS::ANTENNA2);
+
+  // Create a temporary MSAntenna table in memory for parsing purposes.
+  SetupNewTable antenna_setup(casacore::String(),
+                              MSAntenna::requiredTableDesc(), Table::New);
+  Table antenna_table(antenna_setup, Table::Memory, info.antennaNames().size());
+  MSAntenna ms_antenna(antenna_table);
+  casacore::MSAntennaColumns ms_antenna_columns(ms_antenna);
+  for (size_t i = 0; i < info.antennaNames().size(); ++i) {
+    ms_antenna_columns.name().put(i, info.antennaNames()[i]);
+    ms_antenna_columns.positionMeas().put(i, info.antennaPos()[i]);
+  }
+
+  // Create a temporary table holding the antenna numbers of the baselines.
+  casacore::TableDesc table_description;
+  table_description.addColumn(casacore::ScalarColumnDesc<int>(antenna1_string));
+  table_description.addColumn(casacore::ScalarColumnDesc<int>(antenna2_string));
+  SetupNewTable setup(casacore::String(), table_description, Table::New);
+  Table table(setup, Table::Memory, info.nbaselines());
+  casacore::ScalarColumn<int> column1(table, antenna1_string);
+  casacore::ScalarColumn<int> column2(table, antenna2_string);
+  for (size_t i = 0; i < info.nbaselines(); ++i) {
+    column1.put(i, info.getAnt1()[i]);
+    column2.put(i, info.getAnt2()[i]);
+  }
+
+  // Do the selection using the temporary tables.
+  casacore::TableExprNode antenna_node1 = table.col(antenna1_string);
+  casacore::TableExprNode antenna_node2 = table.col(antenna2_string);
+
+  casacore::Vector<int> selected_antennas1;
+  casacore::Vector<int> selected_antennas2;
+  {
+    // Overwrite the error handler to ignore errors for unknown antennas.
+    dp3::base::LogAntennaParseErrors ignore_antenna_errors;
+
+    // Parse the selection.
+    // 'selected_antennas[12]' will contain the selected antenna indices.
+    // 'selected_baselines' becomes an n x 2 matrix with the antenna indices
+    // for each selected baseline.
+    Matrix<int> selected_baselines;
+    casacore::TableExprNode selection_node =
+        casacore::msAntennaGramParseCommand(
+            antenna_table, antenna_node1, antenna_node2, itsStrBL,
+            selected_antennas1, selected_antennas2, selected_baselines);
+
+    // msAntennaGramParseCommand may put negative indices (with unknown
+    // semantics) into 'selected_antennas[12]' and 'selected_baselines'.
+    // -> Apply 'selection_node' and extract the correct antenna indices.
+    Table selection_table = table(selection_node);
+    selected_antennas1 =
+        casacore::ScalarColumn<int>(selection_table, antenna1_string)
+            .getColumn();
+    selected_antennas2 =
+        casacore::ScalarColumn<int>(selection_table, antenna2_string)
+            .getColumn();
+  }
+
+  // Convert selected_antennas[12] to a selection matrix.
+  Matrix<bool> selection(info.nantenna(), info.nantenna(), false);
+  for (size_t bl = 0; bl < selected_antennas1.size(); ++bl) {
+    const int a1 = selected_antennas1[bl];
+    const int a2 = selected_antennas2[bl];
+    selection(a1, a2) = true;
+    selection(a2, a1) = true;
+  }
+  return selection;
 }
 
 Matrix<bool> BaselineSelection::handleBLVector(

@@ -35,12 +35,11 @@
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include "../base/MS.h"
-
-#include "../common/ParameterSet.h"
-#include "../common/BaselineSelect.h"
-
 #include <aocommon/logger.h>
+
+#include "../base/BaselineSelection.h"
+#include "../base/MS.h"
+#include "../common/ParameterSet.h"
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;
@@ -132,45 +131,21 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
     MSSelection select;
 
     // Overwrite the error handler to ignore errors for unknown antennas.
-    // Borrowed from BaselineSelect.cc
-    std::ostringstream os;
-    auto curHandler = MSAntennaParse::thisMSAErrorHandler;
-#if CASACORE_MAJOR_VERSION < 3 ||    \
-    (CASACORE_MAJOR_VERSION == 3 &&  \
-     (CASACORE_MINOR_VERSION == 0 || \
-      (CASACORE_MINOR_VERSION == 1 && CASACORE_PATCH_VERSION < 2)))
-    // In casacore < 3.1.2 thisMSAErrorHandler is a raw pointer,
-    // From casacore 3.1.2. it's a CountedPtr
-    common::BaselineSelectErrorHandler errorHandler(os);
-    MSAntennaParse::thisMSAErrorHandler = &errorHandler;
-#else
-    // After casacore 3.5.0, the type of MSAntennaParse::thisMSAErrorHandler
-    // changed again from a CountedPtr to a unique_ptr, so derive the
-    // appropriate type:
-    using CasacorePointerType = decltype(MSAntennaParse::thisMSAErrorHandler);
-    CasacorePointerType errorHandler(
-        new common::BaselineSelectErrorHandler(os));
-    MSAntennaParse::thisMSAErrorHandler = std::move(errorHandler);
-#endif
+    // First construct MSSelection, because it resets the error handler.
+    dp3::base::LogAntennaParseErrors ignore_unknown_antennas;
 
     // Set given selection strings.
-    try {
-      select.setAntennaExpr(itsSelBL);
-      // Create a table expression for an MS representing the selection.
-      MeasurementSet ms(itsSelMS);
-      TableExprNode node = select.toTableExprNode(&ms);
-      Table subset = itsSelMS(node);
-      // If not all is selected, use the selection.
-      if (subset.nrow() < itsSelMS.nrow()) {
-        if (subset.nrow() <= 0)
-          throw std::runtime_error("Baselines " + itsSelBL + "not found in " +
-                                   msName());
-        itsSelMS = subset;
-      }
-      MSAntennaParse::thisMSAErrorHandler = curHandler;
-    } catch (const std::exception&) {
-      MSAntennaParse::thisMSAErrorHandler = curHandler;
-      throw;
+    select.setAntennaExpr(itsSelBL);
+    // Create a table expression for an MS representing the selection.
+    MeasurementSet ms(itsSelMS);
+    TableExprNode node = select.toTableExprNode(&ms);
+    Table subset = itsSelMS(node);
+    // If not all is selected, use the selection.
+    if (subset.nrow() < itsSelMS.nrow()) {
+      if (subset.nrow() <= 0)
+        throw std::runtime_error("Baselines " + itsSelBL + "not found in " +
+                                 msName());
+      itsSelMS = subset;
     }
   }
   // Prepare the MS access and get time info.

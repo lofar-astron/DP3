@@ -1,18 +1,20 @@
 // BaselineSelection.h: Class to handle the baseline selection
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
 /// @brief Class to handle the baseline selection
 /// @author Ger van Diepen
 
-#ifndef DPPP_BASELINESELECTION_H
-#define DPPP_BASELINESELECTION_H
+#ifndef DP3_BASELINESELECTION_H_
+#define DP3_BASELINESELECTION_H_
 
 #include <dp3/base/DPInfo.h>
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/ms/MSSel/MSAntennaParse.h>
+#include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
 
 namespace dp3 {
 namespace common {
@@ -21,6 +23,24 @@ class ParameterValue;
 }  // namespace common
 
 namespace base {
+
+/// RAII object for temporarily overriding MSAntennaParse::thisMSAErrorHandler.
+class LogAntennaParseErrors {
+ public:
+  /// Constructor. Set MSAntennaParse::thisMSAErrorHandler to a handler
+  /// which forwards all errors as warnings to the Logger.
+  LogAntennaParseErrors();
+
+  /// Destructor. Restores the original MSAntennaParse::thisMSAErrorHandler
+  /// and cleans up the temporary installed handler.
+  ~LogAntennaParseErrors();
+
+ private:
+  // Different casacore versions use different (smart) pointer types.
+  using ErrorHandlerPointer =
+      decltype(casacore::MSAntennaParse::thisMSAErrorHandler);
+  ErrorHandlerPointer old_handler_;
+};
 
 /// \brief Class containing a few static functions to parse a baseline selection
 /// string.
@@ -62,6 +82,9 @@ class BaselineSelection {
   /// Convert the baseline selection string.
   void handleBL(casacore::Matrix<bool>& selectBL, const DPInfo& info) const;
 
+  /// Handle an MSSelection string.
+  casacore::Matrix<bool> HandleMsSelection(const DPInfo& info) const;
+
   /// Handle a vector of baseline specifications.
   casacore::Matrix<bool> handleBLVector(
       const common::ParameterValue& pvBL,
@@ -73,8 +96,8 @@ class BaselineSelection {
   /// Handle the baseline length selection.
   void handleLength(casacore::Matrix<bool>& selectBL, const DPInfo& info) const;
 
-  string itsStrBL;
-  string itsCorrType;
+  std::string itsStrBL;
+  std::string itsCorrType;
   std::vector<double> itsRangeBL;
 };
 

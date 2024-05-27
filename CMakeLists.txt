@@ -378,7 +378,6 @@ add_library(
 # 'Common' files are included in all executables and libraries.
 add_library(
   Common OBJECT
-  common/BaselineSelect.cc
   common/ClusterDesc.cc
   common/DataConvert.cc
   common/Fields.cc

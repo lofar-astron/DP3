@@ -12,7 +12,6 @@
 #include "../base/MS.h"
 
 #include "../common/ParameterSet.h"
-#include "../common/BaselineSelect.h"
 
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/tables/Tables/TableRecord.h>
