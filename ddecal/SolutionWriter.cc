@@ -52,14 +52,14 @@ void SolutionWriter::Write(
         solutions,
     const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
         constraint_solutions,
-    const double start_time, const double solution_interval,
-    const base::CalType mode,
+    const double start_time, const double end_time, const double ms_interval,
+    const double solution_interval, const base::CalType mode,
     const std::vector<std::string>& used_antenna_names,
     const std::vector<base::Direction>& source_directions,
     const std::vector<std::vector<std::string>>& directions,
     const std::vector<double>& chan_freqs,
     const std::vector<double>& chan_block_freqs, const std::string& history) {
-  const size_t n_times = solutions.size();
+  size_t n_times = solutions.size();
   const size_t n_channel_blocks = chan_block_freqs.size();
   const size_t n_antennas = used_antenna_names.size();
   const size_t n_directions = directions.size();
@@ -73,9 +73,16 @@ void SolutionWriter::Write(
   }
   h5parm_.AddSources(direction_names, h5_source_directions);
 
+  const double kTimeLimit =
+      end_time + 0.5 * solution_interval + 0.5 * ms_interval;
   std::vector<double> sol_times(n_times);
   for (size_t t = 0; t < n_times; ++t) {
     sol_times[t] = start_time + (t + 0.5) * solution_interval;
+    if (sol_times[t] > kTimeLimit) {
+      n_times = t + 1;
+      sol_times.resize(n_times);
+      break;
+    }
   }
 
   if (constraint_solutions.empty() || constraint_solutions.front().empty()) {
@@ -103,8 +110,8 @@ void SolutionWriter::Write(
     const size_t n_solutions =
         n_times * n_channel_blocks * n_antennas * n_directions * n_pol;
     contiguous_solutions.reserve(n_solutions);
-    for (const auto& time_solution : solutions) {
-      for (const auto& block_solution : time_solution) {
+    for (size_t i = 0; i < n_times; i++) {
+      for (const auto& block_solution : solutions[i]) {
         contiguous_solutions.insert(contiguous_solutions.end(),
                                     block_solution.begin(),
                                     block_solution.end());

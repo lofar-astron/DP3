@@ -836,11 +836,11 @@ void DDECal::WriteSolutions() {
   const size_t n_solutions = std::accumulate(
       itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
   if (n_solutions == n_directions) {
-    itsSolutionWriter.Write(itsSols, itsConstraintSols, info().startTime(),
-                            info().timeInterval() * itsRequestedSolInt,
-                            itsSettings.mode, used_antenna_names,
-                            itsSourceDirections, itsDirections,
-                            info().chanFreqs(), itsChanBlockFreqs, history);
+    itsSolutionWriter.Write(
+        itsSols, itsConstraintSols, info().startTime(), info().lastTime(),
+        info().timeInterval(), info().timeInterval() * itsRequestedSolInt,
+        itsSettings.mode, used_antenna_names, itsSourceDirections,
+        itsDirections, info().chanFreqs(), itsChanBlockFreqs, history);
   } else {
     const size_t n_antennas = used_antenna_names.size();
     ddecal::SolutionResampler resampler(itsSolutionsPerDirection, n_antennas,
@@ -853,6 +853,7 @@ void DDECal::WriteSolutions() {
         upsampled_solutions = resampler.Upsample(itsSols);
     itsSolutionWriter.Write(
         upsampled_solutions, itsConstraintSols, info().startTime(),
+        info().lastTime(), info().timeInterval(),
         info().timeInterval() * solution_interval, itsSettings.mode,
         used_antenna_names, itsSourceDirections, itsDirections,
         info().chanFreqs(), itsChanBlockFreqs, history);

@@ -624,9 +624,10 @@ void BdaDdeCal::WriteSolutions() {
                               settings_.parset_string;
 
   solution_writer_->Write(
-      solutions_, constraint_solutions_, info().startTime(), solution_interval_,
-      settings_.mode, used_antenna_names, GetSourceDirections(), patches_,
-      info().chanFreqs(), GetChannelBlockFrequencies(), history);
+      solutions_, constraint_solutions_, info().startTime(), info().lastTime(),
+      info().timeInterval(), solution_interval_, settings_.mode,
+      used_antenna_names, GetSourceDirections(), patches_, info().chanFreqs(),
+      GetChannelBlockFrequencies(), history);
 
   write_timer_.stop();
   timer_.stop();
