@@ -38,7 +38,8 @@ class SolutionWriter {
           solutions,
       const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
           constraint_solutions,
-      double start_time, double solution_interval, base::CalType mode,
+      const double start_time, const double end_time, const double ms_interval,
+      const double solution_interval, base::CalType mode,
       const std::vector<std::string>& used_antenna_names,
       const std::vector<base::Direction>& source_directions,
       const std::vector<std::vector<std::string>>& directions,

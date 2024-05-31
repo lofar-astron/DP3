@@ -741,6 +741,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolverFactory.cc
       ddecal/test/unit/tSolvers.cc
       ddecal/test/unit/tSolverTools.cc
+      ddecal/test/unit/tSolutionWriter.cc
       ddecal/test/unit/tTECConstraint.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc
