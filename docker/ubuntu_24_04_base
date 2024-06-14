@@ -1,7 +1,9 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 # TODO: needs to be bumped before next DP3 release
+# ENV IDG_VERSION=0.8
 ENV EVERYBEAM_VERSION=v0.5.8
+ENV IDG_VERSION=9ce6fa88b9d746d8d7146c474992aba9b98eb41f
 ENV AOFLAGGER_VERSION=b1256de90b00a5a83477274390decd6671cdcd38
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
@@ -11,9 +13,11 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	build-essential \
 	casacore-dev \
 	casacore-tools \
+	clang-format-14 \
 	cmake \
 	doxygen \
 	flex \
+	gcovr \
 	gfortran \
 	git \
 	libarmadillo-dev \
@@ -33,8 +37,12 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	pkg-config \
 	pybind11-dev \
 	python3-dev \
+	python3-h5py \
 	python3-numpy \
 	python3-pip \
+	python3-pytest \
+	python3-sphinx \
+	python3-sphinx-rtd-theme \
 	wcslib-dev \
 	wget \
 	&& \
@@ -47,6 +55,15 @@ RUN mkdir /aoflagger && cd /aoflagger \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
 	&& ninja install \
 	&& cd / && rm -rf aoflagger
+# Build IDG
+# (PORTABLE: it may run on a different node than where it was compiled)
+RUN mkdir /idg && cd /idg \
+	&& git clone https://git.astron.nl/RD/idg.git src \
+	&& ( cd src/ && git checkout ${IDG_VERSION} ) \
+	&& mkdir build && cd build \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
+	&& ninja install \
+	&& cd / && rm -rf idg
 # Build EveryBeam
 RUN mkdir /everybeam && cd /everybeam \
 	&& git clone https://git.astron.nl/RD/EveryBeam.git src \
@@ -62,12 +79,3 @@ RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_M
 	&& cd /var/lib/casacore/data \
 	&& tar xfz /WSRT_Measures.ztar \
 	&& rm /WSRT_Measures.ztar
-# Install pip dependencies
-RUN pip3 install \
-	autosemver==0.5.5 \
-	gcovr \
-	h5py \
-	jsonschema2rst==0.1.0 \
-	sphinx \
-	sphinx-rtd-theme \
-	;
