@@ -315,18 +315,13 @@ SagecalPredict::BeamDataSingle::~BeamDataSingle() {
 }
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
-schaapcommon::h5parm::H5Parm& SagecalPredict::H5ParmSingle::open_file(
+schaapcommon::h5parm::H5Parm& SagecalPredict::H5ParmSingle::OpenFile(
     const std::string& h5_name) {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (is_opened_) {
-    return h5_parm_;
+  if (!h5_parm_) {
+    h5_parm_ = std::make_unique<H5Parm>(h5_name, false);
   }
-
-  h5_parm_ = H5Parm(h5_name, false);
-
-  is_opened_ = true;
-
-  return h5_parm_;
+  return *h5_parm_;
 }
 
 void SagecalPredict::SetOperation(const std::string& operation) {
@@ -342,39 +337,40 @@ void SagecalPredict::SetOperation(const std::string& operation) {
 }
 
 unsigned int SagecalPredict::nPol(const std::string& parmName) {
-  if (!sol_tab_.HasAxis("pol")) {
+  if (!sol_tab_->HasAxis("pol")) {
     return 1;
   } else {
-    return sol_tab_.GetAxis("pol").size;
+    return sol_tab_->GetAxis("pol").size;
   }
 }
 
-void SagecalPredict::setCorrectType(std::vector<std::string>& solTabs) {
+void SagecalPredict::SetCorrectType(H5Parm& h5_parm,
+                                    const std::vector<std::string>& sol_tabs) {
   if (soltab_name_ == "fulljones") {
-    if (solTabs.size() != 2) {
+    if (sol_tabs.size() != 2) {
       throw std::runtime_error(
           "The soltab parameter requires two soltabs for fulljones "
           "correction (amplitude and phase)");
     }
-    sol_tab_ = h5_parm_.GetSolTab(solTabs[0]);
-    sol_tab2_ = h5_parm_.GetSolTab(solTabs[1]);
-    soltab_name_ = solTabs[0] + "," + solTabs[1];
+    sol_tab_ = &h5_parm.GetSolTab(sol_tabs[0]);
+    sol_tab2_ = &h5_parm.GetSolTab(sol_tabs[1]);
+    soltab_name_ = sol_tabs[0] + "," + sol_tabs[1];
     gain_type_ = GainType::kFullJones;
   } else if (soltab_name_ == "gain") {
-    sol_tab_ = h5_parm_.GetSolTab(solTabs[0]);
-    if (solTabs.size() == 2) {
-      sol_tab2_ = h5_parm_.GetSolTab(solTabs[1]);
-      soltab_name_ = solTabs[0] + "," + solTabs[1];
+    sol_tab_ = &h5_parm.GetSolTab(sol_tabs[0]);
+    if (sol_tabs.size() == 2) {
+      sol_tab2_ = &h5_parm.GetSolTab(sol_tabs[1]);
+      soltab_name_ = sol_tabs[0] + "," + sol_tabs[1];
       gain_type_ = GainType::kDiagonalComplex;
     } else {
-      soltab_name_ = solTabs[0];
+      soltab_name_ = sol_tabs[0];
       gain_type_ =
-          JonesParameters::H5ParmTypeStringToGainType(sol_tab_.GetType());
+          JonesParameters::H5ParmTypeStringToGainType(sol_tab_->GetType());
     }
   } else {
-    sol_tab_ = h5_parm_.GetSolTab(soltab_name_);
+    sol_tab_ = &h5_parm.GetSolTab(soltab_name_);
     gain_type_ =
-        JonesParameters::H5ParmTypeStringToGainType(sol_tab_.GetType());
+        JonesParameters::H5ParmTypeStringToGainType(sol_tab_->GetType());
   }
   if (gain_type_ == GainType::kDiagonalPhase && nPol("") == 1) {
     gain_type_ = GainType::kScalarPhase;
@@ -449,8 +445,8 @@ void SagecalPredict::init(
   std::vector<std::string> h5directions;
   if (parm_on_disk_) {
     // Create a singleton to only open and read the H5 file once
-    h5_parm_reference_ = SagecalPredict::H5ParmSingle::get_instance();
-    h5_parm_ = h5_parm_reference_->open_file(h5_name_);
+    H5ParmSingle& h5_parm_single = SagecalPredict::H5ParmSingle::GetInstance();
+    H5Parm& h5_parm = h5_parm_single.OpenFile(h5_name_);
     // Check to see soltab is initialized at the constructor
     if (soltab_name_.empty()) {
       soltab_name_ = parset.getString(prefix + "applycal.correction");
@@ -461,13 +457,13 @@ void SagecalPredict::init(
           prefix + "applycal.soltab",
           std::vector<std::string>{"amplitude000", "phase000"});
     }
-    setCorrectType(soltab_names_);
-    h5directions = sol_tab_.GetStringAxis("dir");
+    SetCorrectType(h5_parm, soltab_names_);
+    h5directions = sol_tab_->GetStringAxis("dir");
     if (h5directions.empty())
       throw std::runtime_error("H5Parm has empty dir axis");
     // Also do sanity check for time,freq axes
-    if (sol_tab_.HasAxis("freq") && sol_tab_.HasAxis("time") &&
-        sol_tab_.GetAxisIndex("freq") < sol_tab_.GetAxisIndex("time"))
+    if (sol_tab_->HasAxis("freq") && sol_tab_->HasAxis("time") &&
+        sol_tab_->GetAxisIndex("freq") < sol_tab_->GetAxisIndex("time"))
       throw std::runtime_error("H5Parm fastest varying axis should be freq");
   }
   missing_ant_behavior_ = JonesParameters::StringToMissingAntennaBehavior(
@@ -584,11 +580,11 @@ void SagecalPredict::updateFromH5(const double startTime) {
 
   size_t dir_index = 0;
   for (auto dir : directions_list_) {
-    hsize_t direction_index = sol_tab_.GetDirIndex(dir);
+    hsize_t direction_index = sol_tab_->GetDirIndex(dir);
     std::unique_ptr<JonesParameters> Jones_params_ =
         std::make_unique<JonesParameters>(
             info().chanFreqs(), times, info().antennaNames(), gain_type_,
-            interp_type_, direction_index, &sol_tab_, &sol_tab2_, invert_,
+            interp_type_, direction_index, sol_tab_, sol_tab2_, invert_,
             sigma_mmse_, parm_expressions_.size(), missing_ant_behavior_);
 
     // shape : ncorr x n_stations x ntime*nfreq (ncorr:2,4)
@@ -1182,8 +1178,9 @@ void SagecalPredict::show(std::ostream& os) const {
   os << '\n';
 #endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
   if (parm_on_disk_) {
+    const H5Parm& h5_parm = H5ParmSingle::GetInstance().OpenFile(h5_name_);
     os << "H5 name " << h5_name_ << "\n";
-    os << " SolSet " << h5_parm_.GetSolSetName() << "\n";
+    os << " SolSet " << h5_parm.GetSolSetName() << "\n";
     os << " SolTab " << soltab_name_ << "\n";
     os << "Time interval " << time_interval_ << "\n";
     os << "Timeslots per parmupdate " << timeslots_per_parmupdate_ << "\n";
