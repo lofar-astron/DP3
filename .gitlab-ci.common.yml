@@ -39,6 +39,7 @@ versioning:
     - git fetch --unshallow
     - echo BASE_IMAGE_2004=${CI_REGISTRY_IMAGE}/base_ubuntu20:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_20_04_base) > versions.env
     - echo BASE_IMAGE_2204=${CI_REGISTRY_IMAGE}/base_ubuntu22:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_22_04_base) >> versions.env
+    - echo BASE_IMAGE_2404=${CI_REGISTRY_IMAGE}/base_ubuntu24:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_24_04_base) >> versions.env
     - cat versions.env
   artifacts:
     reports:
@@ -74,58 +75,53 @@ versioning:
   #    - $DOCKER_FILE
 
 # Create and push the base image to the gitlab registry, if it does not exist.
+prepare-base-2004:
+  extends: .prepare
+  variables:
+    DOCKER_IMAGE: $BASE_IMAGE_2004
+    DOCKER_FILE: ./docker/ubuntu_20_04_base
+
 prepare-base-2204:
   extends: .prepare
   variables:
     DOCKER_IMAGE: $BASE_IMAGE_2204
     DOCKER_FILE: ./docker/ubuntu_22_04_base
 
-# Template for jobs that depend on the optional prepare-base job.
-.needs-base-2204:
-  needs:
-    - job: versioning
-    - job: prepare-base-2204
-      optional: true
-  image: $BASE_IMAGE_2204
-
-prepare-2004:
+prepare-base-2404:
   extends: .prepare
   variables:
-    DOCKER_IMAGE: $BASE_IMAGE_2004
-    DOCKER_FILE: ./docker/ubuntu_20_04_base
+    DOCKER_IMAGE: $BASE_IMAGE_2404
+    DOCKER_FILE: ./docker/ubuntu_24_04_base
 
-build-2004:
-  stage: build
+# Template for basic build jobs.
+.build-basic:
   extends: .failable
-  needs:
-    - job: versioning
-    - job: prepare-2004
-      optional: true
-  image: $BASE_IMAGE_2004
+  stage: build
   script:
-    # Build and run DP3
     - mkdir build
     - cd build
     - cmake -G Ninja -DBUILD_TESTING=On ..
     - ninja install
     - DP3
 
-build-no-idg-2204:
-  stage: build
-  extends: [".failable",".needs-base-2204"]
-  before_script:
-    - rm -r /usr/lib/cmake/*idg*
-    - rm -r /usr/lib/cmake/*IDGAPITargets*
-    - rm -r /usr/lib/*idg*
-    - rm -rf /usr/include/idg-*
-  script:
-    - mkdir build
-    - cd build
-    - cmake -G Ninja ..
-    - ninja
+# Build (and run) DP3 on Ubuntu 20, ensuring backward compatiblity.
+# This build does not include IDG, since IDG no longer supports Ubuntu 20.
+build-2004-no-idg:
+  extends: .build-basic
+  needs: ["versioning", "prepare-base-2004"]
+  image: $BASE_IMAGE_2004
 
-# Build debug has no needs entry because it can have either a base
-# image from build-base or build-base-ska which is determined on runtime
+# Build (and run) DP3 on Ubuntu 24, ensuring compatibility with new systems.
+build-2404:
+  extends: .build-basic
+  needs: ["versioning", "prepare-base-2404"]
+  image: $BASE_IMAGE_2404
+
+# Template for jobs that depend on prepare-base-2204.
+.needs-base-2204:
+  needs: ["versioning", "prepare-base-2204"]
+  image: $BASE_IMAGE_2204
+
 build-debug-2204:
   stage: build
   extends: [".failable",".needs-base-2204"]
