@@ -132,24 +132,28 @@ class SagecalPredict : public ModelDataStep {
   // Singleton to open and read H5 file only by one thread
   // But H5Parm itself is assumed thread-safe
   class H5ParmSingle {
-   private:
-    explicit H5ParmSingle() : is_opened_(false) {}
-    std::mutex mutex_;
-    bool is_opened_;
-
    public:
     H5ParmSingle(H5ParmSingle const&) = delete;
     H5ParmSingle& operator=(H5ParmSingle const&) = delete;
     ~H5ParmSingle(){};
 
-    static H5ParmSingle* get_instance() {
+    static H5ParmSingle& GetInstance() {
       static H5ParmSingle instance;
-      return &instance;
+      return instance;
     }
 
-    schaapcommon::h5parm::H5Parm& open_file(const std::string& h5_name);
+    schaapcommon::h5parm::H5Parm& OpenFile(const std::string& h5_name);
 
-    schaapcommon::h5parm::H5Parm h5_parm_;
+   private:
+    explicit H5ParmSingle() {}
+
+    /// Protects concurrent access to h5_parm_.
+    std::mutex mutex_;
+
+    // Do not use a plain H5Parm object, since its implicitly declared
+    // assignment operator of H5Parm is deprecated,
+    // Using a (unique) pointer does allow re-assigning to this variable.
+    std::unique_ptr<schaapcommon::h5parm::H5Parm> h5_parm_;
   };
 
  public:
@@ -202,7 +206,8 @@ class SagecalPredict : public ModelDataStep {
 
   unsigned int nPol(const std::string& parmName);
 
-  void setCorrectType(std::vector<std::string>& solTabs);
+  void SetCorrectType(schaapcommon::h5parm::H5Parm& h5_parm,
+                      const std::vector<std::string>& sol_tabs);
 
   void updateFromH5(const double startTime);
 
@@ -225,8 +230,6 @@ class SagecalPredict : public ModelDataStep {
                                              ///< has absolute orientation
 
   // H5 solutions handling
-  schaapcommon::h5parm::H5Parm h5_parm_;
-  H5ParmSingle* h5_parm_reference_{nullptr};
   std::string solset_name_;
   std::string soltab_name_;
   bool invert_{false};
@@ -236,8 +239,10 @@ class SagecalPredict : public ModelDataStep {
   GainType gain_type_;
   JonesParameters::InterpolationType interp_type_;
   JonesParameters::MissingAntennaBehavior missing_ant_behavior_;
-  schaapcommon::h5parm::SolTab sol_tab_;
-  schaapcommon::h5parm::SolTab sol_tab2_;
+  /// Non-owning pointer to a solution table in the H5ParmSingle object.
+  schaapcommon::h5parm::SolTab* sol_tab_;
+  /// Non-owning pointer to a solution table in the H5ParmSingle object.
+  schaapcommon::h5parm::SolTab* sol_tab2_;
   std::vector<casacore::String> parm_expressions_;
   unsigned int timeslots_per_parmupdate_;
   unsigned int timestep_;

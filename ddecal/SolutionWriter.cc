@@ -27,19 +27,26 @@ std::vector<std::string> GetDirectionNames(
 
   return result;
 }
-}  // namespace
 
-namespace dp3 {
-namespace ddecal {
-
-SolutionWriter::SolutionWriter(const std::string& filename) {
+/// Allows constructing h5parm_ directly in the SolutionWriter constructor
+/// and catching any exception. Also avoids using the deprecated implicitly
+//  declared assignment operator of H5Parm, by using the constructor instead.
+schaapcommon::h5parm::H5Parm ConstructH5Parm(const std::string& filename) {
   try {
-    h5parm_ = schaapcommon::h5parm::H5Parm(filename, true);
+    return schaapcommon::h5parm::H5Parm(filename, true);
   } catch (H5::FileIException& e) {
     throw std::runtime_error("Error opening '" + filename +
                              "' for writing: " + e.getCDetailMsg());
   }
 }
+
+}  // namespace
+
+namespace dp3 {
+namespace ddecal {
+
+SolutionWriter::SolutionWriter(const std::string& filename)
+    : h5parm_(ConstructH5Parm(filename)) {}
 
 void SolutionWriter::AddAntennas(
     const std::vector<std::string>& all_antenna_names,

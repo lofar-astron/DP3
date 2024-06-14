@@ -1078,45 +1078,43 @@ std::vector<SolTab> GainCal::makeSolTab(H5Parm& h5parm, CalType caltype,
   }
   std::vector<SolTab> soltabs;
   for (unsigned int solnum = 0; solnum < numsols; ++solnum) {
-    string solTabName;
-    SolTab soltab;
+    std::string solTabName;
     switch (caltype) {
       case CalType::kScalarPhase:
       case CalType::kDiagonalPhase:
         solTabName = "phase000";
-        soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
+        soltabs.push_back(h5parm.CreateSolTab(solTabName, "phase", axes));
         break;
       case CalType::kScalar:
       case CalType::kDiagonal:
       case CalType::kFullJones:
         if (solnum == 0) {
           solTabName = "phase000";
-          soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
+          soltabs.push_back(h5parm.CreateSolTab(solTabName, "phase", axes));
         } else {
           solTabName = "amplitude000";
-          soltab = h5parm.CreateSolTab(solTabName, "amplitude", axes);
+          soltabs.push_back(h5parm.CreateSolTab(solTabName, "amplitude", axes));
         }
         break;
       case CalType::kScalarAmplitude:
       case CalType::kDiagonalAmplitude:
         solTabName = "amplitude000";
-        soltab = h5parm.CreateSolTab(solTabName, "amplitude", axes);
+        soltabs.push_back(h5parm.CreateSolTab(solTabName, "amplitude", axes));
         break;
       case CalType::kTec:
       case CalType::kTecAndPhase:
         if (solnum == 0) {
           solTabName = "tec000";
-          soltab = h5parm.CreateSolTab(solTabName, "tec", axes);
+          soltabs.push_back(h5parm.CreateSolTab(solTabName, "tec", axes));
         } else {
           solTabName = "phase000";
-          soltab = h5parm.CreateSolTab(solTabName, "phase", axes);
+          soltabs.push_back(h5parm.CreateSolTab(solTabName, "phase", axes));
         }
         break;
       default:
         throw std::runtime_error("Unhandled mode in writing H5Parm output: " +
                                  ToString(caltype));
     }
-    soltabs.push_back(soltab);
   }
   return soltabs;
 }
