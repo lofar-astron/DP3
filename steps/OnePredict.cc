@@ -676,7 +676,7 @@ void OnePredict::PredictSourceRange(
       patch_model_data.fill(std::complex<double>(0.0, 0.0));
     }
     // Depending on apply_beam_, the following call will add to either
-    // the Model or the PatchModel of the predict buffer
+    // the Model or the PatchModel predict buffer
     simulator.simulate(source_list_[source_index].first);
 
     patch = source_list_[source_index].second;

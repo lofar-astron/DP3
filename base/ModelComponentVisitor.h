@@ -19,7 +19,7 @@ class GaussianSource;
 
 class ModelComponentVisitor {
  public:
-  virtual ~ModelComponentVisitor();
+  virtual ~ModelComponentVisitor() {}
 
   virtual void visit(const PointSource&) = 0;
   virtual void visit(const GaussianSource&) = 0;

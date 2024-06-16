@@ -475,8 +475,6 @@ add_library(
   base/FlagCounter.cc
   base/GainCalAlgorithm.cc
   base/GaussianSource.cc
-  base/ModelComponent.cc
-  base/ModelComponentVisitor.cc
   base/MS.cc
   base/Patch.cc
   base/PhaseFitter.cc
