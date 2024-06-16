@@ -345,7 +345,7 @@ bool checkPolarized(parmdb::SourceDB& sourceDB,
     for (unsigned int i = 0; i < nModel; ++i) {
       if (src.getPatchName() == patchNames[i]) {
         // Determine whether source is unpolarized.
-        if (src.getV() > 0.0 || src.getQ() > 0.0 || src.getU() > 0.0) {
+        if (src.getV() != 0.0 || src.getQ() != 0.0 || src.getU() != 0.0) {
           polarized = true;
           break;
         }
@@ -364,7 +364,8 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
     const std::string& source_patch_name = source.getPatchName();
     for (const auto& patch_name : patch_names)
       if (patch_name == source_patch_name)
-        if (source.getV() > 0.0 || source.getQ() > 0.0 || source.getU() > 0.0)
+        if (source.getV() != 0.0 || source.getQ() != 0.0 ||
+            source.getU() != 0.0)
           return true;
   }
   return false;

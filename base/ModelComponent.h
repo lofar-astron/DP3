@@ -20,7 +20,7 @@ struct Direction;
 
 class ModelComponent {
  public:
-  virtual ~ModelComponent();
+  virtual ~ModelComponent() {}
   virtual const Direction &direction() const = 0;
   virtual void accept(ModelComponentVisitor &) const = 0;
 };

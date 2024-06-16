@@ -143,7 +143,7 @@ class DPBuffer {
   /// @param name Name. An empty string indicates the main data buffer (always
   ///        exists). A non-empty string indicates an extra data buffer.
   /// @return If the requested data buffer exists. It can be empty, though.
-  [[nodiscard]] bool HasData(const std::string& name = "") const {
+  bool HasData(const std::string& name = "") const {
     return name.empty() || (extra_data_.find(name) != extra_data_.end());
   }
 
@@ -153,7 +153,7 @@ class DPBuffer {
   ///        buffer. A non-empty string indicates an extra data buffer.
   /// @return An XTensor object with the data of the given name.
   ///         The data has shape (n_baselines, n_channels, n_correlations).
-  [[nodiscard]] const DataType& GetData(const std::string& name = "") const {
+  const DataType& GetData(const std::string& name = "") const {
     if (name.empty()) {
       return data_;
     } else {
@@ -166,7 +166,7 @@ class DPBuffer {
       return found->second;
     }
   }
-  [[nodiscard]] DataType& GetData(const std::string& name = "") {
+  DataType& GetData(const std::string& name = "") {
     if (name.empty()) {
       return data_;
     } else {
@@ -184,7 +184,7 @@ class DPBuffer {
   /// Some Steps need to add elements and need to resize the shape of the
   /// storage. Resizing is "destructive". This function allows callers to
   /// "steal" the storage before resizing.
-  [[nodiscard]] DataType TakeData() {
+  DataType TakeData() {
     DataType result;
     std::swap(result, data_);
     return result;
@@ -212,22 +212,22 @@ class DPBuffer {
   ///
   /// @return An XTensor object with the flags.
   ///         The object has shape (n_baselines, n_channels, n_correlations).
-  [[nodiscard]] const FlagsType& GetFlags() const { return flags_; }
-  [[nodiscard]] FlagsType& GetFlags() { return flags_; }
+  const FlagsType& GetFlags() const { return flags_; }
+  FlagsType& GetFlags() { return flags_; }
 
   /// Accesses weights for the data (visibilities) in the DPBuffer.
   ///
   /// @return An XTensor object with the weights.
   ///         The object has shape (n_baselines, n_channels, n_correlations).
-  [[nodiscard]] const WeightsType& GetWeights() const { return weights_; }
-  [[nodiscard]] WeightsType& GetWeights() { return weights_; }
+  const WeightsType& GetWeights() const { return weights_; }
+  WeightsType& GetWeights() { return weights_; }
 
   /// Returns the weights and clears the storage in this object.
   ///
   /// Some Steps need to add elements and need to resize the shape of the
   /// storage. Resizing is "destructive". This function allows callers to
   /// "steal" the storage before resizing.
-  [[nodiscard]] WeightsType TakeWeights() {
+  WeightsType TakeWeights() {
     WeightsType result;
     std::swap(result, weights_);
     return result;
@@ -235,18 +235,18 @@ class DPBuffer {
 
   /// Get or set the time.
   void SetTime(double time) { time_ = time; }
-  [[nodiscard]] double GetTime() const { return time_; }
+  double GetTime() const { return time_; }
 
   /// Get or set the exposure.
   void SetExposure(double exposure) { exposure_ = exposure; }
-  [[nodiscard]] double GetExposure() const { return exposure_; }
+  double GetExposure() const { return exposure_; }
 
   /// Get or set the row numbers used by the InputStep class.
   /// It can be empty (e.g. when MSReader inserted a dummy time slot).
   void SetRowNumbers(const casacore::Vector<common::rownr_t>& rownrs) {
     row_numbers_.reference(rownrs);
   }
-  [[nodiscard]] const casacore::Vector<common::rownr_t>& GetRowNumbers() const {
+  const casacore::Vector<common::rownr_t>& GetRowNumbers() const {
     return row_numbers_;
   }
 
@@ -254,11 +254,11 @@ class DPBuffer {
   ///
   /// @return An XTensor object with the UVW coordinates.
   ///         The object has shape (n_baselines, 3).
-  [[nodiscard]] const UvwType& GetUvw() const { return uvw_; }
-  [[nodiscard]] UvwType& GetUvw() { return uvw_; }
+  const UvwType& GetUvw() const { return uvw_; }
+  UvwType& GetUvw() { return uvw_; }
 
   void SetSolution(const SolutionType& solution) { solution_ = solution; }
-  [[nodiscard]] const SolutionType& GetSolution() const { return solution_; }
+  const SolutionType& GetSolution() const { return solution_; }
 
  private:
   double time_;

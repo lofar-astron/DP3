@@ -425,7 +425,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t n_chan = buffer->GetData().shape(1);
   const casacore::Cube<casacore::Complex>& gains =
       itsJonesParameters->GetParms();
-  const size_t n_corr = gains.shape()[0];
+  const size_t n_solution_corr = gains.shape()[0];
 
   aocommon::StaticFor<size_t> loop;
   loop.Run(0, n_bl, [&](size_t start_baseline, size_t end_baseline) {
@@ -438,7 +438,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
             (itsTimeStep * info().nchan()) + chan;
         const std::complex<float>* gain_a = &gains(0, ant_a, time_freq_offset);
         const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
-        if (n_corr > 2) {
+        if (n_solution_corr > 2) {
           ApplyCal::ApplyFull(aocommon::MC2x2F(gain_a),
                               aocommon::MC2x2F(gain_b), *buffer, bl, chan,
                               itsUpdateWeights, itsFlagCounter);

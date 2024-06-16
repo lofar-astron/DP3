@@ -86,7 +86,7 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
     if (!itsPredictSteps.empty()) {
       itsPredictSteps.back()->setNextStep(predictStep);
     }
-    itsPredictSteps.push_back(predictStep);
+    itsPredictSteps.push_back(std::move(predictStep));
   }
 
   itsResultStep = std::make_shared<ResultStep>();
