@@ -256,8 +256,7 @@ if(${EVERYBEAM_FOUND})
         "DP3 needs EveryBeam version >= 0.5.8 and < 0.7.0 - but found version ${EveryBeam_VERSION}"
     )
   endif()
-  # TODO(AST-1336): Remove SYSTEM when EveryBeam no longer includes XTensor headers.
-  include_directories(SYSTEM ${EVERYBEAM_INCLUDE_DIR})
+  include_directories(${EVERYBEAM_INCLUDE_DIR})
 else(${EVERYBEAM_FOUND})
   message(
     FATAL_ERROR
@@ -277,8 +276,7 @@ if(IDGAPI_FOUND)
   endif()
 endif()
 if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-  # TODO(AST-1335): Remove SYSTEM when IDG no longer includes XTensor headers.
-  include_directories(SYSTEM ${IDGAPI_INCLUDE_DIRS})
+  include_directories(${IDGAPI_INCLUDE_DIRS})
   set(HAVE_IDG TRUE)
   add_definitions(-DHAVE_IDG)
   message(STATUS "Image domain gridder API libraries found.")
@@ -327,19 +325,19 @@ endif()
 
 # Include aocommon
 include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
+
+# Include schaapcommon, which also fetches XTensor libraries.
 set(XTENSOR_LIBRARIES xtl xsimd xtensor xtensor-blas)
-include(external/aocommon/CMake/FetchXTensor.cmake)
 add_compile_definitions(XTENSOR_USE_XSIMD)
+
+set(SCHAAPCOMMON_MODULES facets h5parm)
+add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
+include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
 # Include pybind11
 set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
 include_directories(${pybind11_INCLUDE_DIR})
-
-# Include schaapcommon
-set(SCHAAPCOMMON_MODULES facets h5parm)
-add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
-include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
 # Add cmake information to headers
 configure_file(base/Version.h.in base/Version.h)
@@ -612,14 +610,12 @@ endif()
 
 # If libdirac is found, use it
 if(LIBDIRAC_FOUND)
+  # add link flags
+  set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
   if(HAVE_CUDA)
     # if we use libdirac with CUDA support, we enable a different preprocessor def
     # so as not to conflict with CPU only version of libdirac
     add_definitions(-DHAVE_LIBDIRAC_CUDA)
-    add_definitions(-DHAVE_CUDA)
-    # add link flags
-    set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
-    # add preprocessor def
     add_definitions(-DHAVE_CUDA)
     set(DP3_LIBRARIES
         ${DP3_LIBRARIES}
@@ -632,8 +628,6 @@ if(LIBDIRAC_FOUND)
   else()
     # add preprocessor def
     add_definitions(-DHAVE_LIBDIRAC)
-    # add link flags
-    set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
   endif()
 endif()
 
