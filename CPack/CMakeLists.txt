@@ -45,7 +45,7 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
     "aoflagger (>= 3.0.1),\
- everybeam (>= 0.5.4), everybeam (<< 0.6.0),\
+ everybeam (>= 0.5.8), everybeam (<< 0.7.0),\
  idg-api (>= 0.8)")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "deb-packages@astron.nl")
 set(CPACK_DEBIAN_PACKAGE_SECTION "science")
