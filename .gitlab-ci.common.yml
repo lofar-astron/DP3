@@ -248,18 +248,18 @@ unit-test-2204:
     CXX_FLAGS: -coverage
     CTEST_FLAGS: -L unit
 
-unit-test-portable-2204:
+unit-test-target-cpu-2204:
   extends: [".unit-test-2204", ".unit-test-coverage"]
   variables:
-    CMAKE_FLAGS: -DPORTABLE=ON
+    CMAKE_FLAGS: -DPORTABLE=OFF -DTARGET_CPU=haswell
     CXX_FLAGS: -coverage
     CTEST_FLAGS: -L unit
 
-unit-test-portable-no-avx2-2204:
+unit-test-portable-2204:
   extends: [".unit-test-2204", ".unit-test-coverage"]
   variables:
-    CMAKE_FLAGS: -DPORTABLE=ON
-    CXX_FLAGS: -mno-avx2 -coverage
+    CMAKE_FLAGS: -DPORTABLE=ON -UTARGET_CPU
+    CXX_FLAGS: -coverage
     CTEST_FLAGS: -L unit
 
 unit-test-address-sanitizer-2204:
