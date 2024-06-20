@@ -19,6 +19,10 @@ using dp3::parmdb::SourceInfo;
 
 using casacore::IPosition;
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 // Define the sequence nrs of the various fields.
 enum FieldNr {
   // First the standard fields.
@@ -992,16 +996,16 @@ SourceDB MakeSourceDb(const std::string& in, const std::string& out,
       }
     }
   }
-  std::cout << "Wrote " << nrpatchfnd << " patches (out of " << nrpatch
-            << ") and " << nrsourcefnd << " sources (out of " << nrsource
-            << ") into " << pdb.getParmDBMeta().getTableName() << '\n';
+  Logger::Info << "Wrote " << nrpatchfnd << " patches (out of " << nrpatch
+               << ") and " << nrsourcefnd << " sources (out of " << nrsource
+               << ") into " << pdb.getParmDBMeta().getTableName() << '\n';
   casacore::Vector<std::string> dp(pdb.findDuplicatePatches());
   if (dp.size() > 0) {
-    std::cerr << "Duplicate patches: " << dp << '\n';
+    Logger::Warn << "Duplicate patches: " << dp << '\n';
   }
   casacore::Vector<std::string> ds(pdb.findDuplicateSources());
   if (ds.size() > 0) {
-    std::cerr << "Duplicate sources: " << ds << '\n';
+    Logger::Warn << "Duplicate sources: " << ds << '\n';
   }
 
   return pdb;
@@ -1088,7 +1092,7 @@ std::string ReadFormat(std::string file, const std::string& cat_file) {
     return sline;
   }
   // No format line found, so use default.
-  std::cerr << "No format string found; using default format\n";
+  Logger::Warn << "No format string found; using default format\n";
   return "Name,Type,Ra,Dec,I,Q,U,V,MajorAxis,MinorAxis,Orientation";
 }
 }  // namespace skymodel_to_source_db

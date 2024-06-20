@@ -27,8 +27,10 @@
 
 #include <vector>
 
-using namespace std;
+#include <aocommon/logger.h>
+
 using namespace casacore;
+using aocommon::Logger;
 
 void show(const string& name, const string& mode, const string& patt) {
   // Open the input SourceDB.
@@ -38,12 +40,14 @@ void show(const string& name, const string& mode, const string& patt) {
   vector<dp3::parmdb::PatchInfo> patch(in.getPatchInfo(-1, patt));
   for (size_t i = 0; i < patch.size(); ++i) {
     if (mode != "source") {
-      cout << patch[i] << '\n';
+      Logger::Info << patch[i] << '\n';
     }
     if (mode != "patch") {
       vector<dp3::parmdb::SourceData> sources(
           in.getPatchSourceData(patch[i].getName()));
-      for (dp3::parmdb::SourceData& s : sources) s.print(cout);
+      std::ostringstream stream;
+      for (dp3::parmdb::SourceData& s : sources) s.print(stream);
+      Logger::Info << stream.str();
     }
   }
 }
@@ -51,18 +55,20 @@ void show(const string& name, const string& mode, const string& patt) {
 static void showSkymodel(const std::string& name, const std::string& patches) {
   dp3::parmdb::SourceDB source_db(dp3::parmdb::ParmDBMeta("", name), false,
                                   false);
-  std::cout << "# (Name, Type, Patch, Ra, Dec, I, ReferenceFrequency, "
-               "SpectralIndex='[]', LogarithmicSI, MajorAxis, MinorAxis, "
-               "Orientation, OrientationIsAbsolute) = format\n";
+  Logger::Info << "# (Name, Type, Patch, Ra, Dec, I, ReferenceFrequency, "
+                  "SpectralIndex='[]', LogarithmicSI, MajorAxis, MinorAxis, "
+                  "Orientation, OrientationIsAbsolute) = format\n";
 
+  std::ostringstream stream;
   for (const auto& patch : source_db.getPatchInfo(-1, patches)) {
-    dp3::parmdb::toSkymodel(std::cout, patch);
+    dp3::parmdb::toSkymodel(stream, patch);
 
     for (const dp3::parmdb::SourceData& source :
          source_db.getPatchSourceData(patch.getName())) {
-      dp3::parmdb::toSkymodel(std::cout, source);
+      dp3::parmdb::toSkymodel(stream, source);
     }
   }
+  Logger::Info << stream.str();
 }
 
 int main(int argc, char* argv[]) {
@@ -93,10 +99,10 @@ int main(int argc, char* argv[]) {
     else
       show(in, mode, patt);
   } catch (AipsError& x) {
-    cerr << "Caught AIPS error: " << x.what() << endl;
+    Logger::Error << "Caught AIPS error: " << x.what() << '\n';
     return 1;
   } catch (std::exception& x) {
-    cerr << "Caught LOFAR exception: " << x.what() << endl;
+    Logger::Error << "Caught LOFAR exception: " << x.what() << '\n';
     return 1;
   }
   return 0;

@@ -10,17 +10,12 @@
 #include <string>
 #include <vector>
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 namespace dp3 {
 namespace base {
-
-// First implement a simple stderr based progress meter that just prints out
-// 0%....10....20....30....40....50....60....70....80....90....100%
-// Original design decision:
-// cerr is better than cout because it isn't buffered usually, so the above
-// will come out right away. Also, one often wants to direct "real" output
-// to a file, but see informative messages on the screen.
-// However, outputting to cerr gives quite anoying behaviour, so this
-// was changed to cout in the end.
 
 // If we have lots and lots of progress meters we should figure out
 // a way to reclaim the following storage.
@@ -31,13 +26,14 @@ static int stderr_creation_function(double min, double max, const std::string&,
   stderr_min.push_back(min);
   stderr_max.push_back(max);
   stderr_last.push_back(min);
-  std::cout << "\n0%" << std::flush;
+  Logger::Info << "\n0%";
+  Logger::Info.Flush();
   return stderr_min.size();
 }
 
 static void stderr_update_function(int id, double value) {
   if (id < 0 || id > int(stderr_min.size())) {
-    std::cerr << __FILE__ << " illegal id " << id << std::endl;
+    Logger::Error << __FILE__ << " illegal id " << id << '\n';
     return;
   }
   id--;  // 0-relative
@@ -51,11 +47,14 @@ static void stderr_update_function(int id, double value) {
     // "missing" ..'s etc if we have jumped a lot since our last updated.
     for (int i = lastpercent + 1; i <= percent; i++) {
       if (i % 2 == 0 && i % 10 != 0) {
-        std::cout << "." << std::flush;
+        Logger::Info << ".";
+        Logger::Info.Flush();
       } else if (i % 10 == 0) {
-        std::cout << i << std::flush;
+        Logger::Info << i;
+        Logger::Info.Flush();
         if (i >= 100) {
-          std::cout << "%\n" << std::flush;
+          Logger::Info << "%\n";
+          Logger::Info.Flush();
         }
       }
     }
@@ -116,9 +115,6 @@ void ProgressMeter::update(double value, bool force) {
       }
     }
   } else {
-    // cerr << "WARNING: progress meter trying to update beyond range" <<
-    // endl;//The user does not need to know that the programmer does not know
-    // how to add.
   }
 }
 

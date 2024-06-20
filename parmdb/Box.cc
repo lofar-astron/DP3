@@ -7,6 +7,10 @@
 
 #include <iostream>
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 namespace dp3 {
 namespace parmdb {
 
@@ -71,8 +75,8 @@ Box::Box(const std::vector<double>& values) {
 }
 
 void Box::print() const {
-  std::cout << itsStart.first << "\t" << itsStart.second << "\t" << itsEnd.first
-            << "\t" << itsEnd.second << '\n';
+  Logger::Info << itsStart.first << "\t" << itsStart.second << "\t"
+               << itsEnd.first << "\t" << itsEnd.second << '\n';
 }
 
 }  // namespace parmdb

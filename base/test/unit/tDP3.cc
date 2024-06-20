@@ -294,7 +294,6 @@ BOOST_FIXTURE_TEST_CASE(test_copy_symlinks, FixtureDirectory) {
   // Make everything in the read only directory read-only.
   for (const std::filesystem::directory_entry& entry :
        std::filesystem::recursive_directory_iterator(kReadOnlyPath)) {
-    std::cout << "Path: " << entry.path().relative_path() << std::endl;
     std::filesystem::permissions(entry.path(), kWritePerms,
                                  std::filesystem::perm_options::remove);
   }

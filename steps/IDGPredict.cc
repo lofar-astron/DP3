@@ -5,6 +5,7 @@
 
 #include <aocommon/banddata.h>
 #include <aocommon/fits/fitswriter.h>
+#include <aocommon/logger.h>
 #include <aocommon/uvector.h>
 #include <aocommon/xt/utensor.h>
 
@@ -26,6 +27,7 @@
 
 using aocommon::FitsReader;
 using aocommon::FitsWriter;
+using aocommon::Logger;
 
 using everybeam::aterms::ATermBase;
 using everybeam::aterms::ATermConfig;
@@ -88,12 +90,12 @@ IDGPredict::IDGPredict(
   directions_.reserve(facets.size());
   images_.reserve(facets.size());
   for (const Facet& facet : facets) {
-    std::cout << "Facet: Ra,Dec: " << facet.RA() << "," << facet.Dec()
-              << " Vertices:";
+    Logger::Info << "Facet: Ra,Dec: " << facet.RA() << "," << facet.Dec()
+                 << " Vertices:";
     for (const schaapcommon::facets::PixelPosition& pixel : facet.GetPixels()) {
-      std::cout << " (" << pixel.x << "," << pixel.y << ")";
+      Logger::Info << " (" << pixel.x << "," << pixel.y << ")";
     }
-    std::cout << '\n';
+    Logger::Info << '\n';
 
     directions_.emplace_back(facet.RA(), facet.Dec());
     images_.emplace_back(full_width, full_height, readers.second.size());
@@ -105,7 +107,7 @@ IDGPredict::IDGPredict(
     image.CopyToFacet(readers.second);
     area += image.Width() * image.Height();
   }
-  std::cout << "Area covered: " << area / 1024 << " Kpixels^2\n";
+  Logger::Info << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
 #endif  // HAVE_IDG
 
@@ -156,7 +158,7 @@ std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
 
   DS9FacetFile facet_file(ds9_regions_file);
   std::vector<Facet> facets = facet_file.Read(facet_data);
-  std::cout << "Read " << facets.size() << " facet definitions.\n";
+  Logger::Info << "Read " << facets.size() << " facet definitions.\n";
   return facets;
 }
 
@@ -198,8 +200,8 @@ void IDGPredict::updateInfo(const dp3::base::DPInfo& info) {
   // meters, depends on the inverse of the pixel size, which is in radians.
   max_baseline_ = 1.0 / std::min(pixel_size_x_, pixel_size_y_);
   max_w_ = max_baseline_ * 0.1;
-  std::cout << "Predicting baselines up to " << max_baseline_
-            << " wavelengths.\n";
+  Logger::Info << "Predicting baselines up to " << max_baseline_
+               << " wavelengths.\n";
 
   // Determine available size for buffering
   if (buffer_size_ == 0) {
@@ -318,11 +320,12 @@ void IDGPredict::StartIDG() {
                        int(reader.ImageHeight() / 2)) *
                       pixel_size_y_;
     const double dp = sqrt(1.0 - dl * dl - dm * dm) - 1.0;
-    std::cout << "Initializing gridder " << buffersets_.size() << " ("
-              << img.Width() << " x " << img.Height() << ", +" << img.OffsetX()
-              << "," << img.OffsetY() << ", dl=" << dl * 180.0 / M_PI
-              << " deg, dm=" << dm * 180.0 / M_PI << " deg)\n"
-              << '\n';
+    Logger::Info << "Initializing gridder " << buffersets_.size() << " ("
+                 << img.Width() << " x " << img.Height() << ", +"
+                 << img.OffsetX() << "," << img.OffsetY()
+                 << ", dl=" << dl * 180.0 / M_PI
+                 << " deg, dm=" << dm * 180.0 / M_PI << " deg)\n"
+                 << '\n';
 
     size_t subgrid_size = 0;
     for (size_t term = 0; term != n_terms; ++term) {
@@ -445,7 +448,7 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   if (max_w_ > old_max_w) {
     // Increase max_w by 10% for preventing repeated IDG initialization calls.
     max_w_ *= 1.1;
-    std::cout << "Increasing maximum w to " << max_w_ << '\n';
+    Logger::Info << "Increasing maximum w to " << max_w_ << '\n';
     save_facets_ = false;
     StartIDG();
   }
@@ -631,8 +634,8 @@ size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
       memory / images_.size() / n_terms / memPerTimestep / 3;
   // TODO once a-terms are supported, this should include the size required
   // for the a-terms.
-  std::cout << "Allocatable timesteps per direction: " << allocatableTimesteps
-            << '\n';
+  Logger::Info << "Allocatable timesteps per direction: "
+               << allocatableTimesteps << '\n';
 
   size_t buffersize = std::max(allocatableTimesteps, size_t(1));
   return buffersize;

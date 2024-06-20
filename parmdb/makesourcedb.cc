@@ -107,7 +107,11 @@
 
 #include "SkymodelToSourceDB.h"
 
+#include <aocommon/logger.h>
+
 #include <boost/algorithm/string/case_conv.hpp>
+
+using aocommon::Logger;
 
 int main(int argc, char* argv[]) {
   try {
@@ -178,7 +182,7 @@ int main(int argc, char* argv[]) {
         dp3::parmdb::skymodel_to_source_db::GetSearchInfo(center, radius,
                                                           width));
   } catch (std::exception& x) {
-    std::cerr << "Caught exception: " << x.what() << '\n';
+    Logger::Error << "Caught exception: " << x.what() << '\n';
     return 1;
   }
 

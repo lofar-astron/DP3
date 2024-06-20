@@ -5,6 +5,9 @@
 
 #Script configuration for this repo. Adjust it when copying to a different repo.
 
+cd $(dirname "$0")/..
+DIRECTORY_LIST=`ls -1d */|grep -v 'build\|ci\|CMake\|CPack\|docker\|docs\|external\|pythondp3\|resources\|scripts'`
+
 # Disable globbing. This is needed when defining patterns that have wildcards.
 set -e -f
 
@@ -23,6 +26,12 @@ CXX_SOURCES=(*.cc *.h *.cu *.cuh)
 CLANG_FORMAT_BINARY=clang-format-14
 
 #End script configuration.
+
+if grep 'cout\|cerr' -r ${DIRECTORY_LIST} ; then
+    echo -e "\e[1m\e[31mAt least one file makes use of 'cout' or 'cerr'\e[0m"
+    echo -e "\e[1m\e[31mUse aocommon::Logger instead of cout/cerr.\e[0m"
+    exit 1
+fi
 
 #The common formatting script has further documentation.
 source $(dirname "$0")/../external/aocommon/scripts/format.sh

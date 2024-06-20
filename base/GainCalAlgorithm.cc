@@ -12,6 +12,9 @@
 
 #include <iostream>
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
 using casacore::IPosition;
 using casacore::Vector;
 
@@ -437,7 +440,7 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
       // Stalling detection only after 4 iterations, to account for
       // ''startup problems'' (not for tec, where stalling happens very soon)
       if (_debugLevel > 3) {
-        std::cout << "**\n";
+        Logger::Debug << "**\n";
       }
       _badIters++;
     } else if (improvement < 0) {
@@ -448,12 +451,12 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
 
     if (_badIters >= maxBadIters) {
       if (_debugLevel > 3) {
-        std::cout << "Detected stall\n";
+        Logger::Debug << "Detected stall\n";
       }
       return STALLED;
     } else if (_veryBadIters > maxBadIters) {
       if (_debugLevel > 3) {
-        std::cout << "Detected fail\n";
+        Logger::Debug << "Detected fail\n";
       }
       return STALLED;
     }
@@ -484,7 +487,7 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
   }
 
   if (_debugLevel > 7) {
-    std::cout << "Averaged\n";
+    Logger::Debug << "Averaged\n";
   }
 
   for (unsigned int ant = 0; ant < _nUn; ++ant) {
@@ -498,7 +501,7 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
                 (std::max(_dg, std::max(_dgx, dgxx)) <= 1.0e-3 && _dg < _dgx &&
                  _dgx < dgxx);
     if (_debugLevel > 7) {
-      std::cout << "Threestep=" << std::boolalpha << threestep << '\n';
+      Logger::Debug << "Threestep=" << std::boolalpha << threestep << '\n';
     }
   }
 
@@ -506,7 +509,7 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
     if (sstep <= 0) {
       if (_dg <= c1 * _dgx) {
         if (_debugLevel > 7) {
-          std::cout << "dg<=c1*dgx\n";
+          Logger::Debug << "dg<=c1*dgx\n";
         }
         for (unsigned int ant = 0; ant < _nUn; ++ant) {
           for (unsigned int cr = 0; cr < _nCr; ++cr) {
@@ -515,7 +518,7 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
         }
       } else if (_dg <= _dgx) {
         if (_debugLevel > 7) {
-          std::cout << "dg<=dgx\n";
+          Logger::Debug << "dg<=dgx\n";
         }
         for (unsigned int ant = 0; ant < _nUn; ++ant) {
           for (unsigned int cr = 0; cr < _nCr; ++cr) {
@@ -525,18 +528,17 @@ GainCalAlgorithm::Status GainCalAlgorithm::relax(unsigned int iter) {
         }
       } else if (_dg <= c2 * _dgx) {
         if (_debugLevel > 7) {
-          std::cout << "dg<=c2*dgx\n";
+          Logger::Debug << "dg<=c2*dgx\n";
         }
         _g = _gx;
         sstep = 1;
       } else {
-        // cout<<"else"<<endl;
         _g = _gxx;
         sstep = 2;
       }
     } else {
       if (_debugLevel > 7) {
-        std::cout << "no sstep\n";
+        Logger::Debug << "no sstep\n";
       }
       sstep = sstep - 1;
     }

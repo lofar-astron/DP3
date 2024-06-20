@@ -37,6 +37,10 @@
 #include <fstream>
 #include <sstream>
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 using namespace dp3;
 using namespace casacore;
 using namespace std;
@@ -267,7 +271,7 @@ void VdsMaker::create(const string& msName, const string& outName,
   ROMSMainColumns mscol(ms);
   uInt nrow = ms.nrow();
   if (nrow <= 0) {
-    std::cout << "MeasurementSet " + absName + " is empty";
+    Logger::Info << "MeasurementSet " + absName + " is empty";
   } else {
     // Get start and end time. Get the step time from the middle one.
     double stepTime = mscol.exposure()(nrow / 2);
@@ -339,7 +343,7 @@ void VdsMaker::combine(const string& gdsName, const vector<string>& vdsNames) {
     }
     // Get minimum/maximum time.
     if (vpd->getStartTime() == 0) {
-      std::cout << "Dataset " << vdsNames[j] << " is completely empty";
+      Logger::Info << "Dataset " << vdsNames[j] << " is completely empty";
     } else {
       startTime = std::min(startTime, vpd->getStartTime());
       endTime = std::max(endTime, vpd->getEndTime());
@@ -377,8 +381,8 @@ void VdsMaker::combine(const string& gdsName, const vector<string>& vdsNames) {
     if (vpds[i]->getStartTime() != globalvpd.getStartTime() ||
         vpds[i]->getEndTime() != globalvpd.getEndTime() ||
         vpds[i]->getStepTime() != globalvpd.getStepTime()) {
-      cerr << "The times of part " << i << " (" << vpds[i]->getName()
-           << ") are different" << endl;
+      Logger::Warn << "The times of part " << i << " (" << vpds[i]->getName()
+                   << ") are different\n";
     }
     vpds[i].reset();
   }

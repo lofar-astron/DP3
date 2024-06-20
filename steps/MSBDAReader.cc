@@ -64,7 +64,6 @@ using casacore::TableLock;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
-using std::cout;
 using std::vector;
 
 namespace dp3 {
