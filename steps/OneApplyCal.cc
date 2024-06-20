@@ -183,10 +183,10 @@ std::vector<schaapcommon::h5parm::SolTab> OneApplyCal::MakeSolTabs(
     schaapcommon::h5parm::H5Parm& h5parm) const {
   std::vector<schaapcommon::h5parm::SolTab> solution_tables;
   if (solution_table_names_.size() == 2) {
-    solution_tables = {h5parm.GetSolTab(solution_table_names_[0]),
-                       h5parm.GetSolTab(solution_table_names_[1])};
+    solution_tables.push_back(h5parm.GetSolTab(solution_table_names_[0]));
+    solution_tables.push_back(h5parm.GetSolTab(solution_table_names_[1]));
   } else {
-    solution_tables = {h5parm.GetSolTab(specified_correction_)};
+    solution_tables.push_back(h5parm.GetSolTab(specified_correction_));
   }
   return solution_tables;
 }
