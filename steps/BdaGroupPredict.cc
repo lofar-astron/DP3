@@ -83,14 +83,15 @@ class BdaGroupPredict::BaselineGroup {
   /// Write information on the predict step for this baseline group to the
   /// output stream os
   void Show(std::ostream& os) const {
-    Step::ShPtr step = predict_step_;
-    do {
+    for (std::shared_ptr<Step> step = predict_step_; step;
+         step = step->getNextStep()) {
       step->show(os);
-    } while (step = step->getNextStep());
+    };
   }
 
   void ShowTimings(std::ostream& os, const double duration) const {
-    for (Step::ShPtr step = predict_step_; step; step = step->getNextStep()) {
+    for (std::shared_ptr<Step> step = predict_step_; step;
+         step = step->getNextStep()) {
       step->showTimings(os, duration);
     }
   }
