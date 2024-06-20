@@ -11,16 +11,19 @@
 #include <H5Cpp.h>
 
 #include <aocommon/checkblas.h>
+#include <aocommon/logger.h>
 
 #include <dp3/base/DP3.h>
 
 #include <Version.h>
 
+using aocommon::Logger;
+
 // Define handler that tries to print a backtrace.
 // Exception::TerminateHandler t(Exception::terminate);
 
 void showUsage() {
-  std::cout
+  Logger::Info
       << "Usage: DP3 [-v] [parsetfile] [parsetkeys...]\n"
          "  parsetfile: a file containing one parset key=value pair per line\n"
          "  parsetkeys: any number of parset key=value pairs, e.g. "
@@ -47,7 +50,7 @@ int main(int argc, char* argv[]) {
         showUsage();
         return 0;
       } else if (param == "-v" || param == "--version") {
-        std::cout << DP3Version::AsString(true) << '\n';
+        Logger::Info << DP3Version::AsString(true) << '\n';
         return 0;
       }
     }
@@ -73,15 +76,15 @@ int main(int argc, char* argv[]) {
     // Execute the parset file.
     dp3::base::Execute(parsetName, argc, argv);
   } catch (const std::exception& err) {
-    std::cerr << "\nstd exception detected: " << err.what() << '\n';
+    Logger::Error << "\nstd exception detected: " << err.what() << '\n';
     return 1;
   } catch (const H5::Exception& err) {
     // Since H5::Exception is not derived from std::exception, DP3 crashes
     // if it does not catch them -> Print an error message instead.
-    std::cerr << "\nH5 exception detected: " << err.getDetailMsg()
-              << "\nStack trace:\n";
+    Logger::Error << "\nH5 exception detected: " << err.getDetailMsg()
+                  << "\nStack trace:\n";
     err.printErrorStack();
-    std::cerr << '\n';
+    Logger::Error << '\n';
     return 1;
   }
   return 0;

@@ -45,6 +45,8 @@ using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
 using dp3::base::GainCalAlgorithm;
 
+using aocommon::Logger;
+
 using schaapcommon::h5parm::AxisInfo;
 using schaapcommon::h5parm::H5Parm;
 using schaapcommon::h5parm::SolTab;
@@ -698,9 +700,9 @@ void GainCal::calibrate() {
           } else {
             phases[freqCell] = arg(sols_f(freqCell, st));
             if (!std::isfinite(phases[freqCell])) {
-              std::cout << "Yuk, phases[freqCell]=" << phases[freqCell]
-                        << ", sols_f(freqCell, st)=" << sols_f(freqCell, st)
-                        << '\n';
+              Logger::Error << "Yuk, phases[freqCell]=" << phases[freqCell]
+                            << ", sols_f(freqCell, st)=" << sols_f(freqCell, st)
+                            << '\n';
               assert(std::isfinite(phases[freqCell]));
             }
             assert(algorithms_[freqCell].getWeight() > 0);

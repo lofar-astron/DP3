@@ -9,6 +9,10 @@
 #include <algorithm>
 #include <iostream>
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 namespace dp3 {
 namespace common {
 
@@ -26,10 +30,9 @@ double AvailableMemory(const double memory, const double memory_percentage,
   if (clip) memory_max = std::min(memory_max, max_system_memory);
 
   if (memory_max > max_system_memory) {
-    std::cout << "WARNING: DP3 will use more memory than available."
-              << std::endl;
-    std::cout << max_system_memory << " bytes are available, but using "
-              << memory_max << std::endl;
+    Logger::Warn << "WARNING: DP3 will use more memory than available.\n";
+    Logger::Warn << max_system_memory << " bytes are available, but using "
+                 << memory_max << '\n';
   }
 
   double memory_avail = memory_max;

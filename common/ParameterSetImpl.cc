@@ -19,6 +19,10 @@
 #include <stdexcept>
 #include <vector>
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 typedef std::runtime_error APSException;
 
 namespace dp3 {
@@ -302,7 +306,7 @@ void ParameterSetImpl::addMerge(const std::string& key,
                                 const std::string& value, bool merge) {
   // remove any existing value and insert this value
   if ((erase(key) > 0) && !merge) {
-    std::cout << "Key " + key + " is defined twice; ignoring first value";
+    Logger::Warn << "Key " + key + " is defined twice; ignoring first value";
   }
   addUnlocked(key, ParameterValue(value));
 }

@@ -205,7 +205,7 @@ endif()
 # Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
 unset(BOOST_MINIMUM_VERSION)
-set(BOOST_COMPONENTS "filesystem;program_options;system")
+set(BOOST_COMPONENTS "date_time;filesystem;program_options;system")
 if(BUILD_TESTING)
   # Boost 1.59 introduced BOOST_TEST. Many tests use this feature.
   set(BOOST_MINIMUM_VERSION 1.59)
@@ -577,7 +577,6 @@ endif()
 set(DP3_LIBRARIES
     ${AOFLAGGER_LIB}
     ${ARMADILLO_LIBRARIES}
-    ${Boost_LIBRARIES}
     ${CASACORE_LIBRARIES}
     ${CFITSIO_LIBRARY}
     ${EVERYBEAM_LIB}
@@ -586,7 +585,8 @@ set(DP3_LIBRARIES
     ${Python3_LIBRARIES}
     schaapcommon
     Threads::Threads
-    pybind11::embed)
+    pybind11::embed
+    ${Boost_LIBRARIES})
 
 if(BUILD_WITH_CUDA)
   list(APPEND DP3_LIBRARIES CudaSolvers)
@@ -648,10 +648,10 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 set(SOURCEDB_LIBRARIES Blob Common ParmDB ${CASACORE_LIBRARIES}
-                       ${Boost_SYSTEM_LIBRARY})
+                       ${Boost_LIBRARIES})
 
 add_executable(DP3 base/Main.cc)
-target_link_libraries(DP3 LIBDP3 ${HDF5_LIBRARIES})
+target_link_libraries(DP3 LIBDP3 ${HDF5_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(makesourcedb parmdb/makesourcedb.cc)
 target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
@@ -660,7 +660,7 @@ add_executable(showsourcedb parmdb/showsourcedb.cc)
 target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 
 add_executable(msoverview base/msoverview.cc base/MS.cc)
-target_link_libraries(msoverview ${CASACORE_LIBRARIES})
+target_link_libraries(msoverview ${CASACORE_LIBRARIES} ${Boost_LIBRARIES})
 
 install(TARGETS DP3 makesourcedb showsourcedb msoverview DESTINATION bin)
 

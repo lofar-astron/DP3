@@ -160,7 +160,6 @@ void PhaseFitter::bruteForceSearchTEC1Model(double& lowerAlpha,
       double(alphaIndex - 1) / alphaOversampling * dAlpha + lowerAlpha;
   upperAlpha = double(alphaIndex + 1) / alphaOversampling * dAlpha + lowerAlpha;
   lowerAlpha = newLowerAlpha;
-  // std::cout << "alpha in " << lowerAlpha << "-" << upperAlpha << '\n';
 }
 
 double PhaseFitter::TEC1ModelCost(double alpha) const {
@@ -195,7 +194,6 @@ double PhaseFitter::ternarySearchTEC1ModelAlpha(double startAlpha,
     }
     dCost = std::fabs(lCost - rCost);
     ++iter;
-    // std::cout << iter << '\t' << startAlpha << '\t' << endAlpha << '\n';
   } while (dCost > _fittingAccuracy && iter < 100);
   double finalAlpha = (lAlpha + rAlpha) * 0.5;
   return finalAlpha;

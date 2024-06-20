@@ -12,6 +12,10 @@
 
 #include "MS.h"
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 namespace {
 void RunMSOverview(int argc, char* argv[]) {
   // enable input in no-prompt mode
@@ -90,7 +94,7 @@ void RunMSOverview(int argc, char* argv[]) {
   // Remove the extra fields (time, severity) from the output string.
   casacore::String str(ostr.str());
   str.gsub(casacore::Regex(".*\tINFO\t[+]?\t"), "");
-  std::cout << str;
+  Logger::Info << str;
 
   // Test if the MS is regular.
   if (verbose) {
@@ -115,19 +119,19 @@ void RunMSOverview(int argc, char* argv[]) {
                  .table()
                  .nrow();
     }
-    std::cout << '\n';
+    Logger::Info << '\n';
     if (ms.nrow() == nrtime * nrbl * nrdd) {
-      std::cout << "The MS is fully regular.\n";
+      Logger::Info << "The MS is fully regular.\n";
     } else {
-      std::cout << "The MS is not regular.\n"
-                   "  use msregularize in python casacore.tables to make it "
-                   "regular\n";
+      Logger::Info << "The MS is not regular.\n"
+                      "  use msregularize in python casacore.tables to make it "
+                      "regular\n";
     }
-    std::cout << "   nrows=" << ms.nrow() << "   ntimes=" << nrtime
-              << "   nbands=" << nrdd << "   nbaselines=" << nrbl << " ("
-              << nrauto << " autocorr)\n";
+    Logger::Info << "   nrows=" << ms.nrow() << "   ntimes=" << nrtime
+                 << "   nbands=" << nrdd << "   nbaselines=" << nrbl << " ("
+                 << nrauto << " autocorr)\n";
   }
-  std::cout << '\n';
+  Logger::Info << '\n';
 }
 
 }  // namespace
@@ -136,7 +140,7 @@ int main(int argc, char* argv[]) {
   try {
     RunMSOverview(argc, argv);
   } catch (std::exception& x) {
-    std::cerr << "Error: " << x.what() << '\n';
+    Logger::Error << "Error: " << x.what() << '\n';
     return 1;
   }
   return 0;

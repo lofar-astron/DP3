@@ -18,10 +18,14 @@
 #include <casacore/casa/OS/File.h>
 
 #include <aocommon/dynamicfor.h>
+#include <aocommon/logger.h>
+
 #include <aoflagger.h>
 
 #include <iostream>
 #include <algorithm>
+
+using aocommon::Logger;
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -235,8 +239,8 @@ bool AOFlaggerStep::process(std::unique_ptr<base::DPBuffer> buffer) {
 }
 
 void AOFlaggerStep::finish() {
-  std::cerr << "  " << buffer_index_
-            << " time slots to finish in AOFlaggerStep ...\n";
+  Logger::Info << "  " << buffer_index_
+               << " time slots to finish in AOFlaggerStep ...\n";
   total_timer_.start();
   // Set window size to all entries left.
   window_size_ = buffer_index_;

@@ -30,6 +30,10 @@
 #include "constraints/SmoothnessConstraint.h"
 #include "constraints/TECConstraint.h"
 
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
+
 namespace dp3 {
 namespace ddecal {
 
@@ -317,9 +321,9 @@ void InitializeAntennaConstraint(
       const auto iter = std::find(antenna_names.begin(), antenna_names.end(),
                                   constraint_name);
       if (iter == antenna_names.end()) {
-        std::cout << "Warning: antenna constraint specifies antenna "
-                  << constraint_name
-                  << " which is not in the MS, ignoring it\n";
+        Logger::Warn << "Warning: antenna constraint specifies antenna "
+                     << constraint_name
+                     << " which is not in the MS, ignoring it\n";
       } else {
         constraint_list.back().insert(constraint_list.back().end(),
                                       iter - antenna_names.begin());

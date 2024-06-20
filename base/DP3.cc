@@ -271,8 +271,10 @@ void Execute(const string& parsetName, int argc, char* argv[]) {
 
   // Immediately initialize logger such that output will follow requested
   // verbosity
-  aocommon::Logger::SetVerbosity(aocommon::StringToLogVerbosityLevel(
-      parset.getString("verbosity", "normal")));
+  if (parset.isDefined("verbosity")) {
+    aocommon::Logger::SetVerbosity(aocommon::StringToLogVerbosityLevel(
+        parset.getString("verbosity", "normal")));
+  }
   aocommon::Logger::SetLogTime(parset.getBool("time_logging", false));
   aocommon::Logger::SetLogMemory(parset.getBool("memory_logging", false));
 

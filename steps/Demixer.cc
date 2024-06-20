@@ -9,6 +9,7 @@
 #include <iomanip>
 
 #include <aocommon/dynamicfor.h>
+#include <aocommon/logger.h>
 #include <aocommon/xt/utensor.h>
 
 #include <casacore/casa/Arrays/MatrixMath.h>
@@ -40,6 +41,8 @@
 
 #include "../common/StreamUtil.h"
 
+#include <aocommon/logger.h>
+
 #include "Averager.h"
 #include "MSReader.h"
 #include "NullStep.h"
@@ -51,6 +54,8 @@ using casacore::MDirection;
 using casacore::MEpoch;
 using casacore::MVEpoch;
 using casacore::Quantum;
+
+using aocommon::Logger;
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -392,7 +397,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   } catch (casacore::AipsError&) {
     // Phase direction (in J2000) is time dependent
     itsMovingPhaseRef = true;
-    std::cout
+    Logger::Warn
         << "WARNING: Demixing with moving phase reference is not tested.\n";
   }
 
@@ -542,8 +547,8 @@ bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
 }
 
 void Demixer::finish() {
-  std::cerr << "  " << itsNTimeIn << " time slots to finish in Demixer ..."
-            << '\n';
+  Logger::Info << "  " << itsNTimeIn << " time slots to finish in Demixer ..."
+               << '\n';
   itsTimer.start();
 
   // Process remaining entries.
@@ -764,7 +769,6 @@ void Demixer::makeFactors(
       ++dirnr;
     }
   }
-  /// cout<<"makefactors "<<weightSums<<bufOut;
 }
 
 void Demixer::deproject(aocommon::xt::UTensor<std::complex<double>, 5>& factors,
@@ -965,7 +969,6 @@ void Demixer::demix() {
         shape, itsFactors[ts].data(), casacore::SHARE);
     base::const_cursor<std::complex<double>> cr_mix =
         base::casa_const_cursor(demix_factor);
-    /// cout << "demixfactor "<<ts<<" = "<<itsFactors[ts]<<'\n';
 
     std::vector<base::const_cursor<std::complex<float>>> cr_data(nDr);
     std::vector<base::const_cursor<std::complex<double>>> cr_model(nDr);
