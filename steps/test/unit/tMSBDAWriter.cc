@@ -11,6 +11,7 @@
 #include <dp3/base/BDABuffer.h>
 #include "../../MSBDAWriter.h"
 #include "../../MSReader.h"
+#include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 
@@ -29,7 +30,8 @@ using casacore::TableLock;
 
 const std::string prefix = "msout.";
 
-BOOST_AUTO_TEST_SUITE(msbdawriter)
+BOOST_AUTO_TEST_SUITE(
+    msbdawriter, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 // Test that the output measurementset is correct for simple data.
 BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,

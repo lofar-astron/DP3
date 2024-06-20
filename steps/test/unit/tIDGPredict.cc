@@ -1,6 +1,7 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"
 #include <dp3/base/DPBuffer.h>
 #include "../../../steps/InputStep.h"
@@ -127,7 +128,8 @@ dp3::common::ParameterSet CreateParset() {
 
 using dp3::steps::IDGPredict;
 
-BOOST_AUTO_TEST_SUITE(idgpredict)
+BOOST_AUTO_TEST_SUITE(
+    idgpredict, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
   std::pair<std::vector<aocommon::FitsReader>,

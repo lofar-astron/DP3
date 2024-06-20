@@ -16,6 +16,7 @@
 #include "../../MSReader.h"
 #include "../../MultiResultStep.h"
 #include "../../ResultStep.h"
+#include "../../../base/test/LoggerFixture.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 #include "tStepCommon.h"
 
@@ -23,7 +24,8 @@ using dp3::common::test::FixtureDirectory;
 using dp3::steps::DDECal;
 using dp3::steps::test::CreateParameterSet;
 
-BOOST_AUTO_TEST_SUITE(ddecal)
+BOOST_AUTO_TEST_SUITE(
+    ddecal, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 BOOST_AUTO_TEST_CASE(provided_fields) {
   using dp3::steps::Step;

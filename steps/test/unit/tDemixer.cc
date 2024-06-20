@@ -32,6 +32,7 @@
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 
+#include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
@@ -255,7 +256,8 @@ void TestDemixer(size_t ntime, size_t nbl, size_t nchan, size_t navgtime,
 
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(demixer)
+BOOST_AUTO_TEST_SUITE(
+    demixer, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 BOOST_AUTO_TEST_CASE(execute_1) { TestDemixer(10, 3, 32, 2, 4, false); }
 

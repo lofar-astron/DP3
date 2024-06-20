@@ -19,6 +19,8 @@
 #include <filesystem>
 #include <stdexcept>
 
+#include "../LoggerFixture.h"
+
 #include "../../../steps/NullStep.h"
 #include "../../../steps/test/unit/mock/MockInput.h"
 #include "../../../steps/test/unit/mock/ThrowStep.h"
@@ -38,7 +40,7 @@ using dp3::common::test::FixtureDirectory;
 
 namespace utf = boost::unit_test;
 
-BOOST_AUTO_TEST_SUITE(dp3)
+BOOST_AUTO_TEST_SUITE(dp3, *utf::fixture<dp3::base::test::LoggerFixture>())
 
 // This test program uses the MS in tNDPPP.in_MS.tgz.
 // The MS contains 4 corr, 16 freq, 6 baselines, 18 time slots of 30 sec.
