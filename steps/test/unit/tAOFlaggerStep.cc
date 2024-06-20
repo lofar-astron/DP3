@@ -13,6 +13,7 @@
 #include <dp3/base/DPInfo.h>
 
 #include "../../AOFlaggerStep.h"
+#include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
@@ -214,7 +215,8 @@ void test2(int ntime, int nant, int nchan, int ncorr, bool flag) {
 
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(aoflaggerstep)
+BOOST_AUTO_TEST_SUITE(
+    aoflaggerstep, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 BOOST_AUTO_TEST_CASE(legacy_test1) {
   for (unsigned int i = 0; i < 2; ++i) {

@@ -1,7 +1,11 @@
 #include <boost/test/unit_test.hpp>
 #include <steps/IDGImager.h>
 #include <common/ParameterSet.h>
-BOOST_AUTO_TEST_SUITE(IDGImager)
+#include "../../../base/test/LoggerFixture.h"
+
+BOOST_AUTO_TEST_SUITE(
+    IDGImager, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
+
 #ifdef HAVE_IDG
 BOOST_AUTO_TEST_CASE(Init) {
   dp3::common::ParameterSet parset;
@@ -13,4 +17,5 @@ BOOST_AUTO_TEST_CASE(Init) {
   BOOST_CHECK_EQUAL(imager.GetImageSize(), 1234);
 }
 #endif
+
 BOOST_AUTO_TEST_SUITE_END()

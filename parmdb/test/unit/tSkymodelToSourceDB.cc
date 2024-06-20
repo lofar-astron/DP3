@@ -4,6 +4,7 @@
 #include "../../SkymodelToSourceDB.h"
 
 #include "../../SourceDB.h"
+#include "../../../base/test/LoggerFixture.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 #include "../../../common/test/unit/fixtures/fSkymodel.h"
 #include "../../../parmdb/SkymodelToSourceDB.h"
@@ -19,6 +20,7 @@ static const char* kSkymodelName = "unittest.skymodel";
 BOOST_AUTO_TEST_SUITE(
     skymodeltosourcedb,
     // clang-format off
+                      *boost::unit_test::fixture<dp3::base::test::LoggerFixture>()
                       *boost::unit_test::fixture<dp3::common::test::FixtureDirectory>()
                       *boost::unit_test::fixture<FixtureSkymodel>(
                               FixtureSkymodel::Arguments{kSkymodelName}))

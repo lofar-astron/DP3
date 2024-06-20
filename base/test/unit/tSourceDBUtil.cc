@@ -9,6 +9,8 @@
 #include "../../../common/test/unit/fixtures/fSkymodel.h"
 #include "../../../parmdb/SourceDB.h"
 
+#include "../../../base/test/LoggerFixture.h"
+
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::Direction;
@@ -22,6 +24,7 @@ static const std::string kSourceDBName = "unittest.sourcedb";
 BOOST_AUTO_TEST_SUITE(
     source_db_util,
     // clang-format off
+    *boost::unit_test::fixture<dp3::base::test::LoggerFixture>()
     *boost::unit_test::fixture<dp3::common::test::FixtureDirectory>()
     *boost::unit_test::fixture<FixtureSkymodel>(FixtureSkymodel::Arguments{
             kSkymodelName, kSourceDBName}))
