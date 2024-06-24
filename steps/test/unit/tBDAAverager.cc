@@ -35,24 +35,28 @@ const std::vector<int> kAnt1_1Bl{0};
 const std::vector<int> kAnt2_1Bl{1};
 const std::vector<int> kAnt1_3Bl{0, 0, 0};
 const std::vector<int> kAnt2_3Bl{3, 1, 2};
+const std::string kPrefix = "bda_averager.";
 
-void InitParset(dp3::common::ParameterSet& parset,
-                std::optional<double> timebase = {},
-                std::optional<double> frequencybase = {},
-                std::optional<double> maxinterval = {},
-                std::optional<int> minchannels = {}) {
+dp3::common::ParameterSet GetParset(std::optional<double> timebase = {},
+                                    std::optional<double> frequencybase = {},
+                                    std::optional<double> maxinterval = {},
+                                    std::optional<int> minchannels = {}) {
+  dp3::common::ParameterSet parset;
+  parset.add("steps", "[bda_averager]");
+  parset.add("bda_averager.type", "bdaaverager");
   if (timebase) {
-    parset.add("timebase", std::to_string(*timebase));
+    parset.add(kPrefix + "timebase", std::to_string(*timebase));
   }
   if (frequencybase) {
-    parset.add("frequencybase", std::to_string(*frequencybase));
+    parset.add(kPrefix + "frequencybase", std::to_string(*frequencybase));
   }
   if (maxinterval) {
-    parset.add("maxinterval", std::to_string(*maxinterval));
+    parset.add(kPrefix + "maxinterval", std::to_string(*maxinterval));
   }
   if (minchannels) {
-    parset.add("minchannels", std::to_string(*minchannels));
+    parset.add(kPrefix + "minchannels", std::to_string(*minchannels));
   }
+  return parset;
 }
 
 DPInfo InitInfo(const std::vector<int>& ant1, const std::vector<int>& ant2,
@@ -251,22 +255,22 @@ BOOST_AUTO_TEST_CASE(required_fields) {
   const dp3::common::Fields kExpectedFieldsWeightsFlags =
       Step::kDataField | Step::kFlagsField | Step::kWeightsField |
       Step::kUvwField;
-  const BDAAverager averager(parset, "");
+  const BDAAverager averager(parset, kPrefix);
   BOOST_TEST(averager.getRequiredFields() == kExpectedFieldsWeightsFlags);
   // Test with an explicit 'true' argument for the constructor.
-  const BDAAverager explicit_weights_flags(parset, "", true);
+  const BDAAverager explicit_weights_flags(parset, kPrefix, true);
   BOOST_TEST(explicit_weights_flags.getRequiredFields() ==
              kExpectedFieldsWeightsFlags);
 
   // Disabling using weights and flags affects the requirements.
-  const BDAAverager no_weights_flags(parset, "", false);
+  const BDAAverager no_weights_flags(parset, kPrefix, false);
   BOOST_TEST(no_weights_flags.getRequiredFields() ==
              (Step::kDataField | Step::kUvwField));
 }
 
 BOOST_AUTO_TEST_CASE(set_averaging_params_invalid) {
-  dp3::common::ParameterSet parset;
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset();
+  BDAAverager averager(parset, kPrefix);
 
   std::vector<unsigned int> time_avg{2};
   std::vector<std::vector<double>> freqs{{0, 15000, 35000}};
@@ -286,8 +290,8 @@ BOOST_AUTO_TEST_CASE(set_averaging_params_invalid) {
 BOOST_AUTO_TEST_CASE(set_averaging_params_unsupported) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
-  dp3::common::ParameterSet parset;
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset(2.0);
+  BDAAverager averager(parset, "bda_averager.");
 
   std::vector<unsigned int> time_avg{2};
   // Define an unsupported frequency averaging scheme (2-2-1)
@@ -302,8 +306,8 @@ BOOST_AUTO_TEST_CASE(set_averaging_params_unsupported) {
 BOOST_AUTO_TEST_CASE(set_averaging_params) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
-  dp3::common::ParameterSet parset;
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset(2.0);
+  BDAAverager averager(parset, kPrefix);
 
   std::vector<unsigned int> time_avg{2};
   // Define a supported frequency averaging scheme (1-2-2)
@@ -323,8 +327,8 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   // With the default options, the averager performs no averaging: It only
   // copies data from DPBuffers into BDABuffers.
-  dp3::common::ParameterSet parset;
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset();
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -366,9 +370,8 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
   const double averaged_centroid_time =
       averaged_start_time + averaged_interval / 2;
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * kFactor);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset(baseline_length * kFactor);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -425,9 +428,9 @@ BOOST_AUTO_TEST_CASE(time_averaging_use_weights) {
   float value_averaged =
       (value_1 * weight_1 + value_2 * weight_2) / weight_averaged;
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -477,9 +480,9 @@ BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
   float weight_averaged = float(kTimeAveragingFactor);
   float value_averaged = (value_1 + value_2) / weight_averaged;
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, "", false);
+  const dp3::common::ParameterSet parset =
+      GetParset(baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(parset, kPrefix, false);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -520,9 +523,9 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
       InitInfo(kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
   const double baseline_length = info.getBaselineLengths()[0];
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, std::nullopt, baseline_length * kFactor);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(std::nullopt, baseline_length * kFactor);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
@@ -559,10 +562,9 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
       InitInfo(kAnt1_1Bl, kAnt2_1Bl, kInputChannelCounts.size());
   const double baseline_length = info.getBaselineLengths()[0];
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * kTimeFactor,
-             baseline_length * kChannelFactor);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset(
+      baseline_length * kTimeFactor, baseline_length * kChannelFactor);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
@@ -619,9 +621,9 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
       600.0;  // Time averaging factors become 1, 2, 3.
   const double chan_threshold = 100.0;  // No channel averaging.
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, time_threshold, chan_threshold);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(time_threshold, chan_threshold);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers for the averager. For the first baseline, these
@@ -721,9 +723,9 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
   const double time_threshold = 100.0;  // No averaging, baselines are longer.
   const double chan_threshold = 600.0;  // Averaging factors become 1, 2, 3.
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, time_threshold, chan_threshold);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(time_threshold, chan_threshold);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers and expected output data for the averager.
@@ -771,8 +773,8 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
 BOOST_AUTO_TEST_CASE(shape_mismatch) {
   // The antenna vectors indicate there is a single baseline.
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
-  dp3::common::ParameterSet parset;
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset(2.0);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
@@ -795,9 +797,9 @@ BOOST_AUTO_TEST_CASE(max_interval) {
 
   // The threshold implies an averaging factor of 42, however, kMaxInterval
   // should limit the averaging to a factor of 3.
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * 42.0, std::nullopt, kMaxInterval);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(baseline_length * 42.0, std::nullopt, kMaxInterval);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
@@ -829,12 +831,11 @@ BOOST_AUTO_TEST_CASE(min_channels) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
-  dp3::common::ParameterSet parset;
   // The threshold implies that all channels should be averaged into one
   // channel, however, we specify a minimum of three channels per baseline.
-  InitParset(parset, std::nullopt, baseline_length * kNChan, std::nullopt,
-             kMinChannels);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset(
+      std::nullopt, baseline_length * kNChan, std::nullopt, kMinChannels);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::unique_ptr<DPBuffer> buffer =
@@ -861,12 +862,11 @@ BOOST_AUTO_TEST_CASE(zero_values_weight) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
-  dp3::common::ParameterSet parset;
   // The threshold implies that all channels should be averaged into one
   // channel, however, we specify a minimum of three channels per baseline.
-  InitParset(parset, std::nullopt, baseline_length * kNChan, std::nullopt,
-             kMinChannels);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset = GetParset(
+      std::nullopt, baseline_length * kNChan, std::nullopt, kMinChannels);
+  BDAAverager averager(parset, kPrefix);
   averager.updateInfo(info);
 
   std::unique_ptr<DPBuffer> buffer = CreateBuffer(
@@ -894,9 +894,9 @@ BOOST_AUTO_TEST_CASE(force_buffersize) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::vector<std::unique_ptr<DPBuffer>> input_buffers;
@@ -938,9 +938,9 @@ BOOST_AUTO_TEST_CASE(force_buffersize_smaller_than_output) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::vector<std::unique_ptr<DPBuffer>> input_buffers;
@@ -982,9 +982,9 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const double baseline_length = info.getBaselineLengths()[0];
 
-  dp3::common::ParameterSet parset;
-  InitParset(parset, baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, "");
+  const dp3::common::ParameterSet parset =
+      GetParset(baseline_length * kTimeAveragingFactor);
+  BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::vector<std::unique_ptr<DPBuffer>> input_buffers;

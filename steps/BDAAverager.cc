@@ -73,7 +73,7 @@ BDAAverager::BDAAverager(const common::ParameterSet& parset,
       expected_input_shape_(),
       use_weights_and_flags_(use_weights_and_flags) {}
 
-BDAAverager::~BDAAverager() {}
+BDAAverager::~BDAAverager() = default;
 
 void BDAAverager::set_averaging_params(
     std::vector<unsigned int> baseline_factors,
@@ -290,7 +290,7 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   }
 
   return true;
-}  // namespace DPPP
+}
 
 void BDAAverager::finish() {
   assert(bda_buffer_);

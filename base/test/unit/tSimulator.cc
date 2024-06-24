@@ -13,8 +13,6 @@
 #include <dp3/base/Direction.h>
 #include "../../PointSource.h"
 
-#include "../LoggerFixture.h"
-
 namespace dp3 {
 namespace base {
 namespace test {
