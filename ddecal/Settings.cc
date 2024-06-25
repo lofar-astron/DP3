@@ -124,6 +124,12 @@ Settings::Settings(const common::ParameterSet& _parset,
       lbfgs_minibatches((solver_algorithm == SolverAlgorithm::kLBFGS)
                             ? GetUint("solverlbfgs.minibatches", 1)
                             : 1),
+      lbfgs_min_solution((solver_algorithm == SolverAlgorithm::kLBFGS)
+                             ? GetDouble("solverlbfgs.min_solution", 0.0)
+                             : 0.0),
+      lbfgs_max_solution((solver_algorithm == SolverAlgorithm::kLBFGS)
+                             ? GetDouble("solverlbfgs.max_solution", 0.0)
+                             : 0.0),
       use_gpu(GetBool("usegpu", 0)),
       keep_host_buffers(GetBool("keep_host_buffers", 0)),
       n_lra_iterations((solver_algorithm == SolverAlgorithm::kLowRank)

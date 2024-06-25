@@ -16,11 +16,16 @@ class LBFGSSolver final : public SolverBase {
   enum SolverMode { kFull, kDiagonal, kScalar };
   LBFGSSolver(const double robust_nu, const size_t max_iter,
               const size_t history_size, const size_t minibatches,
+              const double min_solution, const double max_solution,
               const SolverMode mode)
       : robust_nu_(robust_nu),
         batch_iter_(max_iter),
         history_size_(history_size),
         minibatches_(minibatches),
+        min_solution_(min_solution),
+        max_solution_(max_solution),
+        bound_constrained_((!min_solution || !max_solution) &&
+                           (min_solution != max_solution)),
         mode_(mode){};
 
   /// Split real and imaginary parts and combine them into a single tensor.
@@ -63,6 +68,9 @@ class LBFGSSolver final : public SolverBase {
   size_t GetMaxIter() const { return batch_iter_; }
   size_t GetHistorySize() const { return history_size_; }
   size_t GetMinibatches() const { return minibatches_; }
+  size_t GetMinSolution() const { return min_solution_; }
+  size_t GetMaxSolution() const { return max_solution_; }
+  bool GetBoundConstrained() const { return bound_constrained_; }
   SolverMode GetMode() const { return mode_; }
 
  private:
@@ -70,6 +78,9 @@ class LBFGSSolver final : public SolverBase {
   size_t batch_iter_;
   size_t history_size_;
   size_t minibatches_;
+  double min_solution_;
+  double max_solution_;
+  bool bound_constrained_;
   SolverMode mode_;
 };
 #endif /* HAVE_LIBDIRAC */

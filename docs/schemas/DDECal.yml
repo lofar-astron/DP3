@@ -209,6 +209,14 @@ inputs:
     default: 1
     type: int
     doc: Divide the data into minibatches equal to this number at each iteration. If this value is greater than one, less data is used at each iteration (without losing the final solution accuracy) making the iterations faster `.`
+  solverlbfgs&#46;min_solution:
+    default: 0.0
+    type: double
+    doc: Restrict the solutions (real, imaginary parts) to fit within the range ``solverlbfgs.min_solution`` to ``solverlbfgs.max_solution``. `.` A valid range is needed to enable this, if both lower and upper limits are zero, not enabled `.`
+  solverlbfgs&#46;max_solution:
+    default: 0.0
+    type: double
+    doc: Restrict the solutions (real, imaginary parts) to fit within the range ``solverlbfgs.min_solution`` to ``solverlbfgs.max_solution``. `.` A valid range is needed to enable this, if both lower and upper limits are zero, not enabled `.`
   solverlbfgs&#46;history:
     default: 10
     type: int

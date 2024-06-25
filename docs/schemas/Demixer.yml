@@ -1,5 +1,5 @@
 description: >-
-  Demix bright sources, i.e. calibrate in the direction of the birght sources and
+  Demix bright sources, i.e. calibrate in the direction of the bright sources and
   subtract the bright sources from the data. Note that the calibration solution
   is assumed to be constant over the entire frequency range, so this will only
   work on relatively small bandwidth (e.g. a single sub-band).
@@ -154,3 +154,9 @@ inputs:
       If using the LBFGS solver, the degrees of freedom (DOF) given to the noise model.
       The larger this becomes (more than 30), the noise model behaves as a Gaussian.
       The smaller values make the noise model more robust to outliers in the data `.`
+  lbfgs&#46;solution&#46;range:
+    default: "[]"
+    type: double
+    doc: >-
+      If using the LBFGS solver, it is possible to restrict the solutions (real and imaginary parts separately), to a given interval. For example, giving ``[-1e5 1e5]`` to this parameter will restrict the solutions to have a maximum amplitude of ``1e5``. This is not a flagging (or clipping) operation, the solutions are inherently restricted inside the solver.
+

@@ -54,6 +54,7 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
       return std::make_unique<LBFGSSolver>(
           settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
           settings.lbfgs_history_size, settings.lbfgs_minibatches,
+          settings.lbfgs_min_solution, settings.lbfgs_max_solution,
           LBFGSSolver::kScalar);
 #else
       throw std::runtime_error("LIBDIRAC for LBFGS not built");
@@ -98,6 +99,7 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
       return std::make_unique<LBFGSSolver>(
           settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
           settings.lbfgs_history_size, settings.lbfgs_minibatches,
+          settings.lbfgs_min_solution, settings.lbfgs_max_solution,
           LBFGSSolver::kDiagonal);
 #else
       throw std::runtime_error("LIBDIRAC for LBFGS not built");
@@ -124,6 +126,7 @@ std::unique_ptr<SolverBase> CreateFullJonesSolver(SolverAlgorithm algorithm,
       return std::make_unique<LBFGSSolver>(
           settings.lbfgs_robust_nu, settings.lbfgs_max_iter,
           settings.lbfgs_history_size, settings.lbfgs_minibatches,
+          settings.lbfgs_min_solution, settings.lbfgs_max_solution,
           LBFGSSolver::kFull);
 #else
       throw std::runtime_error("LIBDIRAC for LBFGS not built");
