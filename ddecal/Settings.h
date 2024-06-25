@@ -137,6 +137,10 @@ struct Settings {
   const size_t lbfgs_history_size;
   // LBFGS minibatches
   const size_t lbfgs_minibatches;
+  // LBFGS solution lower limit
+  const double lbfgs_min_solution;
+  // LBFGS solution upper limit
+  const double lbfgs_max_solution;
   const bool use_gpu;
   // keep host buffers between solve iteration
   // for the GPU solver

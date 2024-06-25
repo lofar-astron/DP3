@@ -390,7 +390,8 @@ void PerformIterationFull(size_t ch_block,
                           std::size_t n_antennas, std::size_t n_directions,
                           double robust_nu, std::size_t max_iter,
                           std::size_t history_size, std::size_t minibatches,
-                          persistent_data_t& pt) {
+                          double min_solution, double max_solution,
+                          bool bound_constrained, persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
   const std::size_t n_solutions_2 = n_antennas * n_directions * 4;
   const std::size_t n_solutions = n_solutions_2 * 2;
@@ -404,8 +405,16 @@ void PerformIterationFull(size_t ch_block,
   t.end_baseline = pt.offsets[batch] + pt.lengths[batch];
   // cannot work with just one baseline
   assert(t.end_baseline > t.start_baseline);
-  lbfgs_fit(FullCost, FullGradient, d_storage.data(), n_solutions, max_iter,
-            history_size, (void*)&t, &pt);
+  if (bound_constrained) {
+    std::vector<double> lower_bound(n_solutions, min_solution);
+    std::vector<double> upper_bound(n_solutions, min_solution);
+    lbfgsb_fit(FullCost, FullGradient, d_storage.data(), lower_bound.data(),
+               upper_bound.data(), n_solutions, max_iter, history_size,
+               (void*)&t, &pt);
+  } else {
+    lbfgs_fit(FullCost, FullGradient, d_storage.data(), n_solutions, max_iter,
+              history_size, (void*)&t, &pt);
+  }
 
   LBFGSSolver::MergeSolutions(next_solutions, ch_block, d_storage);
 }
@@ -415,7 +424,8 @@ void PerformIterationDiagonal(
     const std::vector<SolverBase::DComplex>& solutions,
     SolutionTensor& next_solutions, std::size_t n_antennas,
     std::size_t n_directions, double robust_nu, std::size_t max_iter,
-    std::size_t history_size, std::size_t minibatches, persistent_data_t& pt) {
+    std::size_t history_size, std::size_t minibatches, double min_solution,
+    double max_solution, bool bound_constrained, persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
   const std::size_t n_solutions_2 = n_antennas * n_directions * 2;
   const std::size_t n_solutions = n_solutions_2 * 2;
@@ -429,8 +439,16 @@ void PerformIterationDiagonal(
   t.end_baseline = pt.offsets[batch] + pt.lengths[batch];
   // cannot work with just one baseline
   assert(t.end_baseline > t.start_baseline);
-  lbfgs_fit(DiagonalCost, DiagonalGradient, d_storage.data(), n_solutions,
-            max_iter, history_size, (void*)&t, &pt);
+  if (bound_constrained) {
+    std::vector<double> lower_bound(n_solutions, min_solution);
+    std::vector<double> upper_bound(n_solutions, min_solution);
+    lbfgsb_fit(DiagonalCost, DiagonalGradient, d_storage.data(),
+               lower_bound.data(), upper_bound.data(), n_solutions, max_iter,
+               history_size, (void*)&t, NULL);
+  } else {
+    lbfgs_fit(DiagonalCost, DiagonalGradient, d_storage.data(), n_solutions,
+              max_iter, history_size, (void*)&t, &pt);
+  }
 
   LBFGSSolver::MergeSolutions(next_solutions, ch_block, d_storage);
 }
@@ -442,7 +460,8 @@ void PerformIterationScalar(size_t ch_block,
                             std::size_t n_antennas, std::size_t n_directions,
                             double robust_nu, std::size_t max_iter,
                             std::size_t history_size, std::size_t minibatches,
-                            persistent_data_t& pt) {
+                            double min_solution, double max_solution,
+                            bool bound_constrained, persistent_data_t& pt) {
   lbfgs_fulljones_data t(cb_data, n_antennas, n_directions, robust_nu);
   const std::size_t n_solutions_2 = n_antennas * n_directions;
   const std::size_t n_solutions = n_solutions_2 * 2;
@@ -456,8 +475,16 @@ void PerformIterationScalar(size_t ch_block,
   t.end_baseline = pt.offsets[batch] + pt.lengths[batch];
   // cannot work with just one baseline
   assert(t.end_baseline > t.start_baseline);
-  lbfgs_fit(ScalarCost, ScalarGradient, d_storage.data(), n_solutions, max_iter,
-            history_size, (void*)&t, &pt);
+  if (bound_constrained) {
+    std::vector<double> lower_bound(n_solutions, min_solution);
+    std::vector<double> upper_bound(n_solutions, min_solution);
+    lbfgsb_fit(ScalarCost, ScalarGradient, d_storage.data(), lower_bound.data(),
+               upper_bound.data(), n_solutions, max_iter, history_size,
+               (void*)&t, NULL);
+  } else {
+    lbfgs_fit(ScalarCost, ScalarGradient, d_storage.data(), n_solutions,
+              max_iter, history_size, (void*)&t, &pt);
+  }
 
   LBFGSSolver::MergeSolutions(next_solutions, ch_block, d_storage);
 }
@@ -515,10 +542,17 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
     // initialize with
     // minibatches, size of parameters, size of data (baselines), history size,
     // 1 thread
-    lbfgs_persist_init(
-        &persistent_data[ch_block], GetMinibatches(),
-        NAntennas() * NSolutions() * NSolutionPolarizations() * 2,
-        channel_block_data.NVisibilities(), GetHistorySize(), 1);
+    if (GetBoundConstrained()) {
+      lbfgsb_persist_init(
+          &persistent_data[ch_block], GetMinibatches(),
+          NAntennas() * NSolutions() * NSolutionPolarizations() * 2,
+          channel_block_data.NVisibilities(), GetHistorySize(), 1);
+    } else {
+      lbfgs_persist_init(
+          &persistent_data[ch_block], GetMinibatches(),
+          NAntennas() * NSolutions() * NSolutionPolarizations() * 2,
+          channel_block_data.NVisibilities(), GetHistorySize(), 1);
+    }
   }
 
   ///
@@ -538,31 +572,34 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
       case LBFGSSolver::kFull:
         MakeSolutionsFinite4Pol(solutions);
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
-          PerformIterationFull(ch_block, data.ChannelBlock(ch_block),
-                               solutions[ch_block], next_solutions, NAntennas(),
-                               NSolutions(), GetRobustDOF(), GetMaxIter(),
-                               GetHistorySize(), GetMinibatches(),
-                               persistent_data[ch_block]);
+          PerformIterationFull(
+              ch_block, data.ChannelBlock(ch_block), solutions[ch_block],
+              next_solutions, NAntennas(), NSolutions(), GetRobustDOF(),
+              GetMaxIter(), GetHistorySize(), GetMinibatches(),
+              GetMinSolution(), GetMaxSolution(), GetBoundConstrained(),
+              persistent_data[ch_block]);
         });
         break;
       case LBFGSSolver::kDiagonal:
         MakeSolutionsFinite2Pol(solutions);
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
-          PerformIterationDiagonal(ch_block, data.ChannelBlock(ch_block),
-                                   solutions[ch_block], next_solutions,
-                                   NAntennas(), NSolutions(), GetRobustDOF(),
-                                   GetMaxIter(), GetHistorySize(),
-                                   GetMinibatches(), persistent_data[ch_block]);
+          PerformIterationDiagonal(
+              ch_block, data.ChannelBlock(ch_block), solutions[ch_block],
+              next_solutions, NAntennas(), NSolutions(), GetRobustDOF(),
+              GetMaxIter(), GetHistorySize(), GetMinibatches(),
+              GetMinSolution(), GetMaxSolution(), GetBoundConstrained(),
+              persistent_data[ch_block]);
         });
         break;
       case LBFGSSolver::kScalar:
         MakeSolutionsFinite1Pol(solutions);
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
-          PerformIterationScalar(ch_block, data.ChannelBlock(ch_block),
-                                 solutions[ch_block], next_solutions,
-                                 NAntennas(), NSolutions(), GetRobustDOF(),
-                                 GetMaxIter(), GetHistorySize(),
-                                 GetMinibatches(), persistent_data[ch_block]);
+          PerformIterationScalar(
+              ch_block, data.ChannelBlock(ch_block), solutions[ch_block],
+              next_solutions, NAntennas(), NSolutions(), GetRobustDOF(),
+              GetMaxIter(), GetHistorySize(), GetMinibatches(),
+              GetMinSolution(), GetMaxSolution(), GetBoundConstrained(),
+              persistent_data[ch_block]);
         });
         break;
       default:
@@ -594,7 +631,11 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
                                      constraints_satisfied, step_magnitudes));
 
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
-    lbfgs_persist_clear(&persistent_data[ch_block]);
+    if (GetBoundConstrained()) {
+      lbfgsb_persist_clear(&persistent_data[ch_block]);
+    } else {
+      lbfgs_persist_clear(&persistent_data[ch_block]);
+    }
   }
 
   // When we have not converged yet, we set the nr of iterations to the max+1,

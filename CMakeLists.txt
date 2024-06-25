@@ -555,7 +555,7 @@ if(NOT "${LIBDIRAC_PREFIX}" STREQUAL "")
   find_package(PkgConfig REQUIRED)
   # Set search path to install directory of libdirac
   set(ENV{PKG_CONFIG_PATH} "${LIBDIRAC_PREFIX}/lib/pkgconfig")
-  pkg_search_module(LIBDIRAC libdirac>=0.8.1)
+  pkg_search_module(LIBDIRAC libdirac 0.8.4...<0.8.6)
 endif()
 if(LIBDIRAC_FOUND)
   message(STATUS "Found libdirac: ${LIBDIRAC_INCLUDE_DIRS}")

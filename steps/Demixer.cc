@@ -109,6 +109,8 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
       itsUseLBFGS(parset.getBool(prefix + "uselbfgssolver", false)),
       itsLBFGShistory(parset.getUint(prefix + "lbfgs.historysize", 10)),
       itsLBFGSrobustdof(parset.getDouble(prefix + "lbfgs.robustdof", 2.0)),
+      itsRangeLBFGSsol(parset.getDoubleVector(prefix + "lbfgs.solution.range",
+                                              std::vector<double>())),
       itsTimeIndex(0),
       itsNConverged(0) {
   if (itsSkyName.empty() || itsInstrumentName.empty())
@@ -146,7 +148,29 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
   if (itsUseLBFGS)
     throw std::runtime_error(
         "uselbfgssolver=true but libdirac is not available");
-#endif
+#endif /* ! HAVE_LIBDIRAC */
+
+#ifdef HAVE_LIBDIRAC
+  if (itsUseLBFGS) {
+    if (itsRangeLBFGSsol.size() == 0) {
+      // set up default range to [0,0]
+      itsRangeLBFGSsol.push_back(0.);
+      itsRangeLBFGSsol.push_back(0.);
+    } else if (itsRangeLBFGSsol.size() == 2) {
+      // user has already specified a range, check its validity
+      if (itsRangeLBFGSsol[0] >= itsRangeLBFGSsol[1]) {
+        throw std::runtime_error(
+            "Invalid range for lbfgs.solution.range=[sol_min,sol_max], sol_min "
+            "< sol_max");
+      }
+    } else {
+      throw std::runtime_error(
+          "Invalid range for lbfgs.solution.range=[sol_min,sol_max], sol_min < "
+          "sol_max");
+    }
+  }
+#endif /* HAVE_LIBDIRAC */
+
   // Add a result step as last step in the filter.
   itsFilter = std::make_shared<Filter>(itsSelBL);
   itsFilterResult = std::make_shared<ResultStep>();
@@ -985,7 +1009,8 @@ void Demixer::demix() {
         (itsUseLBFGS
              ? estimate(nDr, nSt, nBl, nCh, cr_baseline, cr_data, cr_model,
                         cr_flag, cr_weight, cr_mix, &(storage.unknowns[0]),
-                        itsLBFGShistory, itsLBFGSrobustdof, itsMaxIter)
+                        itsLBFGShistory, itsLBFGSrobustdof, itsRangeLBFGSsol[0],
+                        itsRangeLBFGSsol[1], itsMaxIter)
              : estimate(nDr, nSt, nBl, nCh, cr_baseline, cr_data, cr_model,
                         cr_flag, cr_weight, cr_mix, &(storage.unknowns[0]),
                         itsMaxIter));

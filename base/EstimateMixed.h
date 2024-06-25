@@ -70,6 +70,8 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
 ///  \param[in] robust_nu
 ///  Robust noise model degrees of freedom, when >30, it is almost Gaussian
 /// The remaining input variables are similar to estimate() method above.
+///  \param[in] sol_min, sol_max: if a valid range is given, restrict the
+///  solutions to fit this range using bound constrained LBFGS
 bool estimate(std::size_t n_direction, std::size_t n_station,
               std::size_t n_baseline, std::size_t n_channel,
               const_cursor<Baseline> baselines,
@@ -77,8 +79,8 @@ bool estimate(std::size_t n_direction, std::size_t n_station,
               std::vector<const_cursor<std::complex<double>>> model,
               const_cursor<bool> flag, const_cursor<float> weight,
               const_cursor<std::complex<double>> mix, double* unknowns,
-              std::size_t lbfgs_mem, double robust_nu,
-              std::size_t max_iter = 50);
+              std::size_t lbfgs_mem, double robust_nu, const double sol_min,
+              const double sol_max, std::size_t max_iter = 50);
 #endif /* HAVE_LIBDIRAC */
 
 /// Compute a map that contains the index of the unknowns related to the

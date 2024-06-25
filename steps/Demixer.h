@@ -151,6 +151,9 @@ class Demixer : public Step {
                              ///< as a multiple of the size of parameter vector.
   double itsLBFGSrobustdof;  ///< the degrees of freedom used in robust noise
                              ///< model.
+  std::vector<double>
+      itsRangeLBFGSsol;  ///< restrict real and imaginary parts of solutions
+                         //< (if given) as [low,high], to this range.
 
   /// Accumulator used for computing the demixing weights at the demix
   /// resolution. The shape of this buffer is
