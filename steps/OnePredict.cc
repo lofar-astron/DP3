@@ -749,18 +749,18 @@ void OnePredict::addBeamToData(
         info(), time, data.data(), srcdir, telescope_.get(),
         predict_buffer_->GetScalarBeamValues(thread), false, beam_mode_,
         &mutex_);
+
+    // Add temporary buffer to Model
+    model_data += data;
   } else {
     const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
         scoped_time{apply_beam_time_};
     float* dummyweight = nullptr;
-    ApplyBeam::applyBeam(info(), time, data.data(), dummyweight, srcdir,
-                         telescope_.get(),
-                         predict_buffer_->GetFullBeamValues(thread), false,
-                         beam_mode_, false, &mutex_);
+    ApplyBeam::ApplyBeamAndAddToModel(
+        info(), time, data.data(), model_data.data(), dummyweight, srcdir,
+        telescope_.get(), predict_buffer_->GetFullBeamValues(thread), false,
+        beam_mode_, false, &mutex_);
   }
-
-  // Add temporary buffer to Model
-  model_data += data;
 }
 
 void OnePredict::addBeamToData(
