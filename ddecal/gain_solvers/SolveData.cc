@@ -14,12 +14,23 @@ using dp3::base::BDABuffer;
 namespace dp3 {
 namespace ddecal {
 
-SolveData::SolveData(const std::vector<base::DPBuffer>& buffers,
-                     const std::vector<std::string>& direction_names,
-                     size_t n_channel_blocks, size_t n_antennas,
-                     const std::vector<size_t>& n_solutions_per_direction,
-                     const std::vector<int>& antennas1,
-                     const std::vector<int>& antennas2)
+template <typename MatrixType>
+MatrixType ToSpecificMatrix(const std::complex<float>* data);
+template <>
+aocommon::MC2x2F ToSpecificMatrix(const std::complex<float>* data) {
+  return aocommon::MC2x2F(data);
+}
+template <>
+aocommon::MC2x2FDiag ToSpecificMatrix(const std::complex<float>* data) {
+  return aocommon::MC2x2FDiag(data[0], data[3]);
+}
+
+template <typename MatrixType>
+SolveData<MatrixType>::SolveData(
+    const std::vector<base::DPBuffer>& buffers,
+    const std::vector<std::string>& direction_names, size_t n_channel_blocks,
+    size_t n_antennas, const std::vector<size_t>& n_solutions_per_direction,
+    const std::vector<int>& antennas1, const std::vector<int>& antennas2)
     : channel_blocks_(n_channel_blocks) {
   std::vector<size_t> channel_begin(n_channel_blocks + 1, 0);
 
@@ -93,8 +104,8 @@ SolveData::SolveData(const std::vector<base::DPBuffer>& buffers,
           const size_t channel_block_size = end_channel - first_channel;
 
           for (size_t i = 0; i < channel_block_size; ++i) {
-            cb_data.data_[vis_index + i] =
-                aocommon::MC2x2F(&data(baseline, first_channel + i, 0));
+            cb_data.data_[vis_index + i] = ToSpecificMatrix<MatrixType>(
+                &data(baseline, first_channel + i, 0));
             cb_data.antenna_indices_[vis_index + i] =
                 std::pair<uint32_t, uint32_t>(antenna1, antenna2);
           }
@@ -118,7 +129,8 @@ SolveData::SolveData(const std::vector<base::DPBuffer>& buffers,
 
             for (size_t i = 0; i < channel_block_size; ++i) {
               cb_data.model_data_(direction, vis_index + i) =
-                  aocommon::MC2x2F(&model_data(baseline, first_channel + i, 0));
+                  ToSpecificMatrix<MatrixType>(
+                      &model_data(baseline, first_channel + i, 0));
 
               cb_data.solution_map_(direction, vis_index + i) = solution_index;
             }
@@ -133,10 +145,13 @@ SolveData::SolveData(const std::vector<base::DPBuffer>& buffers,
   CountAntennaVisibilities(n_antennas);
 }
 
-SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
-                     size_t n_directions, size_t n_antennas,
-                     const std::vector<int>& antennas1,
-                     const std::vector<int>& antennas2, bool with_weights)
+template <typename MatrixType>
+SolveData<MatrixType>::SolveData(const BdaSolverBuffer& buffer,
+                                 size_t n_channel_blocks, size_t n_directions,
+                                 size_t n_antennas,
+                                 const std::vector<int>& antennas1,
+                                 const std::vector<int>& antennas2,
+                                 bool with_weights)
     : channel_blocks_(n_channel_blocks) {
   // Count nr of visibilities
   std::vector<size_t> counts(n_channel_blocks, 0);
@@ -184,8 +199,8 @@ SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
         const std::complex<float>* data_ptr =
             data_row.data + channel_start * data_row.n_correlations;
         for (size_t i = 0; i != channel_block_size; ++i) {
-          cb_data.data_[vis_index + i] =
-              aocommon::MC2x2F(&data_ptr[i * data_row.n_correlations]);
+          cb_data.data_[vis_index + i] = ToSpecificMatrix<MatrixType>(
+              &data_ptr[i * data_row.n_correlations]);
           cb_data.antenna_indices_[vis_index + i] =
               std::pair<uint32_t, uint32_t>(antenna1, antenna2);
         }
@@ -205,8 +220,9 @@ SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
               model_data_row.data +
               channel_start * model_data_row.n_correlations;
           for (size_t i = 0; i != channel_block_size; ++i) {
-            cb_data.model_data_(dir, vis_index + i) = aocommon::MC2x2F(
-                &model_data_ptr[i * model_data_row.n_correlations]);
+            cb_data.model_data_(dir, vis_index + i) =
+                ToSpecificMatrix<MatrixType>(
+                    &model_data_ptr[i * model_data_row.n_correlations]);
           }
         }
 
@@ -220,7 +236,8 @@ SolveData::SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
     cb_data.InitializeSolutionIndices();  // TODO replace!
 }
 
-void SolveData::CountAntennaVisibilities(size_t n_antennas) {
+template <typename MatrixType>
+void SolveData<MatrixType>::CountAntennaVisibilities(size_t n_antennas) {
   for (ChannelBlockData& cb_data : channel_blocks_) {
     cb_data.antenna_visibility_counts_.assign(n_antennas, 0);
     for (const std::pair<uint32_t, uint32_t>& a : cb_data.antenna_indices_) {
@@ -230,7 +247,8 @@ void SolveData::CountAntennaVisibilities(size_t n_antennas) {
   }
 }
 
-void SolveData::ChannelBlockData::InitializeSolutionIndices() {
+template <typename MatrixType>
+void SolveData<MatrixType>::ChannelBlockData::InitializeSolutionIndices() {
   // This initializes the solution indices for direction-independent intervals
   // TODO support DD intervals
   n_solutions_.assign(NDirections(), 1);
@@ -238,6 +256,9 @@ void SolveData::ChannelBlockData::InitializeSolutionIndices() {
     xt::view(solution_map_, i, xt::all()).fill(i);
   }
 }
+
+template class SolveData<aocommon::MC2x2F>;
+template class SolveData<aocommon::MC2x2FDiag>;
 
 }  // namespace ddecal
 }  // namespace dp3

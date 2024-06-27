@@ -16,7 +16,7 @@ namespace dp3 {
 namespace ddecal {
 
 FullJonesSolver::SolveResult FullJonesSolver::Solve(
-    const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
+    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   // This algorithm is basically the same as the scalar algorithm,
   // but visibility values are extended to 2x2 matrices and concatenated
@@ -89,7 +89,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
         [&](size_t start_block, size_t end_block, size_t thread_index) {
           for (size_t ch_block = start_block; ch_block != end_block;
                ++ch_block) {
-            const SolveData::ChannelBlockData& channel_block =
+            const FullSolveData::ChannelBlockData& channel_block =
                 data.ChannelBlock(ch_block);
 
             std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread_index];
@@ -137,7 +137,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
 }
 
 void FullJonesSolver::PerformIteration(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs,
     const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
@@ -255,7 +255,7 @@ void FullJonesSolver::PerformIteration(
 }
 
 void FullJonesSolver::InitializeModelMatrix(
-    const SolveData::ChannelBlockData& channel_block_data,
+    const FullSolveData::ChannelBlockData& channel_block_data,
     std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs) const {
   assert(g_times_cs.empty() == vs.empty());
   if (g_times_cs.empty()) {

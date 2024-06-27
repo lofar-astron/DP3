@@ -13,11 +13,10 @@
 
 #include "../constraints/Constraint.h"
 #include "../linear_solvers/LLSSolver.h"
+#include "SolveData.h"
 
 namespace dp3 {
 namespace ddecal {
-
-class SolveData;
 
 class SolverBase {
  public:
@@ -201,7 +200,7 @@ class SolverBase {
    * pol solutions.
    * @param statStream Optional pointer to a stream for displaying statistics.
    */
-  virtual SolveResult Solve(const SolveData& data,
+  virtual SolveResult Solve(const FullSolveData& data,
                             std::vector<std::vector<DComplex>>& solutions,
                             double time, std::ostream* statStream) = 0;
 

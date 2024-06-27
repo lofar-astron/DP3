@@ -15,7 +15,7 @@ namespace dp3 {
 namespace ddecal {
 
 IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
-    const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
+    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
 
@@ -83,7 +83,7 @@ IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
 }
 
 void IterativeFullJonesSolver::PerformIteration(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     std::vector<MC2x2F>& v_residual, const std::vector<DComplex>& solutions,
     SolutionTensor& next_solutions) {
   // Fill v_residual
@@ -108,7 +108,7 @@ void IterativeFullJonesSolver::PerformIteration(
 }
 
 void IterativeFullJonesSolver::SolveDirection(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     const std::vector<MC2x2F>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   // Calculate this equation, given ant a:
@@ -180,8 +180,9 @@ void IterativeFullJonesSolver::SolveDirection(
 
 template <bool Add>
 void IterativeFullJonesSolver::AddOrSubtractDirection(
-    const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
-    size_t direction, const std::vector<DComplex>& solutions) {
+    const FullSolveData::ChannelBlockData& cb_data,
+    std::vector<MC2x2F>& v_residual, size_t direction,
+    const std::vector<DComplex>& solutions) {
   constexpr size_t n_solution_polarizations = 4;
   const size_t n_visibilities = cb_data.NVisibilities();
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {

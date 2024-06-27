@@ -12,7 +12,7 @@ namespace ddecal {
 
 class FullJonesSolver final : public SolverBase {
  public:
-  SolveResult Solve(const SolveData& data,
+  SolveResult Solve(const FullSolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
@@ -20,7 +20,7 @@ class FullJonesSolver final : public SolverBase {
 
  private:
   void PerformIteration(size_t ch_block,
-                        const SolveData::ChannelBlockData& cb_data,
+                        const FullSolveData::ChannelBlockData& cb_data,
                         std::vector<Matrix>& g_times_cs,
                         std::vector<Matrix>& vs,
                         const std::vector<DComplex>& solutions,
@@ -33,7 +33,7 @@ class FullJonesSolver final : public SolverBase {
    * antenna visibilities in the corresponding channel block.
    */
   void InitializeModelMatrix(
-      const SolveData::ChannelBlockData& channel_block_data,
+      const FullSolveData::ChannelBlockData& channel_block_data,
       std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs) const;
 };
 

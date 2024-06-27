@@ -56,7 +56,7 @@ class DiagonalLowRankSolver final : public SolverBase {
             n_low_rank_approximation_iterations),
         n_power_iterations_(n_power_iterations) {}
 
-  SolveResult Solve(const SolveData& data,
+  SolveResult Solve(const FullSolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
@@ -79,7 +79,7 @@ class DiagonalLowRankSolver final : public SolverBase {
 
  private:
   void PerformIteration(size_t ch_block,
-                        const SolveData::ChannelBlockData& cb_data,
+                        const FullSolveData::ChannelBlockData& cb_data,
                         std::vector<aocommon::MC2x2F>& v_residual,
                         const std::vector<DComplex>& solutions,
                         SolutionTensor& next_solutions, size_t iteration);
@@ -88,18 +88,18 @@ class DiagonalLowRankSolver final : public SolverBase {
    * Calculates the chi-squared value, i.e. the weighted squared sum of the
    * difference between the data and the corrected residual.
    */
-  double ChiSquared(const SolveData::ChannelBlockData& cb_data,
+  double ChiSquared(const FullSolveData::ChannelBlockData& cb_data,
                     std::vector<aocommon::MC2x2F>& v_residual, size_t direction,
                     const SolutionSpan& solutions) const;
 
   void SolveDirectionSolution(size_t ch_block,
-                              const SolveData::ChannelBlockData& cb_data,
+                              const FullSolveData::ChannelBlockData& cb_data,
                               const std::vector<aocommon::MC2x2F>& v_residual,
                               size_t direction_index, size_t solution_index,
                               const std::vector<DComplex>& solutions,
                               SolutionTensor& next_solutions);
 
-  void CalculateNormPerDirection(const SolveData& data);
+  void CalculateNormPerDirection(const FullSolveData& data);
 
   std::vector<size_t> direction_ordering_;
   size_t n_low_rank_approximation_iterations_ = 25;

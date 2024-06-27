@@ -47,7 +47,7 @@ class LBFGSSolver final : public SolverBase {
   static void MergeSolutions(SolutionTensor& next_solutions, size_t ch_block,
                              const xt::xtensor<double, 1>& d_storage);
 
-  SolveResult Solve(const SolveData& data,
+  SolveResult Solve(const FullSolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
