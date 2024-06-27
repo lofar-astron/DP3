@@ -16,7 +16,7 @@ namespace dp3 {
 namespace ddecal {
 
 IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
-    const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
+    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
 
@@ -84,7 +84,7 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
 }
 
 void IterativeScalarSolver::PerformIteration(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     std::vector<MC2x2F>& v_residual, const std::vector<DComplex>& solutions,
     SolutionTensor& next_solutions) {
   // Fill v_residual
@@ -109,7 +109,7 @@ void IterativeScalarSolver::PerformIteration(
 }
 
 void IterativeScalarSolver::SolveDirection(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     const std::vector<MC2x2F>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   // Calculate this equation, given ant a:
@@ -169,8 +169,9 @@ void IterativeScalarSolver::SolveDirection(
 
 template <bool Add>
 void IterativeScalarSolver::AddOrSubtractDirection(
-    const SolveData::ChannelBlockData& cb_data, std::vector<MC2x2F>& v_residual,
-    size_t direction, const std::vector<DComplex>& solutions) {
+    const FullSolveData::ChannelBlockData& cb_data,
+    std::vector<MC2x2F>& v_residual, size_t direction,
+    const std::vector<DComplex>& solutions) {
   const size_t n_visibilities = cb_data.NVisibilities();
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);

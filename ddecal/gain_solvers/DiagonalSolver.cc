@@ -20,7 +20,7 @@ namespace dp3 {
 namespace ddecal {
 
 DiagonalSolver::SolveResult DiagonalSolver::Solve(
-    const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
+    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   assert(solutions.size() == NChannelBlocks());
 
@@ -65,7 +65,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
         [&](size_t start_block, size_t end_block, size_t thread_index) {
           for (size_t ch_block = start_block; ch_block != end_block;
                ++ch_block) {
-            const SolveData::ChannelBlockData& channel_block =
+            const FullSolveData::ChannelBlockData& channel_block =
                 data.ChannelBlock(ch_block);
 
             std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread_index];
@@ -112,7 +112,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 }
 
 void DiagonalSolver::PerformIteration(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     std::vector<Matrix>& g_times_cs, std::vector<std::vector<Complex>>& vs,
     const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   for (size_t ant_and_pol = 0; ant_and_pol != NAntennas() * 2; ++ant_and_pol) {
@@ -213,7 +213,7 @@ static void Reset(std::vector<SolverBase::Complex>& vector, size_t size) {
 }
 
 void DiagonalSolver::InitializeModelMatrix(
-    const SolveData::ChannelBlockData& channel_block_data,
+    const FullSolveData::ChannelBlockData& channel_block_data,
     std::vector<Matrix>& g_times_cs,
     std::vector<std::vector<Complex>>& vs) const {
   assert(g_times_cs.empty() == vs.empty());

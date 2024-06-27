@@ -34,13 +34,13 @@ namespace ddecal {
 namespace {
 
 struct lbfgs_fulljones_data {
-  const SolveData::ChannelBlockData& cb_data;
+  const FullSolveData::ChannelBlockData& cb_data;
   std::size_t n_antennas;
   std::size_t n_directions;
   double robust_nu;
   std::size_t start_baseline;
   std::size_t end_baseline;
-  lbfgs_fulljones_data(const SolveData::ChannelBlockData& cb_data_,
+  lbfgs_fulljones_data(const FullSolveData::ChannelBlockData& cb_data_,
                        std::size_t n_antennas_, std::size_t n_directions_,
                        double robust_nu_)
       : cb_data(cb_data_),
@@ -384,7 +384,7 @@ void ScalarGradient(double* unknowns, double* gradient, int n_unknowns,
 }
 
 void PerformIterationFull(size_t ch_block,
-                          const SolveData::ChannelBlockData& cb_data,
+                          const FullSolveData::ChannelBlockData& cb_data,
                           const std::vector<SolverBase::DComplex>& solutions,
                           SolutionTensor& next_solutions,
                           std::size_t n_antennas, std::size_t n_directions,
@@ -420,7 +420,7 @@ void PerformIterationFull(size_t ch_block,
 }
 
 void PerformIterationDiagonal(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     const std::vector<SolverBase::DComplex>& solutions,
     SolutionTensor& next_solutions, std::size_t n_antennas,
     std::size_t n_directions, double robust_nu, std::size_t max_iter,
@@ -454,7 +454,7 @@ void PerformIterationDiagonal(
 }
 
 void PerformIterationScalar(size_t ch_block,
-                            const SolveData::ChannelBlockData& cb_data,
+                            const FullSolveData::ChannelBlockData& cb_data,
                             const std::vector<SolverBase::DComplex>& solutions,
                             SolutionTensor& next_solutions,
                             std::size_t n_antennas, std::size_t n_directions,
@@ -521,7 +521,7 @@ void LBFGSSolver::MergeSolutions(SolutionTensor& next_solutions,
 }
 
 LBFGSSolver::SolveResult LBFGSSolver::Solve(
-    const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
+    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   assert(solutions.size() == NChannelBlocks());
 
@@ -537,7 +537,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
       {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
 
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
-    const SolveData::ChannelBlockData& channel_block_data =
+    const FullSolveData::ChannelBlockData& channel_block_data =
         data.ChannelBlock(ch_block);
     // initialize with
     // minibatches, size of parameters, size of data (baselines), history size,

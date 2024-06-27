@@ -16,7 +16,7 @@ namespace ddecal {
  */
 class IterativeFullJonesSolver final : public SolverBase {
  public:
-  SolveResult Solve(const SolveData& data,
+  SolveResult Solve(const FullSolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
@@ -26,19 +26,19 @@ class IterativeFullJonesSolver final : public SolverBase {
 
  private:
   void PerformIteration(size_t ch_block,
-                        const SolveData::ChannelBlockData& cb_data,
+                        const FullSolveData::ChannelBlockData& cb_data,
                         std::vector<aocommon::MC2x2F>& v_residual,
                         const std::vector<DComplex>& solutions,
                         SolutionTensor& next_solutions);
 
   template <bool Add>
-  void AddOrSubtractDirection(const SolveData::ChannelBlockData& cb_data,
+  void AddOrSubtractDirection(const FullSolveData::ChannelBlockData& cb_data,
                               std::vector<aocommon::MC2x2F>& v_residual,
                               size_t direction,
                               const std::vector<DComplex>& solutions);
 
   void SolveDirection(size_t ch_block,
-                      const SolveData::ChannelBlockData& cb_data,
+                      const FullSolveData::ChannelBlockData& cb_data,
                       const std::vector<aocommon::MC2x2F>& v_residual,
                       size_t direction, const std::vector<DComplex>& solutions,
                       SolutionTensor& next_solutions);

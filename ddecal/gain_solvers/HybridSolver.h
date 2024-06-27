@@ -72,13 +72,13 @@ class HybridSolver final : public SolverBase {
   }
   /** @} */
 
-  SolveResult Solve(const SolveData& solve_data,
+  SolveResult Solve(const FullSolveData& solve_data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
  private:
   bool RunSolver(SolverBase& solver, size_t& available_iterations,
-                 SolveResult& result, const SolveData& solve_data,
+                 SolveResult& result, const FullSolveData& solve_data,
                  std::vector<std::vector<DComplex>>& solutions, double time,
                  std::ostream* stat_stream);
 

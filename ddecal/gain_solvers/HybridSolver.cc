@@ -22,8 +22,9 @@ void HybridSolver::AddSolver(std::unique_ptr<SolverBase> solver) {
 }
 
 HybridSolver::SolveResult HybridSolver::Solve(
-    const SolveData& solve_data, std::vector<std::vector<DComplex>>& solutions,
-    double time, std::ostream* stat_stream) {
+    const FullSolveData& solve_data,
+    std::vector<std::vector<DComplex>>& solutions, double time,
+    std::ostream* stat_stream) {
   assert(!solvers_.empty());
   size_t available_iterations = SolverBase::GetMaxIterations();
   SolveResult result;
@@ -40,7 +41,8 @@ HybridSolver::SolveResult HybridSolver::Solve(
 }
 
 bool HybridSolver::RunSolver(SolverBase& solver, size_t& available_iterations,
-                             SolveResult& result, const SolveData& solve_data,
+                             SolveResult& result,
+                             const FullSolveData& solve_data,
                              std::vector<std::vector<DComplex>>& solutions,
                              double time, std::ostream* stat_stream) {
   if (solver.GetMaxIterations() > available_iterations)

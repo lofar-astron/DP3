@@ -20,13 +20,15 @@ class BdaSolverBuffer;
 /**
  * Contains exactly the data required for solving: (weighted) data, model_data
  * and the associated antennas for each visibility. In this class, the term
- * visibility refers to a 2x2 matrix containing the 4 polarizations.
+ * visibility refers to either a 2x2 diagonal or a full 2x2 matrix, containing 2
+ * or 4 polarizations respectively.
  */
+template <typename MatrixType = aocommon::MC2x2F>
 class SolveData {
  public:
   class ChannelBlockData {
    public:
-    using const_iterator = std::vector<aocommon::MC2x2F>::const_iterator;
+    using const_iterator = typename std::vector<MatrixType>::const_iterator;
 
     void Resize(size_t n_visibilities, size_t n_directions) {
       data_.resize(n_visibilities);
@@ -70,11 +72,8 @@ class SolveData {
     const uint32_t* SolutionMapData() const { return solution_map_.data(); }
 
     const float& Weight(size_t index) const { return weights_(index, 0); }
-    const aocommon::MC2x2F& Visibility(size_t index) const {
-      return data_[index];
-    }
-    const aocommon::MC2x2F& ModelVisibility(size_t direction,
-                                            size_t index) const {
+    const MatrixType& Visibility(size_t index) const { return data_[index]; }
+    const MatrixType& ModelVisibility(size_t direction, size_t index) const {
       return model_data_(direction, index);
     }
 
@@ -89,19 +88,19 @@ class SolveData {
     }
 
    private:
-    friend class SolveData;
+    friend class SolveData<MatrixType>;
 
     /**
      * Initialize n_solutions_ and solution_map_.
      */
     void InitializeSolutionIndices();
 
-    std::vector<aocommon::MC2x2F> data_;
+    std::vector<MatrixType> data_;
     // weights_(i, pol) contains the weight for data_[i][pol]. The vector will
     // be left empty when the algorithm does not need the weights.
     xt::xtensor<float, 2> weights_;
     // model_data_(d, i) is the model data for direction d, element i
-    xt::xtensor<aocommon::MC2x2F, 2> model_data_;
+    xt::xtensor<MatrixType, 2> model_data_;
     // Element i contains the first and second antenna corresponding with
     // data_[i] and model_data_(d, i)
     std::vector<std::pair<uint32_t, uint32_t>> antenna_indices_;
@@ -162,14 +161,20 @@ class SolveData {
   std::vector<ChannelBlockData> channel_blocks_;
 };
 
-template <bool Add>
+/// Stores all 4 polarizations of the data.
+using FullSolveData = SolveData<aocommon::MC2x2F>;
+/// Stores only the 2 diagonal values of the data (e.g. XX/YY). Because the word
+/// "diagonal" is extensively used for the solution type, the term "Duo" is used
+/// for this.
+using DuoSolveData = SolveData<aocommon::MC2x2FDiag>;
+
+template <bool Add, typename MatrixType>
 void DiagonalAddOrSubtractDirection(
-    const SolveData::ChannelBlockData& cb_data,
-    std::vector<aocommon::MC2x2F>& v_residual, size_t direction,
-    size_t n_solutions, const std::vector<std::complex<double>>& solutions) {
+    const typename SolveData<MatrixType>::ChannelBlockData& cb_data,
+    std::vector<MatrixType>& v_residual, size_t direction, size_t n_solutions,
+    const std::vector<std::complex<double>>& solutions) {
   using DComplex = std::complex<double>;
   using Complex = std::complex<float>;
-  using aocommon::MC2x2F;
   const size_t n_visibilities = cb_data.NVisibilities();
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -179,23 +184,25 @@ void DiagonalAddOrSubtractDirection(
         &solutions[(antenna_1 * n_solutions + solution_index) * 2];
     const DComplex* solution_2 =
         &solutions[(antenna_2 * n_solutions + solution_index) * 2];
-    const Complex solution_1_0(solution_1[0]);
-    const Complex solution_1_1(solution_1[1]);
-    const Complex solution_2_0_conj(std::conj(solution_2[0]));
-    const Complex solution_2_1_conj(std::conj(solution_2[1]));
 
-    MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
-    const MC2x2F contribution(solution_1_0 * model[0] * solution_2_0_conj,
-                              solution_1_0 * model[1] * solution_2_1_conj,
-                              solution_1_1 * model[2] * solution_2_0_conj,
-                              solution_1_1 * model[3] * solution_2_1_conj);
+    MatrixType& data = v_residual[vis_index];
+    const MatrixType& model = cb_data.ModelVisibility(direction, vis_index);
+    // Convert first to single precision to make calculation easier
+    const aocommon::MC2x2FDiag solution_a(static_cast<Complex>(solution_1[0]),
+                                          static_cast<Complex>(solution_1[1]));
+    const aocommon::MC2x2FDiag solution_b(static_cast<Complex>(solution_2[0]),
+                                          static_cast<Complex>(solution_2[1]));
+    const MatrixType contribution(solution_a * model *
+                                  HermTranspose(solution_b));
     if constexpr (Add)
       data += contribution;
     else
       data -= contribution;
   }
 }
+
+extern template class SolveData<aocommon::MC2x2F>;
+extern template class SolveData<aocommon::MC2x2FDiag>;
 
 }  // namespace ddecal
 }  // namespace dp3

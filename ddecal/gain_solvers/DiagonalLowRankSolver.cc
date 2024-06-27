@@ -51,7 +51,7 @@ float DominantEigenPairNear(const xt::xtensor<std::complex<float>, 2>& matrix,
 }
 
 DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
-    const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
+    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
 
@@ -120,11 +120,12 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
   return result;
 }
 
-void DiagonalLowRankSolver::CalculateNormPerDirection(const SolveData& data) {
+void DiagonalLowRankSolver::CalculateNormPerDirection(
+    const FullSolveData& data) {
   std::vector<std::pair<float, size_t>> norm_sum_per_direction(NDirections());
   for (size_t channel_block_index = 0;
        channel_block_index != data.NChannelBlocks(); ++channel_block_index) {
-    const SolveData::ChannelBlockData& cb_data =
+    const FullSolveData::ChannelBlockData& cb_data =
         data.ChannelBlock(channel_block_index);
     const size_t n_visibilities = cb_data.NVisibilities();
     for (size_t direction = 0; direction != cb_data.NDirections();
@@ -147,7 +148,7 @@ void DiagonalLowRankSolver::CalculateNormPerDirection(const SolveData& data) {
 }
 
 double DiagonalLowRankSolver::ChiSquared(
-    const SolveData::ChannelBlockData& cb_data,
+    const FullSolveData::ChannelBlockData& cb_data,
     std::vector<aocommon::MC2x2F>& v_residual, size_t direction,
     const SolutionSpan& solutions) const {
   using DComplex = std::complex<double>;
@@ -182,7 +183,7 @@ double DiagonalLowRankSolver::ChiSquared(
 }
 
 void DiagonalLowRankSolver::PerformIteration(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     std::vector<MC2x2F>& v_residual, const std::vector<DComplex>& solutions,
     SolutionTensor& next_solutions, size_t iteration) {
   // Fill v_residual
@@ -245,7 +246,7 @@ void AddToCorrelation(std::complex<float>& correlation_element,
 }
 
 void DiagonalLowRankSolver::SolveDirectionSolution(
-    size_t ch_block, const SolveData::ChannelBlockData& cb_data,
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
     const std::vector<aocommon::MC2x2F>& v_residual, size_t direction_index,
     size_t solution_index, const std::vector<DComplex>& solutions,
     SolutionTensor& next_solutions) {

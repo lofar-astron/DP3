@@ -18,7 +18,7 @@ namespace dp3 {
 namespace ddecal {
 
 ScalarSolver::SolveResult ScalarSolver::Solve(
-    const SolveData& data, std::vector<std::vector<DComplex>>& solutions,
+    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
     double time, std::ostream* stat_stream) {
   assert(solutions.size() == NChannelBlocks());
 
@@ -63,7 +63,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
         [&](size_t start_block, size_t end_block, size_t thread_index) {
           for (size_t ch_block = start_block; ch_block != end_block;
                ++ch_block) {
-            const SolveData::ChannelBlockData& channel_block =
+            const FullSolveData::ChannelBlockData& channel_block =
                 data.ChannelBlock(ch_block);
 
             std::vector<Matrix>& g_times_cs = thread_g_times_cs[thread_index];
@@ -109,12 +109,10 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   return result;
 }
 
-void ScalarSolver::PerformIteration(size_t ch_block,
-                                    const SolveData::ChannelBlockData& cb_data,
-                                    std::vector<Matrix>& g_times_cs,
-                                    std::vector<Matrix>& vs,
-                                    const std::vector<DComplex>& solutions,
-                                    SolutionTensor& next_solutions) {
+void ScalarSolver::PerformIteration(
+    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
+    std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs,
+    const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   const size_t n_visibilities = cb_data.NVisibilities();
   const size_t p1_to_p2[4] = {0, 2, 1, 3};
 
@@ -194,7 +192,7 @@ void ScalarSolver::PerformIteration(size_t ch_block,
 }
 
 void ScalarSolver::InitializeModelMatrix(
-    const SolveData::ChannelBlockData& channel_block_data,
+    const FullSolveData::ChannelBlockData& channel_block_data,
     std::vector<Matrix>& g_times_cs, std::vector<Matrix>& vs) const {
   assert(g_times_cs.empty() == vs.empty());
   if (g_times_cs.empty()) {

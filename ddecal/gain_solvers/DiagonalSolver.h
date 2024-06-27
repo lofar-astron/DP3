@@ -14,7 +14,7 @@ class DiagonalSolver final : public SolverBase {
  public:
   DiagonalSolver() : SolverBase() {}
 
-  SolveResult Solve(const SolveData& data,
+  SolveResult Solve(const FullSolveData& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
@@ -22,7 +22,7 @@ class DiagonalSolver final : public SolverBase {
 
  private:
   void PerformIteration(size_t ch_block,
-                        const SolveData::ChannelBlockData& cb_data,
+                        const FullSolveData::ChannelBlockData& cb_data,
                         std::vector<Matrix>& g_times_cs,
                         std::vector<std::vector<Complex>>& vs,
                         const std::vector<DComplex>& solutions,
@@ -35,7 +35,7 @@ class DiagonalSolver final : public SolverBase {
    * antenna visibilities in the corresponding channel block.
    */
   void InitializeModelMatrix(
-      const SolveData::ChannelBlockData& channel_block_data,
+      const FullSolveData::ChannelBlockData& channel_block_data,
       std::vector<Matrix>& g_times_cs,
       std::vector<std::vector<Complex>>& vs) const;
 };

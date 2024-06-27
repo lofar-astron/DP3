@@ -16,7 +16,7 @@
 
 using dp3::base::BDABuffer;
 using dp3::base::DPBuffer;
-using ChannelBlockData = dp3::ddecal::SolveData::ChannelBlockData;
+using ChannelBlockData = dp3::ddecal::FullSolveData::ChannelBlockData;
 
 namespace {
 
