@@ -48,6 +48,152 @@ using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::operator<<;
 
+namespace {
+
+// ApplyBeam is templated on the type of the data, could be complex<double>
+// or complex<float>
+template <typename T>
+void ApplyBeamToData(const DPInfo& info, const size_t n_stations, T* data0,
+                     float* weight0, std::vector<aocommon::MC2x2>& beam_values,
+                     bool doUpdateWeights) {
+  /*
+    Applies the beam to each baseline and each frequency of the
+    model patch
+  */
+  const size_t n_channels = info.chanFreqs().size();
+  const size_t n_baselines = info.nbaselines();
+
+  // Apply beam for channel ch on all baselines
+  // For mode=ARRAY_FACTOR, too much work is done here
+  // because we know that r and l are diagonal
+  for (size_t bl = 0; bl < n_baselines; ++bl) {
+    // If the beam is the same for all stations (i.e. when n_stations = 1),
+    // all baselines will have the same beam values
+    size_t index_left = (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
+    size_t index_right =
+        (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
+    for (size_t ch = 0; ch < n_channels; ++ch) {
+      T* data = data0 + bl * 4 * n_channels + ch * 4;
+      const aocommon::MC2x2F mat(data);
+
+      const aocommon::MC2x2F left(beam_values[index_left + ch]);
+      const aocommon::MC2x2F right(beam_values[index_right + ch]);
+      const aocommon::MC2x2F result = left * mat.MultiplyHerm(right);
+      result.AssignTo(data);
+      if (doUpdateWeights) {
+        dp3::steps::ApplyCal::ApplyWeights(
+            left, right, weight0 + bl * 4 * n_channels + ch * 4);
+      }
+    }
+  }
+}
+
+template <typename T>
+void ApplyBeamToDataAndAdd(const DPInfo& info, const size_t n_stations,
+                           T* data0, T* model_data, float* weight0,
+                           std::vector<aocommon::MC2x2>& beam_values,
+                           bool doUpdateWeights) {
+  /*
+    Applies the beam to each baseline and each frequency of the
+    model patch and sum the contribution to the model data
+  */
+  const size_t n_channels = info.chanFreqs().size();
+  const size_t n_baselines = info.nbaselines();
+
+  // Apply beam for channel ch on all baselines
+  // For mode=ARRAY_FACTOR, too much work is done here
+  // because we know that r and l are diagonal
+  for (size_t bl = 0; bl < n_baselines; ++bl) {
+    // If the beam is the same for all stations (i.e. when n_stations = 1),
+    // all baselines will have the same beam values
+    const size_t index_left =
+        (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
+    const size_t index_right =
+        (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
+    for (size_t ch = 0; ch < n_channels; ++ch) {
+      T* data_ptr = data0 + bl * 4 * n_channels + ch * 4;
+      T* model_data_ptr = model_data + bl * 4 * n_channels + ch * 4;
+      const aocommon::MC2x2F data(data_ptr);
+      const aocommon::MC2x2F model_data(model_data_ptr);
+
+      const aocommon::MC2x2F left(beam_values[index_left + ch]);
+      const aocommon::MC2x2F right(beam_values[index_right + ch]);
+      const aocommon::MC2x2F result =
+          model_data + left * data.MultiplyHerm(right);
+      result.AssignTo(model_data_ptr);
+      if (doUpdateWeights) {
+        dp3::steps::ApplyCal::ApplyWeights(
+            left, right, weight0 + bl * 4 * n_channels + ch * 4);
+      }
+    }
+  }
+}
+
+size_t ComputeBeam(const DPInfo& info, double time,
+                   const everybeam::vector3r_t& srcdir,
+                   const everybeam::telescope::Telescope* telescope,
+                   std::vector<aocommon::MC2x2>& beam_values, bool invert,
+                   everybeam::CorrectionMode mode, std::mutex* mutex) {
+  /*
+    Compute the beam values for each station in a specific direction
+    and store them into beam_values
+
+    For convenience it returns the number of stations the beam
+    was computed for.
+  */
+  const size_t n_channels = info.chanFreqs().size();
+
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope->GetPointResponse(time);
+
+  const std::vector<size_t> station_indices =
+      dp3::base::SelectStationIndices(*telescope, info.antennaNames());
+
+  const size_t n_stations = station_indices.size();
+
+  // Apply the beam values of both stations to the ApplyBeamed data.
+  for (size_t ch = 0; ch < n_channels; ++ch) {
+    switch (mode) {
+      case everybeam::CorrectionMode::kFull:
+      case everybeam::CorrectionMode::kElement:
+        // Fill beam_values for channel ch
+        for (size_t st = 0; st < n_stations; ++st) {
+          beam_values[n_channels * st + ch] = point_response->Response(
+              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+          if (invert) {
+            // Terminate if the matrix is not invertible.
+            [[maybe_unused]] bool status =
+                beam_values[n_channels * st + ch].Invert();
+            assert(status);
+          }
+        }
+        break;
+      case everybeam::CorrectionMode::kArrayFactor: {
+        aocommon::MC2x2 af_tmp;
+        // Fill beam_values for channel ch
+        for (size_t st = 0; st < n_stations; ++st) {
+          af_tmp = point_response->Response(
+              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+
+          if (invert) {
+            af_tmp[0] = 1. / af_tmp[0];
+            af_tmp[3] = 1. / af_tmp[3];
+          }
+          beam_values[n_channels * st + ch] = af_tmp;
+        }
+        break;
+      }
+      case everybeam::CorrectionMode::kNone:  // this should not happen
+        for (size_t st = 0; st < n_stations; ++st) {
+          beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+        }
+        break;
+    }
+  }
+  return n_stations;
+}
+}  // namespace
+
 namespace dp3 {
 namespace steps {
 
@@ -265,8 +411,8 @@ void ApplyBeam::finish() {
   getNextStep()->finish();
 }
 
-// applyBeam is templated on the type of the data, could be complex<double> or
-// complex<float>
+// applyBeam is templated on the type of the data, could be complex<double>
+// or complex<float>
 template <typename T>
 void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
                           float* weight0, const everybeam::vector3r_t& srcdir,
@@ -274,81 +420,43 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
                           std::vector<aocommon::MC2x2>& beam_values,
                           bool invert, everybeam::CorrectionMode mode,
                           bool doUpdateWeights, std::mutex* mutex) {
-  // Get the beam values for each station.
-  const size_t n_channels = info.chanFreqs().size();
-  const size_t n_baselines = info.nbaselines();
-
-  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope->GetPointResponse(time);
-
-  const std::vector<size_t> station_indices =
-      base::SelectStationIndices(*telescope, info.antennaNames());
-
-  const size_t n_stations = station_indices.size();
-
-  // Apply the beam values of both stations to the ApplyBeamed data.
-  for (size_t ch = 0; ch < n_channels; ++ch) {
-    switch (mode) {
-      case everybeam::CorrectionMode::kFull:
-      case everybeam::CorrectionMode::kElement:
-        // Fill beam_values for channel ch
-        for (size_t st = 0; st < n_stations; ++st) {
-          beam_values[n_channels * st + ch] = point_response->Response(
-              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
-          if (invert) {
-            // Terminate if the matrix is not invertible.
-            [[maybe_unused]] bool status =
-                beam_values[n_channels * st + ch].Invert();
-            assert(status);
-          }
-        }
-        break;
-      case everybeam::CorrectionMode::kArrayFactor: {
-        aocommon::MC2x2 af_tmp;
-        // Fill beam_values for channel ch
-        for (size_t st = 0; st < n_stations; ++st) {
-          af_tmp = point_response->Response(
-              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
-
-          if (invert) {
-            af_tmp[0] = 1. / af_tmp[0];
-            af_tmp[3] = 1. / af_tmp[3];
-          }
-          beam_values[n_channels * st + ch] = af_tmp;
-        }
-        break;
-      }
-      case everybeam::CorrectionMode::kNone:  // this should not happen
-        for (size_t st = 0; st < n_stations; ++st) {
-          beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
-        }
-        break;
-    }
-
-    // Apply beam for channel ch on all baselines
-    // For mode=ARRAY_FACTOR, too much work is done here because we know
-    // that r and l are diagonal
-    for (size_t bl = 0; bl < n_baselines; ++bl) {
-      T* data = data0 + bl * 4 * n_channels + ch * 4;
-      const aocommon::MC2x2F mat(data);
-
-      // If the beam is the same for all stations (i.e. when n_stations = 1),
-      // all baselines will have the same beam values
-      size_t index_left =
-          (n_stations == 1 ? ch : n_channels * info.getAnt1()[bl] + ch);
-      size_t index_right =
-          (n_stations == 1 ? ch : n_channels * info.getAnt2()[bl] + ch);
-      const aocommon::MC2x2F left(beam_values[index_left]);
-      const aocommon::MC2x2F right(beam_values[index_right]);
-      const aocommon::MC2x2F result = left * mat.MultiplyHerm(right);
-      result.AssignTo(data);
-      if (doUpdateWeights) {
-        ApplyCal::ApplyWeights(left, right,
-                               weight0 + bl * 4 * n_channels + ch * 4);
-      }
-    }
-  }
+  const size_t n_stations = ComputeBeam(info, time, srcdir, telescope,
+                                        beam_values, invert, mode, mutex);
+  ApplyBeamToData(info, n_stations, data0, weight0, beam_values,
+                  doUpdateWeights);
 }
+
+// applyBeam is templated on the type of the data, could be complex<double>
+// or complex<float>
+template <typename T>
+void ApplyBeam::ApplyBeamAndAddToModel(
+    const DPInfo& info, double time, T* data0, T* model_data, float* weight0,
+    const everybeam::vector3r_t& srcdir,
+    const everybeam::telescope::Telescope* telescope,
+    std::vector<aocommon::MC2x2>& beam_values, bool invert,
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex) {
+  const size_t n_stations = ComputeBeam(info, time, srcdir, telescope,
+                                        beam_values, invert, mode, mutex);
+
+  ApplyBeamToDataAndAdd(info, n_stations, data0, model_data, weight0,
+                        beam_values, doUpdateWeights);
+}
+
+template void ApplyBeam::ApplyBeamAndAddToModel(
+    const DPInfo& info, double time, std::complex<double>* data0,
+    std::complex<double>* model_data, float* weight0,
+    const everybeam::vector3r_t& srcdir,
+    const everybeam::telescope::Telescope* telescope,
+    std::vector<aocommon::MC2x2>& beam_values, bool invert,
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
+
+template void ApplyBeam::ApplyBeamAndAddToModel(
+    const DPInfo& info, double time, std::complex<float>* data0,
+    std::complex<float>* model_data, float* weight0,
+    const everybeam::vector3r_t& srcdir,
+    const everybeam::telescope::Telescope* telescope,
+    std::vector<aocommon::MC2x2>& beam_values, bool invert,
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
 
 template void ApplyBeam::applyBeam(
     const DPInfo& info, double time, std::complex<double>* data0,

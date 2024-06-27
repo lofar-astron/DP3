@@ -85,6 +85,16 @@ class ApplyBeam : public Step {
                         everybeam::CorrectionMode mode,
                         bool doUpdateWeights = false,
                         std::mutex* mutex = nullptr);
+
+  template <typename T>
+  static void ApplyBeamAndAddToModel(
+      const base::DPInfo& info, double time, T* data0, T* model_data,
+      float* weight0, const everybeam::vector3r_t& srcdir,
+      const everybeam::telescope::Telescope* telescope,
+      std::vector<aocommon::MC2x2>& beamValues, bool invert,
+      everybeam::CorrectionMode mode, bool doUpdateWeights = false,
+      std::mutex* mutex = nullptr);
+
   // This method applies the beam for processing when parallelizing over
   // baselines. Because the beam is a per-antenna effect, this requires
   // synchronisation, which is performed with the provided barrier.
