@@ -605,17 +605,31 @@ void DDECal::doSolve() {
 
       itsTimerSolve.start();
 
-      const ddecal::SolveData solve_data(
-          weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-          itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
-      weighted_buffers.clear();
+      if (itsSettings.use_duo_algorithm) {
+        const ddecal::DuoSolveData solve_data(
+            weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
+            itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+        weighted_buffers.clear();
 
-      aocommon::Logger::Debug
-          << "Running DDECal solver for current calibration interval.\n";
+        aocommon::Logger::Debug
+            << "Running DDECal duo solver for current calibration interval.\n";
 
-      solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
-                                     itsAvgTime / itsRequestedSolInt,
-                                     itsStatStream.get());
+        solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
+                                       itsAvgTime / itsRequestedSolInt,
+                                       itsStatStream.get());
+      } else {
+        const ddecal::FullSolveData solve_data(
+            weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
+            itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+        weighted_buffers.clear();
+
+        aocommon::Logger::Debug
+            << "Running DDECal solver for current calibration interval.\n";
+
+        solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
+                                       itsAvgTime / itsRequestedSolInt,
+                                       itsStatStream.get());
+      }
 
       itsTimerSolve.stop();
 

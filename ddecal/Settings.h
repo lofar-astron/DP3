@@ -121,6 +121,7 @@ struct Settings {
   const size_t max_iterations;
   const double tolerance;
   const double step_size;
+  const bool use_duo_algorithm;
   const bool detect_stalling;
   const double step_diff_sigma;
   const bool approximate_tec;

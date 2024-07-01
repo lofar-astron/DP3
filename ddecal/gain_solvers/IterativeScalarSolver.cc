@@ -15,9 +15,12 @@ using aocommon::MC2x2F;
 namespace dp3 {
 namespace ddecal {
 
-IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
-    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
-    double time, std::ostream* stat_stream) {
+template <typename VisMatrix>
+typename IterativeScalarSolver<VisMatrix>::SolveResult
+IterativeScalarSolver<VisMatrix>::Solve(
+    const SolveData<VisMatrix>& data,
+    std::vector<std::vector<DComplex>>& solutions, double time,
+    std::ostream* stat_stream) {
   PrepareConstraints();
 
   SolutionTensor next_solutions(
@@ -27,7 +30,7 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
 
   // Visibility vector v_residual[cb][vis] of size NChannelBlocks() x
   // n_visibilities
-  std::vector<std::vector<MC2x2F>> v_residual(NChannelBlocks());
+  std::vector<std::vector<VisMatrix>> v_residual(NChannelBlocks());
   // The following loop allocates all structures
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
     v_residual[ch_block].resize(data.ChannelBlock(ch_block).NVisibilities());
@@ -83,9 +86,10 @@ IterativeScalarSolver::SolveResult IterativeScalarSolver::Solve(
   return result;
 }
 
-void IterativeScalarSolver::PerformIteration(
-    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
-    std::vector<MC2x2F>& v_residual, const std::vector<DComplex>& solutions,
+template <typename VisMatrix>
+void IterativeScalarSolver<VisMatrix>::PerformIteration(
+    size_t ch_block, const ChannelBlockData& cb_data,
+    std::vector<VisMatrix>& v_residual, const std::vector<DComplex>& solutions,
     SolutionTensor& next_solutions) {
   // Fill v_residual
   std::copy(cb_data.DataBegin(), cb_data.DataEnd(), v_residual.begin());
@@ -94,7 +98,7 @@ void IterativeScalarSolver::PerformIteration(
   for (size_t direction = 0; direction != NDirections(); ++direction)
     AddOrSubtractDirection<false>(cb_data, v_residual, direction, solutions);
 
-  const std::vector<MC2x2F> v_copy = v_residual;
+  const std::vector<VisMatrix> v_copy = v_residual;
 
   for (size_t direction = 0; direction != NDirections(); ++direction) {
     // Be aware that we purposely still use the subtraction with 'old'
@@ -108,9 +112,10 @@ void IterativeScalarSolver::PerformIteration(
   }
 }
 
-void IterativeScalarSolver::SolveDirection(
-    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
-    const std::vector<MC2x2F>& v_residual, size_t direction,
+template <typename VisMatrix>
+void IterativeScalarSolver<VisMatrix>::SolveDirection(
+    size_t ch_block, const ChannelBlockData& cb_data,
+    const std::vector<VisMatrix>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   // Calculate this equation, given ant a:
   //
@@ -134,19 +139,19 @@ void IterativeScalarSolver::SolveDirection(
         solutions[antenna_1 * NSolutions() + solution_index]);
     const Complex solution_ant_2(
         solutions[antenna_2 * NSolutions() + solution_index]);
-    const MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
+    const VisMatrix& data = v_residual[vis_index];
+    const VisMatrix& model = cb_data.ModelVisibility(direction, vis_index);
 
     const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
-    const MC2x2F cor_model_herm_1(HermTranspose(model) * solution_ant_2);
+    const VisMatrix cor_model_herm_1(HermTranspose(model) * solution_ant_2);
     const uint32_t full_solution_1_index =
         antenna_1 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_1_index] += Trace(data * cor_model_herm_1);
     denominator[full_solution_1_index] += Norm(cor_model_herm_1);
 
     // Calculate the contribution of this baseline for antenna2
-    const MC2x2F cor_model_2(model * solution_ant_1);
+    const VisMatrix cor_model_2(model * solution_ant_1);
     const uint32_t full_solution_2_index =
         antenna_2 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_2_index] +=
@@ -167,11 +172,11 @@ void IterativeScalarSolver::SolveDirection(
   }
 }
 
+template <typename VisMatrix>
 template <bool Add>
-void IterativeScalarSolver::AddOrSubtractDirection(
-    const FullSolveData::ChannelBlockData& cb_data,
-    std::vector<MC2x2F>& v_residual, size_t direction,
-    const std::vector<DComplex>& solutions) {
+void IterativeScalarSolver<VisMatrix>::AddOrSubtractDirection(
+    const ChannelBlockData& cb_data, std::vector<VisMatrix>& v_residual,
+    size_t direction, const std::vector<DComplex>& solutions) {
   const size_t n_visibilities = cb_data.NVisibilities();
   for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
     const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
@@ -181,9 +186,9 @@ void IterativeScalarSolver::AddOrSubtractDirection(
         solutions[antenna_1 * NSolutions() + solution_index]);
     const Complex solution_2_conj = std::conj(
         Complex(solutions[antenna_2 * NSolutions() + solution_index]));
-    MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
-    const MC2x2F corrected_model = model * solution_1 * solution_2_conj;
+    VisMatrix& data = v_residual[vis_index];
+    const VisMatrix& model = cb_data.ModelVisibility(direction, vis_index);
+    const VisMatrix corrected_model = model * solution_1 * solution_2_conj;
     if (Add) {
       data += corrected_model;
     } else {
@@ -191,6 +196,9 @@ void IterativeScalarSolver::AddOrSubtractDirection(
     }
   }
 }
+
+template class IterativeScalarSolver<aocommon::MC2x2F>;
+template class IterativeScalarSolver<aocommon::MC2x2FDiag>;
 
 }  // namespace ddecal
 }  // namespace dp3

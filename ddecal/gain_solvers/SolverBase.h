@@ -9,6 +9,7 @@
 #include <complex>
 #include <iosfwd>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 #include "../constraints/Constraint.h"
@@ -202,7 +203,19 @@ class SolverBase {
    */
   virtual SolveResult Solve(const FullSolveData& data,
                             std::vector<std::vector<DComplex>>& solutions,
-                            double time, std::ostream* statStream) = 0;
+                            double time, std::ostream* statStream) {
+    throw std::logic_error(
+        "Full-visibility solver called for a solver that does not "
+        "support full-visibility solving");
+  }
+
+  virtual SolveResult Solve(const DuoSolveData& data,
+                            std::vector<std::vector<DComplex>>& solutions,
+                            double time, std::ostream* statStream) {
+    throw std::logic_error(
+        "Duo-visibility (xx/yy) solver called for a solver that does not "
+        "support duo-visibility solving");
+  }
 
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,

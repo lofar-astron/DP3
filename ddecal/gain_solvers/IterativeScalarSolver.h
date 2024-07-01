@@ -13,9 +13,11 @@ namespace ddecal {
 /**
  * Iterative scalar solver supporting direction-dependent solution intervals.
  */
+template <typename VisMatrix>
 class IterativeScalarSolver final : public SolverBase {
  public:
-  SolveResult Solve(const FullSolveData& data,
+  using ChannelBlockData = typename SolveData<VisMatrix>::ChannelBlockData;
+  SolveResult Solve(const SolveData<VisMatrix>& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
@@ -24,24 +26,25 @@ class IterativeScalarSolver final : public SolverBase {
   bool SupportsDdSolutionIntervals() const override { return true; }
 
  private:
-  void PerformIteration(size_t ch_block,
-                        const FullSolveData::ChannelBlockData& cb_data,
-                        std::vector<aocommon::MC2x2F>& v_residual,
+  void PerformIteration(size_t ch_block, const ChannelBlockData& cb_data,
+                        std::vector<VisMatrix>& v_residual,
                         const std::vector<DComplex>& solutions,
                         SolutionTensor& next_solutions);
 
   template <bool Add>
-  void AddOrSubtractDirection(const FullSolveData::ChannelBlockData& cb_data,
-                              std::vector<aocommon::MC2x2F>& v_residual,
+  void AddOrSubtractDirection(const ChannelBlockData& cb_data,
+                              std::vector<VisMatrix>& v_residual,
                               size_t direction,
                               const std::vector<DComplex>& solutions);
 
-  void SolveDirection(size_t ch_block,
-                      const FullSolveData::ChannelBlockData& cb_data,
-                      const std::vector<aocommon::MC2x2F>& v_residual,
+  void SolveDirection(size_t ch_block, const ChannelBlockData& cb_data,
+                      const std::vector<VisMatrix>& v_residual,
                       size_t direction, const std::vector<DComplex>& solutions,
                       SolutionTensor& next_solutions);
 };
+
+extern template class IterativeScalarSolver<aocommon::MC2x2F>;
+extern template class IterativeScalarSolver<aocommon::MC2x2FDiag>;
 
 }  // namespace ddecal
 }  // namespace dp3

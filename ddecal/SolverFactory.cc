@@ -43,7 +43,10 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
                                                const Settings& settings) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      return std::make_unique<IterativeScalarSolver>();
+      if (settings.use_duo_algorithm)
+        return std::make_unique<IterativeScalarSolver<aocommon::MC2x2FDiag>>();
+      else
+        return std::make_unique<IterativeScalarSolver<aocommon::MC2x2F>>();
     case SolverAlgorithm::kDirectionSolve:
       return std::make_unique<ScalarSolver>();
     case SolverAlgorithm::kLowRank:
