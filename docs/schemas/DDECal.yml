@@ -43,6 +43,10 @@ inputs:
     default: 1
     type: int
     doc: Solution interval in timesteps. If a value of 0 is specified, the solver will use a single solution interval that covers the entire observation. When using BDA, the solint should be bigger than or equal to the maximum averaged time interval `.`
+  usedualvisibilities:
+    default: false
+    type: bool
+    doc: Use only the diagonal entries (e.g. XX and YY) of the visibility matrix, don't use off-diagonal values (e.g. YX and XY). This makes the solver faster and decreases its memory requirements, and can be used in situations where the off-diagonal visibility values do not contribute much. It is currently only implemented for the iterative algorithm (scalar or diagonal). Nomenclature of duo and dual is used for this feature to distinguish from the solution form (e.g. diagonal, full-Jones).
   solutions_per_direction:
     default: "[1,1,...,1]"
     type: list

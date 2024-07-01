@@ -127,7 +127,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_low_rank_full_step_solver, SolverTester,
 BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
                         *boost::unit_test::label("slow")) {
   SetScalarSolutions(false);
-  dp3::ddecal::IterativeScalarSolver solver;
+  dp3::ddecal::IterativeScalarSolver<aocommon::MC2x2F> solver;
   InitializeSolver(solver);
   solver.SetLLSSolverType(LLSSolverType::QR);
 
@@ -151,7 +151,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
 BOOST_FIXTURE_TEST_CASE(iterative_scalar_dd_intervals, SolverTester,
                         *boost::unit_test::label("slow")) {
   SetScalarSolutions(true);
-  dp3::ddecal::IterativeScalarSolver solver;
+  dp3::ddecal::IterativeScalarSolver<aocommon::MC2x2F> solver;
   InitializeSolver(solver);
 
   const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
@@ -165,13 +165,30 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_dd_intervals, SolverTester,
   CheckScalarResults(1.0e-3);
 }
 
+BOOST_FIXTURE_TEST_CASE(iterative_duo_scalar_dd_intervals, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetScalarSolutions(true);
+  dp3::ddecal::IterativeScalarSolver<aocommon::MC2x2FDiag> solver;
+  InitializeSolver(solver);
+
+  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
+  const SolveData<aocommon::MC2x2FDiag> data(
+      data_buffers, CreateDirectionNames(), kNChannelBlocks, kNAntennas,
+      NSolutionsPerDirection(), Antennas1(), Antennas2());
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckScalarResults(1.0e-3);
+}
+
 BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
                         *boost::unit_test::label("slow")) {
   auto direction_solver = std::make_unique<dp3::ddecal::ScalarSolver>();
   direction_solver->SetMaxIterations(kMaxIterations / 10);
 
   auto iterative_solver =
-      std::make_unique<dp3::ddecal::IterativeScalarSolver>();
+      std::make_unique<dp3::ddecal::IterativeScalarSolver<aocommon::MC2x2F>>();
   iterative_solver->SetMaxIterations(kMaxIterations);
 
   SetScalarSolutions(false);
@@ -419,7 +436,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
 BOOST_FIXTURE_TEST_CASE(min_iterations, SolverTester,
                         *boost::unit_test::label("slow")) {
   SetScalarSolutions(false);
-  dp3::ddecal::IterativeScalarSolver solver;
+  dp3::ddecal::IterativeScalarSolver<aocommon::MC2x2F> solver;
   InitializeSolver(solver);
   solver.SetMinIterations(10);
   // very large tolerance on purpose to stop directly once min iters are reached

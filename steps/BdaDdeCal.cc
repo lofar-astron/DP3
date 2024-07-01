@@ -397,9 +397,17 @@ void BdaDdeCal::SolveCurrentInterval() {
 
   const bool linear_mode =
       settings_.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
-  dp3::ddecal::SolveData data(*solver_buffer_, n_channel_blocks,
-                              patches_.size(), n_antennas, antennas1_,
-                              antennas2_, linear_mode);
+  std::unique_ptr<dp3::ddecal::FullSolveData> full_data;
+  std::unique_ptr<dp3::ddecal::DuoSolveData> duo_data;
+  if (settings_.use_duo_algorithm) {
+    duo_data = std::make_unique<dp3::ddecal::DuoSolveData>(
+        *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
+        antennas1_, antennas2_, linear_mode);
+  } else {
+    full_data = std::make_unique<dp3::ddecal::FullSolveData>(
+        *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
+        antennas1_, antennas2_, linear_mode);
+  }
 
   const int current_interval = solutions_.size();
   assert(current_interval == solver_buffer_->GetCurrentInterval());
@@ -475,8 +483,13 @@ void BdaDdeCal::SolveCurrentInterval() {
 
   InitializeCurrentSolutions();
 
-  ddecal::SolverBase::SolveResult result =
-      solver_->Solve(data, solutions_.back(), current_center, nullptr);
+  ddecal::SolverBase::SolveResult result;
+  if (settings_.use_duo_algorithm)
+    result =
+        solver_->Solve(*duo_data, solutions_.back(), current_center, nullptr);
+  else
+    result =
+        solver_->Solve(*full_data, solutions_.back(), current_center, nullptr);
 
   assert(iterations_.size() == solutions_.size() - 1);
   assert(approx_iterations_.size() == solutions_.size() - 1);
