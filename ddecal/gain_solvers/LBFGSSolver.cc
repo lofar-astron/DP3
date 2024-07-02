@@ -407,7 +407,7 @@ void PerformIterationFull(size_t ch_block,
   assert(t.end_baseline > t.start_baseline);
   if (bound_constrained) {
     std::vector<double> lower_bound(n_solutions, min_solution);
-    std::vector<double> upper_bound(n_solutions, min_solution);
+    std::vector<double> upper_bound(n_solutions, max_solution);
     lbfgsb_fit(FullCost, FullGradient, d_storage.data(), lower_bound.data(),
                upper_bound.data(), n_solutions, max_iter, history_size,
                (void*)&t, &pt);
@@ -441,7 +441,7 @@ void PerformIterationDiagonal(
   assert(t.end_baseline > t.start_baseline);
   if (bound_constrained) {
     std::vector<double> lower_bound(n_solutions, min_solution);
-    std::vector<double> upper_bound(n_solutions, min_solution);
+    std::vector<double> upper_bound(n_solutions, max_solution);
     lbfgsb_fit(DiagonalCost, DiagonalGradient, d_storage.data(),
                lower_bound.data(), upper_bound.data(), n_solutions, max_iter,
                history_size, (void*)&t, NULL);
@@ -477,7 +477,7 @@ void PerformIterationScalar(size_t ch_block,
   assert(t.end_baseline > t.start_baseline);
   if (bound_constrained) {
     std::vector<double> lower_bound(n_solutions, min_solution);
-    std::vector<double> upper_bound(n_solutions, min_solution);
+    std::vector<double> upper_bound(n_solutions, max_solution);
     lbfgsb_fit(ScalarCost, ScalarGradient, d_storage.data(), lower_bound.data(),
                upper_bound.data(), n_solutions, max_iter, history_size,
                (void*)&t, NULL);

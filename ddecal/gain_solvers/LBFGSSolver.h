@@ -24,7 +24,7 @@ class LBFGSSolver final : public SolverBase {
         minibatches_(minibatches),
         min_solution_(min_solution),
         max_solution_(max_solution),
-        bound_constrained_((!min_solution || !max_solution) &&
+        bound_constrained_((min_solution || max_solution) &&
                            (min_solution != max_solution)),
         mode_(mode){};
 
@@ -68,8 +68,8 @@ class LBFGSSolver final : public SolverBase {
   size_t GetMaxIter() const { return batch_iter_; }
   size_t GetHistorySize() const { return history_size_; }
   size_t GetMinibatches() const { return minibatches_; }
-  size_t GetMinSolution() const { return min_solution_; }
-  size_t GetMaxSolution() const { return max_solution_; }
+  double GetMinSolution() const { return min_solution_; }
+  double GetMaxSolution() const { return max_solution_; }
   bool GetBoundConstrained() const { return bound_constrained_; }
   SolverMode GetMode() const { return mode_; }
 
