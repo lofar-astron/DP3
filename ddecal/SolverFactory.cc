@@ -75,13 +75,16 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
   if (settings.use_gpu) {
     switch (algorithm) {
       case SolverAlgorithm::kDirectionIterative:
-        return std::make_unique<IterativeDiagonalSolverCuda>(
-            settings.keep_host_buffers);
+        if (!settings.use_duo_algorithm)
+          return std::make_unique<IterativeDiagonalSolverCuda>(
+              settings.keep_host_buffers);
+        break;
       default:
-        throw std::runtime_error(
-            "usegpu=true, but no GPU implementation for solver algorithm is "
-            "available.");
+        break;
     }
+    throw std::runtime_error(
+        "usegpu=true, but no GPU implementation for solver algorithm is "
+        "available.");
   }
 #else
   if (settings.use_gpu) {
@@ -91,7 +94,11 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
 #endif
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      return std::make_unique<IterativeDiagonalSolver>();
+      if (settings.use_duo_algorithm)
+        return std::make_unique<
+            IterativeDiagonalSolver<aocommon::MC2x2FDiag>>();
+      else
+        return std::make_unique<IterativeDiagonalSolver<aocommon::MC2x2F>>();
     case SolverAlgorithm::kDirectionSolve:
       return std::make_unique<DiagonalSolver>();
     case SolverAlgorithm::kLowRank:
