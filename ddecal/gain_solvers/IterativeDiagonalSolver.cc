@@ -12,12 +12,31 @@
 using aocommon::MC2x2F;
 using aocommon::MC2x2FDiag;
 
-namespace dp3 {
-namespace ddecal {
+namespace dp3::ddecal {
 
-IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
-    const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
-    double time, std::ostream* stat_stream) {
+namespace {
+void AddNormToDenominator(float* denominator, const MC2x2F& corrected_model) {
+  // The indices (0, 2 ; 1, 3) are following from the fact that we want
+  // the contribution of antenna2's "X" polarization, and the matrix is
+  // ordered [ XX XY ; YX YY ].
+  denominator[0] +=
+      std::norm(corrected_model[0]) + std::norm(corrected_model[2]);
+  denominator[1] +=
+      std::norm(corrected_model[1]) + std::norm(corrected_model[3]);
+}
+
+void AddNormToDenominator(float* denominator,
+                          const MC2x2FDiag& corrected_model) {
+  denominator[0] += std::norm(corrected_model[0]);
+  denominator[1] += std::norm(corrected_model[1]);
+}
+}  // namespace
+
+template <typename VisMatrix>
+SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
+    const SolveData<VisMatrix>& data,
+    std::vector<std::vector<DComplex>>& solutions, double time,
+    std::ostream* stat_stream) {
   PrepareConstraints();
 
   SolutionTensor next_solutions(
@@ -27,7 +46,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
 
   // Visibility vector v_residual[cb][vis] of size NChannelBlocks() x
   // n_visibilities
-  std::vector<std::vector<MC2x2F>> v_residual(NChannelBlocks());
+  std::vector<std::vector<VisMatrix>> v_residual(NChannelBlocks());
   // The following loop allocates all structures
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
     v_residual[ch_block].resize(data.ChannelBlock(ch_block).NVisibilities());
@@ -83,19 +102,20 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolver::Solve(
   return result;
 }
 
-void IterativeDiagonalSolver::PerformIteration(
-    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
-    std::vector<MC2x2F>& v_residual, const std::vector<DComplex>& solutions,
+template <typename VisMatrix>
+void IterativeDiagonalSolver<VisMatrix>::PerformIteration(
+    size_t ch_block, const ChannelBlockData& cb_data,
+    std::vector<VisMatrix>& v_residual, const std::vector<DComplex>& solutions,
     SolutionTensor& next_solutions) {
   // Fill v_residual
   std::copy(cb_data.DataBegin(), cb_data.DataEnd(), v_residual.begin());
 
   // Subtract all directions with their current solutions
   for (size_t direction = 0; direction != NDirections(); ++direction)
-    DiagonalAddOrSubtractDirection<false>(cb_data, v_residual, direction,
-                                          NSolutions(), solutions);
+    DiagonalAddOrSubtractDirection<false, VisMatrix>(
+        cb_data, v_residual, direction, NSolutions(), solutions);
 
-  const std::vector<MC2x2F> v_copy = v_residual;
+  const std::vector<VisMatrix> v_copy = v_residual;
 
   for (size_t direction = 0; direction != NDirections(); ++direction) {
     // Be aware that we purposely still use the subtraction with 'old'
@@ -110,9 +130,10 @@ void IterativeDiagonalSolver::PerformIteration(
   }
 }
 
-void IterativeDiagonalSolver::SolveDirection(
-    size_t ch_block, const FullSolveData::ChannelBlockData& cb_data,
-    const std::vector<MC2x2F>& v_residual, size_t direction,
+template <typename VisMatrix>
+void IterativeDiagonalSolver<VisMatrix>::SolveDirection(
+    size_t ch_block, const ChannelBlockData& cb_data,
+    const std::vector<VisMatrix>& v_residual, size_t direction,
     const std::vector<DComplex>& solutions, SolutionTensor& next_solutions) {
   // Calculate this equation, given ant a:
   //
@@ -136,24 +157,19 @@ void IterativeDiagonalSolver::SolveDirection(
         &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
     const DComplex* solution_ant_2 =
         &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
-    const MC2x2F& data = v_residual[vis_index];
-    const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
+    const VisMatrix& data = v_residual[vis_index];
+    const VisMatrix& model = cb_data.ModelVisibility(direction, vis_index);
 
     const uint32_t rel_solution_index = solution_index - solution_index0;
     // Calculate the contribution of this baseline for antenna_1
     const MC2x2FDiag solution_1{Complex(solution_ant_2[0]),
                                 Complex(solution_ant_2[1])};
-    const MC2x2F cor_model_transp_1(solution_1 * HermTranspose(model));
+    const VisMatrix cor_model_transp_1(solution_1 * HermTranspose(model));
     const uint32_t full_solution_1_index =
         antenna_1 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_1_index] += Diagonal(data * cor_model_transp_1);
-    // The indices (0, 2 / 1, 3) are following from the fact that we want
-    // the contribution of antenna2's "X" polarization, and the matrix is
-    // ordered [ XX XY / YX YY ].
-    denominator[full_solution_1_index * 2] +=
-        std::norm(cor_model_transp_1[0]) + std::norm(cor_model_transp_1[2]);
-    denominator[full_solution_1_index * 2 + 1] +=
-        std::norm(cor_model_transp_1[1]) + std::norm(cor_model_transp_1[3]);
+    AddNormToDenominator(&denominator[full_solution_1_index * 2],
+                         cor_model_transp_1);
 
     // Calculate the contribution of this baseline for antenna_2
     // data_ba = data_ab^H, etc., therefore, numerator and denominator
@@ -162,16 +178,13 @@ void IterativeDiagonalSolver::SolveDirection(
     // - den = norm(model_ab^H * solutions_a)
     const MC2x2FDiag solution_2{Complex(solution_ant_1[0]),
                                 Complex(solution_ant_1[1])};
-    const MC2x2F cor_model_2(solution_2 * model);
+    const VisMatrix cor_model_2(solution_2 * model);
 
     const uint32_t full_solution_2_index =
         antenna_2 * n_dir_solutions + rel_solution_index;
     numerator[full_solution_2_index] +=
         Diagonal(HermTranspose(data) * cor_model_2);
-    denominator[full_solution_2_index * 2] +=
-        std::norm(cor_model_2[0]) + std::norm(cor_model_2[2]);
-    denominator[full_solution_2_index * 2 + 1] +=
-        std::norm(cor_model_2[1]) + std::norm(cor_model_2[3]);
+    AddNormToDenominator(&denominator[full_solution_2_index * 2], cor_model_2);
   }
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
@@ -192,5 +205,7 @@ void IterativeDiagonalSolver::SolveDirection(
   }
 }
 
-}  // namespace ddecal
-}  // namespace dp3
+template class IterativeDiagonalSolver<aocommon::MC2x2F>;
+template class IterativeDiagonalSolver<aocommon::MC2x2FDiag>;
+
+}  // namespace dp3::ddecal

@@ -240,7 +240,7 @@ inline void TestIterativeDiagonal(SolverTester& solver_tester,
 
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal, SolverTester,
                         *boost::unit_test::label("slow")) {
-  dp3::ddecal::IterativeDiagonalSolver solver;
+  dp3::ddecal::IterativeDiagonalSolver<aocommon::MC2x2F> solver;
   TestIterativeDiagonal(*this, solver);
 }
 
@@ -261,13 +261,30 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_cuda_keep_buffers, SolverTester,
 BOOST_FIXTURE_TEST_CASE(iterative_diagonal_dd_intervals, SolverTester,
                         *boost::unit_test::label("slow")) {
   SetDiagonalSolutions(true);
-  dp3::ddecal::IterativeDiagonalSolver solver;
+  dp3::ddecal::IterativeDiagonalSolver<aocommon::MC2x2F> solver;
   InitializeSolver(solver);
 
   const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
   const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
                        kNAntennas, NSolutionsPerDirection(), Antennas1(),
                        Antennas2());
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckDiagonalResults(1.0e-2);
+}
+
+BOOST_FIXTURE_TEST_CASE(iterative_duo_diagonal_dd_intervals, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(true);
+  dp3::ddecal::IterativeDiagonalSolver<aocommon::MC2x2FDiag> solver;
+  InitializeSolver(solver);
+
+  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
+  const SolveData<aocommon::MC2x2FDiag> data(
+      data_buffers, CreateDirectionNames(), kNChannelBlocks, kNAntennas,
+      NSolutionsPerDirection(), Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);

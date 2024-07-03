@@ -103,7 +103,8 @@ BOOST_DATA_TEST_CASE(diagonal_type,
   CheckSolverType<dp3::ddecal::DiagonalSolver>(parset);
 
   parset.add("solveralgorithm", "directioniterative");
-  CheckSolverType<dp3::ddecal::IterativeDiagonalSolver>(parset);
+  CheckSolverType<dp3::ddecal::IterativeDiagonalSolver<aocommon::MC2x2F>>(
+      parset);
 }
 
 BOOST_DATA_TEST_CASE(full_jones_type,
