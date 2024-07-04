@@ -40,6 +40,7 @@
 #include "../steps/MsColumnReader.h"
 #include "../steps/MSUpdater.h"
 #include "../steps/MSWriter.h"
+#include "../steps/WSCleanWriter.h"
 #include "../steps/NullStep.h"
 #include "../steps/NullStokes.h"
 #include "../steps/PhaseShift.h"
@@ -222,6 +223,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     }
   } else if (type == "null") {
     step = std::make_shared<steps::NullStep>();
+  } else if (type == "wscleanwriter") {
+    step = std::make_shared<steps::WSCleanWriter>(parset, prefix);
   }
   return step;
 }

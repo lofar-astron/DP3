@@ -1,0 +1,20 @@
+description: >-
+  Reorder the Measurement Set and outputs wsclean reordered files
+inputs:
+  wscleanwriter&#46;name:
+    type: string
+    doc: >-
+      Name of the output reordered files. If empty, the name is taken from
+      msout. If there is no other output step the name of the measurement
+      set from msin is used.
+  wscleanwriter&#46;polarization:
+    type: string
+    default: I
+    doc: >-
+      Output polarization of the reordered files.
+      Supported options are Stokes (I, Q, U, V), Instrumental "instr", Diagonal Instrumental "diag_instr" and (XX, XY, YX, YY) or (RR, RL, LR, LL)
+  wscleanwriter&#46;temporaryDirectory:
+    type: string
+    default: "\"\""
+    doc: >-
+      Set the temporary directory used when reordering files. By default files are created in the same directory as input measurement set.

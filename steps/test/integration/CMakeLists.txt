@@ -15,6 +15,7 @@ add_python_tests(
   tIDGImager
   tMsIn
   tMsOut
+  tWSCleanWriter
   tMultiApplyCal
   tPhaseshiftPredict
   tPredict
