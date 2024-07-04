@@ -496,6 +496,8 @@ add_library(
   steps/MSReader.cc
   steps/MSUpdater.cc
   steps/MSWriter.cc
+  steps/MSReorder.cc
+  steps/WSCleanWriter.cc
   steps/MultiMSReader.cc
   steps/MultiResultStep.cc
   steps/OneApplyCal.cc
@@ -750,6 +752,7 @@ if(BUILD_TESTING)
       steps/test/unit/tMSBDAWriter.cc
       steps/test/unit/tMsColumnReader.cc
       steps/test/unit/tMSReader.cc
+      steps/test/unit/tMSReorder.cc
       steps/test/unit/tMSUpdater.cc
       steps/test/unit/tMSWriter.cc
       steps/test/unit/tNullStokes.cc
