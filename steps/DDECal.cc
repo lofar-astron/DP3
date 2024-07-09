@@ -605,30 +605,46 @@ void DDECal::doSolve() {
 
       itsTimerSolve.start();
 
-      if (itsSettings.use_duo_algorithm) {
-        const ddecal::DuoSolveData solve_data(
-            weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-            itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
-        weighted_buffers.clear();
+      switch (itsSettings.solver_data_use) {
+        case ddecal::SolverDataUse::kSingle: {
+          const ddecal::UniSolveData solve_data(
+              weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
+              itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+          weighted_buffers.clear();
 
-        aocommon::Logger::Debug
-            << "Running DDECal duo solver for current calibration interval.\n";
+          aocommon::Logger::Debug << "Running DDECal single-visibility solver "
+                                     "for current calibration interval.\n";
 
-        solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
-                                       itsAvgTime / itsRequestedSolInt,
-                                       itsStatStream.get());
-      } else {
-        const ddecal::FullSolveData solve_data(
-            weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-            itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
-        weighted_buffers.clear();
+          solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
+                                         itsAvgTime / itsRequestedSolInt,
+                                         itsStatStream.get());
+        } break;
+        case ddecal::SolverDataUse::kDual: {
+          const ddecal::DuoSolveData solve_data(
+              weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
+              itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+          weighted_buffers.clear();
 
-        aocommon::Logger::Debug
-            << "Running DDECal solver for current calibration interval.\n";
+          aocommon::Logger::Debug << "Running DDECal dual-visibility solver "
+                                     "for current calibration interval.\n";
 
-        solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
-                                       itsAvgTime / itsRequestedSolInt,
-                                       itsStatStream.get());
+          solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
+                                         itsAvgTime / itsRequestedSolInt,
+                                         itsStatStream.get());
+        } break;
+        case ddecal::SolverDataUse::kFull: {
+          const ddecal::FullSolveData solve_data(
+              weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
+              itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+          weighted_buffers.clear();
+
+          aocommon::Logger::Debug
+              << "Running DDECal solver for current calibration interval.\n";
+
+          solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
+                                         itsAvgTime / itsRequestedSolInt,
+                                         itsStatStream.get());
+        } break;
       }
 
       itsTimerSolve.stop();

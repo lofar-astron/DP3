@@ -28,6 +28,8 @@ enum class SolverAlgorithm {
   kLBFGS
 };
 
+enum class SolverDataUse { kSingle, kDual, kFull };
+
 std::string ToString(SolverAlgorithm algorithm);
 
 /// @brief This struct parses the DDECal parset settings and stores them.
@@ -121,7 +123,7 @@ struct Settings {
   const size_t max_iterations;
   const double tolerance;
   const double step_size;
-  const bool use_duo_algorithm;
+  const SolverDataUse solver_data_use;
   const bool detect_stalling;
   const double step_diff_sigma;
   const bool approximate_tec;

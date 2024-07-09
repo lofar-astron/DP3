@@ -397,16 +397,26 @@ void BdaDdeCal::SolveCurrentInterval() {
 
   const bool linear_mode =
       settings_.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
-  std::unique_ptr<dp3::ddecal::FullSolveData> full_data;
-  std::unique_ptr<dp3::ddecal::DuoSolveData> duo_data;
-  if (settings_.use_duo_algorithm) {
-    duo_data = std::make_unique<dp3::ddecal::DuoSolveData>(
-        *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
-        antennas1_, antennas2_, linear_mode);
-  } else {
-    full_data = std::make_unique<dp3::ddecal::FullSolveData>(
-        *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
-        antennas1_, antennas2_, linear_mode);
+  using UniPtr = std::unique_ptr<dp3::ddecal::UniSolveData>;
+  using DuoPtr = std::unique_ptr<dp3::ddecal::DuoSolveData>;
+  using FullPtr = std::unique_ptr<dp3::ddecal::FullSolveData>;
+  std::variant<UniPtr, DuoPtr, FullPtr> solve_data;
+  switch (settings_.solver_data_use) {
+    case ddecal::SolverDataUse::kSingle:
+      solve_data = std::make_unique<dp3::ddecal::UniSolveData>(
+          *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
+          antennas1_, antennas2_, linear_mode);
+      break;
+    case ddecal::SolverDataUse::kDual:
+      solve_data = std::make_unique<dp3::ddecal::DuoSolveData>(
+          *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
+          antennas1_, antennas2_, linear_mode);
+      break;
+    case ddecal::SolverDataUse::kFull:
+      solve_data = std::make_unique<dp3::ddecal::FullSolveData>(
+          *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
+          antennas1_, antennas2_, linear_mode);
+      break;
   }
 
   const int current_interval = solutions_.size();
@@ -484,12 +494,20 @@ void BdaDdeCal::SolveCurrentInterval() {
   InitializeCurrentSolutions();
 
   ddecal::SolverBase::SolveResult result;
-  if (settings_.use_duo_algorithm)
-    result =
-        solver_->Solve(*duo_data, solutions_.back(), current_center, nullptr);
-  else
-    result =
-        solver_->Solve(*full_data, solutions_.back(), current_center, nullptr);
+  switch (settings_.solver_data_use) {
+    case ddecal::SolverDataUse::kSingle:
+      result = solver_->Solve(*std::get<UniPtr>(solve_data), solutions_.back(),
+                              current_center, nullptr);
+      break;
+    case ddecal::SolverDataUse::kDual:
+      result = solver_->Solve(*std::get<DuoPtr>(solve_data), solutions_.back(),
+                              current_center, nullptr);
+      break;
+    case ddecal::SolverDataUse::kFull:
+      result = solver_->Solve(*std::get<FullPtr>(solve_data), solutions_.back(),
+                              current_center, nullptr);
+      break;
+  }
 
   assert(iterations_.size() == solutions_.size() - 1);
   assert(approx_iterations_.size() == solutions_.size() - 1);

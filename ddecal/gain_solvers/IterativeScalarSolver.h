@@ -43,6 +43,7 @@ class IterativeScalarSolver final : public SolverBase {
                       SolutionTensor& next_solutions);
 };
 
+extern template class IterativeScalarSolver<std::complex<float>>;
 extern template class IterativeScalarSolver<aocommon::MC2x2F>;
 extern template class IterativeScalarSolver<aocommon::MC2x2FDiag>;
 

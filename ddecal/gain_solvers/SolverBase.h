@@ -217,6 +217,14 @@ class SolverBase {
         "support duo-visibility solving");
   }
 
+  virtual SolveResult Solve(const UniSolveData& data,
+                            std::vector<std::vector<DComplex>>& solutions,
+                            double time, std::ostream* statStream) {
+    throw std::logic_error(
+        "Single-visibility (xx/yy) solver called for a solver that does not "
+        "support single-visibility solving");
+  }
+
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
             SolutionTensor& next_solutions) const;
