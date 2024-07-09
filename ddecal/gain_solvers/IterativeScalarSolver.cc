@@ -15,6 +15,15 @@ using aocommon::MC2x2F;
 namespace dp3 {
 namespace ddecal {
 
+inline std::complex<float> HermTranspose(std::complex<float> value) {
+  return std::conj(value);
+}
+inline std::complex<float> Trace(std::complex<float> value) {
+  // Calculate the Trace of a 1x1 matrix
+  return value;
+}
+inline float Norm(std::complex<float> value) { return std::norm(value); }
+
 template <typename VisMatrix>
 typename IterativeScalarSolver<VisMatrix>::SolveResult
 IterativeScalarSolver<VisMatrix>::Solve(
@@ -197,6 +206,7 @@ void IterativeScalarSolver<VisMatrix>::AddOrSubtractDirection(
   }
 }
 
+template class IterativeScalarSolver<std::complex<float>>;
 template class IterativeScalarSolver<aocommon::MC2x2F>;
 template class IterativeScalarSolver<aocommon::MC2x2FDiag>;
 

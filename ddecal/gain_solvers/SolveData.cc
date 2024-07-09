@@ -24,6 +24,10 @@ template <>
 aocommon::MC2x2FDiag ToSpecificMatrix(const std::complex<float>* data) {
   return aocommon::MC2x2FDiag(data[0], data[3]);
 }
+template <>
+std::complex<float> ToSpecificMatrix(const std::complex<float>* data) {
+  return 0.5f * (data[0] + data[3]);
+}
 
 template <typename MatrixType>
 SolveData<MatrixType>::SolveData(
@@ -257,6 +261,7 @@ void SolveData<MatrixType>::ChannelBlockData::InitializeSolutionIndices() {
   }
 }
 
+template class SolveData<std::complex<float>>;
 template class SolveData<aocommon::MC2x2F>;
 template class SolveData<aocommon::MC2x2FDiag>;
 

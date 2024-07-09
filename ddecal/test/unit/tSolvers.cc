@@ -165,6 +165,23 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_dd_intervals, SolverTester,
   CheckScalarResults(1.0e-3);
 }
 
+BOOST_FIXTURE_TEST_CASE(iterative_uni_scalar_dd_intervals, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetScalarSolutions(true);
+  dp3::ddecal::IterativeScalarSolver<std::complex<float>> solver;
+  InitializeSolver(solver);
+
+  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
+  const SolveData<std::complex<float>> data(
+      data_buffers, CreateDirectionNames(), kNChannelBlocks, kNAntennas,
+      NSolutionsPerDirection(), Antennas1(), Antennas2());
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+
+  CheckScalarResults(1.0e-3);
+}
+
 BOOST_FIXTURE_TEST_CASE(iterative_duo_scalar_dd_intervals, SolverTester,
                         *boost::unit_test::label("slow")) {
   SetScalarSolutions(true);

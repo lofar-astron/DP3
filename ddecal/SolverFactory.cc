@@ -43,10 +43,16 @@ std::unique_ptr<SolverBase> CreateScalarSolver(SolverAlgorithm algorithm,
                                                const Settings& settings) {
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      if (settings.use_duo_algorithm)
-        return std::make_unique<IterativeScalarSolver<aocommon::MC2x2FDiag>>();
-      else
-        return std::make_unique<IterativeScalarSolver<aocommon::MC2x2F>>();
+      switch (settings.solver_data_use) {
+        case SolverDataUse::kSingle:
+          return std::make_unique<IterativeScalarSolver<std::complex<float>>>();
+        case SolverDataUse::kDual:
+          return std::make_unique<
+              IterativeScalarSolver<aocommon::MC2x2FDiag>>();
+        case SolverDataUse::kFull:
+          return std::make_unique<IterativeScalarSolver<aocommon::MC2x2F>>();
+      }
+      break;
     case SolverAlgorithm::kDirectionSolve:
       return std::make_unique<ScalarSolver>();
     case SolverAlgorithm::kLowRank:
@@ -75,7 +81,7 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
   if (settings.use_gpu) {
     switch (algorithm) {
       case SolverAlgorithm::kDirectionIterative:
-        if (!settings.use_duo_algorithm)
+        if (settings.solver_data_use == SolverDataUse::kFull)
           return std::make_unique<IterativeDiagonalSolverCuda>(
               settings.keep_host_buffers);
         break;
@@ -94,11 +100,18 @@ std::unique_ptr<SolverBase> CreateDiagonalSolver(SolverAlgorithm algorithm,
 #endif
   switch (algorithm) {
     case SolverAlgorithm::kDirectionIterative:
-      if (settings.use_duo_algorithm)
-        return std::make_unique<
-            IterativeDiagonalSolver<aocommon::MC2x2FDiag>>();
-      else
-        return std::make_unique<IterativeDiagonalSolver<aocommon::MC2x2F>>();
+      switch (settings.solver_data_use) {
+        case SolverDataUse::kDual:
+          return std::make_unique<
+              IterativeDiagonalSolver<aocommon::MC2x2FDiag>>();
+        case SolverDataUse::kFull:
+          return std::make_unique<IterativeDiagonalSolver<aocommon::MC2x2F>>();
+        case SolverDataUse::kSingle:
+          throw std::runtime_error(
+              "Diagonal solver requested that uses single (scalar) "
+              "visibilities: this solver type is not available");
+      }
+      break;
     case SolverAlgorithm::kDirectionSolve:
       return std::make_unique<DiagonalSolver>();
     case SolverAlgorithm::kLowRank:

@@ -39,6 +39,20 @@ SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
     throw std::runtime_error("Unknown solver algorithm specified: " + str);
 }
 
+SolverDataUse ParseSolverDataUse(const std::string& data_use_string) {
+  const std::string lowercase = boost::to_lower_copy(data_use_string);
+  if (lowercase == "single")
+    return SolverDataUse::kSingle;
+  else if (lowercase == "dual")
+    return SolverDataUse::kDual;
+  else if (lowercase == "full")
+    return SolverDataUse::kFull;
+  else
+    throw std::runtime_error(
+        "Unknown value specified for ddecal's parameter 'datause': " +
+        data_use_string + ". Please use one of single, dual, full");
+}
+
 }  // namespace
 
 std::string ToString(SolverAlgorithm algorithm) {
@@ -93,7 +107,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       max_iterations(GetUint("maxiter", 50)),
       tolerance(GetDouble("tolerance", 1.e-4)),
       step_size(GetDouble("stepsize", 0.2)),
-      use_duo_algorithm(GetBool("usedualvisibilities", false)),
+      solver_data_use(ParseSolverDataUse(GetString("datause", "full"))),
       detect_stalling(GetBool("detectstalling", true)),
       step_diff_sigma(detect_stalling ? GetDouble("stepsigma", 0.1) : 0.1),
       // Only read these settings when needed: If it is defined, but not used,

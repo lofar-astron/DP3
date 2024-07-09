@@ -862,6 +862,7 @@ if(BUILD_TESTING)
       solvers/full_jones
       solvers/iterative_scalar
       solvers/iterative_scalar_dd_intervals
+      solvers/iterative_uni_scalar_dd_intervals
       solvers/iterative_duo_scalar_dd_intervals
       solvers/iterative_diagonal
       solvers/iterative_diagonal_dd_intervals

@@ -167,6 +167,7 @@ using FullSolveData = SolveData<aocommon::MC2x2F>;
 /// "diagonal" is extensively used for the solution type, the term "Duo" is used
 /// for this.
 using DuoSolveData = SolveData<aocommon::MC2x2FDiag>;
+using UniSolveData = SolveData<std::complex<float>>;
 
 template <bool Add, typename MatrixType>
 void DiagonalAddOrSubtractDirection(
@@ -201,6 +202,7 @@ void DiagonalAddOrSubtractDirection(
   }
 }
 
+extern template class SolveData<std::complex<float>>;
 extern template class SolveData<aocommon::MC2x2F>;
 extern template class SolveData<aocommon::MC2x2FDiag>;
 
