@@ -444,7 +444,7 @@ void PerformIterationDiagonal(
     std::vector<double> upper_bound(n_solutions, max_solution);
     lbfgsb_fit(DiagonalCost, DiagonalGradient, d_storage.data(),
                lower_bound.data(), upper_bound.data(), n_solutions, max_iter,
-               history_size, (void*)&t, NULL);
+               history_size, (void*)&t, &pt);
   } else {
     lbfgs_fit(DiagonalCost, DiagonalGradient, d_storage.data(), n_solutions,
               max_iter, history_size, (void*)&t, &pt);
@@ -480,7 +480,7 @@ void PerformIterationScalar(size_t ch_block,
     std::vector<double> upper_bound(n_solutions, max_solution);
     lbfgsb_fit(ScalarCost, ScalarGradient, d_storage.data(), lower_bound.data(),
                upper_bound.data(), n_solutions, max_iter, history_size,
-               (void*)&t, NULL);
+               (void*)&t, &pt);
   } else {
     lbfgs_fit(ScalarCost, ScalarGradient, d_storage.data(), n_solutions,
               max_iter, history_size, (void*)&t, &pt);
