@@ -6,31 +6,46 @@
   services:
     - docker:20.10-dind
 
-include: .gitlab-ci.common.yml
+default:
+  tags:
+    - ska-default # Use SKAO runners instead of standard gitlab.com runners.
 
-pages-2204:
+include:
+  - .gitlab-ci.common.yml
+  # Collects metrics and creates badges.
+  - project: "ska-telescope/templates-repository"
+    file: "gitlab-ci/includes/finaliser.gitlab-ci.yml"
+
+
+pages:
   stage: pages
-  needs: ["versioning","build-debug-2204","unit-test-2204","integration-test-2204"]
+  needs: ["versioning","build-debug-2204","unit-test-coverage","integration-test-2204"]
   image: $BASE_IMAGE_2204
-  before_script:
-    - apt-get update
-    - apt-get -y install curl
+  variables:
+    OUTPUT: public/$CI_COMMIT_REF_SLUG
   script:
-    - mkdir -p .public/build/reports
-    - cd .public
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --xml -o build/reports/code-coverage.xml
-    - gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -a ../build/run-integration.json -a ../build/run-unit.json --html --html-details -o index.html
-    - cp ../build/unittests.xml build/reports/unit-tests.xml
-    # Create and upload GitLab badges
-    - chmod -R 700 ../ci
-    - python3 ../ci/.produce-ci-metrics.py build/reports > ci-metrics.json
-    - sh ../ci/ci-badges-func.sh
-    - cd ..
-    - mv .public public
+    - echo Deploying GitLab pages to $CI_PAGES_URL/$CI_COMMIT_REF_SLUG
+    - mkdir -p $OUTPUT/coverage
+    - gcovr -j$(nproc) -a build/coverage-integration.json -a build/coverage-unit.json --html-details $OUTPUT/index.html
   artifacts:
+    name: $CI_COMMIT_REF_SLUG
     paths:
       - public
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: public/build/reports/code-coverage.xml
+    expire_in: 1 week
+
+# Puts xml files in the proper directories for the SKAO finaliser job.
+# See https://developer.skatelescope.org/en/latest/tools/ci-cd/continuous-integration.html#automated-collection-of-ci-health-metrics-as-part-of-the-ci-pipeline
+collect-metrics:
+   stage: pages
+   needs: ["unit-test-coverage","integration-test-2204"]
+   before_script:
+     - apt-get update
+     - apt-get install -y -qq python3
+   script:
+     - mkdir -p build/reports
+     - cp build/coverage.xml build/reports/code-coverage.xml
+     # Combine unit test xml files into one large file.
+     - python3 scripts/junit-merge.py build/reports/unit-tests.xml build/*test*.xml
+   artifacts:
+     paths:
+       - build/reports/*.xml
