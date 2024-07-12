@@ -101,7 +101,7 @@ prepare-base-2404:
     - mkdir build
     - cd build
     - cmake -G Ninja -DBUILD_TESTING=On ..
-    - ninja install
+    - ninja -j4 install
     - DP3
 
 # Build (and run) DP3 on Ubuntu 20, ensuring backward compatiblity.
@@ -128,8 +128,7 @@ build-debug-2204:
   script:
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
-    - ninja
-    - ninja install
+    - ninja -j4 install
   artifacts:
     paths:
       - build
@@ -203,7 +202,7 @@ linting-2204:
     - ninja clean
     - echo Configuring with CMake flags \"$CMAKE_FLAGS\" and CXX flags \"$CXX_FLAGS\"
     - cmake $CMAKE_FLAGS -DCMAKE_CXX_FLAGS="$CXX_FLAGS" .
-    - ninja
+    - ninja -j4
     - ctest --output-on-failure -j$(nproc) $CTEST_FLAGS |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
@@ -224,7 +223,8 @@ unit-test-coverage:
     - *unit-test-script
     - mkdir coverage-unit
     # Collect coverage in json, xml and html formats.
-    - gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '_deps/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --txt --xml coverage.xml
+    # When updating this line, update gcovr for the integration test as well!
+    - gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '_deps/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --txt --xml coverage.xml --json coverage-unit.json
   variables:
     CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release
     CXX_FLAGS: -coverage -fprofile-update=atomic
@@ -232,6 +232,9 @@ unit-test-coverage:
   coverage: /^TOTAL.*\s+(\d+\%)$/
   artifacts:
     paths:
+      # The pages and collect-metrics jobs need coverage files. See .gitlab-ci.ska.yml.
+      - build/coverage-unit.json
+      - build/coverage.xml
       - build/unittest*.xml
       - build/pytest_*.xml
     reports:
@@ -296,17 +299,20 @@ integration-test-2204:
   image: $BASE_IMAGE_2204
   script:
     - cd build
-    - ninja # Needed when ran on different containers with different timestamps
-    - ctest --output-on-failure -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -L integration |& tee ctest.out
+    # Needed when ran on different containers with different timestamps
+    # Rebuilding unit tests is not necessary when running integration tests.
+    - ninja -j4 DP3
+    - ctest --output-on-failure -j$(nproc) -L integration |& tee ctest.out
     # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
     # option. Older versions require a manual check.
     - if grep -q 'No tests were found' ctest.out; then exit 1; fi
     # The json only needs to be built on the SKA repository
-    - if [[ $CI_SERVER_HOST != "git.astron.nl" ]] ; then gcovr -j$(($(nproc)/2 > 0 ? $(nproc)/2:1)) -r ../ -e '.*/external/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' -e '.*/Common/.*' --json -o run-integration.json; fi
+    # When updating this line, update gcovr for the unit test as well!
+    - if [[ $CI_SERVER_HOST != "git.astron.nl" ]] ; then gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '_deps/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json coverage-integration.json; fi
   artifacts:
     paths:
-      # This will give a warning and ERROR: No files to upload, which is ok
-      - build/run-integration.json
+      # This will give a warning and ERROR: No files to upload, which is ok at the Astron repo.
+      - build/coverage-integration.json # The pages job uses this file, see .gitlab-ci.ska.yml.
       - build/pytest_*.xml
     reports:
       junit: build/pytest_*.xml
