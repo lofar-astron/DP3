@@ -58,15 +58,17 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   reader.setFieldsToRead(dp3::steps::Step::kDataField);
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
-  reader.updateInfo(DPInfo());
 
+  reader.updateInfo(DPInfo());
+  // Call process function with null (DPBuffer) pointer to ensure it doesn't do
+  // anything with the input.
   reader.process(std::unique_ptr<dp3::base::DPBuffer>());
   reader.finish();
 
   auto kExpectedData = std::complex<float>(2.75794, 0.899097);
   double kExpectedUVW[] = {-0.125726, -766.917, 397.793};
   auto kExpectedWeights = std::vector<float>(
-      reader.getInfo().ncorr() * reader.getInfo().nchan(), 1);
+      reader.getInfo().ncorr() * reader.getInfo().nchan(), 1.0);
 
   BOOST_TEST(mock_step->FinishCount() == std::size_t(1));
   BOOST_TEST(mock_step->TotalRowCount() == std::size_t(6));
@@ -77,7 +79,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   BOOST_TEST(rows[0].data->imag() == kExpectedData.imag());
   BOOST_TEST(rows[0].data->real() == kExpectedData.real());
   BOOST_TEST(rows[0].uvw == kExpectedUVW);
-  for (unsigned i = 0; i < kExpectedWeights.size(); ++i) {
+  for (std::size_t i = 0; i < kExpectedWeights.size(); ++i) {
     BOOST_TEST(*(rows[0].weights + i) == kExpectedWeights[i]);
   }
 }

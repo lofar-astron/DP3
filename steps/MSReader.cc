@@ -1,4 +1,4 @@
-// MSReader.cc: DPPP step reading from an MS
+// MSReader.cc: DP3 step reading from an MS
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
@@ -202,14 +202,14 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
           " is before the first timestep in the measurement set");
     }
     // Round specified first time to a multiple of itsTimeInterval
-    itsLastTime = startTimeMS +
-                  std::floor((endTimeParset - startTimeMS) / itsTimeInterval) *
-                      itsTimeInterval;
+    itsMaximumTime = startTimeMS + std::floor((endTimeParset - startTimeMS) /
+                                              itsTimeInterval) *
+                                       itsTimeInterval;
   } else {
-    itsLastTime = endTimeMS;
+    itsMaximumTime = endTimeMS;
   }
 
-  if (itsLastTime < itsFirstTime)
+  if (itsMaximumTime < itsFirstTime)
     throw std::runtime_error("Specified endtime is before specified starttime");
   // If needed, skip the first times in the MS.
   // It also sets itsFirstTime properly (round to time/interval in MS).
@@ -219,7 +219,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
       throw std::runtime_error("Only one of " + prefix + "ntimes and " +
                                prefix + "endtime can be specified");
     }
-    itsLastTime = itsFirstTime + (nTimes - 1) * itsTimeInterval;
+    itsMaximumTime = itsFirstTime + (nTimes - 1) * itsTimeInterval;
   }
   itsNextTime = itsFirstTime;
   // Parse the chan expressions.
@@ -284,7 +284,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       // Take time from row 0 in subset.
       double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
       // Skip time slot and give warning if MS data is not in time order.
-      if (mstime < itsLastMSTime) {
+      if (mstime < itsPrevMSTime) {
         aocommon::Logger::Warn
             << "Time at rownr " << itsIter.table().rowNumbers(itsMS)[0]
             << " of MS " << msName() << " is less than previous time slot\n";
@@ -306,13 +306,14 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
         }
       }
       // Skip this time slot.
-      itsLastMSTime = mstime;
+      itsPrevMSTime = mstime;
       itsIter.next();
     }
 
-    // Stop if at the end, or if there is no data at all
-    if ((itsNextTime > itsLastTime &&
-         !casacore::near(itsNextTime, itsLastTime)) ||
+    // Stop if at the end, i.e. the above loop completed without hitting an end
+    // condition at all, or if there is no data at all.
+    if ((itsNextTime > itsMaximumTime &&
+         !casacore::near(itsNextTime, itsMaximumTime)) ||
         itsNextTime == 0.) {
       return false;
     }
@@ -320,7 +321,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
     // Fill the buffer.
     buffer->SetTime(itsNextTime);
     if (!useIter) {
-      // Need to insert a fully flagged time slot.
+      // Time slot is missing altogether: insert a fully flagged time slot.
       buffer->SetRowNumbers(casacore::Vector<common::rownr_t>());
       buffer->SetExposure(itsTimeInterval);
       buffer->GetFlags().fill(true);
@@ -332,6 +333,8 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       }
       itsNrInserted++;
     } else {
+      // Timeslot exists, but it could still be that the MS does not contain a
+      // data column (visibilities) for this timeslot.
       buffer->SetRowNumbers(itsIter.table().rowNumbers(itsMS, true));
       if (itsMissingData) {
         // Data column not present, so fill a fully flagged time slot.
@@ -344,7 +347,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
         // Set exposure.
         buffer->SetExposure(
             ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
-        // Get data and flags from the MS.
+        // Get data (visibilities) and flags from the MS.
         const casacore::IPosition casa_shape(3, itsNrCorr, itsNrChan, itsNrBl);
         if (getFieldsToRead().Data()) {
           ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
@@ -403,14 +406,15 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
         }
       }
 
-      itsLastMSTime = itsNextTime;
+      itsPrevMSTime = itsNextTime;
       itsNrRead++;
       itsIter.next();
     }
-    if (getFieldsToRead().Flags()) {
-      if (buffer->GetFlags().shape(0) != itsNrBl)
-        throw std::runtime_error(
-            "#baselines is not the same for all time slots in the MS");
+    if ((getFieldsToRead().Flags() &&
+         (buffer->GetFlags().shape(0) != itsNrBl)) ||
+        (useIter && (buffer->GetRowNumbers().shape() != itsNrBl))) {
+      throw std::runtime_error(
+          "#baselines is not the same for all time slots in the MS");
     }
   }  // end of scope stops the timer.
 
@@ -467,8 +471,8 @@ void MSReader::show(std::ostream& os) const {
     os << "  nbaselines:         " << nrbl << '\n';
     os << "  first time:         " << MVTime::Format(MVTime::YMD)
        << MVTime(itsFirstTime / (24 * 3600.)) << '\n';
-    os << "  last time:          " << MVTime::Format(MVTime::YMD)
-       << MVTime(itsLastTime / (24 * 3600.)) << '\n';
+    os << "  maximum time:       " << MVTime::Format(MVTime::YMD)
+       << MVTime(itsMaximumTime / (24 * 3600.)) << '\n';
     os << "  ntimes:             " << getInfo().ntime()
        << '\n';  // itsSelMS can contain timeslots that are ignored in process
     os << "  time interval:      " << getInfo().timeInterval() << '\n';
@@ -686,7 +690,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
 }
 
 void MSReader::prepare2(int spectralWindow) {
-  info().setTimes(itsFirstTime, itsLastTime, itsTimeInterval);
+  info().setTimes(itsFirstTime, itsMaximumTime, itsTimeInterval);
   info().setMsNames(msName(), itsDataColName, itsFlagColName, itsWeightColName);
   // Read the center frequencies of all channels.
   Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
@@ -745,7 +749,7 @@ void MSReader::skipFirstTimes() {
     // Take time from row 0 in subset.
     double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
     // Skip time slot and give warning if MS data is not in time order.
-    if (mstime < itsLastMSTime) {
+    if (mstime < itsPrevMSTime) {
       aocommon::Logger::Warn
           << "Time at rownr " << itsIter.table().rowNumbers(itsMS)[0]
           << " of MS " << msName() << " is less than previous time slot\n";
@@ -772,7 +776,7 @@ void MSReader::skipFirstTimes() {
       }
     }
     // Skip this time slot.
-    itsLastMSTime = mstime;
+    itsPrevMSTime = mstime;
     itsIter.next();
   }
 }
@@ -805,10 +809,10 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   const casacore::IPosition shape(3, itsNrCorr, itsNrChan, itsNrBl);
   casacore::Cube<float> casa_weights(shape, weights.data(), casacore::SHARE);
   if (rowNrs.rowVector().empty()) {
-    // rowNrs can be empty if a time slot was inserted.
+    // rowNrs can be empty if a time slot was inserted (i.e., missing data).
     weights.fill(0.0f);
   } else {
-    // Get weights for entire spectrum if present.
+    // Get weights for entire spectrum if present in MS.
     if (itsHasWeightSpectrum) {
       ArrayColumn<float> wsCol(itsMS, itsWeightColName);
       // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.

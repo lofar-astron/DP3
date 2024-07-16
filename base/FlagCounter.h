@@ -6,8 +6,8 @@
 /// @brief Class to keep counts of nr of flagged points
 /// @author Ger van Diepen
 
-#ifndef DPPP_FLAGCOUNTER_H
-#define DPPP_FLAGCOUNTER_H
+#ifndef DP3_FLAGCOUNTER_H_
+#define DP3_FLAGCOUNTER_H_
 
 #include <casacore/casa/Arrays/Vector.h>
 
@@ -24,9 +24,9 @@ class DPInfo;
 
 /// @brief Class to keep counts of nr of flagged points
 
-/// This class contains counts the number of flags.
+/// This class contains counts of the number of flags.
 /// The flags can be counted per baseline, channel, and correlation.
-/// Once the counting is completed, they can be printed using the 'show'
+/// Once counting completes, the counts can be printed using the 'show'
 /// functions. When printing, the baselines counts are shown per antenna.
 /// Optionally the flagging percentages can be saved in a table.
 /// The name of the table is the MS name suffixed by the step name and

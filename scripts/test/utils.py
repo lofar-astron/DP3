@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-import pytest
-import shutil
-import uuid
 from subprocess import check_call, check_output
+
+import pytest
 from testconfig import TAQLEXE
 
 
@@ -38,5 +37,6 @@ def run_in_tmp_path(tmp_path):
     Creates a temporary directory, runs the test in it, and removes the
     directory.
     """
-    # 'tmp_path' is a base fixture from Pytest that already does everything else, including cleaning up.
+    # 'tmp_path' is a base fixture from Pytest that already
+    # does everything else, including cleaning up.
     os.chdir(tmp_path)

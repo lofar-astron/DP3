@@ -64,8 +64,11 @@ class InputStep : public Step {
   /// @return true if the measurement set has BDA data, false if it is regular.
   static bool HasBda(const casacore::MeasurementSet& ms);
 
-  /// Creates an MS reader.
-  /// Based on the MS it will create either a BDAMSReader or a regular
+  /// Creates a (multi) MS reader.
+  /// If it receives a single input MS name, it will create either a regular
+  /// MSReader step or a MSBDAReader step depending on the contents of the MS.
+  /// If it receives multiple input MS names, it will create a MultiMSReader
+  /// step. In this case, BDA data is not supported (yet).
   static std::unique_ptr<InputStep> CreateReader(const common::ParameterSet&);
 
  private:
