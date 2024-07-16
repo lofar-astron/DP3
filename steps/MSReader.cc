@@ -78,18 +78,20 @@ namespace dp3 {
 namespace steps {
 
 MSReader::MSReader(const casacore::MeasurementSet& ms,
-                   const common::ParameterSet& parset, const string& prefix,
-                   bool missingData)
+                   const common::ParameterSet& parset,
+                   const std::string& prefix, bool missingData)
     : itsMS(ms),
       itsSelMS(itsMS),
       itsDataColName(parset.getString(prefix + "datacolumn", "DATA")),
+      itsExtraDataColNames(parset.getStringVector(prefix + "extradatacolumns",
+                                                  std::vector<std::string>())),
       itsFlagColName(parset.getString(prefix + "flagcolumn", "FLAG")),
       itsWeightColName(
           parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM")),
       itsModelColName(parset.getString(prefix + "modelcolumn", "MODEL_DATA")),
       itsStartChanStr(parset.getString(prefix + "startchan", "0")),
       itsNrChanStr(parset.getString(prefix + "nchan", "0")),
-      itsSelBL(parset.getString(prefix + "baseline", string())),
+      itsSelBL(parset.getString(prefix + "baseline", std::string())),
       itsNeedSort(parset.getBool(prefix + "sort", false)),
       itsAutoWeight(parset.getBool(prefix + "autoweight", false)),
       itsAutoWeightForce(parset.getBool(prefix + "forceautoweight", false)),
@@ -98,8 +100,8 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
       itsTimeTolerance(parset.getDouble(prefix + "timetolerance", 1e-2)) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Get info from parset.
-  string startTimeStr = parset.getString(prefix + "starttime", "");
-  string endTimeStr = parset.getString(prefix + "endtime", "");
+  std::string startTimeStr = parset.getString(prefix + "starttime", "");
+  std::string endTimeStr = parset.getString(prefix + "endtime", "");
   unsigned int nTimes = parset.getInt(prefix + "ntimes", 0);
   int startTimeSlot = parset.getInt(prefix + "starttimeslot", 0);
   // Try to open the MS and get its full name.
@@ -151,6 +153,13 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   // Prepare the MS access and get time info.
   double startTimeMS = 0., endTimeMS = 0.;
   prepare(startTimeMS, endTimeMS, itsTimeInterval);
+
+  // itsMissingData could be updated in prepare(), so test this here.
+  if (itsMissingData && !itsExtraDataColNames.empty()) {
+    throw std::runtime_error(
+        "Settings 'missingdata' and 'extradatacolumns' are mutually "
+        "exclusive and cannot be provided both.");
+  }
 
   // Start and end time can be given in the parset in case leading
   // or trailing time slots are missing.
@@ -255,12 +264,18 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
 std::string MSReader::msName() const { return itsMS.tableName(); }
 
 bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
+  // Determine what to read. Depends on what later steps in the chain need.
   if (getFieldsToRead().Data()) {
     buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
+    for (std::string columnName : itsExtraDataColNames) {
+      buffer->AddData(columnName);
+      buffer->GetData(columnName).resize({itsNrBl, itsNrChan, itsNrCorr});
+    }
   }
   if (getFieldsToRead().Flags()) {
     buffer->GetFlags().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
+
   {
     common::NSTimer::StartStop sstime(itsTimer);
     // Use time from the current time slot in the MS.
@@ -274,7 +289,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
             << "Time at rownr " << itsIter.table().rowNumbers(itsMS)[0]
             << " of MS " << msName() << " is less than previous time slot\n";
       } else {
-        // Use the time slot if near or < nexttime, but > starttime.
+        // Use the time slot if near nexttime or between [starttime, nexttime].
         // In this way we cater for irregular times in some WSRT MSs.
         if (casacore::nearAbs(mstime, itsNextTime, itsTimeTolerance)) {
           useIter = true;
@@ -294,12 +309,14 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       itsLastMSTime = mstime;
       itsIter.next();
     }
+
     // Stop if at the end, or if there is no data at all
     if ((itsNextTime > itsLastTime &&
          !casacore::near(itsNextTime, itsLastTime)) ||
         itsNextTime == 0.) {
       return false;
     }
+
     // Fill the buffer.
     buffer->SetTime(itsNextTime);
     if (!useIter) {
@@ -309,6 +326,9 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       buffer->GetFlags().fill(true);
       if (getFieldsToRead().Data()) {
         buffer->GetData().fill(std::complex<float>());
+        for (std::string columnName : itsExtraDataColNames) {
+          buffer->GetData(columnName).fill(std::complex<float>());
+        }
       }
       itsNrInserted++;
     } else {
@@ -366,6 +386,23 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
           flagInfNaN(*buffer, itsFlagCounter);
         }
       }
+
+      // Get extra data (e.g. model data) from the MS.
+      if (getFieldsToRead().Data()) {
+        const casacore::IPosition casa_shape(3, itsNrCorr, itsNrChan, itsNrBl);
+        for (std::string columnName : itsExtraDataColNames) {
+          ArrayColumn<casacore::Complex> extraDataCol(itsIter.table(),
+                                                      columnName);
+          casacore::Cube<casacore::Complex> casa_data(
+              casa_shape, buffer->GetData(columnName).data(), casacore::SHARE);
+          if (itsUseAllChan) {
+            extraDataCol.getColumn(casa_data);
+          } else {
+            extraDataCol.getColumn(itsColSlicer, casa_data);
+          }
+        }
+      }
+
       itsLastMSTime = itsNextTime;
       itsNrRead++;
       itsIter.next();
@@ -413,36 +450,41 @@ void MSReader::finish() { getNextStep()->finish(); }
 
 void MSReader::show(std::ostream& os) const {
   os << "MSReader\n";
-  os << "  input MS:       " << msName() << '\n';
+  os << "  input MS:           " << msName() << '\n';
   if (itsMS.isNull()) {
     os << "    *** MS does not exist ***\n";
   } else {
     if (!itsSelBL.empty()) {
-      os << "  baseline:       " << itsSelBL << '\n';
+      os << "  baseline:           " << itsSelBL << '\n';
     }
-    os << "  band            " << getInfo().spectralWindow() << '\n';
-    os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr
+    os << "  band                " << getInfo().spectralWindow() << '\n';
+    os << "  startchan:          " << itsStartChan << "  (" << itsStartChanStr
        << ")\n";
-    os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
+    os << "  nchan:              " << getInfo().nchan() << "  (" << itsNrChanStr
        << ")\n";
-    os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
+    os << "  ncorrelations:      " << getInfo().ncorr() << '\n';
     unsigned int nrbl = getInfo().nbaselines();
-    os << "  nbaselines:     " << nrbl << '\n';
-    os << "  first time:     " << MVTime::Format(MVTime::YMD)
+    os << "  nbaselines:         " << nrbl << '\n';
+    os << "  first time:         " << MVTime::Format(MVTime::YMD)
        << MVTime(itsFirstTime / (24 * 3600.)) << '\n';
-    os << "  last time:      " << MVTime::Format(MVTime::YMD)
+    os << "  last time:          " << MVTime::Format(MVTime::YMD)
        << MVTime(itsLastTime / (24 * 3600.)) << '\n';
-    os << "  ntimes:         " << getInfo().ntime()
+    os << "  ntimes:             " << getInfo().ntime()
        << '\n';  // itsSelMS can contain timeslots that are ignored in process
-    os << "  time interval:  " << getInfo().timeInterval() << '\n';
-    os << "  DATA column:    " << itsDataColName;
+    os << "  time interval:      " << getInfo().timeInterval() << '\n';
+    os << "  DATA column:        " << itsDataColName;
     if (itsMissingData) {
       os << "  (not present)";
     }
     os << '\n';
-    os << "  WEIGHT column:  " << itsWeightColName << '\n';
-    os << "  FLAG column:    " << itsFlagColName << '\n';
-    os << "  autoweight:     " << std::boolalpha << itsAutoWeight << '\n';
+    os << "  extra data columns: ";
+    for (std::string columnName : itsExtraDataColNames) {
+      os << columnName << ", ";
+    }
+    os << '\n';
+    os << "  WEIGHT column:      " << itsWeightColName << '\n';
+    os << "  FLAG column:        " << itsFlagColName << '\n';
+    os << "  autoweight:         " << std::boolalpha << itsAutoWeight << '\n';
   }
 }
 
@@ -511,14 +553,26 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
       }
     }
   } else {
+    // Only give warning if a missing data column is allowed.
     if (itsMissingData) {
-      // Only give warning if a missing data column is allowed.
       aocommon::Logger::Warn << "Data column " << itsDataColName
                              << " is missing in " << msName() << '\n';
     } else {
       throw std::runtime_error("Data column " + itsDataColName +
                                " is missing in " + msName());
     }
+  }
+  // Test if the extra data columns are present (e.g. model visibilities).
+  std::string missing_columns;
+  for (std::string columnName : itsExtraDataColNames) {
+    if (!tdesc.isColumn(columnName)) {
+      missing_columns += columnName + ", ";
+    }
+  }
+  if (!missing_columns.empty()) {
+    missing_columns.erase(missing_columns.size() - 2);
+    throw std::runtime_error("Extra data columns [" + missing_columns +
+                             "] are missing in " + msName());
   }
 
   // Get the main table in the correct order.

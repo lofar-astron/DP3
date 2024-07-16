@@ -23,7 +23,7 @@ namespace dp3 {
 namespace steps {
 /// @brief DP3 step reading from an MS
 
-/// This class is a InputStep step reading the data from a MeasurementSet.
+/// This class is an InputStep step reading the data from a MeasurementSet.
 /// At the beginning it finds out the shape of the data; i.e., the
 /// number of correlations, channels, baselines, and time slots.
 /// It requires the data to be regularly shaped.
@@ -36,19 +36,22 @@ namespace steps {
 ///  <li> msin.startchan: first channel to use [0]
 ///  <li> msin.nchan: number of channels to use [all]
 ///  <li> msin.useflag: use the existing flags? [yes]
-///  <li> msin.datacolumn: the data column to use [DATA]
+///  <li> msin.datacolumn: the data column to use (measured visibilities) [DATA]
+///  <li> msin.extradatacolumns: the extra data columns to use. Could be used to
+///           load model visibilities when stored in the MS as well [empty]
 ///  <li> msin.weightcolumn: the weights column to use [WEIGHT_SPECTRUM or
 ///           WEIGHT]
 ///  <li> msin.starttime: first time to use [first time in MS]
 ///  <li> msin.endtime: last time to use [last time in MS]
 /// </ul>
 ///
-/// If a time slot is missing, it is inserted with flagged data set to zero.
+/// If a time slot is missing, it inserts flagged data set to zero, i.e. it
+/// inserts dummy data that is marked invalid.
 /// Missing time slots can also be detected at the beginning or end of the
 /// MS by giving the correct starttime and endtime.
 /// The correct UVW coordinates are calculated for inserted time slots.
 ///
-/// The process function reads the fields needed by the steps' chain which can
+/// The process function reads the fields needed by the chain of steps which can
 /// be obtained calling getFieldsToRead(). In this way only the necessary data
 /// is kept in memory.
 ///
@@ -185,6 +188,7 @@ class MSReader : public InputStep {
   casacore::Table itsSelMS;  ///< possible selection of spw, baseline
   casacore::TableIterator itsIter;
   std::string itsDataColName{"DATA"};
+  std::vector<std::string> itsExtraDataColNames{};
   std::string itsFlagColName{"FLAG"};
   std::string itsWeightColName{"WEIGHT_SPECTRUM"};
   std::string itsModelColName{"MODEL_DATA"};
