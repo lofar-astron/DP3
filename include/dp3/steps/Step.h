@@ -153,7 +153,7 @@ class Step {
   static void SetThreadingIsInitialized() { threading_is_initialized_ = true; }
 
  protected:
-  /// @return Non-const reference to ouput info.
+  /// @return Non-const reference to output info.
   base::DPInfo& infoOut() { return itsInfoOut; }
 
   /// Legacy version of infoOut().

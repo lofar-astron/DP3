@@ -212,10 +212,10 @@ class MSReader : public InputStep {
   double itsTimeTolerance{1e-2};
   double itsTimeInterval{0.0};
   double itsFirstTime{0.0};
-  double itsLastTime{0.0};
-  double itsNextTime{0.0};
-  double itsLastMSTime{0.0};
-  unsigned int itsNrRead{0};      ///< nr of time slots read from MS
+  double itsMaximumTime{0.0};  ///< the last/max. expected timeslot in the MS
+  double itsNextTime{0.0};     ///< target time slot for the process() call
+  double itsPrevMSTime{0.0};   ///< time of prev. iteration in search for target
+  unsigned int itsNrRead{0};   ///< nr of time slots read from MS
   unsigned int itsNrInserted{0};  ///< nr of inserted time slots
   casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
   casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array

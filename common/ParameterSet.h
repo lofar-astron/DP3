@@ -480,7 +480,7 @@ inline bool ParameterSet::getBool(const std::string& aKey) const {
   return itsSet->getBool(aKey);
 }
 
-// getBool(key, value)
+// getBool(key, value), where value is returned when the key is not found
 inline bool ParameterSet::getBool(const std::string& aKey, bool aValue) const {
   return itsSet->getBool(aKey, aValue);
 }
@@ -490,7 +490,7 @@ inline int ParameterSet::getInt(const std::string& aKey) const {
   return itsSet->getInt(aKey);
 }
 
-// getInt(key, value)
+// getInt(key, value), where value is returned when the key is not found
 inline int ParameterSet::getInt(const std::string& aKey, int aValue) const {
   return itsSet->getInt(aKey, aValue);
 }
@@ -500,7 +500,7 @@ inline unsigned int ParameterSet::getUint(const std::string& aKey) const {
   return itsSet->getUint(aKey);
 }
 
-// getUint(key, value)
+// getUint(key, value), where value is returned when the key is not found
 inline unsigned int ParameterSet::getUint(const std::string& aKey,
                                           unsigned int aValue) const {
   return itsSet->getUint(aKey, aValue);
@@ -511,7 +511,7 @@ inline int16_t ParameterSet::getInt16(const std::string& aKey) const {
   return itsSet->getInt16(aKey);
 }
 
-// getInt16(key, value)
+// getInt16(key, value), where value is returned when the key is not found
 inline int16_t ParameterSet::getInt16(const std::string& aKey,
                                       int16_t aValue) const {
   return itsSet->getInt16(aKey, aValue);
@@ -522,7 +522,7 @@ inline uint16_t ParameterSet::getUint16(const std::string& aKey) const {
   return itsSet->getUint16(aKey);
 }
 
-// getUint16(key, value)
+// getUint16(key, value), where value is returned when the key is not found
 inline uint16_t ParameterSet::getUint16(const std::string& aKey,
                                         uint16_t aValue) const {
   return itsSet->getUint16(aKey, aValue);
@@ -533,7 +533,7 @@ inline int32_t ParameterSet::getInt32(const std::string& aKey) const {
   return itsSet->getInt32(aKey);
 }
 
-// getInt32(key, value)
+// getInt32(key, value), where value is returned when the key is not found
 inline int32_t ParameterSet::getInt32(const std::string& aKey,
                                       int32_t aValue) const {
   return itsSet->getInt32(aKey, aValue);
@@ -544,7 +544,7 @@ inline uint32_t ParameterSet::getUint32(const std::string& aKey) const {
   return itsSet->getUint32(aKey);
 }
 
-// getUint32(key, value)
+// getUint32(key, value), where value is returned when the key is not found
 inline uint32_t ParameterSet::getUint32(const std::string& aKey,
                                         uint32_t aValue) const {
   return itsSet->getUint32(aKey, aValue);
@@ -555,7 +555,7 @@ inline int64_t ParameterSet::getInt64(const std::string& aKey) const {
   return itsSet->getInt64(aKey);
 }
 
-// getInt64(key, value)
+// getInt64(key, value), where value is returned when the key is not found
 inline int64_t ParameterSet::getInt64(const std::string& aKey,
                                       int64_t aValue) const {
   return itsSet->getInt64(aKey, aValue);
@@ -566,7 +566,7 @@ inline uint64_t ParameterSet::getUint64(const std::string& aKey) const {
   return itsSet->getUint64(aKey);
 }
 
-// getUint64(key, value)
+// getUint64(key, value), where value is returned when the key is not found
 inline uint64_t ParameterSet::getUint64(const std::string& aKey,
                                         uint64_t aValue) const {
   return itsSet->getUint64(aKey, aValue);
@@ -577,7 +577,7 @@ inline float ParameterSet::getFloat(const std::string& aKey) const {
   return itsSet->getFloat(aKey);
 }
 
-// getFloat(key, value)
+// getFloat(key, value), where value is returned when the key is not found
 inline float ParameterSet::getFloat(const std::string& aKey,
                                     float aValue) const {
   return itsSet->getFloat(aKey, aValue);
@@ -588,7 +588,7 @@ inline double ParameterSet::getDouble(const std::string& aKey) const {
   return itsSet->getDouble(aKey);
 }
 
-// getDouble(key, value)
+// getDouble(key, value), where value is returned when the key is not found
 inline double ParameterSet::getDouble(const std::string& aKey,
                                       double aValue) const {
   return itsSet->getDouble(aKey, aValue);
@@ -599,7 +599,7 @@ inline std::string ParameterSet::getString(const std::string& aKey) const {
   return itsSet->getString(aKey);
 }
 
-// getString(key, value)
+// getString(key, value), where value is returned when the key is not found
 inline std::string ParameterSet::getString(const std::string& aKey,
                                            const std::string& aValue) const {
   return itsSet->getString(aKey, aValue);
@@ -610,7 +610,7 @@ inline time_t ParameterSet::getTime(const std::string& aKey) const {
   return itsSet->getTime(aKey);
 }
 
-// getTime(key, value)
+// getTime(key, value), where value is returned when the key is not found
 inline time_t ParameterSet::getTime(const std::string& aKey,
                                     const time_t& aValue) const {
   return itsSet->getTime(aKey, aValue);
@@ -622,7 +622,7 @@ inline std::vector<bool> ParameterSet::getBoolVector(const std::string& aKey,
   return itsSet->getBoolVector(aKey, expandable);
 }
 
-// getBoolVector(key, value)
+// getBoolVector(key, value), where value is returned when the key is not found
 inline std::vector<bool> ParameterSet::getBoolVector(
     const std::string& aKey, const std::vector<bool>& aValue,
     bool expandable) const {
@@ -635,7 +635,7 @@ inline std::vector<int> ParameterSet::getIntVector(const std::string& aKey,
   return itsSet->getIntVector(aKey, expandable);
 }
 
-// getIntVector(key, value)
+// getIntVector(key, value), where value is returned when the key is not found
 inline std::vector<int> ParameterSet::getIntVector(
     const std::string& aKey, const std::vector<int>& aValue,
     bool expandable) const {
@@ -648,7 +648,7 @@ inline std::vector<unsigned int> ParameterSet::getUintVector(
   return itsSet->getUintVector(aKey, expandable);
 }
 
-// getUintVector(key, value)
+// getUintVector(key, value), where value is returned when the key is not found
 inline std::vector<unsigned int> ParameterSet::getUintVector(
     const std::string& aKey, const std::vector<unsigned int>& aValue,
     bool expandable) const {
@@ -661,7 +661,7 @@ inline std::vector<int16_t> ParameterSet::getInt16Vector(
   return itsSet->getInt16Vector(aKey, expandable);
 }
 
-// getInt16Vector(key, value)
+// getInt16Vector(key, value), where value is returned when key is not found
 inline std::vector<int16_t> ParameterSet::getInt16Vector(
     const std::string& aKey, const std::vector<int16_t>& aValue,
     bool expandable) const {
@@ -674,7 +674,7 @@ inline std::vector<uint16_t> ParameterSet::getUint16Vector(
   return itsSet->getUint16Vector(aKey, expandable);
 }
 
-// getUint16Vector(key, value)
+// getUint16Vector(key, value), where value is returned when key is not found
 inline std::vector<uint16_t> ParameterSet::getUint16Vector(
     const std::string& aKey, const std::vector<uint16_t>& aValue,
     bool expandable) const {
@@ -687,7 +687,7 @@ inline std::vector<int32_t> ParameterSet::getInt32Vector(
   return itsSet->getInt32Vector(aKey, expandable);
 }
 
-// getInt32Vector(key, value)
+// getInt32Vector(key, value), where value is returned when key is not found
 inline std::vector<int32_t> ParameterSet::getInt32Vector(
     const std::string& aKey, const std::vector<int32_t>& aValue,
     bool expandable) const {
@@ -700,7 +700,7 @@ inline std::vector<uint32_t> ParameterSet::getUint32Vector(
   return itsSet->getUint32Vector(aKey, expandable);
 }
 
-// getUint32Vector(key, value)
+// getUint32Vector(key, value), where value is returned when key is not found
 inline std::vector<uint32_t> ParameterSet::getUint32Vector(
     const std::string& aKey, const std::vector<uint32_t>& aValue,
     bool expandable) const {
@@ -713,7 +713,7 @@ inline std::vector<int64_t> ParameterSet::getInt64Vector(
   return itsSet->getInt64Vector(aKey, expandable);
 }
 
-// getInt64Vector(key, value)
+// getInt64Vector(key, value), where value is returned when key is not found
 inline std::vector<int64_t> ParameterSet::getInt64Vector(
     const std::string& aKey, const std::vector<int64_t>& aValue,
     bool expandable) const {
@@ -726,7 +726,7 @@ inline std::vector<uint64_t> ParameterSet::getUint64Vector(
   return itsSet->getUint64Vector(aKey, expandable);
 }
 
-// getUint64Vector(key, value)
+// getUint64Vector(key, value), where value is returned when key is not found
 inline std::vector<uint64_t> ParameterSet::getUint64Vector(
     const std::string& aKey, const std::vector<uint64_t>& aValue,
     bool expandable) const {
@@ -739,7 +739,7 @@ inline std::vector<float> ParameterSet::getFloatVector(const std::string& aKey,
   return itsSet->getFloatVector(aKey, expandable);
 }
 
-// getFloatVector(key, value)
+// getFloatVector(key, value), where value is returned when key is not found
 inline std::vector<float> ParameterSet::getFloatVector(
     const std::string& aKey, const std::vector<float>& aValue,
     bool expandable) const {
@@ -751,7 +751,7 @@ inline std::vector<double> ParameterSet::getDoubleVector(
     const std::string& aKey, bool expandable) const {
   return itsSet->getDoubleVector(aKey, expandable);
 }
-// getDoubleVector(key, value)
+// getDoubleVector(key, value), where value is returned when key is not found
 inline std::vector<double> ParameterSet::getDoubleVector(
     const std::string& aKey, const std::vector<double>& aValue,
     bool expandable) const {
@@ -764,7 +764,7 @@ inline std::vector<std::string> ParameterSet::getStringVector(
   return itsSet->getStringVector(aKey, expandable);
 }
 
-// getStringVector(key, value)
+// getStringVector(key, value), where value is returned when key is not found
 inline std::vector<std::string> ParameterSet::getStringVector(
     const std::string& aKey, const std::vector<std::string>& aValue,
     bool expandable) const {
@@ -777,7 +777,7 @@ inline std::vector<time_t> ParameterSet::getTimeVector(const std::string& aKey,
   return itsSet->getTimeVector(aKey, expandable);
 }
 
-// getTimeVector(key, value)
+// getTimeVector(key, value), where value is returned when key is not found
 inline std::vector<time_t> ParameterSet::getTimeVector(
     const std::string& aKey, const std::vector<time_t>& aValue,
     bool expandable) const {

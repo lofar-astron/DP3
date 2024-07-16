@@ -33,7 +33,7 @@ except ImportError:
 
 def test_queue_output():
     """
-    Creates a QueueOuput step.
+    Creates a QueueOutput step.
     Checks that data is properly collected by
     the QueueOutput step.
     """
@@ -102,7 +102,7 @@ def test_queue_output():
 
 def test_chain_queues():
     """
-    Creates two QueueOuput steps. Connects them and checks
+    Creates two QueueOutput steps. Connects them and checks
     that both properly collect the data.
     """
     parset = dp3.parameterset.ParameterSet()

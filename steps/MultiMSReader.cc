@@ -1,4 +1,4 @@
-// MultiMSReader.cc: DPPP step reading from multiple MSs
+// MultiMSReader.cc: DP3 step reading from multiple MSs
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
@@ -35,7 +35,7 @@ namespace steps {
 
 MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
                              const common::ParameterSet& parset,
-                             const string& prefix)
+                             const std::string& prefix)
     : itsFirst(-1), itsNMissing(0) {
   if (msNames.empty())
     throw std::runtime_error("No names of MeasurementSets given");
@@ -64,7 +64,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
       if (HasBda(ms)) {
         throw std::invalid_argument(name +
                                     " contains BDA data. DP3 does not support "
-                                    "multiple input MS with BDA data.");
+                                    "multiple input MSs with BDA data.");
       }
       reader.ms_reader =
           std::make_shared<MSReader>(ms, parset, prefix, itsMissingData);
@@ -78,7 +78,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
     readers_.emplace_back(std::move(reader));
   }
 
-  // TODO: check if frequencies are regular, insert some empy readers
+  // TODO: check if frequencies are regular, insert some empty readers
   // if necessary
 
   if (itsFirst < 0)
@@ -214,7 +214,7 @@ void MultiMSReader::fillBands() {
 
 bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   // Reduce memory allocation overhead by reusing the DPBuffer from the
-  // previous iteration.
+  // previous process() call.
   std::unique_ptr<DPBuffer> recycled_buffer = readers_[itsFirst].result->take();
   if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
 
@@ -233,6 +233,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Flags()) {
     buffer->GetFlags().resize({itsNrBl, itsNrChan, itsNrCorr});
   }
+
   // Loop through all readers and get data and flags.
   int first_channel = 0;
   int last_channel = 0;
@@ -241,7 +242,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
     if (ms_reader) {
       if (int(i) != itsFirst) {
         // Reduce memory allocation overhead by reusing the DPBuffer from the
-        // previous iteration.
+        // previous process() call.
         recycled_buffer = readers_[i].result->take();
         if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
         ms_reader->process(std::move(recycled_buffer));
@@ -265,6 +266,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
             msBuf.GetFlags();
       }
     } else {
+      // Corresponding MS is missing.
       last_channel = first_channel + itsFillNChan;
       if (getFieldsToRead().Data()) {
         xt::view(buffer->GetData(), xt::all(),
@@ -312,7 +314,7 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   // Get meta data and check they are equal for all MSs.
   itsMS = first_reader->table();
   itsFirstTime = getInfo().firstTime();
-  itsLastTime = getInfo().lastTime();
+  itsMaximumTime = getInfo().lastTime();
   itsTimeInterval = getInfo().timeInterval();
   itsSelBL = first_reader->baselineSelection();
   itsNrCorr = getInfo().ncorr();
