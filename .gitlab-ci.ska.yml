@@ -19,14 +19,14 @@ include:
 
 pages:
   stage: pages
-  needs: ["versioning","build-debug-2204","unit-test-coverage","integration-test-2204"]
+  needs: ["versioning","coverage-2204"]
   image: $BASE_IMAGE_2204
   variables:
     OUTPUT: public/$CI_COMMIT_REF_SLUG
   script:
     - echo Deploying GitLab pages to $CI_PAGES_URL/$CI_COMMIT_REF_SLUG
     - mkdir -p $OUTPUT/coverage
-    - gcovr -j$(nproc) -a build/coverage-integration.json -a build/coverage-unit.json --html-details $OUTPUT/index.html
+    - gcovr -e 'build/.*' -a build/coverage.json --html-details $OUTPUT/index.html
   artifacts:
     name: $CI_COMMIT_REF_SLUG
     paths:
@@ -37,7 +37,7 @@ pages:
 # See https://developer.skatelescope.org/en/latest/tools/ci-cd/continuous-integration.html#automated-collection-of-ci-health-metrics-as-part-of-the-ci-pipeline
 collect-metrics:
    stage: pages
-   needs: ["unit-test-coverage","integration-test-2204"]
+   needs: ["coverage-2204"]
    before_script:
      - apt-get update
      - apt-get install -y -qq python3
