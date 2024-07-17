@@ -98,52 +98,35 @@ prepare-base-2404:
   extends: .failable
   stage: build
   script:
-    - mkdir build
-    - cd build
-    - cmake -G Ninja -DBUILD_TESTING=On ..
+    - mkdir build && cd build
+    - cmake ${CMAKE_FLAGS} -G Ninja ..
     - ninja -j4 install
     - DP3
 
 # Build (and run) DP3 on Ubuntu 20, ensuring backward compatiblity.
 # This build does not include IDG, since IDG no longer supports Ubuntu 20.
-build-2004-no-idg:
+# This build also tests building DP3 with the TARGET_CPU option.
+build-2004-no-idg-target-cpu:
   extends: .build-basic
   needs: ["versioning", "prepare-base-2004"]
   image: $BASE_IMAGE_2004
+  variables:
+    CMAKE_FLAGS: -DTARGET_CPU=haswell
 
 # Build (and run) DP3 on Ubuntu 24, ensuring compatibility with new systems.
-build-2404:
+# This build also tests building DP3 with the PORTABLE option.
+build-2404-portable:
   extends: .build-basic
   needs: ["versioning", "prepare-base-2404"]
   image: $BASE_IMAGE_2404
+  variables:
+    # Enable tests and thereby check if they also compile on new systems.
+    CMAKE_FLAGS: -DBUILD_TESTING=On -DPORTABLE=On
 
 # Template for jobs that depend on prepare-base-2204.
 .needs-base-2204:
   needs: ["versioning", "prepare-base-2204"]
   image: $BASE_IMAGE_2204
-
-build-debug-2204:
-  stage: build
-  extends: [".failable",".needs-base-2204"]
-  script:
-    - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
-    - ninja -j4 install
-  artifacts:
-    paths:
-      - build
-
-build-2204:
-  stage: build
-  extends: [".failable",".needs-base-2204"]
-  script:
-    - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On ..
-    - ninja
-    - ninja install
-  artifacts:
-    paths:
-      - build
 
 build-doc-2204:
   stage: build
@@ -188,25 +171,14 @@ linting-2204:
   script:
     - ./scripts/run-format.sh
 
-
-.unit-test-2204:
+test-2204:
   stage: test
-  extends: .failable
-  needs: ["versioning","build-debug-2204"]
-  image: $BASE_IMAGE_2204
-  script: &unit-test-script
-    - cd build
-    # There is an issue running cmake with existing build artifacts. This may
-    # cause the pytest collection to segfault. Therefore clear the old artifacts
-    # before re-running cmake.
-    - ninja clean
-    - echo Configuring with CMake flags \"$CMAKE_FLAGS\" and CXX flags \"$CXX_FLAGS\"
-    - cmake $CMAKE_FLAGS -DCMAKE_CXX_FLAGS="$CXX_FLAGS" .
+  extends: [".failable",".needs-base-2204"]
+  script:
+    - mkdir build && cd build
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On ..
     - ninja -j4
-    - ctest --output-on-failure -j$(nproc) $CTEST_FLAGS |& tee ctest.out
-    # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
-    # option. Older versions require a manual check.
-    - if grep -q 'No tests were found' ctest.out; then exit 1; fi
+    - ctest --output-on-failure --no-tests=error -j$(nproc)
   artifacts:
     paths:
       - build/unittest*.xml
@@ -216,25 +188,28 @@ linting-2204:
         - build/unittest*.xml
         - build/pytest_*.xml
 
-# Determine coverage in "Release" mode, since -fprofile-update=atomic makes the tests slow.
-unit-test-coverage:
-  extends: .unit-test-2204
+# Use a separate job for collecting code coverage, which uses a Release build,
+# since collecting code coverage in a Debug build results in low performance.
+# Especially -fprofile-update=atomic makes the tests slow.
+# (A single Debug+coverage job takes longer than the total runtime of
+#  the current test-2204 and coverage-2204 jobs. It may even time out.)
+# The code coverage figures include both unit and integration tests.
+coverage-2204:
+  stage: test
+  extends: [".failable",".needs-base-2204"]
   script:
-    - *unit-test-script
-    - mkdir coverage-unit
-    # Collect coverage in json, xml and html formats.
-    # When updating this line, update gcovr for the integration test as well!
-    - gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '_deps/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --txt --xml coverage.xml --json coverage-unit.json
-  variables:
-    CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Release
-    CXX_FLAGS: -coverage -fprofile-update=atomic
-    CTEST_FLAGS: -L unit
+    - mkdir build && cd build
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - ninja -j4
+    - ctest --output-on-failure --no-tests=error -j$(nproc)
+    # Collect coverage in text, xml and json formats.
+    - gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '_deps/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --txt --xml coverage.xml --json coverage.json .
   coverage: /^TOTAL.*\s+(\d+\%)$/
   artifacts:
     paths:
       # The pages and collect-metrics jobs need coverage files. See .gitlab-ci.ska.yml.
-      - build/coverage-unit.json
       - build/coverage.xml
+      - build/coverage.json
       - build/unittest*.xml
       - build/pytest_*.xml
     reports:
@@ -245,77 +220,34 @@ unit-test-coverage:
         coverage_format: cobertura
         path: build/coverage.xml
 
-unit-test-2204:
-  extends: .unit-test-2204
-  variables:
-    CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Debug -DPORTABLE=OFF
-
-unit-test-target-cpu-2204:
-  extends: .unit-test-2204
-  variables:
-    CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Debug -DPORTABLE=OFF -DTARGET_CPU=haswell
-
-unit-test-portable-2204:
-  extends: .unit-test-2204
-  variables:
-    CMAKE_FLAGS: -DCMAKE_BUILD_TYPE=Debug -DPORTABLE=ON -UTARGET_CPU
-
-unit-test-address-sanitizer-2204:
-  extends: .unit-test-2204
+.sanitizer-2204:
+  stage: test
+  extends: [".failable",".needs-base-2204"]
+  script:
+    - mkdir build && cd build
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DPORTABLE=Off -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" ..
+    - ninja -j4
+    # Don't run slow tests. The overhead of the sanitizer causes time outs.
+    - ctest --output-on-failure --no-tests=error -j$(nproc) -L unit -LE slow
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: always
       allow_failure: false
     - when: manual
       allow_failure: true
+
+unit-test-address-sanitizer-2204:
+  extends: .sanitizer-2204
   variables:
-    CMAKE_FLAGS: -DPORTABLE=OFF
     CXX_FLAGS: -fsanitize=address
-    # The overhead of the sanitizer causes slow tests to time out.
-    CTEST_FLAGS: -L unit -LE slow
     # Ignore the leaks in third-party libraries.
     LSAN_OPTIONS: suppressions=../ci/address_sanitizer_suppressions.txt
 
+# There are NULL pointer issues in Casacore which blocks testing on CI.
 unit-test-undefined-behaviour-sanitizer-2204:
-  extends: .unit-test-2204
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: always
-      allow_failure: false
-    - when: manual
-      allow_failure: true
+  extends: .sanitizer-2204
   variables:
-    CMAKE_FLAGS: -DPORTABLE=OFF
-    # There are NULL pointer issues in Casacore which blocks us from testing in
-    # the CI.
     CXX_FLAGS: -fsanitize=undefined -fno-sanitize=null -fno-sanitize-recover
-    # The overhead of the sanitizer causes slow tests to time out.
-    CTEST_FLAGS: -L unit -LE slow
-
-integration-test-2204:
-  stage: test
-  extends: .failable
-  needs: ["versioning","build-debug-2204"]
-  image: $BASE_IMAGE_2204
-  script:
-    - cd build
-    # Needed when ran on different containers with different timestamps
-    # Rebuilding unit tests is not necessary when running integration tests.
-    - ninja -j4 DP3
-    - ctest --output-on-failure -j$(nproc) -L integration |& tee ctest.out
-    # Check if ctest found any tests. ctest >= 3.18 has a --no-tests=error
-    # option. Older versions require a manual check.
-    - if grep -q 'No tests were found' ctest.out; then exit 1; fi
-    # The json only needs to be built on the SKA repository
-    # When updating this line, update gcovr for the unit test as well!
-    - if [[ $CI_SERVER_HOST != "git.astron.nl" ]] ; then gcovr -j$(nproc) -r ../ -e '.*/external/.*' -e '_deps/.*' -e '.*/test/.*' -e '.*/CompilerIdCXX/.*' --json coverage-integration.json; fi
-  artifacts:
-    paths:
-      # This will give a warning and ERROR: No files to upload, which is ok at the Astron repo.
-      - build/coverage-integration.json # The pages job uses this file, see .gitlab-ci.ska.yml.
-      - build/pytest_*.xml
-    reports:
-      junit: build/pytest_*.xml
 
 deploy-package-2204:
   stage: publish
