@@ -105,7 +105,7 @@ class DDECal : public Step {
   /// input data buffer.
   void CorrectAndSubtractModels(size_t buffer_index);
 
-  const ddecal::Settings itsSettings;
+  ddecal::Settings itsSettings;
 
   /// The input data buffers for the current set of solution intervals.
   /// Maximum dimensions: itsSolIntCount x itsRequestedSolInt
@@ -136,8 +136,6 @@ class DDECal : public Step {
   /// Number of timeslots to store per solution interval as requested
   /// by the user in the parset.
   size_t itsRequestedSolInt;
-  /// For each direction, a number of solutions per solution interval
-  std::vector<size_t> itsSolutionsPerDirection;
   size_t itsSolIntCount;  ///< Number of solution intervals to buffer
   /// Index of the first solution in the current solution interval set.
   size_t itsFirstSolutionIndex;

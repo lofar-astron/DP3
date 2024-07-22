@@ -34,7 +34,6 @@
 #ifdef ENABLE_SCREENFITTER
 #include "../ddecal/constraints/ScreenConstraint.h"
 #endif
-#include "../ddecal/SolutionResampler.h"
 #include "../ddecal/constraints/SmoothnessConstraint.h"
 #include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/gain_solvers/SolverTools.h"
@@ -88,53 +87,7 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
         "parset or your sourcedb");
   }
 
-  if (parset.isDefined(prefix + "solutions_per_direction")) {
-    itsSolutionsPerDirection =
-        parset.getSizeTVector(prefix + "solutions_per_direction");
-  }
-
-  if (itsSolutionsPerDirection.size() > itsDirections.size()) {
-    throw std::runtime_error(
-        "The size of ddecal.solutions_per_direction should be less or equal "
-        "than the number of directions.");
-  }
-
-  // Pad itsSolutionsPerDirection with 1s
-  itsSolutionsPerDirection.resize(itsDirections.size(), 1);
-
-  if (std::find(itsSolutionsPerDirection.begin(),
-                itsSolutionsPerDirection.end(),
-                0) != itsSolutionsPerDirection.end()) {
-    throw std::runtime_error(
-        "All entries in ddecal.solutions_per_direction should be > 0.");
-  }
-
-  const size_t max_n_solutions_per_direction = *std::max_element(
-      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end());
-
-  for (const size_t val : itsSolutionsPerDirection) {
-    if (itsRequestedSolInt % val) {
-      throw std::runtime_error(
-          "Values in ddecal.solutions_per_direction should be integer divisors "
-          "of solint (" +
-          std::to_string(itsRequestedSolInt) + "), " + std::to_string(val) +
-          " is not.");
-    }
-  }
-
-  // Since info().ntime() might not be set at this stage, also throw an error
-  // in case itsRequestedSolInt equals 0, and any of the solves per direction >
-  // 1
-  const size_t actual_solution_interval =
-      (max_n_solutions_per_direction > 1)
-          ? itsRequestedSolInt / max_n_solutions_per_direction
-          : max_n_solutions_per_direction;
-  if (actual_solution_interval == 0) {
-    throw std::runtime_error(
-        "Maximum value in ddecal.solutions_per_direction is larger than "
-        "dde.solint value OR provided dde.solint equals 0 in combination with "
-        "dde.solutions_per_direction entries > 1.");
-  }
+  itsSettings.PrepareSolutionsPerDirection(itsDirections.size());
 }
 
 void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
@@ -364,13 +317,15 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   for (ddecal::SolverBase* solver : itsSolver->ConstraintSolvers()) {
     InitializeSolverConstraints(*solver, itsSettings, used_antenna_positions,
-                                used_antenna_names, itsSolutionsPerDirection,
+                                used_antenna_names,
+                                itsSettings.solutions_per_direction,
                                 itsSourceDirections, itsChanBlockFreqs);
   }
 
   size_t nSt = info().antennaUsed().size();
   // Give renumbered antennas to solver
-  itsSolver->Initialize(nSt, itsSolutionsPerDirection, nChannelBlocks);
+  itsSolver->Initialize(nSt, itsSettings.solutions_per_direction,
+                        nChannelBlocks);
 
   for (size_t i = 0; i < nSolTimes; ++i) {
     itsSols[i].resize(nChannelBlocks);
@@ -389,7 +344,8 @@ void DDECal::show(std::ostream& os) const {
      << "  nchan:               " << itsNChan << '\n'
      << "  direction count:     " << itsDirections.size() << '\n'
      << "  directions:          " << itsDirections << '\n'
-     << "  sols per direction:  " << itsSolutionsPerDirection << '\n';
+     << "  sols per direction:  " << itsSettings.solutions_per_direction
+     << '\n';
   if (itsSettings.min_vis_ratio != 0.0) {
     os << "  min visib. ratio:    " << itsSettings.min_vis_ratio << '\n';
   }
@@ -483,8 +439,7 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
     // Initialize solutions with those of the previous step.
     itsSols[solution_index] = itsSols[solution_index - 1];
   } else {
-    const size_t n_solutions = std::accumulate(
-        itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
+    const size_t n_solutions = itsSettings.GetNSolutions();
     const size_t n_solution_values = n_solutions * info().antennaUsed().size() *
                                      itsSolver->NSolutionPolarizations();
 
@@ -609,7 +564,7 @@ void DDECal::doSolve() {
         case ddecal::SolverDataUse::kSingle: {
           const ddecal::UniSolveData solve_data(
               weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-              itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+              itsSettings.solutions_per_direction, itsAntennas1, itsAntennas2);
           weighted_buffers.clear();
 
           aocommon::Logger::Debug << "Running DDECal single-visibility solver "
@@ -622,7 +577,7 @@ void DDECal::doSolve() {
         case ddecal::SolverDataUse::kDual: {
           const ddecal::DuoSolveData solve_data(
               weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-              itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+              itsSettings.solutions_per_direction, itsAntennas1, itsAntennas2);
           weighted_buffers.clear();
 
           aocommon::Logger::Debug << "Running DDECal dual-visibility solver "
@@ -635,7 +590,7 @@ void DDECal::doSolve() {
         case ddecal::SolverDataUse::kFull: {
           const ddecal::FullSolveData solve_data(
               weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-              itsSolutionsPerDirection, itsAntennas1, itsAntennas2);
+              itsSettings.solutions_per_direction, itsAntennas1, itsAntennas2);
           weighted_buffers.clear();
 
           aocommon::Logger::Debug
@@ -862,32 +817,12 @@ void DDECal::WriteSolutions() {
                               "step " + itsSettings.name + " in parset: \n" +
                               itsSettings.parset_string;
 
-  const size_t n_directions = itsSolutionsPerDirection.size();
-  const size_t n_solutions = std::accumulate(
-      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
-  if (n_solutions == n_directions) {
-    itsSolutionWriter.Write(
-        itsSols, itsConstraintSols, info().startTime(), info().lastTime(),
-        info().timeInterval(), info().timeInterval() * itsRequestedSolInt,
-        itsSettings.mode, used_antenna_names, itsSourceDirections,
-        itsDirections, info().chanFreqs(), itsChanBlockFreqs, history);
-  } else {
-    const size_t n_antennas = used_antenna_names.size();
-    ddecal::SolutionResampler resampler(itsSolutionsPerDirection, n_antennas,
-                                        itsSolver->NSolutionPolarizations(),
-                                        itsRequestedSolInt);
-    const size_t solution_interval =
-        itsRequestedSolInt / resampler.GetNrSubSteps();
-
-    std::vector<std::vector<std::vector<casacore::DComplex>>>
-        upsampled_solutions = resampler.Upsample(itsSols);
-    itsSolutionWriter.Write(
-        upsampled_solutions, itsConstraintSols, info().startTime(),
-        info().lastTime(), info().timeInterval(),
-        info().timeInterval() * solution_interval, itsSettings.mode,
-        used_antenna_names, itsSourceDirections, itsDirections,
-        info().chanFreqs(), itsChanBlockFreqs, history);
-  }
+  itsSolutionWriter.Write(
+      itsSols, itsConstraintSols, info().startTime(), info().lastTime(),
+      info().timeInterval(), itsRequestedSolInt,
+      itsSettings.solutions_per_direction, itsSettings.mode, used_antenna_names,
+      itsSourceDirections, itsDirections, info().chanFreqs(), itsChanBlockFreqs,
+      history);
 
   itsTimerWrite.stop();
 }
@@ -988,9 +923,8 @@ void DDECal::CorrectAndSubtractModels(size_t buffer_index) {
   // interval. Here we apply the solutions to all the model data directions and
   // subtract them from the data if the "subtract" setting is true.
 
-  const size_t n_solutions = std::accumulate(
-      itsSolutionsPerDirection.begin(), itsSolutionsPerDirection.end(), 0u);
-  if (n_solutions != itsSolutionsPerDirection.size()) {
+  const size_t n_solutions = itsSettings.GetNSolutions();
+  if (n_solutions != itsSettings.solutions_per_direction.size()) {
     throw std::runtime_error(
         "Model correction is not implemented for DDECal with direction "
         "dependent solution intervals");

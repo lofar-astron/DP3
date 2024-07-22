@@ -158,7 +158,7 @@ class BdaDdeCal : public Step {
   std::unique_ptr<ddecal::SolverBase> solver_;
 
   /** The solution interval, in seconds. */
-  double solution_interval_;
+  double solution_interval_duration_;
 
   /**
    * For each channel block, the start and end frequencies. The start and end

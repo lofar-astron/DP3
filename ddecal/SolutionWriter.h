@@ -30,16 +30,14 @@ class SolutionWriter {
       const std::vector<std::string>& all_antenna_names,
       const std::vector<std::array<double, 3>>& all_antenna_positions);
 
-  /**
-   * (Over)write solutions to the H5Parm file.
-   */
   void Write(
       const std::vector<std::vector<std::vector<std::complex<double>>>>&
           solutions,
       const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
           constraint_solutions,
-      const double start_time, const double end_time, const double ms_interval,
-      const double solution_interval, base::CalType mode,
+      double start_time, double end_time, double ms_timestep_duration,
+      size_t n_interval_timesteps,
+      const std::vector<size_t>& solutions_per_direction, base::CalType mode,
       const std::vector<std::string>& used_antenna_names,
       const std::vector<base::Direction>& source_directions,
       const std::vector<std::vector<std::string>>& directions,
@@ -47,6 +45,22 @@ class SolutionWriter {
       const std::vector<double>& chan_block_freqs, const std::string& history);
 
  private:
+  /**
+   * (Over)write solutions to the H5Parm file.
+   */
+  void WriteWithoutUpsampling(
+      const std::vector<std::vector<std::vector<std::complex<double>>>>&
+          solutions,
+      const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+          constraint_solutions,
+      double start_time, double end_time, double ms_timestep_duration,
+      double solution_interval, base::CalType mode,
+      const std::vector<std::string>& used_antenna_names,
+      const std::vector<base::Direction>& source_directions,
+      const std::vector<std::vector<std::string>>& directions,
+      const std::vector<double>& chan_freqs,
+      const std::vector<double>& chan_block_freqs, const std::string& history);
+
   schaapcommon::h5parm::H5Parm h5parm_;
 };
 

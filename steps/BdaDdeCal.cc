@@ -37,7 +37,7 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
       model_buffers_(),
       solver_buffer_(),
       solver_(),
-      solution_interval_(0.0),
+      solution_interval_duration_(0.0),
       chan_block_start_freqs_(),
       antennas1_(),
       antennas2_(),
@@ -64,6 +64,8 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
     solution_writer_ =
         std::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
   }
+
+  settings_.PrepareSolutionsPerDirection(steps_.size());
 }
 
 void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
@@ -123,19 +125,18 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
   }
 
   if (!settings_.only_predict) {
-    solution_interval_ = _info.timeInterval() * info().ntime();
-    size_t n_solution_intervals = 1;
     if (settings_.solution_interval > 0) {
-      solution_interval_ = _info.timeInterval() * settings_.solution_interval;
-      n_solution_intervals =
-          (info().ntime() + settings_.solution_interval - 1) /
-          settings_.solution_interval;
+      solution_interval_duration_ =
+          _info.timeInterval() * settings_.solution_interval;
+    } else {
+      solution_interval_duration_ = _info.timeInterval() * info().ntime();
     }
 
-    double max_bda_interval = *std::max_element(info().ntimeAvgs().begin(),
-                                                info().ntimeAvgs().end()) *
-                              info().timeInterval();
-    if (solution_interval_ < max_bda_interval) {
+    const double max_bda_interval =
+        *std::max_element(info().ntimeAvgs().begin(),
+                          info().ntimeAvgs().end()) *
+        info().timeInterval();
+    if (solution_interval_duration_ < max_bda_interval) {
       throw std::invalid_argument(
           "Using BDA rows that are longer than the solution interval is not "
           "supported. Use less BDA time averaging or a larger solution "
@@ -144,14 +145,14 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
 
     double max_chan_avg = 1.0;
     for (size_t i = 0; i < info().nbaselines(); i++) {
-      double chan_avg =
+      const double chan_avg =
           static_cast<double>(info().origNChan()) / info().chanWidths(i).size();
       if (chan_avg > max_chan_avg) {
         max_chan_avg = chan_avg;
       }
     }
 
-    int channels_per_chan_block =
+    const size_t channels_per_chan_block =
         (settings_.n_channels == 0) ? info().origNChan() : settings_.n_channels;
     if (max_chan_avg > channels_per_chan_block) {
       throw std::invalid_argument(
@@ -166,7 +167,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     }
 
     solver_buffer_ = std::make_unique<ddecal::BdaSolverBuffer>(
-        patches_.size(), _info.startTime(), solution_interval_,
+        patches_.size(), _info.startTime(), solution_interval_duration_,
         _info.nbaselines());
 
     DetermineChannelBlocks();
@@ -194,27 +195,24 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     const std::vector<double> channel_block_frequencies =
         GetChannelBlockFrequencies();
     for (ddecal::SolverBase* solver : solver_->ConstraintSolvers()) {
-      InitializeSolverConstraints(
-          *solver, settings_, used_antenna_positions, used_antenna_names,
-          std::vector<size_t>(source_directions.size(), 1), source_directions,
-          channel_block_frequencies);
+      InitializeSolverConstraints(*solver, settings_, used_antenna_positions,
+                                  used_antenna_names,
+                                  settings_.solutions_per_direction,
+                                  source_directions, channel_block_frequencies);
     }
 
     solver_->Initialize(info().antennaUsed().size(),
-                        std::vector<size_t>(patches_.size(), 1),
+                        settings_.solutions_per_direction,
                         chan_block_start_freqs_.size() - 1);
 
     // SolveCurrentInterval will add solution intervals to the solutions.
-    solutions_.reserve(n_solution_intervals);
-    constraint_solutions_.reserve(n_solution_intervals);
+    const size_t n_solutions = settings_.GetNSolutions();
+    solutions_.reserve(n_solutions);
+    constraint_solutions_.reserve(n_solutions);
   }
 
   if (solution_writer_) {
-    // Convert Casacore types to STL types and pass antenna info to the
-    // SolutionWriter.
-    const std::vector<std::string> antenna_names(info().antennaNames().begin(),
-                                                 info().antennaNames().end());
-    solution_writer_->AddAntennas(antenna_names, antenna_pos);
+    solution_writer_->AddAntennas(info().antennaNames(), antenna_pos);
   }
 }
 
@@ -402,6 +400,7 @@ void BdaDdeCal::SolveCurrentInterval() {
   using FullPtr = std::unique_ptr<dp3::ddecal::FullSolveData>;
   std::variant<UniPtr, DuoPtr, FullPtr> solve_data;
   switch (settings_.solver_data_use) {
+    // TODO: use solutions_per_direction to allow DD intervals with BDA
     case ddecal::SolverDataUse::kSingle:
       solve_data = std::make_unique<dp3::ddecal::UniSolveData>(
           *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
@@ -422,11 +421,12 @@ void BdaDdeCal::SolveCurrentInterval() {
   const int current_interval = solutions_.size();
   assert(current_interval == solver_buffer_->GetCurrentInterval());
   const double current_center =
-      info().startTime() + (current_interval + 0.5) * solution_interval_;
+      info().startTime() +
+      (current_interval + 0.5) * solution_interval_duration_;
 
   solutions_.emplace_back(n_channel_blocks);
-  const size_t block_solution_size =
-      patches_.size() * n_antennas * solver_->NSolutionPolarizations();
+  const size_t block_solution_size = settings_.GetNSolutions() * n_antennas *
+                                     solver_->NSolutionPolarizations();
   for (std::vector<std::complex<double>>& block_solution : solutions_.back()) {
     block_solution.assign(block_solution_size, 1.0);
   }
@@ -656,8 +656,9 @@ void BdaDdeCal::WriteSolutions() {
 
   solution_writer_->Write(
       solutions_, constraint_solutions_, info().startTime(), info().lastTime(),
-      info().timeInterval(), solution_interval_, settings_.mode,
-      used_antenna_names, GetSourceDirections(), patches_, info().chanFreqs(),
+      info().timeInterval(), settings_.solution_interval,
+      settings_.solutions_per_direction, settings_.mode, used_antenna_names,
+      GetSourceDirections(), patches_, info().chanFreqs(),
       GetChannelBlockFrequencies(), history);
 
   write_timer_.stop();
@@ -676,7 +677,9 @@ void BdaDdeCal::show(std::ostream& stream) const {
            << "  H5Parm:              " << settings_.h5parm_name << '\n'
            << "  subtract model:      " << std::boolalpha << settings_.subtract
            << '\n'
-           << "  solution interval:   " << solution_interval_ << " s\n"
+           << "  solution interval:   " << solution_interval_duration_ << " s\n"
+           << "  #solutions/direction:" << settings_.solutions_per_direction
+           << '\n'
            << "  #channels/block:     " << nchan << '\n'
            << "  #channel blocks:     " << chan_block_start_freqs_.size() - 1
            << '\n'

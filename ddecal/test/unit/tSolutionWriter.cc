@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(solution_time_size) {
     const double kStartTime = 5000000000;
     const double kEndTime = 5000005000;
     const double kMsInterval = 5.0;
-    const double kSolutionInterval = 50.0;
+    const size_t kTimestepsPerSolutionInterval = 10;
     const dp3::base::CalType mode = dp3::base::CalType::kScalar;
 
     // Empty container argument
@@ -91,9 +91,12 @@ BOOST_AUTO_TEST_CASE(solution_time_size) {
       chan_block_freqs[i] = chan_freqs[i];
     }
 
+    const std::vector<size_t> solutions_per_direction(kNDirections, 1);
+
     SolutionWriter solution_writer("output.h5");
     solution_writer.Write(solutions, constraint_solutions, kStartTime, kEndTime,
-                          kMsInterval, kSolutionInterval, mode, antenna_names,
+                          kMsInterval, kTimestepsPerSolutionInterval,
+                          solutions_per_direction, mode, antenna_names,
                           source_directions, directions, chan_freqs,
                           chan_block_freqs, history);
   }

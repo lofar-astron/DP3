@@ -227,6 +227,8 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
 }
 
 void InitializeSolver(SolverBase& solver, const Settings& settings) {
+  assert(solver.NSolutionPolarizations() ==
+         base::GetNPolarizations(settings.mode));
   solver.SetLLSSolverType(settings.lls_solver_type);
   solver.SetMaxIterations(settings.max_iterations);
   solver.SetAccuracy(settings.tolerance);
