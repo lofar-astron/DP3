@@ -6,8 +6,10 @@
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
 
-#include <boost/algorithm/string/case_conv.hpp>
+#include <numeric>
 #include <sstream>
+
+#include <boost/algorithm/string/case_conv.hpp>
 
 #include <aocommon/logger.h>
 
@@ -94,6 +96,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       solution_interval(GetUint("solint", 1)),
       min_vis_ratio(GetDouble("minvisratio", 0.0)),
       n_channels(GetUint("nchan", 1)),
+      solutions_per_direction(GetSizeTVector("solutions_per_direction", {})),
       core_constraint(GetDouble("coreconstraint", 0.0)),
       antenna_constraint(ReadAntennaConstraint()),
       smoothness_constraint(GetDouble("smoothnessconstraint", 0.0)),
@@ -166,6 +169,60 @@ Settings::Settings(const common::ParameterSet& _parset,
 
       directions(GetStringVector("directions")),
       source_db(GetString("sourcedb", "")) {}
+
+void Settings::PrepareSolutionsPerDirection(size_t n_directions) {
+  if (solutions_per_direction.size() > n_directions) {
+    throw std::runtime_error(
+        "The size of solutions_per_direction should be less or equal "
+        "than the number of directions.");
+  }
+
+  // Pad itsSolutionsPerDirection with 1s
+  solutions_per_direction.resize(n_directions, 1);
+
+  if (std::find(solutions_per_direction.begin(), solutions_per_direction.end(),
+                0) != solutions_per_direction.end()) {
+    throw std::runtime_error(
+        "All entries in solutions_per_direction should be > 0.");
+  }
+
+  for (size_t val : solutions_per_direction) {
+    if (solution_interval % val != 0) {
+      throw std::runtime_error(
+          "Values in solutions_per_direction should be integer divisors "
+          "of solint (" +
+          std::to_string(solution_interval) + "), " + std::to_string(val) +
+          " is not.");
+    }
+  }
+
+  const size_t max_n_solutions_per_direction = *std::max_element(
+      solutions_per_direction.begin(), solutions_per_direction.end());
+
+  if (max_n_solutions_per_direction > 1) {
+    // Since info().ntime() might not be set at this stage, throw an error
+    // in case itsRequestedSolInt equals 0, and DD intervals are used
+    if (solution_interval == 0) {
+      throw std::runtime_error(
+          "Can't combine direction-dependent solution intervals with solint=0. "
+          "Either set solint to a non-zero value, or set all "
+          "solutions_per_direction entries to 1.");
+    }
+
+    const size_t actual_solution_interval =
+        solution_interval / max_n_solutions_per_direction;
+    if (actual_solution_interval == 0) {
+      throw std::runtime_error(
+          "Maximum value in solutions_per_direction of ddecal settings is "
+          "larger than solint value.");
+    }
+  }
+}
+
+size_t Settings::GetNSolutions() const {
+  return std::accumulate(solutions_per_direction.begin(),
+                         solutions_per_direction.end(), 0u);
+}
 
 bool Settings::GetBool(const std::string& key, bool default_value) const {
   return parset->getBool(name + key, default_value);

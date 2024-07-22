@@ -30,6 +30,27 @@ CalType StringToCalType(const std::string& mode);
 /// Convert CalType to a string
 std::string ToString(CalType caltype);
 
+constexpr size_t GetNPolarizations(CalType cal_type) {
+  switch (cal_type) {
+    case CalType::kDiagonal:
+    case CalType::kDiagonalPhase:
+    case CalType::kDiagonalAmplitude:
+      return 2;
+    case CalType::kFullJones:
+    case CalType::kRotationAndDiagonal:
+    case CalType::kRotation:
+      return 4;
+    case CalType::kScalar:
+    case CalType::kScalarAmplitude:
+    case CalType::kScalarPhase:
+    case CalType::kTecAndPhase:
+    case CalType::kTec:
+    case CalType::kTecScreen:
+      return 1;
+  }
+  return 0;
+}
+
 }  // namespace base
 }  // namespace dp3
 

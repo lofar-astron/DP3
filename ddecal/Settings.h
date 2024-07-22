@@ -42,6 +42,13 @@ struct Settings {
    */
   Settings(const common::ParameterSet& parset, const std::string& prefix);
 
+  void PrepareSolutionsPerDirection(size_t n_directions);
+
+  /**
+   * Returns the sum over all elements of @c solutions_per_direction.
+   */
+  size_t GetNSolutions() const;
+
  private:
   /**
    * Retrieve an optional boolean from the parset.
@@ -109,6 +116,12 @@ struct Settings {
   const size_t solution_interval;
   const double min_vis_ratio;
   const size_t n_channels;
+  /**
+   * For each direction, a number of solutions per solution interval. Before
+   * using this variable, @ref PrepareSolutionsPerDirection() should have
+   * been called.
+   */
+  std::vector<size_t> solutions_per_direction;
 
   // Constraint settings.
   const double core_constraint;

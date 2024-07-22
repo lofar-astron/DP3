@@ -10,6 +10,8 @@
 #include <numeric>
 #include <algorithm>
 
+#include "SolutionResampler.h"
+
 using dp3::base::CalType;
 using dp3::common::operator<<;
 
@@ -55,6 +57,48 @@ void SolutionWriter::AddAntennas(
 }
 
 void SolutionWriter::Write(
+    const std::vector<std::vector<std::vector<std::complex<double>>>>&
+        solutions,
+    const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+        constraint_solutions,
+    double start_time, double end_time, double ms_timestep_duration,
+    size_t n_interval_timesteps,
+    const std::vector<size_t>& solutions_per_direction, base::CalType mode,
+    const std::vector<std::string>& used_antenna_names,
+    const std::vector<base::Direction>& source_directions,
+    const std::vector<std::vector<std::string>>& directions,
+    const std::vector<double>& chan_freqs,
+    const std::vector<double>& chan_block_freqs, const std::string& history) {
+  const size_t n_directions = solutions_per_direction.size();
+  const size_t n_solutions = std::accumulate(solutions_per_direction.begin(),
+                                             solutions_per_direction.end(), 0u);
+  if (n_solutions == n_directions) {
+    const double solution_duration =
+        ms_timestep_duration * n_interval_timesteps;
+    WriteWithoutUpsampling(solutions, constraint_solutions, start_time,
+                           end_time, ms_timestep_duration, solution_duration,
+                           mode, used_antenna_names, source_directions,
+                           directions, chan_freqs, chan_block_freqs, history);
+  } else {
+    const size_t n_antennas = used_antenna_names.size();
+    const SolutionResampler resampler(solutions_per_direction, n_antennas,
+                                      GetNPolarizations(mode),
+                                      n_interval_timesteps);
+    const size_t n_resampled_interval_timesteps =
+        n_interval_timesteps / resampler.GetNrSubSteps();
+
+    std::vector<std::vector<std::vector<std::complex<double>>>>
+        upsampled_solutions = resampler.Upsample(solutions);
+    WriteWithoutUpsampling(
+        upsampled_solutions, constraint_solutions, start_time, end_time,
+        ms_timestep_duration,
+        ms_timestep_duration * n_resampled_interval_timesteps, mode,
+        used_antenna_names, source_directions, directions, chan_freqs,
+        chan_block_freqs, history);
+  }
+}
+
+void SolutionWriter::WriteWithoutUpsampling(
     const std::vector<std::vector<std::vector<std::complex<double>>>>&
         solutions,
     const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&

@@ -728,13 +728,13 @@ def test_dd_solution_intervals(solutions_per_direction):
         # mismatch errors. Therefore check if the output contains the exception.
         if solutions_per_direction == [5, 5, 5]:
             if (
-                not "\nstd exception detected: Values in ddecal.solutions_per_direction should be integer divisors of solint"
+                not "\nstd exception detected: Values in solutions_per_direction should be integer divisors of solint"
                 in e.output.decode()
             ):
                 raise e
         elif solutions_per_direction == [2, 0]:
             if (
-                not "\nstd exception detected: All entries in ddecal.solutions_per_direction should be > 0.\n"
+                not "\nstd exception detected: All entries in solutions_per_direction should be > 0.\n"
                 in e.output.decode()
             ):
                 raise e
