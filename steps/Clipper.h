@@ -26,7 +26,7 @@ class Clipper : public Step {
   Clipper(const common::ParameterSet&, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
-    return kFlagsField | kUvwField;
+    return kFlagsField | predict_step_->getRequiredFields();
   }
 
   common::Fields getProvidedFields() const override { return kFlagsField; }
@@ -46,13 +46,17 @@ class Clipper : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  /// Set the Predict substep and connect it to a ResultStep.
+  void SetPredict(std::shared_ptr<Step> substep);
+
  private:
   std::string name_;
   common::NSTimer timer_;
   size_t counter_;
   size_t time_step_;
-  float ampl_max_;
-  std::shared_ptr<OnePredict> predict_step_;
+  size_t frequency_step_;
+  float max_amplitude_;
+  std::shared_ptr<Step> predict_step_;
   std::shared_ptr<ResultStep> result_step_;
   std::unique_ptr<dp3::base::DPBuffer> predict_buffer_;
   base::DPBuffer::FlagsType last_flags_;

@@ -737,6 +737,7 @@ if(BUILD_TESTING)
       steps/test/unit/tBdaExpander.cc
       steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tBDAResultStep.cc
+      steps/test/unit/tClipper.cc
       steps/test/unit/tCounter.cc
       steps/test/unit/tDDECal.cc
       steps/test/unit/tDemixer.cc
