@@ -122,7 +122,12 @@ inputs:
     default: 0.0
     type: double
     doc: >-
-      An optional reference frequency (in Hz) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary over frequency by a factor of "frequency / smoothnessreffrequency", i.e., the kernel will be smaller for lower frequencies. This compensates for the fact that the ionosphere causes larger fluctuations at lower frequencies `.`
+      An optional reference frequency (in Hz) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary over frequency by a factor of "(smoothnessreffrequency / frequency) ^ smoothnessspectralexponent". Normally, the exponent < 0 and the kernel will be smaller for lower frequencies. This compensates for the fact that the ionosphere causes larger fluctuations at lower frequencies `.`
+  smoothnessspectralexponent:
+    default: -1.0
+    type: double
+    doc: >-
+      The exponent term that scales the kernel size in relation to the frequency. See smoothnessreffrequency: smoothnessspectralexponent only has an effect when smoothnessreffrequency is set to a nonzero value. A value of -1 assumes a TEC 1/nu relationship.  `.`
   smoothnessrefdistance:
     default: 0.0
     type: double

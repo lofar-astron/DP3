@@ -102,6 +102,8 @@ Settings::Settings(const common::ParameterSet& _parset,
       smoothness_constraint(GetDouble("smoothnessconstraint", 0.0)),
       smoothness_ref_frequency(GetDouble("smoothnessreffrequency", 0.0)),
       smoothness_ref_distance(GetDouble("smoothnessrefdistance", 0.0)),
+      smoothness_spectral_exponent(
+          GetDouble("smoothnessspectralexponent", -1.0)),
       screen_core_constraint(GetDouble("tecscreen.coreconstraint", 0.0)),
 
       // Solver settings

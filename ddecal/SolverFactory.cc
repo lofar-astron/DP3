@@ -169,7 +169,8 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
   }
   if (settings.smoothness_constraint != 0.0) {
     solver.AddConstraint(std::make_unique<SmoothnessConstraint>(
-        settings.smoothness_constraint, settings.smoothness_ref_frequency));
+        settings.smoothness_constraint, settings.smoothness_ref_frequency,
+        settings.smoothness_spectral_exponent));
   }
 
   switch (settings.mode) {
