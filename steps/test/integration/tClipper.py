@@ -51,7 +51,26 @@ def create_model_data():
         )
 
 
-def test_clipper(create_model_data):
+# Clipper test data: time_step, frequency_step, n_expected_flags, n_expected_unflags
+test_clipper_data = [
+    (1, 1, 75, 0),
+    (1, 2, 74, 2),
+    (2, 1, 74, 2),
+    (2, 2, 74, 3),
+]
+
+
+@pytest.mark.parametrize(
+    "time_step, frequency_step, n_expected_flags, n_expected_unflags",
+    test_clipper_data,
+)
+def test_clipper(
+    time_step,
+    frequency_step,
+    n_expected_flags,
+    n_expected_unflags,
+    create_model_data,
+):
     taql_command = f"UPDATE {MSOUT} set FLAG=false"
     get_taql_result(taql_command)
     taql_command = f"select from {MSOUT} where any(FLAG)"
@@ -66,11 +85,12 @@ def test_clipper(create_model_data):
             "clipper.sourcedb=clipper.skymodel",
             "clipper.usebeammodel=true",
             f"clipper.amplmax={TEST_MAX_AMPLITUDE}",
-            "clipper.timestep=1",
-            "clipper.freqstep=1",
+            f"clipper.timestep={time_step}",
+            f"clipper.freqstep={frequency_step}",
         ]
     )
-    assert_taql(taql_command, 75)
+    assert_taql(taql_command, n_expected_flags)
+
     check_call(
         [
             tcf.DP3EXE,
@@ -83,44 +103,8 @@ def test_clipper(create_model_data):
         ]
     )
 
-    # Check that high amplitudes are flagged.
+    # Check that the expected number of high amplitudes is flagged.
+    # Not all high amplitudes are flagged if clipper used a timestep
+    # or freqstep unqual to 1.
     taql_command = f"select from {MSOUT} where any(not FLAG && (MODEL_DATA > {TEST_MAX_AMPLITUDE}))"
-    assert_taql(taql_command, 0)
-
-
-def test_freqstep(create_model_data):
-    taql_command = f"UPDATE {MSOUT} set FLAG=false"
-    get_taql_result(taql_command)
-    taql_command = f"select from {MSOUT} where any(FLAG)"
-    assert_taql(taql_command, 0)
-
-    check_call(
-        [
-            tcf.DP3EXE,
-            f"msin={MSOUT}",
-            "msout=.",
-            "steps=[clipper]",
-            "clipper.sourcedb=clipper.skymodel",
-            "clipper.usebeammodel=true",
-            f"clipper.amplmax={TEST_MAX_AMPLITUDE}",
-            "clipper.timestep=1",
-            "clipper.freqstep=2",
-        ]
-    )
-    assert_taql(taql_command, 74)
-    check_call(
-        [
-            tcf.DP3EXE,
-            f"msin={MSOUT}",
-            "msout=.",
-            "msout.datacolumn=MODEL_DATA",
-            "steps=[predict]",
-            "predict.sourcedb=clipper.skymodel",
-            "predict.usebeammodel=true",
-        ]
-    )
-
-    # Check that most high amplitudes are flagged. Not all amplitudes are flagged,
-    # as the visibilities were predicted only for half the frequency channels.
-    taql_command = f"select from {MSOUT} where any(not FLAG && (MODEL_DATA > {TEST_MAX_AMPLITUDE}))"
-    assert_taql(taql_command, 2)
+    assert_taql(taql_command, n_expected_unflags)
