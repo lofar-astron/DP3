@@ -24,7 +24,7 @@ endif()
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
-  COMMAND git describe
+  COMMAND git describe --tags
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   OUTPUT_VARIABLE DP3_GIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE)
