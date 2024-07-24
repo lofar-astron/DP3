@@ -36,13 +36,20 @@ namespace steps {
 /// steps, where each MSReader is responsible for reading one of the MSs.
 /// So, refer to the documentation of the MSReader for the definitions of the
 /// 'msin' keywords that can be used for this class.
+/// In addition to those keywords, the following can be given:
+/// <ul>
+///  <li> msin.orderms: order the MSs on frequency? If yes, all MSs must exist,
+///           otherwise they cannot be ordered. If no, the MSs must be given
+///           in order of frequency [yes]
+///  <li> msin.missingdata: allow a non-existing data column in an MS? [no]
+/// </ul>
 
 class MultiMSReader final : public MSReader {
  public:
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  MultiMSReader(const std::vector<string>& msNames, const common::ParameterSet&,
-                const std::string& prefix);
+  MultiMSReader(const std::vector<string>& msNames,
+                const common::ParameterSet& parset, const std::string& prefix);
 
   ~MultiMSReader() override;
 
@@ -94,7 +101,6 @@ class MultiMSReader final : public MSReader {
   };
   std::vector<Reader> readers_;
   unsigned int itsFillNChan;  ///< nr of channels for missing MSs
-  base::FlagCounter itsFlagCounter;
 };
 
 }  // namespace steps

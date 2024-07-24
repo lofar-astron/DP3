@@ -15,6 +15,7 @@
 #include <casacore/casa/Arrays/ArrayPartMath.h>
 #include <boost/test/unit_test.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <filesystem>
 #include <stdexcept>
@@ -1134,8 +1135,8 @@ BOOST_FIXTURE_TEST_CASE(test_filter_keep_baselines, FixtureDirectory) {
 }
 
 BOOST_FIXTURE_TEST_CASE(test_filter_different_data_column, FixtureCopyInput) {
-  // Remove some baselines, update original file with different data column
-  // This test justs tests if it runs without throwing exceptions
+  // Remove some baselines, update original file with different data column.
+  // This test justs tests if it runs without throwing exceptions.
   {
     std::ofstream ostr(kParsetFile);
     ostr << "checkparset=1\n";
