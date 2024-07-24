@@ -103,8 +103,9 @@ class MSReader : public InputStep {
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
   /// The missingData argument is for MultiMSReader.
-  MSReader(const casacore::MeasurementSet& ms, const common::ParameterSet&,
-           const std::string& prefix, bool missingData = false);
+  MSReader(const casacore::MeasurementSet& ms,
+           const common::ParameterSet& parset, const std::string& prefix,
+           bool missingData = false);
 
   /// Process the next data chunk.
   /// It returns false when at the end.

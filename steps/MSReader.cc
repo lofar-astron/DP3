@@ -268,7 +268,11 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Data()) {
     buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
     for (std::string columnName : itsExtraDataColNames) {
-      buffer->AddData(columnName);
+      // The extra data buffer could already exist, for instance because
+      // MultiMSReader reuses existing buffers.
+      if (!buffer->HasData(columnName)) {
+        buffer->AddData(columnName);
+      }
       buffer->GetData(columnName).resize({itsNrBl, itsNrChan, itsNrCorr});
     }
   }

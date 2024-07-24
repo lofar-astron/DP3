@@ -36,20 +36,26 @@ namespace steps {
 MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
                              const common::ParameterSet& parset,
                              const std::string& prefix)
-    : itsFirst(-1), itsNMissing(0) {
+    : itsOrderMS(parset.getBool(prefix + "orderms", true)),
+      itsFirst(-1),
+      itsNMissing(0),
+      itsFillNChan(0) {
   if (msNames.empty())
     throw std::runtime_error("No names of MeasurementSets given");
+  // Inherited members from MSReader must be initialized here.
   itsStartChanStr = parset.getString(prefix + "startchan", "0");
   itsNrChanStr = parset.getString(prefix + "nchan", "0");
   itsUseFlags = parset.getBool(prefix + "useflag", true);
   itsDataColName = parset.getString(prefix + "datacolumn", "DATA");
+  itsExtraDataColNames = parset.getStringVector(prefix + "extradatacolumns",
+                                                std::vector<std::string>());
   itsFlagColName = parset.getString(prefix + "flagcolumn", "FLAG");
   itsWeightColName =
       parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM"),
   itsMissingData = parset.getBool(prefix + "missingdata", false);
   itsAutoWeight = parset.getBool(prefix + "autoweight", false);
   itsNeedSort = parset.getBool(prefix + "sort", false);
-  itsOrderMS = parset.getBool(prefix + "orderms", true);
+
   // Open all MSs.
   readers_.reserve(msNames.size());
   for (const std::string& name : msNames) {
@@ -218,7 +224,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   std::unique_ptr<DPBuffer> recycled_buffer = readers_[itsFirst].result->take();
   if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
 
-  // Stop if at end.
+  // Read first MS, stop if at end.
   if (!readers_[itsFirst].ms_reader->process(std::move(recycled_buffer))) {
     return false;  // end of input
   }
@@ -229,6 +235,10 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   // Size the buffers if they should be read.
   if (getFieldsToRead().Data()) {
     buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
+    for (std::string columnName : itsExtraDataColNames) {
+      buffer->AddData(columnName);
+      buffer->GetData(columnName).resize({itsNrBl, itsNrChan, itsNrCorr});
+    }
   }
   if (getFieldsToRead().Flags()) {
     buffer->GetFlags().resize({itsNrBl, itsNrChan, itsNrCorr});
@@ -252,30 +262,37 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
         throw std::runtime_error(
             "When using multiple MSs, the times in all MSs have to be "
             "consecutive; this is not the case for MS " +
-            std::to_string(i));
+            std::to_string(i) + ": " + ms_reader->msName());
       // Copy data and flags.
       last_channel = first_channel + ms_reader->getInfo().nchan();
+      auto channel_range = xt::range(first_channel, last_channel);
       if (getFieldsToRead().Data()) {
-        xt::view(buffer->GetData(), xt::all(),
-                 xt::range(first_channel, last_channel), xt::all()) =
+        xt::view(buffer->GetData(), xt::all(), channel_range, xt::all()) =
             msBuf.GetData();
+        for (std::string columnName : itsExtraDataColNames) {
+          xt::view(buffer->GetData(columnName), xt::all(), channel_range,
+                   xt::all()) = msBuf.GetData(columnName);
+        }
       }
       if (getFieldsToRead().Flags()) {
-        xt::view(buffer->GetFlags(), xt::all(),
-                 xt::range(first_channel, last_channel), xt::all()) =
+        xt::view(buffer->GetFlags(), xt::all(), channel_range, xt::all()) =
             msBuf.GetFlags();
       }
     } else {
       // Corresponding MS is missing.
       last_channel = first_channel + itsFillNChan;
+      auto channel_range = xt::range(first_channel, last_channel);
       if (getFieldsToRead().Data()) {
-        xt::view(buffer->GetData(), xt::all(),
-                 xt::range(first_channel, last_channel), xt::all())
+        xt::view(buffer->GetData(), xt::all(), channel_range, xt::all())
             .fill(std::complex<float>());
+        for (std::string columnName : itsExtraDataColNames) {
+          xt::view(buffer->GetData(columnName), xt::all(), channel_range,
+                   xt::all())
+              .fill(std::complex<float>());
+        }
       }
       if (getFieldsToRead().Flags()) {
-        xt::view(buffer->GetFlags(), xt::all(),
-                 xt::range(first_channel, last_channel), xt::all())
+        xt::view(buffer->GetFlags(), xt::all(), channel_range, xt::all())
             .fill(true);
       }
     }
