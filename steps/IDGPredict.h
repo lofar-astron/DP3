@@ -119,9 +119,6 @@ class IDGPredict : public ModelDataStep {
   ComputeVisibilities(size_t direction, const std::vector<const double*>& uvws,
                       std::complex<float>* term_data) const;
 
-  /// Computes a multiplication factor for use in CorrectVisibilities().
-  double ComputePhaseShiftFactor(const double* uvw, size_t direction) const;
-
   /// Applies phase shift and polynomial term corrections to computed
   /// visibilities.
   /// @param result Result buffer, as computed by ComputeVisibilities().
