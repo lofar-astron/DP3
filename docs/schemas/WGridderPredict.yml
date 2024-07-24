@@ -1,0 +1,19 @@
+description: >-
+  "Predict visibilities based on input images using wgridder"
+inputs:
+  images:
+    default: "[]"
+    type: list
+    doc: Filename of ``.fits`` model images, one per frequency term. The terms are defined as for a polynomial source spectra (not logarithmic), e.g. see `this WSClean page <https://sourceforge.net/p/wsclean/wiki/ComponentList/>`__. The frequency in the metadata of the fits files is used as nu<sub>0</sub> in the polynomial evaluation `.`
+  regions:
+    default: "\"\""
+    type: string
+    doc: DS9 regions file describing the facets for prediction `.`
+  savefacets:
+    default: false
+    type: bool
+    doc: Write out each facet as a fits file (named facet<N>.fits) `.`
+  sumfacets:
+    default: false
+    type: bool
+    doc: Sum visibilities for all facets. The default, false, means that visibilities are stored per facet, for example for use in DDECal `.`

@@ -53,6 +53,7 @@
 #include "../steps/StationAdder.h"
 #include "../steps/UVWFlagger.h"
 #include "../steps/Upsample.h"
+#include "../steps/WGridderPredict.h"
 
 #include "../pythondp3/PyStep.h"
 
@@ -195,6 +196,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::NullStokes>(parset, prefix);
   } else if (type == "predict") {
     step = std::make_shared<steps::Predict>(parset, prefix, inputType);
+  } else if (type == "wgridderpredict") {
+    step = std::make_shared<steps::WGridderPredict>(parset, prefix);
   } else if (type == "idgpredict") {
     step = std::make_shared<steps::IDGPredict>(parset, prefix);
   } else if (type == "idgimager") {

@@ -314,9 +314,10 @@ include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
 set(XTENSOR_LIBRARIES xtl xsimd xtensor xtensor-blas)
 add_compile_definitions(XTENSOR_USE_XSIMD)
 
-set(SCHAAPCOMMON_MODULES facets h5parm)
+set(SCHAAPCOMMON_MODULES facets h5parm ducc0)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
+include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
 
 # Include pybind11
 set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
@@ -513,6 +514,7 @@ add_library(
   steps/Step.cc
   steps/Upsample.cc
   steps/UVWFlagger.cc
+  steps/WGridderPredict.cc
   steps/ApplyBeam.cc
   steps/NullStokes.cc
   steps/SagecalPredict.cc)
@@ -768,7 +770,8 @@ if(BUILD_TESTING)
       steps/test/unit/tStationAdder.cc
       steps/test/unit/tStepCommon.cc
       steps/test/unit/tUpsample.cc
-      steps/test/unit/tUVWFlagger.cc)
+      steps/test/unit/tUVWFlagger.cc
+      steps/test/unit/tWGridderPredict.cc)
   if(HAVE_IDG)
     list(APPEND TEST_FILENAMES steps/test/unit/tIDGPredict.cc)
   endif()
