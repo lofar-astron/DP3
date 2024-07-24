@@ -39,24 +39,30 @@ class KernelSmoother {
 
   /**
    * Construct and initialize kernel smoother.
+   * With se the @c spectralExponent, s the @c kernelBandwidth,
+   * nu the frequency at which to evaluate the kernel
+   * the kernel size is calculated as:
+   * s(nu) = (nu_0 / nu) ^ se
    * @param frequencies Vector defining the channel frequencies: frequencies[i]
    * specifies the frequency of channel i in Hz. The size of this vector (number
    * of channels) defines the size of the grid @c n.
    * @param kernelType Type of kernel to use for smoothing
    * @param kernelBandwidth Size of the kernel (smoothing strength) in frequency
-   * units (Hz).
-   * @param bandwidthRefFrequency Reference frequency for computing the
-   * bandwidth that is effectively used for smoothing. May be zero to have a
-   * constant kernel size over frequency, i.e. the bandwidth for smoothing
-   * equals the @c kernelBandwidth exactly.
+   * units (Hz). May be 0.0 to disable frequency correction of the kernel size.
+   * @param bandwidthRefFrequency If non-zero, sets the frequency value at which
+   * the kernel size equals the specified size with @c kernelBandwidth.
+   * @param spectralExponent A value that specifies the exponent in the relative
+   * spectral factor of the kernel size.
    */
   KernelSmoother(const std::vector<NumType>& frequencies, KernelType kernelType,
-                 NumType kernelBandwidth, NumType bandwidthRefFrequency)
+                 NumType kernelBandwidth, NumType bandwidthRefFrequency,
+                 NumType spectralExponent)
       : _frequencies(frequencies),
         _scratch(frequencies.size()),
         _kernelType(kernelType),
         _bandwidth(kernelBandwidth),
-        _bandwidthRefFrequency(bandwidthRefFrequency) {}
+        _bandwidthRefFrequency(bandwidthRefFrequency),
+        _spectralExponent(spectralExponent) {}
 
   /**
    * Evaluate the kernel for a given position.
@@ -123,7 +129,8 @@ class KernelSmoother {
 
       DataType sum(0.0);
       NumType weightSum(0.0);
-      const NumType frequencyCorrection = _bandwidth / localBandwidth;
+      const NumType frequencyCorrection =
+          std::pow(localBandwidth / _bandwidth, _spectralExponent);
       const NumType kernelCorrection = frequencyCorrection * kernelSizeFactor;
       for (size_t j = start; j != end; ++j) {
         NumType distance = _frequencies[i] - _frequencies[j];
@@ -152,6 +159,7 @@ class KernelSmoother {
   enum KernelType _kernelType;
   NumType _bandwidth;
   NumType _bandwidthRefFrequency;
+  NumType _spectralExponent;
 };
 
 }  // namespace ddecal

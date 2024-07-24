@@ -129,6 +129,7 @@ struct Settings {
   const double smoothness_constraint;
   const double smoothness_ref_frequency;
   const double smoothness_ref_distance;
+  const double smoothness_spectral_exponent;
   const double screen_core_constraint;
 
   // Solver settings.

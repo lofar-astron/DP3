@@ -16,9 +16,10 @@ class SmoothnessConstraint final : public Constraint {
    * @param bandwidth_hz Size of the kernel (smoothing strength)
    * @param bandwidth_ref_frequency_hz Reference frequency for the kernel size,
    * may be zero to have a constant kernel size over frequency.
-   * More details on this are in the KernelSmoother documentation.
+   * @sa KernelSmoother documentation.
    */
-  SmoothnessConstraint(double bandwidth_hz, double bandwidth_ref_frequency_hz);
+  SmoothnessConstraint(double bandwidth_hz, double bandwidth_ref_frequency_hz,
+                       double spectral_exponent);
 
   std::vector<Constraint::Result> Apply(SolutionSpan& solutions, double time,
                                         std::ostream* stat_stream) override;
@@ -49,9 +50,9 @@ class SmoothnessConstraint final : public Constraint {
   struct FitData {
     FitData(const std::vector<double>& frequencies,
             Smoother::KernelType kernel_type, double kernel_bandwidth,
-            double bandwidth_ref_frequency_hz)
+            double bandwidth_ref_frequency_hz, double spectral_exponent)
         : smoother(frequencies, kernel_type, kernel_bandwidth,
-                   bandwidth_ref_frequency_hz),
+                   bandwidth_ref_frequency_hz, spectral_exponent),
           data(frequencies.size()),
           weight(frequencies.size()) {}
 
@@ -66,6 +67,7 @@ class SmoothnessConstraint final : public Constraint {
   Smoother::KernelType kernel_type_;
   double bandwidth_;
   double bandwidth_ref_frequency_;
+  double spectral_exponent_;
 };
 
 }  // namespace ddecal

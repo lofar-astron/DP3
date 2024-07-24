@@ -18,6 +18,7 @@ namespace {
 // is at least 2 MHz wide (and thus covers 5 channels).
 const double bandwidth_hz = 2.01e6;
 const double bandwidth_ref_frequency_hz = 0.0;
+const double spectral_exponent = -1.0;
 const double solution_time = 0.0;
 const size_t kNChannelBlocks = 5;
 
@@ -26,7 +27,8 @@ SmoothnessConstraint makeConstraint(size_t n_antennas, size_t n_directions) {
   const std::vector<double> weights(kNChannelBlocks, 1.0);
   std::vector<double> antenna_distance_factors{1.0};
 
-  SmoothnessConstraint c(bandwidth_hz, bandwidth_ref_frequency_hz);
+  SmoothnessConstraint c(bandwidth_hz, bandwidth_ref_frequency_hz,
+                         spectral_exponent);
   c.Initialize(n_antennas, std::vector<uint32_t>(n_directions, 1), frequencies);
   c.SetDistanceFactors(std::move(antenna_distance_factors));
   c.SetWeights(weights);
