@@ -66,4 +66,8 @@ inputs:
       Beam mode to apply, can be ``array_factor``, ``element``, ``full``, or
       ``default`` (same as ``full``). The mode ``full`` applies both the element
       beam and the array factor `.`
-
+  skipstations:
+    type: string[]
+    default: []
+    doc: >-
+      List of stations for which the beam should NOT be applied. This is an advanced option, for uses where the beam has previously been applied for a part of the stations. This setting does not work for dish-based telescopes \.

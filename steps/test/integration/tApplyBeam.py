@@ -80,6 +80,41 @@ def test_with_invert_and_chanfreq(usechannelfreq):
     assert_taql(taql_command)
 
 
+def test_skip_stations():
+    msout = "outinv.ms"
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            f"msout={msout}",
+            "steps=[applybeam]",
+            "applybeam.usechannelfreq=true",
+            "applybeam.beammode=element",
+            "applybeam.invert=true",
+            "applybeam.skipstations=[RS208HBA,RS305HBA]",
+        ]
+    )
+
+    # Check computed values (for included stations) against reference values for not skipped stations
+    taql_command = f"""
+        select from {msout} t1, {MSAPPLYBEAM} t2 where not (
+            all(near(t1.DATA, t2.DATA_ELEMENT, 8e-5)) ||
+            mscal.ant1name() in ["RS208HBA", "RS305HBA"] ||
+            mscal.ant2name() in ["RS208HBA", "RS305HBA"]
+        )
+       """
+    assert_taql(taql_command.replace("\n", " "))
+
+    # Check that nothing changed for skipped stations
+    taql_command = f"""
+        select from {msout} t1, {MSIN} t2 where
+            not(all(near(t1.DATA, t2.DATA, 8e-5))) &&
+            mscal.ant1name() in ["RS208HBA", "RS305HBA"] &&
+            mscal.ant2name() in ["RS208HBA", "RS305HBA"]
+        """
+    assert_taql(taql_command.replace("\n", " "))
+
+
 @pytest.mark.parametrize("beammode", ["ARRAY_FACTOR", "ELEMENT"])
 def test_beammodes(beammode):
     msout = "outinv.ms"
@@ -94,8 +129,10 @@ def test_beammodes(beammode):
             "applybeam.invert=true",
         ]
     )
+
+    # Check computed values (for included stations) against reference values
     taql_command = f"select from {msout} t1, {MSAPPLYBEAM} t2 where not all(near(t1.DATA,t2.DATA_{beammode},8e-5) || (isnan(t1.DATA) && isnan(t2.DATA_{beammode})))"
-    assert_taql(taql_command)
+    assert_taql(taql_command.replace("\n", " "))
 
 
 def test_with_updateweights():

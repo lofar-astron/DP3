@@ -29,6 +29,7 @@
 
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/threadpool.h>
+#include <aocommon/logger.h>
 
 #include <cassert>
 #include <ostream>
@@ -133,7 +134,8 @@ size_t ComputeBeam(const DPInfo& info, double time,
                    const everybeam::vector3r_t& srcdir,
                    const everybeam::telescope::Telescope* telescope,
                    std::vector<aocommon::MC2x2>& beam_values, bool invert,
-                   everybeam::CorrectionMode mode, std::mutex* mutex) {
+                   everybeam::CorrectionMode mode, std::mutex* mutex,
+                   const std::vector<size_t>& skip_station_indices) {
   /*
     Compute the beam values for each station in a specific direction
     and store them into beam_values
@@ -148,7 +150,6 @@ size_t ComputeBeam(const DPInfo& info, double time,
 
   const std::vector<size_t> station_indices =
       dp3::base::SelectStationIndices(*telescope, info.antennaNames());
-
   const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
@@ -158,28 +159,40 @@ size_t ComputeBeam(const DPInfo& info, double time,
       case everybeam::CorrectionMode::kElement:
         // Fill beam_values for channel ch
         for (size_t st = 0; st < n_stations; ++st) {
-          beam_values[n_channels * st + ch] = point_response->Response(
-              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
-          if (invert) {
-            // Terminate if the matrix is not invertible.
-            [[maybe_unused]] bool status =
-                beam_values[n_channels * st + ch].Invert();
-            assert(status);
+          if (std::find(skip_station_indices.begin(),
+                        skip_station_indices.end(),
+                        st) != skip_station_indices.end()) {
+            beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+          } else {
+            beam_values[n_channels * st + ch] = point_response->Response(
+                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+
+            if (invert) {
+              // Terminate if the matrix is not invertible.
+              [[maybe_unused]] bool status =
+                  beam_values[n_channels * st + ch].Invert();
+              assert(status);
+            }
           }
         }
         break;
       case everybeam::CorrectionMode::kArrayFactor: {
         aocommon::MC2x2 af_tmp;
-        // Fill beam_values for channel ch
         for (size_t st = 0; st < n_stations; ++st) {
-          af_tmp = point_response->Response(
-              mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+          if (std::find(skip_station_indices.begin(),
+                        skip_station_indices.end(),
+                        st) != skip_station_indices.end()) {
+            beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+          } else {
+            af_tmp = point_response->Response(
+                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
 
-          if (invert) {
-            af_tmp[0] = 1. / af_tmp[0];
-            af_tmp[3] = 1. / af_tmp[3];
+            if (invert) {
+              af_tmp[0] = 1. / af_tmp[0];
+              af_tmp[3] = 1. / af_tmp[3];
+            }
+            beam_values[n_channels * st + ch] = af_tmp;
           }
-          beam_values[n_channels * st + ch] = af_tmp;
         }
         break;
       }
@@ -204,6 +217,8 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
       itsDirectionStr(parset.getStringVector(prefix + "direction",
                                              std::vector<std::string>())),
       itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
+      itsSkipStationNames(parset.getStringVector(prefix + "skipstations",
+                                                 std::vector<std::string>())),
       itsMode(everybeam::ParseCorrectionMode(
           parset.getString(prefix + "beammode", "default"))),
       itsModeAtStart(everybeam::CorrectionMode::kNone),
@@ -319,6 +334,17 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
 
     telescopes_[thread]->SetTime(info().startTime());
   }
+
+  if (!itsSkipStationNames.empty()) {
+    // Needs loop over itsSkipStationNames because SelectStationIndices
+    // assumes some order. By giving it a length-one vector the order is as it
+    // assumes (because there is only one way to order a vector of length one.
+    for (std::string& skipStationName : itsSkipStationNames) {
+      std::vector<size_t> station_indices = base::SelectStationIndices(
+          *(telescopes_[0]), std::vector<std::string>{skipStationName});
+      itsSkipStationIndices.emplace_back(std::move(station_indices[0]));
+    }
+  }
 }
 
 void ApplyBeam::show(std::ostream& os) const {
@@ -328,6 +354,12 @@ void ApplyBeam::show(std::ostream& os) const {
      << "  direction:         " << itsDirectionStr << '\n'
      << "  invert:            " << std::boolalpha << itsInvert << '\n'
      << "  update weights:    " << std::boolalpha << itsUpdateWeights << '\n';
+  if (!itsSkipStationNames.empty()) {
+    os << "  not applying for:  [";
+    for (const std::string& name : itsSkipStationNames) {
+      os << name << (name == itsSkipStationNames.back() ? "]\n" : ",");
+    }
+  }
   if (itsInvert) {
     if (itsModeAtStart != everybeam::CorrectionMode::kNone)
       os << "  input data has already a beam correction applied: will be "
@@ -387,12 +419,14 @@ bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
     // TODO itsElementResponseModel should be read from the measurement set
     // instead of assumed to be the same from the target beam.
     applyBeam(info(), time, data, weight, srcdir, telescopes_[thread].get(),
-              itsBeamValues[thread], false, itsModeAtStart, itsUpdateWeights);
+              itsBeamValues[thread], false, itsModeAtStart, itsUpdateWeights,
+              nullptr, itsSkipStationIndices);
     srcdir = dir2Itrf(itsDirection, itsMeasConverters[thread]);
   }
 
   applyBeam(info(), time, data, weight, srcdir, telescopes_[thread].get(),
-            itsBeamValues[thread], itsInvert, itsMode, itsUpdateWeights);
+            itsBeamValues[thread], itsInvert, itsMode, itsUpdateWeights,
+            nullptr, itsSkipStationIndices);
 
   itsTimer.stop();
   getNextStep()->process(std::move(buffer));
@@ -419,9 +453,11 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time, T* data0,
                           const everybeam::telescope::Telescope* telescope,
                           std::vector<aocommon::MC2x2>& beam_values,
                           bool invert, everybeam::CorrectionMode mode,
-                          bool doUpdateWeights, std::mutex* mutex) {
-  const size_t n_stations = ComputeBeam(info, time, srcdir, telescope,
-                                        beam_values, invert, mode, mutex);
+                          bool doUpdateWeights, std::mutex* mutex,
+                          const std::vector<size_t>& skip_station_indices) {
+  const size_t n_stations =
+      ComputeBeam(info, time, srcdir, telescope, beam_values, invert, mode,
+                  mutex, skip_station_indices);
   ApplyBeamToData(info, n_stations, data0, weight0, beam_values,
                   doUpdateWeights);
 }
@@ -434,9 +470,11 @@ void ApplyBeam::ApplyBeamAndAddToModel(
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
     std::vector<aocommon::MC2x2>& beam_values, bool invert,
-    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex) {
-  const size_t n_stations = ComputeBeam(info, time, srcdir, telescope,
-                                        beam_values, invert, mode, mutex);
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex,
+    const std::vector<size_t>& skip_station_indices) {
+  const size_t n_stations =
+      ComputeBeam(info, time, srcdir, telescope, beam_values, invert, mode,
+                  mutex, skip_station_indices);
 
   ApplyBeamToDataAndAdd(info, n_stations, data0, model_data, weight0,
                         beam_values, doUpdateWeights);
@@ -448,7 +486,8 @@ template void ApplyBeam::ApplyBeamAndAddToModel(
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
     std::vector<aocommon::MC2x2>& beam_values, bool invert,
-    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex,
+    const std::vector<size_t>& skip_station_indices);
 
 template void ApplyBeam::ApplyBeamAndAddToModel(
     const DPInfo& info, double time, std::complex<float>* data0,
@@ -456,14 +495,16 @@ template void ApplyBeam::ApplyBeamAndAddToModel(
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
     std::vector<aocommon::MC2x2>& beam_values, bool invert,
-    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex,
+    const std::vector<size_t>& skip_station_indices);
 
 template void ApplyBeam::applyBeam(
     const DPInfo& info, double time, std::complex<double>* data0,
     float* weight0, const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
     std::vector<aocommon::MC2x2>& beam_values, bool invert,
-    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex);
+    everybeam::CorrectionMode mode, bool doUpdateWeights, std::mutex* mutex,
+    const std::vector<size_t>& skip_station_indices);
 
 void ApplyBeam::applyBeam(const DPInfo& info, double time,
                           std::complex<double>* data0, float* weight0,
@@ -474,7 +515,8 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
                           const std::pair<size_t, size_t>& station_range,
                           aocommon::Barrier& barrier, bool invert,
                           everybeam::CorrectionMode mode,
-                          bool do_update_weights, std::mutex* mutex) {
+                          bool do_update_weights, std::mutex* mutex,
+                          const std::vector<size_t>& skip_station_indices) {
   // Get the beam values for each station.
   const size_t n_channels = info.chanFreqs().size();
 
@@ -496,13 +538,20 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
           // only for stations used by this thread
           for (size_t st = station_range.first; st < station_range.second;
                ++st) {
-            beam_values[n_channels * st + ch] = point_response->Response(
-                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
-            if (invert) {
-              // Terminate if the matrix is not invertible.
-              [[maybe_unused]] bool status =
-                  beam_values[n_channels * st + ch].Invert();
-              assert(status);
+            if (std::find(skip_station_indices.begin(),
+                          skip_station_indices.end(),
+                          st) != skip_station_indices.end()) {
+              beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+            } else {
+              beam_values[n_channels * st + ch] =
+                  point_response->Response(mode, station_indices[st],
+                                           info.chanFreqs()[ch], srcdir, mutex);
+              if (invert) {
+                // Terminate if the matrix is not invertible.
+                [[maybe_unused]] bool status =
+                    beam_values[n_channels * st + ch].Invert();
+                assert(status);
+              }
             }
           }
           break;
@@ -512,14 +561,21 @@ void ApplyBeam::applyBeam(const DPInfo& info, double time,
           // only for stations used by this thread
           for (size_t st = station_range.first; st < station_range.second;
                ++st) {
-            af_tmp = point_response->Response(
-                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+            if (std::find(skip_station_indices.begin(),
+                          skip_station_indices.end(),
+                          st) != skip_station_indices.end()) {
+              beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+            } else {
+              af_tmp =
+                  point_response->Response(mode, station_indices[st],
+                                           info.chanFreqs()[ch], srcdir, mutex);
 
-            if (invert) {
-              af_tmp[0] = 1. / af_tmp[0];
-              af_tmp[3] = 1. / af_tmp[3];
+              if (invert) {
+                af_tmp[0] = 1. / af_tmp[0];
+                af_tmp[3] = 1. / af_tmp[3];
+              }
+              beam_values[n_channels * st + ch] = af_tmp;
             }
-            beam_values[n_channels * st + ch] = af_tmp;
           }
           break;
         }
@@ -566,7 +622,8 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
     std::vector<everybeam::complex_t>& beam_values, bool invert,
-    everybeam::CorrectionMode mode, std::mutex* mutex) {
+    everybeam::CorrectionMode mode, std::mutex* mutex,
+    const std::vector<size_t>& skip_station_indices) {
   assert(mode == everybeam::CorrectionMode::kArrayFactor);
   // Get the beam values for each station.
   const size_t n_channels = info.chanFreqs().size();
@@ -583,12 +640,17 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
   for (size_t ch = 0; ch < n_channels; ++ch) {
     // Fill beam_values for channel ch
     for (size_t st = 0; st < n_stations; ++st) {
-      beam_values[n_channels * st + ch] = point_response->Response(
-          everybeam::BeamMode::kArrayFactor, station_indices[st],
-          info.chanFreqs()[ch], srcdir, mutex)[0];
-      if (invert) {
-        beam_values[n_channels * st + ch] =
-            1. / beam_values[n_channels * st + ch];
+      if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
+                    st) != skip_station_indices.end()) {
+        beam_values[n_channels * st + ch] = 1.0;
+      } else {
+        beam_values[n_channels * st + ch] = point_response->Response(
+            everybeam::BeamMode::kArrayFactor, station_indices[st],
+            info.chanFreqs()[ch], srcdir, mutex)[0];
+        if (invert) {
+          beam_values[n_channels * st + ch] =
+              1. / beam_values[n_channels * st + ch];
+        }
       }
     }
 
@@ -613,7 +675,8 @@ template void ApplyBeam::applyBeamStokesIArrayFactor(
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
     std::vector<everybeam::complex_t>& beam_values, bool invert,
-    everybeam::CorrectionMode mode, std::mutex* mutex);
+    everybeam::CorrectionMode mode, std::mutex* mutex,
+    const std::vector<size_t>& skip_station_indices);
 
 void ApplyBeam::applyBeamStokesIArrayFactor(
     const DPInfo& info, double time, std::complex<double>* data0,
@@ -622,7 +685,8 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
     std::vector<everybeam::complex_t>& beam_values,
     const std::pair<size_t, size_t>& baseline_range,
     const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
-    bool invert, everybeam::CorrectionMode mode, std::mutex* mutex) {
+    bool invert, everybeam::CorrectionMode mode, std::mutex* mutex,
+    const std::vector<size_t>& skip_station_indices) {
   assert(mode == everybeam::CorrectionMode::kArrayFactor);
   // Get the beam values for each station.
   const size_t n_channels = info.chanFreqs().size();
@@ -636,16 +700,23 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
 
   // Apply the beam values of both stations to the ApplyBeamed data.
   if (station_range.first < n_stations) {
-    for (size_t ch = 0; ch < n_channels; ++ch) {
-      // Fill beam_values for channel ch
-      // only for stations used by this thread
-      for (size_t st = station_range.first; st < station_range.second; ++st) {
-        beam_values[n_channels * st + ch] = point_response->Response(
-            everybeam::BeamMode::kArrayFactor, station_indices[st],
-            info.chanFreqs()[ch], srcdir, mutex)[0];
-        if (invert) {
-          beam_values[n_channels * st + ch] =
-              1. / beam_values[n_channels * st + ch];
+    for (size_t st = station_range.first; st < station_range.second; ++st) {
+      if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
+                    st) != skip_station_indices.end()) {
+        for (size_t ch = 0; ch < n_channels; ++ch) {
+          beam_values[n_channels * st + ch] = 1.0;
+        }
+      } else {
+        for (size_t ch = 0; ch < n_channels; ++ch) {
+          // Fill beam_values for channel ch
+          // only for stations used by this thread
+          beam_values[n_channels * st + ch] = point_response->Response(
+              everybeam::BeamMode::kArrayFactor, station_indices[st],
+              info.chanFreqs()[ch], srcdir, mutex)[0];
+          if (invert) {
+            beam_values[n_channels * st + ch] =
+                1. / beam_values[n_channels * st + ch];
+          }
         }
       }
     }
