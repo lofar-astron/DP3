@@ -714,6 +714,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tLinearSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
+      ddecal/test/unit/tRotationAndDiagonalConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc
       ddecal/test/unit/tSolutionResampler.cc
       ddecal/test/unit/tSolveData.cc
