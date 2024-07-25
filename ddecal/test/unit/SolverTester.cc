@@ -229,7 +229,8 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
             data.emplace_back(uniform_data(mt) * 1.5, uniform_data(mt) * 1.5);
           }
           BOOST_REQUIRE(bda_model_buffers[dir]->AddRow(
-              time, n_averaged_times, n_averaged_times, bl, n_averaged_channels,
+              time, n_averaged_times * kBdaUnitTimeInterval,
+              n_averaged_times * kBdaUnitTimeInterval, bl, n_averaged_channels,
               kNPolarizations, data.data()));
         }
 
@@ -255,9 +256,9 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
           }
         }
         BOOST_REQUIRE(bda_data_buffer->AddRow(
-            time, averaging_factors.first, n_averaged_times, bl,
-            n_averaged_channels, kNPolarizations, data.data(), nullptr,
-            weights.data()));
+            time, averaging_factors.first * kBdaUnitTimeInterval,
+            n_averaged_times * kBdaUnitTimeInterval, bl, n_averaged_channels,
+            kNPolarizations, data.data(), nullptr, weights.data()));
       }
     }
   }

@@ -90,11 +90,6 @@ class SolveData {
    private:
     friend class SolveData<MatrixType>;
 
-    /**
-     * Initialize n_solutions_ and solution_map_.
-     */
-    void InitializeSolutionIndices();
-
     std::vector<MatrixType> data_;
     // weights_(i, pol) contains the weight for data_[i][pol]. The vector will
     // be left empty when the algorithm does not need the weights.
@@ -144,7 +139,8 @@ class SolveData {
    * @param antennas2 For each baseline, the index of the second antenna.
    */
   SolveData(const BdaSolverBuffer& buffer, size_t n_channel_blocks,
-            size_t n_directions, size_t n_antennas,
+            size_t n_antennas,
+            const std::vector<size_t>& n_solutions_per_direction,
             const std::vector<int>& antennas1,
             const std::vector<int>& antennas2, bool with_weights);
 

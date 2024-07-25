@@ -51,26 +51,31 @@ void FillRegularData(DPBuffer::DataType& data) {
   });
 }
 
-void FillBdaBuffer(BDABuffer& buffer, size_t avg_channels,
-                   size_t all_channels) {
+void FillBdaBuffer(BDABuffer& buffer, size_t avg_channels, size_t all_channels,
+                   double unit_interval) {
   std::vector<std::complex<float>> data;
   const std::vector<float> weights(all_channels * kNPolarizations, 1.0f);
 
-  // Add averaged rows for baselines 0 and 2.
-  FillRandomData(data, avg_channels * kNPolarizations);
-  BOOST_REQUIRE(buffer.AddRow(1.0, 2.0, 2.0, 0, avg_channels, kNPolarizations,
-                              data.data(), nullptr, weights.data()));
+  for (size_t time_index = 0; time_index != 2; ++time_index) {
+    const double row_time = 2.0 * time_index * unit_interval;
+    // Add averaged rows for baselines 0 and 2.
+    FillRandomData(data, avg_channels * kNPolarizations);
+    BOOST_REQUIRE(buffer.AddRow(
+        row_time + unit_interval, unit_interval * 2.0, unit_interval * 2.0, 0,
+        avg_channels, kNPolarizations, data.data(), nullptr, weights.data()));
 
-  FillRandomData(data, avg_channels * kNPolarizations);
-  BOOST_REQUIRE(buffer.AddRow(1.0, 2.0, 2.0, 2, avg_channels, kNPolarizations,
-                              data.data(), nullptr, weights.data()));
+    FillRandomData(data, avg_channels * kNPolarizations);
+    BOOST_REQUIRE(buffer.AddRow(
+        row_time + unit_interval, unit_interval * 2.0, unit_interval * 2.0, 2,
+        avg_channels, kNPolarizations, data.data(), nullptr, weights.data()));
 
-  // Add non-averaged rows for baseline 1.
-  for (int j = 0; j < 2; ++j) {
-    FillRandomData(data, all_channels * kNPolarizations);
-    BOOST_REQUIRE(buffer.AddRow(0.5 + j, 1.0, 1.0, 1, all_channels,
-                                kNPolarizations, data.data(), nullptr,
-                                weights.data()));
+    // Add non-averaged rows for baseline 1.
+    for (int j = 0; j < 2; ++j) {
+      FillRandomData(data, all_channels * kNPolarizations);
+      BOOST_REQUIRE(buffer.AddRow(
+          row_time + (0.5 + j) * unit_interval, unit_interval, unit_interval, 1,
+          all_channels, kNPolarizations, data.data(), nullptr, weights.data()));
+    }
   }
 }
 
@@ -239,12 +244,14 @@ BOOST_AUTO_TEST_CASE(bda) {
   //   kNAllChannels channels each.
   // - An auto-correlation baseline: Same layout as the averaged baseline.
   //   SolveData should skip all auto-correlations.
-  const std::vector<size_t> kNRowsPerBaseline{1, 2, 1};
+  const std::vector<size_t> kNRowsPerBaseline{2, 4, 2};
   const size_t kNAllChannels = 7;
   const size_t kNAveragedChannels = 4;
   const size_t kBdaBufferSize =
-      (2 * kNAveragedChannels + 2 * kNAllChannels) * kNPolarizations;
-  const size_t kNDirections = 1;
+      (2 * kNAveragedChannels + 2 * kNAllChannels) * kNPolarizations * 2;
+  const size_t kNDirections = 2;
+  const double kUnitTimeInterval = 2.0;
+  const double kSolverInterval = kUnitTimeInterval * 4;
 
   // Outer index: channel block index; inner index: baseline index.
   const std::vector<std::vector<size_t>> kNVisibilitiesPerBaseline{{2, 3},
@@ -256,14 +263,18 @@ BOOST_AUTO_TEST_CASE(bda) {
   auto bda_data_buffer =
       std::make_unique<BDABuffer>(kBdaBufferSize, bda_fields);
   bda_fields.weights = false;
+  FillBdaBuffer(*bda_data_buffer, kNAveragedChannels, kNAllChannels,
+                kUnitTimeInterval);
+
   std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers;
-  bda_model_buffers.push_back(
-      std::make_unique<BDABuffer>(kBdaBufferSize, bda_fields));
+  for (size_t direction = 0; direction != kNDirections; ++direction) {
+    bda_model_buffers.push_back(
+        std::make_unique<BDABuffer>(kBdaBufferSize, bda_fields));
+    FillBdaBuffer(*bda_model_buffers.back(), kNAveragedChannels, kNAllChannels,
+                  kUnitTimeInterval);
+  }
 
-  FillBdaBuffer(*bda_data_buffer, kNAveragedChannels, kNAllChannels);
-  FillBdaBuffer(*bda_model_buffers.back(), kNAveragedChannels, kNAllChannels);
-
-  dp3::ddecal::BdaSolverBuffer solver_buffer(kNDirections, -1.0, 10.0,
+  dp3::ddecal::BdaSolverBuffer solver_buffer(kNDirections, 0.0, kSolverInterval,
                                              kNBaselines);
   solver_buffer.AppendAndWeight(std::move(bda_data_buffer),
                                 std::move(bda_model_buffers));
@@ -271,9 +282,10 @@ BOOST_AUTO_TEST_CASE(bda) {
                      kNRowsPerBaseline[0] + kNRowsPerBaseline[1] +
                          kNRowsPerBaseline[2]);
 
+  const std::vector<size_t> solutions_per_direction{1, 2};
   const dp3::ddecal::SolveData solve_data(solver_buffer, kNChannelBlocks,
-                                          kNDirections, kNAntennas, kAntennas1,
-                                          kAntennas2, true);
+                                          kNAntennas, solutions_per_direction,
+                                          kAntennas1, kAntennas2, true);
   BOOST_TEST_REQUIRE(solve_data.NChannelBlocks() == kNChannelBlocks);
 
   for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {
@@ -284,34 +296,37 @@ BOOST_AUTO_TEST_CASE(bda) {
     // so it should not contain the last baseline, with index 2.
     const size_t n_visibilities = kNVisibilitiesPerBaseline[ch_block][0] +
                                   2 * kNVisibilitiesPerBaseline[ch_block][1];
-    BOOST_TEST(cb_data.NVisibilities() == n_visibilities);
-    BOOST_TEST(cb_data.NAntennaVisibilities(0) == n_visibilities);
+    BOOST_TEST(cb_data.NVisibilities() == 2 * n_visibilities);
+    BOOST_TEST(cb_data.NAntennaVisibilities(0) == 2 * n_visibilities);
     BOOST_TEST(cb_data.NAntennaVisibilities(1) ==
-               kNVisibilitiesPerBaseline[ch_block][0]);
+               2 * kNVisibilitiesPerBaseline[ch_block][0]);
     BOOST_TEST(cb_data.NAntennaVisibilities(2) ==
-               2 * kNVisibilitiesPerBaseline[ch_block][1]);
+               4 * kNVisibilitiesPerBaseline[ch_block][1]);
 
-    for (size_t v = 0; v < n_visibilities; ++v) {
+    for (size_t v = 0; v < 2 * n_visibilities; ++v) {
       const aocommon::MC2x2F& data = cb_data.Visibility(v);
       const aocommon::MC2x2F& model_data = cb_data.ModelVisibility(0, v);
 
       const size_t baseline =
-          (v < kNVisibilitiesPerBaseline[ch_block][0]) ? 0 : 1;
+          ((v % n_visibilities) < kNVisibilitiesPerBaseline[ch_block][0]) ? 0
+                                                                          : 1;
       BOOST_TEST(cb_data.Antenna1Index(v) == 0);
       BOOST_TEST(cb_data.Antenna2Index(v) == ((baseline == 0) ? 1 : 2));
+      BOOST_TEST(cb_data.SolutionIndex(0, v) == 0);
+      const size_t dir1_solution_index = v < n_visibilities ? 1 : 2;
+      BOOST_TEST(cb_data.SolutionIndex(1, v) == dir1_solution_index);
 
       // Determine the BDA row and the data offset in that row.
-      size_t row = 0;
-      size_t offset = v;
-      if (baseline == 1) {
-        // Skip baselines 0 and 2. Baseline 2 is before baseline 1 in this test.
-        row += 2;
-        offset -= kNVisibilitiesPerBaseline[ch_block][0];
-        if (offset >= kNVisibilitiesPerBaseline[ch_block][1]) {
-          ++row;  // Skip the first row of baseline 1.
-          offset -= kNVisibilitiesPerBaseline[ch_block][1];
-        }
-      }
+      constexpr size_t kRowsBlock1[] = {0, 0, 2, 2, 2, 3, 3, 3,
+                                        4, 4, 6, 6, 6, 7, 7, 7};
+      constexpr size_t kRowsBlock2[] = {0, 0, 2, 2, 2, 2, 3, 3, 3, 3,
+                                        4, 4, 6, 6, 6, 6, 7, 7, 7, 7};
+      constexpr size_t kOffsets1[] = {0, 1, 0, 1, 2, 0, 1, 2,
+                                      0, 1, 0, 1, 2, 0, 1, 2};
+      constexpr size_t kOffsets2[] = {0, 1, 0, 1, 2, 3, 0, 1, 2, 3,
+                                      0, 1, 0, 1, 2, 3, 0, 1, 2, 3};
+      const size_t row = ch_block == 0 ? kRowsBlock1[v] : kRowsBlock2[v];
+      size_t offset = ch_block == 0 ? kOffsets1[v] : kOffsets2[v];
       const size_t n_channels =
           (baseline == 0) ? kNAveragedChannels : kNAllChannels;
       const size_t first_channel = ch_block * n_channels / kNChannelBlocks;

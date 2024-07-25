@@ -32,7 +32,7 @@ class BdaSolverBuffer {
         current_interval_(0),
         last_complete_interval_per_baseline_(n_baselines, -1),
         data_rows_() {
-    assert(interval >= 0.0);
+    assert(interval > 0.0);
     AddInterval(
         n_directions);  // Ensure that the current solution interval is valid.
   }
@@ -145,6 +145,22 @@ class BdaSolverBuffer {
     result.swap(done_);
     return result;
   }
+
+  /**
+   * Start time of the current interval. This interval will not have any
+   * visibilities for which the time centroid is smaller than this value.
+   */
+  double CurrentIntervalStart() const {
+    return time_start_ - current_interval_ * time_interval_;
+  }
+
+  /**
+   * Duration of this interval. Given that visibilities are placed
+   * in an interval based on their centroid, this is the maximum
+   * difference between the centroid times of visibilities in the
+   * same interval, and is always larger than zero.
+   */
+  double IntervalDuration() const { return time_interval_; }
 
  private:
   void AddInterval(size_t n_directions);

@@ -162,6 +162,11 @@ class DPInfo {
   double startTime() const { return first_time_ - 0.5 * time_interval_; }
   double firstTime() const { return first_time_; }
   double lastTime() const { return last_time_; }
+  /**
+   * Difference in time between two consecutive timesteps. In case the
+   * measurement set is baseline-dependently (BD) averaged, this is the unit
+   * time interval value, which is basically the interval before BD averaging.
+   */
   double timeInterval() const { return time_interval_; }
   bool isBDAIntervalFactorInteger() const {
     return bda_interval_factor_is_integer_;
