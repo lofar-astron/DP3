@@ -105,6 +105,7 @@ class SolverTester {
   static constexpr size_t kNBaselines = kNAntennas * (kNAntennas - 1) / 2;
   static constexpr std::array<size_t, 3> kShape{kNBaselines, kNChannels,
                                                 kNPolarizations};
+  static constexpr double kBdaUnitTimeInterval = 1.0;
 
   // Default solver settings:
   static constexpr size_t kMaxIterations = 100;

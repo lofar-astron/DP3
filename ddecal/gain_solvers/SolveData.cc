@@ -14,6 +14,7 @@ using dp3::base::BDABuffer;
 namespace dp3 {
 namespace ddecal {
 
+namespace {
 template <typename MatrixType>
 MatrixType ToSpecificMatrix(const std::complex<float>* data);
 template <>
@@ -28,6 +29,38 @@ template <>
 std::complex<float> ToSpecificMatrix(const std::complex<float>* data) {
   return 0.5f * (data[0] + data[3]);
 }
+
+/// Construct an array that identifies the start solution index per direction
+std::vector<size_t> SolutionStartIndices(
+    const std::vector<uint32_t>& n_solutions_per_direction) {
+  std::vector<size_t> solution_start_indices;
+  const size_t n_directions = n_solutions_per_direction.size();
+  solution_start_indices.reserve(n_directions);
+  size_t solution_start_counter = 0;
+  for (size_t direction = 0; direction != n_directions; ++direction) {
+    solution_start_indices.emplace_back(solution_start_counter);
+    solution_start_counter += n_solutions_per_direction[direction];
+  }
+  return solution_start_indices;
+}
+
+/**
+ * Makes sure that none of the directions use more than @c n_times
+ * solutions, and converts size_t to uint32_t.
+ */
+std::vector<uint32_t> LimitNSolutionsPerDirection(
+    const std::vector<size_t>& n_solutions_per_direction, size_t n_times) {
+  std::vector<uint32_t> n_solutions;
+  const size_t n_directions = n_solutions_per_direction.size();
+  n_solutions.reserve(n_directions);
+  for (size_t direction = 0; direction != n_directions; ++direction) {
+    n_solutions.emplace_back(
+        std::min(n_solutions_per_direction[direction], n_times));
+  }
+  return n_solutions;
+}
+
+}  // namespace
 
 template <typename MatrixType>
 SolveData<MatrixType>::SolveData(
@@ -44,9 +77,10 @@ SolveData<MatrixType>::SolveData(
   const size_t n_channels =
       buffers.empty() ? 0 : buffers.front().GetData().shape(1);
   const size_t n_directions = direction_names.size();
+  assert(n_solutions_per_direction.size() == n_directions);
   const bool has_weights = buffers.front().GetWeights().size() != 0;
 
-  // Count nr of baselines with different antennas.
+  // Count nr of baselines with cross-correlated antennas.
   size_t n_baselines = 0;
   for (size_t baseline = 0; baseline < n_baselines_in_buffers; ++baseline) {
     assert(size_t(antennas1[baseline]) < n_antennas &&
@@ -56,11 +90,8 @@ SolveData<MatrixType>::SolveData(
 
   // Initialize n_solutions_ of the first channel block as template
   // for the other channel blocks
-  channel_blocks_.front().n_solutions_.reserve(n_directions);
-  for (size_t direction = 0; direction != n_directions; ++direction) {
-    channel_blocks_.front().n_solutions_.emplace_back(
-        std::min(n_solutions_per_direction[direction], n_times));
-  }
+  channel_blocks_.front().n_solutions_ =
+      LimitNSolutionsPerDirection(n_solutions_per_direction, n_times);
 
   // Count nr of visibilities per channel block and allocate memory.
   for (size_t channel_block_index = 0; channel_block_index != n_channel_blocks;
@@ -79,14 +110,8 @@ SolveData<MatrixType>::SolveData(
     cb_data.n_solutions_ = channel_blocks_.front().n_solutions_;
   }
 
-  // Construct an array that identifies the start solution index per direction
-  std::vector<size_t> solution_start_indices;
-  solution_start_indices.reserve(n_directions);
-  size_t solution_start_counter = 0;
-  for (size_t direction = 0; direction != n_directions; ++direction) {
-    solution_start_indices.emplace_back(solution_start_counter);
-    solution_start_counter += channel_blocks_.front().n_solutions_[direction];
-  }
+  const std::vector<size_t> solution_start_indices =
+      SolutionStartIndices(channel_blocks_.front().n_solutions_);
 
   // Fill all channel blocks with data.
   std::vector<size_t> visibility_indices(n_channel_blocks, 0);
@@ -150,14 +175,13 @@ SolveData<MatrixType>::SolveData(
 }
 
 template <typename MatrixType>
-SolveData<MatrixType>::SolveData(const BdaSolverBuffer& buffer,
-                                 size_t n_channel_blocks, size_t n_directions,
-                                 size_t n_antennas,
-                                 const std::vector<int>& antennas1,
-                                 const std::vector<int>& antennas2,
-                                 bool with_weights)
+SolveData<MatrixType>::SolveData(
+    const BdaSolverBuffer& buffer, size_t n_channel_blocks, size_t n_antennas,
+    const std::vector<size_t>& n_solutions_per_direction,
+    const std::vector<int>& antennas1, const std::vector<int>& antennas2,
+    bool with_weights)
     : channel_blocks_(n_channel_blocks) {
-  // Count nr of visibilities
+  // Count nr of visibilities per channel block
   std::vector<size_t> counts(n_channel_blocks, 0);
   for (size_t row = 0; row != buffer.GetDataRows().size(); ++row) {
     const BDABuffer::Row& data_row = *buffer.GetDataRows()[row];
@@ -176,12 +200,19 @@ SolveData<MatrixType>::SolveData(const BdaSolverBuffer& buffer,
   }
 
   // Allocate
+  channel_blocks_.front().n_solutions_ = LimitNSolutionsPerDirection(
+      n_solutions_per_direction, buffer.GetDataRows().size());
+  const size_t n_directions = n_solutions_per_direction.size();
   for (size_t cb = 0; cb != n_channel_blocks; ++cb) {
     channel_blocks_[cb].Resize(counts[cb], n_directions);
+    channel_blocks_[cb].n_solutions_ = channel_blocks_.front().n_solutions_;
     if (with_weights) {
       channel_blocks_[cb].ResizeWeights(counts[cb]);
     }
   }
+
+  const std::vector<size_t> solution_start_indices =
+      SolutionStartIndices(channel_blocks_.front().n_solutions_);
 
   // Fill
   std::vector<size_t> visibility_indices(n_channel_blocks, 0);
@@ -217,13 +248,30 @@ SolveData<MatrixType>::SolveData(const BdaSolverBuffer& buffer,
           }
         }
 
+        const double interval_duration = buffer.IntervalDuration();
+        const double visibility_mid_time =
+            data_row.time - buffer.CurrentIntervalStart();
         for (size_t dir = 0; dir != n_directions; ++dir) {
+          const size_t n_solutions = cb_data.n_solutions_[dir];
+          // This value needs to be truncated to n_solutions-1, because the
+          // ratio might be exactly 1 in case the mid time of a visibility is
+          // exactly on the end boundary of the interval. std::floor is used to
+          // make it explicit this is desired behaviour. The behaviour is such
+          // that values are placed into solution intervals such that the
+          // distance between the interval's centre and the visibility's mid
+          // time is minimal ("nearest neighbour binning").
+          const size_t index_offset = std::min<size_t>(
+              n_solutions - 1, std::floor(visibility_mid_time * n_solutions /
+                                          interval_duration));
+          const size_t solution_index =
+              index_offset + solution_start_indices[dir];
           const BDABuffer::Row& model_data_row =
               *buffer.GetModelDataRows(dir)[row];
           const std::complex<float>* model_data_ptr =
               model_data_row.data +
               channel_start * model_data_row.n_correlations;
           for (size_t i = 0; i != channel_block_size; ++i) {
+            cb_data.solution_map_(dir, vis_index + i) = solution_index;
             cb_data.model_data_(dir, vis_index + i) =
                 ToSpecificMatrix<MatrixType>(
                     &model_data_ptr[i * model_data_row.n_correlations]);
@@ -236,8 +284,6 @@ SolveData<MatrixType>::SolveData(const BdaSolverBuffer& buffer,
   }
 
   CountAntennaVisibilities(n_antennas);
-  for (ChannelBlockData& cb_data : channel_blocks_)
-    cb_data.InitializeSolutionIndices();  // TODO replace!
 }
 
 template <typename MatrixType>
@@ -248,16 +294,6 @@ void SolveData<MatrixType>::CountAntennaVisibilities(size_t n_antennas) {
       ++cb_data.antenna_visibility_counts_[a.first];
       ++cb_data.antenna_visibility_counts_[a.second];
     }
-  }
-}
-
-template <typename MatrixType>
-void SolveData<MatrixType>::ChannelBlockData::InitializeSolutionIndices() {
-  // This initializes the solution indices for direction-independent intervals
-  // TODO support DD intervals
-  n_solutions_.assign(NDirections(), 1);
-  for (size_t i = 0; i != NDirections(); ++i) {
-    xt::view(solution_map_, i, xt::all()).fill(i);
   }
 }
 

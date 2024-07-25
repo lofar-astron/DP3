@@ -400,21 +400,23 @@ void BdaDdeCal::SolveCurrentInterval() {
   using FullPtr = std::unique_ptr<dp3::ddecal::FullSolveData>;
   std::variant<UniPtr, DuoPtr, FullPtr> solve_data;
   switch (settings_.solver_data_use) {
-    // TODO: use solutions_per_direction to allow DD intervals with BDA
     case ddecal::SolverDataUse::kSingle:
       solve_data = std::make_unique<dp3::ddecal::UniSolveData>(
-          *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
-          antennas1_, antennas2_, linear_mode);
+          *solver_buffer_, n_channel_blocks, n_antennas,
+          settings_.solutions_per_direction, antennas1_, antennas2_,
+          linear_mode);
       break;
     case ddecal::SolverDataUse::kDual:
       solve_data = std::make_unique<dp3::ddecal::DuoSolveData>(
-          *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
-          antennas1_, antennas2_, linear_mode);
+          *solver_buffer_, n_channel_blocks, n_antennas,
+          settings_.solutions_per_direction, antennas1_, antennas2_,
+          linear_mode);
       break;
     case ddecal::SolverDataUse::kFull:
       solve_data = std::make_unique<dp3::ddecal::FullSolveData>(
-          *solver_buffer_, n_channel_blocks, patches_.size(), n_antennas,
-          antennas1_, antennas2_, linear_mode);
+          *solver_buffer_, n_channel_blocks, n_antennas,
+          settings_.solutions_per_direction, antennas1_, antennas2_,
+          linear_mode);
       break;
   }
 

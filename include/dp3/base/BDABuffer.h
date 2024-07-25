@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// @file
-/// @brief Buffer holding base dependent averaged (BDA) data.
+/// @brief Buffer holding baseline-dependently averaged (BDA) data.
 /// @author Maik Nijhuis and Lars Krombeen
 
 #ifndef DP3_BASE_BDABUFFER_H_
