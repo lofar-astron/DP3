@@ -78,13 +78,14 @@ class ApplyBeam : public Step {
   bool invert() { return itsInvert; }
 
   template <typename T>
-  static void applyBeam(const base::DPInfo& info, double time, T* data0,
-                        float* weight0, const everybeam::vector3r_t& srcdir,
-                        const everybeam::telescope::Telescope* telescope,
-                        std::vector<aocommon::MC2x2>& beamValues, bool invert,
-                        everybeam::CorrectionMode mode,
-                        bool doUpdateWeights = false,
-                        std::mutex* mutex = nullptr);
+  static void applyBeam(
+      const base::DPInfo& info, double time, T* data0, float* weight0,
+      const everybeam::vector3r_t& srcdir,
+      const everybeam::telescope::Telescope* telescope,
+      std::vector<aocommon::MC2x2>& beamValues, bool invert,
+      everybeam::CorrectionMode mode, bool doUpdateWeights = false,
+      std::mutex* mutex = nullptr,
+      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
   template <typename T>
   static void ApplyBeamAndAddToModel(
@@ -93,22 +94,22 @@ class ApplyBeam : public Step {
       const everybeam::telescope::Telescope* telescope,
       std::vector<aocommon::MC2x2>& beamValues, bool invert,
       everybeam::CorrectionMode mode, bool doUpdateWeights = false,
-      std::mutex* mutex = nullptr);
+      std::mutex* mutex = nullptr,
+      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
   // This method applies the beam for processing when parallelizing over
   // baselines. Because the beam is a per-antenna effect, this requires
   // synchronisation, which is performed with the provided barrier.
-  static void applyBeam(const base::DPInfo& info, double time,
-                        std::complex<double>* data0, float* weight0,
-                        const everybeam::vector3r_t& srcdir,
-                        const everybeam::telescope::Telescope* telescope,
-                        std::vector<aocommon::MC2x2>& beam_values,
-                        const std::pair<size_t, size_t>& baseline_range,
-                        const std::pair<size_t, size_t>& station_range,
-                        aocommon::Barrier& barrier, bool invert,
-                        everybeam::CorrectionMode mode,
-                        bool do_update_weights = false,
-                        std::mutex* mutex = nullptr);
+  static void applyBeam(
+      const base::DPInfo& info, double time, std::complex<double>* data0,
+      float* weight0, const everybeam::vector3r_t& srcdir,
+      const everybeam::telescope::Telescope* telescope,
+      std::vector<aocommon::MC2x2>& beam_values,
+      const std::pair<size_t, size_t>& baseline_range,
+      const std::pair<size_t, size_t>& station_range,
+      aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
+      bool do_update_weights = false, std::mutex* mutex = nullptr,
+      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
   template <typename T>
   static void applyBeamStokesIArrayFactor(
@@ -116,7 +117,8 @@ class ApplyBeam : public Step {
       const everybeam::vector3r_t& srcdir,
       const everybeam::telescope::Telescope* telescope,
       std::vector<everybeam::complex_t>& beamValues, bool invert,
-      everybeam::CorrectionMode mode, std::mutex* mutex = nullptr);
+      everybeam::CorrectionMode mode, std::mutex* mutex = nullptr,
+      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
   // This method applies the Stokes I Array factor for processing when
   // parallelizing over baselines and uses a barrier for synchronisation,
@@ -129,7 +131,8 @@ class ApplyBeam : public Step {
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range,
       aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
-      std::mutex* mutex = nullptr);
+      std::mutex* mutex = nullptr,
+      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
  private:
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
@@ -141,10 +144,12 @@ class ApplyBeam : public Step {
   std::vector<string> itsDirectionStr;
   casacore::MDirection itsDirection;
   bool itsUseChannelFreq;
+  std::vector<std::string> itsSkipStationNames;
+  std::vector<size_t> itsSkipStationIndices;
   everybeam::CorrectionMode itsMode;
   everybeam::ElementResponseModel itsElementResponseModel;
 
-  /// If a beam had already been applied before running this step, that beam
+  /// If a beam has already been applied before running this step, that beam
   /// needs to undone; hence we register that beam info here:
   ///@{
   casacore::MDirection itsDirectionAtStart;
