@@ -146,6 +146,7 @@ struct Settings {
   const size_t max_approx_iterations;
   const size_t approx_chunk_size;
   const bool rotation_reference;
+  const base::CalType rotation_diagonal_mode;
   // LBFGS robust parameter (aka degrees of freedom)
   const double lbfgs_robust_nu;
   // LBFGS max iterations per mini-batch
