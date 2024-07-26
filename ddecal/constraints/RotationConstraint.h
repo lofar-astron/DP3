@@ -26,7 +26,7 @@ class RotationConstraint final : public Constraint {
   void SetWeights(const std::vector<double>& weights) override;
 
   /* Compute the rotation from a 2x2 full jones solution */
-  static double GetRotation(std::complex<double>* data);
+  static double FitRotation(const std::complex<double>* data);
 
  private:
   std::vector<Constraint::Result> _res;

@@ -6,30 +6,46 @@
 
 #include "Constraint.h"
 
+#include "../../base/CalType.h"
+
 #include <vector>
 #include <ostream>
 
 namespace dp3 {
 namespace ddecal {
 
+void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
+                       base::CalType mode);
+
 class RotationAndDiagonalConstraint final : public Constraint {
  public:
-  RotationAndDiagonalConstraint();
+  RotationAndDiagonalConstraint(base::CalType diagonal_solution_type);
 
   std::vector<Result> Apply(SolutionSpan& solutions, double time,
                             std::ostream* statStream) override;
 
-  void Initialize(size_t nAntennas,
+  void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
                   const std::vector<double>& frequencies) override;
 
   void SetWeights(const std::vector<double>& weights) override;
 
-  void SetDoRotationReference(bool doRotationReference);
+  void SetDoRotationReference(bool do_rotation_reference);
 
  private:
-  std::vector<Constraint::Result> _res;
-  bool _doRotationReference;
+  void FitRotationAndDiagonal(
+      const std::complex<double>* data, double& angle,
+      std::array<std::complex<double>, 2>& diagonal) const;
+  void StoreDiagonal(const std::array<std::complex<double>, 2>& diagonal,
+                     size_t antenna, size_t channel);
+
+  template <size_t PolCount>
+  void SetChannelWeights(std::vector<double>& values, size_t channel,
+                         double new_value) const;
+
+  std::vector<Constraint::Result> results_;
+  bool do_rotation_reference_;
+  base::CalType diagonal_solution_type_;
 };
 
 }  // namespace ddecal

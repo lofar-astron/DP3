@@ -132,6 +132,11 @@ Settings::Settings(const common::ParameterSet& _parset,
       rotation_reference((mode == CalType::kRotationAndDiagonal)
                              ? GetBool("rotationreference", false)
                              : false),
+      rotation_diagonal_mode(
+          (mode == CalType::kRotationAndDiagonal)
+              ? dp3::base::StringToCalType(boost::to_lower_copy(
+                    GetString("rotationdiagonalmode", "diagonal")))
+              : CalType::kDiagonal),
       lbfgs_robust_nu((solver_algorithm == SolverAlgorithm::kLBFGS)
                           ? GetDouble("solverlbfgs.dof", 200.0)
                           : 200.0),

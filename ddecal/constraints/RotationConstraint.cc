@@ -32,13 +32,13 @@ void RotationConstraint::SetWeights(const std::vector<double>& weights) {
   _res[0].weights = weights;  // TODO directions!
 }
 
-double RotationConstraint::GetRotation(std::complex<double>* data) {
+double RotationConstraint::FitRotation(const std::complex<double>* data) {
   // Convert to circular
   dcomplex i(0, 1.);
 
   dcomplex ll = data[0] + data[3] - i * data[1] + i * data[2];
   dcomplex rr = data[0] + data[3] + i * data[1] - i * data[2];
-  double angle = 0.5 * (arg(ll) - arg(rr));
+  const double angle = 0.5 * (std::arg(ll) - std::arg(rr));
 
   return angle;
 }
@@ -52,7 +52,7 @@ std::vector<Constraint::Result> RotationConstraint::Apply(
     for (unsigned int ant = 0; ant < NAntennas(); ++ant) {
       // Compute rotation
       dcomplex* data = &(solutions(ch, ant, 0, 0));
-      double angle = GetRotation(data);
+      double angle = FitRotation(data);
       _res[0].vals[ant * NChannelBlocks() + ch] = angle;  // TODO directions!
 
       // Constrain the data

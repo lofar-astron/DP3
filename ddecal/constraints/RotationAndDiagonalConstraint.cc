@@ -6,6 +6,8 @@
 
 #include <cmath>
 
+using dp3::base::CalType;
+
 namespace {
 bool dataIsValid(const std::complex<double>* const data,
                  const std::size_t size) {
@@ -16,13 +18,122 @@ bool dataIsValid(const std::complex<double>* const data,
   }
   return true;
 }
+
+/// Adjusts the magnitude of value to fall within a specified range from
+/// mean_abs. Returns true if the initial value was already within the range,
+/// false otherwise.
+bool Limit(std::complex<double>& value, double mean_abs, double max_ratio) {
+  if (mean_abs > 0.0) {
+    if (std::abs(value) / mean_abs < 1.0 / max_ratio ||
+        std::abs(value) / mean_abs > max_ratio) {
+      return true;
+    }
+    do {
+      value *= 1.2;
+    } while (std::abs(value) / mean_abs < 1.0 / max_ratio);
+    do {
+      value /= 1.2;
+    } while (std::abs(value) / mean_abs > max_ratio);
+  }
+  return false;
+}
+
 }  // namespace
 
 namespace dp3 {
 namespace ddecal {
 
-RotationAndDiagonalConstraint::RotationAndDiagonalConstraint()
-    : _res(), _doRotationReference(false) {}
+RotationAndDiagonalConstraint::RotationAndDiagonalConstraint(
+    CalType diagonal_solution_type)
+    : results_(),
+      do_rotation_reference_(false),
+      diagonal_solution_type_(diagonal_solution_type) {
+  if (diagonal_solution_type != CalType::kDiagonal &&
+      diagonal_solution_type != CalType::kDiagonalAmplitude &&
+      diagonal_solution_type != CalType::kDiagonalPhase &&
+      diagonal_solution_type != CalType::kScalar &&
+      diagonal_solution_type != CalType::kScalarAmplitude &&
+      diagonal_solution_type != CalType::kScalarPhase) {
+    throw std::invalid_argument(
+        "The diagonal mode of the rotation-and-diagonal-constraint must be "
+        "diagonal, diagonalamplitude, diagonalphase, scalar, scalaramplitude "
+        "or scalarphase");
+  }
+}
+
+void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
+                       CalType mode) {
+  switch (mode) {
+    case CalType::kDiagonal:
+      break;
+    case CalType::kDiagonalAmplitude:
+      diagonal[0] = std::abs(diagonal[0]);
+      diagonal[1] = std::abs(diagonal[1]);
+      break;
+    case CalType::kDiagonalPhase:
+      diagonal[0] = diagonal[0] / std::abs(diagonal[0]);
+      diagonal[1] = diagonal[1] / std::abs(diagonal[1]);
+      break;
+    case CalType::kScalar:
+      diagonal[0] = (diagonal[0] + diagonal[1]) * 0.5;
+      diagonal[1] = diagonal[0];
+      break;
+    case CalType::kScalarAmplitude:
+      diagonal[0] = std::abs((diagonal[0] + diagonal[1]) * 0.5);
+      diagonal[1] = diagonal[0];
+      break;
+    case CalType::kScalarPhase:
+      diagonal[0] = (diagonal[0] + diagonal[1]) * 0.5;
+      diagonal[0] = diagonal[0] / std::abs(diagonal[0]);
+      diagonal[1] = diagonal[0];
+      break;
+    case CalType::kFullJones:
+    case CalType::kRotation:
+    case CalType::kRotationAndDiagonal:
+    case CalType::kTec:
+    case CalType::kTecAndPhase:
+    case CalType::kTecScreen:
+      assert(false);
+      break;
+  }
+}
+
+inline void RotationAndDiagonalConstraint::StoreDiagonal(
+    const std::array<std::complex<double>, 2>& diagonal, size_t antenna,
+    size_t channel) {
+  // This is a bit more verbose than necessary, but using a single
+  // switch statement instead of multiple conditionals is probably
+  // most efficient.
+  const size_t index_part = antenna * NChannelBlocks() + channel;
+  switch (diagonal_solution_type_) {
+    case CalType::kDiagonal:
+      results_[1].vals[index_part * 2] = std::abs(diagonal[0]);
+      results_[1].vals[index_part * 2 + 1] = std::abs(diagonal[1]);
+      results_[2].vals[index_part * 2] = std::arg(diagonal[0]);
+      results_[2].vals[index_part * 2 + 1] = std::arg(diagonal[1]);
+      break;
+    case CalType::kDiagonalAmplitude:
+      results_[1].vals[index_part * 2] = std::abs(diagonal[0]);
+      results_[1].vals[index_part * 2 + 1] = std::abs(diagonal[1]);
+      break;
+    case CalType::kDiagonalPhase:
+      results_[1].vals[index_part * 2] = std::arg(diagonal[0]);
+      results_[1].vals[index_part * 2 + 1] = std::arg(diagonal[1]);
+      break;
+    case CalType::kScalar:
+      results_[1].vals[index_part] = std::abs(diagonal[0]);
+      results_[2].vals[index_part] = std::arg(diagonal[0]);
+      break;
+    case CalType::kScalarAmplitude:
+      results_[1].vals[index_part] = std::abs(diagonal[0]);
+      break;
+    case CalType::kScalarPhase:
+      results_[1].vals[index_part] = std::arg(diagonal[0]);
+      break;
+    default:
+      assert(false);
+  }
+}
 
 void RotationAndDiagonalConstraint::Initialize(
     size_t nAntennas, const std::vector<uint32_t>& solutions_per_direction,
@@ -33,50 +144,110 @@ void RotationAndDiagonalConstraint::Initialize(
     throw std::runtime_error(
         "RotationAndDiagonalConstraint can't handle multiple directions yet");
 
-  _res.resize(3);
-  _res[0].vals.resize(NAntennas() * NChannelBlocks());
-  _res[0].weights.resize(NAntennas() * NChannelBlocks());
-  _res[0].axes = "ant,dir,freq";
-  _res[0].dims.resize(3);
-  _res[0].dims[0] = NAntennas();
-  _res[0].dims[1] = NDirections();
-  _res[0].dims[2] = NChannelBlocks();
-  _res[0].name = "rotation";
+  Result& rotation_result = results_.emplace_back();
+  rotation_result.vals.resize(NAntennas() * NChannelBlocks());
+  rotation_result.weights.resize(NAntennas() * NChannelBlocks());
+  rotation_result.axes = "ant,dir,freq";
+  rotation_result.dims.resize(3);
+  rotation_result.dims[0] = NAntennas();
+  rotation_result.dims[1] = NDirections();
+  rotation_result.dims[2] = NChannelBlocks();
+  rotation_result.name = "rotation";
 
-  _res[1].vals.resize(NAntennas() * NChannelBlocks() * 2);
-  _res[1].weights.resize(NAntennas() * NChannelBlocks() * 2);
-  _res[1].axes = "ant,dir,freq,pol";
-  _res[1].dims.resize(4);
-  _res[1].dims[0] = NAntennas();
-  _res[1].dims[1] = NDirections();
-  _res[1].dims[2] = NChannelBlocks();
-  _res[1].dims[3] = 2;
-  _res[1].name = "amplitude";
+  const bool is_scalar = diagonal_solution_type_ == CalType::kScalar ||
+                         diagonal_solution_type_ == CalType::kScalarAmplitude ||
+                         diagonal_solution_type_ == CalType::kScalarPhase;
+  const size_t n_diagonal_parameters = is_scalar ? 1 : 2;
+  Result template_result;
+  template_result.vals.resize(NAntennas() * NChannelBlocks() *
+                              n_diagonal_parameters);
+  template_result.weights.resize(NAntennas() * NChannelBlocks() *
+                                 n_diagonal_parameters);
+  if (n_diagonal_parameters != 1) {
+    template_result.axes = "ant,dir,freq,pol";
+    template_result.dims.resize(4);
+    template_result.dims[3] = n_diagonal_parameters;
+  } else {
+    template_result.axes = "ant,dir,freq";
+    template_result.dims.resize(3);
+  }
+  template_result.dims[0] = NAntennas();
+  template_result.dims[1] = NDirections();
+  template_result.dims[2] = NChannelBlocks();
 
-  _res[2] = _res[1];
-  _res[2].name = "phase";
+  const bool has_amplitude =
+      diagonal_solution_type_ == CalType::kDiagonal ||
+      diagonal_solution_type_ == CalType::kDiagonalAmplitude ||
+      diagonal_solution_type_ == CalType::kScalar ||
+      diagonal_solution_type_ == CalType::kScalarAmplitude;
+  if (has_amplitude) {
+    Result& amplitude_result = results_.emplace_back();
+    amplitude_result = template_result;
+    amplitude_result.name = "amplitude";
+  }
+
+  const bool has_phase = diagonal_solution_type_ == CalType::kDiagonal ||
+                         diagonal_solution_type_ == CalType::kDiagonalPhase ||
+                         diagonal_solution_type_ == CalType::kScalar ||
+                         diagonal_solution_type_ == CalType::kScalarPhase;
+  if (has_phase) {
+    Result& phase_result = results_.emplace_back();
+    // The template is no longer necessary, so use its allocation (by moving)
+    phase_result = std::move(template_result);
+    phase_result.name = "phase";
+  }
 }
 
 void RotationAndDiagonalConstraint::SetWeights(
     const std::vector<double>& weights) {
   // weights is nAntennas * nChannelBlocks
-  _res[0].weights = weights;  // TODO should be nInterval times
+  results_[0].weights = weights;  // TODO should be nInterval times
 
-  // Duplicate weights for two polarizations
-  _res[1].weights.resize(weights.size() * 2);
-  size_t indexInWeights = 0;
+  // Duplicate weights for one or two polarizations
+  const size_t n_polarizations = GetNPolarizations(diagonal_solution_type_);
+  results_[1].weights.resize(weights.size() * n_polarizations);
+  size_t index_in_weights = 0;
   for (double weight : weights) {
-    _res[1].weights[indexInWeights] = weight;  // TODO directions / intervals!
-    _res[1].weights[indexInWeights + 1] = weight;
-    indexInWeights += 2;
+    for (size_t p = 0; p != n_polarizations; ++p) {
+      results_[1].weights[index_in_weights + p] =
+          weight;  // TODO directions / intervals!
+    }
+    index_in_weights += n_polarizations;
   }
 
-  _res[2].weights = _res[1].weights;  // TODO directions / intervals!
+  if (results_.size() > 2)
+    results_[2].weights = results_[1].weights;  // TODO directions / intervals!
 }
 
 void RotationAndDiagonalConstraint::SetDoRotationReference(
     const bool doRotationReference) {
-  _doRotationReference = doRotationReference;
+  do_rotation_reference_ = doRotationReference;
+}
+
+void RotationAndDiagonalConstraint::FitRotationAndDiagonal(
+    const std::complex<double>* data, double& angle,
+    std::array<std::complex<double>, 2>& diagonal) const {
+  // Compute rotation
+  angle = RotationConstraint::FitRotation(data);
+  // Restrict angle between -pi/2 and pi/2
+  // Add 2pi to make sure that fmod doesn't see negative numbers
+  angle = std::fmod(angle + 3.5 * M_PI, M_PI) - 0.5 * M_PI;
+
+  // Right multiply solution with inverse rotation,
+  // save only the diagonal
+  // Use sin(-phi) == -sin(phi)
+  diagonal[0] = data[0] * std::cos(angle) - data[1] * std::sin(angle);
+  diagonal[1] = data[3] * std::cos(angle) + data[2] * std::sin(angle);
+}
+
+template <size_t PolCount>
+void RotationAndDiagonalConstraint::SetChannelWeights(
+    std::vector<double>& values, size_t channel, double new_value) const {
+  for (size_t antenna = 0; antenna != NAntennas(); ++antenna) {
+    for (size_t p = 0; p != PolCount; ++p) {
+      values[(antenna * NChannelBlocks() + channel) * PolCount + p] = new_value;
+    }
+  }
 }
 
 std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
@@ -88,8 +259,8 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
   for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
     // First iterate over all antennas to find mean amplitudes, needed for
     // maxratio constraint below
-    double amean = 0.0;
-    double bmean = 0.0;
+    double a_mean = 0.0;
+    double b_mean = 0.0;
     for (size_t ant = 0; ant < NAntennas(); ++ant) {
       std::complex<double>* data = &(solutions(ch, ant, 0, 0));
 
@@ -98,31 +269,21 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         continue;
       }
 
-      // Compute rotation
-      double angle = RotationConstraint::GetRotation(data);
-      // Restrict angle between -pi/2 and pi/2
-      // Add 2pi to make sure that fmod doesn't see negative numbers
-      angle = std::fmod(angle + 3.5 * M_PI, M_PI) - 0.5 * M_PI;
+      double angle;
+      std::array<std::complex<double>, 2> diagonal;
+      FitRotationAndDiagonal(data, angle, diagonal);
 
-      // Right multiply solution with inverse rotation,
-      // save only the diagonal
-      // Use sin(-phi) == -sin(phi)
-      std::complex<double> a =
-          data[0] * std::cos(angle) - data[1] * std::sin(angle);
-      std::complex<double> b =
-          data[3] * std::cos(angle) + data[2] * std::sin(angle);
-
-      double absa = std::abs(a);
-      if (isfinite(absa)) {
-        amean += absa;
+      const double abs_a = std::abs(diagonal[0]);
+      if (std::isfinite(abs_a)) {
+        a_mean += abs_a;
       }
-      double absb = std::abs(b);
-      if (isfinite(absb)) {
-        bmean += absb;
+      const double abs_b = std::abs(diagonal[1]);
+      if (std::isfinite(abs_b)) {
+        b_mean += abs_b;
       }
     }
-    amean /= NAntennas();
-    bmean /= NAntennas();
+    a_mean /= NAntennas();
+    b_mean /= NAntennas();
 
     // Now iterate again to do the actual constraining
     bool diverged = false;
@@ -134,49 +295,22 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         continue;
       }
 
-      // Compute rotation
-      double angle = RotationConstraint::GetRotation(data);
-
-      // Restrict angle between -pi/2 and pi/2
-      // Add 2pi to make sure that fmod doesn't see negative numbers
-      angle = std::fmod(angle + 3.5 * M_PI, M_PI) - 0.5 * M_PI;
-
-      // Right multiply solution with inverse rotation,
-      // save only the diagonal
-      // Use sin(-phi) == -sin(phi)
-      std::complex<double> a =
-          data[0] * std::cos(angle) - data[1] * std::sin(angle);
-      std::complex<double> b =
-          data[3] * std::cos(angle) + data[2] * std::sin(angle);
+      double angle;
+      std::array<std::complex<double>, 2> diagonal;
+      FitRotationAndDiagonal(data, angle, diagonal);
 
       // Constrain amplitudes to 1/maxratio < amp < maxratio
       double maxratio = 5.0;
-      if (amean > 0.0) {
-        if (std::abs(a) / amean < 1.0 / maxratio ||
-            std::abs(a) / amean > maxratio) {
-          diverged = true;
-        }
-        do {
-          a *= 1.2;
-        } while (std::abs(a) / amean < 1.0 / maxratio);
-        do {
-          a /= 1.2;
-        } while (std::abs(a) / amean > maxratio);
+      if (a_mean > 0.0 && Limit(diagonal[0], a_mean, maxratio)) {
+        diverged = true;
       }
-      if (bmean > 0.0) {
-        if (std::abs(b) / bmean < 1.0 / maxratio ||
-            std::abs(b) / bmean > maxratio) {
-          diverged = true;
-        }
-        do {
-          b *= 1.2;
-        } while (std::abs(b) / bmean < 1.0 / maxratio);
-        do {
-          b /= 1.2;
-        } while (std::abs(b) / bmean > maxratio);
+      if (b_mean > 0.0 && Limit(diagonal[1], a_mean, maxratio)) {
+        diverged = true;
       }
 
-      if (_doRotationReference) {
+      ConstrainDiagonal(diagonal, diagonal_solution_type_);
+
+      if (do_rotation_reference_) {
         // Use the first station with a non-NaN angle as reference station
         // (for every chanblock), to work around unitary ambiguity
         if (std::isnan(angle0)) {
@@ -188,33 +322,31 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         }
       }
 
-      _res[0].vals[ant * NChannelBlocks() + ch] = angle;  // TODO directions!
-      _res[1].vals[ant * NChannelBlocks() * 2 + 2 * ch] = std::abs(a);
-      _res[1].vals[ant * NChannelBlocks() * 2 + 2 * ch + 1] = std::abs(b);
-      _res[2].vals[ant * NChannelBlocks() * 2 + 2 * ch] = std::arg(a);
-      _res[2].vals[ant * NChannelBlocks() * 2 + 2 * ch + 1] = std::arg(b);
+      results_[0].vals[ant * NChannelBlocks() + ch] =
+          angle;  // TODO directions!
+      StoreDiagonal(diagonal, ant, ch);
 
       // Do the actual constraining
-      data[0] = a * std::cos(angle);
-      data[1] = -a * std::sin(angle);
-      data[2] = b * std::sin(angle);
-      data[3] = b * std::cos(angle);
+      data[0] = diagonal[0] * std::cos(angle);
+      data[1] = -diagonal[0] * std::sin(angle);
+      data[2] = diagonal[1] * std::sin(angle);
+      data[3] = diagonal[1] * std::cos(angle);
     }
 
     // If the maxratio constraint above was enforced for any antenna, set
     // weights of all antennas to a negative value for flagging later if desired
     if (diverged) {
-      for (size_t ant = 0; ant < NAntennas(); ++ant) {
-        _res[0].weights[ant * NChannelBlocks() + ch] = -1.0;
-        _res[1].weights[ant * NChannelBlocks() * 2 + 2 * ch] = -1.0;
-        _res[1].weights[ant * NChannelBlocks() * 2 + 2 * ch + 1] = -1.0;
-        _res[2].weights[ant * NChannelBlocks() * 2 + 2 * ch] = -1.0;
-        _res[2].weights[ant * NChannelBlocks() * 2 + 2 * ch + 1] = -1.0;
+      SetChannelWeights<1>(results_[0].weights, ch, -1.0);
+      for (size_t i = 1; i != results_.size(); ++i) {
+        if (GetNPolarizations(diagonal_solution_type_) == 1)
+          SetChannelWeights<1>(results_[i].weights, ch, -1.0);
+        else
+          SetChannelWeights<2>(results_[i].weights, ch, -1.0);
       }
     }
   }
 
-  return _res;
+  return results_;
 }
 
 }  // namespace ddecal

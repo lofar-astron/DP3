@@ -194,6 +194,17 @@ inputs:
       If the first antenna has no valid data, the second antenna will be the
       reference antenna, and so on.
       This setting is only effective when ``mode=rotation+diagonal`` `.`
+  rotationdiagonalmode:
+    default: diagonal
+    type: string
+    doc: >-
+      In rotation+diagonal mode, this parameter specifies how to constrain the
+      diagonal. Options are: diagonal, diagonalamplitude, diagonalphase,
+      scalar, scalaramplitude, scalarphase. If for example 'scalar' is selected,
+      a rotation is fitted together with a (complex) scalar value, i.e.,
+      a diagonal with two equal complex values. This choice affects the structure
+      of the h5parm file: e.g. in scalar mode, the amplitude and phase tables
+      will not have a "pol" (polarization) dimension.
   grouppredict:
     default: false
     type: bool

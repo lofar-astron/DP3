@@ -213,7 +213,8 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       break;
 #endif
     case base::CalType::kRotationAndDiagonal: {
-      auto constraint = std::make_unique<RotationAndDiagonalConstraint>();
+      auto constraint = std::make_unique<RotationAndDiagonalConstraint>(
+          settings.rotation_diagonal_mode);
       constraint->SetDoRotationReference(settings.rotation_reference);
       solver.AddConstraint(std::move(constraint));
       break;
