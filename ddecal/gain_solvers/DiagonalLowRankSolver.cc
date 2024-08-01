@@ -12,6 +12,28 @@
 
 using aocommon::MC2x2F;
 
+namespace {
+
+void AddToCorrelation(std::complex<float>& correlation_element,
+                      float& variance_element, float& divisor_element,
+                      const std::complex<float>& data, float weight,
+                      const std::complex<float>& model) {
+  if (std::isfinite(data.real()) && std::isfinite(data.imag())) {
+    const std::complex<float> division = data / model;
+    // VAR(division) = VAR(data / model) = VAR(data) / model^2
+    const float inv_divisor_variance = std::norm(model);
+    // Perform inverse-variance weighting, hence multiply with 1/model^2
+    correlation_element += weight * inv_divisor_variance * division;
+    // VAR(weight * division / model^2) = VAR(data) * weight^2 / norm(model)^2 *
+    // norm(model)^2
+    variance_element +=
+        weight * weight * inv_divisor_variance * inv_divisor_variance;
+    divisor_element += weight * inv_divisor_variance;
+  }
+}
+
+}  // namespace
+
 namespace dp3::ddecal {
 
 float DominantEigenPair(const xt::xtensor<std::complex<float>, 2>& matrix,
@@ -224,24 +246,6 @@ void DiagonalLowRankSolver::PerformIteration(
       DiagonalAddOrSubtractDirection<false>(cb_data, v_residual, direction,
                                             NSolutions(), new_solutions);
     }
-  }
-}
-
-void AddToCorrelation(std::complex<float>& correlation_element,
-                      float& variance_element, float& divisor_element,
-                      const std::complex<float>& data, float weight,
-                      const std::complex<float>& model) {
-  if (std::isfinite(data.real()) && std::isfinite(data.imag())) {
-    const std::complex<float> division = data / model;
-    // VAR(division) = VAR(data / model) = VAR(data) / model^2
-    const float inv_divisor_variance = std::norm(model);
-    // Perform inverse-variance weighting, hence multiply with 1/model^2
-    correlation_element += weight * inv_divisor_variance * division;
-    // VAR(weight * division / model^2) = VAR(data) * weight^2 / norm(model)^2 *
-    // norm(model)^2
-    variance_element +=
-        weight * weight * inv_divisor_variance * inv_divisor_variance;
-    divisor_element += weight * inv_divisor_variance;
   }
 }
 
