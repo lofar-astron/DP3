@@ -297,6 +297,21 @@ void SolveData<MatrixType>::CountAntennaVisibilities(size_t n_antennas) {
   }
 }
 
+template <typename MatrixType>
+size_t SolveData<MatrixType>::ChannelBlockData::NSolutionVisibilities(
+    size_t direction_index, uint32_t solution_index) const {
+  size_t count = 0;
+  // Iterate over all data indices.
+  for (size_t vis_index = 0; vis_index != data_.size(); ++vis_index) {
+    const uint32_t vis_solution_index =
+        SolutionIndex(direction_index, vis_index);
+    if (vis_solution_index == solution_index) {
+      ++count;
+    }
+  }
+  return count;
+}
+
 template class SolveData<std::complex<float>>;
 template class SolveData<aocommon::MC2x2F>;
 template class SolveData<aocommon::MC2x2FDiag>;

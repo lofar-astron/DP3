@@ -58,18 +58,19 @@ void FillBdaBuffer(BDABuffer& buffer, size_t avg_channels, size_t all_channels,
 
   for (size_t time_index = 0; time_index != 2; ++time_index) {
     const double row_time = 2.0 * time_index * unit_interval;
-    // Add averaged rows for baselines 0 and 2.
+    // Add averaged rows for baselines 0 (cross-correlation 0 x 1)
     FillRandomData(data, avg_channels * kNPolarizations);
     BOOST_REQUIRE(buffer.AddRow(
         row_time + unit_interval, unit_interval * 2.0, unit_interval * 2.0, 0,
         avg_channels, kNPolarizations, data.data(), nullptr, weights.data()));
 
+    // Add averaged rows for baselines 2 (auto-correlation 0 x 0)
     FillRandomData(data, avg_channels * kNPolarizations);
     BOOST_REQUIRE(buffer.AddRow(
         row_time + unit_interval, unit_interval * 2.0, unit_interval * 2.0, 2,
         avg_channels, kNPolarizations, data.data(), nullptr, weights.data()));
 
-    // Add non-averaged rows for baseline 1.
+    // Add non-averaged rows for baseline 1 (cross-correlation 0 x 2)
     for (int j = 0; j < 2; ++j) {
       FillRandomData(data, all_channels * kNPolarizations);
       BOOST_REQUIRE(buffer.AddRow(
@@ -162,6 +163,9 @@ BOOST_AUTO_TEST_CASE(regular) {
             cb_data.ModelVisibility(direction, v);
 
         BOOST_TEST(cb_data.SolutionIndex(direction, v) == direction);
+        BOOST_TEST(cb_data.NSolutionVisibilities(direction, 0) ==
+                   kNTimes * kNSolveDataBaselines *
+                       kExpectedChannelBlockSizes[ch_block]);
 
         for (size_t pol = 0; pol < kNPolarizations; ++pol) {
           BOOST_TEST(expected_model_data[pol] == model_data[pol]);
@@ -228,6 +232,15 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
     BOOST_TEST(cb_data.SolutionIndex(0, 0) == 0);
     BOOST_TEST(cb_data.SolutionIndex(1, 0) == 1);
     BOOST_TEST(cb_data.SolutionIndex(1, cb_data.NVisibilities() - 1) == 2);
+    BOOST_TEST(cb_data.NSolutionVisibilities(0, 0) ==
+               kNTimes * kNSolveDataBaselines *
+                   kExpectedChannelBlockSizes[ch_block]);
+    BOOST_TEST(cb_data.NSolutionVisibilities(1, 1) ==
+               kNTimes * kNSolveDataBaselines *
+                   kExpectedChannelBlockSizes[ch_block] / 2);
+    BOOST_TEST(cb_data.NSolutionVisibilities(1, 2) ==
+               kNTimes * kNSolveDataBaselines *
+                   kExpectedChannelBlockSizes[ch_block] / 2);
     for (size_t v = 1; v < cb_data.NVisibilities(); ++v) {
       BOOST_TEST(cb_data.SolutionIndex(0, v) == 0);
       BOOST_TEST(cb_data.SolutionIndex(1, v) >=
@@ -253,6 +266,7 @@ BOOST_AUTO_TEST_CASE(bda) {
   const double kUnitTimeInterval = 2.0;
   const double kSolverInterval = kUnitTimeInterval * 4;
 
+  // Number of visibilities for a baseline in one row
   // Outer index: channel block index; inner index: baseline index.
   const std::vector<std::vector<size_t>> kNVisibilitiesPerBaseline{{2, 3},
                                                                    {2, 4}};
@@ -287,6 +301,28 @@ BOOST_AUTO_TEST_CASE(bda) {
                                           kNAntennas, solutions_per_direction,
                                           kAntennas1, kAntennas2, true);
   BOOST_TEST_REQUIRE(solve_data.NChannelBlocks() == kNChannelBlocks);
+
+  // There should be two baselines:
+  // - A baseline with 4 visibilities per row, of which 2 in channelblock 0.
+  //   This baseline has 2 timesteps, which yields 4 visibilities in total.
+  // - A baseline with 7 visibilities per row, of which 3 in channelblock 0.
+  //   This baseline has 4 timesteps, which yields 12 visibilities in total.
+  // Hence, we expect 16 visibilities:
+  BOOST_TEST(solve_data.ChannelBlock(0).NSolutionVisibilities(0, 0) == 16);
+  // Same as for solution 0, but this interval was split in two (see
+  // solutions_per_direction):
+  BOOST_TEST(solve_data.ChannelBlock(0).NSolutionVisibilities(1, 1) == 8);
+  BOOST_TEST(solve_data.ChannelBlock(0).NSolutionVisibilities(1, 2) == 8);
+
+  // There should be two baselines:
+  // - Baseline 0 has 4 visibilities per row, of which 2 in channelblock 1.
+  //   This baseline has 2 timesteps, which yields 4 visibilities in total.
+  // - Baseline 1 has 7 visibilities per row, of which 4 in channelblock 1.
+  //   This baseline has 4 timesteps, which yields 16 visibilities in total.
+  // Hence, we expect 20 visibilities in a full interval.
+  BOOST_TEST(solve_data.ChannelBlock(1).NSolutionVisibilities(0, 0) == 20);
+  BOOST_TEST(solve_data.ChannelBlock(1).NSolutionVisibilities(1, 1) == 10);
+  BOOST_TEST(solve_data.ChannelBlock(1).NSolutionVisibilities(1, 2) == 10);
 
   for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {
     const ChannelBlockData& cb_data = solve_data.ChannelBlock(ch_block);

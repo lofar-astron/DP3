@@ -43,12 +43,24 @@ class SolveData {
     }
     size_t NDirections() const { return model_data_.shape(0); }
     size_t NVisibilities() const { return data_.size(); }
-    /***
+    /**
      * The number of visibilities in which a given antenna participates.
      */
     size_t NAntennaVisibilities(size_t antenna_index) const {
       return antenna_visibility_counts_[antenna_index];
     }
+    /**
+     * The number of visibilities in which a given solution participates.
+     * This is thus the number of visibilities for one direction and
+     * (within that direction) one solution interval, which in the case
+     * of regular data means it is the number of channels times the
+     * number of baselines times the number of timesteps within the
+     * given solution interval. The solution_index should refer to a
+     * solution interval that is inside the given direction.
+     */
+    size_t NSolutionVisibilities(size_t direction_index,
+                                 uint32_t solution_index) const;
+
     uint32_t Antenna1Index(size_t visibility_index) const {
       return antenna_indices_[visibility_index].first;
     }
@@ -97,7 +109,9 @@ class SolveData {
     // model_data_(d, i) is the model data for direction d, element i
     xt::xtensor<MatrixType, 2> model_data_;
     // Element i contains the first and second antenna corresponding with
-    // data_[i] and model_data_(d, i)
+    // data_[i] and model_data_(d, i). Using uint32_t instead of size_t reduces
+    // memory usage and improves cache/memory performance (same holds for
+    // n_solutions_ and solution_map_).
     std::vector<std::pair<uint32_t, uint32_t>> antenna_indices_;
     std::vector<size_t> antenna_visibility_counts_;
     /// number of solutions, indexed by direction
