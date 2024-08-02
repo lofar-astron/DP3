@@ -276,6 +276,14 @@ class DPInfo {
     return polarizations_;
   }
 
+  const std::map<std::string, Direction>& GetDirections() const {
+    return extra_directions_;
+  }
+
+  std::map<std::string, Direction>& GetDirections() {
+    return extra_directions_;
+  }
+
  private:
   /// Set which antennae are actually used.
   void setAntUsed();
@@ -308,6 +316,7 @@ class DPInfo {
   casacore::MDirection phase_center_;
   casacore::MDirection delay_center_;
   casacore::MDirection tile_beam_direction_;
+  std::map<std::string, Direction> extra_directions_;
   /// Correction mode for EveryBeam. Since DPInfo is part of the public DP3
   /// interface, using an integer avoids a public dependency on EveryBeam.
   int beam_correction_mode_;

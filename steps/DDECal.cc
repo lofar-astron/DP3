@@ -300,9 +300,22 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
 
   itsSourceDirections.reserve(itsSteps.size());
-  for (const std::shared_ptr<ModelDataStep>& s : itsSteps) {
-    itsSourceDirections.push_back(s ? s->GetFirstDirection()
-                                    : getInfo().phaseCenterDirection());
+  const std::map<std::string, dp3::base::Direction>& directions =
+      getInfo().GetDirections();
+  for (unsigned int i = 0; i < itsSteps.size(); ++i) {
+    const std::shared_ptr<ModelDataStep>& step = itsSteps[i];
+    base::Direction direction = getInfo().phaseCenterDirection();
+
+    if (step) {
+      direction = step->GetFirstDirection();
+    } else {
+      auto search_result = directions.find(itsDirectionNames[i]);
+      if (search_result != directions.end()) {
+        direction = search_result->second;
+      }
+    }
+
+    itsSourceDirections.push_back(direction);
   }
 
   // Prepare positions and names for the used antennas only.
