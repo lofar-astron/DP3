@@ -11,10 +11,10 @@ Script can be invoked in two ways:
 - using ctest, see pythondp3/test/integration/CMakeLists.txt
 """
 
-import numpy as np
-
 # Append current directory to system path in order to import testconfig
 import sys
+
+import numpy as np
 
 sys.path.append(".")
 

@@ -1,17 +1,18 @@
 # Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
 import os
 import re
-from subprocess import check_call, check_output
-from casacore.tables import table
-import numpy as np
-from numpy.testing import assert_almost_equal
 import struct
 
 # Append current directory to system path in order to import testconfig
 import sys
+from subprocess import check_call, check_output
+
+import numpy as np
+import pytest
+from casacore.tables import table
+from numpy.testing import assert_almost_equal
 
 sys.path.append(".")
 

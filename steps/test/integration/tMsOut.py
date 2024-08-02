@@ -1,13 +1,14 @@
 # Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
 import os
 import re
-from subprocess import check_call
 
 # Append current directory to system path in order to import testconfig
 import sys
+from subprocess import check_call
+
+import pytest
 
 sys.path.append(".")
 

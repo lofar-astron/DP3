@@ -1,9 +1,9 @@
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from . import parameterset
-from . import pydp3
 import numpy as np
+
+from . import parameterset, pydp3
 
 """
     DP3 Python interface
@@ -62,13 +62,15 @@ import numpy as np
 # these imports need to be replaced by wrappers that check inputs and provide other
 # conveniences for Python users.
 
-from .pydp3 import DPInfo
-from .pydp3 import MsType
-from .pydp3 import DPBuffer
-from .pydp3 import Fields
-from .pydp3 import get_chain_required_fields
-from .pydp3 import get_n_threads
-from .pydp3 import set_n_threads
+from .pydp3 import (
+    DPBuffer,
+    DPInfo,
+    Fields,
+    MsType,
+    get_chain_required_fields,
+    get_n_threads,
+    set_n_threads,
+)
 
 
 class Step(pydp3.Step):

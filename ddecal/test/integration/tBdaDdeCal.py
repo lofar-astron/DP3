@@ -1,12 +1,12 @@
 # Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
-import numpy as np
-from subprocess import check_call, check_output, run, CalledProcessError
-
 # Append current directory to system path in order to import testconfig
 import sys
+from subprocess import CalledProcessError, check_call, check_output, run
+
+import numpy as np
+import pytest
 
 sys.path.append(".")
 

@@ -3,6 +3,7 @@
 
 # Append current directory to system path in order to import testconfig
 import sys
+
 import numpy as np
 import pytest
 

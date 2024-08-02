@@ -1,8 +1,9 @@
 # Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
 from subprocess import check_call, check_output
+
+import pytest
 
 """ Append current directory to system path in order to import testconfig """
 import sys
