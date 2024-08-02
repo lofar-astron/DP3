@@ -7,7 +7,6 @@ import sys
 import time
 import xml.dom.minidom
 
-
 if sys.version_info[0] < 3:
     b2s = lambda s: s
 else:

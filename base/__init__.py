@@ -8,9 +8,9 @@
 
 """ Module to plot NDPPP count results. """
 
-import pyrap.tables as pt
 import numpy
 import pylab
+import pyrap.tables as pt
 
 
 def plotflags(tabnames):

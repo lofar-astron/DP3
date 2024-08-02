@@ -3,10 +3,10 @@
 
 # queue.py: simple python step, which puts the data it receives in a queue
 
-from dp3 import parameterset
-from dp3 import Step, Fields
-import numpy as np
 import queue
+
+import numpy as np
+from dp3 import Fields, Step, parameterset
 
 
 class QueueOutput(Step):

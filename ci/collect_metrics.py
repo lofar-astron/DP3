@@ -1,14 +1,13 @@
 # Retrieved from https://gitlab.com/ska-telescope/ci-metrics-utilities/
 
 """Script to collect and parse CI metrics."""
-import sys
-import os
-import urllib.request
 import json
 import logging
+import os
+import sys
+import urllib.request
 import xml.etree.ElementTree as etree
 from datetime import datetime
-
 
 LOGGER_NAME = "ci-metrics"
 

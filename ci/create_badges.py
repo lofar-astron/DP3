@@ -1,8 +1,9 @@
 # Retrieved from https://gitlab.com/ska-telescope/ci-metrics-utilities/
 """Create badges for GitLab metric collection."""
-import sys
 import json
+import sys
 from datetime import datetime
+
 import anybadge
 
 

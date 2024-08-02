@@ -1,6 +1,7 @@
-import pytest
 import sys
 from subprocess import check_call, check_output
+
+import pytest
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")

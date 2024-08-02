@@ -3,9 +3,10 @@
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
+
 from astropy.io import fits
 from astropy.wcs import WCS
-import os
 
 os.system("rm dummy-image.fits dummy-dirty.fits")
 # -channel-range 0 1 ensures the reference frequency is from the first channel.

@@ -11,8 +11,9 @@ This script can be invoked in two ways:
 """
 
 import math
-import pytest
 import sys
+
+import pytest
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")

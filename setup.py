@@ -10,8 +10,8 @@ import re
 import shutil
 import subprocess
 import sys
-
 from glob import glob
+
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
 

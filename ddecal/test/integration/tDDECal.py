@@ -1,18 +1,18 @@
 # Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import pytest
-from subprocess import check_call, check_output, CalledProcessError, STDOUT
-import numpy as np
-
 # Append current directory to system path in order to import testconfig
 import sys
+from subprocess import STDOUT, CalledProcessError, check_call, check_output
+
+import numpy as np
+import pytest
 
 sys.path.append(".")
 
 import testconfig as tcf
 from testconfig import TAQLEXE
-from utils import assert_taql, run_in_tmp_path, untar, get_taql_result
+from utils import assert_taql, get_taql_result, run_in_tmp_path, untar
 
 """
 Script can be invoked in two ways:
