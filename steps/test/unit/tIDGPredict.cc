@@ -132,26 +132,24 @@ BOOST_AUTO_TEST_SUITE(
     idgpredict, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(0.000001)) {
-  std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<float>>>
-      readers = IDGPredict::GetReaders({"sources-model.fits"});
+  const std::vector<aocommon::FitsReader> readers =
+      IDGPredict::GetReaders({"sources-model.fits"});
 
-  BOOST_TEST(readers.first.size() == 1u);
-  BOOST_TEST(readers.first[0].PhaseCentreRA() == 0.426245723);
-  BOOST_TEST(readers.first[0].PhaseCentreDec() == 0.578746973);
-  BOOST_TEST(readers.first[0].ImageWidth() == 512u);
-  BOOST_TEST(readers.first[0].ImageHeight() == 512u);
-  BOOST_TEST(readers.first[0].PixelSizeX() == 0.000174533);
-  BOOST_TEST(readers.first[0].PixelSizeY() == 0.000174533);
+  BOOST_TEST(readers.size() == 1u);
+  BOOST_TEST(readers[0].PhaseCentreRA() == 0.426245723);
+  BOOST_TEST(readers[0].PhaseCentreDec() == 0.578746973);
+  BOOST_TEST(readers[0].ImageWidth() == 512u);
+  BOOST_TEST(readers[0].ImageHeight() == 512u);
+  BOOST_TEST(readers[0].PixelSizeX() == 0.000174533);
+  BOOST_TEST(readers[0].PixelSizeY() == 0.000174533);
 }
 
 BOOST_AUTO_TEST_CASE(getfacets, *boost::unit_test::tolerance(1e-6)) {
-  std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<float>>>
-      readers = IDGPredict::GetReaders({"sources-model.fits"});
+  const std::vector<aocommon::FitsReader> readers =
+      IDGPredict::GetReaders({"sources-model.fits"});
 
-  std::vector<Facet> facets =
-      IDGPredict::GetFacets("sources.reg", readers.first.front());
+  const std::vector<Facet> facets =
+      IDGPredict::GetFacets("sources.reg", readers.front());
 
   BOOST_TEST(facets.size() == 4u);
   BOOST_TEST(facets[0].RA() == 0.3877368);
@@ -184,12 +182,11 @@ BOOST_AUTO_TEST_CASE(getfacets, *boost::unit_test::tolerance(1e-6)) {
 
 BOOST_AUTO_TEST_CASE(constructor) {
   dp3::common::ParameterSet parset;
-  std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<float>>>
-      readers = IDGPredict::GetReaders({"sources-model.fits"});
+  const std::vector<aocommon::FitsReader> readers =
+      IDGPredict::GetReaders({"sources-model.fits"});
 
   std::vector<Facet> facets =
-      IDGPredict::GetFacets("sources.reg", readers.first.front());
+      IDGPredict::GetFacets("sources.reg", readers.front());
 
   IDGPredict predict(parset, "", readers, std::move(facets));
   predict.SetBufferSize(42);
@@ -288,11 +285,10 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
   parset.add("aterms", "beam");
   parset.add("beam.element_response_model", "hamaker");
 
-  std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<float>>>
-      fitsreaders = IDGPredict::GetReaders({"sources-model.fits"});
+  const std::vector<aocommon::FitsReader> fits_readers =
+      IDGPredict::GetReaders({"sources-model.fits"});
   std::vector<Facet> facets =
-      IDGPredict::GetFacets("sources.reg", fitsreaders.first.front());
+      IDGPredict::GetFacets("sources.reg", fits_readers.front());
 
   // Set RA and Dec pointing attached to the facets to 0, since kExpectedData
   // was generated for these facet pointings - rather than the facet centroids.
@@ -305,7 +301,7 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
   // Everybeam::Load when using aterms. MockInput does not suffice.
   std::shared_ptr<InputStep> reader = InputStep::CreateReader(parset);
   auto predict =
-      std::make_shared<IDGPredict>(parset, "", fitsreaders, std::move(facets));
+      std::make_shared<IDGPredict>(parset, "", fits_readers, std::move(facets));
   predict->SetBufferSize(kTimeSteps);
   auto result_step = std::make_shared<MultiResultStep>(kTimeSteps);
 

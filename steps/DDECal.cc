@@ -129,10 +129,10 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
     return;
   }
 
-  std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
-      readers = IDGPredict::GetReaders(itsSettings.idg_image_filenames);
-  std::vector<Facet> facets = IDGPredict::GetFacets(
-      itsSettings.idg_region_filename, readers.first.front());
+  const std::vector<FitsReader> readers =
+      IDGPredict::GetReaders(itsSettings.idg_image_filenames);
+  std::vector<Facet> facets =
+      IDGPredict::GetFacets(itsSettings.idg_region_filename, readers.front());
 
   for (size_t i = 0; i < facets.size(); ++i) {
     std::string facet_dir_label = facets[i].DirectionLabel();

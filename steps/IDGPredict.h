@@ -35,9 +35,7 @@ namespace steps {
 class IDGPredict : public ModelDataStep {
  public:
   IDGPredict(const common::ParameterSet& parset, const std::string& prefix,
-             std::pair<std::vector<aocommon::FitsReader>,
-                       std::vector<aocommon::UVector<float>>>
-                 readers,
+             const std::vector<aocommon::FitsReader>& readers,
              std::vector<schaapcommon::facets::Facet>&& facets,
              const std::string& ds9_regions_file = "");
 
@@ -76,9 +74,8 @@ class IDGPredict : public ModelDataStep {
   size_t GetBufferSize() const;
 
   /// Read the fits files (nterms) for the idg prediction.
-  static std::pair<std::vector<aocommon::FitsReader>,
-                   std::vector<aocommon::UVector<float>>>
-  GetReaders(const std::vector<std::string>& fits_model_files);
+  static std::vector<aocommon::FitsReader> GetReaders(
+      const std::vector<std::string>& fits_model_files);
 
   /// Get the facets from a region file and create the image models with the
   /// given image size
@@ -94,6 +91,10 @@ class IDGPredict : public ModelDataStep {
 
 #ifdef HAVE_IDG
  private:
+  /// Reads the model image for each FitsReader in readers_.
+  /// @return A vector with the model image data for each image.
+  std::vector<aocommon::UVector<float>> GetModelImages();
+
   /// Initializes IDG buffersets for all directions and terms.
   void StartIDG();
 
