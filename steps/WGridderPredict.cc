@@ -6,6 +6,8 @@
 #include <aocommon/banddata.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/logger.h>
+#include <aocommon/threadpool.h>
+
 #include <aocommon/uvector.h>
 #include <aocommon/xt/utensor.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -32,6 +34,10 @@ using dp3::base::FlagCounter;
 
 using dp3::common::ParameterSet;
 
+namespace {
+size_t alignto4(size_t i) { return ((i + 3) / 4) * 4; }
+}  // namespace
+
 namespace dp3 {
 namespace steps {
 
@@ -43,25 +49,23 @@ WGridderPredict::WGridderPredict(const ParameterSet& parset,
                       std::vector<Facet>(),
                       parset.getString(prefix + "regions", "")) {}
 
-WGridderPredict::WGridderPredict(
-    const ParameterSet& parset, const std::string& prefix,
-    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
-        readers,
-    std::vector<Facet>&& facets, const std::string& ds9_regions_file)
+WGridderPredict::WGridderPredict(const ParameterSet& parset,
+                                 const std::string& prefix,
+                                 std::vector<FitsReader>&& readers,
+                                 std::vector<Facet>&& facets,
+                                 const std::string& ds9_regions_file)
     : name_(prefix),
       parset_(parset),
-      reference_frequency_(readers.first.front().Frequency()),
-      pixel_size_x_(readers.first.front().PixelSizeX()),
-      pixel_size_y_(readers.first.front().PixelSizeY()),
-      readers_(std::move(readers.first)),
+      reference_frequency_(readers.front().Frequency()),
+      pixel_size_x_(readers.front().PixelSizeX()),
+      pixel_size_y_(readers.front().PixelSizeY()),
+      readers_(std::move(readers)),
       buffer_size_(parset.getBool(prefix + "buffersize", 0)),
       timer_(),
       directions_(),
       direction_labels_(),
       save_facets_(parset.getBool(prefix + "savefacets", false)),
       sum_facets_(parset.getBool(prefix + "sumfacets", false)) {
-  const size_t full_width = readers_.front().ImageWidth();
-  const size_t full_height = readers_.front().ImageHeight();
   if (facets.empty()) {
     facets = GetFacets(ds9_regions_file, readers_.front());
   }
@@ -69,7 +73,7 @@ WGridderPredict::WGridderPredict(
   // entire image
 
   const size_t n_facets = facets.size();
-  const size_t n_terms = readers.second.size();
+  const size_t n_terms = readers_.size();
 
   if (facets.empty()) {
     throw std::runtime_error("No facet definitions found in " +
@@ -80,6 +84,12 @@ WGridderPredict::WGridderPredict(
   directions_.reserve(n_facets);
   direction_labels_.reserve(n_facets);
   images_.reserve(n_facets);
+
+  const std::vector<aocommon::Image> model_images = GetModelImages();
+  std::vector<const float*> model_pointers;
+  for (const aocommon::Image& model_image : model_images) {
+    model_pointers.push_back(model_image.Data());
+  }
 
   // Loop over facets to fill directions_, direction_labels_ and images_
   for (size_t facet_idx = 0; facet_idx < n_facets; facet_idx++) {
@@ -99,13 +109,17 @@ WGridderPredict::WGridderPredict(
       direction_labels_.emplace_back(name_ + "direction" +
                                      std::to_string(facet_idx));
     }
-    images_.emplace_back(full_width, full_height, n_terms);
+
+    const size_t padded_width = model_images.front().Width();
+    const size_t padded_height = model_images.front().Height();
+
+    images_.emplace_back(padded_width, padded_height, n_terms);
     FacetImage& image = images_.back();
 
     // The padding is 1.0, so the trimmed and untrimmed boxes are equal.
     const bool kTrimmed = true;
     image.SetFacet(facet, kTrimmed);
-    image.CopyToFacet(readers.second);
+    image.CopyToFacet(model_pointers);
     area += image.Width() * image.Height();
 
     if (save_facets_) {
@@ -128,8 +142,8 @@ WGridderPredict::WGridderPredict(
   aocommon::Logger::Info << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
 
-std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
-WGridderPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
+std::vector<FitsReader> WGridderPredict::GetReaders(
+    const std::vector<std::string>& fits_model_files) {
   if (fits_model_files.empty()) {
     throw std::runtime_error("No fits files specified for wgridder predict");
   }
@@ -137,36 +151,57 @@ WGridderPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
   readers.reserve(fits_model_files.size());
   for (const std::string& file : fits_model_files) readers.emplace_back(file);
 
-  const size_t full_width = readers.front().ImageWidth();
-  const size_t full_height = readers.front().ImageHeight();
-  const double pixel_size_x = readers.front().PixelSizeX();
-  const double pixel_size_y = readers.front().PixelSizeY();
+  return readers;
+}
 
-  std::vector<aocommon::UVector<float>> models(readers.size());
-  for (size_t img = 0; img != readers.size(); ++img) {
-    if (readers[img].ImageWidth() != full_width ||
-        readers[img].ImageHeight() != full_height)
+std::vector<aocommon::Image> WGridderPredict::GetModelImages() {
+  const size_t unpadded_width = readers_.front().ImageWidth();
+  const size_t unpadded_height = readers_.front().ImageHeight();
+
+  // Round width and height upwards to the nearest multiple of 4
+  // This Alignment is required by the faceting code in schaapcommon
+  const size_t padded_width = alignto4(unpadded_width);
+  const size_t padded_height = alignto4(unpadded_height);
+
+  const double pixel_size_x = readers_.front().PixelSizeX();
+  const double pixel_size_y = readers_.front().PixelSizeY();
+
+  std::vector<aocommon::Image> models(readers_.size());
+
+  for (size_t img = 0; img != readers_.size(); ++img) {
+    if (readers_[img].ImageWidth() != unpadded_width ||
+        readers_[img].ImageHeight() != unpadded_height)
       throw std::runtime_error("Image for spectral term " +
                                std::to_string(img) +
                                " has inconsistent dimensions");
-    if (readers[img].PixelSizeX() != pixel_size_x ||
-        readers[img].PixelSizeY() != pixel_size_y)
+    if (readers_[img].PixelSizeX() != pixel_size_x ||
+        readers_[img].PixelSizeY() != pixel_size_y)
       throw std::runtime_error("Pixel size of spectral term " +
                                std::to_string(img) +
                                " is inconsistent with first spectral term");
-    models[img].resize(full_width * full_height);
-    readers[img].Read(models[img].data());
+
+    if ((padded_width == unpadded_width) &&
+        (padded_height == unpadded_height)) {
+      models[img] = aocommon::Image(unpadded_width, unpadded_height);
+      readers_[img].Read(models[img].Data());
+    } else {
+      aocommon::Image image(unpadded_width, unpadded_height);
+      readers_[img].Read(image.Data());
+      // Untrim() makes a copy of the image.
+      // We could make an in-place version in aocommon::Image.
+      models[img] = image.Untrim(padded_width, padded_height);
+    }
   }
 
-  return std::make_pair(readers, models);
+  return models;
 }
 
 std::vector<Facet> WGridderPredict::GetFacets(
     const std::string& ds9_regions_file, const double ra, const double dec,
     const double pixel_size_x, const double pixel_size_y,
-    const size_t full_width, const size_t full_height) {
-  Facet::InitializationData facet_data(pixel_size_x, pixel_size_y, full_width,
-                                       full_height);
+    const size_t unpadded_width, const size_t unpadded_height) {
+  Facet::InitializationData facet_data(pixel_size_x, pixel_size_y,
+                                       unpadded_width, unpadded_height);
   facet_data.phase_centre = schaapcommon::facets::Coord(ra, dec);
   facet_data.align = 4;
   facet_data.make_square = false;
@@ -279,7 +314,7 @@ void WGridderPredict::Predict(
   // Concatenate uvw data from the dpbuffers into one uvw buffer
   xt::xtensor<double, 3> uvw{
       xt::xtensor<double, 3>::shape_type{n_timesteps, n_baselines, 3}};
-  for (int t = 0; t < n_timesteps; t++) {
+  for (size_t t = 0; t < n_timesteps; t++) {
     // wgridder expects an image that is transposed compared to fits images
     // that wsclean produces. To avoid an actual transpose of the images, the
     // u and v coordinates are swapped and the signs are changed.
@@ -313,7 +348,7 @@ void WGridderPredict::Predict(
   constexpr double sigma_max = 2.0;
   size_t width = images_[direction].Width();
   size_t height = images_[direction].Height();
-  size_t nthreads = 4;
+  size_t nthreads = aocommon::ThreadPool::GetInstance().NThreads();
   double epsilon = 1.0e-4;
   size_t verbosity = 0;
 

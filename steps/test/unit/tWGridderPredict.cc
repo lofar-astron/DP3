@@ -101,27 +101,24 @@ BOOST_AUTO_TEST_SUITE(
     *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 BOOST_AUTO_TEST_CASE(getreaders, *boost::unit_test::tolerance(1.0e-6)) {
-  const std::pair<std::vector<aocommon::FitsReader>,
-                  std::vector<aocommon::UVector<float>>>
-      readers = WGridderPredict::GetReaders({"sources-model.fits"});
+  const std::vector<aocommon::FitsReader> readers =
+      WGridderPredict::GetReaders({"sources-model.fits"});
 
-  BOOST_TEST_REQUIRE(readers.first.size() == 1u);
-  BOOST_TEST(readers.first[0].PhaseCentreRA() == 0.426245723);
-  BOOST_TEST(readers.first[0].PhaseCentreDec() == 0.578746973);
-  BOOST_TEST(readers.first[0].ImageWidth() == 512u);
-  BOOST_TEST(readers.first[0].ImageHeight() == 512u);
-  BOOST_TEST(readers.first[0].PixelSizeX() == 0.000174533);
-  BOOST_TEST(readers.first[0].PixelSizeY() == 0.000174533);
-  BOOST_TEST(readers.second[0].size() == 512u * 512u);
+  BOOST_TEST_REQUIRE(readers.size() == 1u);
+  BOOST_TEST(readers[0].PhaseCentreRA() == 0.426245723);
+  BOOST_TEST(readers[0].PhaseCentreDec() == 0.578746973);
+  BOOST_TEST(readers[0].ImageWidth() == 512u);
+  BOOST_TEST(readers[0].ImageHeight() == 512u);
+  BOOST_TEST(readers[0].PixelSizeX() == 0.000174533);
+  BOOST_TEST(readers[0].PixelSizeY() == 0.000174533);
 }
 
 BOOST_AUTO_TEST_CASE(getfacets, *boost::unit_test::tolerance(1.0e-6)) {
-  const std::pair<std::vector<aocommon::FitsReader>,
-                  std::vector<aocommon::UVector<float>>>
-      readers = WGridderPredict::GetReaders({"sources-model.fits"});
+  const std::vector<aocommon::FitsReader> readers =
+      WGridderPredict::GetReaders({"sources-model.fits"});
 
   std::vector<Facet> facets =
-      WGridderPredict::GetFacets("sources.reg", readers.first.front());
+      WGridderPredict::GetFacets("sources.reg", readers.front());
 
   BOOST_TEST_REQUIRE(facets.size() == 4u);
   BOOST_TEST(facets[0].RA() == 0.3877368);
@@ -154,14 +151,13 @@ BOOST_AUTO_TEST_CASE(getfacets, *boost::unit_test::tolerance(1.0e-6)) {
 
 BOOST_AUTO_TEST_CASE(constructor) {
   dp3::common::ParameterSet parset;
-  std::pair<std::vector<aocommon::FitsReader>,
-            std::vector<aocommon::UVector<float>>>
-      readers = WGridderPredict::GetReaders({"sources-model.fits"});
+  std::vector<aocommon::FitsReader> readers =
+      WGridderPredict::GetReaders({"sources-model.fits"});
 
   std::vector<Facet> facets =
-      WGridderPredict::GetFacets("sources.reg", readers.first.front());
+      WGridderPredict::GetFacets("sources.reg", readers.front());
 
-  WGridderPredict predict(parset, "", readers, std::move(facets));
+  WGridderPredict predict(parset, "", std::move(readers), std::move(facets));
 
   BOOST_TEST(predict.GetBufferSize() == 0u);
   predict.SetBufferSize(42);

@@ -29,9 +29,7 @@ namespace steps {
 class WGridderPredict : public ModelDataStep {
  public:
   WGridderPredict(const common::ParameterSet& parset, const std::string& prefix,
-                  std::pair<std::vector<aocommon::FitsReader>,
-                            std::vector<aocommon::UVector<float>>>
-                      readers,
+                  std::vector<aocommon::FitsReader>&& readers,
                   std::vector<schaapcommon::facets::Facet>&& facets,
                   const std::string& ds9_regions_file = "");
 
@@ -79,9 +77,8 @@ class WGridderPredict : public ModelDataStep {
   size_t GetBufferSize() const;
 
   /// Read the fits files (nterms) for image based prediction.
-  static std::pair<std::vector<aocommon::FitsReader>,
-                   std::vector<aocommon::UVector<float>>>
-  GetReaders(const std::vector<std::string>& fits_model_files);
+  static std::vector<aocommon::FitsReader> GetReaders(
+      const std::vector<std::string>& fits_model_files);
 
   /// Get the facets from a region file and create the image models with the
   /// given image size
@@ -100,6 +97,9 @@ class WGridderPredict : public ModelDataStep {
   /// If multiple predicts have to run simultaneously, you can update the
   /// buffer size by using GetBufferSize and SetBufferSize respectively.
   size_t GetAllocatableBuffers(size_t memory);
+
+  /// Create a vector of padded images from the readers
+  std::vector<aocommon::Image> GetModelImages();
 
   std::string name_;
   common::ParameterSet parset_;
