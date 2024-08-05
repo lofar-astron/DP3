@@ -5,6 +5,7 @@
 # the (py)dp3.DPStep class.
 
 import numpy as np
+
 from dp3 import Fields, parameterset
 
 # Import raw step from pydp3
