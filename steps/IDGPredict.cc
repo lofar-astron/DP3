@@ -53,17 +53,16 @@ IDGPredict::IDGPredict(const ParameterSet& parset, const std::string& prefix)
                  parset.getString(prefix + "regions", "")) {}
 
 #ifdef HAVE_IDG
-IDGPredict::IDGPredict(
-    const ParameterSet& parset, const std::string& prefix,
-    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
-        readers,
-    std::vector<Facet>&& facets, const std::string& ds9_regions_file)
+IDGPredict::IDGPredict(const ParameterSet& parset, const std::string& prefix,
+                       const std::vector<FitsReader>& readers,
+                       std::vector<Facet>&& facets,
+                       const std::string& ds9_regions_file)
     : name_(prefix),
       parset_(parset),
-      ref_frequency_(readers.first.front().Frequency()),
-      pixel_size_x_(readers.first.front().PixelSizeX()),
-      pixel_size_y_(readers.first.front().PixelSizeY()),
-      readers_(std::move(readers.first)),
+      ref_frequency_(readers.front().Frequency()),
+      pixel_size_x_(readers.front().PixelSizeX()),
+      pixel_size_y_(readers.front().PixelSizeY()),
+      readers_(std::move(readers)),
       buffer_size_(0),
       ant1_(),
       ant2_(),
@@ -89,6 +88,7 @@ IDGPredict::IDGPredict(
   size_t area = 0;
   directions_.reserve(facets.size());
   images_.reserve(facets.size());
+  const std::vector<aocommon::UVector<float>> model_images = GetModelImages();
   for (const Facet& facet : facets) {
     Logger::Info << "Facet: Ra,Dec: " << facet.RA() << "," << facet.Dec()
                  << " Vertices:";
@@ -98,50 +98,53 @@ IDGPredict::IDGPredict(
     Logger::Info << '\n';
 
     directions_.emplace_back(facet.RA(), facet.Dec());
-    images_.emplace_back(full_width, full_height, readers.second.size());
+    images_.emplace_back(full_width, full_height, model_images.size());
     FacetImage& image = images_.back();
 
     // The padding is 1.0, so the trimmed and untrimmed boxes are equal.
     const bool kTrimmed = true;
     image.SetFacet(facet, kTrimmed);
-    image.CopyToFacet(readers.second);
+    image.CopyToFacet(model_images);
     area += image.Width() * image.Height();
   }
   Logger::Info << "Area covered: " << area / 1024 << " Kpixels^2\n";
 }
+
+std::vector<aocommon::UVector<float>> IDGPredict::GetModelImages() {
+  const size_t full_width = readers_.front().ImageWidth();
+  const size_t full_height = readers_.front().ImageHeight();
+  const double pixel_size_x = readers_.front().PixelSizeX();
+  const double pixel_size_y = readers_.front().PixelSizeY();
+
+  std::vector<aocommon::UVector<float>> models(readers_.size());
+  for (size_t img = 0; img != readers_.size(); ++img) {
+    if (readers_[img].ImageWidth() != full_width ||
+        readers_[img].ImageHeight() != full_height)
+      throw std::runtime_error("Image for spectral term " +
+                               std::to_string(img) +
+                               " has inconsistent dimensions");
+    if (readers_[img].PixelSizeX() != pixel_size_x ||
+        readers_[img].PixelSizeY() != pixel_size_y)
+      throw std::runtime_error("Pixel size of spectral term " +
+                               std::to_string(img) +
+                               " is inconsistent with first spectral term");
+    models[img].resize(full_width * full_height);
+    readers_[img].Read(models[img].data());
+  }
+
+  return models;
+}
 #endif  // HAVE_IDG
 
-std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
-IDGPredict::GetReaders(const std::vector<std::string>& fits_model_files) {
+std::vector<FitsReader> IDGPredict::GetReaders(
+    const std::vector<std::string>& fits_model_files) {
   if (fits_model_files.empty()) {
     throw std::runtime_error("No fits files specified for IDG predict");
   }
   std::vector<FitsReader> readers;
   readers.reserve(fits_model_files.size());
   for (const std::string& file : fits_model_files) readers.emplace_back(file);
-
-  const size_t full_width = readers.front().ImageWidth();
-  const size_t full_height = readers.front().ImageHeight();
-  const double pixel_size_x = readers.front().PixelSizeX();
-  const double pixel_size_y = readers.front().PixelSizeY();
-
-  std::vector<aocommon::UVector<float>> models(readers.size());
-  for (size_t img = 0; img != readers.size(); ++img) {
-    if (readers[img].ImageWidth() != full_width ||
-        readers[img].ImageHeight() != full_height)
-      throw std::runtime_error("Image for spectral term " +
-                               std::to_string(img) +
-                               " has inconsistent dimensions");
-    if (readers[img].PixelSizeX() != pixel_size_x ||
-        readers[img].PixelSizeY() != pixel_size_y)
-      throw std::runtime_error("Pixel size of spectral term " +
-                               std::to_string(img) +
-                               " is inconsistent with first spectral term");
-    models[img].resize(full_width * full_height);
-    readers[img].Read(models[img].data());
-  }
-
-  return std::make_pair(readers, models);
+  return readers;
 }
 
 std::vector<Facet> IDGPredict::GetFacets(const std::string& ds9_regions_file,
@@ -664,11 +667,10 @@ void notCompiled() {
 
 }  // namespace
 
-IDGPredict::IDGPredict(
-    const ParameterSet& parset, const std::string& prefix,
-    std::pair<std::vector<FitsReader>, std::vector<aocommon::UVector<float>>>
-        readers,
-    std::vector<Facet>&& facets, const std::string& ds9_regions_file) {
+IDGPredict::IDGPredict(const ParameterSet& parset, const std::string& prefix,
+                       const std::vector<FitsReader>& readers,
+                       std::vector<Facet>&& facets,
+                       const std::string& ds9_regions_file) {
   // Do nothing / create dummy object.
 }
 
