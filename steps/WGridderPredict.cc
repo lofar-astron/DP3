@@ -214,18 +214,24 @@ std::vector<Facet> WGridderPredict::GetFacets(
 
 std::vector<Facet> WGridderPredict::GetFacets(
     const std::string& ds9_regions_file, const FitsReader& reader) {
+  const size_t padded_width = alignto4(reader.ImageWidth());
+  const size_t padded_height = alignto4(reader.ImageHeight());
   return GetFacets(ds9_regions_file, reader.PhaseCentreRA(),
                    reader.PhaseCentreDec(), reader.PixelSizeX(),
-                   reader.PixelSizeY(), reader.ImageWidth(),
-                   reader.ImageHeight());
+                   reader.PixelSizeY(), padded_width, padded_height);
 }
 
-void WGridderPredict::updateInfo(const dp3::base::DPInfo& info) {
-  if (info.ncorr() != 4) {
+void WGridderPredict::updateInfo(const dp3::base::DPInfo& info_in) {
+  if (info_in.ncorr() != 4) {
     throw std::invalid_argument(
         "WGridderPredict only supports 4 correlations.");
   }
-  Step::updateInfo(info);
+  Step::updateInfo(info_in);
+  std::map<std::string, dp3::base::Direction>& directions =
+      info().GetDirections();
+  for (int i = 0; i < directions_.size(); i++) {
+    directions.insert({direction_labels_[i], directions_[i]});
+  }
   // Determine available size for buffering
   if (buffer_size_ == 0) {
     buffer_size_ = GetAllocatableBuffers(common::AvailableMemory());
@@ -433,7 +439,7 @@ void WGridderPredict::Predict(
 }
 
 base::Direction WGridderPredict::GetFirstDirection() const {
-  return {directions_.front().first, directions_.front().second};
+  return {directions_.front().ra, directions_.front().dec};
 }
 
 void WGridderPredict::SetBufferSize(size_t n_timesteps) {

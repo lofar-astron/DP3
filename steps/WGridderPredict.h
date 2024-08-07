@@ -122,7 +122,7 @@ class WGridderPredict : public ModelDataStep {
   size_t buffer_size_;  ///< Number of DPBuffers to keep before calling flush
 
   common::NSTimer timer_;
-  std::vector<std::pair<double, double>> directions_;
+  std::vector<dp3::base::Direction> directions_;
   std::vector<std::string> direction_labels_;
   bool save_facets_;
   bool sum_facets_;
