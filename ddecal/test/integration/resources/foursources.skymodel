@@ -1,0 +1,15 @@
+# (Name, Type, Patch, Ra, Dec, I, Q, U, V) = format
+
+# CLEAN component list converted from: foursources-model.fits
+# Total flux in CLEAN components: 60.00 Jy
+# Percentage of total flux kept: 100.00%
+
+, , CygA, 01:30:57.0840, +31.13.40.1360
+, , source1, 01:30:48.4632, +33.08.52.5648
+, , source2, 01:37:41.2994, +31.14.21.8381
+, , source3, 01:37:41.2994, +33.09.35.1324
+CygA-0, POINT, CygA, 01:30:57.0840, +31.13.40.1360, 10.000000, , , 
+source1-0, POINT, source1, 01:30:48.4632, +33.08.52.5648, 20.000000, , , 
+source2-0, POINT, source2, 01:37:41.2994, +31.14.21.8381, 20.000000, , , 
+source3-0, POINT, source3, 01:37:41.2994, +33.09.35.1324, 10.000000, , , 
+

@@ -21,7 +21,8 @@ add_python_tests(
   tPredict
   tReadOnly
   tNullStokes
-  tSplit)
+  tSplit
+  tWGridderPredict)
 
 if(LIBDIRAC_FOUND)
   add_python_tests(tSagecalPredict)
