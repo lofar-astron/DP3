@@ -653,14 +653,16 @@ void ApplyBeam::applyBeamStokesIArrayFactor(
         }
       }
     }
+  }
 
-    // Apply beam for channel ch on all baselines
-    for (size_t bl = 0; bl < n_baselines; ++bl) {
+  // Apply beam for channel ch on all baselines
+  for (size_t bl = 0; bl < n_baselines; ++bl) {
+    size_t index_left = (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
+    size_t index_right =
+        (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
+
+    for (size_t ch = 0; ch < n_channels; ++ch) {
       T* data = data0 + bl * n_channels + ch;
-      size_t index_left =
-          (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
-      size_t index_right =
-          (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
       everybeam::complex_t* left = &(beam_values[index_left]);
       everybeam::complex_t* right = &(beam_values[index_right]);
       data[0] = left[ch] * std::complex<double>(data[0]) * conj(right[ch]);
