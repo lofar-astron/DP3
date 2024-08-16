@@ -108,7 +108,7 @@ inputs:
   coreconstraint:
     default: 0
     type: double
-    doc: Distance in meters. When unequal to 0, all stations within the given distance from the reference station (0) will be constraint to have the same solution `.`
+    doc: Distance in meters. When unequal to 0, all stations within the given distance from the reference station (0) will be constrained to have the same solution `.`
   antennaconstraint:
     default: "[]"
     type: list
@@ -204,7 +204,7 @@ inputs:
       a rotation is fitted together with a (complex) scalar value, i.e.,
       a diagonal with two equal complex values. This choice affects the structure
       of the h5parm file: e.g. in scalar mode, the amplitude and phase tables
-      will not have a "pol" (polarization) dimension.
+      will not have a "pol" (polarization) dimension `.`
   grouppredict:
     default: false
     type: bool
@@ -213,7 +213,7 @@ inputs:
   modelnextsteps:
     type: list
     default: "[]"
-    doc: Defines the steps that will be applied to the model in every direction before using the output for calibration.
+    doc: Defines the steps that will be applied to the model in every direction before using the output for calibration `.`
   "modelnextsteps&#46;<direction>":
     type: string
     doc: >-
@@ -245,7 +245,7 @@ inputs:
   storebuffer:
     default: false
     type: bool
-    doc: Setting this to true will store the solution of DDECal into the buffer, allowing the usage of this solution in a later step. For example, a pipeline with  DDECal -> OneApplyCal  would be able to apply solutions to the data without requiring an intermediate format to be stored to disk. Note that it currently only works for single-direction solutions.
+    doc: Setting this to true will store the solution of DDECal into the buffer, allowing the usage of this solution in a later step. For example, a pipeline with  DDECal -> OneApplyCal  would be able to apply solutions to the data without requiring an intermediate format to be stored to disk. Note that it currently only works for single-direction solutions `.`
   usegpu:
     default: false
     type: bool
@@ -257,4 +257,4 @@ inputs:
     type: bool
     doc: >-
       Setting this to true will cause the host buffers to be kept during the execution if used in combination with the GPU solver.
-      This can cause an higher consumption of memory but saves execution time.
+      This can cause an higher consumption of memory but saves execution time `.`
