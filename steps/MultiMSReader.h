@@ -79,14 +79,18 @@ class MultiMSReader final : public MSReader {
   std::string msName() const override;
 
  private:
-  /// Handle the info for all bands.
-  void handleBands();
+  /// Validate that all bands have matching properties.
+  /// @throw std::runtime_error If a band has non-matching properties.
+  void ValidateBands();
+
+  /// Handle the band info when all MSs are present.
+  void HandleBands();
 
   /// Sort the bands (MSs) in order of frequency.
-  void sortBands();
+  void SortBands();
 
   /// Fill the band info where some MSs are missing.
-  void fillBands();
+  void FillBands();
 
   /// Reads the weights into 'buffer'
   void getWeights(std::unique_ptr<base::DPBuffer>& buffer);

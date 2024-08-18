@@ -37,6 +37,8 @@
 
 #include <aocommon/logger.h>
 
+#include <dp3/common/Types.h>
+
 #include "../base/BaselineSelection.h"
 #include "../base/MS.h"
 #include "../common/ParameterSet.h"
@@ -225,7 +227,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   // Parse the chan expressions.
   // Nr of channels can be used as 'nchan' in the expressions.
   Record rec;
-  rec.define("nchan", itsNrChan);
+  rec.define("nchan", getInfoOut().nchan());
   TableExprNode node1(RecordGram::parse(rec, itsStartChanStr));
   TableExprNode node2(RecordGram::parse(rec, itsNrChanStr));
   // nchan=0 means until the last channel.
@@ -233,51 +235,56 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   node1.get(rec, result);
   itsStartChan = (unsigned int)(result + 0.001);
   node2.get(rec, result);
-  unsigned int nrChan = (unsigned int)(result + 0.0001);
-  unsigned int nAllChan = itsNrChan;
+  unsigned int n_channels = (unsigned int)(result + 0.0001);
+  unsigned int nAllChan = getInfoOut().nchan();
   if (itsStartChan >= nAllChan)
     throw std::runtime_error("startchan " + std::to_string(itsStartChan) +
                              " exceeds nr of channels in MS (" +
                              std::to_string(nAllChan) + ')');
   unsigned int maxNrChan = nAllChan - itsStartChan;
-  if (nrChan == 0) {
-    itsNrChan = maxNrChan;
+  if (n_channels == 0) {
+    n_channels = maxNrChan;
   } else {
-    itsNrChan = std::min(nrChan, maxNrChan);
+    n_channels = std::min(n_channels, maxNrChan);
   }
   // Are all channels used?
-  itsUseAllChan = itsStartChan == 0 && itsNrChan == nAllChan;
+  itsUseAllChan = itsStartChan == 0 && n_channels == nAllChan;
   // Do the rest of the preparation.
-  prepare2(spectralWindow);
+  prepare2(spectralWindow, n_channels);
   // Take subset of channel frequencies if needed.
   // Make sure to copy the subset to get a proper Vector.
   // Form the slicer to get channels and correlations from column.
-  itsColSlicer =
-      Slicer(IPosition(2, 0, itsStartChan), IPosition(2, itsNrCorr, itsNrChan));
+  itsColSlicer = Slicer(IPosition(2, 0, itsStartChan),
+                        IPosition(2, getInfoOut().ncorr(), n_channels));
   // Form the slicer to get channels, corrs, and baselines from array.
   itsArrSlicer = Slicer(IPosition(3, 0, itsStartChan, 0),
-                        IPosition(3, itsNrCorr, itsNrChan, itsNrBl));
+                        IPosition(3, getInfoOut().ncorr(), n_channels,
+                                  getInfoOut().nbaselines()));
   // Initialize the flag counters.
-  itsFlagCounter.init(getInfo());
+  itsFlagCounter.init(getInfoOut());
 }
 
 std::string MSReader::msName() const { return itsMS.tableName(); }
 
 bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
+  const std::array<std::size_t, 3> shape{
+      getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
+
   // Determine what to read. Depends on what later steps in the chain need.
   if (getFieldsToRead().Data()) {
-    buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
+    buffer->GetData().resize(shape);
     for (std::string columnName : itsExtraDataColNames) {
       // The extra data buffer could already exist, for instance because
       // MultiMSReader reuses existing buffers.
       if (!buffer->HasData(columnName)) {
         buffer->AddData(columnName);
+      } else {
+        buffer->GetData(columnName).resize(shape);
       }
-      buffer->GetData(columnName).resize({itsNrBl, itsNrChan, itsNrCorr});
     }
   }
   if (getFieldsToRead().Flags()) {
-    buffer->GetFlags().resize({itsNrBl, itsNrChan, itsNrCorr});
+    buffer->GetFlags().resize(shape);
   }
 
   {
@@ -352,7 +359,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
         buffer->SetExposure(
             ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
         // Get data (visibilities) and flags from the MS.
-        const casacore::IPosition casa_shape(3, itsNrCorr, itsNrChan, itsNrBl);
+        const casacore::IPosition casa_shape(3, shape[2], shape[1], shape[0]);
         if (getFieldsToRead().Data()) {
           ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
                                                  itsDataColName);
@@ -380,8 +387,8 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
             for (unsigned int i = 0; i < itsIter.table().nrow(); ++i) {
               if (flagrowCol(i)) {
                 casa_flags(IPosition(3, 0, 0, i),
-                           IPosition(3, itsNrCorr - 1, itsNrChan - 1, i)) =
-                    true;
+                           IPosition(3, getInfoOut().ncorr() - 1,
+                                     getInfoOut().nchan() - 1, i)) = true;
               }
             }
 
@@ -396,7 +403,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
 
       // Get extra data (e.g. model data) from the MS.
       if (getFieldsToRead().Data()) {
-        const casacore::IPosition casa_shape(3, itsNrCorr, itsNrChan, itsNrBl);
+        const casacore::IPosition casa_shape(3, shape[2], shape[1], shape[0]);
         for (std::string columnName : itsExtraDataColNames) {
           ArrayColumn<casacore::Complex> extraDataCol(itsIter.table(),
                                                       columnName);
@@ -415,8 +422,8 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       itsIter.next();
     }
     if ((getFieldsToRead().Flags() &&
-         (buffer->GetFlags().shape(0) != itsNrBl)) ||
-        (useIter && (buffer->GetRowNumbers().shape() != itsNrBl))) {
+         (buffer->GetFlags().shape(0) != shape[0])) ||
+        (useIter && (buffer->GetRowNumbers().shape() != shape[0]))) {
       throw std::runtime_error(
           "#baselines is not the same for all time slots in the MS");
     }
@@ -513,11 +520,11 @@ void MSReader::showTimings(std::ostream& os, double duration) const {
 void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   // Find the number of correlations and channels.
   IPosition shape(ArrayColumn<casacore::Complex>(itsSelMS, "DATA").shape(0));
-  itsNrCorr = shape[0];
-  itsNrChan = shape[1];
+  const unsigned int n_correlations = shape[0];
+  const unsigned int n_channels = shape[1];
 
   const std::string antenna_set = base::ReadAntennaSet(itsMS);
-  info() = DPInfo(itsNrCorr, itsNrChan, itsStartChan, antenna_set);
+  info() = DPInfo(n_correlations, n_channels, itsStartChan, antenna_set);
 
   if (itsSelMS.nrow() == 0) {
     aocommon::Logger::Warn << "The selected input does not contain any data.\n";
@@ -623,17 +630,20 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   // Create iterator over time. Do not sort again.
   itsIter = TableIterator(sortms, Block<casacore::String>(1, "TIME"),
                           TableIterator::Ascending, TableIterator::NoSort);
-  itsNrBl = itsIter.table().nrow();
+  const common::rownr_t n_baselines = itsIter.table().nrow();
 
   // Ensure we have only one band by checking the nr of unique baselines.
   Table sortab = itsIter.table().sort(
       sortCols, casacore::Sort::Ascending,
       casacore::Sort::QuickSort + casacore::Sort::NoDuplicates);
-  if (sortab.nrow() != itsNrBl)
+  if (sortab.nrow() != n_baselines)
     throw std::runtime_error("The MS appears to have multiple subbands");
   // Get the baseline columns.
   ScalarColumn<int> ant1col(itsIter.table(), "ANTENNA1");
   ScalarColumn<int> ant2col(itsIter.table(), "ANTENNA2");
+  if (ant1col.nrow() != n_baselines || ant2col.nrow() != n_baselines) {
+    throw std::runtime_error("Antenna column(s) do not match baseline count");
+  }
   // Keep the row numbers of the first part to be used for the meta info
   // of possibly missing time slots.
   itsBaseRowNrs = itsIter.table().rowNumbers(itsMS, true);
@@ -650,10 +660,10 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   }
   // Set antenna/baseline info.
   casacore::Vector<casacore::String> names = nameCol.getColumn();
-  info().setAntennas(std::vector<std::string>(names.begin(), names.end()),
-                     diamCol.getColumn().tovector(), antPos,
-                     ant1col.getColumn().tovector(),
-                     ant2col.getColumn().tovector());
+  infoOut().setAntennas(std::vector<std::string>(names.begin(), names.end()),
+                        diamCol.getColumn().tovector(), antPos,
+                        ant1col.getColumn().tovector(),
+                        ant2col.getColumn().tovector());
 
   // Read the phase reference position from the FIELD subtable.
   // Only use the main value from the PHASE_DIR array.
@@ -693,7 +703,7 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
       std::make_unique<base::UVWCalculator>(phaseCenter, arrayPos, antPos);
 }
 
-void MSReader::prepare2(int spectralWindow) {
+void MSReader::prepare2(int spectralWindow, unsigned int n_channels) {
   info().setTimes(itsFirstTime, itsMaximumTime, itsTimeInterval);
   info().setMsNames(msName(), itsDataColName, itsFlagColName, itsWeightColName);
   // Read the center frequencies of all channels.
@@ -717,10 +727,10 @@ void MSReader::prepare2(int spectralWindow) {
     auto widthBegin = chanWidths.begin() + itsStartChan;
     auto resolBegin = resolutions.begin() + itsStartChan;
     auto effbwBegin = effectiveBW.begin() + itsStartChan;
-    info().setChannels(std::vector<double>(freqBegin, freqBegin + itsNrChan),
-                       std::vector<double>(widthBegin, widthBegin + itsNrChan),
-                       std::vector<double>(resolBegin, resolBegin + itsNrChan),
-                       std::vector<double>(effbwBegin, effbwBegin + itsNrChan),
+    info().setChannels(std::vector<double>(freqBegin, freqBegin + n_channels),
+                       std::vector<double>(widthBegin, widthBegin + n_channels),
+                       std::vector<double>(resolBegin, resolBegin + n_channels),
+                       std::vector<double>(effbwBegin, effbwBegin + n_channels),
                        refFreq, spectralWindow);
   }
 
@@ -787,18 +797,19 @@ void MSReader::skipFirstTimes() {
 
 void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
-  buf.GetUvw().resize({itsNrBl, 3});
+  const unsigned int n_baselines = getInfoOut().nbaselines();
+  buf.GetUvw().resize({n_baselines, 3});
   if (rowNrs.rowVector().empty()) {
     // Calculate UVWs if empty rownrs (i.e., missing data).
     const std::vector<int>& ant1 = getInfo().getAnt1();
     const std::vector<int>& ant2 = getInfo().getAnt2();
-    for (unsigned int i = 0; i < itsNrBl; ++i) {
+    for (unsigned int i = 0; i < n_baselines; ++i) {
       xt::view(buf.GetUvw(), i, xt::all()) =
           xt::adapt(itsUVWCalc->getUVW(ant1[i], ant2[i], time));
     }
   } else {  // Load UVW from MS
     ArrayColumn<double> dataCol(itsMS, "UVW");
-    const casacore::IPosition shape(2, 3, itsNrBl);
+    const casacore::IPosition shape(2, 3, n_baselines);
     casacore::Matrix<double> casa_uvw(shape, buf.GetUvw().data(),
                                       casacore::SHARE);
     dataCol.getColumnCells(rowNrs, casa_uvw);
@@ -807,10 +818,13 @@ void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
 
 void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
   common::NSTimer::StartStop sstime(itsTimer);
+  const unsigned int n_baselines = getInfoOut().nbaselines();
+  const unsigned int n_channels = getInfoOut().nchan();
+  const unsigned int n_correlations = getInfoOut().ncorr();
   // Resize if needed (probably when called for first time).
-  buf.GetWeights().resize({itsNrBl, itsNrChan, itsNrCorr});
+  buf.GetWeights().resize({n_baselines, n_channels, n_correlations});
   DPBuffer::WeightsType& weights = buf.GetWeights();
-  const casacore::IPosition shape(3, itsNrCorr, itsNrChan, itsNrBl);
+  const casacore::IPosition shape(3, n_correlations, n_channels, n_baselines);
   casacore::Cube<float> casa_weights(shape, weights.data(), casacore::SHARE);
   if (rowNrs.rowVector().empty()) {
     // rowNrs can be empty if a time slot was inserted (i.e., missing data).
@@ -833,19 +847,19 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
       Matrix<float> inArr = wCol.getColumnCells(rowNrs);
       float* inPtr = inArr.data();
       float* outPtr = weights.data();
-      for (unsigned int i = 0; i < itsNrBl; ++i) {
+      for (unsigned int i = 0; i < n_baselines; ++i) {
         // Set global weights to 1 if zero. Some old MSs need that.
-        for (unsigned int k = 0; k < itsNrCorr; ++k) {
+        for (unsigned int k = 0; k < n_correlations; ++k) {
           if (inPtr[k] == 0.) {
             inPtr[k] = 1.;
           }
         }
-        for (unsigned int j = 0; j < itsNrChan; ++j) {
-          for (unsigned int k = 0; k < itsNrCorr; ++k) {
+        for (unsigned int j = 0; j < n_channels; ++j) {
+          for (unsigned int k = 0; k < n_correlations; ++k) {
             *outPtr++ = inPtr[k];
           }
         }
-        inPtr += itsNrCorr;
+        inPtr += n_correlations;
       }
     }
     if (itsAutoWeight) {
