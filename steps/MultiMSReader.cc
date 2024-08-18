@@ -112,44 +112,78 @@ void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
   }
 }
 
-void MultiMSReader::handleBands() {
-  if (itsNMissing > 0) {
-    fillBands();
-    return;
+void MultiMSReader::ValidateBands() {
+  for (const Reader& reader : readers_) {
+    const std::shared_ptr<MSReader>& ms_reader = reader.ms_reader;
+    if (ms_reader) {
+      const DPInfo& reader_info = ms_reader->getInfo();
+      const std::string& name = reader.name;
+      const std::string& first_name = readers_.front().name;
+      if (!casacore::near(getInfo().firstTime(), reader_info.firstTime()))
+        throw std::runtime_error("First time of MS " + name + " differs from " +
+                                 first_name);
+      if (!casacore::near(getInfo().lastTime(), reader_info.lastTime()))
+        throw std::runtime_error("Last time of MS " + name + " differs from " +
+                                 first_name);
+      if (!casacore::near(getInfo().timeInterval(), reader_info.timeInterval()))
+        throw std::runtime_error("Time interval of MS " + name +
+                                 " differs from " + first_name);
+      if (getInfoOut().ncorr() != reader_info.ncorr())
+        throw std::runtime_error("Number of correlations of MS " + name +
+                                 " differs from " + first_name);
+      if (getInfoOut().nbaselines() != reader_info.nbaselines())
+        throw std::runtime_error("Number of baselines of MS " + name +
+                                 " differs from " + first_name);
+      if (getInfoOut().antennaSet() != reader_info.antennaSet())
+        throw std::runtime_error("Antenna set of MS " + name +
+                                 " differs from " + first_name);
+      if (getInfoOut().getAnt1() != reader_info.getAnt1())
+        throw std::runtime_error("Baseline order (ant1) of MS " + name +
+                                 " differs from " + first_name);
+      if (getInfoOut().getAnt2() != reader_info.getAnt2())
+        throw std::runtime_error("Baseline order (ant2) of MS " + name +
+                                 " differs from " + first_name);
+    }
   }
-  if (itsOrderMS) {
-    sortBands();
-  }
-
-  // Collect the channel info of all MSs.
-  std::vector<double> chanFreqs(itsNrChan);
-  std::vector<double> chanWidths(itsNrChan);
-  std::vector<double> resolutions(itsNrChan);
-  std::vector<double> effectiveBW(itsNrChan);
-  unsigned int inx = 0;
-  for (unsigned int i = 0; i < readers_.size(); ++i) {
-    unsigned int nchan = readers_[i].ms_reader->getInfo().nchan();
-    casacore::objcopy(chanFreqs.data() + inx,
-                      readers_[i].ms_reader->getInfo().chanFreqs().data(),
-                      nchan);
-    casacore::objcopy(chanWidths.data() + inx,
-                      readers_[i].ms_reader->getInfo().chanWidths().data(),
-                      nchan);
-    casacore::objcopy(resolutions.data() + inx,
-                      readers_[i].ms_reader->getInfo().resolutions().data(),
-                      nchan);
-    casacore::objcopy(effectiveBW.data() + inx,
-                      readers_[i].ms_reader->getInfo().effectiveBW().data(),
-                      nchan);
-    inx += nchan;
-  }
-  info().setChannels(std::move(chanFreqs), std::move(chanWidths),
-                     std::move(resolutions), std::move(effectiveBW),
-                     readers_[itsFirst].ms_reader->getInfo().refFreq(),
-                     readers_[itsFirst].ms_reader->getInfo().spectralWindow());
 }
 
-void MultiMSReader::sortBands() {
+void MultiMSReader::HandleBands() {
+  // Collect the channel info of all MSs.
+  unsigned int n_channels = 0;
+  for (const Reader& reader : readers_) {
+    n_channels += reader.ms_reader->getInfoOut().nchan();
+  }
+
+  std::vector<double> frequencies(n_channels);
+  std::vector<double> widths(n_channels);
+  std::vector<double> resolutions(n_channels);
+  std::vector<double> effectiveBW(n_channels);
+  unsigned int index = 0;
+  for (const Reader& reader : readers_) {
+    const DPInfo& reader_info = reader.ms_reader->getInfoOut();
+    std::copy_n(reader_info.chanFreqs().data(), reader_info.nchan(),
+                frequencies.data() + index);
+    std::copy_n(reader_info.chanWidths().data(), reader_info.nchan(),
+                widths.data() + index);
+    std::copy_n(reader_info.resolutions().data(), reader_info.nchan(),
+                resolutions.data() + index);
+    std::copy_n(reader_info.effectiveBW().data(), reader_info.nchan(),
+                effectiveBW.data() + index);
+    index += reader_info.nchan();
+  }
+
+  const DPInfo first_reader_info = readers_.front().ms_reader->getInfoOut();
+  info().setChannels(std::move(frequencies), std::move(widths),
+                     std::move(resolutions), std::move(effectiveBW),
+                     first_reader_info.refFreq(),
+                     first_reader_info.spectralWindow());
+}
+
+void MultiMSReader::SortBands() {
+  if (itsNMissing > 0) {
+    throw std::runtime_error("Cannot order the MSs if some are missing");
+  }
+
   // Order the bands (MSs) in order of frequency.
   int nband = readers_.size();
   casacore::Vector<double> freqs(nband);
@@ -170,19 +204,24 @@ void MultiMSReader::sortBands() {
   }
 }
 
-void MultiMSReader::fillBands() {
-  if (itsOrderMS)
-    throw std::runtime_error("Cannot order the MSs if some are missing");
+void MultiMSReader::FillBands() {
+  unsigned int n_channels = 0;
+  for (const Reader& reader : readers_) {
+    if (reader.ms_reader) {
+      n_channels += reader.ms_reader->getInfoOut().nchan();
+    }
+  }
+
   // Get channel width (which should be the same for all bands).
   double chanw = readers_[itsFirst].ms_reader->getInfo().chanWidths().data()[0];
   // Get frequency for first subband.
   double freq = readers_[itsFirst].ms_reader->getInfo().chanFreqs().data()[0];
   freq -= itsFirst * itsFillNChan * chanw;
   // Add missing channels to the total nr.
-  itsNrChan += itsNMissing * itsFillNChan;
+  n_channels += itsNMissing * itsFillNChan;
   // Collect the channel info of all MSs.
-  std::vector<double> chanFreqs(itsNrChan);
-  std::vector<double> chanWidths(itsNrChan);
+  std::vector<double> chanFreqs(n_channels);
+  std::vector<double> chanWidths(n_channels);
   unsigned int inx = 0;
   // Data for a missing MS can only be inserted if all other MSs have
   // the same nr of channels and are in increasing order of freq.
@@ -233,15 +272,16 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   buffer->SetExposure(buf1.GetExposure());
   buffer->SetRowNumbers(buf1.GetRowNumbers());
   // Size the buffers if they should be read.
+  const std::array<size_t, 3> shape{getInfoOut().nbaselines(),
+                                    getInfoOut().nchan(), getInfoOut().ncorr()};
   if (getFieldsToRead().Data()) {
-    buffer->GetData().resize({itsNrBl, itsNrChan, itsNrCorr});
-    for (std::string columnName : itsExtraDataColNames) {
+    buffer->GetData().resize(shape);
+    for (const std::string& columnName : itsExtraDataColNames) {
       buffer->AddData(columnName);
-      buffer->GetData(columnName).resize({itsNrBl, itsNrChan, itsNrCorr});
     }
   }
   if (getFieldsToRead().Flags()) {
-    buffer->GetFlags().resize({itsNrBl, itsNrChan, itsNrCorr});
+    buffer->GetFlags().resize(shape);
   }
 
   // Loop through all readers and get data and flags.
@@ -326,7 +366,7 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
     }
   }
   std::shared_ptr<MSReader>& first_reader = readers_[itsFirst].ms_reader;
-  info() = first_reader->getInfo();
+  infoOut() = first_reader->getInfoOut();
   // Use the first valid MS as the standard MS (for meta data)
   // Get meta data and check they are equal for all MSs.
   itsMS = first_reader->table();
@@ -334,48 +374,21 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   itsMaximumTime = getInfo().lastTime();
   itsTimeInterval = getInfo().timeInterval();
   itsSelBL = first_reader->baselineSelection();
-  itsNrCorr = getInfo().ncorr();
-  itsNrBl = getInfo().nbaselines();
-  itsNrChan = 0;
   itsFillNChan = getInfo().nchan();
   itsStartChan = first_reader->startChan();
   itsBaseRowNrs = first_reader->getBaseRowNrs();
-  for (const Reader& reader : readers_) {
-    const std::shared_ptr<MSReader>& ms_reader = reader.ms_reader;
-    if (ms_reader) {
-      const DPInfo& rdinfo = ms_reader->getInfo();
-      const std::string& name = reader.name;
-      const std::string& first_name = readers_.front().name;
-      if (!casacore::near(getInfo().firstTime(), rdinfo.firstTime()))
-        throw std::runtime_error("First time of MS " + name + " differs from " +
-                                 first_name);
-      if (!casacore::near(getInfo().lastTime(), rdinfo.lastTime()))
-        throw std::runtime_error("Last time of MS " + name + " differs from " +
-                                 first_name);
-      if (!casacore::near(getInfo().timeInterval(), rdinfo.timeInterval()))
-        throw std::runtime_error("Time interval of MS " + name +
-                                 " differs from " + first_name);
-      if (itsNrCorr != rdinfo.ncorr())
-        throw std::runtime_error("Number of correlations of MS " + name +
-                                 " differs from " + first_name);
-      if (itsNrBl != rdinfo.nbaselines())
-        throw std::runtime_error("Number of baselines of MS " + name +
-                                 " differs from " + first_name);
-      if (getInfo().antennaSet() != rdinfo.antennaSet())
-        throw std::runtime_error("Antenna set of MS " + name +
-                                 " differs from " + first_name);
-      if (getInfo().getAnt1() != rdinfo.getAnt1())
-        throw std::runtime_error("Baseline order (ant1) of MS " + name +
-                                 " differs from " + first_name);
-      if (getInfo().getAnt2() != rdinfo.getAnt2())
-        throw std::runtime_error("Baseline order (ant2) of MS " + name +
-                                 " differs from " + first_name);
-      itsNrChan += rdinfo.nchan();
-    }
+
+  ValidateBands();
+
+  if (itsOrderMS) {
+    SortBands();
   }
-  // Handle the bands and take care of missing MSs.
-  // Sort them if needed.
-  handleBands();
+
+  if (itsNMissing > 0) {
+    FillBands();
+  } else {
+    HandleBands();
+  }
 
   // Initialize the flag counters.
   itsFlagCounter.init(getInfo());
@@ -393,15 +406,16 @@ void MultiMSReader::show(std::ostream& os) const {
   os << "  band            " << getInfo().spectralWindow() << '\n';
   os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr << ')'
      << '\n';
-  os << "  nchan:          " << itsNrChan << "  (" << itsNrChanStr << ')';
+  os << "  nchan:          " << getInfoOut().nchan() << "  (" << itsNrChanStr
+     << ')';
   if (getInfo().channelsAreRegular()) {
     os << " (regularly spaced)" << '\n';
   } else {
     os << " (NOT regularly spaced)" << '\n';
   }
-  os << "  ncorrelations:  " << itsNrCorr << '\n';
-  os << "  nbaselines:     " << itsNrBl << '\n';
-  os << "  ntimes:         " << itsMS.nrow() / itsNrBl << '\n';
+  os << "  ncorrelations:  " << getInfoOut().ncorr() << '\n';
+  os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
+  os << "  ntimes:         " << getInfoOut().ntime() << '\n';
   os << "  time interval:  " << itsTimeInterval << '\n';
   os << "  DATA column:    " << itsDataColName << '\n';
   for (const Reader& reader : readers_) {
@@ -434,7 +448,8 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
 }
 
 void MultiMSReader::getWeights(std::unique_ptr<base::DPBuffer>& buffer) {
-  buffer->GetWeights().resize({itsNrBl, itsNrChan, itsNrCorr});
+  buffer->GetWeights().resize(
+      {getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()});
   int first_channel = 0;
   int last_channel = 0;
   for (Reader& reader : readers_) {
