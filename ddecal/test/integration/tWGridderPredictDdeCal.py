@@ -55,7 +55,8 @@ def make_h5parm():
 
 def test_wgridderpredict_with_ddecal():
     """
-    Check wgridderpredict into model buffer with DDECal:
+    Use DDECal to check that wgridderpredict writes the correct visibilities
+    into model data buffer:
     - Predict four point sources into the data buffer
     - Use wgridderpredict with a fits image of those same four point sources,
       each in a facet, into four model data buffers
@@ -84,6 +85,47 @@ def test_wgridderpredict_with_ddecal():
         values = f["sol000"]["amplitude000"]["val"]
 
         # Check solutions are 1.0
+        assert np.allclose(
+            values[np.isfinite(values)], 1.0, rtol=0.0, atol=1.0e-4
+        )
+
+
+def test_wgridderpredict_and_applybeam_with_ddecal():
+    """
+    Use DDECal to check that ApplyBeam can apply the beam to the
+    model data buffers:
+    - Predict four point sources into the data buffer, using the beam model
+    - Use wgridderpredict with a fits image of those same four point sources,
+      each in a facet, into four model data buffers
+    - Apply the beam to model data buffers
+    - Use DDECal to calibrate each of the directions. Since the model is equal
+      to the data buffer, the solutions for every facet should be 1.0.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[predict,wgridderpredict, applybeam, ddecal]",
+            f"predict.sourcedb={tcf.DDECAL_RESOURCEDIR}/foursources.skymodel",
+            "predict.usebeammodel=True",
+            f"wgridderpredict.regions={tcf.DDECAL_RESOURCEDIR}/foursources.reg",
+            "wgridderpredict.images=[foursources-model.fits]",
+            "applybeam.modeldata=true",
+            "applybeam.invert=false",
+            "ddecal.reusemodel=[wgridderpredict.CygA, wgridderpredict.source1, wgridderpredict.source2, wgridderpredict.source3]",
+            "ddecal.mode=scalaramplitude",
+            "ddecal.h5parm=instrument.h5",
+            "ddecal.solint=0",
+            "ddecal.nchan=0",
+        ]
+    )
+
+    with h5py.File("instrument.h5", "r+") as f:
+        values = f["sol000"]["amplitude000"]["val"]
+
+        # Check all solutions are 1.0
         assert np.allclose(
             values[np.isfinite(values)], 1.0, rtol=0.0, atol=1.0e-4
         )

@@ -166,7 +166,6 @@ size_t ComputeBeam(const DPInfo& info, double time,
           } else {
             beam_values[n_channels * st + ch] = point_response->Response(
                 mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
-
             if (invert) {
               // Terminate if the matrix is not invertible.
               [[maybe_unused]] bool status =
@@ -222,7 +221,8 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
       itsMode(everybeam::ParseCorrectionMode(
           parset.getString(prefix + "beammode", "default"))),
       itsModeAtStart(everybeam::CorrectionMode::kNone),
-      itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)) {
+      itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)),
+      itsUseModelData(parset.getBool(prefix + "modeldata", false)) {
   // only read 'invert' parset key if it is a separate step
   // if applybeam is called from gaincal/predict, the invert key should always
   // be false
@@ -279,7 +279,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     itsDirectionAtStart = info().beamCorrectionDir();
     info().setBeamCorrectionMode(static_cast<int>(itsMode));
     info().setBeamCorrectionDir(itsDirection);
-  } else {
+  } else if (!itsUseModelData) {
     const auto mode =
         static_cast<everybeam::CorrectionMode>(info().beamCorrectionMode());
     if (mode == everybeam::CorrectionMode::kNone)
@@ -373,6 +373,36 @@ void ApplyBeam::showTimings(std::ostream& os, double duration) const {
   os << "  ";
   base::FlagCounter::showPerc1(os, itsTimer.getElapsed(), duration);
   os << " ApplyBeam " << itsName << '\n';
+}
+
+bool ApplyBeam::process(std::unique_ptr<base::DPBuffer> buffer) {
+  if (!itsUseModelData) {
+    return processMultithreaded(std::move(buffer), 0);
+  }
+
+  itsTimer.start();
+
+  const std::map<std::string, dp3::base::Direction>& directions =
+      getInfo().GetDirections();
+  const double time = buffer->GetTime();
+  telescopes_[0]->SetTime(time);
+  itsMeasFrames[0].resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
+
+  for (const auto& [direction_name, direction] : directions) {
+    std::complex<float>* data = buffer->GetData(direction_name).data();
+    casacore::MDirection direction_j2000(
+        casacore::Quantity(direction.ra, "rad"),
+        casacore::Quantity(direction.dec, "rad"), MDirection::J2000);
+    everybeam::vector3r_t direction_itrf =
+        dir2Itrf(direction_j2000, itsMeasConverters[0]);
+    applyBeam(info(), time, data, nullptr, direction_itrf, telescopes_[0].get(),
+              itsBeamValues[0], itsInvert, itsMode, false, nullptr,
+              itsSkipStationIndices);
+  }
+
+  itsTimer.stop();
+  getNextStep()->process(std::move(buffer));
+  return false;
 }
 
 bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
