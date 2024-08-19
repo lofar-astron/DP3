@@ -54,9 +54,7 @@ class ApplyBeam : public Step {
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(std::unique_ptr<base::DPBuffer> buffer) override {
-    return processMultithreaded(std::move(buffer), 0);
-  }
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
   /// If apply beam is called from multiple threads, it needs the thread index
   /// to determine what scratch space to use etc.
@@ -167,6 +165,7 @@ class ApplyBeam : public Step {
   std::vector<casacore::MeasFrame> itsMeasFrames;
   std::vector<casacore::MDirection::Convert> itsMeasConverters;
   std::vector<std::vector<aocommon::MC2x2>> itsBeamValues;
+  bool itsUseModelData;
   ///@}
 
   common::NSTimer itsTimer;
