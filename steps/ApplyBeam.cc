@@ -222,7 +222,7 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
           parset.getString(prefix + "beammode", "default"))),
       itsModeAtStart(everybeam::CorrectionMode::kNone),
       itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)),
-      itsUseModelData(parset.getBool(prefix + "modeldata", false)) {
+      itsUseModelData(parset.getBool(prefix + "usemodeldata", false)) {
   // only read 'invert' parset key if it is a separate step
   // if applybeam is called from gaincal/predict, the invert key should always
   // be false
@@ -251,6 +251,15 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
 
 void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   info() = infoIn;
+
+  // If ApplyBeam was requested to apply the beam to model data,
+  // check whether there is model data to apply the beam to.
+  if (itsUseModelData && info().GetDirections().empty()) {
+    throw std::runtime_error(
+        "ApplyBeam's option 'usemodeldata' is set to true, \n"
+        "but the beam can not be applied to model data, \n"
+        "because no model data with direction meta data is found.");
+  }
 
   // Parse direction parset value
   if (itsDirectionStr.empty())
