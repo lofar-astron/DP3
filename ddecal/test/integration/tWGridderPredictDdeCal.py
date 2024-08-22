@@ -112,7 +112,7 @@ def test_wgridderpredict_and_applybeam_with_ddecal():
             "predict.usebeammodel=True",
             f"wgridderpredict.regions={tcf.DDECAL_RESOURCEDIR}/foursources.reg",
             "wgridderpredict.images=[foursources-model.fits]",
-            "applybeam.modeldata=true",
+            "applybeam.usemodeldata=true",
             "applybeam.invert=false",
             "ddecal.reusemodel=[wgridderpredict.CygA, wgridderpredict.source1, wgridderpredict.source2, wgridderpredict.source3]",
             "ddecal.mode=scalaramplitude",
