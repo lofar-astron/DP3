@@ -75,8 +75,13 @@ class MultiMSReader final : public MSReader {
   /// Set which fields must be read.
   void setFieldsToRead(const dp3::common::Fields& fields) override;
 
-  /// Get the name of the first MS.
-  std::string msName() const override;
+  /// Returns (only) the name of the first MS.
+  std::string msName() const override { return readers_.front().name; }
+
+  /// Returns only the first MS table.
+  const casacore::Table& table() const override {
+    return readers_[itsFirst].ms_reader->table();
+  }
 
  private:
   /// Validate that all bands have matching properties.

@@ -46,12 +46,6 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
   itsStartChanStr = parset.getString(prefix + "startchan", "0");
   itsNrChanStr = parset.getString(prefix + "nchan", "0");
   itsUseFlags = parset.getBool(prefix + "useflag", true);
-  itsDataColName = parset.getString(prefix + "datacolumn", "DATA");
-  itsExtraDataColNames = parset.getStringVector(prefix + "extradatacolumns",
-                                                std::vector<std::string>());
-  itsFlagColName = parset.getString(prefix + "flagcolumn", "FLAG");
-  itsWeightColName =
-      parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM"),
   itsMissingData = parset.getBool(prefix + "missingdata", false);
   itsAutoWeight = parset.getBool(prefix + "autoweight", false);
   itsNeedSort = parset.getBool(prefix + "sort", false);
@@ -92,8 +86,6 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
 }
 
 MultiMSReader::~MultiMSReader() {}
-
-std::string MultiMSReader::msName() const { return readers_.front().name; }
 
 void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
   InputStep::setFieldsToRead(fields);
@@ -264,9 +256,14 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
 
   // Read first MS, stop if at end.
-  if (!readers_[itsFirst].ms_reader->process(std::move(recycled_buffer))) {
+  MSReader& first_ms_reader = *readers_[itsFirst].ms_reader;
+  if (!first_ms_reader.process(std::move(recycled_buffer))) {
     return false;  // end of input
   }
+
+  const std::vector<std::string>& extra_data_column_names =
+      first_ms_reader.ExtraDataColumnNames();
+
   const DPBuffer& buf1 = readers_[itsFirst].result->get();
   buffer->SetTime(buf1.GetTime());
   buffer->SetExposure(buf1.GetExposure());
@@ -276,8 +273,8 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
                                     getInfoOut().nchan(), getInfoOut().ncorr()};
   if (getFieldsToRead().Data()) {
     buffer->GetData().resize(shape);
-    for (const std::string& columnName : itsExtraDataColNames) {
-      buffer->AddData(columnName);
+    for (const std::string& column_name : extra_data_column_names) {
+      buffer->AddData(column_name);
     }
   }
   if (getFieldsToRead().Flags()) {
@@ -309,9 +306,9 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
       if (getFieldsToRead().Data()) {
         xt::view(buffer->GetData(), xt::all(), channel_range, xt::all()) =
             msBuf.GetData();
-        for (std::string columnName : itsExtraDataColNames) {
-          xt::view(buffer->GetData(columnName), xt::all(), channel_range,
-                   xt::all()) = msBuf.GetData(columnName);
+        for (const std::string& column_name : extra_data_column_names) {
+          xt::view(buffer->GetData(column_name), xt::all(), channel_range,
+                   xt::all()) = msBuf.GetData(column_name);
         }
       }
       if (getFieldsToRead().Flags()) {
@@ -325,8 +322,8 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
       if (getFieldsToRead().Data()) {
         xt::view(buffer->GetData(), xt::all(), channel_range, xt::all())
             .fill(std::complex<float>());
-        for (std::string columnName : itsExtraDataColNames) {
-          xt::view(buffer->GetData(columnName), xt::all(), channel_range,
+        for (const std::string& column_name : extra_data_column_names) {
+          xt::view(buffer->GetData(column_name), xt::all(), channel_range,
                    xt::all())
               .fill(std::complex<float>());
         }
@@ -369,7 +366,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   infoOut() = first_reader->getInfoOut();
   // Use the first valid MS as the standard MS (for meta data)
   // Get meta data and check they are equal for all MSs.
-  itsMS = first_reader->table();
   itsFirstTime = getInfo().firstTime();
   itsMaximumTime = getInfo().lastTime();
   itsTimeInterval = getInfo().timeInterval();
@@ -395,6 +391,7 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
 }
 
 void MultiMSReader::show(std::ostream& os) const {
+  const MSReader& first_reader = *readers_[itsFirst].ms_reader;
   os << "MultiMSReader" << '\n';
   os << "  input MSs:      " << readers_.front().name << '\n';
   for (std::size_t i = 1; i < readers_.size(); ++i) {
@@ -417,7 +414,7 @@ void MultiMSReader::show(std::ostream& os) const {
   os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
   os << "  ntimes:         " << getInfoOut().ntime() << '\n';
   os << "  time interval:  " << itsTimeInterval << '\n';
-  os << "  DATA column:    " << itsDataColName << '\n';
+  os << "  DATA column:    " << first_reader.DataColumnName() << '\n';
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
       if (reader.ms_reader->missingData()) {
@@ -427,7 +424,7 @@ void MultiMSReader::show(std::ostream& os) const {
       os << "      MS missing         " << reader.name << '\n';
     }
   }
-  os << "  WEIGHT column:  " << itsWeightColName << '\n';
+  os << "  WEIGHT column:  " << first_reader.WeightColumnName() << '\n';
   os << "  autoweight:     " << std::boolalpha << itsAutoWeight << '\n';
 }
 
