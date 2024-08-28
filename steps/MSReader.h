@@ -149,10 +149,21 @@ class MSReader : public InputStep {
   std::string msName() const override;
 
   /// Get the baseline selection.
-  const string& baselineSelection() const { return itsSelBL; }
+  const std::string& baselineSelection() const { return itsSelBL; }
 
   /// Is the data column missing?
   bool missingData() const { return itsMissingData; }
+
+  /// Get the name of the main data column.
+  const std::string& DataColumnName() const { return itsDataColName; }
+
+  /// Get the names of the extra data columns that are also read.
+  const std::vector<std::string>& ExtraDataColumnNames() const {
+    return itsExtraDataColNames;
+  }
+
+  /// Get the weight column name.
+  const std::string& WeightColumnName() const { return itsWeightColName; }
 
   /// Get the start channel.
   unsigned int startChan() const { return itsStartChan; }
@@ -184,7 +195,7 @@ class MSReader : public InputStep {
   /// Note: the buffer must contain DATA if autoweighting is in effect.
   void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
- protected:
+ private:
   casacore::MeasurementSet itsMS;
   casacore::Table itsSelMS;  ///< possible selection of spw, baseline
   casacore::TableIterator itsIter;
@@ -193,6 +204,8 @@ class MSReader : public InputStep {
   std::string itsFlagColName{"FLAG"};
   std::string itsWeightColName{"WEIGHT_SPECTRUM"};
   std::string itsModelColName{"MODEL_DATA"};
+
+ protected:
   std::string itsStartChanStr{"0"};  ///< startchan expression
   std::string itsNrChanStr{"0"};     ///< nchan expression
   std::string itsSelBL{};            ///< Baseline selection string
