@@ -114,7 +114,6 @@ class TestInput : public dp3::steps::MockInput {
         casacore::MVPosition{0, 0, 0}, casacore::MVPosition{1, 1, 1}};
     std::vector<int> antenna1 = {0, 0, 1};
     std::vector<int> antenna2 = {0, 1, 1};
-    std::vector<unsigned int> baselines = {0, 1, 2};
     info().setAntennas(ant_names, ant_diameter, ant_position, antenna1,
                        antenna2);
 
@@ -125,8 +124,8 @@ class TestInput : public dp3::steps::MockInput {
     for (size_t i = 0; i < kNOrigChannels; i++) {
       chan_freqs.push_back(start_frequency + i * 100000.);
     }
-    info().setChannels(std::move(chan_freqs), std::move(chan_width));
-    info().update(start_channel, n_channels_, baselines, false);
+    infoOut().setChannels(std::move(chan_freqs), std::move(chan_width));
+    infoOut().SelectChannels(start_channel, n_channels_);
   }
 
  private:

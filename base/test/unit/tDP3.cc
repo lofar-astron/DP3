@@ -735,6 +735,97 @@ BOOST_FIXTURE_TEST_CASE(test_update_scale, FixtureCopyInput) {
   BOOST_CHECK(allEQ(flags_input.getColumn(), flags_output.getColumn()));
 }
 
+// Test updating a subset of the channels, using startchan and nchan.
+BOOST_FIXTURE_TEST_CASE(test_update_channel_subset, FixtureCopyInput) {
+  {
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kCopyMs << '\n';
+    ostr << "msin.startchan=1\n";
+    ostr << "msin.nchan=2\n";
+    ostr << "msout=" << kCopyMs << '\n';  // same name means update
+    ostr << "steps=[scaledata]\n";
+    ostr << "scaledata.coeffs=2\n";
+    ostr << "scaledata.stations=*\n";
+    ostr << "scaledata.scalesize=false\n";
+  }
+  dp3::base::Execute(kParsetFile);
+
+  const casacore::Array<Complex> data_input =
+      ArrayColumn<Complex>(Table(kInputMs), "DATA").getColumn();
+  const casacore::Array<Complex> data_output =
+      ArrayColumn<Complex>(Table(kCopyMs), "DATA").getColumn();
+
+  IPosition start = IPosition(3, 0, 0, 0);
+  IPosition end = data_input.shape();
+  const int n_channels = end[1];
+  // casacore::Array includes the last element.
+  --end[0];
+  --end[2];
+
+  // First channel should be unchanged.
+  end[1] = 0;
+  BOOST_CHECK(allNear(data_input(start, end), data_output(start, end), 1.0e-6));
+
+  // Channels 1 and 2 should be scaled by a factor of 2.
+  start[1] = 1;
+  end[1] = 2;
+  BOOST_CHECK(allNear(data_input(start, end) * Complex(2, 0),
+                      data_output(start, end), 1.0e-6));
+
+  // All remaining channels should be unchanged.
+  start[1] = 3;
+  end[1] = n_channels - 1;
+  BOOST_CHECK(allNear(data_input(start, end), data_output(start, end), 1.0e-6));
+}
+
+// Test using msin.startchan/nchan together with filter.startchan/nchan, and
+// then updating the input ms.
+BOOST_FIXTURE_TEST_CASE(test_filter_update_channel_subset, FixtureCopyInput) {
+  {
+    std::ofstream ostr(kParsetFile);
+    ostr << "checkparset=1\n";
+    ostr << "msin=" << kCopyMs << '\n';
+    ostr << "msin.startchan=4\n";
+    ostr << "msin.nchan=4\n";
+    ostr << "msout=" << kCopyMs << '\n';  // same name means update
+    ostr << "steps=[filter,scaledata]\n";
+    ostr << "filter.startchan=1\n";
+    ostr << "filter.nchan=2\n";
+    ostr << "scaledata.coeffs=2\n";
+    ostr << "scaledata.stations=*\n";
+    ostr << "scaledata.scalesize=false\n";
+  }
+  dp3::base::Execute(kParsetFile);
+
+  const casacore::Array<Complex> data_input =
+      ArrayColumn<Complex>(Table(kInputMs), "DATA").getColumn();
+  const casacore::Array<Complex> data_output =
+      ArrayColumn<Complex>(Table(kCopyMs), "DATA").getColumn();
+
+  IPosition start = IPosition(3, 0, 0, 0);
+  IPosition end = data_input.shape();
+  const int n_channels = end[1];
+  // casacore::Array includes the last element.
+  --end[0];
+  --end[2];
+
+  // First 5 channels (indices 0-4) should be unchanged.
+  end[1] = 4;
+  BOOST_CHECK(allNear(data_input(start, end), data_output(start, end), 1.0e-6));
+
+  // Channels 5 and 6 should be scaled by a factor of 2.
+  start[1] = 5;
+  end[1] = 6;
+  BOOST_CHECK(allNear(data_input(start, end) * Complex(2, 0),
+                      data_output(start, end), 1.0e-6));
+
+  // All remaining channels should be unchanged.
+  start[1] = 7;
+  end[1] = n_channels - 1;
+  BOOST_CHECK(allNear(data_input(start, end), data_output(start, end), 1.0e-6));
+}
+
 namespace {
 
 casacore::Array<bool> GetFlags(const std::string& out_ms) {

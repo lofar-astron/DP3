@@ -31,7 +31,7 @@ namespace dp3 {
 namespace base {
 
 DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
-               unsigned int start_channel, std::string antenna_set)
+               std::string antenna_set)
     : meta_changed_(false),
       ms_name_(),
       data_column_name_(MS::columnName(MS::DATA)),
@@ -39,7 +39,7 @@ DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
       weight_column_name_(MS::columnName(MS::WEIGHT_SPECTRUM)),
       antenna_set_(std::move(antenna_set)),
       n_correlations_(n_correlations),
-      start_channel_(start_channel),
+      start_channel_(0),
       original_n_channels_(original_n_channels),
       n_channels_(original_n_channels),
       channel_averaging_factor_(1),
@@ -355,9 +355,10 @@ void DPInfo::update(std::vector<unsigned int>&& timeAvg) {
   time_averaging_factors_ = std::move(timeAvg);
 }
 
-void DPInfo::update(unsigned int startChan, unsigned int nchan,
-                    const std::vector<unsigned int>& baselines,
-                    bool removeAnt) {
+void DPInfo::SelectChannels(unsigned int start_channel,
+                            unsigned int n_channels) {
+  if (start_channel == 0 && n_channels == n_channels_) return;
+
   if (channel_frequencies_.size() != 1) {
     throw std::runtime_error("Channel selection does not support BDA");
   }
@@ -373,45 +374,46 @@ void DPInfo::update(unsigned int startChan, unsigned int nchan,
              effective_bandwidth_.front().size() &&
          "The number of elements of the channel frequencies and effective "
          "bandwidths should be equal.");
-  if (startChan + nchan > channel_frequencies_.front().size()) {
+  if (start_channel + n_channels > channel_frequencies_.front().size()) {
     throw std::invalid_argument("Channel range is out of bounds.");
   }
 
-  start_channel_ = startChan;
-  auto freqs_begin = channel_frequencies_.front().begin() + startChan;
-  auto widths_begin = channel_widths_.front().begin() + startChan;
-  auto resol_begin = resolutions_.front().begin() + startChan;
-  auto effbw_begin = effective_bandwidth_.front().begin() + startChan;
+  auto freqs_begin = channel_frequencies_.front().begin() + start_channel;
+  auto widths_begin = channel_widths_.front().begin() + start_channel;
+  auto resol_begin = resolutions_.front().begin() + start_channel;
+  auto effbw_begin = effective_bandwidth_.front().begin() + start_channel;
   channel_frequencies_.front() =
-      std::vector<double>(freqs_begin, freqs_begin + nchan);
+      std::vector<double>(freqs_begin, freqs_begin + n_channels);
   channel_widths_.front() =
-      std::vector<double>(widths_begin, widths_begin + nchan);
-  resolutions_.front() = std::vector<double>(resol_begin, resol_begin + nchan);
+      std::vector<double>(widths_begin, widths_begin + n_channels);
+  resolutions_.front() =
+      std::vector<double>(resol_begin, resol_begin + n_channels);
   effective_bandwidth_.front() =
-      std::vector<double>(effbw_begin, effbw_begin + nchan);
-  n_channels_ = nchan;
-  // Keep only selected baselines.
-  if (!baselines.empty()) {
-    std::vector<int> ant1(baselines.size());
-    std::vector<int> ant2(baselines.size());
-    for (unsigned int i = 0; i < baselines.size(); ++i) {
-      ant1[i] = antenna1_[baselines[i]];
-      ant2[i] = antenna2_[baselines[i]];
-    }
-    antenna1_ = std::move(ant1);
-    antenna2_ = std::move(ant2);
-    // Clear; they'll be recalculated if needed.
-    baseline_lengths_.clear();
-    auto_correlation_indices_.clear();
-  }
-  setAntUsed();
-  // If needed, remove the stations and renumber the baselines.
-  if (removeAnt) {
-    removeUnusedAnt();
-  }
+      std::vector<double>(effbw_begin, effbw_begin + n_channels);
+
+  // Add the new start channel to an existing start_channel, so MSUpdater can
+  // still update the correct channel(s) in the original input MS.
+  start_channel_ += start_channel;
+  n_channels_ = n_channels;
 }
 
-void DPInfo::removeUnusedAnt() {
+void DPInfo::SelectBaselines(const std::vector<unsigned int>& baselines) {
+  std::vector<int> ant1(baselines.size());
+  std::vector<int> ant2(baselines.size());
+  for (unsigned int i = 0; i < baselines.size(); ++i) {
+    ant1[i] = antenna1_[baselines[i]];
+    ant2[i] = antenna2_[baselines[i]];
+  }
+  antenna1_ = std::move(ant1);
+  antenna2_ = std::move(ant2);
+  // Clear; they'll be recalculated if needed.
+  baseline_lengths_.clear();
+  auto_correlation_indices_.clear();
+
+  setAntUsed();
+}
+
+void DPInfo::RemoveUnusedAntennas() {
   if (antennas_used_.size() < antenna_map_.size()) {
     // First remove stations.
     std::vector<std::string> names(antennas_used_.size());
@@ -432,6 +434,9 @@ void DPInfo::removeUnusedAnt() {
       antenna1_[i] = antenna_map_[antenna1_[i]];
       antenna2_[i] = antenna_map_[antenna2_[i]];
     }
+
+    setMetaChanged();
+
     // Now fill the antennas_used_ and antenna_map_ vectors again.
     setAntUsed();
     // Clear; they'll be recalculated if needed.

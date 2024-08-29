@@ -195,7 +195,7 @@ bool MSBDAReader::process(std::unique_ptr<base::BDABuffer>) {
 
 void MSBDAReader::finish() { getNextStep()->finish(); }
 
-void MSBDAReader::updateInfo(const DPInfo& info_in) {
+void MSBDAReader::updateInfo(const DPInfo&) {
   using MS_Ant = casacore::MSAntenna;
   using MS_SPW = casacore::MSSpectralWindow;
   using MS_Field = casacore::MSField;
@@ -246,9 +246,7 @@ void MSBDAReader::updateInfo(const DPInfo& info_in) {
     antPos.push_back(ant_col(i));
   }
 
-  const unsigned int start_channel = 0;
-  const std::string antenna_set = base::ReadAntennaSet(ms_);
-  info() = DPInfo(ncorr, max_n_channels, start_channel, antenna_set);
+  infoOut() = DPInfo(ncorr, max_n_channels, base::ReadAntennaSet(ms_));
 
   // Set time info.
 

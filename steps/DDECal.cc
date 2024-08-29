@@ -249,7 +249,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
 
   // Create lists with used antenna indices, similarly to
-  // DPInfo::removeUnusedAnt.
+  // DPInfo::RemoveUnusedAntennas.
   itsAntennas1.resize(info().getAnt1().size());
   itsAntennas2.resize(info().getAnt2().size());
   for (size_t i = 0; i < itsAntennas1.size(); ++i) {
