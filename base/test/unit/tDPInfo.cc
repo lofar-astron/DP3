@@ -21,19 +21,15 @@ BOOST_AUTO_TEST_CASE(constructor) {
   BOOST_TEST(default_values.ncorr() == 0);
   BOOST_TEST(default_values.origNChan() == 0);
   BOOST_TEST(default_values.nchan() == 0);
-  BOOST_TEST(default_values.startchan() == 0);
   BOOST_TEST(default_values.antennaSet().empty());
 
   const unsigned int kNCorrelations = 4;
   const unsigned int kNChannels = 42;
-  const unsigned int kStartChannel = 10;
   const std::string kAntennaSet = "test_antenna_set";
-  const DPInfo custom_values(kNCorrelations, kNChannels, kStartChannel,
-                             kAntennaSet);
+  const DPInfo custom_values(kNCorrelations, kNChannels, kAntennaSet);
   BOOST_TEST(custom_values.ncorr() == kNCorrelations);
   BOOST_TEST(custom_values.origNChan() == kNChannels);
   BOOST_TEST(custom_values.nchan() == kNChannels);
-  BOOST_TEST(custom_values.startchan() == kStartChannel);
   BOOST_TEST(custom_values.antennaSet() == kAntennaSet);
 }
 
@@ -152,23 +148,28 @@ BOOST_AUTO_TEST_CASE(set_channels) {
   BOOST_TEST(kTotalWidth == info.totalBW());
 }
 
-BOOST_AUTO_TEST_CASE(update) {
+BOOST_AUTO_TEST_CASE(select_channels) {
+  DPInfo info;
+  BOOST_CHECK(info.startchan() == 0);
+  BOOST_CHECK(info.nchan() == 0);
+
+  // Create two channels.
   const std::vector<double> kFreqs{10.0, 20.0};
   const std::vector<double> kWidths{5.0, 6.0};
-
-  DPInfo info;
   info.setChannels(std::vector<double>(kFreqs), std::vector<double>(kWidths));
+  BOOST_CHECK(info.startchan() == 0);
+  BOOST_CHECK(info.nchan() == kFreqs.size());
 
+  // Select only the second channel.
   const unsigned int kStartChannel = 1;
   const unsigned int kNChannel = 1;
-  const std::vector<unsigned int> kBaselines;
-  const bool kRemove = false;
-  // Select only the second channel
-  BOOST_CHECK_NO_THROW(
-      info.update(kStartChannel, kNChannel, kBaselines, kRemove));
-  // Try to select only the second channel again
-  // This should fail because only one channel is left
-  BOOST_CHECK_THROW(info.update(kStartChannel, kNChannel, kBaselines, kRemove),
+  BOOST_CHECK_NO_THROW(info.SelectChannels(kStartChannel, kNChannel));
+  BOOST_CHECK(info.startchan() == kStartChannel);
+  BOOST_CHECK(info.nchan() == kNChannel);
+
+  // Try to select only the second channel again.
+  // This should fail because only one channel is left.
+  BOOST_CHECK_THROW(info.SelectChannels(kStartChannel, kNChannel),
                     std::invalid_argument);
 }
 

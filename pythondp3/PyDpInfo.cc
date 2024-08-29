@@ -20,9 +20,9 @@ namespace pythondp3 {
 
 void WrapDpInfo(py::module& m) {
   py::class_<DPInfo>(m, "DPInfo")
-      .def(py::init<unsigned int, unsigned int, unsigned int, std::string>(),
+      .def(py::init<unsigned int, unsigned int, std::string>(),
            py::arg("n_correlations") = 0, py::arg("n_original_channels") = 0,
-           py::arg("start_channel") = 0, py::arg("antenna_set") = "")
+           py::arg("antenna_set") = "")
       /* Antenna properties */
       .def(
           "set_antennas",

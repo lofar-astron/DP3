@@ -38,7 +38,7 @@ std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
 // Create and populate an info object with the bare minimum values required to
 // run ApplyBeam successfully
 dp3::base::DPInfo MakeInfo() {
-  dp3::base::DPInfo info(4, 8, 0, "HBA_DUAL_INNER");
+  dp3::base::DPInfo info(4, 8, "HBA_DUAL_INNER");
   info.setMsName("tNDPPP-generic.MS");
   info.setChannels({1.34288e+08, 1.34312e+08}, {24414.1, 24414.1},
                    {24414.1, 24414.1}, {24414.1, 24414.1}, 1.34375e+08, 0);

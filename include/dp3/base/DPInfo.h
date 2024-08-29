@@ -36,7 +36,6 @@ class DPInfo {
  public:
   explicit DPInfo(unsigned int n_correlations = 0,
                   unsigned int n_original_channels = 0,
-                  unsigned int start_channel = 0,
                   std::string antenna_set = std::string());
 
   /// Set time information and derive the number of time slots.
@@ -106,28 +105,27 @@ class DPInfo {
                    const std::vector<casacore::MPosition>& antPos,
                    const std::vector<int>& ant1, const std::vector<int>& ant2);
 
+  /// Select a subset of the channels.
+  /// @param start_channel Start channel, relative to the current first channel.
+  /// @param n_channels Number of channels to select.
+  void SelectChannels(unsigned int start_channel, unsigned int n_channels);
+
+  /// Select a subset of the baselines.
+  /// @param baselines A list with the indices of the baselines that must
+  ///                  remain. All other baselines are removed.
+  void SelectBaselines(const std::vector<unsigned int>& baselines);
+
   /// Update the info for the given average factors.
   /// If chanAvg is higher than the actual nr of channels, it is reset.
   /// The same is true for timeAvg.
   /// It returns the possibly reset nr of channels to average.
   unsigned int update(unsigned int chanAvg, unsigned int timeAvg);
 
-  /// Update the info from the given selection parameters.
-  /// Optionally unused stations are really removed from the antenna lists.
-  ///
-  /// @pre The range [startChan, startChan + nchan) does not exceed the ranges
-  ///      of the interal vector of the class.
-  ///
-  /// @param startChan The first channal to use.
-  /// @param nchan The number of channels to use.
-  void update(unsigned int startChan, unsigned int nchan,
-              const std::vector<unsigned int>& baselines, bool remove);
-
   /// Update the info for the given average factors.
   void update(std::vector<unsigned int>&& timeAvg);
 
   /// Remove unused stations from the antenna lists.
-  void removeUnusedAnt();
+  void RemoveUnusedAntennas();
 
   void setPhaseCenter(const casacore::MDirection& phase_center) {
     phase_center_ = phase_center;

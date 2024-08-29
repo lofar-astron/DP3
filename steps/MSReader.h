@@ -182,7 +182,8 @@ class MSReader : public InputStep {
   void prepare(double& firstTime, double& lastTime, double& interval);
 
   /// Do the rest of the preparation.
-  void prepare2(int spectralWindow, unsigned int n_channels);
+  void prepare2(int spectralWindow, unsigned int start_channel,
+                unsigned int n_channels);
 
   /// Skip the first times in the MS in case a start time was given.
   /// If needed, it sets itsFirstTime properly.

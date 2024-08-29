@@ -73,9 +73,6 @@ common::Fields Filter::getProvidedFields() const {
 
 void Filter::updateInfo(const base::DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  if (itsRemoveAnt) {
-    info().setMetaChanged();
-  }
   // Parse the chan expressions.
   // Nr of channels can be used as 'nchan' in the expressions.
   Record rec;
@@ -99,6 +96,7 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
   } else {
     nrChan = std::min(nrChan, maxNrChan);
   }
+
   itsDoSelect = itsStartChan > 0 || nrChan < maxNrChan;
   // Handle possible baseline selection.
   if (itsBaselines.hasSelection()) {
@@ -115,10 +113,11 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
       itsDoSelect = true;
     }
   }
-  if (itsDoSelect || itsRemoveAnt) {
-    // Update the DPInfo object.
-    info().update(itsStartChan, nrChan, itsSelBL, itsRemoveAnt);
-  }
+
+  // Update the DPInfo object.
+  infoOut().SelectChannels(itsStartChan, nrChan);
+  if (!itsSelBL.empty()) infoOut().SelectBaselines(itsSelBL);
+  if (itsRemoveAnt) infoOut().RemoveUnusedAntennas();
 }
 
 void Filter::show(std::ostream& os) const {

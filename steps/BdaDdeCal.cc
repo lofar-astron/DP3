@@ -173,7 +173,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     DetermineChannelBlocks();
 
     // Create lists with used antenna indices, similarly to
-    // DPInfo::removeUnusedAnt.
+    // DPInfo::RemoveUnusedAntennas.
     antennas1_.resize(info().getAnt1().size());
     antennas2_.resize(info().getAnt2().size());
     for (size_t i = 0; i < antennas1_.size(); ++i) {
