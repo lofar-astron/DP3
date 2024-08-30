@@ -42,9 +42,16 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
       itsFillNChan(0) {
   if (msNames.empty())
     throw std::runtime_error("No names of MeasurementSets given");
+
+  if (parset.getString(prefix + "startchan", "0") != "0")
+    throw std::runtime_error(
+        "startchan is not supported when reading multiple MeasurementSets.");
+
+  if (parset.getString(prefix + "nchan", "0") != "0")
+    throw std::runtime_error(
+        "nchan is not supported when reading multiple MeasurementSets.");
+
   // Inherited members from MSReader must be initialized here.
-  itsStartChanStr = parset.getString(prefix + "startchan", "0");
-  itsNrChanStr = parset.getString(prefix + "nchan", "0");
   itsUseFlags = parset.getBool(prefix + "useflag", true);
   itsMissingData = parset.getBool(prefix + "missingdata", false);
   itsAutoWeight = parset.getBool(prefix + "autoweight", false);
@@ -371,7 +378,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   itsTimeInterval = getInfo().timeInterval();
   itsSelBL = first_reader->baselineSelection();
   itsFillNChan = getInfo().nchan();
-  itsStartChan = first_reader->startChan();
   itsBaseRowNrs = first_reader->getBaseRowNrs();
 
   ValidateBands();
@@ -400,12 +406,9 @@ void MultiMSReader::show(std::ostream& os) const {
   if (!itsSelBL.empty()) {
     os << "  baseline:       " << itsSelBL << '\n';
   }
-  os << "  band            " << getInfo().spectralWindow() << '\n';
-  os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr << ')'
-     << '\n';
-  os << "  nchan:          " << getInfoOut().nchan() << "  (" << itsNrChanStr
-     << ')';
-  if (getInfo().channelsAreRegular()) {
+  os << "  band            " << getInfoOut().spectralWindow() << '\n';
+  os << "  nchan:          " << getInfoOut().nchan();
+  if (getInfoOut().channelsAreRegular()) {
     os << " (regularly spaced)" << '\n';
   } else {
     os << " (NOT regularly spaced)" << '\n';

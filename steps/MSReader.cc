@@ -233,31 +233,31 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   // nchan=0 means until the last channel.
   double result;
   node1.get(rec, result);
-  itsStartChan = (unsigned int)(result + 0.001);
+  unsigned int start_channel = result + 0.001;
   node2.get(rec, result);
-  unsigned int n_channels = (unsigned int)(result + 0.0001);
+  unsigned int n_channels = result + 0.0001;
   unsigned int nAllChan = getInfoOut().nchan();
-  if (itsStartChan >= nAllChan)
-    throw std::runtime_error("startchan " + std::to_string(itsStartChan) +
+  if (start_channel >= nAllChan)
+    throw std::runtime_error("startchan " + std::to_string(start_channel) +
                              " exceeds nr of channels in MS (" +
                              std::to_string(nAllChan) + ')');
-  unsigned int maxNrChan = nAllChan - itsStartChan;
+  unsigned int maxNrChan = nAllChan - start_channel;
   if (n_channels == 0) {
     n_channels = maxNrChan;
   } else {
     n_channels = std::min(n_channels, maxNrChan);
   }
   // Are all channels used?
-  itsUseAllChan = itsStartChan == 0 && n_channels == nAllChan;
+  itsUseAllChan = start_channel == 0 && n_channels == nAllChan;
   // Do the rest of the preparation.
-  prepare2(spectralWindow, itsStartChan, n_channels);
+  prepare2(spectralWindow, start_channel, n_channels);
   // Take subset of channel frequencies if needed.
   // Make sure to copy the subset to get a proper Vector.
   // Form the slicer to get channels and correlations from column.
-  itsColSlicer = Slicer(IPosition(2, 0, itsStartChan),
+  itsColSlicer = Slicer(IPosition(2, 0, start_channel),
                         IPosition(2, getInfoOut().ncorr(), n_channels));
   // Form the slicer to get channels, corrs, and baselines from array.
-  itsArrSlicer = Slicer(IPosition(3, 0, itsStartChan, 0),
+  itsArrSlicer = Slicer(IPosition(3, 0, start_channel, 0),
                         IPosition(3, getInfoOut().ncorr(), n_channels,
                                   getInfoOut().nbaselines()));
   // Initialize the flag counters.
@@ -472,21 +472,21 @@ void MSReader::show(std::ostream& os) const {
     if (!itsSelBL.empty()) {
       os << "  baseline:           " << itsSelBL << '\n';
     }
-    os << "  band                " << getInfo().spectralWindow() << '\n';
-    os << "  startchan:          " << itsStartChan << "  (" << itsStartChanStr
-       << ")\n";
-    os << "  nchan:              " << getInfo().nchan() << "  (" << itsNrChanStr
-       << ")\n";
-    os << "  ncorrelations:      " << getInfo().ncorr() << '\n';
-    unsigned int nrbl = getInfo().nbaselines();
+    os << "  band                " << getInfoOut().spectralWindow() << '\n';
+    os << "  startchan:          " << getInfoOut().startchan() << "  ("
+       << itsStartChanStr << ")\n";
+    os << "  nchan:              " << getInfoOut().nchan() << "  ("
+       << itsNrChanStr << ")\n";
+    os << "  ncorrelations:      " << getInfoOut().ncorr() << '\n';
+    unsigned int nrbl = getInfoOut().nbaselines();
     os << "  nbaselines:         " << nrbl << '\n';
     os << "  first time:         " << MVTime::Format(MVTime::YMD)
        << MVTime(itsFirstTime / (24 * 3600.)) << '\n';
     os << "  maximum time:       " << MVTime::Format(MVTime::YMD)
        << MVTime(itsMaximumTime / (24 * 3600.)) << '\n';
-    os << "  ntimes:             " << getInfo().ntime()
+    os << "  ntimes:             " << getInfoOut().ntime()
        << '\n';  // itsSelMS can contain timeslots that are ignored in process
-    os << "  time interval:      " << getInfo().timeInterval() << '\n';
+    os << "  time interval:      " << getInfoOut().timeInterval() << '\n';
     os << "  DATA column:        " << itsDataColName;
     if (itsMissingData) {
       os << "  (not present)";

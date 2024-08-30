@@ -165,9 +165,6 @@ class MSReader : public InputStep {
   /// Get the weight column name.
   const std::string& WeightColumnName() const { return itsWeightColName; }
 
-  /// Get the start channel.
-  unsigned int startChan() const { return itsStartChan; }
-
   /// Flags inf and NaN
   static void flagInfNaN(base::DPBuffer& buffer,
                          base::FlagCounter& flagCounter);
@@ -217,7 +214,6 @@ class MSReader : public InputStep {
   bool itsUseFlags{true};
   bool itsUseAllChan{false};   ///< all channels (i.e. no slicer)?
   bool itsMissingData{false};  ///< allow missing data column?
-  unsigned int itsStartChan{0};
   /// tolerance for time comparison
   ///
   /// Can be negative to insert flagged time slots before start.
