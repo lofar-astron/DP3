@@ -7,12 +7,11 @@
 
 #include "OutputStep.h"
 
-#include <cstddef>
-#include <fstream>
-
 #include <aocommon/logger.h>
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
+
+#include <schaapcommon/reordering/reorderedfilewriter.h>
 
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"
@@ -25,11 +24,6 @@ class ParameterSet;
 }
 
 namespace steps {
-
-struct ReorderFile {
-  std::unique_ptr<std::ofstream> data;
-  std::unique_ptr<std::ofstream> weight;
-};
 
 class WSCleanWriter : public OutputStep {
  public:
@@ -63,20 +57,12 @@ class WSCleanWriter : public OutputStep {
 
   std::string temporary_directory_;
   std::set<aocommon::PolarizationEnum> pols_out_;
-  aocommon::PolarizationEnum polarization_;
-  size_t nr_polarizations_;
 
-  double start_time_;
-  uint64_t channel_count_;
-  uint64_t channel_start_;
   uint32_t data_desc_id_;
-
-  size_t selected_row_count_;
 
   dp3::base::DPInfo dp_info_;
 
-  std::unique_ptr<std::ofstream> meta_file_ptr_;
-  std::vector<ReorderFile> files_;
+  std::unique_ptr<schaapcommon::reordering::ReorderedFileWriter> writer_;
 
   common::NSTimer timer_;
   common::NSTimer writer_timer_;

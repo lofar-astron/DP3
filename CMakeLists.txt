@@ -314,7 +314,7 @@ include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
 set(XTENSOR_LIBRARIES xtl xsimd xtensor xtensor-blas)
 add_compile_definitions(XTENSOR_USE_XSIMD)
 
-set(SCHAAPCOMMON_MODULES facets h5parm ducc0)
+set(SCHAAPCOMMON_MODULES facets h5parm ducc0 reordering)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
@@ -497,7 +497,6 @@ add_library(
   steps/MSReader.cc
   steps/MSUpdater.cc
   steps/MSWriter.cc
-  steps/MSReorder.cc
   steps/WSCleanWriter.cc
   steps/MultiMSReader.cc
   steps/MultiResultStep.cc
@@ -756,7 +755,6 @@ if(BUILD_TESTING)
       steps/test/unit/tMSBDAWriter.cc
       steps/test/unit/tMsColumnReader.cc
       steps/test/unit/tMSReader.cc
-      steps/test/unit/tMSReorder.cc
       steps/test/unit/tMSUpdater.cc
       steps/test/unit/tMSWriter.cc
       steps/test/unit/tNullStokes.cc
