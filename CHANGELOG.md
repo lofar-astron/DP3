@@ -1,5 +1,30 @@
 # DP3 Changelog
 
+## [6.2] - 2024-08-29
+
+### New features
+
+- Support reading extra data columns from the input Measurement Set(s).
+- Support extra (model) data columns in applybeam step.
+- Add wgridderpredict step, which uses ducc wgridder for image based prediction.
+- Add rotationdiagonalmode setting to ddecal step.
+- Add smoothnessspectralexponent setting to ddecal step.
+- Add usedualvisibilites setting to ddecal step, for using XX/YY visibilities only.
+- Support a restricted LBFGS solution range in ddecal and demixer.
+- Add skipstations setting to applybeam step.
+- Support DD intervals in bda ddecal step.
+- Add wscleanwriter step which writes data in WSClean reordered format.
+
+### Improvements
+
+- Interface change: Remove start channel from DPInfo constructor, also in Python.
+- Format python files using isort.
+- Use Logger for all output. Do not allow std::cout / std::cerr anymore.
+
+### Bug fixes
+
+- Fix using msin.startchan / filter.startchan when updating a Measurement Set.
+
 ## [6.1] - 2024-06-18
 
 - Support EveryBeam 0.6 (in addition to EveryBeam 0.5.8)
