@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <tuple>
 
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -22,6 +23,7 @@
 
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"
+#include "MSReader.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -73,31 +75,13 @@ common::Fields Filter::getProvidedFields() const {
 
 void Filter::updateInfo(const base::DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  // Parse the chan expressions.
-  // Nr of channels can be used as 'nchan' in the expressions.
-  Record rec;
-  rec.define("nchan", infoIn.nchan());
-  TableExprNode node1(RecordGram::parse(rec, itsStartChanStr));
-  TableExprNode node2(RecordGram::parse(rec, itsNrChanStr));
-  // nchan=0 means until the last channel.
-  double result;
-  node1.get(rec, result);
-  itsStartChan = (unsigned int)(result + 0.001);
-  node2.get(rec, result);
-  unsigned int nrChan = (unsigned int)(result + 0.0001);
-  unsigned int nAllChan = getInfo().nchan();
-  if (itsStartChan >= nAllChan)
-    throw std::runtime_error("startchan " + std::to_string(itsStartChan) +
-                             " exceeds nr of available channels (" +
-                             std::to_string(nAllChan) + ')');
-  unsigned int maxNrChan = nAllChan - itsStartChan;
-  if (nrChan == 0) {
-    nrChan = maxNrChan;
-  } else {
-    nrChan = std::min(nrChan, maxNrChan);
-  }
 
-  itsDoSelect = itsStartChan > 0 || nrChan < maxNrChan;
+  unsigned int nrChan;
+  std::tie(itsStartChan, nrChan) = MSReader::ParseChannelSelection(
+      itsStartChanStr, itsNrChanStr, getInfoOut().nchan());
+
+  itsDoSelect = itsStartChan > 0 || nrChan < getInfoOut().nchan();
+
   // Handle possible baseline selection.
   if (itsBaselines.hasSelection()) {
     Matrix<bool> selbl(itsBaselines.apply(infoIn));

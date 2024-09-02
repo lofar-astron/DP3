@@ -7,6 +7,7 @@
 #include "MSReader.h"
 
 #include <iostream>
+#include <tuple>
 
 #include <xtensor/xadapt.hpp>
 #include <xtensor/xview.hpp>
@@ -224,31 +225,13 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
     itsMaximumTime = itsFirstTime + (nTimes - 1) * itsTimeInterval;
   }
   itsNextTime = itsFirstTime;
-  // Parse the chan expressions.
-  // Nr of channels can be used as 'nchan' in the expressions.
-  Record rec;
-  rec.define("nchan", getInfoOut().nchan());
-  TableExprNode node1(RecordGram::parse(rec, itsStartChanStr));
-  TableExprNode node2(RecordGram::parse(rec, itsNrChanStr));
-  // nchan=0 means until the last channel.
-  double result;
-  node1.get(rec, result);
-  unsigned int start_channel = result + 0.001;
-  node2.get(rec, result);
-  unsigned int n_channels = result + 0.0001;
-  unsigned int nAllChan = getInfoOut().nchan();
-  if (start_channel >= nAllChan)
-    throw std::runtime_error("startchan " + std::to_string(start_channel) +
-                             " exceeds nr of channels in MS (" +
-                             std::to_string(nAllChan) + ')');
-  unsigned int maxNrChan = nAllChan - start_channel;
-  if (n_channels == 0) {
-    n_channels = maxNrChan;
-  } else {
-    n_channels = std::min(n_channels, maxNrChan);
-  }
+
+  unsigned int start_channel, n_channels;
+  std::tie(start_channel, n_channels) = ParseChannelSelection(
+      itsStartChanStr, itsNrChanStr, getInfoOut().nchan());
   // Are all channels used?
-  itsUseAllChan = start_channel == 0 && n_channels == nAllChan;
+  itsUseAllChan = start_channel == 0 && n_channels == getInfoOut().nchan();
+
   // Do the rest of the preparation.
   prepare2(spectralWindow, start_channel, n_channels);
   // Take subset of channel frequencies if needed.
@@ -515,6 +498,32 @@ void MSReader::showTimings(std::ostream& os, double duration) const {
   os << "  ";
   FlagCounter::showPerc1(os, itsTimer.getElapsed(), duration);
   os << " MSReader" << '\n';
+}
+
+std::pair<unsigned int, unsigned int> MSReader::ParseChannelSelection(
+    const std::string& start_channel_string,
+    const std::string& n_channels_string, unsigned int n_all_channels) {
+  Record rec;
+  rec.define("nchan", n_all_channels);
+  TableExprNode node1(RecordGram::parse(rec, start_channel_string));
+  TableExprNode node2(RecordGram::parse(rec, n_channels_string));
+  double result;
+  node1.get(rec, result);
+  const unsigned int start_channel = result + 0.001;
+  node2.get(rec, result);
+  unsigned int n_channels = result + 0.0001;
+  if (start_channel >= n_all_channels)
+    throw std::runtime_error("startchan " + std::to_string(start_channel) +
+                             " exceeds nr of channels in MS (" +
+                             std::to_string(n_all_channels) + ')');
+  const unsigned int max_n_channels = n_all_channels - start_channel;
+  if (n_channels == 0) {  // nchan=0 means until the last channel.
+    n_channels = max_n_channels;
+  } else {
+    n_channels = std::min(n_channels, max_n_channels);
+  }
+
+  return std::make_pair(start_channel, n_channels);
 }
 
 void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {

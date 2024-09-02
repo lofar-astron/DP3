@@ -169,6 +169,12 @@ class MSReader : public InputStep {
   static void flagInfNaN(base::DPBuffer& buffer,
                          base::FlagCounter& flagCounter);
 
+  /// Parse the expressions for the start channel and number of channels.
+  /// The total number of channels can be used as 'nchan' in both expressions.
+  static std::pair<unsigned int, unsigned int> ParseChannelSelection(
+      const std::string& start_channel_string,
+      const std::string& n_channels_string, unsigned int n_channels);
+
  protected:
   /// Default constructor.
   MSReader() = default;
