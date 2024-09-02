@@ -2,30 +2,27 @@
 // Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "MSReorder.h"
 #include "WSCleanWriter.h"
 
+#include <map>
+#include <stdexcept>
 #include <algorithm>
-#include <cstddef>
-#include <iostream>
-#include <limits>
-#include <fstream>
 
-#include "../common/ParameterSet.h"
+#include <schaapcommon/reordering/msselection.h>
+#include <schaapcommon/reordering/reorderedhandle.h>
+#include <schaapcommon/reordering/reorderedfilewriter.h>
 
-#include <aocommon/logger.h>
-#include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
+#include <aocommon/multibanddata.h>
 
-#include <boost/filesystem/path.hpp>
-#include <memory>
-#include <stdexcept>
+#include "../common/ParameterSet.h"
 
 using aocommon::Logger;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
+using schaapcommon::reordering::ReorderedFileWriter;
 
 namespace dp3 {
 
@@ -36,8 +33,7 @@ WSCleanWriter::WSCleanWriter(const common::ParameterSet& parset,
     : name_(prefix),
       parset_(parset),
       temporary_directory_(
-          parset_.getString(prefix + "temporaryDirectory", "")),
-      selected_row_count_(0) {
+          parset_.getString(prefix + "temporaryDirectory", "")) {
   out_name_ = parset_.getString(prefix + "name", "");
   if (out_name_.empty() && parset.isDefined("msout.name"))
     out_name_ = parset_.getString("msout.name", "");
@@ -57,43 +53,31 @@ WSCleanWriter::WSCleanWriter(const common::ParameterSet& parset,
   } else {
     pols_out_ = aocommon::Polarization::ParseList(pols_string);
   }
-  nr_polarizations_ = pols_out_.size();
 }
 
 WSCleanWriter::~WSCleanWriter() = default;
 
 void WSCleanWriter::StartReorder() {
-  files_.resize(nr_polarizations_);
-
-  start_time_ = dp_info_.startTime() / 86400;
-  channel_start_ = dp_info_.startchan();
-  channel_count_ = dp_info_.nchan();
   data_desc_id_ = dp_info_.spectralWindow();
 
-  size_t file_index = 0;
-  size_t part = 0;
-  for (aocommon::PolarizationEnum pol : pols_out_) {
-    ReorderFile& file = files_[file_index];
-    const std::string part_prefix = reorder::GetPartPrefix(
-        out_name_, part, pol, data_desc_id_, temporary_directory_);
-    file.data = std::make_unique<std::ofstream>(part_prefix + ".tmp");
-    file.weight = std::make_unique<std::ofstream>(part_prefix + "-w.tmp");
-    file.data->seekp(reorder::PartHeader::BINARY_SIZE, std::ios::beg);
-    ++file_index;
-  }
+  std::vector<schaapcommon::reordering::ChannelRange> channel_ranges = {
+      {(size_t)dp_info_.spectralWindow(), dp_info_.startchan(),
+       dp_info_.startchan() + dp_info_.nchan()}};
 
-  const std::string meta_filename =
-      reorder::GetMetaFilename(out_name_, temporary_directory_, data_desc_id_);
-  meta_file_ptr_ = std::make_unique<std::ofstream>(meta_filename);
-  reorder::MetaHeader meta_header;
-  meta_header.selected_row_count = 0;  // not yet known
-  meta_header.filename_length = out_name_.size();
-  meta_header.start_time = 0;
-  meta_header.Write(*meta_file_ptr_);
-  meta_file_ptr_->write(out_name_.c_str(), out_name_.size());
-  if (!meta_file_ptr_->good())
-    throw std::runtime_error("Error writing to temporary file " +
-                             meta_filename);
+  schaapcommon::reordering::MSSelection selection;
+  aocommon::MultiBandData bands;
+
+  schaapcommon::reordering::ReorderedHandleData data(
+      out_name_, dp_info_.dataColumnName(), temporary_directory_,
+      channel_ranges, false, false, pols_out_, selection, bands,
+      dp_info_.antennaNames().size(), true,
+      [](schaapcommon::reordering::ReorderedHandleData) {});
+
+  std::map<size_t, std::set<aocommon::PolarizationEnum>> pol_per_data_desc_id{
+      {data_desc_id_, dp_info_.polarizations()}};
+
+  writer_ = std::make_unique<ReorderedFileWriter>(data, pol_per_data_desc_id,
+                                                  dp_info_.startTime() / 86400);
 }
 
 bool WSCleanWriter::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
@@ -107,98 +91,37 @@ bool WSCleanWriter::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
 void WSCleanWriter::ReorderBuffer(dp3::base::DPBuffer& buffer) {
   const common::NSTimer::StartStop timer(writer_timer_);
 
-  // Get DP3 time frame details.
-
   const dp3::base::DPBuffer::FlagsType& buff_flags = buffer.GetFlags();
   const dp3::base::DPBuffer::UvwType& buff_uvw = buffer.GetUvw();
   const dp3::base::DPBuffer::WeightsType& buff_weights = buffer.GetWeights();
   const dp3::base::DPBuffer::DataType& buff_data = buffer.GetData();
 
   const size_t n_baselines = buff_data.shape(0);
-  const size_t n_channels = buff_data.shape(1);
 
   const std::vector<int>& antenna1_list = dp_info_.getAnt1();
   const std::vector<int>& antenna2_list = dp_info_.getAnt2();
   const std::set<aocommon::PolarizationEnum> pols_in = dp_info_.polarizations();
 
-  const size_t polarizations_per_file =
-      aocommon::Polarization::GetVisibilityCount(*pols_out_.begin());
-
-  std::vector<std::complex<float>> data_buffer_(
-      n_channels * polarizations_per_file, 0.0);
-  std::vector<float> weight_buffer_(n_channels * polarizations_per_file);
-
   for (size_t bl = 0; bl < n_baselines; bl++) {
     // Skip self-correlations, in WSClean this is done using an MSSelection
     if (antenna1_list[bl] == antenna2_list[bl]) continue;
 
-    reorder::MetaRecord meta;
     const bool* flag_ptr = &buff_flags(bl, 0, 0);
     const float* weight_ptr = &buff_weights(bl, 0, 0);
     const std::complex<float>* data_ptr = &buff_data(bl, 0, 0);
 
-    meta.u = buff_uvw(bl, 0);
-    meta.v = buff_uvw(bl, 1);
-    meta.w = buff_uvw(bl, 2);
-    meta.antenna1 = antenna1_list[bl];
-    meta.antenna2 = antenna2_list[bl];
-    meta.field_id = 0;
-    meta.time = buffer.GetTime();
+    writer_->WriteMetaRow(buff_uvw(bl, 0), buff_uvw(bl, 1), buff_uvw(bl, 2),
+                          buffer.GetTime(), data_desc_id_, antenna1_list[bl],
+                          antenna2_list[bl], 0);
 
-    ++selected_row_count_;
-
-    meta.Write(*meta_file_ptr_);
-    if (!meta_file_ptr_->good())
-      throw std::runtime_error("Error writing to temporary file");
-
-    size_t file_index = 0;
-    for (aocommon::PolarizationEnum pol : pols_out_) {
-      ReorderFile& file = files_[file_index];
-
-      reorder::ExtractData(data_buffer_.data(), 0, n_channels, pols_in,
-                           data_ptr, pol);
-      file.data->write(
-          reinterpret_cast<char*>(data_buffer_.data()),
-          n_channels * polarizations_per_file * sizeof(std::complex<float>));
-      if (!file.data->good())
-        throw std::runtime_error("Error writing to temporary data file");
-
-      reorder::ExtractWeights(weight_buffer_.data(), 0, n_channels, pols_in,
-                              data_ptr, weight_ptr, flag_ptr, pol);
-      file.weight->write(reinterpret_cast<char*>(weight_buffer_.data()),
-                         n_channels * polarizations_per_file * sizeof(float));
-      if (!file.weight->good())
-        throw std::runtime_error("Error writing to temporary weights file");
-
-      ++file_index;
-    }
+    writer_->WriteDataRow(data_ptr, nullptr, weight_ptr, flag_ptr,
+                          data_desc_id_);
   }
 }
 
 void WSCleanWriter::FinishReorder() {
-  reorder::MetaHeader meta_header;
-  meta_header.selected_row_count = selected_row_count_;
-  meta_header.filename_length = out_name_.size();
-  meta_header.start_time = start_time_;
-  meta_file_ptr_->seekp(0);
-  meta_header.Write(*meta_file_ptr_);
-  meta_file_ptr_->write(out_name_.c_str(), out_name_.size());
-
-  reorder::PartHeader header;
-  header.has_model = false;
-  header.channel_start = channel_start_;
-  header.channel_count = channel_count_;
-  header.data_desc_id = data_desc_id_;
-  for (size_t file_index = 0; file_index < pols_out_.size(); file_index++) {
-    ReorderFile& file = files_[file_index];
-    file.data->seekp(0, std::ios::beg);
-    header.Write(*file.data);
-    if (!file.data->good())
-      throw std::runtime_error("Error writing to temporary data file");
-
-    file.data.reset();
-    file.weight.reset();
-  }
+  writer_->UpdateMetaHeaders();
+  writer_->UpdatePartHeaders(false);
 }
 
 void WSCleanWriter::finish() {
