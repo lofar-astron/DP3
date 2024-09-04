@@ -139,12 +139,6 @@ class MSReader : public InputStep {
   /// Get the slicer in the FLAG and DATA column.
   const casacore::Slicer& colSlicer() const { return itsColSlicer; }
 
-  /// Get the rownrs for meta info of missing time slots.
-  /// It uses the rows of the first time slot.
-  const casacore::Vector<common::rownr_t>& getBaseRowNrs() const {
-    return itsBaseRowNrs;
-  }
-
   /// Get the name of the MS.
   std::string msName() const override;
 
@@ -236,8 +230,6 @@ class MSReader : public InputStep {
   casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
   casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array
   std::unique_ptr<base::UVWCalculator> itsUVWCalc;
-  casacore::Vector<common::rownr_t>
-      itsBaseRowNrs;  ///< rownrs for meta of missing times
   base::FlagCounter itsFlagCounter;
   common::NSTimer itsTimer;
 };
