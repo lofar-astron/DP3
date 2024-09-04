@@ -171,7 +171,7 @@ class MsReader : public InputStep {
  private:
   /// Prepare the access to the MS.
   /// Store the first and last time and the interval in infoOut().
-  void prepare();
+  void prepare(bool allow_missing_data);
 
   /// Do the rest of the preparation.
   void prepare2(int spectralWindow, unsigned int start_channel,
@@ -208,9 +208,7 @@ class MsReader : public InputStep {
   bool has_weight_spectrum_{false};
   bool use_flags_{true};
   bool use_all_channels_{false};  ///< all channels (i.e. no slicer)?
-  /// Initially indicates if missing data columns are allowed.
-  /// After prepare(), indicates if the data column is actually missing.
-  bool missing_data_{false};
+  bool missing_data_{false};      ///< is the data column missing?
   /// tolerance for time comparison
   ///
   /// Can be negative to insert flagged time slots before start.
