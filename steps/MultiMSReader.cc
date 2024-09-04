@@ -52,10 +52,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
         "nchan is not supported when reading multiple MeasurementSets.");
 
   // Inherited members from MSReader must be initialized here.
-  itsUseFlags = parset.getBool(prefix + "useflag", true);
-  itsMissingData = parset.getBool(prefix + "missingdata", false);
-  itsAutoWeight = parset.getBool(prefix + "autoweight", false);
-  itsNeedSort = parset.getBool(prefix + "sort", false);
+  const bool allow_missing_data = parset.getBool(prefix + "missingdata", false);
 
   // Open all MSs.
   readers_.reserve(msNames.size());
@@ -74,7 +71,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
                                     "multiple input MSs with BDA data.");
       }
       reader.ms_reader =
-          std::make_shared<MSReader>(ms, parset, prefix, itsMissingData);
+          std::make_shared<MSReader>(ms, parset, prefix, allow_missing_data);
       // Add a result step for the reader.
       reader.result = std::make_shared<ResultStep>();
       reader.ms_reader->setNextStep(reader.result);
@@ -369,12 +366,13 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
       reader.ms_reader->updateInfo(infoIn);
     }
   }
-  std::shared_ptr<MSReader>& first_reader = readers_[itsFirst].ms_reader;
-  infoOut() = first_reader->getInfoOut();
+
+  const MSReader& first_reader = *readers_[itsFirst].ms_reader;
+  Step::updateInfo(first_reader.getInfoOut());
+
   // Use the first valid MS as the standard MS (for meta data)
   // Get meta data and check they are equal for all MSs.
-  itsSelBL = first_reader->baselineSelection();
-  itsFillNChan = getInfo().nchan();
+  itsFillNChan = getInfoOut().nchan();
 
   ValidateBands();
 
@@ -387,9 +385,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   } else {
     HandleBands();
   }
-
-  // Initialize the flag counters.
-  itsFlagCounter.init(getInfo());
 }
 
 void MultiMSReader::show(std::ostream& os) const {
@@ -399,8 +394,8 @@ void MultiMSReader::show(std::ostream& os) const {
   for (std::size_t i = 1; i < readers_.size(); ++i) {
     os << "                  " << readers_[i].name << '\n';
   }
-  if (!itsSelBL.empty()) {
-    os << "  baseline:       " << itsSelBL << '\n';
+  if (!first_reader.baselineSelection().empty()) {
+    os << "  baseline:       " << first_reader.baselineSelection() << '\n';
   }
   os << "  band            " << getInfoOut().spectralWindow() << '\n';
   os << "  nchan:          " << getInfoOut().nchan();
@@ -416,7 +411,7 @@ void MultiMSReader::show(std::ostream& os) const {
   os << "  DATA column:    " << first_reader.DataColumnName() << '\n';
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
-      if (reader.ms_reader->missingData()) {
+      if (reader.ms_reader->MissingData()) {
         os << "      column missing in  " << reader.name << '\n';
       }
     } else {
@@ -424,7 +419,8 @@ void MultiMSReader::show(std::ostream& os) const {
     }
   }
   os << "  WEIGHT column:  " << first_reader.WeightColumnName() << '\n';
-  os << "  autoweight:     " << std::boolalpha << itsAutoWeight << '\n';
+  os << "  autoweight:     " << std::boolalpha << first_reader.AutoWeight()
+     << '\n';
 }
 
 void MultiMSReader::showCounts(std::ostream& os) const {

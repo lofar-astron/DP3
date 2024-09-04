@@ -82,7 +82,7 @@ namespace steps {
 
 MSReader::MSReader(const casacore::MeasurementSet& ms,
                    const common::ParameterSet& parset,
-                   const std::string& prefix, bool missingData)
+                   const std::string& prefix, bool allow_missing_data)
     : itsMS(ms),
       itsSelMS(itsMS),
       itsDataColName(parset.getString(prefix + "datacolumn", "DATA")),
@@ -99,7 +99,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
       itsAutoWeight(parset.getBool(prefix + "autoweight", false)),
       itsAutoWeightForce(parset.getBool(prefix + "forceautoweight", false)),
       itsUseFlags(parset.getBool(prefix + "useflag", true)),
-      itsMissingData(missingData),
+      itsMissingData(allow_missing_data),
       itsTimeTolerance(parset.getDouble(prefix + "timetolerance", 1e-2)) {
   common::NSTimer::StartStop sstime(itsTimer);
   // Try to open the MS and get its full name.
@@ -633,7 +633,7 @@ void MSReader::prepare() {
     itsAutoWeight = true;
   } else if (!useRaw && itsAutoWeight) {
     throw std::runtime_error(
-        "Using autoweight=true cannot be done on DPPP-ed MS");
+        "Using autoweight=true cannot be done on DP3-ed MS");
   }
   // If not in order, sort the table selection (also on baseline).
   Table sortms(itsSelMS);
