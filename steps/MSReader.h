@@ -102,10 +102,10 @@ class MSReader : public InputStep {
  public:
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  /// The missingData argument is for MultiMSReader.
+  /// The allow_missing_data argument is for MultiMSReader.
   MSReader(const casacore::MeasurementSet& ms,
            const common::ParameterSet& parset, const std::string& prefix,
-           bool missingData = false);
+           bool allow_missing_data = false);
 
   /// Process the next data chunk.
   /// It returns false when at the end.
@@ -146,7 +146,7 @@ class MSReader : public InputStep {
   const std::string& baselineSelection() const { return itsSelBL; }
 
   /// Is the data column missing?
-  bool missingData() const { return itsMissingData; }
+  bool MissingData() const { return itsMissingData; }
 
   /// Get the name of the main data column.
   const std::string& DataColumnName() const { return itsDataColName; }
@@ -159,6 +159,8 @@ class MSReader : public InputStep {
   /// Get the weight column name.
   const std::string& WeightColumnName() const { return itsWeightColName; }
 
+  bool AutoWeight() const { return itsAutoWeight; }
+
   /// Flags inf and NaN
   static void flagInfNaN(base::DPBuffer& buffer,
                          base::FlagCounter& flagCounter);
@@ -168,10 +170,6 @@ class MSReader : public InputStep {
   static std::pair<unsigned int, unsigned int> ParseChannelSelection(
       const std::string& start_channel_string,
       const std::string& n_channels_string, unsigned int n_channels);
-
- protected:
-  /// Default constructor.
-  MSReader() = default;
 
  private:
   /// Prepare the access to the MS.
@@ -196,7 +194,6 @@ class MSReader : public InputStep {
   /// Note: the buffer must contain DATA if autoweighting is in effect.
   void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
- private:
   casacore::MeasurementSet itsMS;
   casacore::Table itsSelMS;  ///< possible selection of spw, baseline
   casacore::TableIterator itsIter;
@@ -205,15 +202,13 @@ class MSReader : public InputStep {
   std::string itsFlagColName{"FLAG"};
   std::string itsWeightColName{"WEIGHT_SPECTRUM"};
   std::string itsModelColName{"MODEL_DATA"};
-
- protected:
   std::string itsStartChanStr{"0"};  ///< startchan expression
   std::string itsNrChanStr{"0"};     ///< nchan expression
   std::string itsSelBL{};            ///< Baseline selection string
   bool itsNeedSort{false};           ///< sort needed on time,baseline?
   bool itsAutoWeight{false};         ///< calculate weights from autocorr?
   bool itsAutoWeightForce{false};    ///< always calculate weights?
-  bool itsHasWeightSpectrum;
+  bool itsHasWeightSpectrum{false};
   bool itsUseFlags{true};
   bool itsUseAllChan{false};   ///< all channels (i.e. no slicer)?
   bool itsMissingData{false};  ///< allow missing data column?

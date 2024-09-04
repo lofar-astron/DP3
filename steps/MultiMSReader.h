@@ -44,7 +44,7 @@ namespace steps {
 ///  <li> msin.missingdata: allow a non-existing data column in an MS? [no]
 /// </ul>
 
-class MultiMSReader final : public MSReader {
+class MultiMSReader final : public InputStep {
  public:
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
