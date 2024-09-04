@@ -373,9 +373,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   infoOut() = first_reader->getInfoOut();
   // Use the first valid MS as the standard MS (for meta data)
   // Get meta data and check they are equal for all MSs.
-  itsFirstTime = getInfo().firstTime();
-  itsMaximumTime = getInfo().lastTime();
-  itsTimeInterval = getInfo().timeInterval();
   itsSelBL = first_reader->baselineSelection();
   itsFillNChan = getInfo().nchan();
   itsBaseRowNrs = first_reader->getBaseRowNrs();
@@ -416,7 +413,7 @@ void MultiMSReader::show(std::ostream& os) const {
   os << "  ncorrelations:  " << getInfoOut().ncorr() << '\n';
   os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
   os << "  ntimes:         " << getInfoOut().ntime() << '\n';
-  os << "  time interval:  " << itsTimeInterval << '\n';
+  os << "  time interval:  " << getInfoOut().timeInterval() << '\n';
   os << "  DATA column:    " << first_reader.DataColumnName() << '\n';
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {

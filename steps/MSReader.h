@@ -181,16 +181,19 @@ class MSReader : public InputStep {
 
  private:
   /// Prepare the access to the MS.
-  /// Return the first and last time and the interval.
-  void prepare(double& firstTime, double& lastTime, double& interval);
+  /// Store the first and last time and the interval in infoOut().
+  void prepare();
 
   /// Do the rest of the preparation.
   void prepare2(int spectralWindow, unsigned int start_channel,
                 unsigned int n_channels);
 
+  void ParseTimeSelection(const common::ParameterSet& parset,
+                          const std::string& prefix);
+
   /// Skip the first times in the MS in case a start time was given.
-  /// If needed, it sets itsFirstTime properly.
-  void skipFirstTimes();
+  /// Update first_time if needed.
+  void skipFirstTimes(double& first_time, double interval);
 
   /// Calculate the weights from the autocorrelations.
   void autoWeight(base::DPBuffer& buf);
@@ -224,12 +227,11 @@ class MSReader : public InputStep {
   ///
   /// Can be negative to insert flagged time slots before start.
   double itsTimeTolerance{1e-2};
-  double itsTimeInterval{0.0};
-  double itsFirstTime{0.0};
-  double itsMaximumTime{0.0};  ///< the last/max. expected timeslot in the MS
-  double itsNextTime{0.0};     ///< target time slot for the process() call
-  double itsPrevMSTime{0.0};   ///< time of prev. iteration in search for target
-  unsigned int itsNrRead{0};   ///< nr of time slots read from MS
+  /// Correction on first time in case times are irregularly spaced.
+  double itsTimeCorrection{0.0};
+  double itsNextTime{0.0};    ///< target time slot for the process() call
+  double itsPrevMSTime{0.0};  ///< time of prev. iteration in search for target
+  unsigned int itsNrRead{0};  ///< nr of time slots read from MS
   unsigned int itsNrInserted{0};  ///< nr of inserted time slots
   casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
   casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array

@@ -102,11 +102,6 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
       itsMissingData(missingData),
       itsTimeTolerance(parset.getDouble(prefix + "timetolerance", 1e-2)) {
   common::NSTimer::StartStop sstime(itsTimer);
-  // Get info from parset.
-  std::string startTimeStr = parset.getString(prefix + "starttime", "");
-  std::string endTimeStr = parset.getString(prefix + "endtime", "");
-  unsigned int nTimes = parset.getInt(prefix + "ntimes", 0);
-  int startTimeSlot = parset.getInt(prefix + "starttimeslot", 0);
   // Try to open the MS and get its full name.
   if (itsMissingData && ms.isNull()) {
     aocommon::Logger::Warn << "MeasurementSet is empty; dummy data used\n";
@@ -153,9 +148,8 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
       itsSelMS = subset;
     }
   }
-  // Prepare the MS access and get time info.
-  double startTimeMS = 0., endTimeMS = 0.;
-  prepare(startTimeMS, endTimeMS, itsTimeInterval);
+  // Prepare the MS access and store MS metadata into infoOut().
+  prepare();
 
   // itsMissingData could be updated in prepare(), so test this here.
   if (itsMissingData && !itsExtraDataColNames.empty()) {
@@ -164,67 +158,7 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
         "exclusive and cannot be provided both.");
   }
 
-  // Start and end time can be given in the parset in case leading
-  // or trailing time slots are missing.
-  // They can also be used to select part of the MS.
-
-  if (!startTimeStr.empty()) {
-    if (startTimeSlot > 0) {
-      throw std::runtime_error("Only one of " + prefix + "starttimeslot and " +
-                               prefix + "starttime can be specified");
-    }
-    Quantity qtime;
-    if (!MVTime::read(qtime, startTimeStr)) {
-      throw std::runtime_error(startTimeStr + " is an invalid date/time");
-    }
-    double startTimeParset = qtime.getValue("s");
-    // the parset specified start time is allowed to be before the msstarttime.
-    // In that case, flagged samples are injected.
-    if (startTimeParset > endTimeMS)
-      throw std::runtime_error("Specified starttime is past end of time axis");
-
-    // Round specified first time to a multiple of itsTimeInterval
-    itsFirstTime = startTimeMS + std::ceil((startTimeParset - startTimeMS) /
-                                           itsTimeInterval) *
-                                     itsTimeInterval;
-  } else {
-    itsFirstTime = startTimeMS + startTimeSlot * itsTimeInterval;
-  }
-
-  if (!endTimeStr.empty()) {
-    Quantity qtime;
-    if (!MVTime::read(qtime, endTimeStr)) {
-      throw std::runtime_error(endTimeStr + " is an invalid date/time");
-    }
-    double endTimeParset = qtime.getValue("s");
-    // Some overlap between the measurement set timerange and the parset range
-    // is required :
-    if (endTimeParset < startTimeMS + 0.5 * itsTimeInterval) {
-      throw std::runtime_error(
-          "Specified end time " + endTimeStr +
-          " is before the first timestep in the measurement set");
-    }
-    // Round specified first time to a multiple of itsTimeInterval
-    itsMaximumTime = startTimeMS + std::floor((endTimeParset - startTimeMS) /
-                                              itsTimeInterval) *
-                                       itsTimeInterval;
-  } else {
-    itsMaximumTime = endTimeMS;
-  }
-
-  if (itsMaximumTime < itsFirstTime)
-    throw std::runtime_error("Specified endtime is before specified starttime");
-  // If needed, skip the first times in the MS.
-  // It also sets itsFirstTime properly (round to time/interval in MS).
-  skipFirstTimes();
-  if (nTimes > 0) {
-    if (!endTimeStr.empty()) {
-      throw std::runtime_error("Only one of " + prefix + "ntimes and " +
-                               prefix + "endtime can be specified");
-    }
-    itsMaximumTime = itsFirstTime + (nTimes - 1) * itsTimeInterval;
-  }
-  itsNextTime = itsFirstTime;
+  ParseTimeSelection(parset, prefix);
 
   unsigned int start_channel, n_channels;
   std::tie(start_channel, n_channels) = ParseChannelSelection(
@@ -270,6 +204,8 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
     buffer->GetFlags().resize(shape);
   }
 
+  double corrected_first_time = getInfoOut().firstTime() + itsTimeCorrection;
+
   {
     common::NSTimer::StartStop sstime(itsTimer);
     // Use time from the current time slot in the MS.
@@ -288,8 +224,10 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
         if (casacore::nearAbs(mstime, itsNextTime, itsTimeTolerance)) {
           useIter = true;
           break;
-        } else if (mstime > itsFirstTime && mstime < itsNextTime) {
-          itsFirstTime -= itsNextTime - mstime;
+        } else if (mstime > corrected_first_time && mstime < itsNextTime) {
+          itsTimeCorrection -= itsNextTime - mstime;
+          corrected_first_time = getInfoOut().firstTime() + itsTimeCorrection;
+
           itsNextTime = mstime;
           useIter = true;
           break;
@@ -306,9 +244,9 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
 
     // Stop if at the end, i.e. the above loop completed without hitting an end
     // condition at all, or if there is no data at all.
-    if ((itsNextTime > itsMaximumTime &&
-         !casacore::near(itsNextTime, itsMaximumTime)) ||
-        itsNextTime == 0.) {
+    if ((itsNextTime > getInfoOut().lastTime() &&
+         !casacore::near(itsNextTime, getInfoOut().lastTime())) ||
+        itsNextTime == 0.0) {
       return false;
     }
 
@@ -317,7 +255,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
     if (!useIter) {
       // Time slot is missing altogether: insert a fully flagged time slot.
       buffer->SetRowNumbers(casacore::Vector<common::rownr_t>());
-      buffer->SetExposure(itsTimeInterval);
+      buffer->SetExposure(getInfoOut().timeInterval());
       buffer->GetFlags().fill(true);
       if (getFieldsToRead().Data()) {
         buffer->GetData().fill(std::complex<float>());
@@ -332,7 +270,7 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       buffer->SetRowNumbers(itsIter.table().rowNumbers(itsMS, true));
       if (itsMissingData) {
         // Data column not present, so fill a fully flagged time slot.
-        buffer->SetExposure(itsTimeInterval);
+        buffer->SetExposure(getInfoOut().timeInterval());
         buffer->GetFlags().fill(true);
         if (getFieldsToRead().Data()) {
           buffer->GetData().fill(std::complex<float>());
@@ -418,7 +356,8 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
 
   getNextStep()->process(std::move(buffer));
   // Do not add to previous time, because it introduces round-off errors.
-  itsNextTime = itsFirstTime + (itsNrRead + itsNrInserted) * itsTimeInterval;
+  itsNextTime = corrected_first_time +
+                (itsNrRead + itsNrInserted) * getInfoOut().timeInterval();
   return true;
 }
 
@@ -464,9 +403,9 @@ void MSReader::show(std::ostream& os) const {
     unsigned int nrbl = getInfoOut().nbaselines();
     os << "  nbaselines:         " << nrbl << '\n';
     os << "  first time:         " << MVTime::Format(MVTime::YMD)
-       << MVTime(itsFirstTime / (24 * 3600.)) << '\n';
+       << MVTime(getInfoOut().firstTime() / (24 * 3600.)) << '\n';
     os << "  maximum time:       " << MVTime::Format(MVTime::YMD)
-       << MVTime(itsMaximumTime / (24 * 3600.)) << '\n';
+       << MVTime(getInfoOut().lastTime() / (24 * 3600.)) << '\n';
     os << "  ntimes:             " << getInfoOut().ntime()
        << '\n';  // itsSelMS can contain timeslots that are ignored in process
     os << "  time interval:      " << getInfoOut().timeInterval() << '\n';
@@ -500,6 +439,83 @@ void MSReader::showTimings(std::ostream& os, double duration) const {
   os << " MSReader" << '\n';
 }
 
+void MSReader::ParseTimeSelection(const common::ParameterSet& parset,
+                                  const std::string& prefix) {
+  // Start and end time can be given in the parset in case leading
+  // or trailing time slots are missing.
+  // They can also be used to select part of the MS.
+
+  // Get info from parset.
+  const std::string startTimeStr = parset.getString(prefix + "starttime", "");
+  const std::string endTimeStr = parset.getString(prefix + "endtime", "");
+  const unsigned int nTimes = parset.getInt(prefix + "ntimes", 0);
+  const int startTimeSlot = parset.getInt(prefix + "starttimeslot", 0);
+
+  // Get time properties from the MS, which prepare() already set.
+  double first_time = getInfoOut().firstTime();
+  double last_time = getInfoOut().lastTime();
+  const double interval = getInfo().timeInterval();
+
+  if (!startTimeStr.empty()) {
+    if (startTimeSlot > 0) {
+      throw std::runtime_error("Only one of " + prefix + "starttimeslot and " +
+                               prefix + "starttime can be specified");
+    }
+    Quantity qtime;
+    if (!MVTime::read(qtime, startTimeStr)) {
+      throw std::runtime_error(startTimeStr + " is an invalid date/time");
+    }
+    double startTimeParset = qtime.getValue("s");
+    // the parset specified start time is allowed to be before the msstarttime.
+    // In that case, flagged samples are injected.
+    if (startTimeParset > last_time)
+      throw std::runtime_error("Specified starttime is past end of time axis");
+
+    // Round specified first time to a multiple of 'interval'.
+    first_time +=
+        std::ceil((startTimeParset - first_time) / interval) * interval;
+  } else {
+    first_time += startTimeSlot * interval;
+  }
+
+  if (!endTimeStr.empty()) {
+    Quantity qtime;
+    if (!MVTime::read(qtime, endTimeStr)) {
+      throw std::runtime_error(endTimeStr + " is an invalid date/time");
+    }
+    const double endTimeParset = qtime.getValue("s");
+
+    // Some overlap between the measurement set timerange and the parset range
+    // is required :
+    if (endTimeParset < getInfoOut().startTime()) {
+      throw std::runtime_error(
+          "Specified end time " + endTimeStr +
+          " is before the first timestep in the measurement set");
+    }
+    // Round specified last time to a multiple of 'interval'.
+    const double ms_first_time = getInfoOut().firstTime();
+    last_time =
+        ms_first_time +
+        std::floor((endTimeParset - ms_first_time) / interval) * interval;
+  }
+
+  if (last_time < first_time)
+    throw std::runtime_error("Specified endtime is before specified starttime");
+  // If needed, skip the first times in the MS.
+  // It also sets first_time properly (round to time/interval in MS).
+  skipFirstTimes(first_time, interval);
+  if (nTimes > 0) {
+    if (!endTimeStr.empty()) {
+      throw std::runtime_error("Only one of " + prefix + "ntimes and " +
+                               prefix + "endtime can be specified");
+    }
+    last_time = first_time + (nTimes - 1) * interval;
+  }
+
+  infoOut().setTimes(first_time, last_time, interval);
+  itsNextTime = first_time;
+}
+
 std::pair<unsigned int, unsigned int> MSReader::ParseChannelSelection(
     const std::string& start_channel_string,
     const std::string& n_channels_string, unsigned int n_all_channels) {
@@ -526,7 +542,7 @@ std::pair<unsigned int, unsigned int> MSReader::ParseChannelSelection(
   return std::make_pair(start_channel, n_channels);
 }
 
-void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
+void MSReader::prepare() {
   // Find the number of correlations and channels.
   IPosition shape(ArrayColumn<casacore::Complex>(itsSelMS, "DATA").shape(0));
   const unsigned int n_correlations = shape[0];
@@ -630,9 +646,9 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
   }
   // Get first and last time and interval from MS.
   if (itsSelMS.nrow() > 0) {
-    firstTime = ScalarColumn<double>(sortms, "TIME")(0);
-    lastTime = ScalarColumn<double>(sortms, "TIME")(sortms.nrow() - 1);
-    interval = ScalarColumn<double>(sortms, "INTERVAL")(0);
+    ScalarColumn<double> time_column(sortms, "TIME");
+    info().setTimes(time_column(0), time_column(sortms.nrow() - 1),
+                    ScalarColumn<double>(sortms, "INTERVAL")(0));
   }
   // Create iterator over time. Do not sort again.
   itsIter = TableIterator(sortms, Block<casacore::String>(1, "TIME"),
@@ -712,7 +728,6 @@ void MSReader::prepare(double& firstTime, double& lastTime, double& interval) {
 
 void MSReader::prepare2(int spectralWindow, unsigned int start_channel,
                         unsigned int n_channels) {
-  infoOut().setTimes(itsFirstTime, itsMaximumTime, itsTimeInterval);
   infoOut().setMsNames(msName(), itsDataColName, itsFlagColName,
                        itsWeightColName);
   // Read the center frequencies of all channels.
@@ -756,7 +771,7 @@ void MSReader::prepare2(int spectralWindow, unsigned int start_channel,
   info().setPolarizations(polarizations);
 }
 
-void MSReader::skipFirstTimes() {
+void MSReader::skipFirstTimes(double& first_time, const double interval) {
   while (!itsIter.pastEnd()) {
     // Take time from row 0 in subset.
     double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
@@ -767,22 +782,22 @@ void MSReader::skipFirstTimes() {
           << " of MS " << msName() << " is less than previous time slot\n";
     } else {
       // Stop skipping if time equal to itsFirstTime.
-      if (casacore::near(mstime, itsFirstTime)) {
-        itsFirstTime = mstime;
+      if (casacore::near(mstime, first_time)) {
+        first_time = mstime;
         break;
       }
-      // Also stop if time > itsFirstTime.
-      // In that case determine the true first time, because itsFirstTime
+      // Also stop if time > first_time.
+      // In that case determine the true first time, because first_time
       // can be a time value that does not coincide with a true time.
       // Note that a time stamp might be missing at this point,
       // so do not simply assume that mstime can be used.
-      if (mstime > itsFirstTime) {
-        int nrt = int((mstime - itsFirstTime) / itsTimeInterval);
-        mstime -= (nrt + 1) * itsTimeInterval;  // Add 1 for rounding errors
-        if (casacore::near(mstime, itsFirstTime)) {
-          itsFirstTime = mstime;
+      if (mstime > first_time) {
+        int nrt = int((mstime - first_time) / interval);
+        mstime -= (nrt + 1) * interval;  // Add 1 for rounding errors
+        if (casacore::near(mstime, first_time)) {
+          first_time = mstime;
         } else {
-          itsFirstTime = mstime + itsTimeInterval;
+          first_time = mstime + interval;
         }
         break;
       }
@@ -888,7 +903,7 @@ void MSReader::autoWeight(DPBuffer& buf) {
         const std::complex<float>* auto2 = &data(autoInx[ant2[bl]], chan, 0);
         float* weight = &weights(bl, chan, 0);
         if (auto1[0].real() != 0 && auto2[0].real() != 0) {
-          double w = chanWidths[chan] * itsTimeInterval;
+          double w = chanWidths[chan] * getInfoOut().timeInterval();
           weight[0] *= w / (auto1[0].real() * auto2[0].real());  // XX
           if (npol == 4) {
             if (auto1[3].real() != 0 && auto2[3].real() != 0) {
