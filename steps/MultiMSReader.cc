@@ -375,7 +375,6 @@ void MultiMSReader::updateInfo(const DPInfo& infoIn) {
   // Get meta data and check they are equal for all MSs.
   itsSelBL = first_reader->baselineSelection();
   itsFillNChan = getInfo().nchan();
-  itsBaseRowNrs = first_reader->getBaseRowNrs();
 
   ValidateBands();
 

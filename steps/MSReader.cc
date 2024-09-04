@@ -667,9 +667,6 @@ void MSReader::prepare() {
   if (ant1col.nrow() != n_baselines || ant2col.nrow() != n_baselines) {
     throw std::runtime_error("Antenna column(s) do not match baseline count");
   }
-  // Keep the row numbers of the first part to be used for the meta info
-  // of possibly missing time slots.
-  itsBaseRowNrs = itsIter.table().rowNumbers(itsMS, true);
   // Get the antenna names and positions.
   Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
   ScalarColumn<casacore::String> nameCol(anttab, "NAME");
