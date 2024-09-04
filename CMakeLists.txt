@@ -494,11 +494,11 @@ add_library(
   steps/MSBDAReader.cc
   steps/MSBDAWriter.cc
   steps/MsColumnReader.cc
-  steps/MSReader.cc
+  steps/MsReader.cc
   steps/MSUpdater.cc
   steps/MSWriter.cc
   steps/WSCleanWriter.cc
-  steps/MultiMSReader.cc
+  steps/MultiMsReader.cc
   steps/MultiResultStep.cc
   steps/OneApplyCal.cc
   steps/OnePredict.cc

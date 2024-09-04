@@ -29,7 +29,7 @@ namespace steps {
 /// @brief Abstract base class for a Step generating input
 
 /// This class is the abstract base class for a Step object that
-/// handles the input. A concrete example is MSReader that reads the
+/// handles the input. A concrete example is MsReader that reads the
 /// data from a MeasurementSet. However, it is also possible to have
 /// input steps generating data on the fly as done in test programs
 /// like tAverager.cc.
@@ -66,8 +66,8 @@ class InputStep : public Step {
 
   /// Creates a (multi) MS reader.
   /// If it receives a single input MS name, it will create either a regular
-  /// MSReader step or a MSBDAReader step depending on the contents of the MS.
-  /// If it receives multiple input MS names, it will create a MultiMSReader
+  /// MsReader step or a MSBDAReader step depending on the contents of the MS.
+  /// If it receives multiple input MS names, it will create a MultiMsReader
   /// step. In this case, BDA data is not supported (yet).
   static std::unique_ptr<InputStep> CreateReader(const common::ParameterSet&);
 

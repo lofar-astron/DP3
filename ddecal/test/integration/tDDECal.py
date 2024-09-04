@@ -1047,7 +1047,7 @@ def test_minvisratio(copy_data_to_model_data):
     assert_taql(f"SELECT FROM {MSIN} WHERE ANY(!NEARABS(DATA[0,], 0, 1e-5))")
     assert_taql(f"SELECT FROM {MSIN} WHERE ANY(!NEARABS(DATA[2:,], 0, 1e-5))")
     assert_taql(f"SELECT FROM {MSIN} WHERE ANY(MODEL_DATA!=42)")
-    # Since MSReader flags all correlations if a single correlation is flagged,
+    # Since MsReader flags all correlations if a single correlation is flagged,
     # the output flags do not match the input flags in this test.
     # TODO(AST-1280): Convert this test into a C++ unit test, once DDECal can
     # read model visibilities from a DPBuffer.

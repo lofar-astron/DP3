@@ -13,7 +13,7 @@
 
 #include <dp3/base/DP3.h>
 
-#include "../../MSReader.h"
+#include "../../MsReader.h"
 #include "../../MultiResultStep.h"
 #include "../../ResultStep.h"
 #include "../../../base/test/LoggerFixture.h"
@@ -59,7 +59,7 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
   const size_t kNChannelBlocks = 8;
   const size_t kNSolutionsPerChannelBlock = 16;
 
-  auto in = std::make_shared<dp3::steps::MSReader>(
+  auto in = std::make_shared<dp3::steps::MsReader>(
       casacore::MeasurementSet("tDDECal.MS"), dp3::common::ParameterSet(), "");
 
   auto ddecal = std::make_shared<DDECal>(
@@ -105,7 +105,7 @@ namespace {
 class KeepModelDataFixture : public FixtureDirectory {
  public:
   KeepModelDataFixture()
-      : reader(std::make_shared<dp3::steps::MSReader>(
+      : reader(std::make_shared<dp3::steps::MsReader>(
             casacore::MeasurementSet(kMsName), dp3::common::ParameterSet(),
             "")),
         result_step(std::make_shared<dp3::steps::MultiResultStep>(kNTimes)) {}
@@ -135,7 +135,7 @@ class KeepModelDataFixture : public FixtureDirectory {
 
  private:
   const std::size_t kNTimes = 6;  // tDDECal.MS has 6 time slots.
-  std::shared_ptr<dp3::steps::MSReader> reader;
+  std::shared_ptr<dp3::steps::MsReader> reader;
   std::shared_ptr<dp3::steps::MultiResultStep> result_step;
 };
 }  // namespace

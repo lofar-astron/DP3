@@ -44,7 +44,7 @@
 #include <aocommon/logger.h>
 
 #include "Averager.h"
-#include "MSReader.h"
+#include "MsReader.h"
 #include "NullStep.h"
 #include "PhaseShift.h"
 
@@ -647,7 +647,7 @@ void Demixer::handleDemix() {
       buffer_out = std::move(itsAvgResultSubtr->get()[i]);
     }
 
-    MSReader::flagInfNaN(*buffer_out, itsFlagCounter);
+    MsReader::FlagInfinityNan(*buffer_out, itsFlagCounter);
     getNextStep()->process(std::move(buffer_out));
     itsTimer.start();
   }

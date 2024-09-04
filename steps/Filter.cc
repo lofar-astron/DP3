@@ -23,7 +23,7 @@
 
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"
-#include "MSReader.h"
+#include "MsReader.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -77,7 +77,7 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
   unsigned int nrChan;
-  std::tie(itsStartChan, nrChan) = MSReader::ParseChannelSelection(
+  std::tie(itsStartChan, nrChan) = MsReader::ParseChannelSelection(
       itsStartChanStr, itsNrChanStr, getInfoOut().nchan());
 
   itsDoSelect = itsStartChan > 0 || nrChan < getInfoOut().nchan();

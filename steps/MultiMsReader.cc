@@ -1,10 +1,10 @@
-// MultiMSReader.cc: DP3 step reading from multiple MSs
+// MultiMsReader.cc: DP3 step reading from multiple MSs
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
-#include "MultiMSReader.h"
+#include "MultiMsReader.h"
 
 #include <iostream>
 
@@ -33,13 +33,13 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
+MultiMsReader::MultiMsReader(const std::vector<std::string>& msNames,
                              const common::ParameterSet& parset,
                              const std::string& prefix)
-    : itsOrderMS(parset.getBool(prefix + "orderms", true)),
-      itsFirst(-1),
-      itsNMissing(0),
-      itsFillNChan(0) {
+    : order_(parset.getBool(prefix + "orderms", true)),
+      first_(-1),
+      n_missing_(0),
+      n_fill_channels_(0) {
   if (msNames.empty())
     throw std::runtime_error("No names of MeasurementSets given");
 
@@ -51,7 +51,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
     throw std::runtime_error(
         "nchan is not supported when reading multiple MeasurementSets.");
 
-  // Inherited members from MSReader must be initialized here.
+  // Inherited members from MsReader must be initialized here.
   const bool allow_missing_data = parset.getBool(prefix + "missingdata", false);
 
   // Open all MSs.
@@ -61,7 +61,7 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
     reader.name = name;
     if (!casacore::Table::isReadable(name)) {
       // Ignore if the MS is missing.
-      itsNMissing++;
+      n_missing_++;
     } else {
       const casacore::MeasurementSet ms(name,
                                         casacore::TableLock::AutoNoReadLocking);
@@ -71,12 +71,12 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
                                     "multiple input MSs with BDA data.");
       }
       reader.ms_reader =
-          std::make_shared<MSReader>(ms, parset, prefix, allow_missing_data);
+          std::make_shared<MsReader>(ms, parset, prefix, allow_missing_data);
       // Add a result step for the reader.
       reader.result = std::make_shared<ResultStep>();
       reader.ms_reader->setNextStep(reader.result);
-      if (itsFirst < 0) {
-        itsFirst = readers_.size();
+      if (first_ < 0) {
+        first_ = readers_.size();
       }
     }
     readers_.emplace_back(std::move(reader));
@@ -85,13 +85,13 @@ MultiMSReader::MultiMSReader(const std::vector<std::string>& msNames,
   // TODO: check if frequencies are regular, insert some empty readers
   // if necessary
 
-  if (itsFirst < 0)
+  if (first_ < 0)
     throw std::runtime_error("All input MeasurementSets do not exist");
 }
 
-MultiMSReader::~MultiMSReader() {}
+MultiMsReader::~MultiMsReader() {}
 
-void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
+void MultiMsReader::setFieldsToRead(const dp3::common::Fields& fields) {
   InputStep::setFieldsToRead(fields);
 
   // Read all fields except UVW in the MSReaders.
@@ -108,9 +108,9 @@ void MultiMSReader::setFieldsToRead(const dp3::common::Fields& fields) {
   }
 }
 
-void MultiMSReader::ValidateBands() {
+void MultiMsReader::ValidateBands() {
   for (const Reader& reader : readers_) {
-    const std::shared_ptr<MSReader>& ms_reader = reader.ms_reader;
+    const std::shared_ptr<MsReader>& ms_reader = reader.ms_reader;
     if (ms_reader) {
       const DPInfo& reader_info = ms_reader->getInfo();
       const std::string& name = reader.name;
@@ -143,7 +143,7 @@ void MultiMSReader::ValidateBands() {
   }
 }
 
-void MultiMSReader::HandleBands() {
+void MultiMsReader::HandleBands() {
   // Collect the channel info of all MSs.
   unsigned int n_channels = 0;
   for (const Reader& reader : readers_) {
@@ -175,8 +175,8 @@ void MultiMSReader::HandleBands() {
                      first_reader_info.spectralWindow());
 }
 
-void MultiMSReader::SortBands() {
-  if (itsNMissing > 0) {
+void MultiMsReader::SortBands() {
+  if (n_missing_ > 0) {
     throw std::runtime_error("Cannot order the MSs if some are missing");
   }
 
@@ -200,7 +200,7 @@ void MultiMSReader::SortBands() {
   }
 }
 
-void MultiMSReader::FillBands() {
+void MultiMsReader::FillBands() {
   unsigned int n_channels = 0;
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
@@ -209,12 +209,12 @@ void MultiMSReader::FillBands() {
   }
 
   // Get channel width (which should be the same for all bands).
-  double chanw = readers_[itsFirst].ms_reader->getInfo().chanWidths().data()[0];
+  double chanw = readers_[first_].ms_reader->getInfo().chanWidths().data()[0];
   // Get frequency for first subband.
-  double freq = readers_[itsFirst].ms_reader->getInfo().chanFreqs().data()[0];
-  freq -= itsFirst * itsFillNChan * chanw;
+  double freq = readers_[first_].ms_reader->getInfo().chanFreqs().data()[0];
+  freq -= first_ * n_fill_channels_ * chanw;
   // Add missing channels to the total nr.
-  n_channels += itsNMissing * itsFillNChan;
+  n_channels += n_missing_ * n_fill_channels_;
   // Collect the channel info of all MSs.
   std::vector<double> chanFreqs(n_channels);
   std::vector<double> chanWidths(n_channels);
@@ -222,9 +222,9 @@ void MultiMSReader::FillBands() {
   // Data for a missing MS can only be inserted if all other MSs have
   // the same nr of channels and are in increasing order of freq.
   for (Reader& reader : readers_) {
-    std::shared_ptr<MSReader>& ms_reader = reader.ms_reader;
+    std::shared_ptr<MsReader>& ms_reader = reader.ms_reader;
     if (ms_reader) {
-      if (ms_reader->getInfo().nchan() != itsFillNChan)
+      if (ms_reader->getInfo().nchan() != n_fill_channels_)
         throw std::runtime_error(
             "An MS is missing; the others should have equal nchan");
       // Check if all channels have the same width and are consecutive.
@@ -235,13 +235,14 @@ void MultiMSReader::FillBands() {
             "Subbands should be in increasing order of frequency; found " +
             std::to_string(freqs[0]) + ", expected " + std::to_string(freq) +
             " (diff=" + std::to_string(freqs[0] - freq) + ')');
-      freq = freqs[itsFillNChan - 1] + width[itsFillNChan - 1];
-      casacore::objcopy(chanFreqs.data() + inx, freqs.data(), itsFillNChan);
-      casacore::objcopy(chanWidths.data() + inx, width.data(), itsFillNChan);
-      inx += itsFillNChan;
+      freq = freqs[n_fill_channels_ - 1] + width[n_fill_channels_ - 1];
+      casacore::objcopy(chanFreqs.data() + inx, freqs.data(), n_fill_channels_);
+      casacore::objcopy(chanWidths.data() + inx, width.data(),
+                        n_fill_channels_);
+      inx += n_fill_channels_;
     } else {
       // Insert channel info for missing MSs.
-      for (unsigned int j = 0; j < itsFillNChan; ++j) {
+      for (unsigned int j = 0; j < n_fill_channels_; ++j) {
         chanFreqs[inx] = freq;
         chanWidths[inx] = chanw;
         freq += chanw;
@@ -253,14 +254,14 @@ void MultiMSReader::FillBands() {
   info().setChannels(std::move(chanFreqs), std::move(chanWidths));
 }
 
-bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
+bool MultiMsReader::process(std::unique_ptr<DPBuffer> buffer) {
   // Reduce memory allocation overhead by reusing the DPBuffer from the
   // previous process() call.
-  std::unique_ptr<DPBuffer> recycled_buffer = readers_[itsFirst].result->take();
+  std::unique_ptr<DPBuffer> recycled_buffer = readers_[first_].result->take();
   if (!recycled_buffer) recycled_buffer = std::make_unique<DPBuffer>();
 
   // Read first MS, stop if at end.
-  MSReader& first_ms_reader = *readers_[itsFirst].ms_reader;
+  MsReader& first_ms_reader = *readers_[first_].ms_reader;
   if (!first_ms_reader.process(std::move(recycled_buffer))) {
     return false;  // end of input
   }
@@ -268,7 +269,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   const std::vector<std::string>& extra_data_column_names =
       first_ms_reader.ExtraDataColumnNames();
 
-  const DPBuffer& buf1 = readers_[itsFirst].result->get();
+  const DPBuffer& buf1 = readers_[first_].result->get();
   buffer->SetTime(buf1.GetTime());
   buffer->SetExposure(buf1.GetExposure());
   buffer->SetRowNumbers(buf1.GetRowNumbers());
@@ -289,9 +290,9 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
   int first_channel = 0;
   int last_channel = 0;
   for (unsigned int i = 0; i < readers_.size(); ++i) {
-    std::shared_ptr<MSReader>& ms_reader = readers_[i].ms_reader;
+    std::shared_ptr<MsReader>& ms_reader = readers_[i].ms_reader;
     if (ms_reader) {
-      if (int(i) != itsFirst) {
+      if (int(i) != first_) {
         // Reduce memory allocation overhead by reusing the DPBuffer from the
         // previous process() call.
         recycled_buffer = readers_[i].result->take();
@@ -321,7 +322,7 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
       }
     } else {
       // Corresponding MS is missing.
-      last_channel = first_channel + itsFillNChan;
+      last_channel = first_channel + n_fill_channels_;
       auto channel_range = xt::range(first_channel, last_channel);
       if (getFieldsToRead().Data()) {
         xt::view(buffer->GetData(), xt::all(), channel_range, xt::all())
@@ -342,16 +343,16 @@ bool MultiMSReader::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (getFieldsToRead().Uvw()) {
     // All Measurement Sets have the same UVWs, so use the first one.
-    readers_[itsFirst].ms_reader->getUVW(buffer->GetRowNumbers(),
-                                         buffer->GetTime(), *buffer);
+    readers_[first_].ms_reader->getUVW(buffer->GetRowNumbers(),
+                                       buffer->GetTime(), *buffer);
   }
-  if (getFieldsToRead().Weights()) getWeights(buffer);
+  if (getFieldsToRead().Weights()) GetWeights(buffer);
 
   getNextStep()->process(std::move(buffer));
   return true;
 }
 
-void MultiMSReader::finish() {
+void MultiMsReader::finish() {
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
       reader.ms_reader->finish();
@@ -360,42 +361,42 @@ void MultiMSReader::finish() {
   getNextStep()->finish();
 }
 
-void MultiMSReader::updateInfo(const DPInfo& infoIn) {
+void MultiMsReader::updateInfo(const DPInfo& infoIn) {
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
       reader.ms_reader->updateInfo(infoIn);
     }
   }
 
-  const MSReader& first_reader = *readers_[itsFirst].ms_reader;
+  const MsReader& first_reader = *readers_[first_].ms_reader;
   Step::updateInfo(first_reader.getInfoOut());
 
   // Use the first valid MS as the standard MS (for meta data)
   // Get meta data and check they are equal for all MSs.
-  itsFillNChan = getInfoOut().nchan();
+  n_fill_channels_ = getInfoOut().nchan();
 
   ValidateBands();
 
-  if (itsOrderMS) {
+  if (order_) {
     SortBands();
   }
 
-  if (itsNMissing > 0) {
+  if (n_missing_ > 0) {
     FillBands();
   } else {
     HandleBands();
   }
 }
 
-void MultiMSReader::show(std::ostream& os) const {
-  const MSReader& first_reader = *readers_[itsFirst].ms_reader;
-  os << "MultiMSReader" << '\n';
+void MultiMsReader::show(std::ostream& os) const {
+  const MsReader& first_reader = *readers_[first_].ms_reader;
+  os << "MultiMsReader" << '\n';
   os << "  input MSs:      " << readers_.front().name << '\n';
   for (std::size_t i = 1; i < readers_.size(); ++i) {
     os << "                  " << readers_[i].name << '\n';
   }
-  if (!first_reader.baselineSelection().empty()) {
-    os << "  baseline:       " << first_reader.baselineSelection() << '\n';
+  if (!first_reader.BaselineSelection().empty()) {
+    os << "  baseline:       " << first_reader.BaselineSelection() << '\n';
   }
   os << "  band            " << getInfoOut().spectralWindow() << '\n';
   os << "  nchan:          " << getInfoOut().nchan();
@@ -423,7 +424,7 @@ void MultiMSReader::show(std::ostream& os) const {
      << '\n';
 }
 
-void MultiMSReader::showCounts(std::ostream& os) const {
+void MultiMsReader::showCounts(std::ostream& os) const {
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
       reader.ms_reader->showCounts(os);
@@ -431,7 +432,7 @@ void MultiMSReader::showCounts(std::ostream& os) const {
   }
 }
 
-void MultiMSReader::showTimings(std::ostream& os, double duration) const {
+void MultiMsReader::showTimings(std::ostream& os, double duration) const {
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
       reader.ms_reader->showTimings(os, duration);
@@ -439,7 +440,7 @@ void MultiMSReader::showTimings(std::ostream& os, double duration) const {
   }
 }
 
-void MultiMSReader::getWeights(std::unique_ptr<base::DPBuffer>& buffer) {
+void MultiMsReader::GetWeights(std::unique_ptr<base::DPBuffer>& buffer) {
   buffer->GetWeights().resize(
       {getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()});
   int first_channel = 0;
@@ -452,7 +453,7 @@ void MultiMSReader::getWeights(std::unique_ptr<base::DPBuffer>& buffer) {
                xt::range(first_channel, last_channel), xt::all()) =
           result->get().GetWeights();
     } else {
-      last_channel = first_channel + itsFillNChan;
+      last_channel = first_channel + n_fill_channels_;
       xt::view(buffer->GetWeights(), xt::all(),
                xt::range(first_channel, last_channel), xt::all())
           .fill(0.0f);

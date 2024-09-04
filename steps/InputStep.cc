@@ -5,8 +5,8 @@
 // @author Ger van Diepen
 
 #include "InputStep.h"
-#include "MultiMSReader.h"
-#include "MSReader.h"
+#include "MultiMsReader.h"
+#include "MsReader.h"
 #include "MSBDAReader.h"
 
 #include "../base/MS.h"
@@ -88,11 +88,11 @@ std::unique_ptr<InputStep> InputStep::CreateReader(
     if (HasBda(ms)) {
       return std::make_unique<MSBDAReader>(ms, parset, "msin.");
     } else {
-      return std::make_unique<MSReader>(ms, parset, "msin.");
+      return std::make_unique<MsReader>(ms, parset, "msin.");
     }
   } else {
-    // MultiMSReader checks that all MS's have regular (non-BDA) data.
-    return std::make_unique<MultiMSReader>(inNames, parset, "msin.");
+    // MultiMsReader checks that all MS's have regular (non-BDA) data.
+    return std::make_unique<MultiMsReader>(inNames, parset, "msin.");
   }
 }
 

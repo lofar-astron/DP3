@@ -1,4 +1,4 @@
-// MultiMSReader.h: DP3 step reading from multiple MSs
+// MultiMsReader.h: DP3 step reading from multiple MSs
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -17,7 +17,7 @@
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"
 
-#include "MSReader.h"
+#include "MsReader.h"
 #include "ResultStep.h"
 
 namespace dp3 {
@@ -30,11 +30,11 @@ namespace steps {
 /// shape of all data inside the MSs (visibilities, flags, weights, etc.) is
 /// identical except for the channel dimension.
 ///
-/// Similar to the MSReader step, the object is constructed from the
+/// Similar to the MsReader step, the object is constructed from the
 /// 'msin' keywords in the parset file. These keywords are identical to those
-/// in the MSReader because this class creates a vector of several MSReader
-/// steps, where each MSReader is responsible for reading one of the MSs.
-/// So, refer to the documentation of the MSReader for the definitions of the
+/// in the MsReader because this class creates a vector of several MsReader
+/// steps, where each MsReader is responsible for reading one of the MSs.
+/// So, refer to the documentation of the MsReader for the definitions of the
 /// 'msin' keywords that can be used for this class.
 /// In addition to those keywords, the following can be given:
 /// <ul>
@@ -44,14 +44,14 @@ namespace steps {
 ///  <li> msin.missingdata: allow a non-existing data column in an MS? [no]
 /// </ul>
 
-class MultiMSReader final : public InputStep {
+class MultiMsReader final : public InputStep {
  public:
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  MultiMSReader(const std::vector<string>& msNames,
+  MultiMsReader(const std::vector<string>& msNames,
                 const common::ParameterSet& parset, const std::string& prefix);
 
-  ~MultiMSReader() override;
+  ~MultiMsReader() override;
 
   /// Process the next data chunk.
   /// It returns false when at the end.
@@ -80,7 +80,7 @@ class MultiMSReader final : public InputStep {
 
   /// Returns only the first MS table.
   const casacore::Table& table() const override {
-    return readers_[itsFirst].ms_reader->table();
+    return readers_[first_].ms_reader->table();
   }
 
  private:
@@ -98,18 +98,18 @@ class MultiMSReader final : public InputStep {
   void FillBands();
 
   /// Reads the weights into 'buffer'
-  void getWeights(std::unique_ptr<base::DPBuffer>& buffer);
+  void GetWeights(std::unique_ptr<base::DPBuffer>& buffer);
 
-  bool itsOrderMS;  ///< sort multi MS in order of freq?
-  int itsFirst;     ///< first valid MSReader (<0 = none)
-  int itsNMissing;  ///< nr of missing MSs
+  bool order_;              ///< Sort multi MS in order of frequency.
+  int first_;               ///< Index of first valid MsReader.
+  unsigned int n_missing_;  ///< Number of missing MSs.
   struct Reader {
     std::string name;
-    std::shared_ptr<MSReader> ms_reader;
+    std::shared_ptr<MsReader> ms_reader;
     std::shared_ptr<ResultStep> result;
   };
   std::vector<Reader> readers_;
-  unsigned int itsFillNChan;  ///< nr of channels for missing MSs
+  unsigned int n_fill_channels_;  ///< nr of channels for missing MSs
 };
 
 }  // namespace steps

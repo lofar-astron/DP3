@@ -1,8 +1,8 @@
 // Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../MSReader.h"
-#include "../../MultiMSReader.h"
+#include "../../MsReader.h"
+#include "../../MultiMsReader.h"
 
 #include <fstream>
 #include <iostream>
@@ -29,8 +29,8 @@ using casacore::Table;
 using dp3::base::DPBuffer;
 using dp3::common::ParameterSet;
 using dp3::common::test::FixtureDirectory;
-using dp3::steps::MSReader;
-using dp3::steps::MultiMSReader;
+using dp3::steps::MsReader;
+using dp3::steps::MultiMsReader;
 
 const std::string kInputMs = "../tNDPPP_tmp.MS";
 const std::string kCopyMs = "tNDPPP_tmp.copy.MS";
@@ -77,7 +77,7 @@ class FixtureSplitChannelCopyExtraData : FixtureCopyAndAddExtraData {
   FixtureSplitChannelCopyExtraData() : FixtureCopyAndAddExtraData() {
     const std::string kParsetFile = "tDP3.parset";
 
-    // Split input MS into four frequency chunks (to test the MultiMSReader).
+    // Split input MS into four frequency chunks (to test the MultiMsReader).
     for (std::size_t startchan = 0; startchan < 16; startchan += 4) {
       std::string msout = kCopyMsSplit + std::to_string(startchan / 4) + ".MS";
       {
@@ -171,10 +171,10 @@ BOOST_FIXTURE_TEST_CASE(missing_data, FixtureDirectory) {
   ParameterSet parset;
   parset.add("msin", kInputMs);
   parset.add("msin.datacolumn", "THISDOESNOTEXIST");
-  BOOST_CHECK_THROW(MSReader reader(ms, parset, "msin."), std::runtime_error);
+  BOOST_CHECK_THROW(MsReader reader(ms, parset, "msin."), std::runtime_error);
 
   // With missingData set, it should just print a warning.
-  MSReader reader(ms, parset, "msin.", true);
+  MsReader reader(ms, parset, "msin.", true);
 }
 
 BOOST_FIXTURE_TEST_CASE(missing_extra_data, FixtureCopyAndAddExtraData) {
@@ -184,13 +184,13 @@ BOOST_FIXTURE_TEST_CASE(missing_extra_data, FixtureCopyAndAddExtraData) {
   ParameterSet parset1;
   parset1.add("msin", kCopyMs);
   parset1.add("msin.extradatacolumns", "[MODEL_DATA, NONEXISTING]");
-  BOOST_CHECK_THROW(MSReader reader1(ms, parset1, "msin."), std::runtime_error);
+  BOOST_CHECK_THROW(MsReader reader1(ms, parset1, "msin."), std::runtime_error);
 
   // Two non-existing extra-data columns.
   ParameterSet parset2;
   parset2.add("msin", kCopyMs);
   parset2.add("msin.extradatacolumns", "[THISDOESNOTEXIST, NONEXISTINGTOO]");
-  BOOST_CHECK_THROW(MSReader reader2(ms, parset2, "msin."), std::runtime_error);
+  BOOST_CHECK_THROW(MsReader reader2(ms, parset2, "msin."), std::runtime_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(process, FixtureDirectory,
@@ -203,7 +203,7 @@ BOOST_FIXTURE_TEST_CASE(process, FixtureDirectory,
   parset.add("msin", kInputMs);
   parset.add("msin.weightcolumn", "WEIGHT");
 
-  MSReader reader(ms, parset, "msin.");
+  MsReader reader(ms, parset, "msin.");
   reader.setFieldsToRead(dp3::steps::Step::kDataField |
                          dp3::steps::Step::kWeightsField |
                          dp3::steps::Step::kUvwField);
@@ -250,7 +250,7 @@ BOOST_FIXTURE_TEST_CASE(process_extra_data, FixtureCopyAndAddExtraData,
   parset.add("msin", kCopyMs);
   parset.add("msin.extradatacolumns", "[MODEL_DATA, MODEL_DATA_2]");
 
-  MSReader reader(ms, parset, "msin.");
+  MsReader reader(ms, parset, "msin.");
   reader.setFieldsToRead(dp3::steps::Step::kDataField);
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
@@ -274,7 +274,7 @@ BOOST_FIXTURE_TEST_CASE(polarization_initialization, FixtureDirectory) {
                                     casacore::TableLock::AutoNoReadLocking);
   ParameterSet parset;
   parset.add("msin", kInputMs);
-  const MSReader reader(ms, parset, "msin.");
+  const MsReader reader(ms, parset, "msin.");
 
   const std::set<aocommon::PolarizationEnum> expected_polarizations{
       aocommon::PolarizationEnum::XX, aocommon::PolarizationEnum::XY,
@@ -293,7 +293,7 @@ BOOST_FIXTURE_TEST_CASE(expect_four_polarizations, FixtureCopyAndUpdatePol) {
   ParameterSet parset;
   parset.add("msin", kCopyMs);
 
-  BOOST_CHECK_THROW(std::make_unique<MSReader>(ms, parset, "msin."),
+  BOOST_CHECK_THROW(std::make_unique<MsReader>(ms, parset, "msin."),
                     std::runtime_error);
 }
 
@@ -302,7 +302,7 @@ BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0001) *
 BOOST_DATA_TEST_CASE_F(FixtureSplitChannelCopyExtraData, process_multiple_ms,
                        boost::unit_test::data::xrange(2),
                        test_with_extra_data) {
-  // Bundle input MS names for parset and MultiMSReader constructor
+  // Bundle input MS names for parset and MultiMsReader constructor
   std::vector<std::string> msNames;
   std::string msNames_string;
   for (std::size_t startchan = 0; startchan < 16; startchan += 4) {
@@ -318,7 +318,7 @@ BOOST_DATA_TEST_CASE_F(FixtureSplitChannelCopyExtraData, process_multiple_ms,
   if (test_with_extra_data)
     parset.add("msin.extradatacolumns", "[MODEL_DATA, MODEL_DATA_2]");
 
-  MultiMSReader reader(msNames, parset, "msin.");
+  MultiMsReader reader(msNames, parset, "msin.");
   reader.setFieldsToRead(dp3::steps::Step::kDataField);
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();

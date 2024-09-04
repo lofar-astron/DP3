@@ -98,12 +98,12 @@ namespace steps {
 ///  </tr>
 /// </table>
 
-class MSReader : public InputStep {
+class MsReader : public InputStep {
  public:
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  /// The allow_missing_data argument is for MultiMSReader.
-  MSReader(const casacore::MeasurementSet& ms,
+  /// The allow_missing_data argument is for MultiMsReader.
+  MsReader(const casacore::MeasurementSet& ms,
            const common::ParameterSet& parset, const std::string& prefix,
            bool allow_missing_data = false);
 
@@ -114,7 +114,7 @@ class MSReader : public InputStep {
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
 
-  /// Do nothing, since MSReader sets its info in the constructor.
+  /// Do nothing, since MsReader sets its info in the constructor.
   void updateInfo(const base::DPInfo&) override {}
 
   /// Add some data to the MeasurementSet written/updated.
@@ -134,36 +134,33 @@ class MSReader : public InputStep {
   void getUVW(const casacore::RefRows& rowNrs, double time, base::DPBuffer&);
 
   /// Get the main MS table.
-  const casacore::Table& table() const override { return itsMS; }
-
-  /// Get the slicer in the FLAG and DATA column.
-  const casacore::Slicer& colSlicer() const { return itsColSlicer; }
+  const casacore::Table& table() const override { return ms_; }
 
   /// Get the name of the MS.
   std::string msName() const override;
 
   /// Get the baseline selection.
-  const std::string& baselineSelection() const { return itsSelBL; }
+  const std::string& BaselineSelection() const { return baseline_selection_; }
 
   /// Is the data column missing?
-  bool MissingData() const { return itsMissingData; }
+  bool MissingData() const { return missing_data_; }
 
   /// Get the name of the main data column.
-  const std::string& DataColumnName() const { return itsDataColName; }
+  const std::string& DataColumnName() const { return data_column_name_; }
 
   /// Get the names of the extra data columns that are also read.
   const std::vector<std::string>& ExtraDataColumnNames() const {
-    return itsExtraDataColNames;
+    return extra_data_column_names_;
   }
 
   /// Get the weight column name.
-  const std::string& WeightColumnName() const { return itsWeightColName; }
+  const std::string& WeightColumnName() const { return weight_column_name_; }
 
-  bool AutoWeight() const { return itsAutoWeight; }
+  bool AutoWeight() const { return auto_weight_; }
 
-  /// Flags inf and NaN
-  static void flagInfNaN(base::DPBuffer& buffer,
-                         base::FlagCounter& flagCounter);
+  /// Flags infinite and Not-a-Number values.
+  static void FlagInfinityNan(base::DPBuffer& buffer,
+                              base::FlagCounter& flagCounter);
 
   /// Parse the expressions for the start channel and number of channels.
   /// The total number of channels can be used as 'nchan' in both expressions.
@@ -185,48 +182,50 @@ class MSReader : public InputStep {
 
   /// Skip the first times in the MS in case a start time was given.
   /// Update first_time if needed.
-  void skipFirstTimes(double& first_time, double interval);
+  void SkipFirstTimes(double& first_time, double interval);
 
   /// Calculate the weights from the autocorrelations.
-  void autoWeight(base::DPBuffer& buf);
+  void AutoWeight(base::DPBuffer& buf);
 
   /// Read the weights at the given row numbers into the buffer.
   /// Note: the buffer must contain DATA if autoweighting is in effect.
-  void getWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
+  void GetWeights(const casacore::RefRows& rowNrs, base::DPBuffer&);
 
-  casacore::MeasurementSet itsMS;
-  casacore::Table itsSelMS;  ///< possible selection of spw, baseline
-  casacore::TableIterator itsIter;
-  std::string itsDataColName{"DATA"};
-  std::vector<std::string> itsExtraDataColNames{};
-  std::string itsFlagColName{"FLAG"};
-  std::string itsWeightColName{"WEIGHT_SPECTRUM"};
-  std::string itsModelColName{"MODEL_DATA"};
-  std::string itsStartChanStr{"0"};  ///< startchan expression
-  std::string itsNrChanStr{"0"};     ///< nchan expression
-  std::string itsSelBL{};            ///< Baseline selection string
-  bool itsNeedSort{false};           ///< sort needed on time,baseline?
-  bool itsAutoWeight{false};         ///< calculate weights from autocorr?
-  bool itsAutoWeightForce{false};    ///< always calculate weights?
-  bool itsHasWeightSpectrum{false};
-  bool itsUseFlags{true};
-  bool itsUseAllChan{false};   ///< all channels (i.e. no slicer)?
-  bool itsMissingData{false};  ///< allow missing data column?
+  casacore::MeasurementSet ms_;
+  casacore::Table selection_ms_;  ///< possible selection of spw, baseline
+  casacore::TableIterator ms_iterator_;
+  std::string data_column_name_{"DATA"};
+  std::vector<std::string> extra_data_column_names_;
+  std::string flag_column_name_{"FLAG"};
+  std::string weight_column_name_{"WEIGHT_SPECTRUM"};
+  std::string model_column_name_{"MODEL_DATA"};
+  std::string start_channel_expression_{"0"};
+  std::string n_nchannels_expression_{"0"};
+  std::string baseline_selection_{};
+  bool sort_{false};               ///< sort needed on time,baseline?
+  bool auto_weight_{false};        ///< calculate weights from autocorr?
+  bool force_auto_weight_{false};  ///< always calculate weights?
+  bool has_weight_spectrum_{false};
+  bool use_flags_{true};
+  bool use_all_channels_{false};  ///< all channels (i.e. no slicer)?
+  /// Initially indicates if missing data columns are allowed.
+  /// After prepare(), indicates if the data column is actually missing.
+  bool missing_data_{false};
   /// tolerance for time comparison
   ///
   /// Can be negative to insert flagged time slots before start.
-  double itsTimeTolerance{1e-2};
+  double time_tolerance_{1.0e-2};
   /// Correction on first time in case times are irregularly spaced.
-  double itsTimeCorrection{0.0};
-  double itsNextTime{0.0};    ///< target time slot for the process() call
-  double itsPrevMSTime{0.0};  ///< time of prev. iteration in search for target
-  unsigned int itsNrRead{0};  ///< nr of time slots read from MS
-  unsigned int itsNrInserted{0};  ///< nr of inserted time slots
-  casacore::Slicer itsColSlicer;  ///< slice in corr,chan column
-  casacore::Slicer itsArrSlicer;  ///< slice in corr,chan,bl array
-  std::unique_ptr<base::UVWCalculator> itsUVWCalc;
-  base::FlagCounter itsFlagCounter;
-  common::NSTimer itsTimer;
+  double time_correction_{0.0};
+  double next_time_{0.0};      ///< target time slot for the process() call
+  double previous_time_{0.0};  ///< time of prev. iteration in search for target
+  unsigned int n_read_{0};     ///< nr of time slots read from MS
+  unsigned int n_inserted_{0};      ///< nr of inserted time slots
+  casacore::Slicer column_slicer_;  ///< slice in corr,chan column
+  casacore::Slicer array_slicer_;   ///< slice in corr,chan,bl array
+  std::unique_ptr<base::UVWCalculator> uvw_calculator_;
+  base::FlagCounter flag_counter_;
+  common::NSTimer timer_;
 };
 
 }  // namespace steps
