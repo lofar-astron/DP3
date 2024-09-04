@@ -100,14 +100,20 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
       auto_weight_(parset.getBool(prefix + "autoweight", false)),
       force_auto_weight_(parset.getBool(prefix + "forceautoweight", false)),
       use_flags_(parset.getBool(prefix + "useflag", true)),
-      missing_data_(allow_missing_data),
       time_tolerance_(parset.getDouble(prefix + "timetolerance", 1e-2)) {
   common::NSTimer::StartStop sstime(timer_);
-  // Try to open the MS and get its full name.
-  if (missing_data_ && ms.isNull()) {
+
+  if (allow_missing_data && !extra_data_column_names_.empty()) {
+    throw std::runtime_error(
+        "Settings 'missingdata' and 'extradatacolumns' are mutually "
+        "exclusive and cannot be provided both.");
+  }
+
+  if (allow_missing_data && ms.isNull()) {
     aocommon::Logger::Warn << "MeasurementSet is empty; dummy data used\n";
     return;
   }
+
   assert(!HasBda(ms));
   // See if a selection on band needs to be done.
   // We assume that DATA_DESC_ID and SPW_ID map 1-1.
@@ -151,14 +157,7 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
     }
   }
   // Prepare the MS access and store MS metadata into infoOut().
-  prepare();
-
-  // missing_data_ could be updated in prepare(), so test this here.
-  if (missing_data_ && !extra_data_column_names_.empty()) {
-    throw std::runtime_error(
-        "Settings 'missingdata' and 'extradatacolumns' are mutually "
-        "exclusive and cannot be provided both.");
-  }
+  prepare(allow_missing_data);
 
   ParseTimeSelection(parset, prefix);
 
@@ -545,7 +544,7 @@ std::pair<unsigned int, unsigned int> MsReader::ParseChannelSelection(
   return std::make_pair(start_channel, n_channels);
 }
 
-void MsReader::prepare() {
+void MsReader::prepare(const bool allow_missing_data) {
   // Find the number of correlations and channels.
   IPosition shape(
       ArrayColumn<casacore::Complex>(selection_ms_, "DATA").shape(0));
@@ -576,9 +575,8 @@ void MsReader::prepare() {
   }
 
   // Test if the data column is present.
-  if (tdesc.isColumn(data_column_name_)) {
-    missing_data_ = false;
-
+  missing_data_ = !tdesc.isColumn(data_column_name_);
+  if (!missing_data_) {
     // Read beam keywords of input datacolumn
     ArrayColumn<casacore::Complex> dataCol(ms_, data_column_name_);
     if (dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE")) {
@@ -594,16 +592,15 @@ void MsReader::prepare() {
         info().setBeamCorrectionDir(mHolder.asMDirection());
       }
     }
-  } else {
+  } else if (allow_missing_data) {
     // Only give warning if a missing data column is allowed.
-    if (missing_data_) {
-      aocommon::Logger::Warn << "Data column " << data_column_name_
-                             << " is missing in " << msName() << '\n';
-    } else {
-      throw std::runtime_error("Data column " + data_column_name_ +
-                               " is missing in " + msName());
-    }
+    aocommon::Logger::Warn << "Data column " << data_column_name_
+                           << " is missing in " << msName() << '\n';
+  } else {
+    throw std::runtime_error("Data column " + data_column_name_ +
+                             " is missing in " + msName());
   }
+
   // Test if the extra data columns are present (e.g. model visibilities).
   std::string missing_columns;
   for (std::string columnName : extra_data_column_names_) {

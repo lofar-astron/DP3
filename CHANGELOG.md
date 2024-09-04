@@ -1,5 +1,11 @@
 # DP3 Changelog
 
+## Upcoming release
+
+### Improvements
+
+- Many internal quality improvements to the input step.
+
 ## [6.2] - 2024-08-29
 
 ### New features
