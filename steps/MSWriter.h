@@ -36,7 +36,7 @@ class InputStep;
 /// This class is a Step creating a new MeasurementSet and writing
 /// all data in it.
 /// Most meta information (subtables and meta columns in main table) is
-/// copied from the input MeasurementSet given by the MSReader object.
+/// copied from the input MeasurementSet given by the MsReader object.
 /// <br>
 /// In principle the new MS uses the same storage managers as used in the
 /// input MS, but in case of an MS stored with LofarStMan it will use the

@@ -64,14 +64,14 @@ namespace base {
 /// Each data member (DATA, FLAG, UVW, WEIGHTS) is filled in if
 /// any Step needs it (the information about the required fields per each Step
 /// can be read with the getRequiredFields() function). The first Step
-/// (MSReader) will read the requested fields from the MS into the DPBuffer. In
+/// (MsReader) will read the requested fields from the MS into the DPBuffer. In
 /// that way, as little memory as needed is used. Note that e.g. the AOFlagger
 /// can use a lot of memory if a large time window is used.
 ///
 /// Until early 2015, DP3 used the strategy of shallow data copies.
 /// I.e., a Step increased the data reference counter and did not make
 /// an actual copy. Only when data were changed, a new data array was made.
-/// Thus, MSReader allocated a new array when it read the data.
+/// Thus, MsReader allocated a new array when it read the data.
 /// However, it appeared this strategy lead to memory fragmentation and
 /// to sudden jumps in memory usage on Linux systems.
 /// <br>Therefore, the strategy was changed to having each Step preallocate
@@ -242,7 +242,7 @@ class DPBuffer {
   double GetExposure() const { return exposure_; }
 
   /// Get or set the row numbers used by the InputStep class.
-  /// It can be empty (e.g. when MSReader inserted a dummy time slot).
+  /// It can be empty (e.g. when MsReader inserted a dummy time slot).
   void SetRowNumbers(const casacore::Vector<common::rownr_t>& rownrs) {
     row_numbers_.reference(rownrs);
   }

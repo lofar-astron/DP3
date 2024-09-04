@@ -1,10 +1,10 @@
-// MSReader.cc: DP3 step reading from an MS
+// MsReader.cc: DP3 step reading from an MS
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // @author Ger van Diepen
 
-#include "MSReader.h"
+#include "MsReader.h"
 
 #include <iostream>
 #include <tuple>
@@ -80,30 +80,31 @@ using dp3::base::FlagCounter;
 namespace dp3 {
 namespace steps {
 
-MSReader::MSReader(const casacore::MeasurementSet& ms,
+MsReader::MsReader(const casacore::MeasurementSet& ms,
                    const common::ParameterSet& parset,
                    const std::string& prefix, bool allow_missing_data)
-    : itsMS(ms),
-      itsSelMS(itsMS),
-      itsDataColName(parset.getString(prefix + "datacolumn", "DATA")),
-      itsExtraDataColNames(parset.getStringVector(prefix + "extradatacolumns",
-                                                  std::vector<std::string>())),
-      itsFlagColName(parset.getString(prefix + "flagcolumn", "FLAG")),
-      itsWeightColName(
+    : ms_(ms),
+      selection_ms_(ms_),
+      data_column_name_(parset.getString(prefix + "datacolumn", "DATA")),
+      extra_data_column_names_(parset.getStringVector(
+          prefix + "extradatacolumns", std::vector<std::string>())),
+      flag_column_name_(parset.getString(prefix + "flagcolumn", "FLAG")),
+      weight_column_name_(
           parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM")),
-      itsModelColName(parset.getString(prefix + "modelcolumn", "MODEL_DATA")),
-      itsStartChanStr(parset.getString(prefix + "startchan", "0")),
-      itsNrChanStr(parset.getString(prefix + "nchan", "0")),
-      itsSelBL(parset.getString(prefix + "baseline", std::string())),
-      itsNeedSort(parset.getBool(prefix + "sort", false)),
-      itsAutoWeight(parset.getBool(prefix + "autoweight", false)),
-      itsAutoWeightForce(parset.getBool(prefix + "forceautoweight", false)),
-      itsUseFlags(parset.getBool(prefix + "useflag", true)),
-      itsMissingData(allow_missing_data),
-      itsTimeTolerance(parset.getDouble(prefix + "timetolerance", 1e-2)) {
-  common::NSTimer::StartStop sstime(itsTimer);
+      model_column_name_(
+          parset.getString(prefix + "modelcolumn", "MODEL_DATA")),
+      start_channel_expression_(parset.getString(prefix + "startchan", "0")),
+      n_nchannels_expression_(parset.getString(prefix + "nchan", "0")),
+      baseline_selection_(parset.getString(prefix + "baseline", std::string())),
+      sort_(parset.getBool(prefix + "sort", false)),
+      auto_weight_(parset.getBool(prefix + "autoweight", false)),
+      force_auto_weight_(parset.getBool(prefix + "forceautoweight", false)),
+      use_flags_(parset.getBool(prefix + "useflag", true)),
+      missing_data_(allow_missing_data),
+      time_tolerance_(parset.getDouble(prefix + "timetolerance", 1e-2)) {
+  common::NSTimer::StartStop sstime(timer_);
   // Try to open the MS and get its full name.
-  if (itsMissingData && ms.isNull()) {
+  if (missing_data_ && ms.isNull()) {
     aocommon::Logger::Warn << "MeasurementSet is empty; dummy data used\n";
     return;
   }
@@ -112,22 +113,23 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
   // We assume that DATA_DESC_ID and SPW_ID map 1-1.
   int spectralWindow = parset.getInt(prefix + "band", -1);
   if (spectralWindow >= 0) {
-    aocommon::Logger::Info << " MSReader selecting spectral window "
+    aocommon::Logger::Info << " MsReader selecting spectral window "
                            << spectralWindow << " ...\n";
-    Table subset = itsSelMS(itsSelMS.col("DATA_DESC_ID") == spectralWindow);
+    Table subset =
+        selection_ms_(selection_ms_.col("DATA_DESC_ID") == spectralWindow);
     // If not all is selected, use the selection.
-    if (subset.nrow() < itsSelMS.nrow()) {
+    if (subset.nrow() < selection_ms_.nrow()) {
       if (subset.nrow() <= 0)
         throw std::runtime_error("Band " + std::to_string(spectralWindow) +
                                  " not found in " + msName());
-      itsSelMS = subset;
+      selection_ms_ = subset;
     }
   } else {
     spectralWindow = 0;
   }
   // See if a selection on baseline needs to be done.
-  if (!itsSelBL.empty()) {
-    aocommon::Logger::Info << " MSReader selecting baselines ...\n";
+  if (!baseline_selection_.empty()) {
+    aocommon::Logger::Info << " MsReader selecting baselines ...\n";
     MSSelection select;
 
     // Overwrite the error handler to ignore errors for unknown antennas.
@@ -135,24 +137,24 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
     dp3::base::LogAntennaParseErrors ignore_unknown_antennas;
 
     // Set given selection strings.
-    select.setAntennaExpr(itsSelBL);
+    select.setAntennaExpr(baseline_selection_);
     // Create a table expression for an MS representing the selection.
-    MeasurementSet ms(itsSelMS);
+    MeasurementSet ms(selection_ms_);
     TableExprNode node = select.toTableExprNode(&ms);
-    Table subset = itsSelMS(node);
+    Table subset = selection_ms_(node);
     // If not all is selected, use the selection.
-    if (subset.nrow() < itsSelMS.nrow()) {
+    if (subset.nrow() < selection_ms_.nrow()) {
       if (subset.nrow() <= 0)
-        throw std::runtime_error("Baselines " + itsSelBL + "not found in " +
-                                 msName());
-      itsSelMS = subset;
+        throw std::runtime_error("Baselines " + baseline_selection_ +
+                                 "not found in " + msName());
+      selection_ms_ = subset;
     }
   }
   // Prepare the MS access and store MS metadata into infoOut().
   prepare();
 
-  // itsMissingData could be updated in prepare(), so test this here.
-  if (itsMissingData && !itsExtraDataColNames.empty()) {
+  // missing_data_ could be updated in prepare(), so test this here.
+  if (missing_data_ && !extra_data_column_names_.empty()) {
     throw std::runtime_error(
         "Settings 'missingdata' and 'extradatacolumns' are mutually "
         "exclusive and cannot be provided both.");
@@ -162,37 +164,37 @@ MSReader::MSReader(const casacore::MeasurementSet& ms,
 
   unsigned int start_channel, n_channels;
   std::tie(start_channel, n_channels) = ParseChannelSelection(
-      itsStartChanStr, itsNrChanStr, getInfoOut().nchan());
+      start_channel_expression_, n_nchannels_expression_, getInfoOut().nchan());
   // Are all channels used?
-  itsUseAllChan = start_channel == 0 && n_channels == getInfoOut().nchan();
+  use_all_channels_ = start_channel == 0 && n_channels == getInfoOut().nchan();
 
   // Do the rest of the preparation.
   prepare2(spectralWindow, start_channel, n_channels);
   // Take subset of channel frequencies if needed.
   // Make sure to copy the subset to get a proper Vector.
   // Form the slicer to get channels and correlations from column.
-  itsColSlicer = Slicer(IPosition(2, 0, start_channel),
-                        IPosition(2, getInfoOut().ncorr(), n_channels));
+  column_slicer_ = Slicer(IPosition(2, 0, start_channel),
+                          IPosition(2, getInfoOut().ncorr(), n_channels));
   // Form the slicer to get channels, corrs, and baselines from array.
-  itsArrSlicer = Slicer(IPosition(3, 0, start_channel, 0),
-                        IPosition(3, getInfoOut().ncorr(), n_channels,
-                                  getInfoOut().nbaselines()));
+  array_slicer_ = Slicer(IPosition(3, 0, start_channel, 0),
+                         IPosition(3, getInfoOut().ncorr(), n_channels,
+                                   getInfoOut().nbaselines()));
   // Initialize the flag counters.
-  itsFlagCounter.init(getInfoOut());
+  flag_counter_.init(getInfoOut());
 }
 
-std::string MSReader::msName() const { return itsMS.tableName(); }
+std::string MsReader::msName() const { return ms_.tableName(); }
 
-bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
+bool MsReader::process(std::unique_ptr<DPBuffer> buffer) {
   const std::array<std::size_t, 3> shape{
       getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
 
   // Determine what to read. Depends on what later steps in the chain need.
   if (getFieldsToRead().Data()) {
     buffer->GetData().resize(shape);
-    for (std::string columnName : itsExtraDataColNames) {
+    for (std::string columnName : extra_data_column_names_) {
       // The extra data buffer could already exist, for instance because
-      // MultiMSReader reuses existing buffers.
+      // MultiMsReader reuses existing buffers.
       if (!buffer->HasData(columnName)) {
         buffer->AddData(columnName);
       } else {
@@ -204,54 +206,54 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
     buffer->GetFlags().resize(shape);
   }
 
-  double corrected_first_time = getInfoOut().firstTime() + itsTimeCorrection;
+  double corrected_first_time = getInfoOut().firstTime() + time_correction_;
 
   {
-    common::NSTimer::StartStop sstime(itsTimer);
+    common::NSTimer::StartStop sstime(timer_);
     // Use time from the current time slot in the MS.
     bool useIter = false;
-    while (!itsIter.pastEnd()) {
+    while (!ms_iterator_.pastEnd()) {
       // Take time from row 0 in subset.
-      double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
+      double mstime = ScalarColumn<double>(ms_iterator_.table(), "TIME")(0);
       // Skip time slot and give warning if MS data is not in time order.
-      if (mstime < itsPrevMSTime) {
+      if (mstime < previous_time_) {
         aocommon::Logger::Warn
-            << "Time at rownr " << itsIter.table().rowNumbers(itsMS)[0]
+            << "Time at rownr " << ms_iterator_.table().rowNumbers(ms_)[0]
             << " of MS " << msName() << " is less than previous time slot\n";
       } else {
         // Use the time slot if near nexttime or between [starttime, nexttime].
         // In this way we cater for irregular times in some WSRT MSs.
-        if (casacore::nearAbs(mstime, itsNextTime, itsTimeTolerance)) {
+        if (casacore::nearAbs(mstime, next_time_, time_tolerance_)) {
           useIter = true;
           break;
-        } else if (mstime > corrected_first_time && mstime < itsNextTime) {
-          itsTimeCorrection -= itsNextTime - mstime;
-          corrected_first_time = getInfoOut().firstTime() + itsTimeCorrection;
+        } else if (mstime > corrected_first_time && mstime < next_time_) {
+          time_correction_ -= next_time_ - mstime;
+          corrected_first_time = getInfoOut().firstTime() + time_correction_;
 
-          itsNextTime = mstime;
+          next_time_ = mstime;
           useIter = true;
           break;
         }
-        if (mstime > itsNextTime) {
+        if (mstime > next_time_) {
           // A time slot seems to be missing; insert one.
           break;
         }
       }
       // Skip this time slot.
-      itsPrevMSTime = mstime;
-      itsIter.next();
+      previous_time_ = mstime;
+      ms_iterator_.next();
     }
 
     // Stop if at the end, i.e. the above loop completed without hitting an end
     // condition at all, or if there is no data at all.
-    if ((itsNextTime > getInfoOut().lastTime() &&
-         !casacore::near(itsNextTime, getInfoOut().lastTime())) ||
-        itsNextTime == 0.0) {
+    if ((next_time_ > getInfoOut().lastTime() &&
+         !casacore::near(next_time_, getInfoOut().lastTime())) ||
+        next_time_ == 0.0) {
       return false;
     }
 
     // Fill the buffer.
-    buffer->SetTime(itsNextTime);
+    buffer->SetTime(next_time_);
     if (!useIter) {
       // Time slot is missing altogether: insert a fully flagged time slot.
       buffer->SetRowNumbers(casacore::Vector<common::rownr_t>());
@@ -259,16 +261,16 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       buffer->GetFlags().fill(true);
       if (getFieldsToRead().Data()) {
         buffer->GetData().fill(std::complex<float>());
-        for (std::string columnName : itsExtraDataColNames) {
+        for (std::string columnName : extra_data_column_names_) {
           buffer->GetData(columnName).fill(std::complex<float>());
         }
       }
-      itsNrInserted++;
+      n_inserted_++;
     } else {
       // Timeslot exists, but it could still be that the MS does not contain a
       // data column (visibilities) for this timeslot.
-      buffer->SetRowNumbers(itsIter.table().rowNumbers(itsMS, true));
-      if (itsMissingData) {
+      buffer->SetRowNumbers(ms_iterator_.table().rowNumbers(ms_, true));
+      if (missing_data_) {
         // Data column not present, so fill a fully flagged time slot.
         buffer->SetExposure(getInfoOut().timeInterval());
         buffer->GetFlags().fill(true);
@@ -278,34 +280,34 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
       } else {
         // Set exposure.
         buffer->SetExposure(
-            ScalarColumn<double>(itsIter.table(), "EXPOSURE")(0));
+            ScalarColumn<double>(ms_iterator_.table(), "EXPOSURE")(0));
         // Get data (visibilities) and flags from the MS.
         const casacore::IPosition casa_shape(3, shape[2], shape[1], shape[0]);
         if (getFieldsToRead().Data()) {
-          ArrayColumn<casacore::Complex> dataCol(itsIter.table(),
-                                                 itsDataColName);
+          ArrayColumn<casacore::Complex> dataCol(ms_iterator_.table(),
+                                                 data_column_name_);
           casacore::Cube<casacore::Complex> casa_data(
               casa_shape, buffer->GetData().data(), casacore::SHARE);
-          if (itsUseAllChan) {
+          if (use_all_channels_) {
             dataCol.getColumn(casa_data);
           } else {
-            dataCol.getColumn(itsColSlicer, casa_data);
+            dataCol.getColumn(column_slicer_, casa_data);
           }
         }
         if (getFieldsToRead().Flags()) {
-          if (itsUseFlags) {
-            ArrayColumn<bool> flagCol(itsIter.table(), itsFlagColName);
+          if (use_flags_) {
+            ArrayColumn<bool> flagCol(ms_iterator_.table(), flag_column_name_);
             casacore::Cube<bool> casa_flags(
                 casa_shape, buffer->GetFlags().data(), casacore::SHARE);
 
-            if (itsUseAllChan) {
+            if (use_all_channels_) {
               flagCol.getColumn(casa_flags);
             } else {
-              flagCol.getColumn(itsColSlicer, casa_flags);
+              flagCol.getColumn(column_slicer_, casa_flags);
             }
             // Set flags if FLAG_ROW is set.
-            ScalarColumn<bool> flagrowCol(itsIter.table(), "FLAG_ROW");
-            for (unsigned int i = 0; i < itsIter.table().nrow(); ++i) {
+            ScalarColumn<bool> flagrowCol(ms_iterator_.table(), "FLAG_ROW");
+            for (unsigned int i = 0; i < ms_iterator_.table().nrow(); ++i) {
               if (flagrowCol(i)) {
                 casa_flags(IPosition(3, 0, 0, i),
                            IPosition(3, getInfoOut().ncorr() - 1,
@@ -318,29 +320,29 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
             buffer->GetFlags().fill(false);
           }
           // Flag invalid data (NaN, infinite).
-          flagInfNaN(*buffer, itsFlagCounter);
+          FlagInfinityNan(*buffer, flag_counter_);
         }
       }
 
       // Get extra data (e.g. model data) from the MS.
       if (getFieldsToRead().Data()) {
         const casacore::IPosition casa_shape(3, shape[2], shape[1], shape[0]);
-        for (std::string columnName : itsExtraDataColNames) {
-          ArrayColumn<casacore::Complex> extraDataCol(itsIter.table(),
+        for (std::string columnName : extra_data_column_names_) {
+          ArrayColumn<casacore::Complex> extraDataCol(ms_iterator_.table(),
                                                       columnName);
           casacore::Cube<casacore::Complex> casa_data(
               casa_shape, buffer->GetData(columnName).data(), casacore::SHARE);
-          if (itsUseAllChan) {
+          if (use_all_channels_) {
             extraDataCol.getColumn(casa_data);
           } else {
-            extraDataCol.getColumn(itsColSlicer, casa_data);
+            extraDataCol.getColumn(column_slicer_, casa_data);
           }
         }
       }
 
-      itsPrevMSTime = itsNextTime;
-      itsNrRead++;
-      itsIter.next();
+      previous_time_ = next_time_;
+      n_read_++;
+      ms_iterator_.next();
     }
     if ((getFieldsToRead().Flags() &&
          (buffer->GetFlags().shape(0) != shape[0])) ||
@@ -352,16 +354,16 @@ bool MSReader::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (getFieldsToRead().Uvw())
     getUVW(buffer->GetRowNumbers(), buffer->GetTime(), *buffer);
-  if (getFieldsToRead().Weights()) getWeights(buffer->GetRowNumbers(), *buffer);
+  if (getFieldsToRead().Weights()) GetWeights(buffer->GetRowNumbers(), *buffer);
 
   getNextStep()->process(std::move(buffer));
   // Do not add to previous time, because it introduces round-off errors.
-  itsNextTime = corrected_first_time +
-                (itsNrRead + itsNrInserted) * getInfoOut().timeInterval();
+  next_time_ = corrected_first_time +
+               (n_read_ + n_inserted_) * getInfoOut().timeInterval();
   return true;
 }
 
-void MSReader::flagInfNaN(DPBuffer& buffer, FlagCounter& flagCounter) {
+void MsReader::FlagInfinityNan(DPBuffer& buffer, FlagCounter& flagCounter) {
   const int ncorr = buffer.GetData().shape(2);
   const std::complex<float>* dataPtr = buffer.GetData().data();
   bool* flagPtr = buffer.GetFlags().data();
@@ -383,22 +385,22 @@ void MSReader::flagInfNaN(DPBuffer& buffer, FlagCounter& flagCounter) {
   }
 }
 
-void MSReader::finish() { getNextStep()->finish(); }
+void MsReader::finish() { getNextStep()->finish(); }
 
-void MSReader::show(std::ostream& os) const {
-  os << "MSReader\n";
+void MsReader::show(std::ostream& os) const {
+  os << "MsReader\n";
   os << "  input MS:           " << msName() << '\n';
-  if (itsMS.isNull()) {
+  if (ms_.isNull()) {
     os << "    *** MS does not exist ***\n";
   } else {
-    if (!itsSelBL.empty()) {
-      os << "  baseline:           " << itsSelBL << '\n';
+    if (!baseline_selection_.empty()) {
+      os << "  baseline:           " << baseline_selection_ << '\n';
     }
     os << "  band                " << getInfoOut().spectralWindow() << '\n';
     os << "  startchan:          " << getInfoOut().startchan() << "  ("
-       << itsStartChanStr << ")\n";
+       << start_channel_expression_ << ")\n";
     os << "  nchan:              " << getInfoOut().nchan() << "  ("
-       << itsNrChanStr << ")\n";
+       << n_nchannels_expression_ << ")\n";
     os << "  ncorrelations:      " << getInfoOut().ncorr() << '\n';
     unsigned int nrbl = getInfoOut().nbaselines();
     os << "  nbaselines:         " << nrbl << '\n';
@@ -407,39 +409,40 @@ void MSReader::show(std::ostream& os) const {
     os << "  maximum time:       " << MVTime::Format(MVTime::YMD)
        << MVTime(getInfoOut().lastTime() / (24 * 3600.)) << '\n';
     os << "  ntimes:             " << getInfoOut().ntime()
-       << '\n';  // itsSelMS can contain timeslots that are ignored in process
+       << '\n';  // selection_ms_ can contain timeslots that are ignored in
+                 // process
     os << "  time interval:      " << getInfoOut().timeInterval() << '\n';
-    os << "  DATA column:        " << itsDataColName;
-    if (itsMissingData) {
+    os << "  DATA column:        " << data_column_name_;
+    if (missing_data_) {
       os << "  (not present)";
     }
     os << '\n';
     os << "  extra data columns: ";
-    for (std::string columnName : itsExtraDataColNames) {
+    for (std::string columnName : extra_data_column_names_) {
       os << columnName << ", ";
     }
     os << '\n';
-    os << "  WEIGHT column:      " << itsWeightColName << '\n';
-    os << "  FLAG column:        " << itsFlagColName << '\n';
-    os << "  autoweight:         " << std::boolalpha << itsAutoWeight << '\n';
+    os << "  WEIGHT column:      " << weight_column_name_ << '\n';
+    os << "  FLAG column:        " << flag_column_name_ << '\n';
+    os << "  autoweight:         " << std::boolalpha << auto_weight_ << '\n';
   }
 }
 
-void MSReader::showCounts(std::ostream& os) const {
+void MsReader::showCounts(std::ostream& os) const {
   os << '\n' << "NaN/infinite data flagged in reader";
   os << '\n' << "===================================" << '\n';
-  int64_t nrtim = itsNrRead;
-  itsFlagCounter.showCorrelation(os, nrtim);
-  os << itsNrInserted << " missing time slots were inserted" << '\n';
+  int64_t nrtim = n_read_;
+  flag_counter_.showCorrelation(os, nrtim);
+  os << n_inserted_ << " missing time slots were inserted" << '\n';
 }
 
-void MSReader::showTimings(std::ostream& os, double duration) const {
+void MsReader::showTimings(std::ostream& os, double duration) const {
   os << "  ";
-  FlagCounter::showPerc1(os, itsTimer.getElapsed(), duration);
-  os << " MSReader" << '\n';
+  FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " MsReader" << '\n';
 }
 
-void MSReader::ParseTimeSelection(const common::ParameterSet& parset,
+void MsReader::ParseTimeSelection(const common::ParameterSet& parset,
                                   const std::string& prefix) {
   // Start and end time can be given in the parset in case leading
   // or trailing time slots are missing.
@@ -503,7 +506,7 @@ void MSReader::ParseTimeSelection(const common::ParameterSet& parset,
     throw std::runtime_error("Specified endtime is before specified starttime");
   // If needed, skip the first times in the MS.
   // It also sets first_time properly (round to time/interval in MS).
-  skipFirstTimes(first_time, interval);
+  SkipFirstTimes(first_time, interval);
   if (nTimes > 0) {
     if (!endTimeStr.empty()) {
       throw std::runtime_error("Only one of " + prefix + "ntimes and " +
@@ -513,10 +516,10 @@ void MSReader::ParseTimeSelection(const common::ParameterSet& parset,
   }
 
   infoOut().setTimes(first_time, last_time, interval);
-  itsNextTime = first_time;
+  next_time_ = first_time;
 }
 
-std::pair<unsigned int, unsigned int> MSReader::ParseChannelSelection(
+std::pair<unsigned int, unsigned int> MsReader::ParseChannelSelection(
     const std::string& start_channel_string,
     const std::string& n_channels_string, unsigned int n_all_channels) {
   Record rec;
@@ -542,41 +545,42 @@ std::pair<unsigned int, unsigned int> MSReader::ParseChannelSelection(
   return std::make_pair(start_channel, n_channels);
 }
 
-void MSReader::prepare() {
+void MsReader::prepare() {
   // Find the number of correlations and channels.
-  IPosition shape(ArrayColumn<casacore::Complex>(itsSelMS, "DATA").shape(0));
+  IPosition shape(
+      ArrayColumn<casacore::Complex>(selection_ms_, "DATA").shape(0));
   const unsigned int n_correlations = shape[0];
   const unsigned int n_channels = shape[1];
-  info() = DPInfo(n_correlations, n_channels, base::ReadAntennaSet(itsMS));
+  info() = DPInfo(n_correlations, n_channels, base::ReadAntennaSet(ms_));
 
-  if (itsSelMS.nrow() == 0) {
+  if (selection_ms_.nrow() == 0) {
     aocommon::Logger::Warn << "The selected input does not contain any data.\n";
   }
-  TableDesc tdesc = itsMS.tableDesc();
+  TableDesc tdesc = ms_.tableDesc();
 
-  itsHasWeightSpectrum = false;
+  has_weight_spectrum_ = false;
   // if weightcolname is specified to "WEIGHT" then this is used, even
   // if a weight_spectrum is present.
-  if (itsWeightColName != "WEIGHT") {
+  if (weight_column_name_ != "WEIGHT") {
     // Test if specified weight column or WEIGHT_SPECTRUM is present.
-    if (tdesc.isColumn(itsWeightColName)) {
+    if (tdesc.isColumn(weight_column_name_)) {
       // The column is there, but it might not contain values. Test row 0.
-      itsHasWeightSpectrum =
-          ArrayColumn<float>(itsSelMS, itsWeightColName).isDefined(0);
-      if (!itsHasWeightSpectrum && itsWeightColName != "WEIGHT_SPECTRUM") {
+      has_weight_spectrum_ =
+          ArrayColumn<float>(selection_ms_, weight_column_name_).isDefined(0);
+      if (!has_weight_spectrum_ && weight_column_name_ != "WEIGHT_SPECTRUM") {
         aocommon::Logger::Warn
-            << "Specified weight column " << itsWeightColName
+            << "Specified weight column " << weight_column_name_
             << "is not a valid column, using WEIGHT instead\n";
       }
     }
   }
 
   // Test if the data column is present.
-  if (tdesc.isColumn(itsDataColName)) {
-    itsMissingData = false;
+  if (tdesc.isColumn(data_column_name_)) {
+    missing_data_ = false;
 
     // Read beam keywords of input datacolumn
-    ArrayColumn<casacore::Complex> dataCol(itsMS, itsDataColName);
+    ArrayColumn<casacore::Complex> dataCol(ms_, data_column_name_);
     if (dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE")) {
       const everybeam::CorrectionMode mode = everybeam::ParseCorrectionMode(
           dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE"));
@@ -592,17 +596,17 @@ void MSReader::prepare() {
     }
   } else {
     // Only give warning if a missing data column is allowed.
-    if (itsMissingData) {
-      aocommon::Logger::Warn << "Data column " << itsDataColName
+    if (missing_data_) {
+      aocommon::Logger::Warn << "Data column " << data_column_name_
                              << " is missing in " << msName() << '\n';
     } else {
-      throw std::runtime_error("Data column " + itsDataColName +
+      throw std::runtime_error("Data column " + data_column_name_ +
                                " is missing in " + msName());
     }
   }
   // Test if the extra data columns are present (e.g. model visibilities).
   std::string missing_columns;
-  for (std::string columnName : itsExtraDataColNames) {
+  for (std::string columnName : extra_data_column_names_) {
     if (!tdesc.isColumn(columnName)) {
       missing_columns += columnName + ", ";
     }
@@ -617,9 +621,9 @@ void MSReader::prepare() {
   // Determine if the data are stored using LofarStMan.
   // If so, we know it is in time order.
   // (sorting on TIME with LofarStMan can be expensive).
-  bool needSort = itsNeedSort;
+  bool needSort = sort_;
   bool useRaw = false;
-  Record dminfo = itsMS.dataManagerInfo();
+  Record dminfo = ms_.dataManagerInfo();
   for (unsigned i = 0; i < dminfo.nfields(); ++i) {
     Record subrec = dminfo.subRecord(i);
     if (subrec.asString("TYPE") == "LofarStMan") {
@@ -629,46 +633,46 @@ void MSReader::prepare() {
     }
   }
   // Give an error if autoweight is used for a non-raw MS.
-  if (itsAutoWeightForce) {
-    itsAutoWeight = true;
-  } else if (!useRaw && itsAutoWeight) {
+  if (force_auto_weight_) {
+    auto_weight_ = true;
+  } else if (!useRaw && auto_weight_) {
     throw std::runtime_error(
         "Using autoweight=true cannot be done on DP3-ed MS");
   }
   // If not in order, sort the table selection (also on baseline).
-  Table sortms(itsSelMS);
+  Table sortms(selection_ms_);
   Block<casacore::String> sortCols(3);
   sortCols[0] = "TIME";
   sortCols[1] = "ANTENNA1";
   sortCols[2] = "ANTENNA2";
   if (needSort) {
-    sortms = itsSelMS.sort(sortCols);
+    sortms = selection_ms_.sort(sortCols);
   }
   // Get first and last time and interval from MS.
-  if (itsSelMS.nrow() > 0) {
+  if (selection_ms_.nrow() > 0) {
     ScalarColumn<double> time_column(sortms, "TIME");
     info().setTimes(time_column(0), time_column(sortms.nrow() - 1),
                     ScalarColumn<double>(sortms, "INTERVAL")(0));
   }
   // Create iterator over time. Do not sort again.
-  itsIter = TableIterator(sortms, Block<casacore::String>(1, "TIME"),
-                          TableIterator::Ascending, TableIterator::NoSort);
-  const common::rownr_t n_baselines = itsIter.table().nrow();
+  ms_iterator_ = TableIterator(sortms, Block<casacore::String>(1, "TIME"),
+                               TableIterator::Ascending, TableIterator::NoSort);
+  const common::rownr_t n_baselines = ms_iterator_.table().nrow();
 
   // Ensure we have only one band by checking the nr of unique baselines.
-  Table sortab = itsIter.table().sort(
+  Table sortab = ms_iterator_.table().sort(
       sortCols, casacore::Sort::Ascending,
       casacore::Sort::QuickSort + casacore::Sort::NoDuplicates);
   if (sortab.nrow() != n_baselines)
     throw std::runtime_error("The MS appears to have multiple subbands");
   // Get the baseline columns.
-  ScalarColumn<int> ant1col(itsIter.table(), "ANTENNA1");
-  ScalarColumn<int> ant2col(itsIter.table(), "ANTENNA2");
+  ScalarColumn<int> ant1col(ms_iterator_.table(), "ANTENNA1");
+  ScalarColumn<int> ant2col(ms_iterator_.table(), "ANTENNA2");
   if (ant1col.nrow() != n_baselines || ant2col.nrow() != n_baselines) {
     throw std::runtime_error("Antenna column(s) do not match baseline count");
   }
   // Get the antenna names and positions.
-  Table anttab(itsMS.keywordSet().asTable("ANTENNA"));
+  Table anttab(ms_.keywordSet().asTable("ANTENNA"));
   ScalarColumn<casacore::String> nameCol(anttab, "NAME");
   ScalarColumn<double> diamCol(anttab, "DISH_DIAMETER");
   unsigned int nant = anttab.nrow();
@@ -689,7 +693,7 @@ void MSReader::prepare() {
   // Only use the main value from the PHASE_DIR array.
   // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
   // If LOFAR_TILE_BEAM_DIR does not exist, use DELAY_DIR.
-  Table fldtab(itsMS.keywordSet().asTable("FIELD"));
+  Table fldtab(ms_.keywordSet().asTable("FIELD"));
   if (fldtab.nrow() != 1)
     throw std::runtime_error("Multiple entries in FIELD table");
   ArrayMeasColumn<MDirection> fldcol1(fldtab, "PHASE_DIR");
@@ -699,7 +703,7 @@ void MSReader::prepare() {
 
   MDirection tileBeamDir;
   try {
-    tileBeamDir = everybeam::ReadTileBeamDirection(itsMS);
+    tileBeamDir = everybeam::ReadTileBeamDirection(ms_);
   } catch (const std::runtime_error& error) {
     // everybeam throws an exception error if telescope != [LOFAR, AARTFAAC]
     // in that case, default back to "DELAY_DIR"
@@ -709,7 +713,7 @@ void MSReader::prepare() {
   // Get the array position using the telescope name from the OBSERVATION
   // subtable.
   const casacore::Table observation_table(
-      itsMS.keywordSet().asTable(base::DP3MS::kObservationTable));
+      ms_.keywordSet().asTable(base::DP3MS::kObservationTable));
   ScalarColumn<casacore::String> telCol(observation_table, "TELESCOPE_NAME");
   MPosition arrayPos;
   if (observation_table.nrow() == 0 ||
@@ -719,16 +723,16 @@ void MSReader::prepare() {
   }
   info().setArrayInformation(arrayPos, phaseCenter, delayCenter, tileBeamDir);
   // Create the UVW calculator.
-  itsUVWCalc =
+  uvw_calculator_ =
       std::make_unique<base::UVWCalculator>(phaseCenter, arrayPos, antPos);
 }
 
-void MSReader::prepare2(int spectralWindow, unsigned int start_channel,
+void MsReader::prepare2(int spectralWindow, unsigned int start_channel,
                         unsigned int n_channels) {
-  infoOut().setMsNames(msName(), itsDataColName, itsFlagColName,
-                       itsWeightColName);
+  infoOut().setMsNames(msName(), data_column_name_, flag_column_name_,
+                       weight_column_name_);
   // Read the center frequencies of all channels.
-  Table spwtab(itsMS.keywordSet().asTable("SPECTRAL_WINDOW"));
+  Table spwtab(ms_.keywordSet().asTable("SPECTRAL_WINDOW"));
   ArrayColumn<double> freqCol(spwtab, "CHAN_FREQ");
   ArrayColumn<double> widthCol(spwtab, "CHAN_WIDTH");
   ArrayColumn<double> resolCol(spwtab, "RESOLUTION");
@@ -745,14 +749,14 @@ void MSReader::prepare2(int spectralWindow, unsigned int start_channel,
   infoOut().SelectChannels(start_channel, n_channels);
 
   std::set<aocommon::PolarizationEnum> polarizations;
-  casacore::MSDataDescription data_description_table = itsMS.dataDescription();
+  casacore::MSDataDescription data_description_table = ms_.dataDescription();
   casacore::ScalarColumn<int> polarization_index_column(
       data_description_table,
       casacore::MSDataDescription::columnName(
           casacore::MSDataDescription::POLARIZATION_ID));
   const size_t polarization_index = polarization_index_column(spectralWindow);
   // Populate the polarization
-  casacore::MSPolarization pol_table = itsMS.polarization();
+  casacore::MSPolarization pol_table = ms_.polarization();
   casacore::ArrayColumn<int> corr_type_column(
       pol_table, casacore::MSPolarization::columnName(
                      casacore::MSPolarizationEnums::CORR_TYPE));
@@ -768,14 +772,14 @@ void MSReader::prepare2(int spectralWindow, unsigned int start_channel,
   info().setPolarizations(polarizations);
 }
 
-void MSReader::skipFirstTimes(double& first_time, const double interval) {
-  while (!itsIter.pastEnd()) {
+void MsReader::SkipFirstTimes(double& first_time, const double interval) {
+  while (!ms_iterator_.pastEnd()) {
     // Take time from row 0 in subset.
-    double mstime = ScalarColumn<double>(itsIter.table(), "TIME")(0);
+    double mstime = ScalarColumn<double>(ms_iterator_.table(), "TIME")(0);
     // Skip time slot and give warning if MS data is not in time order.
-    if (mstime < itsPrevMSTime) {
+    if (mstime < previous_time_) {
       aocommon::Logger::Warn
-          << "Time at rownr " << itsIter.table().rowNumbers(itsMS)[0]
+          << "Time at rownr " << ms_iterator_.table().rowNumbers(ms_)[0]
           << " of MS " << msName() << " is less than previous time slot\n";
     } else {
       // Stop skipping if time equal to itsFirstTime.
@@ -800,13 +804,13 @@ void MSReader::skipFirstTimes(double& first_time, const double interval) {
       }
     }
     // Skip this time slot.
-    itsPrevMSTime = mstime;
-    itsIter.next();
+    previous_time_ = mstime;
+    ms_iterator_.next();
   }
 }
 
-void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
-  common::NSTimer::StartStop sstime(itsTimer);
+void MsReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
+  common::NSTimer::StartStop sstime(timer_);
   const unsigned int n_baselines = getInfoOut().nbaselines();
   buf.GetUvw().resize({n_baselines, 3});
   if (rowNrs.rowVector().empty()) {
@@ -815,10 +819,10 @@ void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
     const std::vector<int>& ant2 = getInfo().getAnt2();
     for (unsigned int i = 0; i < n_baselines; ++i) {
       xt::view(buf.GetUvw(), i, xt::all()) =
-          xt::adapt(itsUVWCalc->getUVW(ant1[i], ant2[i], time));
+          xt::adapt(uvw_calculator_->getUVW(ant1[i], ant2[i], time));
     }
   } else {  // Load UVW from MS
-    ArrayColumn<double> dataCol(itsMS, "UVW");
+    ArrayColumn<double> dataCol(ms_, "UVW");
     const casacore::IPosition shape(2, 3, n_baselines);
     casacore::Matrix<double> casa_uvw(shape, buf.GetUvw().data(),
                                       casacore::SHARE);
@@ -826,8 +830,8 @@ void MSReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
   }
 }
 
-void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
-  common::NSTimer::StartStop sstime(itsTimer);
+void MsReader::GetWeights(const RefRows& rowNrs, DPBuffer& buf) {
+  common::NSTimer::StartStop sstime(timer_);
   const unsigned int n_baselines = getInfoOut().nbaselines();
   const unsigned int n_channels = getInfoOut().nchan();
   const unsigned int n_correlations = getInfoOut().ncorr();
@@ -841,19 +845,19 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
     weights.fill(0.0f);
   } else {
     // Get weights for entire spectrum if present in MS.
-    if (itsHasWeightSpectrum) {
-      ArrayColumn<float> wsCol(itsMS, itsWeightColName);
-      // Using getColumnCells(rowNrs,itsColSlicer) fails for LofarStMan.
+    if (has_weight_spectrum_) {
+      ArrayColumn<float> wsCol(ms_, weight_column_name_);
+      // Using getColumnCells(rowNrs,column_slicer_) fails for LofarStMan.
       // Hence work around it.
-      if (itsUseAllChan) {
+      if (use_all_channels_) {
         wsCol.getColumnCells(rowNrs, casa_weights);
       } else {
         Cube<float> w = wsCol.getColumnCells(rowNrs);
-        casa_weights = w(itsArrSlicer);
+        casa_weights = w(array_slicer_);
       }
     } else {
       // No spectrum present; get global weights and assign to each channel.
-      ArrayColumn<float> wCol(itsMS, "WEIGHT");
+      ArrayColumn<float> wCol(ms_, "WEIGHT");
       Matrix<float> inArr = wCol.getColumnCells(rowNrs);
       float* inPtr = inArr.data();
       float* outPtr = weights.data();
@@ -872,14 +876,14 @@ void MSReader::getWeights(const RefRows& rowNrs, DPBuffer& buf) {
         inPtr += n_correlations;
       }
     }
-    if (itsAutoWeight) {
+    if (auto_weight_) {
       // Adapt weights using autocorrelations.
-      autoWeight(buf);
+      AutoWeight(buf);
     }
   }
 }
 
-void MSReader::autoWeight(DPBuffer& buf) {
+void MsReader::AutoWeight(DPBuffer& buf) {
   const double* chanWidths = getInfo().chanWidths().data();
   DPBuffer::WeightsType& weights = buf.GetWeights();
   const unsigned int nbl = weights.shape(0);

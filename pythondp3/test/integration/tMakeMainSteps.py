@@ -73,6 +73,6 @@ def test_make_main_steps(run_in_tmp_path):
     averager = first_step.get_next_step()
     mswriter = averager.get_next_step()
 
-    assert "s) MSReader" in msreader.show_timings(elapsed_time)
+    assert "s) MsReader" in msreader.show_timings(elapsed_time)
     assert "s) Averager" in averager.show_timings(elapsed_time)
     assert "s) MSWriter" in mswriter.show_timings(elapsed_time)

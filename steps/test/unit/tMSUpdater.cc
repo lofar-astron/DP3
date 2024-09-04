@@ -8,7 +8,7 @@
 
 #include <casacore/tables/Tables/ArrayColumn.h>
 
-#include "../../MSReader.h"
+#include "../../MsReader.h"
 #include "../../NullStep.h"
 #include "../../../common/ParameterSet.h"
 
@@ -17,7 +17,7 @@
 #include "mock/ThrowStep.h"
 #include "tStepCommon.h"
 
-using dp3::steps::MSReader;
+using dp3::steps::MsReader;
 using dp3::steps::MSUpdater;
 using dp3::steps::NullStep;
 using dp3::steps::Step;
@@ -131,7 +131,7 @@ BOOST_DATA_TEST_CASE_F(
 
   // Read, adjust and write data using the MSUpdater.
   {
-    auto reader = std::make_shared<MSReader>(updated_ms, parset, "");
+    auto reader = std::make_shared<MsReader>(updated_ms, parset, "");
     auto adjust = std::make_shared<TestAdjust>();
     auto updater = std::make_shared<MSUpdater>(kCopyMs, parset, "");
     reader->setFieldsToRead(Step::kDataField | Step::kFlagsField |

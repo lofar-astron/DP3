@@ -128,7 +128,7 @@ def test_autoweight():
 
 @pytest.fixture
 def make_multiple_bands():
-    # Split input MS into four frequency chunks (to test the MultiMSReader)
+    # Split input MS into four frequency chunks (to test the MultiMsReader)
     for startchan in range(0, 8, 2):
         check_call(
             [

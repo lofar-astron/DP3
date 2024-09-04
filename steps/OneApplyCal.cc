@@ -7,7 +7,7 @@
 #include "OneApplyCal.h"
 
 #include "ApplyCal.h"
-#include "MSReader.h"
+#include "MsReader.h"
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>

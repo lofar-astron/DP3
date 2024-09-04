@@ -10,7 +10,7 @@
 
 #include <dp3/base/BDABuffer.h>
 #include "../../MSBDAWriter.h"
-#include "../../MSReader.h"
+#include "../../MsReader.h"
 #include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
@@ -20,7 +20,7 @@ using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::common::test::FixtureDirectory;
 using dp3::steps::MSBDAWriter;
-using dp3::steps::MSReader;
+using dp3::steps::MsReader;
 
 using casacore::MeasurementSet;
 using casacore::Table;

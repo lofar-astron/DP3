@@ -255,7 +255,7 @@ void CreateCopyMs(const std::string& input_ms) {
     ostr << "msin=" << input_ms << '\n';
     // Give starttime 35 sec before the first time, hence 1 missing timeslot.
     ostr << "msin.starttime=03-Aug-2000/13:21:45\n";
-    // Give endtime 120 sec after the last time. MSReader rounds the end time
+    // Give endtime 120 sec after the last time. MsReader rounds the end time
     // to the start time of the MS + a multiple of the time interval, downwards.
     // The start time is 13:22:20, so the rounded time becomes 13:33:20,
     // hence 3 missing timeslots, and not 4!
@@ -393,7 +393,7 @@ BOOST_FIXTURE_TEST_CASE(test_multi_in_basic, FixtureDirectory) {
   const std::string kMultiMS = "tNDPPP_tmp.plaincopy.MS";
 
   // Creating the same MS as test_copy allows re-using CheckCopy here.
-  // Copying is necessary anyway, since the MultiMSReader cannot handle
+  // Copying is necessary anyway, since the MultiMsReader cannot handle
   // missing time slots.
   CreateCopyMs(kInputMs);
 

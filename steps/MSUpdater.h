@@ -22,7 +22,7 @@ namespace steps {
 
 /// This class updates the flags in an existing MeasurementSet.
 /// Hardly anything is done in this class.
-/// It uses function putFlags in MSReader to do the actual write.
+/// It uses function putFlags in MsReader to do the actual write.
 //
 /// Like MSWriter it adds an entry to the HISTORY table of the MS
 /// containing the parset values and DPPP version.
