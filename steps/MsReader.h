@@ -173,9 +173,15 @@ class MsReader : public InputStep {
   /// Store the first and last time and the interval in infoOut().
   void prepare(bool allow_missing_data);
 
-  /// Do the rest of the preparation.
-  void prepare2(int spectralWindow, unsigned int start_channel,
-                unsigned int n_channels);
+  /// Do all channel-related initialization.
+  void InitializeChannels(int spectralWindow);
+
+  /// Read frequency, width, resolution, effective bandwidth and
+  /// reference frequency from the MS and call infoOut().setChannels().
+  void ReadChannelProperties(int spectralWindow);
+
+  /// Read polarizations from the MS and store in infoOut().
+  void ReadPolarizations(int spectralWindow);
 
   void ParseTimeSelection(const common::ParameterSet& parset,
                           const std::string& prefix);
