@@ -161,23 +161,13 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
 
   ParseTimeSelection(parset, prefix);
 
-  unsigned int start_channel, n_channels;
-  std::tie(start_channel, n_channels) = ParseChannelSelection(
-      start_channel_expression_, n_nchannels_expression_, getInfoOut().nchan());
-  // Are all channels used?
-  use_all_channels_ = start_channel == 0 && n_channels == getInfoOut().nchan();
+  InitializeChannels(spectralWindow);
 
-  // Do the rest of the preparation.
-  prepare2(spectralWindow, start_channel, n_channels);
-  // Take subset of channel frequencies if needed.
-  // Make sure to copy the subset to get a proper Vector.
-  // Form the slicer to get channels and correlations from column.
-  column_slicer_ = Slicer(IPosition(2, 0, start_channel),
-                          IPosition(2, getInfoOut().ncorr(), n_channels));
-  // Form the slicer to get channels, corrs, and baselines from array.
-  array_slicer_ = Slicer(IPosition(3, 0, start_channel, 0),
-                         IPosition(3, getInfoOut().ncorr(), n_channels,
-                                   getInfoOut().nbaselines()));
+  ReadPolarizations(spectralWindow);
+
+  infoOut().setMsNames(msName(), data_column_name_, flag_column_name_,
+                       weight_column_name_);
+
   // Initialize the flag counters.
   flag_counter_.init(getInfoOut());
 }
@@ -544,6 +534,42 @@ std::pair<unsigned int, unsigned int> MsReader::ParseChannelSelection(
   return std::make_pair(start_channel, n_channels);
 }
 
+void MsReader::ReadChannelProperties(int spectralWindow) {
+  Table spwtab(ms_.keywordSet().asTable("SPECTRAL_WINDOW"));
+  ArrayColumn<double> freqCol(spwtab, "CHAN_FREQ");
+  ArrayColumn<double> widthCol(spwtab, "CHAN_WIDTH");
+  ArrayColumn<double> resolCol(spwtab, "RESOLUTION");
+  ArrayColumn<double> effBWCol(spwtab, "EFFECTIVE_BW");
+  ScalarColumn<double> refCol(spwtab, "REF_FREQUENCY");
+  std::vector<double> chanFreqs = freqCol(spectralWindow).tovector();
+  std::vector<double> chanWidths = widthCol(spectralWindow).tovector();
+  std::vector<double> resolutions = resolCol(spectralWindow).tovector();
+  std::vector<double> effectiveBW = effBWCol(spectralWindow).tovector();
+  const double refFreq = refCol(spectralWindow);
+  infoOut().setChannels(std::move(chanFreqs), std::move(chanWidths),
+                        std::move(resolutions), std::move(effectiveBW), refFreq,
+                        spectralWindow);
+}
+
+void MsReader::InitializeChannels(int spectralWindow) {
+  unsigned int start_channel, n_channels;
+  std::tie(start_channel, n_channels) = ParseChannelSelection(
+      start_channel_expression_, n_nchannels_expression_, getInfoOut().nchan());
+
+  use_all_channels_ = start_channel == 0 && n_channels == getInfoOut().nchan();
+  // Take subset of channel frequencies if needed.
+  // Form the slicer to get channels and correlations from column.
+  column_slicer_ = Slicer(IPosition(2, 0, start_channel),
+                          IPosition(2, getInfoOut().ncorr(), n_channels));
+  // Form the slicer to get channels, corrs, and baselines from array.
+  array_slicer_ = Slicer(IPosition(3, 0, start_channel, 0),
+                         IPosition(3, getInfoOut().ncorr(), n_channels,
+                                   getInfoOut().nbaselines()));
+
+  ReadChannelProperties(spectralWindow);
+  infoOut().SelectChannels(start_channel, n_channels);
+}
+
 void MsReader::prepare(const bool allow_missing_data) {
   // Find the number of correlations and channels.
   IPosition shape(
@@ -724,27 +750,7 @@ void MsReader::prepare(const bool allow_missing_data) {
       std::make_unique<base::UVWCalculator>(phaseCenter, arrayPos, antPos);
 }
 
-void MsReader::prepare2(int spectralWindow, unsigned int start_channel,
-                        unsigned int n_channels) {
-  infoOut().setMsNames(msName(), data_column_name_, flag_column_name_,
-                       weight_column_name_);
-  // Read the center frequencies of all channels.
-  Table spwtab(ms_.keywordSet().asTable("SPECTRAL_WINDOW"));
-  ArrayColumn<double> freqCol(spwtab, "CHAN_FREQ");
-  ArrayColumn<double> widthCol(spwtab, "CHAN_WIDTH");
-  ArrayColumn<double> resolCol(spwtab, "RESOLUTION");
-  ArrayColumn<double> effBWCol(spwtab, "EFFECTIVE_BW");
-  ScalarColumn<double> refCol(spwtab, "REF_FREQUENCY");
-  std::vector<double> chanFreqs = freqCol(spectralWindow).tovector();
-  std::vector<double> chanWidths = widthCol(spectralWindow).tovector();
-  std::vector<double> resolutions = resolCol(spectralWindow).tovector();
-  std::vector<double> effectiveBW = effBWCol(spectralWindow).tovector();
-  const double refFreq = refCol(spectralWindow);
-  infoOut().setChannels(std::move(chanFreqs), std::move(chanWidths),
-                        std::move(resolutions), std::move(effectiveBW), refFreq,
-                        spectralWindow);
-  infoOut().SelectChannels(start_channel, n_channels);
-
+void MsReader::ReadPolarizations(int spectralWindow) {
   std::set<aocommon::PolarizationEnum> polarizations;
   casacore::MSDataDescription data_description_table = ms_.dataDescription();
   casacore::ScalarColumn<int> polarization_index_column(
