@@ -409,7 +409,7 @@ void MultiMsReader::show(std::ostream& os) const {
   os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
   os << "  ntimes:         " << getInfoOut().ntime() << '\n';
   os << "  time interval:  " << getInfoOut().timeInterval() << '\n';
-  os << "  DATA column:    " << first_reader.DataColumnName() << '\n';
+  os << "  DATA column:    " << getInfoOut().dataColumnName() << '\n';
   for (const Reader& reader : readers_) {
     if (reader.ms_reader) {
       if (reader.ms_reader->MissingData()) {
@@ -419,7 +419,7 @@ void MultiMsReader::show(std::ostream& os) const {
       os << "      MS missing         " << reader.name << '\n';
     }
   }
-  os << "  WEIGHT column:  " << first_reader.WeightColumnName() << '\n';
+  os << "  WEIGHT column:  " << getInfoOut().weightColumnName() << '\n';
   os << "  autoweight:     " << std::boolalpha << first_reader.AutoWeight()
      << '\n';
 }

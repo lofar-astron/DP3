@@ -145,16 +145,10 @@ class MsReader : public InputStep {
   /// Is the data column missing?
   bool MissingData() const { return missing_data_; }
 
-  /// Get the name of the main data column.
-  const std::string& DataColumnName() const { return data_column_name_; }
-
   /// Get the names of the extra data columns that are also read.
   const std::vector<std::string>& ExtraDataColumnNames() const {
     return extra_data_column_names_;
   }
-
-  /// Get the weight column name.
-  const std::string& WeightColumnName() const { return weight_column_name_; }
 
   bool AutoWeight() const { return auto_weight_; }
 
@@ -175,7 +169,10 @@ class MsReader : public InputStep {
   /// Performs MS column related initialization.
   /// - Sets has_weight_spectrum_ and missing_data_.
   /// - Stores MS and column names in infoOut().
-  void InitializeColumns(bool allow_missing_data);
+  void InitializeColumns(bool allow_missing_data,
+                         const std::string& data_column_name,
+                         const std::string& flag_column_name,
+                         const std::string& weight_column_name);
 
   /// Initializes ms_iterator_ for selection_ms_.
   /// If needed, creates the iterator an a sorted MS.
@@ -227,13 +224,9 @@ class MsReader : public InputStep {
   casacore::MeasurementSet ms_;
   casacore::Table selection_ms_;  ///< possible selection of spw, baseline
   casacore::TableIterator ms_iterator_;
-  std::string data_column_name_{"DATA"};
   std::vector<std::string> extra_data_column_names_;
-  std::string flag_column_name_{"FLAG"};
-  std::string weight_column_name_{"WEIGHT_SPECTRUM"};
-  std::string model_column_name_{"MODEL_DATA"};
   std::string start_channel_expression_{"0"};
-  std::string n_nchannels_expression_{"0"};
+  std::string n_channels_expression_{"0"};
   std::string baseline_selection_{};
   bool sort_{false};         ///< sort needed on time,baseline?
   bool auto_weight_{false};  ///< calculate weights from autocorr?
