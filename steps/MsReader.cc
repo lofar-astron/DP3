@@ -55,6 +55,7 @@ using casacore::MeasTable;
 using casacore::MeasureHolder;
 using casacore::MeasurementSet;
 using casacore::MPosition;
+using casacore::MS;
 using casacore::MSAntennaParse;
 using casacore::MSSelection;
 using casacore::MSSelectionErrorHandler;
@@ -85,16 +86,10 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
                    const std::string& prefix, bool allow_missing_data)
     : ms_(ms),
       selection_ms_(ms_),
-      data_column_name_(parset.getString(prefix + "datacolumn", "DATA")),
       extra_data_column_names_(parset.getStringVector(
           prefix + "extradatacolumns", std::vector<std::string>())),
-      flag_column_name_(parset.getString(prefix + "flagcolumn", "FLAG")),
-      weight_column_name_(
-          parset.getString(prefix + "weightcolumn", "WEIGHT_SPECTRUM")),
-      model_column_name_(
-          parset.getString(prefix + "modelcolumn", "MODEL_DATA")),
       start_channel_expression_(parset.getString(prefix + "startchan", "0")),
-      n_nchannels_expression_(parset.getString(prefix + "nchan", "0")),
+      n_channels_expression_(parset.getString(prefix + "nchan", "0")),
       baseline_selection_(parset.getString(prefix + "baseline", std::string())),
       sort_(parset.getBool(prefix + "sort", false)),
       auto_weight_(parset.getBool(prefix + "autoweight", false)),
@@ -138,13 +133,20 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
 
   // Prepare the MS access and store MS metadata into infoOut().
   // Find the number of correlations and channels.
+  // Always use the "DATA" column, since a user specified name may not exist.
   IPosition shape(
-      ArrayColumn<casacore::Complex>(selection_ms_, "DATA").shape(0));
+      ArrayColumn<casacore::Complex>(selection_ms_, MS::columnName(MS::DATA))
+          .shape(0));
   const unsigned int n_correlations = shape[0];
   const unsigned int n_channels = shape[1];
-  info() = DPInfo(n_correlations, n_channels, base::ReadAntennaSet(ms_));
+  infoOut() = DPInfo(n_correlations, n_channels, base::ReadAntennaSet(ms_));
 
-  InitializeColumns(allow_missing_data);
+  InitializeColumns(
+      allow_missing_data,
+      parset.getString(prefix + "datacolumn", MS::columnName(MS::DATA)),
+      parset.getString(prefix + "flagcolumn", MS::columnName(MS::FLAG)),
+      parset.getString(prefix + "weightcolumn",
+                       MS::columnName(MS::WEIGHT_SPECTRUM)));
 
   InitializeIterator(parset.getBool(prefix + "forceautoweight", false));
 
@@ -264,7 +266,7 @@ bool MsReader::process(std::unique_ptr<DPBuffer> buffer) {
         const casacore::IPosition casa_shape(3, shape[2], shape[1], shape[0]);
         if (getFieldsToRead().Data()) {
           ArrayColumn<casacore::Complex> dataCol(ms_iterator_.table(),
-                                                 data_column_name_);
+                                                 getInfoOut().dataColumnName());
           casacore::Cube<casacore::Complex> casa_data(
               casa_shape, buffer->GetData().data(), casacore::SHARE);
           if (use_all_channels_) {
@@ -275,7 +277,8 @@ bool MsReader::process(std::unique_ptr<DPBuffer> buffer) {
         }
         if (getFieldsToRead().Flags()) {
           if (use_flags_) {
-            ArrayColumn<bool> flagCol(ms_iterator_.table(), flag_column_name_);
+            ArrayColumn<bool> flagCol(ms_iterator_.table(),
+                                      getInfoOut().flagColumnName());
             casacore::Cube<bool> casa_flags(
                 casa_shape, buffer->GetFlags().data(), casacore::SHARE);
 
@@ -379,7 +382,7 @@ void MsReader::show(std::ostream& os) const {
     os << "  startchan:          " << getInfoOut().startchan() << "  ("
        << start_channel_expression_ << ")\n";
     os << "  nchan:              " << getInfoOut().nchan() << "  ("
-       << n_nchannels_expression_ << ")\n";
+       << n_channels_expression_ << ")\n";
     os << "  ncorrelations:      " << getInfoOut().ncorr() << '\n';
     unsigned int nrbl = getInfoOut().nbaselines();
     os << "  nbaselines:         " << nrbl << '\n';
@@ -391,7 +394,7 @@ void MsReader::show(std::ostream& os) const {
        << '\n';  // selection_ms_ can contain timeslots that are ignored in
                  // process
     os << "  time interval:      " << getInfoOut().timeInterval() << '\n';
-    os << "  DATA column:        " << data_column_name_;
+    os << "  DATA column:        " << getInfoOut().dataColumnName();
     if (missing_data_) {
       os << "  (not present)";
     }
@@ -401,8 +404,8 @@ void MsReader::show(std::ostream& os) const {
       os << columnName << ", ";
     }
     os << '\n';
-    os << "  WEIGHT column:      " << weight_column_name_ << '\n';
-    os << "  FLAG column:        " << flag_column_name_ << '\n';
+    os << "  WEIGHT column:      " << getInfoOut().weightColumnName() << '\n';
+    os << "  FLAG column:        " << getInfoOut().flagColumnName() << '\n';
     os << "  autoweight:         " << std::boolalpha << auto_weight_ << '\n';
   }
 }
@@ -544,7 +547,7 @@ void MsReader::ReadChannelProperties(int spectralWindow) {
 void MsReader::InitializeChannels(int spectralWindow) {
   unsigned int start_channel, n_channels;
   std::tie(start_channel, n_channels) = ParseChannelSelection(
-      start_channel_expression_, n_nchannels_expression_, getInfoOut().nchan());
+      start_channel_expression_, n_channels_expression_, getInfoOut().nchan());
 
   use_all_channels_ = start_channel == 0 && n_channels == getInfoOut().nchan();
   // Take subset of channel frequencies if needed.
@@ -589,31 +592,37 @@ void MsReader::SelectBaselines() {
   }
 }
 
-void MsReader::InitializeColumns(const bool allow_missing_data) {
-  TableDesc tdesc = ms_.tableDesc();
+void MsReader::InitializeColumns(const bool allow_missing_data,
+                                 const std::string& data_column_name,
+                                 const std::string& flag_column_name,
+                                 const std::string& weight_column_name) {
+  const TableDesc tdesc = ms_.tableDesc();
 
   has_weight_spectrum_ = false;
   // if weightcolname is specified to "WEIGHT" then this is used, even
   // if a weight_spectrum is present.
-  if (weight_column_name_ != "WEIGHT") {
+  if (weight_column_name != std::string(MS::columnName(MS::WEIGHT))) {
     // Test if specified weight column or WEIGHT_SPECTRUM is present.
-    if (tdesc.isColumn(weight_column_name_)) {
+    if (tdesc.isColumn(weight_column_name)) {
       // The column is there, but it might not contain values. Test row 0.
       has_weight_spectrum_ =
-          ArrayColumn<float>(selection_ms_, weight_column_name_).isDefined(0);
-      if (!has_weight_spectrum_ && weight_column_name_ != "WEIGHT_SPECTRUM") {
+          ArrayColumn<float>(selection_ms_, weight_column_name).isDefined(0);
+      if (!has_weight_spectrum_ &&
+          weight_column_name !=
+              std::string(MS::columnName(MS::WEIGHT_SPECTRUM))) {
         aocommon::Logger::Warn
-            << "Specified weight column " << weight_column_name_
-            << "is not a valid column, using WEIGHT instead\n";
+            << "Specified weight column " << weight_column_name
+            << "is not a valid column, using " << MS::columnName(MS::WEIGHT)
+            << " instead\n";
       }
     }
   }
 
   // Test if the data column is present.
-  missing_data_ = !tdesc.isColumn(data_column_name_);
+  missing_data_ = !tdesc.isColumn(data_column_name);
   if (!missing_data_) {
     // Read beam keywords of input datacolumn
-    ArrayColumn<casacore::Complex> dataCol(ms_, data_column_name_);
+    ArrayColumn<casacore::Complex> dataCol(ms_, data_column_name);
     if (dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE")) {
       const everybeam::CorrectionMode mode = everybeam::ParseCorrectionMode(
           dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE"));
@@ -629,10 +638,10 @@ void MsReader::InitializeColumns(const bool allow_missing_data) {
     }
   } else if (allow_missing_data) {
     // Only give warning if a missing data column is allowed.
-    aocommon::Logger::Warn << "Data column " << data_column_name_
+    aocommon::Logger::Warn << "Data column " << data_column_name
                            << " is missing in " << msName() << '\n';
   } else {
-    throw std::runtime_error("Data column " + data_column_name_ +
+    throw std::runtime_error("Data column " + data_column_name +
                              " is missing in " + msName());
   }
 
@@ -649,8 +658,8 @@ void MsReader::InitializeColumns(const bool allow_missing_data) {
                              "] are missing in " + msName());
   }
 
-  infoOut().setMsNames(msName(), data_column_name_, flag_column_name_,
-                       weight_column_name_);
+  infoOut().setMsNames(msName(), data_column_name, flag_column_name,
+                       weight_column_name);
 }
 
 void MsReader::InitializeIterator(const bool force_auto_weight) {
@@ -879,7 +888,7 @@ void MsReader::GetWeights(const RefRows& rowNrs, DPBuffer& buf) {
   } else {
     // Get weights for entire spectrum if present in MS.
     if (has_weight_spectrum_) {
-      ArrayColumn<float> wsCol(ms_, weight_column_name_);
+      ArrayColumn<float> wsCol(ms_, getInfoOut().weightColumnName());
       // Using getColumnCells(rowNrs,column_slicer_) fails for LofarStMan.
       // Hence work around it.
       if (use_all_channels_) {
@@ -890,7 +899,7 @@ void MsReader::GetWeights(const RefRows& rowNrs, DPBuffer& buf) {
       }
     } else {
       // No spectrum present; get global weights and assign to each channel.
-      ArrayColumn<float> wCol(ms_, "WEIGHT");
+      ArrayColumn<float> wCol(ms_, MS::columnName(MS::WEIGHT));
       Matrix<float> inArr = wCol.getColumnCells(rowNrs);
       float* inPtr = inArr.data();
       float* outPtr = weights.data();
