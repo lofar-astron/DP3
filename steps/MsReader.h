@@ -169,9 +169,43 @@ class MsReader : public InputStep {
       const std::string& n_channels_string, unsigned int n_channels);
 
  private:
-  /// Prepare the access to the MS.
-  /// Store the first and last time and the interval in infoOut().
-  void prepare(bool allow_missing_data);
+  /// Applies baseline_selection_ to selection_ms_, if needed.
+  void SelectBaselines();
+
+  /// Performs MS column related initialization.
+  /// - Sets has_weight_spectrum_ and missing_data_.
+  /// - Stores MS and column names in infoOut().
+  void InitializeColumns(bool allow_missing_data);
+
+  /// Initializes ms_iterator_ for selection_ms_.
+  /// If needed, creates the iterator an a sorted MS.
+  /// Reads the first time, last time and interval from the MS and stores them
+  /// in infoOut().
+  /// Also handles auto-weighting settings.
+  /// Needs to happen after SelectBaselines(), which may update selection_ms_.
+  /// @param force_auto_weight If true, always enable auto weighting.
+  void InitializeIterator(bool force_auto_weight);
+
+  /// Reads antenna information from the MS and stores it in infoOut().
+  /// @param table The table for the MS with selection and sorting applied,
+  ///        as initialized by InitializeIterator().
+  void ReadAntennas(const casacore::Table& table);
+
+  /// Reads array information from the MS and stores it in infoOut().
+  /// Creates the UVW calculator using the array information.
+  /// Needs to happen after ReadAntennas(), since it uses the antenna positions.
+  void ReadArrayInformation();
+
+  /// Processes time selection settings.
+  /// Updates the first time and last time in infoOut() if needed.
+  /// Needs to happen after InitializeIterator(), which initially stores the MS
+  /// times into infoOut().
+  void ParseTimeSelection(const common::ParameterSet& parset,
+                          const std::string& prefix);
+
+  /// Skip the first times in the MS in case a start time was given.
+  /// Update first_time if needed.
+  void SkipFirstTimes(double& first_time, double interval);
 
   /// Do all channel-related initialization.
   void InitializeChannels(int spectralWindow);
@@ -182,13 +216,6 @@ class MsReader : public InputStep {
 
   /// Read polarizations from the MS and store in infoOut().
   void ReadPolarizations(int spectralWindow);
-
-  void ParseTimeSelection(const common::ParameterSet& parset,
-                          const std::string& prefix);
-
-  /// Skip the first times in the MS in case a start time was given.
-  /// Update first_time if needed.
-  void SkipFirstTimes(double& first_time, double interval);
 
   /// Calculate the weights from the autocorrelations.
   void AutoWeight(base::DPBuffer& buf);
@@ -208,9 +235,8 @@ class MsReader : public InputStep {
   std::string start_channel_expression_{"0"};
   std::string n_nchannels_expression_{"0"};
   std::string baseline_selection_{};
-  bool sort_{false};               ///< sort needed on time,baseline?
-  bool auto_weight_{false};        ///< calculate weights from autocorr?
-  bool force_auto_weight_{false};  ///< always calculate weights?
+  bool sort_{false};         ///< sort needed on time,baseline?
+  bool auto_weight_{false};  ///< calculate weights from autocorr?
   bool has_weight_spectrum_{false};
   bool use_flags_{true};
   bool use_all_channels_{false};  ///< all channels (i.e. no slicer)?

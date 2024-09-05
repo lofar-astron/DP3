@@ -98,7 +98,6 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
       baseline_selection_(parset.getString(prefix + "baseline", std::string())),
       sort_(parset.getBool(prefix + "sort", false)),
       auto_weight_(parset.getBool(prefix + "autoweight", false)),
-      force_auto_weight_(parset.getBool(prefix + "forceautoweight", false)),
       use_flags_(parset.getBool(prefix + "useflag", true)),
       time_tolerance_(parset.getDouble(prefix + "timetolerance", 1e-2)) {
   common::NSTimer::StartStop sstime(timer_);
@@ -115,58 +114,49 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
   }
 
   assert(!HasBda(ms));
+
   // See if a selection on band needs to be done.
   // We assume that DATA_DESC_ID and SPW_ID map 1-1.
-  int spectralWindow = parset.getInt(prefix + "band", -1);
-  if (spectralWindow >= 0) {
+  int spectral_window = parset.getInt(prefix + "band", -1);
+  if (spectral_window >= 0) {
     aocommon::Logger::Info << " MsReader selecting spectral window "
-                           << spectralWindow << " ...\n";
+                           << spectral_window << " ...\n";
     Table subset =
-        selection_ms_(selection_ms_.col("DATA_DESC_ID") == spectralWindow);
+        selection_ms_(selection_ms_.col("DATA_DESC_ID") == spectral_window);
     // If not all is selected, use the selection.
     if (subset.nrow() < selection_ms_.nrow()) {
       if (subset.nrow() <= 0)
-        throw std::runtime_error("Band " + std::to_string(spectralWindow) +
+        throw std::runtime_error("Band " + std::to_string(spectral_window) +
                                  " not found in " + msName());
       selection_ms_ = subset;
     }
   } else {
-    spectralWindow = 0;
+    spectral_window = 0;
   }
-  // See if a selection on baseline needs to be done.
-  if (!baseline_selection_.empty()) {
-    aocommon::Logger::Info << " MsReader selecting baselines ...\n";
-    MSSelection select;
 
-    // Overwrite the error handler to ignore errors for unknown antennas.
-    // First construct MSSelection, because it resets the error handler.
-    dp3::base::LogAntennaParseErrors ignore_unknown_antennas;
+  SelectBaselines();
 
-    // Set given selection strings.
-    select.setAntennaExpr(baseline_selection_);
-    // Create a table expression for an MS representing the selection.
-    MeasurementSet ms(selection_ms_);
-    TableExprNode node = select.toTableExprNode(&ms);
-    Table subset = selection_ms_(node);
-    // If not all is selected, use the selection.
-    if (subset.nrow() < selection_ms_.nrow()) {
-      if (subset.nrow() <= 0)
-        throw std::runtime_error("Baselines " + baseline_selection_ +
-                                 "not found in " + msName());
-      selection_ms_ = subset;
-    }
-  }
   // Prepare the MS access and store MS metadata into infoOut().
-  prepare(allow_missing_data);
+  // Find the number of correlations and channels.
+  IPosition shape(
+      ArrayColumn<casacore::Complex>(selection_ms_, "DATA").shape(0));
+  const unsigned int n_correlations = shape[0];
+  const unsigned int n_channels = shape[1];
+  info() = DPInfo(n_correlations, n_channels, base::ReadAntennaSet(ms_));
+
+  InitializeColumns(allow_missing_data);
+
+  InitializeIterator(parset.getBool(prefix + "forceautoweight", false));
+
+  ReadAntennas(ms_iterator_.table());
+
+  ReadArrayInformation();
 
   ParseTimeSelection(parset, prefix);
 
-  InitializeChannels(spectralWindow);
+  InitializeChannels(spectral_window);
 
-  ReadPolarizations(spectralWindow);
-
-  infoOut().setMsNames(msName(), data_column_name_, flag_column_name_,
-                       weight_column_name_);
+  ReadPolarizations(spectral_window);
 
   // Initialize the flag counters.
   flag_counter_.init(getInfoOut());
@@ -570,17 +560,36 @@ void MsReader::InitializeChannels(int spectralWindow) {
   infoOut().SelectChannels(start_channel, n_channels);
 }
 
-void MsReader::prepare(const bool allow_missing_data) {
-  // Find the number of correlations and channels.
-  IPosition shape(
-      ArrayColumn<casacore::Complex>(selection_ms_, "DATA").shape(0));
-  const unsigned int n_correlations = shape[0];
-  const unsigned int n_channels = shape[1];
-  info() = DPInfo(n_correlations, n_channels, base::ReadAntennaSet(ms_));
+void MsReader::SelectBaselines() {
+  if (!baseline_selection_.empty()) {
+    aocommon::Logger::Info << " MsReader selecting baselines ...\n";
+    MSSelection select;
+
+    // Overwrite the error handler to ignore errors for unknown antennas.
+    // First construct MSSelection, because it resets the error handler.
+    dp3::base::LogAntennaParseErrors ignore_unknown_antennas;
+
+    // Set given selection strings.
+    select.setAntennaExpr(baseline_selection_);
+    // Create a table expression for an MS representing the selection.
+    MeasurementSet ms(selection_ms_);
+    TableExprNode node = select.toTableExprNode(&ms);
+    Table subset = selection_ms_(node);
+    // If not all is selected, use the selection.
+    if (subset.nrow() < selection_ms_.nrow()) {
+      if (subset.nrow() <= 0)
+        throw std::runtime_error("Baselines " + baseline_selection_ +
+                                 "not found in " + msName());
+      selection_ms_ = subset;
+    }
+  }
 
   if (selection_ms_.nrow() == 0) {
     aocommon::Logger::Warn << "The selected input does not contain any data.\n";
   }
+}
+
+void MsReader::InitializeColumns(const bool allow_missing_data) {
   TableDesc tdesc = ms_.tableDesc();
 
   has_weight_spectrum_ = false;
@@ -640,6 +649,11 @@ void MsReader::prepare(const bool allow_missing_data) {
                              "] are missing in " + msName());
   }
 
+  infoOut().setMsNames(msName(), data_column_name_, flag_column_name_,
+                       weight_column_name_);
+}
+
+void MsReader::InitializeIterator(const bool force_auto_weight) {
   // Get the main table in the correct order.
   // Determine if the data are stored using LofarStMan.
   // If so, we know it is in time order.
@@ -655,13 +669,15 @@ void MsReader::prepare(const bool allow_missing_data) {
       break;
     }
   }
+
   // Give an error if autoweight is used for a non-raw MS.
-  if (force_auto_weight_) {
+  if (force_auto_weight) {
     auto_weight_ = true;
   } else if (!useRaw && auto_weight_) {
     throw std::runtime_error(
         "Using autoweight=true cannot be done on DP3-ed MS");
   }
+
   // If not in order, sort the table selection (also on baseline).
   Table sortms(selection_ms_);
   Block<casacore::String> sortCols(3);
@@ -680,74 +696,88 @@ void MsReader::prepare(const bool allow_missing_data) {
   // Create iterator over time. Do not sort again.
   ms_iterator_ = TableIterator(sortms, Block<casacore::String>(1, "TIME"),
                                TableIterator::Ascending, TableIterator::NoSort);
-  const common::rownr_t n_baselines = ms_iterator_.table().nrow();
+  {
+    // Ensure we have only one band by checking the nr of unique baselines.
+    const common::rownr_t n_baselines = ms_iterator_.table().nrow();
+    Table sortab = ms_iterator_.table().sort(
+        sortCols, casacore::Sort::Ascending,
+        casacore::Sort::QuickSort + casacore::Sort::NoDuplicates);
+    if (sortab.nrow() != n_baselines)
+      throw std::runtime_error("The MS appears to have multiple subbands");
+  }
+}
 
-  // Ensure we have only one band by checking the nr of unique baselines.
-  Table sortab = ms_iterator_.table().sort(
-      sortCols, casacore::Sort::Ascending,
-      casacore::Sort::QuickSort + casacore::Sort::NoDuplicates);
-  if (sortab.nrow() != n_baselines)
-    throw std::runtime_error("The MS appears to have multiple subbands");
+void MsReader::ReadAntennas(const casacore::Table& table) {
+  const common::rownr_t n_baselines = table.nrow();
+
   // Get the baseline columns.
-  ScalarColumn<int> ant1col(ms_iterator_.table(), "ANTENNA1");
-  ScalarColumn<int> ant2col(ms_iterator_.table(), "ANTENNA2");
+  ScalarColumn<int> ant1col(table, "ANTENNA1");
+  ScalarColumn<int> ant2col(table, "ANTENNA2");
   if (ant1col.nrow() != n_baselines || ant2col.nrow() != n_baselines) {
     throw std::runtime_error("Antenna column(s) do not match baseline count");
   }
+
   // Get the antenna names and positions.
   Table anttab(ms_.keywordSet().asTable("ANTENNA"));
   ScalarColumn<casacore::String> nameCol(anttab, "NAME");
   ScalarColumn<double> diamCol(anttab, "DISH_DIAMETER");
   unsigned int nant = anttab.nrow();
   ScalarMeasColumn<MPosition> antcol(anttab, "POSITION");
-  std::vector<MPosition> antPos;
-  antPos.reserve(nant);
+  std::vector<MPosition> antenna_positions;
+  antenna_positions.reserve(nant);
   for (unsigned int i = 0; i < nant; ++i) {
-    antPos.push_back(antcol(i));
+    antenna_positions.push_back(antcol(i));
   }
   // Set antenna/baseline info.
-  casacore::Vector<casacore::String> names = nameCol.getColumn();
+  const casacore::Vector<casacore::String> names = nameCol.getColumn();
   infoOut().setAntennas(std::vector<std::string>(names.begin(), names.end()),
-                        diamCol.getColumn().tovector(), antPos,
+                        diamCol.getColumn().tovector(), antenna_positions,
                         ant1col.getColumn().tovector(),
                         ant2col.getColumn().tovector());
+}
+
+void MsReader::ReadArrayInformation() {
+  const std::vector<MPosition>& antenna_positions = getInfoOut().antennaPos();
 
   // Read the phase reference position from the FIELD subtable.
   // Only use the main value from the PHASE_DIR array.
   // The same for DELAY_DIR and LOFAR_TILE_BEAM_DIR.
   // If LOFAR_TILE_BEAM_DIR does not exist, use DELAY_DIR.
-  Table fldtab(ms_.keywordSet().asTable("FIELD"));
-  if (fldtab.nrow() != 1)
+  Table field_table(ms_.keywordSet().asTable("FIELD"));
+  if (field_table.nrow() != 1)
     throw std::runtime_error("Multiple entries in FIELD table");
-  ArrayMeasColumn<MDirection> fldcol1(fldtab, "PHASE_DIR");
-  ArrayMeasColumn<MDirection> fldcol2(fldtab, "DELAY_DIR");
-  const MDirection phaseCenter = *(fldcol1(0).data());
-  const MDirection delayCenter = *(fldcol2(0).data());
+  ArrayMeasColumn<MDirection> phase_column(field_table, "PHASE_DIR");
+  ArrayMeasColumn<MDirection> delay_column(field_table, "DELAY_DIR");
+  const MDirection phase_center = *(phase_column(0).data());
+  const MDirection delay_center = *(delay_column(0).data());
 
-  MDirection tileBeamDir;
+  MDirection tile_beam_direction;
   try {
-    tileBeamDir = everybeam::ReadTileBeamDirection(ms_);
+    tile_beam_direction = everybeam::ReadTileBeamDirection(ms_);
   } catch (const std::runtime_error& error) {
     // everybeam throws an exception error if telescope != [LOFAR, AARTFAAC]
     // in that case, default back to "DELAY_DIR"
-    tileBeamDir = *(fldcol2(0).data());
+    tile_beam_direction = delay_center;
   }
 
   // Get the array position using the telescope name from the OBSERVATION
   // subtable.
   const casacore::Table observation_table(
       ms_.keywordSet().asTable(base::DP3MS::kObservationTable));
-  ScalarColumn<casacore::String> telCol(observation_table, "TELESCOPE_NAME");
-  MPosition arrayPos;
+  const casacore::String telescope_name =
+      ScalarColumn<casacore::String>(observation_table, "TELESCOPE_NAME")(0);
+  MPosition array_position;
   if (observation_table.nrow() == 0 ||
-      !MeasTable::Observatory(arrayPos, telCol(0))) {
+      !MeasTable::Observatory(array_position, telescope_name)) {
     // If not found, use the position of the middle antenna.
-    arrayPos = antPos[antPos.size() / 2];
+    array_position = antenna_positions[antenna_positions.size() / 2];
   }
-  info().setArrayInformation(arrayPos, phaseCenter, delayCenter, tileBeamDir);
-  // Create the UVW calculator.
-  uvw_calculator_ =
-      std::make_unique<base::UVWCalculator>(phaseCenter, arrayPos, antPos);
+
+  infoOut().setArrayInformation(array_position, phase_center, delay_center,
+                                tile_beam_direction);
+
+  uvw_calculator_ = std::make_unique<base::UVWCalculator>(
+      phase_center, array_position, antenna_positions);
 }
 
 void MsReader::ReadPolarizations(int spectralWindow) {
