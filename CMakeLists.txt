@@ -72,6 +72,11 @@ option(BUILD_TESTING "Include tests in the build" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
+# An investigation was done to determine if the --ffast-math
+# compiler option was possible in DP3. The conclusion was that
+# it was not advisable because there was a considerable
+# difference in the handling of NaN. Learn the details at
+# https://jira.skatelescope.org/browse/AST-1502.
 add_compile_options(
   -Wall
   -Wnon-virtual-dtor
