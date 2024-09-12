@@ -33,7 +33,8 @@ WSCleanWriter::WSCleanWriter(const common::ParameterSet& parset,
     : name_(prefix),
       parset_(parset),
       temporary_directory_(
-          parset_.getString(prefix + "temporaryDirectory", "")) {
+          parset_.getString(prefix + "temporary_directory", "")),
+      channels_per_file_(parset_.getUint32(prefix + "chanperfile", 0)) {
   out_name_ = parset_.getString(prefix + "name", "");
   if (out_name_.empty() && parset.isDefined("msout.name"))
     out_name_ = parset_.getString("msout.name", "");
@@ -58,26 +59,45 @@ WSCleanWriter::WSCleanWriter(const common::ParameterSet& parset,
 WSCleanWriter::~WSCleanWriter() = default;
 
 void WSCleanWriter::StartReorder() {
-  data_desc_id_ = dp_info_.spectralWindow();
+  data_desc_id_ = getInfoOut().spectralWindow();
 
-  std::vector<schaapcommon::reordering::ChannelRange> channel_ranges = {
-      {(size_t)dp_info_.spectralWindow(), dp_info_.startchan(),
-       dp_info_.startchan() + dp_info_.nchan()}};
+  std::vector<schaapcommon::reordering::ChannelRange> channel_ranges;
+
+  const size_t start_channel = getInfoOut().startchan();
+  const size_t end_channel = getInfoOut().startchan() + getInfoOut().nchan();
+  if (channels_per_file_ == 0) {
+    channel_ranges.push_back({data_desc_id_, start_channel, end_channel});
+  } else {
+    size_t part_start_channel = start_channel;
+    for (; part_start_channel + channels_per_file_ < end_channel;
+         part_start_channel += channels_per_file_) {
+      channel_ranges.push_back({data_desc_id_, part_start_channel,
+                                part_start_channel + channels_per_file_});
+    }
+
+    if (part_start_channel < end_channel) {
+      channel_ranges.push_back(
+          {data_desc_id_, part_start_channel, end_channel});
+    }
+  }
+
+  Logger::Info << "Dividing channels into " << channel_ranges.size()
+               << " files\n";
 
   schaapcommon::reordering::MSSelection selection;
   aocommon::MultiBandData bands;
 
   schaapcommon::reordering::ReorderedHandleData data(
-      out_name_, dp_info_.dataColumnName(), temporary_directory_,
+      out_name_, getInfoOut().dataColumnName(), temporary_directory_,
       channel_ranges, false, false, pols_out_, selection, bands,
-      dp_info_.antennaNames().size(), true,
+      getInfoOut().antennaNames().size(), true,
       [](schaapcommon::reordering::ReorderedHandleData) {});
 
   std::map<size_t, std::set<aocommon::PolarizationEnum>> pol_per_data_desc_id{
-      {data_desc_id_, dp_info_.polarizations()}};
+      {data_desc_id_, getInfoOut().polarizations()}};
 
-  writer_ = std::make_unique<ReorderedFileWriter>(data, pol_per_data_desc_id,
-                                                  dp_info_.startTime() / 86400);
+  writer_ = std::make_unique<ReorderedFileWriter>(
+      data, pol_per_data_desc_id, getInfoOut().startTime() / 86400);
 }
 
 bool WSCleanWriter::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
@@ -98,9 +118,10 @@ void WSCleanWriter::ReorderBuffer(dp3::base::DPBuffer& buffer) {
 
   const size_t n_baselines = buff_data.shape(0);
 
-  const std::vector<int>& antenna1_list = dp_info_.getAnt1();
-  const std::vector<int>& antenna2_list = dp_info_.getAnt2();
-  const std::set<aocommon::PolarizationEnum> pols_in = dp_info_.polarizations();
+  const std::vector<int>& antenna1_list = getInfoOut().getAnt1();
+  const std::vector<int>& antenna2_list = getInfoOut().getAnt2();
+  const std::set<aocommon::PolarizationEnum> pols_in =
+      getInfoOut().polarizations();
 
   for (size_t bl = 0; bl < n_baselines; bl++) {
     // Skip self-correlations, in WSClean this is done using an MSSelection
@@ -141,7 +162,6 @@ void WSCleanWriter::show(std::ostream& os) const {
 
 void WSCleanWriter::updateInfo(const base::DPInfo& info_in) {
   OutputStep::updateInfo(info_in);
-  dp_info_ = info_in;
   if (getInfo().metaChanged()) {
     Logger::Warn
         << "Meta data changes detected (by averaging, adding/removing"

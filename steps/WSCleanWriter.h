@@ -56,11 +56,10 @@ class WSCleanWriter : public OutputStep {
   std::string out_name_;
 
   std::string temporary_directory_;
+  uint32_t channels_per_file_;
   std::set<aocommon::PolarizationEnum> pols_out_;
 
   uint32_t data_desc_id_;
-
-  dp3::base::DPInfo dp_info_;
 
   std::unique_ptr<schaapcommon::reordering::ReorderedFileWriter> writer_;
 
