@@ -13,8 +13,12 @@ inputs:
     doc: >-
       Output polarization of the reordered files.
       Supported options are Stokes (I, Q, U, V), Instrumental "instr", Diagonal Instrumental "diag_instr" and (XX, XY, YX, YY) or (RR, RL, LR, LL)
-  wscleanwriter&#46;temporaryDirectory:
+  wscleanwriter&#46;temporary_directory:
     type: string
     default: "\"\""
     doc: >-
       Set the temporary directory used when reordering files. By default files are created in the same directory as input measurement set.
+  wscleanwriter&#46;chanperfile:
+    type: int
+    doc: >-
+      Splits the reordered files based on the given number of channels.

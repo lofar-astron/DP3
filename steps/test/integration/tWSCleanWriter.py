@@ -541,7 +541,7 @@ def test_reorder_tmp_dir():
             tcf.DP3EXE,
             f"msin={MSIN}",
             "wscleanwriter.name=.",
-            f"wscleanwriter.temporaryDirectory={tmp_dir}",
+            f"wscleanwriter.temporary_directory={tmp_dir}",
             "steps=[wscleanwriter]",
         ]
     )
@@ -710,3 +710,75 @@ def test_reorder_for_diagonal_instrumental_pol_for_circular_corr():
 
         assert_reorder_ms_meta_file(MSIN, ms_table)
         assert_reorder_ms_data_files(MSIN, ms_table, pols=[pol])
+
+
+def test_reorder_split_channel():
+    """
+    Test reordering when chanperfile is provided and is expected to
+    write into multiple reordered file parts.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "wscleanwriter.name=.",
+            "wscleanwriter.chanperfile=4",
+            "steps=[wscleanwriter]",
+        ]
+    )
+
+    assert os.path.exists(f"./{MSIN}-spw0-parted-meta.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-b0.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-b0-w.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I-b0.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I-b0-w.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0002-I-b0.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0002-I-b0-w.tmp")
+
+
+def test_reorder_split_channel_uneven():
+    """
+    Test reordering when chanperfile is not divisible by nchan is provided
+    and is expected to write reorder into multiple file parts.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "wscleanwriter.name=.",
+            "wscleanwriter.chanperfile=3",
+            "steps=[wscleanwriter]",
+        ]
+    )
+
+    assert os.path.exists(f"./{MSIN}-spw0-parted-meta.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-b0.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-b0-w.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I-b0.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I-b0-w.tmp")
+    assert os.path.exists(f"./{MSIN}-part0002-I-b0.tmp")
+    assert os.path.exists(f"./{MSIN}-part0002-I-b0-w.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0003-I-b0.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0003-I-b0-w.tmp")
+
+
+def test_reorder_split_channel_nchan_per_file_larger_than_nchan():
+    """
+    Test reordering when chanperfile is greater than nchan, DP3 is
+    expected to write a single file part.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "wscleanwriter.name=.",
+            "wscleanwriter.chanperfile=10",
+            "steps=[wscleanwriter]",
+        ]
+    )
+
+    assert os.path.exists(f"./{MSIN}-spw0-parted-meta.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-b0.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-b0-w.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0001-I-b0.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0001-I-b0-w.tmp")
