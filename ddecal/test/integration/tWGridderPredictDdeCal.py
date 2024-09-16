@@ -90,6 +90,52 @@ def test_wgridderpredict_with_ddecal():
         )
 
 
+def test_wgridderpredict_with_ddecal_wildcards():
+    """
+    Use DDECal to check that wgridderpredict writes the correct visibilities
+    into model data buffer when wildcards are used:
+    - Predict three out of four model point sources into the data buffer
+    - Use wgridderpredict with a fits image of those same three point sources,
+      each in a facet, into three model data buffers.
+    - Select a subset (3) of those initial four directions using wildcards.
+    - Use DDECal to calibrate each of the directions. Since the model is equal
+      to the data buffer, the solutions for every facet should be 1.0.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[predict,wgridderpredict, ddecal]",
+            f"predict.sourcedb={tcf.DDECAL_RESOURCEDIR}/foursources.skymodel",
+            "predict.sources=[source1, source2, source3]",
+            f"wgridderpredict.regions={tcf.DDECAL_RESOURCEDIR}/foursources.reg",
+            "wgridderpredict.images=[foursources-model.fits]",
+            "ddecal.reusemodel=[wgridderpredict.s*]",
+            "ddecal.mode=scalaramplitude",
+            "ddecal.h5parm=instrument.h5",
+            "ddecal.solint=0",
+            "ddecal.nchan=0",
+        ]
+    )
+
+    with h5py.File("instrument.h5", "r+") as f:
+        values = f["sol000"]["amplitude000"]["val"]
+        axes = values.attrs["AXES"].decode().split(",")
+        index_of_direction_axis = axes.index("dir")
+
+        # Verify that the direction axis contains 3 elements, equal to the selected model directions.
+        assert values.shape[index_of_direction_axis] == len(
+            ["source1", "source2", "source3"]
+        )
+
+        # Check solutions are 1.0
+        assert np.allclose(
+            values[np.isfinite(values)], 1.0, rtol=0.0, atol=1.0e-4
+        )
+
+
 def test_wgridderpredict_and_applybeam_with_ddecal():
     """
     Use DDECal to check that ApplyBeam can apply the beam to the
