@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <regex>
 
 #include <aocommon/recursivefor.h>
 
@@ -105,6 +106,10 @@ class DDECal : public Step {
   /// input data buffer.
   void CorrectAndSubtractModels(size_t buffer_index);
 
+  /// Converts a pattern matching expression to a regular expression such that
+  /// users can use patterns in the parset, as opposed to regular expressions.
+  static std::regex PatternToRegex(const std::string& pattern);
+
   ddecal::Settings itsSettings;
 
   /// The input data buffers for the current set of solution intervals.
@@ -150,6 +155,8 @@ class DDECal : public Step {
   std::vector<std::vector<std::string>> itsDirections;
   /// For each direction, the name for the model data in DPBuffer.
   std::vector<std::string> itsDirectionNames;
+  /// Expanded version of reusemodel patterns.
+  std::vector<std::string> itsReusedDirectionNames;
   /// Maps direction indices to the cluster central direction.
   std::vector<base::Direction> itsSourceDirections;
 

@@ -77,17 +77,8 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
 
   // Initialize steps
   initializeColumnReaders(parset, prefix);
-  initializeModelReuse();
   initializeIDG(parset, prefix);
   initializePredictSteps(parset, prefix);
-
-  if (itsDirections.size() == 0) {
-    throw std::runtime_error(
-        "DDECal initialized with 0 directions: something is wrong with your "
-        "parset or your sourcedb");
-  }
-
-  itsSettings.PrepareSolutionsPerDirection(itsDirections.size());
 }
 
 void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
@@ -101,20 +92,52 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
 }
 
 void DDECal::initializeModelReuse() {
-  for (std::string name : itsSettings.reuse_model_data) {
-    // Keep using the original name in DPBuffers.
-    itsDirectionNames.emplace_back(name);
+  const std::map<std::string, dp3::base::Direction>& directions =
+      getInfo().GetDirections();
 
-    // Remove any old prefix from the model data name.
-    std::size_t period_position = name.find(".");
-    if (period_position != name.npos) {
-      name = name.substr(period_position + 1);
+  std::map<std::string, size_t> pattern_match_count;
+  for (std::string pattern : itsSettings.reuse_model_data) {
+    pattern_match_count[pattern] = 0;
+  }
+
+  for (const auto& [name, dir] : directions) {
+    for (std::string pattern : itsSettings.reuse_model_data) {
+      // Convert the * wildcards to a regular expression.
+      std::regex regex_pattern = PatternToRegex(pattern);
+
+      if (std::regex_match(name, regex_pattern)) {
+        // Keep track of the number of directions matched to each pattern.
+        pattern_match_count[pattern] += 1;
+
+        // Keep using the original name with prefix in DPBuffers.
+        itsDirectionNames.emplace_back(name);
+        itsReusedDirectionNames.emplace_back(name);
+
+        // Remove any old prefix from the model data name.
+        std::string name_without_prefix = name;
+        std::size_t period_position = name_without_prefix.find(".");
+
+        if (period_position != name_without_prefix.npos) {
+          name_without_prefix = name_without_prefix.substr(period_position + 1);
+        }
+
+        itsDirections.emplace_back(1, name_without_prefix);
+
+        // Add a null step for this direction, so there is still an entry in
+        // itsSteps for each direction.
+        itsSteps.emplace_back();
+
+        break;
+      }
     }
-    itsDirections.emplace_back(1, name);
+  }
 
-    // Add a null step for this direction, so there is still an entry in
-    // itsSteps for each direction.
-    itsSteps.emplace_back();
+  for (std::string pattern : itsSettings.reuse_model_data) {
+    if (pattern_match_count[pattern] == 0) {
+      throw std::runtime_error(
+          "The requested reuse model pattern '" + pattern +
+          "' did not match any model data passed from any previous step.");
+    }
   }
 }
 
@@ -186,6 +209,16 @@ void DDECal::setModelNextSteps(Step& step, const std::string& direction,
 
 void DDECal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
+
+  initializeModelReuse();
+
+  if (itsDirections.size() == 0) {
+    throw std::runtime_error(
+        "DDECal initialized with 0 directions: something is wrong with your "
+        "parset or your sourcedb");
+  }
+
+  itsSettings.PrepareSolutionsPerDirection(itsDirections.size());
 
   itsUVWFlagStep.updateInfo(infoIn);
 
@@ -316,6 +349,15 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     }
 
     itsSourceDirections.push_back(direction);
+  }
+
+  // Save directions of model data for next steps.
+  if (itsSettings.keep_model_data) {
+    assert(itsSourceDirections.size() == itsDirectionNames.size());
+
+    for (size_t i = 0; i < itsDirectionNames.size(); ++i) {
+      info().GetDirections()[itsDirectionNames[i]] = itsSourceDirections[i];
+    }
   }
 
   // Prepare positions and names for the used antennas only.
@@ -702,7 +744,8 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
 
   // Check that all extra input data is there.
   // TODO(AST-1241): Handle these dependencies using Fields.
-  for (const std::string& name : itsSettings.reuse_model_data) {
+  // for (const std::string& name : itsReusedDirectionNames) {
+  for (const std::string& name : itsReusedDirectionNames) {
     if (!bufin->HasData(name)) {
       throw std::runtime_error("DDECal '" + itsSettings.name +
                                "' did not receive model data named '" + name +
@@ -990,6 +1033,22 @@ void DDECal::SumModels(size_t buffer_index) {
       }
     }
   }
+}
+
+std::regex DDECal::PatternToRegex(const std::string& pattern) {
+  std::string escaped_pattern = pattern;
+  // Replace . by \.
+  escaped_pattern =
+      std::regex_replace(escaped_pattern, std::regex("\\."), "\\.");
+  // Replace * by .*
+  escaped_pattern =
+      std::regex_replace(escaped_pattern, std::regex("\\*"), ".*");
+  // Replace ? by .
+  escaped_pattern = std::regex_replace(escaped_pattern, std::regex("\\?"), ".");
+
+  std::regex regex_pattern(escaped_pattern);
+
+  return regex_pattern;
 }
 
 }  // namespace steps

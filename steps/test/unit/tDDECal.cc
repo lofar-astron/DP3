@@ -186,6 +186,7 @@ BOOST_FIXTURE_TEST_CASE(keep_model_data_idg, KeepModelDataFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
+  const dp3::base::Direction kModelDirection(0, 0);
   const std::string kModelName{"model name"};
   const std::size_t kNCorrelations{4};
   const std::size_t kNChannels{1};
@@ -231,6 +232,7 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
                    antenna1, antenna2);
   info.setChannels(std::vector<double>(kNChannels, 42.0e6),
                    std::vector<double>(kNChannels, 1.0e6));
+  info.GetDirections()[kModelName] = kModelDirection;
   aocommon::ThreadPool::GetInstance().SetNThreads(1);
 
   auto ddecal = std::make_shared<DDECal>(

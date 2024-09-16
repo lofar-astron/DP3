@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <regex>
 
 #include <casacore/casa/version.h>
 #include <casacore/casa/BasicSL/Complexfwd.h>

@@ -229,7 +229,7 @@ void WGridderPredict::updateInfo(const dp3::base::DPInfo& info_in) {
   Step::updateInfo(info_in);
   std::map<std::string, dp3::base::Direction>& directions =
       info().GetDirections();
-  for (int i = 0; i < directions_.size(); i++) {
+  for (size_t i = 0; i < directions_.size(); i++) {
     directions.insert({direction_labels_[i], directions_[i]});
   }
   // Determine available size for buffering
