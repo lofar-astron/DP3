@@ -11,7 +11,7 @@ inputs:
     default: "[]"
     type: list
     doc: >-
-      List of directions to calibrate on. Every element of this list should b a list of facets. Default: every facet is a direction `.`
+      List of directions to calibrate on. Every element of this list should be a list of facets. Default: every facet is a direction.
   modeldatacolumns:
     default: "[]"
     type: list
@@ -19,7 +19,8 @@ inputs:
   reusemodel:
     default: "[]"
     type: list
-    doc: Reuse model data from previous (ddecal) step(s). The list should contain the model data names, as set by a previous step, e.g., "[ddecal1.MODEL_DATA, ddecal1.center]" `.`
+    doc: |
+      List of model data names to reuse from previous step(s). The list should contain the model data names as set by a previous step, prefixed with the name of that step. Example: ``[ddecal1.MODEL_DATA, ddecal1.center]``.
   maxiter:
     default: 50
     type: int
@@ -38,7 +39,7 @@ inputs:
     doc: stepsize between iterations `.`
   h5parm:
     type: string
-    doc: Filename of output H5Parm (to be read by e.g. losoto). If empty, defaults to `instrument.h5` within the measurement set `.`
+    doc: Filename of output H5Parm. If empty, defaults to `instrument.h5` within the measurement set `.`
   solint:
     default: 1
     type: int
@@ -141,7 +142,7 @@ inputs:
     default: 0
     type: double
     doc: >-
-      Ignore baselines / channels with UV < uvlambdamin wavelengths. **Note**: also all other variants of uv flagging described in :ref:`UVWFlagger` (uvmmin, uvmrange, uvlambdarange, etc) are supported (New in 3.1) `.`
+      Ignore baselines / channels with UV < uvlambdamin wavelengths. **Note**: also all other variants of uv flagging described in :ref:`UVWFlagger` (uvmmin, uvmrange, uvlambdarange, etc) are supported `.`
   subtract:
     default: false
     type: bool
@@ -149,7 +150,8 @@ inputs:
   keepmodel:
     default: false
     type: bool
-    doc: If true, pass the uncorrected model data to the next step. DDECal stores the model data using its step name plus the (first) direction name. For example, if "steps=[ddecal]" and "ddecal.directions=[[center,dec_off],[ra_off]]", the model data names are "ddecal.center" and "ddecal.ra_off". If false, delete all model data, including the model data from "reusemodel" `.`
+    doc: |
+      If ``true``, pass the corrected model data to the next step. DDECal stores the model data using its step name plus the (first) direction name. For example, if ``steps=[ddecal1]`` and ``ddecal1.directions=[[center,dec_off],[ra_off]]``, the model data names are ``ddecal1.center`` and ``ddecal1.ra_off``. If ``false``, delete all model data, including the model data from ``reusemodel``.
   idg&#46;images:
     default: "[]"
     type: list
@@ -165,7 +167,8 @@ inputs:
   solveralgorithm:
     default: directionsolve
     type: string
-    doc: Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative``, ``lbfgs``, and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The use of direction-dependent solution intervals (see ``solutions_per_direction``) is only supported for the directioniterative method. The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating `.`
+    doc: |
+      Select the algorithm used for the solving. Options are ``directionsolve``, ``directioniterative``, ``lbfgs``, and ``hybrid``. For 50 directions, the direction-iterating algorithm can be an order of magnitude faster than the direction-solving algorithm. The downside might be that it is less stable and/or less accurate, which is still to be tested. All algorithms support all solver modes (scalar, diagonal, full Jones, etc). The use of direction-dependent solution intervals (see ``solutions_per_direction``) is only supported for the directioniterative method. The hybrid algorithm is the best of both. It runs 1/6th of the maximum iterations with the direction-solving algorithm, and then switches to the direction-iterating.
   llssolver:
     default: qr
     type: string
@@ -217,7 +220,7 @@ inputs:
   "modelnextsteps&#46;<direction>":
     type: string
     doc: >-
-      Allows steps to be defined for a specific direction. These directions, (given in the `<direction>` placeholder) can be specified by their model column name, the name of a DS9 region, or the first patch name in the direction if using a sky model. For example: `modelnextsteps.MODEL_DATA_2=[applyextrabeam], applyextrabeam.type=applybeam` `.`
+      Allows steps to be defined for a specific direction. These directions, (given in the `<direction>` placeholder) can be specified by their model column name, the name of a DS9 region, or the first patch name in the direction if using a sky model. For example: ``modelnextsteps.MODEL_DATA_2=[applyextrabeam]``, ``applyextrabeam.type=applybeam`` `.`
   solverlbfgs&#46;dof:
     default: 200.0
     type: double
