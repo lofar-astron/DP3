@@ -1057,6 +1057,24 @@ def test_minvisratio(copy_data_to_model_data):
     assert_taql(f"SELECT FROM {MSIN} WHERE ANY(DDEWEIGHTS!=4)")
 
 
+def test_extra_data_columns():
+    """
+    Test whether DDECal can reuse model data from extra data columns.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            "numthreads=1",
+            f"msin={MSIN}",
+            "msin.extradatacolumns=[DATA]",
+            "steps=[ddecal]",
+            "ddecal.reusemodel=[DATA]",
+            "msout=.",
+        ]
+    )
+
+
 def test_reuse_model_data():
     # Apply ddecal directly and generate reference output.
     check_call(

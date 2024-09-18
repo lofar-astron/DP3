@@ -651,6 +651,8 @@ void MsReader::InitializeColumns(const bool allow_missing_data,
     if (!tdesc.isColumn(columnName)) {
       missing_columns += columnName + ", ";
     }
+    // Make sure that the extra data columns are available in DPInfo.
+    infoOut().GetDirections()[columnName] = infoOut().phaseCenterDirection();
   }
   if (!missing_columns.empty()) {
     missing_columns.erase(missing_columns.size() - 2);
