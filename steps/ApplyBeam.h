@@ -32,7 +32,7 @@ namespace steps {
 /// The input MeasurementSet it operates on, must have the LOFAR subtables
 /// defining the station layout and tiles/dipoles used.
 
-class ApplyBeam : public Step {
+class ApplyBeam final : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
@@ -51,15 +51,13 @@ class ApplyBeam : public Step {
     return fields;
   }
 
-  /// Process the data.
-  /// It keeps the data.
-  /// When processed, it invokes the process function of the next step.
-  bool process(std::unique_ptr<base::DPBuffer> buffer) override;
-
-  /// If apply beam is called from multiple threads, it needs the thread index
-  /// to determine what scratch space to use etc.
-  bool processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
-                            size_t thread);
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override {
+    if (use_model_data_) {
+      return ProcessModelData(std::move(buffer));
+    } else {
+      return ProcessData(std::move(buffer));
+    }
+  }
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -135,6 +133,8 @@ class ApplyBeam : public Step {
  private:
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
+  bool ProcessData(std::unique_ptr<base::DPBuffer> buffer);
+  bool ProcessModelData(std::unique_ptr<base::DPBuffer> buffer);
 
   string itsName;
   bool itsInvert;
@@ -158,14 +158,12 @@ class ApplyBeam : public Step {
 
   /// The info needed to calculate the station beams.
   ///@{
-  // TODO: a copy initialization (?) somewhere is preventing a unique_ptr to
-  // work
-  std::vector<std::shared_ptr<everybeam::telescope::Telescope>> telescopes_;
+  std::unique_ptr<everybeam::telescope::Telescope> telescope_;
+  casacore::MeasFrame measure_frame_;
+  casacore::MDirection::Convert measure_converter_;
+  std::vector<aocommon::MC2x2> beam_values_;
   std::vector<size_t> ant_to_msindex_;
-  std::vector<casacore::MeasFrame> itsMeasFrames;
-  std::vector<casacore::MDirection::Convert> itsMeasConverters;
-  std::vector<std::vector<aocommon::MC2x2>> itsBeamValues;
-  bool itsUseModelData;
+  bool use_model_data_;
   ///@}
 
   common::NSTimer itsTimer;

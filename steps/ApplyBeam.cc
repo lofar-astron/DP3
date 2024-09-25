@@ -222,7 +222,7 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
           parset.getString(prefix + "beammode", "default"))),
       itsModeAtStart(everybeam::CorrectionMode::kNone),
       itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)),
-      itsUseModelData(parset.getBool(prefix + "usemodeldata", false)) {
+      use_model_data_(parset.getBool(prefix + "usemodeldata", false)) {
   // only read 'invert' parset key if it is a separate step
   // if applybeam is called from gaincal/predict, the invert key should always
   // be false
@@ -254,7 +254,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
 
   // If ApplyBeam was requested to apply the beam to model data,
   // check whether there is model data to apply the beam to.
-  if (itsUseModelData && info().GetDirections().empty()) {
+  if (use_model_data_ && info().GetDirections().empty()) {
     throw std::runtime_error(
         "ApplyBeam's option 'usemodeldata' is set to true, \n"
         "but the beam can not be applied to model data, \n"
@@ -288,7 +288,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     itsDirectionAtStart = info().beamCorrectionDir();
     info().setBeamCorrectionMode(static_cast<int>(itsMode));
     info().setBeamCorrectionDir(itsDirection);
-  } else if (!itsUseModelData) {
+  } else if (!use_model_data_) {
     const auto mode =
         static_cast<everybeam::CorrectionMode>(info().beamCorrectionMode());
     if (mode == everybeam::CorrectionMode::kNone)
@@ -321,28 +321,16 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   const size_t n_stations = info().nantenna();
   const size_t n_channels = info().nchan();
 
-  const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
-  itsBeamValues.resize(nThreads);
-
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.
-  itsMeasConverters.resize(nThreads);
-  itsMeasFrames.resize(nThreads);
-  telescopes_.resize(nThreads);
-
-  for (size_t thread = 0; thread < nThreads; ++thread) {
-    itsBeamValues[thread].resize(n_stations * n_channels);
-    itsMeasFrames[thread].set(info().arrayPosCopy());
-    itsMeasFrames[thread].set(
-        MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
-    itsMeasConverters[thread].set(
-        MDirection::J2000,
-        MDirection::Ref(MDirection::ITRF, itsMeasFrames[thread]));
-    telescopes_[thread] = base::GetTelescope(
-        info().msName(), itsElementResponseModel, itsUseChannelFreq);
-
-    telescopes_[thread]->SetTime(info().startTime());
-  }
+  beam_values_.resize(n_stations * n_channels);
+  measure_frame_.set(info().arrayPosCopy());
+  measure_frame_.set(MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
+  measure_converter_.set(MDirection::J2000,
+                         MDirection::Ref(MDirection::ITRF, measure_frame_));
+  telescope_ = base::GetTelescope(info().msName(), itsElementResponseModel,
+                                  itsUseChannelFreq);
+  telescope_->SetTime(info().startTime());
 
   if (!itsSkipStationNames.empty()) {
     // Needs loop over itsSkipStationNames because SelectStationIndices
@@ -350,7 +338,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     // assumes (because there is only one way to order a vector of length one.
     for (std::string& skipStationName : itsSkipStationNames) {
       std::vector<size_t> station_indices = base::SelectStationIndices(
-          *(telescopes_[0]), std::vector<std::string>{skipStationName});
+          *telescope_, std::vector<std::string>{skipStationName});
       itsSkipStationIndices.emplace_back(std::move(station_indices[0]));
     }
   }
@@ -384,18 +372,14 @@ void ApplyBeam::showTimings(std::ostream& os, double duration) const {
   os << " ApplyBeam " << itsName << '\n';
 }
 
-bool ApplyBeam::process(std::unique_ptr<base::DPBuffer> buffer) {
-  if (!itsUseModelData) {
-    return processMultithreaded(std::move(buffer), 0);
-  }
-
+bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
 
   const std::map<std::string, dp3::base::Direction>& directions =
       getInfo().GetDirections();
   const double time = buffer->GetTime();
-  telescopes_[0]->SetTime(time);
-  itsMeasFrames[0].resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
+  telescope_->SetTime(time);
+  measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
 
   for (const auto& [direction_name, direction] : directions) {
     std::complex<float>* data = buffer->GetData(direction_name).data();
@@ -403,9 +387,9 @@ bool ApplyBeam::process(std::unique_ptr<base::DPBuffer> buffer) {
         casacore::Quantity(direction.ra, "rad"),
         casacore::Quantity(direction.dec, "rad"), MDirection::J2000);
     everybeam::vector3r_t direction_itrf =
-        dir2Itrf(direction_j2000, itsMeasConverters[0]);
-    applyBeam(info(), time, data, nullptr, direction_itrf, telescopes_[0].get(),
-              itsBeamValues[0], itsInvert, itsMode, false, nullptr,
+        dir2Itrf(direction_j2000, measure_converter_);
+    applyBeam(info(), time, data, nullptr, direction_itrf, telescope_.get(),
+              beam_values_, itsInvert, itsMode, false, nullptr,
               itsSkipStationIndices);
   }
 
@@ -414,58 +398,35 @@ bool ApplyBeam::process(std::unique_ptr<base::DPBuffer> buffer) {
   return false;
 }
 
-bool ApplyBeam::processMultithreaded(std::unique_ptr<base::DPBuffer> buffer,
-                                     size_t thread) {
+bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
 
   std::complex<float>* data = buffer->GetData().data();
-
   float* weight = buffer->GetWeights().data();
-
   const double time = buffer->GetTime();
-
-  // Set up directions for beam evaluation
-  everybeam::vector3r_t srcdir;
-
-  /**
-   * I'm not sure this is correct the way it is. These loops
-   * seem to initialize variables that are never used in a
-   * multi-threaded way, and if they were used from multiple
-   * threads, it would imply process() is called multiple times,
-   * and hence this initialization is already subject to a race
-   * condition... ???
-   * André, 2018-10-07
-   */
-  bool undoInputBeam =
+  const bool undoInputBeam =
       itsInvert && itsModeAtStart != everybeam::CorrectionMode::kNone;
-  const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
-  for (size_t threadIter = 0; threadIter < nThreads; ++threadIter) {
-    itsMeasFrames[threadIter].resetEpoch(
-        MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
-    // Do a conversion on all threads, because converters are not
-    // thread safe and apparently need to be used at least once
-    if (undoInputBeam)
-      srcdir = dir2Itrf(itsDirectionAtStart, itsMeasConverters[threadIter]);
-    else
-      srcdir = dir2Itrf(itsDirection, itsMeasConverters[threadIter]);
-  }
+  measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
 
-  telescopes_[thread]->SetTime(time);
+  telescope_->SetTime(time);
 
   if (undoInputBeam) {
     // A beam was previously applied to this MS, and a different direction
     // was asked this time. 'Undo' applying the input beam.
     // TODO itsElementResponseModel should be read from the measurement set
     // instead of assumed to be the same from the target beam.
-    applyBeam(info(), time, data, weight, srcdir, telescopes_[thread].get(),
-              itsBeamValues[thread], false, itsModeAtStart, itsUpdateWeights,
-              nullptr, itsSkipStationIndices);
-    srcdir = dir2Itrf(itsDirection, itsMeasConverters[thread]);
+    const everybeam::vector3r_t srcdir =
+        dir2Itrf(itsDirectionAtStart, measure_converter_);
+    applyBeam(info(), time, data, weight, srcdir, telescope_.get(),
+              beam_values_, false, itsModeAtStart, itsUpdateWeights, nullptr,
+              itsSkipStationIndices);
   }
 
-  applyBeam(info(), time, data, weight, srcdir, telescopes_[thread].get(),
-            itsBeamValues[thread], itsInvert, itsMode, itsUpdateWeights,
-            nullptr, itsSkipStationIndices);
+  const everybeam::vector3r_t srcdir =
+      dir2Itrf(itsDirection, measure_converter_);
+  applyBeam(info(), time, data, weight, srcdir, telescope_.get(), beam_values_,
+            itsInvert, itsMode, itsUpdateWeights, nullptr,
+            itsSkipStationIndices);
 
   itsTimer.stop();
   getNextStep()->process(std::move(buffer));
