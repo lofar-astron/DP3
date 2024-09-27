@@ -1195,7 +1195,7 @@ void SagecalPredict::showTimings(std::ostream& os,
 }
 
 base::Direction SagecalPredict::GetFirstDirection() const {
-  return patch_list_.front()->direction();
+  return patch_list_.front()->Direction();
 }
 
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)

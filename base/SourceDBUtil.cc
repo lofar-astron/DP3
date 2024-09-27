@@ -123,8 +123,8 @@ std::vector<std::shared_ptr<Patch>> makePatches(
                                "\" defined more than once in SourceDB");
     // Set the direction and apparent flux of the patch.
     const Direction patchDirection(patchInfo[0].getRa(), patchInfo[0].getDec());
-    ppatch->setDirection(patchDirection);
-    ppatch->setBrightness(patchInfo[0].apparentBrightness());
+    ppatch->SetDirection(patchDirection);
+    ppatch->SetBrightness(patchInfo[0].apparentBrightness());
     ///    ppatch->computeDirection();
     patchList.push_back(std::move(ppatch));
   }
@@ -159,8 +159,8 @@ std::vector<std::shared_ptr<Patch>> MakePatches(
     const parmdb::PatchInfo& info = source_db.GetPatch(patch_names[i]);
     // Set the direction and apparent flux of the patch.
     const Direction patchDirection(info.getRa(), info.getDec());
-    ppatch->setDirection(patchDirection);
-    ppatch->setBrightness(info.apparentBrightness());
+    ppatch->SetDirection(patchDirection);
+    ppatch->SetBrightness(info.apparentBrightness());
     ///    ppatch->computeDirection();
     patchList.push_back(std::move(ppatch));
   }
@@ -172,7 +172,7 @@ makeSourceList(std::vector<std::shared_ptr<Patch>>& patchList) {
   const size_t nSources =
       std::accumulate(patchList.begin(), patchList.end(), 0,
                       [](size_t left, const std::shared_ptr<Patch>& right) {
-                        return left + right->nComponents();
+                        return left + right->NComponents();
                       });
 
   std::vector<
@@ -194,7 +194,7 @@ std::vector<std::shared_ptr<Patch>> makeOnePatchPerComponent(
   size_t numComponents = 0;
 
   for (const auto& patch : patchList) {
-    numComponents += patch->nComponents();
+    numComponents += patch->NComponents();
   }
 
   std::vector<std::shared_ptr<Patch>> largePatchList;
@@ -203,11 +203,11 @@ std::vector<std::shared_ptr<Patch>> makeOnePatchPerComponent(
   for (const std::shared_ptr<Patch>& patch : patchList) {
     size_t compNum = 0;
     for (auto compIt = patch->begin(); compIt != patch->end(); ++compIt) {
-      std::shared_ptr<Patch> ppatch(new Patch(
-          patch->name() + "_" + std::to_string(compNum), compIt, compIt + 1));
-      ppatch->setDirection((*compIt)->direction());
+      std::shared_ptr<Patch> ppatch = std::make_shared<Patch>(
+          patch->Name() + "_" + std::to_string(compNum), compIt, compIt + 1);
+      ppatch->SetDirection((*compIt)->direction());
       largePatchList.push_back(std::move(ppatch));
-      compNum++;
+      ++compNum;
     }
   }
 
@@ -236,7 +236,7 @@ std::vector<std::shared_ptr<Patch>> clusterProximateSources(
   common::ProximityClustering clustering(sources);
   std::vector<std::vector<size_t>> clusters = clustering.Group(proximity_limit);
 
-  // Make a new patch list according from the results
+  // Make a new patch list from the results
   std::vector<std::shared_ptr<Patch>> clusteredPatchList;
   for (const auto& groups : clusters) {
     std::vector<std::shared_ptr<ModelComponent>> componentsInPatch;
@@ -253,10 +253,10 @@ std::vector<std::shared_ptr<Patch>> clusterProximateSources(
     }
     const std::shared_ptr<Patch>& firstPatch =
         patch_list[lookup_table[groups.front()].first];
-    std::shared_ptr<Patch> ppatch(new Patch(
-        firstPatch->name() + "_" + std::to_string(clusteredPatchList.size()),
-        componentsInPatch.begin(), componentsInPatch.end()));
-    ppatch->setDirection(
+    std::shared_ptr<Patch> ppatch = std::make_shared<Patch>(
+        firstPatch->Name() + "_" + std::to_string(clusteredPatchList.size()),
+        componentsInPatch.begin(), componentsInPatch.end());
+    ppatch->SetDirection(
         Direction(alpha / groups.size(), delta / groups.size()));
     clusteredPatchList.push_back(std::move(ppatch));
   }
@@ -319,7 +319,7 @@ std::vector<std::vector<std::string>> MakeDirectionList(
         std::move(source_db).MakePatchList();
 
     for (const auto& patch : patches) {
-      directions.emplace_back(1, patch->name());
+      directions.emplace_back(1, patch->Name());
     }
   } else {
     for (const std::string& direction : packed_directions) {

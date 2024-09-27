@@ -280,7 +280,7 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
 }
 
 base::Direction OnePredict::GetFirstDirection() const {
-  return patch_list_.front()->direction();
+  return patch_list_.front()->Direction();
 }
 
 void OnePredict::SetOperation(const std::string& operation) {
@@ -738,7 +738,7 @@ void OnePredict::addBeamToData(
     size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
     bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
-  MDirection dir(MVDirection(patch.direction().ra, patch.direction().dec),
+  MDirection dir(MVDirection(patch.Direction().ra, patch.Direction().dec),
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
@@ -771,7 +771,7 @@ void OnePredict::addBeamToData(
     const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
     bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
-  MDirection dir(MVDirection(patch.direction().ra, patch.direction().dec),
+  MDirection dir(MVDirection(patch.Direction().ra, patch.Direction().dec),
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 

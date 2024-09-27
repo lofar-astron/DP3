@@ -36,10 +36,10 @@ const std::array<Patch, 3> Expected{
      {"radec_off", 4.356648, 1.112523, 0.25, 1}}};
 
 void CheckEqual(const dp3::base::Patch& lhs, const Patch& rhs) {
-  BOOST_CHECK_EQUAL(lhs.name(), rhs.name);
-  BOOST_CHECK_CLOSE(lhs.direction().ra, rhs.ra, 1e6);
-  BOOST_CHECK_CLOSE(lhs.direction().ra, rhs.ra, 1e6);
-  BOOST_CHECK_EQUAL(lhs.brightness(), rhs.brightness);
-  BOOST_CHECK_EQUAL(lhs.nComponents(), rhs.n_components);
+  BOOST_CHECK_EQUAL(lhs.Name(), rhs.name);
+  BOOST_CHECK_CLOSE(lhs.Direction().ra, rhs.ra, 1e6);
+  BOOST_CHECK_CLOSE(lhs.Direction().ra, rhs.ra, 1e6);
+  BOOST_CHECK_EQUAL(lhs.Brightness(), rhs.brightness);
+  BOOST_CHECK_EQUAL(lhs.NComponents(), rhs.n_components);
 }
 }  // namespace test_source_db
