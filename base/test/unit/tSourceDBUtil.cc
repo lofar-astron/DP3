@@ -52,13 +52,13 @@ BOOST_AUTO_TEST_CASE(cluster_proximate_sources_single) {
   BOOST_REQUIRE_EQUAL(output.size(), 2u);
 
   // Check patch data
-  BOOST_REQUIRE_EQUAL(output[0]->nComponents(), 3u);
-  BOOST_CHECK_CLOSE(output[0]->direction().ra, 0.2, 1e-5);
-  BOOST_CHECK_CLOSE(output[0]->direction().dec, 0.5, 1e-5);
+  BOOST_REQUIRE_EQUAL(output[0]->NComponents(), 3u);
+  BOOST_CHECK_CLOSE(output[0]->Direction().ra, 0.2, 1e-5);
+  BOOST_CHECK_CLOSE(output[0]->Direction().dec, 0.5, 1e-5);
 
-  BOOST_REQUIRE_EQUAL(output[1]->nComponents(), 1u);
-  BOOST_CHECK_CLOSE(output[1]->direction().ra, 1.0, 1e-5);
-  BOOST_CHECK_CLOSE(output[1]->direction().dec, 1.1, 1e-5);
+  BOOST_REQUIRE_EQUAL(output[1]->NComponents(), 1u);
+  BOOST_CHECK_CLOSE(output[1]->Direction().ra, 1.0, 1e-5);
+  BOOST_CHECK_CLOSE(output[1]->Direction().dec, 1.1, 1e-5);
 
   // Check sources in patch
   BOOST_CHECK_CLOSE(output[0]->component(0)->direction().ra, 0.2, 1e-5);
@@ -91,13 +91,13 @@ BOOST_AUTO_TEST_CASE(cluster_proximate_sources_multi) {
   BOOST_REQUIRE_EQUAL(output.size(), 2u);
 
   // Check patch data
-  BOOST_REQUIRE_EQUAL(output[0]->nComponents(), 3u);
-  BOOST_CHECK_CLOSE(output[0]->direction().ra, 0.2, 1e-5);
-  BOOST_CHECK_CLOSE(output[0]->direction().dec, 0.5, 1e-5);
+  BOOST_REQUIRE_EQUAL(output[0]->NComponents(), 3u);
+  BOOST_CHECK_CLOSE(output[0]->Direction().ra, 0.2, 1e-5);
+  BOOST_CHECK_CLOSE(output[0]->Direction().dec, 0.5, 1e-5);
 
-  BOOST_REQUIRE_EQUAL(output[1]->nComponents(), 1u);
-  BOOST_CHECK_CLOSE(output[1]->direction().ra, 1.0, 1e-5);
-  BOOST_CHECK_CLOSE(output[1]->direction().dec, 1.1, 1e-5);
+  BOOST_REQUIRE_EQUAL(output[1]->NComponents(), 1u);
+  BOOST_CHECK_CLOSE(output[1]->Direction().ra, 1.0, 1e-5);
+  BOOST_CHECK_CLOSE(output[1]->Direction().dec, 1.1, 1e-5);
 
   // Check sources in patch
   BOOST_CHECK_CLOSE(output[0]->component(0)->direction().ra, 0.2, 1e-5);

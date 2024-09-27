@@ -253,8 +253,8 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
     // If found, turn it into a vector of strings.
     std::vector<std::string> sourceVec(1, itsAllSources[i]);
     if (i < itsNModel) {
-      sourceVec[0] = toString(itsPatchList[i]->direction().ra);
-      sourceVec.push_back(toString(itsPatchList[i]->direction().dec));
+      sourceVec[0] = toString(itsPatchList[i]->Direction().ra);
+      sourceVec.push_back(toString(itsPatchList[i]->Direction().dec));
     }
     auto step1 = std::make_shared<PhaseShift>(
         parset, prefix + itsAllSources[i] + '.', sourceVec);
@@ -956,10 +956,10 @@ void Demixer::demix() {
                       itsAvgResults[dr]->get()[ts]->GetUvw(), storage.uvw);
 
       base::Simulator simulator(
-          itsPatchList[dr]->direction(), nSt, itsBaselines,
+          itsPatchList[dr]->Direction(), nSt, itsBaselines,
           casacore::Vector<double>(itsFreqDemix), casacore::Vector<double>(),
           storage.uvw, storage.model[dr], false, false);
-      for (size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
+      for (size_t i = 0; i < itsPatchList[dr]->NComponents(); ++i) {
         simulator.simulate(itsPatchList[dr]->component(i));
       }
     }
@@ -1062,7 +1062,7 @@ void Demixer::demix() {
           // directions other than the target are unavailable (unless the
           // resolution of the residual is equal to the resolution at which
           // the Jones matrices were estimated, of course).
-          rotateUVW(itsPhaseRef, itsPatchList[dr]->direction(), nSt,
+          rotateUVW(itsPhaseRef, itsPatchList[dr]->Direction(), nSt,
                     storage.uvw.data());
 
           // Zero the visibility buffer.
@@ -1073,12 +1073,12 @@ void Demixer::demix() {
           cr_model_subtr = base::cursor<std::complex<double>>(
               storage.model_subtr.data(), 3, stride_model_subtr);
 
-          base::Simulator simulator(itsPatchList[dr]->direction(), nSt,
+          base::Simulator simulator(itsPatchList[dr]->Direction(), nSt,
                                     itsBaselines,
                                     casacore::Vector<double>(itsFreqSubtr),
                                     casacore::Vector<double>(), storage.uvw,
                                     storage.model_subtr, false, false);
-          for (size_t i = 0; i < itsPatchList[dr]->nComponents(); ++i) {
+          for (size_t i = 0; i < itsPatchList[dr]->NComponents(); ++i) {
             simulator.simulate(itsPatchList[dr]->component(i));
           }
         }

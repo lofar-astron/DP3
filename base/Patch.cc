@@ -1,40 +1,32 @@
-// Patch.cc: A set of sources for which direction dependent effects are assumed
-// to be equal.
-//
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
-//
-// $Id$
 
 #include "Patch.h"
 #include "ModelComponentVisitor.h"
 
 #include <cmath>
 
-namespace dp3 {
-namespace base {
+namespace dp3::base {
 
-void Patch::computeDirection() {
-  itsDirection = Direction();
-
-  if (!itsComponents.empty()) {
+void Patch::ComputeDirection() {
+  if (components_.empty()) {
+    direction_ = base::Direction();
+  } else {
     double x = 0.0, y = 0.0, z = 0.0;
-    for (const auto& component : itsComponents) {
-      const Direction& direction = component->direction();
-      const double cos_dec = cos(direction.dec);
-      x += cos(direction.ra) * cos_dec;
-      y += sin(direction.ra) * cos_dec;
-      z += sin(direction.dec);
+    for (const auto& component : components_) {
+      const base::Direction& direction = component->direction();
+      const double cos_dec = std::cos(direction.dec);
+      x += std::cos(direction.ra) * cos_dec;
+      y += std::sin(direction.ra) * cos_dec;
+      z += std::sin(direction.dec);
     }
 
-    x /= itsComponents.size();
-    y /= itsComponents.size();
-    z /= itsComponents.size();
+    x /= components_.size();
+    y /= components_.size();
+    z /= components_.size();
 
-    itsDirection.ra = atan2(y, x);
-    itsDirection.dec = asin(z);
+    direction_ = base::Direction(std::atan2(y, x), std::asin(z));
   }
 }
 
-}  // namespace base
-}  // namespace dp3
+}  // namespace dp3::base

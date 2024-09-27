@@ -1,11 +1,8 @@
-// Patch.h: A set of sources for which direction dependent effects are assumed
-// to be equal.
-//
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DPPP_PATCH_H
-#define DPPP_PATCH_H
+#ifndef DP3_BASE_PATCH_H_
+#define DP3_BASE_PATCH_H_
 
 #include <dp3/base/Direction.h>
 #include "ModelComponent.h"
@@ -14,77 +11,57 @@
 #include <string>
 #include <vector>
 
-namespace dp3 {
-namespace base {
+namespace dp3::base {
 
 /// \brief A set of sources for which direction dependent effects are assumed to
 /// be equal.
 
-/// @{
-
 class Patch {
  public:
-  typedef std::vector<std::shared_ptr<ModelComponent>>::iterator iterator;
-  typedef std::vector<std::shared_ptr<const ModelComponent>>::const_iterator
-      const_iterator;
+  using iterator = std::vector<std::shared_ptr<ModelComponent>>::iterator;
+  using const_iterator =
+      std::vector<std::shared_ptr<const ModelComponent>>::const_iterator;
 
   template <typename T>
-  Patch(const std::string &name, T first, T last);
-
-  const std::string &name() const;
-  const Direction &direction() const;
-  double brightness() const;
-  void setDirection(const Direction &);
-  void setBrightness(double);
-
-  size_t nComponents() const;
-  std::shared_ptr<ModelComponent> component(size_t i) {
-    return itsComponents[i];
+  Patch(const std::string &name, T first, T last)
+      : name_(name), components_(first, last) {
+    ComputeDirection();
   }
+
+  const std::string &Name() const { return name_; }
+  const base::Direction &Direction() const { return direction_; }
+  double Brightness() const { return brightness_; }
+  /**
+   * Index is used by OnePredict to be able to know what beam
+   * values belong to what patch. It is the index of this
+   * patch in the full list of patches being predicted.
+   */
+  size_t Index() const { return index_; }
+
+  void SetDirection(const base::Direction &pos) { direction_ = pos; }
+  void SetBrightness(double brightness) { brightness_ = brightness; }
+  void SetIndex(size_t index) { index_ = index; }
+
+  size_t NComponents() const { return components_.size(); }
+  std::shared_ptr<ModelComponent> component(size_t i) { return components_[i]; }
   std::shared_ptr<const ModelComponent> component(size_t i) const {
-    return itsComponents[i];
+    return components_[i];
   }
 
-  iterator begin() { return itsComponents.begin(); }
-  iterator end() { return itsComponents.end(); }
+  iterator begin() { return components_.begin(); }
+  iterator end() { return components_.end(); }
 
   /// Compute the direction as the average of the positions of the components.
-  void computeDirection();
+  void ComputeDirection();
 
  private:
-  std::string itsName;
-  Direction itsDirection;
-  double itsBrightness{0.0};
-  std::vector<std::shared_ptr<ModelComponent>> itsComponents;
+  size_t index_ = 0;
+  std::string name_;
+  base::Direction direction_;
+  double brightness_ = 0.0;
+  std::vector<std::shared_ptr<ModelComponent>> components_;
 };
 
-/// @}
-
-// -------------------------------------------------------------------------- //
-// - Implementation: Patch                                                  - //
-// -------------------------------------------------------------------------- //
-
-template <typename T>
-Patch::Patch(const std::string &name, T first, T last)
-    : itsName(name), itsComponents(first, last) {
-  computeDirection();
-}
-
-inline const std::string &Patch::name() const { return itsName; }
-
-inline const Direction &Patch::direction() const { return itsDirection; }
-
-inline double Patch::brightness() const { return itsBrightness; }
-
-inline void Patch::setDirection(const Direction &pos) { itsDirection = pos; }
-
-inline void Patch::setBrightness(double brightness) {
-  itsBrightness = brightness;
-}
-
-inline size_t Patch::nComponents() const { return itsComponents.size(); }
-
-}  // namespace base
-}  // namespace dp3
+}  // namespace dp3::base
 
 #endif
