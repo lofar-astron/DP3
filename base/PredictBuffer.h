@@ -42,14 +42,14 @@ class PredictBuffer {
     full_beam_ = full_beam;
   }
 
-  std::vector<aocommon::MC2x2>& GetFullBeamValues(size_t threadIndex) {
+  aocommon::MC2x2* GetFullBeamValues(size_t threadIndex) {
     assert(full_beam_);
-    return full_beam_values_[threadIndex];
+    return full_beam_values_[threadIndex].data();
   }
 
-  std::vector<everybeam::complex_t>& GetScalarBeamValues(size_t threadIndex) {
+  everybeam::complex_t* GetScalarBeamValues(size_t threadIndex) {
     assert(!full_beam_);
-    return scalar_beam_values_[threadIndex];
+    return scalar_beam_values_[threadIndex].data();
   }
 
  private:

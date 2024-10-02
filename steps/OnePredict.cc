@@ -553,9 +553,10 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
                    xt::all(), xt::all()) = sim_buffer[thread_index];
 
           // Apply the beam and add PatchModel to Model
-          addBeamToData(*curPatch, model_buffer->GetModel(thread_index), time,
-                        thread_index, patch_model, baseline_range[thread_index],
-                        station_range[thread_index], barrier, stokes_i_only_);
+          addBeamToDataRange(
+              *curPatch, model_buffer->GetModel(thread_index), time,
+              thread_index, patch_model, baseline_range[thread_index],
+              station_range[thread_index], barrier, stokes_i_only_);
           // Initialize patchmodel to zero for the next patch
           sim_buffer[thread_index].fill(std::complex<double>(0.0, 0.0));
         }
@@ -575,9 +576,10 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
                            baseline_range[thread_index].second),
                  xt::all(), xt::all()) = sim_buffer[thread_index];
 
-        addBeamToData(*curPatch, model_buffer->GetModel(thread_index), time,
-                      thread_index, patch_model, baseline_range[thread_index],
-                      station_range[thread_index], barrier, stokes_i_only_);
+        addBeamToDataRange(
+            *curPatch, model_buffer->GetModel(thread_index), time, thread_index,
+            patch_model, baseline_range[thread_index],
+            station_range[thread_index], barrier, stokes_i_only_);
       }
       if (!apply_beam_) {
         aocommon::xt::UTensor<std::complex<double>, 3>& model =
@@ -745,25 +747,28 @@ void OnePredict::addBeamToData(
   if (stokesIOnly) {
     const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
         scoped_time{apply_beam_time_};
-    ApplyBeam::applyBeamStokesIArrayFactor(
-        info(), time, data.data(), srcdir, telescope_.get(),
-        predict_buffer_->GetScalarBeamValues(thread), false, beam_mode_,
-        &mutex_);
+    const size_t n_stations = ComputeArrayFactor(
+        info(), time, srcdir, telescope_.get(),
+        predict_buffer_->GetScalarBeamValues(thread), false, &mutex_, {});
+    ApplyArrayFactor(info(), n_stations, data.data(),
+                     predict_buffer_->GetScalarBeamValues(thread));
 
     // Add temporary buffer to Model
     model_data += data;
   } else {
     const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
         scoped_time{apply_beam_time_};
-    float* dummyweight = nullptr;
-    ApplyBeam::ApplyBeamAndAddToModel(
-        info(), time, data.data(), model_data.data(), dummyweight, srcdir,
-        telescope_.get(), predict_buffer_->GetFullBeamValues(thread), false,
-        beam_mode_, false, &mutex_);
+    float* weights = nullptr;
+    aocommon::MC2x2* values = predict_buffer_->GetFullBeamValues(thread);
+    const size_t n_stations =
+        ComputeBeam(info(), time, srcdir, telescope_.get(), values, false,
+                    beam_mode_, &mutex_, {});
+    ApplyBeamToDataAndAdd(info(), n_stations, data.data(), model_data.data(),
+                          weights, values, false);
   }
 }
 
-void OnePredict::addBeamToData(
+void OnePredict::addBeamToDataRange(
     const base::Patch& patch,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
     size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
@@ -780,16 +785,16 @@ void OnePredict::addBeamToData(
   if (stokesIOnly) {
     const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
         scoped_time{apply_beam_time_};
-    ApplyBeam::applyBeamStokesIArrayFactor(
+    ApplyBeam::ApplyBaselineBasedArrayFactor(
         info(), time, data.data(), srcdir, telescope_.get(),
         predict_buffer_->GetScalarBeamValues(common_thread), baseline_range,
         station_range, barrier, false, beam_mode_, &mutex_);
   } else {
     const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
         scoped_time{apply_beam_time_};
-    float* dummyweight = nullptr;
-    ApplyBeam::applyBeam(
-        info(), time, data.data(), dummyweight, srcdir, telescope_.get(),
+    float* weights = nullptr;
+    ApplyBeam::ApplyBaselineBasedBeam(
+        info(), time, data.data(), weights, srcdir, telescope_.get(),
         predict_buffer_->GetFullBeamValues(common_thread), baseline_range,
         station_range, barrier, false, beam_mode_, false, &mutex_);
   }
