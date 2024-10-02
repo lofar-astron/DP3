@@ -141,13 +141,13 @@ class OnePredict : public ModelDataStep {
                      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      bool stokesIOnly);
 
-  void addBeamToData(const base::Patch& patch,
-                     aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-                     double time, size_t thread,
-                     aocommon::xt::UTensor<std::complex<double>, 3>& data0,
-                     const std::pair<size_t, size_t>& baseline_range,
-                     const std::pair<size_t, size_t>& station_range,
-                     aocommon::Barrier& barrier, bool stokesIOnly);
+  void addBeamToDataRange(
+      const base::Patch& patch,
+      aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
+      size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data0,
+      const std::pair<size_t, size_t>& baseline_range,
+      const std::pair<size_t, size_t>& station_range,
+      aocommon::Barrier& barrier, bool stokesIOnly);
 
   void PredictWithSourceParallelization(base::DPBuffer::DataType& destination,
                                         double time);

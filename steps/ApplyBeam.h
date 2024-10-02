@@ -26,6 +26,52 @@
 namespace dp3 {
 namespace steps {
 
+/// Computes full 2x2 Jones beam matrices using EveryBeam.
+size_t ComputeBeam(const base::DPInfo& info, double time,
+                   const everybeam::vector3r_t& srcdir,
+                   const everybeam::telescope::Telescope* telescope,
+                   aocommon::MC2x2* beam_values, bool invert,
+                   everybeam::CorrectionMode mode, std::mutex* mutex,
+                   const std::vector<size_t>& skip_station_indices);
+
+/// Computes the array factor scalar values.
+size_t ComputeArrayFactor(const base::DPInfo& info, double time,
+                          const everybeam::vector3r_t& srcdir,
+                          const everybeam::telescope::Telescope* telescope,
+                          everybeam::complex_t* beam_values, bool invert,
+                          std::mutex* mutex,
+                          const std::vector<size_t>& skip_station_indices);
+
+/**
+ * Corrects the values in @p model_data with the precomputed full Jones beam
+ * values, and adds the corrected model data to @p data0.
+ * @param data0 An array of n_baselines x n_channels x n_correlations
+ * (with n_correlations the fastest changing) containing the data.
+ * @param model_data Array of same shape as data0; the corrected values are
+ * added to these data.
+ * @param beam_values Array of n_atenna x n_channels containing the
+ * pre-calculated beam matrices.
+ */
+void ApplyBeamToDataAndAdd(const base::DPInfo& info, size_t n_stations,
+                           std::complex<double>* data0,
+                           std::complex<double>* model_data, float* weight0,
+                           const aocommon::MC2x2* beam_values,
+                           bool doUpdateWeights);
+
+/**
+ * Corrects the values in @p model_data with the precomputed scalar array
+ * factors. Note that unlike @ref ApplyBeamToDataAndAdd(), the data values
+ * are assumed to be Stokes I values only. This is used for the optimization
+ * when the sky model is unpolarized and only the array factor is applied.
+ * @param data0 An array of n_baselines x n_channels
+ * (with n_channels the fastest changing) containing the data.
+ * @param beam_values Array of n_atenna x n_channels containing the
+ * pre-calculated scalar beam values.
+ */
+void ApplyArrayFactor(const base::DPInfo& info, size_t n_stations,
+                      std::complex<double>* data0,
+                      const everybeam::complex_t* beam_values);
+
 /// \brief DP3 step class to ApplyBeam visibilities from a source model
 
 /// This class is a Step class to apply the beam model, optionally inverted.
@@ -73,57 +119,31 @@ class ApplyBeam final : public Step {
 
   bool invert() { return itsInvert; }
 
-  template <typename T>
-  static void applyBeam(
-      const base::DPInfo& info, double time, T* data0, float* weight0,
-      const everybeam::vector3r_t& srcdir,
-      const everybeam::telescope::Telescope* telescope,
-      std::vector<aocommon::MC2x2>& beamValues, bool invert,
-      everybeam::CorrectionMode mode, bool doUpdateWeights = false,
-      std::mutex* mutex = nullptr,
-      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
-
-  template <typename T>
-  static void ApplyBeamAndAddToModel(
-      const base::DPInfo& info, double time, T* data0, T* model_data,
-      float* weight0, const everybeam::vector3r_t& srcdir,
-      const everybeam::telescope::Telescope* telescope,
-      std::vector<aocommon::MC2x2>& beamValues, bool invert,
-      everybeam::CorrectionMode mode, bool doUpdateWeights = false,
-      std::mutex* mutex = nullptr,
-      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
-
-  // This method applies the beam for processing when parallelizing over
-  // baselines. Because the beam is a per-antenna effect, this requires
-  // synchronisation, which is performed with the provided barrier.
-  static void applyBeam(
+  /**
+   * Calculate and apply the beam for processing when
+   * parallelizing over baselines. Because the beam is a per-antenna effect,
+   * this requires synchronisation, which is performed with the provided
+   * barrier.
+   */
+  static void ApplyBaselineBasedBeam(
       const base::DPInfo& info, double time, std::complex<double>* data0,
       float* weight0, const everybeam::vector3r_t& srcdir,
       const everybeam::telescope::Telescope* telescope,
-      std::vector<aocommon::MC2x2>& beam_values,
+      aocommon::MC2x2* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range,
       aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
       bool do_update_weights = false, std::mutex* mutex = nullptr,
       const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
-  template <typename T>
-  static void applyBeamStokesIArrayFactor(
-      const base::DPInfo& info, double time, T* data0,
-      const everybeam::vector3r_t& srcdir,
-      const everybeam::telescope::Telescope* telescope,
-      std::vector<everybeam::complex_t>& beamValues, bool invert,
-      everybeam::CorrectionMode mode, std::mutex* mutex = nullptr,
-      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
-
-  // This method applies the Stokes I Array factor for processing when
-  // parallelizing over baselines and uses a barrier for synchronisation,
-  // similar to the corresponding @ref applyBeam() overload.
-  static void applyBeamStokesIArrayFactor(
+  /**
+   * Like @ref ApplyBaselineBasedBeam(), but for array factor only.
+   */
+  static void ApplyBaselineBasedArrayFactor(
       const base::DPInfo& info, double time, std::complex<double>* data0,
       const everybeam::vector3r_t& srcdir,
       const everybeam::telescope::Telescope* telescope,
-      std::vector<everybeam::complex_t>& beam_values,
+      everybeam::complex_t* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range,
       aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
