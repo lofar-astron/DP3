@@ -200,12 +200,12 @@ OnePredict::~OnePredict() = default;
 
 void OnePredict::initializeThreadData() {
   const size_t nBl = info().nbaselines();
-  const size_t nSt = info().nantenna();
+  const size_t n_stations = info().nantenna();
   const size_t nCh = info().nchan();
   const size_t nCr = stokes_i_only_ ? 1 : info().ncorr();
   const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
 
-  station_uvw_.resize({nSt, 3});
+  station_uvw_.resize({n_stations, 3});
 
   std::vector<std::array<double, 3>> antenna_pos(info().antennaPos().size());
   for (unsigned int i = 0; i < info().antennaPos().size(); ++i) {
@@ -229,7 +229,7 @@ void OnePredict::initializeThreadData() {
     is_dish_telescope = base::IsDish(*telescope_);
   }
   predict_buffer_->resize(nThreads, nCr, nCh, nBl,
-                          (is_dish_telescope ? 1 : nSt), apply_beam_,
+                          (is_dish_telescope ? 1 : n_stations), apply_beam_,
                           !stokes_i_only_);
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.
@@ -387,8 +387,6 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
 
   double time = buffer->GetTime();
-  // Set up directions for beam evaluation
-  everybeam::vector3r_t refdir, tiledir;
 
   size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
   const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
@@ -401,9 +399,12 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     for (size_t thread = 0; thread != n_threads; ++thread) {
       meas_frame_[thread].resetEpoch(
           MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
-      // Do a conversion on all threads
-      refdir = dir2Itrf(info().delayCenter(), meas_convertors_[thread]);
-      tiledir = dir2Itrf(info().tileBeamDir(), meas_convertors_[thread]);
+      // The convertors are only thread safe after they have been used once;
+      // therefore do these dummy conversions. It's unknown if a single
+      // conversion using a plain casacore::MDirection() also works, so keep
+      // these two conversions for now.
+      meas_convertors_[thread](getInfoOut().delayCenter());
+      meas_convertors_[thread](getInfoOut().tileBeamDir());
     }
   }
 
@@ -531,16 +532,15 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     // We need to create local threads here because we need to
     // sync only those using the barrier
     aocommon::RecursiveFor::NestedRun(0, n_threads, [&](size_t thread_index) {
-      const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
-          scoped_time{predict_time_};
+      const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
       // Predict the source model and apply beam when an entire patch is
       // done
-      std::shared_ptr<const base::Patch>& curPatch = curPatches[thread_index];
+      const base::Patch* curPatch = curPatches[thread_index].get();
 
       for (size_t source_index = 0; source_index < source_list_.size();
            ++source_index) {
         const bool patchIsFinished =
-            curPatch != source_list_[source_index].second &&
+            curPatch != source_list_[source_index].second.get() &&
             curPatch != nullptr;
 
         if (apply_beam_ && patchIsFinished) {
@@ -564,7 +564,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
         // the Model or the PatchModel of the predict buffer
         simulators[thread_index].simulate(source_list_[source_index].first);
 
-        curPatch = source_list_[source_index].second;
+        curPatch = source_list_[source_index].second.get();
       }
       // catch last source
       if (apply_beam_ && curPatch != nullptr) {
@@ -661,15 +661,14 @@ void OnePredict::PredictSourceRange(
                             station_uvw_, casacore_data, correct_freq_smearing_,
                             stokes_i_only_);
 
-  const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
-      scoped_time{predict_time_};
-  std::shared_ptr<const base::Patch> patch;
+  const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
+  const base::Patch* patch = nullptr;
 
   for (size_t source_index = start; source_index != end; ++source_index) {
     // Predict the source model and apply beam when an entire patch is
     // done
     const bool patch_is_finished =
-        patch != source_list_[source_index].second && patch != nullptr;
+        patch != source_list_[source_index].second.get() && patch != nullptr;
     if (apply_beam_ && patch_is_finished) {
       // Apply the beam and add PatchModel to Model
       addBeamToData(*patch, model_data, time, thread_index, patch_model_data,
@@ -681,17 +680,14 @@ void OnePredict::PredictSourceRange(
     // the Model or the PatchModel predict buffer
     simulator.simulate(source_list_[source_index].first);
 
-    patch = source_list_[source_index].second;
+    patch = source_list_[source_index].second.get();
   }
 
-  if (apply_beam_) {
+  if (apply_beam_ && patch != nullptr) {
     // Apply beam to the last patch
-    const common::ScopedMicroSecondAccumulator<decltype(predict_time_)>
-        scoped_time{predict_time_};
-    if (patch != nullptr) {
-      addBeamToData(*patch, model_data, time, thread_index, patch_model_data,
-                    stokes_i_only_);
-    }
+    const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
+    addBeamToData(*patch, model_data, time, thread_index, patch_model_data,
+                  stokes_i_only_);
   }
 
   // Add this thread's data to the global buffer
@@ -744,27 +740,21 @@ void OnePredict::addBeamToData(
                  MDirection::J2000);
   everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
+  const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
   if (stokesIOnly) {
-    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
-        scoped_time{apply_beam_time_};
+    everybeam::complex_t* values = predict_buffer_->GetScalarBeamValues(thread);
     const size_t n_stations = ComputeArrayFactor(
-        info(), time, srcdir, telescope_.get(),
-        predict_buffer_->GetScalarBeamValues(thread), false, &mutex_, {});
-    ApplyArrayFactor(info(), n_stations, data.data(),
-                     predict_buffer_->GetScalarBeamValues(thread));
+        info(), time, srcdir, telescope_.get(), values, false, &mutex_, {});
+    ApplyArrayFactorAndAdd(info(), n_stations, data.data(), model_data.data(),
+                           values);
 
-    // Add temporary buffer to Model
-    model_data += data;
   } else {
-    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
-        scoped_time{apply_beam_time_};
-    float* weights = nullptr;
     aocommon::MC2x2* values = predict_buffer_->GetFullBeamValues(thread);
     const size_t n_stations =
         ComputeBeam(info(), time, srcdir, telescope_.get(), values, false,
                     beam_mode_, &mutex_, {});
     ApplyBeamToDataAndAdd(info(), n_stations, data.data(), model_data.data(),
-                          weights, values, false);
+                          values);
   }
 }
 
@@ -778,20 +768,18 @@ void OnePredict::addBeamToDataRange(
   // Apply beam for a patch, add result to Model
   MDirection dir(MVDirection(patch.Direction().ra, patch.Direction().dec),
                  MDirection::J2000);
-  everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
+  const everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
   // We use a common buffer to calculate beam values
   const size_t common_thread = 0;
   if (stokesIOnly) {
-    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
-        scoped_time{apply_beam_time_};
+    const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     ApplyBeam::ApplyBaselineBasedArrayFactor(
         info(), time, data.data(), srcdir, telescope_.get(),
         predict_buffer_->GetScalarBeamValues(common_thread), baseline_range,
         station_range, barrier, false, beam_mode_, &mutex_);
   } else {
-    const common::ScopedMicroSecondAccumulator<decltype(apply_beam_time_)>
-        scoped_time{apply_beam_time_};
+    const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     float* weights = nullptr;
     ApplyBeam::ApplyBaselineBasedBeam(
         info(), time, data.data(), weights, srcdir, telescope_.get(),

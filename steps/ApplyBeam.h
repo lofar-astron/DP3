@@ -43,8 +43,8 @@ size_t ComputeArrayFactor(const base::DPInfo& info, double time,
                           const std::vector<size_t>& skip_station_indices);
 
 /**
- * Corrects the values in @p model_data with the precomputed full Jones beam
- * values, and adds the corrected model data to @p data0.
+ * Corrects the values in @p data0 with the precomputed full Jones beam
+ * values, and adds the corrected model data to @p model_data.
  * @param data0 An array of n_baselines x n_channels x n_correlations
  * (with n_correlations the fastest changing) containing the data.
  * @param model_data Array of same shape as data0; the corrected values are
@@ -53,14 +53,14 @@ size_t ComputeArrayFactor(const base::DPInfo& info, double time,
  * pre-calculated beam matrices.
  */
 void ApplyBeamToDataAndAdd(const base::DPInfo& info, size_t n_stations,
-                           std::complex<double>* data0,
-                           std::complex<double>* model_data, float* weight0,
-                           const aocommon::MC2x2* beam_values,
-                           bool doUpdateWeights);
+                           const std::complex<double>* data0,
+                           std::complex<double>* model_data,
+                           const aocommon::MC2x2* beam_values);
 
 /**
- * Corrects the values in @p model_data with the precomputed scalar array
- * factors. Note that unlike @ref ApplyBeamToDataAndAdd(), the data values
+ * Corrects the values in @p data0 with the precomputed scalar array
+ * factors, and adds the corrected model data to @p model_data. Note that
+ * unlike @ref ApplyBeamToDataAndAdd(), the data values
  * are assumed to be Stokes I values only. This is used for the optimization
  * when the sky model is unpolarized and only the array factor is applied.
  * @param data0 An array of n_baselines x n_channels
@@ -68,9 +68,10 @@ void ApplyBeamToDataAndAdd(const base::DPInfo& info, size_t n_stations,
  * @param beam_values Array of n_atenna x n_channels containing the
  * pre-calculated scalar beam values.
  */
-void ApplyArrayFactor(const base::DPInfo& info, size_t n_stations,
-                      std::complex<double>* data0,
-                      const everybeam::complex_t* beam_values);
+void ApplyArrayFactorAndAdd(const base::DPInfo& info, size_t n_stations,
+                            const std::complex<double>* data0,
+                            std::complex<double>* model0,
+                            const everybeam::complex_t* beam_values);
 
 /// \brief DP3 step class to ApplyBeam visibilities from a source model
 
