@@ -167,27 +167,27 @@ class OnePredict : public ModelDataStep {
   /// for the input data in each process() call.
   xt::xtensor<std::complex<float>, 3> input_data_;
   std::string source_db_name_;
-  bool correct_freq_smearing_{false};
+  bool correct_freq_smearing_ = false;
   Operation operation_;
   std::string output_data_name_;
-  bool apply_beam_{false};
-  bool use_channel_freq_{false};
-  bool one_beam_per_patch_{false};
-  bool thread_over_baselines_{false};
+  bool apply_beam_ = false;
+  bool use_channel_freq_ = false;
+  bool one_beam_per_patch_ = false;
+  bool thread_over_baselines_ = false;
   /// If two sources are closer together than given by this setting, they
   /// will be grouped into one patch. Value is in arcsec; zero means don't
   /// group.
-  double beam_proximity_limit_{false};
-  bool stokes_i_only_{false};
-  bool any_orientation_is_absolute_{false};  ///< Any of the Gaussian sources
-                                             ///< has absolute orientation
+  double beam_proximity_limit_ = 0.0;
+  bool stokes_i_only_ = false;
+  bool any_orientation_is_absolute_ = false;  ///< Any of the Gaussian sources
+                                              ///< has absolute orientation
   base::Direction phase_ref_;
-  bool moving_phase_ref_{false};
+  bool moving_phase_ref_ = false;
 
   std::shared_ptr<ApplyCal> apply_cal_step_;  ///< Optional ApplyCal sub step
   std::shared_ptr<ResultStep> result_step_;   ///< Catches results from ApplyCal
 
-  unsigned int debug_level_{0};
+  unsigned int debug_level_ = 0;
 
   std::vector<std::pair<size_t, size_t>> baselines_;
 
@@ -199,9 +199,9 @@ class OnePredict : public ModelDataStep {
 
   /// The info needed to calculate the station beams.
   std::shared_ptr<base::PredictBuffer> predict_buffer_;
-  everybeam::CorrectionMode beam_mode_{everybeam::CorrectionMode::kNone};
-  everybeam::ElementResponseModel element_response_model_{
-      everybeam::ElementResponseModel::kDefault};
+  everybeam::CorrectionMode beam_mode_ = everybeam::CorrectionMode::kNone;
+  everybeam::ElementResponseModel element_response_model_ =
+      everybeam::ElementResponseModel::kDefault;
   std::vector<casacore::MeasFrame> meas_frame_;
   std::vector<casacore::MDirection::Convert> meas_convertors_;
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;
@@ -226,13 +226,13 @@ class OnePredict : public ModelDataStep {
    * microsecond resolution. So by multiplying by 1e6 the result can be
    * lossless stored in an integral.
    */
-  std::atomic<int64_t> predict_time_{0};
+  std::atomic<int64_t> predict_time_ = 0;
   /**
    * The total time [µs] of the apply beam phase.
    *
    * Similar to @ref predict_time_.
    */
-  std::atomic<int64_t> apply_beam_time_{0};
+  std::atomic<int64_t> apply_beam_time_ = 0;
 
   std::mutex* measures_mutex_;
   std::mutex mutex_;

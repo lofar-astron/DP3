@@ -170,10 +170,9 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
 }
 
 void ApplyBeamToDataAndAdd(const DPInfo& info, size_t n_stations,
-                           std::complex<double>* data0,
-                           std::complex<double>* model_data, float* weight0,
-                           const aocommon::MC2x2* beam_values,
-                           bool doUpdateWeights) {
+                           const std::complex<double>* data0,
+                           std::complex<double>* model_data,
+                           const aocommon::MC2x2* beam_values) {
   /*
     Applies the beam to each baseline and each frequency of the
     model patch and sum the contribution to the model data
@@ -192,7 +191,8 @@ void ApplyBeamToDataAndAdd(const DPInfo& info, size_t n_stations,
     const size_t index_right =
         (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
     for (size_t ch = 0; ch < n_channels; ++ch) {
-      std::complex<double>* data_ptr = data0 + bl * 4 * n_channels + ch * 4;
+      const std::complex<double>* data_ptr =
+          data0 + bl * 4 * n_channels + ch * 4;
       std::complex<double>* model_data_ptr =
           model_data + bl * 4 * n_channels + ch * 4;
       const aocommon::MC2x2F data(data_ptr);
@@ -203,10 +203,6 @@ void ApplyBeamToDataAndAdd(const DPInfo& info, size_t n_stations,
       const aocommon::MC2x2F result =
           model_data + left * data.MultiplyHerm(right);
       result.AssignTo(model_data_ptr);
-      if (doUpdateWeights) {
-        dp3::steps::ApplyCal::ApplyWeights(
-            left, right, weight0 + bl * 4 * n_channels + ch * 4);
-      }
     }
   }
 }
@@ -597,22 +593,26 @@ size_t ComputeArrayFactor(const DPInfo& info, double time,
   return n_stations;
 }
 
-void ApplyArrayFactor(const DPInfo& info, size_t n_stations,
-                      std::complex<double>* data0,
-                      const everybeam::complex_t* beam_values) {
+void ApplyArrayFactorAndAdd(const DPInfo& info, size_t n_stations,
+                            const std::complex<double>* data0,
+                            std::complex<double>* model0,
+                            const everybeam::complex_t* beam_values) {
   // Apply beam for channel ch on all baselines
   const size_t n_baselines = info.nbaselines();
   const size_t n_channels = info.chanFreqs().size();
   for (size_t bl = 0; bl < n_baselines; ++bl) {
-    size_t index_left = (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
-    size_t index_right =
+    const size_t index_left =
+        (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
+    const size_t index_right =
         (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
 
     const everybeam::complex_t* left = &beam_values[index_left];
     const everybeam::complex_t* right = &beam_values[index_right];
+    const std::complex<double>* offset_data = &data0[bl * n_channels];
+    std::complex<double>* offset_model = &model0[bl * n_channels];
     for (size_t ch = 0; ch < n_channels; ++ch) {
-      std::complex<double>& data = data0[bl * n_channels + ch];
-      data = left[ch] * data * std::conj(right[ch]);
+      const std::complex<double>& data = offset_data[ch];
+      offset_model[ch] += left[ch] * data * std::conj(right[ch]);
 
       // TODO: update weights?
     }
