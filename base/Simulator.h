@@ -7,8 +7,8 @@
 #ifndef DP3_BASE_SIMULATOR_H_
 #define DP3_BASE_SIMULATOR_H_
 
-#include <casacore/casa/Arrays/Vector.h>
-#include <casacore/casa/Arrays/Matrix.h>
+#include <vector>
+
 #include <casacore/casa/Arrays/Cube.h>
 
 #include <xtensor/xtensor.hpp>
@@ -115,8 +115,8 @@ class Simulator : public ModelComponentVisitor {
    */
   Simulator(const Direction& reference, size_t nStation,
             const std::vector<Baseline>& baselines,
-            const casacore::Vector<double>& freq,
-            const casacore::Vector<double>& chanWidths,
+            const std::vector<double>& freq,
+            const std::vector<double>& chanWidths,
             const xt::xtensor<double, 2>& stationUVW,
             casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
             bool stokesIOnly);
@@ -167,8 +167,8 @@ class Simulator : public ModelComponentVisitor {
   bool itsCorrectFreqSmearing;
   bool itsStokesIOnly;
   std::vector<Baseline> itsBaselines;
-  casacore::Vector<double> itsFreq;
-  casacore::Vector<double> itsChanWidths;
+  std::vector<double> itsFreq;
+  std::vector<double> itsChanWidths;
   /// Non-owning pointer to UVW values for each station. The user of Simulator
   /// supplies them in the constructor, and ensures they remain valid.
   /// Using a pointer avoids copying the values.

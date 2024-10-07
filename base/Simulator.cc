@@ -39,22 +39,21 @@ namespace {
  * @param stationPhases Output vector, store per station \f$(x_1,y_1)\f$
  */
 void phases(size_t nStation, size_t nChannel, const double* lmn,
-            const xt::xtensor<double, 2>& uvw,
-            const casacore::Vector<double>& freq,
+            const xt::xtensor<double, 2>& uvw, const std::vector<double>& freq,
             Simulator::DuoMatrix<double>& shift,
             std::vector<double>& stationPhases);
 
 float computeSmearterm(double uvw, double halfwidth);
 
 void spectrum(const PointSource& component, size_t nChannel,
-              const casacore::Vector<double>& freq,
+              const std::vector<double>& freq,
               Simulator::DuoMatrix<double>& spectrum, bool stokesIOnly);
 }  // Unnamed namespace.
 
 Simulator::Simulator(const Direction& reference, size_t nStation,
                      const std::vector<Baseline>& baselines,
-                     const casacore::Vector<double>& freq,
-                     const casacore::Vector<double>& chanWidths,
+                     const std::vector<double>& freq,
+                     const std::vector<double>& chanWidths,
                      const xt::xtensor<double, 2>& stationUVW,
                      casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
                      bool stokesIOnly)
@@ -432,7 +431,7 @@ inline float computeSmearterm(double uvw, double halfwidth) {
 // Compute station phase shifts.
 inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    const xt::xtensor<double, 2>& uvw,
-                   const casacore::Vector<double>& freq,
+                   const std::vector<double>& freq,
                    Simulator::DuoMatrix<double>& shift,
                    std::vector<double>& stationPhases) {
   double* shiftdata_re = shift.realdata();
@@ -466,7 +465,7 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
 
 // Compute component spectrum.
 inline void spectrum(const PointSource& component, size_t nChannel,
-                     const casacore::Vector<double>& freq,
+                     const std::vector<double>& freq,
                      Simulator::DuoMatrix<double>& spectrum,
                      bool stokesIOnly = false) {
 #pragma GCC ivdep

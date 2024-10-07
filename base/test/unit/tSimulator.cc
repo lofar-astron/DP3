@@ -35,11 +35,11 @@ Simulator MakeSimulator(bool correct_freq_smearing, bool stokes_i_only,
     }
   }
 
-  casacore::Vector<double> chan_freqs(kNChan);
+  std::vector<double> chan_freqs(kNChan);
   for (size_t chan = 0; chan < kNChan; ++chan) {
     chan_freqs[chan] = 130.0e6 + chan * 1.0e6;
   }
-  casacore::Vector<double> chan_widths(kNChan, 1.0e6);
+  std::vector<double> chan_widths(kNChan, 1.0e6);
 
   uvw.resize({kNStations, 3});
   for (size_t st = 0; st < kNStations; ++st) {

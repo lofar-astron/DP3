@@ -955,10 +955,9 @@ void Demixer::demix() {
       base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
                       itsAvgResults[dr]->get()[ts]->GetUvw(), storage.uvw);
 
-      base::Simulator simulator(
-          itsPatchList[dr]->Direction(), nSt, itsBaselines,
-          casacore::Vector<double>(itsFreqDemix), casacore::Vector<double>(),
-          storage.uvw, storage.model[dr], false, false);
+      base::Simulator simulator(itsPatchList[dr]->Direction(), nSt,
+                                itsBaselines, itsFreqDemix, {}, storage.uvw,
+                                storage.model[dr], false, false);
       for (size_t i = 0; i < itsPatchList[dr]->NComponents(); ++i) {
         simulator.simulate(itsPatchList[dr]->component(i));
       }
@@ -1074,9 +1073,7 @@ void Demixer::demix() {
               storage.model_subtr.data(), 3, stride_model_subtr);
 
           base::Simulator simulator(itsPatchList[dr]->Direction(), nSt,
-                                    itsBaselines,
-                                    casacore::Vector<double>(itsFreqSubtr),
-                                    casacore::Vector<double>(), storage.uvw,
+                                    itsBaselines, itsFreqSubtr, {}, storage.uvw,
                                     storage.model_subtr, false, false);
           for (size_t i = 0; i < itsPatchList[dr]->NComponents(); ++i) {
             simulator.simulate(itsPatchList[dr]->component(i));
