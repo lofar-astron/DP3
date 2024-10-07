@@ -520,8 +520,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
           shape, thread_buffer.data(), casacore::SHARE);
 
       simulators.emplace_back(phase_ref_, nSt, baselines_split[thread_index],
-                              casacore::Vector<double>(info().chanFreqs()),
-                              casacore::Vector<double>(info().chanWidths()),
+                              info().chanFreqs(), info().chanWidths(),
                               station_uvw_, simulatedest,
                               correct_freq_smearing_, stokes_i_only_);
     }
@@ -656,8 +655,7 @@ void OnePredict::PredictSourceRange(
   casacore::Cube<std::complex<double>> casacore_data(shape, simulator_data,
                                                      casacore::SHARE);
   base::Simulator simulator(phase_ref_, n_stations, baselines_,
-                            casacore::Vector<double>(info().chanFreqs()),
-                            casacore::Vector<double>(info().chanWidths()),
+                            info().chanFreqs(), info().chanWidths(),
                             station_uvw_, casacore_data, correct_freq_smearing_,
                             stokes_i_only_);
 
