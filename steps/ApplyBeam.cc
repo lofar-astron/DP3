@@ -169,10 +169,11 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
   return n_stations;
 }
 
-void ApplyBeamToDataAndAdd(const DPInfo& info, size_t n_stations,
-                           const std::complex<double>* data0,
-                           std::complex<double>* model_data,
-                           const aocommon::MC2x2* beam_values) {
+void ApplyBeamToDataAndAdd(
+    const DPInfo& info, size_t n_stations,
+    const aocommon::xt::UTensor<std::complex<double>, 3>& data,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+    const aocommon::MC2x2* beam_values) {
   /*
     Applies the beam to each baseline and each frequency of the
     model patch and sum the contribution to the model data
@@ -191,18 +192,16 @@ void ApplyBeamToDataAndAdd(const DPInfo& info, size_t n_stations,
     const size_t index_right =
         (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
     for (size_t ch = 0; ch < n_channels; ++ch) {
-      const std::complex<double>* data_ptr =
-          data0 + bl * 4 * n_channels + ch * 4;
-      std::complex<double>* model_data_ptr =
-          model_data + bl * 4 * n_channels + ch * 4;
-      const aocommon::MC2x2F data(data_ptr);
-      const aocommon::MC2x2F model_data(model_data_ptr);
+      std::complex<double>* model_data_pointer = &model_data(bl, ch, 0);
+      // Using (model_)data2x2 avoids aliases with the (model_)data arguments.
+      const aocommon::MC2x2F data2x2(&data(bl, ch, 0));
+      const aocommon::MC2x2F model_data2x2(model_data_pointer);
 
       const aocommon::MC2x2F left(beam_values[index_left + ch]);
       const aocommon::MC2x2F right(beam_values[index_right + ch]);
       const aocommon::MC2x2F result =
-          model_data + left * data.MultiplyHerm(right);
-      result.AssignTo(model_data_ptr);
+          model_data2x2 + left * data2x2.MultiplyHerm(right);
+      result.AssignTo(model_data_pointer);
     }
   }
 }
@@ -593,10 +592,11 @@ size_t ComputeArrayFactor(const DPInfo& info, double time,
   return n_stations;
 }
 
-void ApplyArrayFactorAndAdd(const DPInfo& info, size_t n_stations,
-                            const std::complex<double>* data0,
-                            std::complex<double>* model0,
-                            const everybeam::complex_t* beam_values) {
+void ApplyArrayFactorAndAdd(
+    const DPInfo& info, size_t n_stations,
+    const aocommon::xt::UTensor<std::complex<double>, 3>& data,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+    const everybeam::complex_t* beam_values) {
   // Apply beam for channel ch on all baselines
   const size_t n_baselines = info.nbaselines();
   const size_t n_channels = info.chanFreqs().size();
@@ -608,11 +608,13 @@ void ApplyArrayFactorAndAdd(const DPInfo& info, size_t n_stations,
 
     const everybeam::complex_t* left = &beam_values[index_left];
     const everybeam::complex_t* right = &beam_values[index_right];
-    const std::complex<double>* offset_data = &data0[bl * n_channels];
-    std::complex<double>* offset_model = &model0[bl * n_channels];
+    // Using pointers ensures that indexing is as fast as possible in the loop
+    // below, which is on a performance-critical path.
+    const std::complex<double>* data_pointer = &data(bl, 0, 0);
+    std::complex<double>* model_data_pointer = &model_data(bl, 0, 0);
     for (size_t ch = 0; ch < n_channels; ++ch) {
-      const std::complex<double>& data = offset_data[ch];
-      offset_model[ch] += left[ch] * data * std::conj(right[ch]);
+      model_data_pointer[ch] +=
+          left[ch] * data_pointer[ch] * std::conj(right[ch]);
 
       // TODO: update weights?
     }

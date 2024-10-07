@@ -774,8 +774,8 @@ void OnePredict::addBeamToData(
       ComputeArrayFactor(info(), time, srcdir, telescope_.get(), values, false,
                          &mutex_, {});
     }
-    ApplyArrayFactorAndAdd(info(), buffer.NStations(), data.data(),
-                           model_data.data(), values);
+    ApplyArrayFactorAndAdd(info(), buffer.NStations(), data, model_data,
+                           values);
   } else {
     aocommon::MC2x2* values = buffer.GetFullBeamValues(buffer_index);
     if (update_beam) {
@@ -787,9 +787,7 @@ void OnePredict::addBeamToData(
       ComputeBeam(info(), time, srcdir, telescope_.get(), values, false,
                   beam_mode_, &mutex_, {});
     }
-
-    ApplyBeamToDataAndAdd(info(), buffer.NStations(), data.data(),
-                          model_data.data(), values);
+    ApplyBeamToDataAndAdd(info(), buffer.NStations(), data, model_data, values);
   }
 }
 
