@@ -96,6 +96,7 @@ void OnePredict::init(const common::ParameterSet& parset,
   output_data_name_ = parset.getString(prefix + "outputmodelname", "");
 
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
+  beam_evaluation_interval_ = parset.getDouble(prefix + "beam_interval", 0.0);
   thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
   patch_list_.clear();
@@ -173,6 +174,7 @@ void OnePredict::init(const common::ParameterSet& parset,
   }
 
   source_list_ = makeSourceList(patch_list_);
+  SetPatchIndices(patch_list_);
 
   // Determine whether any sources are polarized. If not, enable
   // Stokes-I-only mode (note that this mode cannot be used with apply_beam_)
@@ -199,10 +201,7 @@ void OnePredict::SetApplyCal(const common::ParameterSet& parset,
 OnePredict::~OnePredict() = default;
 
 void OnePredict::initializeThreadData() {
-  const size_t nBl = info().nbaselines();
   const size_t n_stations = info().nantenna();
-  const size_t nCh = info().nchan();
-  const size_t nCr = stokes_i_only_ ? 1 : info().ncorr();
   const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
 
   station_uvw_.resize({n_stations, 3});
@@ -219,18 +218,21 @@ void OnePredict::initializeThreadData() {
   uvw_split_index_ = base::nsetupSplitUVW(info().nantenna(), info().getAnt1(),
                                           info().getAnt2(), antenna_pos);
 
-  if (!predict_buffer_) {
-    predict_buffer_ = std::make_shared<base::PredictBuffer>();
-  }
-  bool is_dish_telescope = false;
   if (apply_beam_) {
     telescope_ = base::GetTelescope(info().msName(), element_response_model_,
                                     use_channel_freq_);
-    is_dish_telescope = base::IsDish(*telescope_);
+    predict_buffers_ =
+        std::make_shared<std::vector<base::PredictBuffer>>(nThreads);
+    // TODO:
+    // This should be a check for 'is homogeneous', not 'is dish'. It would
+    // also be better to use EveryBeam's function to get all antenna values
+    // at once, as this would enable this optimization without work here.
+    const bool is_dish_telescope = base::IsDish(*telescope_);
+    const size_t n_channels = info().nchan();
+    predict_buffers_->front().Resize(
+        1, n_channels, (is_dish_telescope ? 1 : n_stations), !stokes_i_only_);
   }
-  predict_buffer_->resize(nThreads, nCr, nCh, nBl,
-                          (is_dish_telescope ? 1 : n_stations), apply_beam_,
-                          !stokes_i_only_);
+
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.
   meas_convertors_.resize(nThreads);
@@ -626,22 +628,31 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
 void OnePredict::PredictSourceRange(
     aocommon::xt::UTensor<std::complex<double>, 3>& result, size_t start,
-    size_t end, size_t thread_index, std::mutex& mutex, double time) {
+    size_t end, size_t thread_index, std::mutex& mutex, double time,
+    bool update_beam) {
   const size_t n_stations = info().nantenna();
   const size_t n_baselines = info().nbaselines();
   const size_t n_channels = info().nchan();
   const size_t n_buffer_correlations = stokes_i_only_ ? 1 : info().ncorr();
 
-  if (apply_beam_) {
-    telescope_->SetTime(time);
-  }
-
   aocommon::xt::UTensor<std::complex<double>, 3> model_data(
       {n_baselines, n_channels, n_buffer_correlations},
       std::complex<double>(0.0, 0.0));
-
   aocommon::xt::UTensor<std::complex<double>, 3> patch_model_data;
+
+  const size_t start_patch = source_list_[start].second->Index();
   if (apply_beam_) {
+    base::PredictBuffer& buffer = (*predict_buffers_)[thread_index];
+    if (update_beam) {
+      // TODO see earlier comment about 'is homogeneous'.
+      const bool is_dish_telescope = base::IsDish(*telescope_);
+      const size_t n_patches =
+          source_list_.empty()
+              ? 0
+              : source_list_[end - 1].second->Index() + 1 - start_patch;
+      buffer.Resize(n_patches, n_channels, (is_dish_telescope ? 1 : n_stations),
+                    !stokes_i_only_);
+    }
     patch_model_data.resize({n_baselines, n_channels, n_buffer_correlations});
     patch_model_data.fill(std::complex<double>(0.0, 0.0));
   }
@@ -669,7 +680,8 @@ void OnePredict::PredictSourceRange(
         patch != source_list_[source_index].second.get() && patch != nullptr;
     if (apply_beam_ && patch_is_finished) {
       // Apply the beam and add PatchModel to Model
-      addBeamToData(*patch, model_data, time, thread_index, patch_model_data,
+      addBeamToData(*patch, patch->Index() - start_patch, model_data, time,
+                    update_beam, thread_index, patch_model_data,
                     stokes_i_only_);
       // Initialize patchmodel to zero for the next patch
       patch_model_data.fill(std::complex<double>(0.0, 0.0));
@@ -684,8 +696,8 @@ void OnePredict::PredictSourceRange(
   if (apply_beam_ && patch != nullptr) {
     // Apply beam to the last patch
     const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
-    addBeamToData(*patch, model_data, time, thread_index, patch_model_data,
-                  stokes_i_only_);
+    addBeamToData(*patch, patch->Index() - start_patch, model_data, time,
+                  update_beam, thread_index, patch_model_data, stokes_i_only_);
   }
 
   // Add this thread's data to the global buffer
@@ -703,15 +715,29 @@ void OnePredict::PredictWithSourceParallelization(
       {n_baselines, n_channels, buffered_correlations},
       std::complex<double>(0.0, 0.0));
 
+  bool update_beam = false;
+  double beam_evaluation_time = time;
+  if (apply_beam_) {
+    const double time_since_beam_update = std::fabs(time - previous_beam_time_);
+    update_beam = time_since_beam_update >= beam_evaluation_interval_;
+    if (update_beam) {
+      beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
+      previous_beam_time_ = time;
+      telescope_->SetTime(beam_evaluation_time);
+    }
+  }
+
   std::mutex mutex;
   aocommon::StaticFor<size_t> loop;
   // The way source are split into consecutive subranges
   // is important: it makes sure that a single patch is mostly calculated
   // by a single thread, which limits duplicate beam evaluations.
+  // The work per thread needs to be the same for each timestep, because
+  // threads store beam values for the patches they use.
   loop.Run(0, source_list_.size(),
            [&](size_t start, size_t end, size_t thread_index) {
              PredictSourceRange(global_data, start, end, thread_index, mutex,
-                                time);
+                                beam_evaluation_time, update_beam);
            });
 
   CopyPredictBufferToData(destination, global_data);
@@ -729,30 +755,41 @@ everybeam::vector3r_t OnePredict::dir2Itrf(const MDirection& dir,
 }
 
 void OnePredict::addBeamToData(
-    const base::Patch& patch,
+    const base::Patch& patch, size_t buffer_index,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
-    size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
-    bool stokesIOnly) {
+    bool update_beam, size_t thread,
+    aocommon::xt::UTensor<std::complex<double>, 3>& data, bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
-  MDirection dir(MVDirection(patch.Direction().ra, patch.Direction().dec),
-                 MDirection::J2000);
-  everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
+  base::PredictBuffer& buffer = (*predict_buffers_)[thread];
 
   const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
   if (stokesIOnly) {
-    everybeam::complex_t* values = predict_buffer_->GetScalarBeamValues(thread);
-    const size_t n_stations = ComputeArrayFactor(
-        info(), time, srcdir, telescope_.get(), values, false, &mutex_, {});
-    ApplyArrayFactorAndAdd(info(), n_stations, data.data(), model_data.data(),
-                           values);
-
+    everybeam::complex_t* values = buffer.GetScalarBeamValues(buffer_index);
+    if (update_beam) {
+      const MDirection dir(
+          MVDirection(patch.Direction().ra, patch.Direction().dec),
+          MDirection::J2000);
+      const everybeam::vector3r_t srcdir =
+          dir2Itrf(dir, meas_convertors_[thread]);
+      ComputeArrayFactor(info(), time, srcdir, telescope_.get(), values, false,
+                         &mutex_, {});
+    }
+    ApplyArrayFactorAndAdd(info(), buffer.NStations(), data.data(),
+                           model_data.data(), values);
   } else {
-    aocommon::MC2x2* values = predict_buffer_->GetFullBeamValues(thread);
-    const size_t n_stations =
-        ComputeBeam(info(), time, srcdir, telescope_.get(), values, false,
-                    beam_mode_, &mutex_, {});
-    ApplyBeamToDataAndAdd(info(), n_stations, data.data(), model_data.data(),
-                          values);
+    aocommon::MC2x2* values = buffer.GetFullBeamValues(buffer_index);
+    if (update_beam) {
+      const MDirection dir(
+          MVDirection(patch.Direction().ra, patch.Direction().dec),
+          MDirection::J2000);
+      const everybeam::vector3r_t srcdir =
+          dir2Itrf(dir, meas_convertors_[thread]);
+      ComputeBeam(info(), time, srcdir, telescope_.get(), values, false,
+                  beam_mode_, &mutex_, {});
+    }
+
+    ApplyBeamToDataAndAdd(info(), buffer.NStations(), data.data(),
+                          model_data.data(), values);
   }
 }
 
@@ -769,20 +806,20 @@ void OnePredict::addBeamToDataRange(
   const everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
 
   // We use a common buffer to calculate beam values
-  const size_t common_thread = 0;
+  base::PredictBuffer& buffer = predict_buffers_->front();
   if (stokesIOnly) {
     const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     ApplyBeam::ApplyBaselineBasedArrayFactor(
         info(), time, data.data(), srcdir, telescope_.get(),
-        predict_buffer_->GetScalarBeamValues(common_thread), baseline_range,
-        station_range, barrier, false, beam_mode_, &mutex_);
+        buffer.GetScalarBeamValues(0), baseline_range, station_range, barrier,
+        false, beam_mode_, &mutex_);
   } else {
     const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     float* weights = nullptr;
     ApplyBeam::ApplyBaselineBasedBeam(
         info(), time, data.data(), weights, srcdir, telescope_.get(),
-        predict_buffer_->GetFullBeamValues(common_thread), baseline_range,
-        station_range, barrier, false, beam_mode_, false, &mutex_);
+        buffer.GetFullBeamValues(0), baseline_range, station_range, barrier,
+        false, beam_mode_, false, &mutex_);
   }
 
   // Add temporary buffer to Model

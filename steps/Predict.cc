@@ -99,11 +99,6 @@ void Predict::SetThreadData(std::mutex* mutex) {
   predict_step_->SetThreadData(mutex);
 }
 
-void Predict::SetPredictBuffer(
-    std::shared_ptr<base::PredictBuffer> predict_buffer) {
-  predict_step_->SetPredictBuffer(predict_buffer);
-}
-
 void Predict::show(std::ostream& os) const { os << "Predict" << '\n'; }
 
 bool Predict::process(std::unique_ptr<base::DPBuffer> buffer) {

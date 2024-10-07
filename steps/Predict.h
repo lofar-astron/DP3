@@ -9,9 +9,6 @@
 #include <mutex>
 
 namespace dp3 {
-namespace base {
-class PredictBuffer;
-}
 namespace common {
 class ParameterSet;
 }
@@ -87,8 +84,6 @@ class Predict : public ModelDataStep {
    * @see OnePredict::SetThreadData().
    */
   void SetThreadData(std::mutex* mutex);
-
-  void SetPredictBuffer(std::shared_ptr<base::PredictBuffer> predict_buffer);
 
  private:
   /**

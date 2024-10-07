@@ -19,7 +19,6 @@
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
-using dp3::base::PredictBuffer;
 
 using schaapcommon::h5parm::H5Parm;
 using schaapcommon::h5parm::SolTab;
@@ -33,7 +32,6 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
                              const std::string& prefix)
     : itsName(),
       itsPredictSteps(),
-      itsPredictBuffer(std::make_shared<PredictBuffer>()),
       itsResultStep(),
       itsH5ParmName(parset.getString(prefix + "applycal.parmdb")),
       itsDirections(
@@ -81,7 +79,6 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
     } else {
       predictStep->SetOperation(operation);
     }
-    predictStep->SetPredictBuffer(itsPredictBuffer);
 
     if (!itsPredictSteps.empty()) {
       itsPredictSteps.back()->setNextStep(predictStep);

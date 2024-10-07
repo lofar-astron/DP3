@@ -47,6 +47,12 @@ std::vector<std::shared_ptr<Patch>> MakePatches(
 std::vector<std::pair<std::shared_ptr<ModelComponent>, std::shared_ptr<Patch>>>
 makeSourceList(std::vector<std::shared_ptr<Patch>> &patchList);
 
+/**
+ * Makes sure that every Patch's stored index is set to the index the patch has
+ * in the list. @see Patch::Index().
+ */
+void SetPatchIndices(std::vector<std::shared_ptr<Patch>> &patch_list);
+
 /// From a given patch list, create a new one with one patch per component
 std::vector<std::shared_ptr<Patch>> makeOnePatchPerComponent(
     const std::vector<std::shared_ptr<Patch>> &);
