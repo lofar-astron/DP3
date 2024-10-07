@@ -14,7 +14,6 @@
 #include <dp3/base/DP3.h>
 #include <dp3/steps/Step.h>
 
-#include "../base/PredictBuffer.h"
 #include "../common/Timer.h"
 
 #include "Predict.h"
@@ -67,10 +66,6 @@ class H5ParmPredict : public Step {
   std::string itsName;
 
   std::vector<std::shared_ptr<Predict>> itsPredictSteps;
-  /// Buffers used by the predict steps. Normally, each Predict step
-  /// allocates its own buffers. However, since the Predict steps run
-  /// sequentially, they are told to share this single buffer to save memory.
-  std::shared_ptr<base::PredictBuffer> itsPredictBuffer;
   std::shared_ptr<ResultStep> itsResultStep;
 
   std::string itsH5ParmName;

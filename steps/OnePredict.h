@@ -97,10 +97,6 @@ class OnePredict : public ModelDataStep {
     measures_mutex_ = measures_mutex;
   }
 
-  void SetPredictBuffer(std::shared_ptr<base::PredictBuffer> predict_buffer) {
-    predict_buffer_ = std::move(predict_buffer);
-  }
-
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
@@ -135,9 +131,9 @@ class OnePredict : public ModelDataStep {
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
 
-  void addBeamToData(const base::Patch& patch,
+  void addBeamToData(const base::Patch& patch, size_t buffer_index,
                      aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-                     double time, size_t thread,
+                     double time, bool update_beam, size_t thread,
                      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      bool stokesIOnly);
 
@@ -153,7 +149,8 @@ class OnePredict : public ModelDataStep {
                                         double time);
   void PredictSourceRange(
       aocommon::xt::UTensor<std::complex<double>, 3>& result, size_t start,
-      size_t end, size_t thread_index, std::mutex& mutex, double time);
+      size_t end, size_t thread_index, std::mutex& mutex, double time,
+      bool update_beam);
 
   /// Assigns @p buffer to @p destination. If @c stokes_i_only_ is set,
   /// only the first and last correlations (e.g. XX and YY) are copied.
@@ -178,6 +175,8 @@ class OnePredict : public ModelDataStep {
   /// will be grouped into one patch. Value is in arcsec; zero means don't
   /// group.
   double beam_proximity_limit_ = 0.0;
+  double beam_evaluation_interval_ = 0.0;
+  double previous_beam_time_ = 0.0;
   bool stokes_i_only_ = false;
   bool any_orientation_is_absolute_ = false;  ///< Any of the Gaussian sources
                                               ///< has absolute orientation
@@ -198,7 +197,7 @@ class OnePredict : public ModelDataStep {
   xt::xtensor<double, 2> station_uvw_;
 
   /// The info needed to calculate the station beams.
-  std::shared_ptr<base::PredictBuffer> predict_buffer_;
+  std::shared_ptr<std::vector<base::PredictBuffer>> predict_buffers_;
   everybeam::CorrectionMode beam_mode_ = everybeam::CorrectionMode::kNone;
   everybeam::ElementResponseModel element_response_model_ =
       everybeam::ElementResponseModel::kDefault;

@@ -425,6 +425,11 @@ std::vector<std::shared_ptr<Patch>> SourceDBWrapper::MakePatchList() {
                            patch_names_.size());
 }
 
+void SetPatchIndices(std::vector<std::shared_ptr<Patch>>& patch_list) {
+  for (size_t index = 0; index != patch_list.size(); ++index)
+    patch_list[index]->SetIndex(index);
+}
+
 bool SourceDBWrapper::CheckPolarized() {
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
     return base::CheckPolarized(Get<parmdb::SourceDBSkymodel>(), patch_names_);

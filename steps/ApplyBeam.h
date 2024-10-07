@@ -44,7 +44,7 @@ size_t ComputeArrayFactor(const base::DPInfo& info, double time,
 
 /**
  * Corrects the values in @p data0 with the precomputed full Jones beam
- * values, and adds the corrected model data to @p model_data.
+ * values, and adds the corrected data to @p model_data.
  * @param data0 An array of n_baselines x n_channels x n_correlations
  * (with n_correlations the fastest changing) containing the data.
  * @param model_data Array of same shape as data0; the corrected values are
