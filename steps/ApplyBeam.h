@@ -17,6 +17,7 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/barrier.h>
+#include <aocommon/xt/utensor.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -43,35 +44,39 @@ size_t ComputeArrayFactor(const base::DPInfo& info, double time,
                           const std::vector<size_t>& skip_station_indices);
 
 /**
- * Corrects the values in @p data0 with the precomputed full Jones beam
+ * Corrects the values in @p data with the precomputed full Jones beam
  * values, and adds the corrected data to @p model_data.
- * @param data0 An array of n_baselines x n_channels x n_correlations
+ * @param data An array of n_baselines x n_channels x n_correlations
  * (with n_correlations the fastest changing) containing the data.
  * @param model_data Array of same shape as data0; the corrected values are
  * added to these data.
  * @param beam_values Array of n_atenna x n_channels containing the
  * pre-calculated beam matrices.
  */
-void ApplyBeamToDataAndAdd(const base::DPInfo& info, size_t n_stations,
-                           const std::complex<double>* data0,
-                           std::complex<double>* model_data,
-                           const aocommon::MC2x2* beam_values);
+void ApplyBeamToDataAndAdd(
+    const base::DPInfo& info, size_t n_stations,
+    const aocommon::xt::UTensor<std::complex<double>, 3>& data,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+    const aocommon::MC2x2* beam_values);
 
 /**
- * Corrects the values in @p data0 with the precomputed scalar array
+ * Corrects the values in @p data with the precomputed scalar array
  * factors, and adds the corrected model data to @p model_data. Note that
  * unlike @ref ApplyBeamToDataAndAdd(), the data values
  * are assumed to be Stokes I values only. This is used for the optimization
  * when the sky model is unpolarized and only the array factor is applied.
- * @param data0 An array of n_baselines x n_channels
+ * @param data An array of n_baselines x n_channels
  * (with n_channels the fastest changing) containing the data.
+ * @param model_data Array of same shape as @p data ; the corrected values are
+ * added to these data.
  * @param beam_values Array of n_atenna x n_channels containing the
  * pre-calculated scalar beam values.
  */
-void ApplyArrayFactorAndAdd(const base::DPInfo& info, size_t n_stations,
-                            const std::complex<double>* data0,
-                            std::complex<double>* model0,
-                            const everybeam::complex_t* beam_values);
+void ApplyArrayFactorAndAdd(
+    const base::DPInfo& info, size_t n_stations,
+    const aocommon::xt::UTensor<std::complex<double>, 3>& data,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+    const everybeam::complex_t* beam_values);
 
 /// \brief DP3 step class to ApplyBeam visibilities from a source model
 
