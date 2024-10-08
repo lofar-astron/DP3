@@ -43,6 +43,15 @@ inputs:
     type: enum
     symbols: array_factor, element, default
     doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+  beam_interval:
+    type: double
+    default: 0
+    doc: >-
+      Time in seconds between beam evaluations. A value of 0 causes a beam evaluation every timestep, whereas a value
+      of 120 would start by evaluating the beam 60 seconds ahead in time, and reuse this beam for all the
+      next timesteps until the timestep that is 120 seconds removed from the start. Because beam evaluation is
+      relatively expensive, this speeds up processing. A value of 120 seems a good value that improves speed
+      considerably, without affecting accuracy `.`
   correcttimesmearing:
     type: int
     default: 1
