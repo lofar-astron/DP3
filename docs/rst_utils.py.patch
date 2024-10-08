@@ -1,0 +1,13 @@
+diff --git a/rst_utils.py b/rst_utils.py
+index 58c83ac..22dea2a 100644
+--- a/rst_utils.py
++++ b/rst_utils.py
+@@ -91,7 +91,7 @@ def _literal(val):
+
+ def kv_field(k, v):
+     v = str(v)
+-    if '`' not in v:
++    if k != 'doc' and '`' not in v:
+         v = literal(v)
+     return ':{}: {}'.format(k, v)
+
