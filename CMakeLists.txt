@@ -680,6 +680,25 @@ install(
 
 add_subdirectory(docs)
 
+option(ENABLE_TRACY_PROFILING "Enables compilation with the Tracy profiler" OFF)
+if(ENABLE_TRACY_PROFILING)
+
+  option(TRACY_STATIC "" OFF)
+  option(TRACY_ENABLE "" ON)
+  option(TRACY_ON_DEMAND "" ON)
+
+  FetchContent_Declare(
+    tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG v0.11.1
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE)
+
+  FetchContent_MakeAvailable(tracy)
+  target_link_libraries(DP3_OBJ TracyClient)
+
+endif(ENABLE_TRACY_PROFILING)
+
 if(BUILD_TESTING)
   include(CTest)
 
