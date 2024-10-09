@@ -16,9 +16,9 @@ build:
     - ninja-build
   jobs:
     pre_build:
-      # Fix https://github.com/inspirehep/jsonschema2rst/issues/13
-      - echo Patching $(find $HOME -path '*/jsonschema2rst/parser.py')...
-      - patch -p0 $(find $HOME -path '*/jsonschema2rst/parser.py') < docs/parser.py.patch
+      # Make 'doc' render as text, not inline (make sure to apply this patch also in local CI)
+      - echo Patching $(find $HOME -path '*/jsonschema2rst/rst_utils.py')...
+      - patch -p0 $(find $HOME -path '*/jsonschema2rst/rst_utils.py') < docs/rst_utils.py.patch
       - mkdir build
       # CMake converts conf.py.in into conf.py.
       - cmake -S docs/ -B build -G Ninja
