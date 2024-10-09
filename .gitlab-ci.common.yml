@@ -137,7 +137,7 @@ build-doc-2204:
   before_script:
     # Install here since pytest and these items aren't compatible
     - pip3 install autosemver jsonschema2rst sphinx sphinx-rtd-theme myst_parser
-    # Patch to make 'doc' settings not be parsed as code
+    # Patch to make 'doc' settings not be parsed as code. Make sure to apply this patch also in .readthedocs.yml!
     - patch -p0 /usr/local/lib/python3.10/dist-packages/jsonschema2rst/rst_utils.py < docs/rst_utils.py.patch
   script:
     - mkdir build && cd build
