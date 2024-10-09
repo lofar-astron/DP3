@@ -56,11 +56,11 @@ IterativeScalarSolver<VisMatrix>::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  aocommon::StaticFor<size_t> loop;
-
+  aocommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite1Pol(solutions);
 
+    aocommon::StaticFor<size_t> loop;
     loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t end_index) {
       for (; ch_block < end_index; ++ch_block) {
         PerformIteration(ch_block, data.ChannelBlock(ch_block),
@@ -140,33 +140,53 @@ void IterativeScalarSolver<VisMatrix>::SolveDirection(
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
-  for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
-    const Complex solution_ant_1(
-        solutions[antenna_1 * NSolutions() + solution_index]);
-    const Complex solution_ant_2(
-        solutions[antenna_2 * NSolutions() + solution_index]);
-    const VisMatrix& data = v_residual[vis_index];
-    const VisMatrix& model = cb_data.ModelVisibility(direction, vis_index);
 
-    const uint32_t rel_solution_index = solution_index - solution_index0;
-    // Calculate the contribution of this baseline for antenna_1
-    const VisMatrix cor_model_herm_1(HermTranspose(model) * solution_ant_2);
-    const uint32_t full_solution_1_index =
-        antenna_1 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution_1_index] += Trace(data * cor_model_herm_1);
-    denominator[full_solution_1_index] += Norm(cor_model_herm_1);
+  std::mutex mutex;
+  aocommon::StaticFor<size_t> loop;
+  loop.Run(
+      0, n_visibilities, [&](size_t start_vis_index, size_t end_vis_index) {
+        std::vector<std::complex<double>> local_numerator(
+            NAntennas() * n_dir_solutions, 0.0);
+        std::vector<double> local_denominator(NAntennas() * n_dir_solutions,
+                                              0.0);
+        for (size_t vis_index = start_vis_index; vis_index != end_vis_index;
+             ++vis_index) {
+          const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
+          const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
+          const uint32_t solution_index =
+              cb_data.SolutionIndex(direction, vis_index);
+          const Complex solution_ant_1(
+              solutions[antenna_1 * NSolutions() + solution_index]);
+          const Complex solution_ant_2(
+              solutions[antenna_2 * NSolutions() + solution_index]);
+          const VisMatrix& data = v_residual[vis_index];
+          const VisMatrix& model =
+              cb_data.ModelVisibility(direction, vis_index);
 
-    // Calculate the contribution of this baseline for antenna2
-    const VisMatrix cor_model_2(model * solution_ant_1);
-    const uint32_t full_solution_2_index =
-        antenna_2 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution_2_index] +=
-        Trace(HermTranspose(data) * cor_model_2);
-    denominator[full_solution_2_index] += Norm(cor_model_2);
-  }
+          const uint32_t rel_solution_index = solution_index - solution_index0;
+          // Calculate the contribution of this baseline for antenna_1
+          const VisMatrix cor_model_herm_1(HermTranspose(model) *
+                                           solution_ant_2);
+          const uint32_t full_solution_1_index =
+              antenna_1 * n_dir_solutions + rel_solution_index;
+          local_numerator[full_solution_1_index] +=
+              Trace(data * cor_model_herm_1);
+          local_denominator[full_solution_1_index] += Norm(cor_model_herm_1);
+
+          // Calculate the contribution of this baseline for antenna2
+          const VisMatrix cor_model_2(model * solution_ant_1);
+          const uint32_t full_solution_2_index =
+              antenna_2 * n_dir_solutions + rel_solution_index;
+          local_numerator[full_solution_2_index] +=
+              Trace(HermTranspose(data) * cor_model_2);
+          local_denominator[full_solution_2_index] += Norm(cor_model_2);
+        }
+        std::scoped_lock lock(mutex);
+        for (size_t i = 0; i != numerator.size(); ++i)
+          numerator[i] += local_numerator[i];
+        for (size_t i = 0; i != denominator.size(); ++i)
+          denominator[i] += local_denominator[i];
+      });
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (uint32_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {
@@ -187,23 +207,31 @@ void IterativeScalarSolver<VisMatrix>::AddOrSubtractDirection(
     const ChannelBlockData& cb_data, std::vector<VisMatrix>& v_residual,
     size_t direction, const std::vector<DComplex>& solutions) {
   const size_t n_visibilities = cb_data.NVisibilities();
-  for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
-    const Complex solution_1(
-        solutions[antenna_1 * NSolutions() + solution_index]);
-    const Complex solution_2_conj = std::conj(
-        Complex(solutions[antenna_2 * NSolutions() + solution_index]));
-    VisMatrix& data = v_residual[vis_index];
-    const VisMatrix& model = cb_data.ModelVisibility(direction, vis_index);
-    const VisMatrix corrected_model = model * solution_1 * solution_2_conj;
-    if (Add) {
-      data += corrected_model;
-    } else {
-      data -= corrected_model;
-    }
-  }
+  aocommon::StaticFor<size_t> loop;
+  loop.Run(
+      0, n_visibilities, [&](size_t start_vis_index, size_t end_vis_index) {
+        for (size_t vis_index = start_vis_index; vis_index != end_vis_index;
+             ++vis_index) {
+          const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
+          const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
+          const uint32_t solution_index =
+              cb_data.SolutionIndex(direction, vis_index);
+          const Complex solution_1(
+              solutions[antenna_1 * NSolutions() + solution_index]);
+          const Complex solution_2_conj = std::conj(
+              Complex(solutions[antenna_2 * NSolutions() + solution_index]));
+          VisMatrix& data = v_residual[vis_index];
+          const VisMatrix& model =
+              cb_data.ModelVisibility(direction, vis_index);
+          const VisMatrix corrected_model =
+              model * solution_1 * solution_2_conj;
+          if (Add) {
+            data += corrected_model;
+          } else {
+            data -= corrected_model;
+          }
+        }
+      });
 }
 
 template class IterativeScalarSolver<std::complex<float>>;

@@ -7,6 +7,7 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
+#include <aocommon/recursivefor.h>
 #include <aocommon/staticfor.h>
 
 using aocommon::MC2x2F;
@@ -63,11 +64,11 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  aocommon::StaticFor<size_t> loop;
-
+  aocommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite2Pol(solutions);
 
+    aocommon::StaticFor<size_t> loop;
     loop.Run(0, NChannelBlocks(), [&](size_t start_block, size_t end_block) {
       for (size_t ch_block = start_block; ch_block < end_block; ++ch_block) {
         PerformIteration(ch_block, data.ChannelBlock(ch_block),
@@ -149,43 +150,63 @@ void IterativeDiagonalSolver<VisMatrix>::SolveDirection(
   // Iterate over all data
   const size_t n_visibilities = cb_data.NVisibilities();
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
-  for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
-    const DComplex* solution_ant_1 =
-        &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
-    const DComplex* solution_ant_2 =
-        &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
-    const VisMatrix& data = v_residual[vis_index];
-    const VisMatrix& model = cb_data.ModelVisibility(direction, vis_index);
 
-    const uint32_t rel_solution_index = solution_index - solution_index0;
-    // Calculate the contribution of this baseline for antenna_1
-    const MC2x2FDiag solution_1{Complex(solution_ant_2[0]),
-                                Complex(solution_ant_2[1])};
-    const VisMatrix cor_model_transp_1(solution_1 * HermTranspose(model));
-    const uint32_t full_solution_1_index =
-        antenna_1 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution_1_index] += Diagonal(data * cor_model_transp_1);
-    AddNormToDenominator(&denominator[full_solution_1_index * 2],
-                         cor_model_transp_1);
+  std::mutex mutex;
+  aocommon::StaticFor<size_t> loop;
+  loop.Run(
+      0, n_visibilities, [&](size_t start_vis_index, size_t end_vis_index) {
+        std::vector<MC2x2FDiag> local_numerator(NAntennas() * n_dir_solutions,
+                                                MC2x2FDiag::Zero());
+        std::vector<float> local_denominator(NAntennas() * n_dir_solutions * 2,
+                                             0.0);
+        for (size_t vis_index = start_vis_index; vis_index != end_vis_index;
+             ++vis_index) {
+          const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
+          const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
+          const uint32_t solution_index =
+              cb_data.SolutionIndex(direction, vis_index);
+          const DComplex* solution_ant_1 =
+              &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
+          const DComplex* solution_ant_2 =
+              &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
+          const VisMatrix& data = v_residual[vis_index];
+          const VisMatrix& model =
+              cb_data.ModelVisibility(direction, vis_index);
 
-    // Calculate the contribution of this baseline for antenna_2
-    // data_ba = data_ab^H, etc., therefore, numerator and denominator
-    // become:
-    // - num = data_ab^H * solutions_a * model_ab
-    // - den = norm(model_ab^H * solutions_a)
-    const MC2x2FDiag solution_2{Complex(solution_ant_1[0]),
-                                Complex(solution_ant_1[1])};
-    const VisMatrix cor_model_2(solution_2 * model);
+          const uint32_t rel_solution_index = solution_index - solution_index0;
+          // Calculate the contribution of this baseline for antenna_1
+          const MC2x2FDiag solution_1{Complex(solution_ant_2[0]),
+                                      Complex(solution_ant_2[1])};
+          const VisMatrix cor_model_transp_1(solution_1 * HermTranspose(model));
+          const uint32_t full_solution_1_index =
+              antenna_1 * n_dir_solutions + rel_solution_index;
+          local_numerator[full_solution_1_index] +=
+              Diagonal(data * cor_model_transp_1);
+          AddNormToDenominator(&local_denominator[full_solution_1_index * 2],
+                               cor_model_transp_1);
 
-    const uint32_t full_solution_2_index =
-        antenna_2 * n_dir_solutions + rel_solution_index;
-    numerator[full_solution_2_index] +=
-        Diagonal(HermTranspose(data) * cor_model_2);
-    AddNormToDenominator(&denominator[full_solution_2_index * 2], cor_model_2);
-  }
+          // Calculate the contribution of this baseline for antenna_2
+          // data_ba = data_ab^H, etc., therefore, numerator and denominator
+          // become:
+          // - num = data_ab^H * solutions_a * model_ab
+          // - den = norm(model_ab^H * solutions_a)
+          const MC2x2FDiag solution_2{Complex(solution_ant_1[0]),
+                                      Complex(solution_ant_1[1])};
+          const VisMatrix cor_model_2(solution_2 * model);
+
+          const uint32_t full_solution_2_index =
+              antenna_2 * n_dir_solutions + rel_solution_index;
+          local_numerator[full_solution_2_index] +=
+              Diagonal(HermTranspose(data) * cor_model_2);
+          AddNormToDenominator(&local_denominator[full_solution_2_index * 2],
+                               cor_model_2);
+        }
+        std::scoped_lock lock(mutex);
+        for (size_t i = 0; i != numerator.size(); ++i)
+          numerator[i] += local_numerator[i];
+        for (size_t i = 0; i != denominator.size(); ++i)
+          denominator[i] += local_denominator[i];
+      });
 
   for (size_t ant = 0; ant != NAntennas(); ++ant) {
     for (uint32_t rel_sol = 0; rel_sol != n_dir_solutions; ++rel_sol) {

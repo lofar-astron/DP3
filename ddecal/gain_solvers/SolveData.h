@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <aocommon/matrix2x2.h>
+#include <aocommon/staticfor.h>
 #include <xtensor/xtensor.hpp>
 
 #include <dp3/base/DPBuffer.h>
@@ -187,29 +188,38 @@ void DiagonalAddOrSubtractDirection(
   using DComplex = std::complex<double>;
   using Complex = std::complex<float>;
   const size_t n_visibilities = cb_data.NVisibilities();
-  for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
-    const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
-    const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
-    const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
-    const DComplex* solution_1 =
-        &solutions[(antenna_1 * n_solutions + solution_index) * 2];
-    const DComplex* solution_2 =
-        &solutions[(antenna_2 * n_solutions + solution_index) * 2];
+  aocommon::StaticFor<size_t> loop;
+  loop.Run(0, n_visibilities,
+           [&](size_t start_vis_index, size_t end_vis_index) {
+             for (size_t vis_index = start_vis_index;
+                  vis_index != end_vis_index; ++vis_index) {
+               const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
+               const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
+               const uint32_t solution_index =
+                   cb_data.SolutionIndex(direction, vis_index);
+               const DComplex* solution_1 =
+                   &solutions[(antenna_1 * n_solutions + solution_index) * 2];
+               const DComplex* solution_2 =
+                   &solutions[(antenna_2 * n_solutions + solution_index) * 2];
 
-    MatrixType& data = v_residual[vis_index];
-    const MatrixType& model = cb_data.ModelVisibility(direction, vis_index);
-    // Convert first to single precision to make calculation easier
-    const aocommon::MC2x2FDiag solution_a(static_cast<Complex>(solution_1[0]),
-                                          static_cast<Complex>(solution_1[1]));
-    const aocommon::MC2x2FDiag solution_b(static_cast<Complex>(solution_2[0]),
-                                          static_cast<Complex>(solution_2[1]));
-    const MatrixType contribution(solution_a * model *
-                                  HermTranspose(solution_b));
-    if constexpr (Add)
-      data += contribution;
-    else
-      data -= contribution;
-  }
+               MatrixType& data = v_residual[vis_index];
+               const MatrixType& model =
+                   cb_data.ModelVisibility(direction, vis_index);
+               // Convert first to single precision to make calculation easier
+               const aocommon::MC2x2FDiag solution_a(
+                   static_cast<Complex>(solution_1[0]),
+                   static_cast<Complex>(solution_1[1]));
+               const aocommon::MC2x2FDiag solution_b(
+                   static_cast<Complex>(solution_2[0]),
+                   static_cast<Complex>(solution_2[1]));
+               const MatrixType contribution(solution_a * model *
+                                             HermTranspose(solution_b));
+               if constexpr (Add)
+                 data += contribution;
+               else
+                 data -= contribution;
+             }
+           });
 }
 
 extern template class SolveData<std::complex<float>>;
