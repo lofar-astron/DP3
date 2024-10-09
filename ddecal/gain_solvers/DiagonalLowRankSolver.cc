@@ -108,6 +108,7 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
   bool has_converged = false;
   bool has_previously_converged = false;
   bool constraints_satisfied = false;
+  aocommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite2Pol(solutions);
 
