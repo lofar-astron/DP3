@@ -228,3 +228,78 @@ def test_wgridderpredict_with_ddecal_h5parmvalues(make_h5parm):
             rtol=0.0,
             atol=5.0e-3,
         )
+
+
+def test_wgridderpredict_and_applycal_with_ddecal(make_h5parm):
+    """
+    Use DDECal to check that ApplyCal can apply the correction to the
+    model data buffers.
+
+    - Predict four point sources into the data buffer, applying solutions from
+      an h5parm file.
+    - Use wgridderpredict with a fits image of those same four point sources,
+      each in a facet, into four model data buffers.
+    - Apply the solutions from the h5parm file to model data buffers.
+    - Use DDECal to calibrate each of the directions. Since the model data is
+      predicted using the same parameters as the main data buffer
+      the solutions for every facet should be 1.0.
+    """
+
+    with h5py.File("instrument.h5", "r+") as f:
+        values = f["sol000"]["amplitude000"]["val"]
+
+        n_antennas = len(f["sol000"]["amplitude000"]["ant"])
+        n_directions = len(f["sol000"]["amplitude000"]["dir"])
+
+        # Set solutions to new value
+        values[0, 0, :, :] = (
+            1.0
+            + np.arange(n_directions).reshape(1, -1)
+            + 1.0e-1 * np.arange(n_antennas).reshape(-1, 1)
+        )
+
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[h5parmpredict, wgridderpredict, applycal, ddecal]",
+            f"h5parmpredict.sourcedb={tcf.DDECAL_RESOURCEDIR}/foursources.skymodel",
+            "h5parmpredict.applycal.parmdb=instrument.h5",
+            "h5parmpredict.applycal.correction=amplitude000",
+            f"wgridderpredict.regions={tcf.DDECAL_RESOURCEDIR}/foursources.reg",
+            "wgridderpredict.images=[foursources-model.fits]",
+            "applycal.parmdb=instrument.h5",
+            "applycal.invert=false",
+            "applycal.correction=amplitude000",
+            "applycal.usemodeldata=true",
+            "ddecal.reusemodel=[wgridderpredict.CygA, wgridderpredict.source1, wgridderpredict.source2, wgridderpredict.source3]",
+            "ddecal.mode=scalaramplitude",
+            "ddecal.h5parm=instrument_output.h5",
+            "ddecal.solint=0",
+            "ddecal.nchan=0",
+        ]
+    )
+
+    input_file = h5py.File("instrument.h5", "r+")
+    input_values = input_file["sol000"]["amplitude000"]["val"]
+
+    output_file = h5py.File("instrument_output.h5", "r+")
+    output_values = output_file["sol000"]["amplitude000"]["val"]
+
+    assert input_values.shape == output_values.shape
+
+    # Check output values
+    # If all data for an antenna is flagged the solution will be NaN.
+    # Because data and model data are predicted applying the same h5parm file
+    # all valid solutions should be 1.0.
+    count = 0
+    for y in np.nditer(output_values):
+        if not np.isnan(y):
+            assert np.isclose(y, 1.0, rtol=0.0, atol=1e-4)
+            count += 1
+
+    # One out of eight antennas has 100% of its data flagged.
+    # There are four directions, so there should be 7*4=28 valid solutions.
+    assert count == 28

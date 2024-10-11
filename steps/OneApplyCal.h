@@ -80,7 +80,9 @@ class OneApplyCal : public Step {
 
   /// Read parameters from the associated h5 and store them in
   /// itsJonesParameters
-  void updateParmsH5(const double bufStartTime);
+  void updateParmsH5(const double bufStartTime, hsize_t direction_index,
+                     const std::string& direction_name,
+                     const std::vector<double>& times);
 
   /// If needed, show the flag counts.
   void showCounts(std::ostream&) const override;
@@ -93,16 +95,18 @@ class OneApplyCal : public Step {
   // Check the number of polarizations in the parmdb
   unsigned int nPol(const std::string& parmName);
 
-  /// Replace values by NaN on places where weight is zero
-  static void applyFlags(std::vector<double>& values,
-                         const std::vector<double>& weights);
-
   std::vector<double> CalculateBufferTimes(double buffer_start_time,
                                            bool use_end);
 
   /// in the case of full Jones, amp and phase table need to be open
-  std::vector<schaapcommon::h5parm::SolTab> MakeSolTabs(
-      schaapcommon::h5parm::H5Parm& h5parm) const;
+  void MakeSolutionTables(schaapcommon::h5parm::H5Parm& h5parm);
+
+  std::string getDirectionPatch(const std::string& direction_name);
+
+  void CorrectionLoop(dp3::base::DPBuffer& buffer,
+                      const std::string& direction_name);
+
+  void CheckParmDB();
 
   std::string itsName;
   std::string itsParmDBName;
@@ -122,6 +126,7 @@ class OneApplyCal : public Step {
   unsigned int itsTimeSlotsPerParmUpdate;
   double itsSigmaMMSE;
   bool itsUpdateWeights;
+  bool itsUseModelData;
 
   unsigned int itsCount;  ///< number of steps
 
@@ -131,7 +136,9 @@ class OneApplyCal : public Step {
   /// itsJonesParameters contains the gridded parameters, first for all
   /// parameters (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over freq
   /// * time as returned by ParmDB numparms, antennas, time x frequency
-  std::unique_ptr<JonesParameters> itsJonesParameters;
+  std::map<std::string, std::unique_ptr<JonesParameters>>
+      itsJonesParametersPerDirection;
+
   unsigned int itsTimeStep;  ///< time step within current chunk
   unsigned int itsNCorr;
   double itsLastTime;  ///< last time of current chunk
@@ -140,6 +147,12 @@ class OneApplyCal : public Step {
   hsize_t itsDirection;
   common::NSTimer itsTimer;
   std::vector<std::string> solution_table_names_;
+
+  // This variable keeps the H5 contents in memory, reading
+  // the H5 file only once in the constructor. These solutions
+  // are used in the constructor, process(..) and methods
+  // called from process(..).
+  std::vector<schaapcommon::h5parm::SolTab> solution_tables_;
 
   static std::mutex theirHDF5Mutex;  ///< Prevent parallel access to HDF5
 };

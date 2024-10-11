@@ -112,7 +112,8 @@ void ApplyCal::finish() {
 void ApplyCal::ApplyDiag(const aocommon::MC2x2FDiag& gain_a,
                          const aocommon::MC2x2FDiag& gain_b, DPBuffer& buffer,
                          unsigned int baseline, unsigned int channel,
-                         bool update_weights, base::FlagCounter& flag_counter) {
+                         bool update_weights, base::FlagCounter& flag_counter,
+                         const std::string& direction) {
   CheckBuffer(buffer, baseline, channel);
 
   // If parameter is NaN or inf, do not apply anything and flag the data
@@ -127,9 +128,10 @@ void ApplyCal::ApplyDiag(const aocommon::MC2x2FDiag& gain_a,
     return;
   }
 
-  aocommon::MC2x2F visibilities(&buffer.GetData()(baseline, channel, 0));
+  aocommon::MC2x2F visibilities(
+      &buffer.GetData(direction)(baseline, channel, 0));
   visibilities = gain_a * visibilities * gain_b.HermTranspose();
-  visibilities.AssignTo(&buffer.GetData()(baseline, channel, 0));
+  visibilities.AssignTo(&buffer.GetData(direction)(baseline, channel, 0));
 
   if (update_weights) {
     DPBuffer::WeightsType& weights = buffer.GetWeights();
@@ -196,7 +198,8 @@ template void ApplyCal::invert(std::complex<float>* v, float sigmaMMSE);
 void ApplyCal::ApplyFull(const aocommon::MC2x2F& gain_a,
                          const aocommon::MC2x2F& gain_b, DPBuffer& buffer,
                          unsigned int baseline, unsigned int channel,
-                         bool update_weights, base::FlagCounter& flag_counter) {
+                         bool update_weights, base::FlagCounter& flag_counter,
+                         const std::string& direction) {
   CheckBuffer(buffer, baseline, channel);
 
   // If parameter is NaN or inf, do not apply anything and flag the data
@@ -217,9 +220,10 @@ void ApplyCal::ApplyFull(const aocommon::MC2x2F& gain_a,
     return;
   }
 
-  aocommon::MC2x2F visibilities(&buffer.GetData()(baseline, channel, 0));
+  aocommon::MC2x2F visibilities(
+      &buffer.GetData(direction)(baseline, channel, 0));
   visibilities = gain_a * visibilities.MultiplyHerm(gain_b);
-  visibilities.AssignTo(&buffer.GetData()(baseline, channel, 0));
+  visibilities.AssignTo(&buffer.GetData(direction)(baseline, channel, 0));
 
   if (update_weights) {
     ApplyWeights(gain_a, gain_b, &buffer.GetWeights()(baseline, channel, 0));
