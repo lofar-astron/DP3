@@ -81,7 +81,8 @@ class ApplyCal : public Step {
                         const aocommon::MC2x2FDiag& gain_b,
                         base::DPBuffer& buffer, unsigned int baseline,
                         unsigned int channel, bool update_weights,
-                        base::FlagCounter& flag_counter);
+                        base::FlagCounter& flag_counter,
+                        const std::string& direction = "");
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H,
   /// where the solution is equal for both polarizations
@@ -99,7 +100,8 @@ class ApplyCal : public Step {
   static void ApplyFull(const aocommon::MC2x2F& gain_a,
                         const aocommon::MC2x2F& gain_b, base::DPBuffer& buffer,
                         unsigned int baseline, unsigned int channel,
-                        bool update_weights, base::FlagCounter& flag_counter);
+                        bool update_weights, base::FlagCounter& flag_counter,
+                        const std::string& direction = "");
 
   /// Do the same as the combination of BBS + python script
   /// covariance2weight.py (cookbook), except it stores weights per freq.

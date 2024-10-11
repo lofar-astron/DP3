@@ -58,11 +58,32 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
               ? parset.getBool(prefix + "updateweights")
               : parset.getBool(defaultPrefix + "updateweights", false)),
       itsCount(0),
-      itsJonesParameters(nullptr),
       itsTimeStep(0),
       itsNCorr(0),
       itsLastTime(-1),
-      itsUseAP(false) {
+      itsUseAP(false),
+      itsUseModelData(parset.getBool(prefix + "usemodeldata", false)) {
+  const std::string directionStr =
+      (parset.isDefined(prefix + "direction")
+           ? parset.getString(prefix + "direction")
+           : parset.getString(defaultPrefix + "direction", predictDirection));
+
+  if (itsUseModelData) {
+    if (itsParmDBName.empty()) {
+      throw std::runtime_error(
+          "When using applycal with modeldata, applycal.parmdb "
+          "must have path to an H5 file.");
+    }
+    CheckParmDB();
+
+    if (!directionStr.empty()) {
+      throw std::runtime_error(
+          "When using applycal with modeldata, applycal.direction "
+          "must be empty because the directions are read from "
+          "the step buffers.");
+    }
+  }
+
   if (substep) {
     itsInvert = false;
   } else {
@@ -88,10 +109,6 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       throw std::runtime_error("Unsupported interpolation mode: " +
                                interpolationStr);
     }
-    const std::string directionStr =
-        (parset.isDefined(prefix + "direction")
-             ? parset.getString(prefix + "direction")
-             : parset.getString(defaultPrefix + "direction", predictDirection));
 
     const std::string missingAntennaBehaviorStr =
         (parset.isDefined(prefix + "missingantennabehavior")
@@ -117,8 +134,8 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
 
       schaapcommon::h5parm::H5Parm h5parm(itsParmDBName, false, false,
                                           itsSolSetName);
-      std::vector<schaapcommon::h5parm::SolTab> solution_tables =
-          MakeSolTabs(h5parm);
+      MakeSolutionTables(h5parm);
+
       if (specified_correction_ == "fulljones") {
         if (solution_table_names_.size() != 2)
           throw std::runtime_error(
@@ -133,30 +150,29 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
         if (solution_table_names_.size() != 1)
           throw std::runtime_error("The soltab parameter requires one soltab");
         itsCorrectType = JonesParameters::H5ParmTypeStringToGainType(
-            solution_tables[0].GetType());
+            solution_tables_[0].GetType());
         if (itsCorrectType == GainType::kDiagonalPhase &&
-            nPol(solution_tables[0]) == 1) {
+            nPol(solution_tables_[0]) == 1) {
           itsCorrectType = GainType::kScalarPhase;
         }
         if (itsCorrectType == GainType::kDiagonalAmplitude &&
-            nPol(solution_tables[0]) == 1) {
+            nPol(solution_tables_[0]) == 1) {
           itsCorrectType = GainType::kScalarAmplitude;
         }
       }
-      n_polarizations_in_sol_tab_ = nPol(solution_tables[0]);
+      n_polarizations_in_sol_tab_ = nPol(solution_tables_[0]);
 
       itsDirection = 0;
-      if (directionStr.empty()) {
-        if (solution_tables[0].HasAxis("dir") &&
-            solution_tables[0].GetAxis("dir").size != 1)
+      if (!itsUseModelData && directionStr.empty()) {
+        if (solution_tables_[0].HasAxis("dir") &&
+            solution_tables_[0].GetAxis("dir").size != 1)
           throw std::runtime_error(
               "If the soltab contains multiple directions, the direction to "
-              "be "
-              "applied in applycal should be specified");
+              "be applied in applycal should be specified");
         // If there is only one direction, silently assume it is the right one
-      } else if (solution_tables[0].HasAxis("dir") &&
-                 solution_tables[0].GetAxis("dir").size > 1) {
-        itsDirection = solution_tables[0].GetDirIndex(directionStr);
+      } else if (!directionStr.empty() && solution_tables_[0].HasAxis("dir") &&
+                 solution_tables_[0].GetAxis("dir").size > 1) {
+        itsDirection = solution_tables_[0].GetDirIndex(directionStr);
       }
     }
   } else {
@@ -179,16 +195,24 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
   }
 }
 
-std::vector<schaapcommon::h5parm::SolTab> OneApplyCal::MakeSolTabs(
-    schaapcommon::h5parm::H5Parm& h5parm) const {
-  std::vector<schaapcommon::h5parm::SolTab> solution_tables;
+void OneApplyCal::MakeSolutionTables(schaapcommon::h5parm::H5Parm& h5parm) {
+  // This method must be called only once from the constructor
+  // of this class. Accordingly, solution_tables_ must be empty.
+  assert(solution_tables_.empty());
   if (solution_table_names_.size() == 2) {
-    solution_tables.push_back(h5parm.GetSolTab(solution_table_names_[0]));
-    solution_tables.push_back(h5parm.GetSolTab(solution_table_names_[1]));
+    solution_tables_.push_back(h5parm.GetSolTab(solution_table_names_[0]));
+    solution_tables_.push_back(h5parm.GetSolTab(solution_table_names_[1]));
   } else {
-    solution_tables.push_back(h5parm.GetSolTab(specified_correction_));
+    solution_tables_.push_back(h5parm.GetSolTab(specified_correction_));
   }
-  return solution_tables;
+
+  // Figure out whether time or frequency is first axis.
+  if (solution_tables_[0].HasAxis("freq") &&
+      solution_tables_[0].HasAxis("time") &&
+      solution_tables_[0].GetAxisIndex("freq") <
+          solution_tables_[0].GetAxisIndex("time")) {
+    throw std::runtime_error("Fastest varying axis should be freq");
+  }
 }
 
 OneApplyCal::~OneApplyCal() {}
@@ -371,60 +395,124 @@ void OneApplyCal::showTimings(std::ostream& os, double duration) const {
 bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
 
-  if (buffer->GetTime() > itsLastTime) {
-    if (itsParmDBOnDisk && itsUseH5Parm) {
-      updateParmsH5(buffer->GetTime());
-    } else if (itsParmDBOnDisk) {
-      updateParmsParmDB(buffer->GetTime());
+  /*
+   * If this correction does not used model data, i.e. itsUseModelData
+   * is false, then the correction is applied to the main buffer,
+   * which does not have a name.
+   * Buffer data is accessed like this: buffer->GetData()
+   *
+   * If this correction uses model data the correction is applied
+   * to the named buffers which have the model data. Each buffer is
+   * named with one of the directions.
+   * Buffer data is accessed like this: buffer->GetData(direction_name)
+   */
+  if (!itsUseModelData) {
+    if (buffer->GetTime() > itsLastTime) {
+      if (itsParmDBOnDisk && itsUseH5Parm) {
+        const std::string direction_name;
+        const std::vector<double> times =
+            CalculateBufferTimes(buffer->GetTime(), false);
+        updateParmsH5(buffer->GetTime(), itsDirection, direction_name, times);
+      } else if (itsParmDBOnDisk) {
+        updateParmsParmDB(buffer->GetTime());
+      } else {
+        if (buffer->GetSolution().size() == 0) {
+          throw std::runtime_error(
+              "No buffer stored before OneApplyCal step. Ensure a solution is "
+              "computed before this step, or specify a parmdb/h5parm file in "
+              "the applycal step.");
+        }
+        /*
+         * Read solutions from buffer instead.
+         */
+        // Make parameters complex
+        GainType gain_type = itsCorrectType;
+        if (itsCorrectType == GainType::kDiagonalComplex && !itsUseAP) {
+          gain_type = GainType::kDiagonalRealImaginary;
+        } else if (itsCorrectType == GainType::kFullJones && !itsUseAP) {
+          gain_type = GainType::kFullJonesRealImaginary;
+        }
+
+        std::vector<double> times(info().ntime());
+        for (size_t t = 0; t < times.size(); ++t) {
+          // time centroids
+          times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
+        }
+
+        // Validate that the data is in the correct shape
+        const size_t n_chan = buffer->GetData().shape(1);
+        const size_t n_corrs =
+            buffer->GetSolution()[0].size() / info().antennaNames().size();
+        if (buffer->GetSolution().size() != n_chan ||
+            (n_corrs != 2 && n_corrs != 4)) {
+          throw std::runtime_error(
+              "The solution is not in the correct shape. Was the solution "
+              "computed on different data than it is being applied on?");
+        }
+
+        itsJonesParametersPerDirection[""] = std::make_unique<JonesParameters>(
+            info().chanFreqs(), times, info().antennaNames(), gain_type,
+            buffer->GetSolution(), itsInvert, itsSigmaMMSE);
+      }
+      itsTimeStep = 0;
     } else {
-      if (buffer->GetSolution().size() == 0) {
-        throw std::runtime_error(
-            "No buffer stored before OneApplyCal step. Ensure a solution is "
-            "computed before this step, or specify a parmdb/h5parm file in "
-            "the applycal step.");
-      }
-      /*
-       * Read solutions from buffer instead.
-       */
-      // Make parameters complex
-      GainType gain_type = itsCorrectType;
-      if (itsCorrectType == GainType::kDiagonalComplex && !itsUseAP) {
-        gain_type = GainType::kDiagonalRealImaginary;
-      } else if (itsCorrectType == GainType::kFullJones && !itsUseAP) {
-        gain_type = GainType::kFullJonesRealImaginary;
-      }
-
-      std::vector<double> times(info().ntime());
-      for (size_t t = 0; t < times.size(); ++t) {
-        // time centroids
-        times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
-      }
-
-      // Validate that the data is in the correct shape
-      const size_t n_chan = buffer->GetData().shape(1);
-      const size_t n_corrs =
-          buffer->GetSolution()[0].size() / info().antennaNames().size();
-      if (buffer->GetSolution().size() != n_chan ||
-          (n_corrs != 2 && n_corrs != 4)) {
-        throw std::runtime_error(
-            "The solution is not in the correct shape. Was the solution "
-            "computed on different data than it is being applied on?");
-      }
-
-      itsJonesParameters = std::make_unique<JonesParameters>(
-          info().chanFreqs(), times, info().antennaNames(), gain_type,
-          buffer->GetSolution(), itsInvert, itsSigmaMMSE);
+      itsTimeStep++;
     }
-    itsTimeStep = 0;
+    CorrectionLoop(*buffer, "");
   } else {
-    itsTimeStep++;
+    /* Using model data. */
+    const std::map<std::string, dp3::base::Direction>& directions =
+        getInfoOut().GetDirections();
+
+    std::vector<double> times;
+    if (buffer->GetTime() > itsLastTime) {
+      times = CalculateBufferTimes(buffer->GetTime(), false);
+      itsJonesParametersPerDirection.clear();
+      itsTimeStep = 0;
+
+      /*
+       * Within the method updateParmsH5(..) the values of Jones
+       * parameters for each one of the directions is computed
+       * and kept in the map itsJonesParametersPerDirection.
+       * The Jones parameters are used several times and
+       * itsJonesParametersPerDirection avoids recomputing them.
+       */
+      for (const auto& [direction_name, direction] : directions) {
+        std::string direction_patch = getDirectionPatch(direction_name);
+        hsize_t direction_index =
+            solution_tables_[0].GetDirIndex(direction_patch);
+        updateParmsH5(buffer->GetTime(), direction_index, direction_name,
+                      times);
+      }
+    } else {
+      itsTimeStep++;
+    }
+
+    for (const auto& [direction_name, direction] : directions) {
+      CorrectionLoop(*buffer, direction_name);
+    }
   }
 
-  // Loop through all baselines in the buffer.
-  const size_t n_bl = buffer->GetData().shape(0);
-  const size_t n_chan = buffer->GetData().shape(1);
+  itsTimer.stop();
+  getNextStep()->process(std::move(buffer));
+
+  itsCount++;
+  return true;
+}
+
+void OneApplyCal::finish() {
+  // Let the next steps finish.
+  getNextStep()->finish();
+}
+
+void OneApplyCal::CorrectionLoop(DPBuffer& buffer,
+                                 const std::string& direction_name) {
   const casacore::Cube<casacore::Complex>& gains =
-      itsJonesParameters->GetParms();
+      itsJonesParametersPerDirection.at(direction_name)->GetParms();
+
+  // Loop through all baselines and channels in the buffer.
+  const size_t n_bl = buffer.GetData(direction_name).shape(0);
+  const size_t n_chan = buffer.GetData(direction_name).shape(1);
   const size_t n_solution_corr = gains.shape()[0];
 
   aocommon::StaticFor<size_t> loop;
@@ -440,27 +528,16 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
         const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
         if (n_solution_corr > 2) {
           ApplyCal::ApplyFull(aocommon::MC2x2F(gain_a),
-                              aocommon::MC2x2F(gain_b), *buffer, bl, chan,
-                              itsUpdateWeights, itsFlagCounter);
+                              aocommon::MC2x2F(gain_b), buffer, bl, chan,
+                              itsUpdateWeights, itsFlagCounter, direction_name);
         } else {
           ApplyCal::ApplyDiag(aocommon::MC2x2FDiag(gain_a),
-                              aocommon::MC2x2FDiag(gain_b), *buffer, bl, chan,
-                              itsUpdateWeights, itsFlagCounter);
+                              aocommon::MC2x2FDiag(gain_b), buffer, bl, chan,
+                              itsUpdateWeights, itsFlagCounter, direction_name);
         }
       }
     }
   });
-
-  itsTimer.stop();
-  getNextStep()->process(std::move(buffer));
-
-  itsCount++;
-  return true;
-}
-
-void OneApplyCal::finish() {
-  // Let the next steps finish.
-  getNextStep()->finish();
 }
 
 std::vector<double> OneApplyCal::CalculateBufferTimes(double buffer_start_time,
@@ -488,38 +565,21 @@ std::vector<double> OneApplyCal::CalculateBufferTimes(double buffer_start_time,
   return times;
 }
 
-void OneApplyCal::updateParmsH5(const double bufStartTime) {
+void OneApplyCal::updateParmsH5(const double bufStartTime,
+                                hsize_t direction_index,
+                                const std::string& direction_name,
+                                const std::vector<double>& times) {
   aocommon::Logger::Debug << "Reading and gridding H5Parm for direction "
-                          << itsDirection << ".\n";
-  const std::vector<double> times = CalculateBufferTimes(bufStartTime, false);
+                          << direction_index << ".\n";
 
   std::lock_guard<std::mutex> lock(theirHDF5Mutex);
-  schaapcommon::h5parm::H5Parm h5parm(itsParmDBName, false, false,
-                                      itsSolSetName);
-  std::vector<schaapcommon::h5parm::SolTab> solution_tables =
-      MakeSolTabs(h5parm);
 
-  // Figure out whether time or frequency is first axis
-  if (solution_tables[0].HasAxis("freq") &&
-      solution_tables[0].HasAxis("time") &&
-      solution_tables[0].GetAxisIndex("freq") <
-          solution_tables[0].GetAxisIndex("time")) {
-    throw std::runtime_error("Fastest varying axis should be freq");
-  }
-
-  std::vector<std::string> ant_names;
-  for (const std::string& name : info().antennaNames()) {
-    ant_names.push_back(name);
-  }
-
-  // Explicitly reset beforehand to not have two buffers alive
-  // at the same time
-  itsJonesParameters.reset();
-  itsJonesParameters = std::make_unique<JonesParameters>(
-      info().chanFreqs(), times, ant_names, itsCorrectType,
-      itsInterpolationType, itsDirection, &solution_tables[0],
-      &solution_tables[1], itsInvert, itsSigmaMMSE, itsParmExprs.size(),
-      itsMissingAntennaBehavior);
+  itsJonesParametersPerDirection[direction_name] =
+      std::make_unique<JonesParameters>(
+          getInfoOut().chanFreqs(), times, getInfoOut().antennaNames(),
+          itsCorrectType, itsInterpolationType, direction_index,
+          &solution_tables_[0], &solution_tables_[1], itsInvert, itsSigmaMMSE,
+          itsParmExprs.size(), itsMissingAntennaBehavior);
 }
 
 void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
@@ -632,14 +692,10 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     gain_type = GainType::kFullJonesRealImaginary;
   }
 
-  std::vector<std::string> ant_names;
-  for (const std::string& name : info().antennaNames()) {
-    ant_names.push_back(name);
-  }
-
-  itsJonesParameters = std::make_unique<JonesParameters>(
-      info().chanFreqs(), times, ant_names, gain_type, itsInterpolationType,
-      itsDirection, std::move(parmvalues), itsInvert, itsSigmaMMSE);
+  itsJonesParametersPerDirection[""] = std::make_unique<JonesParameters>(
+      getInfoOut().chanFreqs(), times, getInfoOut().antennaNames(), gain_type,
+      itsInterpolationType, itsDirection, std::move(parmvalues), itsInvert,
+      itsSigmaMMSE);
 }
 
 unsigned int OneApplyCal::nPol(schaapcommon::h5parm::SolTab& solution_table) {
@@ -669,6 +725,35 @@ void OneApplyCal::showCounts(std::ostream& os) const {
   os << "\n=======================\n";
   itsFlagCounter.showBaseline(os, itsCount);
   itsFlagCounter.showChannel(os, itsCount);
+}
+
+std::string OneApplyCal::getDirectionPatch(const std::string& direction_name) {
+  // An example of what this method does:
+  // if direction_name, the argument, is 'wgridderpredict.Patch106',
+  // then direction_patch, the returned value, is '[Patch106]'.
+  const size_t point_location = direction_name.find('.');
+  if (point_location == std::string::npos) {
+    throw std::runtime_error("Wrong direction name.");
+  }
+  std::string direction_patch =
+      "[" + direction_name.substr(point_location + 1) + "]";
+  return direction_patch;
+}
+
+void OneApplyCal::CheckParmDB() {
+  try {
+    schaapcommon::h5parm::H5Parm h5_test(itsParmDBName, false, false,
+                                         itsSolSetName);
+  } catch (const H5::Exception& err) {
+    throw std::runtime_error("Failure trying to open file:'" + itsParmDBName +
+                             "' reported error:'" + err.getDetailMsg() + "'");
+  } catch (const std::exception& err) {
+    throw std::runtime_error("Failure trying to open file:'" + itsParmDBName +
+                             "' reported error:'" + err.what() + "'");
+  } catch (...) {
+    throw std::runtime_error("Failure trying to open file:'" + itsParmDBName +
+                             "'.");
+  }
 }
 
 }  // namespace steps
