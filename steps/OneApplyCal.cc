@@ -57,12 +57,12 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
           parset.isDefined(prefix + "updateweights")
               ? parset.getBool(prefix + "updateweights")
               : parset.getBool(defaultPrefix + "updateweights", false)),
+      itsUseModelData(parset.getBool(prefix + "usemodeldata", false)),
       itsCount(0),
       itsTimeStep(0),
       itsNCorr(0),
       itsLastTime(-1),
-      itsUseAP(false),
-      itsUseModelData(parset.getBool(prefix + "usemodeldata", false)) {
+      itsUseAP(false) {
   const std::string directionStr =
       (parset.isDefined(prefix + "direction")
            ? parset.getString(prefix + "direction")
