@@ -96,7 +96,7 @@ class Filter final : public Step {
 
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  Filter(const common::ParameterSet&, const string& prefix);
+  Filter(const common::ParameterSet&, const std::string& prefix);
 
   /// Construct the object for the given MS and baseline selection.
   Filter(const base::BaselineSelection&);
@@ -125,7 +125,7 @@ class Filter final : public Step {
 
   /// If needed, remove the deleted stations from the subtables
   /// and renumber the remaining stations.
-  void addToMS(const string& msName) override;
+  void addToMS(const std::string& msName) override;
 
   /// Does the filter step has an actual selection?
   bool hasSelection() const { return itsDoSelect; }

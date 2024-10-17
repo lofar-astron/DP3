@@ -45,7 +45,7 @@ class ScaleData : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  ScaleData(const common::ParameterSet&, const string& prefix,
+  ScaleData(const common::ParameterSet&, const std::string& prefix,
             MsType input_type);
 
   ~ScaleData() override;

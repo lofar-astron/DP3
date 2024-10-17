@@ -71,7 +71,8 @@ class TestInput : public dp3::steps::MockInput {
         }
       }
     }
-    vector<string> antNames{"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
+    vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
+                                 "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
     vector<casacore::MPosition> antPos(4);
     casacore::Vector<double> vals(3);

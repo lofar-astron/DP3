@@ -22,7 +22,7 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-Predict::Predict(const common::ParameterSet& parset, const string& prefix,
+Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
                  MsType input_type)
     : ms_type_(input_type),
       predict_step_(std::make_shared<OnePredict>(parset, prefix,
@@ -30,7 +30,7 @@ Predict::Predict(const common::ParameterSet& parset, const string& prefix,
   Initialize(parset, prefix, input_type);
 }
 
-Predict::Predict(const common::ParameterSet& parset, const string& prefix,
+Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
                  const std::vector<std::string>& source_patterns,
                  MsType input_type)
     : ms_type_(input_type),
@@ -40,7 +40,7 @@ Predict::Predict(const common::ParameterSet& parset, const string& prefix,
 }
 
 void Predict::Initialize(const common::ParameterSet& parset,
-                         const string& prefix, MsType input_type) {
+                         const std::string& prefix, MsType input_type) {
   const unsigned int time_smearing_factor =
       parset.getUint(prefix + "correcttimesmearing", 1);
 

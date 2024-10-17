@@ -75,9 +75,9 @@ LogAntennaParseErrors::~LogAntennaParseErrors() {
 BaselineSelection::BaselineSelection() {}
 
 BaselineSelection::BaselineSelection(const common::ParameterSet& parset,
-                                     const string& prefix, bool minmax,
-                                     const string& defaultCorrType,
-                                     const string& defaultBaseline)
+                                     const std::string& prefix, bool minmax,
+                                     const std::string& defaultCorrType,
+                                     const std::string& defaultBaseline)
     : itsStrBL(parset.getString(prefix + "baseline", defaultBaseline)),
       itsCorrType(parset.getString(prefix + "corrtype", defaultCorrType)),
       itsRangeBL(
@@ -151,14 +151,14 @@ void BaselineSelection::handleBL(Matrix<bool>& selectBL,
   bool mssel = true;
   if (itsStrBL[0] == '[') {
     std::string::size_type rb = itsStrBL.find(']');
-    if (rb == string::npos)
+    if (rb == std::string::npos)
       throw std::runtime_error("Baseline selection " + itsStrBL +
                                " has no ending ]");
     if (rb == itsStrBL.size() - 1) {
       mssel = false;
     } else {
       std::string::size_type lb = itsStrBL.find('[', 1);
-      mssel = (lb == string::npos || lb > rb);
+      mssel = (lb == std::string::npos || lb > rb);
     }
   }
   if (!mssel) {
@@ -259,7 +259,7 @@ Matrix<bool> BaselineSelection::handleBLVector(
                     "it's more clear to use [[ant1],[ant2]]\n";
   }
   for (unsigned int i = 0; i < pairs.size(); ++i) {
-    std::vector<string> bl = pairs[i].getStringVector();
+    std::vector<std::string> bl = pairs[i].getStringVector();
     if (bl.size() == 1) {
       // Turn the given antenna name pattern into a regex.
       casacore::Regex regex(casacore::Regex::fromPattern(bl[0]));

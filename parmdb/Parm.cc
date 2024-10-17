@@ -19,7 +19,7 @@ namespace parmdb {
 Parm::Parm(ParmCache& cache, ParmId parmid)
     : itsCache(&cache), itsParmId(parmid) {}
 
-Parm::Parm(ParmCache& cache, const string& name)
+Parm::Parm(ParmCache& cache, const std::string& name)
     : itsCache(&cache), itsParmId(cache.getParmSet().find(name)) {}
 
 void Parm::setSolveGrid(const Grid& solveGrid) {

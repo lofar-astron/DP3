@@ -187,7 +187,7 @@ void OnePredict::init(const common::ParameterSet& parset,
 }
 
 void OnePredict::SetApplyCal(const common::ParameterSet& parset,
-                             const string& prefix) {
+                             const std::string& prefix) {
   apply_cal_step_ =
       std::make_shared<ApplyCal>(parset, prefix, true, direction_str_);
   if (operation_ != Operation::kReplace &&

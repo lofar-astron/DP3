@@ -18,7 +18,9 @@ namespace common {
 
 VdsDesc::VdsDesc(const VdsPartDesc& desc) : itsDesc(desc) {}
 
-VdsDesc::VdsDesc(const string& parsetName) { init(ParameterSet(parsetName)); }
+VdsDesc::VdsDesc(const std::string& parsetName) {
+  init(ParameterSet(parsetName));
+}
 
 void VdsDesc::init(const ParameterSet& parset) {
   itsDesc = VdsPartDesc(parset);
@@ -41,7 +43,7 @@ void VdsDesc::write(ostream& os) const {
   }
 }
 
-//   int VdsDesc::findPart (const string& fileSystem,
+//   int VdsDesc::findPart (const std::string& fileSystem,
 // 			     const vector<int>& done) const
 //   {
 //     for (unsigned i=0; i<itsParts.size(); ++i) {

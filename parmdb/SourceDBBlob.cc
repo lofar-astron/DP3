@@ -71,15 +71,19 @@ void SourceDBBlob::clearTables() {
 
 void SourceDBBlob::checkDuplicates() {}
 
-vector<string> SourceDBBlob::findDuplicatePatches() { return vector<string>(); }
+vector<std::string> SourceDBBlob::findDuplicatePatches() {
+  return vector<std::string>();
+}
 
-vector<string> SourceDBBlob::findDuplicateSources() { return vector<string>(); }
+vector<std::string> SourceDBBlob::findDuplicateSources() {
+  return vector<std::string>();
+}
 
-bool SourceDBBlob::patchExists(const string&) { return false; }
+bool SourceDBBlob::patchExists(const std::string&) { return false; }
 
-bool SourceDBBlob::sourceExists(const string&) { return false; }
+bool SourceDBBlob::sourceExists(const std::string&) { return false; }
 
-unsigned int SourceDBBlob::addPatch(const string& patchName, int catType,
+unsigned int SourceDBBlob::addPatch(const std::string& patchName, int catType,
                                     double apparentBrightness, double ra,
                                     double dec, bool) {
   // Write at the end of the file.
@@ -107,7 +111,7 @@ void SourceDBBlob::updatePatch(unsigned int filePos, double apparentBrightness,
 }
 
 void SourceDBBlob::addSource(const SourceInfo& sourceInfo,
-                             const string& patchName,
+                             const std::string& patchName,
                              const ParmMap& defaultParameters, double ra,
                              double dec, bool) {
   if (!itsCanWrite)
@@ -124,7 +128,7 @@ void SourceDBBlob::addSource(const SourceData& source, bool) {
 }
 
 void SourceDBBlob::addSource(const SourceInfo& sourceInfo,
-                             const string& patchName, int catType,
+                             const std::string& patchName, int catType,
                              double apparentBrightness,
                              const ParmMap& defaultParameters, double ra,
                              double dec, bool check) {
@@ -132,13 +136,14 @@ void SourceDBBlob::addSource(const SourceInfo& sourceInfo,
   addSource(sourceInfo, patchName, defaultParameters, ra, dec, check);
 }
 
-void SourceDBBlob::deleteSources(const string&) {
+void SourceDBBlob::deleteSources(const std::string&) {
   throw std::runtime_error("SourceDBBlob::deleteSources not possible");
 }
 
-vector<string> SourceDBBlob::getPatches(int category, const string& pattern,
-                                        double minBrightness,
-                                        double maxBrightness) {
+vector<std::string> SourceDBBlob::getPatches(int category,
+                                             const std::string& pattern,
+                                             double minBrightness,
+                                             double maxBrightness) {
   // If not done yet, read all data from the file.
   readAll();
   Regex regex;
@@ -166,7 +171,7 @@ vector<string> SourceDBBlob::getPatches(int category, const string& pattern,
     }
   }
   // Sort in order of category, brightness, name.
-  vector<string> nmout;
+  vector<std::string> nmout;
   if (!names.empty()) {
     Sort sort;
     sort.sortKey(&(categories[0]), TpInt);
@@ -183,21 +188,21 @@ vector<string> SourceDBBlob::getPatches(int category, const string& pattern,
 }
 
 vector<PatchInfo> SourceDBBlob::getPatchInfo(int category,
-                                             const string& pattern,
+                                             const std::string& pattern,
                                              double minBrightness,
                                              double maxBrightness) {
-  vector<string> names =
+  vector<std::string> names =
       getPatches(category, pattern, minBrightness, maxBrightness);
   vector<PatchInfo> info;
   info.reserve(names.size());
-  for (vector<string>::const_iterator iter = names.begin(); iter != names.end();
-       ++iter) {
+  for (vector<std::string>::const_iterator iter = names.begin();
+       iter != names.end(); ++iter) {
     info.push_back(itsPatches.find(*iter)->second);
   }
   return info;
 }
 
-vector<SourceInfo> SourceDBBlob::getPatchSources(const string& patchName) {
+vector<SourceInfo> SourceDBBlob::getPatchSources(const std::string& patchName) {
   // If not done yet, read all data from the file.
   readAll();
   vector<SourceInfo> info;
@@ -214,17 +219,18 @@ vector<SourceInfo> SourceDBBlob::getPatchSources(const string& patchName) {
   return info;
 }
 
-vector<SourceData> SourceDBBlob::getPatchSourceData(const string& patchName) {
+vector<SourceData> SourceDBBlob::getPatchSourceData(
+    const std::string& patchName) {
   // If not done yet, read all data from the file.
   readAll();
   return itsSources[patchName];
 }
 
-SourceInfo SourceDBBlob::getSource(const string&) {
+SourceInfo SourceDBBlob::getSource(const std::string&) {
   throw std::runtime_error("SourceDBBlob::getSource not implemented");
 }
 
-vector<SourceInfo> SourceDBBlob::getSources(const string&) {
+vector<SourceInfo> SourceDBBlob::getSources(const std::string&) {
   throw std::runtime_error("SourceDBBlob::getSources not implemented");
   return vector<SourceInfo>();
 }

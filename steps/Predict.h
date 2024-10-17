@@ -90,7 +90,7 @@ class Predict : public ModelDataStep {
    * Common part of the constructors.
    * Parses parset arguments and sets up first_step_ and last_step_.
    */
-  void Initialize(const common::ParameterSet& parset, const string& prefix,
+  void Initialize(const common::ParameterSet& parset, const std::string& prefix,
                   MsType input_type);
 
   /// Input and output measurement set type: Regular (default) or Bda

@@ -25,7 +25,7 @@ class SetBeam final : public Step {
  public:
   /// Parameters are obtained from the parset using the given prefix.
   explicit SetBeam(const common::ParameterSet& parameters,
-                   const string& prefix);
+                   const std::string& prefix);
 
   common::Fields getRequiredFields() const override { return {}; }
 

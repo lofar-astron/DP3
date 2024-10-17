@@ -30,7 +30,7 @@ class Upsample : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Upsample(const common::ParameterSet&, const string& prefix);
+  Upsample(const common::ParameterSet&, const std::string& prefix);
 
   /// Constructor that gets the settings directly.
   Upsample(const std::string& name, unsigned int time_step, bool update_uvw);

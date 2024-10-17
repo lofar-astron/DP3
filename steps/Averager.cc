@@ -29,7 +29,8 @@ const common::Fields Averager::kRequiredFields =
     kDataField | kFlagsField | kWeightsField | kUvwField;
 const common::Fields Averager::kProvidedFields = kRequiredFields;
 
-Averager::Averager(const common::ParameterSet& parset, const string& prefix)
+Averager::Averager(const common::ParameterSet& parset,
+                   const std::string& prefix)
     : itsName(prefix),
       itsMinNPoint(parset.getUint(prefix + "minpoints", 1)),
       itsMinPerc(parset.getFloat(prefix + "minperc", 0.) / 100.),
@@ -53,7 +54,7 @@ Averager::Averager(const common::ParameterSet& parset, const string& prefix)
   }
 }
 
-Averager::Averager(const string& stepName, unsigned int nchanAvg,
+Averager::Averager(const std::string& stepName, unsigned int nchanAvg,
                    unsigned int ntimeAvg)
     : itsName(stepName),
       itsFreqResolution(0),
@@ -66,7 +67,7 @@ Averager::Averager(const string& stepName, unsigned int nchanAvg,
       itsOriginalTimeInterval(0),
       itsNoAvg(itsNChanAvg == 1 && itsNTimeAvg == 1) {}
 
-Averager::Averager(const string& stepName, double freq_resolution,
+Averager::Averager(const std::string& stepName, double freq_resolution,
                    double time_resolution)
     : itsName(stepName),
       itsFreqResolution(freq_resolution),
@@ -312,7 +313,7 @@ void Averager::average() {
   itsBuf->GetUvw() /= double(itsNTimes);
 }
 
-double Averager::getFreqHz(const string& freqstr) {
+double Averager::getFreqHz(const std::string& freqstr) {
   casacore::String unit;
   // See if a unit is given at the end.
   casacore::String v(freqstr);

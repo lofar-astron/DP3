@@ -45,7 +45,8 @@ NodeDesc::NodeDesc(const ParameterSet& parset) {
   }
 }
 
-void NodeDesc::addFileSys(const string& fsName, const string& mountPoint) {
+void NodeDesc::addFileSys(const std::string& fsName,
+                          const std::string& mountPoint) {
   assert(fsName.size() > 0);
   string mp(mountPoint);
   if (mp.size() > 5 && mp.substr(0, 5) == "/auto") {
@@ -56,7 +57,7 @@ void NodeDesc::addFileSys(const string& fsName, const string& mountPoint) {
   itsMounts.push_back(mp);
 }
 
-string NodeDesc::findFileSys(const string& fileName) const {
+string NodeDesc::findFileSys(const std::string& fileName) const {
   // The file name must be absolute.
   assert(fileName.size() > 1 && fileName[0] == '/');
   // Determine the max nr of parts in the mount point.
@@ -65,7 +66,7 @@ string NodeDesc::findFileSys(const string& fileName) const {
   int rootfs = -1;
   for (unsigned int i = 0; i < itsMounts.size(); ++i) {
     int nr = 0;
-    const string& str = itsMounts[i];
+    const std::string& str = itsMounts[i];
     // A single / counts as no part.
     if (str.size() == 1) {
       rootfs = i;
@@ -106,7 +107,7 @@ string NodeDesc::findFileSys(const string& fileName) const {
   return "";
 }
 
-void NodeDesc::write(ostream& os, const string& prefix) const {
+void NodeDesc::write(ostream& os, const std::string& prefix) const {
   string type = "Any";
   if (itsType == Compute) {
     type = "Compute";

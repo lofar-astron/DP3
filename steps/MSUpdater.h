@@ -74,7 +74,7 @@ class MSUpdater : public OutputStep {
   /// If not existing yet, add the column specified by colname.
   /// Column will containt arrays of type datatype.
   /// If the column has been added, this function returns true
-  bool addColumn(const string& colname, const casacore::DataType dataType,
+  bool addColumn(const std::string& colname, const casacore::DataType dataType,
                  const casacore::ColumnDesc& cd);
 
   std::string itsName;

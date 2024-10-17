@@ -44,8 +44,8 @@ class SourceDBSkymodel final : public SourceDBBase {
 
   std::map<std::string, unsigned> patches_lut_;
 
-  void ValidatePatchName(const string& patch_name) const;
-  unsigned GetPatchRowId(const string& patch_name) const;
+  void ValidatePatchName(const std::string& patch_name) const;
+  unsigned GetPatchRowId(const std::string& patch_name) const;
 
   std::vector<SourceData> sources_;
 };

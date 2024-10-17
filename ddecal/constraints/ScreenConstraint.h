@@ -33,7 +33,8 @@ class ScreenConstraint final : public Constraint {
       30;  // number of iterations to store in debug mode
 
  public:
-  ScreenConstraint(const common::ParameterSet& parset, const string& prefix);
+  ScreenConstraint(const common::ParameterSet& parset,
+                   const std::string& prefix);
 
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,

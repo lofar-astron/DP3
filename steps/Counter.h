@@ -28,7 +28,7 @@ class Counter : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  explicit Counter(const common::ParameterSet&, const string& prefix);
+  explicit Counter(const common::ParameterSet&, const std::string& prefix);
 
   ~Counter() override;
 

@@ -191,7 +191,7 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
 
 void DDECal::setModelNextSteps(Step& step, const std::string& direction,
                                const common::ParameterSet& parset,
-                               const string& prefix) const {
+                               const std::string& prefix) const {
   std::string step_names_key = prefix + "modelnextsteps." + direction;
   if (!parset.isDefined(step_names_key)) {
     step_names_key = prefix + "modelnextsteps";  // Fall back setting.

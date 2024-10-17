@@ -36,7 +36,7 @@ using casacore::TableExprNode;
 namespace dp3 {
 namespace steps {
 
-Filter::Filter(const common::ParameterSet& parset, const string& prefix)
+Filter::Filter(const common::ParameterSet& parset, const std::string& prefix)
     : itsName(prefix),
       itsStartChanStr(parset.getString(prefix + "startchan", "0")),
       itsNrChanStr(parset.getString(prefix + "nchan", "0")),

@@ -48,7 +48,7 @@ namespace steps {
 IDGPredict::IDGPredict(const ParameterSet& parset, const std::string& prefix)
     : IDGPredict(parset, prefix,
                  GetReaders(parset.getStringVector(prefix + "images",
-                                                   std::vector<string>())),
+                                                   std::vector<std::string>())),
                  std::vector<Facet>(),
                  parset.getString(prefix + "regions", "")) {}
 
@@ -213,7 +213,7 @@ void IDGPredict::updateInfo(const dp3::base::DPInfo& info) {
 
   StartIDG();
 
-  if (!parset_.getStringVector(name_ + "aterms", std::vector<string>())
+  if (!parset_.getStringVector(name_ + "aterms", std::vector<std::string>())
            .empty()) {
     if (info.msName().empty()) {
       throw std::runtime_error(

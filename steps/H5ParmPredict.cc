@@ -34,8 +34,8 @@ H5ParmPredict::H5ParmPredict(const common::ParameterSet& parset,
       itsPredictSteps(),
       itsResultStep(),
       itsH5ParmName(parset.getString(prefix + "applycal.parmdb")),
-      itsDirections(
-          parset.getStringVector(prefix + "directions", std::vector<string>())),
+      itsDirections(parset.getStringVector(prefix + "directions",
+                                           std::vector<std::string>())),
       itsTimer() {
   H5Parm h5parm = H5Parm(itsH5ParmName, false);
   std::string soltabName = parset.getString(prefix + "applycal.correction");

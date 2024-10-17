@@ -67,7 +67,7 @@ class StationAdder : public Step {
   void finish() override;
 
   /// Add new meta info to the MS.
-  void addToMS(const string& msName) override;
+  void addToMS(const std::string& msName) override;
 
   /// Update the general info.
   void updateInfo(const base::DPInfo&) override;
@@ -86,11 +86,11 @@ class StationAdder : public Step {
   /// A warning is given if a pattern does not match any station name.
   static std::vector<int> getMatchingStations(
       const std::vector<std::string>& antennaNames,
-      const std::vector<string>& patterns);
+      const std::vector<std::string>& patterns);
 
  private:
   /// Update the beam info subtables.
-  void updateBeamInfo(const string& msName, unsigned int origNant,
+  void updateBeamInfo(const std::string& msName, unsigned int origNant,
                       casacore::Table& antTab);
 
   std::string itsName;

@@ -20,7 +20,7 @@ using namespace casacore;
 namespace dp3 {
 namespace parmdb {
 
-ParmFacade::ParmFacade(const string& tableName, bool create) {
+ParmFacade::ParmFacade(const std::string& tableName, bool create) {
   // If create, only a local ParmDB can be done.
   // If it is an existing table, open it directly.
   // Otherwise it is a distributed ParmDB.
@@ -36,7 +36,7 @@ ParmFacade::ParmFacade(const string& tableName, bool create) {
 
 ParmFacade::~ParmFacade() {}
 
-Record ParmFacade::getValues(const string& parmNamePattern, double freqv1,
+Record ParmFacade::getValues(const std::string& parmNamePattern, double freqv1,
                              double freqv2, double timev1, double timev2,
                              bool asStartEnd, bool includeDefaults) {
   double sfreq = freqv1;
@@ -64,7 +64,7 @@ Record ParmFacade::getValues(const string& parmNamePattern, double freqv1,
 
 // Get the parameter values for the given parameters and domain.
 map<string, vector<double>> ParmFacade::getValuesMap(
-    const string& parmNamePattern, double freqv1, double freqv2,
+    const std::string& parmNamePattern, double freqv1, double freqv2,
     double freqStep, double timev1, double timev2, double timeStep,
     bool asStartEnd, bool includeDefaults) {
   return record2Map(getValues(parmNamePattern, freqv1, freqv2, freqStep, timev1,

@@ -115,7 +115,7 @@ class OnePredict : public ModelDataStep {
   void showTimings(std::ostream&, double duration) const override;
 
   /// Prepare the sources
-  void setSources(const std::vector<string>& sourcePatterns);
+  void setSources(const std::vector<std::string>& sourcePatterns);
 
   /// Return the direction of the first patch
   base::Direction GetFirstDirection() const override;

@@ -32,7 +32,8 @@
 using namespace casacore;
 using aocommon::Logger;
 
-void show(const string& name, const string& mode, const string& patt) {
+void show(const std::string& name, const std::string& mode,
+          const std::string& patt) {
   // Open the input SourceDB.
   dp3::parmdb::SourceDB in(dp3::parmdb::ParmDBMeta(string(), name), false,
                            false);

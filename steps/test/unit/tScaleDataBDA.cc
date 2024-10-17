@@ -62,7 +62,7 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
     ant1[i] = i / 2;
     ant2[i] = i % 2;
   }
-  vector<string> ant_names(2);
+  vector<std::string> ant_names(2);
   ant_names[0] = "rs01.s01";
   ant_names[1] = "rs02.s01";
   // Define their positions (more or less WSRT RT0-3).

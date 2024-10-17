@@ -58,17 +58,17 @@ class BaselineSelection {
   ///  <li> minbl:    minimum baseline length (in m); only if minmax=true
   ///  <li> maxbl:    maximum baseline length (in m); only if minmax=true
   /// </ul>
-  BaselineSelection(const common::ParameterSet&, const string& prefix,
+  BaselineSelection(const common::ParameterSet&, const std::string& prefix,
                     bool minmax = false,
-                    const string& defaultCorrType = string(),
-                    const string& defaultBaseline = string());
+                    const std::string& defaultCorrType = std::string(),
+                    const std::string& defaultBaseline = std::string());
 
   /// Is there any selection?
   bool hasSelection() const;
 
   /// Show the parameters.
   /// Optional extra blanks can be put before the value.
-  void show(std::ostream& os, const std::string& blanks = string()) const;
+  void show(std::ostream& os, const std::string& blanks = std::string()) const;
 
   /// Form the selection matrix telling for each baseline if it is selected.
   /// If no selection is made, all values in the matrix are true.

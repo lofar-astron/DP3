@@ -44,8 +44,8 @@ namespace steps {
 WGridderPredict::WGridderPredict(const ParameterSet& parset,
                                  const std::string& prefix)
     : WGridderPredict(parset, prefix,
-                      GetReaders(parset.getStringVector(prefix + "images",
-                                                        std::vector<string>())),
+                      GetReaders(parset.getStringVector(
+                          prefix + "images", std::vector<std::string>())),
                       std::vector<Facet>(),
                       parset.getString(prefix + "regions", "")) {}
 

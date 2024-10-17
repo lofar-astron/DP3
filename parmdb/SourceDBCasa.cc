@@ -65,7 +65,7 @@ void SourceDBCasa::unlock() {
   getParmDB().unlock();
 }
 
-void SourceDBCasa::createTables(const string& tableName) {
+void SourceDBCasa::createTables(const std::string& tableName) {
   // Create description of SOURCES.
   TableDesc td("Local Sky Model Sources", TableDesc::Scratch);
   td.comment() =
@@ -149,11 +149,11 @@ void SourceDBCasa::checkDuplicates() {
         " duplicate source names");
 }
 
-std::vector<string> SourceDBCasa::findDuplicates(Table& table,
-                                                 const string& columnName) {
+std::vector<std::string> SourceDBCasa::findDuplicates(
+    Table& table, const std::string& columnName) {
   TableLocker locker(table, FileLocker::Read);
   TableIterator iter(table, columnName);
-  std::vector<string> result;
+  std::vector<std::string> result;
   while (!iter.pastEnd()) {
     if (iter.table().nrow() > 1) {
       result.push_back(
@@ -164,11 +164,11 @@ std::vector<string> SourceDBCasa::findDuplicates(Table& table,
   return result;
 }
 
-std::vector<string> SourceDBCasa::findDuplicatePatches() {
+std::vector<std::string> SourceDBCasa::findDuplicatePatches() {
   return findDuplicates(itsPatchTable, "PATCHNAME");
 }
 
-std::vector<string> SourceDBCasa::findDuplicateSources() {
+std::vector<std::string> SourceDBCasa::findDuplicateSources() {
   return findDuplicates(itsSourceTable, "SOURCENAME");
 }
 
@@ -190,21 +190,21 @@ void SourceDBCasa::fillSets() {
   }
 }
 
-bool SourceDBCasa::patchExists(const string& patchName) {
+bool SourceDBCasa::patchExists(const std::string& patchName) {
   if (!itsSetsFilled) {
     fillSets();
   }
   return itsPatchSet.find(patchName) != itsPatchSet.end();
 }
 
-bool SourceDBCasa::sourceExists(const string& sourceName) {
+bool SourceDBCasa::sourceExists(const std::string& sourceName) {
   if (!itsSetsFilled) {
     fillSets();
   }
   return itsSourceSet.find(sourceName) != itsSourceSet.end();
 }
 
-unsigned int SourceDBCasa::addPatch(const string& patchName, int catType,
+unsigned int SourceDBCasa::addPatch(const std::string& patchName, int catType,
                                     double apparentBrightness, double ra,
                                     double dec, bool check) {
   itsPatchTable.reopenRW();
@@ -242,7 +242,7 @@ void SourceDBCasa::writePatch(double apparentBrightness, double ra, double dec,
 }
 
 void SourceDBCasa::addSource(const SourceInfo& sourceInfo,
-                             const string& patchName,
+                             const std::string& patchName,
                              const ParmMap& defaultParameters, double ra,
                              double dec, bool check) {
   common::rownr_t patchId;
@@ -273,7 +273,7 @@ void SourceDBCasa::addSource(const SourceData& source, bool check) {
 }
 
 void SourceDBCasa::addSource(const SourceInfo& sourceInfo,
-                             const string& patchName, int catType,
+                             const std::string& patchName, int catType,
                              double apparentBrightness,
                              const ParmMap& defaultParameters, double ra,
                              double dec, bool check) {
@@ -378,7 +378,7 @@ void SourceDBCasa::addSrc(const SourceInfo& sourceInfo, unsigned int patchId,
   }
 }
 
-void SourceDBCasa::deleteSources(const string& sourceNamePattern) {
+void SourceDBCasa::deleteSources(const std::string& sourceNamePattern) {
   Table table = itsSourceTable;
   table.reopenRW();
   TableLocker locker(table, FileLocker::Write);
@@ -396,7 +396,7 @@ void SourceDBCasa::deleteSources(const string& sourceNamePattern) {
                            Box(Point(-1e30, -1e30), Point(1e30, 1e30)));
 }
 
-Table SourceDBCasa::selectPatches(int category, const string& pattern,
+Table SourceDBCasa::selectPatches(int category, const std::string& pattern,
                                   double minBrightness,
                                   double maxBrightness) const {
   Table table = itsPatchTable;
@@ -416,10 +416,10 @@ Table SourceDBCasa::selectPatches(int category, const string& pattern,
   return table;
 }
 
-std::vector<string> SourceDBCasa::getPatches(int category,
-                                             const string& pattern,
-                                             double minBrightness,
-                                             double maxBrightness) {
+std::vector<std::string> SourceDBCasa::getPatches(int category,
+                                                  const std::string& pattern,
+                                                  double minBrightness,
+                                                  double maxBrightness) {
   TableLocker locker(itsPatchTable, FileLocker::Read);
   Table table(selectPatches(category, pattern, minBrightness, maxBrightness));
   Block<casacore::String> keys(3);
@@ -433,11 +433,11 @@ std::vector<string> SourceDBCasa::getPatches(int category,
   table = table.sort(keys, orders);
   casacore::Vector<casacore::String> nm(
       ScalarColumn<casacore::String>(table, "PATCHNAME").getColumn());
-  return std::vector<string>(nm.cbegin(), nm.cend());
+  return std::vector<std::string>(nm.cbegin(), nm.cend());
 }
 
 std::vector<PatchInfo> SourceDBCasa::getPatchInfo(int category,
-                                                  const string& pattern,
+                                                  const std::string& pattern,
                                                   double minBrightness,
                                                   double maxBrightness) {
   TableLocker locker(itsPatchTable, FileLocker::Read);
@@ -458,7 +458,8 @@ std::vector<PatchInfo> SourceDBCasa::getPatchInfo(int category,
   return vec;
 }
 
-std::vector<SourceInfo> SourceDBCasa::getPatchSources(const string& patchName) {
+std::vector<SourceInfo> SourceDBCasa::getPatchSources(
+    const std::string& patchName) {
   TableLocker lockerp(itsPatchTable, FileLocker::Read);
   TableLocker lockers(itsSourceTable, FileLocker::Read);
   Table table = itsPatchTable(itsPatchTable.col("PATCHNAME") ==
@@ -476,7 +477,7 @@ std::vector<SourceInfo> SourceDBCasa::getPatchSources(const string& patchName) {
 }
 
 std::vector<SourceData> SourceDBCasa::getPatchSourceData(
-    const string& patchName) {
+    const std::string& patchName) {
   std::vector<SourceInfo> info = getPatchSources(patchName);
   std::vector<SourceData> result;
   result.reserve(info.size());
@@ -491,7 +492,7 @@ std::vector<SourceData> SourceDBCasa::getPatchSourceData(
   return result;
 }
 
-SourceInfo SourceDBCasa::getSource(const string& sourceName) {
+SourceInfo SourceDBCasa::getSource(const std::string& sourceName) {
   TableLocker lockers(itsSourceTable, FileLocker::Read);
   Table table = itsSourceTable(itsSourceTable.col("SOURCENAME") ==
                                casacore::String(sourceName));
@@ -505,7 +506,7 @@ SourceInfo SourceDBCasa::getSource(const string& sourceName) {
   return readSources(table)[0];
 }
 
-std::vector<SourceInfo> SourceDBCasa::getSources(const string& pattern) {
+std::vector<SourceInfo> SourceDBCasa::getSources(const std::string& pattern) {
   TableLocker locker(itsSourceTable, FileLocker::Read);
   // Get the selection from the patch table.
   Regex regex(Regex::fromPattern(pattern));
@@ -616,7 +617,7 @@ void SourceDBCasa::getNextSource(SourceData& src) {
   ScalarColumn<unsigned int> patchIdCol(itsSourceTable, "PATCHID");
   src.setPatchName(patchNameCol(patchIdCol(itsRowNr[0])));
   // Read the other SourceData info from the default Parm values.
-  const string& srcName = src.getInfo().getName();
+  const std::string& srcName = src.getInfo().getName();
   // Fetch position.
   src.setRa(getDefaultParmValue("Ra:" + srcName));
   src.setDec(getDefaultParmValue("Dec:" + srcName));
@@ -660,7 +661,7 @@ void SourceDBCasa::getNextSource(SourceData& src) {
   itsRowNr[0]++;
 }
 
-double SourceDBCasa::getDefaultParmValue(const string& name) {
+double SourceDBCasa::getDefaultParmValue(const std::string& name) {
   ParmValueSet valueSet = getParmDB().getDefValue(name, ParmValue());
   assert(valueSet.empty() && valueSet.getType() == ParmValue::Scalar);
   const casacore::Array<double>& values =

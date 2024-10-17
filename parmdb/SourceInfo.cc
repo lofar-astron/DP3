@@ -18,8 +18,9 @@
 namespace dp3 {
 namespace parmdb {
 
-SourceInfo::SourceInfo(const string& name, Type type, const string& refType,
-                       bool useLogarithmicSI, unsigned int nSpectralTerms,
+SourceInfo::SourceInfo(const std::string& name, Type type,
+                       const std::string& refType, bool useLogarithmicSI,
+                       unsigned int nSpectralTerms,
                        double spectralTermsRefFreqHz, bool useRotationMeasure,
                        bool positionAngleIsAbsolute)
     : itsName(name),

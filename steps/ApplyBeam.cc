@@ -206,8 +206,8 @@ void ApplyBeamToDataAndAdd(
   }
 }
 
-ApplyBeam::ApplyBeam(const common::ParameterSet& parset, const string& prefix,
-                     bool substep)
+ApplyBeam::ApplyBeam(const common::ParameterSet& parset,
+                     const std::string& prefix, bool substep)
     : itsName(prefix),
       itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
       itsDirectionStr(parset.getStringVector(prefix + "direction",

@@ -15,7 +15,7 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-Counter::Counter(const common::ParameterSet& parset, const string& prefix)
+Counter::Counter(const common::ParameterSet& parset, const std::string& prefix)
     : name_(prefix),
       count_(0),
       save_to_json_(parset.getBool(prefix + "savetojson", false)),

@@ -63,7 +63,7 @@ class ParmDBCasa : public ParmDBRep {
   /// Put the values for the given parameter name and id.
   /// If it is a new value, the new rowid will be stored in the ParmValueSet.
   /// If it is a new name, the nameId will be filled in.
-  void putValues(const string& parmName, int& nameId,
+  void putValues(const std::string& parmName, int& nameId,
                  ParmValueSet& values) override;
 
   /// Delete the value records for the given parameters and domain.
@@ -76,7 +76,7 @@ class ParmDBCasa : public ParmDBRep {
                     const std::string& parmNamePattern) override;
 
   /// Put the default value.
-  void putDefValue(const string& name, const ParmValueSet& value,
+  void putDefValue(const std::string& name, const ParmValueSet& value,
                    bool check = true) override;
 
   /// Delete the default value records for the given parameters.
@@ -127,20 +127,21 @@ class ParmDBCasa : public ParmDBRep {
   ///@}
 
   /// Do the actual put of a value.
-  void doPutValue(const string& parmName, int& nameId, ParmValueSet& parmSet);
+  void doPutValue(const std::string& parmName, int& nameId,
+                  ParmValueSet& parmSet);
 
   /// Put the value for an existing parameter/domain.
   void putOldValue(const ParmValue& parmValue, ParmValue::FunkletType type);
 
   /// Put the value for a new parameter/domain.
-  void putNewValue(const string& name, int& nameId, ParmValueSet& parmSet,
+  void putNewValue(const std::string& name, int& nameId, ParmValueSet& parmSet,
                    ParmValue& parmValue, const Box& domain);
 
   /// Put an entry into the NAME table.
-  int putName(const string& name, const ParmValueSet& pset);
+  int putName(const std::string& name, const ParmValueSet& pset);
 
   /// Put the value for a new default parameter.
-  void putNewDefValue(const string& parmName, const ParmValueSet& value);
+  void putNewDefValue(const std::string& parmName, const ParmValueSet& value);
 
   /// Put the begin/end of an irregular axis.
   void putInterval(const Axis& axis, casacore::ArrayColumn<double>& col,

@@ -87,7 +87,7 @@ static PointSource::Ptr MakePointSource(const SourceData& src) {
 }
 
 std::vector<std::shared_ptr<Patch>> makePatches(
-    parmdb::SourceDB& sourceDB, const std::vector<string>& patchNames,
+    parmdb::SourceDB& sourceDB, const std::vector<std::string>& patchNames,
     unsigned int nModel) {
   // Create a component list for each patch name.
   std::vector<std::vector<std::shared_ptr<ModelComponent>>> componentsList(
@@ -264,26 +264,26 @@ std::vector<std::shared_ptr<Patch>> clusterProximateSources(
   return clusteredPatchList;
 }
 
-std::vector<string> makePatchList(parmdb::SourceDB& sourceDB,
-                                  std::vector<string> patterns) {
+std::vector<std::string> makePatchList(parmdb::SourceDB& sourceDB,
+                                       std::vector<std::string> patterns) {
   if (patterns.empty()) {
     patterns.push_back("*");
   }
 
-  std::set<string> patches;
-  std::vector<string>::iterator it = patterns.begin();
+  std::set<std::string> patches;
+  std::vector<std::string>::iterator it = patterns.begin();
   while (it != patterns.end()) {
     if (!it->empty() && (*it)[0] == '@') {
       patches.insert(*it);
       it = patterns.erase(it);
     } else {
-      std::vector<string> match(sourceDB.getPatches(-1, *it));
+      std::vector<std::string> match(sourceDB.getPatches(-1, *it));
       patches.insert(match.begin(), match.end());
       ++it;
     }
   }
 
-  return std::vector<string>(patches.begin(), patches.end());
+  return std::vector<std::string>(patches.begin(), patches.end());
 }
 
 std::vector<std::string> MakePatchList(
@@ -331,7 +331,7 @@ std::vector<std::vector<std::string>> MakeDirectionList(
 }
 
 bool checkPolarized(parmdb::SourceDB& sourceDB,
-                    const std::vector<string>& patchNames,
+                    const std::vector<std::string>& patchNames,
                     unsigned int nModel) {
   bool polarized = false;
 
@@ -372,7 +372,7 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
 }
 
 bool CheckAnyOrientationIsAbsolute(parmdb::SourceDB& source_db,
-                                   const std::vector<string>& patch_names,
+                                   const std::vector<std::string>& patch_names,
                                    unsigned int n_model) {
   // Loop over all sources.
   const std::lock_guard<parmdb::SourceDB> lock{source_db};

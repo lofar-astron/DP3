@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     }
 
     string parsetName;
-    if (argc > 1 && string(argv[1]).find('=') == string::npos) {
+    if (argc > 1 && string(argv[1]).find('=') == std::string::npos) {
       // First argument is parset name (except if it's a key-value pair)
       parsetName = argv[1];
     } else if (argc == 1) {

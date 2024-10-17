@@ -56,22 +56,22 @@ class SourceDBRep {
   virtual void checkDuplicates() = 0;
 
   /// Find non-unique patch names.
-  virtual std::vector<string> findDuplicatePatches() = 0;
+  virtual std::vector<std::string> findDuplicatePatches() = 0;
 
   /// Find non-unique source names.
-  virtual std::vector<string> findDuplicateSources() = 0;
+  virtual std::vector<std::string> findDuplicateSources() = 0;
 
   /// Test if the patch already exists.
-  virtual bool patchExists(const string& patchName) = 0;
+  virtual bool patchExists(const std::string& patchName) = 0;
 
   /// Test if the source already exists.
-  virtual bool sourceExists(const string& sourceName) = 0;
+  virtual bool sourceExists(const std::string& sourceName) = 0;
 
   /// Add a patch and return its patchId.
   /// Nomally ra and dec should be filled in, but for moving patches
   /// (e.g. sun) this is not needed.
   /// <br>Optionally it is checked if the patch already exists.
-  virtual unsigned int addPatch(const string& patchName, int catType,
+  virtual unsigned int addPatch(const std::string& patchName, int catType,
                                 double apparentBrightness, double ra,
                                 double dec, bool check) = 0;
 
@@ -87,7 +87,8 @@ class SourceDBRep {
   /// Missing parameters will default to 0.
   /// <br>Optionally it is checked if the source already exists.
   ///@{
-  virtual void addSource(const SourceInfo& sourceInfo, const string& patchName,
+  virtual void addSource(const SourceInfo& sourceInfo,
+                         const std::string& patchName,
                          const ParmMap& defaultParameters, double ra,
                          double dec, bool check) = 0;
   virtual void addSource(const SourceData& source, bool check) = 0;
@@ -95,36 +96,39 @@ class SourceDBRep {
 
   /// Add a source which forms a patch in itself (with the same name).
   /// <br>Optionally it is checked if the patch or source already exists.
-  virtual void addSource(const SourceInfo& sourceInfo, const string& patchName,
-                         int catType, double apparentBrightness,
+  virtual void addSource(const SourceInfo& sourceInfo,
+                         const std::string& patchName, int catType,
+                         double apparentBrightness,
                          const ParmMap& defaultParameters, double ra,
                          double dec, bool check) = 0;
 
   /// Get patch names in order of category and decreasing apparent flux.
   /// category < 0 means all categories.
   /// A brightness < 0 means no test on brightness.
-  virtual std::vector<string> getPatches(int category, const string& pattern,
-                                         double minBrightness,
-                                         double maxBrightness) = 0;
+  virtual std::vector<std::string> getPatches(int category,
+                                              const std::string& pattern,
+                                              double minBrightness,
+                                              double maxBrightness) = 0;
 
   /// Get the info of selected patches (default all patches).
   virtual std::vector<PatchInfo> getPatchInfo(int category,
-                                              const string& pattern,
+                                              const std::string& pattern,
                                               double minBrightness,
                                               double maxBrightness) = 0;
 
   /// Get the sources belonging to the given patch.
-  virtual std::vector<SourceInfo> getPatchSources(const string& patchName) = 0;
+  virtual std::vector<SourceInfo> getPatchSources(
+      const std::string& patchName) = 0;
 
   /// Get all data of the sources belonging to the given patch.
   virtual std::vector<SourceData> getPatchSourceData(
-      const string& patchName) = 0;
+      const std::string& patchName) = 0;
 
   /// Get the source type of the given source.
-  virtual SourceInfo getSource(const string& sourceName) = 0;
+  virtual SourceInfo getSource(const std::string& sourceName) = 0;
 
   /// Get the info of all sources matching the given (filename like) pattern.
-  virtual std::vector<SourceInfo> getSources(const string& pattern) = 0;
+  virtual std::vector<SourceInfo> getSources(const std::string& pattern) = 0;
 
   /// Delete the sources records matching the given (filename like) pattern.
   virtual void deleteSources(const std::string& sourceNamePattern) = 0;
@@ -163,13 +167,13 @@ class SourceDBBase {
   /// use a default of 0 for missing ones.
   ///@{
   virtual void addSource(const SourceInfo& source_info,
-                         const string& patch_name, int cat_type,
+                         const std::string& patch_name, int cat_type,
                          double apparent_brightness,
                          const ParmMap& default_parameters, double ra,
                          double dec, bool check) = 0;
 
   virtual void addSource(const SourceInfo& source_info,
-                         const string& patch_name,
+                         const std::string& patch_name,
                          const ParmMap& default_parameters, double ra,
                          double dec, bool check) = 0;
   ///@}
@@ -177,7 +181,7 @@ class SourceDBBase {
   /// Add a patch and return its patch_id.
   ///
   /// Optionally it is checked if the patch already exists.
-  virtual unsigned addPatch(const string& patch_name, int cat_type,
+  virtual unsigned addPatch(const std::string& patch_name, int cat_type,
                             double apparent_brightness, double ra, double dec,
                             bool check) = 0;
 
@@ -221,22 +225,22 @@ class SourceDB final : public SourceDBBase {
   void checkDuplicates() const { itsRep->checkDuplicates(); }
 
   /// Find non-unique patch names.
-  std::vector<string> findDuplicatePatches() const {
+  std::vector<std::string> findDuplicatePatches() const {
     return itsRep->findDuplicatePatches();
   }
 
   /// Find non-unique source names.
-  std::vector<string> findDuplicateSources() const {
+  std::vector<std::string> findDuplicateSources() const {
     return itsRep->findDuplicateSources();
   }
 
   /// Test if the patch already exists.
-  bool patchExists(const string& patchName) const {
+  bool patchExists(const std::string& patchName) const {
     return itsRep->patchExists(patchName);
   }
 
   /// Test if the source already exists.
-  bool sourceExists(const string& sourceName) const {
+  bool sourceExists(const std::string& sourceName) const {
     return itsRep->sourceExists(sourceName);
   }
 
@@ -244,7 +248,7 @@ class SourceDB final : public SourceDBBase {
   /// Normally ra and dec should be filled in, but for moving patches
   /// (e.g. sun) this is not needed.
   /// <br>Optionally it is checked if the patch already exists.
-  unsigned int addPatch(const string& patchName, int catType,
+  unsigned int addPatch(const std::string& patchName, int catType,
                         double apparentBrightness, double ra, double dec,
                         bool check) override {
     return itsRep->addPatch(patchName, catType, apparentBrightness, ra, dec,
@@ -265,7 +269,7 @@ class SourceDB final : public SourceDBBase {
   /// Not all parameters need to be present. The ParmDB classes will
   /// use a default of 0 for missing ones.
   ///@{
-  void addSource(const SourceInfo& sourceInfo, const string& patchName,
+  void addSource(const SourceInfo& sourceInfo, const std::string& patchName,
                  const ParmMap& defaultParameters, double ra, double dec,
                  bool check) override {
     itsRep->addSource(sourceInfo, patchName, defaultParameters, ra, dec, check);
@@ -276,7 +280,7 @@ class SourceDB final : public SourceDBBase {
   ///@}
 
   /// Add a source which forms a patch in itself (with the same name).
-  void addSource(const SourceInfo& sourceInfo, const string& patchName,
+  void addSource(const SourceInfo& sourceInfo, const std::string& patchName,
                  int catType, double apparentBrightness,
                  const ParmMap& defaultParameters, double ra, double dec,
                  bool check) override {
@@ -287,39 +291,39 @@ class SourceDB final : public SourceDBBase {
   /// Get patch names in order of category and decreasing apparent flux.
   /// category < 0 means all categories.
   /// A brightness < 0 means no test on brightness.
-  std::vector<string> getPatches(int category = -1,
-                                 const string& pattern = string(),
-                                 double minBrightness = -1,
-                                 double maxBrightness = -1) const {
+  std::vector<std::string> getPatches(
+      int category = -1, const std::string& pattern = std::string(),
+      double minBrightness = -1, double maxBrightness = -1) const {
     return itsRep->getPatches(category, pattern, minBrightness, maxBrightness);
   }
 
   /// Get the info of all patches (name, ra, dec).
-  std::vector<PatchInfo> getPatchInfo(int category = -1,
-                                      const string& pattern = string(),
-                                      double minBrightness = -1,
-                                      double maxBrightness = -1) const {
+  std::vector<PatchInfo> getPatchInfo(
+      int category = -1, const std::string& pattern = std::string(),
+      double minBrightness = -1, double maxBrightness = -1) const {
     return itsRep->getPatchInfo(category, pattern, minBrightness,
                                 maxBrightness);
   }
 
   /// Get the info of the sources belonging to the given patch.
-  std::vector<SourceInfo> getPatchSources(const string& patchName) const {
+  std::vector<SourceInfo> getPatchSources(const std::string& patchName) const {
     return itsRep->getPatchSources(patchName);
   }
 
   /// Get all data of the sources belonging to the given patch.
-  std::vector<SourceData> getPatchSourceData(const string& patchName) const {
+  std::vector<SourceData> getPatchSourceData(
+      const std::string& patchName) const {
     return itsRep->getPatchSourceData(patchName);
   }
 
   /// Get the source info of the given source.
-  SourceInfo getSource(const string& sourceName) const {
+  SourceInfo getSource(const std::string& sourceName) const {
     return itsRep->getSource(sourceName);
   }
 
   /// Get the info of all sources matching the given (filename like) pattern.
-  std::vector<SourceInfo> getSources(const string& sourceNamePattern) const {
+  std::vector<SourceInfo> getSources(
+      const std::string& sourceNamePattern) const {
     return itsRep->getSources(sourceNamePattern);
   }
 

@@ -84,7 +84,7 @@ class TestInput : public dp3::steps::MockInput {
         }
       }
     }
-    vector<string> antNames(nant);
+    vector<std::string> antNames(nant);
     vector<casacore::MPosition> antPos(nant);
     vector<double> antDiam(nant, 70.0);
     info().setAntennas(antNames, antDiam, antPos, ant1, ant2);

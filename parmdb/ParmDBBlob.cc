@@ -10,7 +10,7 @@ using namespace std;
 namespace dp3 {
 namespace parmdb {
 
-ParmDBBlob::ParmDBBlob(const string&, bool) {}
+ParmDBBlob::ParmDBBlob(const std::string&, bool) {}
 
 ParmDBBlob::~ParmDBBlob() {}
 
@@ -30,7 +30,7 @@ int ParmDBBlob::getNameId(const std::string&) {
   throw std::runtime_error("ParmDBBlob not implemented");
 }
 
-Box ParmDBBlob::getRange(const string&) const {
+Box ParmDBBlob::getRange(const std::string&) const {
   throw std::runtime_error("ParmDBBlob not implemented");
 }
 
@@ -63,7 +63,7 @@ void ParmDBBlob::deleteDefValues(const std::string&) {
   throw std::runtime_error("ParmDBBlob not implemented");
 }
 
-vector<string> ParmDBBlob::getNames(const std::string&) {
+vector<std::string> ParmDBBlob::getNames(const std::string&) {
   throw std::runtime_error("ParmDBBlob not implemented");
 }
 

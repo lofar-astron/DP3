@@ -88,7 +88,7 @@ class ApplyBeam final : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  ApplyBeam(const common::ParameterSet&, const string& prefix,
+  ApplyBeam(const common::ParameterSet&, const std::string& prefix,
             bool substep = false);
 
   common::Fields getRequiredFields() const override {
@@ -165,7 +165,7 @@ class ApplyBeam final : public Step {
   string itsName;
   bool itsInvert;
   bool itsUpdateWeights;
-  std::vector<string> itsDirectionStr;
+  std::vector<std::string> itsDirectionStr;
   casacore::MDirection itsDirection;
   bool itsUseChannelFreq;
   std::vector<std::string> itsSkipStationNames;

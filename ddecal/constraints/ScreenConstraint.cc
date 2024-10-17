@@ -14,7 +14,7 @@ namespace dp3 {
 namespace ddecal {
 
 ScreenConstraint::ScreenConstraint(const common::ParameterSet& parset,
-                                   const string& prefix)
+                                   const std::string& prefix)
     : current_time_(0), iteration_(0) {
   beta_ = parset.getDouble(prefix + "beta", 5. / 3.);
   height_ = parset.getDouble(prefix + "height", 400e3);

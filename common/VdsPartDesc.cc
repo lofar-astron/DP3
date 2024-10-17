@@ -112,9 +112,9 @@ void VdsPartDesc::setName(const std::string& name, const std::string& fileSys) {
   itsFileSys = fileSys;
 }
 
-void VdsPartDesc::changeBaseName(const string& newBaseName) {
-  string::size_type pos = itsName.rfind('/');
-  if (pos == string::npos) {
+void VdsPartDesc::changeBaseName(const std::string& newBaseName) {
+  std::string::size_type pos = itsName.rfind('/');
+  if (pos == std::string::npos) {
     itsName = newBaseName;
   } else {
     itsName = itsName.substr(0, pos + 1) + newBaseName;
