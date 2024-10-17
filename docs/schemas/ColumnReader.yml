@@ -4,4 +4,4 @@ inputs:
   column:
     default: "MODEL_DATA"
     type: string
-    doc: Name of the column to read `.`
+    doc: Name of the column to read.

@@ -9,8 +9,8 @@ description: >-
 inputs:
   type:
     type: string
-    doc: Case-insensitive step type; must be 'interpolate' `.`
+    doc: Case-insensitive step type; must be 'interpolate'.
   windowsize:
     default: 15
     type: int
-    doc: Size of the window over which a value is interpolated. Should be odd `.`
+    doc: Size of the window over which a value is interpolated. Should be odd.

@@ -1,48 +1,48 @@
 description: >-
-  Simulate visibilities for a given sky model `.`
+  Simulate visibilities for a given sky model.
 inputs:
   type:
     type: string
-    doc: Case-insensitive step type; must be 'predict' `.`
+    doc: Case-insensitive step type; must be 'predict'.
   sourcedb:
     type: string
-    doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb) `.` When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.  The sourcedb format is described at https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb . In DP3 v5.3 a change was introduced to fix the projection of Gaussian sources. For backward compatibility, also the old behavior is still supported, using the key ``OrientationIsAbsolute`` in the sky model. To make sure you use the new (and most correct) behavior, add ``OrientationIsAbsolute=true`` to your sky models `.`
+    doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb). When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.  The sourcedb format is described at https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb . In DP3 v5.3 a change was introduced to fix the projection of Gaussian sources. For backward compatibility, also the old behavior is still supported, using the key ``OrientationIsAbsolute`` in the sky model. To make sure you use the new (and most correct) behavior, add ``OrientationIsAbsolute=true`` to your sky models.
   sources:
     default: "[]"
     type: array
-    doc: Patches to use in the predict step of the calibration `.`
+    doc: Patches to use in the predict step of the calibration.
   usebeammodel:
     default: false
     type: bool
-    doc: Use the beam model in the predict part of the calibration `.`
+    doc: Use the beam model in the predict part of the calibration.
   elementmodel:
     default: hamaker
     type: enum
     symbols: hamaker, lobes, oskar, oskardipole
-    doc: Specifies which beam model to use `.`
+    doc: Specifies which beam model to use.
   operation:
     default: replace
     type: string
-    doc: Should the predicted visibilities be output as is (``replace``, default), should they be subtracted from the input visibilities (``subtract``) or added to them (``add``) `.`
+    doc: Should the predicted visibilities be output as is (``replace``, default), should they be subtracted from the input visibilities (``subtract``) or added to them (``add``).
   outputmodelname:
     default: "\"\""
     type: string
-    doc: Name for writing the predicted visibilities in the output DPBuffer. If empty (default), write the output in the main/default visibility buffer, thereby replacing the input visibilities. Otherwise, write the output to an extra (model) data buffer in the output DPBuffer with the given name `.` 
+    doc: Name for writing the predicted visibilities in the output DPBuffer. If empty (default), write the output in the main/default visibility buffer, thereby replacing the input visibilities. Otherwise, write the output to an extra (model) data buffer in the output DPBuffer with the given name. 
   applycal&#46;*:
-    doc: Set of options for applycal to apply to this predict. For this applycal-substep, .invert is off by default, so the predicted visibilities will be corrupted with the parmdb `.`
+    doc: Set of options for applycal to apply to this predict. For this applycal-substep, .invert is off by default, so the predicted visibilities will be corrupted with the parmdb.
   beamproximitylimit:
     type: float
-    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step.
   onebeamperpatch:
     type: boolean
-    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step.
   usechannelfreq:
     type: boolean
-    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step.
   beammode:
     type: enum
     symbols: array_factor, element, default
-    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step.
   beam_interval:
     type: double
     default: 0
@@ -51,7 +51,7 @@ inputs:
       of 120 would start by evaluating the beam 60 seconds ahead in time, and reuse this beam for all the
       next timesteps until the timestep that is 120 seconds removed from the start. Because beam evaluation is
       relatively expensive, this speeds up processing. A value of 120 seems a good value that improves speed
-      considerably, without affecting accuracy `.`
+      considerably, without affecting accuracy.
   correcttimesmearing:
     type: int
     default: 1
@@ -62,9 +62,9 @@ inputs:
       A value of 0 or 1 disables time smearing.
   correctfreqsmearing:
     type: boolean
-    doc: Simulate frequency smearing based on the channel width, by multiplying the visibility with a sinc function `.`
+    doc: Simulate frequency smearing based on the channel width, by multiplying the visibility with a sinc function.
     default: false
   parallelbaselines:
     type: boolean
-    doc: Parallelize sky model prediction over baselines instead of sources. Will speed up performance in certain cases `.`
+    doc: Parallelize sky model prediction over baselines instead of sources. Will speed up performance in certain cases.
     default: false

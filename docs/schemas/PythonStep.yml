@@ -22,7 +22,7 @@ description: |-
 inputs:
   type:
     type: string
-    doc: Case-insensitive step type; must be :code:`python` or :code:`pythondppp` `.`
+    doc: Case-insensitive step type; must be :code:`python` or :code:`pythondppp`.
   python&#46;module:
     type: string
     doc: Name of the module where the python code lives. Typically this is the file name of the python code, which should be in the python path. E.g. if your code is in :code:`mockpystep.py` in the working directory, set :code:`module` to :code:`mockpystep`.

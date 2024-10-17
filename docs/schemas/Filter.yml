@@ -3,11 +3,11 @@ description: >-
 inputs:
   step_name:
     type: string
-    doc: unique name for the step `.`
+    doc: unique name for the step.
     default: filter
   type:
     type: string
-    doc: Case-insensitive step type; must be 'filter' `.`
+    doc: Case-insensitive step type; must be 'filter'.
     default: filter
   startchan:
     default: 0
@@ -39,7 +39,7 @@ inputs:
     default: '""'
     type: string
     doc: >-
-      Correlation type to match? Must be auto, cross, or an empty string `.` 
+      Correlation type to match? Must be auto, cross, or an empty string. 
   remove:
     default: false
     type: boolean
@@ -51,5 +51,5 @@ inputs:
       LOFAR_ELEMENT_FAILURE, and QUALITY_BASELINE_STATISTIC) will also 
       be updated. Note that stations filtered previously (e.g. using 
       msselect) will also be removed, even if no baseline selection is 
-      done in the filter step `.`
+      done in the filter step.
 

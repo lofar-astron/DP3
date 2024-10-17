@@ -5,11 +5,11 @@ description: >-
 inputs:
   step_name:
     type: string
-    doc: unique name for the step `.`
+    doc: unique name for the step.
     default: madflagger
   type:
     type: string
-    doc: Case-insensitive step type; must be 'madflagger' (or 'madflag') `.`
+    doc: Case-insensitive step type; must be 'madflagger' (or 'madflag').
     default: madflagger
   count&#46;save:
     default: false
@@ -17,13 +17,13 @@ inputs:
     doc: >-
       If true, the flag percentages per frequency are saved to a table with 
       extension ``.flagfreq`` and percentages per station to a table with extension ``.flagstat``. 
-      The basename of the table is the MS name (without extension) followed by the stepname and extension `.`    
+      The basename of the table is the MS name (without extension) followed by the stepname and extension.    
   count&#46;path:
     default: "\"\""
     type: string
     doc: >-
       The directory where to create the flag 
-      percentages table. If empty, the path of the input MS is used `.` 
+      percentages table. If empty, the path of the input MS is used. 
   threshold:
     default: 1
     type: float
@@ -72,7 +72,7 @@ inputs:
       The resulting flags are applied to the cross-correlations, thus data 
       are flagged where the corresponding auto-correlations are flagged.
       An error is given if set to True, while the MS does not contain 
-      auto-correlations `.` 
+      auto-correlations. 
 
   blmin:
     default: -1
@@ -86,5 +86,5 @@ inputs:
     default: 1e30
     type: integer
     doc: >-
-      Maximum baseline length (in meters). It is similar to minimum `.` 
+      Maximum baseline length (in meters). It is similar to minimum. 
 

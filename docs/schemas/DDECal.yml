@@ -3,10 +3,10 @@ description: >-
 inputs:
   type:
     type: string
-    doc: Case-insensitive step type; must be 'ddecal' `.`
+    doc: Case-insensitive step type; must be 'ddecal'.
   sourcedb:
     type: string
-    doc: Sourcedb (created with `makesourcedb`) with the sky model to calibrate on `.` When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.
+    doc: Sourcedb (created with `makesourcedb`) with the sky model to calibrate on. When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.
   directions:
     default: "[]"
     type: list
@@ -15,7 +15,7 @@ inputs:
   modeldatacolumns:
     default: "[]"
     type: list
-    doc: Use model data from the measurement set. All directions from this parameter will be pointing to the measurement set metadata `.`
+    doc: Use model data from the measurement set. All directions from this parameter will be pointing to the measurement set metadata.
   reusemodel:
     default: "[]"
     type: list
@@ -24,129 +24,129 @@ inputs:
   maxiter:
     default: 50
     type: int
-    doc: Maximum number of iterations `.`
+    doc: Maximum number of iterations.
   detectstalling:
     default: true
     type: bool
-    doc: Stop iterating when no improvement is measured anymore (after a minimum of 30 iterations) `.`
+    doc: Stop iterating when no improvement is measured anymore (after a minimum of 30 iterations).
   stepsigma:
     default: 0.1
     type: double
-    doc: Threshold for stalling detection, stop iterating when the running mean of the step sizes is less than stepsigma times their running standard deviation, i.e., the step size is just noise `.`
+    doc: Threshold for stalling detection, stop iterating when the running mean of the step sizes is less than stepsigma times their running standard deviation, i.e., the step size is just noise.
   stepsize:
     default: 0.2
     type: double
-    doc: stepsize between iterations `.`
+    doc: stepsize between iterations.
   h5parm:
     type: string
-    doc: Filename of output H5Parm. If empty, defaults to `instrument.h5` within the measurement set `.`
+    doc: Filename of output H5Parm. If empty, defaults to `instrument.h5` within the measurement set.
   solint:
     default: 1
     type: int
-    doc: Solution interval in timesteps. If a value of 0 is specified, the solver will use a single solution interval that covers the entire observation. When using BDA, the solint should be bigger than or equal to the maximum averaged time interval `.`
+    doc: Solution interval in timesteps. If a value of 0 is specified, the solver will use a single solution interval that covers the entire observation. When using BDA, the solint should be bigger than or equal to the maximum averaged time interval.
   datause:
     default: full
     type: string
     doc: >-
-      Selects what part of the data to use: full, dual or single. When full is selected, the full visibility matrix is used (e.g. XX, XY, YX, YY). With dual, only the diagonal entries (e.g. XX and YY) of the visibility matrix are used, off-diagonal values (e.g. YX and XY) are not used. This makes the solver faster and decreases its memory requirements, and can be used in situations where the off-diagonal visibility values do not contribute much. Dual visibility solving is currently only implemented for the iterative algorithm (scalar or diagonal). Nomenclature of duo and dual is used for this feature to distinguish from the solution form (e.g. diagonal, full-Jones). With single, the diagonal is averaged together to a single (Stokes I) visibility. This is only implemented for the scalar iterative solver `.`
+      Selects what part of the data to use: full, dual or single. When full is selected, the full visibility matrix is used (e.g. XX, XY, YX, YY). With dual, only the diagonal entries (e.g. XX and YY) of the visibility matrix are used, off-diagonal values (e.g. YX and XY) are not used. This makes the solver faster and decreases its memory requirements, and can be used in situations where the off-diagonal visibility values do not contribute much. Dual visibility solving is currently only implemented for the iterative algorithm (scalar or diagonal). Nomenclature of duo and dual is used for this feature to distinguish from the solution form (e.g. diagonal, full-Jones). With single, the diagonal is averaged together to a single (Stokes I) visibility. This is only implemented for the scalar iterative solver.
   solutions_per_direction:
     default: "[1,1,...,1]"
     type: list
-    doc: List of number of subsolutions per solution interval per direction. Defaults to a single solution per solution interval per direction. Entries in provided list should be integer divisors of solint. If not all directions are specified, missing directions are solved with one solution per solution interval. Direction-dependent intervals are only supported when solveralgorithm is set to directioniterative `.`
+    doc: List of number of subsolutions per solution interval per direction. Defaults to a single solution per solution interval per direction. Entries in provided list should be integer divisors of solint. If not all directions are specified, missing directions are solved with one solution per solution interval. Direction-dependent intervals are only supported when solveralgorithm is set to directioniterative.
   usebeammodel:
     default: false
     type: bool
-    doc: use the beam model. All beam-related options of the Predict step are also valid `.`
+    doc: use the beam model. All beam-related options of the Predict step are also valid.
   mode:
     default: diagonal
     type: string
-    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation and rotation+diagonal `.`
+    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation and rotation+diagonal.
   tolerance:
     default: 1e-5
     type: double
     doc: >-
-      Controls the accuracy to be reached: when the normalized solutions move less than this value, the solutions are considered to be converged and the algorithm finishes. Lower values will cause more iterations to be performed `.`
+      Controls the accuracy to be reached: when the normalized solutions move less than this value, the solutions are considered to be converged and the algorithm finishes. Lower values will cause more iterations to be performed.
   minvisratio:
     default: 0
     type: double
-    doc: Minimum number of visibilities within a solution interval, e.g. 0.6 for at least 60% unflagged vis. Intervals with fewer vis will be flagged `.`
+    doc: Minimum number of visibilities within a solution interval, e.g. 0.6 for at least 60% unflagged vis. Intervals with fewer vis will be flagged.
   propagatesolutions:
     default: false
     type: bool
-    doc: Initialize solver with the solutions of the previous time slot `.`
+    doc: Initialize solver with the solutions of the previous time slot.
   propagateconvergedonly:
     default: false
     type: bool
-    doc: Propagate solutions of the previous time slot only if the solve converged. Only effective when propagatesolutions=true `.`
+    doc: Propagate solutions of the previous time slot only if the solve converged. Only effective when propagatesolutions=true.
   flagunconverged:
     default: false
     type: bool
-    doc: Flag unconverged solutions (i.e., those from solves that did not converge within maxiter iterations) `.`
+    doc: Flag unconverged solutions (i.e., those from solves that did not converge within maxiter iterations).
   flagdivergedonly:
     default: false
     type: bool
-    doc: Flag only the unconverged solutions for which divergence was detected. At the moment, this option is effective only for rotation+diagonal solves, where divergence is detected when the amplitudes of any station are found to be more than a factor of 5 from the mean amplitude over all stations. If divergence for any one station is detected, all stations are flagged for that solution interval. Only effective when ``flagunconverged=true`` and ``mode=rotation+diagonal`` `.`
+    doc: Flag only the unconverged solutions for which divergence was detected. At the moment, this option is effective only for rotation+diagonal solves, where divergence is detected when the amplitudes of any station are found to be more than a factor of 5 from the mean amplitude over all stations. If divergence for any one station is detected, all stations are flagged for that solution interval. Only effective when ``flagunconverged=true`` and ``mode=rotation+diagonal``.
   approximatetec:
     default: false
     type: bool
-    doc: Uses an approximation stage in which the phases are constrained with the piece-wise fitter, to solve local minima problems. Only effective when ``mode=tec`` or ``mode=tecandphase`` `.`
+    doc: Uses an approximation stage in which the phases are constrained with the piece-wise fitter, to solve local minima problems. Only effective when ``mode=tec`` or ``mode=tecandphase``.
   maxapproxiter:
     default: maxiter/2
     type: int
-    doc: Maximum number of iterations during approximating stage `.`
+    doc: Maximum number of iterations during approximating stage.
   approxchunksize:
     default: 0
     type: int
-    doc: Size of fitted chunksize during approximation stage in nr of channels. With approxchunksize=1 the constraint is disabled during the approx stage (so channels are solved for independently). Once converged, the solutions are constrained and more iterations are performed until that has converged too. The default is approxchunksize=0, which calculates the chunksize from the bandwidth (resulting in 10 chunks per octave of bandwidth) `.`
+    doc: Size of fitted chunksize during approximation stage in nr of channels. With approxchunksize=1 the constraint is disabled during the approx stage (so channels are solved for independently). Once converged, the solutions are constrained and more iterations are performed until that has converged too. The default is approxchunksize=0, which calculates the chunksize from the bandwidth (resulting in 10 chunks per octave of bandwidth).
   approxtolerance:
     default: tolerance*10
     type: double
-    doc: Tolerance at which the approximating first stage is considered to be converged and the second full-constraining stage is started. The second stage convergences when the tolerance set by the 'tolerance' keyword is reached. Setting approxtolerance to lower values will cause more approximating iterations. Since tolerance is by default 1e-5, approxtolerance is by default 1e-4 `.`
+    doc: Tolerance at which the approximating first stage is considered to be converged and the second full-constraining stage is started. The second stage convergences when the tolerance set by the 'tolerance' keyword is reached. Setting approxtolerance to lower values will cause more approximating iterations. Since tolerance is by default 1e-5, approxtolerance is by default 1e-4.
   nchan:
     default: 1
     type: int
-    doc: Number of channels in each channel block, for which the solution is assumed to be constant. The default is 1, meaning one solution per channel (or in the case of constraints, fitting the constraint over all channels individually). 0 means one solution for the whole channel range. If the total number of channels is not divisable by nchan, some channelblocks will become slightly larger. When using BDA, the value of nchan should be bigger than or equal to the maximum number of averaged frequency channels `.`
+    doc: Number of channels in each channel block, for which the solution is assumed to be constant. The default is 1, meaning one solution per channel (or in the case of constraints, fitting the constraint over all channels individually). 0 means one solution for the whole channel range. If the total number of channels is not divisable by nchan, some channelblocks will become slightly larger. When using BDA, the value of nchan should be bigger than or equal to the maximum number of averaged frequency channels.
   coreconstraint:
     default: 0
     type: double
-    doc: Distance in meters. When unequal to 0, all stations within the given distance from the reference station (0) will be constrained to have the same solution `.`
+    doc: Distance in meters. When unequal to 0, all stations within the given distance from the reference station (0) will be constrained to have the same solution.
   antennaconstraint:
     default: "[]"
     type: list
     doc: >-
-      A list of lists specifying groups of antennas that are to be constrained to have the same solution. Example: "[ [CS002HBA0,CS002HBA1],[CS003HBA0,CS003HBA1] ]" will keep the solutions of CS002HBA0 and 1 the same, and the same for CS003 `.`
+      A list of lists specifying groups of antennas that are to be constrained to have the same solution. Example: "[ [CS002HBA0,CS002HBA1],[CS003HBA0,CS003HBA1] ]" will keep the solutions of CS002HBA0 and 1 the same, and the same for CS003.
   smoothnessconstraint:
     default: 0.0
     type: double
-    doc: Kernel size in Hz. When unequal to 0, will constrain the solutions to be smooth over frequency by convolving the solutions with a kernel of the given size (bandwidth). The default kernel is a Gaussian kernel, and the kernel size parameter is the 3 sigma point from the centre where the kernel is cut off. For example, with a kernel size of 2 MHz and with 1 MHz channels, the kernel will cover 2 channels on both side from the centre, and therefore 5 channels in total `.`
+    doc: Kernel size in Hz. When unequal to 0, will constrain the solutions to be smooth over frequency by convolving the solutions with a kernel of the given size (bandwidth). The default kernel is a Gaussian kernel, and the kernel size parameter is the 3 sigma point from the centre where the kernel is cut off. For example, with a kernel size of 2 MHz and with 1 MHz channels, the kernel will cover 2 channels on both side from the centre, and therefore 5 channels in total.
   smoothnessreffrequency:
     default: 0.0
     type: double
     doc: >-
-      An optional reference frequency (in Hz) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary over frequency by a factor of "(smoothnessreffrequency / frequency) ^ smoothnessspectralexponent". Normally, the exponent < 0 and the kernel will be smaller for lower frequencies. This compensates for the fact that the ionosphere causes larger fluctuations at lower frequencies `.`
+      An optional reference frequency (in Hz) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary over frequency by a factor of "(smoothnessreffrequency / frequency) ^ smoothnessspectralexponent". Normally, the exponent < 0 and the kernel will be smaller for lower frequencies. This compensates for the fact that the ionosphere causes larger fluctuations at lower frequencies.
   smoothnessspectralexponent:
     default: -1.0
     type: double
     doc: >-
-      The exponent term that scales the kernel size in relation to the frequency. See smoothnessreffrequency: smoothnessspectralexponent only has an effect when smoothnessreffrequency is set to a nonzero value. A value of -1 assumes a TEC 1/nu relationship.  `.`
+      The exponent term that scales the kernel size in relation to the frequency. See smoothnessreffrequency: smoothnessspectralexponent only has an effect when smoothnessreffrequency is set to a nonzero value. A value of -1 assumes a TEC 1/nu relationship..
   smoothnessrefdistance:
     default: 0.0
     type: double
     doc: >-
-      An optional reference distance (in meters) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary, such that antennas (stations for LOFAR) closer to antenna 0 will be smoothed stronger, i.e. with a larger kernel size. `.`
+      An optional reference distance (in meters) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary, such that antennas (stations for LOFAR) closer to antenna 0 will be smoothed stronger, i.e. with a larger kernel size..
   statfilename:
     type: string
     doc: >-
-      File to write the step-sizes to. Form of the file is: "<iterationnr> <normalized-stepsize> <unnormalized-stepsize>", and all solution intervals are concatenated. File is not written when this parameter is empty `.`
+      File to write the step-sizes to. Form of the file is: "<iterationnr> <normalized-stepsize> <unnormalized-stepsize>", and all solution intervals are concatenated. File is not written when this parameter is empty.
   uvlambdamin:
     default: 0
     type: double
     doc: >-
-      Ignore baselines / channels with UV < uvlambdamin wavelengths. **Note**: also all other variants of uv flagging described in :ref:`UVWFlagger` (uvmmin, uvmrange, uvlambdarange, etc) are supported `.`
+      Ignore baselines / channels with UV < uvlambdamin wavelengths. **Note**: also all other variants of uv flagging described in :ref:`UVWFlagger` (uvmmin, uvmrange, uvlambdarange, etc) are supported.
   subtract:
     default: false
     type: bool
-    doc: Subtracts the corrected model from the data. **NOTE** This may not work when you apply a uv-cut `.`
+    doc: Subtracts the corrected model from the data. **NOTE** This may not work when you apply a uv-cut.
   keepmodel:
     default: false
     type: bool
@@ -155,15 +155,15 @@ inputs:
   idg&#46;images:
     default: "[]"
     type: list
-    doc: Filename of ``.fits`` model images, one per frequency term. The terms are defined as for a polynomial source spectra (not logarithmic), e.g. see `this WSClean page <https://wsclean.readthedocs.io/en/latest/component_list.html#file-format>`__. The frequency in the metadata of the fits files is used as nu<sub>0</sub> in the polynomial evaluation `.`
+    doc: Filename of ``.fits`` model images, one per frequency term. The terms are defined as for a polynomial source spectra (not logarithmic), e.g. see `this WSClean page <https://wsclean.readthedocs.io/en/latest/component_list.html#file-format>`__. The frequency in the metadata of the fits files is used as nu<sub>0</sub> in the polynomial evaluation.
   idg&#46;regions:
     default: "\"\""
     type: string
-    doc: DS9 regions file describing the facets for IDG prediction `.`
+    doc: DS9 regions file describing the facets for IDG prediction.
   idg&#46;buffersize:
     default: Based on memory
     type: int
-    doc: Set the amount of timesteps that are to be used for each IDG buffer `.`
+    doc: Set the amount of timesteps that are to be used for each IDG buffer.
   solveralgorithm:
     default: directionsolve
     type: string
@@ -172,21 +172,21 @@ inputs:
   llssolver:
     default: qr
     type: string
-    doc: Select which linear least-squares solver to use for the direction-solving algorithm. When ``solveralgorithm`` is not ``directionsolve``, this parameter has no effect. Supported least-squares solvers are ``qr``, ``svd`` and ``normalequations`` `.`
+    doc: Select which linear least-squares solver to use for the direction-solving algorithm. When ``solveralgorithm`` is not ``directionsolve``, this parameter has no effect. Supported least-squares solvers are ``qr``, ``svd`` and ``normalequations``.
   savefacets:
     default: false
     type: bool
-    doc: Write out each facet as a fits file (named facet<N>.fits). Only useful using idg `.`
+    doc: Write out each facet as a fits file (named facet<N>.fits). Only useful using idg.
   onlypredict:
     default: false
     type: bool
-    doc: Instead of solving, output the predicted visibilities instead. This is useful for testing, although when doing faceted prediction with IDG, it might be fast for certain cases `.`
+    doc: Instead of solving, output the predicted visibilities instead. This is useful for testing, although when doing faceted prediction with IDG, it might be fast for certain cases.
   applycal&#46;*:
-    doc: ApplyCal sub-step, same as in Predict step. One can pass an h5parm with as many directions as set in "directions" and each direction model is corrupted accordingly `.`
+    doc: ApplyCal sub-step, same as in Predict step. One can pass an h5parm with as many directions as set in "directions" and each direction model is corrupted accordingly.
   phasereference:
     default: true
     type: bool
-    doc: Use phase referencing. This setting is only effective when ``mode=tec`` or ``mode=tecandphase`` `.`
+    doc: Use phase referencing. This setting is only effective when ``mode=tec`` or ``mode=tecandphase``.
   rotationreference:
     default: false
     type: bool
@@ -196,7 +196,7 @@ inputs:
       The rotation angle of the other antennas will be relative to the first antenna.
       If the first antenna has no valid data, the second antenna will be the
       reference antenna, and so on.
-      This setting is only effective when ``mode=rotation+diagonal`` `.`
+      This setting is only effective when ``mode=rotation+diagonal``.
   rotationdiagonalmode:
     default: diagonal
     type: string
@@ -207,57 +207,57 @@ inputs:
       a rotation is fitted together with a (complex) scalar value, i.e.,
       a diagonal with two equal complex values. This choice affects the structure
       of the h5parm file: e.g. in scalar mode, the amplitude and phase tables
-      will not have a "pol" (polarization) dimension `.`
+      will not have a "pol" (polarization) dimension.
   grouppredict:
     default: false
     type: bool
     doc: >-
-      Alternative predict step for BDA data, which groups the input data into similarly averaged baselines and uses a regular Predict step for each group. Due to the overhead of having different groups, the normal predict step processes BDA data faster. This step is therefore mainly used for benchmarking `.`
+      Alternative predict step for BDA data, which groups the input data into similarly averaged baselines and uses a regular Predict step for each group. Due to the overhead of having different groups, the normal predict step processes BDA data faster. This step is therefore mainly used for benchmarking.
   modelnextsteps:
     type: list
     default: "[]"
-    doc: Defines the steps that will be applied to the model in every direction before using the output for calibration `.`
+    doc: Defines the steps that will be applied to the model in every direction before using the output for calibration.
   "modelnextsteps&#46;<direction>":
     type: string
     doc: >-
-      Allows steps to be defined for a specific direction. These directions, (given in the `<direction>` placeholder) can be specified by their model column name, the name of a DS9 region, or the first patch name in the direction if using a sky model. For example: ``modelnextsteps.MODEL_DATA_2=[applyextrabeam]``, ``applyextrabeam.type=applybeam`` `.`
+      Allows steps to be defined for a specific direction. These directions, (given in the `<direction>` placeholder) can be specified by their model column name, the name of a DS9 region, or the first patch name in the direction if using a sky model. For example: ``modelnextsteps.MODEL_DATA_2=[applyextrabeam]``, ``applyextrabeam.type=applybeam``.
   solverlbfgs&#46;dof:
     default: 200.0
     type: double
-    doc: The degrees of freedom of the robust noise model `.`
+    doc: The degrees of freedom of the robust noise model.
   solverlbfgs&#46;iter:
     default: 4
     type: int
-    doc: Iterations per each minibatch of data. This is the inner iterations and ``maxiter`` is the outer iterations. Therefore, the total number iterations is the product of these two values `.`
+    doc: Iterations per each minibatch of data. This is the inner iterations and ``maxiter`` is the outer iterations. Therefore, the total number iterations is the product of these two values.
   solverlbfgs&#46;minibatches:
     default: 1
     type: int
-    doc: Divide the data into minibatches equal to this number at each iteration. If this value is greater than one, less data is used at each iteration (without losing the final solution accuracy) making the iterations faster `.`
+    doc: Divide the data into minibatches equal to this number at each iteration. If this value is greater than one, less data is used at each iteration (without losing the final solution accuracy) making the iterations faster.
   solverlbfgs&#46;min_solution:
     default: 0.0
     type: double
-    doc: Restrict the solutions (real, imaginary parts) to fit within the range ``solverlbfgs.min_solution`` to ``solverlbfgs.max_solution``. `.` A valid range is needed to enable this, if both lower and upper limits are zero, not enabled `.`
+    doc: Restrict the solutions (real, imaginary parts) to fit within the range ``solverlbfgs.min_solution`` to ``solverlbfgs.max_solution``.. A valid range is needed to enable this, if both lower and upper limits are zero, not enabled.
   solverlbfgs&#46;max_solution:
     default: 0.0
     type: double
-    doc: Restrict the solutions (real, imaginary parts) to fit within the range ``solverlbfgs.min_solution`` to ``solverlbfgs.max_solution``. `.` A valid range is needed to enable this, if both lower and upper limits are zero, not enabled `.`
+    doc: Restrict the solutions (real, imaginary parts) to fit within the range ``solverlbfgs.min_solution`` to ``solverlbfgs.max_solution``.. A valid range is needed to enable this, if both lower and upper limits are zero, not enabled.
   solverlbfgs&#46;history:
     default: 10
     type: int
-    doc: LBFGS solver history size. This is the memory (as a multiple of the number of parameters) used to store information pertaining to previous iterations `.`
+    doc: LBFGS solver history size. This is the memory (as a multiple of the number of parameters) used to store information pertaining to previous iterations.
   storebuffer:
     default: false
     type: bool
-    doc: Setting this to true will store the solution of DDECal into the buffer, allowing the usage of this solution in a later step. For example, a pipeline with  DDECal -> OneApplyCal  would be able to apply solutions to the data without requiring an intermediate format to be stored to disk. Note that it currently only works for single-direction solutions `.`
+    doc: Setting this to true will store the solution of DDECal into the buffer, allowing the usage of this solution in a later step. For example, a pipeline with  DDECal -> OneApplyCal  would be able to apply solutions to the data without requiring an intermediate format to be stored to disk. Note that it currently only works for single-direction solutions.
   usegpu:
     default: false
     type: bool
     doc: >-
       Use GPU solver. This is an experimental feature only available for the iterative
-      diagonal solver and requires DP3 to be built with BUILD_WITH_CUDA=1 `.`
+      diagonal solver and requires DP3 to be built with BUILD_WITH_CUDA=1.
   keep_host_buffers:
     default: false
     type: bool
     doc: >-
       Setting this to true will cause the host buffers to be kept during the execution if used in combination with the GPU solver.
-      This can cause an higher consumption of memory but saves execution time `.`
+      This can cause an higher consumption of memory but saves execution time.

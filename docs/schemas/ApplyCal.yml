@@ -3,22 +3,22 @@ description: >-
 inputs:
   step_name:
     type: string
-    doc: unique name for the step `.`
+    doc: unique name for the step.
     default: applycal
   type:
     type: string
-    doc: Case-insensitive step type; must be 'applycal' (or 'correct') `.`
+    doc: Case-insensitive step type; must be 'applycal' (or 'correct').
     default: applycal
   parmdb:
     type: string
-    doc: Path of parmdb in which the parameters are stored. This can also be an H5Parm file, in that case the filename has to end in '.h5' `.` When this is not set, or it is set to an empty string, ApplyCal will use the buffer for a solution to use.
+    doc: Path of parmdb in which the parameters are stored. This can also be an H5Parm file, in that case the filename has to end in '.h5'. When this is not set, or it is set to an empty string, ApplyCal will use the buffer for a solution to use.
   solset:
     type: string?
     doc: >-
       In case of applying an H5Parm file: the name of the solset to be used.
       If empty, defaults to the name of one solset present in the H5Parm
       (if more solsets are present in an H5Parm and solset is left empty,
-       an error will be thrown) `.`
+       an error will be thrown).
   correction:
     type: enum
     symbols: gain, tec, clock, rotationangle, rotation, scalarphase, scalaramplitude, rotationmeasure, fulljones
@@ -32,7 +32,7 @@ inputs:
       the type will be deduced from the metadata in that soltab,
       except for full Jones, in which case correction should be 'fulljones'.
       For diagonal solutions (stored as phase and amplitude), use two
-      applycal steps, see the example under applycal.steps `.`
+      applycal steps, see the example under applycal.steps.
   soltab:
     type: string[]?
     doc: >-
@@ -41,18 +41,18 @@ inputs:
      in which case soltab should list two names (amplitude and phase soltab).
   direction:
     type: string?
-    doc: If using H5Parm, the direction of the solution to use `.`
+    doc: If using H5Parm, the direction of the solution to use.
   updateweights:
     type: boolean?
     doc: >-
       Update the weights column, in a way consistent with
       the weights being inverse proportional to the autocorrelations
-      (e.g. if 'autoweights' was used before) `.`
+      (e.g. if 'autoweights' was used before).
   interpolation:
     default: nearest
     type: enum
     symbols: nearest, linear
-    doc: If using H5Parm, the type of interpolation (in time and frequency) to use, can be one of 'nearest' or 'linear' `.`
+    doc: If using H5Parm, the type of interpolation (in time and frequency) to use, can be one of 'nearest' or 'linear'.
   invert:
     default: true
     type: boolean?
@@ -66,7 +66,7 @@ inputs:
       Number of time slots of the gain solution file that are buffered.
       This optimization balances between reading too many times and the
       required memory size. It applies both to the reading of h5parm and
-      parmdb formats `.`
+      parmdb formats.
   steps:
     default: "[]"
     type: list
@@ -78,7 +78,7 @@ inputs:
       use this to apply phase and amplitude corrections simultaneously:
       ``steps=[applycal]``, ``applycal.correction=phase000 # will be overridden``,
       ``applycal.steps=[amp,phase]``, ``applycal.amp.correction=amplitude000``,
-      ``applycal.phase.correction=phase000`` `.`
+      ``applycal.phase.correction=phase000``.
   missingantennabehavior:
     default: "error"
     type: string
