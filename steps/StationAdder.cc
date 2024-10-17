@@ -44,7 +44,7 @@ namespace dp3 {
 namespace steps {
 
 StationAdder::StationAdder(const common::ParameterSet& parset,
-                           const string& prefix)
+                           const std::string& prefix)
     : itsName(prefix),
       itsStatRec(parset.getRecord(prefix + "stations")),
       itsMinNPoint(parset.getUint(prefix + "minpoints", 1)),
@@ -59,9 +59,9 @@ StationAdder::~StationAdder() {}
 
 std::vector<int> StationAdder::getMatchingStations(
     const std::vector<std::string>& antennaNames,
-    const std::vector<string>& patterns) {
+    const std::vector<std::string>& patterns) {
   casacore::Vector<bool> used(antennaNames.size(), false);
-  for (std::vector<string>::const_iterator iter = patterns.begin();
+  for (std::vector<std::string>::const_iterator iter = patterns.begin();
        iter != patterns.end(); ++iter) {
     int n = 0;
     if (iter->size() > 1 && ((*iter)[0] == '!' || (*iter)[0] == '^')) {
@@ -110,7 +110,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   // For each existing station, give id of new superstation it is used in.
   std::vector<int> newStations(antennaNames.size());
   std::fill(newStations.begin(), newStations.end(), -1);
-  std::vector<string> newNames;  // Names of new superstations
+  std::vector<std::string> newNames;  // Names of new superstations
   std::vector<double> newDiam;
   std::vector<MPosition> newPoss;
   for (common::ParameterRecord::const_iterator iter = itsStatRec.begin();
@@ -459,7 +459,7 @@ void StationAdder::finish() {
   getNextStep()->finish();
 }
 
-void StationAdder::addToMS(const string& msName) {
+void StationAdder::addToMS(const std::string& msName) {
   Step::addToMS(msName);
   // Add the new stations to the ANTENNA subtable.
   Table antTab(msName + "/ANTENNA", Table::Update);
@@ -532,8 +532,8 @@ void StationAdder::addToMS(const string& msName) {
   }
 }
 
-void StationAdder::updateBeamInfo(const string& msName, unsigned int origNant,
-                                  Table& antTab) {
+void StationAdder::updateBeamInfo(const std::string& msName,
+                                  unsigned int origNant, Table& antTab) {
   // Update the LOFAR_ANTENNA_FIELD table.
   // Copy all rows where ANTENNA_ID matches one of the stations used in
   // a superstation.

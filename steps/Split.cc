@@ -26,12 +26,12 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-Split::Split(const common::ParameterSet& parset, const string& prefix)
+Split::Split(const common::ParameterSet& parset, const std::string& prefix)
     : name_(prefix),
       replace_parameters_(parset.getStringVector(prefix + "replaceparms")),
       sub_steps_() {
   // For each of the parameters, the values for each substep
-  std::vector<std::vector<string>> replace_values;
+  std::vector<std::vector<std::string>> replace_values;
   replace_values.reserve(replace_parameters_.size());
 
   for (const std::string& replace_parameter : replace_parameters_) {

@@ -42,7 +42,7 @@ DPInfo makeInfo(int nbl) {
       }
     }
   }
-  vector<string> antNames{"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
+  vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01", "cs01.s02"};
   // Define their positions (more or less WSRT RT0-3).
   // Baseline lengths are:
   //  0-1  144.01

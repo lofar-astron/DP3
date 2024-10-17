@@ -32,11 +32,12 @@ class SourceData {
  public:
   SourceData();
 
-  SourceData(const SourceInfo&, const string& patchName, double ra, double dec);
+  SourceData(const SourceInfo&, const std::string& patchName, double ra,
+             double dec);
 
   /// Get the various source parameters.
   const SourceInfo& getInfo() const { return itsInfo; }
-  const string& getPatchName() const { return itsPatchName; }
+  const std::string& getPatchName() const { return itsPatchName; }
   /// Get right ascension in radians.
   double getRa() const { return itsRa; }
   /// Get declination in radians.
@@ -59,7 +60,7 @@ class SourceData {
   /// Set the various source parameters.
   ///@{
   void setInfo(const SourceInfo& info) { itsInfo = info; }
-  void setPatchName(const string& patchName) { itsPatchName = patchName; }
+  void setPatchName(const std::string& patchName) { itsPatchName = patchName; }
   void setRa(double ra) { itsRa = ra; }
   void setDec(double dec) { itsDec = dec; }
   void setI(double i) { itsI = i; }
@@ -100,11 +101,11 @@ class SourceData {
   /// Set a parameter.
   /// If defined, its value is taken from the map.
   /// Otherwise the default value is used.
-  void setParm(const ParmMap& parms, const string& name, double defValue,
+  void setParm(const ParmMap& parms, const std::string& name, double defValue,
                double& value);
 
   /// Add a parm to the ParmMap.
-  void makeParm(ParmMap& parms, const string& name, double value,
+  void makeParm(ParmMap& parms, const std::string& name, double value,
                 bool pertRel = true) const;
 
   SourceInfo itsInfo;

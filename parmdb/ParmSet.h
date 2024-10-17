@@ -49,8 +49,8 @@ class ParmSet {
   /// Add zero or more existing parms.
   /// A vector of unique parmIds is returned.
   ///@{
-  ///    vector<ParmId> addParms (ParmDB&, const vector<string>& names);
-  ///    vector<ParmId> addParms (ParmDB&, const string& namePattern);
+  ///    vector<ParmId> addParms (ParmDB&, const vector<std::string>& names);
+  ///    vector<ParmId> addParms (ParmDB&, const std::string& namePattern);
   ///@}
 
   /// Get the nr of parameters.

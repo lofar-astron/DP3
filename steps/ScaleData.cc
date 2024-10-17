@@ -40,8 +40,8 @@ using casacore::Regex;
 namespace dp3 {
 namespace steps {
 
-ScaleData::ScaleData(const common::ParameterSet& parset, const string& prefix,
-                     MsType inputType)
+ScaleData::ScaleData(const common::ParameterSet& parset,
+                     const std::string& prefix, MsType inputType)
     : itsName(prefix),
       itsInputType(inputType),
       itsScaleSizeGiven(false),

@@ -48,7 +48,7 @@ dp3::base::DPInfo MakeInfo() {
   std::vector<int> antenna_1{0};
   std::vector<int> antenna_2{0};
 
-  std::vector<string> antenna_names{"CS001HBA0", "CS002HBA0"};
+  std::vector<std::string> antenna_names{"CS001HBA0", "CS002HBA0"};
 
   std::vector<casacore::MPosition> antenna_position(2);
   casacore::Vector<double> vals(3);

@@ -67,15 +67,16 @@ class DDECal : public Step {
 
  private:
   void initializeColumnReaders(const common::ParameterSet&,
-                               const string& prefix);
+                               const std::string& prefix);
   void initializeModelReuse();
-  void initializeIDG(const common::ParameterSet& parset, const string& prefix);
+  void initializeIDG(const common::ParameterSet& parset,
+                     const std::string& prefix);
   void initializePredictSteps(const common::ParameterSet& parset,
-                              const string& prefix);
+                              const std::string& prefix);
 
   void setModelNextSteps(Step&, const std::string& direction,
                          const common::ParameterSet& parset,
-                         const string& prefix) const;
+                         const std::string& prefix) const;
 
   void doPrepare();
 

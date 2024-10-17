@@ -22,11 +22,11 @@ namespace parmdb {
 
 SourceData::SourceData() : itsInfo(string(), SourceInfo::POINT) {}
 
-SourceData::SourceData(const SourceInfo& info, const string& patchName,
+SourceData::SourceData(const SourceInfo& info, const std::string& patchName,
                        double ra, double dec)
     : itsInfo(info), itsPatchName(patchName), itsRa(ra), itsDec(dec) {}
 
-void SourceData::setParm(const ParmMap& parms, const string& name,
+void SourceData::setParm(const ParmMap& parms, const std::string& name,
                          double defValue, double& value) {
   // Try to find the parameter with its name and suffixed with source name.
   ParmMap::const_iterator iter = parms.find(name);
@@ -66,7 +66,7 @@ void SourceData::setParms(const ParmMap& parms) {
   }
 }
 
-void SourceData::makeParm(ParmMap& parms, const string& name, double value,
+void SourceData::makeParm(ParmMap& parms, const std::string& name, double value,
                           bool pertRel) const {
   ParmValueSet pvs(ParmValue(value), ParmValue::Scalar, 1e-6, pertRel);
   parms.define(name, pvs);

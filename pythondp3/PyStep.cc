@@ -89,7 +89,7 @@ void PyStep::updateInfo(const DPInfo& dpinfo) {
 }
 
 std::shared_ptr<PyStep> PyStep::create_instance(
-    const common::ParameterSet& parset, const string& prefix) {
+    const common::ParameterSet& parset, const std::string& prefix) {
   std::string module_name = parset.getString(prefix + "python.module");
   std::string class_name = parset.getString(prefix + "python.class");
 

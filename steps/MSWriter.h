@@ -108,13 +108,13 @@ class MSWriter : public OutputStep {
   void CopySubTables(casacore::Table& original_table);
 
   /// Update the SPECTRAL_WINDOW table for averaged channels.
-  void UpdateSpw(const string& out_name);
+  void UpdateSpw(const std::string& out_name);
 
   /// Update the OBSERVATION table with the correct start and end time.
-  void UpdateObs(const string& out_name);
+  void UpdateObs(const std::string& out_name);
 
   /// Update the FIELD table with the new phase center.
-  void UpdatePhaseCentre(const string& out_name);
+  void UpdatePhaseCentre(const std::string& out_name);
 
   /// Process the data in @ref buffer.
   ///

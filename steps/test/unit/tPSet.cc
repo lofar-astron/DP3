@@ -44,8 +44,8 @@ class TestInput : public dp3::steps::MockInput {
         }
       }
     }
-    std::vector<string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
-                                 "cs01.s02"};
+    std::vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
+                                      "cs01.s02"};
     std::vector<casacore::MPosition> antPos(4);
     std::vector<double> antDiam(4, 70.);
     info().setAntennas(antNames, antDiam, antPos, ant1, ant2);

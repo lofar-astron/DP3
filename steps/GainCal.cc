@@ -78,7 +78,7 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
       itsUseModelColumn(parset.getBool(prefix + "usemodelcolumn", false)),
       itsModelColumnName(),
       itsParmDBName(parset.getString(prefix + "parmdb", "")),
-      itsUseH5Parm(itsParmDBName.find(".h5") != string::npos),
+      itsUseH5Parm(itsParmDBName.find(".h5") != std::string::npos),
       itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)),
       itsDetectStalling(parset.getBool(prefix + "detectstalling", true)),
       itsApplySolution(parset.getBool(prefix + "applysolution", false)),
@@ -928,12 +928,12 @@ void GainCal::writeSolutionsH5Parm(double) {
   casacore::MDirection phasecenter = info().phaseCenter();
   pointingPosition[0].first = phasecenter.getValue().get()[0];
   pointingPosition[0].second = phasecenter.getValue().get()[1];
-  std::vector<string> pointingName(1, "POINTING");
+  std::vector<std::string> pointingName(1, "POINTING");
 
   h5parm.AddSources(pointingName, pointingPosition);
 
   unsigned int nPol;
-  std::vector<string> polarizations;
+  std::vector<std::string> polarizations;
   if (scalarMode(itsMode)) {
     nPol = 1;
   } else if (diagonalMode(itsMode)) {

@@ -37,14 +37,14 @@ static std::string MakeSaveFilename(std::string path,
                                     const std::string& ms_name,
                                     std::string suffix) {
   // Use the step name (without dot) as a name suffix.
-  string::size_type pos = suffix.find('.');
-  if (pos != string::npos) {
+  std::string::size_type pos = suffix.find('.');
+  if (pos != std::string::npos) {
     suffix.resize(pos);
   }
   // If no path is given, use the path of the name (use . if no path).
   pos = ms_name.rfind('/');
   if (path.empty()) {
-    if (pos == string::npos) {
+    if (pos == std::string::npos) {
       path = '.';
     } else {
       path = ms_name.substr(0, pos);
@@ -52,14 +52,14 @@ static std::string MakeSaveFilename(std::string path,
   }
   std::string name = ms_name.substr(pos + 1);
   pos = name.find('.');
-  if (pos != string::npos) {
+  if (pos != std::string::npos) {
     name = name.substr(0, pos);
   }
   return path + '/' + name + '_' + suffix + ".flag";
 }
 
 FlagCounter::FlagCounter(const common::ParameterSet& parset,
-                         const string& prefix)
+                         const std::string& prefix)
     : warning_percentage_(parset.getDouble(prefix + "warnperc", 0)),
       show_fully_flagged_(parset.getBool(prefix + "showfullyflagged", false)),
       save_(parset.getBool(prefix + "save", false)),

@@ -18,7 +18,7 @@ static void ValidateUniqueName(const std::string& source_name,
 }
 
 void SourceDBSkymodel::addSource(const SourceInfo& source_info,
-                                 const string& patch_name, int cat_type,
+                                 const std::string& patch_name, int cat_type,
                                  double apparent_brightness,
                                  const ParmMap& default_parameters, double ra,
                                  double dec, bool check) {
@@ -31,12 +31,12 @@ void SourceDBSkymodel::addSource(const SourceInfo& source_info,
   addSource(source_info, patch_name, default_parameters, ra, dec, false);
 }
 
-void SourceDBSkymodel::ValidatePatchName(const string& patch_name) const {
+void SourceDBSkymodel::ValidatePatchName(const std::string& patch_name) const {
   if (patches_lut_.find(patch_name) != patches_lut_.end())
     throw std::runtime_error("Patch " + patch_name + " already exists");
 }
 
-unsigned SourceDBSkymodel::GetPatchRowId(const string& patch_name) const {
+unsigned SourceDBSkymodel::GetPatchRowId(const std::string& patch_name) const {
   auto iter = patches_lut_.find(patch_name);
   if (iter == patches_lut_.end())
     throw std::runtime_error("Patch " + patch_name + " does not exist");
@@ -53,7 +53,7 @@ static SourceData MakeSource(const SourceInfo& source_info,
 }
 
 void SourceDBSkymodel::addSource(const SourceInfo& source_info,
-                                 const string& patch_name,
+                                 const std::string& patch_name,
                                  const ParmMap& default_parameters, double ra,
                                  double dec, bool check) {
   if (check) {

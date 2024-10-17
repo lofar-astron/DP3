@@ -37,11 +37,13 @@ using casacore::MDirection;
 namespace dp3 {
 namespace steps {
 
-PhaseShift::PhaseShift(const common::ParameterSet& parset, const string& prefix)
+PhaseShift::PhaseShift(const common::ParameterSet& parset,
+                       const std::string& prefix)
     : itsName(prefix),
       itsCenter(parset.getStringVector(prefix + "phasecenter")) {}
 
-PhaseShift::PhaseShift(const common::ParameterSet& parset, const string& prefix,
+PhaseShift::PhaseShift(const common::ParameterSet& parset,
+                       const std::string& prefix,
                        const std::vector<std::string>& defVal)
     : itsName(prefix),
       itsCenter(parset.getStringVector(prefix + "phasecenter", defVal)) {}

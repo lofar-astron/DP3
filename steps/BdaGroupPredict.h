@@ -32,7 +32,7 @@ class BdaGroupPredict : public ModelDataStep {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  BdaGroupPredict(const common::ParameterSet&, const string& prefix);
+  BdaGroupPredict(const common::ParameterSet&, const std::string& prefix);
 
   /**
    * Constructs the object with explicit source patterns.
@@ -41,7 +41,7 @@ class BdaGroupPredict : public ModelDataStep {
    * @param prefix Prefix for reading settings from 'parset'.
    * @param source_patterns Source patterns.
    */
-  BdaGroupPredict(const common::ParameterSet&, const string& prefix,
+  BdaGroupPredict(const common::ParameterSet&, const std::string& prefix,
                   const std::vector<std::string>& source_patterns);
 
   ~BdaGroupPredict() override;

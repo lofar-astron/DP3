@@ -69,7 +69,7 @@ void VdsMaker::getFreqInfo(MS& ms, vector<int>& nrchan,
 }
 
 void VdsMaker::getFields(MS& ms, vector<double>& ra, vector<double>& dec,
-                         vector<string>& refType) {
+                         vector<std::string>& refType) {
   MSField mssub(ms.field());
   ROMSFieldColumns mssubc(mssub);
   int nrf = mssub.nrow();
@@ -84,7 +84,7 @@ void VdsMaker::getFields(MS& ms, vector<double>& ra, vector<double>& dec,
   }
 }
 
-void VdsMaker::getAntNames(MS& ms, vector<string>& antNames) {
+void VdsMaker::getAntNames(MS& ms, vector<std::string>& antNames) {
   MSAntenna mssub(ms.antenna());
   ROMSAntennaColumns mssubc(mssub);
   Vector<String> names = mssubc.name().getColumn();
@@ -94,7 +94,7 @@ void VdsMaker::getAntNames(MS& ms, vector<string>& antNames) {
   }
 }
 
-void VdsMaker::getCorrInfo(MS& ms, vector<string>& corrTypes) {
+void VdsMaker::getCorrInfo(MS& ms, vector<std::string>& corrTypes) {
   MSPolarization mssub(ms.polarization());
   if (mssub.nrow() > 0) {
     ROMSPolarizationColumns mssubc(mssub);
@@ -147,9 +147,9 @@ void VdsMaker::getDataFileInfo(MS& ms, string& name, bool& regular,
   }
 }
 
-string VdsMaker::findFileSys(const string& fileName,
+string VdsMaker::findFileSys(const std::string& fileName,
                              const dp3::common::ClusterDesc& cdesc,
-                             const string& hostName) {
+                             const std::string& hostName) {
   // Find the file system by looking for a matching mountpoint.
   const vector<dp3::common::NodeDesc>& nodes = cdesc.getNodes();
   // First find the NodeDesc for this node.
@@ -178,9 +178,9 @@ string VdsMaker::findFileSys(const string& fileName,
   return nodes[i].findFileSys(fileName);
 }
 
-void VdsMaker::create(const string& msName, const string& outName,
-                      const string& clusterDescName, const string& hostName,
-                      bool fillTimes) {
+void VdsMaker::create(const std::string& msName, const std::string& outName,
+                      const std::string& clusterDescName,
+                      const std::string& hostName, bool fillTimes) {
   // Open the table.
   MS ms(msName);
   // Create and fill the Vds object.
@@ -203,7 +203,7 @@ void VdsMaker::create(const string& msName, const string& outName,
   msd.setFileName(absName);
   // Get freq info.
   // Fill in correlation info.
-  vector<string> corrNames;
+  vector<std::string> corrNames;
   getCorrInfo(ms, corrNames);
   ostringstream oss1;
   oss1 << corrNames;
@@ -220,7 +220,7 @@ void VdsMaker::create(const string& msName, const string& outName,
   }
   // Write the field directions (in J2000).
   vector<double> ra, dec;
-  vector<string> refType;
+  vector<std::string> refType;
   getFields(ms, ra, dec, refType);
   int nrfield = ra.size();
   ostringstream oss2a, oss2b, oss2c;
@@ -246,7 +246,7 @@ void VdsMaker::create(const string& msName, const string& outName,
   msd.addParm("FieldDirectionDec", oss2b.str());
   msd.addParm("FieldDirectionType", oss2c.str());
   // Fill in station names.
-  vector<string> antNames;
+  vector<std::string> antNames;
   getAntNames(ms, antNames);
   ostringstream oss2;
   oss2 << antNames;
@@ -302,10 +302,11 @@ void VdsMaker::create(const string& msName, const string& outName,
   msd.write(ostr, "");
 }
 
-void VdsMaker::combine(const string& gdsName, const vector<string>& vdsNames) {
+void VdsMaker::combine(const std::string& gdsName,
+                       const vector<std::string>& vdsNames) {
   // Form the global desc.
   dp3::common::VdsPartDesc globalvpd;
-  globalvpd.setName(gdsName, string());
+  globalvpd.setName(gdsName, std::string());
   vector<double> sfreq(1);
   vector<double> efreq(1);
 

@@ -47,21 +47,22 @@ class ParmFacadeRep {
   /// of the given parameters in the table.
   /// This is the minimum start value and maximum end value for all parameters.
   /// An empty name pattern is the same as * (all parm names).
-  virtual std::vector<double> getRange(const string& parmNamePattern) const = 0;
+  virtual std::vector<double> getRange(
+      const std::string& parmNamePattern) const = 0;
 
   /// Get parameter names in the table matching the pattern.
   /// An empty name pattern is the same as * (all parm names).
-  virtual std::vector<string> getNames(const string& parmNamePattern,
-                                       bool includeDefaults) const = 0;
+  virtual std::vector<std::string> getNames(const std::string& parmNamePattern,
+                                            bool includeDefaults) const = 0;
 
   /// Get default parameter names matching the pattern.
   /// An empty name pattern is the same as * (all parm names).
-  virtual std::vector<string> getDefNames(
-      const string& parmNamePattern) const = 0;
+  virtual std::vector<std::string> getDefNames(
+      const std::string& parmNamePattern) const = 0;
 
   /// Get the default values of parameters matching the pattern.
   virtual casacore::Record getDefValues(
-      const string& parmNamePattern) const = 0;
+      const std::string& parmNamePattern) const = 0;
 
   /// Add one or more default values.
   /// The name of each field in the record is the parameter name.
@@ -70,12 +71,12 @@ class ParmFacadeRep {
   virtual void addDefValues(const casacore::Record&, bool check = true) = 0;
 
   /// Delete the default value records for the given parameters.
-  virtual void deleteDefValues(const string& parmNamePattern) = 0;
+  virtual void deleteDefValues(const std::string& parmNamePattern) = 0;
 
   /// Get the values of the given parameters on the given regular grid
   /// where v1/v2 represents center/width or start/end.
   /// The Record contains a map of parameter name to Array<double>.
-  virtual casacore::Record getValues(const string& parmNamePattern,
+  virtual casacore::Record getValues(const std::string& parmNamePattern,
                                      double freqv1, double freqv2,
                                      double freqStep, double timev1,
                                      double timev2, double timeStep,
@@ -84,7 +85,7 @@ class ParmFacadeRep {
   /// Get the values of the given parameters on the given grid where v1/v2
   /// represents center/width or start/end.
   /// The Record contains a map of parameter name to Array<double>.
-  virtual casacore::Record getValues(const string& parmNamePattern,
+  virtual casacore::Record getValues(const std::string& parmNamePattern,
                                      const std::vector<double>& freqv1,
                                      const std::vector<double>& freqv2,
                                      const std::vector<double>& timev1,
@@ -97,13 +98,13 @@ class ParmFacadeRep {
   /// used for each parameters. Their names have the form parmname/xx
   /// where xx is freqs, freqwidths, times, and timewidths. Their values
   /// are the center and width of each cell.
-  virtual casacore::Record getValuesGrid(const string& parmNamePattern,
+  virtual casacore::Record getValuesGrid(const std::string& parmNamePattern,
                                          double freqv1, double freqv2,
                                          double timev1, double timev2,
                                          bool asStartEnd) = 0;
 
   /// Get coefficients, errors, and domains they belong to.
-  virtual casacore::Record getCoeff(const string& parmNamePattern,
+  virtual casacore::Record getCoeff(const std::string& parmNamePattern,
                                     double freqv1, double freqv2, double timev1,
                                     double timev2, bool asStartEnd) = 0;
 
@@ -125,7 +126,7 @@ class ParmFacadeRep {
   virtual void setDefaultSteps(const std::vector<double>&) = 0;
 
   /// Delete the records for the given parameters and domain.
-  virtual void deleteValues(const string& parmNamePattern, double freqv1,
+  virtual void deleteValues(const std::string& parmNamePattern, double freqv1,
                             double freqv2, double timev1, double timev2,
                             bool asStartEnd) = 0;
 

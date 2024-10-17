@@ -45,7 +45,7 @@ using casacore::TableRecord;
 namespace dp3 {
 namespace parmdb {
 
-ParmDBCasa::ParmDBCasa(const string& tableName, bool forceNew) {
+ParmDBCasa::ParmDBCasa(const std::string& tableName, bool forceNew) {
   // Create the table if needed or if it does not exist yet.
   if (forceNew || !Table::isReadable(tableName)) {
     createTables(tableName);
@@ -89,7 +89,7 @@ void ParmDBCasa::unlock() {
   itsTables[2].unlock();
 }
 
-void ParmDBCasa::createTables(const string& tableName) {
+void ParmDBCasa::createTables(const std::string& tableName) {
   TableDesc td("ME parameter table", TableDesc::Scratch);
   td.comment() = std::string("Table containing ME parameters values");
   td.addColumn(ScalarColumnDesc<unsigned int>("NAMEID"));
@@ -165,7 +165,7 @@ void ParmDBCasa::setDefaultSteps(const std::vector<double>& steps) {
   setDefStep(1, steps[1]);
 }
 
-Table ParmDBCasa::getNameSel(const string& parmNamePattern) const {
+Table ParmDBCasa::getNameSel(const std::string& parmNamePattern) const {
   Table table = itsTables[1];
   TableLocker locker(table, FileLocker::Read);
   if (!parmNamePattern.empty() && parmNamePattern != "*") {
@@ -191,7 +191,7 @@ int ParmDBCasa::getNameId(const std::string& parmName) {
 }
 
 casacore::Vector<common::rownr_t> ParmDBCasa::getNameIds(
-    const string& parmNamePattern) const {
+    const std::string& parmNamePattern) const {
   Table table = itsTables[1];
   TableLocker locker(table, FileLocker::Read);
   if (!parmNamePattern.empty() && parmNamePattern != "*") {
@@ -202,7 +202,7 @@ casacore::Vector<common::rownr_t> ParmDBCasa::getNameIds(
 }
 
 casacore::Vector<common::rownr_t> ParmDBCasa::getNameIds(
-    const std::vector<string>& parmNames) const {
+    const std::vector<std::string>& parmNames) const {
   Table table = itsTables[1];
   TableLocker locker(table, FileLocker::Read);
   if (!parmNames.empty()) {
@@ -215,7 +215,7 @@ casacore::Vector<common::rownr_t> ParmDBCasa::getNameIds(
   return table.rowNumbers();
 }
 
-Box ParmDBCasa::getRange(const string& parmNamePattern) const {
+Box ParmDBCasa::getRange(const std::string& parmNamePattern) const {
   Table table = itsTables[0];
   TableLocker locker(table, FileLocker::Read);
   if (!parmNamePattern.empty() && parmNamePattern != "*") {
@@ -225,7 +225,7 @@ Box ParmDBCasa::getRange(const string& parmNamePattern) const {
   return findRange(table);
 }
 
-Box ParmDBCasa::getRange(const std::vector<string>& parmNames) const {
+Box ParmDBCasa::getRange(const std::vector<std::string>& parmNames) const {
   Table table = itsTables[0];
   TableLocker locker(table, FileLocker::Read);
   if (!parmNames.empty()) {
@@ -368,7 +368,8 @@ void ParmDBCasa::getValues(std::vector<ParmValueSet>& psets,
   }
 }
 
-void ParmDBCasa::getDefValues(ParmMap& result, const string& parmNamePattern) {
+void ParmDBCasa::getDefValues(ParmMap& result,
+                              const std::string& parmNamePattern) {
   TableLocker locker(itsTables[2], FileLocker::Read);
   // Find all rows.
   Table& table = itsTables[2];
@@ -381,14 +382,14 @@ void ParmDBCasa::getDefValues(ParmMap& result, const string& parmNamePattern) {
   }
 }
 
-void ParmDBCasa::putValues(const string& name, int& nameId,
+void ParmDBCasa::putValues(const std::string& name, int& nameId,
                            ParmValueSet& pset) {
   itsTables[0].reopenRW();
   TableLocker locker(itsTables[0], FileLocker::Write);
   doPutValue(name, nameId, pset);
 }
 
-void ParmDBCasa::doPutValue(const string& name, int& nameId,
+void ParmDBCasa::doPutValue(const std::string& name, int& nameId,
                             ParmValueSet& pset) {
   const Grid& grid = pset.getGrid();
   for (unsigned int i = 0; i < pset.size(); ++i) {
@@ -450,7 +451,7 @@ void ParmDBCasa::putOldValue(const ParmValue& pval,
   }
 }
 
-void ParmDBCasa::putNewValue(const string& parmName, int& nameId,
+void ParmDBCasa::putNewValue(const std::string& parmName, int& nameId,
                              ParmValueSet& pset, ParmValue& pval,
                              const Box& domain) {
   // First check if name has to be added to name table.
@@ -526,7 +527,7 @@ Axis::ShPtr ParmDBCasa::getInterval(ROArrayColumn<double>& col,
   return std::make_shared<OrderedAxis>(vc, vw, false);
 }
 
-int ParmDBCasa::putName(const string& name, const ParmValueSet& pset) {
+int ParmDBCasa::putName(const std::string& name, const ParmValueSet& pset) {
   Table& table = itsTables[1];
   table.reopenRW();
   TableLocker locker(table, FileLocker::Write);
@@ -552,7 +553,7 @@ int ParmDBCasa::putName(const string& name, const ParmValueSet& pset) {
   return id;
 }
 
-void ParmDBCasa::putDefValue(const string& name, const ParmValueSet& pset,
+void ParmDBCasa::putDefValue(const std::string& name, const ParmValueSet& pset,
                              bool check) {
   itsTables[2].reopenRW();
   TableLocker locker(itsTables[2], FileLocker::Write);
@@ -588,7 +589,8 @@ void ParmDBCasa::putDefValue(const string& name, const ParmValueSet& pset,
   clearDefFilled();
 }
 
-void ParmDBCasa::putNewDefValue(const string& name, const ParmValueSet& pset) {
+void ParmDBCasa::putNewDefValue(const std::string& name,
+                                const ParmValueSet& pset) {
   const ParmValue& pval = pset.getFirstParmValue();
   Table& table = itsTables[2];
   unsigned int rownr = table.nrow();
@@ -642,7 +644,7 @@ Box ParmDBCasa::getDefDomain(const Table& tab, unsigned int rownr) {
   return domain;
 }
 
-void ParmDBCasa::deleteValues(const string& parmNamePattern,
+void ParmDBCasa::deleteValues(const std::string& parmNamePattern,
                               const Box& domain) {
   Table& table = itsTables[0];
   table.reopenRW();
@@ -659,7 +661,7 @@ void ParmDBCasa::deleteValues(const string& parmNamePattern,
   // NAMEID keys (which are row numbers) do not match anymore.
 }
 
-void ParmDBCasa::deleteDefValues(const string& parmNamePattern) {
+void ParmDBCasa::deleteDefValues(const std::string& parmNamePattern) {
   Table& table = itsTables[2];
   table.reopenRW();
   TableLocker locker(table, FileLocker::Write);
@@ -671,17 +673,18 @@ void ParmDBCasa::deleteDefValues(const string& parmNamePattern) {
   clearDefFilled();
 }
 
-Table ParmDBCasa::find(const string& parmName, const Box& domain) {
+Table ParmDBCasa::find(const std::string& parmName, const Box& domain) {
   Table& table = itsTables[0];
   TableLocker locker(table, FileLocker::Read);
   // Find all rows overlapping the requested domain.
   TableExprNode expr = makeExpr(table, domain);
   andExpr(expr, table.col("NAMEID").in(TableExprNode(
-                    getNameIds(std::vector<string>(1, parmName)))));
+                    getNameIds(std::vector<std::string>(1, parmName)))));
   return table(expr);
 }
 
-std::vector<string> ParmDBCasa::getNames(const string& parmNamePattern) {
+std::vector<std::string> ParmDBCasa::getNames(
+    const std::string& parmNamePattern) {
   // Get all parm rows where the name matches the pattern.
   Table table = itsTables[1];
   TableLocker locker(table, FileLocker::Read);
@@ -691,7 +694,7 @@ std::vector<string> ParmDBCasa::getNames(const string& parmNamePattern) {
   }
   casacore::Vector<casacore::String> names =
       ScalarColumn<casacore::String>(table, "NAME").getColumn();
-  return std::vector<string>(names.cbegin(), names.cend());
+  return std::vector<std::string>(names.cbegin(), names.cend());
 }
 
 TableExprNode ParmDBCasa::makeExpr(const Table& table,

@@ -40,40 +40,42 @@ class ParmFacade {
   /// Otherwise the local or distributed ParmTable must exist.
   /// A distributed ParmTable should be given by means of the VDS-file as
   /// created by the scripts setupparmdb and setupsourcedb.
-  ParmFacade(const string& tableName, bool create = false);
+  ParmFacade(const std::string& tableName, bool create = false);
 
   /// The destructor closes the parm table.
   ~ParmFacade();
 
   /// Get the version info (tree, top, full or other)
-  string version(const string& type) const;
+  string version(const std::string& type) const;
 
   /// Get the domain range (as startx,endx,starty,endy) of the given
   /// parameters in the table.
   /// This is the minimum start value and maximum end value for all parameters.
   /// An empty name pattern is the same as * (all parm names).
-  std::vector<double> getRange(const string& parmNamePattern = string()) const {
+  std::vector<double> getRange(
+      const std::string& parmNamePattern = std::string()) const {
     return itsRep->getRange(parmNamePattern);
   }
 
   /// Get parameter names in the table matching the pattern.
   /// An empty name pattern is the same as * (all parm names).
-  std::vector<string> getNames(const string& parmNamePattern = string(),
-                               bool includeDefaults = false) const {
+  std::vector<std::string> getNames(
+      const std::string& parmNamePattern = std::string(),
+      bool includeDefaults = false) const {
     return itsRep->getNames(parmNamePattern, includeDefaults);
   }
 
   /// Get default parameter names in the table matching the pattern.
   /// An empty name pattern is the same as * (all parm names).
-  std::vector<string> getDefNames(
-      const string& parmNamePattern = string()) const {
+  std::vector<std::string> getDefNames(
+      const std::string& parmNamePattern = std::string()) const {
     return itsRep->getDefNames(parmNamePattern);
   }
 
   /// Get default values of parameters in the table matching the pattern.
   /// An empty name pattern is the same as * (all parm names).
   casacore::Record getDefValues(
-      const string& parmNamePattern = string()) const {
+      const std::string& parmNamePattern = std::string()) const {
     return itsRep->getDefValues(parmNamePattern);
   }
 
@@ -102,7 +104,7 @@ class ParmFacade {
   /// If freqStep and timeStep are not given (or given as <=0), the
   /// default freq and time step from the ParmDB will be used.
   ///@{
-  casacore::Record getValues(const string& parmNamePattern, double freqv1,
+  casacore::Record getValues(const std::string& parmNamePattern, double freqv1,
                              double freqv2, double freqStep, double timev1,
                              double timev2, double timeStep,
                              bool asStartEnd = true,
@@ -110,7 +112,7 @@ class ParmFacade {
     return itsRep->getValues(parmNamePattern, freqv1, freqv2, freqStep, timev1,
                              timev2, timeStep, asStartEnd, includeDefaults);
   }
-  casacore::Record getValues(const string& parmNamePattern,
+  casacore::Record getValues(const std::string& parmNamePattern,
                              double freqv1 = -1e30, double freqv2 = 1e30,
                              double timev1 = -1e30, double timev2 = 1e30,
                              bool asStartEnd = true,
@@ -120,7 +122,7 @@ class ParmFacade {
   /// Get the values of the given parameters on the given grid where v1/v2
   /// represents center/width or start/end.
   /// The Record contains a map of parameter name to Array<double>.
-  casacore::Record getValues(const string& parmNamePattern,
+  casacore::Record getValues(const std::string& parmNamePattern,
                              const std::vector<double>& freqv1,
                              const std::vector<double>& freqv2,
                              const std::vector<double>& timev1,
@@ -136,7 +138,7 @@ class ParmFacade {
   /// Each subrecord has the fields values, freqs, freqwidths, times, and
   /// timewidths giving the values and domains.
   /// The domain values are the center and width of each cell.
-  casacore::Record getValuesGrid(const string& parmNamePattern,
+  casacore::Record getValuesGrid(const std::string& parmNamePattern,
                                  double freqv1 = -1e30, double freqv2 = 1e30,
                                  double timev1 = -1e30, double timev2 = 1e30,
                                  bool asStartEnd = true) {
@@ -152,7 +154,7 @@ class ParmFacade {
   /// coeff, error, and domain. Each of these fields contain an array of
   /// doubles containing the values. The error array is empty if no errors
   /// are stored.
-  casacore::Record getCoeff(const string& parmNamePattern,
+  casacore::Record getCoeff(const std::string& parmNamePattern,
                             double freqv1 = -1e30, double freqv2 = 1e30,
                             double timev1 = -1e30, double timev2 = 1e30,
                             bool asStartEnd = true) {
@@ -172,7 +174,7 @@ class ParmFacade {
   }
 
   /// Delete the default value records for the given parameters.
-  void deleteDefValues(const string& parmNamePattern) {
+  void deleteDefValues(const std::string& parmNamePattern) {
     return itsRep->deleteDefValues(parmNamePattern);
   }
 
@@ -207,7 +209,7 @@ class ParmFacade {
   void addValues(const casacore::Record& rec) { itsRep->addValues(rec); }
 
   /// Delete the records for the given parameters and domain.
-  void deleteValues(const string& parmNamePattern, double freqv1 = -1e30,
+  void deleteValues(const std::string& parmNamePattern, double freqv1 = -1e30,
                     double freqv2 = 1e30, double timev1 = -1e30,
                     double timev2 = 1e30, bool asStartEnd = true) {
     itsRep->deleteValues(parmNamePattern, freqv1, freqv2, timev1, timev2,

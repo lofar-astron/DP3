@@ -13,7 +13,7 @@ namespace pythondp3 {
 class PyStep final : public steps::Step {
  public:
   static std::shared_ptr<PyStep> create_instance(
-      const common::ParameterSet& parset, const string& prefix);
+      const common::ParameterSet& parset, const std::string& prefix);
   using steps::Step::Step;
 
   PyStep();

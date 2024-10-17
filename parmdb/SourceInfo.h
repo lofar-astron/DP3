@@ -42,8 +42,9 @@ class SourceInfo {
   /// uses the given reference frequency (in Hz).
   /// <br> useRotationMeasure indicates that Q and U have to be calculated
   /// using a rotation measure, polarization angle, and polarized fraction.
-  SourceInfo(const string& name, Type type, const string& refType = "J2000",
-             bool useLogarithmicSI = true, unsigned int spectralIndexNTerms = 0,
+  SourceInfo(const std::string& name, Type type,
+             const std::string& refType = "J2000", bool useLogarithmicSI = true,
+             unsigned int spectralIndexNTerms = 0,
              double spectralIndexRefFreqHz = 0.,
              bool useRotationMeasure = false,
              bool positionAngleIsAbsolute = false);
@@ -55,13 +56,13 @@ class SourceInfo {
   SourceInfo& operator=(const SourceInfo&);
 
   /// Get the source name.
-  const string& getName() const { return itsName; }
+  const std::string& getName() const { return itsName; }
 
   /// Get the source type.
   Type getType() const { return itsType; }
 
   /// Get the reference type.
-  const string& getRefType() const { return itsRefType; }
+  const std::string& getRefType() const { return itsRefType; }
 
   /// Whether the standard logarithmic spectral function is used (where the
   /// first terms is thus the SI) or a polynomial spectral function (as used in

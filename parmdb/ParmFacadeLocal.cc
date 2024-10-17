@@ -29,12 +29,13 @@ using namespace casacore;
 namespace dp3 {
 namespace parmdb {
 
-ParmFacadeLocal::ParmFacadeLocal(const string& tableName, bool create)
+ParmFacadeLocal::ParmFacadeLocal(const std::string& tableName, bool create)
     : itsPDB(ParmDBMeta("casa", tableName), create) {}
 
 ParmFacadeLocal::~ParmFacadeLocal() {}
 
-vector<double> ParmFacadeLocal::getRange(const string& parmNamePattern) const {
+vector<double> ParmFacadeLocal::getRange(
+    const std::string& parmNamePattern) const {
   string pp = parmNamePattern;
   if (pp.empty()) {
     pp = "*";
@@ -49,13 +50,13 @@ vector<double> ParmFacadeLocal::getRange(const string& parmNamePattern) const {
 }
 
 // Get all parameter names in the table.
-vector<string> ParmFacadeLocal::getNames(const string& parmNamePattern,
-                                         Bool includeDefaults) const {
+vector<std::string> ParmFacadeLocal::getNames(
+    const std::string& parmNamePattern, Bool includeDefaults) const {
   string pp = parmNamePattern;
   if (pp.empty()) {
     pp = "*";
   }
-  vector<string> names(itsPDB.getNames(pp));
+  vector<std::string> names(itsPDB.getNames(pp));
   if (!includeDefaults) {
     return names;
   }
@@ -72,15 +73,15 @@ vector<string> ParmFacadeLocal::getNames(const string& parmNamePattern,
   return names;
 }
 
-vector<string> ParmFacadeLocal::getDefNames(
-    const string& parmNamePattern) const {
+vector<std::string> ParmFacadeLocal::getDefNames(
+    const std::string& parmNamePattern) const {
   string pp = parmNamePattern;
   if (pp.empty()) {
     pp = "*";
   }
   ParmMap parmset;
   itsPDB.getDefValues(parmset, pp);
-  vector<string> names;
+  vector<std::string> names;
   names.reserve(parmset.size());
   for (ParmMap::const_iterator iter = parmset.begin(); iter != parmset.end();
        iter++) {
@@ -89,7 +90,7 @@ vector<string> ParmFacadeLocal::getDefNames(
   return names;
 }
 
-Record ParmFacadeLocal::getDefValues(const string& parmNamePattern) const {
+Record ParmFacadeLocal::getDefValues(const std::string& parmNamePattern) const {
   string pp = parmNamePattern;
   if (pp.empty()) {
     pp = "*";
@@ -113,8 +114,8 @@ void ParmFacadeLocal::addDefValues(const Record& rec, bool check) {
   itsPDB.unlock();
 }
 
-void ParmFacadeLocal::addDefValue(const string& parmName, const Record& rec,
-                                  bool check) {
+void ParmFacadeLocal::addDefValue(const std::string& parmName,
+                                  const Record& rec, bool check) {
   // Create the default value.
   Array<double> value(rec.toArrayDouble("value"));
   ParmValue pval(value.data()[0]);
@@ -150,13 +151,13 @@ void ParmFacadeLocal::addDefValue(const string& parmName, const Record& rec,
   itsPDB.putDefValue(parmName, pvset, check);
 }
 
-void ParmFacadeLocal::deleteDefValues(const string& parmNamePattern) {
+void ParmFacadeLocal::deleteDefValues(const std::string& parmNamePattern) {
   itsPDB.deleteDefValues(parmNamePattern);
 }
 
-Record ParmFacadeLocal::getValues(const string& parmNamePattern, double freqv1,
-                                  double freqv2, double freqStep, double timev1,
-                                  double timev2, double timeStep,
+Record ParmFacadeLocal::getValues(const std::string& parmNamePattern,
+                                  double freqv1, double freqv2, double freqStep,
+                                  double timev1, double timev2, double timeStep,
                                   bool asStartEnd, bool includeDefaults) {
   // Use default step values if needed.
   if (freqStep <= 0) {
@@ -179,7 +180,7 @@ Record ParmFacadeLocal::getValues(const string& parmNamePattern, double freqv1,
   return doGetValues(parmNamePattern, Grid(axisx, axisy), includeDefaults);
 }
 
-Record ParmFacadeLocal::getValues(const string& parmNamePattern,
+Record ParmFacadeLocal::getValues(const std::string& parmNamePattern,
                                   const vector<double>& freqv1,
                                   const vector<double>& freqv2,
                                   const vector<double>& timev1,
@@ -215,7 +216,7 @@ void ParmFacadeLocal::addValues(const Record& rec) {
   itsPDB.unlock();
 }
 
-void ParmFacadeLocal::addValue(const string& parmName, const Record& rec) {
+void ParmFacadeLocal::addValue(const std::string& parmName, const Record& rec) {
   // Get the new values and shape. Make 2D if a single value.
   Array<double> values(rec.toArrayDouble("values"));
   if (values.size() == 1) {
@@ -325,18 +326,18 @@ void ParmFacadeLocal::addValue(const string& parmName, const Record& rec) {
   cache.flush();
 }
 
-void ParmFacadeLocal::deleteValues(const string& parmNamePattern, double freqv1,
-                                   double freqv2, double timev1, double timev2,
-                                   bool asStartEnd) {
+void ParmFacadeLocal::deleteValues(const std::string& parmNamePattern,
+                                   double freqv1, double freqv2, double timev1,
+                                   double timev2, bool asStartEnd) {
   Box domain(freqv1, freqv2, timev1, timev2, asStartEnd);
   itsPDB.deleteValues(parmNamePattern, domain);
 }
 
-Record ParmFacadeLocal::doGetValues(const string& parmNamePattern,
+Record ParmFacadeLocal::doGetValues(const std::string& parmNamePattern,
                                     const Grid& predictGrid,
                                     Bool includeDefaults) {
   // Get all matching parm names.
-  vector<string> names = getNames(parmNamePattern, includeDefaults);
+  vector<std::string> names = getNames(parmNamePattern, includeDefaults);
   // The output is returned in a record.
   Record out;
   // Form the names to get.
@@ -380,13 +381,13 @@ Record ParmFacadeLocal::doGetValues(const string& parmNamePattern,
   return out;
 }
 
-Record ParmFacadeLocal::getValuesGrid(const string& parmNamePattern,
+Record ParmFacadeLocal::getValuesGrid(const std::string& parmNamePattern,
                                       double freqv1, double freqv2,
                                       double timev1, double timev2,
                                       bool asStartEnd) {
   Box domain(freqv1, freqv2, timev1, timev2, asStartEnd);
   // Get all matching parm names.
-  vector<string> names = getNames(parmNamePattern, false);
+  vector<std::string> names = getNames(parmNamePattern, false);
   // The output is returned in a record.
   Record out;
   // Form the names to get.
@@ -436,9 +437,9 @@ Grid ParmFacadeLocal::getGrid(const ParmValueSet& valueSet, const Box& domain) {
 }
 
 // Get coefficients, errors, and domains they belong to.
-Record ParmFacadeLocal::getCoeff(const string& parmNamePattern, double freqv1,
-                                 double freqv2, double timev1, double timev2,
-                                 bool asStartEnd) {
+Record ParmFacadeLocal::getCoeff(const std::string& parmNamePattern,
+                                 double freqv1, double freqv2, double timev1,
+                                 double timev2, bool asStartEnd) {
   Box domain(freqv1, freqv2, timev1, timev2, asStartEnd);
   ParmMap result;
   itsPDB.getValues(result, parmNamePattern, domain);
@@ -533,7 +534,7 @@ Axis::ShPtr ParmFacadeLocal::makeAxis(const Vector<double>& centers,
   return Axis::makeAxis(low, upp);
 }
 
-int ParmFacadeLocal::getType(const string& str) const {
+int ParmFacadeLocal::getType(const std::string& str) const {
   String strc(str);
   strc.downcase();
   if (strc == "scalar") {

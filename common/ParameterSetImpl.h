@@ -346,7 +346,7 @@ bool isValidVersionNr(const std::string& versionNr);
 bool isValidVersionNrRef(const std::string& versionNr);
 
 // Returns the value of the given string or 0 if it is not a valid seqnr
-// uint32	seqNr(const string& aString);
+// uint32	seqNr(const std::string& aString);
 
 // When a hierarchical keyname is passed to \c fullKeyName the methods returns
 /// the last part of the keyname. For example:

@@ -35,7 +35,7 @@ namespace dp3 {
 namespace steps {
 
 AOFlaggerStep::AOFlaggerStep(const common::ParameterSet& parset,
-                             const string& prefix)
+                             const std::string& prefix)
     : name_(prefix),
       buffer_index_(0),
       n_times_(0),
@@ -46,7 +46,7 @@ AOFlaggerStep::AOFlaggerStep(const common::ParameterSet& parset,
       stats_time_(0),
       has_qstats_(false),
       qstats_() {
-  strategy_name_ = parset.getString(prefix + "strategy", string());
+  strategy_name_ = parset.getString(prefix + "strategy", std::string());
   if (strategy_name_.empty())
     strategy_name_ =
         aoflagger_.FindStrategyFile(aoflagger::TelescopeId::LOFAR_TELESCOPE);
@@ -254,7 +254,7 @@ void AOFlaggerStep::finish() {
   getNextStep()->finish();
 }
 
-void AOFlaggerStep::addToMS(const string& msName) {
+void AOFlaggerStep::addToMS(const std::string& msName) {
   total_timer_.start();
   if (collect_statistics_) {
     quality_timer_.start();

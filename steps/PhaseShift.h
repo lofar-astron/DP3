@@ -39,14 +39,14 @@ class PhaseShift : public Step {
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   /// This is the standard constructor where the phasecenter must be given.
-  PhaseShift(const common::ParameterSet&, const string& prefix);
+  PhaseShift(const common::ParameterSet&, const std::string& prefix);
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   /// This is a constructor for Demixer where the phasecenter has the
   /// given default value.
-  PhaseShift(const common::ParameterSet&, const string& prefix,
-             const std::vector<string>& defVal);
+  PhaseShift(const common::ParameterSet&, const std::string& prefix,
+             const std::vector<std::string>& defVal);
 
   ~PhaseShift() override;
 
@@ -86,7 +86,7 @@ class PhaseShift : public Step {
   }
 
   /// Get the phase center.
-  const std::vector<string>& getPhaseCenter() const { return itsCenter; }
+  const std::vector<std::string>& getPhaseCenter() const { return itsCenter; }
 
  private:
   /// Interpret the phase center specification.
@@ -94,7 +94,7 @@ class PhaseShift : public Step {
   casacore::MDirection handleCenter();
 
   std::string itsName;
-  std::vector<string> itsCenter;
+  std::vector<std::string> itsCenter;
   std::vector<double> itsFreqC;  ///< freq/C
   casacore::Matrix<double> itsEulerMatrix;
   double itsXYZ[3];  ///< numpy.dot((w-w1).T, T)

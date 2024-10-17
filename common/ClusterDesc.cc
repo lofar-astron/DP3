@@ -17,9 +17,9 @@ using namespace casacore;
 namespace dp3 {
 namespace common {
 
-ClusterDesc::ClusterDesc(const string& parsetName) { init(parsetName); }
+ClusterDesc::ClusterDesc(const std::string& parsetName) { init(parsetName); }
 
-void ClusterDesc::init(const string& parsetName) {
+void ClusterDesc::init(const std::string& parsetName) {
   // Get absolute file name (it expands possible ~ and $ in the file name).
   String fullName = Path(parsetName).absoluteName();
   ParameterSet parset(fullName);
@@ -54,7 +54,7 @@ void ClusterDesc::getHetCluster(const ParameterSet& parset) {
 }
 
 void ClusterDesc::getHomCluster(const ParameterSet& parset) {
-  vector<string> defVal;
+  vector<std::string> defVal;
   // Add the different kind of nodes.
   addNodes(parset.makeSubset("Compute."), NodeDesc::Compute);
   addNodes(parset.makeSubset("Storage."), NodeDesc::Storage);
@@ -69,13 +69,13 @@ void ClusterDesc::addNodes(const ParameterSet& parset,
   if (parset.empty()) {
     return;
   }
-  vector<string> defVal;
-  vector<string> names = parset.getStringVector("Nodes", true);
-  vector<string> localDisks =
+  vector<std::string> defVal;
+  vector<std::string> names = parset.getStringVector("Nodes", true);
+  vector<std::string> localDisks =
       parset.getStringVector("LocalDisks", defVal, true);
-  vector<string> remoteDisks =
+  vector<std::string> remoteDisks =
       parset.getStringVector("RemoteDisks", defVal, true);
-  vector<string> remoteFilesys =
+  vector<std::string> remoteFilesys =
       parset.getStringVector("RemoteFileSys", defVal, true);
   if (remoteFilesys.empty()) {
     remoteFilesys = remoteDisks;
@@ -85,10 +85,10 @@ void ClusterDesc::addNodes(const ParameterSet& parset,
           "RemoteFileSys must be empty or have same length as RemoteDisks");
   }
   for (unsigned int i = 0; i < names.size(); ++i) {
-    vector<string> rdisks, rfilesys, lfilesys, ldisks;
-    const vector<string>* ldiskp = &localDisks;
-    const vector<string>* rdiskp = &remoteDisks;
-    const vector<string>* rfsysp = &remoteFilesys;
+    vector<std::string> rdisks, rfilesys, lfilesys, ldisks;
+    const vector<std::string>* ldiskp = &localDisks;
+    const vector<std::string>* rdiskp = &remoteDisks;
+    const vector<std::string>* rfsysp = &remoteFilesys;
     // It is possible to override disk specifications on a per node basis.
     string key = "LocalDisks." + names[i];
     if (parset.isDefined(key)) {
@@ -125,8 +125,8 @@ void ClusterDesc::addNodes(const ParameterSet& parset,
   }
 }
 
-void ClusterDesc::getSubClusters(const vector<string>& parsetNames,
-                                 const string& defaultDir) {
+void ClusterDesc::getSubClusters(const vector<std::string>& parsetNames,
+                                 const std::string& defaultDir) {
   for (unsigned int i = 0; i < parsetNames.size(); ++i) {
     // Expand possible ~ and $.
     string name = Path(parsetNames[i]).expandedName();
@@ -155,7 +155,7 @@ void ClusterDesc::write(ostream& os) const {
 
 void ClusterDesc::addNode(const NodeDesc& node, bool canExist) {
   // Check if node name does not exist yet.
-  map<string, int>::const_iterator loc = itsNodeMap.find(node.getName());
+  map<std::string, int>::const_iterator loc = itsNodeMap.find(node.getName());
   if (loc != itsNodeMap.end()) {
     if (!canExist) {
       throw std::runtime_error("Node name " + node.getName() +
@@ -171,15 +171,15 @@ void ClusterDesc::addNode(const NodeDesc& node, bool canExist) {
 
 void ClusterDesc::add2Map(int nodeIndex) {
   const NodeDesc& node = itsNodes[nodeIndex];
-  for (vector<string>::const_iterator iter = node.getFileSys().begin();
+  for (vector<std::string>::const_iterator iter = node.getFileSys().begin();
        iter != node.getFileSys().end(); ++iter) {
     vector<int>& vec = itsFS2Nodes[*iter];
     vec.push_back(nodeIndex);
   }
 }
 
-const NodeDesc& ClusterDesc::getNode(const string& nodeName) const {
-  map<string, int>::const_iterator loc = itsNodeMap.find(nodeName);
+const NodeDesc& ClusterDesc::getNode(const std::string& nodeName) const {
+  map<std::string, int>::const_iterator loc = itsNodeMap.find(nodeName);
   if (loc == itsNodeMap.end()) {
     throw std::runtime_error("Node name " + nodeName +
                              " not found in clusterdesc " + itsName);
@@ -187,15 +187,15 @@ const NodeDesc& ClusterDesc::getNode(const string& nodeName) const {
   return itsNodes[loc->second];
 }
 
-//   string ClusterDesc::findNode (const string& fileSystem,
-// 				const map<string,int>& done) const
+//   string ClusterDesc::findNode (const std::string& fileSystem,
+// 				const map<std::string,int>& done) const
 //   {
-//     map<string,vector<string> >::const_iterator iter =
+//     map<std::string,vector<std::string> >::const_iterator iter =
 //                                              itsFS2Nodes.find(fileSystem);
 //     if (iter == itsFS2Nodes.end()) {
 //       return "";
 //     }
-//     const vector<string>& nodes = iter->second;
+//     const vector<std::string>& nodes = iter->second;
 //     for (unsigned i=0; i<nodes.size(); ++i) {
 //       if (done.find(nodes[i]) == done.end()) {
 // 	return nodes[i];

@@ -45,12 +45,12 @@ class Averager : public Step {
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Averager(const common::ParameterSet&, const string& prefix);
+  Averager(const common::ParameterSet&, const std::string& prefix);
 
   /// Construct the object using the given parameters.
-  Averager(const string& stepname, unsigned int nchanAvg,
+  Averager(const std::string& stepname, unsigned int nchanAvg,
            unsigned int ntimeAvg);
-  Averager(const string& stepname, double freq_resolution,
+  Averager(const std::string& stepname, double freq_resolution,
            double time_resolution);
 
   ~Averager() override;
@@ -78,7 +78,7 @@ class Averager : public Step {
 
   /// Get the value in Hertz of a string like "1000 MHz". If unit is
   /// omitted it defaults to Hertz
-  static double getFreqHz(const string& freqstr);
+  static double getFreqHz(const std::string& freqstr);
 
  private:
   /// Update itsBuf so it contains averages.

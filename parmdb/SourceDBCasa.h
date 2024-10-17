@@ -47,22 +47,22 @@ class SourceDBCasa : public SourceDBRep {
   void checkDuplicates() override;
 
   /// Find non-unique patch names.
-  std::vector<string> findDuplicatePatches() override;
+  std::vector<std::string> findDuplicatePatches() override;
 
   /// Find non-unique source names.
-  std::vector<string> findDuplicateSources() override;
+  std::vector<std::string> findDuplicateSources() override;
 
   /// Test if the patch already exists.
-  bool patchExists(const string& patchName) override;
+  bool patchExists(const std::string& patchName) override;
 
   /// Test if the source already exists.
-  bool sourceExists(const string& sourceName) override;
+  bool sourceExists(const std::string& sourceName) override;
 
   /// Add a patch and return its patchId.
   /// Nomally ra and dec should be filled in, but for moving patches
   /// (e.g. sun) this is not needed.
   /// <br>Optionally it is checked if the patch already exists.
-  unsigned int addPatch(const string& patchName, int catType,
+  unsigned int addPatch(const std::string& patchName, int catType,
                         double apparentBrightness, double ra, double dec,
                         bool check) override;
 
@@ -78,7 +78,7 @@ class SourceDBCasa : public SourceDBRep {
   /// Missing parameters will default to 0.
   /// <br>Optionally it is checked if the patch already exists.
   ///@{
-  void addSource(const SourceInfo& sourceInfo, const string& patchName,
+  void addSource(const SourceInfo& sourceInfo, const std::string& patchName,
                  const ParmMap& defaultParameters, double ra, double dec,
                  bool check) override;
   void addSource(const SourceData& source, bool check) override;
@@ -86,7 +86,7 @@ class SourceDBCasa : public SourceDBRep {
 
   /// Add a source which forms a patch in itself (with the same name).
   /// <br>Optionally it is checked if the patch or source already exists.
-  void addSource(const SourceInfo& sourceInfo, const string& patchName,
+  void addSource(const SourceInfo& sourceInfo, const std::string& patchName,
                  int catType, double apparentBrightness,
                  const ParmMap& defaultParameters, double ra, double dec,
                  bool check) override;
@@ -94,26 +94,28 @@ class SourceDBCasa : public SourceDBRep {
   /// Get patch names in order of category and decreasing apparent flux.
   /// category < 0 means all categories.
   /// A brightness < 0 means no test on brightness.
-  std::vector<string> getPatches(int category, const string& pattern,
-                                 double minBrightness,
-                                 double maxBrightness) override;
+  std::vector<std::string> getPatches(int category, const std::string& pattern,
+                                      double minBrightness,
+                                      double maxBrightness) override;
 
   /// Get the info of all patches (name, ra, dec).
-  std::vector<PatchInfo> getPatchInfo(int category, const string& pattern,
+  std::vector<PatchInfo> getPatchInfo(int category, const std::string& pattern,
                                       double minBrightness,
                                       double maxBrightness) override;
 
   /// Get the sources belonging to the given patch.
-  std::vector<SourceInfo> getPatchSources(const string& patchName) override;
+  std::vector<SourceInfo> getPatchSources(
+      const std::string& patchName) override;
 
   /// Get all data of the sources belonging to the given patch.
-  std::vector<SourceData> getPatchSourceData(const string& patchName) override;
+  std::vector<SourceData> getPatchSourceData(
+      const std::string& patchName) override;
 
   /// Get the source info of the given source.
-  SourceInfo getSource(const string& sourceName) override;
+  SourceInfo getSource(const std::string& sourceName) override;
 
   /// Get the info of all sources matching the given (filename like) pattern.
-  std::vector<SourceInfo> getSources(const string& pattern) override;
+  std::vector<SourceInfo> getSources(const std::string& pattern) override;
 
   /// Delete the sources records matching the given (filename like) pattern.
   void deleteSources(const std::string& sourceNamePattern) override;
@@ -133,7 +135,7 @@ class SourceDBCasa : public SourceDBRep {
 
  private:
   /// Create the source and patch table.
-  void createTables(const string& tableName);
+  void createTables(const std::string& tableName);
 
   /// Add a source for the given patch.
   void addSrc(const SourceInfo& sourceInfo, unsigned int patchId,
@@ -144,8 +146,8 @@ class SourceDBCasa : public SourceDBRep {
                   unsigned int rownr);
 
   /// Find the duplicate patches or sources.
-  std::vector<string> findDuplicates(casacore::Table& table,
-                                     const string& columnName);
+  std::vector<std::string> findDuplicates(casacore::Table& table,
+                                          const std::string& columnName);
 
   /// Fill the patch and source set object from the tables.
   /// They serve as a cache to find out if a patch or source name exists.
@@ -155,12 +157,12 @@ class SourceDBCasa : public SourceDBRep {
   std::vector<SourceInfo> readSources(const casacore::Table& table);
 
   /// Create the patches subset matching the given arguments.
-  casacore::Table selectPatches(int category, const string& pattern,
+  casacore::Table selectPatches(int category, const std::string& pattern,
                                 double minBrightness,
                                 double maxBrightness) const;
 
   /// Read a default parameter.
-  double getDefaultParmValue(const string& name);
+  double getDefaultParmValue(const std::string& name);
 
   casacore::Table itsPatchTable;
   casacore::Table itsSourceTable;

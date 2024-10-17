@@ -38,7 +38,7 @@ void ParmDBRep::lock(bool) {}
 
 void ParmDBRep::unlock() {}
 
-ParmValueSet ParmDBRep::getDefValue(const string& parmName,
+ParmValueSet ParmDBRep::getDefValue(const std::string& parmName,
                                     const ParmValue& defaultValue) {
   // Fill the map with default values if not done yet.
   if (!itsDefFilled) {
@@ -57,9 +57,9 @@ ParmValueSet ParmDBRep::getDefValue(const string& parmName,
     if (pos != itsDefValues.end()) {
       return pos->second;
     }
-    string::size_type idx = name.rfind(':');
+    std::string::size_type idx = name.rfind(':');
     // Exit loop if no more name parts.
-    if (idx == string::npos) {
+    if (idx == std::string::npos) {
       break;
     }
     // Remove last part and try again.
@@ -72,7 +72,7 @@ ParmValueSet ParmDBRep::getDefValue(const string& parmName,
 void ParmDBRep::getValuesPattern(ParmMap& result,
                                  const std::string& parmNamePattern,
                                  const Box& domain) {
-  vector<string> parmNames = getNames(parmNamePattern);
+  vector<std::string> parmNames = getNames(parmNamePattern);
   vector<unsigned int> nameIds;
   nameIds.reserve(parmNames.size());
   for (unsigned int i = 0; i < parmNames.size(); ++i) {

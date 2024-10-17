@@ -61,7 +61,8 @@ using dp3::common::operator<<;
 namespace dp3 {
 namespace steps {
 
-PreFlagger::PreFlagger(const common::ParameterSet& parset, const string& prefix)
+PreFlagger::PreFlagger(const common::ParameterSet& parset,
+                       const std::string& prefix)
     : itsName(prefix),
       itsMode(Mode::kSetFlag),
       itsPSet(parset, prefix),
@@ -200,7 +201,8 @@ void PreFlagger::finish() {
   getNextStep()->finish();
 }
 
-PreFlagger::PSet::PSet(const common::ParameterSet& parset, const string& prefix)
+PreFlagger::PSet::PSet(const common::ParameterSet& parset,
+                       const std::string& prefix)
     : itsName(prefix),
       itsFlagOnUV(false),
       itsFlagOnBL(false),
@@ -212,52 +214,54 @@ PreFlagger::PSet::PSet(const common::ParameterSet& parset, const string& prefix)
       itsSelBL(parset, prefix, true) {
   // Read all possible parameters.
   itsStrTime =
-      parset.getStringVector(prefix + "timeofday", std::vector<string>());
-  itsStrLST = parset.getStringVector(prefix + "lst", std::vector<string>());
+      parset.getStringVector(prefix + "timeofday", std::vector<std::string>());
+  itsStrLST =
+      parset.getStringVector(prefix + "lst", std::vector<std::string>());
   itsStrATime =
-      parset.getStringVector(prefix + "abstime", std::vector<string>());
+      parset.getStringVector(prefix + "abstime", std::vector<std::string>());
   itsStrRTime =
-      parset.getStringVector(prefix + "reltime", std::vector<string>());
+      parset.getStringVector(prefix + "reltime", std::vector<std::string>());
   itsTimeSlot = parset.getUintVector(
       prefix + "timeslot", std::vector<unsigned int>(), true);  // expand ..
   itsStrAzim =
-      parset.getStringVector(prefix + "azimuth", std::vector<string>());
+      parset.getStringVector(prefix + "azimuth", std::vector<std::string>());
   itsStrElev =
-      parset.getStringVector(prefix + "elevation", std::vector<string>());
+      parset.getStringVector(prefix + "elevation", std::vector<std::string>());
   itsMinUV = parset.getDouble(prefix + "uvmmin", -1);
   itsMaxUV = parset.getDouble(prefix + "uvmmax", -1);
   itsFlagOnUV = (itsMinUV >= 0) || (itsMaxUV > 0);
   itsStrFreq =
-      parset.getStringVector(prefix + "freqrange", std::vector<string>());
-  itsStrChan = parset.getStringVector(prefix + "chan", std::vector<string>());
-  itsAmplMin = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "amplmin", string())),
-      -1e30, itsFlagOnAmpl);
-  itsAmplMax = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "amplmax", string())),
-      1e30, itsFlagOnAmpl);
-  itsPhaseMin = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "phasemin", string())),
-      -1e30, itsFlagOnPhase);
-  itsPhaseMax = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "phasemax", string())),
-      1e30, itsFlagOnPhase);
-  itsRealMin = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "realmin", string())),
-      -1e30, itsFlagOnReal);
-  itsRealMax = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "realmax", string())),
-      1e30, itsFlagOnReal);
-  itsImagMin = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "imagmin", string())),
-      -1e30, itsFlagOnImag);
-  itsImagMax = fillValuePerCorr(
-      common::ParameterValue(parset.getString(prefix + "imagmax", string())),
-      1e30, itsFlagOnImag);
-  itsStrExpr = parset.getString(prefix + "expr", string());
+      parset.getStringVector(prefix + "freqrange", std::vector<std::string>());
+  itsStrChan =
+      parset.getStringVector(prefix + "chan", std::vector<std::string>());
+  itsAmplMin = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                    prefix + "amplmin", std::string())),
+                                -1e30, itsFlagOnAmpl);
+  itsAmplMax = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                    prefix + "amplmax", std::string())),
+                                1e30, itsFlagOnAmpl);
+  itsPhaseMin = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                     prefix + "phasemin", std::string())),
+                                 -1e30, itsFlagOnPhase);
+  itsPhaseMax = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                     prefix + "phasemax", std::string())),
+                                 1e30, itsFlagOnPhase);
+  itsRealMin = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                    prefix + "realmin", std::string())),
+                                -1e30, itsFlagOnReal);
+  itsRealMax = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                    prefix + "realmax", std::string())),
+                                1e30, itsFlagOnReal);
+  itsImagMin = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                    prefix + "imagmin", std::string())),
+                                -1e30, itsFlagOnImag);
+  itsImagMax = fillValuePerCorr(common::ParameterValue(parset.getString(
+                                    prefix + "imagmax", std::string())),
+                                1e30, itsFlagOnImag);
+  itsStrExpr = parset.getString(prefix + "expr", std::string());
   // Parse the possible pset expression and convert to RPN form.
   if (!itsStrExpr.empty()) {
-    std::vector<string> names = exprToRpn(itsStrExpr);
+    std::vector<std::string> names = exprToRpn(itsStrExpr);
     // Create PSet objects for all operands.
     itsPSets.reserve(names.size());
     for (unsigned int i = 0; i < names.size(); ++i) {
@@ -335,8 +339,8 @@ void PreFlagger::PSet::fillChannels(const DPInfo& info) {
       // Evaluate possible expressions.
       // Split the value if start..end is given.
       unsigned int startch, endch;
-      string::size_type pos = itsStrChan[i].find("..");
-      if (pos == string::npos) {
+      std::string::size_type pos = itsStrChan[i].find("..");
+      if (pos == std::string::npos) {
         TableExprNode node(RecordGram::parse(rec, itsStrChan[i]));
         node.get(rec, result);
         startch = (unsigned int)(result + 0.001);
@@ -800,13 +804,14 @@ void PreFlagger::PSet::flagChannels() {
 // for the algorithm used here.
 // Some code was added to check if no two subsequent operators or names
 // are given.
-std::vector<string> PreFlagger::PSet::exprToRpn(const string& origExpr) {
+std::vector<std::string> PreFlagger::PSet::exprToRpn(
+    const std::string& origExpr) {
   // Operators & (or &&) | (or ||) and , are used as well as parentheses.
   // The operators must have a value in order of precedence, thus &&
   // has a higher precedence than || (as in C).
   string expr = boost::to_upper_copy(origExpr);
   std::stack<int> tokens;
-  std::vector<string> names;
+  std::vector<std::string> names;
   unsigned int i = 0;
   bool hadName = false;  // the last token was a name.
   while (i < expr.size()) {
@@ -936,21 +941,20 @@ std::vector<string> PreFlagger::PSet::exprToRpn(const string& origExpr) {
   return names;
 }
 
-std::vector<double> PreFlagger::PSet::fillTimes(const std::vector<string>& vec,
-                                                bool asTime,
-                                                bool canEndBeforeStart) {
+std::vector<double> PreFlagger::PSet::fillTimes(
+    const std::vector<std::string>& vec, bool asTime, bool canEndBeforeStart) {
   std::vector<double> result;
   result.reserve(2 * vec.size());
   // A time range can be given as time..time or time+-value.
-  for (std::vector<string>::const_iterator str = vec.begin(); str != vec.end();
-       ++str) {
+  for (std::vector<std::string>::const_iterator str = vec.begin();
+       str != vec.end(); ++str) {
     // Find the .. or +- token.
     bool usepm = false;
-    string::size_type pos = str->find("..");
-    if (pos == string::npos) {
+    std::string::size_type pos = str->find("..");
+    if (pos == std::string::npos) {
       usepm = true;
       pos = str->find("+-");
-      if (pos == string::npos)
+      if (pos == std::string::npos)
         throw std::runtime_error("PreFlagger time range '" + *str +
                                  "' should be range using .. or +-");
     }
@@ -993,7 +997,7 @@ std::vector<double> PreFlagger::PSet::fillTimes(const std::vector<string>& vec,
   return result;
 }
 
-double PreFlagger::PSet::getSeconds(const string& str, bool asTime,
+double PreFlagger::PSet::getSeconds(const std::string& str, bool asTime,
                                     bool usepm) {
   Quantity q;
   if (asTime || usepm) {
@@ -1025,7 +1029,7 @@ std::vector<float> PreFlagger::PSet::fillValuePerCorr(
   if (!value.get().empty()) {
     if (value.isVector()) {
       // Defined as a vector, take the values given.
-      std::vector<string> valstr = value.getStringVector();
+      std::vector<std::string> valstr = value.getStringVector();
       unsigned int sz = std::min(valstr.size(), result.size());
       if (sz > 0) {
         // It contains a value, so set that flagging is done.
@@ -1059,15 +1063,15 @@ xt::xtensor<int, 1> PreFlagger::PSet::handleFreqRanges(
   // A frequency range can be given as  value..value or value+-value.
   // Units can be given for each value; if one is given it applies to both.
   // Default unit is MHz.
-  for (std::vector<string>::const_iterator str = itsStrFreq.begin();
+  for (std::vector<std::string>::const_iterator str = itsStrFreq.begin();
        str != itsStrFreq.end(); ++str) {
     // Find the .. or +- token.
     bool usepm = false;
-    string::size_type pos = str->find("..");
-    if (pos == string::npos) {
+    std::string::size_type pos = str->find("..");
+    if (pos == std::string::npos) {
       usepm = true;
       pos = str->find("+-");
-      if (pos == string::npos)
+      if (pos == std::string::npos)
         throw std::runtime_error("PreFlagger freqrange '" + *str +
                                  "' should be range using .. or +-");
     }
@@ -1104,14 +1108,14 @@ xt::xtensor<int, 1> PreFlagger::PSet::handleFreqRanges(
   return selChan;
 }
 
-void PreFlagger::PSet::getValue(const string& str, double& value,
+void PreFlagger::PSet::getValue(const std::string& str, double& value,
                                 casacore::String& unit) {
   // See if a unit is given at the end.
   casacore::String v(str);
   // Remove possible trailing blanks.
   boost::algorithm::trim_right(v);
   casacore::Regex regex("[a-zA-Z]+$");
-  string::size_type pos = v.index(regex);
+  std::string::size_type pos = v.index(regex);
   if (pos != casacore::String::npos) {
     unit = v.from(pos);
     v = v.before(pos);

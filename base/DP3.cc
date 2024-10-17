@@ -264,7 +264,7 @@ dp3::common::Fields SetChainProvidedFields(std::shared_ptr<Step> first_step,
   return provided_fields;
 }
 
-void Execute(const string& parsetName, int argc, char* argv[]) {
+void Execute(const std::string& parsetName, int argc, char* argv[]) {
   casacore::Timer timer;
   common::NSTimer nstimer;
   nstimer.start();
@@ -454,7 +454,7 @@ std::shared_ptr<Step> MakeStepsFromParset(const common::ParameterSet& parset,
                                           bool terminateChain,
                                           Step::MsType initial_step_output) {
   std::string msName = input_ms_name;
-  const std::vector<string> stepNames =
+  const std::vector<std::string> stepNames =
       parset.getStringVector(prefix + step_names_key);
 
   std::shared_ptr<Step> firstStep;

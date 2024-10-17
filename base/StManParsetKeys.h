@@ -31,7 +31,7 @@ struct StManParsetKeys {
                            const std::string& prefix) {
     stManName = boost::to_lower_copy(parset.getString(
         prefix + "storagemanager",
-        parset.getString(prefix + "storagemanager.name", string())));
+        parset.getString(prefix + "storagemanager.name", std::string())));
     if (stManName == "dysco") {
       dyscoDataBitRate =
           parset.getInt(prefix + "storagemanager.databitrate", 10);

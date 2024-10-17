@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
                          {false, false, false, false}});
 
   // Expected ratios per antenna (based on flags above)
-  std::vector<string> expected_ratio_per_antenna{"0.75", "0.5", "0.25"};
+  std::vector<std::string> expected_ratio_per_antenna{"0.75", "0.5", "0.25"};
 
   bool current_val = true;
   for (unsigned int bl = 0; bl < n_baselines; ++bl) {

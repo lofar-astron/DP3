@@ -69,7 +69,7 @@ MSUpdater::MSUpdater(std::string msName, const common::ParameterSet& parset,
   SetFieldsToWrite(common::Fields());
 }
 
-bool MSUpdater::addColumn(const string& colName,
+bool MSUpdater::addColumn(const std::string& colName,
                           const casacore::DataType dataType,
                           const ColumnDesc& cd) {
   if (itsMS.tableDesc().isColumn(colName)) {

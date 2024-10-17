@@ -23,7 +23,7 @@ namespace stringtools {
 ///
 /// For example:
 /// \code
-///    vector<string> tokens = StringUtil::tokenize( " aa\t bb  ", " \t" )
+///    vector<std::string> tokens = StringUtil::tokenize( " aa\t bb  ", " \t" )
 /// \endcode
 //
 /// would yield the following vector of strings:

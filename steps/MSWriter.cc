@@ -585,7 +585,7 @@ void MSWriter::UpdateSpw(const std::string& out_name) {
   spw_col.put(0, 0);
 }
 
-void MSWriter::UpdateObs(const string& out_name) {
+void MSWriter::UpdateObs(const std::string& out_name) {
   Table out_obs = Table(out_name + "/OBSERVATION", Table::Update);
   // Set nr of channels.
   ArrayColumn<double> time_range(out_obs, "TIME_RANGE");
@@ -598,7 +598,7 @@ void MSWriter::UpdateObs(const string& out_name) {
   }
 }
 
-void MSWriter::UpdatePhaseCentre(const string& out_name) {
+void MSWriter::UpdatePhaseCentre(const std::string& out_name) {
   Table out_field = Table(out_name + "/FIELD", Table::Update);
   // Write new phase center.
   ArrayMeasColumn<MDirection> phase_col(out_field, "PHASE_DIR");

@@ -33,7 +33,7 @@ class ApplyCal : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  ApplyCal(const common::ParameterSet&, const string& prefix,
+  ApplyCal(const common::ParameterSet&, const std::string& prefix,
            bool substep = false, std::string predictDirection = "");
 
   ApplyCal() = default;

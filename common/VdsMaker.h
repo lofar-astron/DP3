@@ -44,13 +44,14 @@ class VdsMaker {
   /// the file system will be set to unknown.
   /// It can be specified if the vectors holding the start and end time
   /// of each time stamp should be made part of the VDS file.
-  static void create(const string& msName, const string& outName,
-                     const string& clusterDescName,
-                     const string& hostName = string(), bool fillTimes = true);
+  static void create(const std::string& msName, const std::string& outName,
+                     const std::string& clusterDescName,
+                     const std::string& hostName = std::string(),
+                     bool fillTimes = true);
 
   /// Combine the given VDS file into a global VDS file.
-  static void combine(const string& gdsName,
-                      const std::vector<string>& vdsNames);
+  static void combine(const std::string& gdsName,
+                      const std::vector<std::string>& vdsNames);
 
  private:
   /// Get the frequency info for each spectral window in the MS.
@@ -61,13 +62,15 @@ class VdsMaker {
 
   /// Get the directions of the fields.
   static void getFields(casacore::MS& ms, std::vector<double>& ra,
-                        std::vector<double>& dec, std::vector<string>& refType);
+                        std::vector<double>& dec,
+                        std::vector<std::string>& refType);
 
   /// Get the names of the antennae (stations).
-  static void getAntNames(casacore::MS& ms, std::vector<string>& antNames);
+  static void getAntNames(casacore::MS& ms, std::vector<std::string>& antNames);
 
   /// Get the names of the correlations (polarisations).
-  static void getCorrInfo(casacore::MS& ms, std::vector<string>& corrTypes);
+  static void getCorrInfo(casacore::MS& ms,
+                          std::vector<std::string>& corrTypes);
 
   /// Find out which file contains the DATA column.
   /// Determine if the DATA are stored in a TSM file of itself.
@@ -78,9 +81,9 @@ class VdsMaker {
 
   /// Find the file system on which the given file is located.
   /// If the host name is empty, gethostname() will be used.
-  static string findFileSys(const string& fileName,
+  static string findFileSys(const std::string& fileName,
                             const common::ClusterDesc& cdesc,
-                            const string& hostName);
+                            const std::string& hostName);
 };
 
 /// @}

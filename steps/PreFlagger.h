@@ -58,7 +58,7 @@ class PreFlagger : public Step {
 
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  PreFlagger(const common::ParameterSet&, const string& prefix);
+  PreFlagger(const common::ParameterSet&, const std::string& prefix);
 
   ~PreFlagger() override;
 
@@ -111,7 +111,7 @@ class PreFlagger : public Step {
     PSet() {}
 
     /// Construct from the parset parameters.
-    PSet(const common::ParameterSet& parset, const string& prefix);
+    PSet(const common::ParameterSet& parset, const std::string& prefix);
 
     common::Fields getRequiredFields() const {
       common::Fields fields;
@@ -183,13 +183,13 @@ class PreFlagger : public Step {
     /// must be given with .. or +-.
     /// <tt>asTime=true</tt> means that the strings should contain times,
     /// otherwise date/times.
-    std::vector<double> fillTimes(const std::vector<string>& str, bool asTime,
-                                  bool canEndBeforeStart);
+    std::vector<double> fillTimes(const std::vector<std::string>& str,
+                                  bool asTime, bool canEndBeforeStart);
 
     /// Read the string as time or date/time and convert to seconds.
     /// usepm indicates if the value is a plusminus value. If so, the
     /// value must be a positive time.
-    double getSeconds(const string& str, bool asTime, bool usepm);
+    double getSeconds(const std::string& str, bool asTime, bool usepm);
 
     /// Fill the baseline matrix; set true for baselines to flag.
     void fillBLMatrix();
@@ -220,7 +220,7 @@ class PreFlagger : public Step {
 
     /// Convert a PSet expression to Reversed Polish Notation in itsRpn.
     /// It returns the names of all PSets.
-    std::vector<std::string> exprToRpn(const string& expr);
+    std::vector<std::string> exprToRpn(const std::string& expr);
 
     const base::DPInfo* itsInfo;
     std::string itsName;

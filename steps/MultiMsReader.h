@@ -48,7 +48,7 @@ class MultiMsReader final : public InputStep {
  public:
   /// Construct the object for the given MS.
   /// Parameters are obtained from the parset using the given prefix.
-  MultiMsReader(const std::vector<string>& msNames,
+  MultiMsReader(const std::vector<std::string>& msNames,
                 const common::ParameterSet& parset, const std::string& prefix);
 
   ~MultiMsReader() override;
