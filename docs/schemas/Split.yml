@@ -4,18 +4,18 @@ description: >-
   | *Warning:* The split step must be the last step in a list of successive steps.
     Specifying steps that follow the 'split' step is only possible using
     the 'steps' settings of the split step. For example, use
-    ``steps=[predict,split] split.steps=[average,out]`` `.`
+    ``steps=[predict,split] split.steps=[average,out]``.
 
 inputs:
   type:
     type: string
-    doc: Case-insensitive step type; must be 'split' `.`
+    doc: Case-insensitive step type; must be 'split'.
   steps:
     default: "[]"
     type: array of strings
     doc: List steps that follow the 'split' step, e.g. ``[average, msout]``.
       Split creates multiple pipelines with these steps, using the
-      replaceparms setting `.`
+      replaceparms setting.
   replaceparms:
     default: "[]"
     type: array of strings
@@ -30,4 +30,4 @@ inputs:
       the number of streams that the input is split into.
       In the above example, there will be two streams because
       ``average.timestep`` lists two values.
-      All other specified keywords should also list two values `.`
+      All other specified keywords should also list two values.

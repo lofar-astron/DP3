@@ -4,125 +4,125 @@ inputs:
   type:
     type: string
     doc: >-
-      Case-insensitive step type; must be 'gaincal' or 'calibrate' `.`
+      Case-insensitive step type; must be 'gaincal' or 'calibrate'.
   caltype:
     type: string
     default: diagonal
     doc: >-
-      The type of calibration that needs to be performed. Options are `scalar`, `scalarphase`, `scalaramplitude`, `diagonal`, `diagonalphase`, `diagonalamplitude`, `fulljones`, 'tec' and 'tecandphase' `.`
+      The type of calibration that needs to be performed. Options are `scalar`, `scalarphase`, `scalaramplitude`, `diagonal`, `diagonalphase`, `diagonalamplitude`, `fulljones`, 'tec' and 'tecandphase'.
   parmdb:
     type: string
     doc: >-
-      Path of parmdb in which the computed parameters are to be stored. If the parmdb already exists, it will be overwritten. **Note**: You cannot use this parmdb in an applycal step in the same run of DP3. To apply the solutions of the gaincal directly, use 'gaincal.applysolution' (see below).  **New in LOFAR 3.1:** if the parmdb name ends in ``.h5`` , an H5Parm will be written `.`
+      Path of parmdb in which the computed parameters are to be stored. If the parmdb already exists, it will be overwritten. **Note**: You cannot use this parmdb in an applycal step in the same run of DP3. To apply the solutions of the gaincal directly, use 'gaincal.applysolution' (see below).  **New in LOFAR 3.1:** if the parmdb name ends in ``.h5`` , an H5Parm will be written.
   blrange:
     type: vector
     doc: >-
-      Vector of baseline lengths to use for calibration. See :ref:`Description of baseline selection parameters`. New in version 2.20 `.`
+      Vector of baseline lengths to use for calibration. See :ref:`Description of baseline selection parameters`. New in version 2.20.
   uvlambdamin:
     default: 0
     type: double
     doc: >-
-      Ignore baselines / channels with UV < uvlambdamin wavelengths. **Note**: also all other variants of uv flagging described in :ref:`UVWFlagger` (uvmmin, uvmrange, uvlambdarange, etc) are supported (New in 3.1) `.`
+      Ignore baselines / channels with UV < uvlambdamin wavelengths. **Note**: also all other variants of uv flagging described in :ref:`UVWFlagger` (uvmmin, uvmrange, uvlambdarange, etc) are supported (New in 3.1).
   baseline:
     type: string
     doc: >-
-      Baseline selection filter for calibration. See :ref:`Description of baseline selection parameters`. New in version 2.20 `.`
+      Baseline selection filter for calibration. See :ref:`Description of baseline selection parameters`. New in version 2.20.
   applysolution:
     default: false
     type: bool
     doc: >-
-      Apply the calibration solution to the visibilities. Note that you should always also inspect the parmdb afterwards to check that the solutions look reasonable `.`
+      Apply the calibration solution to the visibilities. Note that you should always also inspect the parmdb afterwards to check that the solutions look reasonable.
   solint:
     default: 1
     type: int
     doc: >-
-      Number of time slots on which a solution is assumed to be constant (same as CellSize.Time in BBS). 0 means all time slots. Note that for larger settings of solint, and specially for solint = 0, the memory usage of gaincal will be large (all visibilities for a solint should fit in memory) `.`
+      Number of time slots on which a solution is assumed to be constant (same as CellSize.Time in BBS). 0 means all time slots. Note that for larger settings of solint, and specially for solint = 0, the memory usage of gaincal will be large (all visibilities for a solint should fit in memory).
   nchan:
     default: 0
     type: int
     doc: >-
-      Number of channels on which a solution is assumed to be constant (same as CellSize.Freq in BBS). 0 means all channels. When caltype = 'tec' or 'tecandphase', the default is 1, meaning that a TEC will be fitted through a phase for each channel `.`
+      Number of channels on which a solution is assumed to be constant (same as CellSize.Freq in BBS). 0 means all channels. When caltype = 'tec' or 'tecandphase', the default is 1, meaning that a TEC will be fitted through a phase for each channel.
   usemodelcolumn:
     default: false
     type: bool
     doc: >-
-      Use model column. The modelcolumn setting contains the model column name `.`
+      Use model column. The modelcolumn setting contains the model column name.
   modelcolumn:
     default: MODEL_DATA
     type: string
     doc: >-
-      Name of the model data column in the input measurement set `.`
+      Name of the model data column in the input measurement set.
   applybeamtomodelcolumn:
     default: false
     type: bool
     doc: >-
-      Apply the beam model (at the phase center) to the visibilities in the model column. If this option is true, all options from `ApplyBeam <ApplyBeam.html>`__ are valid as well (except .invert, since the model data will always be corrupted for the beam) `.`
+      Apply the beam model (at the phase center) to the visibilities in the model column. If this option is true, all options from `ApplyBeam <ApplyBeam.html>`__ are valid as well (except .invert, since the model data will always be corrupted for the beam).
   propagatesolutions:
     default: true
     type: bool
     doc: >-
-      Use solutions of one time interval as a starting value for the next time interval `.`
+      Use solutions of one time interval as a starting value for the next time interval.
   maxiter:
     default: 50
     type: int
     doc: >-
-      Maximum number of iterations of stefcal `.`
+      Maximum number of iterations of stefcal.
   detectstalling:
     default: true
     type: bool
     doc: >-
-      Detect if the iteration does not converge anymore and then stop iterating even if maxiter is not reached `.`
+      Detect if the iteration does not converge anymore and then stop iterating even if maxiter is not reached.
   tolerance:
     default: 1.e-5
     type: float
     doc: >-
-      Tolerance to which the model should match the data `.`
+      Tolerance to which the model should match the data.
   minblperant:
     default: 4
     type: int
     doc: >-
-      If an antenna has less than minblperant unflagged data points for a given solution slot, it is not used for calibration `.`
+      If an antenna has less than minblperant unflagged data points for a given solution slot, it is not used for calibration.
   timeslotsperparmupdate:
     default: 500
     type: int
     doc: >-
-      Number of solution intervals after which the parmdb is updated `.`
+      Number of solution intervals after which the parmdb is updated.
   debuglevel:
     default: 0
     type: int
     doc: >-
-      Debugging. If debuglevel==1, then a file debug.h5 is created containing all iterands. This file will be very large; you can use it to check the convergence speed etc `.`
+      Debugging. If debuglevel==1, then a file debug.h5 is created containing all iterands. This file will be very large; you can use it to check the convergence speed etc.
   sourcedb:
     type: string
     doc: >-
-      Same as in :ref:`Predict` step `.`
+      Same as in :ref:`Predict` step.
   reusemodel:
     type: string
     doc: >-
-      Reuse model data from previous steps. The string should contain the model data name, as set by a previous step, e.g., `ddecal.center` `.`
+      Reuse model data from previous steps. The string should contain the model data name, as set by a previous step, e.g., `ddecal.center`.
   sources:
     default: "[]"
     type: string?
     doc: >-
-      Same as in :ref:`Predict` step `.`
+      Same as in :ref:`Predict` step.
   usebeammodel:
     default: false
     type: bool
     doc: >-
-      Same as in :ref:`Predict` step `.`
+      Same as in :ref:`Predict` step.
   applycal&#46;*:
     doc: >-
-      ApplyCal sub-step, same as in :ref:`Predict` step `.`
+      ApplyCal sub-step, same as in :ref:`Predict` step.
   onebeamperpatch:
     type: string?
     doc: >-
-      Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+      Same as in `ApplyBeam <ApplyBeam.html>`__ step.
   usechannelfreq:
     type: boolean?
     doc: >-
-      Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+      Same as in `ApplyBeam <ApplyBeam.html>`__ step.
   beammode:
     type: enum
     symbols: array_factor, element, default
     doc: >-
-      Same as in `ApplyBeam <ApplyBeam.html>`__ step `.`
+      Same as in `ApplyBeam <ApplyBeam.html>`__ step.

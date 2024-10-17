@@ -50,7 +50,7 @@ description: |
   6. ``^/(.*)HBA0&\1HBA1/`` (the `\\1` is back substitution for the `(.*)` on the left). Without the caret only such baselines are selected. 
 
   Note`:` in the ``msin`` step only the baseline selection syntax is possible. Also note that, currently, only the first way works properly when selecting baselines after a 
-  station has been added. The reason is that the second way looks in the original ANTENNA table to find matching station names, thus will not find the new station `.` Parameters to select on baseline can be used in the steps preflagger and filter. 
+  station has been added. The reason is that the second way looks in the original ANTENNA table to find matching station names, thus will not find the new station. Parameters to select on baseline can be used in the steps preflagger and filter. 
   The step msin.baseline only supports syntax variant 2.
 
   Filtering out some stations
@@ -72,12 +72,12 @@ inputs:
   corrtype:
     default: "\"\""
     type: string
-    doc: Correlation type to match? Must be ``auto``, ``cross``, or an empty string (= all) `.`
+    doc: Correlation type to match? Must be ``auto``, ``cross``, or an empty string (= all).
   blrange:
     default: "[]"
     type: double?
-    doc: Zero or more ranges of physical baseline lengths (in m). A baseline matches if its length is within one of the ranges. E.g., ``blrange=[0,10000, 100000, 1e30]`` matches baselines shorter than 10km and baselines longer than 100km `.`
+    doc: Zero or more ranges of physical baseline lengths (in m). A baseline matches if its length is within one of the ranges. E.g., ``blrange=[0,10000, 100000, 1e30]`` matches baselines shorter than 10km and baselines longer than 100km.
   baseline:
     default: "\"\""
     type: baseline?
-    doc: See above `.`
+    doc: See above.

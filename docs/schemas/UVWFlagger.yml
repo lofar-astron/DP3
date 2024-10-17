@@ -3,24 +3,24 @@ description: >-
 inputs:
   step_name:
     type: string
-    doc: unique name for the step `.`
+    doc: unique name for the step.
     default: uvwflagger
   type:
     type: string
-    doc: Case-insensitive step type; must be 'uvwflagger' or 'uvwflag' `.`
+    doc: Case-insensitive step type; must be 'uvwflagger' or 'uvwflag'.
     default: uvwflagger    
   count&#46;save:
     default: false
     type: boolean
     doc: >-
       The directory where to create the flag percentages table. 
-      If empty, the path of the input MS is used `.`     
+      If empty, the path of the input MS is used.     
   count&#46;path:
     default: "\"\""
     type: string?
     doc: >-
       The directory where to create the flag percentages table. 
-      If empty, the path of the input MS is used `.`  
+      If empty, the path of the input MS is used.  
   uvmrange:
     default: "[]"
     type: string?
@@ -32,58 +32,58 @@ inputs:
     default: 0
     type: double
     doc: >-
-      Flag baselines with UV < uvmmin meter `.`
+      Flag baselines with UV < uvmmin meter.
   uvmmax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines with UV > uvmmax meter `.`
+      Flag baselines with UV > uvmmax meter.
 
   umrange:
     default: "[]"
     type: string?
     doc: >-
-      Flag baselines with U within one of the given ranges (in meters) `.`
+      Flag baselines with U within one of the given ranges (in meters).
   ummin:
     default: 0
     type: double
     doc: >-
-      Flag baselines with U < ummin meter `.`
+      Flag baselines with U < ummin meter.
   ummax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines with U > ummax meter `.`
+      Flag baselines with U > ummax meter.
   vmrange:
     default: "[]"
     type: string?
     doc: >-
-      Flag baselines with V within one of the given ranges (in meters) `.`
+      Flag baselines with V within one of the given ranges (in meters).
   vmmin:
     default: 0
     type: double
     doc: >-
-      Flag baselines with V < vmmin meter `.`
+      Flag baselines with V < vmmin meter.
   vmmax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines with V > vmmax meter `.`
+      Flag baselines with V > vmmax meter.
   wmrange:
     defautl: "[]"
     type: string?
     doc: >-
-      Flag baselines with W within one of the given ranges (in meters) `.`
+      Flag baselines with W within one of the given ranges (in meters).
   wmmin:
     default: 0
     type: double
     doc: >-
-      Flag baselines with W < wmmin meter `.`
+      Flag baselines with W < wmmin meter.
   wmmax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines with W > wmmax meter `.`
+      Flag baselines with W > wmmax meter.
   uvlambdarange:
     default: "[]"
     type: string?
@@ -95,57 +95,57 @@ inputs:
     default: 0
     type: double
     doc: >-
-      Flag baselines/channels with UV < uvlambdamin wavelengths `.`
+      Flag baselines/channels with UV < uvlambdamin wavelengths.
   uvlambdamax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines/channels with UV > uvlambdamax wavelengths `.` 
+      Flag baselines/channels with UV > uvlambdamax wavelengths. 
   ulambdarange:
     default: "[]"
     type: string?
     doc: >-
-      Flag baselines/channels with U within one the given ranges (in wavelengths) `.`
+      Flag baselines/channels with U within one the given ranges (in wavelengths).
   ulambdamin:
     default: 0
     type: double
     doc: >-
-      Flag baselines/channels with U < ulambdamin wavelengths `.` 
+      Flag baselines/channels with U < ulambdamin wavelengths. 
   ulambdamax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines/channels with U > ulambdamax wavelengths `.`
+      Flag baselines/channels with U > ulambdamax wavelengths.
   vlambdarange:
     default: "[]"
     type: string?
     doc: >-
-      Flag baselines/channels with V within one the given ranges (in wavelengths) `.`
+      Flag baselines/channels with V within one the given ranges (in wavelengths).
   vlambdamin:
     default: 0
     type: double
     doc: >-
-      Flag baselines/channels with V < vlambdamin wavelengths `.`
+      Flag baselines/channels with V < vlambdamin wavelengths.
   vlambdamax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines/channels with V > vlambdamax wavelengths `.`
+      Flag baselines/channels with V > vlambdamax wavelengths.
   wlambdarange:
     default: "[]"
     type: string?
     doc: >-
-        Flag baselines/channels with W within one the given ranges (in wavelengths) `.`
+        Flag baselines/channels with W within one the given ranges (in wavelengths).
   wlambdamin:
     default: 0
     type: double
     doc: >-
-      Flag baselines/channels with W < wlambdamin wavelengths `.`
+      Flag baselines/channels with W < wlambdamin wavelengths.
   wlambdamax:
     default: 1e15
     type: double
     doc: >-
-      Flag baselines/channels with W > wlambdamax wavelengths `.`
+      Flag baselines/channels with W > wlambdamax wavelengths.
   phasecenter:
     default: "[]"
     type: string?
@@ -155,12 +155,12 @@ inputs:
       If one value is given, it must be the name of a moving source (e.g. SUN or JUPITER). 
       Otherwise the first two values must contain a source position that can be given in sexagesimal format or as a value followed by a unit. 
       The third value can contain the direction type; it defaults to J2000. 
-      Possible types are GALACTIC, ECLIPTIC, SUPERGAL, J2000, B1950 (as defined in the casacore Measures system) `.`
+      Possible types are GALACTIC, ECLIPTIC, SUPERGAL, J2000, B1950 (as defined in the casacore Measures system).
 
   beammode:
     type: enum
     symbols: array_factor, element, default
     doc: >-
       Beam mode to apply, can be "array_factor", "element" or "default".
-      Default is to apply both the element beam and the array factor `.` 
+      Default is to apply both the element beam and the array factor. 
 

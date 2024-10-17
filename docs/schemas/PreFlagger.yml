@@ -3,11 +3,11 @@ description: >-
 inputs:
   step_name:
     type: string
-    doc: unique name for the step `.`
+    doc: unique name for the step.
     default: preflag
   type:
     type: string
-    doc: Case-insensitive step type; must be 'preflagger' (or 'preflag') `.`
+    doc: Case-insensitive step type; must be 'preflagger' (or 'preflag').
     default: preflagger
   count&#46;save:
     default: false
@@ -21,7 +21,7 @@ inputs:
     type: string?
     doc: >-
       The directory where to create the flag percentages table. If empty, the
-      path of the input MS is used `.`
+      path of the input MS is used.
   mode:
     default: set
     type: string
@@ -29,7 +29,7 @@ inputs:
       Case-insensitive string telling what to do with the flags of the data
       matching (or not matching) the selection criteria given in the other
       parameters. Must be 'set', 'setcomplement'/'setother', 'clear' or
-      'clearcomplement'/'clearother' `.`
+      'clearcomplement'/'clearother'.
   expr:
     default:  "\"\""
     type: string?
@@ -43,7 +43,7 @@ inputs:
     doc: >-
       Ranges of UTC time-of-day given as st..end or val+-delta. Each value must
       be given as 12:34:56.789, 12h34m56.789, or as a value followed by a unit
-      like h, min, or s `.`
+      like h, min, or s.
   abstime:
     default: "[]"
     type: string[]
@@ -51,19 +51,19 @@ inputs:
       Ranges of absolute UTC date/time given as st..end or val+-delta. Each
       value (except delta) must be given as a date/time in casacore MVTime
       format, for instance 12-Mar-2010/11:31:00.000. A delta value must be given
-      as a time (for instance 1:30:0 or 20s) `.`
+      as a time (for instance 1:30:0 or 20s).
   reltime:
     default: "[]"
     type: string[]
     doc: >-
       Ranges of times (using .. or +-) since the start of the observation. A
-      time can be given like 1:30:0 or 20s `.`
+      time can be given like 1:30:0 or 20s.
   timeslot:
     default: "[]"
     type: string[]
     doc: >-
       Time slot sequence numbers. First time slot is 0. st..end means end
-      inclusive `.`
+      inclusive.
   lst:
     default: "[]"
     type: string[]
@@ -77,7 +77,7 @@ inputs:
       Ranges of azimuth angles given as st..end or val+-delta. Each value has to
       be given as a casacore direction like 12:34:56.789 or 12h34m56.789,
       12.34.56.789 or 12d34m56.789, or a value followed by a unit like rad or
-      deg `.`
+      deg.
   elevation:
     type: string?
     doc: >-
@@ -90,25 +90,25 @@ inputs:
   corrtype:
     default:  "\"\""
     type: string
-    doc: Correlation type to match? Must be auto, cross, or an empty string `.`
+    doc: Correlation type to match? Must be auto, cross, or an empty string.
   blmin:
     default: -1
     type: float
-    doc: If blmin > 0, baselines with length < blmin meter will match `.`
+    doc: If blmin > 0, baselines with length < blmin meter will match.
   blmax:
     default: -1
     type: float
-    doc: If blmax > 0, baselines with length > blmax meter will match `.`
+    doc: If blmax > 0, baselines with length > blmax meter will match.
   uvmmin:
     default: -1
     type: float
     doc: >-
       If uvmmin > 0, baselines with UV-distance < uvmmin meter will match. Note
-      that the UV-distance is the projected baseline length `.`
+      that the UV-distance is the projected baseline length.
   uvmmax:
     default: -1
     type: float
-    doc: If uvmmax > 0, baselines with UV-distance > uvmmax meter will match `.`
+    doc: If uvmmax > 0, baselines with UV-distance > uvmmax meter will match.
   freqrange:
     default:  "\"\""
     type: string
@@ -140,28 +140,28 @@ inputs:
   amplmax:
     default: 1e+30
     type: float
-    doc: Correlation data with amplitude > amplmax will match `.`
+    doc: Correlation data with amplitude > amplmax will match.
   phasemin:
     default: -1e+30
     type: float
-    doc: Correlation data with phase < phasemin (in radians) will match `.`
+    doc: Correlation data with phase < phasemin (in radians) will match.
   phasemax:
     default: 1e+30
     type: float
-    doc: Correlation data with phase > phasemax (in radians) will match `.`
+    doc: Correlation data with phase > phasemax (in radians) will match.
   realmin:
     default: -1e+30
     type: float
-    doc: Correlation data with real complex part < realmin will match `.`
+    doc: Correlation data with real complex part < realmin will match.
   realmax:
     default: 1e+30
     type: float
-    doc: Correlation data with real complex part > realmax will match `.`
+    doc: Correlation data with real complex part > realmax will match.
   imagmin:
     default: -1e+30
     type: float
-    doc: Correlation data with imaginary complex part < imagmin will match `.`
+    doc: Correlation data with imaginary complex part < imagmin will match.
   imagmax:
     default: 1e+30
     type: float
-    doc: Correlation data with imaginary complex part > imagmax will match `.`
+    doc: Correlation data with imaginary complex part > imagmax will match.

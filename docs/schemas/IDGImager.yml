@@ -6,23 +6,23 @@ inputs:
   image_size:
     default: 1024
     type: integer
-    doc: Linear resolution of the images to produce `.` It is assumed to have a equal number of pixels in ra and dec `.`
+    doc: Linear resolution of the images to produce. It is assumed to have a equal number of pixels in ra and dec.
   image_name:
     default: image_t%t.fits
     type: string
-    doc: Image name format`.` The %t will be replaced with the time sample id`.`
+    doc: Image name format. The %t will be replaced with the time sample id.
   dl:
     default: 0.0
     type: double
-    doc: Offset in l of the phase center `.`
+    doc: Offset in l of the phase center.
   dm:
     default: 0.0
     type: double
-    doc: Offset in m of the phase center `.`
+    doc: Offset in m of the phase center.
   scale:
     default: -1.0
     type: double
-    doc: Scale in degrees of the pixel `.` If -1 is provided it will choose a suitable scale to fit the whole sky `.`
+    doc: Scale in degrees of the pixel. If -1 is provided it will choose a suitable scale to fit the whole sky.
   proxy_type:
     default: CPU_OPTIMIZED
     type: enum

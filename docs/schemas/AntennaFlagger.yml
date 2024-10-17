@@ -6,16 +6,16 @@ description: >-
   or detecting outliers. This step is mainly intended for processing of AARTFAAC
   data, where antennas in a station are used individually. To manually specify
   an antenna to be flagged, you can use the PreFlagger step with the
-  baseline selection option with a single antenna name `.`
+  baseline selection option with a single antenna name.
 
 inputs:
   step_name:
     type: string
-    doc: unique name for the step `.`
+    doc: unique name for the step.
     default: antennaflagger
   type:
     type: string
-    doc: Case-insensitive step type; must be 'antennaflagger' (or 'antflag') `.`
+    doc: Case-insensitive step type; must be 'antennaflagger' (or 'antflag').
     default: antennaflagger
   antenna_flagging_sigma:
     default: 3
@@ -28,17 +28,17 @@ inputs:
     doc: >-
       Detecting outliers is an iterative process where in every iteration, only the unflagged
       data is analyzed. This parameter controls the maximum number of iterations in the antenna
-      flagging stage `.`
+      flagging stage.
   station_flagging_sigma:
     default: 2.5
     type: float
     doc: >-
       Flag all antennas for a station when the statistical properties of its
-      data exceeds this threshold `.`
+      data exceeds this threshold.
   station_flagging_max_iterations:
     default: 5
     type: int
     doc: >-
       Detecting outliers is an iterative process where in every iteration, only the unflagged
       data is analyzed. This parameter controls the maximum number of iterations in the station
-      flagging stage `.`
+      flagging stage.

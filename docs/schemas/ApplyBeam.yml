@@ -3,11 +3,11 @@ description: >-
 inputs:
   step_name:
     type: string
-    doc: unique name for the step `.`
+    doc: unique name for the step.
     default: applybeam
   type:
     type: string
-    doc: Case-insensitive step type; must be 'applybeam' `.`
+    doc: Case-insensitive step type; must be 'applybeam'.
     default: applybeam
   direction:
     type: string?
@@ -23,7 +23,7 @@ inputs:
       speed for a very low level of loss in accuracy.
       This parameter is ignored in the ApplyBeam step itself, and should
       instead be used as part of predict, ddecal, gaincal,
-      h5parmpredict, etc. This parameter has been introduced in Dec 2020 `.`
+      h5parmpredict, etc. This parameter has been introduced in Dec 2020.
   onebeamperpatch:
     type: string?
     default: false
@@ -36,7 +36,7 @@ inputs:
       (but it does if the applybeam is part of predict, ddecal, gaincal,
       h5parmpredict, etc.).
       Generally, ``false`` is the right setting for this option.
-      The default has changed to false in Nov 2018 `.`
+      The default has changed to false in Nov 2018.
   usechannelfreq:
     type: boolean?
     default: true
@@ -45,19 +45,19 @@ inputs:
       This is useful for merged / concatenated measurement sets.
       For raw LOFAR data you should set it to ``false``,
       so that the beam will be formed as in the station hardware.
-      Also, setting it to false is faster `.`
+      Also, setting it to false is faster.
   updateweights:
     type: boolean?
     doc: >-
       Update the weights column, in a way consistent with
       the weights being inverse proportional to the autocorrelations
-      (e.g. if 'autoweights' was used before) `.`
+      (e.g. if 'autoweights' was used before).
   invert:
     type: boolean?
     default: true
     doc: >-
       Invert the corrections, to correct the data. Default is ``true``.
-      If you want to corrupt the data, set it to ``false`` `.`
+      If you want to corrupt the data, set it to ``false``.
   beammode:
     type: enum
     symbols: array_factor, element, full, default
@@ -65,7 +65,7 @@ inputs:
     doc: >-
       Beam mode to apply, can be ``array_factor``, ``element``, ``full``, or
       ``default`` (same as ``full``). The mode ``full`` applies both the element
-      beam and the array factor `.`
+      beam and the array factor.
   skipstations:
     type: string[]
     default: []
