@@ -17,8 +17,12 @@
   artifacts:
     paths:
     - output-*/*
-  when: manual
-  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: always
+      allow_failure: false
+    - when: manual
+      allow_failure: true
 
 build-wheel-37:
   extends: .build-wheel
