@@ -16,7 +16,7 @@ pushd /tmp
 
 echo "Downloading & unpacking HDF5 ${HDF5_VERSION}"
 #                                   Remove trailing .*, to get e.g. '1.12' ↓
-curl -fsSLO "https://www.hdfgroup.org/ftp/HDF5/releases/hdf5-${HDF5_VERSION%.*}/hdf5-${HDF5_VERSION}/src/hdf5-${HDF5_VERSION}.tar.gz"
+curl -fsSLO "https://hdf-wordpress-1.s3.amazonaws.com/wp-content/uploads/manual/HDF5/HDF5_${HDF5_VERSION//./_}/source/hdf5-${HDF5_VERSION}.tar.gz"
 tar -xzvf hdf5-${HDF5_VERSION}.tar.gz
 
 pushd hdf5-${HDF5_VERSION}
