@@ -47,7 +47,7 @@ inputs:
     doc: >-
       Update the weights column, in a way consistent with
       the weights being inverse proportional to the autocorrelations
-      (e.g. if 'autoweights' was used before).
+      (e.g. if 'autoweight' was used before).
   interpolation:
     default: nearest
     type: enum
@@ -71,9 +71,9 @@ inputs:
     default: "[]"
     type: list
     doc: >-
-      (new in version 3.1) ApplyCal substeps, e.g. [myApplyCal1, myApplyCal2]. 
-      Their parameters can be specified through e.g. 
-      ``<step>.myApplyCal1.correction=tec``. If a parameter is not given for 
+      (new in version 3.1) ApplyCal substeps, e.g. [myApplyCal1, myApplyCal2].
+      Their parameters can be specified through e.g.
+      ``<step>.myApplyCal1.correction=tec``. If a parameter is not given for
       the substep, it takes the value from ``<step>``. A typical example is to
       use this to apply phase and amplitude corrections simultaneously:
       ``steps=[applycal]``, ``applycal.correction=phase000 # will be overridden``,
