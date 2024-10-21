@@ -51,7 +51,7 @@ inputs:
     doc: >-
       Update the weights column, in a way consistent with
       the weights being inverse proportional to the autocorrelations
-      (e.g. if 'autoweights' was used before).
+      (e.g. if 'autoweight' was used before).
   invert:
     type: boolean?
     default: true

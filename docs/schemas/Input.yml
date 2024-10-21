@@ -93,4 +93,4 @@ inputs:
     default: false
     type: bool
     doc: >-
-      In principle the calculation of the weights should only be done for the raw LOFAR data. It appeared that sometimes the ``autoweight`` switch was accidentally set in a DP3 run on already dppp-ed data. To make it harder to make such mistakes, the ``forceautoweight`` flag has to be set as well for MSs containing dppp-ed data.
+      In principle the calculation of the weights should only be done for the raw LOFAR data. It appeared that sometimes the ``autoweight`` switch was accidentally set in a DP3 run on already DP3-ed data. To make it harder to make such mistakes, the ``forceautoweight`` flag has to be set as well for MSs containing DP3-ed data.
