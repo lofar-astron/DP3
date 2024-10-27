@@ -65,7 +65,7 @@ class DPInfo {
   /// An empty resolutions or effectiveBW is default to chanWidths.
   /// total_bandwidth_ is set to the sum of effectiveBW.
   /// If refFreq is 0, it is set to the middle of chanFreqs (mean if even).
-  /// @throw std::invalid argument When vector sizes do not match.
+  /// @throw std::invalid_argument When vector sizes do not match.
   void setChannels(std::vector<double>&& chanFreqs,
                    std::vector<double>&& chanWidths,
                    std::vector<double>&& resolutions = std::vector<double>(),
@@ -136,16 +136,27 @@ class DPInfo {
     polarizations_ = polarizations;
   }
 
-  /// Get the info.
-  ///@{
   const std::string& msName() const { return ms_name_; }
   const std::string& dataColumnName() const { return data_column_name_; }
   const std::string& flagColumnName() const { return flag_column_name_; }
   const std::string& weightColumnName() const { return weight_column_name_; }
   const std::string& antennaSet() const { return antenna_set_; }
   unsigned int ncorr() const { return n_correlations_; }
+  /**
+   * Number of channels after channel selection and averaging. This is
+   * the number of channels that a step can expect the data to have
+   * as input.
+   */
   unsigned int nchan() const { return n_channels_; }
+  /**
+   * Index of first selected channel in the input measurement set.
+   * Averaging does not affect this number.
+   */
   unsigned int startchan() const { return start_channel_; }
+  /**
+   * The number of channels that the input measurement set has. This
+   * is from before any channel selection or averaging is done.
+   */
   unsigned int origNChan() const { return original_n_channels_; }
   unsigned int nchanAvg() const { return channel_averaging_factor_; }
   unsigned int nantenna() const { return antenna_names_.size(); }
@@ -226,7 +237,6 @@ class DPInfo {
   double totalBW() const { return total_bandwidth_; }
   double refFreq() const { return reference_frequency_; }
   int spectralWindow() const { return spectral_window_; }
-  ///@}
 
   /// Get the antenna numbers actually used in the (selected) baselines.
   /// E.g. [0,2,5,6]

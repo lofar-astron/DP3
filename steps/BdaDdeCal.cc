@@ -143,6 +143,11 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
           "interval.");
     }
 
+    // TODO This is currently commented out, because it does not work properly
+    // when using a channel selection. To fix this, the pre-BDA nr of channels
+    // should be stored in info(), not the pre-channel-selection value
+    // origNChan().
+    /*
     double max_chan_avg = 1.0;
     for (size_t i = 0; i < info().nbaselines(); i++) {
       const double chan_avg =
@@ -165,6 +170,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
           ". Please adjust the BDA settings to have a lower frequency "
           "averaging factor.");
     }
+    */
 
     solver_buffer_ = std::make_unique<ddecal::BdaSolverBuffer>(
         patches_.size(), _info.startTime(), solution_interval_duration_,
