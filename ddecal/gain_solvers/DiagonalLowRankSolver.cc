@@ -214,8 +214,8 @@ void DiagonalLowRankSolver::PerformIteration(
 
   // Subtract all directions with their current solutions
   for (size_t direction = 0; direction != NDirections(); ++direction) {
-    DiagonalAddOrSubtractDirection<false>(cb_data, v_residual, direction,
-                                          NSolutions(), solutions);
+    DiagonalAddOrSubtractDirection<false>(
+        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
   }
 
   const bool subtract_immediately = GetStepSize() > 0.99;
@@ -231,8 +231,8 @@ void DiagonalLowRankSolver::PerformIteration(
     const uint32_t n_direction_solutions =
         cb_data.NSolutionsForDirection(direction);
     if (direction != 0 && !subtract_immediately) v_residual = v_copy;
-    DiagonalAddOrSubtractDirection<true>(cb_data, v_residual, direction,
-                                         NSolutions(), solutions);
+    DiagonalAddOrSubtractDirection<true>(
+        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
 
     const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
     for (uint32_t direction_solution = 0;
@@ -245,7 +245,8 @@ void DiagonalLowRankSolver::PerformIteration(
       std::vector<DComplex> new_solutions(next_solutions.begin(),
                                           next_solutions.end());
       DiagonalAddOrSubtractDirection<false>(cb_data, v_residual, direction,
-                                            NSolutions(), new_solutions);
+                                            NSolutions(), new_solutions,
+                                            NSubThreads());
     }
   }
 }

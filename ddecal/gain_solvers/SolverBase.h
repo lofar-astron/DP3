@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <aocommon/recursivefor.h>
+
 #include "../constraints/Constraint.h"
 #include "../linear_solvers/LLSSolver.h"
 #include "SolveData.h"
@@ -294,6 +296,25 @@ class SolverBase {
     return NChannelBlocks() * NAntennas() * NSolutions() *
            NSolutionPolarizations();
   }
+
+  /**
+   * Returns the number of available thread for one channel. This assumes that
+   * the channel blocks is the main direction that is parallelized over (as
+   * all solvers are currently doing). For example, if there are 20 threads
+   * available, and the number of channel blocks is 10, then 2 is returned,
+   * because each channel block can use two threads to fill up the cpu.
+   * The returned value is at least 1.
+   */
+  size_t NSubThreads() const;
+
+  /**
+   * If useful, make a RecursiveFor object. The existance of a RecursiveFor
+   * makes the StaticFor use the RecursiveFor. Using a StaticFor inside a
+   * RecursiveFor allows nested parallelization, but it is slower. Therefore, if
+   * no nested parallelization can be done, don't create a RecursiveFor. See
+   * also @ref NSubThreads().
+   */
+  std::unique_ptr<aocommon::RecursiveFor> MakeOptionalRecursiveFor() const;
 
   /**
    * Create an LLSSolver with the given matrix dimensions.

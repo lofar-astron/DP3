@@ -4,6 +4,7 @@
 #include "IterativeScalarSolver.h"
 
 #include <algorithm>
+#include <optional>
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
@@ -56,18 +57,19 @@ IterativeScalarSolver<VisMatrix>::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  aocommon::RecursiveFor recursive_for;
+  std::unique_ptr<aocommon::RecursiveFor> recursive_for =
+      MakeOptionalRecursiveFor();
   do {
     MakeSolutionsFinite1Pol(solutions);
 
-    aocommon::StaticFor<size_t> loop;
-    loop.Run(0, NChannelBlocks(), [&](size_t ch_block, size_t end_index) {
-      for (; ch_block < end_index; ++ch_block) {
-        PerformIteration(ch_block, data.ChannelBlock(ch_block),
-                         v_residual[ch_block], solutions[ch_block],
-                         next_solutions);
-      }
-    });
+    aocommon::RunStaticFor<size_t>(
+        0, NChannelBlocks(), [&](size_t ch_block, size_t end_index) {
+          for (; ch_block < end_index; ++ch_block) {
+            PerformIteration(ch_block, data.ChannelBlock(ch_block),
+                             v_residual[ch_block], solutions[ch_block],
+                             next_solutions);
+          }
+        });
 
     Step(solutions, next_solutions);
 
@@ -142,9 +144,9 @@ void IterativeScalarSolver<VisMatrix>::SolveDirection(
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
 
   std::mutex mutex;
-  aocommon::StaticFor<size_t> loop;
-  loop.Run(
-      0, n_visibilities, [&](size_t start_vis_index, size_t end_vis_index) {
+  aocommon::RunConstrainedStaticFor<size_t>(
+      0u, n_visibilities, NSubThreads(),
+      [&](size_t start_vis_index, size_t end_vis_index) {
         std::vector<std::complex<double>> local_numerator(
             NAntennas() * n_dir_solutions, 0.0);
         std::vector<double> local_denominator(NAntennas() * n_dir_solutions,
@@ -208,8 +210,9 @@ void IterativeScalarSolver<VisMatrix>::AddOrSubtractDirection(
     size_t direction, const std::vector<DComplex>& solutions) {
   const size_t n_visibilities = cb_data.NVisibilities();
   aocommon::StaticFor<size_t> loop;
-  loop.Run(
-      0, n_visibilities, [&](size_t start_vis_index, size_t end_vis_index) {
+  loop.ConstrainedRun(
+      0, n_visibilities, NSubThreads(),
+      [&](size_t start_vis_index, size_t end_vis_index) {
         for (size_t vis_index = start_vis_index; vis_index != end_vis_index;
              ++vis_index) {
           const uint32_t antenna_1 = cb_data.Antenna1Index(vis_index);
