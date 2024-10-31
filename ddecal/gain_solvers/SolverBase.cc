@@ -8,7 +8,6 @@
 #include <numeric>
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/staticfor.h>
 #include <aocommon/xt/span.h>
 
 #include <xsimd/xsimd.hpp>
@@ -391,6 +390,21 @@ void SolverBase::GetTimings(std::ostream& os, double duration) const {
 
 void SolverBase::SetLLSSolverType(const LLSSolverType solver_type) {
   lls_solver_type_ = solver_type;
+}
+
+size_t SolverBase::NSubThreads() const {
+  return std::max<size_t>(
+      1u, aocommon::ThreadPool::GetInstance().NThreads() / NChannelBlocks());
+}
+
+std::unique_ptr<aocommon::RecursiveFor> SolverBase::MakeOptionalRecursiveFor()
+    const {
+  // A std::optional would be more descriptive, but is not possible because
+  // RecursiveFor is not moveable.
+  std::unique_ptr<aocommon::RecursiveFor> recursive_for;
+  if (NSubThreads() > 1)
+    recursive_for = std::make_unique<aocommon::RecursiveFor>();
+  return recursive_for;
 }
 
 std::unique_ptr<LLSSolver> SolverBase::CreateLLSSolver(

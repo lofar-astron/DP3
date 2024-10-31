@@ -64,18 +64,20 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  aocommon::RecursiveFor recursive_for;
+  std::unique_ptr<aocommon::RecursiveFor> recursive_for =
+      MakeOptionalRecursiveFor();
   do {
     MakeSolutionsFinite2Pol(solutions);
 
-    aocommon::StaticFor<size_t> loop;
-    loop.Run(0, NChannelBlocks(), [&](size_t start_block, size_t end_block) {
-      for (size_t ch_block = start_block; ch_block < end_block; ++ch_block) {
-        PerformIteration(ch_block, data.ChannelBlock(ch_block),
-                         v_residual[ch_block], solutions[ch_block],
-                         next_solutions);
-      }
-    });
+    aocommon::RunStaticFor<size_t>(
+        0, NChannelBlocks(), [&](size_t start_block, size_t end_block) {
+          for (size_t ch_block = start_block; ch_block < end_block;
+               ++ch_block) {
+            PerformIteration(ch_block, data.ChannelBlock(ch_block),
+                             v_residual[ch_block], solutions[ch_block],
+                             next_solutions);
+          }
+        });
 
     Step(solutions, next_solutions);
 
@@ -114,7 +116,7 @@ void IterativeDiagonalSolver<VisMatrix>::PerformIteration(
   // Subtract all directions with their current solutions
   for (size_t direction = 0; direction != NDirections(); ++direction)
     DiagonalAddOrSubtractDirection<false, VisMatrix>(
-        cb_data, v_residual, direction, NSolutions(), solutions);
+        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
 
   const std::vector<VisMatrix> v_copy = v_residual;
 
@@ -123,8 +125,8 @@ void IterativeDiagonalSolver<VisMatrix>::PerformIteration(
     // solutions, because the new solutions have not been constrained yet. Add
     // this direction back before solving
     if (direction != 0) v_residual = v_copy;
-    DiagonalAddOrSubtractDirection<true>(cb_data, v_residual, direction,
-                                         NSolutions(), solutions);
+    DiagonalAddOrSubtractDirection<true>(
+        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
 
     SolveDirection(ch_block, cb_data, v_residual, direction, solutions,
                    next_solutions);
@@ -152,9 +154,9 @@ void IterativeDiagonalSolver<VisMatrix>::SolveDirection(
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
 
   std::mutex mutex;
-  aocommon::StaticFor<size_t> loop;
-  loop.Run(
-      0, n_visibilities, [&](size_t start_vis_index, size_t end_vis_index) {
+  aocommon::RunConstrainedStaticFor<size_t>(
+      0u, n_visibilities, NSubThreads(),
+      [&](size_t start_vis_index, size_t end_vis_index) {
         std::vector<MC2x2FDiag> local_numerator(NAntennas() * n_dir_solutions,
                                                 MC2x2FDiag::Zero());
         std::vector<float> local_denominator(NAntennas() * n_dir_solutions * 2,
