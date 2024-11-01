@@ -585,7 +585,14 @@ void DDECal::doSolve() {
 
   for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
     const size_t solution_index = itsFirstSolutionIndex + i;
-    assert(solution_index < itsSols.size());
+
+    // To learn how this condition could be met see AST-1589.
+    if (solution_index >= itsSols.size()) {
+      throw std::runtime_error(
+          "The number of computed time slots is smaller than "
+          "the actual number of time intervals. Most likely, "
+          "this is a consequence of irregular time intervals.");
+    }
 
     ddecal::SolverBase::SolveResult solveResult;
     if (!itsSettings.only_predict) {
