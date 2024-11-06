@@ -2,9 +2,21 @@
 
 ## Upcoming release
 
+## [6.2.1] - 2024-11-06
+
+### New features
+
+- Allow wildcards in DDECal directions.
+
 ### Improvements
 
 - Many internal quality improvements to the input step.
+- Optimize threading in solvers.
+- Reduce beam evaluations.
+
+### Bug fixes
+
+- Fix the `__DP3_from_pip__` application in binary wheels.
 
 ## [6.2] - 2024-08-29
 

@@ -111,7 +111,7 @@ class CMakeBuild(build_ext):
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="DP3",
-    version="6.2.0",
+    version="6.2.1",
     author="Astron",
     author_email="dijkema@astron.nl",
     description="DP3",
