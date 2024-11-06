@@ -59,6 +59,7 @@ RUN sed -i '/find_package(PythonLibs 3 REQUIRED)/d' CMakeLists.txt
 # container. Note to remove the build folder before trying a different setup.py,
 # and to remove the previous wheel when changing parameters that causes a new
 # wheel filename e.g. changing the version number.
+RUN /opt/python/${TARGET}/bin/pip install setuptools
 RUN /opt/python/${TARGET}/bin/python ./setup.py build_ext -j${THREADS}
 RUN mv /dp3/build/temp.linux-x86_64-*/dp3/DP3 /dp3/build/__DP3_from_pip__
 RUN /opt/python/${TARGET}/bin/python ./setup.py bdist_wheel -d .
