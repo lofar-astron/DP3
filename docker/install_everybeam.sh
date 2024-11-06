@@ -29,7 +29,9 @@ sed -i '/pybind11/d' CMakeLists.txt
 
 mkdir build
 cd build
-cmake ..
+# On CentOS 7, the default OpenBLAS version is the serial version, which is
+# incompatible with DP3. -> Use the version with *p*threads support.
+cmake -DBLAS_LIBRARIES=/usr/lib64/libopenblasp.so ..
 make -j${THREADS} install
 popd
 

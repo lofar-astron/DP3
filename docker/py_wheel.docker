@@ -54,6 +54,9 @@ RUN sed -i "s=find_package(PythonInterp 3 REQUIRED)=find_package(PythonInterp ${
 RUN sed -i 's=\(COMPONENTS Interpreter\) Development=\1=' CMakeLists.txt
 RUN sed -i '/find_package(PythonLibs 3 REQUIRED)/d' CMakeLists.txt
 
+# Downgrade patchelf due to https://github.com/pypa/manylinux/issues/1421
+RUN pipx install --force 'patchelf<0.17'
+
 # Create the wheel and put it to the /output folder
 # Can be run manually to create wheels from within an interactive docker
 # container. Note to remove the build folder before trying a different setup.py,
