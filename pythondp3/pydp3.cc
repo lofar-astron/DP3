@@ -9,6 +9,8 @@
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
 
+#include <H5Cpp.h>
+
 #include <dp3/base/DP3.h>
 #include <dp3/steps/Step.h>
 
@@ -35,6 +37,23 @@ class PublicStep : public Step {
   using Step::updateInfo;
 };
 
+namespace {
+/// Helper function to convert a py::list to a std::vector<char*>.
+/// @param argv_strings Storage space for the strings in the list.
+///        This function returns pointers to elements in this list.
+std::vector<char *> pylist_to_char_array(
+    py::list argv_list, std::vector<std::string> &argv_strings) {
+  std::vector<char *> argv;
+
+  for (auto &arg : argv_list) {
+    argv_strings.push_back(arg.cast<std::string>());
+    argv.push_back(argv_strings.back().data());
+  }
+
+  return argv;
+}
+}  // namespace
+
 PYBIND11_MODULE(pydp3, m) {
   m.doc() = "DP3 Python bindings";
 
@@ -46,6 +65,41 @@ PYBIND11_MODULE(pydp3, m) {
       .def("write", &ostream_wrapper::write);
 
   m.def("make_step", &dp3::base::MakeSingleStep);
+  m.def(
+      "execute",
+      [](const std::string parset_name, py::list argv_list) {
+        std::vector<std::string> argv_strings;
+        std::vector<char *> argv =
+            pylist_to_char_array(argv_list, argv_strings);
+        try {
+          dp3::base::Execute(parset_name, static_cast<int>(argv.size()),
+                             argv.data());
+        } catch (const H5::Exception &err) {
+          // Since H5::Exception is not derived from std::exception, rethrow
+          // as std::exception. pybind then translates it into RuntimeError.
+          throw std::runtime_error(err.getDetailMsg());
+        }
+      },
+      "Execute a parset with a given name, overriding or adding parameters "
+      "using a list of key-value pairs (typically given on the command-line. "
+      "RunTimeError is raised on any errors.");
+  m.def(
+      "execute_from_command_line",
+      [](py::list argv_list) {
+        std::vector<std::string> argv_strings;
+        std::vector<char *> argv =
+            pylist_to_char_array(argv_list, argv_strings);
+        try {
+          dp3::base::ExecuteFromCommandLine(static_cast<int>(argv.size()),
+                                            argv.data());
+        } catch (const H5::Exception &err) {
+          // Since H5::Exception is not derived from std::exception, rethrow
+          // as std::exception. pybind then translates it into RuntimeError.
+          throw std::runtime_error(err.getDetailMsg());
+        }
+      },
+      "Run the command-line interface with command-line arguments argv. "
+      "RunTimeError is raise on any errors.");
   m.def("make_main_steps",
         [](const common::ParameterSet &parset) -> std::shared_ptr<steps::Step> {
           return dp3::base::MakeMainSteps(parset);
@@ -68,8 +122,7 @@ PYBIND11_MODULE(pydp3, m) {
           "show", [](const dp3::steps::Step &step) { step.show(std::cout); },
           "Show step summary. When running embedded in DP3, sys.stdout will be "
           "redirected to DP3's output stream. Overrides of show() should use "
-          "print() "
-          "to output a summary of the step.")
+          "print() to output a summary of the step.")
       .def(
           "show_timings",
           [](const dp3::steps::Step &step, double elapsed_time) {

@@ -10,8 +10,12 @@
 namespace dp3 {
 namespace base {
 
+void ShowUsage();
+
+/// Command-line interface
+void ExecuteFromCommandLine(int argc, char* argv[]);
+
 /// Execute the steps defined in the parset file.
-/// The parset file is documented on the LOFAR wiki.
 /// Possible parameters given at the command line are taken into account.
 void Execute(const std::string& parsetName, int argc = 0,
              char* argv[] = nullptr);

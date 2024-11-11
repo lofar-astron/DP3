@@ -2,6 +2,13 @@
 
 ## Upcoming release
 
+## [6.2.2] - 2024-11-08
+
+### Improvements
+
+- Remove the executable `__DP3_from_pip__` from python binary wheel, replace it
+  with a python command-line interface DP3.py which behaves like DP3.
+
 ## [6.2.1] - 2024-11-06
 
 ### New features

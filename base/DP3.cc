@@ -6,6 +6,7 @@
 
 #include <dp3/base/DP3.h>
 
+#include <aocommon/checkblas.h>
 #include <aocommon/logger.h>
 #include <aocommon/threadpool.h>
 
@@ -15,6 +16,7 @@
 #include <dp3/base/DPInfo.h>
 #include "ProgressMeter.h"
 #include "SkyModelCache.h"
+#include "Version.h"
 
 #include "../steps/AntennaFlagger.h"
 #include "../steps/AOFlaggerStep.h"
@@ -393,6 +395,60 @@ void Execute(const std::string& parsetName, int argc, char* argv[]) {
   }
   aocommon::Logger::Debug << "End timer output\n";
   // The destructors are called automatically at this point.
+}
+
+void ShowUsage() {
+  aocommon::Logger::Info
+      << "Usage: DP3 [-v] [parsetfile] [parsetkeys...]\n"
+         "  parsetfile: a file containing one parset key=value pair per line\n"
+         "  parsetkeys: any number of parset key=value pairs, e.g. "
+         "msin=my.MS\n\n"
+         "If both a file and command-line keys are specified, the keys on the "
+         "command\n"
+         "line override those in the file.\n"
+         "If no arguments are specified, the program tries to read "
+         "\"DP3.parset\",\n"
+         "\"NDPPP.parset\" or \"DPPP.parset\" as a default.\n"
+         "-v will show version info and exit.\n"
+         "Documentation is at: https://dp3.readthedocs.io\n";
+}
+
+void ExecuteFromCommandLine(int argc, char* argv[]) {
+  check_openblas_multithreading();
+
+  // Get the name of the parset file.
+  if (argc > 1) {
+    string param = argv[1];
+    if (param == "--help" || param == "-help" || param == "-h" ||
+        param == "--usage" || param == "-usage") {
+      ShowUsage();
+      return;
+    } else if (param == "-v" || param == "--version") {
+      aocommon::Logger::Info << DP3Version::AsString(true) << '\n';
+      return;
+    }
+  }
+
+  std::string parsetName;
+  if (argc > 1 && std::string(argv[1]).find('=') == std::string::npos) {
+    // First argument is parset name (except if it's a key-value pair)
+    parsetName = argv[1];
+  } else if (argc == 1) {
+    // No arguments given: try to load [N]DPPP.parset
+    if (std::filesystem::exists("DP3.parset")) {
+      parsetName = "DP3.parset";
+    } else if (std::filesystem::exists("DPPP.parset")) {
+      parsetName = "DPPP.parset";
+    } else if (std::filesystem::exists("NDPPP.parset")) {
+      parsetName = "NDPPP.parset";
+    } else {  // No default file, show usage and exit
+      ShowUsage();
+      return;
+    }
+  }
+
+  // Execute the parset file.
+  Execute(parsetName, argc, argv);
 }
 
 std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
