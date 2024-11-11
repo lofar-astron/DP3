@@ -67,10 +67,18 @@ from .pydp3 import (
     DPInfo,
     Fields,
     MsType,
+    execute,
+    execute_from_command_line,
     get_chain_required_fields,
     get_n_threads,
     set_n_threads,
 )
+
+
+def entrypoint():
+    import sys
+
+    return execute_from_command_line(sys.argv)
 
 
 class Step(pydp3.Step):

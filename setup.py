@@ -111,26 +111,20 @@ class CMakeBuild(build_ext):
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="DP3",
-    version="6.2.1",
-    author="Astron",
+    version="6.2.2",
+    author="ASTRON",
     author_email="dijkema@astron.nl",
     description="DP3",
     long_description="LOFAR preprocessing software, including averaging, flagging, various kinds of calibration and more.",
     ext_modules=[CMakeExtension("dp3")],
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
+    entry_points={"console_scripts": ["DP3.py = dp3:entrypoint"]},
     python_requires=">=3.6",
     data_files=[
         (
             "../../DP3.libs/aoflagger/strategies",
             glob("/usr/local/share/aoflagger/strategies/*.lua"),
-        ),
-        # Also include the DP3 executable (renamed). Using it requires setting LD_LIBRARY_PATH and LD_PRELOAD,
-        # for example: LD_LIBRARY_PATH=~/.local/lib/python3.9/site-packages/DP3.libs \
-        # LD_PRELOAD=/path/to/lib/libpython3.9.so __DP3_from_pip__
-        (
-            "bin",
-            ["build/__DP3_from_pip__"],
         ),
     ],
     url="https://dp3.readthedocs.io/",

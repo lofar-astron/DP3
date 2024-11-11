@@ -64,6 +64,5 @@ RUN pipx install --force 'patchelf<0.17'
 # wheel filename e.g. changing the version number.
 RUN /opt/python/${TARGET}/bin/pip install setuptools
 RUN /opt/python/${TARGET}/bin/python ./setup.py build_ext -j${THREADS}
-RUN mv /dp3/build/temp.linux-x86_64-*/dp3/DP3 /dp3/build/__DP3_from_pip__
 RUN /opt/python/${TARGET}/bin/python ./setup.py bdist_wheel -d .
 RUN auditwheel repair --plat manylinux2014_x86_64 -w /output *.whl
