@@ -180,10 +180,10 @@ void FullJonesSolver::PerformIteration(
     Matrix& v1 = vs[antenna1];
     Matrix& v2 = vs[antenna2];
     for (size_t p = 0; p != 4; ++p) {
-      v1(a1pos + (p % 2), p / 2) = std::conj(data[p]);
+      v1(a1pos + (p % 2), p / 2) = std::conj(data.Get(p));
       // Perform the Hermitian transpose for v2 by flipping the p%2 and p/2
       // indices and omitting 'std::conj'.
-      v2(a2pos + (p / 2), p % 2) = data[p];
+      v2(a2pos + (p / 2), p % 2) = data.Get(p);
     }
 
     a1pos += 2;
@@ -216,8 +216,8 @@ void FullJonesSolver::PerformIteration(
       const MC2x2 g_times_c1_data = solutions2.MultiplyHerm(model_data);
 
       for (size_t p = 0; p != 4; ++p) {
-        g_times_c2(a2pos + (p / 2), (s * 2) + (p % 2)) = g_times_c2_data[p];
-        g_times_c1(a1pos + (p / 2), (s * 2) + (p % 2)) = g_times_c1_data[p];
+        g_times_c2(a2pos + (p / 2), (s * 2) + (p % 2)) = g_times_c2_data.Get(p);
+        g_times_c1(a1pos + (p / 2), (s * 2) + (p % 2)) = g_times_c1_data.Get(p);
       }
 
       a1pos += 2;

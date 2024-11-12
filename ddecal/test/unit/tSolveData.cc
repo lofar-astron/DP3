@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(regular) {
           &weighted_buffers[time].GetData("")(baseline, channel, 0);
       const aocommon::MC2x2F& data = cb_data.Visibility(v);
       for (size_t pol = 0; pol < kNPolarizations; ++pol) {
-        BOOST_TEST(expected_data[pol] == data[pol]);
+        BOOST_TEST(expected_data[pol] == data.Get(pol));
       }
 
       for (size_t direction = 0; direction < kNDirections; ++direction) {
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(regular) {
                        kExpectedChannelBlockSizes[ch_block]);
 
         for (size_t pol = 0; pol < kNPolarizations; ++pol) {
-          BOOST_TEST(expected_model_data[pol] == model_data[pol]);
+          BOOST_TEST(expected_model_data[pol] == model_data.Get(pol));
         }
       }
     }
@@ -373,8 +373,8 @@ BOOST_AUTO_TEST_CASE(bda) {
       const std::complex<float>* const model_data_ptr =
           solver_buffer.GetModelDataRows(0)[row]->data + offset;
       for (size_t p = 0; p < kNPolarizations; ++p) {
-        BOOST_TEST(data[p] == data_ptr[p]);
-        BOOST_TEST(model_data[p] == model_data_ptr[p]);
+        BOOST_TEST(data.Get(p) == data_ptr[p]);
+        BOOST_TEST(model_data.Get(p) == model_data_ptr[p]);
       }
     }
   }

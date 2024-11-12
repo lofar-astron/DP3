@@ -259,8 +259,8 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
           aocommon::MC2x2 ns(&new_solutions_view(chBlock, i / 4, 0));
           ns -= s;
           ns *= sInv;
-          const double sumabs = std::abs(ns[0]) + std::abs(ns[1]) +
-                                std::abs(ns[2]) + std::abs(ns[3]);
+          const double sumabs = std::abs(ns.Get(0)) + std::abs(ns.Get(1)) +
+                                std::abs(ns.Get(2)) + std::abs(ns.Get(3));
           if (std::isfinite(sumabs)) {
             avgAbsDiff += sumabs;
             n += 4;

@@ -151,8 +151,8 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
                 mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
 
             if (invert) {
-              af_tmp[0] = 1. / af_tmp[0];
-              af_tmp[3] = 1. / af_tmp[3];
+              af_tmp = aocommon::MC2x2(1.0 / af_tmp.Get(0), 0.0, 0.0,
+                                       1.0 / af_tmp.Get(3));
             }
             beam_values[n_channels * st + ch] = af_tmp;
           }
@@ -512,8 +512,8 @@ void ApplyBeam::ApplyBaselineBasedBeam(
                                            info.chanFreqs()[ch], srcdir, mutex);
 
               if (invert) {
-                af_tmp[0] = 1. / af_tmp[0];
-                af_tmp[3] = 1. / af_tmp[3];
+                af_tmp = aocommon::MC2x2(1.0 / af_tmp.Get(0), 0.0, 0.0,
+                                         1.0 / af_tmp.Get(3));
               }
               beam_values[n_channels * st + ch] = af_tmp;
             }
@@ -580,9 +580,11 @@ size_t ComputeArrayFactor(const DPInfo& info, double time,
                     st) != skip_station_indices.end()) {
         value = 1.0;
       } else {
-        value = point_response->Response(
-            everybeam::BeamMode::kArrayFactor, station_indices[st],
-            info.chanFreqs()[ch], srcdir, mutex)[0];
+        value = point_response
+                    ->Response(everybeam::BeamMode::kArrayFactor,
+                               station_indices[st], info.chanFreqs()[ch],
+                               srcdir, mutex)
+                    .Get(0);
         if (invert) {
           value = 1.0 / value;
         }
@@ -653,12 +655,15 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
         for (size_t ch = 0; ch < n_channels; ++ch) {
           // Fill beam_values for channel ch
           // only for stations used by this thread
-          beam_values[n_channels * st + ch] = point_response->Response(
-              everybeam::BeamMode::kArrayFactor, station_indices[st],
-              info.chanFreqs()[ch], srcdir, mutex)[0];
+          beam_values[n_channels * st + ch] =
+              point_response
+                  ->Response(everybeam::BeamMode::kArrayFactor,
+                             station_indices[st], info.chanFreqs()[ch], srcdir,
+                             mutex)
+                  .Get(0);
           if (invert) {
             beam_values[n_channels * st + ch] =
-                1. / beam_values[n_channels * st + ch];
+                1.0 / beam_values[n_channels * st + ch];
           }
         }
       }

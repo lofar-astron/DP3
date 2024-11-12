@@ -117,8 +117,8 @@ void ApplyCal::ApplyDiag(const aocommon::MC2x2FDiag& gain_a,
   CheckBuffer(buffer, baseline, channel);
 
   // If parameter is NaN or inf, do not apply anything and flag the data
-  if (!(isfinite(gain_a[0]) && isfinite(gain_b[0]) && isfinite(gain_a[1]) &&
-        isfinite(gain_b[1]))) {
+  if (!(isfinite(gain_a.Get(0)) && isfinite(gain_b.Get(0)) &&
+        isfinite(gain_a.Get(1)) && isfinite(gain_b.Get(1)))) {
     // Only update flagcounter for first correlation
     if (!buffer.GetFlags()(baseline, channel, 0)) {
       flag_counter.incrChannel(channel);
@@ -136,13 +136,13 @@ void ApplyCal::ApplyDiag(const aocommon::MC2x2FDiag& gain_a,
   if (update_weights) {
     DPBuffer::WeightsType& weights = buffer.GetWeights();
     weights(baseline, channel, 0) /=
-        std::norm(gain_a[0]) * std::norm(gain_b[0]);
+        std::norm(gain_a.Get(0)) * std::norm(gain_b.Get(0));
     weights(baseline, channel, 1) /=
-        std::norm(gain_a[0]) * std::norm(gain_b[1]);
+        std::norm(gain_a.Get(0)) * std::norm(gain_b.Get(1));
     weights(baseline, channel, 2) /=
-        std::norm(gain_a[1]) * std::norm(gain_b[0]);
+        std::norm(gain_a.Get(1)) * std::norm(gain_b.Get(0));
     weights(baseline, channel, 3) /=
-        std::norm(gain_a[1]) * std::norm(gain_b[1]);
+        std::norm(gain_a.Get(1)) * std::norm(gain_b.Get(1));
   }
 }
 
@@ -180,20 +180,18 @@ void ApplyCal::ApplyScalar(const std::complex<float>& gain_a,
 
 // Inverts complex 2x2 input matrix
 template <typename NumType>
-void ApplyCal::invert(std::complex<NumType>* v, NumType sigmaMMSE) {
-  // Add the variance of the nuisance term to the elements on the diagonal.
-  const NumType variance = sigmaMMSE * sigmaMMSE;
-  std::complex<NumType> v0 = v[0] + variance;
-  std::complex<NumType> v3 = v[3] + variance;
+void ApplyCal::invert(std::complex<NumType>* v) {
   // Compute inverse in the usual way.
-  std::complex<NumType> invDet(NumType(1.0) / (v0 * v3 - v[1] * v[2]));
-  v[0] = v3 * invDet;
+  const std::complex<NumType> invDet(NumType(1.0) /
+                                     (v[0] * v[3] - v[1] * v[2]));
+  const std::complex<NumType> old_v0 = v[0];
+  v[0] = v[3] * invDet;
   v[2] = v[2] * -invDet;
   v[1] = v[1] * -invDet;
-  v[3] = v0 * invDet;
+  v[3] = old_v0 * invDet;
 }
-template void ApplyCal::invert(std::complex<double>* v, double sigmaMMSE);
-template void ApplyCal::invert(std::complex<float>* v, float sigmaMMSE);
+template void ApplyCal::invert(std::complex<double>* v);
+template void ApplyCal::invert(std::complex<float>* v);
 
 void ApplyCal::ApplyFull(const aocommon::MC2x2F& gain_a,
                          const aocommon::MC2x2F& gain_b, DPBuffer& buffer,
@@ -205,7 +203,7 @@ void ApplyCal::ApplyFull(const aocommon::MC2x2F& gain_a,
   // If parameter is NaN or inf, do not apply anything and flag the data
   bool anyinfnan = false;
   for (unsigned int corr = 0; corr < 4; ++corr) {
-    if (!(isfinite(gain_a[corr]) && isfinite(gain_b[corr]))) {
+    if (!(isfinite(gain_a.Get(corr)) && isfinite(gain_b.Get(corr)))) {
       anyinfnan = true;
       break;
     }
@@ -235,8 +233,8 @@ void ApplyCal::ApplyWeights(const aocommon::MC2x2F& gain_a,
   float cov[4], normGainA[4], normGainB[4];
   for (unsigned int i = 0; i < 4; ++i) {
     cov[i] = 1. / weight[i];
-    normGainA[i] = std::norm(gain_a[i]);
-    normGainB[i] = std::norm(gain_b[i]);
+    normGainA[i] = std::norm(gain_a.Get(i));
+    normGainB[i] = std::norm(gain_b.Get(i));
   }
 
   weight[0] = cov[0] * (normGainA[0] * normGainB[0]) +

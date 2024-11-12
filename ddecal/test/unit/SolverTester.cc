@@ -167,7 +167,7 @@ std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
             perturbed_model += left * val.MultiplyHerm(right);
           }
           for (size_t p = 0; p != 4; ++p) {
-            time_data(baseline_index, ch, p) = perturbed_model[p];
+            time_data(baseline_index, ch, p) = perturbed_model.Get(p);
           }
         }
         ++baseline_index;
@@ -252,7 +252,7 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
             perturbed_model += left * val.MultiplyHerm(right);
           }
           for (size_t p = 0; p != kNPolarizations; ++p) {
-            data.emplace_back(perturbed_model[p]);
+            data.emplace_back(perturbed_model.Get(p));
           }
         }
         BOOST_REQUIRE(bda_data_buffer->AddRow(

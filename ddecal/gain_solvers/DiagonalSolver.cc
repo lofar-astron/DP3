@@ -135,8 +135,8 @@ void DiagonalSolver::PerformIteration(
       size_t& a1pos = ant_positions[antenna1 * 2 + p1];
       size_t& a2pos = ant_positions[antenna2 * 2 + p2];
 
-      v1[a1pos] = d[p];
-      v2[a2pos] = std::conj(d[p]);
+      v1[a1pos] = d.Get(p);
+      v2[a2pos] = std::conj(d.Get(p));
       ++a1pos;
       ++a2pos;
     }
@@ -163,9 +163,10 @@ void DiagonalSolver::PerformIteration(
         const size_t sol_index2 = (antenna2 * NSolutions() + s) * 2 + p2;
 
         g_times_c1(a1pos, s) =
-            std::conj(Complex(solutions[sol_index2])) * predicted[p];
-        g_times_c2(a2pos, s) = std::conj(Complex(solutions[sol_index1]) *
-                                         predicted[p]);  // using a* b* = (ab)*
+            std::conj(Complex(solutions[sol_index2])) * predicted.Get(p);
+        g_times_c2(a2pos, s) =
+            std::conj(Complex(solutions[sol_index1]) *
+                      predicted.Get(p));  // using a* b* = (ab)*
         ++a1pos;
         ++a2pos;
       }

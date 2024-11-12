@@ -967,16 +967,14 @@ void DDECal::ApplySolution(
     sum_over_directions += corrected_model_data;
 
     if (itsSettings.keep_model_data) {
-      for (size_t correlation = 0; correlation < 4; ++correlation) {
-        model_data[correlation] = corrected_model_data[correlation];
-      }
+      corrected_model_data.AssignTo(model_data);
     }
   }
 
   if (itsSettings.subtract) {
     for (size_t correlation = 0; correlation < 4; ++correlation) {
       buffer.GetData()(baseline, channel, correlation) -=
-          sum_over_directions[correlation];
+          sum_over_directions.Get(correlation);
     }
   }
 }

@@ -128,8 +128,8 @@ void ScalarSolver::PerformIteration(
     size_t& a1pos = ant_positions[antenna1];
     size_t& a2pos = ant_positions[antenna2];
     for (size_t p1 = 0; p1 != 4; ++p1) {
-      v1(a1pos * 4 + p1_to_p2[p1], 0) = d[p1];
-      v2(a2pos * 4 + p1, 0) = std::conj(d[p1]);
+      v1(a1pos * 4 + p1_to_p2[p1], 0) = d.Get(p1);
+      v2(a2pos * 4 + p1, 0) = std::conj(d.Get(p1));
     }
     ++a1pos;
     ++a2pos;
@@ -154,10 +154,10 @@ void ScalarSolver::PerformIteration(
         const size_t sol_index1 = antenna1 * NSolutions() + s;
         const size_t sol_index2 = antenna2 * NSolutions() + s;
         g_times_c1(a1pos * 4 + p2, s) =
-            std::conj(Complex(solutions[sol_index2])) * predicted[p1];
+            std::conj(Complex(solutions[sol_index2])) * predicted.Get(p1);
         g_times_c2(a2pos * 4 + p1, s) =
             std::conj(Complex(solutions[sol_index1]) *
-                      predicted[p1]);  // using a* b* = (ab)*
+                      predicted.Get(p1));  // using a* b* = (ab)*
       }
       ++a1pos;
       ++a2pos;
