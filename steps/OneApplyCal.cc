@@ -50,9 +50,6 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       itsSolSetName(parset.isDefined(prefix + "solset")
                         ? parset.getString(prefix + "solset")
                         : parset.getString(defaultPrefix + "solset", "")),
-      itsSigmaMMSE(parset.isDefined(prefix + "MMSE.Sigma")
-                       ? parset.getDouble(prefix + "MMSE.Sigma")
-                       : parset.getDouble(defaultPrefix + "MMSE.Sigma", 0.)),
       itsUpdateWeights(
           parset.isDefined(prefix + "updateweights")
               ? parset.getBool(prefix + "updateweights")
@@ -380,9 +377,6 @@ void OneApplyCal::show(std::ostream& os) const {
   }
   os << "  Update weights:   " << std::boolalpha << itsUpdateWeights << '\n';
   os << "  Invert:           " << std::boolalpha << itsInvert << '\n';
-  if (itsInvert) {
-    os << "    SigmaMMSE:    " << itsSigmaMMSE << '\n';
-  }
   os << "  TimeSlotsPerParmUpdate: " << itsTimeSlotsPerParmUpdate << '\n';
 }
 
@@ -452,7 +446,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
 
         itsJonesParametersPerDirection[""] = std::make_unique<JonesParameters>(
             info().chanFreqs(), times, info().antennaNames(), gain_type,
-            buffer->GetSolution(), itsInvert, itsSigmaMMSE);
+            buffer->GetSolution(), itsInvert);
       }
       itsTimeStep = 0;
     } else {
@@ -578,7 +572,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime,
       std::make_unique<JonesParameters>(
           getInfoOut().chanFreqs(), times, getInfoOut().antennaNames(),
           itsCorrectType, itsInterpolationType, direction_index,
-          &solution_tables_[0], &solution_tables_[1], itsInvert, itsSigmaMMSE,
+          &solution_tables_[0], &solution_tables_[1], itsInvert,
           itsParmExprs.size(), itsMissingAntennaBehavior);
 }
 
@@ -694,8 +688,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
 
   itsJonesParametersPerDirection[""] = std::make_unique<JonesParameters>(
       getInfoOut().chanFreqs(), times, getInfoOut().antennaNames(), gain_type,
-      itsInterpolationType, itsDirection, std::move(parmvalues), itsInvert,
-      itsSigmaMMSE);
+      itsInterpolationType, itsDirection, std::move(parmvalues), itsInvert);
 }
 
 unsigned int OneApplyCal::nPol(schaapcommon::h5parm::SolTab& solution_table) {

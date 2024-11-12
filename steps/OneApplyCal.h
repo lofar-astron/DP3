@@ -124,7 +124,6 @@ class OneApplyCal : public Step {
   bool itsInvert;
   JonesParameters::InterpolationType itsInterpolationType;
   unsigned int itsTimeSlotsPerParmUpdate;
-  double itsSigmaMMSE;
   bool itsUpdateWeights;
   bool itsUseModelData;
 

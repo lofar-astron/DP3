@@ -74,7 +74,7 @@ class ApplyCal : public Step {
 
   /// Invert a 2x2 matrix in place
   template <typename NumType>
-  static void invert(std::complex<NumType>* v, NumType sigmaMMSE = 0);
+  static void invert(std::complex<NumType>* v);
 
   /// Apply a diagonal Jones matrix to the 2x2 visibilities matrix: A.V.B^H
   static void ApplyDiag(const aocommon::MC2x2FDiag& gain_a,

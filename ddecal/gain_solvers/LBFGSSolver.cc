@@ -135,24 +135,24 @@ void FullGradient(double* unknowns, double* gradient, int n_unknowns,
       const MC2x2 res_J2 = res * J2;
       const MC2x2 res_J2_modH = res_J2.MultiplyHerm(model_data);
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 4] +=
-          scale_factor * res_J2_modH[0];
+          scale_factor * res_J2_modH.Get(0);
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 4 + 1] +=
-          scale_factor * res_J2_modH[1];
+          scale_factor * res_J2_modH.Get(1);
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 4 + 2] +=
-          scale_factor * res_J2_modH[2];
+          scale_factor * res_J2_modH.Get(2);
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 4 + 3] +=
-          scale_factor * res_J2_modH[3];
+          scale_factor * res_J2_modH.Get(3);
 
       const MC2x2 resH_J1 = res.HermTranspose() * J1;
       const MC2x2 resH_J1_mod = resH_J1 * model_data;
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 4] +=
-          scale_factor * resH_J1_mod[0];
+          scale_factor * resH_J1_mod.Get(0);
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 4 + 1] +=
-          scale_factor * resH_J1_mod[1];
+          scale_factor * resH_J1_mod.Get(1);
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 4 + 2] +=
-          scale_factor * resH_J1_mod[2];
+          scale_factor * resH_J1_mod.Get(2);
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 4 + 3] +=
-          scale_factor * resH_J1_mod[3];
+          scale_factor * resH_J1_mod.Get(3);
     }
   }
 
@@ -250,22 +250,25 @@ void DiagonalGradient(double* unknowns, double* gradient, int n_unknowns,
           &solutions[(antenna2 * lbfgs_dat->n_directions + d) * 2];
 
       // Hadamard product R o C^*
-      const MC2x2 R_Cconj(
-          res[0] * std::conj(model_data[0]), res[1] * std::conj(model_data[1]),
-          res[2] * std::conj(model_data[2]), res[3] * std::conj(model_data[3]));
+      const MC2x2 R_Cconj(res.Get(0) * std::conj(model_data.Get(0)),
+                          res.Get(1) * std::conj(model_data.Get(1)),
+                          res.Get(2) * std::conj(model_data.Get(2)),
+                          res.Get(3) * std::conj(model_data.Get(3)));
 
       // grad for antenna 2 = - g_1^H (R o C^*)
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 2] +=
-          scale_factor *
-          (std::conj(g_1[0]) * R_Cconj[0] + std::conj(g_1[1]) * R_Cconj[2]);
+          scale_factor * (std::conj(g_1[0]) * R_Cconj.Get(0) +
+                          std::conj(g_1[1]) * R_Cconj.Get(2));
       complex_gradient[(antenna2 * lbfgs_dat->n_directions + d) * 2 + 1] +=
-          scale_factor *
-          (std::conj(g_1[0]) * R_Cconj[1] + std::conj(g_1[1]) * R_Cconj[3]);
+          scale_factor * (std::conj(g_1[0]) * R_Cconj.Get(1) +
+                          std::conj(g_1[1]) * R_Cconj.Get(3));
       // grad for antenna 1 = - g_2^H (R o C^*)^H
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 2] +=
-          scale_factor * std::conj(g_2[0] * R_Cconj[0] + g_2[1] * R_Cconj[1]);
+          scale_factor *
+          std::conj(g_2[0] * R_Cconj.Get(0) + g_2[1] * R_Cconj.Get(1));
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d) * 2 + 1] +=
-          scale_factor * std::conj(g_2[0] * R_Cconj[2] + g_2[1] * R_Cconj[3]);
+          scale_factor *
+          std::conj(g_2[0] * R_Cconj.Get(2) + g_2[1] * R_Cconj.Get(3));
     }
   }
 
@@ -360,10 +363,11 @@ void ScalarGradient(double* unknowns, double* gradient, int n_unknowns,
           &solutions[(antenna2 * lbfgs_dat->n_directions + d)];
 
       // trace(C R^H)
-      const SolverBase::DComplex traceCR = model_data[0] * std::conj(res[0]) +
-                                           model_data[1] * std::conj(res[1]) +
-                                           model_data[2] * std::conj(res[2]) +
-                                           model_data[3] * std::conj(res[3]);
+      const SolverBase::DComplex traceCR =
+          model_data.Get(0) * std::conj(res.Get(0)) +
+          model_data.Get(1) * std::conj(res.Get(1)) +
+          model_data.Get(2) * std::conj(res.Get(2)) +
+          model_data.Get(3) * std::conj(res.Get(3));
 
       // grad for antenna 1 = - g_2^H trace(C R^H)
       complex_gradient[(antenna1 * lbfgs_dat->n_directions + d)] +=

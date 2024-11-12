@@ -235,7 +235,6 @@ class SagecalPredict : public ModelDataStep {
   bool invert_{false};
   bool parm_on_disk_{false};
   bool use_amp_phase_{false};
-  double sigma_mmse_;
   GainType gain_type_;
   JonesParameters::InterpolationType interp_type_;
   JonesParameters::MissingAntennaBehavior missing_ant_behavior_;

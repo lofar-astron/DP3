@@ -21,15 +21,15 @@ void AddNormToDenominator(float* denominator, const MC2x2F& corrected_model) {
   // the contribution of antenna2's "X" polarization, and the matrix is
   // ordered [ XX XY ; YX YY ].
   denominator[0] +=
-      std::norm(corrected_model[0]) + std::norm(corrected_model[2]);
+      std::norm(corrected_model.Get(0)) + std::norm(corrected_model.Get(2));
   denominator[1] +=
-      std::norm(corrected_model[1]) + std::norm(corrected_model[3]);
+      std::norm(corrected_model.Get(1)) + std::norm(corrected_model.Get(3));
 }
 
 void AddNormToDenominator(float* denominator,
                           const MC2x2FDiag& corrected_model) {
-  denominator[0] += std::norm(corrected_model[0]);
-  denominator[1] += std::norm(corrected_model[1]);
+  denominator[0] += std::norm(corrected_model.Get(0));
+  denominator[1] += std::norm(corrected_model.Get(1));
 }
 }  // namespace
 
@@ -221,7 +221,7 @@ void IterativeDiagonalSolver<VisMatrix>::SolveDirection(
               std::numeric_limits<double>::quiet_NaN();
         else
           next_solutions(ch_block, ant, solution_index, pol) =
-              DComplex(numerator[index][pol]) /
+              DComplex(numerator[index].Get(pol)) /
               double(denominator[index * 2 + pol]);
       }
     }

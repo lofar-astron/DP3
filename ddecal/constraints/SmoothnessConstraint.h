@@ -24,6 +24,10 @@ class SmoothnessConstraint final : public Constraint {
   std::vector<Constraint::Result> Apply(SolutionSpan& solutions, double time,
                                         std::ostream* stat_stream) override;
 
+  /**
+   * Set the weights to be used during smoothing.
+   * @param weights An array of n_antenna x n_channel_blocks.
+   */
   void SetWeights(const std::vector<double>& weights) override {
     weights_ = weights;
   }

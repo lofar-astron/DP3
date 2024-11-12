@@ -88,9 +88,9 @@ void WSCleanWriter::StartReorder() {
   aocommon::MultiBandData bands;
 
   schaapcommon::reordering::ReorderedHandleData data(
-      out_name_, getInfoOut().dataColumnName(), temporary_directory_,
-      channel_ranges, false, false, pols_out_, selection, bands,
-      getInfoOut().antennaNames().size(), true,
+      out_name_, getInfoOut().dataColumnName(), "MODEL_DATA",
+      temporary_directory_, channel_ranges, false, false, pols_out_, selection,
+      bands, getInfoOut().antennaNames().size(), true,
       [](schaapcommon::reordering::ReorderedHandleData) {});
 
   std::map<size_t, std::set<aocommon::PolarizationEnum>> pol_per_data_desc_id{

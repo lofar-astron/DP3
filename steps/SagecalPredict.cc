@@ -66,7 +66,6 @@ SagecalPredict::SagecalPredict(const common::ParameterSet& parset,
       invert_(false),
       parm_on_disk_(!h5_name_.empty()),
       use_amp_phase_(false),
-      sigma_mmse_(0.0),
       interp_type_(JonesParameters::InterpolationType::NEAREST),
       timeslots_per_parmupdate_(0),
       timestep_(0),
@@ -89,7 +88,6 @@ SagecalPredict::SagecalPredict(const common::ParameterSet& parset,
       invert_(false),
       parm_on_disk_(!h5_name_.empty()),
       use_amp_phase_(false),
-      sigma_mmse_(0.0),
       interp_type_(JonesParameters::InterpolationType::NEAREST),
       timeslots_per_parmupdate_(0),
       timestep_(0),
@@ -585,7 +583,7 @@ void SagecalPredict::updateFromH5(const double startTime) {
         std::make_unique<JonesParameters>(
             info().chanFreqs(), times, info().antennaNames(), gain_type_,
             interp_type_, direction_index, sol_tab_, sol_tab2_, invert_,
-            sigma_mmse_, parm_expressions_.size(), missing_ant_behavior_);
+            parm_expressions_.size(), missing_ant_behavior_);
 
     // shape : ncorr x n_stations x ntime*nfreq (ncorr:2,4)
     const casacore::Cube<casacore::Complex>& gains = Jones_params_->GetParms();

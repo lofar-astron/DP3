@@ -193,10 +193,10 @@ double DiagonalLowRankSolver::ChiSquared(
     const Complex solution_2_1_conj(std::conj(solution_2[1]));
 
     const MC2x2F& model = cb_data.ModelVisibility(direction, vis_index);
-    const MC2x2F contribution(solution_1_0 * model[0] * solution_2_0_conj,
-                              solution_1_0 * model[1] * solution_2_1_conj,
-                              solution_1_1 * model[2] * solution_2_0_conj,
-                              solution_1_1 * model[3] * solution_2_1_conj);
+    const MC2x2F contribution(solution_1_0 * model.Get(0) * solution_2_0_conj,
+                              solution_1_0 * model.Get(1) * solution_2_1_conj,
+                              solution_1_1 * model.Get(2) * solution_2_0_conj,
+                              solution_1_1 * model.Get(3) * solution_2_1_conj);
     MC2x2F data = v_residual[vis_index];
     data -= contribution;
     const float weight = cb_data.Weight(vis_index);
@@ -277,37 +277,41 @@ void DiagonalLowRankSolver::SolveDirectionSolution(
 
       AddToCorrelation(correlation_matrix(antenna_1 * 2, antenna_2 * 2),
                        variance_matrix(antenna_1 * 2, antenna_2 * 2),
-                       divisor_sum(antenna_1 * 2, antenna_2 * 2), data[0],
-                       weight[0], model[0]);
+                       divisor_sum(antenna_1 * 2, antenna_2 * 2), data.Get(0),
+                       weight[0], model.Get(0));
       AddToCorrelation(correlation_matrix(antenna_1 * 2, antenna_2 * 2 + 1),
                        variance_matrix(antenna_1 * 2, antenna_2 * 2 + 1),
-                       divisor_sum(antenna_1 * 2, antenna_2 * 2 + 1), data[1],
-                       weight[1], model[1]);
+                       divisor_sum(antenna_1 * 2, antenna_2 * 2 + 1),
+                       data.Get(1), weight[1], model.Get(1));
       AddToCorrelation(correlation_matrix(antenna_1 * 2 + 1, antenna_2 * 2),
                        variance_matrix(antenna_1 * 2 + 1, antenna_2 * 2),
-                       divisor_sum(antenna_1 * 2 + 1, antenna_2 * 2), data[2],
-                       weight[2], model[2]);
+                       divisor_sum(antenna_1 * 2 + 1, antenna_2 * 2),
+                       data.Get(2), weight[2], model.Get(2));
       AddToCorrelation(correlation_matrix(antenna_1 * 2 + 1, antenna_2 * 2 + 1),
                        variance_matrix(antenna_1 * 2 + 1, antenna_2 * 2 + 1),
                        divisor_sum(antenna_1 * 2 + 1, antenna_2 * 2 + 1),
-                       data[3], weight[3], model[3]);
+                       data.Get(3), weight[3], model.Get(3));
 
       AddToCorrelation(correlation_matrix(antenna_2 * 2, antenna_1 * 2),
                        variance_matrix(antenna_2 * 2, antenna_1 * 2),
                        divisor_sum(antenna_2 * 2, antenna_1 * 2),
-                       std::conj(data[0]), weight[0], std::conj(model[0]));
+                       std::conj(data.Get(0)), weight[0],
+                       std::conj(model.Get(0)));
       AddToCorrelation(correlation_matrix(antenna_2 * 2, antenna_1 * 2 + 1),
                        variance_matrix(antenna_2 * 2, antenna_1 * 2 + 1),
                        divisor_sum(antenna_2 * 2, antenna_1 * 2 + 1),
-                       std::conj(data[2]), weight[2], std::conj(model[2]));
+                       std::conj(data.Get(2)), weight[2],
+                       std::conj(model.Get(2)));
       AddToCorrelation(correlation_matrix(antenna_2 * 2 + 1, antenna_1 * 2),
                        variance_matrix(antenna_2 * 2 + 1, antenna_1 * 2),
                        divisor_sum(antenna_2 * 2 + 1, antenna_1 * 2),
-                       std::conj(data[1]), weight[1], std::conj(model[1]));
+                       std::conj(data.Get(1)), weight[1],
+                       std::conj(model.Get(1)));
       AddToCorrelation(correlation_matrix(antenna_2 * 2 + 1, antenna_1 * 2 + 1),
                        variance_matrix(antenna_2 * 2 + 1, antenna_1 * 2 + 1),
                        divisor_sum(antenna_2 * 2 + 1, antenna_1 * 2 + 1),
-                       std::conj(data[3]), weight[3], std::conj(model[3]));
+                       std::conj(data.Get(3)), weight[3],
+                       std::conj(model.Get(3)));
     }
   }
 
