@@ -183,6 +183,11 @@ struct Settings {
 /** Writes the relevant constraints of the @a settings to the @a output. */
 void ShowConstraintSettings(std::ostream& output, const Settings& settings);
 
+/** Returns a vector that maps the solution index to the direction index it
+ * belongs to */
+std::vector<size_t> GetSolutionToDirectionVector(
+    const std::vector<uint32_t>& solutions_per_direction);
+
 }  // namespace ddecal
 }  // namespace dp3
 

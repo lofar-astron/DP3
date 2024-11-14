@@ -101,6 +101,16 @@ class Constraint {
   virtual void SetWeights([[maybe_unused]] const std::vector<double>& weights) {
   }
 
+  /**
+   * Set direction dependent weights. It consists of n_solution vectors,
+   * each of which is an n_antennas * n_channel_blocks vector, where the channel
+   * index varies fastest.
+   *
+   * If set, the normal weights are not used.
+   */
+  virtual void SetSolutionWeights(
+      std::vector<std::vector<double>> solution_weights) {}
+
   virtual void GetTimings([[maybe_unused]] std::ostream& os,
                           [[maybe_unused]] double duration) const {}
 
