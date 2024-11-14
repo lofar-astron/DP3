@@ -324,5 +324,18 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings) {
     output << "  tecscreen.coreconstraint:" << settings.screen_core_constraint
            << '\n';
 }
+
+std::vector<size_t> GetSolutionToDirectionVector(
+    const std::vector<uint32_t>& solutions_per_direction) {
+  std::vector<size_t> result;
+  result.reserve(solutions_per_direction.size());
+  for (size_t d = 0; d != solutions_per_direction.size(); ++d) {
+    for (size_t i = 0; i != solutions_per_direction[d]; ++i) {
+      result.emplace_back(d);
+    }
+  }
+  return result;
+}
+
 }  // namespace ddecal
 }  // namespace dp3

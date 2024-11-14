@@ -32,6 +32,11 @@ class SmoothnessConstraint final : public Constraint {
     weights_ = weights;
   }
 
+  void SetSolutionWeights(
+      std::vector<std::vector<double>> solution_weights) final {
+    solution_weights_ = std::move(solution_weights);
+  }
+
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,
                   const std::vector<double>& frequencies) override;
@@ -68,6 +73,8 @@ class SmoothnessConstraint final : public Constraint {
   std::vector<double> frequencies_;
   std::vector<double> antenna_distance_factors_;
   std::vector<double> weights_;
+  /// A weight array per solution. If given, these override @ref weights_.
+  std::vector<std::vector<double>> solution_weights_;
   Smoother::KernelType kernel_type_;
   double bandwidth_;
   double bandwidth_ref_frequency_;

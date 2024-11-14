@@ -47,13 +47,19 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
       0, n_smoothed, [&](size_t begin_index, size_t end_index, size_t thread) {
         for (size_t smoothing_index = begin_index; smoothing_index < end_index;
              ++smoothing_index) {
-          size_t ant_index = smoothing_index / (NSolutions() * n_polarizations);
+          const size_t sol_index =
+              (smoothing_index / n_polarizations) % NSolutions();
+          const size_t ant_index =
+              smoothing_index / (NSolutions() * n_polarizations);
+          const double* weights = solution_weights_.empty()
+                                      ? weights_.data()
+                                      : solution_weights_[sol_index].data();
           for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
             // Flag channels where calibration yielded inf or nan
             if (isfinite(solutions_view(ch, smoothing_index))) {
               fit_data_[thread].data[ch] = solutions_view(ch, smoothing_index);
               fit_data_[thread].weight[ch] =
-                  weights_[ant_index * NChannelBlocks() + ch];
+                  weights[ant_index * NChannelBlocks() + ch];
             } else {
               fit_data_[thread].data[ch] = 0.0;
               fit_data_[thread].weight[ch] = 0.0;
