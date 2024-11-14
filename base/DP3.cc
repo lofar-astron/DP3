@@ -330,8 +330,9 @@ void Execute(const std::string& parsetName, int argc, char* argv[]) {
       aocommon::Logger::Warn
           << "\n*** WARNING: the following parset keywords were not used ***"
           << "\n             maybe they are misspelled"
-          << "\n    ";
-      for (const std::string& s : unused) aocommon::Logger::Warn << s;
+          << "\n";
+      for (const std::string& s : unused)
+        aocommon::Logger::Warn << "    - " << s << '\n';
       aocommon::Logger::Warn << '\n';
       if (checkparset != 0)
         throw std::runtime_error("Unused parset keywords found");
