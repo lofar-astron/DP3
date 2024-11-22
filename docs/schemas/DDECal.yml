@@ -20,7 +20,7 @@ inputs:
     default: "[]"
     type: list
     doc: |
-      List of model data names to reuse from previous step(s). The list should contain the model data names as set by a previous step, prefixed with the name of that step. Example: ``[ddecal1.MODEL_DATA, ddecal1.center]``.
+      List of model data names to reuse from previous step(s). The list should contain the model data names as set by a previous step, prefixed with the name of that step. Example: ``[ddecal1.MODEL_DATA, ddecal1.center]``. The list may contain expressions with ``?``, which matches any single character, and ``*``, which matches zero or more characters. For example, ``[*]`` matches all model data names.
   maxiter:
     default: 50
     type: int
