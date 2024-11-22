@@ -56,6 +56,7 @@
 #include "../steps/UVWFlagger.h"
 #include "../steps/Upsample.h"
 #include "../steps/WGridderPredict.h"
+#include "../steps/FlagTransfer.h"
 
 #include "../pythondp3/PyStep.h"
 
@@ -230,6 +231,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::NullStep>();
   } else if (type == "wscleanwriter") {
     step = std::make_shared<steps::WSCleanWriter>(parset, prefix);
+  } else if (type == "flagtransfer") {
+    step = std::make_shared<steps::FlagTransfer>(parset, prefix);
   }
   return step;
 }

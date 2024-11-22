@@ -2,6 +2,8 @@
 
 ## Upcoming release
 
+- Add flagtransfer step, which transfers flags from a low-resolution MS.
+
 ## [6.2.2] - 2024-11-08
 
 ### Improvements
