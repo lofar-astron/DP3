@@ -489,6 +489,7 @@ add_library(
   steps/Demixer.cc
   steps/DummyStep.cc
   steps/Filter.cc
+  steps/FlagTransfer.cc
   steps/GainCal.cc
   steps/H5ParmPredict.cc
   steps/IDGImager.cc
@@ -770,6 +771,7 @@ if(BUILD_TESTING)
       steps/test/unit/tDemixer.cc
       steps/test/unit/tDummyStep.cc
       steps/test/unit/tFilter.cc
+      steps/test/unit/tFlagTransfer.cc
       steps/test/unit/tGainCal.cc
       steps/test/unit/tH5ParmPredict.cc
       steps/test/unit/tIDGImager.cc
