@@ -482,7 +482,7 @@ void BdaDdeCal::SolveCurrentInterval() {
     }
   }
 
-  // Normalize the weigths to the number of intervals contained in current
+  // Normalize the weights to the number of intervals contained in current
   // solution interval, per antenna
   for (size_t k = 0; k < antenna1_interval_count.size(); ++k) {
     for (size_t i = 0; i < n_channel_blocks; ++i) {
@@ -504,14 +504,26 @@ void BdaDdeCal::SolveCurrentInterval() {
   ddecal::SolverBase::SolveResult result;
   switch (settings_.solver_data_use) {
     case ddecal::SolverDataUse::kSingle:
+      if (settings_.model_weighted_constraints) {
+        solver_->SetDdConstraintWeights(
+            std::get<UniPtr>(solve_data)->GetSolutionWeights());
+      }
       result = solver_->Solve(*std::get<UniPtr>(solve_data), solutions_.back(),
                               current_center, nullptr);
       break;
     case ddecal::SolverDataUse::kDual:
+      if (settings_.model_weighted_constraints) {
+        solver_->SetDdConstraintWeights(
+            std::get<DuoPtr>(solve_data)->GetSolutionWeights());
+      }
       result = solver_->Solve(*std::get<DuoPtr>(solve_data), solutions_.back(),
                               current_center, nullptr);
       break;
     case ddecal::SolverDataUse::kFull:
+      if (settings_.model_weighted_constraints) {
+        solver_->SetDdConstraintWeights(
+            std::get<FullPtr>(solve_data)->GetSolutionWeights());
+      }
       result = solver_->Solve(*std::get<FullPtr>(solve_data), solutions_.back(),
                               current_center, nullptr);
       break;

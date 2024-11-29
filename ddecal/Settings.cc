@@ -97,6 +97,8 @@ Settings::Settings(const common::ParameterSet& _parset,
       min_vis_ratio(GetDouble("minvisratio", 0.0)),
       n_channels(GetUint("nchan", 1)),
       solutions_per_direction(GetSizeTVector("solutions_per_direction", {})),
+      // Constraints
+      model_weighted_constraints(GetBool("model_weighted_constraints", false)),
       core_constraint(GetDouble("coreconstraint", 0.0)),
       antenna_constraint(ReadAntennaConstraint()),
       smoothness_constraint(GetDouble("smoothnessconstraint", 0.0)),

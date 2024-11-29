@@ -100,6 +100,11 @@ class SolveData {
       return n_solutions_[direction_index];
     }
 
+    /** @return Total number of solutions */
+    uint32_t NSolutions() const {
+      return accumulate(n_solutions_.begin(), n_solutions_.end(), uint32_t(0));
+    }
+
    private:
     friend class SolveData<MatrixType>;
 
@@ -165,11 +170,22 @@ class SolveData {
     return channel_blocks_[i];
   }
 
+  /**
+   * Get solution weights, which are the direction-dependent weights.
+   * @returns n_solution vectors, each of which is an
+   * n_antennas * n_channel_blocks vector, where the channel
+   * index varies fastest.
+   * The total weight is the sum of the absolute value of all visibilities,
+   * i.e. the L_1 norm.
+   */
+  std::vector<std::vector<double>> GetSolutionWeights() const;
+
  private:
-  void CountAntennaVisibilities(size_t n_antennas);
+  void CountAntennaVisibilities();
 
   /// The data, indexed by channel block index
   std::vector<ChannelBlockData> channel_blocks_;
+  size_t n_antennas_;
 };
 
 /// Stores all 4 polarizations of the data.

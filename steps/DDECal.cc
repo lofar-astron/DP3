@@ -628,7 +628,9 @@ void DDECal::doSolve() {
               weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
               itsSettings.solutions_per_direction, itsAntennas1, itsAntennas2);
           weighted_buffers.clear();
-
+          if (itsSettings.model_weighted_constraints) {
+            itsSolver->SetDdConstraintWeights(solve_data.GetSolutionWeights());
+          }
           aocommon::Logger::Debug << "Running DDECal single-visibility solver "
                                      "for current calibration interval.\n";
 
@@ -641,6 +643,9 @@ void DDECal::doSolve() {
               weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
               itsSettings.solutions_per_direction, itsAntennas1, itsAntennas2);
           weighted_buffers.clear();
+          if (itsSettings.model_weighted_constraints) {
+            itsSolver->SetDdConstraintWeights(solve_data.GetSolutionWeights());
+          }
 
           aocommon::Logger::Debug << "Running DDECal dual-visibility solver "
                                      "for current calibration interval.\n";
@@ -654,6 +659,9 @@ void DDECal::doSolve() {
               weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
               itsSettings.solutions_per_direction, itsAntennas1, itsAntennas2);
           weighted_buffers.clear();
+          if (itsSettings.model_weighted_constraints) {
+            itsSolver->SetDdConstraintWeights(solve_data.GetSolutionWeights());
+          }
 
           aocommon::Logger::Debug
               << "Running DDECal solver for current calibration interval.\n";
