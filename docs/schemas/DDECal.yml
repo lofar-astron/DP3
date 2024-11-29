@@ -106,6 +106,11 @@ inputs:
     default: 1
     type: int
     doc: Number of channels in each channel block, for which the solution is assumed to be constant. The default is 1, meaning one solution per channel (or in the case of constraints, fitting the constraint over all channels individually). 0 means one solution for the whole channel range. If the total number of channels is not divisable by nchan, some channelblocks will become slightly larger. When using BDA, the value of nchan should be bigger than or equal to the maximum number of averaged frequency channels.
+  model_weighted_constraints:
+    default: false
+    type: bool
+    doc: >-
+      Setting this to true will use (direction-dependent) weights in the constraints that are calculated from the model data: solutions with large predicted model data values are upweighted. This is currently an experimental feature. It may be useful for the smoothness constraint when dealing with sources that go through the beam null at certain frequencies. In this case, the direction-dependent weights would make sure that the solutions where the model is predicted to be zero will not skew the smoothing. At present, only the smoothness constraint is affected by this setting.
   coreconstraint:
     default: 0
     type: double

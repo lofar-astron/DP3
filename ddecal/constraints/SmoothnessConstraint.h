@@ -33,8 +33,8 @@ class SmoothnessConstraint final : public Constraint {
   }
 
   void SetSolutionWeights(
-      std::vector<std::vector<double>> solution_weights) final {
-    solution_weights_ = std::move(solution_weights);
+      const std::vector<std::vector<double>>& solution_weights) final {
+    solution_weights_ = solution_weights;
   }
 
   void Initialize(size_t nAntennas,

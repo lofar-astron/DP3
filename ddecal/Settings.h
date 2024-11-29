@@ -124,6 +124,7 @@ struct Settings {
   std::vector<size_t> solutions_per_direction;
 
   // Constraint settings.
+  bool model_weighted_constraints;
   const double core_constraint;
   const std::vector<std::set<std::string>> antenna_constraint;
   const double smoothness_constraint;

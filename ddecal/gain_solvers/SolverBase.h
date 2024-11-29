@@ -227,6 +227,9 @@ class SolverBase {
         "support single-visibility solving");
   }
 
+  /** Calls @ref SetSolutionWeights() for all constraints. */
+  void SetDdConstraintWeights(const std::vector<std::vector<double>>& weights);
+
  protected:
   void Step(const std::vector<std::vector<DComplex>>& solutions,
             SolutionTensor& next_solutions) const;

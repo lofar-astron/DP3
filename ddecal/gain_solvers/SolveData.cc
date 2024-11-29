@@ -30,6 +30,17 @@ std::complex<float> ToSpecificMatrix(const std::complex<float>* data) {
   return 0.5f * (data[0] + data[3]);
 }
 
+float GetSolutionWeight(const std::complex<float>& data) {
+  return std::abs(data);
+}
+float GetSolutionWeight(const aocommon::MC2x2FDiag& data) {
+  return std::abs(data.Get(0)) + std::abs(data.Get(1));
+}
+float GetSolutionWeight(const aocommon::MC2x2F& data) {
+  return std::abs(data.Get(0)) + std::abs(data.Get(1)) + std::abs(data.Get(2)) +
+         std::abs(data.Get(3));
+}
+
 /// Construct an array that identifies the start solution index per direction
 std::vector<size_t> SolutionStartIndices(
     const std::vector<uint32_t>& n_solutions_per_direction) {
@@ -68,7 +79,7 @@ SolveData<MatrixType>::SolveData(
     const std::vector<std::string>& direction_names, size_t n_channel_blocks,
     size_t n_antennas, const std::vector<size_t>& n_solutions_per_direction,
     const std::vector<int>& antennas1, const std::vector<int>& antennas2)
-    : channel_blocks_(n_channel_blocks) {
+    : channel_blocks_(n_channel_blocks), n_antennas_(n_antennas) {
   std::vector<size_t> channel_begin(n_channel_blocks + 1, 0);
 
   const size_t n_times = buffers.size();
@@ -171,7 +182,7 @@ SolveData<MatrixType>::SolveData(
     }
   }
 
-  CountAntennaVisibilities(n_antennas);
+  CountAntennaVisibilities();
 }
 
 template <typename MatrixType>
@@ -180,7 +191,7 @@ SolveData<MatrixType>::SolveData(
     const std::vector<size_t>& n_solutions_per_direction,
     const std::vector<int>& antennas1, const std::vector<int>& antennas2,
     bool with_weights)
-    : channel_blocks_(n_channel_blocks) {
+    : channel_blocks_(n_channel_blocks), n_antennas_(n_antennas) {
   // Count nr of visibilities per channel block
   std::vector<size_t> counts(n_channel_blocks, 0);
   for (size_t row = 0; row != buffer.GetDataRows().size(); ++row) {
@@ -283,18 +294,52 @@ SolveData<MatrixType>::SolveData(
     }
   }
 
-  CountAntennaVisibilities(n_antennas);
+  CountAntennaVisibilities();
 }
 
 template <typename MatrixType>
-void SolveData<MatrixType>::CountAntennaVisibilities(size_t n_antennas) {
+void SolveData<MatrixType>::CountAntennaVisibilities() {
   for (ChannelBlockData& cb_data : channel_blocks_) {
-    cb_data.antenna_visibility_counts_.assign(n_antennas, 0);
+    cb_data.antenna_visibility_counts_.assign(n_antennas_, 0);
     for (const std::pair<uint32_t, uint32_t>& a : cb_data.antenna_indices_) {
       ++cb_data.antenna_visibility_counts_[a.first];
       ++cb_data.antenna_visibility_counts_[a.second];
     }
   }
+}
+
+template <typename MatrixType>
+std::vector<std::vector<double>> SolveData<MatrixType>::GetSolutionWeights()
+    const {
+  assert(!channel_blocks_.empty());
+  const size_t n_solutions = channel_blocks_.front().NSolutions();
+  const size_t n_channel_blocks = channel_blocks_.size();
+
+  std::vector<std::vector<double>> result(n_solutions);
+  for (std::vector<double>& weights : result) {
+    weights.resize(n_antennas_ * n_channel_blocks);
+  }
+
+  for (size_t channel_block_index = 0;
+       channel_block_index != channel_blocks_.size(); ++channel_block_index) {
+    const ChannelBlockData& data = channel_blocks_[channel_block_index];
+    const size_t n_visibilities = data.NVisibilities();
+    for (size_t direction = 0; direction != data.NDirections(); ++direction) {
+      for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
+        const uint32_t antenna_1 = data.Antenna1Index(vis_index);
+        const uint32_t antenna_2 = data.Antenna2Index(vis_index);
+        const uint32_t solution_index =
+            data.SolutionIndex(direction, vis_index);
+        const float weight =
+            GetSolutionWeight(data.ModelVisibility(direction, vis_index));
+        result[solution_index]
+              [antenna_1 * n_channel_blocks + channel_block_index] += weight;
+        result[solution_index]
+              [antenna_2 * n_channel_blocks + channel_block_index] += weight;
+      }
+    }
+  }
+  return result;
 }
 
 template <typename MatrixType>

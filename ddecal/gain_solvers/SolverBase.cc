@@ -412,5 +412,12 @@ std::unique_ptr<LLSSolver> SolverBase::CreateLLSSolver(
   return LLSSolver::Make(lls_solver_type_, m, n, nrhs);
 }
 
+void SolverBase::SetDdConstraintWeights(
+    const std::vector<std::vector<double>>& weights) {
+  for (const std::unique_ptr<Constraint>& constraint : constraints_) {
+    constraint->SetSolutionWeights(weights);
+  }
+}
+
 }  // namespace ddecal
 }  // namespace dp3
