@@ -9,7 +9,7 @@
 #include <array>
 #include <cassert>
 #include <limits>
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 
 namespace {
 const size_t kNCorrelations = 4;
@@ -23,24 +23,24 @@ namespace dp3 {
 namespace ddecal {
 
 void BdaSolverBuffer::AppendAndWeight(
-    std::unique_ptr<BDABuffer> unweighted_buffer,
-    std::vector<std::unique_ptr<BDABuffer>>&& model_buffers) {
+    std::unique_ptr<BdaBuffer> unweighted_buffer,
+    std::vector<std::unique_ptr<BdaBuffer>>&& model_buffers) {
   const size_t n_directions = model_buffers.size();
 
   if (!data_.Empty() && n_directions != data_[0].model.size()) {
     throw std::invalid_argument("Model directions count does not match");
   }
 
-  BDABuffer::Fields bda_fields(false);
+  BdaBuffer::Fields bda_fields(false);
   bda_fields.data = true;
 
   auto weighted_buffer =
-      std::make_unique<BDABuffer>(*unweighted_buffer, bda_fields);
+      std::make_unique<BdaBuffer>(*unweighted_buffer, bda_fields);
 
   const size_t n_rows = weighted_buffer->GetRows().size();
 
   for (size_t row = 0; row < n_rows; ++row) {
-    const BDABuffer::Row& weighted_row = weighted_buffer->GetRows()[row];
+    const BdaBuffer::Row& weighted_row = weighted_buffer->GetRows()[row];
 
     assert(weighted_row.interval <= time_interval_);
     assert(kNCorrelations == weighted_row.n_correlations);
@@ -65,7 +65,7 @@ void BdaSolverBuffer::AppendAndWeight(
       }
 
       // Weigh the model data.
-      for (std::unique_ptr<BDABuffer>& model_buffer : model_buffers) {
+      for (std::unique_ptr<BdaBuffer>& model_buffer : model_buffers) {
         std::complex<float>* model_ptr = model_buffer->GetData(row) + index;
         for (size_t cr = 0; cr < kNCorrelations; ++cr) {
           is_flagged = is_flagged || !IsFinite(model_ptr[cr]);
@@ -79,7 +79,7 @@ void BdaSolverBuffer::AppendAndWeight(
         for (size_t cr = 0; cr < kNCorrelations; ++cr) {
           data_ptr[cr] = 0.0;
         }
-        for (std::unique_ptr<BDABuffer>& model_buffer : model_buffers) {
+        for (std::unique_ptr<BdaBuffer>& model_buffer : model_buffers) {
           std::complex<float>* model_ptr = model_buffer->GetData(row) + index;
           for (size_t cr = 0; cr < kNCorrelations; ++cr) {
             model_ptr[cr] = 0.0;
@@ -97,7 +97,7 @@ void BdaSolverBuffer::AppendAndWeight(
       AddInterval(data_rows_[0].model.size());
     }
 
-    BDABuffer::Row& unweighted_row = unweighted_buffer->GetRows()[row];
+    BdaBuffer::Row& unweighted_row = unweighted_buffer->GetRows()[row];
     data_rows_[queue_index].unweighted.push_back(&unweighted_row);
     data_rows_[queue_index].weighted.push_back(&weighted_row);
     for (size_t dir = 0; dir < n_directions; ++dir) {
@@ -145,12 +145,12 @@ void BdaSolverBuffer::AdvanceInterval() {
   ++current_interval_;
   for (int& bl_interval : last_complete_interval_per_baseline_) --bl_interval;
 
-  // Remove old BDABuffers.
+  // Remove old BdaBuffers.
   while (!data_.Empty()) {
     const bool all_rows_are_old =
         std::all_of(data_[0].unweighted->GetRows().begin(),
                     data_[0].unweighted->GetRows().end(),
-                    [this](const BDABuffer::Row& row) {
+                    [this](const BdaBuffer::Row& row) {
                       return RelativeIndex(row.time) < 0;
                     });
 
@@ -165,8 +165,8 @@ void BdaSolverBuffer::AdvanceInterval() {
 
 void BdaSolverBuffer::AddInterval(size_t n_directions) {
   data_rows_.PushBack(
-      {std::vector<BDABuffer::Row*>(), std::vector<const BDABuffer::Row*>(),
-       std::vector<std::vector<const base::BDABuffer::Row*>>(n_directions)});
+      {std::vector<BdaBuffer::Row*>(), std::vector<const BdaBuffer::Row*>(),
+       std::vector<std::vector<const base::BdaBuffer::Row*>>(n_directions)});
 }
 
 void BdaSolverBuffer::SubtractCorrectedModel(
@@ -181,7 +181,7 @@ void BdaSolverBuffer::SubtractCorrectedModel(
   const size_t n_directions = data_rows_[0].model.size();
 
   for (size_t row = 0; row < data_rows_[0].unweighted.size(); ++row) {
-    BDABuffer::Row* unweighted_row = data_rows_[0].unweighted[row];
+    BdaBuffer::Row* unweighted_row = data_rows_[0].unweighted[row];
 
     // Map each (averaged) channel to a channel block.
     assert(chan_freqs[unweighted_row->baseline_nr].size() ==
@@ -202,7 +202,7 @@ void BdaSolverBuffer::SubtractCorrectedModel(
         antennas2[unweighted_row->baseline_nr] * n_directions;
 
     for (size_t dir = 0; dir < n_directions; ++dir) {
-      const BDABuffer::Row* model_row = data_rows_[0].model[dir][row];
+      const BdaBuffer::Row* model_row = data_rows_[0].model[dir][row];
       assert(model_row->n_correlations == kNCorrelations);
 
       const size_t sol1_index = ant1_index + dir;

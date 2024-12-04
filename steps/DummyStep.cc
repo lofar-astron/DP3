@@ -40,7 +40,7 @@ bool DummyStep::process(std::unique_ptr<DPBuffer> buffer) {
   return false;
 }
 
-bool DummyStep::process(std::unique_ptr<base::BDABuffer> buffer) {
+bool DummyStep::process(std::unique_ptr<base::BdaBuffer> buffer) {
   // Do the BDA processing here.
   return getNextStep()->process(std::move(buffer));
 }

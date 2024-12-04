@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include "../base/MS.h"
@@ -119,14 +119,14 @@ MSBDAReader::~MSBDAReader() {}
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
 bool MSBDAReader::process(std::unique_ptr<base::DPBuffer>) {
-  return process(std::unique_ptr<base::BDABuffer>());
+  return process(std::unique_ptr<base::BdaBuffer>());
 }
 
-bool MSBDAReader::process(std::unique_ptr<base::BDABuffer>) {
+bool MSBDAReader::process(std::unique_ptr<base::BdaBuffer>) {
   common::NSTimer::StartStop sstime(timer_);
 
   // TODO: Pre-calculate actual required pool size beforehand.
-  auto buffer = std::make_unique<base::BDABuffer>(
+  auto buffer = std::make_unique<base::BdaBuffer>(
       info().nbaselines() * info().nchan() * info().ncorr());
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));

@@ -11,7 +11,7 @@
 #include "InputStep.h"
 #include <dp3/steps/Step.h>
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include <dp3/base/DPBuffer.h>
 
 #include <map>
@@ -21,7 +21,7 @@
 namespace dp3 {
 namespace steps {
 
-/// @brief DP3 step that expands BDA data in BDABuffers to regular data in
+/// @brief DP3 step that expands BDA data in BdaBuffers to regular data in
 /// DPBuffers.
 
 /// This class expands bda averaged data to regular data. The averaged data is
@@ -43,10 +43,10 @@ class BDAExpander : public Step {
   }
 
   /// Process the data.
-  /// Reads the data from a BDABuffer and fills an internal vector of DPBuffer.
+  /// Reads the data from a BdaBuffer and fills an internal vector of DPBuffer.
   /// Gives regular buffer to the next step once all the baselines are
   /// available.
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   void finish() override;
 
@@ -59,11 +59,11 @@ class BDAExpander : public Step {
   bool accepts(MsType dt) const override { return dt == MsType::kBda; }
 
  private:
-  /// Helper function to copy the data from BDABuffer to DPBuffer
-  /// BDA_row: the row in the BDABuffer to copy
-  /// bufOut: the regular buffer in which the BDABuffer row is copied
+  /// Helper function to copy the data from BdaBuffer to DPBuffer
+  /// BDA_row: the row in the BdaBuffer to copy
+  /// bufOut: the regular buffer in which the BdaBuffer row is copied
   /// current_bl: the baseline number relative to the BDA_row
-  void CopyData(const dp3::base::BDABuffer::Row &bda_row,
+  void CopyData(const dp3::base::BdaBuffer::Row &bda_row,
                 std::unique_ptr<dp3::base::DPBuffer> &buf_out,
                 unsigned int current_bl, float time_averaging_factor = 1.0);
 

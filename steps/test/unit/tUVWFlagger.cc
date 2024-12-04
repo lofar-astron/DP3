@@ -18,13 +18,13 @@
 
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
@@ -152,8 +152,8 @@ std::unique_ptr<DPBuffer> TestInput<DPBuffer>::CreateInputBuffer() {
 }
 
 template <>
-std::unique_ptr<BDABuffer> TestInput<BDABuffer>::CreateInputBuffer() {
-  std::unique_ptr<BDABuffer> buffer = std::make_unique<BDABuffer>(
+std::unique_ptr<BdaBuffer> TestInput<BdaBuffer>::CreateInputBuffer() {
+  std::unique_ptr<BdaBuffer> buffer = std::make_unique<BdaBuffer>(
       n_correlations_ * n_channels_ * n_baselines_ * n_times_);
 
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
@@ -193,7 +193,7 @@ void TestInput<DPBuffer>::updateInfo(const DPInfo&) {
 }
 
 template <>
-void TestInput<BDABuffer>::updateInfo(const DPInfo&) {
+void TestInput<BdaBuffer>::updateInfo(const DPInfo&) {
   // Define the frequencies for the BDA buffer.
   // Even baselines have a channel averaging factor of 5
   // Odd baselines have a channel averaging factor of 3
@@ -234,7 +234,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
  private:
   bool process(std::unique_ptr<DPBuffer>) override { return false; }
-  bool process(std::unique_ptr<BDABuffer>) override { return false; }
+  bool process(std::unique_ptr<BdaBuffer>) override { return false; }
   const xt::xtensor<bool, 3> GetResult() const {
     xt::xtensor<bool, 3> result;
     switch (test_id_) {
@@ -355,7 +355,7 @@ bool TestOutput<DPBuffer>::process(std::unique_ptr<DPBuffer> buffer) {
 }
 
 template <>
-bool TestOutput<BDABuffer>::process(std::unique_ptr<BDABuffer> buffer) {
+bool TestOutput<BdaBuffer>::process(std::unique_ptr<BdaBuffer> buffer) {
   // Flag where u,v,w matches intervals given in the requested test.
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
   const xt::xtensor<bool, 3> expected_result = GetResult();
@@ -456,7 +456,7 @@ BOOST_AUTO_TEST_SUITE(uvwflagger)
 
 BOOST_AUTO_TEST_CASE(constructor) {
   test_constructor<DPBuffer>(10, 16, 32, 4, Step::MsType::kRegular);
-  test_constructor<BDABuffer>(10, 16, 32, 4, Step::MsType::kBda);
+  test_constructor<BdaBuffer>(10, 16, 32, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(fields) {
@@ -509,30 +509,30 @@ BOOST_AUTO_TEST_CASE(test7_regular) {
 }
 
 BOOST_AUTO_TEST_CASE(test1_bda) {
-  test1<BDABuffer>(10, 16, 32, 4, Step::MsType::kBda);
+  test1<BdaBuffer>(10, 16, 32, 4, Step::MsType::kBda);
 }
 BOOST_AUTO_TEST_CASE(test2_bda) {
-  test1<BDABuffer>(100, 105, 32, 4, Step::MsType::kBda);
+  test1<BdaBuffer>(100, 105, 32, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test3_bda) {
-  test2<BDABuffer>(2, 16, 15, 4, Step::MsType::kBda);
+  test2<BdaBuffer>(2, 16, 15, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test4_bda) {
-  test2<BDABuffer>(2, 36, 15, 2, Step::MsType::kBda);
+  test2<BdaBuffer>(2, 36, 15, 2, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test5_bda) {
-  test2<BDABuffer>(10, 16, 30, 4, Step::MsType::kBda);
+  test2<BdaBuffer>(10, 16, 30, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test6_bda) {
-  test2<BDABuffer>(100, 105, 30, 4, Step::MsType::kBda);
+  test2<BdaBuffer>(100, 105, 30, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(test7_bda) {
-  test3<BDABuffer>(2, 16, 32, 4, Step::MsType::kBda);
+  test3<BdaBuffer>(2, 16, 32, 4, Step::MsType::kBda);
 }
 
 BOOST_AUTO_TEST_CASE(sun_as_phase_center) {

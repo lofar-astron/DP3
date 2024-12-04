@@ -14,7 +14,7 @@
 #include <utility>
 
 using aocommon::MC2x2;
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 
 namespace dp3 {
@@ -196,16 +196,16 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
       kNBDATimes * kNBaselines * kNChannels * kNPolarizations / 2;
 
   // Initialize the data buffers. The solvers only need the data field.
-  BDABuffer::Fields bda_fields(true);
+  BdaBuffer::Fields bda_fields(true);
   bda_fields.full_res_flags = false;
   auto bda_data_buffer =
-      std::make_unique<BDABuffer>(bda_buffer_size, bda_fields);
-  std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers;
+      std::make_unique<BdaBuffer>(bda_buffer_size, bda_fields);
+  std::vector<std::unique_ptr<BdaBuffer>> bda_model_buffers;
   bda_model_buffers.reserve(kNDirections);
   bda_fields.weights = false;
   for (size_t dir = 0; dir < kNDirections; ++dir) {
     bda_model_buffers.push_back(
-        std::make_unique<BDABuffer>(bda_buffer_size, bda_fields));
+        std::make_unique<BdaBuffer>(bda_buffer_size, bda_fields));
   }
 
   // Do the outer loop over time, since the BDA rows should be ordered.

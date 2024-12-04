@@ -23,7 +23,7 @@
 #include <array>
 #include <iostream>
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::operator<<;
@@ -189,7 +189,7 @@ bool UVWFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   return true;
 }
 
-bool UVWFlagger::process(std::unique_ptr<BDABuffer> buffer) {
+bool UVWFlagger::process(std::unique_ptr<BdaBuffer> buffer) {
   if (itsIsDegenerate) {
     getNextStep()->process(std::move(buffer));
     return true;
@@ -218,7 +218,7 @@ bool UVWFlagger::process(std::unique_ptr<BDABuffer> buffer) {
     }
 
     // Copy original flags to calculate flagged visibilities
-    BDABuffer::Row originalRow = row;
+    BdaBuffer::Row originalRow = row;
     const bool* origPtr = originalRow.flags;
     doFlag(uvw, flagPtr, n_correlations, n_channels, baseline_id);
     // Count the flags set newly.

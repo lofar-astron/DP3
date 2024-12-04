@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include "../../../common/ParameterSet.h"
 #include "../../BDAExpander.h"
 #include "mock/MockInput.h"
@@ -13,7 +13,7 @@
 
 #include <string>
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::steps::BDAExpander;
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_SUITE(bda_expander, *boost::unit_test::tolerance(0.001) *
 BOOST_AUTO_TEST_CASE(time_expansion) {
   std::size_t pool_size = kNCorr * kNChan * kNBaselines * kNIntervals;
 
-  std::unique_ptr<BDABuffer> buffer{new BDABuffer(pool_size)};
+  std::unique_ptr<BdaBuffer> buffer{new BdaBuffer(pool_size)};
 
   const double bda_first_time = kStartTime + kInterval / 2;
   std::vector<std::size_t> baseline_id{0, 1};
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
 BOOST_AUTO_TEST_CASE(frequency_expansion) {
   std::size_t pool_size = kNCorr * kNChan * kNBaselines * kNIntervals;
 
-  std::unique_ptr<BDABuffer> buffer{new BDABuffer(pool_size)};
+  std::unique_ptr<BdaBuffer> buffer{new BdaBuffer(pool_size)};
 
   const double bda_first_time = kStartTime + kInterval / 2;
   const std::vector<std::size_t> baseline_id{0, 1};

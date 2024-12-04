@@ -7,7 +7,7 @@
 #include "ScaleData.h"
 
 #include <dp3/base/DPBuffer.h>
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include <dp3/base/DPInfo.h>
 
 #include "../common/ParameterSet.h"
@@ -29,7 +29,7 @@
 #include <cassert>
 #include <iostream>
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::operator<<;
@@ -192,9 +192,9 @@ bool ScaleData::process(std::unique_ptr<base::DPBuffer> buf) {
   return true;
 }
 
-bool ScaleData::process(std::unique_ptr<BDABuffer> bda_buffer) {
+bool ScaleData::process(std::unique_ptr<BdaBuffer> bda_buffer) {
   itsTimer.start();
-  std::vector<BDABuffer::Row> rows = bda_buffer->GetRows();
+  std::vector<BdaBuffer::Row> rows = bda_buffer->GetRows();
   for (std::size_t row_nr = 0; row_nr < rows.size(); ++row_nr) {
     auto factors =
         xt::view(itsFactors, rows[row_nr].baseline_nr, xt::all(), xt::all());

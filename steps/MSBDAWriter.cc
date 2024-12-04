@@ -5,7 +5,7 @@
 #include "MSWriter.h"
 
 #include "../common/ParameterSet.h"
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include "../base/MS.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -47,7 +47,7 @@ using casacore::TableLock;
 using casacore::True;
 using casacore::Vector;
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
@@ -84,10 +84,10 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
   aocommon::Logger::Info << "Finished preparing output MS\n";
 }
 
-bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
+bool MSBDAWriter::process(std::unique_ptr<BdaBuffer> buffer) {
   buffer->SetBaseRowNr(ms_.nrow());
 
-  const std::vector<BDABuffer::Row>& rows = buffer->GetRows();
+  const std::vector<BdaBuffer::Row>& rows = buffer->GetRows();
 
   ms_.addRow(rows.size());
 
@@ -110,7 +110,7 @@ bool MSBDAWriter::process(std::unique_ptr<BDABuffer> buffer) {
 
   std::vector<common::rownr_t> row_nrs;
   row_nrs.reserve(rows.size());
-  for (const BDABuffer::Row& row : rows) {
+  for (const BdaBuffer::Row& row : rows) {
     time.put(row.row_nr, row.time);
     time_centroid.put(row.row_nr, row.time);
     interval.put(row.row_nr, row.interval);

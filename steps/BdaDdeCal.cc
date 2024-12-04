@@ -16,7 +16,7 @@
 #include "Predict.h"
 #include "Version.h"
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;
 using dp3::ddecal::BdaSolverBuffer;
 using dp3::ddecal::SolveData;
@@ -279,18 +279,18 @@ std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
   return frequencies;
 }
 
-bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
+bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
   timer_.start();
 
   // Feed metadata-only copies of the buffer to the steps. Only allocate room
   // for 'data' in the buffers, since the steps should only produce data.
-  BDABuffer::Fields fields(false);
+  BdaBuffer::Fields fields(false);
   fields.data = true;
-  BDABuffer::Fields copyfields(false);
+  BdaBuffer::Fields copyfields(false);
 
   if (!uvw_flagger_step_->isDegenerate()) {
     uvw_flagger_step_->process(std::move(buffer));
-    std::vector<std::unique_ptr<base::BDABuffer>> uvw_flagged_buffer =
+    std::vector<std::unique_ptr<base::BdaBuffer>> uvw_flagged_buffer =
         uvw_flagger_result_step_->Extract();
     assert(1 == uvw_flagged_buffer.size());
     buffer = std::move(uvw_flagged_buffer.front());
@@ -298,7 +298,7 @@ bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
 
   predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
-    step->process(std::make_unique<BDABuffer>(*buffer, fields, copyfields));
+    step->process(std::make_unique<BdaBuffer>(*buffer, fields, copyfields));
   }
   predict_timer_.stop();
 
@@ -318,10 +318,10 @@ bool BdaDdeCal::process(std::unique_ptr<base::BDABuffer> buffer) {
 }
 
 void BdaDdeCal::ExtractResults() {
-  // The BDABuffers from the sub-steps should have the same shape, however, a
+  // The BdaBuffers from the sub-steps should have the same shape, however, a
   // step may delay outputting steps, e.g., due to internal buffering.
   for (size_t direction = 0; direction < result_steps_.size(); direction++) {
-    std::vector<std::unique_ptr<BDABuffer>> results =
+    std::vector<std::unique_ptr<BdaBuffer>> results =
         result_steps_[direction]->Extract();
     if (!results.empty()) {
       // Find the queue index of the first free slot for this direction.
@@ -331,7 +331,7 @@ void BdaDdeCal::ExtractResults() {
         ++queue_index;
       }
 
-      for (std::unique_ptr<BDABuffer>& result : results) {
+      for (std::unique_ptr<BdaBuffer>& result : results) {
         // Extend the queue if it's not big enough.
         if (queue_index == model_buffers_.size()) {
           model_buffers_.emplace_back(result_steps_.size());
@@ -344,14 +344,14 @@ void BdaDdeCal::ExtractResults() {
 }
 
 void BdaDdeCal::ProcessCompleteDirections() {
-  const auto pointer_is_set = [](const std::unique_ptr<BDABuffer>& pointer) {
+  const auto pointer_is_set = [](const std::unique_ptr<BdaBuffer>& pointer) {
     return !!pointer;  // Convert the pointer to a boolean.
   };
   while (!model_buffers_.empty() &&
          std::all_of(model_buffers_.front().begin(),
                      model_buffers_.front().end(), pointer_is_set)) {
     assert(!input_buffers_.empty() && input_buffers_.front());
-    std::vector<std::unique_ptr<base::BDABuffer>>& direction_buffers =
+    std::vector<std::unique_ptr<base::BdaBuffer>>& direction_buffers =
         model_buffers_.front();
     if (settings_.only_predict) {
       // Sum all model buffers into the saved data buffer.
@@ -387,7 +387,7 @@ void BdaDdeCal::ProcessCompleteDirections() {
       solver_buffer_->AdvanceInterval();
     }
 
-    for (std::unique_ptr<BDABuffer>& done_buffer : solver_buffer_->GetDone()) {
+    for (std::unique_ptr<BdaBuffer>& done_buffer : solver_buffer_->GetDone()) {
       getNextStep()->process(std::move(done_buffer));
     }
   }
@@ -447,7 +447,7 @@ void BdaDdeCal::SolveCurrentInterval() {
 
   // Get antenna weights
   std::vector<double> weights_per_antenna(n_channel_blocks * n_antennas, 0.0);
-  for (const BDABuffer::Row* data_row :
+  for (const BdaBuffer::Row* data_row :
        solver_buffer_->GetUnweightedDataRows()) {
     const size_t antenna1 = antennas1_[data_row->baseline_nr];
     const size_t antenna2 = antennas2_[data_row->baseline_nr];
@@ -651,7 +651,7 @@ void BdaDdeCal::finish() {
       SolveCurrentInterval();
       solver_buffer_->AdvanceInterval();
     }
-    for (std::unique_ptr<BDABuffer>& done_buffer : solver_buffer_->GetDone()) {
+    for (std::unique_ptr<BdaBuffer>& done_buffer : solver_buffer_->GetDone()) {
       getNextStep()->process(std::move(done_buffer));
     }
     if (solution_writer_) WriteSolutions();

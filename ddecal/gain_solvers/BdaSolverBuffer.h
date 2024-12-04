@@ -4,7 +4,7 @@
 #ifndef DDECAL_BDA_SOLVER_BUFFER_H
 #define DDECAL_BDA_SOLVER_BUFFER_H
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 
 #include <aocommon/queue.h>
 
@@ -48,8 +48,8 @@ class BdaSolverBuffer {
    * @throw std::invalid_argument If model_buffers has an invalid size.
    */
   void AppendAndWeight(
-      std::unique_ptr<base::BDABuffer> data_buffer,
-      std::vector<std::unique_ptr<base::BDABuffer>>&& model_buffers);
+      std::unique_ptr<base::BdaBuffer> data_buffer,
+      std::vector<std::unique_ptr<base::BdaBuffer>>&& model_buffers);
 
   /**
    * Clears all internal buffers.
@@ -85,7 +85,7 @@ class BdaSolverBuffer {
    * Get the data for the current solution interval.
    * @return Non-modifiable rows with weighted visibilities.
    */
-  const std::vector<const base::BDABuffer::Row*>& GetDataRows() const {
+  const std::vector<const base::BdaBuffer::Row*>& GetDataRows() const {
     return data_rows_[0].weighted;
   }
 
@@ -94,7 +94,7 @@ class BdaSolverBuffer {
    * interval. SolveData uses this function to retrieve the antenna weights.
    * @return Rows with unweighted visibilities.
    */
-  const std::vector<base::BDABuffer::Row*>& GetUnweightedDataRows() const {
+  const std::vector<base::BdaBuffer::Row*>& GetUnweightedDataRows() const {
     return data_rows_[0].unweighted;
   }
 
@@ -108,7 +108,7 @@ class BdaSolverBuffer {
    * @param direction Direction index.
    * @return Rows with weighted model data.
    */
-  const std::vector<const base::BDABuffer::Row*>& GetModelDataRows(
+  const std::vector<const base::BdaBuffer::Row*>& GetModelDataRows(
       size_t direction) const {
     return data_rows_[0].model[direction];
   }
@@ -140,8 +140,8 @@ class BdaSolverBuffer {
    * added using AppendAndWeight().
    * @return A possibly empty list of processed unweighted input buffers.
    */
-  std::vector<std::unique_ptr<base::BDABuffer>> GetDone() {
-    std::vector<std::unique_ptr<base::BDABuffer>> result;
+  std::vector<std::unique_ptr<base::BdaBuffer>> GetDone() {
+    std::vector<std::unique_ptr<base::BdaBuffer>> result;
     result.swap(done_);
     return result;
   }
@@ -188,17 +188,17 @@ class BdaSolverBuffer {
    * 5. GetDone() extracts the buffers from done_.
    */
   struct InputData {
-    std::unique_ptr<base::BDABuffer> unweighted;
-    std::unique_ptr<base::BDABuffer> weighted;
+    std::unique_ptr<base::BdaBuffer> unweighted;
+    std::unique_ptr<base::BdaBuffer> weighted;
     /// Model data buffer for each direction.
-    std::vector<std::unique_ptr<base::BDABuffer>> model;
+    std::vector<std::unique_ptr<base::BdaBuffer>> model;
   };
 
   /// A FIFO queue with input data. AppendAndWeight appends items.
   aocommon::Queue<InputData> data_;
 
   /// Fully processed input buffers.
-  std::vector<std::unique_ptr<base::BDABuffer>> done_;
+  std::vector<std::unique_ptr<base::BdaBuffer>> done_;
 
   /// Start time of the first solution interval (seconds).
   const double time_start_;
@@ -211,9 +211,9 @@ class BdaSolverBuffer {
   std::vector<int> last_complete_interval_per_baseline_;
 
   struct IntervalRows {
-    std::vector<base::BDABuffer::Row*> unweighted;
-    std::vector<const base::BDABuffer::Row*> weighted;
-    std::vector<std::vector<const base::BDABuffer::Row*>> model;
+    std::vector<base::BdaBuffer::Row*> unweighted;
+    std::vector<const base::BdaBuffer::Row*> weighted;
+    std::vector<std::vector<const base::BdaBuffer::Row*>> model;
   };
 
   /// The data rows for the current and future solution intervals.

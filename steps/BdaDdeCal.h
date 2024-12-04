@@ -30,30 +30,30 @@ namespace steps {
  * BDAResultStep, which will contain the predicted visibilities for a direction.
  *
  * Workflow for each iteration:
- * 1. BdaDdeCal receives a BDABuffer using its process() function. This buffer
+ * 1. BdaDdeCal receives a BdaBuffer using its process() function. This buffer
  *    must contain visibilities and weights.
- * 2. BdaDdeCal forwards a metadata-only copy of the BDABuffer to the Predict
+ * 2. BdaDdeCal forwards a metadata-only copy of the BdaBuffer to the Predict
  *    steps for all directions.
  * 3.1. In only-predict mode, BdaDdeCal sums the predicted visibilities and
- *      sends them in a BDABuffer to the next step. Processing is complete.
+ *      sends them in a BdaBuffer to the next step. Processing is complete.
  * 3.2. Otherwise, BdaDdeCal appends the received visibilities and weights and
  *      the predictions from the BDAResultSteps into a BdaSolverBuffer.
  * 4. When the BdaSolverBuffer has a complete solution interval, BdaDdeCal
  *    runs the solver on this interval.
  * 5. When subtracting is enabled, the solver applies the solutions to the
  *    predicted visibilities for each direction.
- * 6. When the BdaSolverBuffer has a complete BDABuffer:
+ * 6. When the BdaSolverBuffer has a complete BdaBuffer:
  * 6.1. If subtracting is enabled, BdaDdeCal subtracts the predicted
  *      visibilities for all directions from the input data.
  * 6.2. BdaDdeCal passes the input data buffer to its next step.
  *
- * The BDABuffer structure/metadata remains equal for all BDABuffers that are
+ * The BdaBuffer structure/metadata remains equal for all BdaBuffers that are
  * involved in one iteration.
  *
  * The BdaSolverBuffer provides the functionality for solution intervals:
  * - BdaSolverBuffer detects when a solution interval is complete.
  * - BdaSolverBuffer only exposes the BDA rows in the interval to the solver.
- * - BdaSolverBuffer detects when a BDABuffer is fully processed.
+ * - BdaSolverBuffer detects when a BdaBuffer is fully processed.
  */
 class BdaDdeCal : public Step {
  public:
@@ -70,7 +70,7 @@ class BdaDdeCal : public Step {
     return settings_.subtract ? kDataField : common::Fields();
   }
 
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   void finish() override;
 
@@ -137,20 +137,20 @@ class BdaDdeCal : public Step {
   /**
    * Stores the data buffers received from the process() function.
    */
-  std::deque<std::unique_ptr<base::BDABuffer>> input_buffers_;
+  std::deque<std::unique_ptr<base::BdaBuffer>> input_buffers_;
 
   /**
    * Stores the result buffers from the sub steps. Each queue item holds
    * a vector of results for the directions.
    * When all directions ina queue item are valid, further processing can start.
    */
-  std::deque<std::vector<std::unique_ptr<base::BDABuffer>>> model_buffers_;
+  std::deque<std::vector<std::unique_ptr<base::BdaBuffer>>> model_buffers_;
 
   /**
    * Solver buffer.
-   * Each process() call adds BDABuffers to the solver buffer.
+   * Each process() call adds BdaBuffers to the solver buffer.
    * When the solution interval is complete, BdaDdeCal runs the solver and
-   * removes old BDABuffers from the solver buffer.
+   * removes old BdaBuffers from the solver buffer.
    * This variable is not used when only_predict is true.
    */
   std::unique_ptr<ddecal::BdaSolverBuffer> solver_buffer_;

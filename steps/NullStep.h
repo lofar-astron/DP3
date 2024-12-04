@@ -26,7 +26,7 @@ class NullStep : public OutputStep {
   bool process(std::unique_ptr<base::DPBuffer>) override { return true; }
 
   /// Process bda data. It does nothing.
-  bool process(std::unique_ptr<base::BDABuffer>) override { return true; }
+  bool process(std::unique_ptr<base::BdaBuffer>) override { return true; }
 
   /// Finish the processing of this step and subsequent steps.
   /// It does nothing.

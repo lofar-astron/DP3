@@ -1,4 +1,4 @@
-// BDABuffer.h: Buffer holding BDA data
+// BdaBuffer.h: Buffer holding BDA data
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -18,7 +18,7 @@
 namespace dp3 {
 namespace base {
 
-class BDABuffer {
+class BdaBuffer {
  public:
   /**
    * Parameter structure for indicating which buffer elements are enabled.
@@ -46,7 +46,7 @@ class BDABuffer {
         std::size_t n_correlations, std::complex<float>* data, bool* flags,
         float* weights, bool* fullResFlags, const double* uvw);
     std::size_t GetDataSize() const { return n_channels * n_correlations; }
-    bool IsMetadataEqual(const BDABuffer::Row& other) const;
+    bool IsMetadataEqual(const BdaBuffer::Row& other) const;
     const double time;  ///< Centroid time for the measurements in MJD seconds.
     const double interval;  ///< Duration time for the measurements in seconds.
     const double exposure;  ///< Exposure time for the measurements in seconds.
@@ -62,20 +62,20 @@ class BDABuffer {
   };
 
   /**
-   * Create a new BDABuffer.
+   * Create a new BdaBuffer.
    * @param pool_size Size of the memory pool for this buffer.
    *                  (number of items)
    * @param fields The fields that should be enabled in this buffer.
    */
-  explicit BDABuffer(std::size_t pool_size, const Fields& fields = Fields());
+  explicit BdaBuffer(std::size_t pool_size, const Fields& fields = Fields());
 
   /**
    * Disabling the default copy constructor and copy assignment operator avoids
    * expensive implicit copies.
    * @{
    */
-  BDABuffer(const BDABuffer& other) = delete;
-  BDABuffer& operator=(const BDABuffer& other) = delete;
+  BdaBuffer(const BdaBuffer& other) = delete;
+  BdaBuffer& operator=(const BdaBuffer& other) = delete;
   /** @} */
 
   /**
@@ -83,7 +83,7 @@ class BDABuffer {
    * This constructor sets the memory pool size of the new buffer to the
    * actual memory usage of the other buffer.
    * Adding new rows to the new buffer is therefore not possible.
-   * @param other An existing BDABuffer.
+   * @param other An existing BdaBuffer.
    * @param fields The fields that are enabled in the new buffer.
    * If 'other' does not have the field, memory is allocated for the field but
    * the content are not initialized.
@@ -92,7 +92,7 @@ class BDABuffer {
    * For enabled, but not copied fields, the memory is allocated but not
    * initialized.
    */
-  BDABuffer(const BDABuffer& other, const Fields& fields,
+  BdaBuffer(const BdaBuffer& other, const Fields& fields,
             const Fields& copy_fields = Fields());
 
   /**
@@ -203,14 +203,14 @@ class BDABuffer {
     return ((x > y) ? (x - y) : (y - x)) < kTimeEpsilon;
   }
 
-  bool IsMetadataEqual(const BDABuffer& other) const;
+  bool IsMetadataEqual(const BdaBuffer& other) const;
 
  private:
   /**
    * Copy rows but set their pointers to the current memory pools.
    * @param existing_rows Existing rows, which may reference rows_.
    */
-  void CopyRows(const std::vector<BDABuffer::Row>& existing_rows);
+  void CopyRows(const std::vector<BdaBuffer::Row>& existing_rows);
 
   static constexpr double kTimeEpsilon =
       1.0e-8;  // For comparing measurement timestamps.

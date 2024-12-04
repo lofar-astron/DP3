@@ -14,7 +14,7 @@
 #include <xtensor/xtensor.hpp>
 
 #include <dp3/base/DPBuffer.h>
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 
 #include <casacore/casa/Arrays/Cube.h>
 
@@ -62,7 +62,7 @@ class ScaleData : public Step {
   /// Process the DBA data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;

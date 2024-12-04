@@ -1,4 +1,4 @@
-// BDAExpander.cc: DP3 step class to expand a BDABuffer to a DPBuffer (BDA data
+// BDAExpander.cc: DP3 step class to expand a BdaBuffer to a DPBuffer (BDA data
 // to regular data)
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -19,7 +19,7 @@
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
@@ -99,10 +99,10 @@ void BDAExpander::showTimings(std::ostream &os, double duration) const {
   os << " BDAExpander " << step_name_ << '\n';
 }
 
-bool BDAExpander::process(std::unique_ptr<base::BDABuffer> bda_buffer) {
+bool BDAExpander::process(std::unique_ptr<base::BdaBuffer> bda_buffer) {
   timer_.start();
 
-  std::vector<BDABuffer::Row> rows = bda_buffer->GetRows();
+  std::vector<BdaBuffer::Row> rows = bda_buffer->GetRows();
 
   for (std::size_t row_nr = 0; row_nr < rows.size(); ++row_nr) {
     double current_interval = rows[row_nr].interval;
@@ -201,7 +201,7 @@ void BDAExpander::finish() {
   getNextStep()->finish();
 }
 
-void BDAExpander::CopyData(const BDABuffer::Row &bda_row,
+void BDAExpander::CopyData(const BdaBuffer::Row &bda_row,
                            std::unique_ptr<DPBuffer> &buf_out,
                            unsigned int current_bl,
                            float time_averaging_factor) {
