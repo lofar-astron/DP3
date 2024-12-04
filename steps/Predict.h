@@ -60,7 +60,7 @@ class Predict : public ModelDataStep {
 
   bool process(std::unique_ptr<base::DPBuffer>) override;
 
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   void finish() override;
 

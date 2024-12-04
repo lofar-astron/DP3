@@ -8,14 +8,14 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include "../../MSBDAWriter.h"
 #include "../../MsReader.h"
 #include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::common::test::FixtureDirectory;
@@ -60,7 +60,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
                    std::vector<double>(nchan, 5000.));
   writer.updateInfo(info);
 
-  auto buffer = std::make_unique<BDABuffer>(1);
+  auto buffer = std::make_unique<BdaBuffer>(1);
   buffer->AddRow(kTime, kInterval, kExposure, 0, 1, 1, &kData, &kFlag, &kWeight,
                  nullptr, kUVW);
   writer.process(std::move(buffer));

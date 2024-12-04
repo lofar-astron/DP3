@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 
 #include <algorithm>
 #include <limits>
@@ -9,7 +9,7 @@
 namespace dp3 {
 namespace base {
 
-BDABuffer::Row::Row(double _time, double _interval, double _exposure,
+BdaBuffer::Row::Row(double _time, double _interval, double _exposure,
                     common::rownr_t _row_nr, std::size_t _baseline_nr,
                     std::size_t _n_channels, std::size_t _n_correlations,
                     std::complex<float>* _data, bool* _flags, float* _weights,
@@ -29,7 +29,7 @@ BDABuffer::Row::Row(double _time, double _interval, double _exposure,
           _uvw ? _uvw[1] : std::numeric_limits<double>::quiet_NaN(),
           _uvw ? _uvw[2] : std::numeric_limits<double>::quiet_NaN()} {}
 
-BDABuffer::BDABuffer(const std::size_t pool_size, const Fields& fields)
+BdaBuffer::BdaBuffer(const std::size_t pool_size, const Fields& fields)
     : data_(),
       flags_(),
       weights_(),
@@ -54,7 +54,7 @@ BDABuffer::BDABuffer(const std::size_t pool_size, const Fields& fields)
 // When copying the memory pools in this copy-constructor, the capacity
 // of the new memory pools will equal their size. There is therefore
 // no remaining capacity in the new copy.
-BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields,
+BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields,
                      const Fields& copy_fields)
     : data_(),
       flags_(),
@@ -82,7 +82,7 @@ BDABuffer::BDABuffer(const BDABuffer& other, const Fields& fields,
   CopyRows(other.rows_);
 }
 
-void BDABuffer::CopyRows(const std::vector<BDABuffer::Row>& existing_rows) {
+void BdaBuffer::CopyRows(const std::vector<BdaBuffer::Row>& existing_rows) {
   std::complex<float>* row_data = data_.empty() ? nullptr : data_.data();
   bool* row_flags = flags_.empty() ? nullptr : flags_.data();
   float* row_weights = weights_.empty() ? nullptr : weights_.data();
@@ -106,7 +106,7 @@ void BDABuffer::CopyRows(const std::vector<BDABuffer::Row>& existing_rows) {
   rows_ = std::move(new_rows);
 }
 
-void BDABuffer::SetFields(const Fields& fields) {
+void BdaBuffer::SetFields(const Fields& fields) {
   if ((fields.data == !data_.empty()) && (fields.flags == !flags_.empty()) &&
       (fields.weights == !weights_.empty()) &&
       (fields.full_res_flags == !full_res_flags_.empty())) {
@@ -141,7 +141,7 @@ void BDABuffer::SetFields(const Fields& fields) {
   CopyRows(rows_);
 }
 
-void BDABuffer::Clear() {
+void BdaBuffer::Clear() {
   data_.clear();
   flags_.clear();
   weights_.clear();
@@ -150,11 +150,11 @@ void BDABuffer::Clear() {
   remaining_capacity_ = original_capacity_;
 }
 
-std::size_t BDABuffer::GetNumberOfElements() const {
+std::size_t BdaBuffer::GetNumberOfElements() const {
   return original_capacity_ - remaining_capacity_;
 }
 
-bool BDABuffer::AddRow(double time, double interval, double exposure,
+bool BdaBuffer::AddRow(double time, double interval, double exposure,
                        std::size_t baseline_nr, std::size_t n_channels,
                        std::size_t n_correlations,
                        const std::complex<float>* const data,
@@ -218,31 +218,31 @@ bool BDABuffer::AddRow(double time, double interval, double exposure,
   return true;
 }
 
-void BDABuffer::SetBaseRowNr(common::rownr_t row_nr) {
+void BdaBuffer::SetBaseRowNr(common::rownr_t row_nr) {
   for (Row& row : rows_) {
     row.row_nr = row_nr;
     ++row_nr;
   }
 }
 
-bool BDABuffer::Row::IsMetadataEqual(const BDABuffer::Row& other) const {
+bool BdaBuffer::Row::IsMetadataEqual(const BdaBuffer::Row& other) const {
   for (std::size_t i = 0; i < 3; ++i) {
     if (std::isnan(uvw[i])) {
       if (!std::isnan(other.uvw[i])) return false;
     } else {
-      if (!BDABuffer::TimeIsEqual(uvw[i], other.uvw[i])) return false;
+      if (!BdaBuffer::TimeIsEqual(uvw[i], other.uvw[i])) return false;
     }
   }
 
-  return ((BDABuffer::TimeIsEqual(time, other.time)) &&
-          (BDABuffer::TimeIsEqual(interval, other.interval)) &&
-          (BDABuffer::TimeIsEqual(exposure, other.exposure)) &&
+  return ((BdaBuffer::TimeIsEqual(time, other.time)) &&
+          (BdaBuffer::TimeIsEqual(interval, other.interval)) &&
+          (BdaBuffer::TimeIsEqual(exposure, other.exposure)) &&
           (row_nr == other.row_nr) && (baseline_nr == other.baseline_nr) &&
           (n_channels == other.n_channels) &&
           (n_correlations == other.n_correlations));
 }
 
-bool BDABuffer::IsMetadataEqual(const BDABuffer& other) const {
+bool BdaBuffer::IsMetadataEqual(const BdaBuffer& other) const {
   if (GetRows().size() == other.GetRows().size()) {
     auto this_row = GetRows().begin();
     auto other_row = other.GetRows().begin();

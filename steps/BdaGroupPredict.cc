@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;
 
 namespace dp3 {
@@ -98,7 +98,7 @@ class BdaGroupPredict::BaselineGroup {
 
   /// Process one row if BDA data
   /// requests are buffered until the baseline group is complete
-  void ProcessRow(const base::BDABuffer::Row& row, std::size_t& row_counter,
+  void ProcessRow(const base::BdaBuffer::Row& row, std::size_t& row_counter,
                   int bl_idx) {
     double time = row.time + row.interval / 2;
 
@@ -138,10 +138,10 @@ class BdaGroupPredict::BaselineGroup {
     const std::size_t baseline_size =
         dpbuffer_->GetData().shape(1) * dpbuffer_->GetData().shape(2);
     for (std::size_t bl = 0; bl < nr_baselines; ++bl) {
-      // Copy result from regular predict into corresponding BDABuffer in queue
+      // Copy result from regular predict into corresponding BdaBuffer in queue
       std::copy_n(&dpbuffer_->GetData()(bl, 0, 0), baseline_size,
                   write_back_info_[bl].data);
-      // Increment counter of rows filled in BDABuffer
+      // Increment counter of rows filled in BdaBuffer
       (*write_back_info_[bl].row_counter)++;
     }
     // Reset the number of baselines requested
@@ -234,14 +234,14 @@ void BdaGroupPredict::showTimings(std::ostream& os, double duration) const {
   averaging_to_baseline_group_map_.begin()->second.ShowTimings(os, duration);
 }
 
-bool BdaGroupPredict::process(std::unique_ptr<base::BDABuffer> buffer) {
+bool BdaGroupPredict::process(std::unique_ptr<base::BdaBuffer> buffer) {
   timer_.start();
 
   buffers_.push({std::move(buffer), 0});
 
   std::size_t& row_counter = buffers_.back().nr_rows_filled;
 
-  const std::vector<base::BDABuffer::Row>& rows =
+  const std::vector<base::BdaBuffer::Row>& rows =
       buffers_.back().buffer->GetRows();
   for (const auto& row : rows) {
     BaselineGroup& blg = *index_to_baseline_group_map_[row.baseline_nr].first;

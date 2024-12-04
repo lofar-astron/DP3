@@ -9,7 +9,7 @@
 #ifndef DP3_STEPS_UVWFLAGGER_H_
 #define DP3_STEPS_UVWFLAGGER_H_
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include <dp3/base/DPBuffer.h>
 
 #include "InputStep.h"
@@ -66,7 +66,7 @@ class UVWFlagger : public Step {
   /// When processed, it invokes the process function of the next step.
   bool process(std::unique_ptr<base::DPBuffer>) override;
 
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;
@@ -124,7 +124,7 @@ class UVWFlagger : public Step {
   /// Wavelengths may differ between baselines when using BDA.
   /// If all baselines have equal channels (i.e. when the input is a DPBuffer),
   /// the outer vector only holds one inner vector. When using BDA (i.e. when
-  /// the input is a BDABuffer), each baseline has its own inner vector.
+  /// the input is a BdaBuffer), each baseline has its own inner vector.
   std::vector<std::vector<double>> itsRecWavel;  ///< reciprocals of wavelengths
   const std::vector<double> itsRangeUVm;  ///< UV ranges (in m) to be flagged
   const std::vector<double> itsRangeUm;   ///< U  ranges (in m) to be flagged

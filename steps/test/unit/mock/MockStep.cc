@@ -3,11 +3,11 @@
 
 #include "MockStep.h"
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 
 #include <boost/test/unit_test.hpp>
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 
 namespace dp3 {
@@ -22,7 +22,7 @@ bool MockStep::process(std::unique_ptr<DPBuffer> buffer) {
   return true;
 }
 
-bool MockStep::process(std::unique_ptr<BDABuffer> buffer) {
+bool MockStep::process(std::unique_ptr<BdaBuffer> buffer) {
   bda_buffers_.push_back(std::move(buffer));
   return true;
 }
@@ -31,7 +31,7 @@ void MockStep::ClearBdaBuffers() { bda_buffers_.clear(); }
 
 std::size_t MockStep::TotalRowCount() const {
   std::size_t count = 0;
-  for (const std::unique_ptr<BDABuffer>& buffer : bda_buffers_) {
+  for (const std::unique_ptr<BdaBuffer>& buffer : bda_buffers_) {
     count += buffer->GetRows().size();
   }
   return count;

@@ -18,9 +18,6 @@ namespace dp3 {
 namespace common {
 class ParameterSet;
 }
-namespace base {
-class BDABuffer;
-}
 }  // namespace dp3
 
 namespace dp3 {
@@ -48,7 +45,7 @@ class BDAAverager : public Step {
   }
 
   common::Fields getProvidedFields() const override {
-    // BDAAverager always creates BDABuffers with all fields.
+    // BDAAverager always creates BdaBuffers with all fields.
     return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
@@ -72,7 +69,7 @@ class BDAAverager : public Step {
    * Public method, which sets a desired output size (number of rows).
    * @param buffersize Number of rows in the output buffer: these should be
    * given in the order one wishes to see in the output. If the BDAAverager is
-   * ready to output a bdabuffer but no size is available, the default value
+   * ready to output a BdaBuffer but no size is available, the default value
    * will be used.
    */
   void set_next_desired_buffersize(unsigned int buffersize);
@@ -117,7 +114,7 @@ class BDAAverager : public Step {
 
   common::rownr_t next_rownr_;
   std::size_t bda_pool_size_;
-  std::unique_ptr<base::BDABuffer> bda_buffer_;
+  std::unique_ptr<base::BdaBuffer> bda_buffer_;
   std::vector<BaselineBuffer> baseline_buffers_;
 
   std::array<std::size_t, 3> expected_input_shape_;
@@ -134,7 +131,7 @@ class BDAAverager : public Step {
 
   const bool use_weights_and_flags_;
 
-  std::queue<std::unique_ptr<base::BDABuffer>> fixed_size_bdabuffers_;
+  std::queue<std::unique_ptr<base::BdaBuffer>> fixed_size_bda_buffers_;
 };
 
 }  // namespace steps

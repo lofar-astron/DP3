@@ -10,7 +10,7 @@
 
 #include "InputStep.h"
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"
 
@@ -114,7 +114,7 @@ class MSBDAReader : public InputStep {
 
   /// Reads a BDA buffer from the input and passes it to its next step.
   /// @param buffer Dummy input buffer, which is ignored.
-  bool process(std::unique_ptr<base::BDABuffer> buffer) override;
+  bool process(std::unique_ptr<base::BdaBuffer> buffer) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;

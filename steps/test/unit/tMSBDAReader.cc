@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(process_nan) {
   reader.setNextStep(mock_step);
   reader.updateInfo(DPInfo());
 
-  reader.process(std::unique_ptr<dp3::base::BDABuffer>());
+  reader.process(std::unique_ptr<dp3::base::BdaBuffer>());
   reader.finish();
 
   std::complex<float>* data = mock_step->GetBdaBuffers()[0]->GetRows()[0].data;

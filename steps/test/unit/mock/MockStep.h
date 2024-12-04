@@ -30,7 +30,7 @@ class MockStep : public test::ThrowStep {
    * Adds the bda buffer to an internal list. Use getBdaBuffers for
    * accessing them.
    */
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   /**
    * Mocked finish() function, which counts the number of calls.
@@ -38,7 +38,7 @@ class MockStep : public test::ThrowStep {
    */
   void finish() override { ++finish_count_; }
 
-  const std::vector<std::unique_ptr<base::BDABuffer>>& GetBdaBuffers() const {
+  const std::vector<std::unique_ptr<base::BdaBuffer>>& GetBdaBuffers() const {
     return bda_buffers_;
   }
 
@@ -54,7 +54,7 @@ class MockStep : public test::ThrowStep {
   std::size_t TotalRowCount() const;
 
  private:
-  std::vector<std::unique_ptr<base::BDABuffer>> bda_buffers_;
+  std::vector<std::unique_ptr<base::BdaBuffer>> bda_buffers_;
   std::vector<std::unique_ptr<base::DPBuffer>> regular_buffers_;
   std::size_t finish_count_;
 };

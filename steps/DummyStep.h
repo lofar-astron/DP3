@@ -34,7 +34,7 @@ class DummyStep : public Step {
   bool process(std::unique_ptr<base::DPBuffer>) override;
 
   /// Process BDA data. The dummy step forwards the data to its next step.
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   /// Finish the processing of this step and subsequent steps.
   void finish() override;

@@ -12,7 +12,7 @@
 
 #include "InputStep.h"
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 
 #include <map>
 #include <queue>
@@ -49,12 +49,12 @@ class BdaGroupPredict : public ModelDataStep {
   common::Fields getRequiredFields() const override;
 
   /// Processes the data.
-  /// Buffers incoming BDABuffers in a queue and sends them to the the next step
+  /// Buffers incoming BdaBuffers in a queue and sends them to the the next step
   /// when all baseline groups are complete.
-  /// This is necessary because baseline groups may overlap multiple BDABuffers,
+  /// This is necessary because baseline groups may overlap multiple BdaBuffers,
   /// while the predict is done by calls to the Predict step, which needs
   /// complete baseline groups.
-  bool process(std::unique_ptr<base::BDABuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer>) override;
 
   void finish() override;
 
@@ -76,13 +76,13 @@ class BdaGroupPredict : public ModelDataStep {
   const common::ParameterSet& parset_;
   std::string name_;
 
-  // Structure to keep track how many rows in a BDABuffer have been processed
+  // Structure to keep track how many rows in a BdaBuffer have been processed
   struct BufferInfo {
-    std::unique_ptr<base::BDABuffer> buffer;
+    std::unique_ptr<base::BdaBuffer> buffer;
     size_t nr_rows_filled;
   };
 
-  /// queue buffering the incoming BDABuffers
+  /// queue buffering the incoming BdaBuffers
   std::queue<BufferInfo> buffers_;
 
   std::vector<std::string> source_patterns_;

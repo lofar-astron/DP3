@@ -453,7 +453,7 @@ add_library(
   base/AartfaacSubtableWriter.cc
   base/Apply.cc
   base/BaselineSelection.cc
-  base/BDABuffer.cc
+  base/BdaBuffer.cc
   base/CalType.cc
   base/DPBuffer.cc
   base/DPInfo.cc
@@ -709,7 +709,7 @@ if(BUILD_TESTING)
       base/test/runtests.cc
       base/test/unit/tAartfaacSubtableWriter.cc
       base/test/unit/tBaselineSelection.cc
-      base/test/unit/tBDABuffer.cc
+      base/test/unit/tBdaBuffer.cc
       base/test/unit/tDP3.cc
       base/test/unit/tDPBuffer.cc
       base/test/unit/tDPInfo.cc

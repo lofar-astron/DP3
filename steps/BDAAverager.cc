@@ -8,11 +8,11 @@
 #include <cmath>
 #include <numeric>
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include "../common/Epsilon.h"
 #include "../common/ParameterSet.h"
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
@@ -205,11 +205,11 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   common::NSTimer::StartStop sstime(timer_);
 
   if (!bda_buffer_) {
-    if (!fixed_size_bdabuffers_.empty()) {
-      bda_buffer_ = std::move(fixed_size_bdabuffers_.front());
-      fixed_size_bdabuffers_.pop();
+    if (!fixed_size_bda_buffers_.empty()) {
+      bda_buffer_ = std::move(fixed_size_bda_buffers_.front());
+      fixed_size_bda_buffers_.pop();
     } else {
-      bda_buffer_ = std::make_unique<BDABuffer>(bda_pool_size_);
+      bda_buffer_ = std::make_unique<BdaBuffer>(bda_pool_size_);
     }
   }
   const DPBuffer::UvwType& uvw = buffer->GetUvw();
@@ -281,11 +281,11 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   // with detecting that there's no space left.
   if (0 == bda_buffer_->GetRemainingCapacity()) {
     getNextStep()->process(std::move(bda_buffer_));
-    if (fixed_size_bdabuffers_.empty()) {
-      bda_buffer_ = std::make_unique<BDABuffer>(bda_pool_size_);
+    if (fixed_size_bda_buffers_.empty()) {
+      bda_buffer_ = std::make_unique<BdaBuffer>(bda_pool_size_);
     } else {
-      bda_buffer_ = std::move(fixed_size_bdabuffers_.front());
-      fixed_size_bdabuffers_.pop();
+      bda_buffer_ = std::move(fixed_size_bda_buffers_.front());
+      fixed_size_bda_buffers_.pop();
     }
   }
 
@@ -335,11 +335,11 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
   if (bda_buffer_->GetRemainingCapacity() < nchan * info().ncorr()) {
     getNextStep()->process(std::move(bda_buffer_));
-    if (fixed_size_bdabuffers_.empty()) {
-      bda_buffer_ = std::make_unique<BDABuffer>(bda_pool_size_);
+    if (fixed_size_bda_buffers_.empty()) {
+      bda_buffer_ = std::make_unique<BdaBuffer>(bda_pool_size_);
     } else {
-      bda_buffer_ = std::move(fixed_size_bdabuffers_.front());
-      fixed_size_bdabuffers_.pop();
+      bda_buffer_ = std::move(fixed_size_bda_buffers_.front());
+      fixed_size_bda_buffers_.pop();
     }
   }
 
@@ -349,7 +349,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 }
 
 void BDAAverager::set_next_desired_buffersize(unsigned int buffersize) {
-  fixed_size_bdabuffers_.push(std::make_unique<BDABuffer>(buffersize));
+  fixed_size_bda_buffers_.push(std::make_unique<BdaBuffer>(buffersize));
 }
 
 void BDAAverager::show(std::ostream& os) const {

@@ -9,7 +9,7 @@
 
 #include <cassert>
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 
 namespace dp3 {
 namespace ddecal {
@@ -195,7 +195,7 @@ SolveData<MatrixType>::SolveData(
   // Count nr of visibilities per channel block
   std::vector<size_t> counts(n_channel_blocks, 0);
   for (size_t row = 0; row != buffer.GetDataRows().size(); ++row) {
-    const BDABuffer::Row& data_row = *buffer.GetDataRows()[row];
+    const BdaBuffer::Row& data_row = *buffer.GetDataRows()[row];
     const size_t antenna1 = antennas1[data_row.baseline_nr];
     const size_t antenna2 = antennas2[data_row.baseline_nr];
     if (antenna1 != antenna2) {
@@ -228,7 +228,7 @@ SolveData<MatrixType>::SolveData(
   // Fill
   std::vector<size_t> visibility_indices(n_channel_blocks, 0);
   for (size_t row = 0; row != buffer.GetDataRows().size(); ++row) {
-    const BDABuffer::Row& data_row = *buffer.GetDataRows()[row];
+    const BdaBuffer::Row& data_row = *buffer.GetDataRows()[row];
     const size_t antenna1 = antennas1[data_row.baseline_nr];
     const size_t antenna2 = antennas2[data_row.baseline_nr];
     if (antenna1 != antenna2) {
@@ -276,7 +276,7 @@ SolveData<MatrixType>::SolveData(
                                           interval_duration));
           const size_t solution_index =
               index_offset + solution_start_indices[dir];
-          const BDABuffer::Row& model_data_row =
+          const BdaBuffer::Row& model_data_row =
               *buffer.GetModelDataRows(dir)[row];
           const std::complex<float>* model_data_ptr =
               model_data_row.data +

@@ -14,7 +14,7 @@
 #include <string>
 
 #include <dp3/base/DPBuffer.h>
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include <dp3/base/Direction.h>
 
@@ -80,7 +80,7 @@ class Step {
   /// Process the BDA data.
   /// When processed, it invokes the process function of the next step.
   /// It should return False at the end.
-  virtual bool process(std::unique_ptr<base::BDABuffer>) {
+  virtual bool process(std::unique_ptr<base::BdaBuffer>) {
     throw std::runtime_error("Step does not support BDA data processing.");
   }
 

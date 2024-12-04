@@ -3,7 +3,7 @@
 
 #include "../../gain_solvers/SolveData.h"
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include <dp3/base/DPBuffer.h>
 #include "../../gain_solvers/BdaSolverBuffer.h"
 #include "../../gain_solvers/SolverTools.h"
@@ -14,7 +14,7 @@
 #include <iterator>
 #include <random>
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using ChannelBlockData = dp3::ddecal::FullSolveData::ChannelBlockData;
 
@@ -51,7 +51,7 @@ void FillRegularData(DPBuffer::DataType& data) {
   });
 }
 
-void FillBdaBuffer(BDABuffer& buffer, size_t avg_channels, size_t all_channels,
+void FillBdaBuffer(BdaBuffer& buffer, size_t avg_channels, size_t all_channels,
                    double unit_interval) {
   std::vector<std::complex<float>> data;
   const std::vector<float> weights(all_channels * kNPolarizations, 1.0f);
@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
 
 BOOST_AUTO_TEST_CASE(bda) {
   // The BDA data from the SolverTester is too complex for a simple test.
-  // -> Use a simpler BDABuffer with three baselines:
+  // -> Use a simpler BdaBuffer with three baselines:
   // - An 'averaged' baseline: Single BDA row with kNAveragedChannels channels.
   // - A 'normal' baseline: Two BDA rows with successive time values and
   //   kNAllChannels channels each.
@@ -271,19 +271,19 @@ BOOST_AUTO_TEST_CASE(bda) {
   const std::vector<std::vector<size_t>> kNVisibilitiesPerBaseline{{2, 3},
                                                                    {2, 4}};
 
-  BDABuffer::Fields bda_fields(true);
+  BdaBuffer::Fields bda_fields(true);
   bda_fields.full_res_flags = false;
 
   auto bda_data_buffer =
-      std::make_unique<BDABuffer>(kBdaBufferSize, bda_fields);
+      std::make_unique<BdaBuffer>(kBdaBufferSize, bda_fields);
   bda_fields.weights = false;
   FillBdaBuffer(*bda_data_buffer, kNAveragedChannels, kNAllChannels,
                 kUnitTimeInterval);
 
-  std::vector<std::unique_ptr<BDABuffer>> bda_model_buffers;
+  std::vector<std::unique_ptr<BdaBuffer>> bda_model_buffers;
   for (size_t direction = 0; direction != kNDirections; ++direction) {
     bda_model_buffers.push_back(
-        std::make_unique<BDABuffer>(kBdaBufferSize, bda_fields));
+        std::make_unique<BdaBuffer>(kBdaBufferSize, bda_fields));
     FillBdaBuffer(*bda_model_buffers.back(), kNAveragedChannels, kNAllChannels,
                   kUnitTimeInterval);
   }

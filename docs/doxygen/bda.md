@@ -9,7 +9,7 @@ Shorter baselines can be averaged more in both the time and frequency direction.
 
 - A [RegularBuffer](@ref dp3::base::DPBuffer) has a regular multidimensional
   cube structure:
-  - Main layout: 
+  - Main layout:
   - The length of a time step is equal for all baselines.
   - A RegularBuffer contains the measurements for a single time step.
   - The amount of frequency channels is equal for all baselines.
@@ -74,7 +74,7 @@ should also get a default implementation that throws an exception. In code:
     class DPStep {
     public:
       virtual bool process(RegularBuffer) { throw exception; } // Process regular data.
-      virtual bool process(BDABuffer) { throw exception; } // Process BDA data.
+      virtual bool process(BdaBuffer) { throw exception; } // Process BDA data.
     };
 
 With these two process functions, a step class, which implements the
@@ -91,7 +91,7 @@ splitting it into a regular variant and a BDA variant for reducing complexity
 
 ### BDA data structure
 
-A crucial point in this design is the BDABuffer which holds BDA data.
+A crucial point in this design is the BdaBuffer which holds BDA data.
 The smallest data element in this structure is a measurement row, which
 contains the measurements for all polarisations in all channels for a single
 baseline and a single time step. Since BDA averages data for multiple channels,
@@ -107,19 +107,19 @@ different rows may have different amounts of channels. In code:
       Matrix<bool> fullResFlags(nChannels, nPolarisations);
     };
 
-For reducing overhead, a BDABuffer should not contain a single Row. Using
-a variable-sized vector of rows provides a flexible structure: The BDABuffer
+For reducing overhead, a BdaBuffer should not contain a single Row. Using
+a variable-sized vector of rows provides a flexible structure: The BdaBuffer
 size can be adjusted to the number of channels in the Rows.
 Combining and splitting buffers is also possible. In code:
 
-    class BDABuffer
+    class BdaBuffer
     {
       vector<Row> itsRows; // Buffer contains a variable number of rows.
     };
 
 This approach still has a major drawback: Each Matrix object in each row
 performs its own memory allocation, which may yield high overhead.
-A BDABuffer can mitigate this overhead using a shared memory pool for all Rows.
+A BdaBuffer can mitigate this overhead using a shared memory pool for all Rows.
 
 ### Steps that use data from multiple iterations.
 
@@ -132,19 +132,19 @@ For gathering BDA data for a time interval, an additional BDAIntervalBuffer
 class will be necessary. It should provide the following functionality
 to a step:
 - Set an initial time interval as the current time interval.
-- Store data from BDABuffers.
+- Store data from BdaBuffers.
 - Detect if all relevant data for the current time interval is present.
 - Provide the data for the current time interval. The result should take
-  the BDABuffer start
+  the BdaBuffer start
   time and exposure duration into account, since they may not match the start
   time and duration of the requested time interval.
 - Advance the current time interval. The BDAIntervalBuffer should then
   discard stored data that is no longer necessary.
 
-With this functionality, updating the original data in BDABuffers
-inside the BDAIntervalBuffer, and retreiving the updated BDABuffers, is
+With this functionality, updating the original data in BdaBuffers
+inside the BDAIntervalBuffer, and retreiving the updated BdaBuffers, is
 impossible. Therefore, we can't immediately implement e.g. DDECal's subtract
 task for BDA data and apply solutions directly ("applysolutions=true")
 inside the calibrate task. During a later restructuring of DP3 we
-will make streams more generic and implement BDABuffer updates
+will make streams more generic and implement BdaBuffer updates
 in separate subtract and apply tasks that have that functionality."

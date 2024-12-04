@@ -7,11 +7,11 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../../BDAAverager.h"
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 #include "../../../common/ParameterSet.h"
 #include "mock/MockStep.h"
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::steps::BDAAverager;
@@ -204,7 +204,7 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
  * @param row A row from a BDA output buffer.
  * @param baseline_nr The expected baseline number of the row.
  */
-void CheckRow(const DPBuffer& expected, const BDABuffer::Row& row,
+void CheckRow(const DPBuffer& expected, const BdaBuffer::Row& row,
               std::size_t baseline_nr) {
   const std::size_t n_corr = expected.GetData().shape(2);
   const std::size_t n_chan = expected.GetData().shape(1);
@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
 
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   // With the default options, the averager performs no averaging: It only
-  // copies data from DPBuffers into BDABuffers.
+  // copies data from DPBuffers into BdaBuffers.
   const dp3::common::ParameterSet parset = GetParset();
   BDAAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
@@ -664,7 +664,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
 
-  // The averager should output BDABuffers with 2 rows, since the BDA buffers
+  // The averager should output BdaBuffers with 2 rows, since the BDA buffers
   // then cover about the same interval (on average) as the input buffers.
 
   // First baseline: 1 row, second: 0 rows, third: 0 rows -> 0.5 BDA buffers.
@@ -689,22 +689,22 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
 
   Finish(averager, *mock_step);
 
-  const auto& bdabuffers = mock_step->GetBdaBuffers();
+  const auto& bda_buffers = mock_step->GetBdaBuffers();
   // First baseline: 5 rows, second: 3 rows, third: 2 rows -> 5 BDA buffers.
-  BOOST_REQUIRE_EQUAL(bdabuffers.size(), std::size_t(5));
+  BOOST_REQUIRE_EQUAL(bda_buffers.size(), std::size_t(5));
   for (int i = 0; i < 5; ++i) {
-    BOOST_REQUIRE_EQUAL(2u, bdabuffers[i]->GetRows().size());
+    BOOST_REQUIRE_EQUAL(2u, bda_buffers[i]->GetRows().size());
   }
-  CheckRow(*expected_long_baseline[0], bdabuffers[0]->GetRows()[0], 0);
-  CheckRow(*expected_long_baseline[1], bdabuffers[0]->GetRows()[1], 0);
-  CheckRow(*expected_second[0], bdabuffers[1]->GetRows()[0], 1);
-  CheckRow(*expected_long_baseline[2], bdabuffers[1]->GetRows()[1], 0);
-  CheckRow(*expected_third[0], bdabuffers[2]->GetRows()[0], 2);
-  CheckRow(*expected_long_baseline[3], bdabuffers[2]->GetRows()[1], 0);
-  CheckRow(*expected_second[1], bdabuffers[3]->GetRows()[0], 1);
-  CheckRow(*expected_long_baseline[4], bdabuffers[3]->GetRows()[1], 0);
-  CheckRow(*expected_second[2], bdabuffers[4]->GetRows()[0], 1);
-  CheckRow(*expected_third[1], bdabuffers[4]->GetRows()[1], 2);
+  CheckRow(*expected_long_baseline[0], bda_buffers[0]->GetRows()[0], 0);
+  CheckRow(*expected_long_baseline[1], bda_buffers[0]->GetRows()[1], 0);
+  CheckRow(*expected_second[0], bda_buffers[1]->GetRows()[0], 1);
+  CheckRow(*expected_long_baseline[2], bda_buffers[1]->GetRows()[1], 0);
+  CheckRow(*expected_third[0], bda_buffers[2]->GetRows()[0], 2);
+  CheckRow(*expected_long_baseline[3], bda_buffers[2]->GetRows()[1], 0);
+  CheckRow(*expected_second[1], bda_buffers[3]->GetRows()[0], 1);
+  CheckRow(*expected_long_baseline[4], bda_buffers[3]->GetRows()[1], 0);
+  CheckRow(*expected_second[2], bda_buffers[4]->GetRows()[0], 1);
+  CheckRow(*expected_third[1], bda_buffers[4]->GetRows()[1], 2);
 }
 
 BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
@@ -758,11 +758,11 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
 
   Finish(averager, *mock_step);
 
-  const auto& bdabuffers = mock_step->GetBdaBuffers();
-  BOOST_REQUIRE_EQUAL(bdabuffers.size(), kTimeSteps);
+  const auto& bda_buffers = mock_step->GetBdaBuffers();
+  BOOST_REQUIRE_EQUAL(bda_buffers.size(), kTimeSteps);
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
-    BOOST_TEST(0u == bdabuffers[i]->GetRemainingCapacity());
-    const std::vector<BDABuffer::Row> rows = bdabuffers[i]->GetRows();
+    BOOST_TEST(0u == bda_buffers[i]->GetRemainingCapacity());
+    const std::vector<BdaBuffer::Row> rows = bda_buffers[i]->GetRows();
     BOOST_REQUIRE_EQUAL(3u, rows.size());
     CheckRow(*expected1[i], rows[0], 0);
     CheckRow(*expected2[i], rows[1], 1);
@@ -814,10 +814,10 @@ BOOST_AUTO_TEST_CASE(max_interval) {
 
   Finish(averager, *mock_step);
 
-  const auto& bdabuffers = mock_step->GetBdaBuffers();
-  BOOST_REQUIRE_EQUAL(bdabuffers.size(), kTimeSteps / kFactor);
-  for (const auto& bdabuffer : bdabuffers) {
-    const std::vector<BDABuffer::Row> rows = bdabuffer->GetRows();
+  const auto& bda_buffers = mock_step->GetBdaBuffers();
+  BOOST_REQUIRE_EQUAL(bda_buffers.size(), kTimeSteps / kFactor);
+  for (const auto& bda_buffer : bda_buffers) {
+    const std::vector<BdaBuffer::Row> rows = bda_buffer->GetRows();
     BOOST_REQUIRE_EQUAL(1u, rows.size());
     BOOST_TEST(kInterval * kFactor == rows[0].interval);
   }
@@ -1011,7 +1011,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
   // With the given input, we expect a total of 200 elements in the output. In
   // this test we check that output has 200 elements in case we force
   // the output buffersize to a value higher than the maximum (all the elements
-  // are forced into one single bdabuffer).
+  // are forced into one single BdaBuffer).
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetNumberOfElements(),
                       200u);

@@ -12,11 +12,11 @@
 #include "OnePredict.h"
 #include "Upsample.h"
 
-#include <dp3/base/BDABuffer.h>
+#include <dp3/base/BdaBuffer.h>
 
 #include "../common/ParameterSet.h"
 
-using dp3::base::BDABuffer;
+using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;
 
 namespace dp3 {
@@ -105,7 +105,7 @@ bool Predict::process(std::unique_ptr<base::DPBuffer> buffer) {
   return getNextStep()->process(std::move(buffer));
 }
 
-bool Predict::process(std::unique_ptr<BDABuffer> bda_buffer) {
+bool Predict::process(std::unique_ptr<BdaBuffer> bda_buffer) {
   bda_averager_->set_next_desired_buffersize(bda_buffer->GetNumberOfElements());
   return getNextStep()->process(std::move(bda_buffer));
 }
