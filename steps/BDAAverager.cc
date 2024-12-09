@@ -345,7 +345,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
 
   bda_buffer_->AddRow(bb.starttime + bb.interval / 2, bb.interval, bb.exposure,
                       baseline_nr, nchan, info().ncorr(), bb.data.data(),
-                      nullptr, bb.weights.data(), nullptr, bb.uvw);
+                      nullptr, bb.weights.data(), bb.uvw);
 }
 
 void BDAAverager::set_next_desired_buffersize(unsigned int buffersize) {

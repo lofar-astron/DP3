@@ -221,23 +221,18 @@ void CheckRow(const DPBuffer& expected, const BdaBuffer::Row& row,
   std::complex<float>* row_data = row.data;
   bool* row_flag = row.flags;
   float* row_weight = row.weights;
-  bool* row_full_res_flag = row.full_res_flags;
   BOOST_REQUIRE(row_data);
   BOOST_REQUIRE(row_flag);
   BOOST_REQUIRE(row_weight);
-  BOOST_REQUIRE(row_full_res_flag);
   for (std::size_t chan = 0; chan < n_chan; ++chan) {
     for (std::size_t corr = 0; corr < n_corr; ++corr) {
       BOOST_TEST(expected.GetData()(0, chan, corr).real() == row_data->real());
       BOOST_TEST(expected.GetData()(0, chan, corr).imag() == row_data->imag());
       BOOST_TEST(expected.GetFlags()(0, chan, corr) == *row_flag);
       BOOST_TEST(expected.GetWeights()(0, chan, corr) == *row_weight);
-      // !!! TODO: add proper full res flags test.
-      BOOST_TEST(false == *row_full_res_flag);
       ++row_data;
       ++row_flag;
       ++row_weight;
-      ++row_full_res_flag;
     }
   }
 }

@@ -175,7 +175,7 @@ std::unique_ptr<BdaBuffer> TestInput<BdaBuffer>::CreateInputBuffer() {
     auto flags = std::make_unique<bool[]>(n_correlations_ * n_channels);
     buffer->AddRow(bda_first_time, time_interval_, time_interval_, i,
                    n_channels, n_correlations_, data.data(), flags.get(),
-                   weights.data(), nullptr, uvw);
+                   weights.data(), uvw);
   }
   return buffer;
 }

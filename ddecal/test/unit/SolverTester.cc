@@ -197,7 +197,6 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
 
   // Initialize the data buffers. The solvers only need the data field.
   BdaBuffer::Fields bda_fields(true);
-  bda_fields.full_res_flags = false;
   auto bda_data_buffer =
       std::make_unique<BdaBuffer>(bda_buffer_size, bda_fields);
   std::vector<std::unique_ptr<BdaBuffer>> bda_model_buffers;
