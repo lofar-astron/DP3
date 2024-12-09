@@ -104,21 +104,20 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
 
   // baseline 0, timeslot = 1
   buffer->AddRow(bda_first_time, kInterval, kInterval, baseline_id[0], kNCorr,
-                 kNChan, kData1.data(), nullptr, kWeights[0].data(), nullptr,
-                 kUVW);
+                 kNChan, kData1.data(), nullptr, kWeights[0].data(), kUVW);
   // baseline 0, timeslot = 2
   buffer->AddRow(bda_first_time + kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan, kData2.data(), nullptr,
-                 kWeights[1].data(), nullptr, kUVW);
+                 kWeights[1].data(), kUVW);
   // baseline 0, timeslot = 3
   buffer->AddRow(bda_first_time + 2 * kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan, kData3.data(), nullptr,
-                 kWeights[2].data(), nullptr, kUVW);
+                 kWeights[2].data(), kUVW);
   // baseline 1, timeslot = 1 + 2 + 3
   buffer->AddRow(kStartTime + (kNIntervals * kInterval) / 2,
                  kNIntervals * kInterval, kNIntervals * kInterval,
                  baseline_id[1], kNCorr, kNChan, kData4.data(), nullptr,
-                 kWeights[3].data(), nullptr, kUVW);
+                 kWeights[3].data(), kUVW);
 
   std::vector<std::vector<double>> chan_freqs(kNBaselines);
   std::vector<std::vector<double>> chan_widths(kNBaselines);
@@ -208,28 +207,26 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
 
   // baseline 0, timeslot = 1
   buffer->AddRow(bda_first_time, kInterval, kInterval, baseline_id[0], kNCorr,
-                 kNChan / 2, kData1.data(), nullptr, kWeights[0].data(),
-                 nullptr, kUVW);
+                 kNChan / 2, kData1.data(), nullptr, kWeights[0].data(), kUVW);
   // baseline 1, timeslot = 1
   buffer->AddRow(bda_first_time, kInterval, kInterval, baseline_id[1], kNCorr,
-                 kNChan, kData2.data(), nullptr, kWeights[1].data(), nullptr,
-                 kUVW);
+                 kNChan, kData2.data(), nullptr, kWeights[1].data(), kUVW);
   // baseline 0, timeslot = 2
   buffer->AddRow(bda_first_time + kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan / 2, kData3.data(), nullptr,
-                 kWeights[2].data(), nullptr, kUVW);
+                 kWeights[2].data(), kUVW);
   // baseline 1, timeslot = 2
   buffer->AddRow(bda_first_time + kInterval, kInterval, kInterval,
                  baseline_id[1], kNCorr, kNChan, kData4.data(), nullptr,
-                 kWeights[3].data(), nullptr, kUVW);
+                 kWeights[3].data(), kUVW);
   // baseline 0, timeslot = 3
   buffer->AddRow(bda_first_time + 2 * kInterval, kInterval, kInterval,
                  baseline_id[0], kNCorr, kNChan / 2, kData5.data(), nullptr,
-                 kWeights[4].data(), nullptr, kUVW);
+                 kWeights[4].data(), kUVW);
   // baseline 1, timeslot = 3
   buffer->AddRow(bda_first_time + 2 * kInterval, kInterval, kInterval,
                  baseline_id[1], kNCorr, kNChan, kData6.data(), nullptr,
-                 kWeights[5].data(), nullptr, kUVW);
+                 kWeights[5].data(), kUVW);
 
   std::vector<std::vector<double>> chan_freqs{
       // Baseline 0: channels are averaged

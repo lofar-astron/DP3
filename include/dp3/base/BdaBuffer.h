@@ -30,21 +30,17 @@ class BdaBuffer {
      * https://stackoverflow.com/questions/53408962/try-to-understand-compiler-error-message-default-member-initializer-required-be
      */
     explicit Fields(bool default_value = true)
-        : data(default_value),
-          flags(default_value),
-          weights(default_value),
-          full_res_flags(default_value) {}
-    bool data;            ///< Enable/Disable visibilities.
-    bool flags;           ///< Enable/Disable flags.
-    bool weights;         ///< Enable/Disable weights.
-    bool full_res_flags;  ///< Enable/Disable full res flags.
+        : data(default_value), flags(default_value), weights(default_value) {}
+    bool data;     ///< Enable/Disable visibilities.
+    bool flags;    ///< Enable/Disable flags.
+    bool weights;  ///< Enable/Disable weights.
   };
 
   struct Row {
     Row(double time, double interval, double exposure, common::rownr_t row_nr,
         std::size_t baseline_nr, std::size_t n_channels,
         std::size_t n_correlations, std::complex<float>* data, bool* flags,
-        float* weights, bool* fullResFlags, const double* uvw);
+        float* weights, const double* uvw);
     std::size_t GetDataSize() const { return n_channels * n_correlations; }
     bool IsMetadataEqual(const BdaBuffer::Row& other) const;
     const double time;  ///< Centroid time for the measurements in MJD seconds.
@@ -57,7 +53,6 @@ class BdaBuffer {
     std::complex<float>* const data;
     bool* const flags;
     float* const weights;
-    bool* const full_res_flags;
     double uvw[3];
   };
 
@@ -121,7 +116,6 @@ class BdaBuffer {
               std::size_t n_correlations,
               const std::complex<float>* data = nullptr,
               const bool* flags = nullptr, const float* weights = nullptr,
-              const bool* full_res_flags = nullptr,
               const double* uvw = nullptr);
 
   /**
@@ -167,12 +161,6 @@ class BdaBuffer {
     return weights_.empty() ? nullptr : weights_.data();
   }
   float* GetWeights() { return weights_.empty() ? nullptr : weights_.data(); }
-  const bool* GetFullResFlags() const {
-    return full_res_flags_.empty() ? nullptr : full_res_flags_.data();
-  }
-  bool* GetFullResFlags() {
-    return full_res_flags_.empty() ? nullptr : full_res_flags_.data();
-  }
   const std::complex<float>* GetData(std::size_t row) const {
     return rows_[row].data;
   }
@@ -182,10 +170,6 @@ class BdaBuffer {
   bool* GetFlags(std::size_t row) { return rows_[row].flags; }
   const float* GetWeights(std::size_t row) const { return rows_[row].weights; }
   float* GetWeights(std::size_t row) { return rows_[row].weights; }
-  const bool* GetFullResFlags(std::size_t row) const {
-    return rows_[row].full_res_flags;
-  }
-  bool* GetFullResFlags(std::size_t row) { return rows_[row].full_res_flags; }
   std::vector<Row>& GetRows() { return rows_; }
   const std::vector<Row>& GetRows() const { return rows_; }
 
@@ -221,7 +205,6 @@ class BdaBuffer {
   aocommon::UVector<std::complex<float>> data_;
   aocommon::UVector<bool> flags_;
   aocommon::UVector<float> weights_;
-  aocommon::UVector<bool> full_res_flags_;
   /// @}
   /// The rows, which contain pointers to the memory pools above.
   std::vector<Row> rows_;

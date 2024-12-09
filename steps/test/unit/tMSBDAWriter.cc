@@ -62,7 +62,7 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
 
   auto buffer = std::make_unique<BdaBuffer>(1);
   buffer->AddRow(kTime, kInterval, kExposure, 0, 1, 1, &kData, &kFlag, &kWeight,
-                 nullptr, kUVW);
+                 kUVW);
   writer.process(std::move(buffer));
   writer.finish();
 

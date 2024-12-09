@@ -51,28 +51,25 @@ std::vector<std::unique_ptr<BdaBuffer>> CreateBdaBuffers(
                                               kNCorrelations);
     // Add a non-averaged baseline.
     buffer->AddRow(time, kInterval, kInterval, 0, kNChannels, kNCorrelations,
-                   data.data(), flags, weights.data(), flags, nullptr);
+                   data.data(), flags, weights.data());
     for (std::complex<float>& d : data) d += kDataIncrement;
     buffer->AddRow(time + kInterval, kInterval, kInterval, 0, kNChannels,
-                   kNCorrelations, data.data(), flags, weights.data(), flags,
-                   nullptr);
+                   kNCorrelations, data.data(), flags, weights.data());
     for (std::complex<float>& d : data) d += kDataIncrement;
 
     // Add a time-averaged baseline.
     buffer->AddRow(time + kInterval / 2, kInterval * 2.0, kInterval * 2.0, 1,
                    kNChannels, kNCorrelations, data.data(), flags,
-                   weights.data(), flags, nullptr);
+                   weights.data());
     for (std::complex<float>& d : data) d += kDataIncrement;
 
     // Add a frequency-averaged baseline.
     buffer->AddRow(time, kInterval, kInterval, 2, kNChannels / 2,
-                   kNCorrelations, data.data(), flags, weights.data(), flags,
-                   nullptr);
+                   kNCorrelations, data.data(), flags, weights.data());
     for (std::complex<float>& d : data) d += kDataIncrement;
 
     buffer->AddRow(time + kInterval, kInterval, kInterval, 2, kNChannels / 2,
-                   kNCorrelations, data.data(), flags, weights.data(), flags,
-                   nullptr);
+                   kNCorrelations, data.data(), flags, weights.data());
     for (std::complex<float>& d : data) d += kDataIncrement;
 
     BOOST_REQUIRE_EQUAL(buffer->GetRows().size(), kRowsPerBuffer);
@@ -179,7 +176,6 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
     BOOST_CHECK(data_row->data);
     BOOST_CHECK(!data_row->flags);
     BOOST_CHECK(!data_row->weights);
-    BOOST_CHECK(!data_row->full_res_flags);
 
     const size_t data_buffer_index = row / kRowsPerBuffer;
     const size_t data_row_index = row % kRowsPerBuffer;
@@ -218,14 +214,12 @@ BOOST_AUTO_TEST_CASE(append_and_weight_nullptr_flags) {
   auto bda_buffer =
       std::make_unique<BdaBuffer>(kNChannels * kNCorrelations, fields);
   bda_buffer->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
-                     kNCorrelations, data.data(), nullptr, weights.data(),
-                     nullptr);
+                     kNCorrelations, data.data(), nullptr, weights.data());
 
   auto model_data =
       std::make_unique<BdaBuffer>(kRowsPerBuffer * kNChannels * kNCorrelations);
   model_data->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
-                     kNCorrelations, data.data(), nullptr, weights.data(),
-                     nullptr);
+                     kNCorrelations, data.data(), nullptr, weights.data());
 
   BdaSolverBuffer buffer(1, 0.0, 100.0, kNBaselines);
   std::vector<std::unique_ptr<BdaBuffer>> model_buffers;
@@ -511,25 +505,25 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   // Baseline 0 - 1: [41, 43]
   buffer_within_first_solint->AddRow(time, kInterval, kInterval, 0, kNChannels,
                                      kNCorrelations, data.data(), flags,
-                                     weights.data(), flags, nullptr);
+                                     weights.data());
   buffer_within_first_solint->AddRow(time, kInterval, kInterval, 1, kNChannels,
                                      kNCorrelations, data.data(), flags,
-                                     weights.data(), flags, nullptr);
+                                     weights.data());
   // Baseline 0 - 1: [43, 45]
   buffer_within_first_solint->AddRow(time + kInterval, kInterval, kInterval, 0,
                                      kNChannels, kNCorrelations, data.data(),
-                                     flags, weights.data(), flags, nullptr);
+                                     flags, weights.data());
   buffer_within_first_solint->AddRow(time + kInterval, kInterval, kInterval, 1,
                                      kNChannels, kNCorrelations, data.data(),
-                                     flags, weights.data(), flags, nullptr);
+                                     flags, weights.data());
   // Baseline 0: [45, 47]
   buffer_within_first_solint->AddRow(time + 2 * kInterval, kInterval, kInterval,
                                      0, kNChannels, kNCorrelations, data.data(),
-                                     flags, weights.data(), flags, nullptr);
+                                     flags, weights.data());
   // Baseline 0: [47, 49]
   buffer_within_first_solint->AddRow(time + 3 * kInterval, kInterval, kInterval,
                                      0, kNChannels, kNCorrelations, data.data(),
-                                     flags, weights.data(), flags, nullptr);
+                                     flags, weights.data());
 
   solver_buffer.AppendAndWeight(std::move(buffer_within_first_solint), {});
   BOOST_CHECK_EQUAL(false, solver_buffer.IntervalIsComplete());
@@ -540,11 +534,11 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   //  Baseline 0: [49, 51]
   buffer_edge_solint->AddRow(time + 4 * kInterval, kInterval, kInterval, 0,
                              kNChannels, kNCorrelations, data.data(), flags,
-                             weights.data(), flags, nullptr);
+                             weights.data());
   //  Baseline 1: [45, 51]
-  buffer_edge_solint->AddRow(
-      time + 2.5 * kInterval, 3 * kInterval, 3 * kInterval, 0, kNChannels,
-      kNCorrelations, data.data(), flags, weights.data(), flags, nullptr);
+  buffer_edge_solint->AddRow(time + 2.5 * kInterval, 3 * kInterval,
+                             3 * kInterval, 0, kNChannels, kNCorrelations,
+                             data.data(), flags, weights.data());
 
   solver_buffer.AppendAndWeight(std::move(buffer_edge_solint), {});
   BOOST_CHECK_EQUAL(false, solver_buffer.IntervalIsComplete());
@@ -556,7 +550,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   // Baseline 0: [51, 53]
   buffer_within_second_solint_bl_0->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 0, kNChannels, kNCorrelations,
-      data.data(), flags, weights.data(), flags, nullptr);
+      data.data(), flags, weights.data());
 
   solver_buffer.AppendAndWeight(std::move(buffer_within_second_solint_bl_0),
                                 {});
@@ -569,7 +563,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   // Baseline 1: [51, 53]
   buffer_within_second_solint_bl_1->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 1, kNChannels, kNCorrelations,
-      data.data(), flags, weights.data(), flags, nullptr);
+      data.data(), flags, weights.data());
 
   solver_buffer.AppendAndWeight(std::move(buffer_within_second_solint_bl_1),
                                 {});

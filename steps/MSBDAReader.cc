@@ -177,7 +177,7 @@ bool MSBDAReader::process(std::unique_ptr<base::BdaBuffer>) {
     const bool success = buffer->AddRow(
         ms_time, interval[i], exposure[i], bl_to_id_[ant12],
         desc_id_to_nchan_[data_desc_id[i]], info().ncorr(), data_ptr, nullptr,
-        weights.tovector().data(), nullptr, uvw.tovector().data());
+        weights.tovector().data(), uvw.tovector().data());
     (void)success;
     assert(success);  // The buffer should always be large enough.
 

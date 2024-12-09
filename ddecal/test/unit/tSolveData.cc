@@ -272,7 +272,6 @@ BOOST_AUTO_TEST_CASE(bda) {
                                                                    {2, 4}};
 
   BdaBuffer::Fields bda_fields(true);
-  bda_fields.full_res_flags = false;
 
   auto bda_data_buffer =
       std::make_unique<BdaBuffer>(kBdaBufferSize, bda_fields);
