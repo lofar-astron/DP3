@@ -447,28 +447,27 @@ void BdaDdeCal::SolveCurrentInterval() {
 
   // Get antenna weights
   std::vector<double> weights_per_antenna(n_channel_blocks * n_antennas, 0.0);
-  for (const BdaBuffer::Row* data_row :
-       solver_buffer_->GetUnweightedDataRows()) {
-    const size_t antenna1 = antennas1_[data_row->baseline_nr];
-    const size_t antenna2 = antennas2_[data_row->baseline_nr];
+  for (const BdaSolverBuffer::IntervalRow& row :
+       solver_buffer_->GetIntervalRows()) {
+    const size_t antenna1 = antennas1_[row.baseline_nr];
+    const size_t antenna2 = antennas2_[row.baseline_nr];
     ++antenna1_interval_count[antenna1];
     ++antenna2_interval_count[antenna2];
 
     if (antenna1 != antenna2) {
-      for (size_t ch = 0; ch < data_row->n_channels; ++ch) {
-        const size_t index = ch * data_row->n_correlations;
-        const bool* const flag_ptr = data_row->flags + index;
-        const float* const weights_ptr = data_row->weights + index;
+      for (size_t ch = 0; ch < row.n_channels; ++ch) {
+        const size_t index = ch * row.n_correlations;
+        const bool* const flag_ptr = row.flags + index;
+        const float* const weights_ptr = row.weights + index;
 
         const double normalization_factor =
-            1.0 /
-            (data_row->n_correlations * data_row->n_channels * n_antennas);
+            1.0 / (row.n_correlations * row.n_channels * n_antennas);
 
         // Add the weights for current antenna and channel block
         const size_t channel_block_index =
-            GetChanBlockIndex(ch, data_row->n_channels, n_channel_blocks);
+            GetChanBlockIndex(ch, row.n_channels, n_channel_blocks);
 
-        for (size_t corr = 0; corr < data_row->n_correlations; ++corr) {
+        for (size_t corr = 0; corr < row.n_correlations; ++corr) {
           if (!(flag_ptr[corr])) {
             weights_per_antenna[antenna1 * n_channel_blocks +
                                 channel_block_index] +=
