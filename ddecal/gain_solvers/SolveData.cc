@@ -194,17 +194,16 @@ SolveData<MatrixType>::SolveData(
     : channel_blocks_(n_channel_blocks), n_antennas_(n_antennas) {
   // Count nr of visibilities per channel block
   std::vector<size_t> counts(n_channel_blocks, 0);
-  for (size_t row = 0; row != buffer.GetDataRows().size(); ++row) {
-    const BdaBuffer::Row& data_row = *buffer.GetDataRows()[row];
-    const size_t antenna1 = antennas1[data_row.baseline_nr];
-    const size_t antenna2 = antennas2[data_row.baseline_nr];
+  for (const BdaSolverBuffer::IntervalRow& row : buffer.GetIntervalRows()) {
+    const size_t antenna1 = antennas1[row.baseline_nr];
+    const size_t antenna2 = antennas2[row.baseline_nr];
     if (antenna1 != antenna2) {
       for (size_t channel_block_index = 0;
            channel_block_index != n_channel_blocks; ++channel_block_index) {
         const size_t channel_start =
-            channel_block_index * data_row.n_channels / n_channel_blocks;
+            channel_block_index * row.n_channels / n_channel_blocks;
         const size_t channel_end =
-            (channel_block_index + 1) * data_row.n_channels / n_channel_blocks;
+            (channel_block_index + 1) * row.n_channels / n_channel_blocks;
         counts[channel_block_index] += channel_end - channel_start;
       }
     }
@@ -212,7 +211,7 @@ SolveData<MatrixType>::SolveData(
 
   // Allocate
   channel_blocks_.front().n_solutions_ = LimitNSolutionsPerDirection(
-      n_solutions_per_direction, buffer.GetDataRows().size());
+      n_solutions_per_direction, buffer.GetIntervalRows().size());
   const size_t n_directions = n_solutions_per_direction.size();
   for (size_t cb = 0; cb != n_channel_blocks; ++cb) {
     channel_blocks_[cb].Resize(counts[cb], n_directions);
@@ -227,26 +226,25 @@ SolveData<MatrixType>::SolveData(
 
   // Fill
   std::vector<size_t> visibility_indices(n_channel_blocks, 0);
-  for (size_t row = 0; row != buffer.GetDataRows().size(); ++row) {
-    const BdaBuffer::Row& data_row = *buffer.GetDataRows()[row];
-    const size_t antenna1 = antennas1[data_row.baseline_nr];
-    const size_t antenna2 = antennas2[data_row.baseline_nr];
+  for (const BdaSolverBuffer::IntervalRow& row : buffer.GetIntervalRows()) {
+    const size_t antenna1 = antennas1[row.baseline_nr];
+    const size_t antenna2 = antennas2[row.baseline_nr];
     if (antenna1 != antenna2) {
       for (size_t channel_block_index = 0;
            channel_block_index != n_channel_blocks; ++channel_block_index) {
         const size_t channel_start =
-            channel_block_index * data_row.n_channels / n_channel_blocks;
+            channel_block_index * row.n_channels / n_channel_blocks;
         const size_t channel_end =
-            (channel_block_index + 1) * data_row.n_channels / n_channel_blocks;
+            (channel_block_index + 1) * row.n_channels / n_channel_blocks;
         const size_t channel_block_size = channel_end - channel_start;
         size_t& vis_index = visibility_indices[channel_block_index];
         ChannelBlockData& cb_data = channel_blocks_[channel_block_index];
 
         const std::complex<float>* data_ptr =
-            data_row.data + channel_start * data_row.n_correlations;
+            row.weighted_data + channel_start * row.n_correlations;
         for (size_t i = 0; i != channel_block_size; ++i) {
-          cb_data.data_[vis_index + i] = ToSpecificMatrix<MatrixType>(
-              &data_ptr[i * data_row.n_correlations]);
+          cb_data.data_[vis_index + i] =
+              ToSpecificMatrix<MatrixType>(&data_ptr[i * row.n_correlations]);
           cb_data.antenna_indices_[vis_index + i] =
               std::pair<uint32_t, uint32_t>(antenna1, antenna2);
         }
@@ -261,7 +259,7 @@ SolveData<MatrixType>::SolveData(
 
         const double interval_duration = buffer.IntervalDuration();
         const double visibility_mid_time =
-            data_row.time - buffer.CurrentIntervalStart();
+            row.time - buffer.CurrentIntervalStart();
         for (size_t dir = 0; dir != n_directions; ++dir) {
           const size_t n_solutions = cb_data.n_solutions_[dir];
           // This value needs to be truncated to n_solutions-1, because the
@@ -276,16 +274,13 @@ SolveData<MatrixType>::SolveData(
                                           interval_duration));
           const size_t solution_index =
               index_offset + solution_start_indices[dir];
-          const BdaBuffer::Row& model_data_row =
-              *buffer.GetModelDataRows(dir)[row];
           const std::complex<float>* model_data_ptr =
-              model_data_row.data +
-              channel_start * model_data_row.n_correlations;
+              row.model_data[dir] + channel_start * row.n_correlations;
           for (size_t i = 0; i != channel_block_size; ++i) {
             cb_data.solution_map_(dir, vis_index + i) = solution_index;
             cb_data.model_data_(dir, vis_index + i) =
                 ToSpecificMatrix<MatrixType>(
-                    &model_data_ptr[i * model_data_row.n_correlations]);
+                    &model_data_ptr[i * row.n_correlations]);
           }
         }
 

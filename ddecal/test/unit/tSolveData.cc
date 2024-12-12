@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(bda) {
                                              kNBaselines);
   solver_buffer.AppendAndWeight(std::move(bda_data_buffer),
                                 std::move(bda_model_buffers));
-  BOOST_TEST_REQUIRE(solver_buffer.GetDataRows().size() ==
+  BOOST_TEST_REQUIRE(solver_buffer.GetIntervalRows().size() ==
                      kNRowsPerBaseline[0] + kNRowsPerBaseline[1] +
                          kNRowsPerBaseline[2]);
 
@@ -360,7 +360,7 @@ BOOST_AUTO_TEST_CASE(bda) {
                                       0, 1, 0, 1, 2, 0, 1, 2};
       constexpr size_t kOffsets2[] = {0, 1, 0, 1, 2, 3, 0, 1, 2, 3,
                                       0, 1, 0, 1, 2, 3, 0, 1, 2, 3};
-      const size_t row = ch_block == 0 ? kRowsBlock1[v] : kRowsBlock2[v];
+      const size_t row_index = ch_block == 0 ? kRowsBlock1[v] : kRowsBlock2[v];
       size_t offset = ch_block == 0 ? kOffsets1[v] : kOffsets2[v];
       const size_t n_channels =
           (baseline == 0) ? kNAveragedChannels : kNAllChannels;
@@ -368,9 +368,9 @@ BOOST_AUTO_TEST_CASE(bda) {
       offset = (offset + first_channel) * kNPolarizations;
 
       const std::complex<float>* const data_ptr =
-          solver_buffer.GetDataRows()[row]->data + offset;
+          solver_buffer.GetIntervalRows()[row_index].weighted_data + offset;
       const std::complex<float>* const model_data_ptr =
-          solver_buffer.GetModelDataRows(0)[row]->data + offset;
+          solver_buffer.GetIntervalRows()[row_index].model_data[0] + offset;
       for (size_t p = 0; p < kNPolarizations; ++p) {
         BOOST_TEST(data.Get(p) == data_ptr[p]);
         BOOST_TEST(model_data.Get(p) == model_data_ptr[p]);

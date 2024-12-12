@@ -4,7 +4,6 @@
 #include "../../gain_solvers/BdaSolverBuffer.h"
 
 #include <dp3/base/BdaBuffer.h>
-#include "../../../base/test/unit/tBdaBuffer.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -87,27 +86,35 @@ void CheckComplex(const std::complex<float>& left,
 }
 
 /**
+ * Compares the meta data of a BdaBuffer::Row and an IntervalRow.
+ */
+void CheckRowMetaData(const BdaBuffer::Row& bda_row,
+                      const BdaSolverBuffer::IntervalRow& solver_row) {
+  BOOST_TEST(bda_row.time == solver_row.time);
+  BOOST_TEST(bda_row.baseline_nr == solver_row.baseline_nr);
+  BOOST_TEST(bda_row.n_channels == solver_row.n_channels);
+  BOOST_TEST(bda_row.n_correlations == solver_row.n_correlations);
+}
+
+/**
  * Compares a data row and the first model row against a reference row.
  */
 void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
               const BdaBuffer::Row& reference_row) {
   // Get the row from the solver buffer.
-  const std::vector<const BdaBuffer::Row*>& data_rows =
-      solver_buffer.GetDataRows();
-  const std::vector<const BdaBuffer::Row*>& model_rows =
-      solver_buffer.GetModelDataRows(0);
-  BOOST_REQUIRE_LT(row_index, data_rows.size());
-  BOOST_REQUIRE_EQUAL(data_rows.size(), model_rows.size());
-  BOOST_REQUIRE(data_rows[row_index] && model_rows[row_index]);
-  const BdaBuffer::Row& data_row = *data_rows[row_index];
-  const BdaBuffer::Row& model_row = *model_rows[row_index];
+  const std::vector<BdaSolverBuffer::IntervalRow>& rows =
+      solver_buffer.GetIntervalRows();
+  BOOST_REQUIRE_LT(row_index, rows.size());
+  const BdaSolverBuffer::IntervalRow& row = rows[row_index];
+  BOOST_REQUIRE(row.weighted_data);
+  BOOST_REQUIRE(!row.model_data.empty());
+  BOOST_REQUIRE(row.model_data.front());
 
   // Compare the solver buffer row against the original row.
-  dp3::base::test::CheckBDARowMetaData(reference_row, data_row);
-  dp3::base::test::CheckBDARowMetaData(reference_row, model_row);
+  CheckRowMetaData(reference_row, row);
   // Checking the value for the first correlation only should suffice.
-  CheckComplex(*data_row.data, *reference_row.data);
-  CheckComplex(*model_row.data, *reference_row.data + kModelDataDiff);
+  CheckComplex(*row.weighted_data, *reference_row.data);
+  CheckComplex(*row.model_data.front(), *reference_row.data + kModelDataDiff);
 }
 
 /**
@@ -129,8 +136,7 @@ BOOST_AUTO_TEST_SUITE(bdasolverbuffer)
 BOOST_AUTO_TEST_CASE(constructor) {
   BdaSolverBuffer buffer(1, 0.0, 1.0, 1);
   BOOST_CHECK_EQUAL(buffer.BufferCount(), 0u);
-  BOOST_CHECK(buffer.GetDataRows().empty());
-  BOOST_CHECK(buffer.GetModelDataRows(0).empty());
+  BOOST_CHECK(buffer.GetIntervalRows().empty());
   BOOST_CHECK(buffer.GetDone().empty());
 }
 
@@ -159,49 +165,39 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
   }
 
   const size_t n_rows = data.size() * kRowsPerBuffer;
-  BOOST_REQUIRE_EQUAL(buffer.GetDataRows().size(), n_rows);
-  BOOST_REQUIRE_EQUAL(buffer.GetModelDataRows(0).size(), n_rows);
-  BOOST_REQUIRE_EQUAL(buffer.GetModelDataRows(1).size(), n_rows);
+  BOOST_REQUIRE_EQUAL(buffer.GetIntervalRows().size(), n_rows);
 
-  for (size_t row = 0; row < n_rows; ++row) {
-    const BdaBuffer::Row* data_row = buffer.GetDataRows()[row];
-    const BdaBuffer::Row* model_row1 = buffer.GetModelDataRows(0)[row];
-    const BdaBuffer::Row* model_row2 = buffer.GetModelDataRows(1)[row];
+  for (size_t row_index = 0; row_index < n_rows; ++row_index) {
+    const BdaSolverBuffer::IntervalRow& solver_row =
+        buffer.GetIntervalRows()[row_index];
+    BOOST_REQUIRE(solver_row.weighted_data);
+    BOOST_REQUIRE_EQUAL(solver_row.model_data.size(), 2);
+    BOOST_REQUIRE(solver_row.model_data[0]);
+    BOOST_REQUIRE(solver_row.model_data[1]);
 
-    BOOST_REQUIRE(data_row);
-    BOOST_REQUIRE(model_row1);
-    BOOST_REQUIRE(model_row2);
-
-    // AppendAndWeight should only store the visibilities in the buffer.
-    BOOST_CHECK(data_row->data);
-    BOOST_CHECK(!data_row->flags);
-    BOOST_CHECK(!data_row->weights);
-
-    const size_t data_buffer_index = row / kRowsPerBuffer;
-    const size_t data_row_index = row % kRowsPerBuffer;
+    const size_t data_buffer_index = row_index / kRowsPerBuffer;
+    const size_t data_row_index = row_index % kRowsPerBuffer;
     const BdaBuffer::Row& original_row =
         data_ptr[data_buffer_index]->GetRows()[data_row_index];
 
-    dp3::base::test::CheckBDARowMetaData(original_row, *data_row);
-    dp3::base::test::CheckBDARowMetaData(original_row, *model_row1);
-    dp3::base::test::CheckBDARowMetaData(original_row, *model_row2);
+    CheckRowMetaData(original_row, solver_row);
 
     for (size_t i = 0; i < original_row.GetDataSize(); ++i) {
-      const std::complex<float> inc = float(row) * kDataIncrement;
+      const std::complex<float> inc = float(row_index) * kDataIncrement;
       const std::complex<float> weighted_data_value =
           (kFirstDataValue + inc) * kWeightSqrt;
       const std::complex<float> weighted_model_value1 =
           (kFirstDataValue + 1.0f * kModelDataDiff + inc) * kWeightSqrt;
       const std::complex<float> weighted_model_value2 =
           (kFirstDataValue + 2.0f * kModelDataDiff + inc) * kWeightSqrt;
-      CheckComplex(data_row->data[i], weighted_data_value);
-      CheckComplex(model_row1->data[i], weighted_model_value1);
-      CheckComplex(model_row2->data[i], weighted_model_value2);
+      CheckComplex(solver_row.weighted_data[i], weighted_data_value);
+      CheckComplex(solver_row.model_data[0][i], weighted_model_value1);
+      CheckComplex(solver_row.model_data[1][i], weighted_model_value2);
     }
   }
 
   buffer.Clear();
-  BOOST_CHECK_EQUAL(buffer.GetDataRows().size(), 0u);
+  BOOST_TEST(buffer.GetIntervalRows().empty());
 }
 
 BOOST_AUTO_TEST_CASE(append_and_weight_nullptr_flags) {
@@ -247,21 +243,22 @@ BOOST_AUTO_TEST_CASE(one_interval_per_buffer) {
     const bool complete = data_index + 1 < data.size();
     BOOST_CHECK_EQUAL(complete, buffer.IntervalIsComplete());
 
-    BOOST_REQUIRE_EQUAL(buffer.GetDataRows().size(), kRowsPerBuffer);
+    BOOST_REQUIRE_EQUAL(buffer.GetIntervalRows().size(), kRowsPerBuffer);
     for (size_t row_index = 0; row_index < kRowsPerBuffer; ++row_index) {
-      const BdaBuffer::Row* row = buffer.GetDataRows()[row_index];
-      BOOST_REQUIRE(row && row->data);
+      const BdaSolverBuffer::IntervalRow& solver_row =
+          buffer.GetIntervalRows()[row_index];
+      BOOST_REQUIRE(solver_row.weighted_data);
 
       const BdaBuffer::Row& original_row =
           data_ptr[data_index]->GetRows()[row_index];
 
-      dp3::base::test::CheckBDARowMetaData(original_row, *row);
+      CheckRowMetaData(original_row, solver_row);
 
       for (size_t i = 0; i < original_row.GetDataSize(); ++i) {
         const size_t all_row_index = data_index * kRowsPerBuffer + row_index;
         const std::complex<float> weighted_data_value =
             kFirstDataValue + float(all_row_index) * kDataIncrement;
-        CheckComplex(row->data[i], weighted_data_value);
+        CheckComplex(solver_row.weighted_data[i], weighted_data_value);
       }
     }
     buffer.AdvanceInterval();
@@ -271,7 +268,7 @@ BOOST_AUTO_TEST_CASE(one_interval_per_buffer) {
     BOOST_CHECK_EQUAL(done.front().get(), data_ptr[data_index]);
   }
 
-  BOOST_CHECK_EQUAL(buffer.GetDataRows().size(), 0u);
+  BOOST_CHECK(buffer.GetIntervalRows().empty());
 }
 
 BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
@@ -315,7 +312,7 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
       solver_buffer.AdvanceInterval();
       const bool complete = row < kNRows - kSolutionIntervalFactor;
       BOOST_CHECK_EQUAL(solver_buffer.IntervalIsComplete(), complete);
-      BOOST_CHECK_EQUAL(solver_buffer.GetDataRows().size(),
+      BOOST_CHECK_EQUAL(solver_buffer.GetIntervalRows().size(),
                         complete ? kSolutionIntervalFactor
                                  : (kNRows % kSolutionIntervalFactor));
       BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), 1u);
@@ -376,7 +373,7 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
       solver_buffer.AdvanceInterval();
       const bool complete = row < kNRows - kSolutionIntervalFactor;
       BOOST_CHECK_EQUAL(solver_buffer.IntervalIsComplete(), complete);
-      BOOST_CHECK_EQUAL(solver_buffer.GetDataRows().size(),
+      BOOST_CHECK_EQUAL(solver_buffer.GetIntervalRows().size(),
                         complete ? kSolutionIntervalFactor
                                  : (kNRows % kSolutionIntervalFactor));
       BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), kNRows - row - 1);
@@ -386,7 +383,7 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
   // Test advancing beyond the last interval.
   solver_buffer.AdvanceInterval();
   BOOST_CHECK(!solver_buffer.IntervalIsComplete());
-  BOOST_CHECK_EQUAL(solver_buffer.GetDataRows().size(), 0u);
+  BOOST_CHECK(solver_buffer.GetIntervalRows().empty());
   BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), 0u);
 
   // Test that GetDone() returns all original data buffers.

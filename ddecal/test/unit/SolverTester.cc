@@ -262,11 +262,11 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
     }
   }
 
-  const size_t bda_data_buffer_rows = bda_data_buffer->GetRows().size();
+  const size_t n_bda_data_buffer_rows = bda_data_buffer->GetRows().size();
   bda_solver_buffer_.AppendAndWeight(std::move(bda_data_buffer),
                                      std::move(bda_model_buffers));
-  BOOST_REQUIRE_EQUAL(bda_solver_buffer_.GetDataRows().size(),
-                      bda_data_buffer_rows);
+  BOOST_REQUIRE_EQUAL(bda_solver_buffer_.GetIntervalRows().size(),
+                      n_bda_data_buffer_rows);
 
   return bda_solver_buffer_;
 }

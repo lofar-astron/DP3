@@ -18,6 +18,23 @@ namespace ddecal {
 
 class BdaSolverBuffer {
  public:
+  /// Holds information for similar rows in different BdaBuffers.
+  /// Each IntervalRow corresponds to one BDA row from an input BdaBuffer.
+  /// It contains meta data for that row and pointers to the different
+  /// visibilities (unweighted, weighted, and model visibilities).
+  /// The pointers do not own the data. They point to BdaBuffers in data_.
+  struct IntervalRow {
+    double time;
+    std::size_t baseline_nr;
+    std::size_t n_channels;
+    std::size_t n_correlations;
+    std::complex<float>* unweighted_data;
+    const std::complex<float>* weighted_data;
+    const bool* flags;
+    const float* weights;
+    std::vector<const std::complex<float>*> model_data;
+  };
+
   /**
    * Constructor.
    * @param n_directions The number of directions.
@@ -33,8 +50,8 @@ class BdaSolverBuffer {
         last_complete_interval_per_baseline_(n_baselines, -1),
         data_rows_() {
     assert(interval > 0.0);
-    AddInterval(
-        n_directions);  // Ensure that the current solution interval is valid.
+    // Ensure that the current solution interval is valid.
+    data_rows_.PushBack(std::vector<IntervalRow>());
   }
 
   /**
@@ -82,36 +99,18 @@ class BdaSolverBuffer {
   size_t BufferCount() const { return data_.Size(); }
 
   /**
-   * Get the data for the current solution interval.
-   * @return Non-modifiable rows with weighted visibilities.
+   * Get the content for the current solution interval. It consists of meta
+   * data and pointers to visibilities (weighted, unweighted, and model
+   * visibilities) for each BDA row.
    */
-  const std::vector<const base::BdaBuffer::Row*>& GetDataRows() const {
-    return data_rows_[0].weighted;
-  }
-
-  /**
-   * Get the unweighted data, weights and flags for the current solution
-   * interval. SolveData uses this function to retrieve the antenna weights.
-   * @return Rows with unweighted visibilities.
-   */
-  const std::vector<base::BdaBuffer::Row*>& GetUnweightedDataRows() const {
-    return data_rows_[0].unweighted;
+  const std::vector<IntervalRow>& GetIntervalRows() const {
+    return data_rows_[0];
   }
 
   /**
    * @return The absolute index of the current solution interval.
    */
   int GetCurrentInterval() const { return current_interval_; }
-
-  /**
-   * Get the model data rows for the current solution interval.
-   * @param direction Direction index.
-   * @return Rows with weighted model data.
-   */
-  const std::vector<const base::BdaBuffer::Row*>& GetModelDataRows(
-      size_t direction) const {
-    return data_rows_[0].model[direction];
-  }
 
   /**
    * Apply solutions to the predicted model and subtract the result from the
@@ -163,8 +162,6 @@ class BdaSolverBuffer {
   double IntervalDuration() const { return time_interval_; }
 
  private:
-  void AddInterval(size_t n_directions);
-
   /**
    * @param time_center Center time of a measurement / BDA row.
    * @return The relative solution interval index for a given time.
@@ -210,15 +207,11 @@ class BdaSolverBuffer {
   /// complete.
   std::vector<int> last_complete_interval_per_baseline_;
 
-  struct IntervalRows {
-    std::vector<base::BdaBuffer::Row*> unweighted;
-    std::vector<const base::BdaBuffer::Row*> weighted;
-    std::vector<std::vector<const base::BdaBuffer::Row*>> model;
-  };
-
-  /// The data rows for the current and future solution intervals.
+  /// The BDA rows for the current and future solution intervals.
+  /// The queue contains one vector of IntervalRows for each solution interval.
   /// The queue always contains one element for the current solution interval.
-  aocommon::Queue<IntervalRows> data_rows_;
+  /// @see IntervalRow
+  aocommon::Queue<std::vector<IntervalRow>> data_rows_;
 };
 
 }  // namespace ddecal
