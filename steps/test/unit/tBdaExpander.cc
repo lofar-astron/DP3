@@ -5,7 +5,7 @@
 
 #include <dp3/base/BdaBuffer.h>
 #include "../../../common/ParameterSet.h"
-#include "../../BDAExpander.h"
+#include "../../BdaExpander.h"
 #include "mock/MockInput.h"
 #include "mock/MockStep.h"
 
@@ -16,7 +16,7 @@
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
-using dp3::steps::BDAExpander;
+using dp3::steps::BdaExpander;
 
 const unsigned int kNCorr = 4;
 const unsigned int kNChan = 8;
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
 
   dp3::common::ParameterSet parset;
   dp3::steps::MockInput mock_input;
-  BDAExpander expander("bdaexpander");
+  BdaExpander expander("bdaexpander");
 
   BOOST_CHECK_NO_THROW(expander.updateInfo(info));
 
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(frequency_expansion) {
 
   dp3::common::ParameterSet parset;
   dp3::steps::MockInput mock_input;
-  BDAExpander expander("bdaexpander");
+  BdaExpander expander("bdaexpander");
 
   BOOST_CHECK_NO_THROW(expander.updateInfo(info));
 
@@ -284,7 +284,7 @@ BOOST_AUTO_TEST_CASE(wrong_input_parameters) {
   info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1_2Bl, kAnt2_2Bl);
   info.setIsBDAIntervalFactorInteger(false);
 
-  BDAExpander expander("bdaexpander");
+  BdaExpander expander("bdaexpander");
   BOOST_CHECK_THROW(expander.updateInfo(info), std::invalid_argument);
 }
 

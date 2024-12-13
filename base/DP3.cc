@@ -24,7 +24,7 @@
 #include "../steps/ApplyCal.h"
 #include "../steps/Averager.h"
 #include "../steps/BDAAverager.h"
-#include "../steps/BDAExpander.h"
+#include "../steps/BdaExpander.h"
 #include "../steps/BdaGroupPredict.h"
 #include "../steps/Clipper.h"
 #include "../steps/Counter.h"
@@ -164,7 +164,7 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
   } else if (type == "bdaaverage" || type == "bdaaverager") {
     step = std::make_shared<steps::BDAAverager>(parset, prefix);
   } else if (type == "bdaexpander") {
-    step = std::make_shared<steps::BDAExpander>(prefix);
+    step = std::make_shared<steps::BdaExpander>(prefix);
   } else if (type == "madflagger" || type == "madflag") {
     step = std::make_shared<steps::MadFlagger>(parset, prefix);
   } else if (type == "preflagger" || type == "preflag") {
