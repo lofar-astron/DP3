@@ -8,7 +8,7 @@
 
 #include "Averager.h"
 #include "BDAAverager.h"
-#include "BDAExpander.h"
+#include "BdaExpander.h"
 #include "OnePredict.h"
 #include "Upsample.h"
 
@@ -48,7 +48,7 @@ void Predict::Initialize(const common::ParameterSet& parset,
   // connected. These are called 'internal' steps here to differentiate them
   // from the other steps outside Predict, but they are not substeps.
   if (input_type == MsType::kBda) {
-    internal_steps_.push_back(std::make_shared<BDAExpander>(prefix));
+    internal_steps_.push_back(std::make_shared<BdaExpander>(prefix));
   }
   if (time_smearing_factor > 1) {
     internal_steps_.push_back(std::make_shared<Upsample>(

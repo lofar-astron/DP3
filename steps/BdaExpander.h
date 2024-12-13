@@ -5,18 +5,18 @@
 /// @brief Step for expanding BDA data to regular data.
 /// @author Chiara Salvoni
 
-#ifndef DPPP_BDAEXPANDER_H
-#define DPPP_BDAEXPANDER_H
-
-#include "InputStep.h"
-#include <dp3/steps/Step.h>
-
-#include <dp3/base/BdaBuffer.h>
-#include <dp3/base/DPBuffer.h>
+#ifndef DP3_STEPS_BDAEXPANDER_H_
+#define DP3_STEPS_BDAEXPANDER_H_
 
 #include <map>
 #include <utility>
 #include <vector>
+
+#include <dp3/base/BdaBuffer.h>
+#include <dp3/base/DPBuffer.h>
+#include <dp3/steps/Step.h>
+
+#include "../common/Timer.h"
 
 namespace dp3 {
 namespace steps {
@@ -30,9 +30,9 @@ namespace steps {
 /// compatibility to ensure the correct workflow for processing steps which are
 /// not yet able to handle BDA data
 
-class BDAExpander : public Step {
+class BdaExpander : public Step {
  public:
-  explicit BDAExpander(const std::string &prefix);
+  explicit BdaExpander(const std::string& prefix);
 
   common::Fields getRequiredFields() const override { return kUvwField; }
 
@@ -50,33 +50,30 @@ class BDAExpander : public Step {
 
   void finish() override;
 
-  void updateInfo(const base::DPInfo &) override;
+  void updateInfo(const base::DPInfo&) override;
 
-  void show(std::ostream &) const override;
+  void show(std::ostream&) const override;
 
-  void showTimings(std::ostream &, double duration) const override;
+  void showTimings(std::ostream&, double duration) const override;
 
   bool accepts(MsType dt) const override { return dt == MsType::kBda; }
 
  private:
-  /// Helper function to copy the data from BdaBuffer to DPBuffer
-  /// BDA_row: the row in the BdaBuffer to copy
-  /// bufOut: the regular buffer in which the BdaBuffer row is copied
-  /// current_bl: the baseline number relative to the BDA_row
-  void CopyData(const dp3::base::BdaBuffer::Row &bda_row,
-                std::unique_ptr<dp3::base::DPBuffer> &buf_out,
-                unsigned int current_bl, float time_averaging_factor = 1.0);
+  /// Helper function to copy the data from BdaBuffer to DPBuffer.
+  /// @param bda_row The row in the BdaBuffer to copy.
+  /// @param buf_out The regular buffer in which the BdaBuffer row is copied.
+  /// @param current_bl The baseline number relative to the BDA_row.
+  void CopyData(const base::BdaBuffer& bda_buffer,
+                const base::BdaBuffer::Row& bda_row,
+                std::unique_ptr<dp3::base::DPBuffer>& buf_out,
+                float time_averaging_factor = 1.0);
 
-  class RegularBufferElement {
-   public:
-    RegularBufferElement() {
-      throw std::runtime_error("Default constructor should not be called");
-    }
-    RegularBufferElement(size_t n_baseline, unsigned int n_corr,
+  struct RegularBufferElement {
+    RegularBufferElement(size_t n_baselines, unsigned int n_corr,
                          unsigned int n_chan, double current_time,
                          double current_exposure);
 
-    std::vector<bool> baseline_;
+    std::vector<bool> baseline;
     std::unique_ptr<dp3::base::DPBuffer> regular_buffer;
   };
 

@@ -482,7 +482,7 @@ add_library(
   steps/ApplyCal.cc
   steps/Averager.cc
   steps/BDAAverager.cc
-  steps/BDAExpander.cc
+  steps/BdaExpander.cc
   steps/BdaGroupPredict.cc
   steps/Clipper.cc
   steps/Counter.cc
