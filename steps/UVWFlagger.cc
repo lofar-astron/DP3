@@ -196,15 +196,12 @@ bool UVWFlagger::process(std::unique_ptr<BdaBuffer> buffer) {
   }
   itsTimer.start();
 
-  bool* flagPtr = buffer->GetFlags();
+  std::vector<BdaBuffer::Row> rows = buffer->GetRows();
+  for (std::size_t row_index = 0; row_index < rows.size(); ++row_index) {
+    BdaBuffer::Row& row = rows[row_index];
 
-  for (auto& row : buffer->GetRows()) {
     // Loop over the baselines and flag as needed.
-    unsigned int n_correlations = row.n_correlations;
-    unsigned int n_channels = row.n_channels;
-    unsigned int baseline_id = row.baseline_nr;
-
-    assert(n_channels == itsRecWavel[baseline_id].size());
+    assert(row.n_channels == itsRecWavel[row.baseline_nr].size());
 
     // Input uvw coordinates are only needed if no new phase center is used.
     std::array<double, 3> uvw;
@@ -213,22 +210,28 @@ bool UVWFlagger::process(std::unique_ptr<BdaBuffer> buffer) {
     } else {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-      uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[baseline_id],
-                               getInfo().getAnt2()[baseline_id], row.time);
+      uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[row.baseline_nr],
+                               getInfo().getAnt2()[row.baseline_nr], row.time);
     }
 
+    bool* row_flags_pointer = buffer->GetFlags(row_index);
+
     // Copy original flags to calculate flagged visibilities
-    BdaBuffer::Row originalRow = row;
-    const bool* origPtr = originalRow.flags;
-    doFlag(uvw, flagPtr, n_correlations, n_channels, baseline_id);
+    // Use aocommon's UVector since std::vector<bool>::data() is inacessible.
+    const aocommon::UVector<bool> original_flags(
+        row_flags_pointer, row_flags_pointer + row.GetDataSize());
+    const bool* original_flags_pointer = original_flags.data();
+
+    doFlag(uvw, row_flags_pointer, row.n_correlations, row.n_channels,
+           row.baseline_nr);
     // Count the flags set newly.
-    for (unsigned int j = 0; j < n_channels; ++j) {
-      if (*flagPtr && !*origPtr) {
-        itsFlagCounter.incrBaseline(baseline_id);
-        itsFlagCounter.incrChannel(j);
+    for (std::size_t channel = 0; channel < row.n_channels; ++channel) {
+      if (*row_flags_pointer && !*original_flags_pointer) {
+        itsFlagCounter.incrBaseline(row.baseline_nr);
+        itsFlagCounter.incrChannel(channel);
       }
-      flagPtr += n_correlations;
-      origPtr += n_correlations;
+      row_flags_pointer += row.n_correlations;
+      original_flags_pointer += row.n_correlations;
     }
   }
 
