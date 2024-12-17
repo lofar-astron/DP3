@@ -212,33 +212,6 @@ BOOST_AUTO_TEST_CASE(copy_add_data_flags) {
   BOOST_CHECK_EQUAL(copy.GetRemainingCapacity(), 0u);
 }
 
-BOOST_AUTO_TEST_CASE(set_fields) {
-  BdaBuffer buffer(kDataSize);
-  AddBasicRow(buffer);
-  const BdaBuffer copy(buffer, BdaBuffer::Fields(false));
-  dp3::base::test::CheckBDARowMetaData(buffer, copy);
-
-  BOOST_CHECK(buffer.GetData() && buffer.GetData(0));
-  BOOST_CHECK(buffer.GetFlags() && buffer.GetFlags(0));
-  BOOST_CHECK(buffer.GetWeights() && buffer.GetWeights(0));
-
-  BdaBuffer::Fields data_and_weights(false);
-  data_and_weights.data = data_and_weights.weights = true;
-  buffer.SetFields(data_and_weights);
-  BOOST_CHECK(buffer.GetData() && buffer.GetData(0));
-  BOOST_CHECK(!buffer.GetFlags() && !buffer.GetFlags(0));
-  BOOST_CHECK(buffer.GetWeights() && buffer.GetWeights(0));
-
-  BdaBuffer::Fields flags(false);
-  flags.flags = true;
-  buffer.SetFields(flags);
-  BOOST_CHECK(!buffer.GetData() && !buffer.GetData(0));
-  BOOST_CHECK(buffer.GetFlags() && buffer.GetFlags(0));
-  BOOST_CHECK(!buffer.GetWeights() && !buffer.GetWeights(0));
-
-  dp3::base::test::CheckBDARowMetaData(buffer, copy);
-}
-
 BOOST_AUTO_TEST_CASE(add_all_fields) {
   const std::complex<float> kData1[kDataSize]{{1, 1}, {2, 2}, {3, 3},
                                               {4, 4}, {5, 5}, {6, 6}};

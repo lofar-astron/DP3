@@ -91,13 +91,6 @@ class BdaBuffer {
             const Fields& copy_fields = Fields());
 
   /**
-   * Sets the fields that are enabled in this buffer.
-   * Allocates memory for fields that are added, but does not initialize it.
-   * @param fields The fields that should be enabled in the buffer.
-   */
-  void SetFields(const Fields& fields);
-
-  /**
    * Add a measurement line to the buffer.
    *
    * Measurement lines have to obey the following ordering constraint:

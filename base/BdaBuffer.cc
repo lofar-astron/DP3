@@ -92,34 +92,6 @@ void BdaBuffer::CopyRows(const std::vector<BdaBuffer::Row>& existing_rows) {
   rows_ = std::move(new_rows);
 }
 
-void BdaBuffer::SetFields(const Fields& fields) {
-  if ((fields.data == !data_.empty()) && (fields.flags == !flags_.empty()) &&
-      (fields.weights == !weights_.empty())) {
-    return;
-  }
-
-  if (fields.data) {
-    data_.resize(original_capacity_);
-  } else {
-    data_.clear();
-    data_.shrink_to_fit();
-  }
-  if (fields.flags) {
-    flags_.resize(original_capacity_);
-  } else {
-    flags_.clear();
-    flags_.shrink_to_fit();
-  }
-  if (fields.weights) {
-    weights_.resize(original_capacity_);
-  } else {
-    weights_.clear();
-    weights_.shrink_to_fit();
-  }
-
-  CopyRows(rows_);
-}
-
 void BdaBuffer::Clear() {
   data_.clear();
   flags_.clear();
