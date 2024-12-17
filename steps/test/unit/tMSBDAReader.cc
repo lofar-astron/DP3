@@ -74,13 +74,13 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   BOOST_TEST(mock_step->TotalRowCount() == std::size_t(6));
 
   BOOST_REQUIRE(!mock_step->GetBdaBuffers().empty());
-  auto rows = mock_step->GetBdaBuffers().front()->GetRows();
-  BOOST_REQUIRE(!rows.empty());
-  BOOST_TEST(rows[0].data->imag() == kExpectedData.imag());
-  BOOST_TEST(rows[0].data->real() == kExpectedData.real());
-  BOOST_TEST(rows[0].uvw == kExpectedUVW);
+  const dp3::base::BdaBuffer& buffer = *mock_step->GetBdaBuffers().front();
+  BOOST_REQUIRE(!buffer.GetRows().empty());
+  BOOST_TEST(buffer.GetData(0)->imag() == kExpectedData.imag());
+  BOOST_TEST(buffer.GetData(0)->real() == kExpectedData.real());
+  BOOST_TEST(buffer.GetRows()[0].uvw == kExpectedUVW);
   for (std::size_t i = 0; i < kExpectedWeights.size(); ++i) {
-    BOOST_TEST(*(rows[0].weights + i) == kExpectedWeights[i]);
+    BOOST_TEST(buffer.GetWeights(0)[i] == kExpectedWeights[i]);
   }
 }
 
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(process_nan) {
   reader.process(std::unique_ptr<dp3::base::BdaBuffer>());
   reader.finish();
 
-  std::complex<float>* data = mock_step->GetBdaBuffers()[0]->GetRows()[0].data;
+  const std::complex<float>* data = mock_step->GetBdaBuffers()[0]->GetData(0);
   BOOST_TEST(std::isnan(data->imag()));
   BOOST_TEST(std::isnan(data->real()));
 }

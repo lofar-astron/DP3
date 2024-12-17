@@ -360,18 +360,20 @@ bool TestOutput<BdaBuffer>::process(std::unique_ptr<BdaBuffer> buffer) {
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
   const xt::xtensor<bool, 3> expected_result = GetResult();
 
-  for (auto row : buffer->GetRows()) {
-    auto flag_ptr = row.flags;
+  for (std::size_t row_index = 0; row_index < buffer->GetRows().size();
+       ++row_index) {
+    const std::size_t baseline_nr = buffer->GetRows()[row_index].baseline_nr;
+    const bool* flag_ptr = buffer->GetFlags(row_index);
     // Use the scaling factor to get the index corresponding to the current
     // frequency channel in the non-averaged result cube
     double scaling_factor =
-        double(n_channels_) / channel_frequencies[row.baseline_nr].size();
-    for (size_t j = 0; j < channel_frequencies[row.baseline_nr].size(); ++j) {
+        double(n_channels_) / channel_frequencies[baseline_nr].size();
+    for (size_t j = 0; j < channel_frequencies[baseline_nr].size(); ++j) {
       double frequency_index = (j + 0.5) * scaling_factor;
       for (size_t k = 0; k < n_correlations_; ++k) {
-        BOOST_CHECK(*flag_ptr ==
-                    expected_result(row.baseline_nr,
-                                    static_cast<int>(frequency_index), k));
+        BOOST_CHECK(
+            *flag_ptr ==
+            expected_result(baseline_nr, static_cast<int>(frequency_index), k));
         ++flag_ptr;
       }
     }

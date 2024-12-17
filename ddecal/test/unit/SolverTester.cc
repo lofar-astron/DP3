@@ -243,7 +243,9 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
             const size_t ant1_index = (ant1 * kNDirections + dir) * 2;
             const size_t ant2_index = (ant2 * kNDirections + dir) * 2;
 
-            MC2x2 val(&bda_model_buffers[dir]->GetRows().back().data[ch * 4]);
+            const BdaBuffer& model_buffer = *bda_model_buffers[dir];
+            const std::size_t n_rows = model_buffer.GetRows().size();
+            MC2x2 val(&model_buffer.GetData(n_rows - 1)[ch * 4]);
             MC2x2 left(input_solutions_[ant1_index], 0.0, 0.0,
                        input_solutions_[ant1_index + 1]);
             MC2x2 right(input_solutions_[ant2_index], 0.0, 0.0,

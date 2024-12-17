@@ -58,7 +58,8 @@ void BdaSolverBuffer::AppendAndWeight(
           std::sqrt(weights_ptr[2]), std::sqrt(weights_ptr[3])};
 
       // Weigh the 2x2 data matrix.
-      std::complex<float>* data_ptr = weighted_row.data + index;
+      std::complex<float>* data_ptr =
+          weighted_buffer->GetData(row_index) + index;
       for (size_t cr = 0; cr < kNCorrelations; ++cr) {
         is_flagged =
             is_flagged || !IsFinite(data_ptr[cr]) || (flag_ptr && flag_ptr[cr]);

@@ -204,6 +204,7 @@ void BdaExpander::CopyData(const BdaBuffer& bda_buffer,
     // Set the pointers to the right value: when channel averaging happens, the
     // pointers will have the same values for multiple loops.
     const std::size_t offset =
+        bda_row.offset +
         channels_mapping_[current_bl][chan] * getInfoOut().ncorr();
 
     const std::complex<float>* bda_data = bda_buffer.GetData();
@@ -212,7 +213,7 @@ void BdaExpander::CopyData(const BdaBuffer& bda_buffer,
 
     if (bda_data) {
       for (unsigned int corr = 0; corr < getInfoOut().ncorr(); ++corr) {
-        data(current_bl, chan, corr) = bda_row.data[offset + corr];
+        data(current_bl, chan, corr) = bda_data[offset + corr];
       }
     }
     if (bda_weights) {
@@ -222,14 +223,14 @@ void BdaExpander::CopyData(const BdaBuffer& bda_buffer,
                      channels_mapping_[current_bl][chan]);
 
       for (unsigned int corr = 0; corr < getInfoOut().ncorr(); ++corr) {
-        weights(current_bl, chan, corr) = bda_row.weights[offset + corr] /
+        weights(current_bl, chan, corr) = bda_weights[offset + corr] /
                                           time_averaging_factor /
                                           channel_averaging_factor;
       }
     }
     if (bda_flags) {
       for (unsigned int corr = 0; corr < getInfoOut().ncorr(); ++corr) {
-        flags(current_bl, chan, corr) = bda_row.flags[offset + corr];
+        flags(current_bl, chan, corr) = bda_flags[offset + corr];
       }
     }
 
