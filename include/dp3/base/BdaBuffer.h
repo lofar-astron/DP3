@@ -39,8 +39,7 @@ class BdaBuffer {
   struct Row {
     Row(double time, double interval, double exposure, common::rownr_t row_nr,
         std::size_t baseline_nr, std::size_t n_channels,
-        std::size_t n_correlations, std::complex<float>* data, bool* flags,
-        float* weights, const double* uvw);
+        std::size_t n_correlations, std::size_t offset, const double* uvw);
     std::size_t GetDataSize() const { return n_channels * n_correlations; }
     bool IsMetadataEqual(const BdaBuffer::Row& other) const;
     const double time;  ///< Centroid time for the measurements in MJD seconds.
@@ -50,9 +49,7 @@ class BdaBuffer {
     const std::size_t baseline_nr;
     const std::size_t n_channels;
     const std::size_t n_correlations;
-    std::complex<float>* const data;
-    bool* const flags;
-    float* const weights;
+    const std::size_t offset;  ///< Relative position in BdaBuffer vectors.
     double uvw[3];
   };
 
@@ -154,15 +151,25 @@ class BdaBuffer {
     return weights_.empty() ? nullptr : weights_.data();
   }
   float* GetWeights() { return weights_.empty() ? nullptr : weights_.data(); }
-  const std::complex<float>* GetData(std::size_t row) const {
-    return rows_[row].data;
-  }
 
-  std::complex<float>* GetData(std::size_t row) { return rows_[row].data; }
-  const bool* GetFlags(std::size_t row) const { return rows_[row].flags; }
-  bool* GetFlags(std::size_t row) { return rows_[row].flags; }
-  const float* GetWeights(std::size_t row) const { return rows_[row].weights; }
-  float* GetWeights(std::size_t row) { return rows_[row].weights; }
+  const std::complex<float>* GetData(std::size_t row) const {
+    return data_.empty() ? nullptr : data_.data() + rows_[row].offset;
+  }
+  std::complex<float>* GetData(std::size_t row) {
+    return data_.empty() ? nullptr : data_.data() + rows_[row].offset;
+  }
+  const bool* GetFlags(std::size_t row) const {
+    return flags_.empty() ? nullptr : flags_.data() + rows_[row].offset;
+  }
+  bool* GetFlags(std::size_t row) {
+    return flags_.empty() ? nullptr : flags_.data() + rows_[row].offset;
+  }
+  const float* GetWeights(std::size_t row) const {
+    return weights_.empty() ? nullptr : weights_.data() + rows_[row].offset;
+  }
+  float* GetWeights(std::size_t row) {
+    return weights_.empty() ? nullptr : weights_.data() + rows_[row].offset;
+  }
   std::vector<Row>& GetRows() { return rows_; }
   const std::vector<Row>& GetRows() const { return rows_; }
 
@@ -183,12 +190,6 @@ class BdaBuffer {
   bool IsMetadataEqual(const BdaBuffer& other) const;
 
  private:
-  /**
-   * Copy rows but set their pointers to the current memory pools.
-   * @param existing_rows Existing rows, which may reference rows_.
-   */
-  void CopyRows(const std::vector<BdaBuffer::Row>& existing_rows);
-
   static constexpr double kTimeEpsilon =
       1.0e-8;  // For comparing measurement timestamps.
 

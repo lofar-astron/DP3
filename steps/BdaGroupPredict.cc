@@ -98,7 +98,8 @@ class BdaGroupPredict::BaselineGroup {
 
   /// Process one row if BDA data
   /// requests are buffered until the baseline group is complete
-  void ProcessRow(const base::BdaBuffer::Row& row, std::size_t& row_counter,
+  void ProcessRow(const base::BdaBuffer::Row& row,
+                  std::complex<float>* row_data, std::size_t& row_counter,
                   int bl_idx) {
     double time = row.time + row.interval / 2;
 
@@ -113,7 +114,7 @@ class BdaGroupPredict::BaselineGroup {
     // group
     std::copy_n(row.uvw, 3, &dpbuffer_->GetUvw()(bl_idx, 0));
 
-    write_back_info_[bl_idx] = {row.data, &row_counter};
+    write_back_info_[bl_idx] = {row_data, &row_counter};
     dpbuffer_->SetTime(time);
     std::size_t nr_baselines = baselines_.size();
 
@@ -243,10 +244,13 @@ bool BdaGroupPredict::process(std::unique_ptr<base::BdaBuffer> buffer) {
 
   const std::vector<base::BdaBuffer::Row>& rows =
       buffers_.back().buffer->GetRows();
-  for (const auto& row : rows) {
+  for (std::size_t row_index = 0; row_index < rows.size(); ++row_index) {
+    const base::BdaBuffer::Row& row = rows[row_index];
+    std::complex<float>* row_data = buffers_.back().buffer->GetData(row_index);
+
     BaselineGroup& blg = *index_to_baseline_group_map_[row.baseline_nr].first;
     int bl_in_group_idx = index_to_baseline_group_map_[row.baseline_nr].second;
-    blg.ProcessRow(row, row_counter, bl_in_group_idx);
+    blg.ProcessRow(row, row_data, row_counter, bl_in_group_idx);
   }
 
   timer_.stop();

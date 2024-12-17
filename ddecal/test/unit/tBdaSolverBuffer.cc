@@ -100,7 +100,8 @@ void CheckRowMetaData(const BdaBuffer::Row& bda_row,
  * Compares a data row and the first model row against a reference row.
  */
 void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
-              const BdaBuffer::Row& reference_row) {
+              const BdaBuffer::Row& reference_row,
+              const std::complex<float>* reference_row_data) {
   // Get the row from the solver buffer.
   const std::vector<BdaSolverBuffer::IntervalRow>& rows =
       solver_buffer.GetIntervalRows();
@@ -113,8 +114,8 @@ void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
   // Compare the solver buffer row against the original row.
   CheckRowMetaData(reference_row, row);
   // Checking the value for the first correlation only should suffice.
-  CheckComplex(*row.weighted_data, *reference_row.data);
-  CheckComplex(*row.model_data.front(), *reference_row.data + kModelDataDiff);
+  CheckComplex(*row.weighted_data, *reference_row_data);
+  CheckComplex(*row.model_data.front(), *reference_row_data + kModelDataDiff);
 }
 
 /**
@@ -304,7 +305,8 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
 
   size_t row_index = 0;
   for (size_t row = 0; row < kNRows; ++row) {
-    CheckRow(solver_buffer, row_index, data_ref.GetRows()[row]);
+    CheckRow(solver_buffer, row_index, data_ref.GetRows()[row],
+             data_ref.GetData(row));
 
     ++row_index;
     if (row_index == kSolutionIntervalFactor) {
@@ -365,7 +367,8 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
 
   size_t row_index = 0;
   for (size_t row = 0; row < kNRows; ++row) {
-    CheckRow(solver_buffer, row_index, data_buffers[row]->GetRows().front());
+    CheckRow(solver_buffer, row_index, data_buffers[row]->GetRows().front(),
+             data_buffers[row]->GetData(0));
 
     ++row_index;
     if (row_index == kSolutionIntervalFactor) {

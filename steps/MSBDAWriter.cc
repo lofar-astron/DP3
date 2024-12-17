@@ -110,7 +110,13 @@ bool MSBDAWriter::process(std::unique_ptr<BdaBuffer> buffer) {
 
   std::vector<common::rownr_t> row_nrs;
   row_nrs.reserve(rows.size());
-  for (const BdaBuffer::Row& row : rows) {
+
+  for (std::size_t row_index = 0; row_index < rows.size(); ++row_index) {
+    const BdaBuffer::Row& row = rows[row_index];
+    std::complex<float>* row_data = buffer->GetData(row_index);
+    float* row_weights = buffer->GetWeights(row_index);
+    bool* row_flags = buffer->GetFlags(row_index);
+
     time.put(row.row_nr, row.time);
     time_centroid.put(row.row_nr, row.time);
     interval.put(row.row_nr, row.interval);
@@ -121,12 +127,12 @@ bool MSBDAWriter::process(std::unique_ptr<BdaBuffer> buffer) {
 
     const std::size_t n_chan = info().chanFreqs(row.baseline_nr).size();
     const IPosition dim(2, info().ncorr(), n_chan);
-    data.put(row.row_nr, Array<Complex>(dim, row.data, casacore::SHARE));
-    weights.put(row.row_nr, Array<Float>(dim, row.weights, casacore::SHARE));
-    flags.put(row.row_nr, Array<Bool>(dim, row.flags, casacore::SHARE));
+    data.put(row.row_nr, Array<Complex>(dim, row_data, casacore::SHARE));
+    weights.put(row.row_nr, Array<Float>(dim, row_weights, casacore::SHARE));
+    flags.put(row.row_nr, Array<Bool>(dim, row_flags, casacore::SHARE));
     // Set the row_flag if all flags in the row are true / none are false.
     const bool row_flag =
-        std::count(row.flags, row.flags + row.GetDataSize(), false) == 0;
+        std::count(row_flags, row_flags + row.GetDataSize(), false) == 0;
     flags_row.put(row.row_nr, row_flag);
 
     const IPosition uvw_dim(1, 3);

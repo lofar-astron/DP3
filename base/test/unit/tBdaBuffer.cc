@@ -279,11 +279,10 @@ BOOST_AUTO_TEST_CASE(add_all_fields) {
   BOOST_CHECK_EQUAL(rows[1].n_correlations, k1Correlation);
   BOOST_CHECK_EQUAL(rows[1].GetDataSize(), k1DataSize);
 
-  for (std::size_t i = 0; i < 2; ++i) {
-    BOOST_CHECK_EQUAL(rows[i].data, buffer.GetData(i));
-    BOOST_CHECK_EQUAL(rows[i].flags, buffer.GetFlags(i));
-    BOOST_CHECK_EQUAL(rows[i].weights, buffer.GetWeights(i));
-  }
+  BOOST_CHECK_EQUAL(rows[0].offset, 0);
+  BOOST_CHECK_EQUAL(rows[1].offset, buffer.GetData(1) - buffer.GetData());
+  BOOST_CHECK_EQUAL(rows[1].offset, buffer.GetFlags(1) - buffer.GetFlags());
+  BOOST_CHECK_EQUAL(rows[1].offset, buffer.GetWeights(1) - buffer.GetWeights());
 
   for (std::size_t i = 0; i < 3; ++i) {
     BOOST_CHECK_EQUAL(rows[0].uvw[i], kUvw1[i]);
@@ -320,9 +319,7 @@ BOOST_AUTO_TEST_CASE(add_no_fields) {
   BOOST_CHECK_EQUAL(row.baseline_nr, kBaselineNr);
   BOOST_CHECK_EQUAL(row.n_channels, kNChannels);
   BOOST_CHECK_EQUAL(row.n_correlations, kNCorrelations);
-  BOOST_CHECK_EQUAL(row.data, buffer.GetData(0));
-  BOOST_CHECK_EQUAL(row.flags, buffer.GetFlags(0));
-  BOOST_CHECK_EQUAL(row.weights, buffer.GetWeights(0));
+  BOOST_CHECK_EQUAL(row.offset, 0);
   for (std::size_t i = 0; i < 3; ++i) {
     BOOST_CHECK(std::isnan(row.uvw[i]));
   }
@@ -341,13 +338,11 @@ BOOST_AUTO_TEST_CASE(disabled_fields) {
   BOOST_CHECK_EQUAL(buffer.GetFlags(0), nullptr);
   BOOST_CHECK_EQUAL(buffer.GetWeights(0), nullptr);
 
-  // Verify the data pointers in the row.
+  // Verify the offset in the row.
   const auto& rows = buffer.GetRows();
-  BOOST_CHECK_EQUAL(rows.size(), 1u);
+  BOOST_REQUIRE_EQUAL(rows.size(), 1u);
   const auto& row = rows.front();
-  BOOST_CHECK_EQUAL(row.data, nullptr);
-  BOOST_CHECK_EQUAL(row.flags, nullptr);
-  BOOST_CHECK_EQUAL(row.weights, nullptr);
+  BOOST_CHECK_EQUAL(row.offset, 0);
 }
 
 BOOST_AUTO_TEST_CASE(add_wrong_ordering) {

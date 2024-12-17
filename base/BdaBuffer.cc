@@ -4,6 +4,7 @@
 #include <dp3/base/BdaBuffer.h>
 
 #include <algorithm>
+#include <cassert>
 #include <limits>
 
 namespace dp3 {
@@ -12,8 +13,7 @@ namespace base {
 BdaBuffer::Row::Row(double _time, double _interval, double _exposure,
                     common::rownr_t _row_nr, std::size_t _baseline_nr,
                     std::size_t _n_channels, std::size_t _n_correlations,
-                    std::complex<float>* _data, bool* _flags, float* _weights,
-                    const double* const _uvw)
+                    std::size_t _offset, const double* const _uvw)
     : time(_time),
       interval(_interval),
       exposure(_exposure),
@@ -21,9 +21,7 @@ BdaBuffer::Row::Row(double _time, double _interval, double _exposure,
       baseline_nr(_baseline_nr),
       n_channels(_n_channels),
       n_correlations(_n_correlations),
-      data(_data),
-      flags(_flags),
-      weights(_weights),
+      offset(_offset),
       uvw{_uvw ? _uvw[0] : std::numeric_limits<double>::quiet_NaN(),
           _uvw ? _uvw[1] : std::numeric_limits<double>::quiet_NaN(),
           _uvw ? _uvw[2] : std::numeric_limits<double>::quiet_NaN()} {}
@@ -54,7 +52,7 @@ BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields,
     : data_(),
       flags_(),
       weights_(),
-      rows_(),
+      rows_(other.rows_),
       original_capacity_(other.original_capacity_ - other.remaining_capacity_),
       remaining_capacity_(0) {
   if (fields.data) {
@@ -69,27 +67,6 @@ BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields,
     if (copy_fields.weights) weights_ = other.weights_;
     weights_.resize(original_capacity_);
   }
-  CopyRows(other.rows_);
-}
-
-void BdaBuffer::CopyRows(const std::vector<BdaBuffer::Row>& existing_rows) {
-  std::complex<float>* row_data = data_.empty() ? nullptr : data_.data();
-  bool* row_flags = flags_.empty() ? nullptr : flags_.data();
-  float* row_weights = weights_.empty() ? nullptr : weights_.data();
-
-  // Note: 'existing_rows' can reference 'rows_' !
-  std::vector<Row> new_rows;
-  new_rows.reserve(existing_rows.size());
-  for (const Row& row : existing_rows) {
-    new_rows.emplace_back(row.time, row.interval, row.exposure, row.row_nr,
-                          row.baseline_nr, row.n_channels, row.n_correlations,
-                          row_data, row_flags, row_weights, row.uvw);
-    const std::size_t row_size = row.GetDataSize();
-    if (row_data) row_data += row_size;
-    if (row_flags) row_flags += row_size;
-    if (row_weights) row_weights += row_size;
-  }
-  rows_ = std::move(new_rows);
 }
 
 void BdaBuffer::Clear() {
@@ -120,11 +97,9 @@ bool BdaBuffer::AddRow(double time, double interval, double exposure,
     return false;
   }
   remaining_capacity_ -= n_elements;
-  std::complex<float>* row_data = nullptr;
-  bool* row_flags = nullptr;
-  float* row_weights = nullptr;
+  std::size_t offset = 0;
   if (data_.capacity() > 0) {
-    row_data = data_.end();
+    offset = data_.size();
     if (data) {
       data_.insert(data_.end(), data, data + n_elements);
     } else {
@@ -133,7 +108,11 @@ bool BdaBuffer::AddRow(double time, double interval, double exposure,
     }
   }
   if (flags_.capacity() > 0) {
-    row_flags = flags_.end();
+    if (offset == 0) {
+      offset = flags_.size();
+    } else {
+      assert(offset == flags_.size());
+    }
     if (flags) {
       flags_.insert(flags_.end(), flags, flags + n_elements);
     } else {
@@ -141,7 +120,11 @@ bool BdaBuffer::AddRow(double time, double interval, double exposure,
     }
   }
   if (weights_.capacity() > 0) {
-    row_weights = weights_.end();
+    if (offset == 0) {
+      offset = weights_.size();
+    } else {
+      assert(offset == weights_.size());
+    }
     if (weights) {
       weights_.insert(weights_.end(), weights, weights + n_elements);
     } else {
@@ -152,7 +135,7 @@ bool BdaBuffer::AddRow(double time, double interval, double exposure,
 
   const common::rownr_t row_nr = rows_.empty() ? 0 : rows_.back().row_nr + 1;
   rows_.emplace_back(time, interval, exposure, row_nr, baseline_nr, n_channels,
-                     n_correlations, row_data, row_flags, row_weights, uvw);
+                     n_correlations, offset, uvw);
   return true;
 }
 
