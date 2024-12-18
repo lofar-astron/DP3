@@ -764,7 +764,7 @@ void OnePredict::addBeamToData(
 
   const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
   if (stokesIOnly) {
-    everybeam::complex_t* values = buffer.GetScalarBeamValues(buffer_index);
+    std::complex<double>* values = buffer.GetScalarBeamValues(buffer_index);
     if (update_beam) {
       const MDirection dir(
           MVDirection(patch.Direction().ra, patch.Direction().dec),

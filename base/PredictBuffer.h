@@ -28,7 +28,7 @@ class PredictBuffer {
         values.resize(n_stations * n_channels);
     } else {
       scalar_beam_values_.resize(n_directions);
-      for (std::vector<everybeam::complex_t>& values : scalar_beam_values_)
+      for (std::vector<std::complex<double>>& values : scalar_beam_values_)
         values.resize(n_stations * n_channels);
     }
 
@@ -41,7 +41,7 @@ class PredictBuffer {
     return full_beam_values_[direction_index].data();
   }
 
-  everybeam::complex_t* GetScalarBeamValues(size_t direction_index) {
+  std::complex<double>* GetScalarBeamValues(size_t direction_index) {
     assert(!full_beam_);
     return scalar_beam_values_[direction_index].data();
   }
@@ -50,7 +50,7 @@ class PredictBuffer {
 
  private:
   std::vector<std::vector<aocommon::MC2x2>> full_beam_values_;
-  std::vector<std::vector<everybeam::complex_t>> scalar_beam_values_;
+  std::vector<std::vector<std::complex<double>>> scalar_beam_values_;
   size_t n_stations_ = 0;
   bool full_beam_ = false;
 };
