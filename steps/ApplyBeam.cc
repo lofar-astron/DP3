@@ -560,7 +560,7 @@ void ApplyBeam::ApplyBaselineBasedBeam(
 size_t ComputeArrayFactor(const DPInfo& info, double time,
                           const everybeam::vector3r_t& srcdir,
                           const everybeam::telescope::Telescope* telescope,
-                          everybeam::complex_t* beam_values, bool invert,
+                          std::complex<double>* beam_values, bool invert,
                           std::mutex* mutex,
                           const std::vector<size_t>& skip_station_indices) {
   const size_t n_channels = info.chanFreqs().size();
@@ -575,7 +575,7 @@ size_t ComputeArrayFactor(const DPInfo& info, double time,
   for (size_t ch = 0; ch < n_channels; ++ch) {
     // Fill beam_values for channel ch
     for (size_t st = 0; st < n_stations; ++st) {
-      everybeam::complex_t& value = beam_values[n_channels * st + ch];
+      std::complex<double>& value = beam_values[n_channels * st + ch];
       if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
                     st) != skip_station_indices.end()) {
         value = 1.0;
@@ -598,7 +598,7 @@ void ApplyArrayFactorAndAdd(
     const DPInfo& info, size_t n_stations,
     const aocommon::xt::UTensor<std::complex<double>, 3>& data,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-    const everybeam::complex_t* beam_values) {
+    const std::complex<double>* beam_values) {
   // Apply beam for channel ch on all baselines
   const size_t n_baselines = info.nbaselines();
   const size_t n_channels = info.chanFreqs().size();
@@ -608,8 +608,8 @@ void ApplyArrayFactorAndAdd(
     const size_t index_right =
         (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
 
-    const everybeam::complex_t* left = &beam_values[index_left];
-    const everybeam::complex_t* right = &beam_values[index_right];
+    const std::complex<double>* left = &beam_values[index_left];
+    const std::complex<double>* right = &beam_values[index_right];
     // Using pointers ensures that indexing is as fast as possible in the loop
     // below, which is on a performance-critical path.
     const std::complex<double>* data_pointer = &data(bl, 0, 0);
@@ -627,7 +627,7 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
     const DPInfo& info, double time, std::complex<double>* data0,
     const everybeam::vector3r_t& srcdir,
     const everybeam::telescope::Telescope* telescope,
-    everybeam::complex_t* beam_values,
+    std::complex<double>* beam_values,
     const std::pair<size_t, size_t>& baseline_range,
     const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
     bool invert, everybeam::CorrectionMode mode, std::mutex* mutex,
@@ -678,8 +678,8 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
           (n_stations == 1 ? 0 : n_channels * info.getAnt1()[bl]);
       size_t index_right =
           (n_stations == 1 ? 0 : n_channels * info.getAnt2()[bl]);
-      everybeam::complex_t* left = &(beam_values[index_left]);
-      everybeam::complex_t* right = &(beam_values[index_right]);
+      std::complex<double>* left = &(beam_values[index_left]);
+      std::complex<double>* right = &(beam_values[index_right]);
       data[0] = left[ch] * std::complex<double>(data[0]) * conj(right[ch]);
 
       // TODO: update weights?

@@ -39,7 +39,7 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
 size_t ComputeArrayFactor(const base::DPInfo& info, double time,
                           const everybeam::vector3r_t& srcdir,
                           const everybeam::telescope::Telescope* telescope,
-                          everybeam::complex_t* beam_values, bool invert,
+                          std::complex<double>* beam_values, bool invert,
                           std::mutex* mutex,
                           const std::vector<size_t>& skip_station_indices);
 
@@ -76,7 +76,7 @@ void ApplyArrayFactorAndAdd(
     const base::DPInfo& info, size_t n_stations,
     const aocommon::xt::UTensor<std::complex<double>, 3>& data,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-    const everybeam::complex_t* beam_values);
+    const std::complex<double>* beam_values);
 
 /// \brief DP3 step class to ApplyBeam visibilities from a source model
 
@@ -149,7 +149,7 @@ class ApplyBeam final : public Step {
       const base::DPInfo& info, double time, std::complex<double>* data0,
       const everybeam::vector3r_t& srcdir,
       const everybeam::telescope::Telescope* telescope,
-      everybeam::complex_t* beam_values,
+      std::complex<double>* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range,
       aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
