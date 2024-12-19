@@ -14,6 +14,8 @@
 #include <casacore/tables/Tables/TableIter.h>
 #include <dp3/base/DPBuffer.h>
 #include <dp3/steps/Step.h>
+#include "Filter.h"
+#include "ResultStep.h"
 #include "../common/Timer.h"
 
 namespace dp3 {
@@ -33,6 +35,9 @@ namespace steps {
 /// depending on the time interval and channel width of the source and target
 /// MS, and subsequently writing these flags to DPBuffer.
 
+/// Additionally, a Filter sub-step can be used to transfer flags to a MS that,
+/// e.g., contains more baselines than the source MS.
+
 class FlagTransfer final : public Step {
  public:
   /// Construct the object using parameter values from the parset, using the
@@ -40,7 +45,9 @@ class FlagTransfer final : public Step {
   explicit FlagTransfer(const common::ParameterSet& parameter_set,
                         const std::string& prefix);
 
-  common::Fields getRequiredFields() const final { return {}; }
+  common::Fields getRequiredFields() const final {
+    return filter_step_->getRequiredFields();
+  }
 
   common::Fields getProvidedFields() const final { return kFlagsField; }
 
@@ -79,6 +86,9 @@ class FlagTransfer final : public Step {
 
   /// Upper edges of source MS frequency bins
   std::vector<double> source_channel_upper_edges_;
+
+  std::shared_ptr<Step> filter_step_;
+  std::shared_ptr<ResultStep> result_step_;
 };
 
 }  // namespace steps

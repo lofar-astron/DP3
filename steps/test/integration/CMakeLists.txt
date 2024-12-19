@@ -10,6 +10,7 @@ add_python_tests(
   tColumnReader
   tDemix
   tFilter
+  tFlagTransfer
   tGainCal
   tGainCalH5Parm
   tIDGImager
