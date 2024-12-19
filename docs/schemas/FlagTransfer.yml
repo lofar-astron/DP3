@@ -1,6 +1,6 @@
 description: >-
-  | Transfer flags from a lower-resolution MeasurementSet (MS).
-  | Note: this is an experimental feature.
+  Transfer flags from a lower-resolution MeasurementSet (MS). In case there is a mismatch between the input MS and `source_ms`, e.g., in terms of baselines, a filter can be applied. Hence, options of the Filter step are also valid. In that case we don't check whether the same stations are present, just that the number of baselines is the same.
+  Note: this is an experimental feature.
 inputs:
   type:
     type: string

@@ -31,6 +31,24 @@ def source_env(run_in_tmp_path):
     untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
 
 
+@pytest.fixture
+def ms_with_fewer_baselines():
+    check_call(  # Filter, average & flag 1st and 6th channel of tNDPPP-generic.MS
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msin.useflag=false",
+            f"msout={MSAVG}",
+            "steps=[filter,averager,preflagger]",
+            "filter.baseline=CS*&",
+            "filter.remove=true",
+            "averager.timestep=3",
+            "preflagger.chan=[0, 5]",
+        ]
+    )
+
+
 def test_flag_transfer():
     """
     Check whether flags of a single time slot in a low-resolution dataset are correctly
@@ -137,3 +155,37 @@ def test_flag_transfer_without_freq_avg():
 
     expected_flag_counts_str = "[168, 0, 0, 0, 0, 168, 0, 0]"
     assert flag_counts_str == expected_flag_counts_str
+
+
+def test_flag_transfer_with_fewer_baselines(ms_with_fewer_baselines):
+    """
+    Check whether flags are properly transfered when frequency averaging is not used.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            f"msout={MSOUT}",
+            "steps=[flagtransfer]",
+            f"flagtransfer.source_ms={MSAVG}",
+            "flagtransfer.baseline=CS*&",
+        ]
+    )
+
+
+def test_exception_with_fewer_baselines(ms_with_fewer_baselines):
+    """
+    Check whether an exception is thrown when there's fewer baselines in source_ms.
+    """
+    with pytest.raises(Exception):
+        check_call(
+            [
+                tcf.DP3EXE,
+                "checkparset=1",
+                f"msin={MSIN}",
+                f"msout={MSOUT}",
+                "steps=[flagtransfer]",
+                f"flagtransfer.source_ms={MSAVG}",
+            ]
+        )
