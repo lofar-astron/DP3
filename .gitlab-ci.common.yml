@@ -25,6 +25,7 @@ stages:
   - linting
   - test
   - publish
+  - scan
   - pages
 
 include: .gitlab-ci.wheels.yml
