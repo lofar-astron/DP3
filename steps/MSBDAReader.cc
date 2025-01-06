@@ -61,6 +61,7 @@ using casacore::TableColumn;
 using casacore::TableDesc;
 using casacore::TableLock;
 
+using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
@@ -118,16 +119,21 @@ MSBDAReader::~MSBDAReader() {}
 
 std::string MSBDAReader::msName() const { return ms_.tableName(); }
 
-bool MSBDAReader::process(std::unique_ptr<base::DPBuffer>) {
-  return process(std::unique_ptr<base::BdaBuffer>());
+bool MSBDAReader::process(std::unique_ptr<DPBuffer>) {
+  return process(std::unique_ptr<BdaBuffer>());
 }
 
-bool MSBDAReader::process(std::unique_ptr<base::BdaBuffer>) {
+bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
   common::NSTimer::StartStop sstime(timer_);
 
+  BdaBuffer::Fields fields(false);
+  fields.data = getFieldsToRead().Data();
+  fields.flags = getFieldsToRead().Flags();
+  fields.weights = getFieldsToRead().Weights();
+
   // TODO: Pre-calculate actual required pool size beforehand.
-  auto buffer = std::make_unique<base::BdaBuffer>(
-      info().nbaselines() * info().nchan() * info().ncorr());
+  auto buffer = std::make_unique<BdaBuffer>(
+      info().nbaselines() * info().nchan() * info().ncorr(), fields);
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
