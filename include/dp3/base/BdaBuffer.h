@@ -88,6 +88,16 @@ class BdaBuffer {
             const Fields& copy_fields = Fields());
 
   /**
+   * Enables the visibility buffer.
+   * If the buffer already exists, nothing happens.
+   * The visibility values in a new buffer are not initialized.
+   */
+  void AddData() {
+    data_.reserve(original_capacity_);
+    data_.resize(GetNumberOfElements());
+  }
+
+  /**
    * Add a measurement line to the buffer.
    *
    * Measurement lines have to obey the following ordering constraint:
@@ -129,7 +139,9 @@ class BdaBuffer {
    * Determine the number of stored elements in all rows.
    * @return The total number of elements in this buffer.
    */
-  std::size_t GetNumberOfElements() const;
+  std::size_t GetNumberOfElements() const {
+    return original_capacity_ - remaining_capacity_;
+  }
 
   /**
    * Determine the remaining capacity.

@@ -242,6 +242,8 @@ bool BdaGroupPredict::process(std::unique_ptr<base::BdaBuffer> buffer) {
 
   std::size_t& row_counter = buffers_.back().nr_rows_filled;
 
+  buffers_.back().buffer->AddData();  // Input buffer may not contain data.
+
   const std::vector<base::BdaBuffer::Row>& rows =
       buffers_.back().buffer->GetRows();
   for (std::size_t row_index = 0; row_index < rows.size(); ++row_index) {

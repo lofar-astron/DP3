@@ -77,10 +77,6 @@ void BdaBuffer::Clear() {
   remaining_capacity_ = original_capacity_;
 }
 
-std::size_t BdaBuffer::GetNumberOfElements() const {
-  return original_capacity_ - remaining_capacity_;
-}
-
 bool BdaBuffer::AddRow(double time, double interval, double exposure,
                        std::size_t baseline_nr, std::size_t n_channels,
                        std::size_t n_correlations,

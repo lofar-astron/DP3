@@ -93,6 +93,23 @@ BOOST_AUTO_TEST_CASE(initialization) {
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 0u);
 }
 
+BOOST_AUTO_TEST_CASE(add_data) {
+  BdaBuffer without_data(kDataSize, BdaBuffer::Fields(false));
+  AddBasicRow(without_data);
+  BOOST_CHECK_EQUAL(without_data.GetRows().size(), 1u);
+  BOOST_CHECK_EQUAL(without_data.GetData(), nullptr);
+
+  BdaBuffer with_data(kDataSize, BdaBuffer::Fields(false));
+  with_data.AddData();
+  AddBasicRow(with_data);
+  BOOST_CHECK_EQUAL(with_data.GetRows().size(), 1u);
+  BOOST_REQUIRE_NE(with_data.GetData(), nullptr);
+  for (std::size_t i = 0; i < kDataSize; ++i) {
+    BOOST_CHECK_EQUAL(with_data.GetData()[i],
+                      std::complex<float>(i + 1, i + 1));
+  }
+}
+
 BOOST_AUTO_TEST_CASE(copy_all_fields) {
   const std::complex<float> kData1[kDataSize]{{1, 1}, {2, 2}, {3, 3},
                                               {4, 4}, {5, 5}, {6, 6}};

@@ -99,6 +99,7 @@ common::Fields BdaDdeCal::getRequiredFields() const {
   for (std::shared_ptr<Step> direction_first_step : steps_) {
     fields |= base::GetChainRequiredFields(direction_first_step);
   }
+  if (settings_.subtract) fields |= kDataField;
   return fields;
 }
 

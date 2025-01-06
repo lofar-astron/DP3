@@ -55,7 +55,8 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
                                   boost::unit_test::tolerance(0.0001f)) {
   casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
   MSBDAReader reader(ms, kParset, kPrefix);
-  reader.setFieldsToRead(dp3::steps::Step::kDataField);
+  reader.setFieldsToRead(dp3::steps::Step::kDataField |
+                         dp3::steps::Step::kWeightsField);
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
 
@@ -84,9 +85,10 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   }
 }
 
-BOOST_AUTO_TEST_CASE(process_nan) {
+BOOST_AUTO_TEST_CASE(process_no_fields_to_read) {
   casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
   MSBDAReader reader(ms, kParset, kPrefix);
+  BOOST_TEST(reader.getFieldsToRead() == dp3::common::Fields());
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   reader.setNextStep(mock_step);
   reader.updateInfo(DPInfo());
@@ -94,9 +96,10 @@ BOOST_AUTO_TEST_CASE(process_nan) {
   reader.process(std::unique_ptr<dp3::base::BdaBuffer>());
   reader.finish();
 
-  const std::complex<float>* data = mock_step->GetBdaBuffers()[0]->GetData(0);
-  BOOST_TEST(std::isnan(data->imag()));
-  BOOST_TEST(std::isnan(data->real()));
+  BOOST_TEST_REQUIRE(mock_step->GetBdaBuffers().size() == 1);
+  BOOST_TEST(!mock_step->GetBdaBuffers().front()->GetData());
+  BOOST_TEST(!mock_step->GetBdaBuffers().front()->GetWeights());
+  BOOST_TEST(!mock_step->GetBdaBuffers().front()->GetFlags());
 }
 
 BOOST_AUTO_TEST_CASE(show) {
