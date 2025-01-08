@@ -3,7 +3,8 @@
 
 # FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires CMake 3.9.
 # The RESULTS_VARIABLE argument of execute_process() requires CMake 3.10.
-cmake_minimum_required(VERSION 3.11)
+# 'add_compile_definitions' in FetchXTensor.cmake requires CMake 3.12.
+cmake_minimum_required(VERSION 3.12)
 
 # CMake >= 3.19 gives warnings when these policies are not 'NEW'.
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19")
@@ -312,21 +313,23 @@ option(PORTABLE "Build portable binaries (with slightly decreased performance)"
        OFF)
 include(external/aocommon/CMake/SetTargetCPU.cmake)
 
-# Include aocommon
+# Include XTensor libraries. DP3 must include FetchXTensor directly (not
+# indirectly, e.g., via schaapcommon) since it uses 'add_compile_definitions'.
+set(XTENSOR_LIBRARIES xtl xsimd xtensor xtensor-blas)
+include(${CMAKE_SOURCE_DIR}/external/aocommon/CMake/FetchXTensor.cmake)
+
+# Include aocommon.
 include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
 
-# Include schaapcommon, which also fetches XTensor libraries.
-set(XTENSOR_LIBRARIES xtl xsimd xtensor xtensor-blas)
-add_compile_definitions(XTENSOR_USE_XSIMD)
-
+# Include schaapcommon, which should happen after including XTensor.
 set(SCHAAPCOMMON_MODULES facets h5parm ducc0 reordering)
-add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
-include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
-include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/schaapcommon)
+include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/include)
+include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/external)
 
 # Include pybind11
-set(PYTHON_EXECUTABLE "${Python3_EXECUTABLE}")
-add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
+set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/pybind11)
 include_directories(${pybind11_INCLUDE_DIR})
 
 # Add cmake information to headers
