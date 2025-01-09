@@ -17,6 +17,7 @@
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;
+using dp3::common::Fields;
 using dp3::common::ParameterSet;
 using dp3::common::test::FixtureDirectory;
 using dp3::steps::MSBDAWriter;
@@ -34,8 +35,7 @@ BOOST_AUTO_TEST_SUITE(
     msbdawriter, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
 
 // Test that the output measurementset is correct for simple data.
-BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
-                        *boost::unit_test::label("slow")) {
+BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory) {
   const unsigned int ncorr(1);
   const unsigned int nchan(1);
   const double kTime(3.0);
@@ -46,6 +46,9 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
   const bool kFlag(false);
   const double kUVW[3]{45.0, 46.0, 47.0};
   const std::string kMsName = "bda_simple.MS";
+  const Fields kFields = Fields(Fields::Single::kData) |
+                         Fields(Fields::Single::kFlags) |
+                         Fields(Fields::Single::kWeights);
 
   MSBDAWriter writer(kMsName, ParameterSet(), "");
 
@@ -54,13 +57,13 @@ BOOST_FIXTURE_TEST_CASE(process_simple, FixtureDirectory,
   info.setAntennas(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
                    {casacore::MVPosition{0, 0, 0}}, std::vector<int>{0},
                    std::vector<int>{0});
-  info.setChannels(std::vector<std::vector<double>>{{1.}},
-                   std::vector<std::vector<double>>{{10.}});
-  info.setChannels(std::vector<double>(nchan, 1.),
-                   std::vector<double>(nchan, 5000.));
+  info.setChannels(std::vector<std::vector<double>>{{1.0}},
+                   std::vector<std::vector<double>>{{10.0}});
+  info.setChannels(std::vector<double>(nchan, 1.0),
+                   std::vector<double>(nchan, 5000.0));
   writer.updateInfo(info);
 
-  auto buffer = std::make_unique<BdaBuffer>(1);
+  auto buffer = std::make_unique<BdaBuffer>(1, kFields);
   buffer->AddRow(kTime, kInterval, kExposure, 0, 1, 1, &kData, &kFlag, &kWeight,
                  kUVW);
   writer.process(std::move(buffer));
@@ -169,8 +172,7 @@ BOOST_FIXTURE_TEST_CASE(exception_when_mismatch, FixtureDirectory) {
 
 // Test that empty default subtables are created when there is no reader data
 // available.
-BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory,
-                        *boost::unit_test::label("slow")) {
+BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory) {
   DPInfo info(1, 1);
   info.setTimes(3.0, 3.0, 1.5);
   info.setAntennas(std::vector<std::string>{"ant"}, std::vector<double>{1.0},
@@ -195,8 +197,7 @@ BOOST_FIXTURE_TEST_CASE(create_default_subtables, FixtureDirectory,
 }
 
 // Test BDA_TIME_AXIS for different max and min intervals.
-BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory,
-                        *boost::unit_test::label("slow")) {
+BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory) {
   // Setup test
   const std::string msOutName = "bda_multiple_ms_out.MS";
   const double timeInterval = 1.0;

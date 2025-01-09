@@ -153,8 +153,12 @@ std::unique_ptr<DPBuffer> TestInput<DPBuffer>::CreateInputBuffer() {
 
 template <>
 std::unique_ptr<BdaBuffer> TestInput<BdaBuffer>::CreateInputBuffer() {
+  using dp3::common::Fields;
+  const Fields kFields = Fields(Fields::Single::kData) |
+                         Fields(Fields::Single::kWeights) |
+                         Fields(Fields::Single::kFlags);
   std::unique_ptr<BdaBuffer> buffer = std::make_unique<BdaBuffer>(
-      n_correlations_ * n_channels_ * n_baselines_ * n_times_);
+      n_correlations_ * n_channels_ * n_baselines_ * n_times_, kFields);
 
   std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
 

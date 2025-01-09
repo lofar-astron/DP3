@@ -16,6 +16,7 @@
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
+using dp3::common::Fields;
 using dp3::steps::BdaExpander;
 
 const unsigned int kNCorr = 4;
@@ -80,9 +81,11 @@ BOOST_AUTO_TEST_SUITE(bda_expander, *boost::unit_test::tolerance(0.001) *
                                         boost::unit_test::tolerance(0.001f))
 
 BOOST_AUTO_TEST_CASE(time_expansion) {
-  std::size_t pool_size = kNCorr * kNChan * kNBaselines * kNIntervals;
+  const std::size_t kPoolSize = kNCorr * kNChan * kNBaselines * kNIntervals;
 
-  std::unique_ptr<BdaBuffer> buffer{new BdaBuffer(pool_size)};
+  auto buffer = std::make_unique<BdaBuffer>(
+      kPoolSize,
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights));
 
   const double bda_first_time = kStartTime + kInterval / 2;
   std::vector<std::size_t> baseline_id{0, 1};
@@ -177,9 +180,11 @@ BOOST_AUTO_TEST_CASE(time_expansion) {
 }
 
 BOOST_AUTO_TEST_CASE(frequency_expansion) {
-  std::size_t pool_size = kNCorr * kNChan * kNBaselines * kNIntervals;
+  std::size_t kPoolSize = kNCorr * kNChan * kNBaselines * kNIntervals;
 
-  std::unique_ptr<BdaBuffer> buffer{new BdaBuffer(pool_size)};
+  auto buffer = std::make_unique<BdaBuffer>(
+      kPoolSize,
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights));
 
   const double bda_first_time = kStartTime + kInterval / 2;
   const std::vector<std::size_t> baseline_id{0, 1};

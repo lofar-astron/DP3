@@ -91,6 +91,8 @@ DPInfo GenerateDPInfo(int ntime, int nbl, int nchan, int ncorr) {
 }
 
 BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
+  using dp3::common::Fields;
+
   int ntime{10};
   int nbl{4};
   int nchan{1};
@@ -115,7 +117,8 @@ BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
   step_scale_data->updateInfo(info);
 
   // Initialize buffer
-  std::unique_ptr<BdaBuffer> bda_buffer{new BdaBuffer(datasize)};
+  auto bda_buffer =
+      std::make_unique<BdaBuffer>(datasize, Fields(Fields::Single::kData));
   std::vector<std::complex<float>> data;
   std::vector<std::complex<float>> expected_data;
   for (int bl = 0; bl < nbl; ++bl) {

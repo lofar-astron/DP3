@@ -31,8 +31,7 @@ void BdaSolverBuffer::AppendAndWeight(
     throw std::invalid_argument("Model directions count does not match");
   }
 
-  BdaBuffer::Fields bda_fields(false);
-  bda_fields.data = true;
+  const common::Fields bda_fields(common::Fields::Single::kData);
 
   auto weighted_buffer =
       std::make_unique<BdaBuffer>(*unweighted_buffer, bda_fields);

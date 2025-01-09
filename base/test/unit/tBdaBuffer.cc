@@ -10,7 +10,7 @@
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::BdaBuffer;
-using std::abs;
+using dp3::common::Fields;
 
 // Implementatation of tBdaBuffer.h
 namespace dp3 {
@@ -65,7 +65,9 @@ const std::size_t k1Channel{1};
 const std::size_t k1Correlation{1};
 const std::size_t k1DataSize{k1Channel * k1Correlation};
 const std::string kDataName = "foo";
-
+const Fields kAllFields = Fields(Fields::Single::kData) |
+                          Fields(Fields::Single::kWeights) |
+                          Fields(Fields::Single::kFlags);
 const double kTimeEpsilon = 1.0e-8;
 const double kHalfEpsilon = kTimeEpsilon / 2;
 const double kTwoEpsilon = 2.0 * kTimeEpsilon;
@@ -90,7 +92,7 @@ void AddBasicRow(BdaBuffer& buffer, const std::string& name = "") {
 BOOST_AUTO_TEST_SUITE(bdabuffer)
 
 BOOST_AUTO_TEST_CASE(initialization) {
-  BdaBuffer buffer{2};
+  BdaBuffer buffer(2, kAllFields);
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 0u);
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 2u);
   BOOST_CHECK_EQUAL(buffer.GetData(), nullptr);
@@ -109,7 +111,7 @@ BOOST_AUTO_TEST_CASE(copy_all_fields) {
   const float kWeights2[kDataSize]{31, 32, 33, 34, 35, 36};
   const double kUvw[3]{41, 42, 43};
 
-  BdaBuffer buffer(2 * kDataSize + kUnusedSpace);
+  BdaBuffer buffer(2 * kDataSize + kUnusedSpace, kAllFields);
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations, kData1, nullptr,
                             kWeights1, kUvw));
@@ -124,7 +126,7 @@ BOOST_AUTO_TEST_CASE(copy_all_fields) {
     buffer.GetData(kDataName)[i] = {42.0f + i, 0.0f - i};
   }
 
-  const BdaBuffer buffer_copy{buffer, BdaBuffer::Fields(true)};
+  const BdaBuffer buffer_copy{buffer, kAllFields};
 
   // Verify the memory pool data in the copy.
   BOOST_CHECK_NE(buffer.GetData(), buffer_copy.GetData());
@@ -155,75 +157,67 @@ BOOST_AUTO_TEST_CASE(copy_all_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(copy_omit_fields) {
-  BdaBuffer buffer(kDataSize + kUnusedSpace);
+  BdaBuffer buffer(kDataSize + kUnusedSpace, kAllFields);
   AddBasicRow(buffer);
   buffer.SetBaseRowNr(kBaseRowNr);
 
-  BdaBuffer::Fields fields;
-  fields.data = false;
-  fields.flags = false;
-  const BdaBuffer without_data_flags{buffer, fields};
-
-  fields = BdaBuffer::Fields();
-  fields.weights = false;
-  const BdaBuffer without_weighs_frf{buffer, fields};
+  const BdaBuffer weights(buffer, Fields(Fields::Single::kWeights));
+  const BdaBuffer data_flags(
+      buffer, Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags));
 
   // Verify the memory pool data in the copies.
-  BOOST_CHECK(without_data_flags.GetData() == nullptr);
-  BOOST_CHECK(without_data_flags.GetFlags() == nullptr);
-  BOOST_CHECK(without_data_flags.GetWeights() != nullptr);
-  BOOST_CHECK(without_data_flags.GetWeights() != buffer.GetWeights());
+  BOOST_CHECK(weights.GetData() == nullptr);
+  BOOST_CHECK(weights.GetFlags() == nullptr);
+  BOOST_CHECK(weights.GetWeights() != nullptr);
+  BOOST_CHECK(weights.GetWeights() != buffer.GetWeights());
 
-  BOOST_CHECK(without_weighs_frf.GetData() != nullptr);
-  BOOST_CHECK(without_weighs_frf.GetFlags() != nullptr);
-  BOOST_CHECK(without_weighs_frf.GetWeights() == nullptr);
-  BOOST_CHECK(without_weighs_frf.GetData() != buffer.GetData());
-  BOOST_CHECK(without_weighs_frf.GetFlags() != buffer.GetFlags());
+  BOOST_CHECK(data_flags.GetData() != nullptr);
+  BOOST_CHECK(data_flags.GetFlags() != nullptr);
+  BOOST_CHECK(data_flags.GetWeights() == nullptr);
+  BOOST_CHECK(data_flags.GetData() != buffer.GetData());
+  BOOST_CHECK(data_flags.GetFlags() != buffer.GetFlags());
 
   BOOST_REQUIRE_EQUAL(buffer.GetNumberOfElements(),
-                      without_data_flags.GetNumberOfElements());
+                      weights.GetNumberOfElements());
   BOOST_REQUIRE_EQUAL(buffer.GetNumberOfElements(),
-                      without_weighs_frf.GetNumberOfElements());
+                      data_flags.GetNumberOfElements());
   for (std::size_t i = 0; i < buffer.GetNumberOfElements(); ++i) {
-    BOOST_CHECK_EQUAL(buffer.GetData()[i], without_weighs_frf.GetData()[i]);
-    BOOST_CHECK_EQUAL(buffer.GetFlags()[i], without_weighs_frf.GetFlags()[i]);
-    BOOST_CHECK_EQUAL(buffer.GetWeights()[i],
-                      without_data_flags.GetWeights()[i]);
+    BOOST_CHECK_EQUAL(buffer.GetData()[i], data_flags.GetData()[i]);
+    BOOST_CHECK_EQUAL(buffer.GetFlags()[i], data_flags.GetFlags()[i]);
+    BOOST_CHECK_EQUAL(buffer.GetWeights()[i], weights.GetWeights()[i]);
   }
 
   // Verify the copied rows.
-  dp3::base::test::CheckBDARowMetaData(buffer, without_data_flags);
-  dp3::base::test::CheckBDARowMetaData(buffer, without_weighs_frf);
+  dp3::base::test::CheckBDARowMetaData(buffer, weights);
+  dp3::base::test::CheckBDARowMetaData(buffer, data_flags);
 
   // Verify that the original has remaining capacity, but the copies don't.
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), kUnusedSpace);
-  BOOST_CHECK_EQUAL(without_data_flags.GetRemainingCapacity(), 0u);
-  BOOST_CHECK_EQUAL(without_weighs_frf.GetRemainingCapacity(), 0u);
+  BOOST_CHECK_EQUAL(weights.GetRemainingCapacity(), 0u);
+  BOOST_CHECK_EQUAL(data_flags.GetRemainingCapacity(), 0u);
 }
 
 BOOST_AUTO_TEST_CASE(copy_add_weights) {
-  BdaBuffer::Fields fields;
-  fields.data = false;
-  fields.flags = false;
-  BdaBuffer without_data_flags(kDataSize + kUnusedSpace, fields);
+  BdaBuffer without_data_flags(kDataSize + kUnusedSpace,
+                               Fields(Fields::Single::kWeights));
   AddBasicRow(without_data_flags);
   BOOST_CHECK(!without_data_flags.GetData());
   BOOST_CHECK(!without_data_flags.GetFlags());
 
-  const BdaBuffer copy(without_data_flags, BdaBuffer::Fields());
+  const BdaBuffer copy(without_data_flags, kAllFields);
   BOOST_CHECK(copy.GetData());
   BOOST_CHECK(copy.GetFlags());
   BOOST_CHECK_EQUAL(copy.GetRemainingCapacity(), 0u);
 }
 
 BOOST_AUTO_TEST_CASE(copy_add_data_flags) {
-  BdaBuffer::Fields fields;
-  fields.weights = false;
-  BdaBuffer without_weights{kDataSize + kUnusedSpace, fields};
+  BdaBuffer without_weights(
+      kDataSize + kUnusedSpace,
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags));
   AddBasicRow(without_weights);
   BOOST_CHECK(!without_weights.GetWeights());
 
-  const BdaBuffer copy(without_weights, BdaBuffer::Fields());
+  const BdaBuffer copy(without_weights, kAllFields);
   BOOST_CHECK(copy.GetWeights());
   BOOST_CHECK_EQUAL(copy.GetRemainingCapacity(), 0u);
 }
@@ -239,7 +233,7 @@ BOOST_AUTO_TEST_CASE(add_row_all_fields) {
   const double kUvw1[3]{31, 32, 33};
   const double kUvw2[3]{41, 42, 43};
 
-  BdaBuffer buffer(kDataSize + k1DataSize);
+  BdaBuffer buffer(kDataSize + k1DataSize, kAllFields);
 
   // Add rows and verify that the capacity is reached at the third row.
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
@@ -307,7 +301,7 @@ BOOST_AUTO_TEST_CASE(add_row_all_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(add_row_no_fields) {
-  BdaBuffer buffer(kDataSize);
+  BdaBuffer buffer(kDataSize, kAllFields);
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations));
   buffer.SetBaseRowNr(kBaseRowNr);
@@ -341,7 +335,7 @@ BOOST_AUTO_TEST_CASE(add_row_no_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(disabled_fields) {
-  BdaBuffer buffer(kDataSize, BdaBuffer::Fields(false));
+  BdaBuffer buffer(kDataSize, Fields());
   AddBasicRow(buffer);
 
   // Verify the data pointers from buffer.Get*().
@@ -366,7 +360,7 @@ BOOST_AUTO_TEST_CASE(add_wrong_ordering) {
   const double kTime2 = 1.5;
   const double kInterval2 = 3.0;
 
-  BdaBuffer buffer(2 * kDataSize);
+  BdaBuffer buffer(2 * kDataSize, kAllFields);
 
   BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kInterval1, kBaselineNr,
                             kNChannels, kNCorrelations));
@@ -384,7 +378,7 @@ BOOST_AUTO_TEST_CASE(add_overlap) {
   const double kTimeFullOverlap = 1.0;
   const double kIntervalFullOverlap = 10.0;
 
-  BdaBuffer buffer(3 * kDataSize);
+  BdaBuffer buffer(3 * kDataSize, kAllFields);
 
   BOOST_CHECK(buffer.AddRow(kTime1, kInterval1, kInterval1, kBaselineNr,
                             kNChannels, kNCorrelations));
@@ -400,13 +394,13 @@ BOOST_AUTO_TEST_CASE(add_overlap) {
 
 BOOST_AUTO_TEST_CASE(add_main_data) {
   // Reference scenerio: Add a row to a buffer without visibilities.
-  BdaBuffer without_data(kDataSize, BdaBuffer::Fields(false));
+  BdaBuffer without_data(kDataSize, Fields());
   AddBasicRow(without_data);
   BOOST_CHECK_EQUAL(without_data.GetRows().size(), 1u);
   BOOST_CHECK_EQUAL(without_data.GetData(), nullptr);
 
   // Test scenerio: Call AddData() before adding the row.
-  BdaBuffer with_data(kDataSize, BdaBuffer::Fields(false));
+  BdaBuffer with_data(kDataSize, Fields());
   with_data.AddData();
   AddBasicRow(with_data);
   BOOST_CHECK_EQUAL(with_data.GetRows().size(), 1u);
@@ -418,7 +412,7 @@ BOOST_AUTO_TEST_CASE(add_main_data) {
 }
 
 BOOST_AUTO_TEST_CASE(add_data_before_adding_rows) {
-  BdaBuffer buffer(2 * kDataSize);
+  BdaBuffer buffer(2 * kDataSize, kAllFields);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(!buffer.HasData(kDataName));
   BOOST_CHECK(!buffer.GetData(kDataName));
@@ -451,7 +445,7 @@ BOOST_AUTO_TEST_CASE(add_data_before_adding_rows) {
 }
 
 BOOST_AUTO_TEST_CASE(add_data_after_adding_rows) {
-  BdaBuffer buffer(2 * kDataSize);
+  BdaBuffer buffer(2 * kDataSize, kAllFields);
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
                             kNChannels, kNCorrelations));
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr + 1,
@@ -473,7 +467,7 @@ BOOST_AUTO_TEST_CASE(add_data_after_adding_rows) {
 }
 
 BOOST_AUTO_TEST_CASE(remove_main_data) {
-  BdaBuffer buffer(kDataSize);
+  BdaBuffer buffer(kDataSize, Fields(Fields::Single::kData));
   AddBasicRow(buffer);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(buffer.GetData());
@@ -486,7 +480,7 @@ BOOST_AUTO_TEST_CASE(remove_main_data) {
 }
 
 BOOST_AUTO_TEST_CASE(remove_named_data) {
-  BdaBuffer buffer(kDataSize, BdaBuffer::Fields(false));
+  BdaBuffer buffer(kDataSize, Fields());
   buffer.AddData(kDataName);
   AddBasicRow(buffer);
   BOOST_CHECK(!buffer.HasData());
@@ -502,7 +496,7 @@ BOOST_AUTO_TEST_CASE(remove_named_data) {
 }
 
 BOOST_AUTO_TEST_CASE(clear) {
-  BdaBuffer buffer(3 * kDataSize);
+  BdaBuffer buffer(3 * kDataSize, kAllFields);
   buffer.AddData(kDataName);
 
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
@@ -570,53 +564,53 @@ BOOST_AUTO_TEST_CASE(time_is_equal) {
 }
 
 BOOST_AUTO_TEST_CASE(metadata_comparison) {
-  BdaBuffer buffer(kBaselineNr * kNChannels * kNCorrelations);
+  const std::size_t kPoolSize = kBaselineNr * kNChannels * kNCorrelations;
+
+  BdaBuffer buffer(kPoolSize, Fields());
   buffer.AddRow(1.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
   buffer.AddRow(1.0, 2.0, 2.0, 2, kNChannels, kNCorrelations);
 
-  BdaBuffer buffer_different_n_rows(kBaselineNr * kNChannels * kNCorrelations);
+  BdaBuffer buffer_different_n_rows(kPoolSize, Fields());
   buffer_different_n_rows.AddRow(1.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
 
-  BdaBuffer buffer_different_baseline_ordering(kBaselineNr * kNChannels *
-                                               kNCorrelations);
+  BdaBuffer buffer_different_baseline_ordering(
+      kBaselineNr * kNChannels * kNCorrelations, Fields());
   buffer_different_baseline_ordering.AddRow(1.0, 2.0, 2.0, 2, kNChannels,
                                             kNCorrelations);
   buffer_different_baseline_ordering.AddRow(1.0, 2.0, 2.0, 1, kNChannels,
                                             kNCorrelations);
 
-  BdaBuffer buffer_different_time(kBaselineNr * kNChannels * kNCorrelations);
+  BdaBuffer buffer_different_time(kPoolSize, Fields());
   buffer_different_time.AddRow(2.0, 2.0, 2.0, 2, kNChannels, kNCorrelations);
   buffer_different_time.AddRow(2.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
 
-  BdaBuffer buffer_different_interval(kBaselineNr * kNChannels *
-                                      kNCorrelations);
+  BdaBuffer buffer_different_interval(kPoolSize, Fields());
   buffer_different_interval.AddRow(1.0, 3.0, 2.0, 2, kNChannels,
                                    kNCorrelations);
   buffer_different_interval.AddRow(1.0, 3.0, 2.0, 1, kNChannels,
                                    kNCorrelations);
 
-  BdaBuffer buffer_different_exposure(kBaselineNr * kNChannels *
-                                      kNCorrelations);
+  BdaBuffer buffer_different_exposure(kPoolSize, Fields());
   buffer_different_exposure.AddRow(1.0, 2.0, 3.0, 2, kNChannels,
                                    kNCorrelations);
   buffer_different_exposure.AddRow(1.0, 2.0, 3.0, 1, kNChannels,
                                    kNCorrelations);
 
-  BdaBuffer buffer_different_nchan(kBaselineNr * (kNChannels + 1) *
-                                   kNCorrelations);
+  BdaBuffer buffer_different_nchan(
+      kBaselineNr * (kNChannels + 1) * kNCorrelations, Fields());
   buffer_different_nchan.AddRow(1.0, 2.0, 2.0, 2, kNChannels + 1,
                                 kNCorrelations);
   buffer_different_nchan.AddRow(1.0, 2.0, 2.0, 1, kNChannels + 1,
                                 kNCorrelations);
 
-  BdaBuffer buffer_different_ncorr(kBaselineNr * kNChannels *
-                                   (kNCorrelations + 1));
+  BdaBuffer buffer_different_ncorr(
+      kBaselineNr * kNChannels * (kNCorrelations + 1), Fields());
   buffer_different_ncorr.AddRow(1.0, 2.0, 2.0, 2, kNChannels,
                                 kNCorrelations + 1);
   buffer_different_ncorr.AddRow(1.0, 2.0, 2.0, 1, kNChannels,
                                 kNCorrelations + 1);
 
-  BdaBuffer buffer_equal(kBaselineNr * kNChannels * kNCorrelations);
+  BdaBuffer buffer_equal(kPoolSize, Fields());
   buffer_equal.AddRow(1.0, 2.0, 2.0, 1, kNChannels, kNCorrelations);
   buffer_equal.AddRow(1.0, 2.0, 2.0, 2, kNChannels, kNCorrelations);
 

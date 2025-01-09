@@ -126,14 +126,9 @@ bool MSBDAReader::process(std::unique_ptr<DPBuffer>) {
 bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
   common::NSTimer::StartStop sstime(timer_);
 
-  BdaBuffer::Fields fields(false);
-  fields.data = getFieldsToRead().Data();
-  fields.flags = getFieldsToRead().Flags();
-  fields.weights = getFieldsToRead().Weights();
-
   // TODO: Pre-calculate actual required pool size beforehand.
-  auto buffer = std::make_unique<BdaBuffer>(
-      info().nbaselines() * info().nchan() * info().ncorr(), fields);
+  auto buffer = std::make_unique<base::BdaBuffer>(
+      info().nbaselines() * info().nchan() * info().ncorr(), getFieldsToRead());
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
