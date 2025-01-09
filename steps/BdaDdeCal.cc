@@ -283,12 +283,6 @@ std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
 bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
   timer_.start();
 
-  // Feed metadata-only copies of the buffer to the steps. Only allocate room
-  // for 'data' in the buffers, since the steps should only produce data.
-  BdaBuffer::Fields fields(false);
-  fields.data = true;
-  BdaBuffer::Fields copyfields(false);
-
   if (!uvw_flagger_step_->isDegenerate()) {
     uvw_flagger_step_->process(std::move(buffer));
     std::vector<std::unique_ptr<base::BdaBuffer>> uvw_flagged_buffer =
@@ -299,7 +293,10 @@ bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
 
   predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
-    step->process(std::make_unique<BdaBuffer>(*buffer, fields, copyfields));
+    // Feed metadata-only copies of the BDA buffer to the steps.
+    // The steps will create and fill the data field in *buffer.
+    step->process(
+        std::make_unique<BdaBuffer>(*buffer, BdaBuffer::Fields(false)));
   }
   predict_timer_.stop();
 

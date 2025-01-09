@@ -9,11 +9,13 @@
 #ifndef DP3_BASE_BDABUFFER_H_
 #define DP3_BASE_BDABUFFER_H_
 
-#include <dp3/common/Types.h>
+#include <complex>
+#include <map>
+#include <vector>
 
 #include <aocommon/uvector.h>
-#include <complex>
-#include <vector>
+
+#include <dp3/common/Types.h>
 
 namespace dp3 {
 namespace base {
@@ -77,24 +79,39 @@ class BdaBuffer {
    * Adding new rows to the new buffer is therefore not possible.
    * @param other An existing BdaBuffer.
    * @param fields The fields that are enabled in the new buffer.
-   * If 'other' does not have the field, memory is allocated for the field but
-   * the content are not initialized.
-   * @param copy_fields The fields that are copied to the new buffer.
-   * Fields that are not enabled or are never copied.
-   * For enabled, but not copied fields, the memory is allocated but not
-   * initialized.
+   * If 'other' does not have the field, memory is allocated for the field and
+   * the content is not initialized.
    */
-  BdaBuffer(const BdaBuffer& other, const Fields& fields,
-            const Fields& copy_fields = Fields());
+  BdaBuffer(const BdaBuffer& other, const Fields& fields);
 
   /**
-   * Enables the visibility buffer.
+   * Adds a visibility buffer.
    * If the buffer already exists, nothing happens.
-   * The visibility values in a new buffer are not initialized.
+   * If the buffer is created, its visibility values are not initialized.
+   * @param name Name for the new buffer.
+   *        If empty, adds the main data buffer. The effect is then equal to
+   *        enabling the 'data' field.
    */
-  void AddData() {
-    data_.reserve(original_capacity_);
-    data_.resize(GetNumberOfElements());
+  void AddData(const std::string& name = "") {
+    aocommon::UVector<std::complex<float>>& new_data = data_[name];
+    new_data.reserve(original_capacity_);
+    new_data.resize(GetNumberOfElements());
+  }
+
+  /**
+   * Removes a visibility buffer.
+   * If the buffer does not exist, nothing happens.
+   * @param name Name of the buffer to remove.
+   *        If empty, removes the main data buffer. The effect is then equal to
+   *        disabling the 'data' field.
+   */
+  void RemoveData(const std::string& name = "") { data_.erase(name); }
+
+  /**
+   * @return If the BdaBuffer has a visibility buffer for the given name.
+   */
+  bool HasData(const std::string& name = "") const {
+    return data_.find(name) != data_.end();
   }
 
   /**
@@ -107,6 +124,12 @@ class BdaBuffer {
    *
    * Use GetRemainingCapacity() for checking if the buffer has enough space.
    *
+   * @param data Pointer to visibilities for the row.
+   *             If null, initializes the visibilities to zero.
+   * @param flags Pointer to flags for the row.
+   *              If null, initializes the flags to false.
+   * @param weights Pointer to weights for the row.
+   *                If null, initializes the weights to zero.
    * @return True if the line is added.
    *         False if the buffer is full.
    * @throw std::invalid_argument If the row ordering is incorrect.
@@ -128,10 +151,10 @@ class BdaBuffer {
   void SetBaseRowNr(common::rownr_t base_rownr);
 
   /**
-   * Clears all data in the buffer.
+   * Removes all rows from the buffer.
    *
-   * The memory pool capacity of the buffer remains unchanged, which allows
-   * reusing the buffer.
+   * The memory pool capacity of the buffer remains unchanged. All data buffers
+   * also remain. Keeping all internal buffers allows reusing the BdaBuffer.
    */
   void Clear();
 
@@ -149,39 +172,37 @@ class BdaBuffer {
    */
   std::size_t GetRemainingCapacity() const { return remaining_capacity_; }
 
-  const std::complex<float>* GetData() const {
-    return data_.empty() ? nullptr : data_.data();
-  }
-  std::complex<float>* GetData() {
-    return data_.empty() ? nullptr : data_.data();
-  }
+  const std::complex<float>* GetData(const std::string& name = "") const;
+  std::complex<float>* GetData(const std::string& name = "");
+
+  const std::complex<float>* GetData(std::size_t row,
+                                     const std::string& name = "") const;
+  std::complex<float>* GetData(std::size_t row, const std::string& name = "");
+
   const bool* GetFlags() const {
     return flags_.empty() ? nullptr : flags_.data();
   }
   bool* GetFlags() { return flags_.empty() ? nullptr : flags_.data(); }
-  const float* GetWeights() const {
-    return weights_.empty() ? nullptr : weights_.data();
-  }
-  float* GetWeights() { return weights_.empty() ? nullptr : weights_.data(); }
 
-  const std::complex<float>* GetData(std::size_t row) const {
-    return data_.empty() ? nullptr : data_.data() + rows_[row].offset;
-  }
-  std::complex<float>* GetData(std::size_t row) {
-    return data_.empty() ? nullptr : data_.data() + rows_[row].offset;
-  }
   const bool* GetFlags(std::size_t row) const {
     return flags_.empty() ? nullptr : flags_.data() + rows_[row].offset;
   }
   bool* GetFlags(std::size_t row) {
     return flags_.empty() ? nullptr : flags_.data() + rows_[row].offset;
   }
+
+  const float* GetWeights() const {
+    return weights_.empty() ? nullptr : weights_.data();
+  }
+  float* GetWeights() { return weights_.empty() ? nullptr : weights_.data(); }
+
   const float* GetWeights(std::size_t row) const {
     return weights_.empty() ? nullptr : weights_.data() + rows_[row].offset;
   }
   float* GetWeights(std::size_t row) {
     return weights_.empty() ? nullptr : weights_.data() + rows_[row].offset;
   }
+
   std::vector<Row>& GetRows() { return rows_; }
   const std::vector<Row>& GetRows() const { return rows_; }
 
@@ -208,7 +229,7 @@ class BdaBuffer {
   /// Memory pools for the data in the rows. Since std::vector<bool>
   /// does not support pointers to its elements, use aocommon::UVector instead.
   /// @{
-  aocommon::UVector<std::complex<float>> data_;
+  std::map<std::string, aocommon::UVector<std::complex<float>>> data_;
   aocommon::UVector<bool> flags_;
   aocommon::UVector<float> weights_;
   /// @}
