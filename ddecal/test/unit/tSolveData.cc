@@ -250,6 +250,8 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
 }
 
 BOOST_AUTO_TEST_CASE(bda) {
+  using dp3::common::Fields;
+
   // The BDA data from the SolverTester is too complex for a simple test.
   // -> Use a simpler BdaBuffer with three baselines:
   // - An 'averaged' baseline: Single BDA row with kNAveragedChannels channels.
@@ -271,18 +273,20 @@ BOOST_AUTO_TEST_CASE(bda) {
   const std::vector<std::vector<size_t>> kNVisibilitiesPerBaseline{{2, 3},
                                                                    {2, 4}};
 
-  BdaBuffer::Fields bda_fields(true);
-
+  const Fields bda_fields = Fields(Fields::Single::kData) |
+                            Fields(Fields::Single::kFlags) |
+                            Fields(Fields::Single::kWeights);
   auto bda_data_buffer =
       std::make_unique<BdaBuffer>(kBdaBufferSize, bda_fields);
-  bda_fields.weights = false;
   FillBdaBuffer(*bda_data_buffer, kNAveragedChannels, kNAllChannels,
                 kUnitTimeInterval);
 
+  const Fields bda_model_fields =
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags);
   std::vector<std::unique_ptr<BdaBuffer>> bda_model_buffers;
   for (size_t direction = 0; direction != kNDirections; ++direction) {
     bda_model_buffers.push_back(
-        std::make_unique<BdaBuffer>(kBdaBufferSize, bda_fields));
+        std::make_unique<BdaBuffer>(kBdaBufferSize, bda_model_fields));
     FillBdaBuffer(*bda_model_buffers.back(), kNAveragedChannels, kNAllChannels,
                   kUnitTimeInterval);
   }

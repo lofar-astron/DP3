@@ -26,20 +26,20 @@ BdaBuffer::Row::Row(double _time, double _interval, double _exposure,
           _uvw ? _uvw[1] : std::numeric_limits<double>::quiet_NaN(),
           _uvw ? _uvw[2] : std::numeric_limits<double>::quiet_NaN()} {}
 
-BdaBuffer::BdaBuffer(const std::size_t pool_size, const Fields& fields)
+BdaBuffer::BdaBuffer(const std::size_t pool_size, const common::Fields& fields)
     : data_(),
       flags_(),
       weights_(),
       rows_(),
       original_capacity_(pool_size),
       remaining_capacity_(pool_size) {
-  if (fields.data) {
+  if (fields.Data()) {
     data_[""].reserve(remaining_capacity_);
   }
-  if (fields.flags) {
+  if (fields.Flags()) {
     flags_.reserve(remaining_capacity_);
   }
-  if (fields.weights) {
+  if (fields.Weights()) {
     weights_.reserve(remaining_capacity_);
   }
 }
@@ -47,7 +47,7 @@ BdaBuffer::BdaBuffer(const std::size_t pool_size, const Fields& fields)
 // When copying the memory pools in this copy-constructor, the capacity
 // of the new memory pools will equal their size. There is therefore
 // no remaining capacity in the new copy.
-BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields)
+BdaBuffer::BdaBuffer(const BdaBuffer& other, const common::Fields& fields)
     : data_(),
       flags_(),
       weights_(),
@@ -56,7 +56,7 @@ BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields)
       remaining_capacity_(0) {
   // aocommon::UVector ensures there is no remaining capacity in a vector copy.
   // The assertions below check that aocommon::UVector still has this behavior.
-  if (fields.data) {
+  if (fields.Data()) {
     data_ = other.data_;  // Copy all data buffers.
     data_[""];            // Add main data buffer if absent.
     // Resize all data buffers.
@@ -65,12 +65,12 @@ BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields)
       assert(it->second.capacity() == it->second.size());
     }
   }
-  if (fields.flags) {
+  if (fields.Flags()) {
     flags_ = other.flags_;
     flags_.resize(original_capacity_);
     assert(flags_.capacity() == flags_.size());
   }
-  if (fields.weights) {
+  if (fields.Weights()) {
     weights_ = other.weights_;
     weights_.resize(original_capacity_);
     assert(weights_.capacity() == weights_.size());

@@ -295,8 +295,7 @@ bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
     // Feed metadata-only copies of the BDA buffer to the steps.
     // The steps will create and fill the data field in *buffer.
-    step->process(
-        std::make_unique<BdaBuffer>(*buffer, BdaBuffer::Fields(false)));
+    step->process(std::make_unique<BdaBuffer>(*buffer, common::Fields()));
   }
   predict_timer_.stop();
 
@@ -349,6 +348,7 @@ void BdaDdeCal::ProcessCompleteDirections() {
          std::all_of(model_buffers_.front().begin(),
                      model_buffers_.front().end(), pointer_is_set)) {
     assert(!input_buffers_.empty() && input_buffers_.front());
+    assert(input_buffers_.front()->GetData());
     std::vector<std::unique_ptr<base::BdaBuffer>>& direction_buffers =
         model_buffers_.front();
     if (settings_.only_predict) {

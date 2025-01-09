@@ -15,6 +15,7 @@
 
 #include <aocommon/uvector.h>
 
+#include <dp3/common/Fields.h>
 #include <dp3/common/Types.h>
 
 namespace dp3 {
@@ -22,22 +23,6 @@ namespace base {
 
 class BdaBuffer {
  public:
-  /**
-   * Parameter structure for indicating which buffer elements are enabled.
-   */
-  struct Fields {
-    /**
-     * This constructor is necessary because of bugs in gcc and clang.
-     * See
-     * https://stackoverflow.com/questions/53408962/try-to-understand-compiler-error-message-default-member-initializer-required-be
-     */
-    explicit Fields(bool default_value = true)
-        : data(default_value), flags(default_value), weights(default_value) {}
-    bool data;     ///< Enable/Disable visibilities.
-    bool flags;    ///< Enable/Disable flags.
-    bool weights;  ///< Enable/Disable weights.
-  };
-
   struct Row {
     Row(double time, double interval, double exposure, common::rownr_t row_nr,
         std::size_t baseline_nr, std::size_t n_channels,
@@ -60,8 +45,10 @@ class BdaBuffer {
    * @param pool_size Size of the memory pool for this buffer.
    *                  (number of items)
    * @param fields The fields that should be enabled in this buffer.
+   *               The 'data' field enables the main visibility buffer.
+   *               The 'uvw' field is always enabled in a BdaBuffer.
    */
-  explicit BdaBuffer(std::size_t pool_size, const Fields& fields = Fields());
+  explicit BdaBuffer(std::size_t pool_size, const common::Fields& fields);
 
   /**
    * Disabling the default copy constructor and copy assignment operator avoids
@@ -82,7 +69,7 @@ class BdaBuffer {
    * If 'other' does not have the field, memory is allocated for the field and
    * the content is not initialized.
    */
-  BdaBuffer(const BdaBuffer& other, const Fields& fields);
+  BdaBuffer(const BdaBuffer& other, const common::Fields& fields);
 
   /**
    * Adds a visibility buffer.

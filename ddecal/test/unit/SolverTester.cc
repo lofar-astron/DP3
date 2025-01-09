@@ -181,6 +181,8 @@ std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
 }
 
 const BdaSolverBuffer& SolverTester::FillBDAData() {
+  using dp3::common::Fields;
+
   std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   std::mt19937 mt(0);
 
@@ -196,15 +198,16 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
       kNBDATimes * kNBaselines * kNChannels * kNPolarizations / 2;
 
   // Initialize the data buffers. The solvers only need the data field.
-  BdaBuffer::Fields bda_fields(true);
+  const Fields bda_fields =
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
+  const Fields bda_model_fields(Fields::Single::kData);
   auto bda_data_buffer =
       std::make_unique<BdaBuffer>(bda_buffer_size, bda_fields);
   std::vector<std::unique_ptr<BdaBuffer>> bda_model_buffers;
   bda_model_buffers.reserve(kNDirections);
-  bda_fields.weights = false;
   for (size_t dir = 0; dir < kNDirections; ++dir) {
     bda_model_buffers.push_back(
-        std::make_unique<BdaBuffer>(bda_buffer_size, bda_fields));
+        std::make_unique<BdaBuffer>(bda_buffer_size, bda_model_fields));
   }
 
   // Do the outer loop over time, since the BDA rows should be ordered.

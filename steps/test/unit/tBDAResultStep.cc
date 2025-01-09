@@ -19,8 +19,8 @@ BOOST_AUTO_TEST_CASE(constructor) {
 BOOST_AUTO_TEST_CASE(process_and_extract) {
   BDAResultStep step;
 
-  auto buffer1 = std::make_unique<BdaBuffer>(0, BdaBuffer::Fields(false));
-  auto buffer2 = std::make_unique<BdaBuffer>(0, BdaBuffer::Fields(false));
+  auto buffer1 = std::make_unique<BdaBuffer>(0, dp3::common::Fields());
+  auto buffer2 = std::make_unique<BdaBuffer>(0, dp3::common::Fields());
   BdaBuffer* const buffer1_ptr = buffer1.get();
   BdaBuffer* const buffer2_ptr = buffer2.get();
 

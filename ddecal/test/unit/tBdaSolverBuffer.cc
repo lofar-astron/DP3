@@ -12,6 +12,7 @@
 #include <array>
 
 using dp3::base::BdaBuffer;
+using dp3::common::Fields;
 using dp3::ddecal::BdaSolverBuffer;
 
 namespace {
@@ -46,8 +47,11 @@ std::vector<std::unique_ptr<BdaBuffer>> CreateBdaBuffers(
 
   double time = kFirstTime;
   for (std::size_t i = 0; i < 3; ++i) {
-    auto buffer = std::make_unique<BdaBuffer>(kRowsPerBuffer * kNChannels *
-                                              kNCorrelations);
+    const Fields kFields = Fields(Fields::Single::kData) |
+                           Fields(Fields::Single::kWeights) |
+                           Fields(Fields::Single::kFlags);
+    auto buffer = std::make_unique<BdaBuffer>(
+        kRowsPerBuffer * kNChannels * kNCorrelations, kFields);
     // Add a non-averaged baseline.
     buffer->AddRow(time, kInterval, kInterval, 0, kNChannels, kNCorrelations,
                    data.data(), flags, weights.data());
@@ -205,16 +209,15 @@ BOOST_AUTO_TEST_CASE(append_and_weight_nullptr_flags) {
   const std::vector<std::complex<float>> data(kNChannels * kNCorrelations, 1.0);
   const std::vector<float> weights(kNChannels * kNCorrelations, 1.0);
 
-  BdaBuffer::Fields fields(false);
-  fields.data = true;
-  fields.weights = true;
+  const Fields kFields =
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
   auto bda_buffer =
-      std::make_unique<BdaBuffer>(kNChannels * kNCorrelations, fields);
+      std::make_unique<BdaBuffer>(kNChannels * kNCorrelations, kFields);
   bda_buffer->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
                      kNCorrelations, data.data(), nullptr, weights.data());
 
-  auto model_data =
-      std::make_unique<BdaBuffer>(kRowsPerBuffer * kNChannels * kNCorrelations);
+  auto model_data = std::make_unique<BdaBuffer>(
+      kRowsPerBuffer * kNChannels * kNCorrelations, kFields);
   model_data->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
                      kNCorrelations, data.data(), nullptr, weights.data());
 
@@ -278,9 +281,13 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
 
   // Create a BDA buffer with successive rows and a single value per row.
-  auto data_buffer = std::make_unique<BdaBuffer>(kNRows * kNCorrelations);
+  const Fields kFields =
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
+  auto data_buffer =
+      std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
   const BdaBuffer& data_ref = *data_buffer;
-  auto model_buffer = std::make_unique<BdaBuffer>(kNRows * kNCorrelations);
+  auto model_buffer =
+      std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
 
   std::array<std::complex<float>, kNCorrelations> data_value{kFirstDataValue};
   std::array<std::complex<float>, kNCorrelations> model_value{kFirstDataValue +
@@ -333,6 +340,8 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
   const size_t kNRows = 42;
   const size_t kSolutionIntervalFactor = 5;
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
+  const Fields kFields =
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
 
   // Create successive BdaBuffers with a single row.
   std::vector<BdaBuffer*> data_buffers;
@@ -346,9 +355,9 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
 
   double time = kFirstTime;
   for (size_t row = 0; row < kNRows; ++row) {
-    auto data_buffer = std::make_unique<BdaBuffer>(kNCorrelations);
+    auto data_buffer = std::make_unique<BdaBuffer>(kNCorrelations, kFields);
     data_buffers.push_back(data_buffer.get());
-    auto model_buffer = std::make_unique<BdaBuffer>(kNCorrelations);
+    auto model_buffer = std::make_unique<BdaBuffer>(kNCorrelations, kFields);
     BOOST_REQUIRE(data_buffer->AddRow(time, kInterval, kInterval, 0, 1,
                                       kNCorrelations, data_value.data(),
                                       nullptr, kWeight.data()));
@@ -440,8 +449,12 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const std::vector<int> kAnt2{1};
 
   // Create BDA input buffer with two intervals.
-  auto data_buffer = std::make_unique<BdaBuffer>(kNRows * kNCorrelations);
-  auto model_buffer = std::make_unique<BdaBuffer>(kNRows * kNCorrelations);
+  const Fields kFields =
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
+  auto data_buffer =
+      std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
+  auto model_buffer =
+      std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
 
   std::complex<float> kDataValue_array[4];
   kDataValue.AssignTo(kDataValue_array);
@@ -488,6 +501,10 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
 }
 
 BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
+  const Fields kFields = Fields(Fields::Single::kData) |
+                         Fields(Fields::Single::kWeights) |
+                         Fields(Fields::Single::kFlags);
+
   const size_t kSolutionIntervalFactor = 4;
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
   double time = kFirstTime;
@@ -501,7 +518,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
 
   // 1. Add intervals within the first solution interval
   auto buffer_within_first_solint =
-      std::make_unique<BdaBuffer>(6 * kNChannels * kNCorrelations);
+      std::make_unique<BdaBuffer>(6 * kNChannels * kNCorrelations, kFields);
   // Baseline 0 - 1: [41, 43]
   buffer_within_first_solint->AddRow(time, kInterval, kInterval, 0, kNChannels,
                                      kNCorrelations, data.data(), flags,
@@ -530,7 +547,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
 
   // 2. Add intervals on the edge of the solution interval
   auto buffer_edge_solint =
-      std::make_unique<BdaBuffer>(2 * kNChannels * kNCorrelations);
+      std::make_unique<BdaBuffer>(2 * kNChannels * kNCorrelations, kFields);
   //  Baseline 0: [49, 51]
   buffer_edge_solint->AddRow(time + 4 * kInterval, kInterval, kInterval, 0,
                              kNChannels, kNCorrelations, data.data(), flags,
@@ -546,7 +563,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   // 2. Add interval completely contained in the next solution interval for
   // baseline 0
   auto buffer_within_second_solint_bl_0 =
-      std::make_unique<BdaBuffer>(1 * kNChannels * kNCorrelations);
+      std::make_unique<BdaBuffer>(1 * kNChannels * kNCorrelations, kFields);
   // Baseline 0: [51, 53]
   buffer_within_second_solint_bl_0->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 0, kNChannels, kNCorrelations,
@@ -559,7 +576,7 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   // 3. Add interval completely contained in the next solution interval for
   // baseline 1
   auto buffer_within_second_solint_bl_1 =
-      std::make_unique<BdaBuffer>(1 * kNChannels * kNCorrelations);
+      std::make_unique<BdaBuffer>(1 * kNChannels * kNCorrelations, kFields);
   // Baseline 1: [51, 53]
   buffer_within_second_solint_bl_1->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 1, kNChannels, kNCorrelations,

@@ -884,9 +884,6 @@ if(BUILD_TESTING)
   set(SLOW_TESTS
       idgpredict/process
       idgpredict/process_beam
-      msbdawriter/process_simple
-      msbdawriter/create_default_subtables
-      msbdawriter/different_bda_intervals
       solvers/scalar
       solvers/scalar_normaleq
       solvers/diagonal
