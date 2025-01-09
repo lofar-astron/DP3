@@ -34,7 +34,7 @@ BdaBuffer::BdaBuffer(const std::size_t pool_size, const Fields& fields)
       original_capacity_(pool_size),
       remaining_capacity_(pool_size) {
   if (fields.data) {
-    data_.reserve(remaining_capacity_);
+    data_[""].reserve(remaining_capacity_);
   }
   if (fields.flags) {
     flags_.reserve(remaining_capacity_);
@@ -47,30 +47,40 @@ BdaBuffer::BdaBuffer(const std::size_t pool_size, const Fields& fields)
 // When copying the memory pools in this copy-constructor, the capacity
 // of the new memory pools will equal their size. There is therefore
 // no remaining capacity in the new copy.
-BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields,
-                     const Fields& copy_fields)
+BdaBuffer::BdaBuffer(const BdaBuffer& other, const Fields& fields)
     : data_(),
       flags_(),
       weights_(),
       rows_(other.rows_),
       original_capacity_(other.original_capacity_ - other.remaining_capacity_),
       remaining_capacity_(0) {
+  // aocommon::UVector ensures there is no remaining capacity in a vector copy.
+  // The assertions below check that aocommon::UVector still has this behavior.
   if (fields.data) {
-    if (copy_fields.data) data_ = other.data_;
-    data_.resize(original_capacity_);
+    data_ = other.data_;  // Copy all data buffers.
+    data_[""];            // Add main data buffer if absent.
+    // Resize all data buffers.
+    for (auto it = data_.begin(); it != data_.end(); ++it) {
+      it->second.resize(original_capacity_);
+      assert(it->second.capacity() == it->second.size());
+    }
   }
   if (fields.flags) {
-    if (copy_fields.flags) flags_ = other.flags_;
+    flags_ = other.flags_;
     flags_.resize(original_capacity_);
+    assert(flags_.capacity() == flags_.size());
   }
   if (fields.weights) {
-    if (copy_fields.weights) weights_ = other.weights_;
+    weights_ = other.weights_;
     weights_.resize(original_capacity_);
+    assert(weights_.capacity() == weights_.size());
   }
 }
 
 void BdaBuffer::Clear() {
-  data_.clear();
+  for (auto data_it = data_.begin(); data_it != data_.end(); ++data_it) {
+    data_it->second.clear();
+  }
   flags_.clear();
   weights_.clear();
   rows_.clear();
@@ -94,13 +104,13 @@ bool BdaBuffer::AddRow(double time, double interval, double exposure,
   }
   remaining_capacity_ -= n_elements;
   std::size_t offset = 0;
-  if (data_.capacity() > 0) {
-    offset = data_.size();
-    if (data) {
-      data_.insert(data_.end(), data, data + n_elements);
+  for (auto data_it = data_.begin(); data_it != data_.end(); ++data_it) {
+    offset = data_it->second.size();
+    aocommon::UVector<std::complex<float>>& data_vector = data_it->second;
+    if (data_it->first == "" && data) {
+      data_vector.insert(data_vector.end(), data, data + n_elements);
     } else {
-      const float kNaN = std::numeric_limits<float>::quiet_NaN();
-      data_.insert(data_.end(), n_elements, {kNaN, kNaN});
+      data_vector.insert(data_vector.end(), n_elements, {0.0, 0.0});
     }
   }
   if (flags_.capacity() > 0) {
@@ -124,8 +134,7 @@ bool BdaBuffer::AddRow(double time, double interval, double exposure,
     if (weights) {
       weights_.insert(weights_.end(), weights, weights + n_elements);
     } else {
-      const float kNaN = std::numeric_limits<float>::quiet_NaN();
-      weights_.insert(weights_.end(), n_elements, kNaN);
+      weights_.insert(weights_.end(), n_elements, 0.0);
     }
   }
 
@@ -140,6 +149,36 @@ void BdaBuffer::SetBaseRowNr(common::rownr_t row_nr) {
     row.row_nr = row_nr;
     ++row_nr;
   }
+}
+
+const std::complex<float>* BdaBuffer::GetData(const std::string& name) const {
+  const auto found = data_.find(name);
+  if (found != data_.end() && !found->second.empty()) {
+    return found->second.data();
+  } else {
+    return nullptr;
+  }
+}
+std::complex<float>* BdaBuffer::GetData(const std::string& name) {
+  const auto found = data_.find(name);
+  if (found != data_.end() && !found->second.empty()) {
+    return found->second.data();
+  } else {
+    return nullptr;
+  }
+}
+
+const std::complex<float>* BdaBuffer::GetData(std::size_t row,
+                                              const std::string& name) const {
+  const std::complex<float>* data = GetData(name);
+  if (data) data += rows_[row].offset;
+  return data;
+}
+std::complex<float>* BdaBuffer::GetData(std::size_t row,
+                                        const std::string& name) {
+  std::complex<float>* data = GetData(name);
+  if (data) data += rows_[row].offset;
+  return data;
 }
 
 bool BdaBuffer::Row::IsMetadataEqual(const BdaBuffer::Row& other) const {
