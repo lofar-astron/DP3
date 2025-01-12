@@ -80,7 +80,36 @@ bool MSUpdater::addColumn(const std::string& colName,
     return false;
   }
 
-  if (dataType == casacore::TpBool) {
+  if (itsStManKeys.stManName == "stokes_i") {
+    casacore::DataManagerCtor stokes_i_constructor =
+        DataManager::getCtor("StokesIStMan");
+    std::unique_ptr<DataManager> stokes_i_st_man(
+        stokes_i_constructor(colName + "_dm", Record()));
+    if (!stokes_i_st_man)
+      throw std::runtime_error(
+          "Stokes I storage manager requested, but it is not available in "
+          "casacore");
+    ColumnDesc directColumnDesc(cd);
+    directColumnDesc.setOptions(casacore::ColumnDesc::Direct |
+                                casacore::ColumnDesc::FixedShape);
+    TableDesc td;
+    td.addColumn(directColumnDesc, colName);
+    itsMS.addColumn(td, *stokes_i_st_man);
+  } else if (itsStManKeys.stManName == "dysco" &&
+             itsStManKeys.dyscoDataBitRate != 0 &&
+             dataType != casacore::TpBool) {
+    casacore::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
+    casacore::DataManagerCtor dyscoConstructor =
+        DataManager::getCtor("DyscoStMan");
+    std::unique_ptr<DataManager> dyscoStMan(
+        dyscoConstructor(colName + "_dm", dyscoSpec));
+    ColumnDesc directColumnDesc(cd);
+    directColumnDesc.setOptions(casacore::ColumnDesc::Direct |
+                                casacore::ColumnDesc::FixedShape);
+    TableDesc td;
+    td.addColumn(directColumnDesc, colName);
+    itsMS.addColumn(td, *dyscoStMan);
+  } else if (dataType == casacore::TpBool) {
     // Dysco should never be used for the FLAG column. Use the same storage
     // manager used for the FLAG column. To do so, get the data manager info and
     // find the FLAG column in it.
@@ -101,18 +130,6 @@ bool MSUpdater::addColumn(const std::string& colName,
     td.addColumn(cd, colName);
     colinfo.define("NAME", colName + "_dm");
     itsMS.addColumn(td, colinfo);
-  } else if (itsStManKeys.stManName == "dysco" &&
-             itsStManKeys.dyscoDataBitRate != 0) {
-    casacore::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
-    DataManagerCtor dyscoConstructor = DataManager::getCtor("DyscoStMan");
-    std::unique_ptr<DataManager> dyscoStMan(
-        dyscoConstructor(colName + "_dm", dyscoSpec));
-    ColumnDesc directColumnDesc(cd);
-    directColumnDesc.setOptions(casacore::ColumnDesc::Direct |
-                                casacore::ColumnDesc::FixedShape);
-    TableDesc td;
-    td.addColumn(directColumnDesc, colName);
-    itsMS.addColumn(td, *dyscoStMan);
   } else {
     // When no specific storage manager is requested, use the same
     // as for the DATA column.

@@ -425,8 +425,21 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     std::unique_ptr<DataManager> dysco_st_man(
         dysco_constructor("DyscoData", dysco_spec));
     MakeArrayColumn(tdesc["DATA"], data_shape, dysco_st_man.get(), ms_, true);
+  } else if (st_man_keys_.stManName == "stokes_i") {
+    casacore::DataManagerCtor stokes_i_constructor =
+        DataManager::getCtor("StokesIStMan");
+    std::unique_ptr<DataManager> stokes_i_st_man(
+        stokes_i_constructor("StokesIData", Record()));
+    if (!stokes_i_st_man)
+      throw std::runtime_error(
+          "Stokes I storage manager requested, but it is not available in "
+          "casacore");
+    MakeArrayColumn(tdesc["DATA"], data_shape, stokes_i_st_man.get(), ms_,
+                    true);
   } else {
-    // Add DATA column using tsm.
+    if (!st_man_keys_.stManName.empty())
+      throw std::runtime_error("Unknown storage manager specified: " +
+                               st_man_keys_.stManName);
     TiledColumnStMan tsm("TiledData", tile_shape);
     MakeArrayColumn(tdesc["DATA"], data_shape, &tsm, ms_);
   }
