@@ -6,6 +6,7 @@
 #include "SkymodelToSourceDB.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include <boost/algorithm/string.hpp>
 
@@ -590,13 +591,13 @@ bool matchSearchInfo(double ra, double dec, const SearchInfo& si) {
              si.sinDec * sin(dec) + si.cosDec * cos(dec) * cos(si.ra - ra));
   } else {
     // Ra can be around 0 or 360 degrees, so make sure all cases are handled.
-    ra -= casacore::C::_2pi;
+    ra -= 2.0 * M_PI;
     for (int i = 0; i < 4; ++i) {
       if (ra >= si.raStart && ra <= si.raEnd) {
         match = true;
         break;
       }
-      ra += casacore::C::_2pi;
+      ra += 2.0 * M_PI;
     }
     if (match) {
       match = (dec >= si.decStart && dec <= si.decEnd);
@@ -736,9 +737,9 @@ void calcRMParam(double& polfrac, double& polang, double fluxi0, double fluxq,
   // polang(lambda) = polang(0) + lambda^2 * rm
   // Scale between 0 and pi.
   double pa = 0.5 * atan2(fluxu, fluxq) - rmRefWavel * rmRefWavel * rm;
-  polang = fmod(pa, casacore::C::pi);
+  polang = fmod(pa, M_PI);
   if (polang < 0) {
-    polang += casacore::C::pi;
+    polang += M_PI;
   }
 }
 
