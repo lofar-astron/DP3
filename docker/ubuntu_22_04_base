@@ -11,12 +11,11 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get install -y \
 	bison \
 	build-essential \
-	casacore-dev \
-	casacore-tools \
 	clang-format-14 \
 	cmake \
 	doxygen \
 	flex \
+	g++ \
 	gcovr \
 	gfortran \
 	git \
@@ -27,12 +26,17 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	libboost-python-dev \
 	libboost-system-dev \
 	libboost-test-dev \
+	libgsl-dev \
 	libcfitsio-dev \
 	libfftw3-dev \
 	libgtkmm-3.0-dev \
 	libhdf5-serial-dev \
+	libncurses-dev \
 	liblua5.3-dev \
+	liblapack-dev \
 	libpng-dev \
+	libpython3-dev \
+	libreadline-dev \
 	ninja-build \
 	pkg-config \
 	pybind11-dev \
@@ -45,6 +49,33 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	wget \
 	&& \
 	rm -rf /var/lib/apt/lists/*
+# Install WSRT Measures (extra casacore data, for integration tests)
+# Note: The file on the ftp site is updated daily. When warnings regarding leap
+# seconds appear, ignore them or regenerate the docker image.
+RUN mkdir -p /usr/share/casacore/data && \
+    ln -s /usr/share/casacore /var/lib/casacore && \
+    wget -qO - ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar | \
+        tar -C /usr/share/casacore/data -xzf -
+# The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
+RUN  mkdir /external && \
+  cd /external && \
+  git clone --depth 1 --branch v3.6.0 https://github.com/casacore/casacore.git && \
+  cd /external/casacore && \
+  mkdir build && \
+  cd build && \
+  cmake .. -DBUILD_PYTHON3=ON -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \
+  make -j`nproc` && \
+  make install -j`nproc` && \
+  cd /external && \
+  rm -rf /external/casacore
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib/
+RUN cd /external && \
+  git clone --depth 1 https://github.com/casacore/python-casacore.git && \
+  cd /external/python-casacore && \
+  pip install . && \
+  cd /external && \
+  rm -rf /external/python-casacore && \
+  python3 -c "import casacore.tables ; print('Using casacore from path: ' + casacore.tables.__file__);"
 # Build aoflagger3
 RUN mkdir /aoflagger && cd /aoflagger \
 	&& git clone https://gitlab.com/aroffringa/aoflagger.git src \
@@ -70,13 +101,6 @@ RUN mkdir /everybeam && cd /everybeam \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
 	&& ninja install \
 	&& cd / && rm -rf everybeam
-# Install WSRT Measures (extra casacore data, for integration tests)
-# Note: The file on the ftp site is updated daily. When warnings regarding leap
-# seconds appear, ignore them or regenerate the docker image.
-RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
-	&& cd /var/lib/casacore/data \
-	&& tar xfz /WSRT_Measures.ztar \
-	&& rm /WSRT_Measures.ztar
 # Install pip dependencies
 RUN pip3 install \
 	black~=24.0 \
