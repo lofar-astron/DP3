@@ -9,11 +9,10 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get install -y \
 	bison \
 	build-essential \
-	casacore-dev \
-	casacore-tools \
 	cmake \
 	doxygen \
 	flex \
+	g++-10 \
 	gfortran \
 	git \
 	libarmadillo-dev \
@@ -25,6 +24,7 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	libboost-test-dev \
 	libcfitsio-dev \
 	libfftw3-dev \
+	libgsl-dev \
 	libgtkmm-3.0-dev \
 	libhdf5-serial-dev \
 	liblua5.3-dev \
@@ -39,6 +39,30 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	wget \
 	&& \
 	rm -rf /var/lib/apt/lists/*
+ENV CC /usr/bin/gcc-10
+ENV CXX /usr/bin/g++-10
+
+# Install WSRT Measures (extra casacore data, for integration tests)
+# Note: The file on the ftp site is updated daily. When warnings regarding leap
+# seconds appear, ignore them or regenerate the docker image.
+RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
+  && mkdir -p /var/lib/casacore/data \
+	&& cd /var/lib/casacore/data \
+	&& tar xfz /WSRT_Measures.ztar \
+	&& rm /WSRT_Measures.ztar
+# Casacore
+RUN mkdir /external && \
+  cd /external && \
+  git clone https://github.com/casacore/casacore.git && \
+  cd /external/casacore && \
+  git checkout && \
+  mkdir build && \
+  cd build && \
+  cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF -DDATA_DIR=/var/lib/casacore/data && \
+  make -j`nproc` && \
+  make install -j`nproc` && \
+  cd /external && \
+  rm -rf /external/casacore
 # Build aoflagger3
 RUN mkdir /aoflagger && cd /aoflagger \
 	&& git clone https://gitlab.com/aroffringa/aoflagger.git src \
@@ -55,13 +79,6 @@ RUN mkdir /everybeam && cd /everybeam \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
 	&& ninja install \
 	&& cd / && rm -rf everybeam
-# Install WSRT Measures (extra casacore data, for integration tests)
-# Note: The file on the ftp site is updated daily. When warnings regarding leap
-# seconds appear, ignore them or regenerate the docker image.
-RUN wget -nv -O /WSRT_Measures.ztar ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar \
-	&& cd /var/lib/casacore/data \
-	&& tar xfz /WSRT_Measures.ztar \
-	&& rm /WSRT_Measures.ztar
 # Install pip dependencies
 RUN pip3 install \
 	autosemver==0.5.5 \
