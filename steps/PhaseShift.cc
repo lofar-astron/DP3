@@ -20,6 +20,7 @@
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/BasicSL/Constants.h>
 
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 
@@ -80,7 +81,7 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
   const std::vector<double>& freq = infoIn.chanFreqs();
   itsFreqC.reserve(freq.size());
   for (unsigned int i = 0; i < freq.size(); ++i) {
-    itsFreqC.push_back(2. * casacore::C::pi * freq[i] / casacore::C::c);
+    itsFreqC.push_back(2.0 * M_PI * freq[i] / casacore::C::c);
   }
 
   std::array<size_t, 2> phasors_shape{infoIn.nbaselines(), infoIn.nchan()};

@@ -9,6 +9,8 @@
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/BasicSL/Constants.h>
 
+#include <cmath>
+
 #include "Simulator.h"
 #include "GaussianSource.h"
 #include "PointSource.h"
@@ -259,8 +261,7 @@ void Simulator::visit(const GaussianSource& component) {
 
   // Convert position angle from North over East to the angle used to
   // rotate the right-handed UV-plane.
-  const double phi =
-      casacore::C::pi_2 + component.getPositionAngle() + casacore::C::pi;
+  const double phi = M_PI_2 + component.getPositionAngle() + M_PI;
   const double cosPhi = cos(phi);
   const double sinPhi = sin(phi);
 
@@ -327,8 +328,8 @@ void Simulator::visit(const GaussianSource& component) {
 
       // Compute uPrime^2 + vPrime^2 and pre-multiply with -2.0 * PI^2
       // / C^2.
-      const double uvPrime = (-2.0 * casacore::C::pi * casacore::C::pi) *
-                             (uPrime * uPrime + vPrime * vPrime);
+      const double uvPrime =
+          (-2.0 * M_PI * M_PI) * (uPrime * uPrime + vPrime * vPrime);
       // Note the notation:
       // Each complex number is represented as  (x+ j y)
       // where x: real part, y: imaginary part
@@ -436,7 +437,7 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    std::vector<double>& stationPhases) {
   double* shiftdata_re = shift.realdata();
   double* shiftdata_im = shift.imagdata();
-  const double cinv = casacore::C::_2pi / casacore::C::c;
+  const double cinv = 2.0 * M_PI / casacore::C::c;
 #pragma GCC ivdep
   for (size_t st = 0; st < nStation; ++st) {
     stationPhases[st] = cinv * (uvw(st, 0) * lmn[0] + uvw(st, 1) * lmn[1] +
