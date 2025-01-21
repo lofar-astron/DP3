@@ -29,7 +29,9 @@ namespace steps {
 
 FlagTransfer::FlagTransfer(const common::ParameterSet& parset,
                            const std::string& prefix)
-    : name_(prefix), source_ms_path_(parset.getString(prefix + "source_ms")) {
+    : name_(prefix),
+      source_ms_path_(parset.getString(prefix + "source_ms")),
+      timestep_counter_(0) {
   // Initialise source MeasurementSet and its respective iterator
   ms_ = casacore::MeasurementSet(source_ms_path_,
                                  casacore::TableLock::AutoNoReadLocking);
@@ -58,6 +60,9 @@ FlagTransfer::FlagTransfer(const common::ParameterSet& parset,
   const std::size_t n_correlations = shape[0];
   const std::size_t n_channels = shape[1];
   const std::size_t n_baselines = table.nrow();
+
+  // Initialise time averaging factor, assigned in updateInfo()
+  time_averaging_factor_ = 0;
 
   // Initialise channel bins using the central frequencies from CHAN_FREQ
   casacore::ArrayColumn<double> frequency_column(spw_table, "CHAN_FREQ");
