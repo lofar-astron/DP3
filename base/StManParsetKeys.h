@@ -15,7 +15,7 @@
 namespace dp3 {
 namespace base {
 struct StManParsetKeys {
-  casacore::String stManName;
+  std::string stManName;
   unsigned int dyscoDataBitRate;  ///< Bits per data float, or 0 if data column
                                   ///< is not compressed
   unsigned int dyscoWeightBitRate;  ///< Bits per weight float, or 0 if weight
