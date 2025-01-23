@@ -16,10 +16,12 @@ inputs:
     type: bool
     doc: Use the beam model in the predict part of the calibration.
   elementmodel:
-    default: hamaker
+    default: default
     type: enum
-    symbols: hamaker, lobes, oskar, oskardipole
-    doc: Specifies which beam model to use.
+    symbols: hamaker, lobes, oskarsphericalwave, oskardipole (or any other model EveryBeam supports) 
+    doc: >-
+      Specifies which beam model to use. The default value of "default" means that the model
+      is inferred from the MS. For a LOFAR MS the default is hamaker, and for an OSKAR MS the default is oskardipole.
   operation:
     default: replace
     type: string
