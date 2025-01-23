@@ -437,7 +437,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     MakeArrayColumn(tdesc["DATA"], data_shape, stokes_i_st_man.get(), ms_,
                     true);
   } else {
-    if (!st_man_keys_.stManName.empty())
+    if (!st_man_keys_.stManName.empty() && st_man_keys_.stManName != "dysco")
       throw std::runtime_error("Unknown storage manager specified: " +
                                st_man_keys_.stManName);
     TiledColumnStMan tsm("TiledData", tile_shape);
