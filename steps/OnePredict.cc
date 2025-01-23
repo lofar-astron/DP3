@@ -134,21 +134,10 @@ void OnePredict::init(const common::ParameterSet& parset,
     beam_mode_ = everybeam::ParseCorrectionMode(
         parset.getString(prefix + "beammode", "default"));
 
-    std::string element_model = boost::to_lower_copy(
-        parset.getString(prefix + "elementmodel", "hamaker"));
-    if (element_model == "hamaker") {
-      element_response_model_ = everybeam::ElementResponseModel::kHamaker;
-    } else if (element_model == "lobes") {
-      element_response_model_ = everybeam::ElementResponseModel::kLOBES;
-    } else if (element_model == "oskar") {
-      element_response_model_ =
-          everybeam::ElementResponseModel::kOSKARSphericalWave;
-    } else if (element_model == "oskardipole") {
-      element_response_model_ = everybeam::ElementResponseModel::kOSKARDipole;
-    } else {
-      throw std::runtime_error(
-          "Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
-    }
+    std::string element_model =
+        parset.getString(prefix + "elementmodel", "default");
+    element_response_model_ =
+        everybeam::ElementResponseModelFromString(element_model);
 
     // By default, a source model has each direction in one patch. Therefore,
     // if one-beam-per-patch is requested, we don't have to do anything.

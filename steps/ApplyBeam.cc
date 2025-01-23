@@ -229,21 +229,10 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset,
     itsInvert = parset.getBool(prefix + "invert", true);
   }
 
-  string element_model = boost::to_lower_copy(
-      parset.getString(prefix + "elementmodel", "hamaker"));
-  if (element_model == "hamaker") {
-    itsElementResponseModel = everybeam::ElementResponseModel::kHamaker;
-  } else if (element_model == "lobes") {
-    itsElementResponseModel = everybeam::ElementResponseModel::kLOBES;
-  } else if (element_model == "oskar") {
-    itsElementResponseModel =
-        everybeam::ElementResponseModel::kOSKARSphericalWave;
-  } else if (element_model == "oskardipole") {
-    itsElementResponseModel = everybeam::ElementResponseModel::kOSKARDipole;
-  } else {
-    throw std::runtime_error(
-        "Elementmodel should be HAMAKER, LOBES, OSKAR or OSKARDIPOLE");
-  }
+  std::string element_model =
+      parset.getString(prefix + "elementmodel", "default");
+  itsElementResponseModel =
+      everybeam::ElementResponseModelFromString(element_model);
 }
 
 void ApplyBeam::updateInfo(const DPInfo& infoIn) {

@@ -3,6 +3,11 @@
 ## Upcoming release
 
 - Add flagtransfer step, which transfers flags from a low-resolution MS.
+- The `elementmodel` parset key of the ApplyBeam and Predict step is now parsed
+by EveryBeam making all element models in that library available.
+The default value is changed from "hamaker" to "default" meaning that 
+EveryBeam selects the default element model for the telescope in 
+the measurement set. For a LOFAR MS that will still be "hamaker".
 
 ## [6.2.2] - 2024-11-08
 

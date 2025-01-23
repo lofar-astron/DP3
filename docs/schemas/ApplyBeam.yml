@@ -66,6 +66,13 @@ inputs:
       Beam mode to apply, can be ``array_factor``, ``element``, ``full``, or
       ``default`` (same as ``full``). The mode ``full`` applies both the element
       beam and the array factor.
+  elementmodel:
+    default: default
+    type: enum
+    symbols: hamaker, lobes, oskarsphericalwave, oskardipole (or any other model EveryBeam supports) 
+    doc: >-
+      Specifies which beam model to use. The default value of "default" means that the model
+      is inferred from the MS. For a LOFAR MS the default is hamaker, and for an OSKAR MS the default is oskardipole.
   skipstations:
     type: string[]
     default: []
