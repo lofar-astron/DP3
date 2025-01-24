@@ -1,10 +1,9 @@
 FROM ubuntu:22.04
 
-# TODO: needs to be bumped before next DP3 release
-# ENV IDG_VERSION=0.8
-ENV EVERYBEAM_VERSION=0578473cacf64c69bc2e05e15754cf94dd1051b9
-ENV IDG_VERSION=9ce6fa88b9d746d8d7146c474992aba9b98eb41f
-ENV AOFLAGGER_VERSION=b1256de90b00a5a83477274390decd6671cdcd38
+# Needs to be bumped before next DP3 release.
+ENV EVERYBEAM_VERSION=v0.7.0
+ENV IDG_VERSION=1.2.0
+ENV AOFLAGGER_VERSION=v3.4.0
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
@@ -98,7 +97,7 @@ RUN mkdir /everybeam && cd /everybeam \
 	&& git clone https://git.astron.nl/RD/EveryBeam.git src \
 	&& ( cd src/ && git checkout ${EVERYBEAM_VERSION} ) \
 	&& mkdir build && cd build \
-	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
 	&& ninja install \
 	&& cd / && rm -rf everybeam
 # Install pip dependencies
