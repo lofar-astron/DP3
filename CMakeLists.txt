@@ -453,7 +453,6 @@ endif()
 add_library(
   DP3_OBJ OBJECT
   antennaflagger/Flagger.cc
-  base/AartfaacSubtableWriter.cc
   base/Apply.cc
   base/BaselineSelection.cc
   base/BdaBuffer.cc
@@ -473,6 +472,7 @@ add_library(
   base/ProgressMeter.cc
   base/Simulate.cc
   base/Simulator.cc
+  base/SubtableWriter.cc
   base/ComponentInfo.cc
   base/SourceDBUtil.cc
   base/Stokes.cc
@@ -710,7 +710,6 @@ if(BUILD_TESTING)
       aartfaacreader/test/unit/tAntennaConfig.cc
       antennaflagger/test/unit/tFlagger.cc
       base/test/runtests.cc
-      base/test/unit/tAartfaacSubtableWriter.cc
       base/test/unit/tBaselineSelection.cc
       base/test/unit/tBdaBuffer.cc
       base/test/unit/tDP3.cc
@@ -723,6 +722,7 @@ if(BUILD_TESTING)
       base/test/unit/tSimulate.cc
       base/test/unit/tSimulator.cc
       base/test/unit/tSourceDBUtil.cc
+      base/test/unit/tSubtableWriter.cc
       base/test/unit/tTelescope.cc
       base/test/unit/tUvwCalculator.cc
       common/test/unit/fixtures/fSkymodel.cc
