@@ -10,8 +10,8 @@
 /// Most of this code was taken from https://git.astron.nl/RD/aartfaac-tools.git
 /// and adapted to fit into the DP3 codebase.
 
-#ifndef DP3_BASE_AARTFAACSUBTABLEWRITER_H_
-#define DP3_BASE_AARTFAACSUBTABLEWRITER_H_
+#ifndef DP3_BASE_SUBTABLEWRITER_H_
+#define DP3_BASE_SUBTABLEWRITER_H_
 
 #include <array>
 #include <complex>
@@ -31,7 +31,7 @@
 
 namespace dp3::base {
 
-class AartfaacSubtableWriter {
+class SubtableWriter {
  public:
   struct AntennaInfo {
     std::string name, station;
@@ -92,18 +92,17 @@ class AartfaacSubtableWriter {
     int flag_window_size;
   };
 
-  AartfaacSubtableWriter(){};
-  AartfaacSubtableWriter(std::string path);
+  SubtableWriter(){};
+  SubtableWriter(std::string path, const int nr_channels = 1);
 
-  ~AartfaacSubtableWriter(){};
-
+  ~SubtableWriter(){};
   void WriteBandInfo(const std::string &name,
                      const std::vector<ChannelInfo> &channels,
                      double reference_frequency, double total_bandwidth,
                      bool flag_row);
-  void WriteAntennae(const std::vector<AntennaInfo> &antennae,
+  void WriteAntennas(const std::vector<AntennaInfo> &antennas,
                      const std::array<double, 9> &coordinate_axes, double time);
-  void WriteLinearPolarizations(bool flagRow);
+  void WriteLinearPolarizations(bool flagRow, const int n_pol = 4);
   void WriteSource(const SourceInfo &source);
   void WriteField(const FieldInfo &field);
   void WriteObservation(const ObservationInfo &observation);
@@ -115,9 +114,9 @@ class AartfaacSubtableWriter {
  private:
   void WriteDataDescEntry(size_t spectral_window_id, size_t polarization_id,
                           bool flag_row);
-  void WriteFeedEntries(const std::vector<AntennaInfo> &antennae, double time);
+  void WriteFeedEntries(const std::vector<AntennaInfo> &antennas, double time);
   std::string path_;
   casacore::MeasurementSet ms_;
 };
 }  // namespace dp3::base
-#endif  // DP3_BASE_AARTFAACSUBTABLEWRITER_H_
+#endif  // DP3_BASE_SUBTABLEWRITER_H_

@@ -1,4 +1,4 @@
-#include <base/AartfaacSubtableWriter.h>
+#include <base/SubtableWriter.h>
 
 #include <filesystem>
 
@@ -25,7 +25,7 @@ std::vector<T> GetArrayColumnFromTable(casacore::Table &table,
 
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(aartfaacsubtablewriter)
+BOOST_AUTO_TEST_SUITE(subtablewriter)
 
 struct CleanUpFixture {
   CleanUpFixture() {
@@ -41,7 +41,7 @@ struct CleanUpFixture {
 
 struct WriterFixture : CleanUpFixture {
   WriterFixture() : writer(path){};
-  dp3::base::AartfaacSubtableWriter writer;
+  dp3::base::SubtableWriter writer;
 };
 
 const size_t kDirectionDimensions = 2u;
@@ -52,14 +52,14 @@ BOOST_FIXTURE_TEST_CASE(measurementset_create, CleanUpFixture) {
   // Use CleanUpFixture instead of WriterFixture to make
   // it clear we are testing here the constructor of the
   // writer class
-  dp3::base::AartfaacSubtableWriter writer(path);
+  dp3::base::SubtableWriter writer(path);
 
   BOOST_CHECK(std::filesystem::exists(path));
 }
 
 BOOST_FIXTURE_TEST_CASE(observation_table, WriterFixture) {
-  dp3::base::AartfaacSubtableWriter::ObservationInfo observation;
-  observation.telescope_name = "MyArray";
+  dp3::base::SubtableWriter::ObservationInfo observation;
+  observation.telescope_name = "AARTFAAC";
   observation.start_time = 1.0;
   observation.end_time = 3.0;
   observation.observer = "ME";
@@ -80,7 +80,8 @@ BOOST_FIXTURE_TEST_CASE(observation_table, WriterFixture) {
                            casacore::String(observation.observer));
   TestScalarValueFromTable(obs_table, "FLAG_ROW",
                            casacore::Bool(observation.flag_row));
-  TestScalarValueFromTable(obs_table, "AARTFAAC_FLAG_WINDOW_SIZE",
+  TestScalarValueFromTable(obs_table,
+                           observation.telescope_name + "_FLAG_WINDOW_SIZE",
                            casacore::Int(observation.flag_window_size));
   TestScalarValueFromTable(obs_table, "PROJECT",
                            casacore::String(observation.project));
@@ -101,8 +102,7 @@ BOOST_FIXTURE_TEST_CASE(observation_table, WriterFixture) {
 BOOST_FIXTURE_TEST_CASE(antenna_table, WriterFixture) {
   const size_t kNAntennas = 2;
 
-  std::vector<dp3::base::AartfaacSubtableWriter::AntennaInfo> antennas(
-      kNAntennas);
+  std::vector<dp3::base::SubtableWriter::AntennaInfo> antennas(kNAntennas);
 
   for (size_t idx = 0u; idx < kNAntennas; ++idx) {
     antennas[idx].flag = idx % 2;
@@ -117,7 +117,7 @@ BOOST_FIXTURE_TEST_CASE(antenna_table, WriterFixture) {
 
   std::array<double, 9> axes = {1, 2, 3, 4, 5, 6, 7, 8, 9};
   double time = 123.45;
-  writer.WriteAntennae(antennas, axes, time);
+  writer.WriteAntennas(antennas, axes, time);
 
   casacore::MeasurementSet ms(writer.GetPath());
   casacore::Table antenna_table = ms.antenna();
@@ -143,7 +143,12 @@ BOOST_FIXTURE_TEST_CASE(antenna_table, WriterFixture) {
   }
   casacore::Array<casacore::Double> coordinates_axes;
 
-  antenna_table.keywordSet().get("AARTFAAC_COORDINATE_AXES", coordinates_axes);
+  casacore::MSObservation obs_table = ms.observation();
+  auto telescope_name =
+      obs_table.columnName(casacore::MSObservationEnums::TELESCOPE_NAME);
+
+  antenna_table.keywordSet().get(telescope_name + "_COORDINATE_AXES",
+                                 coordinates_axes);
   std::vector<double> stored_coordinate_axes = coordinates_axes.tovector();
 
   BOOST_CHECK_EQUAL_COLLECTIONS(stored_coordinate_axes.begin(),
@@ -158,8 +163,7 @@ BOOST_FIXTURE_TEST_CASE(write_band_info, WriterFixture) {
   const bool kFlag = true;
   const std::string kBandName = "test_band";
 
-  std::vector<dp3::base::AartfaacSubtableWriter::ChannelInfo> channels(
-      kNChannels);
+  std::vector<dp3::base::SubtableWriter::ChannelInfo> channels(kNChannels);
 
   for (int idx = 0; idx < kNChannels; ++idx) {
     channels[idx].channel_frequency = 40.0e6 + 500.0e5 * idx;
@@ -220,7 +224,7 @@ BOOST_FIXTURE_TEST_CASE(polarization, WriterFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(source, WriterFixture) {
-  dp3::base::AartfaacSubtableWriter::SourceInfo sinfo;
+  dp3::base::SubtableWriter::SourceInfo sinfo;
   sinfo.source_id = -1;
   sinfo.time = 54321;
   sinfo.interval = 1;
@@ -265,7 +269,7 @@ BOOST_FIXTURE_TEST_CASE(source, WriterFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(field, WriterFixture) {
-  dp3::base::AartfaacSubtableWriter::FieldInfo finfo;
+  dp3::base::SubtableWriter::FieldInfo finfo;
   finfo.name = "test-field-name";
   finfo.code = "field_01";
   finfo.time = 54321;

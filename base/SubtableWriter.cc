@@ -1,4 +1,4 @@
-#include "AartfaacSubtableWriter.h"
+#include "SubtableWriter.h"
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Containers/Record.h>
@@ -11,21 +11,73 @@
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
+#include <casacore/measures/Measures/Stokes.h>
 #include <casacore/tables/Tables/TableRecord.h>
+#include <cassert>
 
 namespace dp3::base {
 using namespace casacore;
 
-AartfaacSubtableWriter::AartfaacSubtableWriter(std::string path) : path_{path} {
+SubtableWriter::SubtableWriter(std::string path, const int nr_channels)
+    : path_{path} {
   TableDesc desc = MS::requiredTableDesc();
   SetupNewTable main_table(path_, desc, Table::New);
+
+  const int kNCorrelations = 4;
+  casacore::IPosition dataShape(2, kNCorrelations, nr_channels);
+  desc.rwColumnDesc("SIGMA").setShape(IPosition(1, kNCorrelations));
+  desc.rwColumnDesc("SIGMA").setOptions(ColumnDesc::Option::FixedShape |
+                                        ColumnDesc::Option::Direct);
+  desc.rwColumnDesc("WEIGHT").setShape(IPosition(1, kNCorrelations));
+  desc.rwColumnDesc("WEIGHT").setOptions(ColumnDesc::Option::FixedShape |
+                                         ColumnDesc::Option::Direct);
+  desc.rwColumnDesc("FLAG").setShape(dataShape);
+  desc.rwColumnDesc("FLAG").setOptions(ColumnDesc::Option::FixedShape |
+                                       ColumnDesc::Option::Direct);
+  desc.rwColumnDesc("UVW").setOptions(ColumnDesc::Option::FixedShape |
+                                      ColumnDesc::Option::Direct);
+  desc.rwColumnDesc("FLAG_CATEGORY").setShape(IPosition(3, 0, 0, 0));
+
+  IncrementalStMan storage_manager;
+  main_table.bindColumn("TIME", storage_manager);
+  main_table.bindColumn("TIME_CENTROID", storage_manager);
+  main_table.bindColumn("ANTENNA1", storage_manager);
+  main_table.bindColumn("DATA_DESC_ID", storage_manager);
+  main_table.bindColumn("INTERVAL", storage_manager);
+  main_table.bindColumn("EXPOSURE", storage_manager);
+  main_table.bindColumn("PROCESSOR_ID", storage_manager);
+  main_table.bindColumn("SCAN_NUMBER", storage_manager);
+  main_table.bindColumn("STATE_ID", storage_manager);
+  main_table.bindColumn("SIGMA", storage_manager);
+
+  main_table.bindColumn("FLAG_CATEGORY", storage_manager);
+  main_table.bindColumn("ARRAY_ID", storage_manager);
+  main_table.bindColumn("FEED1", storage_manager);
+  main_table.bindColumn("FEED2", storage_manager);
+  main_table.bindColumn("FIELD_ID", storage_manager);
+  main_table.bindColumn("FLAG_ROW", storage_manager);
+  main_table.bindColumn("OBSERVATION_ID", storage_manager);
+
   ms_ = MeasurementSet(main_table);
   ms_.createDefaultSubtables(Table::New);
+
+  ArrayColumnDesc<std::complex<float>> data_column_desc =
+      ArrayColumnDesc<std::complex<float>>(
+          MS::columnName(casacore::MSMainEnums::DATA));
+  data_column_desc.setShape(dataShape);
+  data_column_desc.setOptions(ColumnDesc::Direct | ColumnDesc::FixedShape);
+  ms_.addColumn(data_column_desc);
+
+  ArrayColumnDesc<float> weight_spectrum_column_desc = ArrayColumnDesc<float>(
+      MS::columnName(casacore::MSMainEnums::WEIGHT_SPECTRUM));
+  weight_spectrum_column_desc.setShape(dataShape);
+  weight_spectrum_column_desc.setOptions(ColumnDesc::Direct |
+                                         ColumnDesc::FixedShape);
+  ms_.addColumn(weight_spectrum_column_desc);
 };
 
-void AartfaacSubtableWriter::WriteDataDescEntry(size_t spectralWindowId,
-                                                size_t polarizationId,
-                                                bool flagRow) {
+void SubtableWriter::WriteDataDescEntry(size_t spectralWindowId,
+                                        size_t polarizationId, bool flagRow) {
   MSDataDescription data_description_table = ms_.dataDescription();
   ScalarColumn<int> spectral_window_id_column(
       data_description_table, data_description_table.columnName(
@@ -45,8 +97,8 @@ void AartfaacSubtableWriter::WriteDataDescEntry(size_t spectralWindowId,
   flag_row_column.put(index, flagRow);
 }
 
-void AartfaacSubtableWriter::WriteFeedEntries(
-    const std::vector<AntennaInfo> &antennae, double time) {
+void SubtableWriter::WriteFeedEntries(const std::vector<AntennaInfo> &antennas,
+                                      double time) {
   // Open feed table
   MSFeed feed_table = ms_.feed();
   // Define feed table columns
@@ -77,9 +129,9 @@ void AartfaacSubtableWriter::WriteFeedEntries(
   // this is because it is appending in the feed the antennas that have been
   // specified as argument
   size_t row_index = feed_table.nrow();
-  feed_table.addRow(antennae.size());
+  feed_table.addRow(antennas.size());
 
-  for (size_t antIndex = 0; antIndex != antennae.size(); ++antIndex) {
+  for (size_t antIndex = 0; antIndex != antennas.size(); ++antIndex) {
     antenna_id_col.put(row_index, antIndex);
     feed_id_col.put(row_index, 0);
     spectral_window_id_col.put(row_index, -1);
@@ -122,9 +174,10 @@ void AartfaacSubtableWriter::WriteFeedEntries(
   }
 }
 
-void AartfaacSubtableWriter::WriteBandInfo(
-    const std::string &name, const std::vector<ChannelInfo> &channels,
-    double reference_frequency, double total_bandwidth, bool flag_row) {
+void SubtableWriter::WriteBandInfo(const std::string &name,
+                                   const std::vector<ChannelInfo> &channels,
+                                   double reference_frequency,
+                                   double total_bandwidth, bool flag_row) {
   MSSpectralWindow spw_table = ms_.spectralWindow();
 
   ScalarColumn<int> num_chan_col = ScalarColumn<int>(
@@ -179,9 +232,9 @@ void AartfaacSubtableWriter::WriteBandInfo(
   WriteDataDescEntry(row_index, 0, false);
 }
 
-void AartfaacSubtableWriter::WriteAntennae(
-    const std::vector<AntennaInfo> &antennae,
-    const std::array<double, 9> &coordinate_axes, double time) {
+void SubtableWriter::WriteAntennas(const std::vector<AntennaInfo> &antennas,
+                                   const std::array<double, 9> &coordinate_axes,
+                                   double time) {
   MSAntenna antenna_table = ms_.antenna();
   ScalarColumn<casacore::String> name_col = ScalarColumn<casacore::String>(
       antenna_table, antenna_table.columnName(MSAntennaEnums::NAME));
@@ -199,11 +252,11 @@ void AartfaacSubtableWriter::WriteAntennae(
       antenna_table, antenna_table.columnName(MSAntennaEnums::FLAG_ROW));
 
   size_t row_index = antenna_table.nrow();
-  antenna_table.addRow(antennae.size());
+  antenna_table.addRow(antennas.size());
 
   for (std::vector<AntennaInfo>::const_iterator antenna_iterator =
-           antennae.begin();
-       antenna_iterator != antennae.end(); ++antenna_iterator) {
+           antennas.begin();
+       antenna_iterator != antennas.end(); ++antenna_iterator) {
     name_col.put(row_index, antenna_iterator->name);
     station_col.put(row_index, antenna_iterator->station);
     type_col.put(row_index, antenna_iterator->type);
@@ -224,13 +277,18 @@ void AartfaacSubtableWriter::WriteAntennae(
   std::copy(coordinate_axes.begin(), coordinate_axes.end(),
             coordinateAxesVec.begin());
 
-  antenna_table.rwKeywordSet().define("AARTFAAC_COORDINATE_AXES",
+  MSObservation obs_table = ms_.observation();
+  auto telescope_name =
+      obs_table.columnName(MSObservationEnums::TELESCOPE_NAME);
+
+  antenna_table.rwKeywordSet().define(telescope_name + "_COORDINATE_AXES",
                                       coordinateAxesVec);
 
-  WriteFeedEntries(antennae, time);
+  WriteFeedEntries(antennas, time);
 }
 
-void AartfaacSubtableWriter::WriteLinearPolarizations(bool flag_row) {
+void SubtableWriter::WriteLinearPolarizations(bool flag_row, const int n_pol) {
+  assert(n_pol == 2 or n_pol == 4);
   MSPolarization pol_table = ms_.polarization();
   ScalarColumn<int> num_corr_col = ScalarColumn<int>(
       pol_table, pol_table.columnName(MSPolarizationEnums::NUM_CORR));
@@ -243,31 +301,43 @@ void AartfaacSubtableWriter::WriteLinearPolarizations(bool flag_row) {
 
   size_t row_index = pol_table.nrow();
   pol_table.addRow(1);
-  num_corr_col.put(row_index, 4);
+  num_corr_col.put(row_index, n_pol);
 
-  casacore::Vector<int> c_type_vec(4);
-  c_type_vec[0] = 9;
-  c_type_vec[1] = 10;
-  c_type_vec[2] = 11;
-  c_type_vec[3] = 12;
+  casacore::Vector<int> c_type_vec(n_pol);
+  if (n_pol == 2) {
+    c_type_vec[0] = Stokes::XX;
+    c_type_vec[1] = Stokes::YY;
+  } else if (n_pol == 4) {
+    c_type_vec[0] = Stokes::XX;
+    c_type_vec[1] = Stokes::XY;
+    c_type_vec[2] = Stokes::YX;
+    c_type_vec[3] = Stokes::YY;
+  }
   corr_type_col.put(row_index, c_type_vec);
 
-  casacore::Array<int> c_prod_arr(IPosition(2, 2, 4));
-  c_prod_arr(IPosition(2, 0, 0)) = 0;
-  c_prod_arr(IPosition(2, 1, 0)) = 0;
-  c_prod_arr(IPosition(2, 0, 1)) = 0;
-  c_prod_arr(IPosition(2, 1, 1)) = 1;
-  c_prod_arr(IPosition(2, 0, 2)) = 1;
-  c_prod_arr(IPosition(2, 1, 2)) = 0;
-  c_prod_arr(IPosition(2, 0, 3)) = 1;
-  c_prod_arr(IPosition(2, 1, 3)) = 1;
+  casacore::Array<int> c_prod_arr(IPosition(2, 2, n_pol));
+  if (n_pol == 2) {
+    c_prod_arr(IPosition(2, 0, 0)) = 0;
+    c_prod_arr(IPosition(2, 1, 0)) = 0;
+    c_prod_arr(IPosition(2, 0, 1)) = 1;
+    c_prod_arr(IPosition(2, 1, 1)) = 1;
+  } else if (n_pol == 4) {
+    c_prod_arr(IPosition(2, 0, 0)) = 0;
+    c_prod_arr(IPosition(2, 1, 0)) = 0;
+    c_prod_arr(IPosition(2, 0, 1)) = 0;
+    c_prod_arr(IPosition(2, 1, 1)) = 1;
+    c_prod_arr(IPosition(2, 0, 2)) = 1;
+    c_prod_arr(IPosition(2, 1, 2)) = 0;
+    c_prod_arr(IPosition(2, 0, 3)) = 1;
+    c_prod_arr(IPosition(2, 1, 3)) = 1;
+  }
 
   corr_product_col.put(row_index, c_prod_arr);
 
   flag_row_col.put(row_index, flag_row);
 }
 
-void AartfaacSubtableWriter::WriteSource(const SourceInfo &source) {
+void SubtableWriter::WriteSource(const SourceInfo &source) {
   // The source table is not a required table so it has to be created
   // from scratch
 
@@ -341,7 +411,7 @@ void AartfaacSubtableWriter::WriteSource(const SourceInfo &source) {
   proper_motion_col.put(row_index, proper_motion);
 }
 
-void AartfaacSubtableWriter::WriteField(const FieldInfo &field) {
+void SubtableWriter::WriteField(const FieldInfo &field) {
   MSField field_table = ms_.field();
   ScalarColumn<casacore::String> name_col = ScalarColumn<casacore::String>(
       field_table, field_table.columnName(MSFieldEnums::NAME));
@@ -387,8 +457,7 @@ void AartfaacSubtableWriter::WriteField(const FieldInfo &field) {
   flag_row_col.put(index, field.flag_row);
 }
 
-void AartfaacSubtableWriter::WriteObservation(
-    const ObservationInfo &observation) {
+void SubtableWriter::WriteObservation(const ObservationInfo &observation) {
   MSObservation obs_table = ms_.observation();
 
   ScalarColumn<casacore::String> telescope_name_col(
@@ -406,18 +475,6 @@ void AartfaacSubtableWriter::WriteObservation(
   ScalarColumn<bool> flag_row_col(
       obs_table, obs_table.columnName(MSObservationEnums::FLAG_ROW));
 
-  obs_table.addColumn(
-      (ScalarColumnDesc<casacore::String>("AARTFAAC_ANTENNA_TYPE")));
-  obs_table.addColumn((ScalarColumnDesc<casacore::Int>("AARTFAAC_RCU_MODE")));
-  obs_table.addColumn(
-      (ScalarColumnDesc<casacore::Int>("AARTFAAC_FLAG_WINDOW_SIZE")));
-  ScalarColumn<casacore::String> antenna_type_col =
-      ScalarColumn<casacore::String>(obs_table, "AARTFAAC_ANTENNA_TYPE");
-  ScalarColumn<int> rcu_mode_col =
-      ScalarColumn<int>(obs_table, "AARTFAAC_RCU_MODE");
-  ScalarColumn<int> flag_window_size_col =
-      ScalarColumn<int>(obs_table, "AARTFAAC_FLAG_WINDOW_SIZE");
-
   size_t rowIndex = obs_table.nrow();
   obs_table.addRow();
 
@@ -432,13 +489,31 @@ void AartfaacSubtableWriter::WriteObservation(
   project_col.put(rowIndex, observation.project);
   release_date_col.put(rowIndex, observation.release_date);
   flag_row_col.put(rowIndex, observation.flag_row);
-  antenna_type_col.put(rowIndex, observation.antenna_type);
-  rcu_mode_col.put(rowIndex, observation.rcu_mode);
-  flag_window_size_col.put(rowIndex, observation.flag_window_size);
+
+  // Following are specialized for AARTFAAC,...
+  if (observation.telescope_name == "AARTFAAC") {
+    obs_table.addColumn((ScalarColumnDesc<casacore::String>(
+        observation.telescope_name + "_ANTENNA_TYPE")));
+    obs_table.addColumn((ScalarColumnDesc<casacore::Int>(
+        observation.telescope_name + "_RCU_MODE")));
+    obs_table.addColumn((ScalarColumnDesc<casacore::Int>(
+        observation.telescope_name + "_FLAG_WINDOW_SIZE")));
+    ScalarColumn<casacore::String> antenna_type_col =
+        ScalarColumn<casacore::String>(
+            obs_table, observation.telescope_name + "_ANTENNA_TYPE");
+    ScalarColumn<int> rcu_mode_col =
+        ScalarColumn<int>(obs_table, observation.telescope_name + "_RCU_MODE");
+    ScalarColumn<int> flag_window_size_col = ScalarColumn<int>(
+        obs_table, observation.telescope_name + "_FLAG_WINDOW_SIZE");
+    antenna_type_col.put(rowIndex, observation.antenna_type);
+    rcu_mode_col.put(rowIndex, observation.rcu_mode);
+    flag_window_size_col.put(rowIndex, observation.flag_window_size);
+  }
 }
-void AartfaacSubtableWriter::WriteHistoryItem(
-    const std::string &commandLine, const std::string &application,
-    const std::vector<std::string> &params) {
+
+void SubtableWriter::WriteHistoryItem(const std::string &commandLine,
+                                      const std::string &application,
+                                      const std::vector<std::string> &params) {
   MSHistory history_table = ms_.history();
 
   casacore::ScalarColumn<double> time_col(
@@ -481,4 +556,5 @@ void AartfaacSubtableWriter::WriteHistoryItem(
   parms_col.put(rowIndex, app_params);
   cli_col.put(rowIndex, cliVec);
 };
+
 }  // namespace dp3::base
