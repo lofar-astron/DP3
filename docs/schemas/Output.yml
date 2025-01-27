@@ -59,11 +59,16 @@ inputs:
     type: string
     doc: >-
       Directory where to put the VDS file; if empty, the MS directory is used.
+  msout&#46;scalarflags:
+    default: false
+    type: bool
+    doc: >-
+      If set to true, only one flag will be stored for four correlations. For LOFAR, all correlations have equal flags, so storing all flags is redunandant. This typically saves a couple of percent storage.
   msout&#46;storagemanager/msout&#46;storagemanager&#46;name:
     default: "\"\""
     type: string
     doc: >-
-      What storage manager to use. When empty (default), the data will be stored uncompressed. When set to "dysco", the data will be compressed. Settings below will set the compression settings; see `the Dysco wiki <https://github.com/aroffringa/dysco/wiki>`__ and `the paper <https://arxiv.org/abs/1609.02019>`__ for more info. The default settings are reasonably conservative and safe.
+      What storage manager to use. Options: empty (=default), "stokes_i" or "dysco". When empty, the data will be stored uncompressed. "stokes_i" will use the StokesIStMan, which stores only one (Stokes I) value for four correlations. For this case, the 2nd and 3rd correlations (normally the XY and YX values) must be zero. When set to "dysco", the data will be compressed using Dysco. Settings below will set the compression settings; see `the Dysco wiki <https://github.com/aroffringa/dysco/wiki>`__ and `the paper <https://arxiv.org/abs/1609.02019>`__ for more info. The default settings are reasonably conservative and safe.
   msout&#46;storagemanager&#46;databitrate:
     default: 10
     type: integer
