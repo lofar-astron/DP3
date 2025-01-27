@@ -86,8 +86,6 @@ bool IDGImager::process(std::unique_ptr<DPBuffer> buffer) {
   dp3::base::DPBuffer::DataType visibilities = buffer->GetData();
   dp3::base::DPBuffer::WeightsType weights = buffer->GetWeights();
   const dp3::base::DPBuffer::FlagsType flags = buffer->GetFlags();
-  const std::vector<int>& antenna1 = info().getAnt1();
-  const std::vector<int>& antenna2 = info().getAnt2();
 
   xt::xtensor<double, 3> image_data({4, grid_size_, grid_size_});
 
@@ -109,6 +107,8 @@ bool IDGImager::process(std::unique_ptr<DPBuffer> buffer) {
 
   WeightVisibilities(uvw, weights, frequencies, grid_size_, visibilities);
 #ifdef HAVE_IDG
+  const std::vector<int>& antenna1 = info().getAnt1();
+  const std::vector<int>& antenna2 = info().getAnt2();
   const size_t kSingleTimeStepGridder = 0;
   idg::api::GridderBuffer& gridder =
       *buffer_set_->get_gridder(kSingleTimeStepGridder);
