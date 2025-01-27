@@ -72,6 +72,18 @@ using dp3::base::FlagCounter;
 
 namespace dp3 {
 namespace steps {
+namespace {
+std::unique_ptr<DataManager> MakeStMan(const std::string& type_name,
+                                       const std::string& instance_name) {
+  casacore::DataManagerCtor constructor = DataManager::getCtor(type_name);
+  std::unique_ptr<DataManager> st_man(constructor(instance_name, Record()));
+  if (!st_man)
+    throw std::runtime_error(type_name +
+                             " requested, but it is not available in "
+                             "casacore");
+  return st_man;
+}
+}  // namespace
 
 MSWriter::MSWriter(const std::string& out_name,
                    const common::ParameterSet& parset,
@@ -94,7 +106,8 @@ MSWriter::MSWriter(const std::string& out_name,
       chunk_duration_(parset.getDouble(prefix + "chunkduration", 0.0)),
       vds_dir_(parset.getString(prefix + "vdsdir", std::string())),
       cluster_desc_(parset.getString(prefix + "clusterdesc", std::string())),
-      st_man_keys_(parset, prefix) {
+      st_man_keys_(parset, prefix),
+      scalar_flags_(parset.getBool(prefix + "scalarflags", false)) {
   if (data_col_name_ != "DATA")
     throw std::runtime_error(
         "Currently only the DATA column"
@@ -250,6 +263,7 @@ void MSWriter::show(std::ostream& os) const {
   } else {
     os << "  Compressed:     no\n";
   }
+  os << "  scalar flags:   " << std::boolalpha << scalar_flags_ << '\n';
   os << "  use thread:     " << std::boolalpha << use_write_thread_ << '\n';
 }
 
@@ -426,14 +440,8 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
         dysco_constructor("DyscoData", dysco_spec));
     MakeArrayColumn(tdesc["DATA"], data_shape, dysco_st_man.get(), ms_, true);
   } else if (st_man_keys_.stManName == "stokes_i") {
-    casacore::DataManagerCtor stokes_i_constructor =
-        DataManager::getCtor("StokesIStMan");
-    std::unique_ptr<DataManager> stokes_i_st_man(
-        stokes_i_constructor("StokesIData", Record()));
-    if (!stokes_i_st_man)
-      throw std::runtime_error(
-          "Stokes I storage manager requested, but it is not available in "
-          "casacore");
+    std::unique_ptr<DataManager> stokes_i_st_man =
+        MakeStMan("StokesIStMan", "StokesIData");
     MakeArrayColumn(tdesc["DATA"], data_shape, stokes_i_st_man.get(), ms_,
                     true);
   } else {
@@ -444,12 +452,19 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     MakeArrayColumn(tdesc["DATA"], data_shape, &tsm, ms_);
   }
 
-  // Add FLAG column using tsm.
-  // Use larger tile shape because flags are stored as bits.
-  IPosition tile_shape_f(tile_shape);
-  tile_shape_f[2] *= 8;
-  TiledColumnStMan tsmf("TiledFlag", tile_shape_f);
-  MakeArrayColumn(tdesc["FLAG"], data_shape, &tsmf, ms_);
+  // Add FLAG column
+  if (scalar_flags_) {
+    std::unique_ptr<DataManager> stokes_i_st_man =
+        MakeStMan("StokesIStMan", "StokesIFlag");
+    MakeArrayColumn(tdesc["FLAG"], data_shape, stokes_i_st_man.get(), ms_,
+                    true);
+  } else {
+    // Use larger tile shape because flags are stored as bits.
+    IPosition tile_shape_f(tile_shape);
+    tile_shape_f[2] *= 8;
+    TiledColumnStMan tsmf("TiledFlag", tile_shape_f);
+    MakeArrayColumn(tdesc["FLAG"], data_shape, &tsmf, ms_);
+  }
 
   if (st_man_keys_.stManName == "dysco" &&
       st_man_keys_.dyscoWeightBitRate != 0) {
