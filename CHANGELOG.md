@@ -2,12 +2,25 @@
 
 ## Upcoming release
 
+## [6.3] - 2025-01-28
+
+## New features
 - Add flagtransfer step, which transfers flags from a low-resolution MS.
+- Support new Casacore Stokes I storage manager.
+- Add `msout.scalarflags` option, for compressing flags.
+
+## Improvements
 - The `elementmodel` parset key of the ApplyBeam and Predict step is now parsed
 by EveryBeam making all element models in that library available.
-The default value is changed from "hamaker" to "default" meaning that 
-EveryBeam selects the default element model for the telescope in 
+The default value is changed from "hamaker" to "default" meaning that
+EveryBeam selects the default element model for the telescope in
 the measurement set. For a LOFAR MS that will still be "hamaker".
+- Support EveryBeam 0.7.x.
+- Apply per-direction weights in constraints.
+- Use C++20. DP3 now requires at least GCC-10.
+
+## Bug fixes
+- Fix flag counting in UVWFlagger when using BDA.
 
 ## [6.2.2] - 2024-11-08
 
