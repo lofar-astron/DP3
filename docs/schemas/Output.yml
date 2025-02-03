@@ -64,6 +64,11 @@ inputs:
     type: bool
     doc: >-
       If set to true, only one flag will be stored for four correlations. For LOFAR, all correlations have equal flags, so storing all flags is redunandant. This typically saves a couple of percent storage.
+  msout&#46;uvwcompression:
+    default: false
+    type: bool
+    doc: >-
+      If set to true, a special UvwStMan storage manager will be used that (losslessly) compresses UVW values. It does this by taking advantage of the fact that values within of the same correlation matrix can be determined by just storing one uvw-value per antenna. With this compression, UVW values do not need to be recalculated from the antenna positions.
   msout&#46;storagemanager/msout&#46;storagemanager&#46;name:
     default: "\"\""
     type: string

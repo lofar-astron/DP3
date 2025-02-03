@@ -199,6 +199,9 @@ class MSWriter : public OutputStep {
   std::string cluster_desc_;  ///< name of clusterdesc file
   base::StManParsetKeys st_man_keys_;
   bool scalar_flags_ = false;
+  // For now, uvw compression is turned off by default. Once we're confident
+  // enough about this feature, we can enable it by default.
+  bool uvw_compression_ = false;
 
   /// The total time spent in the writer.
   common::NSTimer timer_;
