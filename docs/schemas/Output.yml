@@ -64,6 +64,11 @@ inputs:
     type: bool
     doc: >-
       If set to true, only one flag will be stored for four correlations. For LOFAR, all correlations have equal flags, so storing all flags is redunandant. This typically saves a couple of percent storage.
+  msout&#46;antennacompression:
+    default: false
+    type: bool
+    doc: >-
+      If set to true, a special AntennaStMan storage manager will be used that (losslessly) compresses the antenna values of the ANTENNA1 and ANTENNA2 columns. Normally, the pair of values from these columns form a repeating pattern; the storage manager just stores the repeating pattern once.
   msout&#46;uvwcompression:
     default: false
     type: bool

@@ -108,7 +108,9 @@ MSWriter::MSWriter(const std::string& out_name,
       cluster_desc_(parset.getString(prefix + "clusterdesc", std::string())),
       st_man_keys_(parset, prefix),
       scalar_flags_(parset.getBool(prefix + "scalarflags", false)),
-      uvw_compression_(parset.getBool(prefix + "uvwcompression", false)) {
+      uvw_compression_(parset.getBool(prefix + "uvwcompression", false)),
+      antenna_compression_(
+          parset.getBool(prefix + "antennacompression", false)) {
   if (data_col_name_ != "DATA")
     throw std::runtime_error(
         "Currently only the DATA column"
@@ -316,12 +318,16 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   // on the nr of channels.
   // FLAG_CATEGORY is taken, but ignored when writing.
   std::vector<std::string> fixed_columns{
-      "FLAG_CATEGORY", "WEIGHT",         "SIGMA",        "ANTENNA1",
-      "ANTENNA2",      "ARRAY_ID",       "DATA_DESC_ID", "EXPOSURE",
-      "FEED1",         "FEED2",          "FIELD_ID",     "FLAG_ROW",
-      "INTERVAL",      "OBSERVATION_ID", "PROCESSOR_ID", "SCAN_NUMBER",
-      "STATE_ID",      "TIME",           "TIME_CENTROID"};
+      "FLAG_CATEGORY", "WEIGHT",      "SIGMA",    "ARRAY_ID",
+      "DATA_DESC_ID",  "EXPOSURE",    "FEED1",    "FEED2",
+      "FIELD_ID",      "FLAG_ROW",    "INTERVAL", "OBSERVATION_ID",
+      "PROCESSOR_ID",  "SCAN_NUMBER", "STATE_ID", "TIME",
+      "TIME_CENTROID"};
   if (!uvw_compression_) fixed_columns.emplace_back("UVW");
+  if (!antenna_compression_) {
+    fixed_columns.emplace_back("ANTENNA1");
+    fixed_columns.emplace_back("ANTENNA2");
+  }
   Block<casacore::String> fixed_columns_block(fixed_columns.size());
   for (size_t i = 0; i != fixed_columns.size(); ++i)
     fixed_columns_block[i] = fixed_columns[i];
@@ -371,12 +377,15 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   }
   // Replace all non-writable storage managers (i.e. LofarStMan) by ISM.
   dminfo = DataManInfo::adjustStMan(dminfo, "IncrementalStMan");
-  // Remove ANTENNA1 and ANTENNA2 from the dminfo.
-  // Don't remove them if already stored with StandardStMan.
-  casacore::Vector<casacore::String> remove_cols(2);
-  remove_cols[0] = "ANTENNA1";
-  remove_cols[1] = "ANTENNA2";
-  DataManInfo::removeDminfoColumns(dminfo, remove_cols, "StandardStMan");
+
+  if (!antenna_compression_) {
+    // Remove ANTENNA1 and ANTENNA2 from the dminfo.
+    // Don't remove them if already stored with StandardStMan.
+    casacore::Vector<casacore::String> remove_cols(2);
+    remove_cols[0] = "ANTENNA1";
+    remove_cols[1] = "ANTENNA2";
+    DataManInfo::removeDminfoColumns(dminfo, remove_cols, "StandardStMan");
+  }
   // Configure UVW column.
   if (!uvw_compression_) {
     // Use as many rows as used for the DATA columns, but minimal 1024.
@@ -425,6 +434,13 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     dysco_constructor = DataManager::getCtor("DyscoStMan");
   }
   ms_ = Table(newtab);
+
+  if (antenna_compression_) {
+    std::unique_ptr<DataManager> ant_st_man =
+        MakeStMan("AntennaPairStMan", "AntennaPairStMan");
+    ms_.addColumn(tdesc["ANTENNA1"], *ant_st_man);
+    ms_.addColumn(tdesc["ANTENNA2"], "AntennaPairStMan", false);
+  }
 
   if (st_man_keys_.stManName == "dysco" && st_man_keys_.dyscoDataBitRate != 0) {
     // Add DATA column using Dysco stman.
@@ -756,8 +772,18 @@ void MSWriter::WriteMeta(Table& out, const DPBuffer& buf) {
   // Fill ANTENNA1/2.
   ScalarColumn<int> ant1col(out, "ANTENNA1");
   ScalarColumn<int> ant2col(out, "ANTENNA2");
-  ant1col.putColumn(casacore::Vector<int>(getInfo().getAnt1()));
-  ant2col.putColumn(casacore::Vector<int>(getInfo().getAnt2()));
+  if (antenna_compression_) {
+    // When using the compressing mgr, antenna 1 and 2 have to be written
+    // directly after each other.
+    const size_t n = getInfo().getAnt1().size();
+    for (size_t i = 0; i != n; ++i) {
+      ant1col.put(i, getInfo().getAnt1()[i]);
+      ant2col.put(i, getInfo().getAnt2()[i]);
+    }
+  } else {
+    ant1col.putColumn(casacore::Vector<int>(getInfo().getAnt1()));
+    ant2col.putColumn(casacore::Vector<int>(getInfo().getAnt2()));
+  }
   // Fill all rows that do not change.
   FillSca<double>(buf.GetTime(), out, "TIME");
   FillSca<double>(buf.GetTime(), out, "TIME_CENTROID");

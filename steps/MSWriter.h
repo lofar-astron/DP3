@@ -202,6 +202,7 @@ class MSWriter : public OutputStep {
   // For now, uvw compression is turned off by default. Once we're confident
   // enough about this feature, we can enable it by default.
   bool uvw_compression_ = false;
+  bool antenna_compression_ = false;
 
   /// The total time spent in the writer.
   common::NSTimer timer_;

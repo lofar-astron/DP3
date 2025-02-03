@@ -208,3 +208,35 @@ def test_scalar_flags():
     assert get_directory_size("out1.MS") + 125000 < get_directory_size(
         "out2.MS"
     )
+
+
+def test_antenna_compression():
+    check_output(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "steps=[]",
+            "msout=out1.MS",
+            "msout.antennacompression=True",
+        ]
+    )
+
+    check_output(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "steps=[]",
+            "msout=out2.MS",
+            "msout.antennacompression=False",
+        ]
+    )
+
+    taql_command = "select from out1.MS AS out1, out2.MS AS out2 where not all(out1.ANTENNA1==out2.ANTENNA1) or not all(out1.ANTENNA2==out2.ANTENNA2)"
+    assert_taql(taql_command)
+    # I measured these sizes:
+    # - Without antennacompression compression: 1911382 bytes
+    # - With antennacompression compression: 1845518 bytes
+    # Hence compression saves 65864 bytes. The test is a bit more flexible to allow some changes to occur.
+    assert get_directory_size("out1.MS") + 64500 <= get_directory_size(
+        "out2.MS"
+    )
