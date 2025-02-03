@@ -13,7 +13,13 @@ import pytest
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import check_output, get_taql_result, run_in_tmp_path, untar
+from utils import (
+    assert_taql,
+    check_output,
+    get_taql_result,
+    run_in_tmp_path,
+    untar,
+)
 
 MSIN = "tNDPPP-generic.MS"
 
@@ -115,4 +121,48 @@ def test_write_thread_disabled():
     assert re.search(
         b"(1[0-9]| [ 0-9])[0-9]\\.[0-9]% \\([ 0-9]{5} [m ]s\\) Writing\n",
         result,
+    )
+
+
+def get_directory_size(p):
+    """
+    Computes the sum of the file sizes in directory 'p'.
+    Does not traverse 'p' recursively.
+    """
+    return sum(
+        os.path.getsize(p + "/" + f)
+        for f in os.listdir(p)
+        if os.path.isfile(p + "/" + f)
+    )
+
+
+def test_uvw_compression():
+    check_output(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "steps=[]",
+            "msout=out1.MS",
+            "msout.uvwcompression=True",
+        ]
+    )
+
+    check_output(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "steps=[]",
+            "msout=out2.MS",
+            "msout.uvwcompression=False",
+        ]
+    )
+
+    taql_command = "select from out1.MS AS out1, out2.MS AS out2 where not all(out1.FLAG==out2.FLAG)"
+    assert_taql(taql_command)
+    # I measured these sizes:
+    # - Without uvw compression: 1911382 bytes
+    # - With uvw compression: 1813862 bytes
+    # Hence comression saves 97520 bytes. The test is a bit more flexible to allow some changes to occur.
+    assert get_directory_size("out1.MS") + 87500 <= get_directory_size(
+        "out2.MS"
     )

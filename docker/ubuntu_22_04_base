@@ -58,8 +58,9 @@ RUN mkdir -p /usr/share/casacore/data && \
 # The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
 RUN  mkdir /external && \
   cd /external && \
-  git clone --depth 1 --branch v3.6.0 https://github.com/casacore/casacore.git && \
+  git clone https://github.com/casacore/casacore.git && \
   cd /external/casacore && \
+  git checkout 4c661342faf74c56ea15ecdfc6f2ff4a58072e76 && \
   mkdir build && \
   cd build && \
   cmake .. -DBUILD_PYTHON3=ON -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \

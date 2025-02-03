@@ -62,7 +62,7 @@ RUN  mkdir /external && \
   cd /external && \
   git clone https://github.com/casacore/casacore.git && \
   cd /external/casacore && \
-  git checkout v3.6.0 && \
+  git checkout 4c661342faf74c56ea15ecdfc6f2ff4a58072e76 && \
   mkdir build && \
   cd build && \
   cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \

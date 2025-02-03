@@ -107,7 +107,8 @@ MSWriter::MSWriter(const std::string& out_name,
       vds_dir_(parset.getString(prefix + "vdsdir", std::string())),
       cluster_desc_(parset.getString(prefix + "clusterdesc", std::string())),
       st_man_keys_(parset, prefix),
-      scalar_flags_(parset.getBool(prefix + "scalarflags", false)) {
+      scalar_flags_(parset.getBool(prefix + "scalarflags", false)),
+      uvw_compression_(parset.getBool(prefix + "uvwcompression", false)) {
   if (data_col_name_ != "DATA")
     throw std::runtime_error(
         "Currently only the DATA column"
@@ -314,28 +315,17 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   // Create the output table without the columns depending
   // on the nr of channels.
   // FLAG_CATEGORY is taken, but ignored when writing.
-  Block<casacore::String> fixed_columns(20);
-  fixed_columns[0] = "UVW";
-  fixed_columns[1] = "FLAG_CATEGORY";
-  fixed_columns[2] = "WEIGHT";
-  fixed_columns[3] = "SIGMA";
-  fixed_columns[4] = "ANTENNA1";
-  fixed_columns[5] = "ANTENNA2";
-  fixed_columns[6] = "ARRAY_ID";
-  fixed_columns[7] = "DATA_DESC_ID";
-  fixed_columns[8] = "EXPOSURE";
-  fixed_columns[9] = "FEED1";
-  fixed_columns[10] = "FEED2";
-  fixed_columns[11] = "FIELD_ID";
-  fixed_columns[12] = "FLAG_ROW";
-  fixed_columns[13] = "INTERVAL";
-  fixed_columns[14] = "OBSERVATION_ID";
-  fixed_columns[15] = "PROCESSOR_ID";
-  fixed_columns[16] = "SCAN_NUMBER";
-  fixed_columns[17] = "STATE_ID";
-  fixed_columns[18] = "TIME";
-  fixed_columns[19] = "TIME_CENTROID";
-  Table temptable = original_table.project(fixed_columns);
+  std::vector<std::string> fixed_columns{
+      "FLAG_CATEGORY", "WEIGHT",         "SIGMA",        "ANTENNA1",
+      "ANTENNA2",      "ARRAY_ID",       "DATA_DESC_ID", "EXPOSURE",
+      "FEED1",         "FEED2",          "FIELD_ID",     "FLAG_ROW",
+      "INTERVAL",      "OBSERVATION_ID", "PROCESSOR_ID", "SCAN_NUMBER",
+      "STATE_ID",      "TIME",           "TIME_CENTROID"};
+  if (!uvw_compression_) fixed_columns.emplace_back("UVW");
+  Block<casacore::String> fixed_columns_block(fixed_columns.size());
+  for (size_t i = 0; i != fixed_columns.size(); ++i)
+    fixed_columns_block[i] = fixed_columns[i];
+  Table temptable = original_table.project(fixed_columns_block);
   TableDesc newdesc = temptable.tableDesc();
   // Now quite some 'magic' is done to get the storage managers right.
   // Most of the columns do not change much and should be stored with
@@ -387,22 +377,24 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   remove_cols[0] = "ANTENNA1";
   remove_cols[1] = "ANTENNA2";
   DataManInfo::removeDminfoColumns(dminfo, remove_cols, "StandardStMan");
-  // Use TiledStMan for UVW.
-  // Use as many rows as used for the DATA columns, but minimal 1024.
-  int tsmnrow = tile_shape[2];
-  if (tsmnrow < 1024) {
-    tsmnrow = 1024;
-  }
-  // Make sure that the UVW column is stored as a fixed shape column.
-  {
-    ColumnDesc& cdesc = newdesc.rwColumnDesc("UVW");
-    if (cdesc.shape().empty()) {
-      cdesc.setShape(IPosition(1, 3), true);
+  // Configure UVW column.
+  if (!uvw_compression_) {
+    // Use as many rows as used for the DATA columns, but minimal 1024.
+    int tsmnrow = tile_shape[2];
+    if (tsmnrow < 1024) {
+      tsmnrow = 1024;
     }
+    // Make sure that the UVW column is stored as a fixed shape column.
+    {
+      ColumnDesc& cdesc = newdesc.rwColumnDesc("UVW");
+      if (cdesc.shape().empty()) {
+        cdesc.setShape(IPosition(1, 3), true);
+      }
+    }
+    DataManInfo::setTiledStMan(
+        dminfo, casacore::Vector<casacore::String>(1, "UVW"),
+        "TiledColumnStMan", "TiledUVW", IPosition(2, 3, tsmnrow));
   }
-  DataManInfo::setTiledStMan(
-      dminfo, casacore::Vector<casacore::String>(1, "UVW"), "TiledColumnStMan",
-      "TiledUVW", IPosition(2, 3, tsmnrow));
   // Test if SSMVar already exists.
   bool has_ssm_var = false;
   for (unsigned int i = 0; i < dminfo.nfields(); ++i) {
@@ -450,6 +442,13 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
                                st_man_keys_.stManName);
     TiledColumnStMan tsm("TiledData", tile_shape);
     MakeArrayColumn(tdesc["DATA"], data_shape, &tsm, ms_);
+  }
+
+  if (uvw_compression_) {
+    std::unique_ptr<DataManager> uvw_st_man =
+        MakeStMan("UvwStMan", "CompressedUvw");
+    MakeArrayColumn(tdesc["UVW"], casacore::IPosition{3}, uvw_st_man.get(), ms_,
+                    true);
   }
 
   // Add FLAG column
