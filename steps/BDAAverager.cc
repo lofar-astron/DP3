@@ -103,9 +103,9 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   }
 
   Step::updateInfo(_info);
-  info().setIsBDAIntervalFactorInteger(true);
+  infoOut().setIsBDAIntervalFactorInteger(true);
 
-  expected_input_shape_ = {info().nbaselines(), info().nchan(), info().ncorr()};
+  expected_input_shape_ = {_info.nbaselines(), _info.nchan(), _info.ncorr()};
 
   std::vector<std::vector<double>> freqs(_info.nbaselines());
   std::vector<std::vector<double>> widths(_info.nbaselines());
@@ -197,8 +197,8 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
 
   bda_pool_size_ = _info.ncorr() * bda_channels;
 
-  info().update(std::move(baseline_factors));
-  info().setChannels(std::move(freqs), std::move(widths));
+  infoOut().update(std::move(baseline_factors));
+  infoOut().setChannels(std::move(freqs), std::move(widths));
 }
 
 bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
@@ -214,6 +214,7 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
     }
   }
   const DPBuffer::UvwType& uvw = buffer->GetUvw();
+  const std::size_t n_correlations = getInfoOut().ncorr();
 
   if (buffer->GetData().shape() != expected_input_shape_ ||
       (use_weights_and_flags_ &&
@@ -229,9 +230,9 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
     ++bb.times_added;
 
     if (1 == bb.times_added) {
-      bb.starttime = buffer->GetTime() - info().timeInterval() / 2;
+      bb.starttime = buffer->GetTime() - getInfoOut().timeInterval() / 2;
     }
-    bb.interval += info().timeInterval();
+    bb.interval += getInfoOut().timeInterval();
     bb.exposure += buffer->GetExposure();
 
     std::complex<float>* bb_data = bb.data.data();
@@ -242,20 +243,20 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
            ++och) {
         for (std::size_t ich = bb.input_channel_indices[och];
              ich < bb.input_channel_indices[och + 1]; ++ich) {
-          for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
+          for (std::size_t corr = 0; corr < n_correlations; ++corr) {
             bb_data[corr] += buffer->GetData()(b, ich, corr);
             bb_weights[corr] += 1.0;
           }
         }
-        bb_data += info().ncorr();
-        bb_weights += info().ncorr();
+        bb_data += n_correlations;
+        bb_weights += n_correlations;
       }
     } else {
       for (std::size_t och = 0; och < bb.input_channel_indices.size() - 1;
            ++och) {
         for (std::size_t ich = bb.input_channel_indices[och];
              ich < bb.input_channel_indices[och + 1]; ++ich) {
-          for (std::size_t corr = 0; corr < info().ncorr(); ++corr) {
+          for (std::size_t corr = 0; corr < n_correlations; ++corr) {
             if (!buffer->GetFlags()(b, ich, corr)) {
               const float weight = buffer->GetWeights()(b, ich, corr);
 
@@ -264,8 +265,8 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
             }
           }
         }
-        bb_data += info().ncorr();
-        bb_weights += info().ncorr();
+        bb_data += n_correlations;
+        bb_weights += n_correlations;
       }
     }
     bb.uvw[0] += uvw(b, 0);
@@ -315,7 +316,7 @@ void BDAAverager::finish() {
 void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   BDAAverager::BaselineBuffer& bb = baseline_buffers_[baseline_nr];
   assert(bb.times_added > 0);
-  const std::size_t nchan = info().chanFreqs(baseline_nr).size();
+  const std::size_t nchan = getInfoOut().chanFreqs(baseline_nr).size();
 
   // Divide data values by their total weight.
   float* weights = bb.weights.data();
@@ -335,7 +336,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
     bb.uvw[2] *= factor;
   }
 
-  if (bda_buffer_->GetRemainingCapacity() < nchan * info().ncorr()) {
+  if (bda_buffer_->GetRemainingCapacity() < nchan * getInfoOut().ncorr()) {
     getNextStep()->process(std::move(bda_buffer_));
     if (fixed_size_bda_buffers_.empty()) {
       bda_buffer_ =
@@ -347,7 +348,7 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   }
 
   bda_buffer_->AddRow(bb.starttime + bb.interval / 2, bb.interval, bb.exposure,
-                      baseline_nr, nchan, info().ncorr(), bb.data.data(),
+                      baseline_nr, nchan, getInfoOut().ncorr(), bb.data.data(),
                       nullptr, bb.weights.data(), bb.uvw);
 }
 
