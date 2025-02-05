@@ -11,6 +11,7 @@
 
 #include <complex>
 #include <map>
+#include <string>
 #include <vector>
 
 #include <aocommon/uvector.h>
@@ -99,6 +100,16 @@ class BdaBuffer {
    */
   bool HasData(const std::string& name = "") const {
     return data_.find(name) != data_.end();
+  }
+
+  /** @return The sorted names of all visibility buffers. */
+  std::vector<std::string> GetDataNames() const {
+    std::vector<std::string> names;
+    names.reserve(data_.size());
+    for (const auto& name_vector : data_) {
+      names.push_back(name_vector.first);
+    }
+    return names;
   }
 
   /**

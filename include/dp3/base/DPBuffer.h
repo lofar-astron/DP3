@@ -147,6 +147,17 @@ class DPBuffer {
     return name.empty() || (extra_data_.find(name) != extra_data_.end());
   }
 
+  /** @return The sorted names of all visibility buffers. */
+  std::vector<std::string> GetDataNames() const {
+    std::vector<std::string> names;
+    names.reserve(1 + extra_data_.size());
+    names.push_back("");
+    for (const auto& name_vector : extra_data_) {
+      names.push_back(name_vector.first);
+    }
+    return names;
+  }
+
   /// Accesses the data (visibilities) in the DPBuffer.
   ///
   /// @param name Data buffer name. An empty string indicates the main data
