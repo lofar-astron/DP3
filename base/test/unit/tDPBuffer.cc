@@ -109,6 +109,8 @@ BOOST_AUTO_TEST_CASE(constructor) {
   BOOST_CHECK(buffer.GetData().size() == 0);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(!buffer.HasData(kFooDataName));
+  const std::vector<std::string> names = buffer.GetDataNames();
+  BOOST_CHECK(names.size() == 1 && names.front() == "");
   BOOST_CHECK(buffer.GetFlags().size() == 0);
   BOOST_CHECK(buffer.GetUvw().size() == 0);
   BOOST_CHECK(buffer.GetWeights().size() == 0);
@@ -252,16 +254,35 @@ BOOST_AUTO_TEST_CASE(remove_data_one_by_one) {
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(buffer.HasData(kFooDataName));
   BOOST_CHECK(buffer.HasData(kBarDataName));
+  {
+    const std::vector<std::string> names = buffer.GetDataNames();
+    const std::vector<std::string> expected_names = {"", kBarDataName,
+                                                     kFooDataName};
+    BOOST_CHECK_EQUAL_COLLECTIONS(names.begin(), names.end(),
+                                  expected_names.begin(), expected_names.end());
+  }
 
   buffer.RemoveData(kFooDataName);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(!buffer.HasData(kFooDataName));
   BOOST_CHECK(buffer.HasData(kBarDataName));
+  {
+    const std::vector<std::string> names = buffer.GetDataNames();
+    const std::vector<std::string> expected_names = {"", kBarDataName};
+    BOOST_CHECK_EQUAL_COLLECTIONS(names.begin(), names.end(),
+                                  expected_names.begin(), expected_names.end());
+  }
 
   buffer.RemoveData(kBarDataName);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(!buffer.HasData(kFooDataName));
   BOOST_CHECK(!buffer.HasData(kBarDataName));
+  {
+    const std::vector<std::string> names = buffer.GetDataNames();
+    const std::vector<std::string> expected_names = {""};
+    BOOST_CHECK_EQUAL_COLLECTIONS(names.begin(), names.end(),
+                                  expected_names.begin(), expected_names.end());
+  }
 }
 
 BOOST_AUTO_TEST_CASE(remove_data_all_at_once) {
@@ -274,6 +295,8 @@ BOOST_AUTO_TEST_CASE(remove_data_all_at_once) {
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(!buffer.HasData(kFooDataName));
   BOOST_CHECK(!buffer.HasData(kBarDataName));
+  const std::vector<std::string> names = buffer.GetDataNames();
+  BOOST_CHECK(names.size() == 1 && names.front() == "");
 }
 
 BOOST_AUTO_TEST_CASE(copy_main_data) {

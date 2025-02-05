@@ -92,13 +92,17 @@ void AddBasicRow(BdaBuffer& buffer, const std::string& name = "") {
 BOOST_AUTO_TEST_SUITE(bdabuffer)
 
 BOOST_AUTO_TEST_CASE(initialization) {
-  BdaBuffer buffer(2, kAllFields);
+  const BdaBuffer buffer(2, kAllFields);
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 0u);
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 2u);
   BOOST_CHECK_EQUAL(buffer.GetData(), nullptr);
   BOOST_CHECK_EQUAL(buffer.GetFlags(), nullptr);
   BOOST_CHECK_EQUAL(buffer.GetWeights(), nullptr);
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 0u);
+  BOOST_CHECK(buffer.HasData());
+  const std::vector<std::string> names = buffer.GetDataNames();
+  BOOST_REQUIRE_EQUAL(names.size(), 1u);
+  BOOST_CHECK_EQUAL(names.front(), "");
 }
 
 BOOST_AUTO_TEST_CASE(copy_all_fields) {
@@ -347,6 +351,10 @@ BOOST_AUTO_TEST_CASE(disabled_fields) {
   BOOST_CHECK_EQUAL(buffer.GetFlags(0), nullptr);
   BOOST_CHECK_EQUAL(buffer.GetWeights(0), nullptr);
 
+  // Verify functions related to multiple visibility buffers.
+  BOOST_CHECK(!buffer.HasData());
+  BOOST_CHECK(buffer.GetDataNames().empty());
+
   // Verify the offset in the row.
   const auto& rows = buffer.GetRows();
   BOOST_REQUIRE_EQUAL(rows.size(), 1u);
@@ -471,10 +479,13 @@ BOOST_AUTO_TEST_CASE(remove_main_data) {
   AddBasicRow(buffer);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(buffer.GetData());
+  BOOST_CHECK(buffer.GetDataNames().size() == 1u &&
+              buffer.GetDataNames().front() == "");
 
   buffer.RemoveData();
   BOOST_CHECK(!buffer.HasData());
   BOOST_CHECK(!buffer.GetData());
+  BOOST_CHECK(buffer.GetDataNames().empty());
 
   BOOST_CHECK_NO_THROW(buffer.RemoveData());
 }
@@ -485,17 +496,30 @@ BOOST_AUTO_TEST_CASE(remove_named_data) {
   AddBasicRow(buffer);
   BOOST_CHECK(!buffer.HasData());
   BOOST_CHECK(buffer.HasData(kDataName));
+  BOOST_CHECK(buffer.GetDataNames().size() == 1u &&
+              buffer.GetDataNames().front() == kDataName);
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), kDataSize);
 
   buffer.RemoveData(kDataName);
   BOOST_CHECK(!buffer.HasData());
   BOOST_CHECK(!buffer.HasData(kDataName));
+  BOOST_CHECK(buffer.GetDataNames().empty());
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), kDataSize);
 
   BOOST_CHECK_NO_THROW(buffer.RemoveData(kDataName));
 }
 
 BOOST_AUTO_TEST_CASE(clear) {
+  const auto check_data_names = [](const BdaBuffer& buffer) {
+    BOOST_CHECK(buffer.HasData());
+    BOOST_CHECK(buffer.HasData(kDataName));
+
+    const std::vector<std::string> expected_names = {"", kDataName};
+    const std::vector<std::string> names = buffer.GetDataNames();
+    BOOST_CHECK_EQUAL_COLLECTIONS(names.begin(), names.end(),
+                                  expected_names.begin(), expected_names.end());
+  };
+
   BdaBuffer buffer(3 * kDataSize, kAllFields);
   buffer.AddData(kDataName);
 
@@ -510,16 +534,14 @@ BOOST_AUTO_TEST_CASE(clear) {
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 3 * kDataSize);
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 0u);
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 3u);
-  BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(buffer.HasData(kDataName));
+  check_data_names(buffer);
 
   buffer.Clear();
   BOOST_CHECK_EQUAL(buffer.GetNumberOfElements(), 0u);
   BOOST_CHECK_EQUAL(buffer.GetRemainingCapacity(), 3 * kDataSize);
   BOOST_CHECK_EQUAL(buffer.GetRows().size(), 0u);
   // Clearing should only clear the content, not the data buffers themselves.
-  BOOST_CHECK(buffer.HasData());
-  BOOST_CHECK(buffer.HasData(kDataName));
+  check_data_names(buffer);
 
   // Check that 3 rows can be added again.
   BOOST_CHECK(buffer.AddRow(kTime, kInterval, kExposure, kBaselineNr,
