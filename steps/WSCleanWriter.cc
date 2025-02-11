@@ -89,6 +89,7 @@ void WSCleanWriter::StartReorder() {
 
   schaapcommon::reordering::ReorderedHandleData data(
       out_name_, getInfoOut().dataColumnName(), "MODEL_DATA",
+      schaapcommon::reordering::StorageManagerType::Default,
       temporary_directory_, channel_ranges, false, false, pols_out_, selection,
       bands, getInfoOut().antennaNames().size(), true,
       [](schaapcommon::reordering::ReorderedHandleData) {});

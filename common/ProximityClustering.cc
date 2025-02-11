@@ -11,6 +11,8 @@
 #include <cmath>
 #include <cassert>
 
+#include <aocommon/imagecoordinates.h>
+
 using std::size_t;
 
 namespace dp3 {
@@ -26,30 +28,21 @@ ProximityClustering::Coordinate ProximityClustering::GetCoordinate(
   return coordinates_[i];
 }
 
-ProximityClustering::NumType ProximityClustering::EuclidDistance(
-    ProximityClustering::Coordinate x1, ProximityClustering::Coordinate x2) {
-  return std::sqrt((x1.first - x2.first) * (x1.first - x2.first) +
-                   (x1.second - x2.second) * (x1.second - x2.second));
-}
-
 ProximityClustering::Coordinate ProximityClustering::Centroid(size_t i) const {
   assert(!clusters_[i].empty());
-  NumType x = 0;
-  NumType y = 0;
+  std::vector<std::pair<double, double>> list;
   for (size_t j : clusters_[i]) {
-    x += GetCoordinate(j).first;
-    y += GetCoordinate(j).second;
+    list.emplace_back(GetCoordinate(j));
   }
-  x /= clusters_[i].size();
-  y /= clusters_[i].size();
-  return std::make_pair(x, y);
+  return aocommon::ImageCoordinates::MeanPosition(list);
 }
 
 ProximityClustering::NumType ProximityClustering::ClusterDistance(
     size_t i, size_t j) const {
-  Coordinate centroid1 = Centroid(i);
-  Coordinate centroid2 = Centroid(j);
-  return EuclidDistance(centroid1, centroid2);
+  const Coordinate centroid1 = Centroid(i);
+  const Coordinate centroid2 = Centroid(j);
+  return aocommon::ImageCoordinates::AngularDistance(
+      centroid1.first, centroid1.second, centroid2.first, centroid2.second);
 }
 
 void ProximityClustering::GroupSource(size_t source_index,
