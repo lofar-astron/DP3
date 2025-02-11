@@ -87,12 +87,14 @@ class BDAAverager : public Step {
     double starttime;
     double interval;
     double exposure;
-    std::vector<std::complex<float>> data;
+    std::map<std::string, std::vector<std::complex<float>>> data;
     std::vector<float> weights;
     double uvw[3];
   };
 
   void AddBaseline(std::size_t baseline_nr);
+
+  void SetBdaBuffer(const std::vector<std::string>& data_names);
 
   common::NSTimer timer_;
 
@@ -137,4 +139,4 @@ class BDAAverager : public Step {
 }  // namespace steps
 }  // namespace dp3
 
-#endif  // DPPP_BDAAVERAGER_H
+#endif  // DP3_STEPS_BDAAVERAGER_H_
