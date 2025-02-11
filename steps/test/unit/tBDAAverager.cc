@@ -25,6 +25,7 @@ const double kStartTime = 0.0;
 const double kInterval = 1.0;
 const double kFirstTime = 0.5;
 const double kLastTime = 9.5;
+const std::string kExtraData = "extraData";
 const std::string kMsName{};
 const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2", "ant3"};
 const std::vector<casacore::MPosition> kAntPos{
@@ -127,6 +128,7 @@ std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
 
   auto buffer = std::make_unique<dp3::base::DPBuffer>(time, interval);
   buffer->GetData().resize(kShape);
+  buffer->AddData(kExtraData);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
   buffer->GetUvw().resize({n_baselines, 3});
@@ -136,7 +138,8 @@ std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
 
   for (std::size_t baseline = 0; baseline < n_baselines; ++baseline) {
     // Base value for this baseline.
-    const float baseline_value = (baseline * 100.0) + (base_value / weight);
+    const float baseline_value =
+        10'000.0 + (baseline * 100.0) + (base_value / weight);
 
     std::size_t channel = 0;
     float channel_value = baseline_value;  // Base value for a group of channels
@@ -147,7 +150,10 @@ std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
       // channels.
       const float value = channel_value + 5.0 * (channel_count - 1);
       for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        buffer->GetData()(baseline, channel, corr) = value + corr;
+        buffer->GetData()(baseline, channel, corr) =
+            std::complex<float>(value + corr, value + corr + 100.0f);
+        buffer->GetData(kExtraData)(baseline, channel, corr) =
+            std::complex<float>(2 * (value + corr), value + corr + 200.0f);
         buffer->GetWeights()(baseline, channel, corr) *= channel_count;
       }
       ++channel;
@@ -205,7 +211,8 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
  * @param baseline_nr The expected baseline number of the row.
  */
 void CheckRow(const DPBuffer& expected, const BdaBuffer& buffer,
-              std::size_t row_index, std::size_t baseline_nr) {
+              std::size_t row_index, std::size_t baseline_nr,
+              bool check_extra_data = true) {
   const BdaBuffer::Row& row = buffer.GetRows()[row_index];
 
   const std::size_t n_corr = expected.GetData().shape(2);
@@ -221,11 +228,17 @@ void CheckRow(const DPBuffer& expected, const BdaBuffer& buffer,
   BOOST_TEST(expected.GetUvw()(0, 2) == row.uvw[2]);
 
   const std::complex<float>* row_data = buffer.GetData(row_index);
+  const std::complex<float>* row_extra_data;
   const bool* row_flag = buffer.GetFlags(row_index);
   const float* row_weight = buffer.GetWeights(row_index);
   BOOST_REQUIRE(row_data);
   BOOST_REQUIRE(row_flag);
   BOOST_REQUIRE(row_weight);
+  if (check_extra_data) {
+    row_extra_data = buffer.GetData(row_index, kExtraData);
+    BOOST_REQUIRE(row_extra_data);
+  }
+
   for (std::size_t chan = 0; chan < n_chan; ++chan) {
     for (std::size_t corr = 0; corr < n_corr; ++corr) {
       BOOST_TEST(expected.GetData()(0, chan, corr).real() == row_data->real());
@@ -235,6 +248,14 @@ void CheckRow(const DPBuffer& expected, const BdaBuffer& buffer,
       ++row_data;
       ++row_flag;
       ++row_weight;
+
+      if (check_extra_data) {
+        BOOST_TEST(expected.GetData(kExtraData)(0, chan, corr).real() ==
+                   row_extra_data->real());
+        BOOST_TEST(expected.GetData(kExtraData)(0, chan, corr).imag() ==
+                   row_extra_data->imag());
+        ++row_extra_data;
+      }
     }
   }
 }
@@ -243,6 +264,17 @@ void CheckRow(const DPBuffer& expected, const BdaBuffer& buffer,
 
 BOOST_AUTO_TEST_SUITE(bda_averager, *boost::unit_test::tolerance(0.001) *
                                         boost::unit_test::tolerance(0.001f))
+
+BOOST_AUTO_TEST_CASE(finish_without_process) {
+  const dp3::common::ParameterSet parset = GetParset();
+  BDAAverager averager(parset, kPrefix);
+
+  auto mock_step = std::make_shared<dp3::steps::MockStep>();
+  averager.setNextStep(mock_step);
+
+  averager.finish();
+  BOOST_TEST(mock_step->GetBdaBuffers().empty());
+}
 
 BOOST_AUTO_TEST_CASE(required_fields) {
   using dp3::steps::Step;
@@ -453,7 +485,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_use_weights) {
 
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 1u);
-  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0);
+  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0, false);
 }
 
 BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
@@ -505,7 +537,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
 
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 1u);
-  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0);
+  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0, false);
 }
 
 BOOST_AUTO_TEST_CASE(channel_averaging) {
@@ -865,8 +897,18 @@ BOOST_AUTO_TEST_CASE(zero_values_weight) {
   BDAAverager averager(parset, kPrefix);
   averager.updateInfo(info);
 
+  // Calling CreateBuffer with a weight of 0.0 yields NaN data values.
   std::unique_ptr<DPBuffer> buffer = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kChannelCounts, 0.0, 0.0);
+  // Put non-NaN values into the imaginary part of the data.
+  for (std::complex<float>& value : buffer->GetData()) {
+    value = {value.real(), 42.0f};
+  }
+  // Put non-NaN values into the real part of the extra data.
+  for (std::complex<float>& value : buffer->GetData(kExtraData)) {
+    value = {0.42f, value.imag()};
+  }
+
   std::unique_ptr<DPBuffer> averaged = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kOutputChannelCounts, 0.0);
 
@@ -876,10 +918,21 @@ BOOST_AUTO_TEST_CASE(zero_values_weight) {
   BOOST_TEST(averager.process(std::move(buffer)));
   Finish(averager, *mock_step);
 
-  // A weight of 0 should not result in a nan
+  // A weight of 0 should only result in NaN when the input data is NaN.
+  // When the input data is not NaN, the result should be zero.
   const auto& bda_buffers = mock_step->GetBdaBuffers();
-  BOOST_TEST(!std::isnan(bda_buffers[0]->GetData()[0].imag()));
-  BOOST_TEST(bda_buffers[0]->GetData()[0].imag() == 0);
+
+  const size_t data_size = bda_buffers[0]->GetNumberOfElements();
+  BOOST_TEST(data_size > 0);
+  for (std::size_t i = 0; i < data_size; ++i) {
+    const std::complex<float> value = bda_buffers[0]->GetData()[i];
+    const std::complex<float> extra_value =
+        bda_buffers[0]->GetData(kExtraData)[i];
+    BOOST_TEST(std::isnan(value.real()));
+    BOOST_TEST(value.imag() == 0);
+    BOOST_TEST(extra_value.real() == 0);
+    BOOST_TEST(std::isnan(extra_value.imag()));
+  }
 }
 
 BOOST_AUTO_TEST_CASE(force_buffersize) {
