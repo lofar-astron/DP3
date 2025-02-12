@@ -162,7 +162,7 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
   } else if (type == "averager" || type == "average" || type == "squash") {
     step = std::make_shared<steps::Averager>(parset, prefix);
   } else if (type == "bdaaverage" || type == "bdaaverager") {
-    step = std::make_shared<steps::BDAAverager>(parset, prefix);
+    step = std::make_shared<steps::BdaAverager>(parset, prefix);
   } else if (type == "bdaexpander") {
     step = std::make_shared<steps::BdaExpander>(prefix);
   } else if (type == "madflagger" || type == "madflag") {

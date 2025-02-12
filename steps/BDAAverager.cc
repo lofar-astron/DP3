@@ -19,7 +19,7 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
-BDAAverager::BaselineBuffer::BaselineBuffer(std::size_t _time_factor,
+BdaAverager::BaselineBuffer::BaselineBuffer(std::size_t _time_factor,
                                             std::size_t n_input_channels,
                                             std::size_t n_output_channels,
                                             std::size_t n_correlations)
@@ -45,7 +45,7 @@ BDAAverager::BaselineBuffer::BaselineBuffer(std::size_t _time_factor,
   assert(n_input_channels == input_channel_indices.back());
 }
 
-void BDAAverager::BaselineBuffer::Clear() {
+void BdaAverager::BaselineBuffer::Clear() {
   times_added = 0;
   starttime = 0.0;
   interval = 0.0;
@@ -58,7 +58,7 @@ void BDAAverager::BaselineBuffer::Clear() {
   std::fill(uvw, uvw + 3, 0.0);
 }
 
-BDAAverager::BDAAverager(const common::ParameterSet& parset,
+BdaAverager::BdaAverager(const common::ParameterSet& parset,
                          const std::string& prefix,
                          const bool use_weights_and_flags)
     : timer_("BDA Averager"),
@@ -76,9 +76,9 @@ BDAAverager::BDAAverager(const common::ParameterSet& parset,
       expected_input_shape_(),
       use_weights_and_flags_(use_weights_and_flags) {}
 
-BDAAverager::~BDAAverager() = default;
+BdaAverager::~BdaAverager() = default;
 
-void BDAAverager::set_averaging_params(
+void BdaAverager::set_averaging_params(
     std::vector<unsigned int> baseline_factors,
     std::vector<std::vector<double>> freqs,
     std::vector<std::vector<double>> widths) {
@@ -91,7 +91,7 @@ void BDAAverager::set_averaging_params(
   widths_ = std::move(widths);
 }
 
-void BDAAverager::updateInfo(const DPInfo& _info) {
+void BdaAverager::updateInfo(const DPInfo& _info) {
   if (_info.nchan() != _info.chanFreqs().size() ||
       !_info.channelsAreRegular()) {
     throw std::invalid_argument("Invalid info in BDA averager");
@@ -204,7 +204,7 @@ void BDAAverager::updateInfo(const DPInfo& _info) {
   infoOut().setChannels(std::move(freqs), std::move(widths));
 }
 
-bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
+bool BdaAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   common::NSTimer::StartStop sstime(timer_);
 
   if (!bda_buffer_) {
@@ -234,7 +234,7 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
       (use_weights_and_flags_ &&
        (buffer->GetFlags().shape() != expected_input_shape_ ||
         buffer->GetWeights().shape() != expected_input_shape_))) {
-    throw std::runtime_error("BDAAverager: Invalid buffer shape");
+    throw std::runtime_error("BdaAverager: Invalid buffer shape");
   }
 
   for (std::size_t b = 0; b < baseline_buffers_.size(); ++b) {
@@ -302,7 +302,7 @@ bool BDAAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   return true;
 }
 
-void BDAAverager::finish() {
+void BdaAverager::finish() {
   for (std::size_t b = 0; b < baseline_buffers_.size(); ++b) {
     if (baseline_buffers_[b].times_added > 0) {
       AddBaseline(b);
@@ -317,8 +317,8 @@ void BDAAverager::finish() {
   getNextStep()->finish();
 }
 
-void BDAAverager::AddBaseline(std::size_t baseline_nr) {
-  BDAAverager::BaselineBuffer& bb = baseline_buffers_[baseline_nr];
+void BdaAverager::AddBaseline(std::size_t baseline_nr) {
+  BdaAverager::BaselineBuffer& bb = baseline_buffers_[baseline_nr];
   assert(bb.times_added > 0);
   const std::size_t n_channels = getInfoOut().chanFreqs(baseline_nr).size();
 
@@ -359,12 +359,12 @@ void BDAAverager::AddBaseline(std::size_t baseline_nr) {
   bb.Clear();  // Prepare baseline for a next iteration.
 }
 
-void BDAAverager::set_next_desired_buffersize(unsigned int buffer_size) {
+void BdaAverager::set_next_desired_buffersize(unsigned int buffer_size) {
   fixed_size_bda_buffers_.push(
       std::make_unique<BdaBuffer>(buffer_size, getProvidedFields()));
 }
 
-void BDAAverager::SetBdaBuffer(const std::vector<std::string>& data_names) {
+void BdaAverager::SetBdaBuffer(const std::vector<std::string>& data_names) {
   if (fixed_size_bda_buffers_.empty()) {
     bda_buffer_ =
         std::make_unique<BdaBuffer>(bda_pool_size_, getProvidedFields());
@@ -377,8 +377,8 @@ void BDAAverager::SetBdaBuffer(const std::vector<std::string>& data_names) {
   }
 }
 
-void BDAAverager::show(std::ostream& os) const {
-  os << "BDAAverager " << name_ << '\n';
+void BdaAverager::show(std::ostream& os) const {
+  os << "BdaAverager " << name_ << '\n';
   os << "  timebase:        " << bl_threshold_time_ << "s\n";
   os << "  max interval:    " << max_interval_ << "s\n";
   os << "  frequencybase:   " << bl_threshold_channel_ << '\n';

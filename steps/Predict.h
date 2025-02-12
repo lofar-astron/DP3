@@ -14,7 +14,7 @@ class ParameterSet;
 }
 
 namespace steps {
-class BDAAverager;
+class BdaAverager;
 class OnePredict;
 
 /**
@@ -97,7 +97,7 @@ class Predict : public ModelDataStep {
   const MsType ms_type_;
 
   std::vector<std::shared_ptr<Step>> internal_steps_;
-  std::shared_ptr<BDAAverager> bda_averager_;
+  std::shared_ptr<BdaAverager> bda_averager_;
   std::shared_ptr<OnePredict> predict_step_;
 };
 

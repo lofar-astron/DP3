@@ -23,7 +23,7 @@ class ParameterSet;
 namespace dp3 {
 namespace steps {
 
-class BDAAverager : public Step {
+class BdaAverager : public Step {
  public:
   /**
    * Constructor, which uses a parset for configuring the step.
@@ -33,10 +33,10 @@ class BDAAverager : public Step {
    * BdaAverager to ignore the weights and flags. When false, it assumes
    * unflagged data and a weight of 1.0 for all input data.
    */
-  BDAAverager(const common::ParameterSet& parset, const std::string& prefix,
+  BdaAverager(const common::ParameterSet& parset, const std::string& prefix,
               const bool use_weights_and_flags = true);
 
-  ~BDAAverager() override;
+  ~BdaAverager() override;
 
   common::Fields getRequiredFields() const override {
     common::Fields fields = kDataField | kUvwField;
@@ -45,7 +45,7 @@ class BDAAverager : public Step {
   }
 
   common::Fields getProvidedFields() const override {
-    // BDAAverager always creates BdaBuffers with all fields.
+    // BdaAverager always creates BdaBuffers with all fields.
     return kDataField | kFlagsField | kWeightsField | kUvwField;
   }
 
@@ -68,7 +68,7 @@ class BDAAverager : public Step {
   /**
    * Public method, which sets a desired output size (number of rows).
    * @param buffersize Number of rows in the output buffer: these should be
-   * given in the order one wishes to see in the output. If the BDAAverager is
+   * given in the order one wishes to see in the output. If the BdaAverager is
    * ready to output a BdaBuffer but no size is available, the default value
    * will be used.
    */
