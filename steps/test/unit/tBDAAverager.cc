@@ -14,7 +14,7 @@
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
-using dp3::steps::BDAAverager;
+using dp3::steps::BdaAverager;
 
 namespace {
 const unsigned int kNCorr = 4;
@@ -94,7 +94,7 @@ void CheckInfo(
   }
 }
 
-void Finish(BDAAverager& averager, dp3::steps::MockStep& mock_step) {
+void Finish(BdaAverager& averager, dp3::steps::MockStep& mock_step) {
   BOOST_TEST(mock_step.FinishCount() == std::size_t(0));
   averager.finish();
   BOOST_TEST(mock_step.FinishCount() == std::size_t(1));
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_SUITE(bda_averager, *boost::unit_test::tolerance(0.001) *
 
 BOOST_AUTO_TEST_CASE(finish_without_process) {
   const dp3::common::ParameterSet parset = GetParset();
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
@@ -280,26 +280,26 @@ BOOST_AUTO_TEST_CASE(required_fields) {
   using dp3::steps::Step;
   dp3::common::ParameterSet parset;
 
-  // By default, BDAAverager uses weights and flags.
+  // By default, BdaAverager uses weights and flags.
   const dp3::common::Fields kExpectedFieldsWeightsFlags =
       Step::kDataField | Step::kFlagsField | Step::kWeightsField |
       Step::kUvwField;
-  const BDAAverager averager(parset, kPrefix);
+  const BdaAverager averager(parset, kPrefix);
   BOOST_TEST(averager.getRequiredFields() == kExpectedFieldsWeightsFlags);
   // Test with an explicit 'true' argument for the constructor.
-  const BDAAverager explicit_weights_flags(parset, kPrefix, true);
+  const BdaAverager explicit_weights_flags(parset, kPrefix, true);
   BOOST_TEST(explicit_weights_flags.getRequiredFields() ==
              kExpectedFieldsWeightsFlags);
 
   // Disabling using weights and flags affects the requirements.
-  const BDAAverager no_weights_flags(parset, kPrefix, false);
+  const BdaAverager no_weights_flags(parset, kPrefix, false);
   BOOST_TEST(no_weights_flags.getRequiredFields() ==
              (Step::kDataField | Step::kUvwField));
 }
 
 BOOST_AUTO_TEST_CASE(set_averaging_params_invalid) {
   const dp3::common::ParameterSet parset = GetParset();
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
 
   std::vector<unsigned int> time_avg{2};
   std::vector<std::vector<double>> freqs{{0, 15000, 35000}};
@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_CASE(set_averaging_params_unsupported) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
   const dp3::common::ParameterSet parset = GetParset(2.0);
-  BDAAverager averager(parset, "bda_averager.");
+  BdaAverager averager(parset, "bda_averager.");
 
   std::vector<unsigned int> time_avg{2};
   // Define an unsupported frequency averaging scheme (2-2-1)
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(set_averaging_params) {
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
   const dp3::common::ParameterSet parset = GetParset(2.0);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
 
   std::vector<unsigned int> time_avg{2};
   // Define a supported frequency averaging scheme (1-2-2)
@@ -357,7 +357,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   // With the default options, the averager performs no averaging: It only
   // copies data from DPBuffers into BdaBuffers.
   const dp3::common::ParameterSet parset = GetParset();
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
 
-  // When the BDAAverager merely copies data, each input buffer should
+  // When the BdaAverager merely copies data, each input buffer should
   // generate one output buffer.
   for (std::size_t i = 0; i < kTimeSteps; ++i) {
     BOOST_TEST(averager.process(std::move(buffers[i])));
@@ -400,7 +400,7 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
       averaged_start_time + averaged_interval / 2;
 
   const dp3::common::ParameterSet parset = GetParset(baseline_length * kFactor);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -459,7 +459,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_use_weights) {
 
   const dp3::common::ParameterSet parset =
       GetParset(baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -511,7 +511,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
 
   const dp3::common::ParameterSet parset =
       GetParset(baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, kPrefix, false);
+  BdaAverager averager(parset, kPrefix, false);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
 
@@ -554,7 +554,7 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
 
   const dp3::common::ParameterSet parset =
       GetParset(std::nullopt, baseline_length * kFactor);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
@@ -593,7 +593,7 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
 
   const dp3::common::ParameterSet parset = GetParset(
       baseline_length * kTimeFactor, baseline_length * kChannelFactor);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
   CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
 
@@ -652,7 +652,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
 
   const dp3::common::ParameterSet parset =
       GetParset(time_threshold, chan_threshold);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers for the averager. For the first baseline, these
@@ -754,7 +754,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
 
   const dp3::common::ParameterSet parset =
       GetParset(time_threshold, chan_threshold);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   // Create input buffers and expected output data for the averager.
@@ -802,7 +802,7 @@ BOOST_AUTO_TEST_CASE(shape_mismatch) {
   // The antenna vectors indicate there is a single baseline.
   const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
   const dp3::common::ParameterSet parset = GetParset(2.0);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
@@ -827,7 +827,7 @@ BOOST_AUTO_TEST_CASE(max_interval) {
   // should limit the averaging to a factor of 3.
   const dp3::common::ParameterSet parset =
       GetParset(baseline_length * 42.0, std::nullopt, kMaxInterval);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
@@ -863,7 +863,7 @@ BOOST_AUTO_TEST_CASE(min_channels) {
   // channel, however, we specify a minimum of three channels per baseline.
   const dp3::common::ParameterSet parset = GetParset(
       std::nullopt, baseline_length * kNChan, std::nullopt, kMinChannels);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::unique_ptr<DPBuffer> buffer =
@@ -894,7 +894,7 @@ BOOST_AUTO_TEST_CASE(zero_values_weight) {
   // channel, however, we specify a minimum of three channels per baseline.
   const dp3::common::ParameterSet parset = GetParset(
       std::nullopt, baseline_length * kNChan, std::nullopt, kMinChannels);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   averager.updateInfo(info);
 
   // Calling CreateBuffer with a weight of 0.0 yields NaN data values.
@@ -945,7 +945,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize) {
 
   const dp3::common::ParameterSet parset =
       GetParset(baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::vector<std::unique_ptr<DPBuffer>> input_buffers;
@@ -989,7 +989,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize_smaller_than_output) {
 
   const dp3::common::ParameterSet parset =
       GetParset(baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::vector<std::unique_ptr<DPBuffer>> input_buffers;
@@ -1033,7 +1033,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
 
   const dp3::common::ParameterSet parset =
       GetParset(baseline_length * kTimeAveragingFactor);
-  BDAAverager averager(parset, kPrefix);
+  BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
 
   std::vector<std::unique_ptr<DPBuffer>> input_buffers;

@@ -62,7 +62,7 @@ void Predict::Initialize(const common::ParameterSet& parset,
                                                          time_smearing_factor));
   }
   if (input_type == MsType::kBda) {
-    bda_averager_ = std::make_shared<BDAAverager>(parset, prefix, false);
+    bda_averager_ = std::make_shared<BdaAverager>(parset, prefix, false);
     internal_steps_.push_back(bda_averager_);
   }
 
