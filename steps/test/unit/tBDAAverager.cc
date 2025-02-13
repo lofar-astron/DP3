@@ -1,12 +1,14 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "../../BDAAverager.h"
+
 #include <optional>
 #include <string>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
-#include "../../BDAAverager.h"
 #include <dp3/base/BdaBuffer.h>
 #include "../../../common/ParameterSet.h"
 #include "mock/MockStep.h"
@@ -211,13 +213,14 @@ std::unique_ptr<DPBuffer> CreateSimpleBuffer(
  * @param baseline_nr The expected baseline number of the row.
  */
 void CheckRow(const DPBuffer& expected, const BdaBuffer& buffer,
-              std::size_t row_index, std::size_t baseline_nr,
-              bool check_extra_data = true) {
+              std::size_t row_index, std::size_t baseline_nr) {
   const BdaBuffer::Row& row = buffer.GetRows()[row_index];
 
-  const std::size_t n_corr = expected.GetData().shape(2);
-  const std::size_t n_chan = expected.GetData().shape(1);
+  const std::size_t n_corr = expected.GetWeights().shape(2);
+  const std::size_t n_chan = expected.GetWeights().shape(1);
 
+  const std::vector<std::string> data_names = expected.GetDataNames();
+  BOOST_TEST(data_names == buffer.GetDataNames());
   BOOST_TEST(expected.GetTime() == row.time);
   BOOST_TEST(expected.GetExposure() == row.interval);
   // ??? TODO:compare row_nr ???
@@ -227,35 +230,29 @@ void CheckRow(const DPBuffer& expected, const BdaBuffer& buffer,
   BOOST_TEST(expected.GetUvw()(0, 1) == row.uvw[1]);
   BOOST_TEST(expected.GetUvw()(0, 2) == row.uvw[2]);
 
-  const std::complex<float>* row_data = buffer.GetData(row_index);
-  const std::complex<float>* row_extra_data;
+  std::vector<const std::complex<float>*> row_data;
+  for (const std::string& name : data_names) {
+    row_data.push_back(buffer.GetData(row_index, name));
+    BOOST_REQUIRE(row_data.back());
+  }
   const bool* row_flag = buffer.GetFlags(row_index);
   const float* row_weight = buffer.GetWeights(row_index);
-  BOOST_REQUIRE(row_data);
   BOOST_REQUIRE(row_flag);
   BOOST_REQUIRE(row_weight);
-  if (check_extra_data) {
-    row_extra_data = buffer.GetData(row_index, kExtraData);
-    BOOST_REQUIRE(row_extra_data);
-  }
 
   for (std::size_t chan = 0; chan < n_chan; ++chan) {
     for (std::size_t corr = 0; corr < n_corr; ++corr) {
-      BOOST_TEST(expected.GetData()(0, chan, corr).real() == row_data->real());
-      BOOST_TEST(expected.GetData()(0, chan, corr).imag() == row_data->imag());
+      for (std::size_t i = 0; i < data_names.size(); ++i) {
+        BOOST_TEST(expected.GetData(data_names[i])(0, chan, corr).real() ==
+                   row_data[i]->real());
+        BOOST_TEST(expected.GetData(data_names[i])(0, chan, corr).imag() ==
+                   row_data[i]->imag());
+        ++row_data[i];
+      }
       BOOST_TEST(expected.GetFlags()(0, chan, corr) == *row_flag);
       BOOST_TEST(expected.GetWeights()(0, chan, corr) == *row_weight);
-      ++row_data;
       ++row_flag;
       ++row_weight;
-
-      if (check_extra_data) {
-        BOOST_TEST(expected.GetData(kExtraData)(0, chan, corr).real() ==
-                   row_extra_data->real());
-        BOOST_TEST(expected.GetData(kExtraData)(0, chan, corr).imag() ==
-                   row_extra_data->imag());
-        ++row_extra_data;
-      }
     }
   }
 }
@@ -388,7 +385,8 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(time_averaging) {
+BOOST_DATA_TEST_CASE(time_averaging,
+                     boost::unit_test::data::make({true, false}), use_data) {
   const std::size_t kFactor = 2;  // Averaging factor for this test.
   const std::size_t kNBaselines = 1;
 
@@ -419,6 +417,14 @@ BOOST_AUTO_TEST_CASE(time_averaging) {
                    kChannelCounts, 0.0 + 1000.0, 2.0);
   // The buffer average02 is equal to buffer2
   std::unique_ptr<DPBuffer> average02 = std::make_unique<DPBuffer>(*buffer2);
+
+  if (!use_data) {  // Run the test without any visibilities.
+    buffer0->RemoveData();
+    buffer1->RemoveData();
+    buffer2->RemoveData();
+    average01->RemoveData();
+    average02->RemoveData();
+  }
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
@@ -485,7 +491,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_use_weights) {
 
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 1u);
-  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0, false);
+  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0);
 }
 
 BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
@@ -537,10 +543,11 @@ BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
 
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1u);
   BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers()[0]->GetRows().size(), 1u);
-  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0, false);
+  CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0);
 }
 
-BOOST_AUTO_TEST_CASE(channel_averaging) {
+BOOST_DATA_TEST_CASE(channel_averaging,
+                     boost::unit_test::data::make({true, false}), use_data) {
   const std::size_t kFactor = 3;  // Averaging factor for this test.
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kInputChannelCounts(7, 1);
@@ -562,6 +569,10 @@ BOOST_AUTO_TEST_CASE(channel_averaging) {
       kStartTime, kInterval, kNBaselines, kInputChannelCounts, 0.0);
   std::unique_ptr<DPBuffer> averaged = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kOutputChannelCounts, 0.0);
+  if (!use_data) {  // Run the test without any visibilities.
+    buffer->RemoveData();
+    averaged->RemoveData();
+  }
 
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
   averager.setNextStep(mock_step);
