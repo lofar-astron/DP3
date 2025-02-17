@@ -1154,3 +1154,38 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
             "ddecal2.solveralgorithm=directioniterative",
         ]
     )
+
+
+def test_h5parm_initial_solutions():
+    """Test using initial solutions from H5Parm"""
+
+    # Generate H5 with initial solutions
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            f"msout=",
+            f"steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.h5parm=initial_solutions.h5",
+            "ddecal.mode=fulljones",
+        ]
+    )
+
+    # Reuse those solutions as initial conditions
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            f"msout=",
+            f"steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.h5parm=solutions.h5",
+            "ddecal.mode=fulljones",
+            f"ddecal.initialsolutions.h5parm=initial_solutions.h5",
+            f"ddecal.initialsolutions.soltab=[amplitude000,phase000]",
+            f"ddecal.initialsolutions.gaintype=fulljones",
+        ]
+    )

@@ -1,4 +1,3 @@
-// DPInfo.cc: General info about DPPP data processing attributes like averaging
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
@@ -443,6 +442,15 @@ void DPInfo::RemoveUnusedAntennas() {
     baseline_lengths_.clear();
     auto_correlation_indices_.clear();
   }
+}
+
+const std::vector<std::string> DPInfo::GetUsedAntennaNames() const {
+  std::vector<std::string> used_antenna_names;
+  used_antenna_names.reserve(antennas_used_.size());
+  for (size_t used_antenna : antennas_used_) {
+    used_antenna_names.emplace_back(antenna_names_[used_antenna]);
+  }
+  return used_antenna_names;
 }
 
 const std::vector<double>& DPInfo::getBaselineLengths() const {

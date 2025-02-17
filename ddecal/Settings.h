@@ -188,7 +188,6 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings);
  * belongs to */
 std::vector<size_t> GetSolutionToDirectionVector(
     const std::vector<uint32_t>& solutions_per_direction);
-
 }  // namespace ddecal
 }  // namespace dp3
 
