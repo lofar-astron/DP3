@@ -16,6 +16,9 @@
 
 #include <aocommon/recursivefor.h>
 
+#include <schaapcommon/h5parm/h5cache.h>
+#include <schaapcommon/h5parm/jonesparameters.h>
+
 #include "../common/ParameterSet.h"
 
 #include "../ddecal/Settings.h"
@@ -69,6 +72,8 @@ class DDECal : public Step {
   void initializeColumnReaders(const common::ParameterSet&,
                                const std::string& prefix);
   void initializeModelReuse();
+  void initializeInitialSolutionsH5Parm(const common::ParameterSet& parset,
+                                        const std::string& prefix);
   void initializeIDG(const common::ParameterSet& parset,
                      const std::string& prefix);
   void initializePredictSteps(const common::ParameterSet& parset,
@@ -182,6 +187,20 @@ class DDECal : public Step {
   /// Store the solution for later steps of processing in DPBuffer. Note: only
   /// works for 1 direction.
   bool itsStoreSolutionInBuffer;
+
+  /// Stores the H5Parm file and loads all solutions into memory when the user
+  /// requests the solver to use initial solutions.
+  std::unique_ptr<schaapcommon::h5parm::H5Parm> itsInitialSolutions;
+  std::string itsInitialSolutionsH5ParmName;
+  std::vector<std::string> itsInitialSolutionsSolTab;
+  /// Specifies the InterpolationType, MissingAntennaBehavior, and GainType for
+  /// extracting the Jones parameters from itsInitialSolutions.
+  /// @{
+  schaapcommon::h5parm::JonesParameters::InterpolationType itsInterpolationType;
+  schaapcommon::h5parm::JonesParameters::MissingAntennaBehavior
+      itsMissingAntennaBehavior;
+  schaapcommon::h5parm::GainType itsGainType;
+  /// @}
 
   common::NSTimer itsTimer;
   common::NSTimer itsTimerPredict;

@@ -185,6 +185,7 @@ class DPInfo {
   const std::vector<std::string>& antennaNames() const {
     return antenna_names_;
   }
+  const std::vector<std::string> GetUsedAntennaNames() const;
   const std::vector<double>& antennaDiam() const { return antenna_diameters_; }
   const std::vector<casacore::MPosition>& antennaPos() const {
     return antenna_positions_;

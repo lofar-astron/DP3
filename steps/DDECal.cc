@@ -79,6 +79,46 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
   initializeColumnReaders(parset, prefix);
   initializeIDG(parset, prefix);
   initializePredictSteps(parset, prefix);
+  initializeInitialSolutionsH5Parm(parset, prefix);
+}
+
+void DDECal::initializeInitialSolutionsH5Parm(
+    const common::ParameterSet& parset, const std::string& prefix) {
+  itsInitialSolutionsH5ParmName =
+      parset.getString(prefix + "initialsolutions.h5parm", "");
+  if (itsInitialSolutionsH5ParmName.empty()) {
+    return;
+  }
+
+  const std::vector<std::string> default_solution_tables = {"amplitude000",
+                                                            "phase000"};
+  itsInitialSolutionsSolTab = parset.getStringVector(
+      prefix + "initialsolutions.soltab", default_solution_tables);
+  itsInitialSolutions = std::make_unique<schaapcommon::h5parm::H5Parm>(
+      itsInitialSolutionsH5ParmName, itsInitialSolutionsSolTab);
+
+  const std::string interpolation_type =
+      parset.getString(prefix + "initialsolutions.interpolation", "nearest");
+  if (interpolation_type == "nearest") {
+    itsInterpolationType = JonesParameters::InterpolationType::NEAREST;
+  } else if (interpolation_type == "linear") {
+    itsInterpolationType = JonesParameters::InterpolationType::LINEAR;
+  } else {
+    throw std::runtime_error("Unsupported interpolation method: " +
+                             interpolation_type);
+  }
+
+  std::string gain_type =
+      parset.getString(prefix + "initialsolutions.gaintype", "");
+  if (gain_type.empty()) {
+    gain_type =
+        itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[0]).GetType();
+  }
+  itsGainType = JonesParameters::H5ParmTypeStringToGainType(gain_type);
+
+  itsMissingAntennaBehavior =
+      JonesParameters::StringToMissingAntennaBehavior(parset.getString(
+          prefix + "initialsolutions.missingantennabehavior", "error"));
 }
 
 void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
@@ -361,12 +401,11 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
 
   // Prepare positions and names for the used antennas only.
-  std::vector<std::string> used_antenna_names;
+  const std::vector<std::string> used_antenna_names =
+      getInfoOut().GetUsedAntennaNames();
   std::vector<std::array<double, 3>> used_antenna_positions;
-  used_antenna_names.reserve(info().antennaUsed().size());
   used_antenna_positions.reserve(info().antennaUsed().size());
   for (const int& ant : info().antennaUsed()) {
-    used_antenna_names.push_back(info().antennaNames()[ant]);
     used_antenna_positions.push_back(antennaPos[ant]);
   }
 
@@ -401,6 +440,25 @@ void DDECal::show(std::ostream& os) const {
      << "  directions:          " << itsDirections << '\n'
      << "  sols per direction:  " << itsSettings.solutions_per_direction
      << '\n';
+  if (!itsInitialSolutionsH5ParmName.empty()) {
+    os << "  initial sols H5Parm: " << itsInitialSolutionsH5ParmName << '\n'
+       << "               soltab: ";
+    for (std::string table : itsInitialSolutionsSolTab) {
+      os << table << " ";
+    }
+    os << '\n'
+       << "                 type: "
+       << JonesParameters::GainTypeToHumanReadableString(itsGainType) << '\n'
+       << "        interp method: "
+       << (itsInterpolationType == JonesParameters::InterpolationType::NEAREST
+               ? "nearest"
+               : "linear")
+       << '\n'
+       << "          missing ant: "
+       << JonesParameters::MissingAntennaBehaviorToString(
+              itsMissingAntennaBehavior)
+       << '\n';
+  }
   if (itsSettings.min_vis_ratio != 0.0) {
     os << "  min visib. ratio:    " << itsSettings.min_vis_ratio << '\n';
   }
@@ -490,9 +548,78 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
     propagate_solutions = false;
   }
 
+  bool use_initial_solutions = !itsInitialSolutionsH5ParmName.empty();
+
   if (propagate_solutions) {
     // Initialize solutions with those of the previous step.
     itsSols[solution_index] = itsSols[solution_index - 1];
+  } else if (use_initial_solutions) {
+    // Initialize solutions with those from an existing H5Parm, stored in memory
+    // with H5Cache
+    const std::vector<double> solution_timestamp = {itsAvgTime};
+    const std::vector<std::string> used_antenna_names =
+        getInfoOut().GetUsedAntennaNames();
+    schaapcommon::h5parm::SolTab& first_soltab =
+        itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[0]);
+    schaapcommon::h5parm::SolTab& second_soltab =
+        itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[1]);
+    std::vector<std::unique_ptr<schaapcommon::h5parm::JonesParameters>>
+        jones_parameters_per_direction(itsDirections.size());
+    for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
+      // Retrieve initial solutions for the patch that's closest to the
+      // directions in the sourcedb, since the patch names and the number of
+      // patches in the provided skymodel might not be the same as the
+      // directions in the H5Parm.
+      const std::string closest_patch = itsInitialSolutions->GetNearestSource(
+          itsSourceDirections[dir].ra, itsSourceDirections[dir].dec);
+      const hsize_t direction_index = first_soltab.GetDirIndex(closest_patch);
+      jones_parameters_per_direction[dir] =
+          std::make_unique<schaapcommon::h5parm::JonesParameters>(
+              itsChanBlockFreqs, solution_timestamp, used_antenna_names,
+              itsGainType, itsInterpolationType, direction_index, &first_soltab,
+              &second_soltab, false, 0, itsMissingAntennaBehavior);
+    }
+
+    const size_t n_directions = itsDirections.size();
+    const size_t n_solutions = itsSettings.GetNSolutions();
+    const size_t n_antennas_used = getInfoOut().antennaUsed().size();
+    const size_t n_polarization_parameters_per_solution =
+        itsSolver->NSolutionPolarizations();
+    const size_t n_solution_values =
+        n_solutions * n_antennas_used * n_polarization_parameters_per_solution;
+
+    for (size_t channel_block = 0; channel_block < itsChanBlockFreqs.size();
+         ++channel_block) {
+      itsSols[solution_index][channel_block].resize(n_solution_values);
+      for (size_t antenna_index = 0; antenna_index < n_antennas_used;
+           ++antenna_index) {
+        for (size_t dir = 0; dir < n_directions; ++dir) {
+          const casacore::Cube<std::complex<float>>& jones_parameters =
+              jones_parameters_per_direction[dir]->GetParms();
+          size_t n_solutions_per_direction =
+              itsSettings.solutions_per_direction[dir];
+          for (size_t direction_solution_index = 0;
+               direction_solution_index < n_solutions_per_direction;
+               ++direction_solution_index) {
+            for (size_t polarization_index = 0;
+                 polarization_index < n_polarization_parameters_per_solution;
+                 ++polarization_index) {
+              const size_t flattened_index =
+                  antenna_index * n_directions * n_solutions_per_direction *
+                      n_polarization_parameters_per_solution +
+                  dir * n_solutions_per_direction *
+                      n_polarization_parameters_per_solution +
+                  direction_solution_index *
+                      n_polarization_parameters_per_solution +
+                  polarization_index;
+              itsSols[solution_index][channel_block][flattened_index] =
+                  jones_parameters(polarization_index, antenna_index,
+                                   channel_block);
+            }
+          }
+        }
+      }
+    }
   } else {
     const size_t n_solutions = itsSettings.GetNSolutions();
     const size_t n_solution_values = n_solutions * info().antennaUsed().size() *
@@ -878,11 +1005,8 @@ void DDECal::WriteSolutions() {
   itsTimerWrite.start();
 
   // Create antenna info for H5Parm, used antennas only.
-  std::vector<std::string> used_antenna_names;
-  used_antenna_names.reserve(info().antennaUsed().size());
-  for (size_t used_antenna : info().antennaUsed()) {
-    used_antenna_names.emplace_back(info().antennaNames()[used_antenna]);
-  }
+  const std::vector<std::string> used_antenna_names =
+      getInfoOut().GetUsedAntennaNames();
 
   const std::string history = "CREATE by " + DP3Version::AsString() + "\n" +
                               "step " + itsSettings.name + " in parset: \n" +
