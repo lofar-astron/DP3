@@ -78,6 +78,27 @@ inputs:
     default: false
     type: bool
     doc: Propagate solutions of the previous time slot only if the solve converged. Only effective when propagatesolutions=true.
+  initialsolutions&#46;h5parm:
+    type: string
+    doc: Filename of the H5Parm containing initial solutions, which the solver will use as initial values, if provided.
+  initialsolutions&#46;soltab:
+    default: "[amplitude000,phase000]"
+    type: string[]?
+    doc: The name or names of the H5Parm soltab(s).
+  initialsolutions&#46;interpolation:
+    default: nearest
+    type: enum
+    symbols: nearest, linear
+    doc: If using H5Parm, the type of interpolation (in time and frequency) to use.
+  initialsolutions&#46;gaintype:
+    type: enum?
+    symbols: gain, tec, clock, rotationangle, rotation, scalarphase, scalaramplitude, rotationmeasure, fulljones
+    doc: If using H5Parm, specifies what type of jones parameters are stored. Will be deduced from soltab if not provided.
+  initialsolutions&#46;missingantennabehavior:
+    defeault: error
+    type: enum
+    symbols: error, flag, unit
+    doc: What to do if an antenna is not in the H5Parm. Possible values are ``error`` (stop the program), ``flag`` (flag all data involving this antenna) and ``unit`` (treat the solutions for this antenna as 1, e.g., no correction for this antenna).
   flagunconverged:
     default: false
     type: bool
