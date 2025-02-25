@@ -524,7 +524,8 @@ add_library(
   steps/WGridderPredict.cc
   steps/ApplyBeam.cc
   steps/NullStokes.cc
-  steps/SagecalPredict.cc)
+  steps/SagecalPredict.cc
+  steps/SVPInput.cc)
 target_link_libraries(DP3_OBJ xsimd xtensor xtensor-blas)
 
 add_library(

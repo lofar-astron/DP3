@@ -110,6 +110,10 @@ The calculation of the weights is done as follows.
 where WGHT is the weight put in by RTCP (number of samples used / total number of samples).
 `This note <https://www.astron.nl/lofarwiki/lib/exe/fetch.php?media=public:user_software:documentation:ndppp_weights.pdf>`__ discusses weighting in some more detail.
 
+Streaming Input
+---------------
+See :ref:`SVPInput` for more details.
+
 Flagging
 ---------------------
 It is important to realize that a MeasurementSet contains columns FLAG and FLAG_ROW to indicate if data are flagged. If FLAG_ROW is set, all data in that row are flagged. DP3 will set FLAG_ROW if all FLAG are set (and vice-versa).
