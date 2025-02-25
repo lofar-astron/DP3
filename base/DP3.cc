@@ -53,6 +53,7 @@
 #include "../steps/SetBeam.h"
 #include "../steps/Split.h"
 #include "../steps/StationAdder.h"
+#include "../steps/SVPInput.h"
 #include "../steps/UVWFlagger.h"
 #include "../steps/Upsample.h"
 #include "../steps/WGridderPredict.h"
@@ -456,7 +457,12 @@ void ExecuteFromCommandLine(int argc, char* argv[]) {
 }
 
 std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
-  std::shared_ptr<InputStep> input_step = InputStep::CreateReader(parset);
+  std::shared_ptr<InputStep> input_step;
+  if (parset.isDefined("msin") or parset.isDefined("msin.name")) {
+    input_step = InputStep::CreateReader(parset);
+  } else {
+    input_step = std::make_shared<steps::SVPInput>(parset, "stream.");
+  }
   std::shared_ptr<Step> last_step = input_step;
 
   // Create the second and later steps, as requested by the parset. The chain

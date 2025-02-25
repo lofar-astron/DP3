@@ -1,0 +1,15 @@
+description: >-
+  Instead of reading input from a measurement set on disk, read input from a stream on a socket. To enable this operation, the parset keys 'msin' or 'msin.name' should not be defined.
+inputs:
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'svpinput'.
+  steps:
+    default: "[]"
+    type: array of strings
+    doc: List steps that follow the 'svpinput' step, e.g. ``[average, msout]``.
+     Any such steps can be applied to the data stream that is read from the socket.
+  socket:
+    default: "/tmp/svpsock0"
+    type: string
+    doc: Unix socket path to read data (must be created by the client writing the data to this socket).
