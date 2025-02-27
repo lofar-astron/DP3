@@ -55,6 +55,7 @@ class Clipper : public Step {
   size_t counter_;
   size_t time_step_;
   size_t frequency_step_;
+  bool flag_all_correlations_;
   float max_amplitude_;
   std::shared_ptr<Step> predict_step_;
   std::shared_ptr<ResultStep> result_step_;

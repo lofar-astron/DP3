@@ -3,12 +3,14 @@
 
 #include "steps/Clipper.h"
 
+#include <algorithm>
 #include <iostream>
 #include <filesystem>
 #include <fstream>
 
 #include <boost/test/unit_test.hpp>
 #include <xtensor/xcomplex.hpp>
+#include <xtensor/xview.hpp>
 
 #include "common/ParameterSet.h"
 #include "steps/ResultStep.h"
@@ -23,6 +25,7 @@ const size_t kNBaselines = 1;
 const size_t kNChannels = 4;
 const size_t kNCorrelations = 4;
 const float kMaxAmplitude = 1.0;
+const size_t kFlagDistance = std::min(kNChannels, kNCorrelations);
 }  // namespace
 
 /// A simple class to test if Clipper configures
@@ -48,12 +51,21 @@ class MockPredict : public Step {
     data.resize(data_shape);
     size_t size = buffer->GetData().size();
     for (size_t i = 0; i < size; i++) {
-      // This range results in visibilities with real part between
-      // 0 and 2*kMaxAmplitude. Clipper should flag the second half
-      // of the visibilities in the test.
-      data[i] = std::complex<float>(2 * kMaxAmplitude * frequency_step_ * i /
-                                        static_cast<float>(size - 1),
-                                    0.0);
+      // This parametrization results in a visibility amplitude which (for each
+      // baseline) increases linearly with the distance from the first (channel,
+      // correlation) bin. Visibilities exceed kMaxAmplitude in a sawtooth-like
+      // structure. E.g. for kNBaselines = 1, kNChannels = kNCorrelations = 40,
+      // kMaxAmplitude = 4, one has data =
+      //        {{{(0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (3.0, 0.0)},
+      //          {(1.0, 0.0), (2.0, 0.0), (3.0, 0.0), (4.0, 0.0)},
+      //          {(2.0, 0.0), (3.0, 0.0), (4.0, 0.0), (5.0, 0.0)},
+      //          {(3.0, 0.0), (4.0, 0.0), (5.0, 0.0), (6.0, 0.0)}}}
+      // The visibilities in the lower right exceed kMaxAmplitude.
+      data[i] = std::complex<float>(
+          kMaxAmplitude *
+              (i / kNCorrelations * frequency_step_ + i % kNCorrelations) /
+              static_cast<float>(kFlagDistance),
+          0.0);
     }
 
     getNextStep()->process(std::move(buffer));
@@ -70,11 +82,13 @@ class MockPredict : public Step {
   const int frequency_step_;
 };
 
-void TestClipper(size_t time_step, size_t frequency_step) {
+void TestClipper(size_t time_step, size_t frequency_step,
+                 bool all_correlations) {
   dp3::common::ParameterSet parset;
   parset.add("timestep", std::to_string(time_step));
   parset.add("freqstep", std::to_string(frequency_step));
   parset.add("amplmax", std::to_string(kMaxAmplitude));
+  parset.add("flagallcorrelations", std::to_string(all_correlations));
   parset.add("sourcedb", "tNDPPP-generic.MS/sky");
 
   dp3::base::DPInfo info(kNCorrelations, kNChannels);
@@ -99,10 +113,28 @@ void TestClipper(size_t time_step, size_t frequency_step) {
   clipper_step->SetPredict(mock_predict);
   clipper_step->setInfo(info);
 
-  const xt::xtensor<bool, 3> expected_flags{{{false, false, false, false},
-                                             {false, false, false, false},
-                                             {true, true, true, true},
-                                             {true, true, true, true}}};
+  auto expected_flags =
+      xt::xarray<bool>::from_shape({kNBaselines, kNChannels, kNCorrelations});
+  expected_flags.fill(false);
+  const size_t size = expected_flags.size();
+  // The expected flags assume the sawtooth structure described above,
+  // except the "predicted" values are repeated `frequency_step` per channel.
+  for (size_t i = 0; i < size; i++) {
+    const size_t distance_from_start = i / kNCorrelations + i % kNCorrelations;
+    const size_t n_channels_old_predict = (i / kNCorrelations) % frequency_step;
+    if (distance_from_start > kFlagDistance) expected_flags[i] = true;
+    if (n_channels_old_predict)
+      expected_flags[i] =
+          expected_flags[i - n_channels_old_predict * kNCorrelations];
+  }
+  xt::xarray<int> contains_true = xt::sum(expected_flags, -1);
+  if (all_correlations) {
+    auto idx = xt::from_indices(xt::argwhere(contains_true));
+    auto selection = xt::view(idx, xt::all(), 1);
+    auto view =
+        xt::view(expected_flags, xt::all(), xt::keep(selection), xt::all());
+    view = true;
+  }
 
   for (size_t t = 0; t < info.ntime(); ++t) {
     clipper_step->process(std::make_unique<dp3::base::DPBuffer>(*buffer));
@@ -113,10 +145,13 @@ void TestClipper(size_t time_step, size_t frequency_step) {
 }
 
 BOOST_AUTO_TEST_CASE(test_basic_clipper) {
-  TestClipper(1, 1);
-  TestClipper(1, 2);
-  TestClipper(2, 1);
-  TestClipper(2, 2);
+  for (size_t time_step : {1, 2}) {
+    for (size_t frequency_step : {1, 2}) {
+      for (bool all_correlations : {true, false}) {
+        TestClipper(time_step, frequency_step, all_correlations);
+      }
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
