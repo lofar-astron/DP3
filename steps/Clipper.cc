@@ -23,6 +23,8 @@ Clipper::Clipper(const common::ParameterSet& parset, const std::string& prefix)
       counter_(0),
       time_step_(parset.getInt(prefix + "timestep", 5)),
       frequency_step_(parset.getInt(prefix + "freqstep", 1)),
+      flag_all_correlations_(
+          parset.getBool(prefix + "flagallcorrelations", true)),
       max_amplitude_(parset.getFloat(prefix + "amplmax", 0.0)) {
   SetPredict(
       std::make_shared<OnePredict>(parset, prefix, std::vector<std::string>()));
@@ -67,9 +69,12 @@ void Clipper::updateInfo(const DPInfo& info_in) {
 
 void Clipper::show(std::ostream& os) const {
   os << "Clipper " << name_ << '\n';
-  os << "  time step:         " << time_step_ << '\n';
-  os << "  frequency step:    " << frequency_step_ << '\n';
-  os << "  maximum amplitude: " << max_amplitude_ << '\n';
+  os << "  time step:             " << time_step_ << '\n';
+  os << "  frequency step:        " << frequency_step_ << '\n';
+  os << "  maximum amplitude:     " << max_amplitude_ << '\n';
+  os << "  flag all correlations: " << std::boolalpha << flag_all_correlations_
+     << '\n';
+
   predict_step_->show(os);
 }
 
@@ -104,6 +109,16 @@ bool Clipper::process(std::unique_ptr<DPBuffer> buffer) {
       xt::xtensor<bool, 2> result_flags =
           xt::view(xt::abs(result_buffer->GetData()) > max_amplitude_,
                    xt::all(), channel, xt::all());
+      // flag all correlations corresponding to a single baseline if
+      // a single correlation for this baseline exceeds amplmax_
+      if (flag_all_correlations_) {
+        xt::xarray<int> baseline_flag_count = xt::sum(result_flags, 1);
+        auto selected_baselines =
+            xt::flatten_indices(xt::argwhere(baseline_flag_count));
+        auto correlations_to_flag =
+            xt::view(result_flags, xt::keep(selected_baselines), xt::all());
+        correlations_to_flag = true;
+      }
       for (size_t i = start; i < stop; i++) {
         xt::view(last_flags_, xt::all(), i, xt::all()) = result_flags;
       }

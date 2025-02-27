@@ -21,6 +21,11 @@ inputs:
       Perform the visibility prediction only once every `time_step` steps.
       The next `time_step - 1` will use these visibilities until the next prediction.
     default: 5
+  flagallcorrelations:
+    type: boolean
+    default: True
+    doc: >-
+        Flag all correlations for a baseline if a single correlation exceeds `amplmax`.
   freqstep:
     type: int
     doc: >-

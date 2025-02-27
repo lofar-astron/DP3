@@ -84,6 +84,7 @@ def test_clipper(
             "steps=[clipper]",
             "clipper.sourcedb=clipper.skymodel",
             "clipper.usebeammodel=true",
+            "clipper.flagallcorrelations=false",
             f"clipper.amplmax={TEST_MAX_AMPLITUDE}",
             f"clipper.timestep={time_step}",
             f"clipper.freqstep={frequency_step}",
