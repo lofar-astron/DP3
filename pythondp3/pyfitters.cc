@@ -180,7 +180,7 @@ Returns: A list of two or three dp3.fitters.Result items. When the mode is
         SmoothnessConstraint constraint(
             bandwidth_hz, bandwidth_ref_frequency_hz, spectral_exponent);
         constraint.Initialize(n_antennas, kNSolutionsPerDirection, frequencies);
-        constraint.SetDistanceFactors(std::move(antenna_distance_factors));
+        constraint.SetAntennaFactors(std::move(antenna_distance_factors));
         constraint.SetWeights(weights);
 
         const std::array<std::size_t, 4> shape{n_channel_blocks, n_antennas,

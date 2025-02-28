@@ -49,6 +49,12 @@ struct Settings {
    */
   size_t GetNSolutions() const;
 
+  /**
+   * Returns the dd smoothness values, but expanded so that there is a
+   * value for every solution that a direction may have.
+   */
+  std::vector<double> GetExpandedSmoothnessDdFactors() const;
+
  private:
   /**
    * Retrieve an optional boolean from the parset.
@@ -67,6 +73,8 @@ struct Settings {
    */
   std::vector<size_t> GetSizeTVector(
       const std::string& key, const std::vector<size_t>& default_value) const;
+
+  std::vector<double> GetDoubleVector(const std::string& key) const;
 
   /**
    * Retrieve an optional double from the parset.
@@ -131,6 +139,11 @@ struct Settings {
   const double smoothness_ref_frequency;
   const double smoothness_ref_distance;
   const double smoothness_spectral_exponent;
+  /**
+   * Contains one value per direction. Use GetExpandedSmoothnessDdFactors() to
+   * get one value per solution per direction.
+   */
+  std::vector<double> smoothness_dd_factors;
   const double screen_core_constraint;
 
   // Solver settings.

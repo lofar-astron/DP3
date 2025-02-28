@@ -30,7 +30,7 @@ SmoothnessConstraint makeConstraint(size_t n_antennas, size_t n_directions) {
   SmoothnessConstraint c(bandwidth_hz, bandwidth_ref_frequency_hz,
                          spectral_exponent);
   c.Initialize(n_antennas, std::vector<uint32_t>(n_directions, 1), frequencies);
-  c.SetDistanceFactors(std::move(antenna_distance_factors));
+  c.SetAntennaFactors(std::move(antenna_distance_factors));
   c.SetWeights(weights);
   return c;
 }
@@ -39,7 +39,7 @@ SmoothnessConstraint makeConstraint(size_t n_antennas, size_t n_directions) {
 
 BOOST_AUTO_TEST_SUITE(smoothness_constraint)
 
-BOOST_AUTO_TEST_CASE(simple_cases) {
+BOOST_AUTO_TEST_CASE(simple_case) {
   const size_t kNAntennas = 1;
   const size_t kNDirections = 3;
   const size_t kNPolarizations = 2;
@@ -76,6 +76,50 @@ BOOST_AUTO_TEST_CASE(simple_cases) {
       {{{0.0886568, 0.0}, {0.886568, 1.0}, {0.0, 2.00022}}},
       {{{0.000121798, 0.0}, {9.02597, 1.0}, {0.0, 1.09753}}},
   };
+
+  BOOST_CHECK(xt::allclose(solutions, reference_solutions));
+}
+
+BOOST_AUTO_TEST_CASE(dd_factors) {
+  const size_t kNAntennas = 1;
+  const size_t kNDirections = 3;
+
+  dp3::ddecal::SolutionTensor solutions{
+      {{{0.0, 1.0}, {0.0, 1.0}, {0.0, 5.0}}},  // channel block 0
+      {{{0.0, 0.0}, {0.0, 1.0}, {0.0, 4.0}}},  // channel block 1
+      {{{1.0, 0.0}, {0.0, 1.0}, {0.0, 3.0}}},  // channel block 2
+      {{{0.0, 0.0}, {0.0, 1.0}, {0.0, 2.0}}},  // channel block 3
+      {{{0.0, 0.0}, {10.0, 1.0}, {0.0, 1.0}}}  // channel block 4
+  };
+
+  SmoothnessConstraint constraint = makeConstraint(kNAntennas, kNDirections);
+  std::vector<double> factors{4.0, 2.0, 1.0};
+  BOOST_REQUIRE_EQUAL(factors.size(), kNDirections);
+  constraint.SetDdSmoothingFactors(std::move(factors));
+  dp3::ddecal::SolutionSpan solutions_span =
+      aocommon::xt::CreateSpan(solutions);
+  constraint.Apply(solutions_span, solution_time, nullptr);
+
+  // In comparison with the 'simple_case' test above, the values
+  // in the first and second column are smoothed by a higher value
+  // (4x and 2x, respectively).
+  // TODO it seems that the kernel smoother does not enlarge its
+  // window when a value > 1 is specified (hence the zero values
+  // in the second column).
+  const dp3::ddecal::SolutionTensor reference_solutions{
+      {{{0.209986, 0.366484}, {0.0, 1.0}, {0.0, 4.90247}}},
+      {{{0.262608, 0.262608}, {0.0, 1.0}, {0.0, 3.99978}}},
+      {{{0.257334, 0.147445}, {0.456402, 1.0}, {0.0, 3}}},
+      {{{0.262608, 0.0}, {2.542337, 1.0}, {0.0, 2.00022}}},
+      {{{0.234536, 0.0}, {5.949716, 1.0}, {0.0, 1.09753}}},
+  };
+
+  auto result_iter = solutions_span.begin();
+  for (const std::complex<double>& ref : reference_solutions) {
+    BOOST_CHECK_CLOSE_FRACTION(ref.real(), result_iter->real(), 1e-3);
+    BOOST_CHECK_LT(std::abs(ref.imag()), 1e-3);
+    ++result_iter;
+  }
 
   BOOST_CHECK(xt::allclose(solutions, reference_solutions));
 }

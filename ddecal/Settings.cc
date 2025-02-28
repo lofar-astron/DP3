@@ -106,6 +106,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       smoothness_ref_distance(GetDouble("smoothnessrefdistance", 0.0)),
       smoothness_spectral_exponent(
           GetDouble("smoothnessspectralexponent", -1.0)),
+      smoothness_dd_factors(GetDoubleVector("smoothness_dd_factors")),
       screen_core_constraint(GetDouble("tecscreen.coreconstraint", 0.0)),
 
       // Solver settings
@@ -177,7 +178,18 @@ Settings::Settings(const common::ParameterSet& _parset,
       use_sagecal_predict(GetBool("sagecalpredict", false)),
 
       directions(GetStringVector("directions")),
-      source_db(GetString("sourcedb", "")) {}
+      source_db(GetString("sourcedb", ""))
+
+{
+  for (double factor : smoothness_dd_factors) {
+    // Factor is disallowed to be >1 because the size of the kernel is currently
+    // not enlarged.
+    if (factor <= 0.0 || factor > 1.0)
+      throw std::runtime_error(
+          "The values of smoothness_dd_factors should be larger than zero and "
+          "at most one (i.e. they can only shrink the smoothing kernel)");
+  }
+}
 
 void Settings::PrepareSolutionsPerDirection(size_t n_directions) {
   if (solutions_per_direction.size() > n_directions) {
@@ -226,6 +238,14 @@ void Settings::PrepareSolutionsPerDirection(size_t n_directions) {
           "larger than solint value.");
     }
   }
+
+  if (!smoothness_dd_factors.empty() &&
+      smoothness_dd_factors.size() != n_directions) {
+    throw std::runtime_error(
+        "Invalid number of values specified for the direction-dependent "
+        "smoothness factors. This number should be equal to the number of "
+        "directions solved for.");
+  }
 }
 
 size_t Settings::GetNSolutions() const {
@@ -268,6 +288,10 @@ std::vector<std::string> Settings::GetStringVector(
   return parset->getStringVector(name + key, std::vector<std::string>());
 }
 
+std::vector<double> Settings::GetDoubleVector(const std::string& key) const {
+  return parset->getDoubleVector(name + key, std::vector<double>());
+}
+
 std::vector<std::set<std::string>> Settings::ReadAntennaConstraint() const {
   std::vector<std::set<std::string>> antenna_constraint;
 
@@ -305,6 +329,22 @@ std::vector<std::string> Settings::ReadModelDataColumns() const {
   }
 
   return columns;
+}
+
+std::vector<double> Settings::GetExpandedSmoothnessDdFactors() const {
+  const size_t n_directions = solutions_per_direction.size();
+  if (n_directions == 0 || smoothness_dd_factors.empty()) {
+    return smoothness_dd_factors;
+  } else {
+    std::vector<double> result;
+    for (size_t d = 0; d != n_directions; ++d) {
+      const double direction_factor = smoothness_dd_factors[d];
+      for (size_t i = 0; i != solutions_per_direction[d]; ++i) {
+        result.emplace_back(direction_factor);
+      }
+    }
+    return result;
+  }
 }
 
 void ShowConstraintSettings(std::ostream& output, const Settings& settings) {

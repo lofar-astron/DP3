@@ -98,6 +98,8 @@ class KernelSmoother {
    * @param data Data array of size @c n (as specified in constructor) that is
    * smoothed on output.
    * @param weight Associated weights, array of size @c n.
+   * @param kernelSizeFactor A factor that is applied to the frequency axis,
+   * such that a larger factors causes less smoothing.
    */
   void Smooth(DataType* data, const NumType* weight, NumType kernelSizeFactor) {
     size_t n = _frequencies.size();

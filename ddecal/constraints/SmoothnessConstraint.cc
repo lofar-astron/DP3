@@ -21,14 +21,22 @@ void SmoothnessConstraint::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
   frequencies_ = frequencies;
-}
-
-void SmoothnessConstraint::SetDistanceFactors(
-    std::vector<double>&& antenna_distance_factors) {
-  antenna_distance_factors_ = std::move(antenna_distance_factors);
   for (size_t i = 0; i != aocommon::ThreadPool::GetInstance().NThreads(); ++i)
     fit_data_.emplace_back(frequencies_, kernel_type_, bandwidth_,
                            bandwidth_ref_frequency_, spectral_exponent_);
+}
+
+void SmoothnessConstraint::SetDdSmoothingFactors(
+    std::vector<double> dd_smoothing_factors) {
+  if (!dd_smoothing_factors.empty() &&
+      dd_smoothing_factors.size() != NSolutions()) {
+    throw std::runtime_error(
+        "Invalid setting for the dd factors option of smoothness constraint: "
+        "the specified factors is a vector of size " +
+        std::to_string(dd_smoothing_factors.size()) +
+        ", whereas the number of solutions is " + std::to_string(NSolutions()));
+  }
+  dd_smoothing_factors_ = std::move(dd_smoothing_factors);
 }
 
 std::vector<Constraint::Result> SmoothnessConstraint::Apply(
@@ -37,6 +45,9 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
   assert(NChannelBlocks() == solutions.shape(0));
   assert(NAntennas() == solutions.shape(1));
   assert(NSolutions() == solutions.shape(2));
+  assert(dd_smoothing_factors_.empty() ||
+         NSolutions() == dd_smoothing_factors_.size());
+
   const size_t n_polarizations = solutions.shape(3);
   const size_t n_smoothed = NAntennas() * NSolutions() * n_polarizations;
   auto solutions_view =
@@ -66,9 +77,13 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
             }
           }
 
+          const double dd_factor = dd_smoothing_factors_.empty()
+                                       ? 1.0
+                                       : 1.0 / dd_smoothing_factors_[sol_index];
+
           fit_data_[thread].smoother.Smooth(
               fit_data_[thread].data.data(), fit_data_[thread].weight.data(),
-              antenna_distance_factors_[ant_index]);
+              antenna_factors_[ant_index] * dd_factor);
 
           for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
             solutions_view(ch, smoothing_index) = fit_data_[thread].data[ch];
