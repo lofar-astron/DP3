@@ -376,7 +376,8 @@ void InitializeScreenConstraint(
 
 void InitializeSmoothnessConstraint(
     SmoothnessConstraint& constraint, double ref_distance,
-    const std::vector<std::array<double, 3>>& antenna_positions) {
+    const std::vector<std::array<double, 3>>& antenna_positions,
+    const std::vector<double>& dd_factors) {
   std::vector<double> distance_factors;
   // If no smoothness reference distance is specified, the smoothing is
   // made independent of the distance
@@ -397,7 +398,8 @@ void InitializeSmoothnessConstraint(
       if (i == 1) distance_factors.push_back(factor);
     }
   }
-  constraint.SetDistanceFactors(std::move(distance_factors));
+  constraint.SetAntennaFactors(std::move(distance_factors));
+  constraint.SetDdSmoothingFactors(dd_factors);
 }
 
 }  // namespace
@@ -431,7 +433,6 @@ void InitializeSolverConstraints(
     SolverBase& solver, const Settings& settings,
     const std::vector<std::array<double, 3>>& antenna_positions,
     const std::vector<std::string>& antenna_names,
-    const std::vector<size_t>& solutions_per_direction,
     const std::vector<base::Direction>& source_directions,
     const std::vector<double>& frequencies) {
   for (const std::unique_ptr<Constraint>& constraint :
@@ -439,8 +440,8 @@ void InitializeSolverConstraints(
     // Initialize the constraint with some common metadata.
     constraint->Initialize(
         antenna_positions.size(),
-        std::vector<uint32_t>(solutions_per_direction.begin(),
-                              solutions_per_direction.end()),
+        std::vector<uint32_t>(settings.solutions_per_direction.begin(),
+                              settings.solutions_per_direction.end()),
         frequencies);
 
     // Different constraints need different information. Determine if the
@@ -471,9 +472,9 @@ void InitializeSolverConstraints(
     SmoothnessConstraint* smoothness_constraint =
         dynamic_cast<SmoothnessConstraint*>(constraint.get());
     if (smoothness_constraint) {
-      InitializeSmoothnessConstraint(*smoothness_constraint,
-                                     settings.smoothness_ref_distance,
-                                     antenna_positions);
+      InitializeSmoothnessConstraint(
+          *smoothness_constraint, settings.smoothness_ref_distance,
+          antenna_positions, settings.GetExpandedSmoothnessDdFactors());
     }
   }
 }

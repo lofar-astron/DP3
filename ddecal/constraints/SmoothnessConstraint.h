@@ -4,6 +4,8 @@
 #ifndef DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
 #define DP3_DDECAL_SMOOTHNESS_CONSTRAINT_H_
 
+#include <vector>
+
 #include "Constraint.h"
 #include "KernelSmoother.h"
 
@@ -42,15 +44,37 @@ class SmoothnessConstraint final : public Constraint {
                   const std::vector<double>& frequencies) override;
 
   /**
-   * Should be called after calling @ref Initialize().
-   * @param antennaDistances vector where each element is a distance correction
+   * Set antenna smoothness factors that can control the amount of smoothing
+   * per antenna. One option is e.g. to let this depend on the distance to
+   * the array centre. @note Because distance is the common use-case for these
+   * factors, the factors work opposite of the dd smoothing factors: higher
+   * values cause less smoothing.
+   * @param antenna_factors vector where each element is a smoothing correction
    * factor for each antenna. A higher correction factor will perform stronger
    * smoothing in frequency direction.
    */
-  void SetDistanceFactors(std::vector<double>&& antennaDistanceFactors);
+  void SetAntennaFactors(std::vector<double>&& antenna_factors) {
+    antenna_factors_ = std::move(antenna_factors);
+  }
 
-  const std::vector<double>& GetDistanceFactors() const {
-    return antenna_distance_factors_;
+  const std::vector<double>& GetAntennaFactors() const {
+    return antenna_factors_;
+  }
+
+  /**
+   * Sets an extra (cummulative) smoothing factor for directions (and dd
+   * solution intervals). @note that these factors have opposite meaning
+   * of those for @ref SetAntennaFactors().
+   * @param dd_smoothing_factors should be of size NSolutions(), i.e.
+   * it should have a factor for each direction and the possible
+   * subsolutions per direction. The otherwise specified smoothing kernel size
+   * is multiplied with these factors, which means that higher values will cause
+   * stronger smoothing. If empty, all factors are assumed to be one.
+   */
+  void SetDdSmoothingFactors(std::vector<double> dd_smoothing_factors);
+
+  const std::vector<double>& GetDdSmoothingFactors() const {
+    return dd_smoothing_factors_;
   }
 
  private:
@@ -71,7 +95,8 @@ class SmoothnessConstraint final : public Constraint {
   };
   std::vector<FitData> fit_data_;
   std::vector<double> frequencies_;
-  std::vector<double> antenna_distance_factors_;
+  std::vector<double> antenna_factors_;
+  std::vector<double> dd_smoothing_factors_;
   std::vector<double> weights_;
   /// A weight array per solution. If given, these override @ref weights_.
   std::vector<std::vector<double>> solution_weights_;

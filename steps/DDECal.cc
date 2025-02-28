@@ -411,9 +411,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
 
   for (ddecal::SolverBase* solver : itsSolver->ConstraintSolvers()) {
     InitializeSolverConstraints(*solver, itsSettings, used_antenna_positions,
-                                used_antenna_names,
-                                itsSettings.solutions_per_direction,
-                                itsSourceDirections, itsChanBlockFreqs);
+                                used_antenna_names, itsSourceDirections,
+                                itsChanBlockFreqs);
   }
 
   size_t nSt = info().antennaUsed().size();

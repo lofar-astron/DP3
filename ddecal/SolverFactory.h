@@ -45,7 +45,6 @@ void InitializeSolverConstraints(
     SolverBase& solver, const Settings& settings,
     const std::vector<std::array<double, 3>>& antenna_positions,
     const std::vector<std::string>& antenna_names,
-    const std::vector<size_t>& solutions_per_direction,
     const std::vector<base::Direction>& source_positions,
     const std::vector<double>& frequencies);
 

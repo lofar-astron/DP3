@@ -160,6 +160,15 @@ inputs:
     type: double
     doc: >-
       An optional reference distance (in meters) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary, such that antennas (stations for LOFAR) closer to antenna 0 will be smoothed stronger, i.e. with a larger kernel size..
+  smoothness_dd_factors:
+    default: empty
+    type: list
+    doc: >-
+      If non-empty, the provided factors scale the smoothing kernel per direction. This allows e.g. to smooth high S/N-ratio directions
+      by a smaller amount. Higher values mean stronger smoothing. Currently, each value should be larger than zero and at most one, i.e.
+      they can only make the kernel smaller. Therefore, smoothnessconstraint should be set to the largest desired smoothing value, and
+      the factors in this list can shrink the kernel as needed. The factors in this list work cummulative with other smoothness
+      modifiers. If this solve uses direction-dependent intervals, all intervals toward some directions will use the same value.
   statfilename:
     type: string
     doc: >-
