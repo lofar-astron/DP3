@@ -96,7 +96,8 @@ DPBuffer& DPBuffer::operator=(DPBuffer&& that) {
   return *this;
 }
 
-void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
+void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields,
+                    const bool extra_data) {
   if (this != &that) {
     time_ = that.time_;
     exposure_ = that.exposure_;
@@ -107,6 +108,9 @@ void DPBuffer::Copy(const DPBuffer& that, const common::Fields& fields) {
     if (fields.Uvw()) uvw_ = that.uvw_;
     // TODO(AST-1241): Copy extra data fields, too.
     solution_ = that.solution_;
+    if (extra_data) {
+      extra_data_ = that.extra_data_;
+    }
   }
 }
 

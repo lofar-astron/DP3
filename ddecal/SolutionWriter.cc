@@ -124,13 +124,18 @@ void SolutionWriter::WriteWithoutUpsampling(
   }
   h5parm_.AddSources(direction_names, h5_source_directions);
 
-  const double kTimeLimit =
-      end_time + 0.5 * solution_interval + 0.5 * ms_interval;
+  // Filling and trimming the time axis to have the same time range of the
+  // input data. sol_times keeps the center of the time interval.
+  // If an integral number of solution intervals fit in the ms, then the first
+  // interval that is entirely outside the ms has a start time that equals the
+  // end time of the ms. Whether this inequality holds depends on the rounding.
+  // The extra half ms_interval margin makes sure that the outlying interval
+  // is always excluded.
   std::vector<double> sol_times(n_times);
   for (size_t t = 0; t < n_times; ++t) {
     sol_times[t] = start_time + (t + 0.5) * solution_interval;
-    if (sol_times[t] > kTimeLimit) {
-      n_times = t + 1;
+    if ((start_time + t * solution_interval) > (end_time - 0.5 * ms_interval)) {
+      n_times = t;
       sol_times.resize(n_times);
       break;
     }

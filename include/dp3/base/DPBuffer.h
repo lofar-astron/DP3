@@ -126,7 +126,8 @@ class DPBuffer {
   /// value semantics.
   /// Do not copy extra data fields yet (TODO in AST-1241).
   /// @param fields Copy the given fields from that.
-  void Copy(const DPBuffer& that, const common::Fields& fields);
+  void Copy(const DPBuffer& that, const common::Fields& fields,
+            const bool extra_data = false);
 
   /// Adds an extra visibility buffer.
   /// The new visibility buffer gets the same shape as the default data buffer.
