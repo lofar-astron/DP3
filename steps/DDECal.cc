@@ -712,6 +712,10 @@ void DDECal::doSolve() {
   for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
     const size_t solution_index = itsFirstSolutionIndex + i;
 
+    // Keep the original size of itsInputBuffers[i] in case it is temporaryly
+    // padded with empty buffers.
+    const size_t original_size = itsInputBuffers[i].size();
+
     // To learn how this condition could be met see AST-1589.
     if (solution_index >= itsSols.size()) {
       throw std::runtime_error(
@@ -735,6 +739,21 @@ void DDECal::doSolve() {
 
       aocommon::Logger::Debug
           << "Initializing DDECal solver for current calibration interval.\n";
+
+      // If the input buffers are not filled up to the requested solution
+      // interval, fill them with padding buffers. This padding is used by the
+      // solver algorithms, and they are removed once the solver execution in
+      // completed, so they are not passed to the next steps.
+      // The padding buffers are filled with the data of the first buffer, but
+      // they have all the data invalidated by setting all the flags to true.
+      while (itsInputBuffers[i].size() < itsRequestedSolInt) {
+        std::unique_ptr<DPBuffer> padding_buffer = std::make_unique<DPBuffer>();
+        const common::Fields fields =
+            kDataField | kFlagsField | kWeightsField | kUvwField;
+        padding_buffer->Copy(*itsInputBuffers[i][0], fields, true);
+        padding_buffer->GetFlags().fill(true);
+        itsInputBuffers[i].push_back(std::move(padding_buffer));
+      }
 
       // The last solution interval can be smaller.
       std::vector<base::DPBuffer> weighted_buffers(itsInputBuffers[i].size());
@@ -803,6 +822,10 @@ void DDECal::doSolve() {
       itsNIter[solution_index] = solveResult.iterations;
       itsNApproxIter[solution_index] = solveResult.constraint_iterations;
     }
+
+    // Restoring itsInputBuffers[i] to its original size to remove any padding
+    // that may have been added.
+    itsInputBuffers[i].resize(original_size);
 
     if (itsSettings.only_predict) {
       SumModels(i);

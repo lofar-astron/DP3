@@ -21,10 +21,9 @@ BOOST_AUTO_TEST_CASE(solution_time_size) {
    * The measurement set time interval is 5 seconds.
    * The solution time interval is 50 seconds.
    * The solutions' time span is 10000 seconds.
-   * However, the difference  between the end and start
-   * time is 5000 seconds.
-   * Accordingly, the H5 file will include only the
-   * first 102 values of the solutions.
+   * However, the difference between the end and start time is 5000 seconds.
+   * Accordingly, the H5 file time axis must include only the times that fit
+   * into that time range and discard the rest.
    **/
 
   const int kNChannelBlocks = 10;
@@ -32,7 +31,7 @@ BOOST_AUTO_TEST_CASE(solution_time_size) {
   const int kNAntennas = 3;
   const int kNDirections = 10;
   const int kBlockSize = kNAntennas * kNDirections;
-  const int kExpectedTimeSize = 102;
+  const int kExpectedTimeSize = 100;
 
   {
     // Scalar arguments
