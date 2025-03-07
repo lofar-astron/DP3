@@ -1157,7 +1157,7 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
 
 
 def test_h5parm_initial_solutions():
-    """Test using initial solutions from H5Parm"""
+    """Test using initial solutions from H5Parm."""
 
     # Generate H5 with initial solutions
     check_call(
@@ -1187,5 +1187,45 @@ def test_h5parm_initial_solutions():
             f"ddecal.initialsolutions.h5parm=initial_solutions.h5",
             f"ddecal.initialsolutions.soltab=[amplitude000,phase000]",
             f"ddecal.initialsolutions.gaintype=fulljones",
+        ]
+    )
+
+
+def test_h5parm_initial_solutions_with_dd_intervals():
+    """
+    Test using initial solutions from H5Parm, with direction-dependent solution intervals.
+    """
+
+    # Generate H5 with initial solutions
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            f"msout=",
+            f"steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.h5parm=initial_solutions.h5",
+            "ddecal.mode=diagonal",
+        ]
+    )
+
+    # Reuse those solutions as initial conditions
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            f"msout=",
+            f"steps=[ddecal]",
+            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.h5parm=solutions.h5",
+            "ddecal.mode=scalarphase",
+            f"ddecal.initialsolutions.h5parm=initial_solutions.h5",
+            f"ddecal.initialsolutions.soltab=[phase000]",
+            f"ddecal.initialsolutions.gaintype=scalarphase",
+            "ddecal.solutions_per_direction=[1,4,1,1]",
+            "ddecal.solint=4",
+            "ddecal.solveralgorithm=directioniterative",
         ]
     )
