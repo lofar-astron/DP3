@@ -558,10 +558,14 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
     const std::vector<double> solution_timestamp = {itsAvgTime};
     const std::vector<std::string> used_antenna_names =
         getInfoOut().GetUsedAntennaNames();
-    schaapcommon::h5parm::SolTab& first_soltab =
+    schaapcommon::h5parm::SolTab first_soltab =
         itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[0]);
-    schaapcommon::h5parm::SolTab& second_soltab =
-        itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[1]);
+    schaapcommon::h5parm::SolTab second_soltab;
+    if (itsInitialSolutionsSolTab.size() == 2) {
+      // Only attempt to read a 2nd soltab when it's requested
+      second_soltab =
+          itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[1]);
+    }
     std::vector<std::unique_ptr<schaapcommon::h5parm::JonesParameters>>
         jones_parameters_per_direction(itsDirections.size());
     for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
@@ -580,35 +584,38 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
     }
 
     const size_t n_directions = itsDirections.size();
-    const size_t n_solutions = itsSettings.GetNSolutions();
+    const size_t n_subsolutions = itsSettings.GetNSolutions();
     const size_t n_antennas_used = getInfoOut().antennaUsed().size();
     const size_t n_polarization_parameters_per_solution =
         itsSolver->NSolutionPolarizations();
-    const size_t n_solution_values =
-        n_solutions * n_antennas_used * n_polarization_parameters_per_solution;
+    const size_t n_values_per_channel_block =
+        n_subsolutions * n_antennas_used *
+        n_polarization_parameters_per_solution;
 
     for (size_t channel_block = 0; channel_block < itsChanBlockFreqs.size();
          ++channel_block) {
-      itsSols[solution_index][channel_block].resize(n_solution_values);
+      itsSols[solution_index][channel_block].resize(n_values_per_channel_block);
       for (size_t antenna_index = 0; antenna_index < n_antennas_used;
            ++antenna_index) {
-        for (size_t dir = 0; dir < n_directions; ++dir) {
+        size_t n_assigned_subsolutions = 0;
+        for (size_t direction_index = 0; direction_index < n_directions;
+             ++direction_index) {
           const casacore::Cube<std::complex<float>>& jones_parameters =
-              jones_parameters_per_direction[dir]->GetParms();
-          size_t n_solutions_per_direction =
-              itsSettings.solutions_per_direction[dir];
+              jones_parameters_per_direction[direction_index]->GetParms();
+          size_t n_subsolutions_per_direction =
+              itsSettings.solutions_per_direction[direction_index];
           for (size_t direction_solution_index = 0;
-               direction_solution_index < n_solutions_per_direction;
+               direction_solution_index < n_subsolutions_per_direction;
                ++direction_solution_index) {
+            size_t direction_dependent_solution_index =
+                n_assigned_subsolutions + direction_solution_index;
             for (size_t polarization_index = 0;
                  polarization_index < n_polarization_parameters_per_solution;
                  ++polarization_index) {
               const size_t flattened_index =
-                  antenna_index * n_directions * n_solutions_per_direction *
+                  antenna_index * n_subsolutions *
                       n_polarization_parameters_per_solution +
-                  dir * n_solutions_per_direction *
-                      n_polarization_parameters_per_solution +
-                  direction_solution_index *
+                  direction_dependent_solution_index *
                       n_polarization_parameters_per_solution +
                   polarization_index;
               itsSols[solution_index][channel_block][flattened_index] =
@@ -616,6 +623,7 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
                                    channel_block);
             }
           }
+          n_assigned_subsolutions += n_subsolutions_per_direction;
         }
       }
     }
