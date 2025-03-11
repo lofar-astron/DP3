@@ -158,7 +158,7 @@ find_package(
   REQUIRED)
 
 find_package(
-  Casacore
+  Casacore 3.6
   COMPONENTS casa ms tables fits
   REQUIRED)
 include_directories(SYSTEM ${CASACORE_INCLUDE_DIR})

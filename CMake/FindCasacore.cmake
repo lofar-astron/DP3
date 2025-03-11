@@ -2,8 +2,8 @@
 # Usage:
 #   find_package(Casacore [REQUIRED] [COMPONENTS components...])
 # Valid components are:
-#   casa, coordinates, derivedmscal, fits, images, lattices,
-#   meas, measures, mirlib, ms, msfits, python, scimath, scimath_f, tables
+#   casa, coordinates, derivedmscal, fits, images, lattices, meas,
+#   measures, mirlib, ms, msfits, python, scimath, scimath_f, tables
 #
 # Note that most components are dependent on other (more basic) components.
 # In that case, it suffices to specify the "top-level" components; dependent
@@ -13,7 +13,7 @@
 # For this, you need to have a complete casacore installation, built with shared
 # libraries, at your disposal.
 #
-# The dependencies in this macro were generated against casacore release 1.7.0.
+# The dependencies in this macro were generated against casacore release 2.0.
 #
 # Variables used by this module:
 #  CASACORE_ROOT_DIR         - Casacore root directory.
@@ -24,6 +24,7 @@
 #  CASACORE_FOUND            - System has Casacore, which means that the
 #                              include dir was found, as well as all
 #                              libraries specified (not cached)
+#  CASACORE_VERSION          - Found version, e.g. "3.6.1" (not cached)
 #  CASACORE_INCLUDE_DIR      - Casacore include directory (cached)
 #  CASACORE_INCLUDE_DIRS     - Casacore include directories (not cached)
 #                              identical to CASACORE_INCLUDE_DIR
@@ -149,7 +150,7 @@ set(Casacore_casa_DEPENDENCIES)
 set(Casacore_coordinates_DEPENDENCIES   fits measures casa)
 set(Casacore_derivedmscal_DEPENDENCIES  ms measures tables casa)
 set(Casacore_fits_DEPENDENCIES          measures tables casa)
-set(Casacore_images_DEPENDENCIES        mirlib lattices coordinates fits measures scimath tables casa)
+set(Casacore_images_DEPENDENCIES        coordinates mirlib lattices fits measures scimath tables casa)
 set(Casacore_lattices_DEPENDENCIES      tables scimath casa)
 set(Casacore_meas_DEPENDENCIES          measures tables casa)
 set(Casacore_measures_DEPENDENCIES      tables casa)
@@ -166,6 +167,7 @@ set(CASACORE_FOUND FALSE)
 set(CASACORE_DEFINITIONS)
 set(CASACORE_LIBRARIES)
 set(CASACORE_MISSING_COMPONENTS)
+set(CASACORE_VERSION)
 
 # Search for the header file first.
 if(NOT CASACORE_INCLUDE_DIR)
@@ -242,6 +244,25 @@ if(CASACORE_FOUND)
   set(HAVE_AIPSPP TRUE CACHE INTERNAL "Define if AIPS++/Casacore is installed")
 endif(CASACORE_FOUND)
 
+# Check version requirements
+file(WRITE ${CMAKE_BINARY_DIR}/casacore_version.cpp "#include <iostream>\n#include <casacore/casa/version.h>\nint main(int argc,char *argv[]) { std::cout << CASACORE_VERSION; return 0; }\n")
+try_run(CASACORE_VERSION_RUN_RESULT CASACORE_VERSION_COMPILE_RESULT ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/casacore_version.cpp
+  RUN_OUTPUT_VARIABLE CASACORE_VERSION
+  COMPILE_DEFINITIONS "-I${CASACORE_INCLUDE_DIR}" )
+if (CASACORE_FOUND AND CASACORE_VERSION)
+    if (Casacore_FIND_VERSION)
+        if (Casacore_FIND_VERSION_EXACT)
+            if (NOT CASACORE_VERSION VERSION_EQUAL Casacore_FIND_VERSION)
+                message(FATAL_ERROR "Found Casacore version ${CASACORE_VERSION}, but EXACT version ${Casacore_FIND_VERSION} is required.")
+            endif()
+        else()
+            if (CASACORE_VERSION VERSION_LESS Casacore_FIND_VERSION)
+                message(FATAL_ERROR "Found Casacore version ${CASACORE_VERSION}, but at least version ${Casacore_FIND_VERSION} is required.")
+            endif()
+        endif()
+    endif()
+endif()
+
 # Compose diagnostic message if not all necessary components were found.
 if(CASACORE_MISSING_COMPONENTS)
   set(CASACORE_ERROR_MESSAGE "Casacore: the following components could not be found:\n     ${CASACORE_MISSING_COMPONENTS}")
@@ -250,7 +271,7 @@ endif(CASACORE_MISSING_COMPONENTS)
 # Print diagnostics.
 if(CASACORE_FOUND)
   if(NOT Casacore_FIND_QUIETLY)
-    message(STATUS "Found the following Casacore components: ")
+    message(STATUS "Found Casacore (version ${CASACORE_VERSION}) with the following components:")
     foreach(_comp ${_find_components})
       string(TOUPPER casa_${_comp} _COMP)
       message(STATUS "  ${_comp}: ${${_COMP}_LIBRARY}")

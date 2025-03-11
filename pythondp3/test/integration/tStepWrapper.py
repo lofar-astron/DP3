@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-These tests are checking that StepWrapper from the python bindings 
+These tests are checking that StepWrapper from the python bindings
 indeed catches a few easily made user errors
 
 Script can be invoked in two ways:
