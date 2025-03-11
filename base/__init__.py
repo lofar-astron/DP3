@@ -6,7 +6,7 @@
 # Plot the NDPPP count results by frequency or baseline.
 # Frequencies are concatenated; baselines are averaged.
 
-""" Module to plot NDPPP count results. """
+"""Module to plot NDPPP count results."""
 
 import numpy
 import pylab

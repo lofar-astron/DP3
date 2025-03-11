@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """
-These tests are checking that the python bindings step factory function. 
+These tests are checking that the python bindings step factory function.
 
 Script can be invoked in two ways:
 - as standalone from the build/pythondp3/test/integration directory,
