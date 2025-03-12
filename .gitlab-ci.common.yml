@@ -19,7 +19,6 @@ variables:
       - stuck_or_timeout_failure
 
 stages:
-  - versioning
   - prepare
   - build
   - linting
@@ -30,30 +29,25 @@ stages:
 
 include: .gitlab-ci.wheels.yml
 
-# The 'IMAGE' variables allow reusing docker images between different pipelines.
+# Creating a docker image name which includes the commit hash of the dockerfile,
+# and storing that image name in a 'dotenv' artifact, allows reusing docker
+# images between different pipelines.
 # See https://confluence.skatelescope.org/display/SE/Caching+Docker+images+using+GitLab+CI+registry
-versioning:
-  stage: versioning
-  image: bitnami/git
-  script:
-    # Unshallowing ensures that 'git log' works
-    - git fetch --unshallow
-    - echo BASE_IMAGE_2004=${CI_REGISTRY_IMAGE}/base_ubuntu20:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_20_04_base) > versions.env
-    - echo BASE_IMAGE_2204=${CI_REGISTRY_IMAGE}/base_ubuntu22:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_22_04_base) >> versions.env
-    - echo BASE_IMAGE_2404=${CI_REGISTRY_IMAGE}/base_ubuntu24:$(git log -n 1 --pretty=format:%H -- docker/ubuntu_24_04_base) >> versions.env
-    - cat versions.env
-  artifacts:
-    reports:
-      dotenv: versions.env
-
 .prepare:
   extends: [".failable",".dind"]
   stage: prepare
-  needs: ["versioning"]
   image: docker:20.10
   before_script:
+    - apk add git
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
+    # Unshallowing ensures that 'git log' works
+    - git fetch --unshallow
+    - DOCKER_FILE=docker/ubuntu_${UBUNTU_VERSION}_04_base
+    - DOCKER_FILE_COMMIT=$(git log -n 1 --pretty=format:%H -- ${DOCKER_FILE})
+    - DOCKER_IMAGE=${CI_REGISTRY_IMAGE}/base_ubuntu${UBUNTU_VERSION}:${DOCKER_FILE_COMMIT}
+    - echo BASE_IMAGE_${UBUNTU_VERSION}04=${DOCKER_IMAGE} > base_image.env
+    - cat base_image.env
     - |
       if ! docker manifest inspect $DOCKER_IMAGE > /dev/null || [ "$BUILD_DOCKER_IMAGE" = "1" ]; then
         if [ "$BUILD_DOCKER_IMAGE" = "1" ]; then
@@ -64,6 +58,9 @@ versioning:
         docker build $DOCKER_BUILD_ARG ${DOCKER_CACHE_PARAMETERS} --tag $DOCKER_IMAGE -f $DOCKER_FILE .
         docker push $DOCKER_IMAGE
       fi
+  artifacts:
+    reports:
+      dotenv: base_image.env
   # Skip the job if there are no changes to the Docker file. This shortcut only
   # works for push and merge request jobs.
   # A manual pipeline run will thus create missing docker images.
@@ -79,20 +76,17 @@ versioning:
 prepare-base-2004:
   extends: .prepare
   variables:
-    DOCKER_IMAGE: $BASE_IMAGE_2004
-    DOCKER_FILE: ./docker/ubuntu_20_04_base
+    UBUNTU_VERSION: 20
 
 prepare-base-2204:
   extends: .prepare
   variables:
-    DOCKER_IMAGE: $BASE_IMAGE_2204
-    DOCKER_FILE: ./docker/ubuntu_22_04_base
+    UBUNTU_VERSION: 22
 
 prepare-base-2404:
   extends: .prepare
   variables:
-    DOCKER_IMAGE: $BASE_IMAGE_2404
-    DOCKER_FILE: ./docker/ubuntu_24_04_base
+    UBUNTU_VERSION: 24
 
 # Template for basic build jobs.
 .build-basic:
@@ -109,19 +103,19 @@ prepare-base-2404:
 # This build also tests building DP3 with the TARGET_CPU option.
 build-2004-no-idg-target-cpu:
   extends: .build-basic
-  needs: ["versioning", "prepare-base-2004"]
+  needs: ["prepare-base-2004"]
   image: $BASE_IMAGE_2004
   variables:
     CMAKE_FLAGS: -DTARGET_CPU=haswell
 
 # Template for jobs that depend on prepare-base-2204.
 .needs-base-2204:
-  needs: ["versioning", "prepare-base-2204"]
+  needs: ["prepare-base-2204"]
   image: $BASE_IMAGE_2204
 
 # Template for jobs that depend on prepare-base-2404.
 .needs-base-2404:
-  needs: ["versioning", "prepare-base-2404"]
+  needs: ["prepare-base-2404"]
   image: $BASE_IMAGE_2404
 
 # Build (and run) DP3 on Ubuntu 24, ensuring compatibility with new systems.
@@ -258,7 +252,7 @@ unit-test-undefined-behaviour-sanitizer-2404:
 
 deploy-package-2204:
   stage: publish
-  needs: ["versioning","build-package-2204"]
+  needs: ["prepare-base-2204","build-package-2204"]
   image: $BASE_IMAGE_2204
   script:
     - pip3 install aptly-api-client

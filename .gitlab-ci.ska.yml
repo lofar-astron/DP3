@@ -19,7 +19,7 @@ include:
 
 pages:
   stage: pages
-  needs: ["versioning","coverage-2204"]
+  needs: ["prepare-base-2204","coverage-2204"]
   image: $BASE_IMAGE_2204
   variables:
     OUTPUT: public/$CI_COMMIT_REF_SLUG
