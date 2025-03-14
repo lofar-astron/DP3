@@ -106,6 +106,8 @@ Settings::Settings(const common::ParameterSet& _parset,
       smoothness_ref_distance(GetDouble("smoothnessrefdistance", 0.0)),
       smoothness_spectral_exponent(
           GetDouble("smoothnessspectralexponent", -1.0)),
+      smoothness_kernel_truncation(
+          GetBool("smoothness_kernel_truncation", true)),
       smoothness_dd_factors(GetDoubleVector("smoothness_dd_factors")),
       screen_core_constraint(GetDouble("tecscreen.coreconstraint", 0.0)),
 

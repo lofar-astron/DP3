@@ -21,7 +21,7 @@ class SmoothnessConstraint final : public Constraint {
    * @sa KernelSmoother documentation.
    */
   SmoothnessConstraint(double bandwidth_hz, double bandwidth_ref_frequency_hz,
-                       double spectral_exponent);
+                       double spectral_exponent, bool kernel_truncation);
 
   std::vector<Constraint::Result> Apply(SolutionSpan& solutions, double time,
                                         std::ostream* stat_stream) override;
@@ -83,9 +83,11 @@ class SmoothnessConstraint final : public Constraint {
   struct FitData {
     FitData(const std::vector<double>& frequencies,
             Smoother::KernelType kernel_type, double kernel_bandwidth,
-            double bandwidth_ref_frequency_hz, double spectral_exponent)
+            double bandwidth_ref_frequency_hz, double spectral_exponent,
+            bool kernel_truncation)
         : smoother(frequencies, kernel_type, kernel_bandwidth,
-                   bandwidth_ref_frequency_hz, spectral_exponent),
+                   bandwidth_ref_frequency_hz, spectral_exponent,
+                   kernel_truncation),
           data(frequencies.size()),
           weight(frequencies.size()) {}
 
@@ -104,6 +106,7 @@ class SmoothnessConstraint final : public Constraint {
   double bandwidth_;
   double bandwidth_ref_frequency_;
   double spectral_exponent_;
+  bool kernel_truncation_;
 };
 
 }  // namespace ddecal
