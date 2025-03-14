@@ -159,7 +159,7 @@ Returns: A list of two or three dp3.fitters.Result items. When the mode is
       [](py::array_t<std::complex<double>, py::array::c_style>& gains,
          const std::vector<double>& frequencies, double time,
          const double bandwidth_hz, const double bandwidth_ref_frequency_hz,
-         double spectral_exponent) {
+         double spectral_exponent, bool kernel_truncation) {
         if ((gains.ndim() != 1 && gains.ndim() != 2) ||
             static_cast<size_t>(gains.shape(0)) != frequencies.size()) {
           throw std::invalid_argument("Incorrect gains shape");
@@ -177,8 +177,9 @@ Returns: A list of two or three dp3.fitters.Result items. When the mode is
         const std::vector<double> weights(n_channel_blocks, 1.0);
         std::vector<double> antenna_distance_factors{1.0};
 
-        SmoothnessConstraint constraint(
-            bandwidth_hz, bandwidth_ref_frequency_hz, spectral_exponent);
+        SmoothnessConstraint constraint(bandwidth_hz,
+                                        bandwidth_ref_frequency_hz,
+                                        spectral_exponent, kernel_truncation);
         constraint.Initialize(n_antennas, kNSolutionsPerDirection, frequencies);
         constraint.SetAntennaFactors(std::move(antenna_distance_factors));
         constraint.SetWeights(weights);
@@ -192,7 +193,7 @@ Returns: A list of two or three dp3.fitters.Result items. When the mode is
       },
       py::arg("gains"), py::arg("frequencies"), py::arg("time") = 0.0,
       py::arg("bandwidth_hz"), py::arg("bandwidth_ref_frequency_hz") = 0.0,
-      py::arg("spectral_exponent") = -1.0,
+      py::arg("spectral_exponent") = -1.0, py::arg("kernel_truncation") = true,
       R"(Apply a Smoothness fitter to complex gains.
 
 The fitter smooths a series of possibly irregularly gridded values by a given 

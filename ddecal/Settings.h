@@ -139,6 +139,7 @@ struct Settings {
   const double smoothness_ref_frequency;
   const double smoothness_ref_distance;
   const double smoothness_spectral_exponent;
+  bool smoothness_kernel_truncation;
   /**
    * Contains one value per direction. Use GetExpandedSmoothnessDdFactors() to
    * get one value per solution per direction.

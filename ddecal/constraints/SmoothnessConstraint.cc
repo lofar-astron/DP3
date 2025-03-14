@@ -10,20 +10,24 @@ namespace ddecal {
 
 SmoothnessConstraint::SmoothnessConstraint(double bandwidth_hz,
                                            double bandwidth_ref_frequency_hz,
-                                           double spectral_exponent)
+                                           double spectral_exponent,
+                                           bool kernel_truncation)
     : kernel_type_(Smoother::GaussianKernel),
       bandwidth_(bandwidth_hz),
       bandwidth_ref_frequency_(bandwidth_ref_frequency_hz),
-      spectral_exponent_(spectral_exponent) {}
+      spectral_exponent_(spectral_exponent),
+      kernel_truncation_(kernel_truncation) {}
 
 void SmoothnessConstraint::Initialize(
     size_t n_antennas, const std::vector<uint32_t>& solutions_per_direction,
     const std::vector<double>& frequencies) {
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
   frequencies_ = frequencies;
-  for (size_t i = 0; i != aocommon::ThreadPool::GetInstance().NThreads(); ++i)
+  for (size_t i = 0; i != aocommon::ThreadPool::GetInstance().NThreads(); ++i) {
     fit_data_.emplace_back(frequencies_, kernel_type_, bandwidth_,
-                           bandwidth_ref_frequency_, spectral_exponent_);
+                           bandwidth_ref_frequency_, spectral_exponent_,
+                           kernel_truncation_);
+  }
 }
 
 void SmoothnessConstraint::SetDdSmoothingFactors(

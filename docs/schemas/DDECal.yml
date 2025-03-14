@@ -169,6 +169,13 @@ inputs:
       they can only make the kernel smaller. Therefore, smoothnessconstraint should be set to the largest desired smoothing value, and
       the factors in this list can shrink the kernel as needed. The factors in this list work cummulative with other smoothness
       modifiers. If this solve uses direction-dependent intervals, all intervals toward some directions will use the same value.
+  smoothness_kernel_truncation:
+    type: bool
+    default: true
+    doc: >-
+      Whether to trim the Gaussian kernel that is used for smoothing at 3 sigma. Truncation makes calibration faster but causes
+      a slightly less smooth result. For analyses that require highly smooth gain solutions, such as high-redshift 21-cm
+      experiments, the truncation can be turned off.
   statfilename:
     type: string
     doc: >-

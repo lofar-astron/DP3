@@ -56,13 +56,14 @@ class KernelSmoother {
    */
   KernelSmoother(const std::vector<NumType>& frequencies, KernelType kernelType,
                  NumType kernelBandwidth, NumType bandwidthRefFrequency,
-                 NumType spectralExponent)
+                 NumType spectralExponent, bool kernel_truncation)
       : _frequencies(frequencies),
         _scratch(frequencies.size()),
         _kernelType(kernelType),
         _bandwidth(kernelBandwidth),
         _bandwidthRefFrequency(bandwidthRefFrequency),
-        _spectralExponent(spectralExponent) {}
+        _spectralExponent(spectralExponent),
+        _truncate(kernel_truncation) {}
 
   /**
    * Evaluate the kernel for a given position.
@@ -73,23 +74,32 @@ class KernelSmoother {
    */
   NumType Kernel(NumType distance) const {
     NumType x = distance / _bandwidth;
-    if (x < NumType(-1.0) || x > NumType(1.0))
-      return NumType(0.0);
-    else {
-      switch (_kernelType) {
-        case RectangularKernel:
-        default:
+    switch (_kernelType) {
+      case RectangularKernel:
+      default:
+        if (x < NumType(-1.0) || x > NumType(1.0))
+          return NumType(0.0);
+        else
           return NumType(0.5);
-        case TriangularKernel:
+      case TriangularKernel:
+        if (x < NumType(-1.0) || x > NumType(1.0))
+          return NumType(0.0);
+        else
           return x >= NumType(0.0) ? (NumType(1.0) - x) : (NumType(1.0) + x);
-        case GaussianKernel:
-          /// e^(-x^2 / sigma^2), sigma = bandwidth / 3.
+      case GaussianKernel:
+        /// e^(-x^2 / sigma^2), sigma = bandwidth / 3.
+        if (_truncate && (x < NumType(-1.0) || x > NumType(1.0)))
+          return 0.0;
+        else
           return std::exp(-x * x * NumType(9.0));
-        case EpanechnikovKernel:
-          /// 3/4 * (1-x)^2;
+      case EpanechnikovKernel:
+        /// 3/4 * (1-x)^2;
+        if (_truncate && (x < NumType(-1.0) || x > NumType(1.0))) {
+          return 0.0;
+        } else {
           x = NumType(1.0) - x;
           return (NumType(3.0) / NumType(4.0)) * x * x;
-      }
+        }
     }
   }
 
@@ -112,22 +122,26 @@ class KernelSmoother {
         _frequencies.begin();
     size_t bandRight = std::min(lbound + 1u, n);
     for (size_t i = 0; i != n; ++i) {
+      size_t start = 0;
+      size_t end = n;
       const NumType localBandwidth =
           _bandwidthRefFrequency == 0.0
               ? _bandwidth
               : _bandwidth * _frequencies[i] / _bandwidthRefFrequency;
-      /// If a boundary is further than half the bandwidth away, move boundary
-      while (_frequencies[bandLeft] < _frequencies[i] - localBandwidth * 0.5)
-        ++bandLeft;
-      while (bandRight != n &&
-             _frequencies[bandRight] < _frequencies[i] + localBandwidth * 0.5)
-        ++bandRight;
+      if (_truncate) {
+        /// If a boundary is further than half the bandwidth away, move boundary
+        while (_frequencies[bandLeft] < _frequencies[i] - localBandwidth * 0.5)
+          ++bandLeft;
+        while (bandRight != n &&
+               _frequencies[bandRight] < _frequencies[i] + localBandwidth * 0.5)
+          ++bandRight;
 
-      /// A value of 1 is added to make sure we are not skipping a value because
-      /// of rounding errors (kernel will be zero past boundaries, so including
-      /// an unnecessary value has no effect)
-      const size_t start = bandLeft > 0 ? bandLeft - 1 : 0;
-      const size_t end = bandRight < n ? bandRight + 1 : n;
+        /// A value of 1 is added to make sure we are not skipping a value
+        /// because of rounding errors (kernel will correctly evaluate past
+        /// boundaries, so including an unnecessary value has no effect)
+        start = bandLeft > 0 ? bandLeft - 1 : 0;
+        end = bandRight < n ? bandRight + 1 : n;
+      }
 
       DataType sum(0.0);
       NumType weightSum(0.0);
@@ -162,6 +176,7 @@ class KernelSmoother {
   NumType _bandwidth;
   NumType _bandwidthRefFrequency;
   NumType _spectralExponent;
+  bool _truncate = true;
 };
 
 }  // namespace ddecal
