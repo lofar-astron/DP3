@@ -22,6 +22,54 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
+/**
+ * Internal Step class which clears the meta data changed flag if that flag is
+ * also clear in the Predict step.
+ * If Predict creates a chain consisting of Upsample, Averager, BdaExpander,
+ * and/or BdaAverager steps, the meta data changed flag will be set at the end
+ * of that chain, since those steps indeed change the data structure.
+ * However, since the steps in the chain cancel each other, Predict should
+ * restore the flag to its value at the beginning of the chain.
+ */
+class RestoreMetaDataChangedStep : public Step {
+ public:
+  RestoreMetaDataChangedStep(Step* reference_step)
+      : reference_step_(reference_step) {}
+
+  common::Fields getRequiredFields() const override { return {}; }
+
+  common::Fields getProvidedFields() const override { return {}; }
+
+  void updateInfo(const DPInfo& info_in) override {
+    Step::updateInfo(info_in);
+    if (!reference_step_->getInfoIn().metaChanged())
+      infoOut().clearMetaChanged();
+  }
+
+  bool accepts(MsType dt) const override {
+    return dt == reference_step_->outputs();
+  }
+
+  MsType outputs() const override { return reference_step_->outputs(); }
+
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override {
+    return getNextStep()->process(std::move(buffer));
+  }
+
+  bool process(std::unique_ptr<base::BdaBuffer> bda_buffer) override {
+    return getNextStep()->process(std::move(bda_buffer));
+  }
+
+  void finish() override { getNextStep()->finish(); }
+
+  void show(std::ostream& os) const override {}
+
+ private:
+  /// Non-owning pointer to the Predict step that contains this step, which
+  /// is the first step in the step chain created by Predict.
+  Step* reference_step_;
+};
+
 Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
                  MsType input_type)
     : ms_type_(input_type),
@@ -65,6 +113,8 @@ void Predict::Initialize(const common::ParameterSet& parset,
     bda_averager_ = std::make_shared<BdaAverager>(parset, prefix, false);
     internal_steps_.push_back(bda_averager_);
   }
+
+  internal_steps_.push_back(std::make_shared<RestoreMetaDataChangedStep>(this));
 
   // Connect the steps
   Step::setNextStep(internal_steps_.front());

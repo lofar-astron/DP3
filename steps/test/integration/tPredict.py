@@ -181,6 +181,24 @@ def test_without_and_with_time_smearing(use_time_smearing):
         assert_taql(taql_command, 2)
 
 
+def test_time_smearing_with_msupdate():
+    """
+    Test that DP3 can update an MS after running a Predict step that does
+    time smearing, which internally changes the meta data.
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=MODEL_DATA",
+            "steps=[predict]",
+            f"predict.sourcedb={MSIN}/sky",
+            "predict.correcttimesmearing=2",
+        ]
+    )
+
+
 @pytest.mark.parametrize("use_beam", [False, True])
 def test_without_and_with_beam_parallelbaseline(use_beam):
     predict_column = "PREDICT_beam" if use_beam else "PREDICT_nobeam"
