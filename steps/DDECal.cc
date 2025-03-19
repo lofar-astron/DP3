@@ -163,7 +163,7 @@ void DDECal::initializeModelReuse() {
 
         itsDirections.emplace_back(1, name_without_prefix);
 
-        // Add a null step for this direction, so there is still an entry in
+        // Add a nullptr step for this direction, so there is still an entry in
         // itsSteps for each direction.
         itsSteps.emplace_back();
 
@@ -984,12 +984,26 @@ void DDECal::doPrepare() {
   // Enclose the recursive_for
   {
     aocommon::RecursiveFor recursive_for;
-    recursive_for.Run(0, itsSteps.size(), [&](size_t dir) {
-      if (itsSteps[dir]) {  // When reusing model data, there is no step.
-        itsSteps[dir]->process(
-            std::make_unique<DPBuffer>(*input_buffer, itsRequiredFields[dir]));
+    recursive_for.Run(0, itsSteps.size(), [&](size_t direction) {
+      if (itsSteps[direction]) {  // When reusing model data, there is no step.
+        // Don't process column readers yet; they need to be run serially (see
+        // further below)
+        const bool is_column_reader =
+            dynamic_cast<MsColumnReader*>(itsSteps[direction].get());
+        if (!is_column_reader)
+          itsSteps[direction]->process(std::make_unique<DPBuffer>(
+              *input_buffer, itsRequiredFields[direction]));
       }
     });
+  }
+  // Call column readers serially, since CasaCore does not support reading
+  // multiple columns in parallel.
+  for (size_t direction = 0; direction != itsSteps.size(); ++direction) {
+    if (itsSteps[direction] &&
+        dynamic_cast<MsColumnReader*>(itsSteps[direction].get())) {
+      itsSteps[direction]->process(std::make_unique<DPBuffer>(
+          *input_buffer, itsRequiredFields[direction]));
+    }
   }
 
   // Handle weights and flags
