@@ -161,6 +161,8 @@ def test_dish_beam():
             f"msin={DISH_MSIN}",
             f"msout=beam_applied.ms",
             "msout.overwrite=true",
+            "msout.antennacompression=false",
+            "msout.uvwcompression=false",
             "steps=[applybeam]",
             "applybeam.usechannelfreq=true",
             "applybeam.direction=[0.91848969rad,-0.50149271rad]",

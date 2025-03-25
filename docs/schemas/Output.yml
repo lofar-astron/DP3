@@ -60,17 +60,17 @@ inputs:
     doc: >-
       Directory where to put the VDS file; if empty, the MS directory is used.
   msout&#46;scalarflags:
-    default: false
+    default: depends on compile-time option `METADATA_COMPRESSION_DEFAULT`
     type: bool
     doc: >-
       If set to true, only one flag will be stored for four correlations. For LOFAR, all correlations have equal flags, so storing all flags is redunandant. This typically saves a couple of percent storage.
   msout&#46;antennacompression:
-    default: false
+    default: depends on compile-time option `METADATA_COMPRESSION_DEFAULT`
     type: bool
     doc: >-
       If set to true, a special AntennaStMan storage manager will be used that (losslessly) compresses the antenna values of the ANTENNA1 and ANTENNA2 columns. Normally, the pair of values from these columns form a repeating pattern; the storage manager just stores the repeating pattern once.
   msout&#46;uvwcompression:
-    default: false
+    default: depends on compile-time option `METADATA_COMPRESSION_DEFAULT`
     type: bool
     doc: >-
       If set to true, a special UvwStMan storage manager will be used that (losslessly) compresses UVW values. It does this by taking advantage of the fact that values within of the same correlation matrix can be determined by just storing one uvw-value per antenna. With this compression, UVW values do not need to be recalculated from the antenna positions.

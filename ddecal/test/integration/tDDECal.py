@@ -871,6 +871,7 @@ def test_station_with_auto_correlation_only(caltype):
             "checkparset=1",
             f"msin={MSIN}",
             "msout=StationAdded.MS",
+            "msout.uvwcompression=false",
             "steps=[stationadder]",
             "stationadder.stations={AUTO:[RS106HBA,RS208HBA]}",
             "stationadder.autocorr=true",
@@ -887,6 +888,7 @@ def test_station_with_auto_correlation_only(caltype):
             "checkparset=1",
             f"msin=StationAdded.MS",
             "msout=Test.MS",
+            "msout.uvwcompression=false",
             "steps=[filter,ddecal]",
             # This filter keeps the auto-correlations for station 'AUTO'
             # and removes all other visibilities for 'AUTO'.

@@ -59,6 +59,7 @@ def test_only_expand():
             "checkparset=true",
             f"msin={MSIN_BDA}",
             "msout=out.MS",
+            "msout.uvwcompression=false",  # TODO why is this necessary?
             "steps=[bdaexpander]",
         ]
     )
@@ -106,6 +107,7 @@ def test_bdaexpander_ddecal(create_skymodel):
             f"msin={MSIN_BDA}",
             "msout=out.MS",  # msout=. does not work -> documented
             "msout.overwrite=true",
+            "msout.uvwcompression=false",  # TODO why is this necessary?
             "steps=[bdaexpander, ddecal]",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
             "ddecal.sourcedb=test.sourcedb",
@@ -122,6 +124,7 @@ def test_regular_buffer_writing():
             "checkparset=true",
             f"msin={MSIN_BDA}",
             "msout=regular_buffer.MS",
+            "msout.uvwcompression=false",  # TODO why is this necessary?
             "steps=[bdaexpander]",
         ]
     )
@@ -132,6 +135,7 @@ def test_regular_buffer_writing():
             "checkparset=true",
             "msin=regular_buffer.MS",
             "msout=out.MS",
+            "msout.uvwcompression=false",
             "steps=[]",
         ]
     )

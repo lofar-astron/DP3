@@ -262,6 +262,7 @@ void CreateCopyMs(const std::string& input_ms) {
     ostr << "msin.endtime=03-Aug-2000/13:33:45\n";
     ostr << "msout=" << kCopyMs << '\n';
     ostr << "msout.overwrite=true\n";
+    ostr << "verbosity=QUIET\n";
     ostr << "steps=[]\n";
   }
   dp3::base::Execute(kParsetFile);

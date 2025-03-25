@@ -107,10 +107,12 @@ MSWriter::MSWriter(const std::string& out_name,
       vds_dir_(parset.getString(prefix + "vdsdir", std::string())),
       cluster_desc_(parset.getString(prefix + "clusterdesc", std::string())),
       st_man_keys_(parset, prefix),
-      scalar_flags_(parset.getBool(prefix + "scalarflags", false)),
-      uvw_compression_(parset.getBool(prefix + "uvwcompression", false)),
-      antenna_compression_(
-          parset.getBool(prefix + "antennacompression", false)) {
+      scalar_flags_(
+          parset.getBool(prefix + "scalarflags", METADATA_COMPRESSION_DEFAULT)),
+      uvw_compression_(parset.getBool(prefix + "uvwcompression",
+                                      METADATA_COMPRESSION_DEFAULT)),
+      antenna_compression_(parset.getBool(prefix + "antennacompression",
+                                          METADATA_COMPRESSION_DEFAULT)) {
   if (data_col_name_ != "DATA")
     throw std::runtime_error(
         "Currently only the DATA column"

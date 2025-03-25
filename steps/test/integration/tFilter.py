@@ -42,6 +42,7 @@ def test_filter_added_station():
             f"msout={MSOUT}",
             "steps=[stationadder,filter]",
             "stationadder.stations={CSNEW:[CS001HBA0,CS002HBA0],RSNEW:[RS106HBA,RS208HBA]}",
+            "stationadder.average=False",  # Necessary to keep uvw consistent for uvw compression
             "filter.baseline=!CSNEW",
             "filter.remove=true",
         ]
