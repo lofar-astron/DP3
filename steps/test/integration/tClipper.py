@@ -38,6 +38,7 @@ def create_model_data():
             tcf.DP3EXE,
             f"msin={MSIN}",
             f"msout={MSOUT}",
+            "msout.scalarflags=false",
             "steps=[]",
         ]
     )

@@ -194,13 +194,16 @@ test-2204:
 # (A single Debug+coverage job takes longer than the total runtime of
 #  the current test-2204 and coverage-2204 jobs. It may even time out.)
 # The code coverage figures include both unit and integration tests.
+#
+# The coverage target sets METADATA_COMPRESSION_DEFAULT whereas most other
+# targets don't do this. This way, both settings are tested.
 coverage-2204:
   stage: test
   extends: [".failable",".needs-base-2204"]
   script:
     - export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/python3.10/dist-packages
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True ..
     - ninja -j4
     - ctest --output-on-failure --no-tests=error -j$(nproc)
     # Collect coverage in text, xml and json formats.

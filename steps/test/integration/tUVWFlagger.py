@@ -52,10 +52,13 @@ def test_update_flags_inplace():
         ]
     )
     assert_taql(count_flags_set, 168)
-    assert re.search(
-        b"\nTotal flagged:   100.000%   \\(1344 out of 1344 visibilities\\)\n\n\n",
+    text_found = re.search(
+        b"\nTotal flagged:   100.000%   \\(1344 out of 1344 visibilities\\)\n\n",
         result,
     )
+    if not text_found:
+        print(result)
+    assert text_found
 
     # The second run nothing is flagged, since everything is already flagged
     result = check_output(
@@ -69,10 +72,13 @@ def test_update_flags_inplace():
         ]
     )
     assert_taql(count_flags_set, 168)
-    assert re.search(
-        b"\nTotal flagged:     0.000%   \\(0 out of 1344 visibilities\\)\n\n\n",
+    text_found = re.search(
+        b"\nTotal flagged:     0.000%   \\(0 out of 1344 visibilities\\)\n\n",
         result,
     )
+    if not text_found:
+        print(result)
+    assert text_found
 
 
 def test_update_flags_new_table():
@@ -98,7 +104,7 @@ def test_update_flags_new_table():
     assert_taql(count_flags_set, 0)
 
     assert re.search(
-        b"\nTotal flagged:   100.000%   \\(1344 out of 1344 visibilities\\)\n\n\n",
+        b"\nTotal flagged:   100.000%   \\(1344 out of 1344 visibilities\\)\n\n",
         result,
     )
     count_flags_set = f"select from {MSIN} where all(MODIFIED_FLAGS=True)"
@@ -119,7 +125,7 @@ def test_update_flags_new_table():
         ]
     )
     assert re.search(
-        b"\nTotal flagged:   100.000%   \\(1344 out of 1344 visibilities\\)\n\n\n",
+        b"\nTotal flagged:   100.000%   \\(1344 out of 1344 visibilities\\)\n\n",
         result,
     )
     count_flags_set = f"select from {MSIN} where all(MODIFIED_FLAGS=True)"

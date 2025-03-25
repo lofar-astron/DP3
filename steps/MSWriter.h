@@ -198,11 +198,12 @@ class MSWriter : public OutputStep {
   std::string vds_dir_;       ///< directory where to put VDS file
   std::string cluster_desc_;  ///< name of clusterdesc file
   base::StManParsetKeys st_man_keys_;
-  bool scalar_flags_ = false;
-  // For now, uvw compression is turned off by default. Once we're confident
-  // enough about this feature, we can enable it by default.
-  bool uvw_compression_ = false;
-  bool antenna_compression_ = false;
+  // For now, metadata compression is turned on only when explicitly turned on
+  // in compilation. Once we're confident enough about this feature, we can
+  // enable it by default.
+  bool scalar_flags_ = METADATA_COMPRESSION_DEFAULT;
+  bool uvw_compression_ = METADATA_COMPRESSION_DEFAULT;
+  bool antenna_compression_ = METADATA_COMPRESSION_DEFAULT;
 
   /// The total time spent in the writer.
   common::NSTimer timer_;

@@ -45,6 +45,9 @@ inputs:
     doc: >-
       Is a visibility of a new station the weighted average of its input
       visibilities and its UVW the weighted average of the input UVWs?
+      Because this breaks the relation between uvw values of different
+      baselines from the same time, this can not be combined with
+      uvw-compression.
   autocorr:
     default: false
     type: boolean

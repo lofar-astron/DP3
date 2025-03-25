@@ -53,14 +53,13 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 # seconds appear, ignore them or regenerate the docker image.
 RUN mkdir -p /usr/share/casacore/data && \
     ln -s /usr/share/casacore /var/lib/casacore && \
-    wget -qO - ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar | \
+    wget -qO - https://www.astron.nl/iers/WSRT_Measures.ztar | \
         tar -C /usr/share/casacore/data -xzf -
 # The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
 RUN  mkdir /external && \
   cd /external && \
-  git clone https://github.com/casacore/casacore.git && \
+  git clone --depth 1 --branch v3.7.1 https://github.com/casacore/casacore.git && \
   cd /external/casacore && \
-  git checkout e8e0dffb92d8076462042386e494fb49c007d02f && \
   mkdir build && \
   cd build && \
   cmake .. -DBUILD_PYTHON3=ON -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \

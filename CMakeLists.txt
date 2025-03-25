@@ -29,6 +29,14 @@ execute_process(
   OUTPUT_VARIABLE DP3_GIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+option(METADATA_COMPRESSION_DEFAULT "Let Dp3 compress meta-data by default"
+       FALSE)
+if(METADATA_COMPRESSION_DEFAULT)
+  add_definitions("-DMETADATA_COMPRESSION_DEFAULT=true")
+else()
+  add_definitions("-DMETADATA_COMPRESSION_DEFAULT=false")
+endif()
+
 option(BUILD_WITH_CUDA "Build with CUDA support" FALSE)
 if(BUILD_WITH_CUDA)
   project(
@@ -158,7 +166,7 @@ find_package(
   REQUIRED)
 
 find_package(
-  Casacore 3.6
+  Casacore 3.7.1
   COMPONENTS casa ms tables fits
   REQUIRED)
 include_directories(SYSTEM ${CASACORE_INCLUDE_DIR})
