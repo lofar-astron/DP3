@@ -34,7 +34,6 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	pybind11-dev \
 	python3-dev \
 	python3-numpy \
-	python3-pip \
 	wcslib-dev \
 	wget \
 	&& \
@@ -50,7 +49,7 @@ RUN wget -nv -O /WSRT_Measures.ztar https://www.astron.nl/iers/WSRT_Measures.zta
 	&& cd /var/lib/casacore/data \
 	&& tar xfz /WSRT_Measures.ztar \
 	&& rm /WSRT_Measures.ztar
-# Casacore
+# The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
 RUN mkdir /external && \
   cd /external && \
   git clone --depth 1 --branch v3.7.1 https://github.com/casacore/casacore.git && \
@@ -62,28 +61,19 @@ RUN mkdir /external && \
   make install -j`nproc` && \
   cd /external && \
   rm -rf /external/casacore
-# Build aoflagger3
+# Build aoflagger3 (PORTABLE, since the compile node and run node may differ.)
 RUN mkdir /aoflagger && cd /aoflagger \
 	&& git clone https://gitlab.com/aroffringa/aoflagger.git src \
 	&& ( cd src/ && git checkout ${AOFLAGGER_VERSION} ) \
 	&& mkdir build && cd build \
-	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
 	&& ninja install \
 	&& cd / && rm -rf aoflagger
-# Build EveryBeam
+# Build EveryBeam (PORTABLE, since the compile node and run node may differ.)
 RUN mkdir /everybeam && cd /everybeam \
 	&& git clone https://git.astron.nl/RD/EveryBeam.git src \
 	&& ( cd src/ && git checkout ${EVERYBEAM_VERSION} ) \
 	&& mkdir build && cd build \
-	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr ../src \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
 	&& ninja install \
 	&& cd / && rm -rf everybeam
-# Install pip dependencies
-RUN pip3 install \
-	autosemver==0.5.5 \
-	gcovr \
-	h5py \
-	jsonschema2rst==0.1.0 \
-	sphinx \
-	sphinx-rtd-theme \
-	;

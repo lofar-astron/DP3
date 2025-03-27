@@ -93,6 +93,7 @@ prepare-base-2404:
   extends: .failable
   stage: build
   script:
+    - if [ -d /dp3env ]; then source /dp3env/bin/activate; fi
     - mkdir build && cd build
     - cmake ${CMAKE_FLAGS} -G Ninja ..
     - ninja -j4 install
@@ -126,15 +127,16 @@ build-2404-portable:
     # Enable tests and thereby check if they also compile on new systems.
     CMAKE_FLAGS: -DBUILD_TESTING=On -DPORTABLE=On
 
-build-doc-2204:
+build-doc-2404:
   stage: build
-  extends: [".failable",".needs-base-2204"]
+  extends: [".failable",".needs-base-2404"]
   before_script:
     # Install here since pytest and these items aren't compatible
-    - pip3 install autosemver jsonschema2rst sphinx sphinx-rtd-theme myst_parser
+    - /dp3env/bin/pip install autosemver jsonschema2rst myst_parser sphinx sphinx-rtd-theme
     # Patch to make 'doc' settings not be parsed as code. Make sure to apply this patch also in .readthedocs.yml!
-    - patch -p0 /usr/local/lib/python3.10/dist-packages/jsonschema2rst/rst_utils.py < docs/rst_utils.py.patch
+    - patch -p0 /dp3env/lib/python3.12/site-packages/jsonschema2rst/rst_utils.py < docs/rst_utils.py.patch
   script:
+    - source /dp3env/bin/activate
     - mkdir build && cd build
     - cmake -G Ninja ../docs
     - ninja doc userdoc
@@ -164,9 +166,11 @@ build-package-2204:
     - if: '$CI_COMMIT_TAG'
     - if: '$UPLOAD_PACKAGE'
 
-linting-2204:
+linting-2404:
   stage: linting
-  extends: [".failable",".needs-base-2204"]
+  extends: [".failable",".needs-base-2404"]
+  before_script:
+    - pipx install black~=24.0 isort cmakelang
   script:
     - ./scripts/run-format.sh
 
@@ -174,6 +178,7 @@ test-2204:
   stage: test
   extends: [".failable",".needs-base-2204"]
   script:
+    - source /dp3env/bin/activate
     - export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/python3.10/dist-packages
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On ..
@@ -197,11 +202,11 @@ test-2204:
 #
 # The coverage target sets METADATA_COMPRESSION_DEFAULT whereas most other
 # targets don't do this. This way, both settings are tested.
-coverage-2204:
+coverage-2404:
   stage: test
-  extends: [".failable",".needs-base-2204"]
+  extends: [".failable",".needs-base-2404"]
   script:
-    - export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/python3.10/dist-packages
+    - source /dp3env/bin/activate
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True ..
     - ninja -j4
@@ -228,6 +233,7 @@ coverage-2204:
   stage: test
   extends: [".failable",".needs-base-2404"]
   script:
+    - source /dp3env/bin/activate
     - mkdir build && cd build
     - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DPORTABLE=Off -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" ..
     - ninja -j4
