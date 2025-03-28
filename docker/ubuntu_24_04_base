@@ -60,7 +60,7 @@ RUN mkdir /external && \
   cd /external/casacore && \
   mkdir build && \
   cd build && \
-  cmake .. -DBUILD_PYTHON=OFF -DPython3_EXECUTABLE=/dp3env/bin/python3  -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \
+  cmake .. -DPython3_EXECUTABLE=/dp3env/bin/python3  -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \
   make -j`nproc` && \
   make install -j`nproc` && \
   cd /external && \
