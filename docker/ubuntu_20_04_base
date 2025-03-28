@@ -56,7 +56,7 @@ RUN mkdir /external && \
   cd /external/casacore && \
   mkdir build && \
   cd build && \
-  cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF -DDATA_DIR=/var/lib/casacore/data && \
+  cmake .. -DBUILD_TESTING=OFF -DDATA_DIR=/var/lib/casacore/data && \
   make -j`nproc` && \
   make install -j`nproc` && \
   cd /external && \
