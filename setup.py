@@ -110,7 +110,7 @@ class CMakeBuild(build_ext):
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
-    name="DP3",
+    name="dp3",
     version="6.3.0",  # Please keep in sync with the version in CMakeLists.txt.
     author="ASTRON",
     author_email="dijkema@astron.nl",
@@ -120,7 +120,7 @@ setup(
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     entry_points={"console_scripts": ["DP3.py = dp3:entrypoint"]},
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     data_files=[
         (
             "../../DP3.libs/aoflagger/strategies",
