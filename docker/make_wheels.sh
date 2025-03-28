@@ -12,7 +12,7 @@
 # If <python versions> is empty, it becomes: 310 39 38 37 36 .
 
 set -euo pipefail
-for py_version in ${@:-312 311 310 39 38 37}; do
+for py_version in ${@:-313 312 311 310 39 38}; do
     pushd ..
 
     ## Build docker image from docker-file. The current wheel is created there.
