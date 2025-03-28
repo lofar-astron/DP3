@@ -8,7 +8,7 @@ DP3 (the Default Preprocessing Pipeline, previously NDPPP for New Preprocessing 
 DP3 started as a new and faster version of IDPPP.
 ASTRON users can see the original differences `here <https://www.astron.nl/lofarwiki/doku.php?id=engineering:software:tools:dppp:diff>`__.
 
-DP3 preprocesses the data of a LOFAR observation by executing steps like flagging or averaging. Such steps can be used for the raw data as well as the calibrated data by defining the data column to use. One or more of the following steps can be defined as a pipeline. DP3 has an implicit input and output step. It is also possible to have intermediate output steps.
+DP3 preprocesses the data of a LOFAR observation by executing steps like flagging or averaging. Such steps can be used for either the raw data or the calibrated data by configuring the data column to be used. One or more of the following steps can be defined as a pipeline. DP3 has an implicit input and output step, which may be changed by explicitly specifying these. It is also possible to have intermediate output steps.
 
 DP3 comes with quite some predefined steps, but it is possible to plugin arbitrary steps, either implemented in C++ or Python.
 
@@ -98,7 +98,7 @@ MeasurementSet Access
   * It sets flags for invalid data (NaN or infinite).
   * Dummy, fully flagged data with correct UVW coordinates will be inserted for missing time slots in the MS. This can only be done if a single input MS is used.
   * Missing time slots at the beginning or end of the MS can be detected by giving the correct start and end time. This is particularly useful for the imaging pipeline where BBS requires that the MSs of all subbands of an observation have the same time slots. When updating an MS, those inserted slots are temporary and not put back into the MS.
-  * The :ref:`ms_out <Output>` step defines the output. If a band is selected, the output MS (including its SPECTRAL_WINDOW subtable) contains that band only (its id is 0). The input MS is updated if no output name is given or if the output name is equal to the input name or equal to a dot.
+  * The :ref:`msout <Output>` step defines the output. If a band is selected, the output MS (including its SPECTRAL_WINDOW subtable) contains that band only (its id is 0). The input MS is updated if no output name is given or if the output name is equal to the input name or equal to a dot. If a :ref:`null step <Null>` is added as a last step, no output measurement set is written.
 
 The calculation of the weights is done as follows.
 
