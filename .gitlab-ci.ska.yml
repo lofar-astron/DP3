@@ -19,8 +19,8 @@ include:
 
 pages:
   stage: pages
-  needs: ["prepare-base-2204","coverage-2204"]
-  image: $BASE_IMAGE_2204
+  needs: ["prepare-base-2404","coverage-2404"]
+  image: $BASE_IMAGE_2404
   variables:
     OUTPUT: public/$CI_COMMIT_REF_SLUG
   script:
@@ -37,7 +37,7 @@ pages:
 # See https://developer.skatelescope.org/en/latest/tools/ci-cd/continuous-integration.html#automated-collection-of-ci-health-metrics-as-part-of-the-ci-pipeline
 collect-metrics:
    stage: pages
-   needs: ["coverage-2204"]
+   needs: ["coverage-2404"]
    before_script:
      - apt-get update
      - apt-get install -y -qq python3
