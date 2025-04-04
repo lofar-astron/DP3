@@ -20,12 +20,14 @@ using aocommon::MC2x2FDiag;
 
 namespace {
 
+template <typename VisMatrix>
 size_t SizeOfModel(size_t n_directions, size_t n_visibilities) {
-  return n_directions * n_visibilities * sizeof(MC2x2F);
+  return n_directions * n_visibilities * sizeof(VisMatrix);
 }
 
+template <typename VisMatrix>
 size_t SizeOfResidual(size_t n_visibilities) {
-  return n_visibilities * sizeof(MC2x2F);
+  return n_visibilities * sizeof(VisMatrix);
 }
 
 size_t SizeOfSolutions(size_t n_visibilities) {
@@ -52,15 +54,22 @@ size_t SizeOfDenominator(size_t n_antennas, size_t n_direction_solutions) {
   return n_antennas * n_direction_solutions * 2 * sizeof(float);
 }
 
-void SolveDirection(
-    const dp3::ddecal::SolveData::ChannelBlockData& channel_block_data,
-    cu::Stream& stream, size_t n_antennas, size_t n_solutions, size_t direction,
-    cu::DeviceMemory& device_residual_in,
-    cu::DeviceMemory& device_residual_temp,
-    cu::DeviceMemory& device_solution_map, cu::DeviceMemory& device_solutions,
-    cu::DeviceMemory& device_model, cu::DeviceMemory& device_next_solutions,
-    cu::DeviceMemory& device_antenna_pairs, cu::DeviceMemory& device_numerator,
-    cu::DeviceMemory& device_denominator) {
+template <typename VisMatrix>
+using ChannelBlockData =
+    typename dp3::ddecal::SolveData<VisMatrix>::ChannelBlockData;
+
+template <typename VisMatrix>
+void SolveDirection(const ChannelBlockData<VisMatrix>& channel_block_data,
+                    cu::Stream& stream, size_t n_antennas, size_t n_solutions,
+                    size_t direction, cu::DeviceMemory& device_residual_in,
+                    cu::DeviceMemory& device_residual_temp,
+                    cu::DeviceMemory& device_solution_map,
+                    cu::DeviceMemory& device_solutions,
+                    cu::DeviceMemory& device_model,
+                    cu::DeviceMemory& device_next_solutions,
+                    cu::DeviceMemory& device_antenna_pairs,
+                    cu::DeviceMemory& device_numerator,
+                    cu::DeviceMemory& device_denominator) {
   // Calculate this equation, given ant a:
   //
   //          sum_b data_ab * solutions_b * model_ab^*
@@ -71,13 +80,14 @@ void SolveDirection(
   const size_t n_visibilities = channel_block_data.NVisibilities();
 
   // Initialize values to 0
-  device_numerator.zero(SizeOfNumerator(n_antennas, n_direction_solutions),
-                        stream);
-  device_denominator.zero(SizeOfDenominator(n_antennas, n_direction_solutions),
-                          stream);
+  stream.zero(device_numerator,
+              SizeOfNumerator(n_antennas, n_direction_solutions));
+
+  stream.zero(device_denominator,
+              SizeOfDenominator(n_antennas, n_direction_solutions));
 
   stream.memcpyDtoDAsync(device_residual_temp, device_residual_in,
-                         SizeOfResidual(n_visibilities));
+                         SizeOfResidual<VisMatrix>(n_visibilities));
 
   LaunchSolveDirectionKernel(
       stream, n_visibilities, n_direction_solutions, n_solutions, direction,
@@ -91,15 +101,16 @@ void SolveDirection(
       device_next_solutions, device_numerator, device_denominator);
 }
 
+template <typename VisMatrix>
 void PerformIteration(
     bool phase_only, double step_size,
-    const dp3::ddecal::SolveData::ChannelBlockData& channel_block_data,
-    cu::Stream& stream, size_t n_antennas, size_t n_solutions,
-    size_t n_directions, cu::DeviceMemory& device_solution_map,
-    cu::DeviceMemory& device_solutions, cu::DeviceMemory& device_next_solutions,
-    cu::DeviceMemory& device_residual, cu::DeviceMemory& device_residual_temp,
-    cu::DeviceMemory& device_model, cu::DeviceMemory& device_antenna_pairs,
-    cu::DeviceMemory& device_numerator, cu::DeviceMemory& device_denominator) {
+    const ChannelBlockData<VisMatrix>& channel_block_data, cu::Stream& stream,
+    size_t n_antennas, size_t n_solutions, size_t n_directions,
+    cu::DeviceMemory& device_solution_map, cu::DeviceMemory& device_solutions,
+    cu::DeviceMemory& device_next_solutions, cu::DeviceMemory& device_residual,
+    cu::DeviceMemory& device_residual_temp, cu::DeviceMemory& device_model,
+    cu::DeviceMemory& device_antenna_pairs, cu::DeviceMemory& device_numerator,
+    cu::DeviceMemory& device_denominator) {
   const size_t n_visibilities = channel_block_data.NVisibilities();
 
   // Subtract all directions with their current solutions
@@ -114,25 +125,26 @@ void PerformIteration(
     // this direction back before solving
 
     // Out-of-place: residual -> residual_temp
-    SolveDirection(channel_block_data, stream, n_antennas, n_solutions,
-                   direction, device_residual, device_residual_temp,
-                   device_solution_map, device_solutions, device_model,
-                   device_next_solutions, device_antenna_pairs,
-                   device_numerator, device_denominator);
+    SolveDirection<VisMatrix>(
+        channel_block_data, stream, n_antennas, n_solutions, direction,
+        device_residual, device_residual_temp, device_solution_map,
+        device_solutions, device_model, device_next_solutions,
+        device_antenna_pairs, device_numerator, device_denominator);
   }
 
   LaunchStepKernel(stream, n_visibilities, device_solutions,
                    device_next_solutions, phase_only, step_size);
 }
 
+template <typename VisMatrix>
 std::tuple<size_t, size_t, size_t> ComputeArrayDimensions(
-    const dp3::ddecal::SolveData& data) {
+    const dp3::ddecal::SolveData<VisMatrix>& data) {
   size_t max_n_direction_solutions = 0;
   size_t max_n_visibilities = 0;
   size_t max_n_directions = 0;
 
   for (size_t ch_block = 0; ch_block < data.NChannelBlocks(); ch_block++) {
-    const dp3::ddecal::SolveData::ChannelBlockData& channel_block_data =
+    const ChannelBlockData<VisMatrix>& channel_block_data =
         data.ChannelBlock(ch_block);
     max_n_visibilities =
         std::max(max_n_visibilities, channel_block_data.NVisibilities());
@@ -155,7 +167,9 @@ std::tuple<size_t, size_t, size_t> ComputeArrayDimensions(
 namespace dp3 {
 namespace ddecal {
 
-IterativeDiagonalSolverCuda::IterativeDiagonalSolverCuda(bool keep_buffers)
+template <typename VisMatrix>
+IterativeDiagonalSolverCuda<VisMatrix>::IterativeDiagonalSolverCuda(
+    bool keep_buffers)
     : keep_buffers_{keep_buffers} {
   cu::init();
   device_ = std::make_unique<cu::Device>(0);
@@ -166,7 +180,9 @@ IterativeDiagonalSolverCuda::IterativeDiagonalSolverCuda(bool keep_buffers)
   device_to_host_stream_ = std::make_unique<cu::Stream>();
 }
 
-void IterativeDiagonalSolverCuda::AllocateGPUBuffers(const SolveData& data) {
+template <typename VisMatrix>
+void IterativeDiagonalSolverCuda<VisMatrix>::AllocateGPUBuffers(
+    const SolveData<VisMatrix>& data) {
   size_t max_n_direction_solutions = 0;
   size_t max_n_visibilities = 0;
   size_t max_n_directions = 0;
@@ -187,26 +203,31 @@ void IterativeDiagonalSolverCuda::AllocateGPUBuffers(const SolveData& data) {
     gpu_buffers_.next_solutions.emplace_back(
         SizeOfNextSolutions(max_n_visibilities));
     gpu_buffers_.model.emplace_back(
-        SizeOfModel(max_n_directions, max_n_visibilities));
+        SizeOfModel<VisMatrix>(max_n_directions, max_n_visibilities));
   }
 
   // We need two buffers for residual like above to facilitate double-buffering,
   // the third buffer is used for the per-direction add/subtract.
   for (size_t i = 0; i < 3; i++) {
-    gpu_buffers_.residual.emplace_back(SizeOfResidual(max_n_visibilities));
+    gpu_buffers_.residual.emplace_back(
+        SizeOfResidual<VisMatrix>(max_n_visibilities));
   }
 }
 
-void IterativeDiagonalSolverCuda::AllocateHostBuffers(const SolveData& data) {
+template <typename VisMatrix>
+void IterativeDiagonalSolverCuda<VisMatrix>::AllocateHostBuffers(
+    const SolveData<VisMatrix>& data) {
   host_buffers_.next_solutions =
       std::make_unique<cu::HostMemory>(SizeOfNextSolutions(NVisibilities()));
   for (size_t ch_block = 0; ch_block < NChannelBlocks(); ch_block++) {
-    const SolveData::ChannelBlockData& channel_block_data =
+    const ChannelBlockData<VisMatrix>& channel_block_data =
         data.ChannelBlock(ch_block);
     const size_t n_directions = channel_block_data.NDirections();
     const size_t n_visibilities = channel_block_data.NVisibilities();
-    host_buffers_.model.emplace_back(SizeOfModel(n_directions, n_visibilities));
-    host_buffers_.residual.emplace_back(SizeOfResidual(n_visibilities));
+    host_buffers_.model.emplace_back(
+        SizeOfModel<VisMatrix>(n_directions, n_visibilities));
+    host_buffers_.residual.emplace_back(
+        SizeOfResidual<VisMatrix>(n_visibilities));
     host_buffers_.solutions.emplace_back(SizeOfSolutions(n_visibilities));
     host_buffers_.antenna_pairs.emplace_back(
         SizeOfAntennaPairs(n_visibilities));
@@ -223,7 +244,9 @@ void IterativeDiagonalSolverCuda::AllocateHostBuffers(const SolveData& data) {
     }
   }
 }
-void IterativeDiagonalSolverCuda::DeallocateHostBuffers() {
+
+template <typename VisMatrix>
+void IterativeDiagonalSolverCuda<VisMatrix>::DeallocateHostBuffers() {
   host_buffers_.next_solutions.reset();
   host_buffers_.model.clear();
   host_buffers_.residual.clear();
@@ -232,37 +255,36 @@ void IterativeDiagonalSolverCuda::DeallocateHostBuffers() {
   host_buffers_.solution_map.clear();
   host_buffers_initialized_ = false;
 }
-
-void IterativeDiagonalSolverCuda::CopyHostToHost(
-    size_t ch_block, bool first_iteration, const SolveData& data,
+template <typename VisMatrix>
+void IterativeDiagonalSolverCuda<VisMatrix>::CopyHostToHost(
+    size_t ch_block, bool first_iteration, const SolveData<VisMatrix>& data,
     const std::vector<std::complex<double>>& solutions, cu::Stream& stream) {
-  const SolveData::ChannelBlockData& channel_block_data =
+  const ChannelBlockData<VisMatrix>& channel_block_data =
       data.ChannelBlock(ch_block);
   const size_t n_directions = channel_block_data.NDirections();
   const size_t n_visibilities = channel_block_data.NVisibilities();
   cu::HostMemory& host_model = host_buffers_.model[ch_block];
   cu::HostMemory& host_solutions = host_buffers_.solutions[ch_block];
   stream.memcpyHtoHAsync(host_model, &channel_block_data.ModelVisibility(0, 0),
-                         SizeOfModel(n_directions, n_visibilities));
+                         SizeOfModel<VisMatrix>(n_directions, n_visibilities));
   stream.memcpyHtoHAsync(host_solutions, solutions.data(),
                          SizeOfSolutions(n_visibilities));
   if (first_iteration) {
     cu::HostMemory& host_residual = host_buffers_.residual[ch_block];
     cu::HostMemory& host_solution_map = host_buffers_.solution_map[ch_block];
     stream.memcpyHtoHAsync(host_residual, &channel_block_data.Visibility(0),
-                           SizeOfResidual(n_visibilities));
+                           SizeOfResidual<VisMatrix>(n_visibilities));
     stream.memcpyHtoHAsync(host_solution_map,
                            channel_block_data.SolutionMapData(),
                            SizeOfSolutionMap(n_directions, n_visibilities));
   }
 }
 
-void IterativeDiagonalSolverCuda::CopyHostToDevice(size_t ch_block,
-                                                   size_t buffer_id,
-                                                   cu::Stream& stream,
-                                                   cu::Event& event,
-                                                   const SolveData& data) {
-  const dp3::ddecal::SolveData::ChannelBlockData& channel_block_data =
+template <typename VisMatrix>
+void IterativeDiagonalSolverCuda<VisMatrix>::CopyHostToDevice(
+    size_t ch_block, size_t buffer_id, cu::Stream& stream, cu::Event& event,
+    const SolveData<VisMatrix>& data) {
+  const ChannelBlockData<VisMatrix>& channel_block_data =
       data.ChannelBlock(ch_block);
 
   const size_t n_directions = channel_block_data.NDirections();
@@ -283,9 +305,9 @@ void IterativeDiagonalSolverCuda::CopyHostToDevice(size_t ch_block,
   stream.memcpyHtoDAsync(device_solution_map, host_solution_map,
                          SizeOfSolutionMap(n_directions, n_visibilities));
   stream.memcpyHtoDAsync(device_model, host_model,
-                         SizeOfModel(n_directions, n_visibilities));
+                         SizeOfModel<VisMatrix>(n_directions, n_visibilities));
   stream.memcpyHtoDAsync(device_residual, host_residual,
-                         SizeOfResidual(n_visibilities));
+                         SizeOfResidual<VisMatrix>(n_visibilities));
   stream.memcpyHtoDAsync(device_antenna_pairs, host_antenna_pairs,
                          SizeOfAntennaPairs(n_visibilities));
   stream.memcpyHtoDAsync(device_solutions, host_solutions,
@@ -293,8 +315,8 @@ void IterativeDiagonalSolverCuda::CopyHostToDevice(size_t ch_block,
 
   stream.record(event);
 }
-
-void IterativeDiagonalSolverCuda::PostProcessing(
+template <typename VisMatrix>
+void IterativeDiagonalSolverCuda<VisMatrix>::PostProcessing(
     size_t& iteration, double time, bool has_previously_converged,
     bool& has_converged, bool& constraints_satisfied, bool& done,
     SolverBase::SolveResult& result,
@@ -317,9 +339,10 @@ void IterativeDiagonalSolverCuda::PostProcessing(
                                   constraints_satisfied, step_magnitudes);
 }
 
-IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
-    const SolveData& data,
-    std::vector<std::vector<std::complex<double>>>& solutions, double time,
+template <typename VisMatrix>
+SolverBase::SolveResult IterativeDiagonalSolverCuda<VisMatrix>::Solve(
+    const SolveData<VisMatrix>& data,
+    std::vector<std::vector<DComplex>>& solutions, double time,
     std::ostream* stat_stream) {
   PrepareConstraints();
   context_->setCurrent();
@@ -372,7 +395,7 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
     nvtxRangeId_t nvts_range_gpu = nvtxRangeStart("GPU");
 
     for (size_t ch_block = 0; ch_block < NChannelBlocks(); ch_block++) {
-      const SolveData::ChannelBlockData& channel_block_data =
+      const ChannelBlockData<VisMatrix>& channel_block_data =
           data.ChannelBlock(ch_block);
       const int buffer_id = ch_block % 2;
       // Copy input data for first channel block
@@ -416,15 +439,15 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
       }
 
       // Start iteration (dtod copies and kernel execution only)
-      PerformIteration(phase_only, step_size, channel_block_data,
-                       *execute_stream_, NAntennas(), NSolutions(),
-                       NDirections(), gpu_buffers_.solution_map[buffer_id],
-                       gpu_buffers_.solutions[buffer_id],
-                       gpu_buffers_.next_solutions[buffer_id],
-                       gpu_buffers_.residual[buffer_id],
-                       gpu_buffers_.residual[2], gpu_buffers_.model[buffer_id],
-                       gpu_buffers_.antenna_pairs[buffer_id],
-                       *gpu_buffers_.numerator, *gpu_buffers_.denominator);
+      PerformIteration<VisMatrix>(
+          phase_only, step_size, channel_block_data, *execute_stream_,
+          NAntennas(), NSolutions(), NDirections(),
+          gpu_buffers_.solution_map[buffer_id],
+          gpu_buffers_.solutions[buffer_id],
+          gpu_buffers_.next_solutions[buffer_id],
+          gpu_buffers_.residual[buffer_id], gpu_buffers_.residual[2],
+          gpu_buffers_.model[buffer_id], gpu_buffers_.antenna_pairs[buffer_id],
+          *gpu_buffers_.numerator, *gpu_buffers_.denominator);
 
       execute_stream_->record(compute_finished_events[ch_block]);
 
@@ -468,6 +491,9 @@ IterativeDiagonalSolver::SolveResult IterativeDiagonalSolverCuda::Solve(
   if (!keep_buffers_) DeallocateHostBuffers();
   return result;
 }
+
+template class IterativeDiagonalSolverCuda<aocommon::MC2x2F>;
+template class IterativeDiagonalSolverCuda<aocommon::MC2x2FDiag>;
 
 }  // namespace ddecal
 }  // namespace dp3

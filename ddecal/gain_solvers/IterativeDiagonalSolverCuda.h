@@ -16,10 +16,11 @@
 namespace dp3 {
 namespace ddecal {
 
+template <typename VisMatrix>
 class IterativeDiagonalSolverCuda final : public SolverBase {
  public:
   IterativeDiagonalSolverCuda(bool keep_buffers = false);
-  SolveResult Solve(const SolveData& data,
+  SolveResult Solve(const SolveData<VisMatrix>& data,
                     std::vector<std::vector<DComplex>>& solutions, double time,
                     std::ostream* stat_stream) override;
 
@@ -28,17 +29,17 @@ class IterativeDiagonalSolverCuda final : public SolverBase {
   bool SupportsDdSolutionIntervals() const override { return true; }
 
  private:
-  void AllocateGPUBuffers(const SolveData& data);
+  void AllocateGPUBuffers(const SolveData<VisMatrix>& data);
   void DeallocateHostBuffers();
-  void AllocateHostBuffers(const SolveData& data);
+  void AllocateHostBuffers(const SolveData<VisMatrix>& data);
 
   void CopyHostToHost(size_t ch_block, bool first_iteration,
-                      const SolveData& data,
+                      const SolveData<VisMatrix>& data,
                       const std::vector<DComplex>& solutions,
                       cu::Stream& stream);
 
   void CopyHostToDevice(size_t ch_block, size_t buffer_id, cu::Stream& stream,
-                        cu::Event& event, const SolveData& data);
+                        cu::Event& event, const SolveData<VisMatrix>& data);
 
   void PostProcessing(size_t& iteration, double time,
                       bool has_previously_converged, bool& has_converged,
