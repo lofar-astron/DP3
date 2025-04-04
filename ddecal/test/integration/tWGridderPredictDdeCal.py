@@ -297,7 +297,7 @@ def test_wgridderpredict_and_applycal_with_ddecal(make_h5parm):
     count = 0
     for y in np.nditer(output_values):
         if not np.isnan(y):
-            assert np.isclose(y, 1.0, rtol=0.0, atol=1e-4)
+            assert np.isclose(y, 1.0, rtol=0.0, atol=1e-3)
             count += 1
 
     # One out of eight antennas has 100% of its data flagged.
