@@ -310,6 +310,7 @@ void OnePredict::show(std::ostream& os) const {
        << '\n';
     os << "   beam proximity limit:   "
        << (beam_proximity_limit_ * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
+    os << "   beam interval:          " << beam_evaluation_interval_ << '\n';
   }
   os << "  operation:               ";
   switch (operation_) {

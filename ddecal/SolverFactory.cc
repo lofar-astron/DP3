@@ -420,9 +420,11 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
         settings, parset, prefix, SolverAlgorithm::kDirectionIterative);
 
     auto hybrid_solver = std::make_unique<HybridSolver>();
-    hybrid_solver->SetMaxIterations(settings.max_iterations);
     hybrid_solver->AddSolver(std::move(a));
     hybrid_solver->AddSolver(std::move(b));
+    // Although the hybrid solver only uses the max iterations setting, store
+    // all settings in it, since DDECal::show() prints them.
+    InitializeSolver(*hybrid_solver, settings);
     solver = std::move(hybrid_solver);
   } else {
     solver = CreateSolver(settings, parset, prefix, settings.solver_algorithm);

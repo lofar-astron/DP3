@@ -115,7 +115,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       lls_solver_type(
           ddecal::LLSSolver::ParseType(GetString("llssolver", "qr"))),
       max_iterations(GetUint("maxiter", 50)),
-      tolerance(GetDouble("tolerance", 1.e-4)),
+      tolerance(GetDouble("tolerance", 1.0e-5)),
       step_size(GetDouble("stepsize", 0.2)),
       solver_data_use(ParseSolverDataUse(GetString("datause", "full"))),
       detect_stalling(GetBool("detectstalling", true)),

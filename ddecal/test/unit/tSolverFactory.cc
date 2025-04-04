@@ -424,8 +424,8 @@ BOOST_AUTO_TEST_CASE(solver_settings_default) {
   BOOST_CHECK(solver->GetLLSSolverType() == dp3::ddecal::LLSSolverType::QR);
 
   BOOST_CHECK_EQUAL(solver->GetMaxIterations(), 50u);
-  BOOST_CHECK_CLOSE(solver->GetAccuracy(), 1.0e-4, 1.0e-8);
-  BOOST_CHECK_CLOSE(solver->GetConstraintAccuracy(), 1.0e-3, 1.0e-8);
+  BOOST_CHECK_CLOSE(solver->GetAccuracy(), 1.0e-5, 1.0e-8);
+  BOOST_CHECK_CLOSE(solver->GetConstraintAccuracy(), 1.0e-4, 1.0e-8);
   BOOST_CHECK_CLOSE(solver->GetStepSize(), 0.2, 1.0e-8);
   BOOST_CHECK_EQUAL(solver->GetDetectStalling(), true);
 }
