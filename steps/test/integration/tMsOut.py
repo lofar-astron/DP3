@@ -240,3 +240,33 @@ def test_antenna_compression():
     assert get_directory_size("out1.MS") + 64500 <= get_directory_size(
         "out2.MS"
     )
+
+
+def test_metadata_decompression():
+    # Make sure that we can also decompress a compressed set. This tests reproduces a bug
+    # that was only triggered when decompressing the antenna columns on a set that had antenna and uvw compression.
+    check_output(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "steps=[]",
+            "msout=out1.MS",
+            "msout.antennacompression=True",
+            "msout.uvwcompression=True",
+            "msout.scalarflags=False",
+        ]
+    )
+
+    check_output(
+        [
+            tcf.DP3EXE,
+            f"msin=out1.MS",
+            "steps=[]",
+            "msout=out2.MS",
+            "msout.antennacompression=False",
+            "msout.uvwcompression=False",
+            "msout.scalarflags=False",
+        ]
+    )
+    taql_command = "select from out1.MS AS out1, out2.MS AS out2 where not all(out1.ANTENNA1==out2.ANTENNA1) or not all(out1.ANTENNA2==out2.ANTENNA2) or not all(out1.UVW~=out2.UVW)"
+    assert_taql(taql_command)

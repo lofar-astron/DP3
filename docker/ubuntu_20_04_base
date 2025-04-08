@@ -3,6 +3,7 @@ FROM ubuntu:20.04
 # Needs to be bumped before next DP3 release.
 ENV EVERYBEAM_VERSION=v0.7.0
 ENV AOFLAGGER_VERSION=v3.4.0
+ENV CASACORE_VERSION=1cfe6199f22574a41de8a0ef9bc1919cf5e11e49
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
@@ -52,8 +53,9 @@ RUN wget -nv -O /WSRT_Measures.ztar https://www.astron.nl/iers/WSRT_Measures.zta
 # The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
 RUN mkdir /external && \
   cd /external && \
-  git clone --depth 1 --branch v3.7.1 https://github.com/casacore/casacore.git && \
+  git clone https://github.com/casacore/casacore.git && \
   cd /external/casacore && \
+  git checkout ${CASACORE_VERSION} && \
   mkdir build && \
   cd build && \
   cmake .. -DBUILD_TESTING=OFF -DDATA_DIR=/var/lib/casacore/data && \
