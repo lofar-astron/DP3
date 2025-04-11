@@ -193,6 +193,28 @@ BOOST_FIXTURE_TEST_CASE(missing_extra_data, FixtureCopyAndAddExtraData) {
   BOOST_CHECK_THROW(MsReader reader2(ms, parset2, "msin."), std::runtime_error);
 }
 
+BOOST_FIXTURE_TEST_CASE(starttimeslot, FixtureDirectory) {
+  // kInputMs is irregular at the beginning, which allows testing various cases.
+  const std::vector<double> kSlotTimes = {
+      4472025680.0,  // Extra time slot at the beginning.
+      4472025710.0,  // Extra time slot at the beginning.
+      4472025740.0,  // First actual time slot of kInputMs.
+      4472025765.0,  // Second time slot, 25 seconds (!) later.
+      4472025795.0,  // Third time slot, 30 seconds later.
+      4472025885.0,  // Fourth time slot, 90 seconds (!) later.
+      4472025915.0   // Fifth time slot, 30 seconds later.
+  };
+  for (int i = 0; i < int(kSlotTimes.size()); ++i) {
+    const int starttimeslot = i - 2;
+    const casacore::MeasurementSet ms(kInputMs,
+                                      casacore::TableLock::AutoNoReadLocking);
+    ParameterSet parset;
+    parset.add("msin.starttimeslot", std::to_string(starttimeslot));
+    const MsReader reader(ms, parset, "msin.");
+    BOOST_CHECK_CLOSE(reader.getInfoOut().firstTime(), kSlotTimes[i], 1.0e-10);
+  }
+}
+
 BOOST_FIXTURE_TEST_CASE(process, FixtureDirectory,
                         *boost::unit_test::tolerance(0.0001) *
                             boost::unit_test::tolerance(0.0001f)) {
