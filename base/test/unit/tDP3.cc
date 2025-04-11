@@ -641,8 +641,9 @@ BOOST_FIXTURE_TEST_CASE(test_avg_start_time, FixtureDirectory) {
   Table table_avg("tNDPPP_tmp.avg.MS");
 
   // -1: Because this test skips the first time slot.
-  // +1: For rounding (kInputMsTimeSlots - 1) / 2 up.
-  const std::size_t kExpectedTimeSlots = (kInputMsTimeSlots - 1 + 1) / 2;
+  // +2: Because the input has two missing time slots.
+  // +1: For rounding (kInputMsTimeSlots - 1 + 2) / 2 up.
+  const std::size_t kExpectedTimeSlots = (kInputMsTimeSlots - 1 + 2 + 1) / 2;
   BOOST_CHECK_EQUAL(table_avg.nrow(), kNBaselines * kExpectedTimeSlots);
 
   ScalarColumn<double> time_column(table_avg, "TIME");

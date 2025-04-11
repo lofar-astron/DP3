@@ -436,64 +436,74 @@ void MsReader::ParseTimeSelection(const common::ParameterSet& parset,
   const unsigned int nTimes = parset.getInt(prefix + "ntimes", 0);
   const int startTimeSlot = parset.getInt(prefix + "starttimeslot", 0);
 
-  // Get time properties from the MS, which prepare() already set.
+  // Get time properties from the MS, which InitializeIterator() already set.
   double first_time = getInfoOut().firstTime();
   double last_time = getInfoOut().lastTime();
   const double interval = getInfo().timeInterval();
 
+  // Update first_time, using "starttime" or "starttimeslot".
   if (!startTimeStr.empty()) {
     if (startTimeSlot > 0) {
       throw std::runtime_error("Only one of " + prefix + "starttimeslot and " +
                                prefix + "starttime can be specified");
     }
+
     Quantity qtime;
     if (!MVTime::read(qtime, startTimeStr)) {
       throw std::runtime_error(startTimeStr + " is an invalid date/time");
     }
-    double startTimeParset = qtime.getValue("s");
+    first_time = qtime.getValue("s");
     // the parset specified start time is allowed to be before the msstarttime.
     // In that case, flagged samples are injected.
-    if (startTimeParset > last_time)
+    if (first_time > last_time)
       throw std::runtime_error("Specified starttime is past end of time axis");
 
-    // Round specified first time to a multiple of 'interval'.
-    first_time +=
-        std::ceil((startTimeParset - first_time) / interval) * interval;
-  } else {
+    // If needed, skip the first times in the MS.
+    SkipFirstTimes(first_time, interval);
+  } else if (startTimeSlot > 0) {
+    // Skip 'startTimeSlot' time slots.
+    int i = 0;
+    while (i < startTimeSlot && !ms_iterator_.pastEnd()) {
+      ++i;
+      ms_iterator_.next();
+    }
+    if (!ms_iterator_.pastEnd()) {
+      first_time = ScalarColumn<double>(ms_iterator_.table(), "TIME")(0);
+    }
+  } else if (startTimeSlot < 0) {
+    // Insert empty slots at the beginning.
     first_time += startTimeSlot * interval;
   }
 
+  if (ms_iterator_.pastEnd()) {
+    infoOut().setTimes(0, 0, interval);
+    return;
+  }
+
+  // Update last_time, using "endtime" or "ntimes".
   if (!endTimeStr.empty()) {
+    if (nTimes > 0) {
+      throw std::runtime_error("Only one of " + prefix + "ntimes and " +
+                               prefix + "endtime can be specified");
+    }
+
     Quantity qtime;
     if (!MVTime::read(qtime, endTimeStr)) {
       throw std::runtime_error(endTimeStr + " is an invalid date/time");
     }
-    const double endTimeParset = qtime.getValue("s");
+    last_time = qtime.getValue("s");
 
     // Some overlap between the measurement set timerange and the parset range
     // is required :
-    if (endTimeParset < getInfoOut().startTime()) {
+    if (last_time < getInfoOut().startTime()) {
       throw std::runtime_error(
           "Specified end time " + endTimeStr +
           " is before the first timestep in the measurement set");
     }
     // Round specified last time to a multiple of 'interval'.
-    const double ms_first_time = getInfoOut().firstTime();
     last_time =
-        ms_first_time +
-        std::floor((endTimeParset - ms_first_time) / interval) * interval;
-  }
-
-  if (last_time < first_time)
-    throw std::runtime_error("Specified endtime is before specified starttime");
-  // If needed, skip the first times in the MS.
-  // It also sets first_time properly (round to time/interval in MS).
-  SkipFirstTimes(first_time, interval);
-  if (nTimes > 0) {
-    if (!endTimeStr.empty()) {
-      throw std::runtime_error("Only one of " + prefix + "ntimes and " +
-                               prefix + "endtime can be specified");
-    }
+        first_time + std::floor((last_time - first_time) / interval) * interval;
+  } else if (nTimes > 0) {
     last_time = first_time + (nTimes - 1) * interval;
   }
 
@@ -819,36 +829,31 @@ void MsReader::ReadPolarizations(int spectralWindow) {
 void MsReader::SkipFirstTimes(double& first_time, const double interval) {
   while (!ms_iterator_.pastEnd()) {
     // Take time from row 0 in subset.
-    double mstime = ScalarColumn<double>(ms_iterator_.table(), "TIME")(0);
+    double ms_time = ScalarColumn<double>(ms_iterator_.table(), "TIME")(0);
     // Skip time slot and give warning if MS data is not in time order.
-    if (mstime < previous_time_) {
+    if (ms_time < previous_time_) {
       aocommon::Logger::Warn
           << "Time at rownr " << ms_iterator_.table().rowNumbers(ms_)[0]
           << " of MS " << msName() << " is less than previous time slot\n";
-    } else {
-      // Stop skipping if time equal to itsFirstTime.
-      if (casacore::near(mstime, first_time)) {
-        first_time = mstime;
-        break;
+    } else if (casacore::near(ms_time, first_time)) {  // Stop skipping.
+      first_time = ms_time;
+      break;
+    } else if (ms_time > first_time) {
+      // Compute number of empty time slots between ms_time and first_time.
+      const int n_empty_slots = int((ms_time - first_time) / interval);
+      ms_time -= n_empty_slots * interval;
+      // Handle rounding errors: If first_time is close to the previous
+      // time slot, use that time slot.
+      if (casacore::near(first_time, ms_time - interval)) {
+        first_time = ms_time - interval;
+      } else {
+        first_time = ms_time;
       }
-      // Also stop if time > first_time.
-      // In that case determine the true first time, because first_time
-      // can be a time value that does not coincide with a true time.
-      // Note that a time stamp might be missing at this point,
-      // so do not simply assume that mstime can be used.
-      if (mstime > first_time) {
-        int nrt = int((mstime - first_time) / interval);
-        mstime -= (nrt + 1) * interval;  // Add 1 for rounding errors
-        if (casacore::near(mstime, first_time)) {
-          first_time = mstime;
-        } else {
-          first_time = mstime + interval;
-        }
-        break;
-      }
+      break;
     }
+
     // Skip this time slot.
-    previous_time_ = mstime;
+    previous_time_ = ms_time;
     ms_iterator_.next();
   }
 }
