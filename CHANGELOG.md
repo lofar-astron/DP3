@@ -1,15 +1,39 @@
 # DP3 Changelog
 
-## Upcoming release
+
+## [6.4] - 2025-04-14
+
+This release completes the meta-data compression feature, which makes LOFAR MSs ~14% smaller. Compressing meta-data is off by default but can be enabled in CMake and/or in the parset. This release also adds various calibration options.
+
+### New features
+- Add `msout.uvwcompression` and `msout.antennacompression` options, for compressing
+UVW and antenna values using new CasaCore storage managers.
+- Add `clipper.flagallcorrelations` option, for flagging all correlations instead of a single correlation only.
+- Add `ddecal.initialsolutions` option, which allows starting from existing solutions when running the solver.
+- Add `ddecal.smoothness_dd_factors` option, for direction-dependent scaling of the smoothing kernel.
+- Add `ddecal.smoothness_kernel_truncation` option, for disabling truncating the smoothing kernel.
+
+### Improvements
+- Update handling `msin.starttime` / `msin.starttimeslots` options. DP3 now uses a time slot from the input MS as start time, instead of using the first time slot in the MS and increasing it by an integer times the MS interval.
+- Require CasaCore 3.7.1 when building DP3.
+- Average extra (model) data buffers too in the BDA averager step.
+- Add documentation for the `null` step.
+- Build binary wheel for Python 3.13; Drop binary wheel for Python 3.7.
+
+### Bug fixes
+- Fix angular proximity clustering for models with sources near RA=0.
+- Fix writing the h5 time axis in the ddecal step when the solution interval is larger than the number of time slots.
+- Allow updating the input MS after running a 'predict' step.
+- Fix showing ddecal settings when using the 'hybrid' solver.
 
 ## [6.3] - 2025-01-28
 
-## New features
+### New features
 - Add flagtransfer step, which transfers flags from a low-resolution MS.
 - Support new Casacore Stokes I storage manager.
 - Add `msout.scalarflags` option, for compressing flags.
 
-## Improvements
+### Improvements
 - The `elementmodel` parset key of the ApplyBeam and Predict step is now parsed
 by EveryBeam making all element models in that library available.
 The default value is changed from "hamaker" to "default" meaning that
@@ -19,7 +43,7 @@ the measurement set. For a LOFAR MS that will still be "hamaker".
 - Apply per-direction weights in constraints.
 - Use C++20. DP3 now requires at least GCC-10.
 
-## Bug fixes
+### Bug fixes
 - Fix flag counting in UVWFlagger when using BDA.
 
 ## [6.2.2] - 2024-11-08
