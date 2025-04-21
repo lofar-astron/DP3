@@ -537,8 +537,8 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
 
   SolverMode mode(GetMode());
 
-  SolutionTensor next_solutions(
-      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
+                                 NSolutionPolarizations()});
 
   for (size_t ch_block = 0; ch_block != NChannelBlocks(); ++ch_block) {
     const FullSolveData::ChannelBlockData& channel_block_data =
@@ -549,12 +549,12 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
     if (GetBoundConstrained()) {
       lbfgsb_persist_init(
           &persistent_data[ch_block], GetMinibatches(),
-          NAntennas() * NSolutions() * NSolutionPolarizations() * 2,
+          NAntennas() * NSubSolutions() * NSolutionPolarizations() * 2,
           channel_block_data.NVisibilities(), GetHistorySize(), 1);
     } else {
       lbfgs_persist_init(
           &persistent_data[ch_block], GetMinibatches(),
-          NAntennas() * NSolutions() * NSolutionPolarizations() * 2,
+          NAntennas() * NSubSolutions() * NSolutionPolarizations() * 2,
           channel_block_data.NVisibilities(), GetHistorySize(), 1);
     }
   }
@@ -578,7 +578,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
           PerformIterationFull(
               ch_block, data.ChannelBlock(ch_block), solutions[ch_block],
-              next_solutions, NAntennas(), NSolutions(), GetRobustDOF(),
+              next_solutions, NAntennas(), NSubSolutions(), GetRobustDOF(),
               GetMaxIter(), GetHistorySize(), GetMinibatches(),
               GetMinSolution(), GetMaxSolution(), GetBoundConstrained(),
               persistent_data[ch_block]);
@@ -589,7 +589,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
           PerformIterationDiagonal(
               ch_block, data.ChannelBlock(ch_block), solutions[ch_block],
-              next_solutions, NAntennas(), NSolutions(), GetRobustDOF(),
+              next_solutions, NAntennas(), NSubSolutions(), GetRobustDOF(),
               GetMaxIter(), GetHistorySize(), GetMinibatches(),
               GetMinSolution(), GetMaxSolution(), GetBoundConstrained(),
               persistent_data[ch_block]);
@@ -600,7 +600,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
         loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
           PerformIterationScalar(
               ch_block, data.ChannelBlock(ch_block), solutions[ch_block],
-              next_solutions, NAntennas(), NSolutions(), GetRobustDOF(),
+              next_solutions, NAntennas(), NSubSolutions(), GetRobustDOF(),
               GetMaxIter(), GetHistorySize(), GetMinibatches(),
               GetMinSolution(), GetMaxSolution(), GetBoundConstrained(),
               persistent_data[ch_block]);

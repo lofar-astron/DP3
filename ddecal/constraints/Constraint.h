@@ -90,8 +90,8 @@ class Constraint {
     n_antennas_ = n_antennas;
     solutions_per_direction_ = solutions_per_direction;
     n_channel_blocks_ = frequencies.size();
-    n_solutions_ = std::accumulate(solutions_per_direction.begin(),
-                                   solutions_per_direction.end(), 0u);
+    n_sub_solutions_ = std::accumulate(solutions_per_direction.begin(),
+                                       solutions_per_direction.end(), 0u);
   }
 
   /**
@@ -117,10 +117,11 @@ class Constraint {
   size_t NAntennas() const { return n_antennas_; }
   size_t NDirections() const { return solutions_per_direction_.size(); }
   /**
-   * Number of solutions over all directions, i.e. the sum over
+   * Number of subsolutions over all directions, taking into account that a
+   * direction maybe have multiple intervals. This is the sum over
    * solutions_per_direction_.
    */
-  size_t NSolutions() const { return n_solutions_; }
+  size_t NSubSolutions() const { return n_sub_solutions_; }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
 
   static bool isfinite(const dcomplex& value) {
@@ -130,7 +131,7 @@ class Constraint {
  private:
   size_t n_antennas_ = 0;
   size_t n_channel_blocks_ = 0;
-  size_t n_solutions_ = 0;
+  size_t n_sub_solutions_ = 0;
   std::vector<uint32_t> solutions_per_direction_;
 };
 

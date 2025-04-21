@@ -365,7 +365,7 @@ SolverBase::SolveResult IterativeDiagonalSolverCuda<VisMatrix>::Solve(
   }
 
   const std::array<size_t, 4> next_solutions_shape = {
-      NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()};
+      NChannelBlocks(), NAntennas(), NSubSolutions(), NSolutionPolarizations()};
   std::complex<double>* next_solutions_ptr = *(host_buffers_.next_solutions);
   SolutionSpan next_solutions =
       aocommon::xt::CreateSpan(next_solutions_ptr, next_solutions_shape);

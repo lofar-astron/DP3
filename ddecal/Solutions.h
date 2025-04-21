@@ -10,8 +10,8 @@
 namespace dp3 {
 namespace ddecal {
 /// Data structures for solutions. The dimensions are
-/// (nr. channel blocks, nr. antennas, nr. solutions, nr. polarizations).
-/// The number of solutions (third dimension) depends on the number of
+/// (nr. channel blocks, nr. antennas, nr. subsolutions, nr. polarizations).
+/// The number of subsolutions (third dimension) depends on the number of
 /// directions and the number of solutions per direction.
 /// Different directions may have different solution counts.
 /// @sa dp3::ddecal::SolveData::ChannelBlockData::NSolutionsForDirection

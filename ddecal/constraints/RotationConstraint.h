@@ -27,9 +27,15 @@ class RotationConstraint final : public Constraint {
 
   /* Compute the rotation from a 2x2 full jones solution */
   static double FitRotation(const std::complex<double>* data);
+  static void SetRotation(std::complex<double>* data, double angle) {
+    data[0] = std::cos(angle);
+    data[1] = -std::sin(angle);
+    data[2] = -data[1];
+    data[3] = data[0];
+  }
 
  private:
-  std::vector<Constraint::Result> _res;
+  std::vector<Constraint::Result> results_;
 };
 
 }  // namespace ddecal

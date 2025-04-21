@@ -100,8 +100,11 @@ class SolveData {
       return n_solutions_[direction_index];
     }
 
-    /** @return Total number of solutions */
-    uint32_t NSolutions() const {
+    /**
+     * @return Total number of solutions. This is the sum of the solutions
+     * over all directions.
+     */
+    uint32_t NSubSolutions() const {
       return accumulate(n_solutions_.begin(), n_solutions_.end(), uint32_t(0));
     }
 

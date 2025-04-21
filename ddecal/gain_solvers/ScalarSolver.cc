@@ -25,8 +25,8 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionTensor next_solutions(
-      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
+                                 NSolutionPolarizations()});
 
   ///
   /// Start iterating
@@ -136,7 +136,7 @@ void ScalarSolver::PerformIteration(
   }
 
   // The following loop fills g_times_cs (for all antennas)
-  for (size_t s = 0; s != NSolutions(); ++s) {
+  for (size_t s = 0; s != NSubSolutions(); ++s) {
     ant_positions.assign(NAntennas(), 0);
     for (size_t vis_index = 0; vis_index != n_visibilities; ++vis_index) {
       size_t antenna1 = cb_data.Antenna1Index(vis_index);
@@ -151,8 +151,8 @@ void ScalarSolver::PerformIteration(
         const aocommon::MC2x2F predicted =
             cb_data.ModelVisibility(s, vis_index);
 
-        const size_t sol_index1 = antenna1 * NSolutions() + s;
-        const size_t sol_index2 = antenna2 * NSolutions() + s;
+        const size_t sol_index1 = antenna1 * NSubSolutions() + s;
+        const size_t sol_index2 = antenna2 * NSubSolutions() + s;
         g_times_c1(a1pos * 4 + p2, s) =
             std::conj(Complex(solutions[sol_index2])) * predicted.Get(p1);
         g_times_c2(a2pos * 4 + p1, s) =
@@ -166,7 +166,7 @@ void ScalarSolver::PerformIteration(
 
   // The matrices have been filled; compute the linear solution
   // for each antenna.
-  const size_t n = NSolutions();
+  const size_t n = NSubSolutions();
   const size_t nrhs = 1;
 
   aocommon::RecursiveFor::NestedRun(0, NAntennas(), [&](size_t ant) {
@@ -175,14 +175,14 @@ void ScalarSolver::PerformIteration(
     // reallocations
     std::unique_ptr<LLSSolver> solver = CreateLLSSolver(m, n, nrhs);
     // solve x^H in [g C] x^H  = v
-    std::vector<Complex> x0(NSolutions());
-    for (size_t s = 0; s != NSolutions(); ++s) {
-      x0[s] = solutions[(ant * NSolutions() + s)];
+    std::vector<Complex> x0(NSubSolutions());
+    for (size_t s = 0; s != NSubSolutions(); ++s) {
+      x0[s] = solutions[(ant * NSubSolutions() + s)];
     }
     Matrix& x = vs[ant];
     bool success = solver->Solve(g_times_cs[ant].data(), x.data(), x0.data());
     if (success && x(0, 0) != Complex(0.0, 0.0)) {
-      for (size_t s = 0; s != NSolutions(); ++s)
+      for (size_t s = 0; s != NSubSolutions(); ++s)
         next_solutions(ch_block, ant, s, 0) = x(s, 0);
     } else {
       xt::view(next_solutions, ch_block, ant, xt::all(), 0)
@@ -206,7 +206,7 @@ void ScalarSolver::InitializeModelMatrix(
     // Model matrix [N x D] and visibility vector [N x 1]
     const size_t n_visibilities = channel_block_data.NAntennaVisibilities(ant);
     const size_t m = n_visibilities * 4;
-    const size_t n = NSolutions();
+    const size_t n = NSubSolutions();
     const size_t n_rhs = 1;
 
     g_times_cs[ant].Reset(m, n);

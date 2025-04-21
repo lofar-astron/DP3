@@ -150,7 +150,7 @@ void RotationAndDiagonalConstraint::Initialize(
   rotation_result.axes = "ant,dir,freq";
   rotation_result.dims.resize(3);
   rotation_result.dims[0] = NAntennas();
-  rotation_result.dims[1] = NDirections();
+  rotation_result.dims[1] = NSubSolutions();
   rotation_result.dims[2] = NChannelBlocks();
   rotation_result.name = "rotation";
 

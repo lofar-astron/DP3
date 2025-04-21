@@ -53,8 +53,8 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   PrepareConstraints();
   SolveResult result;
 
-  SolutionTensor next_solutions(
-      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
+                                 NSolutionPolarizations()});
 
   ///
   /// Start iterating
@@ -191,7 +191,7 @@ void FullJonesSolver::PerformIteration(
   }
 
   // The following loop fills g_times_cs (for all antennas)
-  for (size_t s = 0; s != NSolutions(); ++s) {
+  for (size_t s = 0; s != NSubSolutions(); ++s) {
     ant_positions.assign(NAntennas(), 0);
     for (size_t vis_index = 0; vis_index != cb_data.NVisibilities();
          ++vis_index) {
@@ -210,8 +210,8 @@ void FullJonesSolver::PerformIteration(
       using aocommon::MC2x2;
 
       const MC2x2 model_data(cb_data.ModelVisibility(s, vis_index));
-      const MC2x2 solutions1(&solutions[(antenna1 * NSolutions() + s) * 4]);
-      const MC2x2 solutions2(&solutions[(antenna2 * NSolutions() + s) * 4]);
+      const MC2x2 solutions1(&solutions[(antenna1 * NSubSolutions() + s) * 4]);
+      const MC2x2 solutions2(&solutions[(antenna2 * NSubSolutions() + s) * 4]);
       const MC2x2 g_times_c2_data = solutions1 * model_data;
       const MC2x2 g_times_c1_data = solutions2.MultiplyHerm(model_data);
 
@@ -226,7 +226,7 @@ void FullJonesSolver::PerformIteration(
   }
 
   // Compute the linear solution for each antenna.
-  const size_t n = NSolutions() * 2;
+  const size_t n = NSubSolutions() * 2;
   const size_t n_rhs = 2;
 
   aocommon::RecursiveFor::NestedRun(0, NAntennas(), [&](size_t ant) {
@@ -240,7 +240,7 @@ void FullJonesSolver::PerformIteration(
     bool success = solver.Solve(g_times_cs[ant].data(), vs[ant].data());
     Matrix& x = vs[ant];
     if (success && x(0, 0) != Complex(0.0, 0.0)) {
-      for (size_t s = 0; s != NSolutions(); ++s)
+      for (size_t s = 0; s != NSubSolutions(); ++s)
         for (size_t p = 0; p != 4; ++p) {
           // The conj transpose is also performed at this point (note swap of %
           // and /)
@@ -269,7 +269,7 @@ void FullJonesSolver::InitializeModelMatrix(
     // Model matrix [2N x 2D] and visibility matrix [2N x 2]
     const size_t n_visibilities = channel_block_data.NAntennaVisibilities(ant);
     const size_t m = n_visibilities * 2;
-    const size_t n = NSolutions() * 2;
+    const size_t n = NSubSolutions() * 2;
     const size_t n_rhs = 2;
 
     g_times_cs[ant].Reset(m, n);

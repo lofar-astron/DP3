@@ -291,12 +291,12 @@ class SolverBase {
    * This might be different from n_directions_ when using direction-dependent
    * intervals.
    */
-  size_t NSolutions() const { return n_solutions_; }
+  size_t NSubSolutions() const { return n_sub_solutions_; }
   /**
    * Total number of visibilities over all channel blocks
    */
   size_t NVisibilities() const {
-    return NChannelBlocks() * NAntennas() * NSolutions() *
+    return NChannelBlocks() * NAntennas() * NSubSolutions() *
            NSolutionPolarizations();
   }
 
@@ -330,7 +330,7 @@ class SolverBase {
   size_t n_antennas_;
   size_t n_directions_;
   size_t n_channel_blocks_;
-  size_t n_solutions_;
+  size_t n_sub_solutions_;
 
   /**
    * Calibration setup

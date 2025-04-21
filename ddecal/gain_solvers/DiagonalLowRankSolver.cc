@@ -86,8 +86,8 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
       direction_ordering_.emplace_back(i);
   }
 
-  SolutionTensor next_solutions(
-      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
+                                 NSolutionPolarizations()});
 
   SolveResult result;
 
@@ -184,9 +184,9 @@ double DiagonalLowRankSolver::ChiSquared(
     const uint32_t antenna_2 = cb_data.Antenna2Index(vis_index);
     const uint32_t solution_index = cb_data.SolutionIndex(direction, vis_index);
     const DComplex* solution_1 =
-        &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
+        &solutions[(antenna_1 * NSubSolutions() + solution_index) * 2];
     const DComplex* solution_2 =
-        &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
+        &solutions[(antenna_2 * NSubSolutions() + solution_index) * 2];
     const Complex solution_1_0(solution_1[0]);
     const Complex solution_1_1(solution_1[1]);
     const Complex solution_2_0_conj(std::conj(solution_2[0]));
@@ -214,8 +214,9 @@ void DiagonalLowRankSolver::PerformIteration(
 
   // Subtract all directions with their current solutions
   for (size_t direction = 0; direction != NDirections(); ++direction) {
-    DiagonalAddOrSubtractDirection<false>(
-        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
+    DiagonalAddOrSubtractDirection<false>(cb_data, v_residual, direction,
+                                          NSubSolutions(), solutions,
+                                          NSubThreads());
   }
 
   const bool subtract_immediately = GetStepSize() > 0.99;
@@ -231,8 +232,9 @@ void DiagonalLowRankSolver::PerformIteration(
     const uint32_t n_direction_solutions =
         cb_data.NSolutionsForDirection(direction);
     if (direction != 0 && !subtract_immediately) v_residual = v_copy;
-    DiagonalAddOrSubtractDirection<true>(
-        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
+    DiagonalAddOrSubtractDirection<true>(cb_data, v_residual, direction,
+                                         NSubSolutions(), solutions,
+                                         NSubThreads());
 
     const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
     for (uint32_t direction_solution = 0;
@@ -245,7 +247,7 @@ void DiagonalLowRankSolver::PerformIteration(
       std::vector<DComplex> new_solutions(next_solutions.begin(),
                                           next_solutions.end());
       DiagonalAddOrSubtractDirection<false>(cb_data, v_residual, direction,
-                                            NSolutions(), new_solutions,
+                                            NSubSolutions(), new_solutions,
                                             NSubThreads());
     }
   }
@@ -331,9 +333,10 @@ void DiagonalLowRankSolver::SolveDirectionSolution(
   xt::xtensor<std::complex<float>, 1> x_t;
   x_t.resize({NAntennas() * 2});
   for (size_t antenna = 0; antenna != NAntennas(); ++antenna) {
-    x_t[antenna * 2] = solutions[(antenna * NSolutions() + solution_index) * 2];
+    x_t[antenna * 2] =
+        solutions[(antenna * NSubSolutions() + solution_index) * 2];
     x_t[antenna * 2 + 1] =
-        solutions[(antenna * NSolutions() + solution_index) * 2 + 1];
+        solutions[(antenna * NSubSolutions() + solution_index) * 2 + 1];
   }
   // Compute:  (from: Srebro & Jaakkola, 2003)
   // X_{t+1} = LRA_k ( weights * A + (1 - weights) * X_t )
