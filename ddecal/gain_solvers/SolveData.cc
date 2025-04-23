@@ -307,10 +307,10 @@ template <typename MatrixType>
 std::vector<std::vector<double>> SolveData<MatrixType>::GetSolutionWeights()
     const {
   assert(!channel_blocks_.empty());
-  const size_t n_solutions = channel_blocks_.front().NSolutions();
+  const size_t n_sub_solutions = channel_blocks_.front().NSubSolutions();
   const size_t n_channel_blocks = channel_blocks_.size();
 
-  std::vector<std::vector<double>> result(n_solutions);
+  std::vector<std::vector<double>> result(n_sub_solutions);
   for (std::vector<double>& weights : result) {
     weights.resize(n_antennas_ * n_channel_blocks);
   }

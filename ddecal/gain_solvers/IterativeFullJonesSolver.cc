@@ -19,8 +19,8 @@ IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
     double time, std::ostream* stat_stream) {
   PrepareConstraints();
 
-  SolutionTensor next_solutions(
-      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
+                                 NSolutionPolarizations()});
 
   SolveResult result;
 
@@ -144,11 +144,11 @@ void IterativeFullJonesSolver::SolveDirection(
               cb_data.SolutionIndex(direction, vis_index);
 
           const MC2x2F solution_ant_1(
-              &solutions[(antenna_1 * NSolutions() + solution_index) *
+              &solutions[(antenna_1 * NSubSolutions() + solution_index) *
                          n_solution_pols]);
 
           const MC2x2F solution_ant_2(
-              &solutions[(antenna_2 * NSolutions() + solution_index) *
+              &solutions[(antenna_2 * NSubSolutions() + solution_index) *
                          n_solution_pols]);
 
           const MC2x2F data(v_residual[vis_index]);
@@ -215,10 +215,10 @@ void IterativeFullJonesSolver::AddOrSubtractDirection(
           const uint32_t solution_index =
               cb_data.SolutionIndex(direction, vis_index);
           const MC2x2F solution_1(
-              &solutions[(antenna_1 * NSolutions() + solution_index) *
+              &solutions[(antenna_1 * NSubSolutions() + solution_index) *
                          n_solution_polarizations]);
           const MC2x2F solution_2(
-              &solutions[(antenna_2 * NSolutions() + solution_index) *
+              &solutions[(antenna_2 * NSubSolutions() + solution_index) *
                          n_solution_polarizations]);
           const MC2x2F model(cb_data.ModelVisibility(direction, vis_index));
           const MC2x2F term =

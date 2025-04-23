@@ -33,8 +33,8 @@ IterativeScalarSolver<VisMatrix>::Solve(
     std::ostream* stat_stream) {
   PrepareConstraints();
 
-  SolutionTensor next_solutions(
-      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
+                                 NSolutionPolarizations()});
 
   SolveResult result;
 
@@ -158,9 +158,9 @@ void IterativeScalarSolver<VisMatrix>::SolveDirection(
           const uint32_t solution_index =
               cb_data.SolutionIndex(direction, vis_index);
           const Complex solution_ant_1(
-              solutions[antenna_1 * NSolutions() + solution_index]);
+              solutions[antenna_1 * NSubSolutions() + solution_index]);
           const Complex solution_ant_2(
-              solutions[antenna_2 * NSolutions() + solution_index]);
+              solutions[antenna_2 * NSubSolutions() + solution_index]);
           const VisMatrix& data = v_residual[vis_index];
           const VisMatrix& model =
               cb_data.ModelVisibility(direction, vis_index);
@@ -220,9 +220,9 @@ void IterativeScalarSolver<VisMatrix>::AddOrSubtractDirection(
           const uint32_t solution_index =
               cb_data.SolutionIndex(direction, vis_index);
           const Complex solution_1(
-              solutions[antenna_1 * NSolutions() + solution_index]);
+              solutions[antenna_1 * NSubSolutions() + solution_index]);
           const Complex solution_2_conj = std::conj(
-              Complex(solutions[antenna_2 * NSolutions() + solution_index]));
+              Complex(solutions[antenna_2 * NSubSolutions() + solution_index]));
           VisMatrix& data = v_residual[vis_index];
           const VisMatrix& model =
               cb_data.ModelVisibility(direction, vis_index);

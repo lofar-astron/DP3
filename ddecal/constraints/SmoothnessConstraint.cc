@@ -33,12 +33,13 @@ void SmoothnessConstraint::Initialize(
 void SmoothnessConstraint::SetDdSmoothingFactors(
     std::vector<double> dd_smoothing_factors) {
   if (!dd_smoothing_factors.empty() &&
-      dd_smoothing_factors.size() != NSolutions()) {
+      dd_smoothing_factors.size() != NSubSolutions()) {
     throw std::runtime_error(
         "Invalid setting for the dd factors option of smoothness constraint: "
         "the specified factors is a vector of size " +
         std::to_string(dd_smoothing_factors.size()) +
-        ", whereas the number of solutions is " + std::to_string(NSolutions()));
+        ", whereas the number of solutions is " +
+        std::to_string(NSubSolutions()));
   }
   dd_smoothing_factors_ = std::move(dd_smoothing_factors);
 }
@@ -48,12 +49,12 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
     [[maybe_unused]] std::ostream* stat_stream) {
   assert(NChannelBlocks() == solutions.shape(0));
   assert(NAntennas() == solutions.shape(1));
-  assert(NSolutions() == solutions.shape(2));
+  assert(NSubSolutions() == solutions.shape(2));
   assert(dd_smoothing_factors_.empty() ||
-         NSolutions() == dd_smoothing_factors_.size());
+         NSubSolutions() == dd_smoothing_factors_.size());
 
   const size_t n_polarizations = solutions.shape(3);
-  const size_t n_smoothed = NAntennas() * NSolutions() * n_polarizations;
+  const size_t n_smoothed = NAntennas() * NSubSolutions() * n_polarizations;
   auto solutions_view =
       xt::reshape_view(solutions, {NChannelBlocks(), n_smoothed});
 
@@ -63,9 +64,9 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
         for (size_t smoothing_index = begin_index; smoothing_index < end_index;
              ++smoothing_index) {
           const size_t sol_index =
-              (smoothing_index / n_polarizations) % NSolutions();
+              (smoothing_index / n_polarizations) % NSubSolutions();
           const size_t ant_index =
-              smoothing_index / (NSolutions() * n_polarizations);
+              smoothing_index / (NSubSolutions() * n_polarizations);
           const double* weights = solution_weights_.empty()
                                       ? weights_.data()
                                       : solution_weights_[sol_index].data();

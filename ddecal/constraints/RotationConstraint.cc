@@ -3,8 +3,8 @@
 
 #include "RotationConstraint.h"
 
+#include <cassert>
 #include <cmath>
-#include <assert.h>
 
 namespace dp3 {
 namespace ddecal {
@@ -14,22 +14,22 @@ void RotationConstraint::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(nAntennas, solutions_per_direction, frequencies);
 
-  if (NDirections() != 1)  // TODO directions!
-    throw std::runtime_error(
-        "RotationConstraint can't handle multiple directions yet");
-
-  _res.resize(1);
-  _res[0].vals.resize(NAntennas() * NChannelBlocks());
-  _res[0].axes = "ant,dir,freq";
-  _res[0].dims.resize(3);
-  _res[0].dims[0] = NAntennas();
-  _res[0].dims[1] = NDirections();
-  _res[0].dims[2] = NChannelBlocks();
-  _res[0].name = "rotation";
+  Result& result = results_.emplace_back();
+  result.vals.resize(NAntennas() * NChannelBlocks());
+  result.axes = "ant,dir,freq";
+  result.dims.resize(3);
+  result.dims[0] = NAntennas();
+  result.dims[1] = NSubSolutions();
+  result.dims[2] = NChannelBlocks();
+  result.name = "rotation";
 }
 
 void RotationConstraint::SetWeights(const std::vector<double>& weights) {
-  _res[0].weights = weights;  // TODO directions!
+  Result& result = results_.front();
+  result.weights.clear();
+  for (size_t i = 0; i != NSubSolutions(); ++i) {
+    result.weights.insert(result.weights.end(), weights.begin(), weights.end());
+  }
 }
 
 double RotationConstraint::FitRotation(const std::complex<double>* data) {
@@ -48,22 +48,23 @@ std::vector<Constraint::Result> RotationConstraint::Apply(
     [[maybe_unused]] std::ostream* statStream) {
   assert(solutions.shape(2) == 1);  // 1 direction
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
-  for (unsigned int ch = 0; ch < NChannelBlocks(); ++ch) {
-    for (unsigned int ant = 0; ant < NAntennas(); ++ant) {
-      // Compute rotation
-      dcomplex* data = &(solutions(ch, ant, 0, 0));
-      double angle = FitRotation(data);
-      _res[0].vals[ant * NChannelBlocks() + ch] = angle;  // TODO directions!
+  Result& result = results_.front();
+  for (size_t sub_solution = 0; sub_solution != NSubSolutions();
+       ++sub_solution) {
+    for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
+      for (size_t ant = 0; ant < NAntennas(); ++ant) {
+        // Compute rotation
+        std::complex<double>* data = &solutions(ch, ant, sub_solution, 0);
+        const double angle = FitRotation(data);
+        result.vals[ant * NChannelBlocks() + ch] = angle;
 
-      // Constrain the data
-      data[0] = cos(angle);
-      data[1] = -sin(angle);
-      data[2] = -data[1];
-      data[3] = data[0];
+        // Constrain the data
+        RotationConstraint::SetRotation(data, angle);
+      }
     }
   }
 
-  return _res;
+  return results_;
 }
 
 }  // namespace ddecal

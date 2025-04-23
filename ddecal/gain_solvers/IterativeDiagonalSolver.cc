@@ -40,8 +40,8 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
     std::ostream* stat_stream) {
   PrepareConstraints();
 
-  SolutionTensor next_solutions(
-      {NChannelBlocks(), NAntennas(), NSolutions(), NSolutionPolarizations()});
+  SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
+                                 NSolutionPolarizations()});
 
   SolveResult result;
 
@@ -115,8 +115,9 @@ void IterativeDiagonalSolver<VisMatrix>::PerformIteration(
 
   // Subtract all directions with their current solutions
   for (size_t direction = 0; direction != NDirections(); ++direction)
-    DiagonalAddOrSubtractDirection<false, VisMatrix>(
-        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
+    DiagonalAddOrSubtractDirection<false, VisMatrix>(cb_data, v_residual,
+                                                     direction, NSubSolutions(),
+                                                     solutions, NSubThreads());
 
   const std::vector<VisMatrix> v_copy = v_residual;
 
@@ -125,8 +126,9 @@ void IterativeDiagonalSolver<VisMatrix>::PerformIteration(
     // solutions, because the new solutions have not been constrained yet. Add
     // this direction back before solving
     if (direction != 0) v_residual = v_copy;
-    DiagonalAddOrSubtractDirection<true>(
-        cb_data, v_residual, direction, NSolutions(), solutions, NSubThreads());
+    DiagonalAddOrSubtractDirection<true>(cb_data, v_residual, direction,
+                                         NSubSolutions(), solutions,
+                                         NSubThreads());
 
     SolveDirection(ch_block, cb_data, v_residual, direction, solutions,
                    next_solutions);
@@ -168,9 +170,9 @@ void IterativeDiagonalSolver<VisMatrix>::SolveDirection(
           const uint32_t solution_index =
               cb_data.SolutionIndex(direction, vis_index);
           const DComplex* solution_ant_1 =
-              &solutions[(antenna_1 * NSolutions() + solution_index) * 2];
+              &solutions[(antenna_1 * NSubSolutions() + solution_index) * 2];
           const DComplex* solution_ant_2 =
-              &solutions[(antenna_2 * NSolutions() + solution_index) * 2];
+              &solutions[(antenna_2 * NSubSolutions() + solution_index) * 2];
           const VisMatrix& data = v_residual[vis_index];
           const VisMatrix& model =
               cb_data.ModelVisibility(direction, vis_index);

@@ -42,9 +42,9 @@ void SolverBase::Initialize(
     size_t n_antennas, const std::vector<size_t>& n_solutions_per_direction,
     size_t n_channel_blocks) {
   n_directions_ = n_solutions_per_direction.size();
-  n_solutions_ = std::accumulate(n_solutions_per_direction.begin(),
-                                 n_solutions_per_direction.end(), 0u);
-  if (!SupportsDdSolutionIntervals() && (n_solutions_ != n_directions_)) {
+  n_sub_solutions_ = std::accumulate(n_solutions_per_direction.begin(),
+                                     n_solutions_per_direction.end(), 0u);
+  if (!SupportsDdSolutionIntervals() && (n_sub_solutions_ != n_directions_)) {
     throw std::runtime_error(
         "DD interval solutions not supported for the selected solver "
         "algorithm. Please "
@@ -56,7 +56,7 @@ void SolverBase::Initialize(
 
   n_antennas_ = n_antennas;
   n_channel_blocks_ = n_channel_blocks;
-  assert(n_solutions_ != 0);
+  assert(n_sub_solutions_ != 0);
   assert(n_directions_ != 0);
 }
 
@@ -207,7 +207,7 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
                                  std::vector<double>& stepMagnitudes) const {
   assert(newSolutions.shape(0) == NChannelBlocks());
   assert(newSolutions.shape(1) == NAntennas());
-  assert(newSolutions.shape(2) == NSolutions());
+  assert(newSolutions.shape(2) == NSubSolutions());
   assert(newSolutions.shape(3) == NSolutionPolarizations());
   avgAbsDiff = 0.0;
   //  Calculate the norm of the difference between the old and new solutions
