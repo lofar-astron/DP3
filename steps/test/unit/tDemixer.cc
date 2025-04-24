@@ -246,7 +246,7 @@ void TestDemixer(size_t ntime, size_t nbl, size_t nchan, size_t navgtime,
   ParameterSet parset;
   parset.add("freqstep", std::to_string(navgchan));
   parset.add("timestep", std::to_string(navgtime));
-  parset.add("skymodel", dp3::steps::test::kPredictSourceDB);
+  parset.add("skymodel", dp3::steps::test::kPredictSkymodel);
   auto step2 = std::make_shared<Demixer>(parset, "");
   auto step3 =
       std::make_shared<TestOutput>(ntime, nbl, nchan, navgtime, navgchan, flag);
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(fields) {
   using dp3::steps::Averager;
 
   ParameterSet parset;
-  parset.add("skymodel", dp3::steps::test::kPredictSourceDB);
+  parset.add("skymodel", dp3::steps::test::kPredictSkymodel);
   Demixer demixer(parset, "");
 
   BOOST_TEST(demixer.getRequiredFields() == Averager::kRequiredFields);

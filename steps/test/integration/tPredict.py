@@ -24,6 +24,7 @@ Script can be invoked in two ways:
 
 MSIN = "tNDPPP-generic.MS"
 MSPREDICT = "tPredict.tab"
+SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 
 
 @pytest.fixture(autouse=True)
@@ -61,7 +62,7 @@ def test_with_beam_subtract():
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.usebeammodel=true",
             "predict.operation=subtract",
         ]
@@ -80,7 +81,7 @@ def test_without_beam_add():
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.usebeammodel=false",
             "predict.operation=add",
         ]
@@ -99,7 +100,7 @@ def test_with_applycal(make_h5parm):
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.applycal.parmdb=test.h5",
             "predict.applycal.correction=soltab000",
             "predict.operation=subtract",
@@ -121,7 +122,7 @@ def test_without_and_with_beam(use_beam):
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             f"predict.usebeammodel={'true' if use_beam else 'false'}",
         ]
     )
@@ -145,15 +146,12 @@ def test_without_and_with_time_smearing(use_time_smearing):
         )
 
     check_call(
-        [tcf.MAKESOURCEDBEXE, "in=timesmearing.skymodel", f"out={sourcedb}"]
-    )
-    check_call(
         [
             tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[average,predict]",
             "average.timestep=3",
-            f"predict.sourcedb={sourcedb}",
+            f"predict.sourcedb=timesmearing.skymodel",
             f"msout=ts-{'on' if use_time_smearing else 'off'}.MS",
             "predict.correcttimesmearing=10" if use_time_smearing else "",
         ]
@@ -193,7 +191,7 @@ def test_time_smearing_with_msupdate():
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.correcttimesmearing=2",
         ]
     )
@@ -210,7 +208,7 @@ def test_without_and_with_beam_parallelbaseline(use_beam):
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             f"predict.usebeammodel={'true' if use_beam else 'false'}",
             "predict.parallelbaselines=true",
         ]

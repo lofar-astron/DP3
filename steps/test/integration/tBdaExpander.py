@@ -49,8 +49,6 @@ def create_skymodel():
             "radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 10, , , , , \r\n"
         )
 
-    check_call([tcf.MAKESOURCEDBEXE, "in=test.skymodel", "out=test.sourcedb"])
-
 
 def test_only_expand():
     check_call(
@@ -94,7 +92,7 @@ def test_bdaaverager_ddecal_bdaexpander(create_skymodel):
             "steps=[bdaaverager, ddecal, bdaexpander]",
             "ddecal.onlypredict=true",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
-            "ddecal.sourcedb=test.sourcedb",
+            "ddecal.sourcedb=test.skymodel",
         ]
     )
 
@@ -110,7 +108,7 @@ def test_bdaexpander_ddecal(create_skymodel):
             "msout.uvwcompression=false",  # TODO why is this necessary?
             "steps=[bdaexpander, ddecal]",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
-            "ddecal.sourcedb=test.sourcedb",
+            "ddecal.sourcedb=test.skymodel",
         ]
     )
 

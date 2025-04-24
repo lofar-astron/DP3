@@ -23,6 +23,7 @@ Script can be invoked in two ways:
 
 MSIN = "tNDPPP-generic.MS"
 MSGAINCAL = "tGainCal.tab"
+SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 
 
 @pytest.fixture(autouse=True)
@@ -33,15 +34,13 @@ def source_env():
 
 def test_read_only():
     check_call(["chmod", "a-w", "-R", MSIN])
-    # Sky table needs to be writeable (to acquire a lock?)
-    check_call(["chmod", "u+w", "-R", f"{MSIN}/sky"])
     check_call(
         [
             tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[gaincal]",
             f"gaincal.parmdb={MSIN}/inst-diagonal",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             "gaincal.caltype=diagonal",
             "gaincal.parmdb=gaincal.h5",
             "msout=",

@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_SUITE(h5parm_predict)
 
 BOOST_FIXTURE_TEST_CASE(fields, dp3::steps::test::H5ParmFixture) {
   dp3::common::ParameterSet parset;
-  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
   const H5ParmPredict h5predict(parset, "");
