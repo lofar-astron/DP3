@@ -15,7 +15,7 @@ namespace {
 class BdaPredictFixture {
  public:
   BdaPredictFixture() : parset_(), predict_() {
-    parset_.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+    parset_.add("sourcedb", dp3::steps::test::kPredictSkymodel);
     predict_ = std::make_shared<BdaGroupPredict>(parset_, "");
   }
 

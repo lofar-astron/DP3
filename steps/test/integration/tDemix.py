@@ -23,6 +23,8 @@ Script can be invoked in two ways:
 
 MSIN_DEMIX = "tDemix.in_MS"
 MSIN_GENERIC = "tNDPPP-generic.MS"
+SKYMODEL = "tDemix_tmp/sky.txt"
+GENERIC_SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 
 common_args = [
     "msin=tDemix_tmp/tDemix.MS",
@@ -41,19 +43,12 @@ common_args = [
     "demix.subtractsources=[CasA]",
 ]
 
-skymodel_arg = "demix.skymodel='tDemix_tmp/{}'"
+skymodel_arg = "demix.skymodel='{}'"
 
 
 @pytest.fixture()
 def demix_ms(run_in_tmp_path):
     untar(f"{tcf.RESOURCEDIR}/{MSIN_DEMIX}.tgz")
-    check_call(
-        [
-            tcf.MAKESOURCEDBEXE,
-            "in=tDemix_tmp/sky.txt",
-            "out=tDemix_tmp/sourcedb",
-        ]
-    )
 
 
 @pytest.fixture()
@@ -61,15 +56,14 @@ def generic_ms(run_in_tmp_path):
     untar(f"{tcf.RESOURCEDIR}/{MSIN_GENERIC}.tgz")
 
 
-@pytest.mark.parametrize("skymodel", ["sky.txt", "sourcedb"])
-def test_without_target(demix_ms, skymodel):
+def test_without_target(demix_ms):
     check_call(
         [
             tcf.DP3EXE,
             "demix.ignoretarget=true",
             "demix.freqstep=64",
             "demix.timestep=10",
-            skymodel_arg.format(skymodel),
+            skymodel_arg.format(SKYMODEL),
         ]
         + common_args
     )
@@ -79,15 +73,14 @@ def test_without_target(demix_ms, skymodel):
     assert_taql(taql_command)
 
 
-@pytest.mark.parametrize("skymodel", ["sky.txt", "sourcedb"])
-def test_with_target_projected_away(demix_ms, skymodel):
+def test_with_target_projected_away(demix_ms):
     check_call(
         [
             tcf.DP3EXE,
             "demix.ignoretarget=false",
             "demix.freqstep=64",
             "demix.timestep=10",
-            skymodel_arg.format(skymodel),
+            skymodel_arg.format(SKYMODEL),
         ]
         + common_args
     )
@@ -97,8 +90,7 @@ def test_with_target_projected_away(demix_ms, skymodel):
     assert_taql(taql_command)
 
 
-@pytest.mark.parametrize("skymodel", ["sky.txt", "sourcedb"])
-def test_with_target(demix_ms, skymodel):
+def test_with_target(demix_ms):
     check_call(
         [
             tcf.DP3EXE,
@@ -106,7 +98,7 @@ def test_with_target(demix_ms, skymodel):
             "demix.freqstep=32",
             "demix.timestep=5",
             "demix.maxiter=100",
-            skymodel_arg.format(skymodel),
+            skymodel_arg.format(SKYMODEL),
         ]
         + common_args
     )
@@ -147,6 +139,6 @@ def test_multiple_baseline_selection(generic_ms):
             "filter.baseline=CS*&",
             "filter.remove=true",
             "demix.baseline=CS*&",
-            f"demix.skymodel={MSIN_GENERIC}/sky",
+            f"demix.skymodel={GENERIC_SKYMODEL}",
         ]
     )

@@ -838,7 +838,8 @@ if(BUILD_TESTING)
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP-generic.MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP_bda.in_MS.tgz
-    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz)
+    COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz
+    COMMAND cmake -E copy ${DP3_RESOURCE_DIR}/tNDPPP-generic-skymodel.txt .)
 
   if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15")
     # Removes the extracted resources. When a resource is updated the version

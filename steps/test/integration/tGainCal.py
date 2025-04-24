@@ -22,6 +22,7 @@ Script can be invoked in two ways:
 
 MSGAINCAL = "tGainCal.tab"
 MSIN = "tNDPPP-generic.MS"
+SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +40,7 @@ def create_model_data():
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.usebeammodel=false",
         ]
     )
@@ -67,7 +68,7 @@ def test_caltype_diagonal(create_model_data):
             f"msin={MSIN}",
             "msout=",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-diagonal",
             "gaincal.usebeammodel=false",
             "gaincal.caltype=diagonal",
@@ -103,7 +104,7 @@ def test_caltype_diagonal(create_model_data):
             f"msin={MSIN}",
             "msout=",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-diagonal-tpp",
             "gaincal.usebeammodel=false",
             "gaincal.caltype=diagonal",
@@ -142,7 +143,7 @@ def test_caltype_fulljones(create_model_data):
             "msout=.",
             "msout.datacolumn=DPPP_FULLJONES_GAINCAL",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-fulljones",
             "gaincal.usebeammodel=false",
             "gaincal.caltype=fulljones",
@@ -182,7 +183,7 @@ def test_caltype_diagonal_nchan_2(create_model_data):
             "msout=.",
             "msout.datacolumn=DPPP_DIAGONAL_NCHAN_GAINCAL",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-diagonal-nchan",
             "gaincal.usebeammodel=false",
             "gaincal.caltype=diagonal",
@@ -224,7 +225,7 @@ def test_output_parameters(caltype):
             "msout=.",
             "msout.datacolumn=DPPP_TEC",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-{caltype}",
             f"gaincal.caltype={caltype}",
             "gaincal.solint=2",
@@ -246,7 +247,7 @@ def test_filter():
             f"msin={MSIN}",
             "msout=tNDPPP-filtered.MS",
             "steps=[filter,gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-filter",
             "filter.baseline='!CS001HBA0&&*'",
             "gaincal.baseline='!CS002HBA1,RS305HBA&&*'",
@@ -266,7 +267,7 @@ def test_debug_output():
             "msout=.",
             "numthreads=1",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-debug",
             "gaincal.caltype=diagonal",
             "gaincal.debuglevel=1",
@@ -430,7 +431,7 @@ def test_reuse_modeldata_from_buffer():
             f"msin={MSIN}",
             "msout=",
             "steps=[predict,gaincal]",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.outputmodelname=predicted_model",
             "gaincal.reusemodel=predicted_model",
             "gaincal.caltype=diagonal",
@@ -449,7 +450,7 @@ def test_reuse_modeldata_from_buffer():
             f"msin={MSIN}",
             "msout=",
             "steps=[gaincal]",
-            f"gaincal.sourcedb={MSIN}/sky",
+            f"gaincal.sourcedb={SKYMODEL}",
             "gaincal.caltype=diagonal",
             "gaincal.parmdb=solutions_2.h5",
             "gaincal.solint=2",

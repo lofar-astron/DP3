@@ -40,15 +40,6 @@ def create_skymodel():
             "point-0, POINT, 0.4362457236387493, 0.5287469737178224, 1.0, 0, 0, 0, , , \r\n"
         )
 
-    check_call(
-        [
-            tcf.MAKESOURCEDBEXE,
-            "in=test.skymodel",
-            "out=test.sourcedb",
-            "append=false",
-        ]
-    )
-
 
 @pytest.fixture()
 def create_skymodel_in_phase_center():
@@ -60,15 +51,6 @@ def create_skymodel_in_phase_center():
             f"center, POINT, 01:37:41.299000, +33.09.35.132000, 10, , , , , \r\n"
         )
 
-    check_call(
-        [
-            tcf.MAKESOURCEDBEXE,
-            "in=test.skymodel",
-            "out=test.sourcedb",
-            "append=false",
-        ]
-    )
-
 
 @pytest.mark.parametrize("bda_predict_step_type", ["predict", "grouppredict"])
 def test_bdapredict(create_skymodel, bda_predict_step_type):
@@ -76,7 +58,7 @@ def test_bdapredict(create_skymodel, bda_predict_step_type):
         "bdaaverager.timebase=20000",
         "bdaaverager.frequencybase=20000",
         "bdaaverager.maxinterval=61",
-        "predict.sourcedb=test.sourcedb",
+        "predict.sourcedb=test.skymodel",
         "predict.usebeammodel=F",
     ]
 
@@ -125,7 +107,7 @@ def test_predicted_values_regular_input(
             "bdaaverager.timebase=600",
             "bdaaverager.frequencybase=1000",
             f"predict.type={bda_predict_step_type}",
-            "predict.sourcedb=test.sourcedb",
+            "predict.sourcedb=test.skymodel",
             "predict.usebeammodel=F",
         ]
     )
@@ -153,7 +135,7 @@ def test_predicted_values_bda_input(
             "msout.overwrite=true",
             "steps=[predict]",
             f"predict.type={bda_predict_step_type}",
-            "predict.sourcedb=test.sourcedb",
+            "predict.sourcedb=test.skymodel",
             "predict.usebeammodel=F",
         ]
     )

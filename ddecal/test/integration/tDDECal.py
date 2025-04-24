@@ -10,6 +10,7 @@ import pytest
 
 sys.path.append(".")
 
+import casacore.tables
 import testconfig as tcf
 from testconfig import TAQLEXE
 from utils import assert_taql, get_taql_result, run_in_tmp_path, untar
@@ -24,12 +25,22 @@ Script can be invoked in two ways:
 IDG_RESOURCES = "idg-fits-sources.tbz2"
 MSINTGZ = "tDDECal.in_MS.tgz"
 MSIN = "tDDECal.MS"
+SKYMODEL = f"{MSIN}/sky.txt"
+
+
+def calldp3(parameters):
+    print("DP3 " + " ".join(parameters))
+    check_call([tcf.DP3EXE] + parameters)
 
 
 @pytest.fixture(autouse=True)
 def source_env(run_in_tmp_path):
     untar(f"{tcf.RESOURCEDIR}/{MSINTGZ}")
-    check_call([tcf.MAKESOURCEDBEXE, f"in={MSIN}/sky.txt", f"out={MSIN}/sky"])
+    # The test table has an invalid keyword, which needs to be removed
+    # to make Dp3 behave properly.
+    table = casacore.tables.table(MSIN, readonly=False)
+    table.removekeyword("sky")
+    table.close()
 
 
 @pytest.fixture()
@@ -40,9 +51,8 @@ def idgpredict_env():
 
 @pytest.fixture()
 def copy_data_to_model_data():
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
@@ -59,15 +69,14 @@ def create_corrupted_visibilities():
     check_output([TAQLEXE, "-noph", taqlcommand])
 
     # Use ddecal to create template h5parm
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrumentcorrupted.h5",
             "ddecal.mode=complexgain",
@@ -88,16 +97,15 @@ def create_corrupted_visibilities():
     h5file.close()
 
     # Predict corrupted visibilities into DATA column
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=DATA",
             "steps=[h5parmpredict]",
-            f"h5parmpredict.sourcedb={MSIN}/sky",
+            f"h5parmpredict.sourcedb={SKYMODEL}",
             "h5parmpredict.applycal.parmdb=instrumentcorrupted.h5",
             "h5parmpredict.applycal.correction=amplitude000",
         ]
@@ -141,15 +149,14 @@ def test(
     nchan,
 ):
     # Subtract corrupted visibilities using multiple predict steps
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.solint={solint}",
             f"ddecal.nchan={nchan}",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
@@ -159,26 +166,25 @@ def test(
     )
 
     # Calibrate on the original sources, caltype=$caltype
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
             "steps=[predict1,predict2,predict3]",
-            f"predict1.sourcedb={MSIN}/sky",
+            f"predict1.sourcedb={SKYMODEL}",
             "predict1.applycal.parmdb=instrument.h5",
             "predict1.sources=[center,dec_off]",
             "predict1.operation=subtract",
             "predict1.applycal.correction=amplitude000",
-            f"predict2.sourcedb={MSIN}/sky",
+            f"predict2.sourcedb={SKYMODEL}",
             "predict2.applycal.parmdb=instrument.h5",
             "predict2.sources=[radec_off]",
             "predict2.operation=subtract",
             "predict2.applycal.correction=amplitude000",
-            f"predict3.sourcedb={MSIN}/sky",
+            f"predict3.sourcedb={SKYMODEL}",
             "predict3.applycal.parmdb=instrument.h5",
             "predict3.sources=[ra_off]",
             "predict3.operation=subtract",
@@ -215,15 +221,14 @@ def test_calibration_with_dd_intervals(
     sol_int = 6
     n_timeslots_in_ms = 6
 
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.solint={sol_int}",
             "ddecal.nchan=1",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
@@ -301,15 +306,14 @@ def test_bug_ast_924(
 
     sol_int = 4
     n_timeslots_in_ms = 6
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.solint={sol_int}",
             "ddecal.nchan=1",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
@@ -383,16 +387,15 @@ def test_subtract_with_dd_intervals(
     caltype,
 ):
     # This test checks that the subtraction operation works correctly
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DURING_DDECAL",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.solint=6",
             "ddecal.nchan=2",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
@@ -405,22 +408,21 @@ def test_subtract_with_dd_intervals(
     )
 
     common_predict_command = [
-        tcf.DP3EXE,
         "checkparset=1",
         "numthreads=1",
         f"msin={MSIN}",
         "msout=.",
         "msout.datacolumn=SUBTRACTED_DURING_PREDICT",
         "steps=[predict1,predict2,predict3]",
-        f"predict1.sourcedb={MSIN}/sky",
+        f"predict1.sourcedb={SKYMODEL}",
         "predict1.applycal.parmdb=instrument.h5",
         "predict1.sources=[center,dec_off]",
         "predict1.operation=subtract",
-        f"predict2.sourcedb={MSIN}/sky",
+        f"predict2.sourcedb={SKYMODEL}",
         "predict2.applycal.parmdb=instrument.h5",
         "predict2.sources=[radec_off]",
         "predict2.operation=subtract",
-        f"predict3.sourcedb={MSIN}/sky",
+        f"predict3.sourcedb={SKYMODEL}",
         "predict3.applycal.parmdb=instrument.h5",
         "predict3.sources=[ra_off]",
         "predict3.operation=subtract",
@@ -444,10 +446,10 @@ def test_subtract_with_dd_intervals(
     ]
 
     if caltype == "scalar" or caltype == "diagonal":
-        check_call(common_predict_command + corrections_amplitude_and_phase)
+        calldp3(common_predict_command + corrections_amplitude_and_phase)
 
     else:
-        check_call(common_predict_command + corrections_amplitude_only)
+        calldp3(common_predict_command + corrections_amplitude_only)
 
     # Quantify the difference between the subtraction in the DDECal step and in the Predict step
     predict_residual = float(
@@ -465,18 +467,16 @@ def test_subtract_with_dd_intervals(
     assert predict_residual < tolerance
 
 
-@pytest.mark.parametrize("skymodel", ["sky", "sky.txt"])
-def test_h5parm_predict(skymodel):
+def test_h5parm_predict():
     # make calibration solutions
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/{skymodel}",
+            f"ddecal.sourcedb={SKYMODEL}",
             # By omitting the direction, the directions are determined from the
             # sourcedb. This gives the same results as:
             # "ddecal.directions=[[center],[dec_off],[ra_off],[radec_off]]",
@@ -486,31 +486,30 @@ def test_h5parm_predict(skymodel):
     )
 
     # subtract using multiple predict steps
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
             "steps=[predict1,predict2,predict3,predict4]",
-            f"predict1.sourcedb={MSIN}/{skymodel}",
+            f"predict1.sourcedb={SKYMODEL}",
             "predict1.applycal.parmdb=instrument.h5",
             "predict1.sources=[center]",
             "predict1.operation=subtract",
             "predict1.applycal.correction=amplitude000",
-            f"predict2.sourcedb={MSIN}/{skymodel}",
+            f"predict2.sourcedb={SKYMODEL}",
             "predict2.applycal.parmdb=instrument.h5",
             "predict2.sources=[dec_off]",
             "predict2.operation=subtract",
             "predict2.applycal.correction=amplitude000",
-            f"predict3.sourcedb={MSIN}/{skymodel}",
+            f"predict3.sourcedb={SKYMODEL}",
             "predict3.applycal.parmdb=instrument.h5",
             "predict3.sources=[radec_off]",
             "predict3.operation=subtract",
             "predict3.applycal.correction=amplitude000",
-            f"predict4.sourcedb={MSIN}/{skymodel}",
+            f"predict4.sourcedb={SKYMODEL}",
             "predict4.applycal.parmdb=instrument.h5",
             "predict4.sources=[ra_off]",
             "predict4.operation=subtract",
@@ -519,16 +518,15 @@ def test_h5parm_predict(skymodel):
     )
 
     # subtract using h5parmpredict
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA_H5PARM",
             "steps=[h5parmpredict]",
-            f"h5parmpredict.sourcedb={MSIN}/{skymodel}",
+            f"h5parmpredict.sourcedb={SKYMODEL}",
             "h5parmpredict.applycal.parmdb=instrument.h5",
             "h5parmpredict.operation=subtract",
             "h5parmpredict.applycal.correction=amplitude000",
@@ -541,16 +539,14 @@ def test_h5parm_predict(skymodel):
 
 
 def test_oneapplycal_from_buffer():
-    skymodel = "sky.txt"
 
     # Apply ddecal and oneapplycal sequentially
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/{skymodel}",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.h5parm=cal.h5",
             "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
             "msout=.",
@@ -558,9 +554,8 @@ def test_oneapplycal_from_buffer():
             "checkparset=1",
         ]
     )
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "numthreads=1",
             f"msin={MSIN}",
             "msin.datacolumn=DATA_REF_BUF",
@@ -576,13 +571,12 @@ def test_oneapplycal_from_buffer():
     )
 
     # DDECal and immediate application
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal,applycal]",
-            f"ddecal.sourcedb={MSIN}/{skymodel}",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
             "ddecal.storebuffer=True",
             "msout=.",
@@ -599,41 +593,39 @@ def test_oneapplycal_from_buffer():
 
 def test_pre_apply():
     # make calibration solutions
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrument.h5",
             f"ddecal.mode=diagonal",
         ]
     )
 
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
             "steps=[predict1,predict2,predict3]",
-            f"predict1.sourcedb={MSIN}/sky",
+            f"predict1.sourcedb={SKYMODEL}",
             "predict1.applycal.parmdb=instrument.h5",
             "predict1.sources=[center,dec_off]",
             "predict1.operation=subtract",
             "predict1.applycal.correction=amplitude000",
-            f"predict2.sourcedb={MSIN}/sky",
+            f"predict2.sourcedb={SKYMODEL}",
             "predict2.applycal.parmdb=instrument.h5",
             "predict2.sources=[radec_off]",
             "predict2.operation=subtract",
             "predict2.applycal.correction=amplitude000",
-            f"predict3.sourcedb={MSIN}/sky",
+            f"predict3.sourcedb={SKYMODEL}",
             "predict3.applycal.parmdb=instrument.h5",
             "predict3.sources=[ra_off]",
             "predict3.operation=subtract",
@@ -642,15 +634,14 @@ def test_pre_apply():
     )
 
     # Check that preapply runs (output is not tested)
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
             "ddecal.applycal.parmdb=instrument.h5",
             "ddecal.applycal.steps=applyampl",
@@ -662,15 +653,14 @@ def test_pre_apply():
 
 
 def test_check_tec():
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrument-tec.h5",
             "ddecal.mode=tec",
@@ -679,16 +669,15 @@ def test_check_tec():
 
 
 def test_check_tec_and_phase():
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msin.baseline='!CS001HBA0'",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
             "ddecal.h5parm=instrument-tecandphase.h5 ddecal.mode=tecandphase",
         ]
@@ -706,7 +695,7 @@ def test_dd_solution_intervals(solutions_per_direction):
         f"msin={MSIN}",
         "msout=.",
         "steps=[ddecal]",
-        f"ddecal.sourcedb={MSIN}/sky",
+        f"ddecal.sourcedb={SKYMODEL}",
         "ddecal.solint=6",
         "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
         "ddecal.h5parm=instrument-tec.h5",
@@ -749,9 +738,8 @@ def test_modelnextsteps(copy_data_to_model_data):
     taqlcommand_run = f"update {MSIN} set MODEL_DATA=DATA*42"
     check_output([TAQLEXE, "-noph", taqlcommand_run])
 
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
@@ -803,14 +791,13 @@ def test_bda_constraints():
         "solve.solint=37",
         "solve.nchan=10",
         "solve.solveralgorithm=hybrid",
-        f"solve.sourcedb={MSIN}/sky",
+        f"solve.sourcedb={SKYMODEL}",
         "solve.stepsize=0.2",
         "solve.tolerance=0.005",
     ]
 
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "msout=tmp_bda.ms",
             "steps=[avg,solve]",
             "avg.type=bdaaverager",
@@ -822,9 +809,8 @@ def test_bda_constraints():
         + common
     )
 
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "msout=tmp_no_bda.ms",
             "steps=[solve]",
             "solve.h5parm=test_no_bda.h5parm",
@@ -865,9 +851,8 @@ def test_station_with_auto_correlation_only(caltype):
     """
 
     # Add a station with an auto-correlation to the MS.
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             f"msin={MSIN}",
             "msout=StationAdded.MS",
@@ -882,9 +867,8 @@ def test_station_with_auto_correlation_only(caltype):
     # Filter out the non-auto-correlations for the added station and run DDECal.
     # Since the Filter step uses the input MS when parsing the filter, we cannot
     # combine the DP3 call above with this call.
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             f"msin=StationAdded.MS",
             "msout=Test.MS",
@@ -894,7 +878,7 @@ def test_station_with_auto_correlation_only(caltype):
             # and removes all other visibilities for 'AUTO'.
             "filter.baseline=!AUTO",
             f"ddecal.mode={caltype}",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.solint=2",
             "ddecal.nchan=0",
         ]
@@ -915,9 +899,8 @@ def test_uvwflagging():
     check_output([TAQLEXE, "-noph", taqlcommand_run])
 
     # UVW Flagging
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
@@ -956,9 +939,8 @@ def test_uvwflagging():
         )
 
     # Calibrate
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
@@ -1020,9 +1002,8 @@ def test_minvisratio(copy_data_to_model_data):
     check_output([TAQLEXE, "-noph", taqlcommand_run])
 
     # Calibrate
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
@@ -1063,9 +1044,8 @@ def test_extra_data_columns():
     """
     Test whether DDECal can reuse model data from extra data columns.
     """
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
@@ -1079,14 +1059,13 @@ def test_extra_data_columns():
 
 def test_reuse_model_data():
     # Apply ddecal directly and generate reference output.
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.h5parm=cal_ref.h5",
             "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
             "ddecal.subtract=true",
@@ -1096,13 +1075,12 @@ def test_reuse_model_data():
     )
 
     # Run ddecal twice where the second ddecal reuses model data.
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal1,ddecal2]",
-            f"ddecal1.sourcedb={MSIN}/sky",
+            f"ddecal1.sourcedb={SKYMODEL}",
             "ddecal1.directions=[[center,dec_off,ra_off,radec_off]]",
             "ddecal1.onlypredict=true",
             "ddecal1.keepmodel=true",
@@ -1127,24 +1105,23 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
     check_output([TAQLEXE, "-noph", taqlcommand_run])
 
     # ddecal2 uses the following model data sources:
-    # - From the skymodel {MSIN}.sky: Directions 'ra_off' and 'dec_off'.
+    # - From the skymodel {SKYMODEL}: Directions 'ra_off' and 'dec_off'.
     # - From foursources-model.fits, using IDGPredict: The directions as
     #   specified in foursources.reg.
     # - From the input MS: The visibilities in the 'MODEL_DATA' column.
     # - From DPBuffer: The 'center' visibilities which ddecal1 added.
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal1,ddecal2]",
-            f"ddecal1.sourcedb={MSIN}/sky",
+            f"ddecal1.sourcedb={SKYMODEL}",
             "ddecal1.directions=center",
             "ddecal1.onlypredict=true",
             "ddecal1.keepmodel=true",
             "ddecal1.h5parm=ddecal1.h5parm",
-            f"ddecal2.sourcedb={MSIN}/sky",
+            f"ddecal2.sourcedb={SKYMODEL}",
             "ddecal2.directions=[[ra_off],[dec_off]]",
             f"ddecal2.idg.regions={tcf.DDECAL_RESOURCEDIR}/foursources.reg",
             "ddecal2.idg.images=[foursources-model.fits]",
@@ -1162,28 +1139,26 @@ def test_h5parm_initial_solutions():
     """Test using initial solutions from H5Parm."""
 
     # Generate H5 with initial solutions
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.h5parm=initial_solutions.h5",
             "ddecal.mode=fulljones",
         ]
     )
 
     # Reuse those solutions as initial conditions
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.h5parm=solutions.h5",
             "ddecal.mode=fulljones",
             f"ddecal.initialsolutions.h5parm=initial_solutions.h5",
@@ -1199,28 +1174,26 @@ def test_h5parm_initial_solutions_with_dd_intervals():
     """
 
     # Generate H5 with initial solutions
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.h5parm=initial_solutions.h5",
             "ddecal.mode=diagonal",
         ]
     )
 
     # Reuse those solutions as initial conditions
-    check_call(
+    calldp3(
         [
-            tcf.DP3EXE,
             "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.h5parm=solutions.h5",
             "ddecal.mode=scalarphase",
             f"ddecal.initialsolutions.h5parm=initial_solutions.h5",

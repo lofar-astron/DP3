@@ -19,7 +19,7 @@ dp3::common::ParameterSet CreateMinimalParameterSet() {
   dp3::common::ParameterSet parset;
   parset.add("msin", "");
   parset.add("directions", "[[" + dp3::steps::test::kPredictDirection + "]]");
-  parset.add("sourcedb", dp3::steps::test::kPredictSourceDB);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
   parset.add("h5parm", "test.h5");
   return parset;
 }

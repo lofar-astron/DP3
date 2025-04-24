@@ -20,6 +20,7 @@ Similar to tPredict.py, testing SagecalPredict using pytest.
 MSIN = "tNDPPP-generic.MS"
 # But we have a different reference MS for comparison
 MSPREDICT = "tSagecalPredict.tab"
+SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 
 
 @pytest.fixture(autouse=True)
@@ -37,7 +38,7 @@ def test_with_beam_replace():
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
             "predict.type=sagecalpredict",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.usebeammodel=true",
             "predict.operation=replace",
         ]
@@ -61,7 +62,7 @@ def test_with_rapthor_workflow():
             "msout=.",
             "steps=[ddecal]",
             "ddecal.type=ddecal",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.usebeammodel=true",
             "ddecal.beammode=array_factor",
             "ddecal.sagecalpredict=true",
@@ -80,7 +81,7 @@ def test_with_rapthor_workflow():
             "msout=.",
             "steps=[ddecal]",
             "ddecal.type=ddecal",
-            f"ddecal.sourcedb={MSIN}/sky",
+            f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.usebeammodel=true",
             "ddecal.beammode=array_factor",
             "ddecal.sagecalpredict=true",
@@ -103,7 +104,7 @@ def test_with_rapthor_workflow():
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
             "predict.type=sagecalpredict",
-            f"predict.sourcedb={MSIN}/sky",
+            f"predict.sourcedb={SKYMODEL}",
             "predict.usebeammodel=true",
             "predict.beammode=array_factor",
             "predict.operation=replace",
