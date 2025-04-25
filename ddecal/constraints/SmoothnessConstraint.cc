@@ -67,9 +67,9 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
               (smoothing_index / n_polarizations) % NSubSolutions();
           const size_t ant_index =
               smoothing_index / (NSubSolutions() * n_polarizations);
-          const double* weights = solution_weights_.empty()
+          const double* weights = sub_solution_weights_.empty()
                                       ? weights_.data()
-                                      : solution_weights_[sol_index].data();
+                                      : sub_solution_weights_[sol_index].data();
           for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
             // Flag channels where calibration yielded inf or nan
             if (isfinite(solutions_view(ch, smoothing_index))) {

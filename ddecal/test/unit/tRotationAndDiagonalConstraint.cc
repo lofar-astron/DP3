@@ -1,8 +1,6 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <casacore/casa/BasicMath/Math.h>  // near
-
 #include <vector>
 #include <complex>
 
@@ -16,8 +14,9 @@ namespace dp3::ddecal {
 using base::CalType;
 
 namespace {
-const double kReferencePhi = M_PI / 6.0;
-}
+constexpr double kReferencePhi = M_PI / 6.0;
+constexpr size_t kNDirections = 3;
+}  // namespace
 
 BOOST_AUTO_TEST_SUITE(rotation_and_diagonal_constraint)
 
@@ -73,33 +72,42 @@ BOOST_AUTO_TEST_CASE(constrain_diagonal) {
 std::vector<Constraint::Result> TestApplyConstraint(
     RotationAndDiagonalConstraint& constraint, bool enable_rotation_reference,
     std::complex<double> a, std::complex<double> b) {
-  constraint.Initialize(1, {1u}, {42e6});
+  constraint.Initialize(1, std::vector<uint32_t>(kNDirections, 1u), {42e6});
   constraint.SetDoRotationReference(enable_rotation_reference);
 
-  dp3::ddecal::SolutionTensor onesolution_tensor({1, 1, 1, 4});
-  dp3::ddecal::SolutionSpan onesolution =
-      aocommon::xt::CreateSpan(onesolution_tensor);
+  dp3::ddecal::SolutionTensor solutions_tensor({1, 1, kNDirections, 4});
+  dp3::ddecal::SolutionSpan solutions =
+      aocommon::xt::CreateSpan(solutions_tensor);
   /* Solution is of the form ((a,0),(0,b))*rot(phi)
      with rot(phi) = ((cos(phi),-sin(phi)),(sin(phi),cos(phi)))
   */
-  onesolution(0, 0, 0, 0) = a * std::cos(kReferencePhi);
-  onesolution(0, 0, 0, 1) = a * -std::sin(kReferencePhi);
-  onesolution(0, 0, 0, 2) = b * std::sin(kReferencePhi);
-  onesolution(0, 0, 0, 3) = b * std::cos(kReferencePhi);
+  for (size_t direction = 0; direction != kNDirections; ++direction) {
+    solutions(0, 0, direction, 0) =
+        a * std::cos(kReferencePhi + 0.1 * direction);
+    solutions(0, 0, direction, 1) =
+        a * -std::sin(kReferencePhi + 0.1 * direction);
+    solutions(0, 0, direction, 2) =
+        b * std::sin(kReferencePhi + 0.1 * direction);
+    solutions(0, 0, direction, 3) =
+        b * std::cos(kReferencePhi + 0.1 * direction);
+  }
 
   std::vector<Constraint::Result> constraint_result;
-  constraint_result = constraint.Apply(onesolution, 0.0, nullptr);
+  constraint_result = constraint.Apply(solutions, 0.0, nullptr);
   BOOST_CHECK_GE(constraint_result.size(), 2u);
   BOOST_CHECK_EQUAL(constraint_result[0].name, "rotation");
   BOOST_CHECK_EQUAL(constraint_result[0].axes, "ant,dir,freq");
-  BOOST_CHECK_EQUAL(constraint_result[0].dims.size(), 3u);
+  BOOST_REQUIRE_EQUAL(constraint_result[0].dims.size(), 3u);
   BOOST_CHECK_EQUAL(constraint_result[0].dims[0], 1u);
-  BOOST_CHECK_EQUAL(constraint_result[0].dims[1], 1u);
+  BOOST_CHECK_EQUAL(constraint_result[0].dims[1], kNDirections);
   BOOST_CHECK_EQUAL(constraint_result[0].dims[2], 1u);
-  BOOST_CHECK_EQUAL(constraint_result[0].vals.size(), 1u);
-  BOOST_CHECK_CLOSE_FRACTION(constraint_result[0].vals[0],
-                             enable_rotation_reference ? 0.0 : kReferencePhi,
-                             1e-6);
+  BOOST_REQUIRE_EQUAL(constraint_result[0].vals.size(), kNDirections);
+  for (size_t direction = 0; direction != kNDirections; ++direction) {
+    BOOST_CHECK_CLOSE_FRACTION(
+        constraint_result[0].vals[direction],
+        enable_rotation_reference ? 0.0 : kReferencePhi + 0.1 * direction,
+        1e-6);
+  }
   return constraint_result;
 }
 
@@ -107,28 +115,34 @@ void CheckDiagonalAmplitude(const Constraint::Result& result,
                             std::complex<double> a, std::complex<double> b) {
   BOOST_CHECK_EQUAL(result.name, "amplitude");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq,pol");
-  BOOST_CHECK_EQUAL(result.dims.size(), 4u);
+  BOOST_REQUIRE_EQUAL(result.dims.size(), 4u);
   BOOST_CHECK_EQUAL(result.dims[0], 1u);
-  BOOST_CHECK_EQUAL(result.dims[1], 1u);
+  BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
   BOOST_CHECK_EQUAL(result.dims[2], 1u);
   BOOST_CHECK_EQUAL(result.dims[3], 2u);
-  BOOST_CHECK_EQUAL(result.vals.size(), 2u);
-  BOOST_CHECK(casacore::near(result.vals[0], std::abs(a)));
-  BOOST_CHECK(casacore::near(result.vals[1], std::abs(b)));
+  BOOST_REQUIRE_EQUAL(result.vals.size(), kNDirections * 2);
+  for (size_t direction = 0; direction != kNDirections; ++direction) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2], std::abs(a), 1e-4);
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2 + 1], std::abs(b),
+                               1e-4);
+  }
 }
 
 void CheckDiagonalPhase(const Constraint::Result& result,
                         std::complex<double> a, std::complex<double> b) {
   BOOST_CHECK_EQUAL(result.name, "phase");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq,pol");
-  BOOST_CHECK_EQUAL(result.dims.size(), 4u);
+  BOOST_REQUIRE_EQUAL(result.dims.size(), 4u);
   BOOST_CHECK_EQUAL(result.dims[0], 1u);
-  BOOST_CHECK_EQUAL(result.dims[1], 1u);
+  BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
   BOOST_CHECK_EQUAL(result.dims[2], 1u);
   BOOST_CHECK_EQUAL(result.dims[3], 2u);
-  BOOST_CHECK_EQUAL(result.vals.size(), 2u);
-  BOOST_CHECK(casacore::near(result.vals[0], std::arg(a)));
-  BOOST_CHECK(casacore::near(result.vals[1], std::arg(b)));
+  BOOST_REQUIRE_EQUAL(result.vals.size(), kNDirections * 2);
+  for (size_t direction = 0; direction != kNDirections; ++direction) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2], std::arg(a), 1e-4);
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2 + 1], std::arg(b),
+                               1e-4);
+  }
 }
 
 void CheckScalarAmplitude(const Constraint::Result& result,
@@ -137,9 +151,12 @@ void CheckScalarAmplitude(const Constraint::Result& result,
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 3u);
   BOOST_CHECK_EQUAL(result.dims[0], 1u);
-  BOOST_CHECK_EQUAL(result.dims[1], 1u);
+  BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
   BOOST_CHECK_EQUAL(result.dims[2], 1u);
-  BOOST_CHECK(casacore::near(result.vals[0], std::abs(a)));
+  BOOST_REQUIRE_EQUAL(result.vals.size(), kNDirections);
+  for (size_t direction = 0; direction != kNDirections; ++direction) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction], std::abs(a), 1e-4);
+  }
 }
 
 void CheckScalarPhase(const Constraint::Result& result,
@@ -148,9 +165,11 @@ void CheckScalarPhase(const Constraint::Result& result,
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 3u);
   BOOST_CHECK_EQUAL(result.dims[0], 1u);
-  BOOST_CHECK_EQUAL(result.dims[1], 1u);
+  BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
   BOOST_CHECK_EQUAL(result.dims[2], 1u);
-  BOOST_CHECK(casacore::near(result.vals[0], std::arg(a)));
+  for (size_t direction = 0; direction != kNDirections; ++direction) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction], std::arg(a), 1e-4);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(rotation_and_diagonal) {

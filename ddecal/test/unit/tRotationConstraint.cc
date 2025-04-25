@@ -1,8 +1,6 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <casacore/casa/BasicMath/Math.h>  // near
-
 #include <vector>
 #include <complex>
 
@@ -12,7 +10,6 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-using casacore::near;
 using dp3::ddecal::Constraint;
 using dp3::ddecal::RotationAndDiagonalConstraint;
 using dp3::ddecal::RotationConstraint;

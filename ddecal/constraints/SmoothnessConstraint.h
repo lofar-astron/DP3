@@ -24,24 +24,24 @@ class SmoothnessConstraint final : public Constraint {
                        double spectral_exponent, bool kernel_truncation);
 
   std::vector<Constraint::Result> Apply(SolutionSpan& solutions, double time,
-                                        std::ostream* stat_stream) override;
+                                        std::ostream* stat_stream) final;
 
   /**
    * Set the weights to be used during smoothing.
    * @param weights An array of n_antenna x n_channel_blocks.
    */
-  void SetWeights(const std::vector<double>& weights) override {
+  void SetWeights(const std::vector<double>& weights) final {
     weights_ = weights;
   }
 
-  void SetSolutionWeights(
-      const std::vector<std::vector<double>>& solution_weights) final {
-    solution_weights_ = solution_weights;
+  void SetSubSolutionWeights(
+      const std::vector<std::vector<double>>& sub_solution_weights) final {
+    sub_solution_weights_ = sub_solution_weights;
   }
 
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,
-                  const std::vector<double>& frequencies) override;
+                  const std::vector<double>& frequencies) final;
 
   /**
    * Set antenna smoothness factors that can control the amount of smoothing
@@ -101,7 +101,7 @@ class SmoothnessConstraint final : public Constraint {
   std::vector<double> dd_smoothing_factors_;
   std::vector<double> weights_;
   /// A weight array per solution. If given, these override @ref weights_.
-  std::vector<std::vector<double>> solution_weights_;
+  std::vector<std::vector<double>> sub_solution_weights_;
   Smoother::KernelType kernel_type_;
   double bandwidth_;
   double bandwidth_ref_frequency_;

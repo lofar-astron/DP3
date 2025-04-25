@@ -415,7 +415,7 @@ std::unique_ptr<LLSSolver> SolverBase::CreateLLSSolver(
 void SolverBase::SetDdConstraintWeights(
     const std::vector<std::vector<double>>& weights) {
   for (const std::unique_ptr<Constraint>& constraint : constraints_) {
-    constraint->SetSolutionWeights(weights);
+    constraint->SetSubSolutionWeights(weights);
   }
 }
 
