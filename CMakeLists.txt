@@ -738,6 +738,7 @@ if(BUILD_TESTING)
       common/test/unit/tFields.cc
       common/test/unit/tMedian.cc
       common/test/unit/tMemory.cc
+      common/test/unit/tPhaseLineFitter.cc
       common/test/unit/tProximityClustering.cc
       common/test/unit/tStringTools.cc
       common/test/unit/tTimer.cc
