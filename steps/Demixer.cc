@@ -26,11 +26,12 @@
 #include "../base/Apply.h"
 #include "../base/CursorUtilCasa.h"
 #include "../base/EstimateMixed.h"
-#include "../base/SourceDBUtil.h"
 #include "../base/SubtractMixed.h"
 #include "../base/Simulate.h"
 #include "../base/Simulator.h"
-#include "../base/SkyModelCache.h"
+
+#include "../model/SkyModelCache.h"
+#include "../model/SourceDBUtil.h"
 
 #include "../parmdb/Axis.h"
 #include "../parmdb/SourceDB.h"
@@ -214,10 +215,10 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
           "Currently no extrasources can "
           "be given if the targetsource is given");
   }
-  base::SkyModelCache& cache = base::SkyModelCache::GetInstance();
+  model::SkyModelCache& cache = model::SkyModelCache::GetInstance();
   itsPatchList =
       cache.GetSkyModel(itsSkyName)
-          .Filter(patchNames, base::SourceDBWrapper::FilterMode::kValue)
+          .Filter(patchNames, model::SourceDBWrapper::FilterMode::kValue)
           .MakePatchList();
   assert(itsPatchList.size() == itsNModel);
 

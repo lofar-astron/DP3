@@ -6,8 +6,8 @@
 
 #include "SourceDBUtil.h"
 
-#include "PointSource.h"
-#include "GaussianSource.h"
+#include "../base/PointSource.h"
+#include "../base/GaussianSource.h"
 
 #include "../parmdb/SourceDB.h"
 #include "../parmdb/SkymodelToSourceDB.h"
@@ -23,7 +23,13 @@
 #include <vector>
 
 namespace dp3 {
-namespace base {
+namespace model {
+
+using base::Direction;
+using base::GaussianSource;
+using base::ModelComponent;
+using base::PointSource;
+using base::Stokes;
 using parmdb::SourceData;
 using parmdb::SourceInfo;
 
@@ -420,10 +426,10 @@ SourceDBWrapper::SourceDBWrapper(const std::string& source_db_name) {
 
 std::vector<std::shared_ptr<Patch>> SourceDBWrapper::MakePatchList() {
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
-    return base::MakePatches(Get<parmdb::SourceDBSkymodel>(), patch_names_);
+    return MakePatches(Get<parmdb::SourceDBSkymodel>(), patch_names_);
 
-  return base::makePatches(Get<parmdb::SourceDB>(), patch_names_,
-                           patch_names_.size());
+  return makePatches(Get<parmdb::SourceDB>(), patch_names_,
+                     patch_names_.size());
 }
 
 void SetPatchIndices(std::vector<std::shared_ptr<Patch>>& patch_list) {
@@ -433,19 +439,19 @@ void SetPatchIndices(std::vector<std::shared_ptr<Patch>>& patch_list) {
 
 bool SourceDBWrapper::CheckPolarized() {
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
-    return base::CheckPolarized(Get<parmdb::SourceDBSkymodel>(), patch_names_);
+    return model::CheckPolarized(Get<parmdb::SourceDBSkymodel>(), patch_names_);
 
-  return base::checkPolarized(Get<parmdb::SourceDB>(), patch_names_,
-                              patch_names_.size());
+  return checkPolarized(Get<parmdb::SourceDB>(), patch_names_,
+                        patch_names_.size());
 }
 
 bool SourceDBWrapper::CheckAnyOrientationIsAbsolute() {
   if (HoldsAlternative<parmdb::SourceDBSkymodel>())
-    return base::CheckAnyOrientationIsAbsolute(Get<parmdb::SourceDBSkymodel>(),
-                                               patch_names_);
+    return model::CheckAnyOrientationIsAbsolute(Get<parmdb::SourceDBSkymodel>(),
+                                                patch_names_);
 
-  return base::CheckAnyOrientationIsAbsolute(Get<parmdb::SourceDB>(),
-                                             patch_names_, patch_names_.size());
+  return model::CheckAnyOrientationIsAbsolute(
+      Get<parmdb::SourceDB>(), patch_names_, patch_names_.size());
 }
 
 SourceDBWrapper& SourceDBWrapper::Filter(const std::vector<std::string>& filter,
@@ -458,9 +464,9 @@ SourceDBWrapper& SourceDBWrapper::Filter(const std::vector<std::string>& filter,
     case FilterMode::kPattern:
       if (HoldsAlternative<parmdb::SourceDBSkymodel>())
         patch_names_ =
-            base::MakePatchList(Get<parmdb::SourceDBSkymodel>(), filter);
+            model::MakePatchList(Get<parmdb::SourceDBSkymodel>(), filter);
       else
-        patch_names_ = base::makePatchList(Get<parmdb::SourceDB>(), filter);
+        patch_names_ = makePatchList(Get<parmdb::SourceDB>(), filter);
       break;
     case FilterMode::kValue:
       patch_names_ = filter;
@@ -469,5 +475,5 @@ SourceDBWrapper& SourceDBWrapper::Filter(const std::vector<std::string>& filter,
   return *this;
 }
 
-}  // namespace base
+}  // namespace model
 }  // namespace dp3

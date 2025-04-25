@@ -473,7 +473,6 @@ add_library(
   base/GainCalAlgorithm.cc
   base/GaussianSource.cc
   base/MS.cc
-  base/Patch.cc
   base/PhaseFitter.cc
   base/PointSource.cc
   base/ProgressMeter.cc
@@ -481,11 +480,12 @@ add_library(
   base/Simulator.cc
   base/SubtableWriter.cc
   base/ComponentInfo.cc
-  base/SourceDBUtil.cc
   base/Stokes.cc
   base/SubtractMixed.cc
   base/Telescope.cc
   base/UVWCalculator.cc
+  model/Patch.cc
+  model/SourceDBUtil.cc
   pythondp3/PyStep.cc
   steps/AntennaFlagger.cc
   steps/AOFlaggerStep.cc
@@ -673,16 +673,13 @@ set(SOURCEDB_LIBRARIES Blob Common ParmDB ${CASACORE_LIBRARIES}
 add_executable(DP3 base/Main.cc)
 target_link_libraries(DP3 LIBDP3 ${HDF5_LIBRARIES} ${Boost_LIBRARIES})
 
-add_executable(makesourcedb parmdb/makesourcedb.cc)
-target_link_libraries(makesourcedb ${SOURCEDB_LIBRARIES})
-
 add_executable(showsourcedb parmdb/showsourcedb.cc)
 target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
 
 add_executable(msoverview base/msoverview.cc base/MS.cc)
 target_link_libraries(msoverview ${CASACORE_LIBRARIES} ${Boost_LIBRARIES})
 
-install(TARGETS DP3 makesourcedb showsourcedb msoverview DESTINATION bin)
+install(TARGETS DP3 showsourcedb msoverview DESTINATION bin)
 
 # Install a script that warns users that DP3 is the new name of the executable
 install(
@@ -729,7 +726,6 @@ if(BUILD_TESTING)
       base/test/unit/tRcuMode.cc
       base/test/unit/tSimulate.cc
       base/test/unit/tSimulator.cc
-      base/test/unit/tSourceDBUtil.cc
       base/test/unit/tSubtableWriter.cc
       base/test/unit/tTelescope.cc
       base/test/unit/tUvwCalculator.cc
@@ -761,6 +757,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolverTools.cc
       ddecal/test/unit/tSolutionWriter.cc
       ddecal/test/unit/tTECConstraint.cc
+      model/test/unit/tSourceDBUtil.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc
       steps/test/unit/mock/MockInput.cc

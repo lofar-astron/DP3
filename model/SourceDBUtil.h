@@ -21,7 +21,7 @@
 #include "Patch.h"
 
 namespace dp3 {
-namespace base {
+namespace model {
 
 inline bool HasSkymodelExtension(const std::string &source_db_name) {
   static const std::string_view kSymodelExtension = ".skymodel";
@@ -44,7 +44,8 @@ std::vector<std::shared_ptr<Patch>> MakePatches(
 
 /// Create a source list (with patch name) from a patchlist
 /// Needed for efficient multithreading
-std::vector<std::pair<std::shared_ptr<ModelComponent>, std::shared_ptr<Patch>>>
+std::vector<
+    std::pair<std::shared_ptr<base::ModelComponent>, std::shared_ptr<Patch>>>
 makeSourceList(std::vector<std::shared_ptr<Patch>> &patchList);
 
 /**
@@ -151,7 +152,7 @@ class SourceDBWrapper {
   }
 };
 
-}  // namespace base
+}  // namespace model
 }  // namespace dp3
 
 #endif

@@ -27,7 +27,8 @@
 #include "../base/GaussianSource.h"
 #include "../base/Telescope.h"
 #include "../base/ComponentInfo.h"
-#include "../base/SkyModelCache.h"
+
+#include "../model/SkyModelCache.h"
 
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/tables/Tables/Table.h>
@@ -511,10 +512,10 @@ void SagecalPredict::init(
 
   patch_list_.clear();
 
-  base::SourceDBWrapper source_db =
-      base::SkyModelCache::GetInstance().GetSkyModel(source_db_name_);
+  model::SourceDBWrapper source_db =
+      model::SkyModelCache::GetInstance().GetSkyModel(source_db_name_);
   source_db.Filter(source_patterns,
-                   base::SourceDBWrapper::FilterMode::kPattern);
+                   model::SourceDBWrapper::FilterMode::kPattern);
 
   try {
     patch_list_ = source_db.MakePatchList();
@@ -883,12 +884,12 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
 
   for (size_t patch_index = 0; patch_index < n_directions; ++patch_index) {
     // Count sources of this patch
-    size_t n_sources =
-        std::count_if(source_list_.begin(), source_list_.end(),
-                      [&](const std::pair<std::shared_ptr<base::ModelComponent>,
-                                          std::shared_ptr<base::Patch>>& item) {
-                        return item.second == patch_list_[patch_index];
-                      });
+    size_t n_sources = std::count_if(
+        source_list_.begin(), source_list_.end(),
+        [&](const std::pair<std::shared_ptr<base::ModelComponent>,
+                            std::shared_ptr<model::Patch>>& item) {
+          return item.second == patch_list_[patch_index];
+        });
 
     iodata_.cluster_arr_[patch_index].id = patch_index;
     iodata_.cluster_arr_[patch_index].nchunk = 1;

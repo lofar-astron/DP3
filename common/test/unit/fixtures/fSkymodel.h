@@ -4,7 +4,7 @@
 #ifndef DP3_COMMON_TEST_UNIT_FIXTURES_FSKYMODEL_H
 #define DP3_COMMON_TEST_UNIT_FIXTURES_FSKYMODEL_H
 
-#include "../../../base/Patch.h"
+#include "../../../model/Patch.h"
 
 #include <array>
 #include <string>
@@ -65,7 +65,7 @@ extern const std::array<Patch, 3> Expected;
 ///
 /// Uses the BOOST_CHECK_x macros to validate whether the arguments are
 /// considered equal.
-void CheckEqual(const dp3::base::Patch& lhs, const Patch& rhs);
+void CheckEqual(const dp3::model::Patch& lhs, const Patch& rhs);
 
 }  // namespace test_source_db
 #endif  // DP3_COMMON_TEST_UNIT_FIXTURES_FSKYMODEL_H
