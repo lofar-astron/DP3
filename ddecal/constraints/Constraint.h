@@ -96,19 +96,19 @@ class Constraint {
 
   /**
    * Set weights. The vector should contain the flattened version of an array of
-   * size nAntennas * nChannelBlocks, where the channel index varies fastest.
+   * size n_antennas * n_channel_blocks, where the channel index varies fastest.
    */
   virtual void SetWeights([[maybe_unused]] const std::vector<double>& weights) {
   }
 
   /**
-   * Set direction dependent weights. It consists of n_solution vectors,
+   * Set direction dependent weights. It consists of n_sub_solutions vectors,
    * each of which is an n_antennas * n_channel_blocks vector, where the channel
    * index varies fastest.
    *
    * If set, the normal weights are not used.
    */
-  virtual void SetSolutionWeights(
+  virtual void SetSubSolutionWeights(
       const std::vector<std::vector<double>>& solution_weights) {}
 
   virtual void GetTimings([[maybe_unused]] std::ostream& os,
