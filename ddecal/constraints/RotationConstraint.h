@@ -26,7 +26,17 @@ class RotationConstraint final : public Constraint {
   void SetWeights(const std::vector<double>& weights) override;
 
   /* Compute the rotation from a 2x2 full jones solution */
-  static double FitRotation(const std::complex<double>* data);
+  static double FitRotation(const std::complex<double>* data) {
+    // Convert to circular
+    const dcomplex i(0, 1.);
+
+    const dcomplex ll = data[0] + data[3] + i * (data[2] - data[1]);
+    const dcomplex rr = data[0] + data[3] + i * (data[1] - data[2]);
+    const double angle = 0.5 * (std::arg(ll) - std::arg(rr));
+
+    return angle;
+  }
+
   static void SetRotation(std::complex<double>* data, double angle) {
     data[0] = std::cos(angle);
     data[1] = -std::sin(angle);

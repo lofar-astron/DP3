@@ -46,9 +46,10 @@ class SolutionWriter {
 
  private:
   /**
-   * (Over)write solutions to the H5Parm file.
+   * (Over)write solutions to the H5Parm file. This function assumes the
+   * solutions have already been resampled.
    */
-  void WriteWithoutUpsampling(
+  void WriteDirect(
       const std::vector<std::vector<std::vector<std::complex<double>>>>&
           solutions,
       const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
@@ -60,6 +61,26 @@ class SolutionWriter {
       const std::vector<std::vector<std::string>>& directions,
       const std::vector<double>& chan_freqs,
       const std::vector<double>& chan_block_freqs, const std::string& history);
+
+  void WriteSolverResults(
+      const std::vector<std::vector<std::vector<std::complex<double>>>>&
+          solutions,
+      base::CalType mode, const std::vector<std::string>& used_antenna_names,
+      const std::vector<base::Direction>& source_directions,
+      const std::vector<std::vector<std::string>>& directions,
+      const std::vector<double>& chan_freqs,
+      const std::vector<double>& chan_block_freqs, const std::string& history,
+      const std::vector<double>& solution_times);
+
+  void WriteConstraintResults(
+      const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+          constraint_solutions,
+      base::CalType mode, const std::vector<std::string>& used_antenna_names,
+      const std::vector<base::Direction>& source_directions,
+      const std::vector<std::vector<std::string>>& directions,
+      const std::vector<double>& chan_freqs,
+      const std::vector<double>& chan_block_freqs, const std::string& history,
+      const std::vector<double>& solution_times);
 
   schaapcommon::h5parm::H5Parm h5parm_;
 };
