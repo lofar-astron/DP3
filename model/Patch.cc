@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "Patch.h"
-#include "ModelComponentVisitor.h"
+
+#include "../base/ModelComponentVisitor.h"
 
 #include <cmath>
 
-namespace dp3::base {
+namespace dp3::model {
 
 void Patch::ComputeDirection() {
   if (components_.empty()) {
@@ -29,4 +30,4 @@ void Patch::ComputeDirection() {
   }
 }
 
-}  // namespace dp3::base
+}  // namespace dp3::model

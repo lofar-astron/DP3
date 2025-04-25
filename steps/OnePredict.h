@@ -20,10 +20,11 @@
 #include <dp3/base/DPBuffer.h>
 
 #include "../base/ModelComponent.h"
-#include "../base/Patch.h"
 #include "../base/PredictBuffer.h"
 #include "../base/PredictModel.h"
-#include "../base/SourceDBUtil.h"
+
+#include "../model/Patch.h"
+#include "../model/SourceDBUtil.h"
 
 namespace dp3 {
 namespace common {
@@ -131,14 +132,14 @@ class OnePredict : public ModelDataStep {
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
 
-  void addBeamToData(const base::Patch& patch, size_t buffer_index,
+  void addBeamToData(const model::Patch& patch, size_t buffer_index,
                      aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
                      double time, bool update_beam, size_t thread,
                      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      bool stokesIOnly);
 
   void addBeamToDataRange(
-      const base::Patch& patch,
+      const model::Patch& patch,
       aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
       size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data0,
       const std::pair<size_t, size_t>& baseline_range,
@@ -206,10 +207,10 @@ class OnePredict : public ModelDataStep {
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;
 
   std::string direction_str_;  ///< Definition of patches, to pass to applycal
-  std::vector<std::shared_ptr<base::Patch>> patch_list_;
+  std::vector<std::shared_ptr<model::Patch>> patch_list_;
 
   std::vector<std::pair<std::shared_ptr<base::ModelComponent>,
-                        std::shared_ptr<base::Patch>>>
+                        std::shared_ptr<model::Patch>>>
       source_list_;
 
   common::NSTimer timer_;

@@ -7,10 +7,10 @@
 
 #include <dp3/base/DP3.h>
 
-#include "../base/SourceDBUtil.h"
 #include "../common/StreamUtil.h"
 #include "../ddecal/gain_solvers/SolveData.h"
 #include "../ddecal/SolverFactory.h"
+#include "../model/SourceDBUtil.h"
 
 #include "BdaGroupPredict.h"
 #include "Predict.h"
@@ -71,7 +71,7 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
 void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
                                        const std::string& prefix) {
   std::vector<std::vector<std::string>> directions =
-      base::MakeDirectionList(settings_.directions, settings_.source_db);
+      model::MakeDirectionList(settings_.directions, settings_.source_db);
 
   if (directions.empty()) {
     throw std::invalid_argument(

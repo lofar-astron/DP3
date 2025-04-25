@@ -15,8 +15,9 @@
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include "ProgressMeter.h"
-#include "SkyModelCache.h"
 #include "Version.h"
+
+#include "../model/SkyModelCache.h"
 
 #include "../steps/AntennaFlagger.h"
 #include "../steps/AOFlaggerStep.h"
@@ -344,7 +345,7 @@ void Execute(const std::string& parsetName, int argc, char* argv[]) {
   }
 
   // All steps should have finished reading the sky model, so clear the cache
-  SkyModelCache::GetInstance().Clear();
+  model::SkyModelCache::GetInstance().Clear();
 
   // Process until the end.
   unsigned int ntodo = firstStep->getInfo().ntime();

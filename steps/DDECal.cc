@@ -26,7 +26,7 @@
 
 #include <dp3/base/DP3.h>
 
-#include "../base/SourceDBUtil.h"
+#include "../model/SourceDBUtil.h"
 
 #include "../common/StreamUtil.h"
 
@@ -214,7 +214,7 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
 void DDECal::initializePredictSteps(const common::ParameterSet& parset,
                                     const std::string& prefix) {
   std::vector<std::vector<std::string>> directions =
-      base::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
+      model::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
 
   for (std::vector<std::string>& direction : directions) {
     if (itsSettings.use_sagecal_predict) {

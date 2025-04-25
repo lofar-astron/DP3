@@ -8,7 +8,7 @@
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 #include "../../../common/test/unit/fixtures/fSkymodel.h"
 #include "../../../parmdb/SkymodelToSourceDB.h"
-#include "../../../base/SourceDBUtil.h"
+#include "../../../model/SourceDBUtil.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -46,14 +46,14 @@ BOOST_AUTO_TEST_CASE(make_source_db) {
   BOOST_REQUIRE_EQUAL(patches[1], "ra_off");
   BOOST_REQUIRE_EQUAL(patches[2], "radec_off");
 
-  patches = dp3::base::makePatchList(sourceDB, std::vector<std::string>{});
+  patches = dp3::model::makePatchList(sourceDB, std::vector<std::string>{});
   BOOST_REQUIRE_EQUAL(patches.size(), 3u);
   BOOST_REQUIRE_EQUAL(patches[0], "center");
   BOOST_REQUIRE_EQUAL(patches[1], "ra_off");
   BOOST_REQUIRE_EQUAL(patches[2], "radec_off");
 
-  std::vector<std::shared_ptr<dp3::base::Patch>> foo =
-      dp3::base::makePatches(sourceDB, patches, patches.size());
+  std::vector<std::shared_ptr<dp3::model::Patch>> foo =
+      dp3::model::makePatches(sourceDB, patches, patches.size());
 
   BOOST_REQUIRE_EQUAL(foo.size(), 3u);
   CheckEqual(*foo[0], test_source_db::Expected[0]);
@@ -140,14 +140,14 @@ BOOST_AUTO_TEST_CASE(read_skymodel) {
 
   {
     const std::vector<std::string> patch_list =
-        dp3::base::MakePatchList(source_db, std::vector<std::string>{});
+        dp3::model::MakePatchList(source_db, std::vector<std::string>{});
     BOOST_REQUIRE_EQUAL(patch_list.size(), 3u);
     BOOST_CHECK_EQUAL(patch_list[0], "center");
     BOOST_CHECK_EQUAL(patch_list[1], "ra_off");
     BOOST_CHECK_EQUAL(patch_list[2], "radec_off");
 
-    const std::vector<std::shared_ptr<dp3::base::Patch>> patches =
-        dp3::base::MakePatches(source_db, patch_list);
+    const std::vector<std::shared_ptr<dp3::model::Patch>> patches =
+        dp3::model::MakePatches(source_db, patch_list);
     CheckEqual(*patches[0], test_source_db::Expected[0]);
     CheckEqual(*patches[1], test_source_db::Expected[1]);
     CheckEqual(*patches[2], test_source_db::Expected[2]);

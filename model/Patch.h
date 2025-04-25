@@ -5,22 +5,23 @@
 #define DP3_BASE_PATCH_H_
 
 #include <dp3/base/Direction.h>
-#include "ModelComponent.h"
+
+#include "../base/ModelComponent.h"
 
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace dp3::base {
+namespace dp3::model {
 
 /// \brief A set of sources for which direction dependent effects are assumed to
 /// be equal.
 
 class Patch {
  public:
-  using iterator = std::vector<std::shared_ptr<ModelComponent>>::iterator;
+  using iterator = std::vector<std::shared_ptr<base::ModelComponent>>::iterator;
   using const_iterator =
-      std::vector<std::shared_ptr<const ModelComponent>>::const_iterator;
+      std::vector<std::shared_ptr<const base::ModelComponent>>::const_iterator;
 
   template <typename T>
   Patch(const std::string &name, T first, T last)
@@ -43,8 +44,10 @@ class Patch {
   void SetIndex(size_t index) { index_ = index; }
 
   size_t NComponents() const { return components_.size(); }
-  std::shared_ptr<ModelComponent> component(size_t i) { return components_[i]; }
-  std::shared_ptr<const ModelComponent> component(size_t i) const {
+  std::shared_ptr<base::ModelComponent> component(size_t i) {
+    return components_[i];
+  }
+  std::shared_ptr<const base::ModelComponent> component(size_t i) const {
     return components_[i];
   }
 
@@ -59,9 +62,9 @@ class Patch {
   std::string name_;
   base::Direction direction_;
   double brightness_ = 0.0;
-  std::vector<std::shared_ptr<ModelComponent>> components_;
+  std::vector<std::shared_ptr<base::ModelComponent>> components_;
 };
 
-}  // namespace dp3::base
+}  // namespace dp3::model
 
 #endif

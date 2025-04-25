@@ -27,7 +27,7 @@
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/recursivefor.h>
 
-#include "../base/SourceDBUtil.h"
+#include "../model/SourceDBUtil.h"
 
 #include "../parmdb/ParmValue.h"
 

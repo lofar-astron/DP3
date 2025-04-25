@@ -2,11 +2,12 @@
 #define SKY_MODEL_CACHE_H_
 
 #include <map>
+#include <stdexcept>
 #include <string>
 
 #include "SourceDBUtil.h"
 
-namespace dp3::base {
+namespace dp3::model {
 
 class SkyModelCache {
  public:
@@ -17,9 +18,12 @@ class SkyModelCache {
 
   SourceDBWrapper GetSkyModel(const std::string& filename) {
     if (!HasSkymodelExtension(filename)) {
-      // SourceDBs can not be value-copied (they use reference copy semantics).
-      // Therefore, don't use the cache for them
-      return SourceDBWrapper(filename);
+      throw std::runtime_error(
+          "Sky models in the 'source db' format are no longer supported by "
+          "DP3. Models need to be provided in the textual format and do not "
+          "require conversion using the 'makesourcedb' tool. If you do not "
+          "have the original text model file, the 'showsourcedb' tool can be "
+          "used to convert a sourcedb back to text format.");
     } else {
       auto iterator = cache_.find(filename);
       if (iterator == cache_.end()) {
@@ -34,9 +38,9 @@ class SkyModelCache {
   void Clear() { cache_.clear(); }
 
  private:
-  std::map<std::string, base::SourceDBWrapper> cache_;
+  std::map<std::string, SourceDBWrapper> cache_;
 };
 
-}  // namespace dp3::base
+}  // namespace dp3::model
 
 #endif
