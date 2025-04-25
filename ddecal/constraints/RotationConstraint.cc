@@ -15,13 +15,20 @@ void RotationConstraint::Initialize(
   Constraint::Initialize(nAntennas, solutions_per_direction, frequencies);
 
   Result& result = results_.emplace_back();
-  result.vals.resize(NAntennas() * NChannelBlocks());
+  result.vals.resize(NAntennas() * NSubSolutions() * NChannelBlocks());
   result.axes = "ant,dir,freq";
   result.dims.resize(3);
   result.dims[0] = NAntennas();
   result.dims[1] = NSubSolutions();
   result.dims[2] = NChannelBlocks();
   result.name = "rotation";
+  // This constraint supports dd solution intervals, but the hdf5 writer
+  // code does not yet support it for constraint results.
+  if (NSubSolutions() != NDirections()) {
+    throw std::runtime_error(
+        "The rotation constraint does not support direction-dependent "
+        "intervals");
+  }
 }
 
 void RotationConstraint::SetWeights(const std::vector<double>& weights) {
@@ -32,21 +39,10 @@ void RotationConstraint::SetWeights(const std::vector<double>& weights) {
   }
 }
 
-double RotationConstraint::FitRotation(const std::complex<double>* data) {
-  // Convert to circular
-  dcomplex i(0, 1.);
-
-  dcomplex ll = data[0] + data[3] - i * data[1] + i * data[2];
-  dcomplex rr = data[0] + data[3] + i * data[1] - i * data[2];
-  const double angle = 0.5 * (std::arg(ll) - std::arg(rr));
-
-  return angle;
-}
-
 std::vector<Constraint::Result> RotationConstraint::Apply(
     SolutionSpan& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
-  assert(solutions.shape(2) == 1);  // 1 direction
+  assert(solutions.shape(2) == NSubSolutions());
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
   Result& result = results_.front();
   for (size_t sub_solution = 0; sub_solution != NSubSolutions();
@@ -56,7 +52,9 @@ std::vector<Constraint::Result> RotationConstraint::Apply(
         // Compute rotation
         std::complex<double>* data = &solutions(ch, ant, sub_solution, 0);
         const double angle = FitRotation(data);
-        result.vals[ant * NChannelBlocks() + ch] = angle;
+        const size_t index =
+            ((ant * NSubSolutions()) + sub_solution) * NChannelBlocks() + ch;
+        result.vals[index] = angle;
 
         // Constrain the data
         RotationConstraint::SetRotation(data, angle);
