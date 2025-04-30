@@ -87,8 +87,9 @@ inline double UnwrapAndFit(const std::vector<FitSample>& data,
  * slope between 150-151 MHz with 1 kHz resolution), hence for these cases it
  * might be useful to limit the number of wraps searched through.
  */
-SlopeFitRange GetRange(const std::vector<FitSample>& data,
-                       aocommon::OptionalNumber<int> wrap_count_limit = {}) {
+inline SlopeFitRange GetRange(
+    const std::vector<FitSample>& data,
+    aocommon::OptionalNumber<int> wrap_count_limit = {}) {
   if (data.empty()) return SlopeFitRange{0, 0.0};
 
   double min_delta = std::numeric_limits<double>::max();

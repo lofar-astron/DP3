@@ -93,6 +93,7 @@ void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
       break;
     case CalType::kFullJones:
     case CalType::kRotationAndDiagonal:
+    case CalType::kFaradayRotation:
     case CalType::kTec:
     case CalType::kTecAndPhase:
     case CalType::kTecScreen:

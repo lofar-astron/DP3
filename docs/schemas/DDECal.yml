@@ -60,7 +60,7 @@ inputs:
   mode:
     default: diagonal
     type: string
-    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation and rotation+diagonal.
+    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation, rotation+diagonal and faradayrotation.
   tolerance:
     default: 1e-5
     type: double
@@ -250,6 +250,14 @@ inputs:
       a diagonal with two equal complex values. This choice affects the structure
       of the h5parm file: e.g. in scalar mode, the amplitude and phase tables
       will not have a "pol" (polarization) dimension.
+  faradaydiagonalmode:
+    default: rotation
+    type: string
+    doc: >-
+      In Faraday-rotation mode, this parameter specifies how to constrain the
+      diagonal. It supports the same options as rotationdiagonalmodel. If set
+      to 'rotation' (the default), only Faraday rotation is fitted: after
+      rotation, the diagonal will have unit gains.
   grouppredict:
     default: false
     type: bool
