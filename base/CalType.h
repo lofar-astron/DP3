@@ -21,7 +21,8 @@ enum class CalType {
   kTec,
   kTecScreen,
   kRotationAndDiagonal,
-  kRotation
+  kRotation,
+  kFaradayRotation
 };
 
 /// Convert string to a CalType
@@ -39,6 +40,7 @@ constexpr size_t GetNPolarizations(CalType cal_type) {
     case CalType::kFullJones:
     case CalType::kRotationAndDiagonal:
     case CalType::kRotation:
+    case CalType::kFaradayRotation:
       return 4;
     case CalType::kScalar:
     case CalType::kScalarAmplitude:

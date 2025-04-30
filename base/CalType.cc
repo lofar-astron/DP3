@@ -34,6 +34,8 @@ CalType StringToCalType(const std::string& modestr) {
     return CalType::kRotationAndDiagonal;
   else if (modestr == "rotation")
     return CalType::kRotation;
+  else if (modestr == "faradayrotation")
+    return CalType::kFaradayRotation;
   throw std::runtime_error("Unknown mode: " + modestr);
 }
 
@@ -63,6 +65,8 @@ std::string ToString(CalType caltype) {
       return "rotation";
     case CalType::kRotationAndDiagonal:
       return "rotation+diagonal";
+    case CalType::kFaradayRotation:
+      return "faraday";
     default:
       throw std::runtime_error("Unknown caltype: " +
                                std::to_string(static_cast<int>(caltype)));

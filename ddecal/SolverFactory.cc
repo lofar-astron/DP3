@@ -22,6 +22,7 @@
 
 #include "constraints/AmplitudeOnlyConstraint.h"
 #include "constraints/AntennaConstraint.h"
+#include "constraints/FaradayConstraint.h"
 #include "constraints/RotationConstraint.h"
 #include "constraints/RotationAndDiagonalConstraint.h"
 #ifdef ENABLE_SCREENFITTER
@@ -208,12 +209,14 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       solver.AddConstraint(std::move(constraint));
       break;
     }
-#ifdef ENABLE_SCREENFITTER
     case base::CalType::kTecScreen:
+#ifdef ENABLE_SCREENFITTER
       solver.AddConstraint(
           std::make_unique<ScreenConstraint>(parset, prefix + "tecscreen."));
-      break;
+#else
+      throw std::runtime_error("TEC screen is not enabled");
 #endif
+      break;
     case base::CalType::kRotationAndDiagonal: {
       auto constraint = std::make_unique<RotationAndDiagonalConstraint>(
           settings.rotation_diagonal_mode);
@@ -224,9 +227,10 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
     case base::CalType::kRotation:
       solver.AddConstraint(std::make_unique<RotationConstraint>());
       break;
-    default:
-      throw std::runtime_error("Unexpected solving mode: " +
-                               ToString(settings.mode));
+    case base::CalType::kFaradayRotation:
+      solver.AddConstraint(
+          std::make_unique<FaradayConstraint>(settings.faraday_diagonal_mode));
+      break;
   }
 }
 
@@ -270,6 +274,7 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
     case base::CalType::kFullJones:
     case base::CalType::kRotationAndDiagonal:
     case base::CalType::kRotation:
+    case base::CalType::kFaradayRotation:
       solver = CreateFullJonesSolver(algorithm, settings);
       solver->SetPhaseOnly(false);
       break;
@@ -283,9 +288,6 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
           "with Armadillo.");
 #endif
       break;
-    default:
-      throw std::runtime_error("Unexpected solving mode: " +
-                               base::ToString(settings.mode));
   }
 
   AddConstraints(*solver, settings, parset, prefix);
