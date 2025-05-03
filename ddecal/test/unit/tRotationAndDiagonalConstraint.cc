@@ -16,6 +16,8 @@ using base::CalType;
 namespace {
 constexpr double kReferencePhi = M_PI / 6.0;
 constexpr size_t kNDirections = 3;
+constexpr size_t kNAntennas = 7;
+constexpr size_t kNChannels = 2;
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(rotation_and_diagonal_constraint)
@@ -72,24 +74,30 @@ BOOST_AUTO_TEST_CASE(constrain_diagonal) {
 std::vector<Constraint::Result> TestApplyConstraint(
     RotationAndDiagonalConstraint& constraint, bool enable_rotation_reference,
     std::complex<double> a, std::complex<double> b) {
-  constraint.Initialize(1, std::vector<uint32_t>(kNDirections, 1u), {42e6});
+  constraint.Initialize(kNAntennas, std::vector<uint32_t>(kNDirections, 1u),
+                        {42e6, 43e6});
   constraint.SetDoRotationReference(enable_rotation_reference);
 
-  dp3::ddecal::SolutionTensor solutions_tensor({1, 1, kNDirections, 4});
+  dp3::ddecal::SolutionTensor solutions_tensor(
+      {kNChannels, kNAntennas, kNDirections, 4});
   dp3::ddecal::SolutionSpan solutions =
       aocommon::xt::CreateSpan(solutions_tensor);
   /* Solution is of the form ((a,0),(0,b))*rot(phi)
      with rot(phi) = ((cos(phi),-sin(phi)),(sin(phi),cos(phi)))
   */
-  for (size_t direction = 0; direction != kNDirections; ++direction) {
-    solutions(0, 0, direction, 0) =
-        a * std::cos(kReferencePhi + 0.1 * direction);
-    solutions(0, 0, direction, 1) =
-        a * -std::sin(kReferencePhi + 0.1 * direction);
-    solutions(0, 0, direction, 2) =
-        b * std::sin(kReferencePhi + 0.1 * direction);
-    solutions(0, 0, direction, 3) =
-        b * std::cos(kReferencePhi + 0.1 * direction);
+  for (size_t channel = 0; channel != kNChannels; ++channel) {
+    for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
+      for (size_t direction = 0; direction != kNDirections; ++direction) {
+        solutions(channel, antenna, direction, 0) =
+            a * std::cos(kReferencePhi + 0.1 * direction);
+        solutions(channel, antenna, direction, 1) =
+            a * -std::sin(kReferencePhi + 0.1 * direction);
+        solutions(channel, antenna, direction, 2) =
+            b * std::sin(kReferencePhi + 0.1 * direction);
+        solutions(channel, antenna, direction, 3) =
+            b * std::cos(kReferencePhi + 0.1 * direction);
+      }
+    }
   }
 
   std::vector<Constraint::Result> constraint_result;
@@ -98,15 +106,23 @@ std::vector<Constraint::Result> TestApplyConstraint(
   BOOST_CHECK_EQUAL(constraint_result[0].name, "rotation");
   BOOST_CHECK_EQUAL(constraint_result[0].axes, "ant,dir,freq");
   BOOST_REQUIRE_EQUAL(constraint_result[0].dims.size(), 3u);
-  BOOST_CHECK_EQUAL(constraint_result[0].dims[0], 1u);
+  BOOST_CHECK_EQUAL(constraint_result[0].dims[0], kNAntennas);
   BOOST_CHECK_EQUAL(constraint_result[0].dims[1], kNDirections);
-  BOOST_CHECK_EQUAL(constraint_result[0].dims[2], 1u);
-  BOOST_REQUIRE_EQUAL(constraint_result[0].vals.size(), kNDirections);
-  for (size_t direction = 0; direction != kNDirections; ++direction) {
-    BOOST_CHECK_CLOSE_FRACTION(
-        constraint_result[0].vals[direction],
-        enable_rotation_reference ? 0.0 : kReferencePhi + 0.1 * direction,
-        1e-6);
+  BOOST_CHECK_EQUAL(constraint_result[0].dims[2], kNChannels);
+  BOOST_REQUIRE_EQUAL(constraint_result[0].vals.size(),
+                      kNAntennas * kNDirections * kNChannels);
+  std::vector<double>::const_iterator iterator =
+      constraint_result[0].vals.begin();
+  for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
+    for (size_t direction = 0; direction != kNDirections; ++direction) {
+      for (size_t channel = 0; channel != kNChannels; ++channel) {
+        BOOST_CHECK_CLOSE_FRACTION(
+            *iterator,
+            enable_rotation_reference ? 0.0 : kReferencePhi + 0.1 * direction,
+            1e-6);
+        ++iterator;
+      }
+    }
   }
   return constraint_result;
 }
@@ -116,14 +132,15 @@ void CheckDiagonalAmplitude(const Constraint::Result& result,
   BOOST_CHECK_EQUAL(result.name, "amplitude");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq,pol");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 4u);
-  BOOST_CHECK_EQUAL(result.dims[0], 1u);
+  BOOST_CHECK_EQUAL(result.dims[0], kNAntennas);
   BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
-  BOOST_CHECK_EQUAL(result.dims[2], 1u);
+  BOOST_CHECK_EQUAL(result.dims[2], kNChannels);
   BOOST_CHECK_EQUAL(result.dims[3], 2u);
-  BOOST_REQUIRE_EQUAL(result.vals.size(), kNDirections * 2);
-  for (size_t direction = 0; direction != kNDirections; ++direction) {
-    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2], std::abs(a), 1e-4);
-    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2 + 1], std::abs(b),
+  const size_t n_diagonals = kNAntennas * kNDirections * kNChannels;
+  BOOST_REQUIRE_EQUAL(result.vals.size(), n_diagonals * 2);
+  for (size_t diagonal = 0; diagonal != n_diagonals; ++diagonal) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[diagonal * 2], std::abs(a), 1e-4);
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[diagonal * 2 + 1], std::abs(b),
                                1e-4);
   }
 }
@@ -133,14 +150,15 @@ void CheckDiagonalPhase(const Constraint::Result& result,
   BOOST_CHECK_EQUAL(result.name, "phase");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq,pol");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 4u);
-  BOOST_CHECK_EQUAL(result.dims[0], 1u);
+  BOOST_CHECK_EQUAL(result.dims[0], kNAntennas);
   BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
-  BOOST_CHECK_EQUAL(result.dims[2], 1u);
+  BOOST_CHECK_EQUAL(result.dims[2], kNChannels);
   BOOST_CHECK_EQUAL(result.dims[3], 2u);
-  BOOST_REQUIRE_EQUAL(result.vals.size(), kNDirections * 2);
-  for (size_t direction = 0; direction != kNDirections; ++direction) {
-    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2], std::arg(a), 1e-4);
-    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction * 2 + 1], std::arg(b),
+  const size_t n_diagonals = kNAntennas * kNDirections * kNChannels;
+  BOOST_REQUIRE_EQUAL(result.vals.size(), n_diagonals * 2);
+  for (size_t diagonal = 0; diagonal != n_diagonals; ++diagonal) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[diagonal * 2], std::arg(a), 1e-4);
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[diagonal * 2 + 1], std::arg(b),
                                1e-4);
   }
 }
@@ -150,12 +168,13 @@ void CheckScalarAmplitude(const Constraint::Result& result,
   BOOST_CHECK_EQUAL(result.name, "amplitude");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 3u);
-  BOOST_CHECK_EQUAL(result.dims[0], 1u);
+  BOOST_CHECK_EQUAL(result.dims[0], kNAntennas);
   BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
-  BOOST_CHECK_EQUAL(result.dims[2], 1u);
-  BOOST_REQUIRE_EQUAL(result.vals.size(), kNDirections);
-  for (size_t direction = 0; direction != kNDirections; ++direction) {
-    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction], std::abs(a), 1e-4);
+  BOOST_CHECK_EQUAL(result.dims[2], kNChannels);
+  const size_t n_diagonals = kNAntennas * kNDirections * kNChannels;
+  BOOST_REQUIRE_EQUAL(result.vals.size(), n_diagonals);
+  for (size_t diagonal = 0; diagonal != n_diagonals; ++diagonal) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[diagonal], std::abs(a), 1e-4);
   }
 }
 
@@ -164,11 +183,13 @@ void CheckScalarPhase(const Constraint::Result& result,
   BOOST_CHECK_EQUAL(result.name, "phase");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 3u);
-  BOOST_CHECK_EQUAL(result.dims[0], 1u);
+  BOOST_CHECK_EQUAL(result.dims[0], kNAntennas);
   BOOST_CHECK_EQUAL(result.dims[1], kNDirections);
-  BOOST_CHECK_EQUAL(result.dims[2], 1u);
-  for (size_t direction = 0; direction != kNDirections; ++direction) {
-    BOOST_CHECK_CLOSE_FRACTION(result.vals[direction], std::arg(a), 1e-4);
+  BOOST_CHECK_EQUAL(result.dims[2], kNChannels);
+  const size_t n_diagonals = kNAntennas * kNDirections * kNChannels;
+  BOOST_REQUIRE_EQUAL(result.vals.size(), n_diagonals);
+  for (size_t diagonal = 0; diagonal != n_diagonals; ++diagonal) {
+    BOOST_CHECK_CLOSE_FRACTION(result.vals[diagonal], std::arg(a), 1e-4);
   }
 }
 
