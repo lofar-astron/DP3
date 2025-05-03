@@ -311,7 +311,7 @@ std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
         }
 
         const size_t index =
-            ((ant * NSubSolutions()) + sub_solution * NChannelBlocks()) + ch;
+            ((ant * NSubSolutions()) + sub_solution) * NChannelBlocks() + ch;
         results_[0].vals[index] = angle;
         StoreDiagonal(&results_[1], diagonal, ch, ant, sub_solution,
                       NChannelBlocks(), NSubSolutions(),

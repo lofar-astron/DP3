@@ -70,7 +70,7 @@ class Constraint {
   /**
    * This method applies the constraints to the solutions.
    * @param solutions A 4D array with dimensions n_channel_blocks x n_antennas
-   * x n_solutions x n_pol solutions.
+   * x n_sub_solutions x n_pol solutions.
    * n_pol is the dimension with the fastest changing index.
    * Using a span instead of a real tensor as argument type avoids the need
    * for copying data in Python bindings.
