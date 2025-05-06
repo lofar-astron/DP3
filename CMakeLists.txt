@@ -22,6 +22,11 @@ else()
   message(FATAL_ERROR "Failed to parse DP3_VERSION='${DP3_VERSION}'")
 endif()
 
+include(ExternalProject)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+  cmake_policy(SET CMP0135 "NEW")
+endif()
+
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
   COMMAND git describe --tags
@@ -829,6 +834,16 @@ if(BUILD_TESTING)
 
   set(DP3_RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resources)
   set(EXTRACT_CMD ${CMAKE_COMMAND} -E tar xzf)
+
+  ExternalProject_Add(
+    mwa_test_ms
+    URL https://support.astron.nl/software/ci_data/EveryBeam/MWA-single-timeslot.tar.bz2
+    URL_HASH
+      SHA256=39cb9f656582c97f403883e1befe50745d8a86c4ce4dfee55d087f437a46e5dc
+    SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/MWA-single-timeslot.ms
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND "")
 
   add_custom_target(
     extract_test_resources
