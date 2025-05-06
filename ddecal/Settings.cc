@@ -147,6 +147,9 @@ Settings::Settings(const common::ParameterSet& _parset,
               ? dp3::base::StringToCalType(boost::to_lower_copy(
                     GetString("faradaydiagonalmode", "rotation")))
               : CalType::kDiagonal),
+      faraday_limit((mode == CalType::kFaradayRotation)
+                        ? GetOptionalDouble("faradaylimit", 0.0)
+                        : std::optional<double>()),
       lbfgs_robust_nu((solver_algorithm == SolverAlgorithm::kLBFGS)
                           ? GetDouble("solverlbfgs.dof", 200.0)
                           : 200.0),

@@ -6,6 +6,7 @@
 
 #include "linear_solvers/LLSSolver.h"
 
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -80,6 +81,19 @@ struct Settings {
    * Retrieve an optional double from the parset.
    */
   double GetDouble(const std::string& key, double default_value) const;
+
+  /**
+   * Similar to @ref GetDouble(), but returns an std::optional. If the value is
+   * unset or set to the default value, an empty optional is returned.
+   */
+  std::optional<double> GetOptionalDouble(const std::string& key,
+                                          double default_value) const {
+    const double value = GetDouble(key, default_value);
+    if (value == default_value)
+      return {};
+    else
+      return std::optional<double>(value);
+  }
 
   /**
    * Retrieve a mandatory string from the parset.
@@ -163,6 +177,7 @@ struct Settings {
   const bool rotation_reference;
   const base::CalType rotation_diagonal_mode;
   const base::CalType faraday_diagonal_mode;
+  std::optional<double> faraday_limit;
   // LBFGS robust parameter (aka degrees of freedom)
   const double lbfgs_robust_nu;
   // LBFGS max iterations per mini-batch

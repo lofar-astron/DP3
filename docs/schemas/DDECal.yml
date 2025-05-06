@@ -258,6 +258,19 @@ inputs:
       diagonal. It supports the same options as rotationdiagonalmodel. If set
       to 'rotation' (the default), only Faraday rotation is fitted: after
       rotation, the diagonal will have unit gains.
+  faradaylimit:
+    default: 0.0
+    type: double
+    doc: >-
+      In Faraday-rotation mode, this limits the range of the differential Faraday rotation
+      value, which means that the fitter will only go through the possible wraps
+      for the given range. This is to make the solver faster.
+      The searched range is [-faradaylimit, faradaylimit], and the faradaylimit
+      is given in units of radians per meter.
+      If set to zero, DP3 will search the entire range of possible Faraday
+      rotation values. For some sets the default is sufficiently fast, but for
+      some observations (e.g. LOFAR LBA with many channels) this may be too slow,
+      and a faradaylimit of for example 5.0 can make the fitter considerably faster.
   grouppredict:
     default: false
     type: bool

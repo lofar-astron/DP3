@@ -15,10 +15,14 @@ class FaradayConstraint final : public Constraint {
  public:
   /**
    * The diagonal solution type may be set to kRotational
-   * to fit Faraday rotation without a diagonal.
+   * to fit differential Faraday rotation without a diagonal.
+   * @oaram max_rotation_value limits the search from -max_rotation_value to
+   * max_rotation_value. It is given in units of radians per meter.
    */
-  FaradayConstraint(base::CalType diagonal_solution_type)
-      : diagonal_solution_type_(diagonal_solution_type) {}
+  FaradayConstraint(base::CalType diagonal_solution_type,
+                    std::optional<double> max_rotation_value)
+      : diagonal_solution_type_(diagonal_solution_type),
+        max_rotation_value_(max_rotation_value) {}
 
   std::vector<Result> Apply(SolutionSpan& solutions, double time,
                             std::ostream* stat_stream) final;
@@ -41,6 +45,7 @@ class FaradayConstraint final : public Constraint {
   std::vector<double> frequencies_;
   common::phase_fitting::SlopeFitRange fit_range_;
   base::CalType diagonal_solution_type_;
+  std::optional<double> max_rotation_value_;
 };
 
 }  // namespace dp3::ddecal
