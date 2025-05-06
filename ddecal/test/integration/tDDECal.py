@@ -1,13 +1,13 @@
 # Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Append current directory to system path in order to import testconfig
 import sys
 from subprocess import STDOUT, CalledProcessError, check_call, check_output
 
 import numpy as np
 import pytest
 
+# Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import casacore.tables
