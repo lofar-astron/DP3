@@ -228,8 +228,8 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       solver.AddConstraint(std::make_unique<RotationConstraint>());
       break;
     case base::CalType::kFaradayRotation:
-      solver.AddConstraint(
-          std::make_unique<FaradayConstraint>(settings.faraday_diagonal_mode));
+      solver.AddConstraint(std::make_unique<FaradayConstraint>(
+          settings.faraday_diagonal_mode, settings.faraday_limit));
       break;
   }
 }

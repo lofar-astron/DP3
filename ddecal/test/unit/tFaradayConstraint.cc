@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(unity_faraday_only) {
       {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
   Fill(solutions_tensor, MC2x2::Unity());
 
-  FaradayConstraint constraint(base::CalType::kRotation);
+  FaradayConstraint constraint(base::CalType::kRotation, {});
   std::vector<Constraint::Result> result =
       Constrain(constraint, solutions_tensor);
 
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(zero_rotation_with_diagonal) {
   const std::complex<double> diagonal_value(3.0, 4.0);
   Fill(solutions_tensor, MC2x2(diagonal_value, 0.0, 0.0, diagonal_value));
 
-  FaradayConstraint constraint(base::CalType::kDiagonal);
+  FaradayConstraint constraint(base::CalType::kDiagonal, {});
   std::vector<Constraint::Result> result =
       Constrain(constraint, solutions_tensor);
 
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(rotation) {
                            rotation_value);
     }
   }
-  FaradayConstraint constraint(base::CalType::kDiagonal);
+  FaradayConstraint constraint(base::CalType::kDiagonal, {});
   std::vector<Constraint::Result> result =
       Constrain(constraint, solutions_tensor);
 

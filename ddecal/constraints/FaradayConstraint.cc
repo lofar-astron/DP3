@@ -28,6 +28,14 @@ void FaradayConstraint::Initialize(
     grid.emplace_back(FitSample{wavelength * wavelength, 0.0, 0.0});
   }
   fit_range_ = common::phase_fitting::GetRange(grid);
+  if (max_rotation_value_) {
+    assert(*max_rotation_value_ > 0.0);
+    if (fit_range_.wrap_step * fit_range_.max_wraps > *max_rotation_value_ &&
+        fit_range_.wrap_step != 0.0) {
+      fit_range_.max_wraps =
+          std::ceil(*max_rotation_value_ / fit_range_.wrap_step);
+    }
+  }
 
   Result& rm_result = results_.emplace_back();
   rm_result.vals.resize(NAntennas() * NSubSolutions());
