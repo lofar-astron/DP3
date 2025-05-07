@@ -17,6 +17,12 @@ BOOST_AUTO_TEST_CASE(solution_direction_map) {
   BOOST_CHECK((result == std::vector<size_t>{0, 0, 0, 1, 2, 3, 3}));
 }
 
+BOOST_AUTO_TEST_CASE(pattern_to_regex) {
+  BOOST_CHECK_EQUAL(PatternToRegex(""), "");
+  BOOST_CHECK_EQUAL(PatternToRegex("nothing special"), "nothing special");
+  BOOST_CHECK_EQUAL(PatternToRegex("misc.char*cters?"), "misc\\.char.*cters.");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }  // namespace dp3::ddecal

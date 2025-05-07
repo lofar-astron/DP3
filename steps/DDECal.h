@@ -12,7 +12,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <regex>
 
 #include <aocommon/recursivefor.h>
 
@@ -111,10 +110,6 @@ class DDECal : public Step {
   /// If "subtract" is true, subtracts all corrected model data from the main
   /// input data buffer.
   void CorrectAndSubtractModels(size_t buffer_index);
-
-  /// Converts a pattern matching expression to a regular expression such that
-  /// users can use patterns in the parset, as opposed to regular expressions.
-  static std::regex PatternToRegex(const std::string& pattern);
 
   ddecal::Settings itsSettings;
 

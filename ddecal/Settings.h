@@ -1,8 +1,8 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#ifndef DP3_DDECAL_SETTINGS_H
-#define DP3_DDECAL_SETTINGS_H
+#ifndef DP3_DDECAL_SETTINGS_H_
+#define DP3_DDECAL_SETTINGS_H_
 
 #include "linear_solvers/LLSSolver.h"
 
@@ -214,10 +214,22 @@ struct Settings {
 /** Writes the relevant constraints of the @a settings to the @a output. */
 void ShowConstraintSettings(std::ostream& output, const Settings& settings);
 
-/** Returns a vector that maps the solution index to the direction index it
- * belongs to */
+/**
+ * @return A vector that maps the solution index to the direction index it
+ *         belongs to.
+ */
 std::vector<size_t> GetSolutionToDirectionVector(
     const std::vector<uint32_t>& solutions_per_direction);
+
+/**
+ * Converts a pattern matching expression to a regular expression such that
+ * users can use patterns in the parset, as opposed to regular expressions.
+ * @return A string which can be fed into the std::regex constructor.
+ *         For testing purposes, this function returns a string instead of a
+ *         std::regex object. (std::regex has no equality operator.)
+ */
+std::string PatternToRegex(const std::string& pattern);
+
 }  // namespace ddecal
 }  // namespace dp3
 

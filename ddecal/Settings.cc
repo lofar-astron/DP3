@@ -2,16 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "Settings.h"
-#include "../base/CalType.h"
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
 
 #include <numeric>
+#include <regex>
 #include <sstream>
 
 #include <boost/algorithm/string/case_conv.hpp>
 
 #include <aocommon/logger.h>
+
+#include "../base/CalType.h"
+#include "../common/ParameterSet.h"
+#include "../common/StreamUtil.h"
 
 using dp3::base::CalType;
 
@@ -387,6 +389,20 @@ std::vector<size_t> GetSolutionToDirectionVector(
     }
   }
   return result;
+}
+
+std::string PatternToRegex(const std::string& pattern) {
+  std::string escaped_pattern = pattern;
+  // Replace . by \.
+  escaped_pattern =
+      std::regex_replace(escaped_pattern, std::regex("\\."), "\\.");
+  // Replace * by .*
+  escaped_pattern =
+      std::regex_replace(escaped_pattern, std::regex("\\*"), ".*");
+  // Replace ? by .
+  escaped_pattern = std::regex_replace(escaped_pattern, std::regex("\\?"), ".");
+
+  return escaped_pattern;
 }
 
 }  // namespace ddecal

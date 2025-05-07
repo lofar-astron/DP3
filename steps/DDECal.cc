@@ -10,6 +10,7 @@
 #include <array>
 #include <iomanip>
 #include <iostream>
+#include <regex>
 #include <utility>
 
 #include <casacore/casa/Quanta/Quantum.h>
@@ -143,7 +144,7 @@ void DDECal::initializeModelReuse() {
   for (const auto& [name, dir] : directions) {
     for (std::string pattern : itsSettings.reuse_model_data) {
       // Convert the * wildcards to a regular expression.
-      std::regex regex_pattern = PatternToRegex(pattern);
+      const std::regex regex_pattern(ddecal::PatternToRegex(pattern));
 
       if (std::regex_match(name, regex_pattern)) {
         // Keep track of the number of directions matched to each pattern.
@@ -1214,22 +1215,6 @@ void DDECal::SumModels(size_t buffer_index) {
       }
     }
   }
-}
-
-std::regex DDECal::PatternToRegex(const std::string& pattern) {
-  std::string escaped_pattern = pattern;
-  // Replace . by \.
-  escaped_pattern =
-      std::regex_replace(escaped_pattern, std::regex("\\."), "\\.");
-  // Replace * by .*
-  escaped_pattern =
-      std::regex_replace(escaped_pattern, std::regex("\\*"), ".*");
-  // Replace ? by .
-  escaped_pattern = std::regex_replace(escaped_pattern, std::regex("\\?"), ".");
-
-  std::regex regex_pattern(escaped_pattern);
-
-  return regex_pattern;
 }
 
 }  // namespace steps
