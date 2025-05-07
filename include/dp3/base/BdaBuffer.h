@@ -87,6 +87,17 @@ class BdaBuffer {
   }
 
   /**
+   * Moves a visibility buffer into the current BdaBuffer.
+   * If the target visibility buffer already exists, it is overwritten.
+   * @param source The source BdaBuffer. It may equal the current BdaBuffer.
+   *               In that case, rename a visibility buffer.
+   * @param source_name Name of a visibility buffer in 'source'.
+   * @param target_name Name of the target visibility buffer.
+   */
+  void MoveData(BdaBuffer& source, const std::string& source_name = "",
+                const std::string& target_name = "");
+
+  /**
    * Removes a visibility buffer.
    * If the buffer does not exist, nothing happens.
    * @param name Name of the buffer to remove.

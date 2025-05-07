@@ -77,6 +77,18 @@ BdaBuffer::BdaBuffer(const BdaBuffer& other, const common::Fields& fields)
   }
 }
 
+void BdaBuffer::MoveData(BdaBuffer& source, const std::string& source_name,
+                         const std::string& target_name) {
+  if (&source == this && source_name == target_name) return;
+
+  // This code also handles internal moves, when &source == this.
+  auto source_iterator = source.data_.find(source_name);
+  assert(source_iterator != source.data_.end());
+  assert(source_iterator->second.size() == GetNumberOfElements());
+  data_.insert_or_assign(target_name, std::move(source_iterator->second));
+  source.RemoveData(source_name);
+}
+
 void BdaBuffer::Clear() {
   for (auto data_it = data_.begin(); data_it != data_.end(); ++data_it) {
     data_it->second.clear();
