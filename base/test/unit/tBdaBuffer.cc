@@ -65,9 +65,10 @@ const std::size_t k1Channel{1};
 const std::size_t k1Correlation{1};
 const std::size_t k1DataSize{k1Channel * k1Correlation};
 const std::string kDataName = "foo";
-const Fields kAllFields = Fields(Fields::Single::kData) |
-                          Fields(Fields::Single::kWeights) |
-                          Fields(Fields::Single::kFlags);
+const Fields kDataField(Fields::Single::kData);
+const Fields kWeightsField(Fields::Single::kWeights);
+const Fields kFlagsField(Fields::Single::kFlags);
+const Fields kAllFields = kDataField | kWeightsField | kFlagsField;
 const double kTimeEpsilon = 1.0e-8;
 const double kHalfEpsilon = kTimeEpsilon / 2;
 const double kTwoEpsilon = 2.0 * kTimeEpsilon;
@@ -165,9 +166,8 @@ BOOST_AUTO_TEST_CASE(copy_omit_fields) {
   AddBasicRow(buffer);
   buffer.SetBaseRowNr(kBaseRowNr);
 
-  const BdaBuffer weights(buffer, Fields(Fields::Single::kWeights));
-  const BdaBuffer data_flags(
-      buffer, Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags));
+  const BdaBuffer weights(buffer, kWeightsField);
+  const BdaBuffer data_flags(buffer, kDataField | kFlagsField);
 
   // Verify the memory pool data in the copies.
   BOOST_CHECK(weights.GetData() == nullptr);
@@ -202,8 +202,7 @@ BOOST_AUTO_TEST_CASE(copy_omit_fields) {
 }
 
 BOOST_AUTO_TEST_CASE(copy_add_weights) {
-  BdaBuffer without_data_flags(kDataSize + kUnusedSpace,
-                               Fields(Fields::Single::kWeights));
+  BdaBuffer without_data_flags(kDataSize + kUnusedSpace, kWeightsField);
   AddBasicRow(without_data_flags);
   BOOST_CHECK(!without_data_flags.GetData());
   BOOST_CHECK(!without_data_flags.GetFlags());
@@ -215,9 +214,7 @@ BOOST_AUTO_TEST_CASE(copy_add_weights) {
 }
 
 BOOST_AUTO_TEST_CASE(copy_add_data_flags) {
-  BdaBuffer without_weights(
-      kDataSize + kUnusedSpace,
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags));
+  BdaBuffer without_weights(kDataSize + kUnusedSpace, kDataField | kFlagsField);
   AddBasicRow(without_weights);
   BOOST_CHECK(!without_weights.GetWeights());
 
@@ -474,8 +471,68 @@ BOOST_AUTO_TEST_CASE(add_data_after_adding_rows) {
   // initialize values.
 }
 
+/// Fixture for move tests, which defines source and target buffers with data.
+struct SourceTargetFixture {
+  SourceTargetFixture()
+      : source(kDataSize, kDataField), target(kDataSize, kDataField) {
+    AddBasicRow(source);
+    AddBasicRow(target);
+  }
+
+  BdaBuffer source;
+  BdaBuffer target;
+};
+
+BOOST_FIXTURE_TEST_CASE(move_main_data, SourceTargetFixture) {
+  const BdaBuffer source_copy(source, kDataField);
+
+  std::fill_n(target.GetData(), kDataSize, std::complex<float>(0.0, 0.0));
+
+  target.MoveData(source);
+
+  BOOST_CHECK_EQUAL_COLLECTIONS(source_copy.GetData(),
+                                source_copy.GetData() + kDataSize,
+                                target.GetData(), target.GetData() + kDataSize);
+  BOOST_CHECK(source.GetDataNames().empty());
+}
+
+BOOST_FIXTURE_TEST_CASE(move_to_extra_data, SourceTargetFixture) {
+  const std::string kDataName = "test_model_data";
+
+  target.MoveData(source, "", kDataName);
+
+  BOOST_CHECK_EQUAL_COLLECTIONS(target.GetData(), target.GetData() + kDataSize,
+                                target.GetData(kDataName),
+                                target.GetData(kDataName) + kDataSize);
+  BOOST_CHECK(source.GetDataNames().empty());
+}
+
+BOOST_FIXTURE_TEST_CASE(move_within_buffer, SourceTargetFixture) {
+  const std::string kDataName = "test_model_data";
+
+  source.MoveData(source);  // Move main buffer to itself.
+  BOOST_CHECK(source.HasData());
+
+  source.MoveData(source, "", kDataName);  // Move main buffer to extra buffer.
+  BOOST_CHECK(!source.HasData());
+  BOOST_CHECK(source.HasData(kDataName));
+
+  source.MoveData(source, kDataName, kDataName);  // Move extra buf to itself.
+  BOOST_CHECK(!source.HasData());
+  BOOST_CHECK(source.HasData(kDataName));
+
+  source.MoveData(source, kDataName, "");  // Move extra buffer to main buffer.
+  BOOST_CHECK(source.HasData());
+  BOOST_CHECK(!source.HasData(kDataName));
+
+  // Check if the data is still the same after all moves.
+  // This test only changes 'source' so it can compare against 'target'.
+  BOOST_CHECK_EQUAL_COLLECTIONS(target.GetData(), target.GetData() + kDataSize,
+                                source.GetData(), source.GetData() + kDataSize);
+}
+
 BOOST_AUTO_TEST_CASE(remove_main_data) {
-  BdaBuffer buffer(kDataSize, Fields(Fields::Single::kData));
+  BdaBuffer buffer(kDataSize, kDataField);
   AddBasicRow(buffer);
   BOOST_CHECK(buffer.HasData());
   BOOST_CHECK(buffer.GetData());
