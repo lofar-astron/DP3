@@ -134,15 +134,15 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
 
 void DDECal::initializeModelReuse() {
   const std::map<std::string, dp3::base::Direction>& directions =
-      getInfo().GetDirections();
+      getInfoIn().GetDirections();
 
   std::map<std::string, size_t> pattern_match_count;
-  for (std::string pattern : itsSettings.reuse_model_data) {
+  for (const std::string& pattern : itsSettings.reuse_model_data) {
     pattern_match_count[pattern] = 0;
   }
 
   for (const auto& [name, dir] : directions) {
-    for (std::string pattern : itsSettings.reuse_model_data) {
+    for (const std::string& pattern : itsSettings.reuse_model_data) {
       // Convert the * wildcards to a regular expression.
       const std::regex regex_pattern(ddecal::PatternToRegex(pattern));
 
@@ -173,7 +173,7 @@ void DDECal::initializeModelReuse() {
     }
   }
 
-  for (std::string pattern : itsSettings.reuse_model_data) {
+  for (const std::string& pattern : itsSettings.reuse_model_data) {
     if (pattern_match_count[pattern] == 0) {
       throw std::runtime_error(
           "The requested reuse model pattern '" + pattern +
@@ -480,16 +480,17 @@ void DDECal::show(std::ostream& os) const {
      << "  only predict:        " << itsSettings.only_predict << '\n'
      << "  subtract model:      " << itsSettings.subtract << '\n'
      << "  keep model:          " << itsSettings.keep_model_data << '\n';
-  for (unsigned int i = 0; i < itsSteps.size(); ++i) {
+  for (size_t i = 0; i < itsSteps.size(); ++i) {
     std::shared_ptr<Step> step = itsSteps[i];
     if (step) {
       os << "Model steps for direction " << itsDirections[i][0] << '\n';
       do {
         step->show(os);
-      } while (nullptr != (step = step->getNextStep()));
+        step = step->getNextStep();
+      } while (step);
     } else {
       os << "Direction " << itsDirections[i][0] << " reuses data from "
-         << itsDirectionNames[i] << "";
+         << itsDirectionNames[i];
     }
     os << '\n';
   }
@@ -917,7 +918,6 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
 
   // Check that all extra input data is there.
   // TODO(AST-1241): Handle these dependencies using Fields.
-  // for (const std::string& name : itsReusedDirectionNames) {
   for (const std::string& name : itsReusedDirectionNames) {
     if (!bufin->HasData(name)) {
       throw std::runtime_error("DDECal '" + itsSettings.name +
