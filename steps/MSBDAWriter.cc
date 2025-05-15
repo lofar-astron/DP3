@@ -222,6 +222,7 @@ void MSBDAWriter::CreateMainTable() {
     omitted_subtables[3] = base::DP3MS::kDataDescTable;
     TableCopy::copySubTables(ms_, original_table, false, omitted_subtables);
   }
+  MSWriter::UpdateBeam(ms_, MS::columnName(MS::DATA), info());
 }
 
 void MSBDAWriter::CreateBDATimeAxis() {
