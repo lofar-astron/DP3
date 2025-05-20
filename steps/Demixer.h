@@ -64,6 +64,9 @@ class Demixer : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  /// We use addToMS() to update HISTORY table
+  void addToMS(const std::string& msName) override;
+
  private:
   /// Add the decorrelation factor contribution for each time slot. Results are
   /// written to two output buffers, itsFactorBuf and itsFactorBufSubtr.
@@ -194,6 +197,9 @@ class Demixer : public Step {
   unsigned int itsTimeIndex;
   unsigned int itsNConverged;
   base::FlagCounter itsFlagCounter;
+  // Store ratio of variance, before/after demixing
+  float itsVarianceRatio{0.0f};
+  unsigned int itsTotalDemixRuns{0};
 
   common::NSTimer itsTimer;
   common::NSTimer itsTimerPhaseShift;
