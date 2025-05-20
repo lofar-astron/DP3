@@ -2,7 +2,7 @@ description: >-
   Demix bright sources, i.e. calibrate in the direction of the bright sources and
   subtract the bright sources from the data. Note that the calibration solution
   is assumed to be constant over the entire frequency range, so this will only
-  work on relatively small bandwidth (e.g. a single sub-band).
+  work on relatively small bandwidth (e.g. a single sub-band). After demixing, the noise ratio before and after demixing is added to the HISTORY table of the measurement set.
 inputs:
   step_name:
     type: string

@@ -615,6 +615,9 @@ void Demixer::finish() {
   dumpSolutions();
   itsTimerDump.stop();
 
+  // Normalize variance ratio over total runs
+  itsVarianceRatio /= float(itsTotalDemixRuns);
+
   itsTimer.stop();
 
   // Let the next steps finish.
@@ -662,6 +665,7 @@ void Demixer::handleDemix() {
   itsNTimeOut = 0;
   itsNTimeOutSubtr = 0;
   itsTimeIndex += itsNTimeChunk;
+  itsTotalDemixRuns += 1;
 }
 
 void Demixer::mergeSubtractResult() {
@@ -888,6 +892,7 @@ struct ThreadPrivateStorage {
   std::vector<casacore::Cube<std::complex<double>>> model;
   casacore::Cube<std::complex<double>> model_subtr;
   size_t count_converged;
+  float variance_ratio;
 };
 
 void initThreadPrivateStorage(ThreadPrivateStorage& storage, size_t nDirection,
@@ -901,6 +906,7 @@ void initThreadPrivateStorage(ThreadPrivateStorage& storage, size_t nDirection,
   }
   storage.model_subtr.resize(4, nChannelSubtr, nBaseline);
   storage.count_converged = 0;
+  storage.variance_ratio = 0.0f;
 }
 }  // end unnamed namespace
 
@@ -1127,8 +1133,9 @@ void Demixer::demix() {
             &(demix_factors_subtr(offset)), 3, stride_mix_subtr_slice);
 
         // Subtract the source.
-        subtract(nBl, nChSubtr, cr_baseline, cr_residual, cr_model_subtr,
-                 cr_mix_subtr);
+        storage.variance_ratio +=
+            subtract(nBl, nChSubtr, cr_baseline, cr_residual, cr_model_subtr,
+                     cr_mix_subtr);
       }
     }
 
@@ -1148,6 +1155,16 @@ void Demixer::demix() {
   for (size_t i = 0; i < nThread; ++i) {
     itsNConverged += threadStorage[i].count_converged;
   }
+
+  // Calculate data before/after variance ratio
+  float variance_ratio = 0.0f;
+  for (std::vector<ThreadPrivateStorage>::iterator it = threadStorage.begin(),
+                                                   end = threadStorage.end();
+       it != end; ++it) {
+    variance_ratio += it->variance_ratio;
+  }
+  // Update self
+  itsVarianceRatio += variance_ratio / (float)nThread;
 }
 
 void Demixer::dumpSolutions() {
@@ -1235,6 +1252,22 @@ void Demixer::dumpSolutions() {
 
   // Flush solutions to disk.
   parmCache.flush();
+}
+
+void Demixer::addToMS(const std::string& msName) {
+  Step::addToMS(msName);
+  casacore::Table histtab(msName + "/HISTORY", casacore::Table::Update);
+  casacore::ScalarColumn<casacore::String> message(histtab, "MESSAGE");
+  casacore::ScalarColumn<casacore::String> application(histtab, "APPLICATION");
+  casacore::ArrayColumn<casacore::String> parms(histtab, "APP_PARAMS");
+
+  unsigned int n_row = histtab.nrow();
+  histtab.addRow();
+  application.put(n_row, "DP3");
+  message.put(n_row, "Noise ratio before/after demixing");
+  casacore::Vector<casacore::String> appvec(1);
+  appvec[0] = std::to_string(itsVarianceRatio);
+  parms.put(n_row, appvec);
 }
 
 namespace {

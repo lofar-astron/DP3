@@ -11,19 +11,25 @@
 namespace dp3 {
 namespace base {
 
-void subtract(size_t nBaseline, size_t nChannel,
-              const_cursor<Baseline> baselines,
-              cursor<std::complex<float>> data,
-              const_cursor<std::complex<double>> model,
-              const_cursor<std::complex<double>> weight) {
+float subtract(size_t nBaseline, size_t nChannel,
+               const_cursor<Baseline> baselines,
+               cursor<std::complex<float>> data,
+               const_cursor<std::complex<double>> model,
+               const_cursor<std::complex<double>> weight) {
+  float var_before = 0.0, var_after = 0.0;
   for (size_t bl = 0; bl < nBaseline; ++bl) {
     const size_t p = baselines->first;
     const size_t q = baselines->second;
 
     if (p != q) {
+#pragma GCC ivdep
       for (size_t ch = 0; ch < nChannel; ++ch) {
         // Subtract weighted model from data.
+        float data_abs = std::abs(*data);
+        var_before += (!std::isnan(data_abs) ? data_abs * data_abs : 0.0f);
         *data -= std::complex<float>((*weight) * (*model));
+        float res_abs = std::abs(*data);
+        var_after += (!std::isnan(res_abs) ? res_abs * res_abs : 0.0f);
         ++weight;
         ++model;
         ++data;
@@ -35,7 +41,11 @@ void subtract(size_t nBaseline, size_t nChannel,
         ++weight;
         ++model;
         ++data;
+        data_abs = std::abs(*data);
+        var_before += (!std::isnan(data_abs) ? data_abs * data_abs : 0.0f);
         *data -= std::complex<float>((*weight) * (*model));
+        res_abs = std::abs(*data);
+        var_after += (!std::isnan(res_abs) ? res_abs * res_abs : 0.0f);
         ++weight;
         ++model;
         ++data;
@@ -60,6 +70,7 @@ void subtract(size_t nBaseline, size_t nChannel,
     data.forward(2);
     ++baselines;
   }  // Baselines.
+  return (var_before / (var_after + 1e-6f));
 }
 
 }  // namespace base
