@@ -1,5 +1,14 @@
 # DP3 Changelog
 
+## [6.4.1] - 2025-05-22
+
+### New features
+- Add a new rotationconstraint in DDECal for fitting Faraday rotation
+- Support multiple directions in the rotation and rotation-and-diagonal constraints
+
+### Improvements
+- Add missing beam keywords to BDA data
+
 
 ## [6.4] - 2025-04-14
 
