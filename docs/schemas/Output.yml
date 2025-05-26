@@ -45,7 +45,7 @@ inputs:
     doc: >-
       For expert user: tile size (in Kbytes) for the data columns in the output MS.
   msout&#46;tilenchan:
-    default: 8
+    default: 64
     type: integer
     doc: >-
       For expert user: maximum number of channels per tile in output MS.

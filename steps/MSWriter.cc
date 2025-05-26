@@ -100,7 +100,7 @@ MSWriter::MSWriter(const std::string& out_name,
       copy_model_data_(parset.getBool(prefix + "copymodeldata", false)),
       // Get tile size (default 1024 KBytes).
       tile_size_(parset.getUint(prefix + "tilesize", 1024)),
-      tile_n_chan_(parset.getUint(prefix + "tilenchan", 0)),
+      tile_n_chan_(parset.getUint(prefix + "tilenchan", 64)),
       nr_times_flush_(parset.getUint(prefix + "flush", 60)),
       nr_done_(0),
       chunk_duration_(parset.getDouble(prefix + "chunkduration", 0.0)),
