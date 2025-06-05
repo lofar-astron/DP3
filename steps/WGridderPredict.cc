@@ -465,8 +465,8 @@ size_t WGridderPredict::GetAllocatableBuffers(size_t memory) {
     mem_per_timestep *= (n_directions + 1);
   }
 
-  // At least one timestep and use at most 10% of available memory
-  size_t n_buffers = std::max(memory / mem_per_timestep / 10, size_t(1));
+  // At least one timestep and use at most 50% of available memory
+  size_t n_buffers = std::max(memory / mem_per_timestep / 2, size_t(1));
 
   return n_buffers;
 }
