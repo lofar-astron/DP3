@@ -111,6 +111,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       smoothness_kernel_truncation(
           GetBool("smoothness_kernel_truncation", true)),
       smoothness_dd_factors(GetDoubleVector("smoothness_dd_factors")),
+      antenna_smoothness_factors(GetStringVector("antenna_smoothness_factors")),
       screen_core_constraint(GetDouble("tecscreen.coreconstraint", 0.0)),
 
       // Solver settings
@@ -377,6 +378,9 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings) {
   if (settings.smoothness_ref_distance != 0.0)
     output << "  smoothnessrefdistance:" << settings.smoothness_ref_distance
            << '\n';
+  if (!settings.antenna_smoothness_factors.empty())
+    output << "  antenna_smoothness_factors:"
+           << settings.antenna_smoothness_factors << '\n';
   if (settings.screen_core_constraint != 0.0)
     output << "  tecscreen.coreconstraint:" << settings.screen_core_constraint
            << '\n';
