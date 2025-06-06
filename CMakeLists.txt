@@ -47,7 +47,7 @@ if(BUILD_WITH_CUDA)
   project(
     DP3
     VERSION ${DP3_VERSION}
-    LANGUAGES CUDA C CXX)
+    LANGUAGES CUDA CXX)
   set(CUDA_PROPAGATE_HOST_FLAGS FALSE)
   set(CMAKE_CUDA_ARCHITECTURES
       "70"
@@ -66,7 +66,10 @@ if(BUILD_WITH_CUDA)
   FetchContent_MakeAvailable(cudawrappers)
 
 else()
-  project(DP3 VERSION ${DP3_VERSION})
+  project(
+    DP3
+    VERSION ${DP3_VERSION}
+    LANGUAGES CXX)
 endif()
 
 include(CheckCXXCompilerFlag)
@@ -164,23 +167,15 @@ if(ENABLE_EXPERIMENTAL_SCREENFITTER)
   endif()
 endif()
 
-# Load HDF5 before Casacore, since some Casacore versions do not load HDF5.
-find_package(
-  HDF5
-  COMPONENTS C CXX
-  REQUIRED)
-
 find_package(
   Casacore 3.7.1
   COMPONENTS casa ms tables fits
   REQUIRED)
 include_directories(SYSTEM ${CASACORE_INCLUDE_DIR})
 
-# Reload HDF5, since some Casacore versions also load HDF5, but without C++
-# support. ${HDF5_LIBRARIES} then does not include C++ libraries.
 find_package(
   HDF5
-  COMPONENTS C CXX
+  COMPONENTS CXX
   REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
