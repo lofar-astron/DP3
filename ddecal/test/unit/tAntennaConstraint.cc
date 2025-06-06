@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(test_antenna_constraint) {
 
   const size_t kNAntennas = 10;
   const size_t kNChannels = 2;
-  const size_t kNSolutions = 1;
+  const size_t kNSubSolutions = 1;
   const size_t kNPolarizations = 4;
 
   constraint.Initialize(kNAntennas, {1u}, {42.0e6, 84.0e6});
@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(test_antenna_constraint) {
   constraint.SetAntennaSets({antenna_set1, antenna_set2});
 
   dp3::ddecal::SolutionTensor onesolution(
-      {kNChannels, kNAntennas, kNSolutions, kNPolarizations});
+      {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
 
   // Set one antenna in the first antenna group to a value (a separate one for
   // both channels and two polarizations)

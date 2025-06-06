@@ -141,6 +141,17 @@ inputs:
     type: list
     doc: >-
       A list of lists specifying groups of antennas that are to be constrained to have the same solution. Example: "[ [CS002HBA0,CS002HBA1],[CS003HBA0,CS003HBA1] ]" will keep the solutions of CS002HBA0 and 1 the same, and the same for CS003.
+  antenna_averaging_factors:
+    default: "[]"
+    type: list of ints
+    doc: >-
+      Averaging factors per antenna to allow antenna-dependent solution intervals. This allows using different intervals for different antennas. This is done by averaging solutions the same antenna but from different sub-intervals together. This feature works together with the solutions_per_direction setting. An antenna averaging factor is not allowed to exceed the maximum number of direction subsolutions.
+      
+      Ionospheric effects vary more strongly in time and frequency for more distant stations (relative to a central reference station). Thus, by using shorter time intervals and less frequency smoothing for more distant groups of stations, these fast variations can be captured without adding too much additional free parameters for more central stations. Antenna intervals and smoothing depend on the expected variation per group of antenna. For LOFAR, CS can typically have at least 8 times longer intervals compared to RS.
+      
+      If only antenna-dependent intervals are desired, the solutions_per_direction setting should be set to the maximum antenna averaging factor. E.g., with antenna_averaging_factors = [a:3, b:6, c:1], the solutions_per_direction should be set to 6 for all directions. This setting will use a time interval of 1/2, 1 and 1/6 times the full solution interval (solint) for the antennas a, b and c, respectively. Pattern-matching can be used to set multiple antennas at once, e.g. [RS*:5, CS*:2, [CS001_HBA001, CS002_HBA001]:3] would set all stations starting with RS to 5, with CS to 2 except CS001_HBA001 and CS002_HBA001 which are set to 1.
+
+      Directional and antenna dependence can be combined, in which case the two work cummulatively. That is, with a setting of antenna_averaging_factors = [a:3, b:6, c:1] and solutions_per_direction = [6, 6, 1, 1], the solver will divide the solution interval into 6 subsolutions for direction 0 and 1. For antenna a, every 3 of those will be averaged together, and antenna b will be averaged by a factor of 6 (i.e. its solution time equals solint). Antenna c will not be averaged. For directions 2 and 3, there is only 1 subsolution available, so no averaging is performed for any of the antennas.
   smoothnessconstraint:
     default: 0.0
     type: double

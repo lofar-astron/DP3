@@ -406,6 +406,7 @@ add_library(
   ddecal/SolutionResampler.cc
   ddecal/SolutionWriter.cc
   ddecal/SolverFactory.cc
+  ddecal/constraints/AntennaIntervalConstraint.cc
   ddecal/constraints/FaradayConstraint.cc
   ddecal/constraints/RotationAndDiagonalConstraint.cc
   ddecal/constraints/RotationConstraint.cc
@@ -747,6 +748,7 @@ if(BUILD_TESTING)
       common/test/unit/tValuePerStationParsing.cc
       ddecal/test/unit/SolverTester.cc
       ddecal/test/unit/tAntennaConstraint.cc
+      ddecal/test/unit/tAntennaIntervalConstraint.cc
       ddecal/test/unit/tBdaSolverBuffer.cc
       ddecal/test/unit/tDiagonalLowRankSolver.cc
       ddecal/test/unit/tFaradayConstraint.cc

@@ -98,6 +98,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       min_vis_ratio(GetDouble("minvisratio", 0.0)),
       n_channels(GetUint("nchan", 1)),
       solutions_per_direction(GetSizeTVector("solutions_per_direction", {})),
+      antenna_averaging_factors(GetStringVector("antenna_averaging_factors")),
       // Constraints
       model_weighted_constraints(GetBool("model_weighted_constraints", false)),
       core_constraint(GetDouble("coreconstraint", 0.0)),
@@ -362,6 +363,9 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings) {
   using dp3::common::operator<<;
   if (!settings.antenna_constraint.empty())
     output << "  antennaconstraint:   " << settings.antenna_constraint << '\n';
+  if (!settings.antenna_averaging_factors.empty())
+    output << "  antenna avg factors: " << settings.antenna_averaging_factors
+           << '\n';
   if (settings.core_constraint != 0.0)
     output << "  coreconstraint:      " << settings.core_constraint << '\n';
   if (settings.smoothness_constraint != 0.0)

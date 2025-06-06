@@ -23,9 +23,8 @@ namespace ddecal {
 class Settings;
 class SolverBase;
 
-std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
-                                         const common::ParameterSet& parset,
-                                         const std::string& prefix);
+std::unique_ptr<SolverBase> CreateSolver(
+    const Settings& settings, const std::vector<std::string>& station_names);
 
 /**
  * Initializes all constraints for a given solver.

@@ -144,6 +144,11 @@ struct Settings {
    * been called.
    */
   std::vector<size_t> solutions_per_direction;
+  /**
+   * List of averaging factors per antenna. If empty, it is ignored. Otherwise,
+   * the AntennaIntervalContraint is used.
+   */
+  std::vector<std::string> antenna_averaging_factors;
 
   // Constraint settings.
   bool model_weighted_constraints;
