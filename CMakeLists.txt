@@ -744,6 +744,7 @@ if(BUILD_TESTING)
       common/test/unit/tProximityClustering.cc
       common/test/unit/tStringTools.cc
       common/test/unit/tTimer.cc
+      common/test/unit/tValuePerStationParsing.cc
       ddecal/test/unit/SolverTester.cc
       ddecal/test/unit/tAntennaConstraint.cc
       ddecal/test/unit/tBdaSolverBuffer.cc

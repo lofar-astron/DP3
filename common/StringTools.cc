@@ -14,10 +14,11 @@
 #include <ctime>
 #include <cctype>
 #include <errno.h>
+#include <iomanip>
 #include <map>
+#include <regex>
 #include <stdexcept>
 #include <sstream>
-#include <iomanip>
 
 namespace dp3 {
 namespace common {
@@ -542,6 +543,20 @@ std::string expandArrayString(const std::string& str) {
   // Do expandMult first, otherwise something like 3*lifs001..003 is not
   // handled properly.
   return expandRangeString(expandMultString(str));
+}
+
+std::string PatternToRegex(const std::string& pattern) {
+  std::string escaped_pattern = pattern;
+  // Replace . by \.
+  escaped_pattern =
+      std::regex_replace(escaped_pattern, std::regex("\\."), "\\.");
+  // Replace * by .*
+  escaped_pattern =
+      std::regex_replace(escaped_pattern, std::regex("\\*"), ".*");
+  // Replace ? by .
+  escaped_pattern = std::regex_replace(escaped_pattern, std::regex("\\?"), ".");
+
+  return escaped_pattern;
 }
 
 }  // namespace common

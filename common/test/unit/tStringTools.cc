@@ -213,4 +213,12 @@ BOOST_AUTO_TEST_CASE(expandArrayString) {
   BOOST_TEST(dp3::common::expandArrayString("[3*5,1..4]") == "[5,5,5,1,2,3,4]");
 }
 
+BOOST_AUTO_TEST_CASE(pattern_to_regex) {
+  BOOST_CHECK_EQUAL(dp3::common::PatternToRegex(""), "");
+  BOOST_CHECK_EQUAL(dp3::common::PatternToRegex("nothing special"),
+                    "nothing special");
+  BOOST_CHECK_EQUAL(dp3::common::PatternToRegex("misc.char*cters?"),
+                    "misc\\.char.*cters.");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
