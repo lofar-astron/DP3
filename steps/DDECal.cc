@@ -144,7 +144,7 @@ void DDECal::initializeModelReuse() {
   for (const auto& [name, dir] : directions) {
     for (const std::string& pattern : itsSettings.reuse_model_data) {
       // Convert the * wildcards to a regular expression.
-      const std::regex regex_pattern(ddecal::PatternToRegex(pattern));
+      const std::regex regex_pattern(common::PatternToRegex(pattern));
 
       if (std::regex_match(name, regex_pattern)) {
         // Keep track of the number of directions matched to each pattern.

@@ -4,7 +4,6 @@
 #include "Settings.h"
 
 #include <numeric>
-#include <regex>
 #include <sstream>
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -389,20 +388,6 @@ std::vector<size_t> GetSolutionToDirectionVector(
     }
   }
   return result;
-}
-
-std::string PatternToRegex(const std::string& pattern) {
-  std::string escaped_pattern = pattern;
-  // Replace . by \.
-  escaped_pattern =
-      std::regex_replace(escaped_pattern, std::regex("\\."), "\\.");
-  // Replace * by .*
-  escaped_pattern =
-      std::regex_replace(escaped_pattern, std::regex("\\*"), ".*");
-  // Replace ? by .
-  escaped_pattern = std::regex_replace(escaped_pattern, std::regex("\\?"), ".");
-
-  return escaped_pattern;
 }
 
 }  // namespace ddecal

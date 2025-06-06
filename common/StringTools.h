@@ -156,6 +156,15 @@ std::string expandMultString(const std::string&);
 std::string expandArrayString(const std::string&);
 /// @}
 
+/**
+ * Converts a pattern matching expression to a regular expression such that
+ * users can use patterns in the parset, as opposed to regular expressions.
+ * @return A string which can be fed into the std::regex constructor.
+ *         For testing purposes, this function returns a string instead of a
+ *         std::regex object. (std::regex has no equality operator.)
+ */
+std::string PatternToRegex(const std::string& pattern);
+
 }  // namespace common
 }  // namespace dp3
 

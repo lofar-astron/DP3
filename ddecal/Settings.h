@@ -221,15 +221,6 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings);
 std::vector<size_t> GetSolutionToDirectionVector(
     const std::vector<uint32_t>& solutions_per_direction);
 
-/**
- * Converts a pattern matching expression to a regular expression such that
- * users can use patterns in the parset, as opposed to regular expressions.
- * @return A string which can be fed into the std::regex constructor.
- *         For testing purposes, this function returns a string instead of a
- *         std::regex object. (std::regex has no equality operator.)
- */
-std::string PatternToRegex(const std::string& pattern);
-
 }  // namespace ddecal
 }  // namespace dp3
 
