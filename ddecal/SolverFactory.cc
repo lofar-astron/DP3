@@ -22,6 +22,7 @@
 
 #include "constraints/AmplitudeOnlyConstraint.h"
 #include "constraints/AntennaConstraint.h"
+#include "constraints/AntennaIntervalConstraint.h"
 #include "constraints/FaradayConstraint.h"
 #include "constraints/RotationConstraint.h"
 #include "constraints/RotationAndDiagonalConstraint.h"
@@ -30,6 +31,8 @@
 #endif
 #include "constraints/SmoothnessConstraint.h"
 #include "constraints/TECConstraint.h"
+
+#include "../common/ValuePerStationParsing.h"
 
 #include <aocommon/logger.h>
 
@@ -164,10 +167,20 @@ std::unique_ptr<SolverBase> CreateFullJonesSolver(SolverAlgorithm algorithm,
 }
 
 void AddConstraints(SolverBase& solver, const Settings& settings,
-                    const common::ParameterSet& parset,
-                    const std::string& prefix) {
+                    const std::vector<std::string>& station_names) {
   if (settings.core_constraint != 0.0 || !settings.antenna_constraint.empty()) {
     solver.AddConstraint(std::make_unique<AntennaConstraint>());
+  }
+  if (!settings.antenna_averaging_factors.empty()) {
+    std::vector<size_t> factors;
+    if (!settings.antenna_averaging_factors.empty()) {
+      factors.assign(station_names.size(), 1);
+      common::ParseValuePerStation<size_t>(
+          factors, settings.antenna_averaging_factors, station_names);
+    }
+
+    solver.AddConstraint(
+        std::make_unique<AntennaIntervalConstraint>(std::move(factors)));
   }
   if (settings.smoothness_constraint != 0.0) {
     solver.AddConstraint(std::make_unique<SmoothnessConstraint>(
@@ -245,10 +258,9 @@ void InitializeSolver(SolverBase& solver, const Settings& settings) {
   solver.SetDetectStalling(settings.detect_stalling, settings.step_diff_sigma);
 }
 
-std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
-                                         const common::ParameterSet& parset,
-                                         const std::string& prefix,
-                                         SolverAlgorithm algorithm) {
+std::unique_ptr<SolverBase> CreateSolver(
+    const Settings& settings, SolverAlgorithm algorithm,
+    const std::vector<std::string>& station_names) {
   std::unique_ptr<SolverBase> solver;
   switch (settings.mode) {
     case base::CalType::kScalar:
@@ -290,7 +302,7 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
       break;
   }
 
-  AddConstraints(*solver, settings, parset, prefix);
+  AddConstraints(*solver, settings, station_names);
 
   InitializeSolver(*solver, settings);
 
@@ -408,19 +420,18 @@ void InitializeSmoothnessConstraint(
 
 }  // namespace
 
-std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
-                                         const common::ParameterSet& parset,
-                                         const std::string& prefix) {
+std::unique_ptr<SolverBase> CreateSolver(
+    const Settings& settings, const std::vector<std::string>& station_names) {
   std::unique_ptr<SolverBase> solver;
 
   if (settings.solver_algorithm == SolverAlgorithm::kHybrid) {
-    std::unique_ptr<SolverBase> a = CreateSolver(
-        settings, parset, prefix, SolverAlgorithm::kDirectionSolve);
+    std::unique_ptr<SolverBase> a =
+        CreateSolver(settings, SolverAlgorithm::kDirectionSolve, station_names);
     // The max_iterations is divided by 6 to use at most 1/6th of the iterations
     // in the first solver.
     a->SetMaxIterations(std::max<size_t>(1u, settings.max_iterations / 6u));
     std::unique_ptr<SolverBase> b = CreateSolver(
-        settings, parset, prefix, SolverAlgorithm::kDirectionIterative);
+        settings, SolverAlgorithm::kDirectionIterative, station_names);
 
     auto hybrid_solver = std::make_unique<HybridSolver>();
     hybrid_solver->AddSolver(std::move(a));
@@ -430,7 +441,7 @@ std::unique_ptr<SolverBase> CreateSolver(const Settings& settings,
     InitializeSolver(*hybrid_solver, settings);
     solver = std::move(hybrid_solver);
   } else {
-    solver = CreateSolver(settings, parset, prefix, settings.solver_algorithm);
+    solver = CreateSolver(settings, settings.solver_algorithm, station_names);
   }
   return solver;
 }

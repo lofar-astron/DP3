@@ -48,7 +48,7 @@ dp3::common::ParameterSet ParsetForMode(const std::string& mode) {
 template <class ExpectedType>
 void CheckSolverType(const dp3::common::ParameterSet& parset) {
   const Settings settings(parset, "");
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   BOOST_CHECK(dynamic_cast<ExpectedType*>(solver.get()));
 }
 
@@ -67,7 +67,7 @@ template <class ExpectedType>
 void CheckConstraintType(const dp3::common::ParameterSet& parset) {
   const Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   CheckConstraintType<ExpectedType>(*solver);
 }
 
@@ -127,7 +127,7 @@ BOOST_DATA_TEST_CASE(
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   const Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   BOOST_CHECK(!solver->GetPhaseOnly());
 }
 
@@ -147,7 +147,7 @@ BOOST_DATA_TEST_CASE(phase_only,
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   const Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   BOOST_CHECK(solver->GetPhaseOnly());
 }
 
@@ -157,7 +157,7 @@ BOOST_DATA_TEST_CASE(no_constraints,
                      mode) {
   dp3::common::ParameterSet parset = ParsetForMode(mode);
   const Settings settings(parset, "");
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   BOOST_CHECK(solver->GetConstraints().empty());
 }
 
@@ -185,7 +185,7 @@ BOOST_DATA_TEST_CASE(tec_constraint,
   {
     // Test a solver with default settings.
     Settings settings(parset, "");
-    std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+    std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
     settings.solutions_per_direction = kSolutionsPerDirecton;
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                                 kAntennaNames, kSourceDirections, kFrequencies);
@@ -203,7 +203,7 @@ BOOST_DATA_TEST_CASE(tec_constraint,
     // Test a solver with custom settings.
     parset.add("approximatetec", "true");
     Settings settings(parset, "");
-    std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+    std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
     settings.solutions_per_direction = kSolutionsPerDirecton;
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                                 kAntennaNames, kSourceDirections, kFrequencies);
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(rotation_constraint) {
   dp3::common::ParameterSet parset = ParsetForMode("rotation");
   const Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   CheckConstraintType<dp3::ddecal::RotationConstraint>(*solver);
 }
 
@@ -282,7 +282,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_diagonal_constraint) {
   dp3::common::ParameterSet parset = ParsetForMode("rotation+diagonal");
   const Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   CheckConstraintType<dp3::ddecal::RotationAndDiagonalConstraint>(*solver);
 }
 
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(core_constraint) {
   parset.add("coreconstraint", "42");
   Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   settings.solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
@@ -330,7 +330,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
              "[[foo,bar,7TiMeS6],[Piet,foo],[bar,Jan,nonexistingantenna]]");
   Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   settings.solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
   parset.add("smoothnessreffrequency", "200");
   Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   settings.solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
@@ -388,7 +388,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_with_ref_distance) {
   parset.add("smoothnessrefdistance", "42");
   Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   settings.solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
@@ -407,7 +407,7 @@ BOOST_AUTO_TEST_CASE(multiple_constraints) {
   parset.add("smoothnessconstraint", "0.42");
   const Settings settings(parset, "");
 
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
   const std::vector<std::unique_ptr<dp3::ddecal::Constraint>>& constraints =
       solver->GetConstraints();
   BOOST_REQUIRE_EQUAL(constraints.size(), 2u);
@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(solver_settings_default) {
   dp3::common::ParameterSet parset = ParsetForMode("tec");
   parset.add("approximatetec", "true");
   const Settings settings(parset, "");
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
 
   BOOST_CHECK(solver->GetLLSSolverType() == dp3::ddecal::LLSSolverType::QR);
 
@@ -443,7 +443,7 @@ BOOST_AUTO_TEST_CASE(solver_settings_custom) {
   parset.add("stepsize", "0.42");
   parset.add("detectstalling", "false");
   const Settings settings(parset, "");
-  std::unique_ptr<SolverBase> solver = CreateSolver(settings, parset, "");
+  std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
 
   BOOST_CHECK(solver->GetLLSSolverType() ==
               dp3::ddecal::LLSSolverType::NORMAL_EQUATIONS);

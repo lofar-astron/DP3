@@ -75,6 +75,9 @@ class Constraint {
    * Using a span instead of a real tensor as argument type avoids the need
    * for copying data in Python bindings.
    * @param time Central time of interval.
+   * @returns Optionally, a vector with results that should be written to
+   * the solution file, instead of the actual solutions. Examples are
+   * Faraday rotation or TEC values.
    */
   virtual std::vector<Result> Apply(SolutionSpan& solutions, double time,
                                     std::ostream* statStream) = 0;
@@ -87,11 +90,15 @@ class Constraint {
   virtual void Initialize(size_t n_antennas,
                           const std::vector<uint32_t>& solutions_per_direction,
                           const std::vector<double>& frequencies) {
+    assert(n_antennas != 0);
+    assert(!solutions_per_direction.empty());
+    assert(!frequencies.empty());
     n_antennas_ = n_antennas;
     solutions_per_direction_ = solutions_per_direction;
     n_channel_blocks_ = frequencies.size();
     n_sub_solutions_ = std::accumulate(solutions_per_direction.begin(),
                                        solutions_per_direction.end(), 0u);
+    assert(n_sub_solutions_ != 0);
   }
 
   /**
@@ -123,6 +130,9 @@ class Constraint {
    */
   size_t NSubSolutions() const { return n_sub_solutions_; }
   size_t NChannelBlocks() const { return n_channel_blocks_; }
+  uint32_t GetSubSolutions(size_t direction) const {
+    return solutions_per_direction_[direction];
+  }
 
   static bool isfinite(const dcomplex& value) {
     return std::isfinite(value.real()) && std::isfinite(value.imag());

@@ -70,7 +70,6 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
       itsNChan(itsSettings.n_channels),
       itsUVWFlagStep(parset, prefix, Step::MsType::kRegular),
       itsStoreSolutionInBuffer(parset.getBool(prefix + "storebuffer", false)),
-      itsSolver(ddecal::CreateSolver(itsSettings, parset, prefix)),
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
     itsStatStream = std::make_unique<std::ofstream>(itsSettings.stat_filename);
@@ -250,6 +249,8 @@ void DDECal::setModelNextSteps(Step& step, const std::string& direction,
 
 void DDECal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
+
+  itsSolver = ddecal::CreateSolver(itsSettings, infoIn.antennaNames());
 
   initializeModelReuse();
 

@@ -58,14 +58,6 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
   uvw_flagger_step_->setNextStep(uvw_flagger_result_step_);
   InitializePredictSteps(parset, prefix);
-
-  if (!settings_.only_predict) {
-    solver_ = ddecal::CreateSolver(settings_, parset, prefix);
-    solution_writer_ =
-        std::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
-  }
-
-  settings_.PrepareSolutionsPerDirection(steps_.size());
 }
 
 void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
@@ -106,6 +98,14 @@ common::Fields BdaDdeCal::getRequiredFields() const {
 void BdaDdeCal::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
   uvw_flagger_step_->updateInfo(_info);
+
+  if (!settings_.only_predict) {
+    solver_ = ddecal::CreateSolver(settings_, _info.antennaNames());
+    solution_writer_ =
+        std::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
+  }
+
+  settings_.PrepareSolutionsPerDirection(steps_.size());
 
   // Update info for substeps
   for (unsigned int i = 0; i < patches_.size(); i++) {
