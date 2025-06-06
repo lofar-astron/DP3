@@ -187,6 +187,11 @@ inputs:
       Whether to trim the Gaussian kernel that is used for smoothing at 3 sigma. Truncation makes calibration faster but causes
       a slightly less smooth result. For analyses that require highly smooth gain solutions, such as high-redshift 21-cm
       experiments, the truncation can be turned off.
+  antenna_smoothness_factors:
+    type: list of doubles
+    default: []
+    doc: >-
+      A list of extra smoothing factors per antenna in the same format as antenna_averaging_factors, e.g. [RS*:6.5,CS*:2.5]. Values above one cause stronger smoothing, values lower than one cause less smoothing. When smoothnessrefdistance > 0, these factors will be multiplied by the distance-based smoothing factors, so both affect the per-antenna smoothness setting in this case.
   statfilename:
     type: string
     doc: >-

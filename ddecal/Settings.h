@@ -164,6 +164,7 @@ struct Settings {
    * get one value per solution per direction.
    */
   std::vector<double> smoothness_dd_factors;
+  std::vector<std::string> antenna_smoothness_factors;
   const double screen_core_constraint;
 
   // Solver settings.
