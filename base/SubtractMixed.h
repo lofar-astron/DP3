@@ -18,7 +18,6 @@ namespace base {
 
 /// Subtract visibilities from a buffer after weighting by mixing coefficients.
 ///
-/// \return ratio of variance of data before and after subtraction
 /// \param[in]   nBaseline
 /// Number of baselines.
 /// \param[in]   nChannel
@@ -34,11 +33,14 @@ namespace base {
 /// \param[in]   weight
 /// A cursor for a 3-D buffer of mixing weight of shape
 /// (\p nBaseline, \p nChannel, 4).
-float subtract(size_t nBaseline, size_t nChannel,
-               const_cursor<Baseline> baselines,
-               cursor<std::complex<float>> data,
-               const_cursor<std::complex<double>> model,
-               const_cursor<std::complex<double>> weight);
+/// \param[out] var_before variance before subtraction
+/// \param[out] var_after variance after subtraction
+void subtract(size_t nBaseline, size_t nChannel,
+              const_cursor<Baseline> baselines,
+              cursor<std::complex<float>> data,
+              const_cursor<std::complex<double>> model,
+              const_cursor<std::complex<double>> weight, float &var_before,
+              float &var_after);
 
 }  // namespace base
 }  // namespace dp3
