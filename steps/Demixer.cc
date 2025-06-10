@@ -892,7 +892,8 @@ struct ThreadPrivateStorage {
   std::vector<casacore::Cube<std::complex<double>>> model;
   casacore::Cube<std::complex<double>> model_subtr;
   size_t count_converged;
-  float variance_ratio;
+  float variance_before;
+  float variance_after;
 };
 
 void initThreadPrivateStorage(ThreadPrivateStorage& storage, size_t nDirection,
@@ -906,7 +907,8 @@ void initThreadPrivateStorage(ThreadPrivateStorage& storage, size_t nDirection,
   }
   storage.model_subtr.resize(4, nChannelSubtr, nBaseline);
   storage.count_converged = 0;
-  storage.variance_ratio = 0.0f;
+  storage.variance_before = 0.0f;
+  storage.variance_after = 0.0f;
 }
 }  // end unnamed namespace
 
@@ -1133,9 +1135,11 @@ void Demixer::demix() {
             &(demix_factors_subtr(offset)), 3, stride_mix_subtr_slice);
 
         // Subtract the source.
-        storage.variance_ratio +=
-            subtract(nBl, nChSubtr, cr_baseline, cr_residual, cr_model_subtr,
-                     cr_mix_subtr);
+        float variance_before, variance_after;
+        subtract(nBl, nChSubtr, cr_baseline, cr_residual, cr_model_subtr,
+                 cr_mix_subtr, variance_before, variance_after);
+        storage.variance_before += variance_before;
+        storage.variance_after += variance_after;
       }
     }
 
@@ -1157,14 +1161,16 @@ void Demixer::demix() {
   }
 
   // Calculate data before/after variance ratio
-  float variance_ratio = 0.0f;
+  float variance_before = 0.0f;
+  float variance_after = 0.0f;
   for (std::vector<ThreadPrivateStorage>::iterator it = threadStorage.begin(),
                                                    end = threadStorage.end();
        it != end; ++it) {
-    variance_ratio += it->variance_ratio;
+    variance_before += it->variance_before;
+    variance_after += it->variance_after;
   }
   // Update self
-  itsVarianceRatio += variance_ratio / (float)nThread;
+  itsVarianceRatio += (variance_before / (variance_after + 1e-6f));
 }
 
 void Demixer::dumpSolutions() {
