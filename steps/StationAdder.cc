@@ -8,6 +8,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <regex>
 
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
@@ -19,7 +20,6 @@
 #include <casacore/tables/Tables/TableRow.h>
 #include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
-#include <casacore/casa/Utilities/Regex.h>
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
@@ -27,11 +27,11 @@
 #include "../base/FlagCounter.h"
 
 #include <aocommon/logger.h>
+#include <aocommon/uvector.h>
 
 using casacore::ArrayColumn;
 using casacore::MPosition;
 using casacore::MVPosition;
-using casacore::Regex;
 using casacore::ScalarColumn;
 using casacore::ScalarMeasColumn;
 using casacore::Table;
@@ -57,39 +57,35 @@ StationAdder::StationAdder(const common::ParameterSet& parset,
 
 StationAdder::~StationAdder() {}
 
-std::vector<int> StationAdder::getMatchingStations(
-    const std::vector<std::string>& antennaNames,
+std::vector<int> StationAdder::GetMatchingStations(
+    const std::vector<std::string>& antenna_names,
     const std::vector<std::string>& patterns) {
-  casacore::Vector<bool> used(antennaNames.size(), false);
-  for (std::vector<std::string>::const_iterator iter = patterns.begin();
-       iter != patterns.end(); ++iter) {
+  aocommon::UVector<bool> used(antenna_names.size(), false);
+  for (const std::string& pattern : patterns) {
     int n = 0;
-    if (iter->size() > 1 && ((*iter)[0] == '!' || (*iter)[0] == '^')) {
-      Regex regex(Regex::fromPattern(iter->substr(1)));
-      for (unsigned int i = 0; i < antennaNames.size(); ++i) {
-        if (casacore::String(antennaNames[i]).matches(regex)) {
-          used[i] = false;
+    const auto SetUsed = [&](bool new_value, const std::string& pattern) {
+      const std::regex pattern_regex(pattern);
+      for (size_t i = 0; i < antenna_names.size(); ++i) {
+        if (std::regex_match(antenna_names[i], pattern_regex)) {
+          used[i] = new_value;
           n++;
         }
       }
+    };
+    if (pattern.size() > 1 && (pattern[0] == '!' || pattern[0] == '^')) {
+      SetUsed(false, common::PatternToRegex(pattern.substr(1)));
     } else {
-      Regex regex(Regex::fromPattern(*iter));
-      for (unsigned int i = 0; i < antennaNames.size(); ++i) {
-        if (casacore::String(antennaNames[i]).matches(regex)) {
-          used[i] = true;
-          n++;
-        }
-      }
+      SetUsed(true, common::PatternToRegex(pattern));
     }
     if (n == 0) {
       aocommon::Logger::Warn
-          << "StationAdder: no matching stations found for pattern " << *iter
+          << "StationAdder: no matching stations found for pattern " << pattern
           << '\n';
     }
   }
   std::vector<int> parts;
   parts.reserve(12);  // Usually up to 12 stations are used
-  for (unsigned int i = 0; i < used.size(); ++i) {
+  for (size_t i = 0; i < used.size(); ++i) {
     if (used[i]) {
       parts.push_back(i);
     }
@@ -124,7 +120,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     }
     // Get the ids of the stations forming the new superstation.
     // Expand possible .. in the parameter value.
-    std::vector<int> parts = getMatchingStations(
+    std::vector<int> parts = GetMatchingStations(
         antennaNames, iter->second.expand().getStringVector());
     if (parts.empty()) {
       continue;

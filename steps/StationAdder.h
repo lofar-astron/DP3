@@ -78,14 +78,14 @@ class StationAdder : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
-  /// Return the indices of the stations in antennaNames matching
+  /// Return the indices of the stations in antenna_names matching
   /// the pattern list.
   /// The patterns are processed from left to right. A pattern can start
   /// with ! or ^ meaning that the the matches are discarded. In this
   /// way first a broad pattern can be given, which can be narrowed down.
   /// A warning is given if a pattern does not match any station name.
-  static std::vector<int> getMatchingStations(
-      const std::vector<std::string>& antennaNames,
+  static std::vector<int> GetMatchingStations(
+      const std::vector<std::string>& antenna_names,
       const std::vector<std::string>& patterns);
 
  private:
