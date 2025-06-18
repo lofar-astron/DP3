@@ -73,7 +73,7 @@ def test_flags():
     pybuffer = dp3.DPBuffer()
 
     flags_invalid_shape = np.array(
-        [[True, True, True], [False, True, False]], np.bool8
+        [[True, True, True], [False, True, False]], np.bool_
     )
 
     with pytest.raises(RuntimeError):
@@ -84,7 +84,7 @@ def test_flags():
             [[True, True, True], [False, True, False]],
             [[False, False, False], [True, False, True]],
         ],
-        np.bool8,
+        np.bool_,
     )
 
     pybuffer.set_flags(flags)

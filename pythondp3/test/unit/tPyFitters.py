@@ -167,7 +167,7 @@ def test_fit_smooth():
             [0.0, 0.0, 0.0, 1.0, 0.0, 2.0],  # freq. 3
             [0.0, 0.0, 10.0, 1.0, 0.0, 1.0],  # freq. 4
         ],
-        dtype=np.complex_,
+        dtype=np.complex128,
     )
     gains_out = np.zeros_like(gains_in)
 
@@ -179,7 +179,7 @@ def test_fit_smooth():
             [0.0886568, 0.0, 0.886568, 1.0, 0.0, 2.00022],
             [0.000121798, 0.0, 9.02597, 1.0, 0.0, 1.09753],
         ],
-        dtype=np.complex_,
+        dtype=np.complex128,
     )
 
     # Smooth each column individually
