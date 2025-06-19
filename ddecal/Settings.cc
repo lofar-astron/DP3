@@ -56,6 +56,25 @@ SolverDataUse ParseSolverDataUse(const std::string& data_use_string) {
         data_use_string + ". Please use one of single, dual, full");
 }
 
+std::string ParseH5Parm(const common::ParameterSet& parset,
+                        const std::string& prefix) {
+  const std::string h5parm_key = prefix + "h5parm";
+  std::string h5parm;
+  if (parset.isDefined(h5parm_key)) {
+    h5parm = parset.getString(h5parm_key);
+  } else if (parset.isDefined("msin")) {
+    h5parm = parset.getString("msin") + "/instrument.h5";
+    aocommon::Logger::Warn << "Warning! Using " << h5parm
+                           << " as output solution file since " << h5parm_key
+                           << " is not defined. This behavior is deprecated "
+                              "and may be removed in the future.";
+  } else {
+    throw std::runtime_error("Unknown h5parm output file. Please define '" +
+                             h5parm_key + "'.");
+  }
+  return h5parm;
+}
+
 }  // namespace
 
 std::string ToString(SolverAlgorithm algorithm) {
@@ -78,9 +97,7 @@ Settings::Settings(const common::ParameterSet& _parset,
                    const std::string& _prefix)
     : parset(&_parset),
       name(_prefix),
-      h5parm_name(parset->isDefined(_prefix + "h5parm")
-                      ? GetString("h5parm")
-                      : parset->getString("msin") + "/instrument.h5"),
+      h5parm_name(ParseH5Parm(*parset, _prefix)),
       stat_filename(GetString("statfilename", "")),
       parset_string(CreateParsetString(_parset)),
       mode(dp3::base::StringToCalType(
@@ -334,10 +351,10 @@ std::vector<std::string> Settings::ReadModelDataColumns() const {
   // msin=tDDECal.MS msout=.
   if (columns.empty() && GetBool("usemodelcolumn", false)) {
     aocommon::Logger::Warn
-        << "Warning: The input contains the deprecated " + name +
-               "usemodelcolumn setting, possibly combined with the "
-               "deprecated msin.modelcolumn setting. Please use " +
-               name + "modeldatacolumns instead.\n";
+        << "Warning: The input contains the deprecated " << name
+        << "usemodelcolumn setting, possibly combined with the "
+           "deprecated msin.modelcolumn setting. Please use "
+        << name << "modeldatacolumns instead.\n";
     columns.push_back(parset->getString("msin.modelcolumn", "MODEL_DATA"));
   }
 
