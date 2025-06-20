@@ -88,7 +88,8 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(get_required_fields, BdaDdeCalFixture) {
-  const dp3::common::Fields kExpectedFields = dp3::steps::Step::kUvwField;
+  const dp3::common::Fields kExpectedFields =
+      dp3::steps::Step::kWeightsField | dp3::steps::Step::kUvwField;
   BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
 }
 

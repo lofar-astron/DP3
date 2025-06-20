@@ -92,6 +92,7 @@ common::Fields BdaDdeCal::getRequiredFields() const {
     fields |= base::GetChainRequiredFields(direction_first_step);
   }
   if (settings_.subtract) fields |= kDataField;
+  if (!settings_.only_predict) fields |= kWeightsField;
   return fields;
 }
 
