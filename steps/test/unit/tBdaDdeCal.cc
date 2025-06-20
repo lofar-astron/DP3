@@ -17,7 +17,6 @@ namespace {
 
 dp3::common::ParameterSet CreateMinimalParameterSet() {
   dp3::common::ParameterSet parset;
-  parset.add("msin", "");
   parset.add("directions", "[[" + dp3::steps::test::kPredictDirection + "]]");
   parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
   parset.add("h5parm", "test.h5");
@@ -88,9 +87,19 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(get_required_fields, BdaDdeCalFixture) {
+  using dp3::steps::Step;
   const dp3::common::Fields kExpectedFields =
-      dp3::steps::Step::kWeightsField | dp3::steps::Step::kUvwField;
+      Step::kFlagsField | Step::kWeightsField | Step::kUvwField;
   BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
+}
+
+BOOST_AUTO_TEST_CASE(get_required_fields_only_predict) {
+  dp3::common::ParameterSet parset = CreateMinimalParameterSet();
+  parset.add("onlypredict", "true");
+  const BdaDdeCal bdaddecal(parset, "");
+
+  const dp3::common::Fields kExpectedFields = dp3::steps::Step::kUvwField;
+  BOOST_TEST(bdaddecal.getRequiredFields() == kExpectedFields);
 }
 
 BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {

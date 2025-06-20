@@ -92,7 +92,7 @@ common::Fields BdaDdeCal::getRequiredFields() const {
     fields |= base::GetChainRequiredFields(direction_first_step);
   }
   if (settings_.subtract) fields |= kDataField;
-  if (!settings_.only_predict) fields |= kWeightsField;
+  if (!settings_.only_predict) fields |= kWeightsField | kFlagsField;
   return fields;
 }
 
@@ -754,11 +754,11 @@ void BdaDdeCal::showTimings(std::ostream& os, double duration) const {
 size_t BdaDdeCal::GetChanBlockIndex(const size_t channel,
                                     const size_t n_channels,
                                     size_t n_channel_blocks) const {
-  // Assert that the channel averaging schema is compatible with the channel
+  // Check that the channel averaging schema is compatible with the channel
   // block division. One channel should be mapped to one single channel block.
   if (n_channels < n_channel_blocks) {
     throw std::runtime_error(
-        "Number of BDA channels smaller than numbner of channel blocks");
+        "Number of BDA channels smaller than number of channel blocks");
   }
 
   return std::floor(static_cast<double>(channel) / n_channels *
