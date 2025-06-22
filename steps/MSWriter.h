@@ -84,19 +84,22 @@ class MSWriter : public OutputStep {
                          const std::string& out_col_name,
                          const base::DPInfo& info);
 
+  /// Update the FIELD table with the new phase center.
+  static void UpdatePhaseCentre(const std::string& out_name,
+                                const casacore::MDirection& new_phase_dir);
+
+  /// Update the SPECTRAL_WINDOW table for averaged channels.
+  static void UpdateSpw(const std::string& out_name, const base::DPInfo& info);
+
+  /// Update the OBSERVATION table with the correct start and end time.
+  static void UpdateObs(const std::string& out_name, const base::DPInfo& info);
+
   static std::string InsertNumberInFilename(const std::string& name,
                                             size_t number);
 
  private:
   void StartNewMs();
   void FinishMs();
-
-  /// Create an array column description and add to table with given
-  /// stoage manager (if given).
-  void MakeArrayColumn(casacore::ColumnDesc desc,
-                       const casacore::IPosition& shape,
-                       casacore::DataManager* dm, casacore::Table& table,
-                       bool make_direct_column = false);
 
   /// Create the MS by cloning all subtables from the input MS.
   /// All output columns in the main table are using normal storage managers.
@@ -106,15 +109,6 @@ class MSWriter : public OutputStep {
 
   /// Copy subtables from 'original_table` to the output MS.
   void CopySubTables(casacore::Table& original_table);
-
-  /// Update the SPECTRAL_WINDOW table for averaged channels.
-  void UpdateSpw(const std::string& out_name);
-
-  /// Update the OBSERVATION table with the correct start and end time.
-  void UpdateObs(const std::string& out_name);
-
-  /// Update the FIELD table with the new phase center.
-  void UpdatePhaseCentre(const std::string& out_name);
 
   /// Process the data in @ref buffer.
   ///

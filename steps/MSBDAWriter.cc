@@ -222,7 +222,12 @@ void MSBDAWriter::CreateMainTable() {
     omitted_subtables[3] = base::DP3MS::kDataDescTable;
     TableCopy::copySubTables(ms_, original_table, false, omitted_subtables);
   }
-  MSWriter::UpdateBeam(ms_, MS::columnName(MS::DATA), info());
+  MSWriter::UpdateObs(out_name_, getInfoOut());
+  if (getInfoOut().originalPhaseCenter().getValue() !=
+      getInfoOut().phaseCenter().getValue()) {
+    MSWriter::UpdatePhaseCentre(out_name_, getInfoOut().phaseCenter());
+  }
+  MSWriter::UpdateBeam(ms_, MS::columnName(MS::DATA), getInfoOut());
 }
 
 void MSBDAWriter::CreateBDATimeAxis() {
