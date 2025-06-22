@@ -83,6 +83,29 @@ std::unique_ptr<DataManager> MakeStMan(const std::string& type_name,
                              "casacore");
   return st_man;
 }
+
+/// Create an array column description and add to table with given
+/// storage manager (if given).
+void MakeArrayColumn(ColumnDesc desc, const IPosition& ipos, DataManager* dm,
+                     Table& table, bool make_direct_column = false) {
+  desc.setOptions(0);
+  desc.setShape(ipos);
+  if (make_direct_column) {
+    desc.setOptions(ColumnDesc::Direct | ColumnDesc::FixedShape);
+  } else {
+    desc.setOptions(ColumnDesc::FixedShape);
+  }
+  if (table.tableDesc().isColumn(desc.name())) {
+    table.removeColumn(desc.name());
+  }
+  // Use storage manager if given.
+  if (dm == nullptr) {
+    table.addColumn(desc);
+  } else {
+    table.addColumn(desc, *dm);
+  }
+}
+
 }  // namespace
 
 MSWriter::MSWriter(const std::string& out_name,
@@ -286,27 +309,6 @@ void MSWriter::showTimings(std::ostream& os, double duration) const {
   os << "    ";
   FlagCounter::showPerc1(os, writer_timer_.getElapsed(), duration);
   os << (use_write_thread_ ? " Writing (threaded)\n" : " Writing\n");
-}
-
-void MSWriter::MakeArrayColumn(ColumnDesc desc, const IPosition& ipos,
-                               DataManager* dm, Table& table,
-                               bool make_direct_column) {
-  desc.setOptions(0);
-  desc.setShape(ipos);
-  if (make_direct_column) {
-    desc.setOptions(ColumnDesc::Direct | ColumnDesc::FixedShape);
-  } else {
-    desc.setOptions(ColumnDesc::FixedShape);
-  }
-  if (table.tableDesc().isColumn(desc.name())) {
-    table.removeColumn(desc.name());
-  }
-  // Use storage manager if given.
-  if (dm == nullptr) {
-    table.addColumn(desc);
-  } else {
-    table.addColumn(desc, *dm);
-  }
 }
 
 void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
@@ -540,15 +542,15 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   CopySubTables(original_table);
 
   // Adjust the SPECTRAL_WINDOW and DATA_DESCRIPTION table as needed.
-  UpdateSpw(out_name);
+  UpdateSpw(out_name, getInfoOut());
   // Adjust the OBSERVATION table as needed.
-  UpdateObs(out_name);
+  UpdateObs(out_name, getInfoOut());
   // Adjust the FIELD table as needed.
-  if (info().originalPhaseCenter().getValue() !=
-      info().phaseCenter().getValue()) {
-    UpdatePhaseCentre(out_name);
+  if (getInfoOut().originalPhaseCenter().getValue() !=
+      getInfoOut().phaseCenter().getValue()) {
+    UpdatePhaseCentre(out_name, getInfoOut().phaseCenter());
   }
-  UpdateBeam(ms_, "DATA", info());
+  UpdateBeam(ms_, "DATA", getInfoOut());
 }
 
 void MSWriter::CopySubTables(casacore::Table& original_table) {
@@ -584,10 +586,11 @@ void MSWriter::CopySubTables(casacore::Table& original_table) {
   }
 }
 
-void MSWriter::UpdateSpw(const std::string& out_name) {
+void MSWriter::UpdateSpw(const std::string& out_name,
+                         const base::DPInfo& info) {
   // Fix the SPECTRAL_WINDOW values by updating the values in the subtable.
-  IPosition shape(1, getInfo().nchan());
-  Table original_table(getInfo().msName());
+  IPosition shape(1, info.nchan());
+  Table original_table(info.msName());
   Table in_spw = original_table.keywordSet().asTable("SPECTRAL_WINDOW");
   Table out_spw = Table(out_name + "/SPECTRAL_WINDOW", Table::Update);
   Table out_dd = Table(out_name + "/DATA_DESCRIPTION", Table::Update);
@@ -598,14 +601,14 @@ void MSWriter::UpdateSpw(const std::string& out_name) {
   // Remove all rows before and after the selected band.
   // Do it from the end, otherwise row numbers change.
   for (int i = int(out_spw.nrow()) - 1; i >= 0; --i) {
-    if (i != info().spectralWindow()) {
+    if (i != info.spectralWindow()) {
       out_spw.removeRow(i);
       out_dd.removeRow(i);
     }
   }
   // Set nr of channels.
   ScalarColumn<int> channum(out_spw, "NUM_CHAN");
-  channum.fillColumn(getInfo().nchan());
+  channum.fillColumn(info.nchan());
   // Change the column shapes.
   TableDesc tdesc = in_spw.tableDesc();
   MakeArrayColumn(tdesc["CHAN_FREQ"], shape, nullptr, out_spw);
@@ -619,39 +622,41 @@ void MSWriter::UpdateSpw(const std::string& out_name) {
   ArrayColumn<double> out_resolution(out_spw, "RESOLUTION");
   ScalarColumn<double> out_totalbw(out_spw, "TOTAL_BANDWIDTH");
   ScalarColumn<double> out_reffreq(out_spw, "REF_FREQUENCY");
-  out_freq.put(0, casacore::Vector<double>(info().chanFreqs()));
-  out_width.put(0, casacore::Vector<double>(info().chanWidths()));
-  out_bw.put(0, casacore::Vector<double>(info().effectiveBW()));
-  out_resolution.put(0, casacore::Vector<double>(info().resolutions()));
-  out_totalbw.put(0, info().totalBW());
-  out_reffreq.put(0, info().refFreq());
+  out_freq.put(0, casacore::Vector<double>(info.chanFreqs()));
+  out_width.put(0, casacore::Vector<double>(info.chanWidths()));
+  out_bw.put(0, casacore::Vector<double>(info.effectiveBW()));
+  out_resolution.put(0, casacore::Vector<double>(info.resolutions()));
+  out_totalbw.put(0, info.totalBW());
+  out_reffreq.put(0, info.refFreq());
   // Adjust the spwid in the DATA_DESCRIPTION.
   ScalarColumn<int> spw_col(out_dd, "SPECTRAL_WINDOW_ID");
   spw_col.put(0, 0);
 }
 
-void MSWriter::UpdateObs(const std::string& out_name) {
+void MSWriter::UpdateObs(const std::string& out_name,
+                         const base::DPInfo& info) {
   Table out_obs = Table(out_name + "/OBSERVATION", Table::Update);
   // Set nr of channels.
   ArrayColumn<double> time_range(out_obs, "TIME_RANGE");
   casacore::Vector<double> times(2);
-  times[0] = getInfo().firstTime() - 0.5 * getInfo().timeInterval();
-  times[1] = getInfo().lastTime() + 0.5 * getInfo().timeInterval();
+  times[0] = info.firstTime() - 0.5 * info.timeInterval();
+  times[1] = info.lastTime() + 0.5 * info.timeInterval();
   // There should be one row, but loop in case of.
   for (unsigned int i = 0; i < out_obs.nrow(); ++i) {
     time_range.put(i, times);
   }
 }
 
-void MSWriter::UpdatePhaseCentre(const std::string& out_name) {
+void MSWriter::UpdatePhaseCentre(const std::string& out_name,
+                                 const casacore::MDirection& new_phase_dir) {
   Table out_field = Table(out_name + "/FIELD", Table::Update);
   // Write new phase center.
   ArrayMeasColumn<MDirection> phase_col(out_field, "PHASE_DIR");
   // If a moving reference type like AZELGEO was used in the original MS, and
   // the phase centre is changed (with a phaseshift), the ref frame of the
   // column must be reset:
-  phase_col.setDescRefCode(info().phaseCenter().getRefPtr()->getType(), false);
-  casacore::Vector<MDirection> dir(1, info().phaseCenter());
+  phase_col.setDescRefCode(new_phase_dir.getRefPtr()->getType(), false);
+  const casacore::Vector<MDirection> dir(1, new_phase_dir);
   phase_col.put(0, dir);
 }
 

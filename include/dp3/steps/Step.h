@@ -108,7 +108,9 @@ class Step {
 
   /// Legacy version of getInfoOut().
   /// New code should use getInfoOut() instead of getInfo()
-  const base::DPInfo& getInfo() const { return itsInfoOut; }
+  [[deprecated("Use getInfoOut()")]] const base::DPInfo& getInfo() const {
+    return itsInfoOut;
+  }
 
   /// Show the step parameters.
   virtual void show(std::ostream&) const = 0;
@@ -158,7 +160,9 @@ class Step {
 
   /// Legacy version of infoOut().
   /// New code should use infoOut() instead of info().
-  base::DPInfo& info() { return itsInfoOut; }
+  [[deprecated("Use infoOut() instead")]] base::DPInfo& info() {
+    return itsInfoOut;
+  }
 
   /// Update the general info (called by setInfo).
   /// The default implementation copies the info.
