@@ -34,7 +34,6 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
       result_steps_(),
       patches_(),
       input_buffers_(),
-      model_buffers_(),
       solver_buffer_(),
       solver_(),
       solution_interval_duration_(0.0),
@@ -71,19 +70,23 @@ void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
   }
 
   const bool bda_group_predict = parset.getBool(prefix + "grouppredict", false);
-  for (std::vector<std::string>& source_patterns : directions) {
-    patches_.push_back(std::move(source_patterns));
 
+  for (std::vector<std::string>& source_patterns : directions) {
     if (bda_group_predict) {
       steps_.push_back(
-          std::make_shared<BdaGroupPredict>(parset, prefix, patches_.back()));
+          std::make_shared<BdaGroupPredict>(parset, prefix, source_patterns));
     } else {
       steps_.push_back(std::make_shared<Predict>(
-          parset, prefix, patches_.back(), Step::MsType::kBda));
+          parset, prefix, source_patterns, Step::MsType::kBda));
     }
     result_steps_.push_back(std::make_shared<BDAResultStep>());
     steps_.back()->setNextStep(result_steps_.back());
+
+    direction_names_.push_back(prefix + source_patterns.front());
   }
+
+  patches_.insert(patches_.end(), std::make_move_iterator(directions.begin()),
+                  std::make_move_iterator(directions.end()));
 }
 
 common::Fields BdaDdeCal::getRequiredFields() const {
@@ -175,8 +178,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     */
 
     solver_buffer_ = std::make_unique<ddecal::BdaSolverBuffer>(
-        patches_.size(), _info.startTime(), solution_interval_duration_,
-        _info.nbaselines());
+        _info.startTime(), solution_interval_duration_, _info.nbaselines());
 
     DetermineChannelBlocks();
 
@@ -320,63 +322,62 @@ void BdaDdeCal::ExtractResults() {
   for (size_t direction = 0; direction < result_steps_.size(); direction++) {
     std::vector<std::unique_ptr<BdaBuffer>> results =
         result_steps_[direction]->Extract();
+    const std::string& direction_name = direction_names_[direction];
     if (!results.empty()) {
       // Find the queue index of the first free slot for this direction.
       size_t queue_index = 0;
-      while (model_buffers_.size() > queue_index &&
-             model_buffers_[queue_index][direction]) {
+      while (input_buffers_.size() > queue_index &&
+             input_buffers_[queue_index]->HasData(direction_name)) {
         ++queue_index;
       }
 
       for (std::unique_ptr<BdaBuffer>& result : results) {
-        // Extend the queue if it's not big enough.
-        if (queue_index == model_buffers_.size()) {
-          model_buffers_.emplace_back(result_steps_.size());
-        }
-        model_buffers_[queue_index][direction] = std::move(result);
+        assert(queue_index < input_buffers_.size());
+        assert(input_buffers_[queue_index]->IsMetadataEqual(*result));
+        input_buffers_[queue_index]->MoveData(*result, "", direction_name);
         ++queue_index;
       }
     }
   }
 }
 
+bool BdaDdeCal::HasAllDirections(const BdaBuffer& buffer) const {
+  for (const std::string& name : direction_names_) {
+    if (!buffer.HasData(name)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void BdaDdeCal::ProcessCompleteDirections() {
-  const auto pointer_is_set = [](const std::unique_ptr<BdaBuffer>& pointer) {
-    return !!pointer;  // Convert the pointer to a boolean.
-  };
-  while (!model_buffers_.empty() &&
-         std::all_of(model_buffers_.front().begin(),
-                     model_buffers_.front().end(), pointer_is_set)) {
-    assert(!input_buffers_.empty() && input_buffers_.front());
-    assert(input_buffers_.front()->GetData());
-    std::vector<std::unique_ptr<base::BdaBuffer>>& direction_buffers =
-        model_buffers_.front();
+  while (!input_buffers_.empty() && HasAllDirections(*input_buffers_.front())) {
     if (settings_.only_predict) {
-      // Sum all model buffers into the saved data buffer.
-      std::complex<float> restrict* data = input_buffers_.front()->GetData();
-      const size_t data_size = input_buffers_.front()->GetNumberOfElements();
+      // Move the data for the first direction to the main data buffer.
+      std::unique_ptr<BdaBuffer> buffer = std::move(input_buffers_.front());
+      buffer->MoveData(*buffer, direction_names_.front(), "");
 
-      assert(
-          direction_buffers.front()->IsMetadataEqual(*input_buffers_.front()));
-      std::copy_n(direction_buffers.front()->GetData(), data_size, data);
-      direction_buffers.front().reset();
+      // Add the data for the other directions to the main data buffer.
+      std::complex<float> restrict* main_data = buffer->GetData();
+      const size_t data_size = buffer->GetNumberOfElements();
+      for (std::size_t d = 1; d < direction_names_.size(); ++d) {
+        const std::complex<float> restrict* direction_data =
+            buffer->GetData(direction_names_[d]);
 
-      for (size_t dir = 1; dir < direction_buffers.size(); ++dir) {
-        assert(direction_buffers[dir]->GetNumberOfElements() == data_size);
-        const std::complex<float> restrict* other_data =
-            direction_buffers[dir]->GetData();
-        for (size_t j = 0; j < data_size; ++j) data[j] += other_data[j];
-        direction_buffers[dir].reset();
+        for (std::size_t j = 0; j < data_size; ++j)
+          main_data[j] += direction_data[j];
+
+        buffer->RemoveData(direction_names_[d]);
       }
 
-      getNextStep()->process(std::move(input_buffers_.front()));
+      getNextStep()->process(std::move(buffer));
     } else {
-      // Send data buffer and model_buffers to solver_buffer_.
+      // Send the input buffer to solver_buffer_.
       solver_buffer_->AppendAndWeight(std::move(input_buffers_.front()),
-                                      std::move(direction_buffers));
+                                      direction_names_,
+                                      settings_.keep_model_data);
     }
     input_buffers_.pop_front();
-    model_buffers_.pop_front();
   }
 
   if (!settings_.only_predict) {

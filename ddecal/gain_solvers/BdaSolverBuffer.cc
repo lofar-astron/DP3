@@ -24,17 +24,24 @@ namespace ddecal {
 
 void BdaSolverBuffer::AppendAndWeight(
     std::unique_ptr<BdaBuffer> unweighted_buffer,
-    std::vector<std::unique_ptr<BdaBuffer>>&& model_buffers) {
-  const size_t n_directions = model_buffers.size();
-
-  if (!data_.Empty() && n_directions != data_[0].model.size()) {
-    throw std::invalid_argument("Model directions count does not match");
-  }
-
+    const std::vector<std::string>& direction_names,
+    bool keep_unweighted_model_data) {
   const common::Fields bda_fields(common::Fields::Single::kData);
 
   auto weighted_buffer =
       std::make_unique<BdaBuffer>(*unweighted_buffer, bda_fields);
+
+  // Copy or move the model buffer data into weighted_buffer.
+  for (const std::string& name : direction_names) {
+    if (keep_unweighted_model_data) {
+      weighted_buffer->AddData(name);
+      std::copy_n(weighted_buffer->GetData(name),
+                  weighted_buffer->GetNumberOfElements(),
+                  unweighted_buffer->GetData(name));
+    } else {
+      weighted_buffer->MoveData(*unweighted_buffer, name, name);
+    }
+  }
 
   const size_t n_rows = weighted_buffer->GetRows().size();
 
@@ -65,12 +72,11 @@ void BdaSolverBuffer::AppendAndWeight(
         data_ptr[cr] *= w_sqrt[cr];
       }
 
-      // Weigh the model data.
-      for (std::unique_ptr<BdaBuffer>& model_buffer : model_buffers) {
-        assert(kNCorrelations ==
-               model_buffer->GetRows()[row_index].n_correlations);
+      // Weight the model data.
+      for (const std::string& name : direction_names) {
         std::complex<float>* model_ptr =
-            model_buffer->GetData(row_index) + index;
+            weighted_buffer->GetData(row_index, name) + index;
+
         for (size_t cr = 0; cr < kNCorrelations; ++cr) {
           is_flagged = is_flagged || !IsFinite(model_ptr[cr]);
           model_ptr[cr] *= w_sqrt[cr];
@@ -83,9 +89,9 @@ void BdaSolverBuffer::AppendAndWeight(
         for (size_t cr = 0; cr < kNCorrelations; ++cr) {
           data_ptr[cr] = 0.0;
         }
-        for (std::unique_ptr<BdaBuffer>& model_buffer : model_buffers) {
+        for (const std::string& name : direction_names) {
           std::complex<float>* model_ptr =
-              model_buffer->GetData(row_index) + index;
+              weighted_buffer->GetData(row_index, name) + index;
           for (size_t cr = 0; cr < kNCorrelations; ++cr) {
             model_ptr[cr] = 0.0;
           }
@@ -105,9 +111,9 @@ void BdaSolverBuffer::AppendAndWeight(
     const BdaBuffer::Row& unweighted_row =
         unweighted_buffer->GetRows()[row_index];
     std::vector<const std::complex<float>*> model_data;
-    model_data.reserve(n_directions);
-    for (size_t dir = 0; dir < n_directions; ++dir) {
-      model_data.push_back(model_buffers[dir]->GetData(row_index));
+    model_data.reserve(direction_names.size());
+    for (const std::string& name : direction_names) {
+      model_data.push_back(weighted_buffer->GetData(row_index, name));
     }
     data_rows_[queue_index].push_back(
         {unweighted_row.time, unweighted_row.baseline_nr,
@@ -130,9 +136,8 @@ void BdaSolverBuffer::AppendAndWeight(
         current_start_interval - 1;
   }
 
-  data_.PushBack(InputData{std::move(unweighted_buffer),
-                           std::move(weighted_buffer),
-                           std::move(model_buffers)});
+  data_.PushBack(
+      InputData{std::move(unweighted_buffer), std::move(weighted_buffer)});
 }
 
 void BdaSolverBuffer::Clear() {

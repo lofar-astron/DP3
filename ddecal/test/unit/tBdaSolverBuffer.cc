@@ -3,13 +3,14 @@
 
 #include "../../gain_solvers/BdaSolverBuffer.h"
 
-#include <dp3/base/BdaBuffer.h>
+#include <array>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
 #include <aocommon/matrix2x2.h>
 
-#include <array>
+#include <dp3/base/BdaBuffer.h>
 
 using dp3::base::BdaBuffer;
 using dp3::common::Fields;
@@ -19,6 +20,7 @@ namespace {
 const size_t kNBaselines = 3;
 const size_t kNChannels = 6;
 const size_t kNCorrelations = 4;
+const size_t kNElementsPerRow = kNChannels * kNCorrelations;
 const double kFirstTime = 42.0;
 const size_t kInterval = 2.0;
 const size_t kRowsPerBuffer = 5;
@@ -28,52 +30,63 @@ const std::complex<float> kFirstDataValue{1.0, 2.0};
 const std::complex<float> kModelDataDiff{100.0, 100.0};
 
 /**
- * Create successive BDA buffers.
+ * Creates successive BDA buffers.
  * The resulting buffers hold values for all fields, including flags, which
  * allows testing if AppendAndWeight discards unnecessary fields.
- * @param data_value Visibility value for the first row. For each next row, the
- *        value is increased with { 1.0, 1.0 }.
+ * @param direction_names Names of model data buffers, which should be created.
  * @param weight_value Weight value for all buffer entries.
  * @return A series of successive BDA Buffers.
  */
 std::vector<std::unique_ptr<BdaBuffer>> CreateBdaBuffers(
-    std::complex<float> data_value, float weight_value) {
+    const std::vector<std::string>& direction_names, float weight_value) {
   std::vector<std::unique_ptr<BdaBuffer>> buffers;
-
-  std::vector<std::complex<float>> data(kNChannels * kNCorrelations,
-                                        data_value);
-  const std::vector<float> weights(kNChannels * kNCorrelations, weight_value);
-  const bool flags[kNChannels * kNCorrelations]{false};
 
   double time = kFirstTime;
   for (std::size_t i = 0; i < 3; ++i) {
     const Fields kFields = Fields(Fields::Single::kData) |
                            Fields(Fields::Single::kWeights) |
                            Fields(Fields::Single::kFlags);
-    auto buffer = std::make_unique<BdaBuffer>(
-        kRowsPerBuffer * kNChannels * kNCorrelations, kFields);
+    auto buffer =
+        std::make_unique<BdaBuffer>(kRowsPerBuffer * kNElementsPerRow, kFields);
+
     // Add a non-averaged baseline.
-    buffer->AddRow(time, kInterval, kInterval, 0, kNChannels, kNCorrelations,
-                   data.data(), flags, weights.data());
-    for (std::complex<float>& d : data) d += kDataIncrement;
+    buffer->AddRow(time, kInterval, kInterval, 0, kNChannels, kNCorrelations);
     buffer->AddRow(time + kInterval, kInterval, kInterval, 0, kNChannels,
-                   kNCorrelations, data.data(), flags, weights.data());
-    for (std::complex<float>& d : data) d += kDataIncrement;
+                   kNCorrelations);
 
     // Add a time-averaged baseline.
     buffer->AddRow(time + kInterval / 2, kInterval * 2.0, kInterval * 2.0, 1,
-                   kNChannels, kNCorrelations, data.data(), flags,
-                   weights.data());
-    for (std::complex<float>& d : data) d += kDataIncrement;
+                   kNChannels, kNCorrelations);
 
     // Add a frequency-averaged baseline.
     buffer->AddRow(time, kInterval, kInterval, 2, kNChannels / 2,
-                   kNCorrelations, data.data(), flags, weights.data());
-    for (std::complex<float>& d : data) d += kDataIncrement;
-
+                   kNCorrelations);
     buffer->AddRow(time + kInterval, kInterval, kInterval, 2, kNChannels / 2,
-                   kNCorrelations, data.data(), flags, weights.data());
-    for (std::complex<float>& d : data) d += kDataIncrement;
+                   kNCorrelations);
+
+    // Fill the main data buffers with a different value per row.
+    for (std::size_t row = 0; row < buffer->GetRows().size(); ++row) {
+      const std::complex<float> value =
+          kFirstDataValue + float(i * kRowsPerBuffer + row) * kDataIncrement;
+      std::fill_n(buffer->GetData(row), buffer->GetRows()[row].GetDataSize(),
+                  value);
+    }
+
+    // Set all flags to false and weights to weight_value.
+    const size_t n_elements = buffer->GetNumberOfElements();
+    std::fill_n(buffer->GetFlags(), n_elements, false);
+    std::fill_n(buffer->GetWeights(), n_elements, weight_value);
+
+    // Create and fill model data buffers.
+    const std::complex<float>* main_data = buffer->GetData();
+    for (std::size_t dir = 0; dir < direction_names.size(); ++dir) {
+      const std::string& name = direction_names[dir];
+      buffer->AddData(name);
+      std::complex<float>* direction_data = buffer->GetData(name);
+      for (std::size_t j = 0; j < n_elements; ++j) {
+        direction_data[j] = main_data[j] + float(dir + 1) * kModelDataDiff;
+      }
+    }
 
     BOOST_REQUIRE_EQUAL(buffer->GetRows().size(), kRowsPerBuffer);
     buffers.emplace_back(std::move(buffer));
@@ -122,24 +135,12 @@ void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
   CheckComplex(*row.model_data.front(), *reference_row_data + kModelDataDiff);
 }
 
-/**
- * Utility function for calling AppendAndWeight with a single model buffer.
- */
-void DoAppendAndWeight(BdaSolverBuffer& solver_buffer,
-                       std::unique_ptr<BdaBuffer> data_buffer,
-                       std::unique_ptr<BdaBuffer> model_buffer) {
-  std::vector<std::unique_ptr<BdaBuffer>> model_buffers;
-  model_buffers.push_back(std::move(model_buffer));
-  solver_buffer.AppendAndWeight(std::move(data_buffer),
-                                std::move(model_buffers));
-}
-
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(bdasolverbuffer)
 
 BOOST_AUTO_TEST_CASE(constructor) {
-  BdaSolverBuffer buffer(1, 0.0, 1.0, 1);
+  BdaSolverBuffer buffer(0.0, 1.0, 1);
   BOOST_CHECK_EQUAL(buffer.BufferCount(), 0u);
   BOOST_CHECK(buffer.GetIntervalRows().empty());
   BOOST_CHECK(buffer.GetDone().empty());
@@ -148,25 +149,17 @@ BOOST_AUTO_TEST_CASE(constructor) {
 BOOST_AUTO_TEST_CASE(append_and_weight) {
   const float kWeight = 0.8;
   const float kWeightSqrt = std::sqrt(kWeight);
-  // AppendAndWeight should ignore the model weight values.
-  const float kModelWeight = 0.0;
+  const std::vector<std::string> kDirectionNames = {"Sun42", "Moon"};
 
   std::vector<std::unique_ptr<BdaBuffer>> data =
-      CreateBdaBuffers(kFirstDataValue, kWeight);
+      CreateBdaBuffers(kDirectionNames, kWeight);
   std::vector<BdaBuffer*> data_ptr;
-  std::vector<std::unique_ptr<BdaBuffer>> model_data1 =
-      CreateBdaBuffers(kFirstDataValue + 1.0f * kModelDataDiff, kModelWeight);
-  std::vector<std::unique_ptr<BdaBuffer>> model_data2 =
-      CreateBdaBuffers(kFirstDataValue + 2.0f * kModelDataDiff, kModelWeight);
 
   // All bda rows are in the first interval.
-  BdaSolverBuffer buffer(2, 0.0, 100.0, kNBaselines);
+  BdaSolverBuffer buffer(0.0, 100.0, kNBaselines);
   for (size_t i = 0; i < data.size(); ++i) {
     data_ptr.push_back(data[i].get());
-    std::vector<std::unique_ptr<BdaBuffer>> model_buffers;
-    model_buffers.push_back(std::move(model_data1[i]));
-    model_buffers.push_back(std::move(model_data2[i]));
-    buffer.AppendAndWeight(std::move(data[i]), std::move(model_buffers));
+    buffer.AppendAndWeight(std::move(data[i]), kDirectionNames, false);
   }
 
   const size_t n_rows = data.size() * kRowsPerBuffer;
@@ -206,40 +199,37 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
 }
 
 BOOST_AUTO_TEST_CASE(append_and_weight_nullptr_flags) {
-  const std::vector<std::complex<float>> data(kNChannels * kNCorrelations, 1.0);
-  const std::vector<float> weights(kNChannels * kNCorrelations, 1.0);
+  const std::string kModelDataName = "model_data";
 
+  // Create and fill a BdaBuffer without flags.
   const Fields kFields =
       Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
-  auto bda_buffer =
-      std::make_unique<BdaBuffer>(kNChannels * kNCorrelations, kFields);
+  auto bda_buffer = std::make_unique<BdaBuffer>(kNElementsPerRow, kFields);
+  bda_buffer->AddData(kModelDataName);
   bda_buffer->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
-                     kNCorrelations, data.data(), nullptr, weights.data());
+                     kNCorrelations);
+  std::fill_n(bda_buffer->GetData(), kNElementsPerRow, 1.0);
+  std::fill_n(bda_buffer->GetData(kModelDataName), kNElementsPerRow, 1.0);
+  std::fill_n(bda_buffer->GetWeights(), kNElementsPerRow, 1.0);
 
-  auto model_data = std::make_unique<BdaBuffer>(
-      kRowsPerBuffer * kNChannels * kNCorrelations, kFields);
-  model_data->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
-                     kNCorrelations, data.data(), nullptr, weights.data());
-
-  BdaSolverBuffer buffer(1, 0.0, 100.0, kNBaselines);
-  std::vector<std::unique_ptr<BdaBuffer>> model_buffers;
-  model_buffers.push_back(std::move(model_data));
+  BdaSolverBuffer buffer(0.0, 100.0, kNBaselines);
   BOOST_CHECK_NO_THROW(
-      buffer.AppendAndWeight(std::move(bda_buffer), std::move(model_buffers)));
+      buffer.AppendAndWeight(std::move(bda_buffer), {kModelDataName}, false));
 }
 
 BOOST_AUTO_TEST_CASE(one_interval_per_buffer) {
   const float kWeight = 1.0;
+  const std::vector<std::string> kDirectionNames = {"direction1"};
 
   std::vector<std::unique_ptr<BdaBuffer>> data =
-      CreateBdaBuffers(kFirstDataValue, kWeight);
+      CreateBdaBuffers(kDirectionNames, kWeight);
   std::vector<BdaBuffer*> data_ptr;
 
-  BdaSolverBuffer buffer(0, kFirstTime - kInterval / 2, kInterval * 2.0,
+  BdaSolverBuffer buffer(kFirstTime - kInterval / 2, kInterval * 2.0,
                          kNBaselines);
   for (size_t i = 0; i < data.size(); ++i) {
     data_ptr.push_back(data[i].get());
-    buffer.AppendAndWeight(std::move(data[i]), {});
+    buffer.AppendAndWeight(std::move(data[i]), kDirectionNames, false);
     BOOST_CHECK_EQUAL(buffer.BufferCount(), i + 1);
   }
 
@@ -279,15 +269,15 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
   const size_t kNRows = 42;
   const size_t kSolutionIntervalFactor = 5;
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
+  const std::string kModelDataName = "model";
 
   // Create a BDA buffer with successive rows and a single value per row.
   const Fields kFields =
       Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
   auto data_buffer =
       std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
+  data_buffer->AddData(kModelDataName);
   const BdaBuffer& data_ref = *data_buffer;
-  auto model_buffer =
-      std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
 
   std::array<std::complex<float>, kNCorrelations> data_value{kFirstDataValue};
   std::array<std::complex<float>, kNCorrelations> model_value{kFirstDataValue +
@@ -297,17 +287,17 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
   for (size_t row = 0; row < kNRows; ++row) {
     data_buffer->AddRow(time, kInterval, kInterval, 0, 1, kNCorrelations,
                         data_value.data(), nullptr, kWeight.data());
-    model_buffer->AddRow(time, kInterval, kInterval, 0, 1, kNCorrelations,
-                         model_value.data(), nullptr, kWeight.data());
+    std::copy_n(model_value.data(), model_value.size(),
+                data_buffer->GetData(row, kModelDataName));
     time += kInterval;
     data_value[0] += kDataIncrement;
     model_value[0] += kDataIncrement;
   }
 
-  BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2,
-                                kSolutionInterval, 1);
-  DoAppendAndWeight(solver_buffer, std::move(data_buffer),
-                    std::move(model_buffer));
+  BdaSolverBuffer solver_buffer(kFirstTime - kInterval / 2, kSolutionInterval,
+                                1);
+  solver_buffer.AppendAndWeight(std::move(data_buffer), {kModelDataName},
+                                false);
   BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), 1u);
 
   size_t row_index = 0;
@@ -327,13 +317,6 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
       BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), 1u);
     }
   }
-
-  // Test that GetDone() returns the data buffer after advancing.
-  BOOST_REQUIRE(solver_buffer.GetDone().empty());
-  solver_buffer.AdvanceInterval();
-  const std::vector<std::unique_ptr<BdaBuffer>> done = solver_buffer.GetDone();
-  BOOST_REQUIRE_EQUAL(done.size(), 1u);
-  BOOST_CHECK_EQUAL(done.front().get(), &data_ref);
 }
 
 BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
@@ -342,6 +325,7 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
   const Fields kFields =
       Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
+  const std::string kModelDataName = "model";
 
   // Create successive BdaBuffers with a single row.
   std::vector<BdaBuffer*> data_buffers;
@@ -350,23 +334,23 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
                                                               kModelDataDiff};
   const std::array<float, kNCorrelations> kWeight{1.0, 1.0, 1.0, 1.0};
 
-  BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2,
-                                kSolutionInterval, 1);
+  BdaSolverBuffer solver_buffer(kFirstTime - kInterval / 2, kSolutionInterval,
+                                1);
 
   double time = kFirstTime;
   for (size_t row = 0; row < kNRows; ++row) {
     auto data_buffer = std::make_unique<BdaBuffer>(kNCorrelations, kFields);
+    data_buffer->AddData(kModelDataName);
     data_buffers.push_back(data_buffer.get());
-    auto model_buffer = std::make_unique<BdaBuffer>(kNCorrelations, kFields);
     BOOST_REQUIRE(data_buffer->AddRow(time, kInterval, kInterval, 0, 1,
-                                      kNCorrelations, data_value.data(),
-                                      nullptr, kWeight.data()));
-    BOOST_REQUIRE(model_buffer->AddRow(time, kInterval, kInterval, 0, 1,
-                                       kNCorrelations, model_value.data(),
-                                       nullptr, kWeight.data()));
+                                      kNCorrelations, nullptr, nullptr,
+                                      kWeight.data()));
+    std::copy_n(data_value.data(), kNCorrelations, data_buffer->GetData());
+    std::copy_n(model_value.data(), kNCorrelations,
+                data_buffer->GetData(kModelDataName));
 
-    DoAppendAndWeight(solver_buffer, std::move(data_buffer),
-                      std::move(model_buffer));
+    solver_buffer.AppendAndWeight(std::move(data_buffer), {kModelDataName},
+                                  false);
     BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), row + 1);
 
     time += kInterval;
@@ -451,29 +435,25 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   // Create BDA input buffer with two intervals.
   const Fields kFields =
       Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
+  const std::string kModelDataName = "model";
   auto data_buffer =
       std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
-  auto model_buffer =
-      std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
-
-  std::complex<float> kDataValue_array[4];
-  kDataValue.AssignTo(kDataValue_array);
-  std::complex<float> kModelValue_array[4];
-  kModelValue.AssignTo(kModelValue_array);
+  data_buffer->AddData(kModelDataName);
 
   double time = kFirstTime;
   for (size_t row = 0; row < kNRows; ++row) {
     data_buffer->AddRow(time, kInterval, kInterval, 0, 1, kNCorrelations,
-                        kDataValue_array, nullptr, kWeight.data());
-    model_buffer->AddRow(time, kInterval, kInterval, 0, 1, kNCorrelations,
-                         kModelValue_array, nullptr, kWeight.data());
+                        nullptr, nullptr, kWeight.data());
+    kDataValue.AssignTo(data_buffer->GetData(row));
+    kModelValue.AssignTo(data_buffer->GetData(row, kModelDataName));
     time += kInterval;
   }
 
-  BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2, kInterval,
+  BdaSolverBuffer solver_buffer(kFirstTime - kInterval / 2, kInterval,
                                 kNBaselines);
-  DoAppendAndWeight(solver_buffer, std::move(data_buffer),
-                    std::move(model_buffer));
+  solver_buffer.AppendAndWeight(std::move(data_buffer), {kModelDataName},
+                                false);
+
   solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 4, kAnt1, kAnt2,
                                        kChanFreqs);
   solver_buffer.AdvanceInterval();
@@ -510,15 +490,15 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
   double time = kFirstTime;
 
   // The first solution interval defined is [41 , 49]
-  BdaSolverBuffer solver_buffer(1, kFirstTime - kInterval / 2,
-                                kSolutionInterval, 2);
-  std::vector<std::complex<float>> data(kNChannels * kNCorrelations, 1.0);
-  const std::vector<float> weights(kNChannels * kNCorrelations, 1.0);
-  const bool flags[kNChannels * kNCorrelations]{false};
+  BdaSolverBuffer solver_buffer(kFirstTime - kInterval / 2, kSolutionInterval,
+                                2);
+  std::vector<std::complex<float>> data(kNElementsPerRow, 1.0);
+  const std::vector<float> weights(kNElementsPerRow, 1.0);
+  const bool flags[kNElementsPerRow]{false};
 
   // 1. Add intervals within the first solution interval
   auto buffer_within_first_solint =
-      std::make_unique<BdaBuffer>(6 * kNChannels * kNCorrelations, kFields);
+      std::make_unique<BdaBuffer>(6 * kNElementsPerRow, kFields);
   // Baseline 0 - 1: [41, 43]
   buffer_within_first_solint->AddRow(time, kInterval, kInterval, 0, kNChannels,
                                      kNCorrelations, data.data(), flags,
@@ -542,12 +522,13 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
                                      0, kNChannels, kNCorrelations, data.data(),
                                      flags, weights.data());
 
-  solver_buffer.AppendAndWeight(std::move(buffer_within_first_solint), {});
+  solver_buffer.AppendAndWeight(std::move(buffer_within_first_solint), {},
+                                false);
   BOOST_CHECK_EQUAL(false, solver_buffer.IntervalIsComplete());
 
   // 2. Add intervals on the edge of the solution interval
   auto buffer_edge_solint =
-      std::make_unique<BdaBuffer>(2 * kNChannels * kNCorrelations, kFields);
+      std::make_unique<BdaBuffer>(2 * kNElementsPerRow, kFields);
   //  Baseline 0: [49, 51]
   buffer_edge_solint->AddRow(time + 4 * kInterval, kInterval, kInterval, 0,
                              kNChannels, kNCorrelations, data.data(), flags,
@@ -557,34 +538,99 @@ BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
                              3 * kInterval, 0, kNChannels, kNCorrelations,
                              data.data(), flags, weights.data());
 
-  solver_buffer.AppendAndWeight(std::move(buffer_edge_solint), {});
+  solver_buffer.AppendAndWeight(std::move(buffer_edge_solint), {}, false);
   BOOST_CHECK_EQUAL(false, solver_buffer.IntervalIsComplete());
 
   // 2. Add interval completely contained in the next solution interval for
   // baseline 0
   auto buffer_within_second_solint_bl_0 =
-      std::make_unique<BdaBuffer>(1 * kNChannels * kNCorrelations, kFields);
+      std::make_unique<BdaBuffer>(1 * kNElementsPerRow, kFields);
   // Baseline 0: [51, 53]
   buffer_within_second_solint_bl_0->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 0, kNChannels, kNCorrelations,
       data.data(), flags, weights.data());
 
-  solver_buffer.AppendAndWeight(std::move(buffer_within_second_solint_bl_0),
-                                {});
+  solver_buffer.AppendAndWeight(std::move(buffer_within_second_solint_bl_0), {},
+                                false);
   BOOST_CHECK_EQUAL(false, solver_buffer.IntervalIsComplete());
 
   // 3. Add interval completely contained in the next solution interval for
   // baseline 1
   auto buffer_within_second_solint_bl_1 =
-      std::make_unique<BdaBuffer>(1 * kNChannels * kNCorrelations, kFields);
+      std::make_unique<BdaBuffer>(1 * kNElementsPerRow, kFields);
   // Baseline 1: [51, 53]
   buffer_within_second_solint_bl_1->AddRow(
       time + 5 * kInterval, kInterval, kInterval, 1, kNChannels, kNCorrelations,
       data.data(), flags, weights.data());
 
-  solver_buffer.AppendAndWeight(std::move(buffer_within_second_solint_bl_1),
-                                {});
+  solver_buffer.AppendAndWeight(std::move(buffer_within_second_solint_bl_1), {},
+                                false);
   BOOST_CHECK_EQUAL(true, solver_buffer.IntervalIsComplete());
+}
+
+BOOST_DATA_TEST_CASE(keep_or_discard_model_data,
+                     boost::unit_test::data::make({true, false}),
+                     keep_model_data) {
+  const std::string kSolveDirection = {"solve_direction"};
+  const std::string kExtraDirection = {"extra_direction"};
+  const Fields kFields =
+      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
+  const std::complex<float> kDataValue(42.0, -13.0);
+  const std::complex<float> kSolveValue = kDataValue + 1.0f * kDataIncrement;
+  const std::complex<float> kExtraValue = kDataValue + 2.0f * kDataIncrement;
+  const float kWeight = 0.8;  // Make AppendAndWeight apply an actual weight.
+
+  auto buffer = std::make_unique<BdaBuffer>(kNElementsPerRow, kFields);
+  const BdaBuffer& buffer_ref = *buffer;
+  buffer->AddData(kSolveDirection);
+  buffer->AddData(kExtraDirection);
+  buffer->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
+                 kNCorrelations);
+  std::fill_n(buffer->GetData(), kNElementsPerRow, kDataValue);
+  std::fill_n(buffer->GetData(kSolveDirection), kNElementsPerRow, kSolveValue);
+  std::fill_n(buffer->GetData(kExtraDirection), kNElementsPerRow, kExtraValue);
+  std::fill_n(buffer->GetWeights(), kNElementsPerRow, kWeight);
+
+  BdaSolverBuffer solver_buffer(kFirstTime - kInterval / 2, kInterval, 1);
+  // Only pass the solve direction to the solver buffer. It should ignore
+  // the extra direction.
+  BOOST_CHECK_NO_THROW(solver_buffer.AppendAndWeight(
+      std::move(buffer), {kSolveDirection}, keep_model_data));
+
+  // Before advancing, GetDone should return nothing.
+  BOOST_REQUIRE(solver_buffer.GetDone().empty());
+
+  // After advancing, GetDone() should return the original buffer.
+  solver_buffer.AdvanceInterval();
+  const std::vector<std::unique_ptr<BdaBuffer>> done = solver_buffer.GetDone();
+  BOOST_REQUIRE_EQUAL(done.size(), 1u);
+  BOOST_CHECK_EQUAL(done.front().get(), &buffer_ref);
+
+  // Check if the buffer has the correct directions.
+  const std::vector<std::string> names = buffer_ref.GetDataNames();
+  if (keep_model_data) {
+    // All directions should remain ('names' is sorted).
+    const std::vector<std::string> kExpectedNames{"", kExtraDirection,
+                                                  kSolveDirection};
+    BOOST_REQUIRE_EQUAL_COLLECTIONS(names.begin(), names.end(),
+                                    kExpectedNames.begin(),
+                                    kExpectedNames.end());
+  } else {
+    // Only the solve direction should be gone.
+    const std::vector<std::string> kExpectedNames{"", kExtraDirection};
+    BOOST_REQUIRE_EQUAL_COLLECTIONS(names.begin(), names.end(),
+                                    kExpectedNames.begin(),
+                                    kExpectedNames.end());
+  }
+
+  // Check that that the data did not change.
+  for (std::size_t i = 0; i < kNElementsPerRow; ++i) {
+    BOOST_CHECK_EQUAL(buffer_ref.GetData()[i], kDataValue);
+    BOOST_CHECK_EQUAL(buffer_ref.GetData(kExtraDirection)[i], kExtraValue);
+    if (keep_model_data) {
+      BOOST_CHECK_EQUAL(buffer_ref.GetData(kSolveDirection)[i], kSolveValue);
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -37,12 +37,11 @@ class BdaSolverBuffer {
 
   /**
    * Constructor.
-   * @param n_directions The number of directions.
    * @param start Start time of the first solution interval.
    * @param interval Length of a solution interval. Should be > 0.0.
+   * @param n_baselines The number of baselines.
    */
-  BdaSolverBuffer(size_t n_directions, double start, double interval,
-                  size_t n_baselines)
+  BdaSolverBuffer(double start, double interval, size_t n_baselines)
       : data_(),
         time_start_(start),
         time_interval_(interval),
@@ -56,17 +55,19 @@ class BdaSolverBuffer {
 
   /**
    * This function takes a buffer with unweighted data and the corresponding
-   * weights, and a buffer with model data. It weights these data buffers
-   * and stores the result internally.
-   * @param data_buffer A buffer with unweighted data and weights.
-   * @param model_buffers A vector with model_buffers for each direction.
-   * The BDA layout of these buffers should match the layout of the data_buffer.
-   * The BdaSolverBuffer takes ownership of the model buffers.
-   * @throw std::invalid_argument If model_buffers has an invalid size.
+   * weights. It weights these data buffers and stores the result internally.
+   * @param buffer A buffer with unweighted data, unweighted model data
+   * for each direction and weights.
+   * @param direction_names The names of the model data buffers in 'buffer'.
+   * @param keep_unweighted_model_data
+   * True: Keep the original unweighted model data. GetDone() will
+   *       return the original buffers, including that model data.
+   * False: Delete the unweighted model data. GetDone() will
+   *        return buffers without any model data for the given directions.
    */
-  void AppendAndWeight(
-      std::unique_ptr<base::BdaBuffer> data_buffer,
-      std::vector<std::unique_ptr<base::BdaBuffer>>&& model_buffers);
+  void AppendAndWeight(std::unique_ptr<base::BdaBuffer> buffer,
+                       const std::vector<std::string>& direction_names,
+                       bool keep_unweighted_model_data);
 
   /**
    * Clears all internal buffers.
@@ -187,8 +188,6 @@ class BdaSolverBuffer {
   struct InputData {
     std::unique_ptr<base::BdaBuffer> unweighted;
     std::unique_ptr<base::BdaBuffer> weighted;
-    /// Model data buffer for each direction.
-    std::vector<std::unique_ptr<base::BdaBuffer>> model;
   };
 
   /// A FIFO queue with input data. AppendAndWeight appends items.
