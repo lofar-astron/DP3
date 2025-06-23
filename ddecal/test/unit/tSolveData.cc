@@ -29,55 +29,48 @@ const size_t kNAntennas = 3;
 const std::vector<int> kAntennas1 = {0, 0, 0};
 const std::vector<int> kAntennas2 = {1, 2, 0};
 
-void FillRandomData(std::vector<std::complex<float>>& data, size_t size) {
+void FillRandomData(std::complex<float>* data, size_t size) {
   // Reusing these variables ensures that each call generates different data.
   static std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   static std::mt19937 mt(0);
 
-  data.clear();
-  data.reserve(size);
-  std::generate_n(std::back_inserter(data), size, []() {
+  std::generate_n(data, size, []() {
     return std::complex<float>(uniform_data(mt), uniform_data(mt));
   });
 }
 
 void FillRegularData(DPBuffer::DataType& data) {
-  // Reusing these variables ensures that each call generates different data.
-  static std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
-  static std::mt19937 mt(0);
-
-  std::generate_n(data.begin(), data.size(), []() {
-    return std::complex<float>(uniform_data(mt), uniform_data(mt));
-  });
+  FillRandomData(data.data(), data.size());
 }
 
 void FillBdaBuffer(BdaBuffer& buffer, size_t avg_channels, size_t all_channels,
                    double unit_interval) {
-  std::vector<std::complex<float>> data;
-  const std::vector<float> weights(all_channels * kNPolarizations, 1.0f);
-
   for (size_t time_index = 0; time_index != 2; ++time_index) {
     const double row_time = 2.0 * time_index * unit_interval;
+
     // Add averaged rows for baselines 0 (cross-correlation 0 x 1)
-    FillRandomData(data, avg_channels * kNPolarizations);
-    BOOST_REQUIRE(buffer.AddRow(
-        row_time + unit_interval, unit_interval * 2.0, unit_interval * 2.0, 0,
-        avg_channels, kNPolarizations, data.data(), nullptr, weights.data()));
+    BOOST_REQUIRE(buffer.AddRow(row_time + unit_interval, unit_interval * 2.0,
+                                unit_interval * 2.0, 0, avg_channels,
+                                kNPolarizations));
 
     // Add averaged rows for baselines 2 (auto-correlation 0 x 0)
-    FillRandomData(data, avg_channels * kNPolarizations);
-    BOOST_REQUIRE(buffer.AddRow(
-        row_time + unit_interval, unit_interval * 2.0, unit_interval * 2.0, 2,
-        avg_channels, kNPolarizations, data.data(), nullptr, weights.data()));
+    BOOST_REQUIRE(buffer.AddRow(row_time + unit_interval, unit_interval * 2.0,
+                                unit_interval * 2.0, 2, avg_channels,
+                                kNPolarizations));
 
     // Add non-averaged rows for baseline 1 (cross-correlation 0 x 2)
     for (int j = 0; j < 2; ++j) {
-      FillRandomData(data, all_channels * kNPolarizations);
-      BOOST_REQUIRE(buffer.AddRow(
-          row_time + (0.5 + j) * unit_interval, unit_interval, unit_interval, 1,
-          all_channels, kNPolarizations, data.data(), nullptr, weights.data()));
+      BOOST_REQUIRE(buffer.AddRow(row_time + (0.5 + j) * unit_interval,
+                                  unit_interval, unit_interval, 1, all_channels,
+                                  kNPolarizations));
     }
   }
+
+  FillRandomData(buffer.GetData(), buffer.GetNumberOfElements());
+  for (const std::string& name : buffer.GetDataNames()) {
+    FillRandomData(buffer.GetData(name), buffer.GetNumberOfElements());
+  }
+  std::fill_n(buffer.GetWeights(), buffer.GetNumberOfElements(), 1.0f);
 }
 
 }  // namespace
@@ -273,28 +266,23 @@ BOOST_AUTO_TEST_CASE(bda) {
   const std::vector<std::vector<size_t>> kNVisibilitiesPerBaseline{{2, 3},
                                                                    {2, 4}};
 
-  const Fields bda_fields = Fields(Fields::Single::kData) |
-                            Fields(Fields::Single::kFlags) |
-                            Fields(Fields::Single::kWeights);
-  auto bda_data_buffer =
-      std::make_unique<BdaBuffer>(kBdaBufferSize, bda_fields);
-  FillBdaBuffer(*bda_data_buffer, kNAveragedChannels, kNAllChannels,
-                kUnitTimeInterval);
+  const Fields fields = Fields(Fields::Single::kData) |
+                        Fields(Fields::Single::kFlags) |
+                        Fields(Fields::Single::kWeights);
+  auto bda_buffer = std::make_unique<BdaBuffer>(kBdaBufferSize, fields);
 
-  const Fields bda_model_fields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kFlags);
-  std::vector<std::unique_ptr<BdaBuffer>> bda_model_buffers;
+  std::vector<std::string> direction_names;
   for (size_t direction = 0; direction != kNDirections; ++direction) {
-    bda_model_buffers.push_back(
-        std::make_unique<BdaBuffer>(kBdaBufferSize, bda_model_fields));
-    FillBdaBuffer(*bda_model_buffers.back(), kNAveragedChannels, kNAllChannels,
-                  kUnitTimeInterval);
+    const std::string name = std::to_string(direction);
+    bda_buffer->AddData(name);
+    direction_names.push_back(name);
   }
 
-  dp3::ddecal::BdaSolverBuffer solver_buffer(kNDirections, 0.0, kSolverInterval,
-                                             kNBaselines);
-  solver_buffer.AppendAndWeight(std::move(bda_data_buffer),
-                                std::move(bda_model_buffers));
+  FillBdaBuffer(*bda_buffer, kNAveragedChannels, kNAllChannels,
+                kUnitTimeInterval);
+
+  dp3::ddecal::BdaSolverBuffer solver_buffer(0.0, kSolverInterval, kNBaselines);
+  solver_buffer.AppendAndWeight(std::move(bda_buffer), direction_names, false);
   BOOST_TEST_REQUIRE(solver_buffer.GetIntervalRows().size() ==
                      kNRowsPerBaseline[0] + kNRowsPerBaseline[1] +
                          kNRowsPerBaseline[2]);

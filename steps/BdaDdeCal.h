@@ -107,6 +107,9 @@ class BdaDdeCal : public Step {
   /// Extracts results from all sub-steps and appends them to model_buffers_.
   void ExtractResults();
 
+  /// Checks if a buffer contains all named directions.
+  bool HasAllDirections(const base::BdaBuffer& buffer) const;
+
   /// Processes the data for the directions where all sub-steps gave results.
   void ProcessCompleteDirections();
 
@@ -134,17 +137,11 @@ class BdaDdeCal : public Step {
   /// For each direction, a list of patch names.
   std::vector<std::vector<std::string>> patches_;
 
-  /**
-   * Stores the data buffers received from the process() function.
-   */
-  std::deque<std::unique_ptr<base::BdaBuffer>> input_buffers_;
+  /** For each direction, the name for the model data in BdaBuffer. */
+  std::vector<std::string> direction_names_;
 
-  /**
-   * Stores the result buffers from the sub steps. Each queue item holds
-   * a vector of results for the directions.
-   * When all directions ina queue item are valid, further processing can start.
-   */
-  std::deque<std::vector<std::unique_ptr<base::BdaBuffer>>> model_buffers_;
+  /** Stores the data buffers received from the process() function. */
+  std::deque<std::unique_ptr<base::BdaBuffer>> input_buffers_;
 
   /**
    * Solver buffer.

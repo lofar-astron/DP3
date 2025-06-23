@@ -70,7 +70,7 @@ SolverTester::SolverTester()
       n_solutions_(0),
 
       // Set the solution interval so that all data is in the first interval.
-      bda_solver_buffer_(kNDirections, -1.0, kNBDATimes + 1.0, kNBaselines) {
+      bda_solver_buffer_(-1.0, kNBDATimes + 1.0, kNBaselines) {
   antennas1_.reserve(kNBaselines);
   antennas2_.reserve(kNBaselines);
   for (size_t ant1 = 0; ant1 != kNAntennas; ++ant1) {
@@ -186,29 +186,21 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
   std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   std::mt19937 mt(0);
 
-  // Reusable vector for measurement data and model data.
-  // Declaring it outside the loops below allows memory reuse.
-  std::vector<std::complex<float>> data;
   const std::vector<float> weights(kNChannels * kNPolarizations, 1.0f);
 
   // For each block of 8 baselines, the averaged data size corresponds to
   // 1 + 1/2 + 1/2 + 1/3 + 1/3 + 1/6 + 1/6 + 1/16 = 3 + 1/16
   // non-averaged baselines. -> Divide the non-averaged data by two.
-  const size_t bda_buffer_size =
+  const size_t buffer_size =
       kNBDATimes * kNBaselines * kNChannels * kNPolarizations / 2;
 
   // Initialize the data buffers. The solvers only need the data field.
-  const Fields bda_fields =
+  const Fields fields =
       Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
-  const Fields bda_model_fields(Fields::Single::kData);
-  auto bda_data_buffer =
-      std::make_unique<BdaBuffer>(bda_buffer_size, bda_fields);
-  std::vector<std::unique_ptr<BdaBuffer>> bda_model_buffers;
-  bda_model_buffers.reserve(kNDirections);
-  for (size_t dir = 0; dir < kNDirections; ++dir) {
-    bda_model_buffers.push_back(
-        std::make_unique<BdaBuffer>(bda_buffer_size, bda_model_fields));
-  }
+  const std::vector<std::string> direction_names = CreateDirectionNames();
+
+  auto buffer = std::make_unique<BdaBuffer>(buffer_size, fields);
+  for (const std::string& name : direction_names) buffer->AddData(name);
 
   // Do the outer loop over time, since the BDA rows should be ordered.
   for (size_t time = 0; time < kNBDATimes; ++time) {
@@ -221,57 +213,56 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
           averaging_factors.second;
 
       if ((time % n_averaged_times) == 0) {
+        const std::size_t row = buffer->GetRows().size();
+
+        BOOST_REQUIRE(buffer->AddRow(
+            time, n_averaged_times * kBdaUnitTimeInterval,
+            n_averaged_times * kBdaUnitTimeInterval, bl, n_averaged_channels,
+            kNPolarizations, nullptr, nullptr, weights.data()));
+
         // Generate model data for all directions.
-        for (size_t dir = 0; dir < kNDirections; ++dir) {
-          data.clear();
+        for (const std::string& name : direction_names) {
+          std::complex<float>* model_data = buffer->GetData(row, name);
           for (size_t ch = 0; ch < n_averaged_channels; ++ch) {
-            data.emplace_back(uniform_data(mt), uniform_data(mt));
-            data.emplace_back(uniform_data(mt) * 0.1, uniform_data(mt) * 0.1);
-            data.emplace_back(uniform_data(mt) * 0.1, uniform_data(mt) * 0.1);
-            data.emplace_back(uniform_data(mt) * 1.5, uniform_data(mt) * 1.5);
+            model_data[0] =
+                std::complex<float>(uniform_data(mt), uniform_data(mt));
+            model_data[1] = std::complex<float>(uniform_data(mt) * 0.1,
+                                                uniform_data(mt) * 0.1);
+            model_data[2] = std::complex<float>(uniform_data(mt) * 0.1,
+                                                uniform_data(mt) * 0.1);
+            model_data[3] = std::complex<float>(uniform_data(mt) * 1.5,
+                                                uniform_data(mt) * 1.5);
+            model_data += kNPolarizations;
           }
-          BOOST_REQUIRE(bda_model_buffers[dir]->AddRow(
-              time, n_averaged_times * kBdaUnitTimeInterval,
-              n_averaged_times * kBdaUnitTimeInterval, bl, n_averaged_channels,
-              kNPolarizations, data.data()));
         }
 
         // Generate measurement data using the model data.
         const size_t ant1 = antennas1_[bl];
         const size_t ant2 = antennas2_[bl];
-        data.clear();
         for (size_t ch = 0; ch < n_averaged_channels; ++ch) {
           MC2x2 perturbed_model = MC2x2::Zero();
+
           for (size_t dir = 0; dir < kNDirections; ++dir) {
             const size_t ant1_index = (ant1 * kNDirections + dir) * 2;
             const size_t ant2_index = (ant2 * kNDirections + dir) * 2;
 
-            const BdaBuffer& model_buffer = *bda_model_buffers[dir];
-            const std::size_t n_rows = model_buffer.GetRows().size();
-            MC2x2 val(&model_buffer.GetData(n_rows - 1)[ch * 4]);
+            MC2x2 val(&buffer->GetData(row, direction_names[dir])[ch * 4]);
             MC2x2 left(input_solutions_[ant1_index], 0.0, 0.0,
                        input_solutions_[ant1_index + 1]);
             MC2x2 right(input_solutions_[ant2_index], 0.0, 0.0,
                         input_solutions_[ant2_index + 1]);
             perturbed_model += left * val.MultiplyHerm(right);
           }
-          for (size_t p = 0; p != kNPolarizations; ++p) {
-            data.emplace_back(perturbed_model.Get(p));
-          }
+          perturbed_model.AssignTo(&buffer->GetData(row)[ch * 4]);
         }
-        BOOST_REQUIRE(bda_data_buffer->AddRow(
-            time, averaging_factors.first * kBdaUnitTimeInterval,
-            n_averaged_times * kBdaUnitTimeInterval, bl, n_averaged_channels,
-            kNPolarizations, data.data(), nullptr, weights.data()));
       }
     }
   }
 
-  const size_t n_bda_data_buffer_rows = bda_data_buffer->GetRows().size();
-  bda_solver_buffer_.AppendAndWeight(std::move(bda_data_buffer),
-                                     std::move(bda_model_buffers));
+  const size_t n_bda_buffer_rows = buffer->GetRows().size();
+  bda_solver_buffer_.AppendAndWeight(std::move(buffer), direction_names, false);
   BOOST_REQUIRE_EQUAL(bda_solver_buffer_.GetIntervalRows().size(),
-                      n_bda_data_buffer_rows);
+                      n_bda_buffer_rows);
 
   return bda_solver_buffer_;
 }
