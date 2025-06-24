@@ -338,10 +338,10 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
     }
   }
 
-  itsFlagCounter.init(getInfo());
+  itsFlagCounter.init(getInfoOut());
 
   // Check that channels are evenly spaced
-  if (!itsUseH5Parm && !info().channelsAreRegular()) {
+  if (!itsUseH5Parm && !getInfoOut().channelsAreRegular()) {
     throw std::runtime_error(
         "ApplyCal with parmdb requires evenly spaced channels.");
   }
@@ -427,16 +427,17 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
           gain_type = GainType::kFullJonesRealImaginary;
         }
 
-        std::vector<double> times(info().ntime());
+        std::vector<double> times(getInfoOut().ntime());
         for (size_t t = 0; t < times.size(); ++t) {
           // time centroids
-          times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
+          times[t] = getInfoOut().startTime() +
+                     (t + 0.5) * getInfoOut().timeInterval();
         }
 
         // Validate that the data is in the correct shape
         const size_t n_chan = buffer->GetData().shape(1);
-        const size_t n_corrs =
-            buffer->GetSolution()[0].size() / info().antennaNames().size();
+        const size_t n_corrs = buffer->GetSolution()[0].size() /
+                               getInfoOut().antennaNames().size();
         if (buffer->GetSolution().size() != n_chan ||
             (n_corrs != 2 && n_corrs != 4)) {
           throw std::runtime_error(
@@ -445,8 +446,8 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
         }
 
         itsJonesParametersPerDirection[""] = std::make_unique<JonesParameters>(
-            info().chanFreqs(), times, info().antennaNames(), gain_type,
-            buffer->GetSolution(), itsInvert);
+            getInfoOut().chanFreqs(), times, getInfoOut().antennaNames(),
+            gain_type, buffer->GetSolution(), itsInvert);
       }
       itsTimeStep = 0;
     } else {
@@ -512,12 +513,12 @@ void OneApplyCal::CorrectionLoop(DPBuffer& buffer,
   aocommon::StaticFor<size_t> loop;
   loop.Run(0, n_bl, [&](size_t start_baseline, size_t end_baseline) {
     for (size_t bl = start_baseline; bl < end_baseline; ++bl) {
-      const unsigned int ant_a = info().getAnt1()[bl];
-      const unsigned int ant_b = info().getAnt2()[bl];
+      const unsigned int ant_a = getInfoOut().getAnt1()[bl];
+      const unsigned int ant_b = getInfoOut().getAnt2()[bl];
 
       for (size_t chan = 0; chan < n_chan; chan++) {
         const unsigned int time_freq_offset =
-            (itsTimeStep * info().nchan()) + chan;
+            (itsTimeStep * getInfoOut().nchan()) + chan;
         const std::complex<float>* gain_a = &gains(0, ant_a, time_freq_offset);
         const std::complex<float>* gain_b = &gains(0, ant_b, time_freq_offset);
         if (n_solution_corr > 2) {
@@ -536,17 +537,17 @@ void OneApplyCal::CorrectionLoop(DPBuffer& buffer,
 
 std::vector<double> OneApplyCal::CalculateBufferTimes(double buffer_start_time,
                                                       bool use_end) {
-  itsLastTime = buffer_start_time - 0.5 * info().timeInterval() +
-                itsTimeSlotsPerParmUpdate * info().timeInterval();
+  itsLastTime = buffer_start_time - 0.5 * getInfoOut().timeInterval() +
+                itsTimeSlotsPerParmUpdate * getInfoOut().timeInterval();
   size_t n_times = itsTimeSlotsPerParmUpdate;
   // If calculated time is past the last timestep in the ms,
   // move it back.
-  const double lastMSTime =
-      info().startTime() + info().ntime() * info().timeInterval();
+  const double lastMSTime = getInfoOut().startTime() +
+                            getInfoOut().ntime() * getInfoOut().timeInterval();
   if (itsLastTime > lastMSTime &&
       !casacore::nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
     itsLastTime = lastMSTime;
-    n_times = info().ntime() % itsTimeSlotsPerParmUpdate;
+    n_times = getInfoOut().ntime() % itsTimeSlotsPerParmUpdate;
   }
   std::vector<double> times;
   times.reserve(n_times);
@@ -554,7 +555,7 @@ std::vector<double> OneApplyCal::CalculateBufferTimes(double buffer_start_time,
     // TODO(AST-1078) for investigating the 0.5 offset.
     double time = use_end ? t + 0.5 : t;
     // buffer_start_time is the mid point of the first timestep in the buffer
-    times.emplace_back(buffer_start_time + time * info().timeInterval());
+    times.emplace_back(buffer_start_time + time * getInfoOut().timeInterval());
   }
   return times;
 }
@@ -577,7 +578,7 @@ void OneApplyCal::updateParmsH5(const double bufStartTime,
 }
 
 void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
-  unsigned int numAnts = info().antennaNames().size();
+  unsigned int numAnts = getInfoOut().antennaNames().size();
 
   std::vector<std::vector<std::vector<double>>> parmvalues;
   parmvalues.resize(itsParmExprs.size());
@@ -585,13 +586,13 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     parmvalues[i].resize(numAnts);
   }
 
-  unsigned int numFreqs(info().chanFreqs().size());
-  double freqInterval(info().chanWidths()[0]);
+  unsigned int numFreqs(getInfoOut().chanFreqs().size());
+  double freqInterval(getInfoOut().chanWidths()[0]);
   if (numFreqs > 1) {  // Handle data with evenly spaced gaps between channels
-    freqInterval = info().chanFreqs()[1] - info().chanFreqs()[0];
+    freqInterval = getInfoOut().chanFreqs()[1] - getInfoOut().chanFreqs()[0];
   }
-  double minFreq(info().chanFreqs()[0] - 0.5 * freqInterval);
-  double maxFreq(info().chanFreqs()[numFreqs - 1] + 0.5 * freqInterval);
+  double minFreq(getInfoOut().chanFreqs()[0] - 0.5 * freqInterval);
+  double maxFreq(getInfoOut().chanFreqs()[numFreqs - 1] + 0.5 * freqInterval);
 
   const std::vector<double> times = CalculateBufferTimes(bufStartTime, true);
 
@@ -605,8 +606,8 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     // parmMap contains parameter values for all antennas
     parmMap = itsParmDB->getValuesMap(
         itsParmExprs[parmExprNum] + "{:phase_center,}*", minFreq, maxFreq,
-        freqInterval, bufStartTime - 0.5 * info().timeInterval(), itsLastTime,
-        info().timeInterval(), true);
+        freqInterval, bufStartTime - 0.5 * getInfoOut().timeInterval(),
+        itsLastTime, getInfoOut().timeInterval(), true);
 
     std::string parmExpr = itsParmExprs[parmExprNum];
 
@@ -629,9 +630,9 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
     }
 
     for (unsigned int ant = 0; ant < numAnts; ++ant) {
-      parmIt =
-          parmMap.find(parmExpr + ":" +
-                       std::string(info().antennaNames()[ant]) + name_postfix);
+      parmIt = parmMap.find(parmExpr + ":" +
+                            std::string(getInfoOut().antennaNames()[ant]) +
+                            name_postfix);
 
       if (parmIt != parmMap.end()) {
         parmvalues[parmExprNum][ant].swap(parmIt->second);
@@ -642,7 +643,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
         double defValue;
 
         std::string defParmNameAntenna =
-            parmExpr + ":" + std::string(info().antennaNames()[ant]) +
+            parmExpr + ":" + std::string(getInfoOut().antennaNames()[ant]) +
             name_postfix;
         if (itsParmDB->getDefValues(defParmNameAntenna).size() ==
             1) {  // Default for antenna
@@ -664,7 +665,7 @@ void OneApplyCal::updateParmsParmDB(const double bufStartTime) {
         } else {
           throw std::runtime_error(
               "No parameter value found for " + parmExpr + ":" +
-              std::string(info().antennaNames()[ant]) + name_postfix);
+              std::string(getInfoOut().antennaNames()[ant]) + name_postfix);
         }
 
         parmvalues[parmExprNum][ant].resize(tfDomainSize);

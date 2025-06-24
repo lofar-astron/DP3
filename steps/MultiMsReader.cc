@@ -112,16 +112,17 @@ void MultiMsReader::ValidateBands() {
   for (const Reader& reader : readers_) {
     const std::shared_ptr<MsReader>& ms_reader = reader.ms_reader;
     if (ms_reader) {
-      const DPInfo& reader_info = ms_reader->getInfo();
+      const DPInfo& reader_info = ms_reader->getInfoOut();
       const std::string& name = reader.name;
       const std::string& first_name = readers_.front().name;
-      if (!casacore::near(getInfo().firstTime(), reader_info.firstTime()))
+      if (!casacore::near(getInfoOut().firstTime(), reader_info.firstTime()))
         throw std::runtime_error("First time of MS " + name + " differs from " +
                                  first_name);
-      if (!casacore::near(getInfo().lastTime(), reader_info.lastTime()))
+      if (!casacore::near(getInfoOut().lastTime(), reader_info.lastTime()))
         throw std::runtime_error("Last time of MS " + name + " differs from " +
                                  first_name);
-      if (!casacore::near(getInfo().timeInterval(), reader_info.timeInterval()))
+      if (!casacore::near(getInfoOut().timeInterval(),
+                          reader_info.timeInterval()))
         throw std::runtime_error("Time interval of MS " + name +
                                  " differs from " + first_name);
       if (getInfoOut().ncorr() != reader_info.ncorr())
@@ -169,10 +170,10 @@ void MultiMsReader::HandleBands() {
   }
 
   const DPInfo first_reader_info = readers_.front().ms_reader->getInfoOut();
-  info().setChannels(std::move(frequencies), std::move(widths),
-                     std::move(resolutions), std::move(effectiveBW),
-                     first_reader_info.refFreq(),
-                     first_reader_info.spectralWindow());
+  GetWritableInfoOut().setChannels(
+      std::move(frequencies), std::move(widths), std::move(resolutions),
+      std::move(effectiveBW), first_reader_info.refFreq(),
+      first_reader_info.spectralWindow());
 }
 
 void MultiMsReader::SortBands() {
@@ -184,7 +185,7 @@ void MultiMsReader::SortBands() {
   int nband = readers_.size();
   casacore::Vector<double> freqs(nband);
   for (int i = 0; i < nband; ++i) {
-    freqs[i] = readers_[i].ms_reader->getInfo().chanFreqs().data()[0];
+    freqs[i] = readers_[i].ms_reader->getInfoOut().chanFreqs().data()[0];
   }
   casacore::Vector<common::rownr_t> index;
 
@@ -209,9 +210,10 @@ void MultiMsReader::FillBands() {
   }
 
   // Get channel width (which should be the same for all bands).
-  double chanw = readers_[first_].ms_reader->getInfo().chanWidths().data()[0];
+  double chanw =
+      readers_[first_].ms_reader->getInfoOut().chanWidths().data()[0];
   // Get frequency for first subband.
-  double freq = readers_[first_].ms_reader->getInfo().chanFreqs().data()[0];
+  double freq = readers_[first_].ms_reader->getInfoOut().chanFreqs().data()[0];
   freq -= first_ * n_fill_channels_ * chanw;
   // Add missing channels to the total nr.
   n_channels += n_missing_ * n_fill_channels_;
@@ -224,12 +226,12 @@ void MultiMsReader::FillBands() {
   for (Reader& reader : readers_) {
     std::shared_ptr<MsReader>& ms_reader = reader.ms_reader;
     if (ms_reader) {
-      if (ms_reader->getInfo().nchan() != n_fill_channels_)
+      if (ms_reader->getInfoOut().nchan() != n_fill_channels_)
         throw std::runtime_error(
             "An MS is missing; the others should have equal nchan");
       // Check if all channels have the same width and are consecutive.
-      const std::vector<double>& freqs = ms_reader->getInfo().chanFreqs();
-      const std::vector<double>& width = ms_reader->getInfo().chanWidths();
+      const std::vector<double>& freqs = ms_reader->getInfoOut().chanFreqs();
+      const std::vector<double>& width = ms_reader->getInfoOut().chanWidths();
       if (freqs[0] < freq && !casacore::near(freqs[0], freq, 1e-5))
         throw std::runtime_error(
             "Subbands should be in increasing order of frequency; found " +
@@ -251,7 +253,7 @@ void MultiMsReader::FillBands() {
     }
   }
 
-  info().setChannels(std::move(chanFreqs), std::move(chanWidths));
+  GetWritableInfoOut().setChannels(std::move(chanFreqs), std::move(chanWidths));
 }
 
 bool MultiMsReader::process(std::unique_ptr<DPBuffer> buffer) {
@@ -306,7 +308,7 @@ bool MultiMsReader::process(std::unique_ptr<DPBuffer> buffer) {
             "consecutive; this is not the case for MS " +
             std::to_string(i) + ": " + ms_reader->msName());
       // Copy data and flags.
-      last_channel = first_channel + ms_reader->getInfo().nchan();
+      last_channel = first_channel + ms_reader->getInfoOut().nchan();
       auto channel_range = xt::range(first_channel, last_channel);
       if (getFieldsToRead().Data()) {
         xt::view(buffer->GetData(), xt::all(), channel_range, xt::all()) =

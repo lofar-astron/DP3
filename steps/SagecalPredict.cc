@@ -562,19 +562,20 @@ void SagecalPredict::updateFromH5(const double startTime) {
   time_last_ = startTime + time_interval_ * (-0.5 + timeslots_per_parmupdate_);
 
   const double lastMSTime =
-      info().startTime() + info().ntime() * time_interval_;
+      getInfoOut().startTime() + getInfoOut().ntime() * time_interval_;
   if (time_last_ > lastMSTime &&
       !casacore::nearAbs(time_last_, lastMSTime, 1e-3)) {
     time_last_ = lastMSTime;
   }
 
-  std::vector<double> times(info().ntime());
+  std::vector<double> times(getInfoOut().ntime());
 #pragma GCC ivdep
   for (size_t t = 0; t < times.size(); ++t) {
-    times[t] = info().startTime() + (t + 0.5) * info().timeInterval();
+    times[t] =
+        getInfoOut().startTime() + (t + 0.5) * getInfoOut().timeInterval();
   }
 
-  const size_t n_chan = info().chanFreqs().size();
+  const size_t n_chan = getInfoOut().chanFreqs().size();
   const size_t n_dir = directions_list_.size();
 
   size_t dir_index = 0;
@@ -582,9 +583,9 @@ void SagecalPredict::updateFromH5(const double startTime) {
     hsize_t direction_index = sol_tab_->GetDirIndex(dir);
     std::unique_ptr<JonesParameters> Jones_params_ =
         std::make_unique<JonesParameters>(
-            info().chanFreqs(), times, info().antennaNames(), gain_type_,
-            interp_type_, direction_index, sol_tab_, sol_tab2_, invert_,
-            parm_expressions_.size(), missing_ant_behavior_);
+            getInfoOut().chanFreqs(), times, getInfoOut().antennaNames(),
+            gain_type_, interp_type_, direction_index, sol_tab_, sol_tab2_,
+            invert_, parm_expressions_.size(), missing_ant_behavior_);
 
     // shape : ncorr x n_stations x ntime*nfreq (ncorr:2,4)
     const casacore::Cube<casacore::Complex>& gains = Jones_params_->GetParms();
@@ -674,9 +675,9 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   // Determine the various sizes.
   const size_t nDr = patch_list_.size();
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
-  const size_t nCr = info().ncorr();
+  const size_t nBl = getInfoOut().nbaselines();
+  const size_t nCh = getInfoOut().nchan();
+  const size_t nCr = getInfoOut().ncorr();
 
   buffer->GetData().resize({nBl, nCh, nCr});
 
@@ -767,7 +768,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
     if (beam_mode_ == DOBEAM_NONE) {
       predict_visibilities_multifreq_withsol(
           iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-          &params_[timestep_ * 8 * nDr * nCh * info().nantenna()],
+          &params_[timestep_ * 8 * nDr * nCh * getInfoOut().nantenna()],
           iodata_.data_.data(), ignore_list_.data(), iodata_.n_stations,
           iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
           iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
@@ -777,7 +778,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
     } else {
       predict_visibilities_multifreq_withsol_withbeam(
           iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-          &params_[timestep_ * 8 * nDr * nCh * info().nantenna()],
+          &params_[timestep_ * 8 * nDr * nCh * getInfoOut().nantenna()],
           iodata_.data_.data(), ignore_list_.data(), iodata_.n_stations,
           iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
           iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
@@ -809,7 +810,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   } else {
     predict_visibilities_withsol_withbeam_gpu(
         iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-        &params_[timestep_ * 8 * nDr * nCh * info().nantenna()],
+        &params_[timestep_ * 8 * nDr * nCh * getInfoOut().nantenna()],
         iodata_.data_.data(), ignore_list_.data(), iodata_.n_stations,
         iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
         iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
@@ -969,8 +970,8 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
     }
     assert(src_index == n_sources);
   }
-  const std::vector<double>& freqs = info().chanFreqs();
-  const std::vector<double>& widths = info().chanWidths();
+  const std::vector<double>& freqs = getInfoOut().chanFreqs();
+  const std::vector<double>& widths = getInfoOut().chanWidths();
   iodata_.f0 = 0.0;
   iodata_.fdelta = 0.0;
   for (size_t ch = 0; ch < n_channels; ch++) {
@@ -1047,7 +1048,7 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
   if (parm_on_disk_) {
     time_interval_ = _info.timeInterval();
     // Read in solutions for all timeslots
-    timeslots_per_parmupdate_ = info().ntime();
+    timeslots_per_parmupdate_ = getInfoOut().ntime();
     if (gain_type_ == GainType::kDiagonalComplex ||
         gain_type_ == GainType::kFullJones) {
       use_amp_phase_ = true;
@@ -1199,12 +1200,12 @@ base::Direction SagecalPredict::GetFirstDirection() const {
 
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
 void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
-  [[maybe_unused]] const size_t nCr = info().ncorr();
+  const size_t nBl = getInfoOut().nbaselines();
+  const size_t nCh = getInfoOut().nchan();
+  [[maybe_unused]] const size_t nCr = getInfoOut().ncorr();
 
   assert(iodata_.n_baselines >= nBl);
-  assert(iodata_.n_stations == getInfo().nantenna());
+  assert(iodata_.n_stations == getInfoOut().nantenna());
   assert(iodata_.n_channels == nCh);
   assert(4 == nCr);
 
@@ -1212,8 +1213,8 @@ void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
   size_t row0 = 0;
   // load data, skipping autocorrelations
   for (size_t bl = 0; bl < nBl; bl++) {
-    uint ant1 = info().getAnt1()[bl];
-    uint ant2 = info().getAnt2()[bl];
+    uint ant1 = getInfoOut().getAnt1()[bl];
+    uint ant2 = getInfoOut().getAnt2()[bl];
     if (ant1 != ant2) {
       // shape nBl x 3
       iodata_.u_[row0] = uvw(bl, 0);
@@ -1256,8 +1257,8 @@ void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
 }
 
 void SagecalPredict::writeData(std::unique_ptr<DPBuffer>& buffer) {
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
+  const size_t nBl = getInfoOut().nbaselines();
+  const size_t nCh = getInfoOut().nchan();
 
   assert(iodata_.n_baselines >= nBl);
   assert(iodata_.n_channels == nCh);
@@ -1266,8 +1267,8 @@ void SagecalPredict::writeData(std::unique_ptr<DPBuffer>& buffer) {
   size_t row0 = 0;
   // load data, skipping autocorrelations
   for (size_t bl = 0; bl < nBl; bl++) {
-    uint ant1 = info().getAnt1()[bl];
-    uint ant2 = info().getAnt2()[bl];
+    uint ant1 = getInfoOut().getAnt1()[bl];
+    uint ant2 = getInfoOut().getAnt2()[bl];
     if (ant1 != ant2) {
 #pragma GCC ivdep
       for (uint ch = 0; ch < nCh; ch++) {

@@ -81,8 +81,8 @@ void BdaExpander::updateInfo(const DPInfo& info_in) {
     }
   }
 
-  infoOut().setChannels(std::move(freqs), std::move(widths));
-  infoOut().setMetaChanged();
+  GetWritableInfoOut().setChannels(std::move(freqs), std::move(widths));
+  GetWritableInfoOut().setMetaChanged();
 }
 
 void BdaExpander::show(std::ostream& os) const {

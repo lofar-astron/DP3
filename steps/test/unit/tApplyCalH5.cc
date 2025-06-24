@@ -43,10 +43,10 @@ class TestInput : public dp3::steps::MockInput {
         itsNCorr(4),
         itsTimeInterval(5.),
         itsFirstTime(4472025742.5) {
-    info() = DPInfo(itsNCorr, itsNChan);
-    info().setTimes(itsFirstTime,
-                    itsFirstTime + (itsNTime - 1) * itsTimeInterval,
-                    itsTimeInterval);
+    GetWritableInfoOut() = DPInfo(itsNCorr, itsNChan);
+    GetWritableInfoOut().setTimes(
+        itsFirstTime, itsFirstTime + (itsNTime - 1) * itsTimeInterval,
+        itsTimeInterval);
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 
@@ -87,7 +87,7 @@ class TestInput : public dp3::steps::MockInput {
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     std::vector<double> antDiam(3, 70.);
-    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
+    GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 100.e6);
     std::vector<double> chanFreqs(nchan);
@@ -109,7 +109,8 @@ class TestInput : public dp3::steps::MockInput {
       chanFreqs[0] = 100.e6;
       chanFreqs[1] = 101.e6;
     }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
   }
 
  private:
@@ -208,9 +209,9 @@ class TestOutput : public dp3::steps::test::ThrowStep {
     }
 
     if (itsDoTest) {
-      for (unsigned int bl = 0; bl < info().nbaselines(); ++bl) {
-        unsigned int ant1 = info().getAnt1()[bl];
-        unsigned int ant2 = info().getAnt2()[bl];
+      for (unsigned int bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
+        unsigned int ant1 = getInfoOut().getAnt1()[bl];
+        unsigned int ant2 = getInfoOut().getAnt2()[bl];
 
         for (std::size_t chan = 0; chan < itsNChan; ++chan) {
           // Square root of autocorrelation for first antenna
@@ -261,7 +262,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    Step::updateInfo(infoIn);
     BOOST_CHECK_EQUAL(itsNChan, infoIn.origNChan());
     BOOST_CHECK_EQUAL(itsNChan, infoIn.nchan());
     BOOST_CHECK_EQUAL(itsNTime, infoIn.ntime());

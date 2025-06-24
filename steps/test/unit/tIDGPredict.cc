@@ -343,9 +343,9 @@ BOOST_AUTO_TEST_CASE(process_beam, *boost::unit_test::tolerance(0.0001f) *
     const size_t n_chan = data.shape(1);
     const size_t n_corr = data.shape(2);
 
-    BOOST_REQUIRE_EQUAL(n_bl, reader->getInfo().nbaselines());
-    BOOST_REQUIRE_EQUAL(n_chan, reader->getInfo().nchan());
-    BOOST_REQUIRE_EQUAL(n_corr, reader->getInfo().ncorr());
+    BOOST_REQUIRE_EQUAL(n_bl, reader->getInfoOut().nbaselines());
+    BOOST_REQUIRE_EQUAL(n_chan, reader->getInfoOut().nchan());
+    BOOST_REQUIRE_EQUAL(n_corr, reader->getInfoOut().ncorr());
 
     // Take samples of the result values and compare those.
     const std::complex<float>& data0 = data(0, 0, 0);

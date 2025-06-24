@@ -48,8 +48,9 @@ class TestInput : public dp3::steps::MockInput {
         n_baselines_(n_baselines),
         n_channels_(n_channels),
         n_correlations_(n_correlations) {
-    info() = DPInfo(n_correlations, n_channels);
-    info().setTimes(0.0, (n_times - 1) * time_interval_, time_interval_);
+    GetWritableInfoOut() = DPInfo(n_correlations, n_channels);
+    GetWritableInfoOut().setTimes(0.0, (n_times - 1) * time_interval_,
+                                  time_interval_);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(n_baselines);
@@ -96,7 +97,7 @@ class TestInput : public dp3::steps::MockInput {
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vector<double> antDiam(4, 70.);
-    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
+    GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
   }
 
   bool process(std::unique_ptr<DPBuffer>) override {
@@ -160,7 +161,8 @@ std::unique_ptr<BdaBuffer> TestInput<BdaBuffer>::CreateInputBuffer() {
   std::unique_ptr<BdaBuffer> buffer = std::make_unique<BdaBuffer>(
       n_correlations_ * n_channels_ * n_baselines_ * n_times_, kFields);
 
-  std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
+  std::vector<std::vector<double>> channel_frequencies =
+      getInfoOut().BdaChanFreqs();
 
   const double bda_first_time = count_ * 30 + first_time_;
 
@@ -193,7 +195,8 @@ void TestInput<DPBuffer>::updateInfo(const DPInfo&) {
     channel_frequencies.push_back(start_frequency_ +
                                   (i + 0.5) * min_channel_width_);
   }
-  info().setChannels(std::move(channel_frequencies), std::move(channel_widths));
+  GetWritableInfoOut().setChannels(std::move(channel_frequencies),
+                                   std::move(channel_widths));
 }
 
 template <>
@@ -220,7 +223,8 @@ void TestInput<BdaBuffer>::updateInfo(const DPInfo&) {
     }
   }
 
-  info().setChannels(std::move(channel_frequencies), std::move(channel_widths));
+  GetWritableInfoOut().setChannels(std::move(channel_frequencies),
+                                   std::move(channel_widths));
 }
 
 // Class to check result of flagged, unaveraged TestInput run by testX.
@@ -334,7 +338,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    Step::updateInfo(infoIn);
     BOOST_CHECK_EQUAL(infoIn.origNChan(), n_channels_);
     BOOST_CHECK_EQUAL(infoIn.ntime(), n_times_);
     BOOST_CHECK_EQUAL(infoIn.timeInterval(), 5.0);
@@ -361,7 +365,8 @@ bool TestOutput<DPBuffer>::process(std::unique_ptr<DPBuffer> buffer) {
 template <>
 bool TestOutput<BdaBuffer>::process(std::unique_ptr<BdaBuffer> buffer) {
   // Flag where u,v,w matches intervals given in the requested test.
-  std::vector<std::vector<double>> channel_frequencies = info().BdaChanFreqs();
+  std::vector<std::vector<double>> channel_frequencies =
+      getInfoOut().BdaChanFreqs();
   const xt::xtensor<bool, 3> expected_result = GetResult();
 
   for (std::size_t row_index = 0; row_index < buffer->GetRows().size();

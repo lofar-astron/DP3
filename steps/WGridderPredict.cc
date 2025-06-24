@@ -228,7 +228,7 @@ void WGridderPredict::updateInfo(const dp3::base::DPInfo& info_in) {
   }
   Step::updateInfo(info_in);
   std::map<std::string, dp3::base::Direction>& directions =
-      info().GetDirections();
+      GetWritableInfoOut().GetDirections();
   for (size_t i = 0; i < directions_.size(); i++) {
     directions.insert({direction_labels_[i], directions_[i]});
   }
@@ -262,7 +262,7 @@ void WGridderPredict::flush() {
   destinations.reserve(buffers_.size());
 
   const std::array<size_t, 3> data_size = {
-      getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
+      getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
 
   if (sum_facets_) {
     destinations.clear();
@@ -314,8 +314,8 @@ void WGridderPredict::Predict(
 
   const size_t n_terms = readers_.size();
   const size_t n_timesteps = buffers_.size();
-  const size_t n_baselines = getInfo().nbaselines();
-  const size_t n_channels = getInfo().nchan();
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
 
   // Concatenate uvw data from the dpbuffers into one uvw buffer
   xt::xtensor<double, 3> uvw{
@@ -349,7 +349,7 @@ void WGridderPredict::Predict(
        int(readers_[0].ImageHeight() / 2)) *
       pixel_size_y_;
 
-  const double* frequency_data = getInfo().chanFreqs().data();
+  const double* frequency_data = getInfoOut().chanFreqs().data();
   constexpr double sigma_min = 1.1;
   constexpr double sigma_max = 2.0;
   size_t width = images_[direction].Width();
@@ -394,7 +394,7 @@ void WGridderPredict::Predict(
   // Precompute polynomial frequency factors for all channels.
   std::vector<float> frequency_factors;
   frequency_factors.reserve(n_channels);
-  for (double frequency : info().chanFreqs()) {
+  for (double frequency : getInfoOut().chanFreqs()) {
     frequency_factors.push_back(frequency / reference_frequency_ - 1.0);
   }
 
@@ -449,9 +449,9 @@ void WGridderPredict::SetBufferSize(size_t n_timesteps) {
 size_t WGridderPredict::GetBufferSize() const { return buffer_size_; }
 
 size_t WGridderPredict::GetAllocatableBuffers(size_t memory) {
-  const size_t n_baselines = getInfo().nbaselines();
-  const size_t n_channels = getInfo().nchan();
-  const size_t n_correlations = getInfo().ncorr();
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
+  const size_t n_correlations = getInfoOut().ncorr();
 
   // Crude estimate of the memory usage of one timestep
   // Curreently only accounts for the visibilities

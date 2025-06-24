@@ -74,7 +74,7 @@ class MockPredict : public Step {
 
   void updateInfo(const dp3::base::DPInfo& info_in) override {
     Step::updateInfo(info_in);
-    BOOST_TEST(kNChannels == info().origNChan());
+    BOOST_TEST(kNChannels == getInfoOut().origNChan());
     BOOST_TEST(kNChannels / frequency_step_ == info_in.nchan());
   }
 

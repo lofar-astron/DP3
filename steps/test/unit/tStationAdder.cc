@@ -40,8 +40,8 @@ class TestInput : public dp3::steps::MockInput {
         itsNBl(nbl),
         itsNChan(nchan),
         itsNCorr(ncorr) {
-    info() = DPInfo(ncorr, nchan);
-    info().setTimes(0.0, (ntime - 1) * 5.0, 5.0);
+    GetWritableInfoOut() = DPInfo(ncorr, nchan);
+    GetWritableInfoOut().setTimes(0.0, (ntime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     vector<int> ant1(nbl);
@@ -88,14 +88,15 @@ class TestInput : public dp3::steps::MockInput {
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     vector<double> antDiam(4, 70.0);
-    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
+    GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 1000000.0);
     std::vector<double> chanFreqs;
     for (std::size_t i = 0; i < nchan; i++) {
       chanFreqs.push_back(10500000.0 + i * 1000000.0);
     }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
   }
 
  private:
@@ -240,7 +241,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    Step::updateInfo(infoIn);
     BOOST_CHECK_EQUAL(infoIn.origNChan(), itsNChan);
     BOOST_CHECK_EQUAL(infoIn.nchan(), itsNChan);
     BOOST_CHECK_EQUAL(infoIn.ntime(), itsNTime);
@@ -413,7 +414,7 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    GetWritableInfoOut() = infoIn;
     BOOST_CHECK_EQUAL(infoIn.origNChan(), itsNChan);
     BOOST_CHECK_EQUAL(infoIn.nchan(), itsNChan);
     BOOST_CHECK_EQUAL(infoIn.ntime(), itsNTime);
@@ -449,7 +450,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    Step::updateInfo(infoIn);
     BOOST_CHECK_EQUAL(infoIn.origNChan(), itsNChan);
     BOOST_CHECK_EQUAL(infoIn.nchan(), itsNChan);
     BOOST_CHECK_EQUAL(infoIn.ntime(), itsNTime);

@@ -111,7 +111,7 @@ void UVWFlagger::showTimings(std::ostream& os, double duration) const {
 }
 
 void UVWFlagger::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  GetWritableInfoOut() = infoIn;
   // Convert the given frequencies to possibly averaged frequencies.
   // Divide it by speed of light to get reciprocal of wavelengths.
   itsRecWavel = infoIn.BdaChanFreqs();
@@ -127,7 +127,7 @@ void UVWFlagger::updateInfo(const DPInfo& infoIn) {
     handleCenter();
   }
   // Initialize the flag counters.
-  itsFlagCounter.init(getInfo());
+  itsFlagCounter.init(getInfoOut());
 }
 
 bool UVWFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
@@ -162,8 +162,8 @@ bool UVWFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
     } else {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-      uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[i], getInfo().getAnt2()[i],
-                               buffer->GetTime());
+      uvw = itsUVWCalc->getUVW(getInfoOut().getAnt1()[i],
+                               getInfoOut().getAnt2()[i], buffer->GetTime());
     }
 
     // Copy the original flags so it's possible to count the number of newly
@@ -210,8 +210,9 @@ bool UVWFlagger::process(std::unique_ptr<BdaBuffer> buffer) {
     } else {
       // A different phase center is given, so calculate UVW for it.
       common::NSTimer::StartStop ssuvwtimer(itsUVWTimer);
-      uvw = itsUVWCalc->getUVW(getInfo().getAnt1()[row.baseline_nr],
-                               getInfo().getAnt2()[row.baseline_nr], row.time);
+      uvw =
+          itsUVWCalc->getUVW(getInfoOut().getAnt1()[row.baseline_nr],
+                             getInfoOut().getAnt2()[row.baseline_nr], row.time);
     }
 
     bool* row_flags_pointer = buffer->GetFlags(row_index);
@@ -409,7 +410,7 @@ void UVWFlagger::handleCenter() {
   }
   // Create the UVW calculator.
   itsUVWCalc = std::make_unique<base::UVWCalculator>(
-      phaseCenter, getInfo().arrayPos(), getInfo().antennaPos());
+      phaseCenter, getInfoOut().arrayPos(), getInfoOut().antennaPos());
 }
 
 }  // namespace steps

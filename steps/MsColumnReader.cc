@@ -26,9 +26,9 @@ MsColumnReader::MsColumnReader(const common::ParameterSet& parset,
 
 bool MsColumnReader::process(std::unique_ptr<DPBuffer> buffer) {
   buffer->GetData().resize(
-      {getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()});
-  const casacore::IPosition shape(3, getInfo().ncorr(), getInfo().nchan(),
-                                  getInfo().nbaselines());
+      {getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()});
+  const casacore::IPosition shape(3, getInfoOut().ncorr(), getInfoOut().nchan(),
+                                  getInfoOut().nbaselines());
   casacore::Cube<casacore::Complex> data(shape, buffer->GetData().data(),
                                          casacore::SHARE);
 
@@ -89,7 +89,7 @@ void MsColumnReader::showTimings(std::ostream& os,
 }
 
 base::Direction MsColumnReader::GetFirstDirection() const {
-  return getInfo().phaseCenterDirection();
+  return getInfoOut().phaseCenterDirection();
 }
 
 }  // namespace steps

@@ -173,7 +173,7 @@ void ScaleData::show(std::ostream& os) const {
   os << '\n';
   os << "  Scale factors per station/frequency:" << '\n';
   for (unsigned int i = 0; i < itsStationFactors.size(); ++i) {
-    os << "   " << getInfo().antennaNames()[i] << ' ' << itsStationFactors[i]
+    os << "   " << getInfoOut().antennaNames()[i] << ' ' << itsStationFactors[i]
        << '\n';
   }
 }
@@ -219,7 +219,7 @@ void ScaleData::finish() {
 
 void ScaleData::fillSizeScaleFactors(unsigned int nNominal,
                                      std::vector<float>& fact) {
-  casacore::Table ms(getInfo().msName());
+  casacore::Table ms(getInfoOut().msName());
   if (!ms.keywordSet().isDefined("LOFAR_ANTENNA_FIELD"))
     throw std::runtime_error(
         "ScaleData: subtable LOFAR_ANTENNA_FIELD is missing, but "

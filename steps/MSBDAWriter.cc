@@ -91,7 +91,7 @@ bool MSBDAWriter::process(std::unique_ptr<BdaBuffer> buffer) {
 
   ms_.addRow(rows.size());
 
-  Vector<Float> sigma_weight(info().ncorr(), 1);
+  Vector<Float> sigma_weight(getInfoOut().ncorr(), 1);
 
   ScalarColumn<Double> time(ms_, MS::columnName(MS::TIME));
   ScalarColumn<Double> time_centroid(ms_, MS::columnName(MS::TIME_CENTROID));
@@ -122,11 +122,11 @@ bool MSBDAWriter::process(std::unique_ptr<BdaBuffer> buffer) {
     interval.put(row.row_nr, row.interval);
     exposure.put(row.row_nr, row.exposure);
 
-    ant1.put(row.row_nr, info().getAnt1()[row.baseline_nr]);
-    ant2.put(row.row_nr, info().getAnt2()[row.baseline_nr]);
+    ant1.put(row.row_nr, getInfoOut().getAnt1()[row.baseline_nr]);
+    ant2.put(row.row_nr, getInfoOut().getAnt2()[row.baseline_nr]);
 
-    const std::size_t n_chan = info().chanFreqs(row.baseline_nr).size();
-    const IPosition dim(2, info().ncorr(), n_chan);
+    const std::size_t n_chan = getInfoOut().chanFreqs(row.baseline_nr).size();
+    const IPosition dim(2, getInfoOut().ncorr(), n_chan);
     data.put(row.row_nr, Array<Complex>(dim, row_data, casacore::SHARE));
     weights.put(row.row_nr, Array<Float>(dim, row_weights, casacore::SHARE));
     flags.put(row.row_nr, Array<Bool>(dim, row_flags, casacore::SHARE));
@@ -160,8 +160,8 @@ void MSBDAWriter::finish() {
 void MSBDAWriter::show(std::ostream& os) const {
   os << "MSBDAWriter " << prefix_ << '\n';
   os << "  output MS:      " << ms_.tableName() << '\n';
-  os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
-  os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
+  os << "  ncorrelations:  " << getInfoOut().ncorr() << '\n';
+  os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
   os << "  DATA column:    DATA" << '\n';
   os << "  Compressed:     no\n";
 }
@@ -210,9 +210,9 @@ void MSBDAWriter::CreateMainTable() {
 
   // Create empty subtables.
   MeasurementSet(ms_).createDefaultSubtables(Table::New);
-  if (!getInfo().msName().empty()) {
+  if (!getInfoOut().msName().empty()) {
     aocommon::Logger::Info << "Copying info and subtables ...\n";
-    casacore::Table original_table(getInfo().msName());
+    casacore::Table original_table(getInfoOut().msName());
     TableCopy::copyInfo(ms_, original_table);
 
     Block<casacore::String> omitted_subtables(4);
@@ -320,13 +320,13 @@ void MSBDAWriter::WriteTimeFactorRows(Int bda_set_id,
   ScalarColumn<Int> col_factor(bda_time_factor, base::DP3MS::kFactor);
   ScalarColumn<Int> col_spw_id(bda_time_factor, base::DP3MS::kSpectralWindowId);
 
-  const std::vector<int>& ant1 = info().getAnt1();
-  const std::vector<int>& ant2 = info().getAnt2();
-  for (std::size_t i = 0; i < info().nbaselines(); ++i) {
-    std::size_t nchan = info().chanFreqs(i).size();
+  const std::vector<int>& ant1 = getInfoOut().getAnt1();
+  const std::vector<int>& ant2 = getInfoOut().getAnt2();
+  for (std::size_t i = 0; i < getInfoOut().nbaselines(); ++i) {
+    std::size_t nchan = getInfoOut().chanFreqs(i).size();
     const int row = bda_time_factor.nrow();
     bda_time_factor.addRow();
-    const unsigned int factor = info().ntimeAvg(i);
+    const unsigned int factor = getInfoOut().ntimeAvg(i);
     min_factor_time = std::min(min_factor_time, factor);
     max_factor_time = std::max(max_factor_time, factor);
 
@@ -342,7 +342,7 @@ void MSBDAWriter::WriteTimeAxisRow(Int bda_set_id, unsigned int min_factor_time,
                                    unsigned int max_factor_time) {
   Table bda_time_axis(out_name_ + '/' + base::DP3MS::kBDATimeAxisTable,
                       Table::Update);
-  const double interval = info().timeInterval();
+  const double interval = getInfoOut().timeInterval();
   int row = bda_time_axis.nrow();
   bda_time_axis.addRow();
   ScalarColumn<Int>(bda_time_axis, base::DP3MS::kTimeAxisId)
@@ -384,7 +384,7 @@ void MSBDAWriter::OverwriteSubTables(const Int bda_set_id) {
   // Remove all rows before and after the selected band.
   // Do it from the end, otherwise row numbers change.
   for (int i = int(outSPW.nrow()) - 1; i >= 0; --i) {
-    if (i == info().spectralWindow()) {
+    if (i == getInfoOut().spectralWindow()) {
       measFreqRef =
           outSPW.col(MS_SPW::columnName(MS_SPW::MEAS_FREQ_REF)).getInt(i);
       name = outSPW.col(MS_SPW::columnName(MS_SPW::NAME)).getString(i);
@@ -415,8 +415,8 @@ void MSBDAWriter::OverwriteSubTables(const Int bda_set_id) {
       outSPW, MS_SPW::columnName(MS_SPW::TOTAL_BANDWIDTH));
   ScalarColumn<Int> col_bda_set_id(outSPW, base::DP3MS::kBDASetId);
 
-  for (std::size_t i = 0; i < info().nbaselines(); ++i) {
-    std::size_t nchanFreqs = info().chanFreqs(i).size();
+  for (std::size_t i = 0; i < getInfoOut().nbaselines(); ++i) {
+    std::size_t nchanFreqs = getInfoOut().chanFreqs(i).size();
     if (nchanToDescId.count(nchanFreqs)) {
       continue;
     }
@@ -428,15 +428,15 @@ void MSBDAWriter::OverwriteSubTables(const Int bda_set_id) {
     col_spw_id.put(row, row);
 
     outSPW.addRow();
-    col_chan_freq.put(row, Vector<double>(info().chanFreqs(i)));
-    col_chan_widths.put(row, Vector<double>(info().chanWidths(i)));
-    col_effective_bw.put(row, Vector<double>(info().effectiveBW(i)));
+    col_chan_freq.put(row, Vector<double>(getInfoOut().chanFreqs(i)));
+    col_chan_widths.put(row, Vector<double>(getInfoOut().chanWidths(i)));
+    col_effective_bw.put(row, Vector<double>(getInfoOut().effectiveBW(i)));
     col_meas_freq_ref.put(row, measFreqRef);
     col_name.put(row, name);
     col_num_chan.put(row, nchanFreqs);
-    col_ref_freq.put(row, info().refFreq());
-    col_resolution.put(row, Vector<double>(info().resolutions(i)));
-    col_total_bw.put(row, info().totalBW());
+    col_ref_freq.put(row, getInfoOut().refFreq());
+    col_resolution.put(row, Vector<double>(getInfoOut().resolutions(i)));
+    col_total_bw.put(row, getInfoOut().totalBW());
     col_bda_set_id.put(row, bda_set_id);
 
     nchanToDescId[nchanFreqs] = row;

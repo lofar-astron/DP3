@@ -251,7 +251,7 @@ void Settings::PrepareSolutionsPerDirection(size_t n_directions) {
       solutions_per_direction.begin(), solutions_per_direction.end());
 
   if (max_n_solutions_per_direction > 1) {
-    // Since info().ntime() might not be set at this stage, throw an error
+    // Since getInfoOut().ntime() might not be set at this stage, throw an error
     // in case itsRequestedSolInt equals 0, and DD intervals are used
     if (solution_interval == 0) {
       throw std::runtime_error(

@@ -72,9 +72,9 @@ void IDGImager::InitBuffers(const double max_w, const double max_baseline) {
 #ifdef HAVE_IDG
   size_t kNumberOfTimeSteps = 1;
   buffer_set_->init(grid_size_, pixel_scale_, max_w, dl_, dm_, options_);
-  buffer_set_->init_buffers(kNumberOfTimeSteps, {info().chanFreqs()},
-                            info().antennaUsed().size(), max_baseline, options_,
-                            idg::api::BufferSetType::kGridding);
+  buffer_set_->init_buffers(kNumberOfTimeSteps, {getInfoOut().chanFreqs()},
+                            getInfoOut().antennaUsed().size(), max_baseline,
+                            options_, idg::api::BufferSetType::kGridding);
   init_buffers_ = true;
 #endif
 }
@@ -91,12 +91,12 @@ bool IDGImager::process(std::unique_ptr<DPBuffer> buffer) {
 
   const double n_visibilities = visibilities.shape(0);
 
-  const std::vector<double>& frequencies = info().chanFreqs();
+  const std::vector<double>& frequencies = getInfoOut().chanFreqs();
 
   // W index
   const ushort kWIndex = 2;
   const float max_w = xt::amax(xt::view(uvw, xt::all(), kWIndex))() *
-                      info().refFreq() / casacore::C::c;
+                      getInfoOut().refFreq() / casacore::C::c;
   const float max_baseline =
       xt::amax(xt::sqrt(xt::pow(xt::view(uvw, xt::all(), 0), 2) +
                         xt::pow(xt::view(uvw, xt::all(), 1), 2) +
@@ -107,8 +107,8 @@ bool IDGImager::process(std::unique_ptr<DPBuffer> buffer) {
 
   WeightVisibilities(uvw, weights, frequencies, grid_size_, visibilities);
 #ifdef HAVE_IDG
-  const std::vector<int>& antenna1 = info().getAnt1();
-  const std::vector<int>& antenna2 = info().getAnt2();
+  const std::vector<int>& antenna1 = getInfoOut().getAnt1();
+  const std::vector<int>& antenna2 = getInfoOut().getAnt2();
   const size_t kSingleTimeStepGridder = 0;
   idg::api::GridderBuffer& gridder =
       *buffer_set_->get_gridder(kSingleTimeStepGridder);
@@ -128,7 +128,7 @@ bool IDGImager::process(std::unique_ptr<DPBuffer> buffer) {
   const ushort kYaxis = 1;
   image_data = xt::flip(image_data, kYaxis);
 
-  WriteFITS(FormatName(image_name_, current_image_idx_), info(),
+  WriteFITS(FormatName(image_name_, current_image_idx_), getInfoOut(),
             buffer->GetTime(), dl_, dm_, pixel_scale_, image_data);
   timer_.stop();
   current_image_idx_++;

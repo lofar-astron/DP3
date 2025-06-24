@@ -106,7 +106,7 @@ void BdaAverager::updateInfo(const DPInfo& _info) {
   }
 
   Step::updateInfo(_info);
-  infoOut().setIsBDAIntervalFactorInteger(true);
+  GetWritableInfoOut().setIsBDAIntervalFactorInteger(true);
 
   expected_input_shape_ = {_info.nbaselines(), _info.nchan(), _info.ncorr()};
 
@@ -200,8 +200,8 @@ void BdaAverager::updateInfo(const DPInfo& _info) {
 
   bda_pool_size_ = _info.ncorr() * bda_channels;
 
-  infoOut().update(std::move(baseline_factors));
-  infoOut().setChannels(std::move(freqs), std::move(widths));
+  GetWritableInfoOut().update(std::move(baseline_factors));
+  GetWritableInfoOut().setChannels(std::move(freqs), std::move(widths));
 }
 
 bool BdaAverager::process(std::unique_ptr<base::DPBuffer> buffer) {

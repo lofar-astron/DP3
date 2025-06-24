@@ -92,8 +92,8 @@ class TestInput : public dp3::steps::MockInput {
         itsNChan(nchan),
         itsNCorr(ncorr),
         itsFlag(flag) {
-    info() = DPInfo(ncorr, nchan);
-    info().setTimes(100.0, 100.0 + (ntime - 1) * 5.0, 5.0);
+    GetWritableInfoOut() = DPInfo(ncorr, nchan);
+    GetWritableInfoOut().setTimes(100.0, 100.0 + (ntime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
     std::vector<int> ant1(nbl);
@@ -140,14 +140,15 @@ class TestInput : public dp3::steps::MockInput {
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     std::vector<double> antDiam(4, 70.0);
-    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
+    GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 100000.0);
     std::vector<double> chanFreqs;
     for (std::size_t i = 0; i < nchan; i++) {
       chanFreqs.push_back(1050000.0 + i * 100000.0);
     }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
   }
 
  private:

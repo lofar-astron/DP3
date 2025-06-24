@@ -265,7 +265,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsUVWFlagStep.updateInfo(infoIn);
 
   if (itsRequestedSolInt == 0) {
-    itsRequestedSolInt = info().ntime();
+    itsRequestedSolInt = getInfoOut().ntime();
   }
 
   // Update info for substeps and set other required parameters
@@ -319,27 +319,28 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     step->setNextStep(itsResultSteps[dir]);
   }
 
-  if (itsNChan == 0 || itsNChan > info().nchan()) {
-    itsNChan = info().nchan();
+  if (itsNChan == 0 || itsNChan > getInfoOut().nchan()) {
+    itsNChan = getInfoOut().nchan();
   }
 
   // Create lists with used antenna indices, similarly to
   // DPInfo::RemoveUnusedAntennas.
-  itsAntennas1.resize(info().getAnt1().size());
-  itsAntennas2.resize(info().getAnt2().size());
+  itsAntennas1.resize(getInfoOut().getAnt1().size());
+  itsAntennas2.resize(getInfoOut().getAnt2().size());
   for (size_t i = 0; i < itsAntennas1.size(); ++i) {
-    itsAntennas1[i] = info().antennaMap()[info().getAnt1()[i]];
-    itsAntennas2[i] = info().antennaMap()[info().getAnt2()[i]];
+    itsAntennas1[i] = getInfoOut().antennaMap()[getInfoOut().getAnt1()[i]];
+    itsAntennas2[i] = getInfoOut().antennaMap()[getInfoOut().getAnt2()[i]];
   }
 
   // Fill antenna info in H5Parm, need to convert from casa types to std types
   // Fill in metadata for all antennas, also those that may be filtered out.
-  std::vector<std::string> antennaNames(info().antennaNames().size());
-  std::vector<std::array<double, 3>> antennaPos(info().antennaPos().size());
-  for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
-    antennaNames[i] = info().antennaNames()[i];
+  std::vector<std::string> antennaNames(getInfoOut().antennaNames().size());
+  std::vector<std::array<double, 3>> antennaPos(
+      getInfoOut().antennaPos().size());
+  for (unsigned int i = 0; i < getInfoOut().antennaNames().size(); ++i) {
+    antennaNames[i] = getInfoOut().antennaNames()[i];
     casacore::Quantum<casacore::Vector<double>> pos =
-        info().antennaPos()[i].get("m");
+        getInfoOut().antennaPos()[i].get("m");
     antennaPos[i][0] = pos.getValue()[0];
     antennaPos[i][1] = pos.getValue()[1];
     antennaPos[i][2] = pos.getValue()[2];
@@ -348,8 +349,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsSolutionWriter.AddAntennas(antennaNames, antennaPos);
 
   size_t nSolTimes =
-      (info().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
-  size_t nChannelBlocks = info().nchan() / itsNChan;
+      (getInfoOut().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
+  size_t nChannelBlocks = getInfoOut().nchan() / itsNChan;
   itsSols.resize(nSolTimes);
   itsNIter.resize(nSolTimes);
   itsNApproxIter.resize(nSolTimes);
@@ -361,25 +362,25 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   itsChanBlockStart.front() = 0;
   for (size_t chBlock = 0; chBlock != nChannelBlocks; ++chBlock) {
     itsChanBlockStart[chBlock + 1] =
-        (chBlock + 1) * info().nchan() / nChannelBlocks;
+        (chBlock + 1) * getInfoOut().nchan() / nChannelBlocks;
     const size_t blockSize =
         itsChanBlockStart[chBlock + 1] - itsChanBlockStart[chBlock];
     const double* freqStart =
-        info().chanFreqs().data() + itsChanBlockStart[chBlock];
+        getInfoOut().chanFreqs().data() + itsChanBlockStart[chBlock];
     const double meanFreq =
         std::accumulate(freqStart, freqStart + blockSize, 0.0) / blockSize;
     itsChanBlockFreqs[chBlock] = meanFreq;
   }
 
   itsWeightsPerAntenna.assign(
-      itsChanBlockFreqs.size() * info().antennaUsed().size(), 0.0);
+      itsChanBlockFreqs.size() * getInfoOut().antennaUsed().size(), 0.0);
 
   itsSourceDirections.reserve(itsSteps.size());
   const std::map<std::string, dp3::base::Direction>& directions =
-      getInfo().GetDirections();
+      getInfoOut().GetDirections();
   for (unsigned int i = 0; i < itsSteps.size(); ++i) {
     const std::shared_ptr<ModelDataStep>& step = itsSteps[i];
-    base::Direction direction = getInfo().phaseCenterDirection();
+    base::Direction direction = getInfoOut().phaseCenterDirection();
 
     if (step) {
       direction = step->GetFirstDirection();
@@ -398,7 +399,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     assert(itsSourceDirections.size() == itsDirectionNames.size());
 
     for (size_t i = 0; i < itsDirectionNames.size(); ++i) {
-      info().GetDirections()[itsDirectionNames[i]] = itsSourceDirections[i];
+      GetWritableInfoOut().GetDirections()[itsDirectionNames[i]] =
+          itsSourceDirections[i];
     }
   }
 
@@ -406,8 +408,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   const std::vector<std::string> used_antenna_names =
       getInfoOut().GetUsedAntennaNames();
   std::vector<std::array<double, 3>> used_antenna_positions;
-  used_antenna_positions.reserve(info().antennaUsed().size());
-  for (const int& ant : info().antennaUsed()) {
+  used_antenna_positions.reserve(getInfoOut().antennaUsed().size());
+  for (const int& ant : getInfoOut().antennaUsed()) {
     used_antenna_positions.push_back(antennaPos[ant]);
   }
 
@@ -417,7 +419,7 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
                                 itsChanBlockFreqs);
   }
 
-  size_t nSt = info().antennaUsed().size();
+  size_t nSt = getInfoOut().antennaUsed().size();
   // Give renumbered antennas to solver
   itsSolver->Initialize(nSt, itsSettings.solutions_per_direction,
                         nChannelBlocks);
@@ -632,7 +634,8 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
     }
   } else {
     const size_t n_solutions = itsSettings.GetNSolutions();
-    const size_t n_solution_values = n_solutions * info().antennaUsed().size() *
+    const size_t n_solution_values = n_solutions *
+                                     getInfoOut().antennaUsed().size() *
                                      itsSolver->NSolutionPolarizations();
 
     if (itsSolver->NSolutionPolarizations() == 4) {
@@ -658,14 +661,14 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
 }
 
 void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
-  const size_t nBl = info().nbaselines();
+  const size_t nBl = getInfoOut().nbaselines();
   const size_t nChanBlocks = itsChanBlockFreqs.size();
   const size_t channel_begin = itsChanBlockStart[cbIndex];
   const size_t channel_end = itsChanBlockStart[cbIndex + 1];
   // Set the antenna-based weights to zero
   for (size_t bl = 0; bl < nBl; ++bl) {
-    size_t ant1 = info().antennaMap()[info().getAnt1()[bl]];
-    size_t ant2 = info().antennaMap()[info().getAnt2()[bl]];
+    size_t ant1 = getInfoOut().antennaMap()[getInfoOut().getAnt1()[bl]];
+    size_t ant2 = getInfoOut().antennaMap()[getInfoOut().getAnt2()[bl]];
     itsWeightsPerAntenna[ant1 * nChanBlocks + cbIndex] = 0.0;
     itsWeightsPerAntenna[ant2 * nChanBlocks + cbIndex] = 0.0;
   }
@@ -711,7 +714,7 @@ void DDECal::doSolve() {
 
   std::vector<ddecal::SolverBase*> solvers = itsSolver->ConstraintSolvers();
   const size_t n_channel_blocks = itsChanBlockFreqs.size();
-  const size_t n_antennas = info().antennaUsed().size();
+  const size_t n_antennas = getInfoOut().antennaUsed().size();
 
   // DDECal requires the unweighted model model when the model is subtracted
   // after calibration. Since the model data can be large, memory allocation
@@ -1009,15 +1012,16 @@ void DDECal::doPrepare() {
   }
 
   // Handle weights and flags
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
+  const size_t nBl = getInfoOut().nbaselines();
+  const size_t nCh = getInfoOut().nchan();
   const size_t nCr = 4;
 
   size_t nchanblocks = itsChanBlockFreqs.size();
 
   for (size_t bl = 0; bl < nBl; ++bl) {
-    size_t chanblock = 0, ant1 = info().antennaMap()[info().getAnt1()[bl]],
-           ant2 = info().antennaMap()[info().getAnt2()[bl]];
+    size_t chanblock = 0;
+    size_t ant1 = getInfoOut().antennaMap()[getInfoOut().getAnt1()[bl]];
+    size_t ant2 = getInfoOut().antennaMap()[getInfoOut().getAnt2()[bl]];
     for (size_t ch = 0; ch < nCh; ++ch) {
       if (ch == itsChanBlockStart[chanblock + 1]) {
         chanblock++;
@@ -1037,7 +1041,8 @@ void DDECal::doPrepare() {
   }
 
   const double weightFactor =
-      1. / (nCh * (info().antennaUsed().size() - 1) * nCr * itsRequestedSolInt);
+      1. / (nCh * (getInfoOut().antennaUsed().size() - 1) * nCr *
+            itsRequestedSolInt);
   for (double& weight : itsWeightsPerAntenna) {
     weight *= weightFactor;
   }
@@ -1059,11 +1064,11 @@ void DDECal::WriteSolutions() {
                               itsSettings.parset_string;
 
   itsSolutionWriter.Write(
-      itsSols, itsConstraintSols, info().startTime(), info().lastTime(),
-      info().timeInterval(), itsRequestedSolInt,
+      itsSols, itsConstraintSols, getInfoOut().startTime(),
+      getInfoOut().lastTime(), getInfoOut().timeInterval(), itsRequestedSolInt,
       itsSettings.solutions_per_direction, itsSettings.mode, used_antenna_names,
-      itsSourceDirections, itsDirections, info().chanFreqs(), itsChanBlockFreqs,
-      history);
+      itsSourceDirections, itsDirections, getInfoOut().chanFreqs(),
+      itsChanBlockFreqs, history);
 
   itsTimerWrite.stop();
 }
@@ -1114,8 +1119,8 @@ aocommon::MC2x2 ApplyScalarSolution(
 void DDECal::ApplySolution(
     DPBuffer& buffer, size_t baseline, size_t channel,
     const std::vector<std::complex<double>>& solutions) const {
-  const size_t antenna1 = getInfo().getAnt1()[baseline];
-  const size_t antenna2 = getInfo().getAnt2()[baseline];
+  const size_t antenna1 = getInfoOut().getAnt1()[baseline];
+  const size_t antenna2 = getInfoOut().getAnt2()[baseline];
   const size_t n_directions = itsDirectionNames.size();
 
   aocommon::MC2x2 sum_over_directions = aocommon::MC2x2::Zero();
@@ -1179,10 +1184,10 @@ void DDECal::CorrectAndSubtractModels(size_t buffer_index) {
       itsInputBuffers[buffer_index];
 
   for (std::unique_ptr<DPBuffer>& data_buffer : solution_interval) {
-    for (size_t bl = 0; bl < info().nbaselines(); ++bl) {
+    for (size_t bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
       size_t chanblock = 0;
 
-      for (size_t ch = 0; ch < info().nchan(); ++ch) {
+      for (size_t ch = 0; ch < getInfoOut().nchan(); ++ch) {
         if (ch == itsChanBlockStart[chanblock + 1]) {
           chanblock++;
         }

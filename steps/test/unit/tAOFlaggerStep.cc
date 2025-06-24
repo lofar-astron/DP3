@@ -49,9 +49,9 @@ class TestInput : public dp3::steps::MockInput {
         n_channels_(nchan),
         n_correlations_(ncorr),
         flag_(flag) {
-    info() = DPInfo(n_correlations_, n_channels_);
-    info().setTimes(kFirstTime, kFirstTime + (n_times_ - 1) * kTimeStep,
-                    kTimeStep);
+    GetWritableInfoOut() = DPInfo(n_correlations_, n_channels_);
+    GetWritableInfoOut().setTimes(
+        kFirstTime, kFirstTime + (n_times_ - 1) * kTimeStep, kTimeStep);
 
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
@@ -98,13 +98,14 @@ class TestInput : public dp3::steps::MockInput {
     antPos[3] = MPosition(Quantum<casacore::Vector<double>>(vals, "m"),
                           MPosition::ITRF);
     std::vector<double> antDiam(4, 70.);
-    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
+    GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
 
     // Define the frequencies.
     std::vector<double> chanFreqs(nchan);
     std::vector<double> chanWidth(nchan, 100000.);
     std::iota(chanFreqs.begin(), chanFreqs.end(), 1050000);
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
   }
 
  private:

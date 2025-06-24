@@ -123,7 +123,7 @@ class MSBDAReader : public InputStep {
   MsType outputs() const override { return MsType::kBda; };
 
   /// Reads the BDA subtables from an MS and stores the required values in the
-  /// info() object.
+  /// getInfoOut() object.
   void updateInfo(const base::DPInfo&) override;
 
   /// Show the step parameters.

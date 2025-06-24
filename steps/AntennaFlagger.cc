@@ -112,16 +112,16 @@ bool AntennaFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
   flagging_timer_.start();
 
   if (buffer->GetFlags().size() == 0) {
-    buffer->GetFlags().resize(
-        {getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()});
+    buffer->GetFlags().resize({getInfoOut().nbaselines(), getInfoOut().nchan(),
+                               getInfoOut().ncorr()});
     buffer->GetFlags().fill(false);
   }
   base::DPBuffer::FlagsType& flags = buffer->GetFlags();
 
   for (size_t antenna1 : flagged_antennas) {
-    for (size_t antenna2 = 0; antenna2 < info().nantenna(); ++antenna2) {
+    for (size_t antenna2 = 0; antenna2 < getInfoOut().nantenna(); ++antenna2) {
       const size_t bl = common::ComputeBaselineIndex(
-          antenna1, antenna2, info().nantenna(), baseline_order_);
+          antenna1, antenna2, getInfoOut().nantenna(), baseline_order_);
       xt::view(flags, bl, xt::all(), xt::all()) = true;
     }
   }

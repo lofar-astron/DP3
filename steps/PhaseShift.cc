@@ -53,7 +53,7 @@ PhaseShift::~PhaseShift() {}
 
 void PhaseShift::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  info().setMetaChanged();
+  GetWritableInfoOut().setMetaChanged();
   // Default phase center is the original one.
   MDirection newDir(infoIn.originalPhaseCenter());
   if (!itsCenter.empty()) {
@@ -76,7 +76,7 @@ void PhaseShift::updateInfo(const DPInfo& infoIn) {
   itsXYZ[1] = tt(0, 1);
   itsXYZ[2] = tt(0, 2);
 
-  info().setPhaseCenter(newDir);
+  GetWritableInfoOut().setPhaseCenter(newDir);
   // Calculate 2*pi*freq/C to get correct phase term (in wavelengths).
   const std::vector<double>& freq = infoIn.chanFreqs();
   itsFreqC.reserve(freq.size());

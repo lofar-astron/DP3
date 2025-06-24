@@ -153,7 +153,7 @@ bool MSUpdater::addColumn(const std::string& colName,
     TableDesc td;
     td.addColumn(cd, colName);
     if (dmType == "DyscoStMan") {
-      IPosition tileShape(3, info().ncorr(), info().nchan(), 1);
+      IPosition tileShape(3, getInfoOut().ncorr(), getInfoOut().nchan(), 1);
       tileShape[2] = itsTileSize * 1024 / (8 * tileShape[0] * tileShape[1]);
       if (tileShape[2] < 1) {
         tileShape[2] = 1;
@@ -171,8 +171,9 @@ bool MSUpdater::addColumn(const std::string& colName,
 bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
   {
     common::NSTimer::StartStop sstime(itsTimer);
-    const casacore::IPosition casacore_shape(
-        3, getInfo().ncorr(), getInfo().nchan(), getInfo().nbaselines());
+    const casacore::IPosition casacore_shape(3, getInfoOut().ncorr(),
+                                             getInfoOut().nchan(),
+                                             getInfoOut().nbaselines());
     if (GetFieldsToWrite().Flags()) {
       const Cube<bool> flags(casacore_shape, buffer->GetFlags().data(),
                              casacore::SHARE);
@@ -257,7 +258,7 @@ void MSUpdater::SetFieldsToWrite(const common::Fields& base_fields) {
 void MSUpdater::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
-  if (getInfo().metaChanged()) {
+  if (getInfoOut().metaChanged()) {
     throw std::runtime_error("Update step " + itsName +
                              " is not possible because meta data changes"
                              " (by averaging, adding/removing stations, etc.)");
@@ -319,9 +320,9 @@ Specify a name in the parset for "msout".)");
       itsWeightColAdded = addColumn(itsWeightColName, casacore::TpFloat, cd);
     }
   }
-  MSWriter::UpdateBeam(itsMS, itsDataColName, info());
+  MSWriter::UpdateBeam(itsMS, itsDataColName, getInfoOut());
   // Subsequent steps have to set again if writes need to be done.
-  info().clearMetaChanged();
+  GetWritableInfoOut().clearMetaChanged();
 }
 
 void MSUpdater::show(std::ostream& os) const {
@@ -373,8 +374,8 @@ void MSUpdater::showTimings(std::ostream& os, double duration) const {
 void MSUpdater::putFlags(const RefRows& rowNrs, const Cube<bool>& flags) {
   // Only put if rownrs are filled, thus if data were not inserted.
   if (!rowNrs.rowVector().empty()) {
-    Slicer colSlicer(IPosition(2, 0, info().startchan()),
-                     IPosition(2, info().ncorr(), info().nchan()));
+    Slicer colSlicer(IPosition(2, 0, getInfoOut().startchan()),
+                     IPosition(2, getInfoOut().ncorr(), getInfoOut().nchan()));
     ArrayColumn<bool> flagCol(itsMS, itsFlagColName);
     ScalarColumn<bool> flagRowCol(itsMS, "FLAG_ROW");
     // Loop over all rows of this subset.
@@ -397,8 +398,8 @@ void MSUpdater::putFlags(const RefRows& rowNrs, const Cube<bool>& flags) {
 void MSUpdater::putWeights(const RefRows& rowNrs, const Cube<float>& weights) {
   // Only put if rownrs are filled, thus if data were not inserted.
   if (!rowNrs.rowVector().empty()) {
-    Slicer colSlicer(IPosition(2, 0, info().startchan()),
-                     IPosition(2, info().ncorr(), info().nchan()));
+    Slicer colSlicer(IPosition(2, 0, getInfoOut().startchan()),
+                     IPosition(2, getInfoOut().ncorr(), getInfoOut().nchan()));
     ArrayColumn<float> weightCol(itsMS, itsWeightColName);
     // Loop over all rows of this subset.
     // (it also avoids StandardStMan putCol with RefRows problem).
@@ -415,8 +416,8 @@ void MSUpdater::putData(const RefRows& rowNrs,
                         const Cube<casacore::Complex>& data) {
   // Only put if rownrs are filled, thus if data were not inserted.
   if (!rowNrs.rowVector().empty()) {
-    Slicer colSlicer(IPosition(2, 0, info().startchan()),
-                     IPosition(2, info().ncorr(), info().nchan()));
+    Slicer colSlicer(IPosition(2, 0, getInfoOut().startchan()),
+                     IPosition(2, getInfoOut().ncorr(), getInfoOut().nchan()));
     ArrayColumn<casacore::Complex> dataCol(itsMS, itsDataColName);
     // Loop over all rows of this subset.
     // (it also avoids StandardStMan putCol with RefRows problem).

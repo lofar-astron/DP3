@@ -81,15 +81,17 @@ class TestInput : public dp3::steps::MockInput {
   void show(std::ostream&) const override {}
 
   void updateInfo(const DPInfo&) override {
-    info() = DPInfo(kNCorr, kNChannels);
-    info().setTimes(times_.front(), times_.back(), time_interval_);
+    GetWritableInfoOut() = DPInfo(kNCorr, kNChannels);
+    GetWritableInfoOut().setTimes(times_.front(), times_.back(),
+                                  time_interval_);
     // Define the frequencies.
     std::vector<double> chan_freqs;
     std::vector<double> chan_width(kNChannels, 100000.0);
     for (std::size_t i = 0; i < kNChannels; i++) {
       chan_freqs.push_back(1050000.0 + i * 100000.0);
     }
-    info().setChannels(std::move(chan_freqs), std::move(chan_width));
+    GetWritableInfoOut().setChannels(std::move(chan_freqs),
+                                     std::move(chan_width));
 
     // Define antennas and baselines.
     const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2"};
@@ -100,7 +102,8 @@ class TestInput : public dp3::steps::MockInput {
     // Baseline 0 has auto-correlations.
     const std::vector<int> kAnt1{0, 0, 1};
     const std::vector<int> kAnt2{0, 2, 2};
-    info().setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
+    GetWritableInfoOut().setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1,
+                                     kAnt2);
   }
 
  private:
@@ -138,8 +141,9 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       BOOST_CHECK_CLOSE(buf_uvw(0, 1), 0.0, 1.0e-6);
       BOOST_CHECK_CLOSE(buf_uvw(0, 2), 0.0, 1.0e-6);
       // For the other baselines, check that Upsample set the UVW correctly.
-      dp3::base::UVWCalculator calc(info().phaseCenter(), info().arrayPos(),
-                                    info().antennaPos());
+      dp3::base::UVWCalculator calc(getInfoOut().phaseCenter(),
+                                    getInfoOut().arrayPos(),
+                                    getInfoOut().antennaPos());
       const std::array<double, 3> uvw_0_2 =
           calc.getUVW(0, 2, buffer->GetTime());
       BOOST_CHECK_CLOSE(buf_uvw(1, 0), uvw_0_2[0], 1.0e-6);

@@ -128,7 +128,8 @@ bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
 
   // TODO: Pre-calculate actual required pool size beforehand.
   auto buffer = std::make_unique<base::BdaBuffer>(
-      info().nbaselines() * info().nchan() * info().ncorr(), getFieldsToRead());
+      getInfoOut().nbaselines() * getInfoOut().nchan() * getInfoOut().ncorr(),
+      getFieldsToRead());
 
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
@@ -142,8 +143,8 @@ bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
 
   // Cache the data that will be add to the buffer
   RefRows cell_range{
-      nread_,
-      std::min(ms_.nrow() - 1, common::rownr_t(nread_ + info().nbaselines()))};
+      nread_, std::min(ms_.nrow() - 1,
+                       common::rownr_t(nread_ + getInfoOut().nbaselines()))};
 
   auto time = time_col.getColumnCells(cell_range);
   auto interval = interval_col.getColumnCells(cell_range);
@@ -151,7 +152,7 @@ bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
   auto data_desc_id = data_desc_id_col.getColumnCells(cell_range);
 
   unsigned i = 0;
-  while (nread_ < ms_.nrow() && i < info().nbaselines()) {
+  while (nread_ < ms_.nrow() && i < getInfoOut().nbaselines()) {
     const double ms_time = time[i];
     const double ms_interval = interval[i];
 
@@ -177,8 +178,8 @@ bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
 
     const bool success = buffer->AddRow(
         ms_time, interval[i], exposure[i], bl_to_id_[ant12],
-        desc_id_to_nchan_[data_desc_id[i]], info().ncorr(), data_ptr, nullptr,
-        weights.tovector().data(), uvw.tovector().data());
+        desc_id_to_nchan_[data_desc_id[i]], getInfoOut().ncorr(), data_ptr,
+        nullptr, weights.tovector().data(), uvw.tovector().data());
     (void)success;
     assert(success);  // The buffer should always be large enough.
 
@@ -247,7 +248,8 @@ void MSBDAReader::updateInfo(const DPInfo&) {
     antPos.push_back(ant_col(i));
   }
 
-  infoOut() = DPInfo(ncorr, max_n_channels, base::ReadAntennaSet(ms_));
+  GetWritableInfoOut() =
+      DPInfo(ncorr, max_n_channels, base::ReadAntennaSet(ms_));
 
   // Set time info.
 
@@ -268,14 +270,14 @@ void MSBDAReader::updateInfo(const DPInfo&) {
   const double interval = axis.col(base::DP3MS::kUnitTimeInterval).getDouble(0);
   is_interval_integer_ = axis.col(base::DP3MS::kIntervalFactors).getBool(0);
 
-  info().setTimes(first_time_col(0), last_time_col(0), interval);
+  GetWritableInfoOut().setTimes(first_time_col(0), last_time_col(0), interval);
 
   // Set antenna/baseline info.
   casacore::Vector<casacore::String> names = name_col.getColumn();
-  info().setAntennas(std::vector<std::string>(names.begin(), names.end()),
-                     diam_col.getColumn().tovector(), antPos,
-                     ant1_col.getColumn().tovector(),
-                     ant2_col.getColumn().tovector());
+  GetWritableInfoOut().setAntennas(
+      std::vector<std::string>(names.begin(), names.end()),
+      diam_col.getColumn().tovector(), antPos, ant1_col.getColumn().tovector(),
+      ant2_col.getColumn().tovector());
 
   const MS_Field& field = ms_.field();
   if (field.nrow() != 1)
@@ -314,16 +316,16 @@ void MSBDAReader::updateInfo(const DPInfo&) {
     array_pos = antPos[antPos.size() / 2];
   }
 
-  info().setArrayInformation(array_pos, phase_center, delay_center,
-                             tile_beam_dir);
+  GetWritableInfoOut().setArrayInformation(array_pos, phase_center,
+                                           delay_center, tile_beam_dir);
 
-  info().update(std::move(baseline_factors));
-  info().setChannels(std::move(freqs), std::move(widths));
+  GetWritableInfoOut().update(std::move(baseline_factors));
+  GetWritableInfoOut().setChannels(std::move(freqs), std::move(widths));
 
   const std::string kFlagColumnName = "";  // Reading flags is not supported.
-  info().setMsNames(msName(), data_column_name_, kFlagColumnName,
-                    weight_column_name_);
-  info().setIsBDAIntervalFactorInteger(is_interval_integer_);
+  GetWritableInfoOut().setMsNames(msName(), data_column_name_, kFlagColumnName,
+                                  weight_column_name_);
+  GetWritableInfoOut().setIsBDAIntervalFactorInteger(is_interval_integer_);
 }
 
 void MSBDAReader::show(std::ostream& os) const {
@@ -332,17 +334,17 @@ void MSBDAReader::show(std::ostream& os) const {
   if (ms_.isNull()) {
     os << "    *** MS does not exist ***\n";
   } else {
-    os << "  band            " << getInfo().spectralWindow() << '\n';
+    os << "  band            " << getInfoOut().spectralWindow() << '\n';
     os << "  start_chan:     " << 0 << '\n';
-    os << "  nchan:          " << getInfo().nchan() << '\n';
-    os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
-    os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
+    os << "  nchan:          " << getInfoOut().nchan() << '\n';
+    os << "  ncorrelations:  " << getInfoOut().ncorr() << '\n';
+    os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
     os << "  first time:     " << MVTime::Format(MVTime::YMD)
-       << MVTime(getInfo().firstTime() / (24 * 3600.)) << '\n';
+       << MVTime(getInfoOut().firstTime() / (24 * 3600.)) << '\n';
     os << "  last time:      " << MVTime::Format(MVTime::YMD)
-       << MVTime(getInfo().lastTime() / (24 * 3600.)) << '\n';
-    os << "  ntimes:         " << getInfo().ntime() << '\n';
-    os << "  time interval:  " << getInfo().timeInterval() << '\n';
+       << MVTime(getInfoOut().lastTime() / (24 * 3600.)) << '\n';
+    os << "  ntimes:         " << getInfoOut().ntime() << '\n';
+    os << "  time interval:  " << getInfoOut().timeInterval() << '\n';
     os << "  DATA column:    " << data_column_name_;
     os << '\n';
     os << "  WEIGHT column:  " << weight_column_name_ << '\n';

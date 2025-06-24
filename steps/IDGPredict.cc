@@ -344,8 +344,8 @@ void IDGPredict::StartIDG() {
       // options["max_threads"] = int(1);
       bs.init(img.Width(), pixel_size_x_, max_w_ + 1.0, dl, dm, dp, options);
       bs.set_image(image_data.data());
-      bs.init_buffers(0, {info().chanFreqs()}, info().antennaUsed().size(),
-                      max_baseline_, options,
+      bs.init_buffers(0, {getInfoOut().chanFreqs()},
+                      getInfoOut().antennaUsed().size(), max_baseline_, options,
                       idg::api::BufferSetType::kBulkDegridding);
 
       // GetSubgridCount assumes that the subgrid size is equal for all terms.
@@ -372,7 +372,7 @@ void IDGPredict::StartIDG() {
 
 void IDGPredict::InitializeATerms(const casacore::MeasurementSet& ms) {
   const size_t n_terms = readers_.size();
-  const size_t n_antennas = getInfo().nantenna();
+  const size_t n_antennas = getInfoOut().nantenna();
 
   everybeam::ATermSettings settings;
   // https://wsclean.readthedocs.io/en/latest/a_term_correction.html?highlight=kernel#kernel-size
@@ -408,8 +408,8 @@ std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> IDGPredict::Predict(
     const size_t direction) {
   timer_.start();
   const size_t n_terms = readers_.size();
-  const size_t term_size =
-      buffers_.size() * info().nbaselines() * info().nchan() * info().ncorr();
+  const size_t term_size = buffers_.size() * getInfoOut().nbaselines() *
+                           getInfoOut().nchan() * getInfoOut().ncorr();
 
   // term_data indexing: [term-1][timestep][baseline][channel][correlation].
   aocommon::UVector<std::complex<float>> term_data((n_terms - 1) * term_size);
@@ -433,11 +433,11 @@ std::vector<const double*> IDGPredict::InitializeUVWs() {
   const double max_baseline2 = max_baseline_ * max_baseline_;
 
   for (std::unique_ptr<base::DPBuffer>& buffer : buffers_) {
-    assert(buffer->GetUvw().size() == (info().nbaselines() * 3));
+    assert(buffer->GetUvw().size() == (getInfoOut().nbaselines() * 3));
     uvws.push_back(buffer->GetUvw().data());
 
     const double* uvw = uvws.back();
-    for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
+    for (std::size_t bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
       if (uvw[2] > max_w_) {
         double uvwr2 = uvw[0] * uvw[0] + uvw[1] * uvw[1] + uvw[2] * uvw[2];
         if (uvwr2 <= max_baseline2) {
@@ -465,12 +465,12 @@ IDGPredict::ComputeVisibilities(const size_t direction,
                                 std::complex<float>* term_data) const {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
-  const size_t baseline_size = getInfo().nchan() * getInfo().ncorr();
-  const size_t timestep_size = getInfo().nbaselines() * baseline_size;
+  const size_t baseline_size = getInfoOut().nchan() * getInfoOut().ncorr();
+  const size_t timestep_size = getInfoOut().nbaselines() * baseline_size;
   const size_t term_size = n_timesteps * timestep_size;
 
   const std::array<size_t, 3> result_shape = {
-      getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
+      getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
   std::vector<aocommon::xt::UTensor<std::complex<float>, 3>> result(
       buffers_.size(),
       aocommon::xt::UTensor<std::complex<float>, 3>(result_shape));
@@ -540,11 +540,11 @@ aocommon::UVector<std::complex<float>> IDGPredict::GetAtermValues(
   // aterm.Calculate should always return true and fill aterm_values.
   // On successive invocations, it may return false, which means it does not
   // touch aterm_values and IDGPredict should reuse the old values in the cache.
-  aterm.Calculate(aterm_values.data(), time_centroid, getInfo().refFreq(),
+  aterm.Calculate(aterm_values.data(), time_centroid, getInfoOut().refFreq(),
                   field_id, nullptr);
 
-  const std::vector<int>& ant_used = getInfo().antennaUsed();
-  if (getInfo().nantenna() == ant_used.size()) {
+  const std::vector<int>& ant_used = getInfoOut().antennaUsed();
+  if (getInfoOut().nantenna() == ant_used.size()) {
     return aterm_values;
   } else {
     // Copy the relevant data into a buffer for the used antennas.
@@ -566,8 +566,8 @@ void IDGPredict::CorrectVisibilities(
     const std::complex<float>* term_data) {
   const size_t n_timesteps = buffers_.size();
   const size_t n_terms = readers_.size();
-  const size_t baseline_size = info().nchan() * info().ncorr();
-  const size_t timestep_size = info().nbaselines() * baseline_size;
+  const size_t baseline_size = getInfoOut().nchan() * getInfoOut().ncorr();
+  const size_t timestep_size = getInfoOut().nbaselines() * baseline_size;
   const size_t term_size = n_timesteps * timestep_size;
 
   // The polynomial term corrections use the "polynomial spectrum" definition,
@@ -586,16 +586,16 @@ void IDGPredict::CorrectVisibilities(
   // Precompute polynomial frequency factors for all channels.
   std::vector<float> freq_factors;
   if (n_terms > 1) {
-    freq_factors.reserve(info().nchan());
-    for (double freq : info().chanFreqs()) {
+    freq_factors.reserve(getInfoOut().nchan());
+    for (double freq : getInfoOut().chanFreqs()) {
       freq_factors.push_back(freq / ref_frequency_ - 1.0);
     }
   }
 
   for (size_t t = 0; t < n_timesteps; ++t) {
     std::complex<float>* result_data = result[t].data();
-    for (size_t bl = 0; bl < info().nbaselines(); ++bl) {
-      for (size_t ch = 0; ch < info().nchan(); ++ch) {
+    for (size_t bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
+      for (size_t ch = 0; ch < getInfoOut().nchan(); ++ch) {
         float polynomial_factor = 1.0;
         for (auto& term_data_ptr : term_data_ptrs) {
           polynomial_factor *= freq_factors[ch];
@@ -625,9 +625,9 @@ size_t IDGPredict::GetBufferSize() const { return buffer_size_; }
 size_t IDGPredict::GetAllocatableBuffers(size_t memory) {
   size_t n_terms = readers_.size();
 
-  size_t max_channels = info().chanFreqs().size();
+  size_t max_channels = getInfoOut().chanFreqs().size();
   uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(
-      info().antennaUsed().size(), max_channels);
+      getInfoOut().antennaUsed().size(), max_channels);
   memPerTimestep *= 2;  // IDG uses two internal buffers
   memPerTimestep *= 4;  // DP3 can store up to 4 times the MS size in memory.
   // Allow the directions together to use 1/4th of the available memory for
@@ -652,7 +652,7 @@ size_t IDGPredict::GetSubgridCount(size_t direction) const {
   // for the given direction.
   const idg::api::BufferSet& bs = *buffersets_[direction * n_terms];
   const size_t subgrid_size = bs.get_subgridsize();
-  return subgrid_size * subgrid_size * getInfo().ncorr();
+  return subgrid_size * subgrid_size * getInfoOut().ncorr();
 }
 
 #else  // HAVE_IDG

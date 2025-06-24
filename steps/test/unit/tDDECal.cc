@@ -122,9 +122,9 @@ class KeepModelDataFixture : public FixtureDirectory {
       for (const std::string& name : expected_names) {
         BOOST_REQUIRE(buffer->HasData(name));
         const std::array<std::size_t, 3> shape = buffer->GetData(name).shape();
-        BOOST_CHECK_EQUAL(shape[0], reader->getInfo().nbaselines());
-        BOOST_CHECK_EQUAL(shape[1], reader->getInfo().nchan());
-        BOOST_CHECK_EQUAL(shape[2], reader->getInfo().ncorr());
+        BOOST_CHECK_EQUAL(shape[0], reader->getInfoOut().nbaselines());
+        BOOST_CHECK_EQUAL(shape[1], reader->getInfoOut().nchan());
+        BOOST_CHECK_EQUAL(shape[2], reader->getInfoOut().ncorr());
       }
     }
   }

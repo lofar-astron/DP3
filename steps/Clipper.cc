@@ -51,9 +51,9 @@ void Clipper::updateInfo(const DPInfo& info_in) {
   }
 
   // Adapt the channel frequencies and widths for the prediction
-  const std::vector<double>& input_frequencies = infoOut().chanFreqs();
-  const std::vector<double>& input_widths = infoOut().chanWidths();
-  const size_t n_channels_in = infoOut().nchan();
+  const std::vector<double>& input_frequencies = getInfoOut().chanFreqs();
+  const std::vector<double>& input_widths = getInfoOut().chanWidths();
+  const size_t n_channels_in = getInfoOut().nchan();
   const size_t n_channels_out =
       (n_channels_in + frequency_step_ - 1) / frequency_step_;
   std::vector<double> predict_frequencies(n_channels_out);
@@ -99,7 +99,7 @@ bool Clipper::process(std::unique_ptr<DPBuffer> buffer) {
     // max_amplitude_. Copy each resulting flag to the buffer
     // frequency_step_ times.
     last_flags_.resize(buffer->GetFlags().shape());
-    const size_t n_channels_in = info().nchan();
+    const size_t n_channels_in = getInfoOut().nchan();
     const size_t n_channels_out =
         (n_channels_in + frequency_step_ - 1) / frequency_step_;
     for (size_t channel = 0; channel < n_channels_out; ++channel) {

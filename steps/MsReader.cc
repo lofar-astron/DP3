@@ -139,7 +139,8 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
           .shape(0));
   const unsigned int n_correlations = shape[0];
   const unsigned int n_channels = shape[1];
-  infoOut() = DPInfo(n_correlations, n_channels, base::ReadAntennaSet(ms_));
+  GetWritableInfoOut() =
+      DPInfo(n_correlations, n_channels, base::ReadAntennaSet(ms_));
 
   InitializeColumns(
       allow_missing_data,
@@ -439,7 +440,7 @@ void MsReader::ParseTimeSelection(const common::ParameterSet& parset,
   // Get time properties from the MS, which InitializeIterator() already set.
   double first_time = getInfoOut().firstTime();
   double last_time = getInfoOut().lastTime();
-  const double interval = getInfo().timeInterval();
+  const double interval = getInfoOut().timeInterval();
 
   // Update first_time, using "starttime" or "starttimeslot".
   if (!startTimeStr.empty()) {
@@ -476,7 +477,7 @@ void MsReader::ParseTimeSelection(const common::ParameterSet& parset,
   }
 
   if (ms_iterator_.pastEnd()) {
-    infoOut().setTimes(0, 0, interval);
+    GetWritableInfoOut().setTimes(0, 0, interval);
     return;
   }
 
@@ -507,7 +508,7 @@ void MsReader::ParseTimeSelection(const common::ParameterSet& parset,
     last_time = first_time + (nTimes - 1) * interval;
   }
 
-  infoOut().setTimes(first_time, last_time, interval);
+  GetWritableInfoOut().setTimes(first_time, last_time, interval);
   next_time_ = first_time;
 }
 
@@ -549,9 +550,9 @@ void MsReader::ReadChannelProperties(int spectralWindow) {
   std::vector<double> resolutions = resolCol(spectralWindow).tovector();
   std::vector<double> effectiveBW = effBWCol(spectralWindow).tovector();
   const double refFreq = refCol(spectralWindow);
-  infoOut().setChannels(std::move(chanFreqs), std::move(chanWidths),
-                        std::move(resolutions), std::move(effectiveBW), refFreq,
-                        spectralWindow);
+  GetWritableInfoOut().setChannels(
+      std::move(chanFreqs), std::move(chanWidths), std::move(resolutions),
+      std::move(effectiveBW), refFreq, spectralWindow);
 }
 
 void MsReader::InitializeChannels(int spectralWindow) {
@@ -570,7 +571,7 @@ void MsReader::InitializeChannels(int spectralWindow) {
                                    getInfoOut().nbaselines()));
 
   ReadChannelProperties(spectralWindow);
-  infoOut().SelectChannels(start_channel, n_channels);
+  GetWritableInfoOut().SelectChannels(start_channel, n_channels);
 }
 
 void MsReader::SelectBaselines() {
@@ -636,14 +637,14 @@ void MsReader::InitializeColumns(const bool allow_missing_data,
     if (dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE")) {
       const everybeam::CorrectionMode mode = everybeam::ParseCorrectionMode(
           dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE"));
-      info().setBeamCorrectionMode(static_cast<int>(mode));
+      GetWritableInfoOut().setBeamCorrectionMode(static_cast<int>(mode));
       if (mode != everybeam::CorrectionMode::kNone) {
         casacore::String error;
         MeasureHolder mHolder;
         if (!mHolder.fromRecord(
                 error, dataCol.keywordSet().asRecord("LOFAR_APPLIED_BEAM_DIR")))
           throw std::runtime_error(error);
-        info().setBeamCorrectionDir(mHolder.asMDirection());
+        GetWritableInfoOut().setBeamCorrectionDir(mHolder.asMDirection());
       }
     }
   } else if (allow_missing_data) {
@@ -662,7 +663,8 @@ void MsReader::InitializeColumns(const bool allow_missing_data,
       missing_columns += columnName + ", ";
     }
     // Make sure that the extra data columns are available in DPInfo.
-    infoOut().GetDirections()[columnName] = infoOut().phaseCenterDirection();
+    GetWritableInfoOut().GetDirections()[columnName] =
+        getInfoOut().phaseCenterDirection();
   }
   if (!missing_columns.empty()) {
     missing_columns.erase(missing_columns.size() - 2);
@@ -670,8 +672,8 @@ void MsReader::InitializeColumns(const bool allow_missing_data,
                              "] are missing in " + msName());
   }
 
-  infoOut().setMsNames(msName(), data_column_name, flag_column_name,
-                       weight_column_name);
+  GetWritableInfoOut().setMsNames(msName(), data_column_name, flag_column_name,
+                                  weight_column_name);
 }
 
 void MsReader::InitializeIterator(const bool force_auto_weight) {
@@ -711,8 +713,9 @@ void MsReader::InitializeIterator(const bool force_auto_weight) {
   // Get first and last time and interval from MS.
   if (selection_ms_.nrow() > 0) {
     ScalarColumn<double> time_column(sortms, "TIME");
-    info().setTimes(time_column(0), time_column(sortms.nrow() - 1),
-                    ScalarColumn<double>(sortms, "INTERVAL")(0));
+    GetWritableInfoOut().setTimes(time_column(0),
+                                  time_column(sortms.nrow() - 1),
+                                  ScalarColumn<double>(sortms, "INTERVAL")(0));
   }
   // Create iterator over time. Do not sort again.
   ms_iterator_ = TableIterator(sortms, Block<casacore::String>(1, "TIME"),
@@ -751,10 +754,10 @@ void MsReader::ReadAntennas(const casacore::Table& table) {
   }
   // Set antenna/baseline info.
   const casacore::Vector<casacore::String> names = nameCol.getColumn();
-  infoOut().setAntennas(std::vector<std::string>(names.begin(), names.end()),
-                        diamCol.getColumn().tovector(), antenna_positions,
-                        ant1col.getColumn().tovector(),
-                        ant2col.getColumn().tovector());
+  GetWritableInfoOut().setAntennas(
+      std::vector<std::string>(names.begin(), names.end()),
+      diamCol.getColumn().tovector(), antenna_positions,
+      ant1col.getColumn().tovector(), ant2col.getColumn().tovector());
 }
 
 void MsReader::ReadArrayInformation() {
@@ -794,8 +797,8 @@ void MsReader::ReadArrayInformation() {
     array_position = antenna_positions[antenna_positions.size() / 2];
   }
 
-  infoOut().setArrayInformation(array_position, phase_center, delay_center,
-                                tile_beam_direction);
+  GetWritableInfoOut().setArrayInformation(array_position, phase_center,
+                                           delay_center, tile_beam_direction);
 
   uvw_calculator_ = std::make_unique<base::UVWCalculator>(
       phase_center, array_position, antenna_positions);
@@ -823,7 +826,7 @@ void MsReader::ReadPolarizations(int spectralWindow) {
     throw std::runtime_error(
         "DP3 expects a measurement set with 4 polarizations");
   }
-  info().setPolarizations(polarizations);
+  GetWritableInfoOut().setPolarizations(polarizations);
 }
 
 void MsReader::SkipFirstTimes(double& first_time, const double interval) {
@@ -864,8 +867,8 @@ void MsReader::getUVW(const RefRows& rowNrs, double time, DPBuffer& buf) {
   buf.GetUvw().resize({n_baselines, 3});
   if (rowNrs.rowVector().empty()) {
     // Calculate UVWs if empty rownrs (i.e., missing data).
-    const std::vector<int>& ant1 = getInfo().getAnt1();
-    const std::vector<int>& ant2 = getInfo().getAnt2();
+    const std::vector<int>& ant1 = getInfoOut().getAnt1();
+    const std::vector<int>& ant2 = getInfoOut().getAnt2();
     for (unsigned int i = 0; i < n_baselines; ++i) {
       xt::view(buf.GetUvw(), i, xt::all()) =
           xt::adapt(uvw_calculator_->getUVW(ant1[i], ant2[i], time));
@@ -933,16 +936,16 @@ void MsReader::GetWeights(const RefRows& rowNrs, DPBuffer& buf) {
 }
 
 void MsReader::AutoWeight(DPBuffer& buf) {
-  const double* chanWidths = getInfo().chanWidths().data();
+  const double* chanWidths = getInfoOut().chanWidths().data();
   DPBuffer::WeightsType& weights = buf.GetWeights();
   const unsigned int nbl = weights.shape(0);
   const unsigned int nchan = weights.shape(1);
   const unsigned int npol = weights.shape(2);
   // Get the autocorrelations indices.
-  const std::vector<int>& autoInx = getInfo().getAutoCorrIndex();
+  const std::vector<int>& autoInx = getInfoOut().getAutoCorrIndex();
   // Calculate the weight for each cross-correlation data point.
-  const std::vector<int>& ant1 = getInfo().getAnt1();
-  const std::vector<int>& ant2 = getInfo().getAnt2();
+  const std::vector<int>& ant1 = getInfoOut().getAnt1();
+  const std::vector<int>& ant2 = getInfoOut().getAnt2();
   const DPBuffer::DataType& data = buf.GetData();
   for (unsigned int bl = 0; bl < nbl; ++bl) {
     // Can only be done if both autocorrelations are present.

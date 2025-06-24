@@ -191,10 +191,10 @@ void MSWriter::ProcessBuffer(DPBuffer& buffer) {
   const common::NSTimer::StartStop timer(writer_timer_);
 
   // Form the vector of the output table containing new rows.
-  casacore::Vector<common::rownr_t> rownrs(getInfo().nbaselines());
+  casacore::Vector<common::rownr_t> rownrs(getInfoOut().nbaselines());
   indgen(rownrs, ms_.nrow());
   // Add the necessary rows to the table.
-  ms_.addRow(getInfo().nbaselines());
+  ms_.addRow(getInfoOut().nbaselines());
   // Form the subset of the tables containing the rows.
   // It can happen that a missing slot was inserted. In that case
   // the rownr vector is empty and we use the first itsNrBl input rows.
@@ -231,7 +231,7 @@ void MSWriter::StartNewMs() {
   WriteHistory(ms_, parset_);
   ms_.flush(true, true);
   aocommon::Logger::Info << "Finished preparing output MS\n";
-  info().clearMetaChanged();
+  GetWritableInfoOut().clearMetaChanged();
 
   use_write_thread_ = dynamic_cast<NullStep*>(getNextStep().get()) != nullptr;
   if (use_write_thread_) {
@@ -273,11 +273,11 @@ void MSWriter::updateInfo(const DPInfo& info_in) {
 void MSWriter::show(std::ostream& os) const {
   os << "MSWriter " << name_ << '\n';
   os << "  output MS:      " << ms_.tableName() << '\n';
-  os << "  nchan:          " << getInfo().nchan() << '\n';
-  os << "  ncorrelations:  " << getInfo().ncorr() << '\n';
-  os << "  nbaselines:     " << getInfo().nbaselines() << '\n';
-  os << "  ntimes:         " << getInfo().ntime() << '\n';
-  os << "  time interval:  " << getInfo().timeInterval() << '\n';
+  os << "  nchan:          " << getInfoOut().nchan() << '\n';
+  os << "  ncorrelations:  " << getInfoOut().ncorr() << '\n';
+  os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
+  os << "  ntimes:         " << getInfoOut().ntime() << '\n';
+  os << "  time interval:  " << getInfoOut().timeInterval() << '\n';
   os << "  DATA column:    " << data_col_name_ << '\n';
   os << "  FLAG column:    " << flag_col_name_ << '\n';
   os << "  WEIGHT column:  " << weight_col_name_ << '\n';
@@ -314,9 +314,9 @@ void MSWriter::showTimings(std::ostream& os, double duration) const {
 void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
                         unsigned int tile_n_chan) {
   // Determine the data shape.
-  IPosition data_shape(2, getInfo().ncorr(), getInfo().nchan());
+  IPosition data_shape(2, getInfoOut().ncorr(), getInfoOut().nchan());
   // Obtain the MS description.
-  casacore::Table original_table(getInfo().msName());
+  casacore::Table original_table(getInfoOut().msName());
   TableDesc tdesc(original_table.tableDesc());
   // Create the output table without the columns depending
   // on the nr of channels.
@@ -349,13 +349,13 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   {
     ColumnDesc& cdesc = newdesc.rwColumnDesc("WEIGHT");
     if (cdesc.shape().empty()) {
-      cdesc.setShape(IPosition(1, getInfo().ncorr()), true);
+      cdesc.setShape(IPosition(1, getInfoOut().ncorr()), true);
     }
   }
   {
     ColumnDesc& cdesc = newdesc.rwColumnDesc("SIGMA");
     if (cdesc.shape().empty()) {
-      cdesc.setShape(IPosition(1, getInfo().ncorr()), true);
+      cdesc.setShape(IPosition(1, getInfoOut().ncorr()), true);
     }
   }
   // Remove possible hypercolumn definitions.
@@ -374,7 +374,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
   Record dminfo = temptable.dataManagerInfo();
   // Determine the DATA tile shape. Use all corrs and the given #channels.
   // The given tile size (in kbytes) determines the nr of rows in a tile .
-  IPosition tile_shape(3, getInfo().ncorr(), tile_n_chan, 1);
+  IPosition tile_shape(3, getInfoOut().ncorr(), tile_n_chan, 1);
   tile_shape[2] = tile_size * 1024 / (8 * tile_shape[0] * tile_shape[1]);
   if (tile_shape[2] < 1) {
     tile_shape[2] = 1;
@@ -527,7 +527,7 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     }
     Matrix<int> selection(2, 1);
     selection(0, 0) = 0;
-    selection(1, 0) = getInfo().nchan();
+    selection(1, 0) = getInfoOut().nchan();
     keyset.define("CHANNEL_SELECTION", selection);
     TiledColumnStMan tsmm("ModelData", tile_shape);
     MakeArrayColumn(mdesc, data_shape, &tsmm, ms_);
@@ -752,8 +752,8 @@ void MSWriter::WriteData(Table& out, DPBuffer& buf) {
   ArrayColumn<casacore::Complex> data_col(out, data_col_name_);
   ArrayColumn<bool> flag_col(out, "FLAG");
   ArrayColumn<float> weightCol(out, "WEIGHT_SPECTRUM");
-  const casacore::IPosition shape(3, getInfo().ncorr(), getInfo().nchan(),
-                                  getInfo().nbaselines());
+  const casacore::IPosition shape(3, getInfoOut().ncorr(), getInfoOut().nchan(),
+                                  getInfoOut().nbaselines());
   const Cube<casacore::Complex> data(shape, buf.GetData().data(),
                                      casacore::SHARE);
   const Cube<float> weights(shape, buf.GetWeights().data(), casacore::SHARE);
@@ -770,7 +770,7 @@ void MSWriter::WriteData(Table& out, DPBuffer& buf) {
 
   // Write UVW
   ArrayColumn<double> uvw_col(out, "UVW");
-  const casacore::IPosition shape_uvw(2, 3, getInfo().nbaselines());
+  const casacore::IPosition shape_uvw(2, 3, getInfoOut().nbaselines());
   const Matrix<double> uvws(shape_uvw, buf.GetUvw().data(), casacore::SHARE);
   uvw_col.putColumn(uvws);
 }
@@ -782,20 +782,20 @@ void MSWriter::WriteMeta(Table& out, const DPBuffer& buf) {
   if (antenna_compression_) {
     // When using the compressing mgr, antenna 1 and 2 have to be written
     // directly after each other.
-    const size_t n = getInfo().getAnt1().size();
+    const size_t n = getInfoOut().getAnt1().size();
     for (size_t i = 0; i != n; ++i) {
-      ant1col.put(i, getInfo().getAnt1()[i]);
-      ant2col.put(i, getInfo().getAnt2()[i]);
+      ant1col.put(i, getInfoOut().getAnt1()[i]);
+      ant2col.put(i, getInfoOut().getAnt2()[i]);
     }
   } else {
-    ant1col.putColumn(casacore::Vector<int>(getInfo().getAnt1()));
-    ant2col.putColumn(casacore::Vector<int>(getInfo().getAnt2()));
+    ant1col.putColumn(casacore::Vector<int>(getInfoOut().getAnt1()));
+    ant2col.putColumn(casacore::Vector<int>(getInfoOut().getAnt2()));
   }
   // Fill all rows that do not change.
   FillSca<double>(buf.GetTime(), out, "TIME");
   FillSca<double>(buf.GetTime(), out, "TIME_CENTROID");
   FillSca<double>(buf.GetExposure(), out, "EXPOSURE");
-  FillSca<double>(getInfo().timeInterval(), out, "INTERVAL");
+  FillSca<double>(getInfoOut().timeInterval(), out, "INTERVAL");
   FillSca<int>(0, out, "FEED1");
   FillSca<int>(0, out, "FEED2");
   FillSca<int>(0, out, "DATA_DESC_ID");
@@ -805,7 +805,7 @@ void MSWriter::WriteMeta(Table& out, const DPBuffer& buf) {
   FillSca<int>(0, out, "ARRAY_ID");
   FillSca<int>(0, out, "OBSERVATION_ID");
   FillSca<int>(0, out, "STATE_ID");
-  Array<float> arr(IPosition(1, getInfo().ncorr()));
+  Array<float> arr(IPosition(1, getInfoOut().ncorr()));
   arr = 1;
   FillArr<float>(arr, out, "SIGMA");
   FillArr<float>(arr, out, "WEIGHT");

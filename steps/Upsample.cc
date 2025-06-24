@@ -51,13 +51,15 @@ Upsample::~Upsample() {}
 
 void Upsample::updateInfo(const DPInfo& info_in) {
   Step::updateInfo(info_in);
-  info().setTimeIntervalAndSteps(info().timeInterval() / time_step_,
-                                 info().ntime() * time_step_);
-  info().setMetaChanged();
+  GetWritableInfoOut().setTimeIntervalAndSteps(
+      getInfoOut().timeInterval() / time_step_,
+      getInfoOut().ntime() * time_step_);
+  GetWritableInfoOut().setMetaChanged();
 
   if (update_uvw_) {
     uvw_calculator_ = std::make_unique<base::UVWCalculator>(
-        info().phaseCenter(), info().arrayPos(), info().antennaPos());
+        getInfoOut().phaseCenter(), getInfoOut().arrayPos(),
+        getInfoOut().antennaPos());
   }
 }
 
@@ -73,12 +75,12 @@ void Upsample::UpdateTimeCentroidExposureAndUvw(
   buffer->SetExposure(exposure);
 
   if (update_uvw_) {
-    buffer->GetUvw().resize({info().nbaselines(), 3});
+    buffer->GetUvw().resize({getInfoOut().nbaselines(), 3});
 
     double* uvw_ptr = buffer->GetUvw().data();
-    for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
+    for (std::size_t bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
       const std::array<double, 3> uvw = uvw_calculator_->getUVW(
-          info().getAnt1()[bl], info().getAnt2()[bl], time);
+          getInfoOut().getAnt1()[bl], getInfoOut().getAnt2()[bl], time);
       std::copy_n(uvw.data(), 3, uvw_ptr);
       uvw_ptr += 3;
     }
@@ -86,7 +88,8 @@ void Upsample::UpdateTimeCentroidExposureAndUvw(
 }
 
 bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
-  double time0 = buffer->GetTime() - 0.5 * info().timeInterval() * time_step_;
+  double time0 =
+      buffer->GetTime() - 0.5 * getInfoOut().timeInterval() * time_step_;
   double exposure = buffer->GetExposure() / time_step_;
 
   // Make a copy of the buffer for each time_step_
@@ -94,13 +97,13 @@ bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
   // reducing the number of copies required by 1
   for (unsigned int i = 0; i < time_step_ - 1; ++i) {
     buffers_[i] = std::make_unique<base::DPBuffer>(*buffer);
-    const double time = time0 + info().timeInterval() * (i + 0.5);
+    const double time = time0 + getInfoOut().timeInterval() * (i + 0.5);
     UpdateTimeCentroidExposureAndUvw(buffers_[i], time, exposure);
   }
   buffers_[time_step_ - 1] = std::move(buffer);
   UpdateTimeCentroidExposureAndUvw(
       buffers_[time_step_ - 1],
-      time0 + info().timeInterval() * (time_step_ - 1 + 0.5), exposure);
+      time0 + getInfoOut().timeInterval() * (time_step_ - 1 + 0.5), exposure);
 
   if (prev_buffers_.empty()) {
     // First time slot, ask for next time slot first
@@ -126,12 +129,12 @@ bool Upsample::process(std::unique_ptr<base::DPBuffer> buffer) {
                buffers_[curIndex]->GetTime() &&
            !casacore::nearAbs(prev_buffers_[prevIndex]->GetTime(),
                               buffers_[curIndex]->GetTime(),
-                              0.4 * info().timeInterval())) {
+                              0.4 * getInfoOut().timeInterval())) {
       curIndex++;
     }
     if (casacore::nearAbs(prev_buffers_[prevIndex]->GetTime(),
                           buffers_[curIndex]->GetTime(),
-                          0.4 * info().timeInterval())) {
+                          0.4 * getInfoOut().timeInterval())) {
       // Found double buffer, choose which one to use
       // If both totally flagged, prefer prevbuffer
       if (xt::all(xt::equal(buffers_[curIndex]->GetFlags(), true))) {

@@ -348,7 +348,7 @@ void Execute(const std::string& parsetName, int argc, char* argv[]) {
   model::SkyModelCache::GetInstance().Clear();
 
   // Process until the end.
-  unsigned int ntodo = firstStep->getInfo().ntime();
+  unsigned int ntodo = firstStep->getInfoOut().ntime();
   aocommon::Logger::Info << "Processing " << ntodo << " time slots ...\n";
   if (showProgress) {
     double ndone = 0;
