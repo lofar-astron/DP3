@@ -46,9 +46,9 @@ BOOST_AUTO_TEST_SUITE(applycal)
 class TestInput : public dp3::steps::MockInput {
  public:
   TestInput() : process_count_(0) {
-    info() = DPInfo(kNCorrelations, kNChannels);
-    info().setTimes(kFirstTime, kFirstTime + (kNTimes - 1) * kTimeInterval,
-                    kTimeInterval);
+    GetWritableInfoOut() = DPInfo(kNCorrelations, kNChannels);
+    GetWritableInfoOut().setTimes(
+        kFirstTime, kFirstTime + (kNTimes - 1) * kTimeInterval, kTimeInterval);
     // Fill the baseline stations; use 3 stations.
     // So they are called 00 01 02 10 11 12 20 21 22, etc.
 
@@ -95,14 +95,15 @@ class TestInput : public dp3::steps::MockInput {
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
     std::vector<double> antDiam(4, 70.);
-    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
+    GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanWidth(kNChannels, 1000000.);
     std::vector<double> chanFreqs;
     for (size_t i = 0; i < kNChannels; ++i) {
       chanFreqs.push_back(10500000. + i * 1000000.);
     }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
   }
 
   bool process(std::unique_ptr<DPBuffer> buffer) override {
@@ -170,8 +171,8 @@ class TestOutput : public dp3::steps::test::ThrowStep {
       const int time = time_step_ / (kNTimes / 2);
 
       for (size_t baseline = 0; baseline < kNBaselines; ++baseline) {
-        const int antenna1 = info().getAnt1()[baseline];
-        const int antenna2 = info().getAnt2()[baseline];
+        const int antenna1 = getInfoOut().getAnt1()[baseline];
+        const int antenna2 = getInfoOut().getAnt2()[baseline];
 
         for (size_t channel = 0; channel < kNChannels; ++channel) {
           const size_t gain_channel = channel / (kNChannels / 2);
@@ -219,7 +220,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    GetWritableInfoOut() = infoIn;
     BOOST_CHECK_EQUAL(kNChannels, infoIn.origNChan());
     BOOST_CHECK_EQUAL(kNChannels, infoIn.nchan());
     BOOST_CHECK_EQUAL(kNTimes, infoIn.ntime());

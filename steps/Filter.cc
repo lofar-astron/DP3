@@ -85,8 +85,8 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
   // Handle possible baseline selection.
   if (itsBaselines.hasSelection()) {
     Matrix<bool> selbl(itsBaselines.apply(infoIn));
-    const std::vector<int>& ant1 = getInfo().getAnt1();
-    const std::vector<int>& ant2 = getInfo().getAnt2();
+    const std::vector<int>& ant1 = getInfoOut().getAnt1();
+    const std::vector<int>& ant2 = getInfoOut().getAnt2();
     itsSelBL.reserve(ant1.size());
     for (unsigned int i = 0; i < ant1.size(); ++i) {
       if (selbl(ant1[i], ant2[i])) {
@@ -99,16 +99,16 @@ void Filter::updateInfo(const base::DPInfo& infoIn) {
   }
 
   // Update the DPInfo object.
-  infoOut().SelectChannels(itsStartChan, nrChan);
-  if (!itsSelBL.empty()) infoOut().SelectBaselines(itsSelBL);
-  if (itsRemoveAnt) infoOut().RemoveUnusedAntennas();
+  GetWritableInfoOut().SelectChannels(itsStartChan, nrChan);
+  if (!itsSelBL.empty()) GetWritableInfoOut().SelectBaselines(itsSelBL);
+  if (itsRemoveAnt) GetWritableInfoOut().RemoveUnusedAntennas();
 }
 
 void Filter::show(std::ostream& os) const {
   os << "Filter " << itsName << '\n';
   os << "  startchan:      " << itsStartChan << "  (" << itsStartChanStr << ')'
      << '\n';
-  os << "  nchan:          " << getInfo().nchan() << "  (" << itsNrChanStr
+  os << "  nchan:          " << getInfoOut().nchan() << "  (" << itsNrChanStr
      << ')' << '\n';
   itsBaselines.show(os);
   os << "  remove:         " << itsRemoveAnt << '\n';
@@ -132,11 +132,11 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
   std::unique_ptr<DPBuffer> filter_buffer =
       std::make_unique<DPBuffer>(buffer->GetTime(), buffer->GetExposure());
   const std::array<std::size_t, 3> filter_shape{
-      getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
+      getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
   filter_buffer->GetData().resize(filter_shape);
   filter_buffer->GetFlags().resize(filter_shape);
   filter_buffer->GetWeights().resize(filter_shape);
-  filter_buffer->GetUvw().resize({getInfo().nbaselines(), 3});
+  filter_buffer->GetUvw().resize({getInfoOut().nbaselines(), 3});
 
   // Select the filtered data and copy it into the new filter_buffer
   const DPBuffer::DataType& data = buffer->GetData();
@@ -148,15 +148,18 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
     // make them contiguous.
     // UVW is a straight copy with no filtering because it is not dependent on
     // channel.
-    filter_buffer->GetData() = xt::view(
-        data, xt::all(),
-        xt::range(itsStartChan, itsStartChan + getInfo().nchan()), xt::all());
-    filter_buffer->GetFlags() = xt::view(
-        flags, xt::all(),
-        xt::range(itsStartChan, itsStartChan + getInfo().nchan()), xt::all());
-    filter_buffer->GetWeights() = xt::view(
-        weights, xt::all(),
-        xt::range(itsStartChan, itsStartChan + getInfo().nchan()), xt::all());
+    filter_buffer->GetData() =
+        xt::view(data, xt::all(),
+                 xt::range(itsStartChan, itsStartChan + getInfoOut().nchan()),
+                 xt::all());
+    filter_buffer->GetFlags() =
+        xt::view(flags, xt::all(),
+                 xt::range(itsStartChan, itsStartChan + getInfoOut().nchan()),
+                 xt::all());
+    filter_buffer->GetWeights() =
+        xt::view(weights, xt::all(),
+                 xt::range(itsStartChan, itsStartChan + getInfoOut().nchan()),
+                 xt::all());
     filter_buffer->GetUvw() = xt::view(uvws, xt::all(), xt::all());
     filter_buffer->SetRowNumbers(buffer->GetRowNumbers());
   } else {
@@ -165,7 +168,7 @@ bool Filter::process(std::unique_ptr<DPBuffer> buffer) {
     // as well as it is dependent on baselines.
     casacore::Vector<common::rownr_t> rowNrs;
     if (!buffer->GetRowNumbers().empty()) {
-      rowNrs.resize(getInfo().nbaselines());
+      rowNrs.resize(getInfoOut().nbaselines());
     }
     // Copy the data of the selected baselines and channels.
     std::complex<float>* toData = filter_buffer->GetData().data();
@@ -213,7 +216,7 @@ void Filter::addToMS(const std::string& msName) {
   // See if and which stations have been removed.
   casacore::Table antTab(msName + "/ANTENNA", casacore::Table::Update);
   casacore::Table selTab = antTab(!antTab.col("NAME").in(
-      casacore::Vector<casacore::String>(info().antennaNames())));
+      casacore::Vector<casacore::String>(getInfoOut().antennaNames())));
   if (selTab.nrow() == 0) {
     return;
   }

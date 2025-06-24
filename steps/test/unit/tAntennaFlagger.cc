@@ -55,9 +55,9 @@ class TestInput final : public dp3::steps::MockInput {
         n_channels_(n_channels),
         n_correlations_(n_correlations),
         baseline_order_(baseline_order) {
-    info() = DPInfo(n_correlations, n_channels);
-    info().setTimes(kFirstTime, kFirstTime + (n_time_ - 1) * kTimeStep,
-                    kTimeStep);
+    GetWritableInfoOut() = DPInfo(n_correlations, n_channels);
+    GetWritableInfoOut().setTimes(
+        kFirstTime, kFirstTime + (n_time_ - 1) * kTimeStep, kTimeStep);
 
     // Fill the baselines
     const size_t n_antennas = n_stations * n_antennas_per_station;
@@ -80,14 +80,15 @@ class TestInput final : public dp3::steps::MockInput {
     // Antenna positions and diameter are not used by the AntennaFlagger
     std::vector<casacore::MPosition> antenna_positions(n_antennas);
     std::vector<double> antenna_diameters(n_antennas);
-    info().setAntennas(antenna_names, antenna_diameters, antenna_positions,
-                       ant1, ant2);
+    GetWritableInfoOut().setAntennas(antenna_names, antenna_diameters,
+                                     antenna_positions, ant1, ant2);
 
     // Define the frequencies
     std::vector<double> frequencies(n_channels_);
     std::vector<double> channel_widths(n_channels_, kChannelWidth);
     std::iota(frequencies.begin(), frequencies.end(), kStartFrequency);
-    info().setChannels(std::move(frequencies), std::move(channel_widths));
+    GetWritableInfoOut().setChannels(std::move(frequencies),
+                                     std::move(channel_widths));
   }
 
  private:

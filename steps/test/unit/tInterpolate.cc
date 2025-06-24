@@ -39,8 +39,8 @@ class TestInput : public dp3::steps::MockInput {
     using casacore::MPosition;
     using casacore::Quantum;
 
-    info() = DPInfo(num_correlations_, num_channels_);
-    info().setTimes(100.0, 100.0 + (num_times_ - 1) * 5.0, 5.0);
+    GetWritableInfoOut() = DPInfo(num_correlations_, num_channels_);
+    GetWritableInfoOut().setTimes(100.0, 100.0 + (num_times_ - 1) * 5.0, 5.0);
 
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
@@ -79,16 +79,16 @@ class TestInput : public dp3::steps::MockInput {
         MPosition(Quantum<casacore::Vector<double>>(vals3, "m"),
                   MPosition::ITRF)};
     const std::vector<double> antenna_diameters(4.0, 70.0);
-    info().setAntennas(antenna_names, antenna_diameters, antenna_positions,
-                       antenna_1, antenna_2);
+    GetWritableInfoOut().setAntennas(antenna_names, antenna_diameters,
+                                     antenna_positions, antenna_1, antenna_2);
     // Define the frequencies.
     std::vector<double> channel_frequencies;
     std::vector<double> channel_widths(num_channels, 100000.0);
     for (std::size_t i = 0; i < num_channels; ++i) {
       channel_frequencies.push_back(1050000.0 + i * 100000.0);
     }
-    info().setChannels(std::move(channel_frequencies),
-                       std::move(channel_widths));
+    GetWritableInfoOut().setChannels(std::move(channel_frequencies),
+                                     std::move(channel_widths));
   }
 
  private:

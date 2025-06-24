@@ -101,16 +101,10 @@ class Step {
   virtual dp3::common::Fields getProvidedFields() const = 0;
 
   /// Get access to the info of the input.
-  const base::DPInfo& getInfoIn() const { return itsInfoIn; }
+  const base::DPInfo& getInfoIn() const { return input_info_; }
 
   /// Get access to the info of the output.
-  const base::DPInfo& getInfoOut() const { return itsInfoOut; }
-
-  /// Legacy version of getInfoOut().
-  /// New code should use getInfoOut() instead of getInfo()
-  [[deprecated("Use getInfoOut()")]] const base::DPInfo& getInfo() const {
-    return itsInfoOut;
-  }
+  const base::DPInfo& getInfoOut() const { return output_info_; }
 
   /// Show the step parameters.
   virtual void show(std::ostream&) const = 0;
@@ -124,19 +118,19 @@ class Step {
   virtual void showTimings(std::ostream&, double duration) const;
 
   /// Set the previous step.
-  void setPrevStep(Step* prevStep) { itsPrevStep = prevStep; }
+  void setPrevStep(Step* prevStep) { previous_step_ = prevStep; }
 
   /// Get the previous step.
-  Step* getPrevStep() const { return itsPrevStep; }
+  Step* getPrevStep() const { return previous_step_; }
 
   /// Set the next step.
   virtual void setNextStep(Step::ShPtr nextStep) {
-    itsNextStep = nextStep;
+    next_step_ = nextStep;
     nextStep->setPrevStep(this);
   }
 
   /// Get the next step.
-  const Step::ShPtr& getNextStep() const { return itsNextStep; }
+  const Step::ShPtr& getNextStep() const { return next_step_; }
 
   /// Return which datatype this step outputs.
   virtual MsType outputs() const { return MsType::kRegular; }
@@ -156,13 +150,7 @@ class Step {
 
  protected:
   /// @return Non-const reference to output info.
-  base::DPInfo& infoOut() { return itsInfoOut; }
-
-  /// Legacy version of infoOut().
-  /// New code should use infoOut() instead of info().
-  [[deprecated("Use infoOut() instead")]] base::DPInfo& info() {
-    return itsInfoOut;
-  }
+  base::DPInfo& GetWritableInfoOut() { return output_info_; }
 
   /// Update the general info (called by setInfo).
   /// The default implementation copies the info.
@@ -173,11 +161,11 @@ class Step {
   virtual void addToMS(const std::string& msName);
 
  private:
-  std::shared_ptr<Step> itsNextStep;
-  Step* itsPrevStep = nullptr;  /// Normal pointer for back links, prevent
-                                /// two shared pointers to same object
-  base::DPInfo itsInfoIn;
-  base::DPInfo itsInfoOut;
+  std::shared_ptr<Step> next_step_;
+  Step* previous_step_ = nullptr;  /// Normal pointer for back links, prevent
+                                   /// two shared pointers to same object
+  base::DPInfo input_info_;
+  base::DPInfo output_info_;
   inline static bool threading_is_initialized_ = false;
 };
 

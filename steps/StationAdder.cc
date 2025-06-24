@@ -95,14 +95,14 @@ std::vector<int> StationAdder::GetMatchingStations(
 
 void StationAdder::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  info().setMetaChanged();
+  GetWritableInfoOut().setMetaChanged();
   // Check the superstation definition(s).
   // They are specified as a ParameterRecord like:
   //    stations = {new1:[s1,s2,s3], new2:[s4,s5,s6]}
   // where s1, etc. can be glob patterns.
   std::vector<std::string> antennaNames = infoIn.antennaNames();
   std::vector<double> antennaDiam = infoIn.antennaDiam();
-  std::vector<MPosition> antennaPos = info().antennaPos();
+  std::vector<MPosition> antennaPos = getInfoOut().antennaPos();
   // For each existing station, give id of new superstation it is used in.
   std::vector<int> newStations(antennaNames.size());
   std::fill(newStations.begin(), newStations.end(), -1);
@@ -159,8 +159,8 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     newDiam.push_back(2 * maxdist);
   }
   // Add the new stations to the info's vectors.
-  std::vector<int> ant1(info().getAnt1());
-  std::vector<int> ant2(info().getAnt2());
+  std::vector<int> ant1(getInfoOut().getAnt1());
+  std::vector<int> ant2(getInfoOut().getAnt2());
   unsigned int nrold = antennaNames.size();
   unsigned int nrnew = nrold + newNames.size();
   antennaNames.resize(nrnew);
@@ -238,7 +238,8 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     }
   }
   // Set the new info.
-  info().setAntennas(antennaNames, antennaDiam, antennaPos, ant1, ant2);
+  GetWritableInfoOut().setAntennas(antennaNames, antennaDiam, antennaPos, ant1,
+                                   ant2);
   // Setup the UVW calculator (for new baselines).
   itsUVWCalc = std::make_unique<base::UVWCalculator>(
       infoIn.phaseCenter(), infoIn.arrayPos(), antennaPos);
@@ -248,12 +249,12 @@ void StationAdder::show(std::ostream& os) const {
   os << "StationAdder " << itsName << '\n';
   os << "  stations:       " << itsStatRec << '\n';
   // Show the stations used for the new stations.
-  unsigned int nold = getInfo().antennaNames().size() - itsParts.size();
+  unsigned int nold = getInfoOut().antennaNames().size() - itsParts.size();
   for (unsigned int i = 0; i < itsParts.size(); ++i) {
-    os << "      " << getInfo().antennaNames()[nold + i] << ": [";
+    os << "      " << getInfoOut().antennaNames()[nold + i] << ": [";
     for (unsigned int j = 0; j < itsParts[i].size(); ++j) {
       if (j > 0) os << ", ";
-      os << getInfo().antennaNames()[itsParts[i][j]];
+      os << getInfoOut().antennaNames()[itsParts[i][j]];
     }
     os << ']' << '\n';
   }
@@ -282,11 +283,11 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
   const xt::xtensor<double, 2> input_uvws = buffer->GetUvw();
   // 2. Resize the buffer to the new sizes that were set in our info object
   const std::array<std::size_t, 3> new_shape{
-      getInfo().nbaselines(), getInfo().nchan(), getInfo().ncorr()};
+      getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
   buffer->GetData().resize(new_shape);
   buffer->GetFlags().resize(new_shape);
   buffer->GetWeights().resize(new_shape);
-  buffer->GetUvw().resize({getInfo().nbaselines(), 3});
+  buffer->GetUvw().resize({getInfoOut().nbaselines(), 3});
   // 3. Copy the data back into the resized buffer; only the existing baselines
   // at the start will be filled the additional new baselines at the end will be
   // empty.
@@ -433,8 +434,8 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
     } else {
       unsigned int blnr = nrOldBL + i;
       const std::array<double, 3> uvws =
-          itsUVWCalc->getUVW(getInfo().getAnt1()[blnr],
-                             getInfo().getAnt2()[blnr], buffer->GetTime());
+          itsUVWCalc->getUVW(getInfoOut().getAnt1()[blnr],
+                             getInfoOut().getAnt2()[blnr], buffer->GetTime());
       uvwPtr[0] = uvws[0];
       uvwPtr[1] = uvws[1];
       uvwPtr[2] = uvws[2];
@@ -491,15 +492,15 @@ void StationAdder::addToMS(const std::string& msName) {
   }
   casacore::Vector<double> offset(3, 0.0);
   // Put the data for each new antenna.
-  for (unsigned int i = origNant; i < getInfo().antennaNames().size(); ++i) {
+  for (unsigned int i = origNant; i < getInfoOut().antennaNames().size(); ++i) {
     antTab.addRow();
-    nameCol.put(i, getInfo().antennaNames()[i]);
+    nameCol.put(i, getInfoOut().antennaNames()[i]);
     typeCol.put(i, type);
     mountCol.put(i, mount);
     offsetCol.put(i, offset);
-    diamCol.put(i, getInfo().antennaDiam()[i]);
+    diamCol.put(i, getInfoOut().antennaDiam()[i]);
     flagCol.put(i, false);
-    posCol.put(i, getInfo().antennaPos()[i]);
+    posCol.put(i, getInfoOut().antennaPos()[i]);
     if (!statCol.isNull()) {
       statCol.put(i, stat);
     }
@@ -507,7 +508,7 @@ void StationAdder::addToMS(const std::string& msName) {
       stidCol.put(i, -1);
     }
     if (!phrefCol.isNull()) {
-      phrefCol.put(i, getInfo().antennaPos()[i]);
+      phrefCol.put(i, getInfoOut().antennaPos()[i]);
     }
   }
   // For each new station, add a row to the FEED subtable.
@@ -515,7 +516,7 @@ void StationAdder::addToMS(const std::string& msName) {
   Table feedTab(msName + "/FEED", Table::Update);
   TableRow feedRow(feedTab);
   ScalarColumn<int> antidCol(feedTab, "ANTENNA_ID");
-  for (unsigned int i = origNant; i < getInfo().antennaNames().size(); ++i) {
+  for (unsigned int i = origNant; i < getInfoOut().antennaNames().size(); ++i) {
     size_t rownr = feedTab.nrow();
     feedTab.addRow();
     feedRow.put(rownr, feedRow.get(0));
@@ -580,7 +581,7 @@ void StationAdder::updateBeamInfo(const std::string& msName,
     stidCol.put(origNant + i, rownr);
     // Add new station.
     statTab.addRow();
-    nameCol.put(rownr, getInfo().antennaNames()[origNant + i]);
+    nameCol.put(rownr, getInfoOut().antennaNames()[origNant + i]);
     clockCol.put(rownr, cid);
     flagCol.put(rownr, false);
   }

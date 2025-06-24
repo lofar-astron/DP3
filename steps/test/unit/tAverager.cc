@@ -81,15 +81,16 @@ class TestInput : public dp3::steps::MockInput {
   void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Use timeInterval=5
-    info() = DPInfo(itsNCorr, itsNChan);
-    info().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
+    GetWritableInfoOut() = DPInfo(itsNCorr, itsNChan);
+    GetWritableInfoOut().setTimes(100.0, 100.0 + (itsNTime - 1) * 5.0, 5.0);
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNChan, 100000.);
     for (std::size_t i = 0; i < itsNChan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
   }
 
  private:
@@ -236,15 +237,16 @@ class TestInput3 : public dp3::steps::MockInput {
   void finish() override { getNextStep()->finish(); }
   void updateInfo(const DPInfo&) override {
     // Use timeInterval=5
-    info() = DPInfo(itsNrCorr, itsNrChan);
-    info().setTimes(100.0, 100.0 + (itsNrTime - 1) * 5.0, 5.0);
+    GetWritableInfoOut() = DPInfo(itsNrCorr, itsNrChan);
+    GetWritableInfoOut().setTimes(100.0, 100.0 + (itsNrTime - 1) * 5.0, 5.0);
     // Define the frequencies.
     std::vector<double> chanFreqs;
     std::vector<double> chanWidth(itsNrChan, 100000.);
     for (std::size_t i = 0; i < itsNrChan; i++) {
       chanFreqs.push_back(1050000. + i * 100000.);
     }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
   }
 
  private:

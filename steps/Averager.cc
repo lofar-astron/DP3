@@ -84,7 +84,7 @@ Averager::~Averager() {}
 
 void Averager::updateInfo(const base::DPInfo& infoIn) {
   Step::updateInfo(infoIn);
-  info().setMetaChanged();
+  GetWritableInfoOut().setMetaChanged();
 
   if (itsNChanAvg <= 0) {
     if (itsFreqResolution > 0) {
@@ -109,7 +109,7 @@ void Averager::updateInfo(const base::DPInfo& infoIn) {
 
   // Adapt averaging to available nr of channels and times.
   itsNTimeAvg = std::min(itsNTimeAvg, infoIn.ntime());
-  itsNChanAvg = info().update(itsNChanAvg, itsNTimeAvg);
+  itsNChanAvg = GetWritableInfoOut().update(itsNChanAvg, itsNTimeAvg);
 }
 
 void Averager::show(std::ostream& os) const {
@@ -155,10 +155,10 @@ bool Averager::process(std::unique_ptr<base::DPBuffer> buffer) {
     itsWeightAll = itsBuf->GetWeights();
 
     // Set middle of new interval.
-    const double time = itsBuf->GetTime() + 0.5 * (getInfo().timeInterval() -
+    const double time = itsBuf->GetTime() + 0.5 * (getInfoOut().timeInterval() -
                                                    itsOriginalTimeInterval);
     itsBuf->SetTime(time);
-    itsBuf->SetExposure(getInfo().timeInterval());
+    itsBuf->SetExposure(getInfoOut().timeInterval());
     // Only set.
     itsNPoints.fill(1);
     // Set flagged points to zero.

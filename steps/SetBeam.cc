@@ -30,7 +30,7 @@ void SetBeam::updateInfo(const DPInfo& _info) {
 
   // Parse direction parset value
   if (direction_strings_.empty())
-    direction_ = info().phaseCenter();
+    direction_ = getInfoOut().phaseCenter();
   else {
     if (direction_strings_.size() != 2)
       throw std::runtime_error(
@@ -49,8 +49,8 @@ void SetBeam::updateInfo(const DPInfo& _info) {
     direction_ = casacore::MDirection(q0, q1, type);
   }
 
-  info().setBeamCorrectionMode(static_cast<int>(mode_));
-  info().setBeamCorrectionDir(direction_);
+  GetWritableInfoOut().setBeamCorrectionMode(static_cast<int>(mode_));
+  GetWritableInfoOut().setBeamCorrectionDir(direction_);
 }
 
 void SetBeam::show(std::ostream& os) const {

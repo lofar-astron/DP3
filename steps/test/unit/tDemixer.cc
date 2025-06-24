@@ -105,8 +105,8 @@ class TestInput : public dp3::steps::MockInput {
   void updateInfo(const DPInfo&) override
   // Use startchan=8 and timeInterval=5
   {
-    info() = DPInfo(kNCorr, n_channels_);
-    info().setTimes(2.5, 2.5 + (n_times_ - 1) * 5.0, 5.0);
+    GetWritableInfoOut() = DPInfo(kNCorr, n_channels_);
+    GetWritableInfoOut().setTimes(2.5, 2.5 + (n_times_ - 1) * 5.0, 5.0);
 
     std::vector<std::string> ant_names = {"antenna_1", "antenna_2"};
     std::vector<double> ant_diameter = {0.0, 1.0};
@@ -114,8 +114,8 @@ class TestInput : public dp3::steps::MockInput {
         casacore::MVPosition{0, 0, 0}, casacore::MVPosition{1, 1, 1}};
     std::vector<int> antenna1 = {0, 0, 1};
     std::vector<int> antenna2 = {0, 1, 1};
-    info().setAntennas(ant_names, ant_diameter, ant_position, antenna1,
-                       antenna2);
+    GetWritableInfoOut().setAntennas(ant_names, ant_diameter, ant_position,
+                                     antenna1, antenna2);
 
     const size_t start_channel = 8;
     const double start_frequency = 5.0e7;  // 50.0 MHz
@@ -124,8 +124,9 @@ class TestInput : public dp3::steps::MockInput {
     for (size_t i = 0; i < kNOrigChannels; i++) {
       chan_freqs.push_back(start_frequency + i * 100000.);
     }
-    infoOut().setChannels(std::move(chan_freqs), std::move(chan_width));
-    infoOut().SelectChannels(start_channel, n_channels_);
+    GetWritableInfoOut().setChannels(std::move(chan_freqs),
+                                     std::move(chan_width));
+    GetWritableInfoOut().SelectChannels(start_channel, n_channels_);
   }
 
  private:

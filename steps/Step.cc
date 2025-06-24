@@ -29,20 +29,20 @@ Step::Step() {
 Step::~Step() = default;
 
 const DPInfo& Step::setInfo(const DPInfo& info) {
-  itsInfoIn = info;
+  input_info_ = info;
   // Update the info of this step using the given info.
   updateInfo(info);
   // If there is a next step, set its info using the info of this step.
   if (getNextStep()) {
-    return getNextStep()->setInfo(getInfo());
+    return getNextStep()->setInfo(getInfoOut());
   }
-  return getInfo();
+  return getInfoOut();
 }
 
-void Step::updateInfo(const DPInfo& infoIn) { info() = infoIn; }
+void Step::updateInfo(const DPInfo& infoIn) { GetWritableInfoOut() = infoIn; }
 
 void Step::addToMS(const std::string& msName) {
-  if (itsPrevStep) itsPrevStep->addToMS(msName);
+  if (previous_step_) previous_step_->addToMS(msName);
 }
 
 void Step::showCounts(std::ostream&) const {}

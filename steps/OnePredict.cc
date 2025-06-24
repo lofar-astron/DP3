@@ -192,26 +192,28 @@ void OnePredict::SetApplyCal(const common::ParameterSet& parset,
 OnePredict::~OnePredict() = default;
 
 void OnePredict::initializeThreadData() {
-  const size_t n_stations = info().nantenna();
+  const size_t n_stations = getInfoOut().nantenna();
   const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
 
   station_uvw_.resize({n_stations, 3});
 
-  std::vector<std::array<double, 3>> antenna_pos(info().antennaPos().size());
-  for (unsigned int i = 0; i < info().antennaPos().size(); ++i) {
+  std::vector<std::array<double, 3>> antenna_pos(
+      getInfoOut().antennaPos().size());
+  for (unsigned int i = 0; i < getInfoOut().antennaPos().size(); ++i) {
     casacore::Quantum<casacore::Vector<double>> pos =
-        info().antennaPos()[i].get("m");
+        getInfoOut().antennaPos()[i].get("m");
     antenna_pos[i][0] = pos.getValue()[0];
     antenna_pos[i][1] = pos.getValue()[1];
     antenna_pos[i][2] = pos.getValue()[2];
   }
 
-  uvw_split_index_ = base::nsetupSplitUVW(info().nantenna(), info().getAnt1(),
-                                          info().getAnt2(), antenna_pos);
+  uvw_split_index_ =
+      base::nsetupSplitUVW(getInfoOut().nantenna(), getInfoOut().getAnt1(),
+                           getInfoOut().getAnt2(), antenna_pos);
 
   if (apply_beam_) {
-    telescope_ = base::GetTelescope(info().msName(), element_response_model_,
-                                    use_channel_freq_);
+    telescope_ = base::GetTelescope(getInfoOut().msName(),
+                                    element_response_model_, use_channel_freq_);
     predict_buffers_ =
         std::make_shared<std::vector<base::PredictBuffer>>(nThreads);
     // TODO:
@@ -219,7 +221,7 @@ void OnePredict::initializeThreadData() {
     // also be better to use EveryBeam's function to get all antenna values
     // at once, as this would enable this optimization without work here.
     const bool is_dish_telescope = base::IsDish(*telescope_);
-    const size_t n_channels = info().nchan();
+    const size_t n_channels = getInfoOut().nchan();
     predict_buffers_->front().Resize(
         1, n_channels, (is_dish_telescope ? 1 : n_stations), !stokes_i_only_);
   }
@@ -233,9 +235,9 @@ void OnePredict::initializeThreadData() {
     const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
     if (need_meas_converters) {
       // Prepare measures converters
-      meas_frame_[thread].set(info().arrayPosCopy());
+      meas_frame_[thread].set(getInfoOut().arrayPosCopy());
       meas_frame_[thread].set(
-          MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
+          MEpoch(MVEpoch(getInfoOut().startTime() / 86400), MEpoch::UTC));
       meas_convertors_[thread].set(
           MDirection::J2000,
           MDirection::Ref(MDirection::ITRF, meas_frame_[thread]));
@@ -246,11 +248,12 @@ void OnePredict::initializeThreadData() {
 void OnePredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   if (operation_ == Operation::kReplace)
-    info().setBeamCorrectionMode(
+    GetWritableInfoOut().setBeamCorrectionMode(
         static_cast<int>(everybeam::CorrectionMode::kNone));
 
-  for (size_t bl = 0; bl != info().nbaselines(); ++bl) {
-    baselines_.emplace_back(info().getAnt1()[bl], info().getAnt2()[bl]);
+  for (size_t bl = 0; bl != getInfoOut().nbaselines(); ++bl) {
+    baselines_.emplace_back(getInfoOut().getAnt1()[bl],
+                            getInfoOut().getAnt2()[bl]);
   }
 
   try {
@@ -268,7 +271,7 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   initializeThreadData();
 
   if (apply_cal_step_) {
-    info() = apply_cal_step_->setInfo(info());
+    GetWritableInfoOut() = apply_cal_step_->setInfo(getInfoOut());
   }
 }
 
@@ -357,7 +360,7 @@ void OnePredict::CopyPredictBufferToData(
     const aocommon::xt::UTensor<std::complex<double>, 3>& buffer) {
   if (stokes_i_only_) {
     // Add the predicted model to the first and last correlation.
-    const size_t n_correlations = info().ncorr();
+    const size_t n_correlations = getInfoOut().ncorr();
     auto dest_view = xt::view(destination, xt::all(), xt::all(),
                               xt::keep(0, n_correlations - 1));
     // Without explicit casts, XTensor does not know what to do.
@@ -372,10 +375,10 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
 
   // Determine the various sizes.
-  const size_t nSt = info().nantenna();
-  const size_t nBl = info().nbaselines();
-  const size_t nCh = info().nchan();
-  const size_t nCr = info().ncorr();
+  const size_t nSt = getInfoOut().nantenna();
+  const size_t nBl = getInfoOut().nbaselines();
+  const size_t nCh = getInfoOut().nchan();
+  const size_t nCr = getInfoOut().ncorr();
   const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
 
   base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
@@ -405,7 +408,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   if (moving_phase_ref_) {
     // Convert phase reference to J2000
     MDirection dirJ2000(MDirection::Convert(
-        info().phaseCenter(),
+        getInfoOut().phaseCenter(),
         MDirection::Ref(MDirection::J2000, meas_frame_[0]))());
     Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
     phase_ref_ =
@@ -437,7 +440,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t actual_nCr = (stokes_i_only_ ? 1 : nCr);
   if (thread_over_baselines_) {
     std::unique_ptr<PredictModel> model_buffer = std::make_unique<PredictModel>(
-        nThreads, stokes_i_only_ ? 1 : info().ncorr(), nCh, nBl, apply_beam_);
+        nThreads, stokes_i_only_ ? 1 : getInfoOut().ncorr(), nCh, nBl,
+        apply_beam_);
 
     // Reduce the number of threads if there are not enough baselines.
     n_threads = std::min(n_threads, nBl);
@@ -513,10 +517,10 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       casacore::Cube<std::complex<double>> simulatedest(
           shape, thread_buffer.data(), casacore::SHARE);
 
-      simulators.emplace_back(phase_ref_, nSt, baselines_split[thread_index],
-                              info().chanFreqs(), info().chanWidths(),
-                              station_uvw_, simulatedest,
-                              correct_freq_smearing_, stokes_i_only_);
+      simulators.emplace_back(
+          phase_ref_, nSt, baselines_split[thread_index],
+          getInfoOut().chanFreqs(), getInfoOut().chanWidths(), station_uvw_,
+          simulatedest, correct_freq_smearing_, stokes_i_only_);
     }
 
     std::vector<std::shared_ptr<const model::Patch>> curPatches(n_threads);
@@ -622,10 +626,11 @@ void OnePredict::PredictSourceRange(
     aocommon::xt::UTensor<std::complex<double>, 3>& result, size_t start,
     size_t end, size_t thread_index, std::mutex& mutex, double time,
     bool update_beam) {
-  const size_t n_stations = info().nantenna();
-  const size_t n_baselines = info().nbaselines();
-  const size_t n_channels = info().nchan();
-  const size_t n_buffer_correlations = stokes_i_only_ ? 1 : info().ncorr();
+  const size_t n_stations = getInfoOut().nantenna();
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
+  const size_t n_buffer_correlations =
+      stokes_i_only_ ? 1 : getInfoOut().ncorr();
 
   aocommon::xt::UTensor<std::complex<double>, 3> model_data(
       {n_baselines, n_channels, n_buffer_correlations},
@@ -658,7 +663,7 @@ void OnePredict::PredictSourceRange(
   casacore::Cube<std::complex<double>> casacore_data(shape, simulator_data,
                                                      casacore::SHARE);
   base::Simulator simulator(phase_ref_, n_stations, baselines_,
-                            info().chanFreqs(), info().chanWidths(),
+                            getInfoOut().chanFreqs(), getInfoOut().chanWidths(),
                             station_uvw_, casacore_data, correct_freq_smearing_,
                             stokes_i_only_);
 
@@ -699,9 +704,10 @@ void OnePredict::PredictSourceRange(
 
 void OnePredict::PredictWithSourceParallelization(
     base::DPBuffer::DataType& destination, double time) {
-  const size_t n_baselines = info().nbaselines();
-  const size_t n_channels = info().nchan();
-  const size_t buffered_correlations = stokes_i_only_ ? 1 : info().ncorr();
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
+  const size_t buffered_correlations =
+      stokes_i_only_ ? 1 : getInfoOut().ncorr();
 
   aocommon::xt::UTensor<std::complex<double>, 3> global_data(
       {n_baselines, n_channels, buffered_correlations},
@@ -763,10 +769,10 @@ void OnePredict::addBeamToData(
           MDirection::J2000);
       const everybeam::vector3r_t srcdir =
           dir2Itrf(dir, meas_convertors_[thread]);
-      ComputeArrayFactor(info(), time, srcdir, telescope_.get(), values, false,
-                         &mutex_, {});
+      ComputeArrayFactor(getInfoOut(), time, srcdir, telescope_.get(), values,
+                         false, &mutex_, {});
     }
-    ApplyArrayFactorAndAdd(info(), buffer.NStations(), data, model_data,
+    ApplyArrayFactorAndAdd(getInfoOut(), buffer.NStations(), data, model_data,
                            values);
   } else {
     aocommon::MC2x2* values = buffer.GetFullBeamValues(buffer_index);
@@ -776,10 +782,11 @@ void OnePredict::addBeamToData(
           MDirection::J2000);
       const everybeam::vector3r_t srcdir =
           dir2Itrf(dir, meas_convertors_[thread]);
-      ComputeBeam(info(), time, srcdir, telescope_.get(), values, false,
+      ComputeBeam(getInfoOut(), time, srcdir, telescope_.get(), values, false,
                   beam_mode_, &mutex_, {});
     }
-    ApplyBeamToDataAndAdd(info(), buffer.NStations(), data, model_data, values);
+    ApplyBeamToDataAndAdd(getInfoOut(), buffer.NStations(), data, model_data,
+                          values);
   }
 }
 
@@ -800,14 +807,14 @@ void OnePredict::addBeamToDataRange(
   if (stokesIOnly) {
     const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     ApplyBeam::ApplyBaselineBasedArrayFactor(
-        info(), time, data.data(), srcdir, telescope_.get(),
+        getInfoOut(), time, data.data(), srcdir, telescope_.get(),
         buffer.GetScalarBeamValues(0), baseline_range, station_range, barrier,
         false, beam_mode_, &mutex_);
   } else {
     const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     float* weights = nullptr;
     ApplyBeam::ApplyBaselineBasedBeam(
-        info(), time, data.data(), weights, srcdir, telescope_.get(),
+        getInfoOut(), time, data.data(), weights, srcdir, telescope_.get(),
         buffer.GetFullBeamValues(0), baseline_range, station_range, barrier,
         false, beam_mode_, false, &mutex_);
   }

@@ -303,7 +303,7 @@ BOOST_FIXTURE_TEST_CASE(polarization_initialization, FixtureDirectory) {
       aocommon::PolarizationEnum::YX, aocommon::PolarizationEnum::YY};
 
   const std::set<aocommon::PolarizationEnum> actual_polarizations =
-      reader.getInfo().polarizations();
+      reader.getInfoOut().polarizations();
 
   BOOST_CHECK_EQUAL_COLLECTIONS(
       actual_polarizations.begin(), actual_polarizations.end(),

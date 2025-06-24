@@ -44,8 +44,8 @@ class BdaGroupPredict::BaselineGroup {
 
   /// Create the predict and result step for this group
   /// to be called after all baselines have been added
-  void MakeSteps(base::DPInfo& info_in, const common::ParameterSet& parset,
-                 std::string& prefix,
+  void MakeSteps(const base::DPInfo& info_in,
+                 const common::ParameterSet& parset, std::string& prefix,
                  std::vector<std::string> source_patterns) {
     predict_step_ = std::make_shared<Predict>(parset, prefix, source_patterns);
     result_step_ = std::make_shared<ResultStep>();
@@ -190,10 +190,10 @@ void BdaGroupPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
   // Loop over all baselines, grouping them by averaging parameters
-  for (std::size_t bl = 0; bl < info().nbaselines(); ++bl) {
+  for (std::size_t bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
     // Create a key describing the averaging in time and frequency
-    auto averaging_key =
-        std::make_pair(info().ntimeAvg(bl), info().chanFreqs(bl).size());
+    auto averaging_key = std::make_pair(getInfoOut().ntimeAvg(bl),
+                                        getInfoOut().chanFreqs(bl).size());
     // Get the baselinegroup for this averaging, if needed a new baselinegroup
     // will be created
     BaselineGroup& blg = averaging_to_baseline_group_map_[averaging_key];
@@ -206,7 +206,7 @@ void BdaGroupPredict::updateInfo(const DPInfo& infoIn) {
 
   for (auto& entry : averaging_to_baseline_group_map_) {
     BaselineGroup& blg = entry.second;
-    blg.MakeSteps(info(), parset_, name_, source_patterns_);
+    blg.MakeSteps(getInfoOut(), parset_, name_, source_patterns_);
   }
 }
 

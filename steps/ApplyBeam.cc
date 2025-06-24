@@ -236,11 +236,11 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset,
 }
 
 void ApplyBeam::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  Step::updateInfo(infoIn);
 
   // If ApplyBeam was requested to apply the beam to model data,
   // check whether there is model data to apply the beam to.
-  if (use_model_data_ && info().GetDirections().empty()) {
+  if (use_model_data_ && getInfoOut().GetDirections().empty()) {
     throw std::runtime_error(
         "ApplyBeam's option 'usemodeldata' is set to true, \n"
         "but the beam can not be applied to model data, \n"
@@ -249,7 +249,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
 
   // Parse direction parset value
   if (itsDirectionStr.empty())
-    itsDirection = info().phaseCenter();
+    itsDirection = getInfoOut().phaseCenter();
   else {
     if (itsDirectionStr.size() != 2)
       throw std::runtime_error(
@@ -269,14 +269,14 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   }
 
   if (itsInvert) {
-    itsModeAtStart =
-        static_cast<everybeam::CorrectionMode>(info().beamCorrectionMode());
-    itsDirectionAtStart = info().beamCorrectionDir();
-    info().setBeamCorrectionMode(static_cast<int>(itsMode));
-    info().setBeamCorrectionDir(itsDirection);
+    itsModeAtStart = static_cast<everybeam::CorrectionMode>(
+        getInfoOut().beamCorrectionMode());
+    itsDirectionAtStart = getInfoOut().beamCorrectionDir();
+    GetWritableInfoOut().setBeamCorrectionMode(static_cast<int>(itsMode));
+    GetWritableInfoOut().setBeamCorrectionDir(itsDirection);
   } else if (!use_model_data_) {
-    const auto mode =
-        static_cast<everybeam::CorrectionMode>(info().beamCorrectionMode());
+    const auto mode = static_cast<everybeam::CorrectionMode>(
+        getInfoOut().beamCorrectionMode());
     if (mode == everybeam::CorrectionMode::kNone)
       throw std::runtime_error(
           "In applying the beam (with invert=false): the metadata of this "
@@ -287,8 +287,10 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
                       "input has ") +
           everybeam::ToString(mode) + ", requested to correct for " +
           everybeam::ToString(itsMode));
-    const double ra1 = info().beamCorrectionDir().getValue().getValue()[0];
-    const double dec1 = info().beamCorrectionDir().getValue().getValue()[1];
+    const double ra1 =
+        getInfoOut().beamCorrectionDir().getValue().getValue()[0];
+    const double dec1 =
+        getInfoOut().beamCorrectionDir().getValue().getValue()[1];
     const double ra2 = itsDirection.getValue().getValue()[0];
     const double dec2 = itsDirection.getValue().getValue()[1];
     const double raDist = std::fabs(ra1 - ra2);
@@ -297,26 +299,28 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
       std::ostringstream str;
       str << "applybeam step with invert=false has incorrect direction: input "
              "is for "
-          << info().beamCorrectionDir() << ", output is for " << itsDirection;
+          << getInfoOut().beamCorrectionDir() << ", output is for "
+          << itsDirection;
       throw std::runtime_error(str.str());
     }
-    info().setBeamCorrectionMode(
+    GetWritableInfoOut().setBeamCorrectionMode(
         static_cast<int>(everybeam::CorrectionMode::kNone));
   }
 
-  const size_t n_stations = info().nantenna();
-  const size_t n_channels = info().nchan();
+  const size_t n_stations = getInfoOut().nantenna();
+  const size_t n_channels = getInfoOut().nchan();
 
   // Create the Measure ITRF conversion info given the array position.
   // The time and direction are filled in later.
   beam_values_.resize(n_stations * n_channels);
-  measure_frame_.set(info().arrayPosCopy());
-  measure_frame_.set(MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
+  measure_frame_.set(getInfoOut().arrayPosCopy());
+  measure_frame_.set(
+      MEpoch(MVEpoch(getInfoOut().startTime() / 86400), MEpoch::UTC));
   measure_converter_.set(MDirection::J2000,
                          MDirection::Ref(MDirection::ITRF, measure_frame_));
-  telescope_ = base::GetTelescope(info().msName(), itsElementResponseModel,
-                                  itsUseChannelFreq);
-  telescope_->SetTime(info().startTime());
+  telescope_ = base::GetTelescope(getInfoOut().msName(),
+                                  itsElementResponseModel, itsUseChannelFreq);
+  telescope_->SetTime(getInfoOut().startTime());
 
   if (!itsSkipStationNames.empty()) {
     // Needs loop over itsSkipStationNames because SelectStationIndices
@@ -362,7 +366,7 @@ bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
   itsTimer.start();
 
   const std::map<std::string, dp3::base::Direction>& directions =
-      getInfo().GetDirections();
+      getInfoOut().GetDirections();
   const double time = buffer->GetTime();
   telescope_->SetTime(time);
   measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
@@ -375,11 +379,12 @@ bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
     everybeam::vector3r_t direction_itrf =
         dir2Itrf(direction_j2000, measure_converter_);
 
-    const size_t n_stations = ComputeBeam(
-        info(), time, direction_itrf, telescope_.get(), beam_values_.data(),
-        itsInvert, itsMode, nullptr, itsSkipStationIndices);
-    ApplyBeamToData(info(), n_stations, data, nullptr, beam_values_.data(),
-                    false);
+    const size_t n_stations =
+        ComputeBeam(getInfoOut(), time, direction_itrf, telescope_.get(),
+                    beam_values_.data(), itsInvert, itsMode, nullptr,
+                    itsSkipStationIndices);
+    ApplyBeamToData(getInfoOut(), n_stations, data, nullptr,
+                    beam_values_.data(), false);
   }
 
   itsTimer.stop();
@@ -406,19 +411,19 @@ bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
     // instead of assumed to be the same from the target beam.
     const everybeam::vector3r_t srcdir =
         dir2Itrf(itsDirectionAtStart, measure_converter_);
-    const size_t n_stations =
-        ComputeBeam(info(), time, srcdir, telescope_.get(), beam_values_.data(),
-                    false, itsModeAtStart, nullptr, itsSkipStationIndices);
-    ApplyBeamToData(info(), n_stations, data, weight, beam_values_.data(),
+    const size_t n_stations = ComputeBeam(
+        getInfoOut(), time, srcdir, telescope_.get(), beam_values_.data(),
+        false, itsModeAtStart, nullptr, itsSkipStationIndices);
+    ApplyBeamToData(getInfoOut(), n_stations, data, weight, beam_values_.data(),
                     itsUpdateWeights);
   }
 
   const everybeam::vector3r_t srcdir =
       dir2Itrf(itsDirection, measure_converter_);
-  const size_t n_stations =
-      ComputeBeam(info(), time, srcdir, telescope_.get(), beam_values_.data(),
-                  itsInvert, itsMode, nullptr, itsSkipStationIndices);
-  ApplyBeamToData(info(), n_stations, data, weight, beam_values_.data(),
+  const size_t n_stations = ComputeBeam(
+      getInfoOut(), time, srcdir, telescope_.get(), beam_values_.data(),
+      itsInvert, itsMode, nullptr, itsSkipStationIndices);
+  ApplyBeamToData(getInfoOut(), n_stations, data, weight, beam_values_.data(),
                   itsUpdateWeights);
 
   itsTimer.stop();

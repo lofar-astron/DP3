@@ -105,7 +105,7 @@ void MadFlagger::showTimings(std::ostream& os, double duration) const {
 void MadFlagger::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   // Get baseline indices of autocorrelations.
-  itsAutoCorrIndex = info().getAutoCorrIndex();
+  itsAutoCorrIndex = getInfoOut().getAutoCorrIndex();
   itsNrAutoCorr = 0;
   for (unsigned int i = 0; i < itsAutoCorrIndex.size(); ++i) {
     if (itsAutoCorrIndex[i] >= 0) {
@@ -117,7 +117,7 @@ void MadFlagger::updateInfo(const DPInfo& infoIn) {
         "applyautocorr=True cannot be used if "
         "the data does not contain autocorrelations");
   // Calculate the baseline lengths.
-  itsBLengths = info().getBaselineLengths();
+  itsBLengths = getInfoOut().getBaselineLengths();
   // Evaluate the window size expressions.
   getExprValues(infoIn.nchan(), infoIn.ntime());
   itsBuffers.resize(itsTimeWindow);
@@ -150,7 +150,7 @@ void MadFlagger::updateInfo(const DPInfo& infoIn) {
   }
   itsFlagCorr = flagCorr;
   // Initialize the flag counters.
-  itsFlagCounter.init(getInfo());
+  itsFlagCounter.init(getInfoOut());
 }
 
 bool MadFlagger::process(std::unique_ptr<base::DPBuffer> buffer) {
@@ -296,8 +296,8 @@ void MadFlagger::flagBaseline(
 void MadFlagger::flag(unsigned int index,
                       const std::vector<unsigned int>& timeEntries) {
   // Get antenna numbers in case applyautocorr is true.
-  const std::vector<int>& ant1 = getInfo().getAnt1();
-  const std::vector<int>& ant2 = getInfo().getAnt2();
+  const std::vector<int>& ant1 = getInfoOut().getAnt1();
+  const std::vector<int>& ant2 = getInfoOut().getAnt2();
   // MadFlagger requires non-flagged DPBuffers of multiple time steps, of which
   // it only needs the amplitudes of the data (visibilities) and the flags. The
   // amplitudes are stored separately in itsAmplitudes.
@@ -330,7 +330,7 @@ void MadFlagger::flag(unsigned int index,
   // Create thread-private counter.
   for (ThreadData& data : threadData) {
     data.tempBuffer.resize(itsFreqWindow * timeEntries.size());
-    data.counter.init(getInfo());
+    data.counter.init(getInfoOut());
   }
 
   // The for loop can be parallelized. This must be done dynamically,

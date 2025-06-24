@@ -177,13 +177,13 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
 }
 
 void GainCal::setAntennaUsed() {
-  Matrix<bool> selbl(itsBaselineSelection.apply(info()));
-  unsigned int nBl = getInfo().getAnt1().size();
-  itsAntennaUsed.resize(info().antennaNames().size());
+  Matrix<bool> selbl(itsBaselineSelection.apply(getInfoOut()));
+  unsigned int nBl = getInfoOut().getAnt1().size();
+  itsAntennaUsed.resize(getInfoOut().antennaNames().size());
   itsAntennaUsed = false;
   for (unsigned int bl = 0; bl < nBl; ++bl) {
-    const int ant1 = getInfo().getAnt1()[bl];
-    const int ant2 = getInfo().getAnt2()[bl];
+    const int ant1 = getInfoOut().getAnt1()[bl];
+    const int ant2 = getInfoOut().getAnt2()[bl];
     if (selbl(ant1, ant2)) {
       itsAntennaUsed[ant1] = true;
       itsAntennaUsed[ant2] = true;
@@ -199,27 +199,27 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   if (itsFirstSubStep) itsFirstSubStep->setInfo(infoIn);
 
   if (itsSolInt == 0) {
-    itsSolInt = info().ntime();
+    itsSolInt = getInfoOut().ntime();
   }
   if (itsTimeSlotsPerParmUpdate == 0) {
-    itsTimeSlotsPerParmUpdate = info().ntime();
+    itsTimeSlotsPerParmUpdate = getInfoOut().ntime();
   }
 
   if (itsNChan == 0) {
-    itsNChan = info().nchan();
+    itsNChan = getInfoOut().nchan();
   }
-  if (itsNChan > info().nchan()) {
-    itsNChan = info().nchan();
+  if (itsNChan > getInfoOut().nchan()) {
+    itsNChan = getInfoOut().nchan();
   }
-  itsNFreqCells = info().nchan() / itsNChan;
+  itsNFreqCells = getInfoOut().nchan() / itsNChan;
   if (itsNChan * itsNFreqCells <
-      info().nchan()) {  // If last freq cell is smaller
+      getInfoOut().nchan()) {  // If last freq cell is smaller
     itsNFreqCells++;
   }
 
   itsSols.reserve(itsTimeSlotsPerParmUpdate);
 
-  itsSelectedBL = itsBaselineSelection.applyVec(info());
+  itsSelectedBL = itsBaselineSelection.applyVec(getInfoOut());
   setAntennaUsed();
 
   // Compute average frequency for every freqcell
@@ -227,10 +227,10 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
     double meanfreq = 0;
     unsigned int chmin = itsNChan * freqCell;
-    unsigned int chmax = std::min(info().nchan(), chmin + itsNChan);
+    unsigned int chmax = std::min(getInfoOut().nchan(), chmin + itsNChan);
 
-    meanfreq = std::accumulate(info().chanFreqs().data() + chmin,
-                               info().chanFreqs().data() + chmax, 0.0);
+    meanfreq = std::accumulate(getInfoOut().chanFreqs().data() + chmin,
+                               getInfoOut().chanFreqs().data() + chmax, 0.0);
 
     itsFreqData[freqCell] = meanfreq / (chmax - chmin);
   }
@@ -242,7 +242,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
     itsPhaseFitters.reserve(
         itsNFreqCells);  // TODO: could be numthreads instead
 
-    unsigned int nSt = info().antennaUsed().size();
+    unsigned int nSt = getInfoOut().antennaUsed().size();
     for (unsigned int st = 0; st < nSt; ++st) {
       itsPhaseFitters.push_back(std::make_unique<PhaseFitter>());
       itsPhaseFitters[st]->Initialize(itsFreqData);
@@ -253,8 +253,8 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   unsigned int chMax = itsNChan;
   for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
     if ((freqCell + 1) * itsNChan >
-        info().nchan()) {  // Last cell can be smaller
-      chMax -= ((freqCell + 1) * itsNChan) % info().nchan();
+        getInfoOut().nchan()) {  // Last cell can be smaller
+      chMax -= ((freqCell + 1) * itsNChan) % getInfoOut().nchan();
     }
 
     GainCalAlgorithm::Mode smode;
@@ -281,22 +281,22 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
 
     algorithms_.emplace_back(GainCalAlgorithm(
         itsSolInt, chMax, smode, scalarMode(itsMode), itsTolerance,
-        info().antennaUsed().size(), itsDetectStalling, itsDebugLevel));
+        getInfoOut().antennaUsed().size(), itsDetectStalling, itsDebugLevel));
   }
 
-  itsFlagCounter.init(getInfo());
+  itsFlagCounter.init(getInfoOut());
 
-  itsChunkStartTime = info().startTime();
+  itsChunkStartTime = getInfoOut().startTime();
 
   if (itsDebugLevel > 0) {
     if (aocommon::ThreadPool::GetInstance().NThreads() != 1)
       throw std::runtime_error("nthreads should be 1 in debug mode");
-    assert(itsTimeSlotsPerParmUpdate >= info().ntime());
+    assert(itsTimeSlotsPerParmUpdate >= getInfoOut().ntime());
     itsAllSolutions.resize(
-        {info().ntime(), itsMaxIter, itsNFreqCells,
+        {getInfoOut().ntime(), itsMaxIter, itsNFreqCells,
          (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) ? 2u
                                                                         : 1u,
-         info().antennaUsed().size(), algorithms_[0].numCorrelations()});
+         getInfoOut().antennaUsed().size(), algorithms_[0].numCorrelations()});
   }
 }
 
@@ -483,7 +483,7 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
   if (!itsUseH5Parm && (itsStepInParmUpdate == itsTimeSlotsPerParmUpdate)) {
     writeSolutionsParmDB(itsChunkStartTime);
     itsChunkStartTime +=
-        itsSolInt * itsTimeSlotsPerParmUpdate * info().timeInterval();
+        itsSolInt * itsTimeSlotsPerParmUpdate * getInfoOut().timeInterval();
     itsSols.clear();
     itsTECSols.clear();
     itsStepInParmUpdate = 0;
@@ -521,8 +521,8 @@ void GainCal::applySolution(DPBuffer& buf,
   unsigned int n_corr = invsol.shape(2);
 
   for (size_t bl = 0; bl < n_bl; ++bl) {
-    const int ant_a = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
-    const int ant_b = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
+    const int ant_a = getInfoOut().antennaMap()[getInfoOut().getAnt1()[bl]];
+    const int ant_b = getInfoOut().antennaMap()[getInfoOut().getAnt2()[bl]];
     for (size_t chan = 0; chan < n_chan; chan++) {
       const unsigned int freq_cell = chan / itsNChan;
       const std::complex<float>* gain_a = &invsol(freq_cell, ant_a, 0);
@@ -550,9 +550,9 @@ void GainCal::fillMatrices(const DPBuffer::DataType& model,
                            const DPBuffer::DataType& data,
                            const DPBuffer::WeightsType& weights,
                            const DPBuffer::FlagsType& flags) {
-  const size_t n_baselines = getInfo().nbaselines();
-  const size_t n_channels = getInfo().nchan();
-  const size_t n_correlations = getInfo().ncorr();
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
+  const size_t n_correlations = getInfoOut().ncorr();
   assert(n_correlations == 4 || n_correlations == 2 || n_correlations == 1);
 
   aocommon::DynamicFor<size_t> loop;
@@ -570,8 +570,8 @@ void GainCal::fillMatrices(const DPBuffer::DataType& model,
         continue;
       }
 
-      const int ant1 = getInfo().antennaMap()[getInfo().getAnt1()[bl]];
-      const int ant2 = getInfo().antennaMap()[getInfo().getAnt2()[bl]];
+      const int ant1 = getInfoOut().antennaMap()[getInfoOut().getAnt1()[bl]];
+      const int ant2 = getInfoOut().antennaMap()[getInfoOut().getAnt2()[bl]];
 
       const bool skip = (ant1 == ant2 ||
                          algorithms_[ch / itsNChan].getStationFlagged()[ant1] ||
@@ -630,9 +630,9 @@ void GainCal::calibrate() {
 
   unsigned int iter = 0;
 
-  xt::xtensor<double, 2> tecsol(
-      {info().antennaUsed().size(), itsMode == CalType::kTecAndPhase ? 2u : 1u},
-      0.0);
+  xt::xtensor<double, 2> tecsol({getInfoOut().antennaUsed().size(),
+                                 itsMode == CalType::kTecAndPhase ? 2u : 1u},
+                                0.0);
 
   std::vector<GainCalAlgorithm::Status> converged(
       itsNFreqCells, GainCalAlgorithm::NOTCONVERGED);
@@ -666,9 +666,9 @@ void GainCal::calibrate() {
       itsTimerSolve.stop();
       itsTimerPhaseFit.start();
       casacore::Matrix<std::complex<double>> sols_f(
-          itsNFreqCells, info().antennaUsed().size());
+          itsNFreqCells, getInfoOut().antennaUsed().size());
 
-      unsigned int nSt = info().antennaUsed().size();
+      unsigned int nSt = getInfoOut().antennaUsed().size();
 
       // TODO: set phase reference to something smarter than station 0
       for (unsigned int freqCell = 0; freqCell < itsNFreqCells; ++freqCell) {
@@ -676,11 +676,13 @@ void GainCal::calibrate() {
             algorithms_[freqCell].getSolution(false);
         if (algorithms_[freqCell].getStationFlagged()[0]) {
           // If reference station flagged, flag whole channel
-          for (unsigned int st = 0; st < info().antennaUsed().size(); ++st) {
+          for (unsigned int st = 0; st < getInfoOut().antennaUsed().size();
+               ++st) {
             algorithms_[freqCell].getStationFlagged()[st] = true;
           }
         } else {
-          for (unsigned int st = 0; st < info().antennaUsed().size(); ++st) {
+          for (unsigned int st = 0; st < getInfoOut().antennaUsed().size();
+               ++st) {
             sols_f(freqCell, st) = sol(st, 0) / sol(0, 0);
             assert(casacore::isFinite(sols_f(freqCell, st)));
           }
@@ -786,7 +788,7 @@ void GainCal::calibrate() {
 
   // Calibrate terminated (either by maxiter or by converging)
 
-  unsigned int nSt = info().antennaUsed().size();
+  unsigned int nSt = getInfoOut().antennaUsed().size();
 
   xt::xtensor<std::complex<float>, 3> sol(
       {itsNFreqCells, nSt, algorithms_[0].numCorrelations()});
@@ -826,15 +828,15 @@ void GainCal::initParmDB() {
   itsParmDB->lock();
   // Store the (freq, time) resolution of the solutions.
 
-  double freqWidth = getInfo().chanWidths()[0];
-  if (getInfo().chanFreqs().size() >
+  double freqWidth = getInfoOut().chanWidths()[0];
+  if (getInfoOut().chanFreqs().size() >
       1) {  // Handle data with evenly spaced gaps between channels
-    freqWidth = info().chanFreqs()[1] - info().chanFreqs()[0];
+    freqWidth = getInfoOut().chanFreqs()[1] - getInfoOut().chanFreqs()[0];
   }
 
   std::vector<double> resolution(2);
   resolution[0] = freqWidth * itsNChan;
-  resolution[1] = info().timeInterval() * itsSolInt;
+  resolution[1] = getInfoOut().timeInterval() * itsSolInt;
   itsParmDB->setDefaultSteps(resolution);
 
   string parmname = parmName() + "*";
@@ -845,10 +847,11 @@ void GainCal::initParmDB() {
     // Specify entire domain of this MS; only to specify that the existing
     // values should be deleted for this domain
     parmdb::Axis::ShPtr tdomAxis(new parmdb::RegularAxis(
-        info().startTime(), info().ntime() * info().timeInterval(), 1));
-    parmdb::Axis::ShPtr fdomAxis(
-        new parmdb::RegularAxis(info().chanFreqs()[0] - freqWidth * 0.5,
-                                freqWidth * getInfo().chanFreqs().size(), 1));
+        getInfoOut().startTime(),
+        getInfoOut().ntime() * getInfoOut().timeInterval(), 1));
+    parmdb::Axis::ShPtr fdomAxis(new parmdb::RegularAxis(
+        getInfoOut().chanFreqs()[0] - freqWidth * 0.5,
+        freqWidth * getInfoOut().chanFreqs().size(), 1));
 
     itsParmDB->deleteValues(
         parmname, parmdb::Box(fdomAxis->start(), tdomAxis->start(),
@@ -911,12 +914,13 @@ void GainCal::writeSolutionsH5Parm(double) {
   H5Parm h5parm(itsParmDBName, true);
 
   // Fill antenna info in H5Parm, need to convert from casa types to std types
-  std::vector<std::string> allAntennaNames(info().antennaNames().size());
-  std::vector<std::array<double, 3>> antennaPos(info().antennaPos().size());
-  for (unsigned int i = 0; i < info().antennaNames().size(); ++i) {
-    allAntennaNames[i] = info().antennaNames()[i];
+  std::vector<std::string> allAntennaNames(getInfoOut().antennaNames().size());
+  std::vector<std::array<double, 3>> antennaPos(
+      getInfoOut().antennaPos().size());
+  for (unsigned int i = 0; i < getInfoOut().antennaNames().size(); ++i) {
+    allAntennaNames[i] = getInfoOut().antennaNames()[i];
     casacore::Quantum<casacore::Vector<double>> pos =
-        info().antennaPos()[i].get("m");
+        getInfoOut().antennaPos()[i].get("m");
     antennaPos[i][0] = pos.getValue()[0];
     antennaPos[i][1] = pos.getValue()[1];
     antennaPos[i][2] = pos.getValue()[2];
@@ -925,7 +929,7 @@ void GainCal::writeSolutionsH5Parm(double) {
   h5parm.AddAntennas(allAntennaNames, antennaPos);
 
   std::vector<std::pair<double, double>> pointingPosition(1);
-  casacore::MDirection phasecenter = info().phaseCenter();
+  casacore::MDirection phasecenter = getInfoOut().phaseCenter();
   pointingPosition[0].first = phasecenter.getValue().get()[0];
   pointingPosition[0].second = phasecenter.getValue().get()[1];
   std::vector<std::string> pointingName(1, "POINTING");
@@ -950,12 +954,13 @@ void GainCal::writeSolutionsH5Parm(double) {
   }
 
   // Construct time axis
-  unsigned int nSolTimes = (info().ntime() + itsSolInt - 1) / itsSolInt;
+  unsigned int nSolTimes = (getInfoOut().ntime() + itsSolInt - 1) / itsSolInt;
   std::vector<double> solTimes(nSolTimes);
   assert(nSolTimes == itsSols.size());
-  double starttime = info().startTime();
+  double starttime = getInfoOut().startTime();
   for (unsigned int t = 0; t < nSolTimes; ++t) {
-    solTimes[t] = starttime + (t + 0.5) * info().timeInterval() * itsSolInt;
+    solTimes[t] =
+        starttime + (t + 0.5) * getInfoOut().timeInterval() * itsSolInt;
   }
 
   // Construct frequency axis
@@ -969,7 +974,8 @@ void GainCal::writeSolutionsH5Parm(double) {
   std::vector<AxisInfo> axes;
   axes.push_back({"time", static_cast<unsigned>(itsSols.size())});
   axes.push_back({"freq", nSolFreqs});
-  axes.push_back({"ant", static_cast<unsigned>(info().antennaUsed().size())});
+  axes.push_back(
+      {"ant", static_cast<unsigned>(getInfoOut().antennaUsed().size())});
   if (nPol > 1) {
     axes.push_back({"pol", nPol});
   }
@@ -977,8 +983,9 @@ void GainCal::writeSolutionsH5Parm(double) {
   std::vector<SolTab> soltabs = makeSolTab(h5parm, itsMode, axes);
 
   std::vector<std::string> antennaUsedNames;
-  for (unsigned int st = 0; st < info().antennaUsed().size(); ++st) {
-    antennaUsedNames.push_back(info().antennaNames()[info().antennaUsed()[st]]);
+  for (unsigned int st = 0; st < getInfoOut().antennaUsed().size(); ++st) {
+    antennaUsedNames.push_back(
+        getInfoOut().antennaNames()[getInfoOut().antennaUsed()[st]]);
   }
 
   std::vector<SolTab>::iterator soltabiter = soltabs.begin();
@@ -991,7 +998,7 @@ void GainCal::writeSolutionsH5Parm(double) {
       // Set channel to frequency of middle channel
       // TODO: fix this for nchan
       std::vector<double> oneFreq(1);
-      oneFreq[0] = info().chanFreqs()[info().nchan() / 2];
+      oneFreq[0] = getInfoOut().chanFreqs()[getInfoOut().nchan() / 2];
       (*soltabiter).SetFreqs(oneFreq);
     } else {
       (*soltabiter).SetFreqs(itsFreqData);
@@ -1015,7 +1022,8 @@ void GainCal::writeSolutionsH5Parm(double) {
     size_t i = 0;
     for (unsigned int time = 0; time < nSolTimes; ++time) {
       for (unsigned int freqCell = 0; freqCell < nSolFreqs; ++freqCell) {
-        for (unsigned int ant = 0; ant < info().antennaUsed().size(); ++ant) {
+        for (unsigned int ant = 0; ant < getInfoOut().antennaUsed().size();
+             ++ant) {
           for (unsigned int pol = 0; pol < nPol; ++pol) {
             assert(itsTECSols[time].size() > 0);
             tecsols[i] = itsTECSols[time](ant, 0) / 8.44797245e9;
@@ -1042,7 +1050,8 @@ void GainCal::writeSolutionsH5Parm(double) {
     size_t i = 0;
     for (unsigned int time = 0; time < nSolTimes; ++time) {
       for (unsigned int freqCell = 0; freqCell < nSolFreqs; ++freqCell) {
-        for (unsigned int ant = 0; ant < info().antennaUsed().size(); ++ant) {
+        for (unsigned int ant = 0; ant < getInfoOut().antennaUsed().size();
+             ++ant) {
           for (unsigned int pol = 0; pol < nPol; ++pol) {
             assert(itsSols[time].size() > 0);
             sols[i] = itsSols[time](freqCell, ant, pol);
@@ -1135,44 +1144,46 @@ void GainCal::writeSolutionsParmDB(double startTime) {
   unsigned int nchan, nfreqs;
   if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     nfreqs = 1;
-    nchan = info().nchan();
+    nchan = getInfoOut().nchan();
   } else {
     nfreqs = itsNFreqCells;
     nchan = itsNChan;
   }
 
   // Construct solution grid for the current chunk
-  double freqWidth = getInfo().chanWidths()[0];
-  if (getInfo().chanFreqs().size() >
+  double freqWidth = getInfoOut().chanWidths()[0];
+  if (getInfoOut().chanFreqs().size() >
       1) {  // Handle data with evenly spaced gaps between channels
-    freqWidth = info().chanFreqs()[1] - info().chanFreqs()[0];
+    freqWidth = getInfoOut().chanFreqs()[1] - getInfoOut().chanFreqs()[0];
   }
 
   // Get end time of the current chunk. For the last chunk, this
   // is chopped off at the end of the MS (only if solint > 1)
   double endTime =
-      std::min(startTime + ntime * info().timeInterval() * itsSolInt,
-               info().startTime() + info().ntime() * info().timeInterval());
+      std::min(startTime + ntime * getInfoOut().timeInterval() * itsSolInt,
+               getInfoOut().startTime() +
+                   getInfoOut().ntime() * getInfoOut().timeInterval());
 
   // Make time axis (can be non regular for last chunk if solint > 1)
   std::vector<double> lowtimes(ntime), hightimes(ntime);
   for (unsigned int t = 0; t < ntime; ++t) {
-    lowtimes[t] = startTime + info().timeInterval() * itsSolInt * t;
+    lowtimes[t] = startTime + getInfoOut().timeInterval() * itsSolInt * t;
     hightimes[t] = std::min(
-        startTime + info().timeInterval() * itsSolInt * (t + 1), endTime);
+        startTime + getInfoOut().timeInterval() * itsSolInt * (t + 1), endTime);
   }
   parmdb::Axis::ShPtr timeAxis = parmdb::Axis::makeAxis(lowtimes, hightimes);
 
-  parmdb::Axis::ShPtr freqAxis(new parmdb::RegularAxis(
-      getInfo().chanFreqs()[0] - freqWidth * 0.5, freqWidth * nchan, nfreqs));
+  parmdb::Axis::ShPtr freqAxis(
+      new parmdb::RegularAxis(getInfoOut().chanFreqs()[0] - freqWidth * 0.5,
+                              freqWidth * nchan, nfreqs));
   parmdb::Grid solGrid(freqAxis, timeAxis);
 
   // Construct domain grid for the current chunk
   parmdb::Axis::ShPtr tdomAxis(
       new parmdb::RegularAxis(startTime, endTime - startTime, 1));
   parmdb::Axis::ShPtr fdomAxis(
-      new parmdb::RegularAxis(info().chanFreqs()[0] - freqWidth * 0.5,
-                              freqWidth * getInfo().chanFreqs().size(), 1));
+      new parmdb::RegularAxis(getInfoOut().chanFreqs()[0] - freqWidth * 0.5,
+                              freqWidth * getInfoOut().chanFreqs().size(), 1));
   parmdb::Grid domainGrid(fdomAxis, tdomAxis);
 
   // Write the solutions per parameter.
@@ -1182,11 +1193,11 @@ void GainCal::writeSolutionsParmDB(double startTime) {
 
   std::complex<double> sol;
 
-  unsigned int nSt = info().antennaUsed().size();
+  unsigned int nSt = getInfoOut().antennaUsed().size();
 
   for (size_t st = 0; st < nSt; ++st) {
     // Do not write NaN solutions for stations that were not used
-    if (!itsAntennaUsed[info().antennaUsed()[st]]) {
+    if (!itsAntennaUsed[getInfoOut().antennaUsed()[st]]) {
       // itsAntennaUsed is indexed with real antenna numbers, so antennaUsed()
       // is needed
       continue;
@@ -1228,7 +1239,7 @@ void GainCal::writeSolutionsParmDB(double startTime) {
           }
         }
 
-        name += info().antennaNames()[info().antennaUsed()[st]];
+        name += getInfoOut().antennaNames()[getInfoOut().antennaUsed()[st]];
 
         // Collect its solutions for all times and frequency cells in a single
         // array.

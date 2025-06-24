@@ -163,7 +163,7 @@ void WSCleanWriter::show(std::ostream& os) const {
 
 void WSCleanWriter::updateInfo(const base::DPInfo& info_in) {
   OutputStep::updateInfo(info_in);
-  if (getInfo().metaChanged()) {
+  if (getInfoOut().metaChanged()) {
     Logger::Warn
         << "Meta data changes detected (by averaging, adding/removing"
         << " stations, phase shifting or upsampling) when reordering."

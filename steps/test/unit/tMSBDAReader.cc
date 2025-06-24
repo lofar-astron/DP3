@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(set_info) {
       4472025725;  // conversion of start time for tNDPPP_bda_tmp.MS
                    // (2000/08/03 13h22m05.000) into seconds
 
-  const DPInfo& info = reader.getInfo();
+  const DPInfo& info = reader.getInfoOut();
   BOOST_TEST(info.spectralWindow() == 0U);
   BOOST_TEST(info.nchan() == 16U);
   BOOST_TEST(info.ncorr() == 4U);
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *
   auto kExpectedData = std::complex<float>(2.75794, 0.899097);
   double kExpectedUVW[] = {-0.125726, -766.917, 397.793};
   auto kExpectedWeights = std::vector<float>(
-      reader.getInfo().ncorr() * reader.getInfo().nchan(), 1.0);
+      reader.getInfoOut().ncorr() * reader.getInfoOut().nchan(), 1.0);
 
   BOOST_TEST(mock_step->FinishCount() == std::size_t(1));
   BOOST_TEST(mock_step->TotalRowCount() == std::size_t(6));

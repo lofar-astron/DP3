@@ -119,10 +119,10 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
   // Convert antenna positions from Casacore to STL, if necessary.
   std::vector<std::array<double, 3>> antenna_pos;
   if (!settings_.only_predict || solution_writer_) {
-    antenna_pos.resize(info().antennaPos().size());
-    for (size_t i = 0; i < info().antennaPos().size(); ++i) {
+    antenna_pos.resize(getInfoOut().antennaPos().size());
+    for (size_t i = 0; i < getInfoOut().antennaPos().size(); ++i) {
       casacore::Quantum<casacore::Vector<double>> pos =
-          info().antennaPos()[i].get("m");
+          getInfoOut().antennaPos()[i].get("m");
       antenna_pos[i][0] = pos.getValue()[0];
       antenna_pos[i][1] = pos.getValue()[1];
       antenna_pos[i][2] = pos.getValue()[2];
@@ -134,13 +134,13 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
       solution_interval_duration_ =
           _info.timeInterval() * settings_.solution_interval;
     } else {
-      solution_interval_duration_ = _info.timeInterval() * info().ntime();
+      solution_interval_duration_ = _info.timeInterval() * getInfoOut().ntime();
     }
 
     const double max_bda_interval =
-        *std::max_element(info().ntimeAvgs().begin(),
-                          info().ntimeAvgs().end()) *
-        info().timeInterval();
+        *std::max_element(getInfoOut().ntimeAvgs().begin(),
+                          getInfoOut().ntimeAvgs().end()) *
+        getInfoOut().timeInterval();
     if (solution_interval_duration_ < max_bda_interval) {
       throw std::invalid_argument(
           "Using BDA rows that are longer than the solution interval is not "
@@ -150,20 +150,22 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
 
     // TODO This is currently commented out, because it does not work properly
     // when using a channel selection. To fix this, the pre-BDA nr of channels
-    // should be stored in info(), not the pre-channel-selection value
+    // should be stored in getInfoOut(), not the pre-channel-selection value
     // origNChan().
     /*
     double max_chan_avg = 1.0;
-    for (size_t i = 0; i < info().nbaselines(); i++) {
+    for (size_t i = 0; i < getInfoOut().nbaselines(); i++) {
       const double chan_avg =
-          static_cast<double>(info().origNChan()) / info().chanWidths(i).size();
-      if (chan_avg > max_chan_avg) {
+          static_cast<double>(getInfoOut().origNChan()) /
+    getInfoOut().chanWidths(i).size(); if (chan_avg > max_chan_avg) {
         max_chan_avg = chan_avg;
       }
     }
 
     const size_t channels_per_chan_block =
-        (settings_.n_channels == 0) ? info().origNChan() : settings_.n_channels;
+        (settings_.n_channels == 0)
+        ? getInfoOut().origNChan()
+        : settings_.n_channels;
     if (max_chan_avg > channels_per_chan_block) {
       throw std::invalid_argument(
           "BDA frequency averaging scheme gives a maximum amount of channel "
@@ -184,19 +186,19 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
 
     // Create lists with used antenna indices, similarly to
     // DPInfo::RemoveUnusedAntennas.
-    antennas1_.resize(info().getAnt1().size());
-    antennas2_.resize(info().getAnt2().size());
+    antennas1_.resize(getInfoOut().getAnt1().size());
+    antennas2_.resize(getInfoOut().getAnt2().size());
     for (size_t i = 0; i < antennas1_.size(); ++i) {
-      antennas1_[i] = info().antennaMap()[info().getAnt1()[i]];
-      antennas2_[i] = info().antennaMap()[info().getAnt2()[i]];
+      antennas1_[i] = getInfoOut().antennaMap()[getInfoOut().getAnt1()[i]];
+      antennas2_[i] = getInfoOut().antennaMap()[getInfoOut().getAnt2()[i]];
     }
 
     std::vector<std::string> used_antenna_names;
     std::vector<std::array<double, 3>> used_antenna_positions;
-    used_antenna_names.reserve(info().antennaUsed().size());
-    used_antenna_positions.reserve(info().antennaUsed().size());
-    for (const int& ant : info().antennaUsed()) {
-      used_antenna_names.push_back(info().antennaNames()[ant]);
+    used_antenna_names.reserve(getInfoOut().antennaUsed().size());
+    used_antenna_positions.reserve(getInfoOut().antennaUsed().size());
+    for (const int& ant : getInfoOut().antennaUsed()) {
+      used_antenna_names.push_back(getInfoOut().antennaNames()[ant]);
       used_antenna_positions.push_back(antenna_pos[ant]);
     }
 
@@ -210,7 +212,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
                                   channel_block_frequencies);
     }
 
-    solver_->Initialize(info().antennaUsed().size(),
+    solver_->Initialize(getInfoOut().antennaUsed().size(),
                         settings_.solutions_per_direction,
                         chan_block_start_freqs_.size() - 1);
 
@@ -221,7 +223,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
   }
 
   if (solution_writer_) {
-    solution_writer_->AddAntennas(info().antennaNames(), antenna_pos);
+    solution_writer_->AddAntennas(getInfoOut().antennaNames(), antenna_pos);
   }
 }
 
@@ -231,16 +233,16 @@ void BdaDdeCal::DetermineChannelBlocks() {
   size_t n_channel_blocks = 1;
   if (settings_.n_channels > 0) {
     n_channel_blocks =
-        std::max(info().nchan() / settings_.n_channels, size_t(1));
+        std::max(getInfoOut().nchan() / settings_.n_channels, size_t(1));
   }
 
-  // Although info().chanWidths(baseline) differs between baselines,
+  // Although getInfoOut().chanWidths(baseline) differs between baselines,
   // min_freq and max_freq should be equal for all baselines.
-  const double min_freq =
-      info().chanFreqs(0).front() - (info().chanWidths(0).front() / 2);
-  const double max_freq =
-      info().chanFreqs(0).back() + (info().chanWidths(0).back() / 2);
-  const double chan_width = (max_freq - min_freq) / info().nchan();
+  const double min_freq = getInfoOut().chanFreqs(0).front() -
+                          (getInfoOut().chanWidths(0).front() / 2);
+  const double max_freq = getInfoOut().chanFreqs(0).back() +
+                          (getInfoOut().chanWidths(0).back() / 2);
+  const double chan_width = (max_freq - min_freq) / getInfoOut().nchan();
 
   chan_block_start_freqs_.clear();
   chan_block_start_freqs_.reserve(n_channel_blocks + 1);
@@ -250,7 +252,7 @@ void BdaDdeCal::DetermineChannelBlocks() {
 
   for (size_t ch_block = 0; ch_block < n_channel_blocks; ++ch_block) {
     const size_t next_index =
-        (ch_block + 1) * info().nchan() / n_channel_blocks;
+        (ch_block + 1) * getInfoOut().nchan() / n_channel_blocks;
     const size_t block_size = next_index - start_index;
     const double next_freq = start_freq + block_size * chan_width;
     chan_block_start_freqs_.push_back(next_freq);
@@ -396,7 +398,7 @@ void BdaDdeCal::SolveCurrentInterval() {
   timer_.start();
   solve_timer_.start();
   const size_t n_channel_blocks = chan_block_start_freqs_.size() - 1;
-  const size_t n_antennas = info().antennaUsed().size();
+  const size_t n_antennas = getInfoOut().antennaUsed().size();
 
   const bool linear_mode =
       settings_.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
@@ -428,7 +430,7 @@ void BdaDdeCal::SolveCurrentInterval() {
   const int current_interval = solutions_.size();
   assert(current_interval == solver_buffer_->GetCurrentInterval());
   const double current_center =
-      info().startTime() +
+      getInfoOut().startTime() +
       (current_interval + 0.5) * solution_interval_duration_;
 
   solutions_.emplace_back(n_channel_blocks);
@@ -536,7 +538,7 @@ void BdaDdeCal::SolveCurrentInterval() {
     solver_buffer_->SubtractCorrectedModel(
         solutions_.back(), chan_block_start_freqs_,
         solver_->NSolutionPolarizations(), antennas1_, antennas2_,
-        info().BdaChanFreqs());
+        getInfoOut().BdaChanFreqs());
   }
 
   // Check for nonconvergence and flag if desired. Unconverged solutions are
@@ -663,9 +665,9 @@ void BdaDdeCal::WriteSolutions() {
   write_timer_.start();
   // Create antenna info for H5Parm, used antennas only.
   std::vector<std::string> used_antenna_names;
-  used_antenna_names.reserve(info().antennaUsed().size());
-  for (size_t used_antenna : info().antennaUsed()) {
-    used_antenna_names.emplace_back(info().antennaNames()[used_antenna]);
+  used_antenna_names.reserve(getInfoOut().antennaUsed().size());
+  for (size_t used_antenna : getInfoOut().antennaUsed()) {
+    used_antenna_names.emplace_back(getInfoOut().antennaNames()[used_antenna]);
   }
 
   const std::string history = "CREATE by " + DP3Version::AsString() + "\n" +
@@ -673,11 +675,11 @@ void BdaDdeCal::WriteSolutions() {
                               settings_.parset_string;
 
   solution_writer_->Write(
-      solutions_, constraint_solutions_, info().startTime(), info().lastTime(),
-      info().timeInterval(), settings_.solution_interval,
-      settings_.solutions_per_direction, settings_.mode, used_antenna_names,
-      GetSourceDirections(), patches_, info().chanFreqs(),
-      GetChannelBlockFrequencies(), history);
+      solutions_, constraint_solutions_, getInfoOut().startTime(),
+      getInfoOut().lastTime(), getInfoOut().timeInterval(),
+      settings_.solution_interval, settings_.solutions_per_direction,
+      settings_.mode, used_antenna_names, GetSourceDirections(), patches_,
+      getInfoOut().chanFreqs(), GetChannelBlockFrequencies(), history);
 
   write_timer_.stop();
   timer_.stop();
@@ -688,8 +690,9 @@ void BdaDdeCal::show(std::ostream& stream) const {
          << "  mode (constraints):  " << ToString(settings_.mode) << '\n'
          << "  directions:          " << patches_ << '\n';
   if (solver_) {
-    const size_t nchan = settings_.n_channels == 0 ? size_t(getInfo().nchan())
-                                                   : settings_.n_channels;
+    const size_t nchan = settings_.n_channels == 0
+                             ? size_t(getInfoOut().nchan())
+                             : settings_.n_channels;
     stream << "  solver algorithm:    "
            << ddecal::ToString(settings_.solver_algorithm) << '\n'
            << "  H5Parm:              " << settings_.h5parm_name << '\n'

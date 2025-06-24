@@ -38,20 +38,21 @@ class TestInput : public dp3::steps::MockInput {
         itsNChan(nchan),
         itsNCorr(ncorr),
         itsFlag(flag) {
-    info() = DPInfo(ncorr, nchan);
-    info().setTimes(0.0, (ntime - 1) * 10.0, 10.0);
+    GetWritableInfoOut() = DPInfo(ncorr, nchan);
+    GetWritableInfoOut().setTimes(0.0, (ntime - 1) * 10.0, 10.0);
     casacore::MDirection phaseCenter(casacore::Quantity(45, "deg"),
                                      casacore::Quantity(30, "deg"),
                                      casacore::MDirection::J2000);
-    info().setArrayInformation(casacore::MPosition(), phaseCenter, phaseCenter,
-                               phaseCenter);
+    GetWritableInfoOut().setArrayInformation(casacore::MPosition(), phaseCenter,
+                                             phaseCenter, phaseCenter);
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 100000.0);
     std::vector<double> chanFreqs;
     for (std::size_t i = 0; i < nchan; i++) {
       chanFreqs.push_back(1050000.0 + i * 100000.0);
     }
-    info().setChannels(std::move(chanFreqs), std::move(chanWidth));
+    GetWritableInfoOut().setChannels(std::move(chanFreqs),
+                                     std::move(chanWidth));
     // Fill the baseline stations.
     // Determine nr of stations using:  na*(na+1)/2 = nbl
     // If many baselines, divide into groups of 6 to test if
@@ -87,7 +88,7 @@ class TestInput : public dp3::steps::MockInput {
     vector<std::string> antNames(nant);
     vector<casacore::MPosition> antPos(nant);
     vector<double> antDiam(nant, 70.0);
-    info().setAntennas(antNames, antDiam, antPos, ant1, ant2);
+    GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     std::array<size_t, 2> stat_uvw_shape{itsNBl, 3};
     itsStatUVW.resize(stat_uvw_shape);
     for (std::size_t i = 0; i < nant; ++i) {
@@ -99,12 +100,12 @@ class TestInput : public dp3::steps::MockInput {
 
   void fillUVW(xt::xtensor<double, 2>& uvw, int count) {
     for (std::size_t i = 0; i < itsNBl; ++i) {
-      uvw(i, 0) = (itsStatUVW(getInfo().getAnt2()[i], 0) + count * 0.002 -
-                   (itsStatUVW(getInfo().getAnt1()[i], 0) + count * 0.002));
-      uvw(i, 1) = (itsStatUVW(getInfo().getAnt2()[i], 1) + count * 0.004 -
-                   (itsStatUVW(getInfo().getAnt1()[i], 1) + count * 0.004));
-      uvw(i, 2) = (itsStatUVW(getInfo().getAnt2()[i], 2) + count * 0.006 -
-                   (itsStatUVW(getInfo().getAnt1()[i], 2) + count * 0.006));
+      uvw(i, 0) = (itsStatUVW(getInfoOut().getAnt2()[i], 0) + count * 0.002 -
+                   (itsStatUVW(getInfoOut().getAnt1()[i], 0) + count * 0.002));
+      uvw(i, 1) = (itsStatUVW(getInfoOut().getAnt2()[i], 1) + count * 0.004 -
+                   (itsStatUVW(getInfoOut().getAnt1()[i], 1) + count * 0.004));
+      uvw(i, 2) = (itsStatUVW(getInfoOut().getAnt2()[i], 2) + count * 0.006 -
+                   (itsStatUVW(getInfoOut().getAnt1()[i], 2) + count * 0.006));
     }
   }
 
@@ -188,7 +189,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    Step::updateInfo(infoIn);
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();
     BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 45.0, 1.0e-6);
     BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 30.0, 1.0e-6);
@@ -240,7 +241,7 @@ class TestOutput1 : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    info() = infoIn;
+    Step::updateInfo(infoIn);
     casacore::MVDirection dir = infoIn.phaseCenter().getValue();
     BOOST_CHECK_CLOSE_FRACTION(dir.getLong("deg").getValue(), 50.0, 1.0e-5);
     BOOST_CHECK_CLOSE_FRACTION(dir.getLat("deg").getValue(), 35.0, 1.0e-5);

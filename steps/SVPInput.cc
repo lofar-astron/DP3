@@ -42,9 +42,9 @@ void SVPInput::finish() {
 }
 
 bool SVPInput::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
-  const size_t n_bl = info().nbaselines();
-  const size_t n_ch = info().nchan();
-  const size_t n_cr = info().ncorr();
+  const size_t n_bl = getInfoOut().nbaselines();
+  const size_t n_ch = getInfoOut().nchan();
+  const size_t n_cr = getInfoOut().ncorr();
 
   buffer->GetData().resize({n_bl, n_ch, n_cr});
 
@@ -164,8 +164,8 @@ bool SVPInput::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
 
   // calculate uvw
   buffer->GetUvw().resize({n_bl, 3});
-  const std::vector<int>& antenna1 = getInfo().getAnt1();
-  const std::vector<int>& antenna2 = getInfo().getAnt2();
+  const std::vector<int>& antenna1 = getInfoOut().getAnt1();
+  const std::vector<int>& antenna2 = getInfoOut().getAnt2();
   for (size_t bl = 0; bl < n_bl; bl++) {
     xt::view(buffer->GetUvw(), bl, xt::all()) = xt::adapt(
         uvw_calculator_->getUVW(antenna2[bl], antenna1[bl], time_centroid));
@@ -325,7 +325,7 @@ void SVPInput::InitializeInfo() {
   dataset_info.setTimeIntervalAndSteps(metadata_.integration_time_,
                                        metadata_.nr_times_);
 
-  info() = dataset_info;
+  GetWritableInfoOut() = dataset_info;
 }
 
 void SVPInput::CreateInitialSubtables() {
@@ -333,8 +333,8 @@ void SVPInput::CreateInitialSubtables() {
                   boost::filesystem::unique_path("TEMP%%%%%%%.MS"))
                      .string();
 
-  info().setMsNames(temp_out_ms_, kDataColumnName, kFlagColumnName,
-                    kWeightColumnName);
+  GetWritableInfoOut().setMsNames(temp_out_ms_, kDataColumnName,
+                                  kFlagColumnName, kWeightColumnName);
   std::unique_ptr<base::SubtableWriter> writer =
       std::make_unique<base::SubtableWriter>(temp_out_ms_,
                                              metadata_.nr_channels_);

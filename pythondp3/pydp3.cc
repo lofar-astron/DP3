@@ -31,8 +31,7 @@ void WrapFields(py::module &m);    // Defined in pyfields.cc
 
 class PublicStep : public Step {
  public:
-  using Step::info;
-  using Step::infoOut;
+  using Step::GetWritableInfoOut;
   using Step::showTimings;
   using Step::updateInfo;
 };
@@ -160,15 +159,16 @@ PYBIND11_MODULE(pydp3, m) {
           "Get a copy of the info object containing metadata of the output")
       // Since a python step needs to be able to adjust its info_out in its
       // _update_info() override, _info_out returns a modifiable reference.
-      .def_property_readonly("_info_out", &PublicStep::infoOut,
+      .def_property_readonly("_info_out", &PublicStep::GetWritableInfoOut,
                              py::return_value_policy::reference,
                              "Get a modifiable reference to info object "
                              "containing metadata of the output")
       // Legacy version of info_out
-      .def_property_readonly("info", &PublicStep::getInfo,
+      .def_property_readonly("info", &PublicStep::GetWritableInfoOut,
                              py::return_value_policy::reference,
                              "Get a modifiable reference to info object "
-                             "containing metadata of the output")
+                             "containing metadata of the output (deprecated: "
+                             "use info_out)")
       .def(
           "process",
           [](dp3::steps::Step &step, PyDpBuffer &buffer) {

@@ -100,7 +100,7 @@ void AOFlaggerStep::formatBytes(std::ostream& os, double bytes) {
 }
 
 void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  Step::updateInfo(infoIn);
   // Determine available memory.
   double availMemory = casacore::HostInfo::memoryTotal() * 1024.;
   // Determine how much memory can be used.
@@ -157,7 +157,7 @@ void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
   // Size the buffer (need overlap on both sides).
   buffer_.resize(window_size_ + 2 * overlap_);
   // Initialize the flag counters.
-  flag_counter_.init(getInfo());
+  flag_counter_.init(getInfoOut());
 
   // Initialize metadata for aoflagger
   frequencies_ = infoIn.chanFreqs();
@@ -273,8 +273,8 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     throw std::runtime_error(
         "AOFlaggerStep can only handle all 4 correlations");
   // Get antenna numbers in case applyautocorr is true.
-  const std::vector<int>& ant1 = getInfo().getAnt1();
-  const std::vector<int>& ant2 = getInfo().getAnt2();
+  const std::vector<int>& ant1 = getInfoOut().getAnt1();
+  const std::vector<int>& ant2 = getInfoOut().getAnt2();
   compute_timer_.start();
 
   const size_t n_times = window_size_ + rightOverlap;
@@ -298,7 +298,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
   std::vector<ThreadData> threadData(n_threads);
   // Create thread-private objects.
   for (size_t t = 0; t != n_threads; ++t) {
-    threadData[t].counter.init(getInfo());
+    threadData[t].counter.init(getInfoOut());
     // Create a statistics object for all polarizations.
     threadData[t].qstats = aoflagger_.MakeQualityStatistics(
         interval.times.data(), interval.times.size(), frequencies_.data(),
@@ -367,7 +367,7 @@ void AOFlaggerStep::flagBaseline(unsigned int leftOverlap,
   // Create the objects for the real and imaginary data of all corr.
   aoflagger::ImageSet imageSet =
       aoflagger_.MakeImageSet(n_times, n_channels, 8);
-  imageSet.SetAntennas(info().getAnt1()[bl], info().getAnt2()[bl]);
+  imageSet.SetAntennas(getInfoOut().getAnt1()[bl], getInfoOut().getAnt2()[bl]);
   imageSet.SetInterval(0);
   imageSet.SetBand(0);
   aoflagger::FlagMask origFlags = aoflagger_.MakeFlagMask(n_times, n_channels);
@@ -438,8 +438,9 @@ void AOFlaggerStep::addStats(aoflagger::QualityStatistics& qStats,
                              const aoflagger::ImageSet& values,
                              const aoflagger::FlagMask& rfiMask,
                              const aoflagger::FlagMask& origMask, int bl) {
-  qStats.CollectStatistics(values, rfiMask, origMask, getInfo().getAnt1()[bl],
-                           getInfo().getAnt2()[bl]);
+  qStats.CollectStatistics(values, rfiMask, origMask,
+                           getInfoOut().getAnt1()[bl],
+                           getInfoOut().getAnt2()[bl]);
 }
 
 }  // namespace steps

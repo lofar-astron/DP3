@@ -311,7 +311,7 @@ common::Fields Demixer::getProvidedFields() const {
 }
 
 void Demixer::updateInfo(const DPInfo& infoIn) {
-  info() = infoIn;
+  Step::updateInfo(infoIn);
 
   // Get size info.
   itsNChanIn = infoIn.nchan();
@@ -321,7 +321,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
 
   // Handle possible data selection.
   itsFilter->setInfo(infoIn);
-  const DPInfo& infoSel = itsFilter->getInfo();
+  const DPInfo& infoSel = itsFilter->getInfoOut();
   // NB. The number of baselines and stations refer to the number of
   // selected baselines and the number of unique stations that participate
   // in the selected baselines.
@@ -397,8 +397,9 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
   itsAvgStepSubtr->setInfo(infoIn);
   // Update the info of this object.
   itsNTimeAvgSubtr = std::min(itsNTimeAvgSubtr, infoSel.ntime());
-  itsNChanAvgSubtr = info().update(itsNChanAvgSubtr, itsNTimeAvgSubtr);
-  itsNChanOutSubtr = info().nchan();
+  itsNChanAvgSubtr =
+      GetWritableInfoOut().update(itsNChanAvgSubtr, itsNTimeAvgSubtr);
+  itsNChanOutSubtr = getInfoOut().nchan();
   if (itsNChanAvg % itsNChanAvgSubtr != 0)
     throw std::runtime_error("Demix averaging " + std::to_string(itsNChanAvg) +
                              " must be multiple of output averaging " +
@@ -409,7 +410,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
                              std::to_string(itsNTimeAvgSubtr));
   // Store channel frequencies for the demix and subtract resolutions.
   itsFreqDemix = infoDemix.chanFreqs();
-  itsFreqSubtr = getInfo().chanFreqs();
+  itsFreqSubtr = getInfoOut().chanFreqs();
 
   // Store phase center direction in J2000.
   try {
@@ -442,7 +443,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
     *it++ = 0.0;
   }
   // Initialize the flag counters.
-  itsFlagCounter.init(getInfo());
+  itsFlagCounter.init(getInfoOut());
 }
 
 void Demixer::show(std::ostream& os) const {
@@ -453,10 +454,10 @@ void Demixer::show(std::ostream& os) const {
   os << "  max iterations:     " << itsMaxIter << '\n';
   itsSelBL.show(os);
   if (itsSelBL.hasSelection()) {
-    os << "    demixing " << itsFilter->getInfo().nbaselines() << " out of "
-       << getInfo().nbaselines() << " baselines   ("
-       << itsFilter->getInfo().antennaUsed().size() << " out of "
-       << getInfo().antennaUsed().size() << " stations)" << '\n';
+    os << "    demixing " << itsFilter->getInfoOut().nbaselines() << " out of "
+       << getInfoOut().nbaselines() << " baselines   ("
+       << itsFilter->getInfoOut().antennaUsed().size() << " out of "
+       << getInfoOut().antennaUsed().size() << " stations)" << '\n';
   }
   os << "  targetsource:       " << itsTargetSource << '\n';
   os << "  subtractsources:    " << itsSubtrSources << '\n';
@@ -1056,9 +1057,9 @@ void Demixer::demix() {
           if (itsMovingPhaseRef) {
             // Convert phase reference to J2000
             itsMeasFrame.set(
-                MEpoch(MVEpoch(info().startTime() / 86400), MEpoch::UTC));
+                MEpoch(MVEpoch(getInfoOut().startTime() / 86400), MEpoch::UTC));
             MDirection dirJ2000(MDirection::Convert(
-                info().phaseCenter(),
+                getInfoOut().phaseCenter(),
                 MDirection::Ref(MDirection::J2000, itsMeasFrame))());
             Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
             itsPhaseRef = base::Direction(angles.getBaseValue()[0],
@@ -1175,12 +1176,12 @@ void Demixer::demix() {
 
 void Demixer::dumpSolutions() {
   // Construct solution grid.
-  const std::vector<double>& freq = getInfo().chanFreqs();
-  const std::vector<double>& freqWidth = getInfo().chanWidths();
+  const std::vector<double>& freq = getInfoOut().chanFreqs();
+  const std::vector<double>& freqWidth = getInfoOut().chanWidths();
   parmdb::Axis::ShPtr freqAxis(
       new parmdb::RegularAxis(freq[0] - freqWidth[0] * 0.5, freqWidth[0], 1));
   parmdb::Axis::ShPtr timeAxis(new parmdb::RegularAxis(
-      getInfo().startTime() - getInfo().timeInterval() * 0.5,
+      getInfoOut().startTime() - getInfoOut().timeInterval() * 0.5,
       itsTimeIntervalAvg, itsNTimeDemix));
   parmdb::Grid solGrid(freqAxis, timeAxis);
 
@@ -1200,7 +1201,7 @@ void Demixer::dumpSolutions() {
   // stations that participate in one or more baselines. Due to the baseline
   // selection or missing baselines, solutions may be available for less
   // than the total number of station available in the observation.
-  const DPInfo& info = itsFilter->getInfo();
+  const DPInfo& info = itsFilter->getInfoOut();
   const std::vector<int>& antennaUsed = info.antennaUsed();
   const std::vector<std::string>& antennaNames = info.antennaNames();
 

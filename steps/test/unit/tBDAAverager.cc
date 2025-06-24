@@ -343,7 +343,7 @@ BOOST_AUTO_TEST_CASE(set_averaging_params) {
   BOOST_REQUIRE_NO_THROW(
       averager.set_averaging_params(time_avg, freqs, widths));
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfo(), freqs, widths, time_avg);
+  CheckInfo(averager.getInfoOut(), freqs, widths, time_avg);
 }
 
 BOOST_AUTO_TEST_CASE(no_averaging) {
@@ -356,7 +356,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   const dp3::common::ParameterSet parset = GetParset();
   BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
+  CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
 
   std::vector<std::unique_ptr<DPBuffer>> buffers;
   std::vector<std::unique_ptr<DPBuffer>> expected;
@@ -400,7 +400,7 @@ BOOST_DATA_TEST_CASE(time_averaging,
   const dp3::common::ParameterSet parset = GetParset(baseline_length * kFactor);
   BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
+  CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
@@ -467,7 +467,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_use_weights) {
       GetParset(baseline_length * kTimeAveragingFactor);
   BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
+  CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateSimpleBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
@@ -519,7 +519,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
       GetParset(baseline_length * kTimeAveragingFactor);
   BdaAverager averager(parset, kPrefix, false);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfo(), {info.chanFreqs()}, {info.chanWidths()});
+  CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateSimpleBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
@@ -563,7 +563,7 @@ BOOST_DATA_TEST_CASE(channel_averaging,
       GetParset(std::nullopt, baseline_length * kFactor);
   BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
+  CheckInfo(averager.getInfoOut(), {kOutputFreqs}, {kOutputWidths});
 
   std::unique_ptr<DPBuffer> buffer = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kInputChannelCounts, 0.0);
@@ -606,7 +606,7 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
       baseline_length * kTimeFactor, baseline_length * kChannelFactor);
   BdaAverager averager(parset, kPrefix);
   BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfo(), {kOutputFreqs}, {kOutputWidths});
+  CheckInfo(averager.getInfoOut(), {kOutputFreqs}, {kOutputWidths});
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
