@@ -24,8 +24,7 @@ using dp3::steps::Step;
 
 namespace {
 
-const std::string kInputMs = "../tNDPPP-generic.MS";
-const std::string kCopyMs = "tNDPPP-generic-copy.MS";
+const std::string kInputMs = "tNDPPP-generic.MS";
 const std::complex<float> kDataAdjustment{42.0, 43.0};
 const float kWeightAdjustment{42.0};
 
@@ -44,12 +43,12 @@ void TestFields(const std::string& data_column_name,
 }
 
 /**
- * Fixture for copying an input MS into a temporary directory.
+ * Runs the test in a separate directory containing tNDPPP-generic.MS.
  */
-class FixtureCopyInput : public dp3::common::test::FixtureDirectory {
+class InputMsFixture : public dp3::common::test::FixtureDirectory {
  public:
-  FixtureCopyInput() : FixtureDirectory() {
-    casacore::Table(kInputMs).deepCopy(kCopyMs, casacore::Table::New);
+  InputMsFixture() : FixtureDirectory() {
+    ExtractResource("tNDPPP-generic.MS.tgz");
   }
 };
 
@@ -93,7 +92,7 @@ class TestAdjust : public dp3::steps::test::ThrowStep {
 
 BOOST_AUTO_TEST_SUITE(msupdater)
 
-BOOST_AUTO_TEST_CASE(fields) {
+BOOST_FIXTURE_TEST_CASE(fields, InputMsFixture) {
   // When the columnnames are empty, MSUpdater should not update.
   TestFields("", "", "", dp3::common::Fields());
 
@@ -110,7 +109,8 @@ BOOST_AUTO_TEST_CASE(fields) {
              Step::kDataField | Step::kFlagsField | Step::kWeightsField);
 }
 
-BOOST_AUTO_TEST_CASE(update_bda_fails) {
+BOOST_FIXTURE_TEST_CASE(update_bda_fails, dp3::common::test::FixtureDirectory) {
+  ExtractResource("tNDPPP_bda.in_MS.tgz");
   const std::string kMsName = "tNDPPP_bda_tmp.MS";
   const dp3::common::ParameterSet kParset;
   MSUpdater updater(kMsName, kParset, "");
@@ -119,12 +119,14 @@ BOOST_AUTO_TEST_CASE(update_bda_fails) {
 }
 
 BOOST_DATA_TEST_CASE_F(
-    FixtureCopyInput, update_fields,
+    InputMsFixture, update_fields,
     boost::unit_test::data::make({dp3::common::Fields(), Step::kDataField,
                                   Step::kFlagsField, Step::kWeightsField,
                                   Step::kDataField | Step::kFlagsField |
                                       Step::kWeightsField}),
     fields_to_write) {
+  const std::string kCopyMs = "tNDPPP-generic-copy.MS";
+  casacore::Table(kInputMs).deepCopy(kCopyMs, casacore::Table::New);
   const casacore::MS original_ms(kInputMs);
   const casacore::MS updated_ms(kCopyMs);
   const dp3::common::ParameterSet parset;
