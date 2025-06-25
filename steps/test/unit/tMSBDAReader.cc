@@ -1,12 +1,14 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "mock/MockStep.h"
 #include "../../MSBDAReader.h"
-#include <dp3/base/DPInfo.h>
-#include "../../../common/ParameterSet.h"
 
 #include <boost/test/unit_test.hpp>
+
+#include "mock/MockStep.h"
+#include <dp3/base/DPInfo.h>
+#include "../../../common/ParameterSet.h"
+#include "../../../common/test/unit/fixtures/fDirectory.h"
 
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
@@ -15,9 +17,18 @@ using dp3::steps::MSBDAReader;
 namespace {
 const std::string kPrefix = "";
 const dp3::common::ParameterSet kParset;
+
+/// Runs the test in a separate directory containing tNDPPP_bda_tmp.MS.
+class BdaMsFixture : public dp3::common::test::FixtureDirectory {
+ public:
+  BdaMsFixture() : FixtureDirectory() {
+    ExtractResource("tNDPPP_bda.in_MS.tgz");
+  }
+};
+
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(msbdareader)
+BOOST_FIXTURE_TEST_SUITE(msbdareader, BdaMsFixture)
 
 BOOST_AUTO_TEST_CASE(constructor) {
   const casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
