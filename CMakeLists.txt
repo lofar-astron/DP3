@@ -880,8 +880,12 @@ if(BUILD_TESTING)
   set_tests_properties(extract_resources PROPERTIES FIXTURES_SETUP
                                                     extract_resources)
 
+  configure_file(common/test/test_config.h.in common/test/test_config.h)
+
   add_executable(unittests ${TEST_FILENAMES})
-  target_include_directories(unittests PRIVATE "${CMAKE_SOURCE_DIR}")
+  target_include_directories(
+    unittests
+    PRIVATE "${CMAKE_SOURCE_DIR};${CMAKE_CURRENT_BINARY_DIR}/common/test")
   if(BUILD_WITH_CUDA)
     set_target_properties(unittests PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
   endif()

@@ -4,7 +4,12 @@
 #ifndef DP3_COMMON_TEST_UNIT_FIXTURES_FDIRECTORY_H
 #define DP3_COMMON_TEST_UNIT_FIXTURES_FDIRECTORY_H
 
+#include <cstdlib>
+#include <string>
+
 #include <boost/filesystem.hpp>
+
+#include "test_config.h"
 
 namespace dp3 {
 namespace common {
@@ -32,6 +37,15 @@ class FixtureDirectory {
   ~FixtureDirectory() {
     boost::filesystem::current_path(kWorkDir);
     boost::filesystem::remove_all(kPath);
+  }
+
+  /// Extracts a test resource tgz file into the current directory.
+  static void ExtractResource(const std::string& tgz) {
+    const std::string command = "tar xfz " DP3_RESOURCE_DIR "/" + tgz;
+    const int status = std::system(command.c_str());
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+      throw std::runtime_error("Error while extracting " + tgz);
+    }
   }
 
  private:

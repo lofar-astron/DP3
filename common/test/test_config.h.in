@@ -1,0 +1,10 @@
+// Copyright (C) 2025 ASTRON (Netherlands Institute for Radio Astronomy)
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#ifndef DP3_COMMON_TEST_DP3_TEST_CONFIG_H_
+#define DP3_COMMON_TEST_DP3_TEST_CONFIG_H_
+
+// Path to test resources in the DP3 source directory.
+#define DP3_RESOURCE_DIR "@CMAKE_SOURCE_DIR@/resources"
+
+#endif

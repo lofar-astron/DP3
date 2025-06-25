@@ -110,6 +110,9 @@ class BdaDdeCal : public Step {
   /// Checks if a buffer contains all named directions.
   bool HasAllDirections(const base::BdaBuffer& buffer) const;
 
+  /// Sum all predictions directions into the main data buffer.
+  void SumModels(base::BdaBuffer& buffer) const;
+
   /// Processes the data for the directions where all sub-steps gave results.
   void ProcessCompleteDirections();
 
