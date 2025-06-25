@@ -32,20 +32,17 @@ def source_env(run_in_tmp_path):
 
 
 @pytest.fixture()
-def create_skymodel():
-    with open("test.skymodel", "w") as f:
+def skymodel_filename():
+    """Create a skymodel file for tests and return its filename."""
+    filename = "test.skymodel"
+    with open(filename, "w") as f:
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
-        )
-        f.write(
             "center, POINT, 16:38:28.205000, +63.44.34.314000, 1, , , , , \r\n"
-        )
-        f.write(
             "ra_off, POINT, 16:58:28.205000, +63.44.34.314000, 1, , , , , \r\n"
-        )
-        f.write(
             "radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 1, , , , , \r\n"
         )
+    return filename
 
 
 @pytest.fixture()
@@ -117,7 +114,7 @@ def create_corrupted_data_from_regular():
     check_call([tcf.TAQLEXE, "update corrupted.MS set WEIGHT_SPECTRUM=1"])
 
 
-def test_only_predict(create_skymodel):
+def test_only_predict(skymodel_filename):
     """Test that the right patches are summed with predict_only"""
 
     common_args = [
@@ -129,7 +126,7 @@ def test_only_predict(create_skymodel):
 
     predict_args = [
         "steps=[predict]",
-        "predict.sourcedb=test.skymodel",
+        f"predict.sourcedb={skymodel_filename}",
     ]
 
     check_call(
@@ -139,7 +136,7 @@ def test_only_predict(create_skymodel):
             "steps=[ddecal]",
             "ddecal.onlypredict=true",
             "ddecal.directions=[[center, dec_off],[ra_off],[radec_off]]",
-            "ddecal.sourcedb=test.skymodel",
+            f"ddecal.sourcedb={skymodel_filename}",
         ]
         + common_args
     )
@@ -193,7 +190,7 @@ def test_only_predict(create_skymodel):
     assert_taql(taql_check_weights)
 
 
-def test_uvwflagger(create_skymodel, create_corrupted_data_from_regular):
+def test_uvwflagger(skymodel_filename, create_corrupted_data_from_regular):
     """Test that uvwflagger settings lead to the right amount of NaNs in the solution file"""
 
     check_call(
@@ -205,7 +202,7 @@ def test_uvwflagger(create_skymodel, create_corrupted_data_from_regular):
             "steps=[ddecal]",
             "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
-            "ddecal.sourcedb=test.skymodel",
+            f"ddecal.sourcedb={skymodel_filename}",
             "ddecal.mode=scalar",
             "ddecal.solint=2",
             "ddecal.nchan=10",
@@ -256,7 +253,7 @@ def test_uvwflagger(create_skymodel, create_corrupted_data_from_regular):
     ],
 )
 def test_caltype(
-    create_skymodel, create_corrupted_data_from_regular, caltype_nchan
+    skymodel_filename, create_corrupted_data_from_regular, caltype_nchan
 ):
     """Test calibration for different calibration types"""
     caltype = caltype_nchan[:-1]
@@ -271,7 +268,7 @@ def test_caltype(
             "msout=out.MS",
             "steps=[ddecal]",
             "ddecal.h5parm=solutions.h5",
-            "ddecal.sourcedb=test.skymodel",
+            f"ddecal.sourcedb={skymodel_filename}",
             f"ddecal.mode={caltype}",
             "ddecal.solint=2",
             f"ddecal.nchan={nchan}",
@@ -324,7 +321,7 @@ def test_caltype(
         assert phase.attrs["AXES"] == b"time,ant,dir,freq"
 
 
-def test_subtract(create_skymodel, create_corrupted_data):
+def test_subtract(skymodel_filename, create_corrupted_data):
     """Test subtraction"""
     check_call(
         [
@@ -336,7 +333,7 @@ def test_subtract(create_skymodel, create_corrupted_data):
             # Use explicit directions in this test.
             "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
-            "ddecal.sourcedb=test.skymodel",
+            f"ddecal.sourcedb={skymodel_filename}",
             "ddecal.mode=diagonal",
             "ddecal.solint=2",
             "ddecal.nchan=8",
@@ -370,7 +367,7 @@ def test_subtract(create_skymodel, create_corrupted_data):
     assert_taql(taql_check_weights)
 
 
-def test_invalid_input(create_skymodel):
+def test_invalid_input(skymodel_filename):
     """Assert that exception is thrown when an incompatible value of solint or nchan is given"""
 
     common_args = [
@@ -379,7 +376,7 @@ def test_invalid_input(create_skymodel):
         "msout=out.MS",
         "steps=[ddecal]",
         "ddecal.h5parm=solutions.h5",
-        "ddecal.sourcedb=test.skymodel",
+        f"ddecal.sourcedb={skymodel_filename}",
         "ddecal.mode=diagonal",
         "ddecal.subtract=true",
         "numthreads=1",

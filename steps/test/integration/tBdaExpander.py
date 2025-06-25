@@ -34,20 +34,17 @@ def source_env(run_in_tmp_path):
 
 
 @pytest.fixture()
-def create_skymodel():
-    with open("test.skymodel", "w") as f:
+def skymodel_filename():
+    """Create a skymodel file for tests and return its filename."""
+    filename = "test.skymodel"
+    with open(filename, "w") as f:
         f.write(
             "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\r\n"
-        )
-        f.write(
-            "center, POINT, 16:38:28.205000, + 63.44.34.314000, 10, , , , , \r\n"
-        )
-        f.write(
-            "ra_off, POINT, 16:38:28.205000, + 64.44.34.314000, 10, , , , , \r\n"
-        )
-        f.write(
+            "center, POINT, 16:38:28.205000, +63.44.34.314000, 10, , , , , \r\n"
+            "ra_off, POINT, 16:58:28.205000, +63.44.34.314000, 10, , , , , \r\n"
             "radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 10, , , , , \r\n"
         )
+    return filename
 
 
 def test_only_expand():
@@ -81,7 +78,7 @@ def test_expand_average():
     assert_taql(taql_check_visibilities)
 
 
-def test_bdaaverager_ddecal_bdaexpander(create_skymodel):
+def test_bdaaverager_ddecal_bdaexpander(skymodel_filename):
     check_call(
         [
             tcf.DP3EXE,
@@ -92,12 +89,12 @@ def test_bdaaverager_ddecal_bdaexpander(create_skymodel):
             "steps=[bdaaverager, ddecal, bdaexpander]",
             "ddecal.onlypredict=true",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
-            "ddecal.sourcedb=test.skymodel",
+            f"ddecal.sourcedb={skymodel_filename}",
         ]
     )
 
 
-def test_bdaexpander_ddecal(create_skymodel):
+def test_bdaexpander_ddecal(skymodel_filename):
     check_call(
         [
             tcf.DP3EXE,
@@ -108,7 +105,7 @@ def test_bdaexpander_ddecal(create_skymodel):
             "msout.uvwcompression=false",  # TODO why is this necessary?
             "steps=[bdaexpander, ddecal]",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
-            "ddecal.sourcedb=test.skymodel",
+            f"ddecal.sourcedb={skymodel_filename}",
         ]
     )
 
