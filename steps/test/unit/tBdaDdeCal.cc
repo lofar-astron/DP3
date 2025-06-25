@@ -2,16 +2,28 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include "../../BdaDdeCal.h"
+
+#include <fstream>
+
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
 #include "tPredict.h"
 #include "tStepCommon.h"
 
-#include "../../BdaDdeCal.h"
 #include <dp3/common/Fields.h>
 #include "../../../common/ParameterSet.h"
+#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "../../MSBDAReader.h"
+#include "../../MultiResultStep.h"
 
+using dp3::base::BdaBuffer;
+using dp3::common::Fields;
+using dp3::common::test::FixtureDirectory;
 using dp3::steps::BdaDdeCal;
+using dp3::steps::BDAResultStep;
+using dp3::steps::MSBDAReader;
 
 namespace {
 
@@ -125,6 +137,78 @@ BOOST_AUTO_TEST_CASE(get_provided_fields_subtract) {
 
   const dp3::common::Fields kExpectedFields = dp3::steps::Step::kDataField;
   BOOST_TEST(bdaddecal->getProvidedFields() == kExpectedFields);
+}
+
+const auto kTrueFalseRange = boost::unit_test::data::make({true, false});
+
+BOOST_DATA_TEST_CASE_F(FixtureDirectory, keep_or_discard_model_data,
+                       kTrueFalseRange* kTrueFalseRange, only_predict,
+                       keep_model_data) {
+  ExtractResource("tNDPPP-bda.MS.tgz");
+  casacore::MeasurementSet ms("tNDPPP-bda.MS");
+  const dp3::common::ParameterSet kEmptyParset;
+
+  // Generate a skymodel for testing, similar to tBdaDdeCal.py.
+  const std::string kSkymodelFileName = "test.skymodel";
+  std::ofstream skymodel_file(kSkymodelFileName);
+  skymodel_file
+      << "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, "
+         "PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\n"
+      << "center, POINT, 16:38:28.205000, +63.44.34.314000, 1, , , , , \n"
+      << "ra_off, POINT, 16:58:28.205000, +63.44.34.314000, 1, , , , , \n"
+      << "radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 1, , , , , \n";
+  skymodel_file.close();
+
+  dp3::common::ParameterSet parset;
+  parset.add("ddecal.h5parm", "test.h5parm");
+  if (only_predict) parset.add("ddecal.onlypredict", "true");
+  if (keep_model_data) parset.add("ddecal.keepmodel", "true");
+
+  parset.add("ddecal.sourcedb", kSkymodelFileName);
+  parset.add("ddecal.solint", "2");
+  parset.add("ddecal.nchan", "42");
+
+  // Using an MsBdaReader as input allows using its DPInfo for configuring
+  // BdaDdeCal. It avoids creating a DPInfo object by hand in this test.
+  auto reader = std::make_shared<MSBDAReader>(ms, kEmptyParset, "reader.");
+
+  auto ddecal = std::make_shared<BdaDdeCal>(parset, "ddecal.");
+  BOOST_TEST(parset.unusedKeys().empty());
+
+  reader->setFieldsToRead(ddecal->getRequiredFields());
+  auto output = std::make_shared<BDAResultStep>();
+  dp3::steps::test::Execute({reader, ddecal, output});
+
+  std::vector<std::string> expected_data_names;
+  if (only_predict) {
+    expected_data_names.push_back("");
+  }
+  if (keep_model_data) {
+    expected_data_names.push_back("ddecal.center");
+    expected_data_names.push_back("ddecal.ra_off");
+    expected_data_names.push_back("ddecal.radec_off");
+  }
+
+  std::vector<std::unique_ptr<BdaBuffer>> result = output->Extract();
+  BOOST_TEST(!result.empty());
+  for (std::unique_ptr<BdaBuffer>& buffer : result) {
+    const std::vector<std::string> data_names = buffer->GetDataNames();
+    BOOST_CHECK_EQUAL_COLLECTIONS(data_names.begin(), data_names.end(),
+                                  expected_data_names.begin(),
+                                  expected_data_names.end());
+    if (only_predict) {
+      // When only_predict is enabled, flags and weights are not in
+      // BdaDdeCal::getRequiredFields(), so the reader does not read them, and
+      // BdaDdeCal also does not output these fields.
+      BOOST_TEST(!buffer->GetFlags());
+      BOOST_TEST(!buffer->GetWeights());
+    } else {
+      // When only predict is disabled, BdaDdeCal should output the flags and
+      // weights it received as input.
+      BOOST_TEST(buffer->GetFlags());
+      BOOST_TEST(buffer->GetWeights());
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

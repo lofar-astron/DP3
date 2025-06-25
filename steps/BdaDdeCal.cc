@@ -48,10 +48,6 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
       predict_timer_(),
       solve_timer_(),
       write_timer_() {
-  if (settings_.keep_model_data) {
-    throw std::runtime_error("BdaDdeCal does not support keeping model data");
-  }
-
   uvw_flagger_step_ =
       std::make_unique<UVWFlagger>(parset, prefix, Step::MsType::kBda);
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
@@ -352,37 +348,52 @@ bool BdaDdeCal::HasAllDirections(const BdaBuffer& buffer) const {
   return true;
 }
 
+void BdaDdeCal::SumModels(BdaBuffer& buffer) const {
+  // Copy or move the data for the first direction to the main data buffer.
+  const size_t data_size = buffer.GetNumberOfElements();
+  if (settings_.keep_model_data) {
+    buffer.AddData();  // The main buffer may not exist yet.
+    std::copy_n(buffer.GetData(direction_names_.front()), data_size,
+                buffer.GetData());
+  } else {
+    buffer.MoveData(buffer, direction_names_.front(), "");
+  }
+
+  // Add the data for the other directions to the main data buffer.
+  std::complex<float> restrict* main_data = buffer.GetData();
+  for (std::size_t d = 1; d < direction_names_.size(); ++d) {
+    const std::complex<float> restrict* direction_data =
+        buffer.GetData(direction_names_[d]);
+
+    for (std::size_t j = 0; j < data_size; ++j) {
+      main_data[j] += direction_data[j];
+    }
+
+    if (!settings_.keep_model_data) {
+      buffer.RemoveData(direction_names_[d]);
+    }
+  }
+}
+
 void BdaDdeCal::ProcessCompleteDirections() {
-  while (!input_buffers_.empty() && HasAllDirections(*input_buffers_.front())) {
-    if (settings_.only_predict) {
-      // Move the data for the first direction to the main data buffer.
+  if (settings_.only_predict) {
+    while (!input_buffers_.empty() &&
+           HasAllDirections(*input_buffers_.front())) {
       std::unique_ptr<BdaBuffer> buffer = std::move(input_buffers_.front());
-      buffer->MoveData(*buffer, direction_names_.front(), "");
-
-      // Add the data for the other directions to the main data buffer.
-      std::complex<float> restrict* main_data = buffer->GetData();
-      const size_t data_size = buffer->GetNumberOfElements();
-      for (std::size_t d = 1; d < direction_names_.size(); ++d) {
-        const std::complex<float> restrict* direction_data =
-            buffer->GetData(direction_names_[d]);
-
-        for (std::size_t j = 0; j < data_size; ++j)
-          main_data[j] += direction_data[j];
-
-        buffer->RemoveData(direction_names_[d]);
-      }
-
+      input_buffers_.pop_front();
+      SumModels(*buffer);
       getNextStep()->process(std::move(buffer));
-    } else {
+    }
+  } else {
+    while (!input_buffers_.empty() &&
+           HasAllDirections(*input_buffers_.front())) {
       // Send the input buffer to solver_buffer_.
       solver_buffer_->AppendAndWeight(std::move(input_buffers_.front()),
                                       direction_names_,
                                       settings_.keep_model_data);
+      input_buffers_.pop_front();
     }
-    input_buffers_.pop_front();
-  }
 
-  if (!settings_.only_predict) {
     while (solver_buffer_->IntervalIsComplete()) {
       SolveCurrentInterval();
       solver_buffer_->AdvanceInterval();
