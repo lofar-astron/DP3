@@ -45,11 +45,18 @@ def compare_results(source_name):
 def test_input_with_four_sources():
     """
     Test an input with four sources.
-    Since wsclean on CI does not support IDG, tDDECal.MS has a foursources_DATA
+    Since DP3 does not depend on wsclean, tDDECal.MS has a foursources_DATA
     column with the reference output/visibilities for foursources-model.fits.
-    These commands generated the column:
+
+    These commands originally generated the column:
     wsclean -use-idg -predict -name resources/foursources tDDECal.MS
     taql "alter table tDDECal.MS rename column MODEL_DATA to foursources_DATA"
+
+    20250626: Nowadays, wsclean should write directly to the foursources_DATA
+    column. Otherwise, the DP3 call below fails since MODEL_DATA_dm already
+    exists in tDDECal.MS. The command would be:
+    wsclean -use-idg -predict -name resources/foursources tDDECal.MS
+    -model-column foursources_DATA
     """
 
     check_call(
@@ -69,54 +76,53 @@ def test_input_with_four_sources():
     compare_results("foursources")
 
 
+@pytest.mark.skip(
+    "This test is kept for debugging IDGPredict. It also uses WSClean, which "
+    "is normally not required for running tests."
+)
 @pytest.mark.parametrize("source", ["center", "ra", "dec", "radec"])
 @pytest.mark.parametrize("offset", ["center", "dl", "dm", "dldm"])
 def test_input_with_single_sources(source, offset):
-    """
-    Test inputs that contain a single source.
-    Since these tests take quite some time, they only run locally, and only
-    if the foursources test fails or if it is commented out.
-    CI runs don't work since wsclean does not support IDG on CI.
-    """
+    """Test inputs that contain a single source."""
+
+    # Many {source}-{offset}.reg files only include a "TODO" line.
+    # Only use the files that contain a polygon.
+    if (
+        "polygon"
+        not in open(f"{tcf.DDECAL_RESOURCEDIR}/{source}-{offset}.reg").read()
+    ):
+        pytest.skip(f"Polygon not found in {source}-{offset}.reg")
 
     # Generate reference predictions in the ${source}_DATA column.
-    try:
-        check_call(["wsclean", "-help"])
-    except FileNotFoundError:
-        pytest.skip("WSClean not available")
-
     check_call(
-        ["wsclean", "-use-idg", "-predict", "-name", f"{source}", f"{MSIN}"]
-    )
-    check_output(
         [
-            tcf.TAQLEXE,
-            "-nopr",
-            "-noph",
-            f"alter table {MSIN} rename column MODEL_DATA to {source}_DATA",
+            "wsclean",
+            "-use-idg",
+            "-predict",
+            "-name",
+            source,
+            "-model-column",
+            f"{source}_DATA",
+            MSIN,
         ]
     )
 
     # Predict source: $source offset: $offset using IDG
-    if (
-        "polygon"
-        in open(f"{tcf.DDECAL_RESOURCEDIR}/{source}-{offset}.reg").read()
-    ):
-        check_call(
-            [
-                tcf.DP3EXE,
-                "checkparset=1",
-                f"msin={MSIN}",
-                "msout=.",
-                "steps=[ddecal]",
-                f"ddecal.idg.regions={tcf.DDECAL_RESOURCEDIR}/{source}-{offset}.reg",
-                f"ddecal.idg.images=[{source}-model.fits]",
-                "ddecal.onlypredict=True",
-                "msout.datacolumn=MODEL_DATA",
-            ]
-        )
+    check_call(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[ddecal]",
+            f"ddecal.idg.regions={tcf.DDECAL_RESOURCEDIR}/{source}-{offset}.reg",
+            f"ddecal.idg.images=[{source}-model.fits]",
+            "ddecal.onlypredict=True",
+            "msout.datacolumn=MODEL_DATA",
+        ]
+    )
 
-        compare_results(source)
+    compare_results(source)
 
 
 def test_result():
