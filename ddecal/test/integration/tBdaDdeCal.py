@@ -11,7 +11,7 @@ import pytest
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, run_in_tmp_path, untar
+from utils import assert_taql, run_dp3, run_in_tmp_path, untar
 
 """
 Script can be invoked in two ways:
@@ -61,15 +61,12 @@ def create_corrupted_data():
             f"radec_off, POINT, 16:38:28.205000, +65.44.34.314000, {CORRUPTIONS[2] * CORRUPTIONS[2]}, , , , , \r\n"
         )
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=corrupted.MS",
             "steps=[predict]",
             "predict.sourcedb=test_corrupted.txt",
-            "numthreads=1",
         ]
     )
 
@@ -97,17 +94,14 @@ def create_corrupted_data_from_regular():
             f"radec_off, POINT, 16:38:28.205000, +65.44.34.314000, {CORRUPTIONS[2] * CORRUPTIONS[2]}, , , , , \r\n"
         )
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN_REGULAR}",
             "msout=corrupted.MS",
             "steps=[bdaaverager, predict]",
             "bdaaverager.frequencybase=40",
             "bdaaverager.timebase=100",
             "predict.sourcedb=test_corrupted.txt",
-            "numthreads=1",
         ]
     )
 
@@ -118,10 +112,8 @@ def test_only_predict(skymodel_filename):
     """Test that the right patches are summed with predict_only"""
 
     common_args = [
-        "checkparset=1",
         f"msin={MSIN}",
         "msout.overwrite=true",
-        "numthreads=1",
     ]
 
     predict_args = [
@@ -129,9 +121,8 @@ def test_only_predict(skymodel_filename):
         f"predict.sourcedb={skymodel_filename}",
     ]
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
             "msout=BDADDECal_onlypredict.MS",
             "steps=[ddecal]",
             "ddecal.onlypredict=true",
@@ -141,9 +132,8 @@ def test_only_predict(skymodel_filename):
         + common_args
     )
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
             "msout=PREDICT_DIR_1.MS",
             "predict.sources=[center, dec_off]",
         ]
@@ -151,15 +141,14 @@ def test_only_predict(skymodel_filename):
         + predict_args
     )
 
-    check_call(
-        [tcf.DP3EXE, "msout=PREDICT_DIR_2.MS", "predict.sources=[ra_off]"]
+    run_dp3(
+        ["msout=PREDICT_DIR_2.MS", "predict.sources=[ra_off]"]
         + common_args
         + predict_args
     )
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
             "msout=PREDICT_DIR_3.MS",
             "predict.sources=[radec_off]",
         ]
@@ -193,10 +182,8 @@ def test_only_predict(skymodel_filename):
 def test_uvwflagger(skymodel_filename, create_corrupted_data_from_regular):
     """Test that uvwflagger settings lead to the right amount of NaNs in the solution file"""
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=out.MS",
             "steps=[ddecal]",
@@ -206,7 +193,6 @@ def test_uvwflagger(skymodel_filename, create_corrupted_data_from_regular):
             "ddecal.mode=scalar",
             "ddecal.solint=2",
             "ddecal.nchan=10",
-            "numthreads=1",
             "ddecal.uvlambdamin=12000.0",
         ]
     )
@@ -260,10 +246,8 @@ def test_caltype(
     nchan = int(caltype_nchan[-1])
     print(nchan)
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin=corrupted.MS",
             "msout=out.MS",
             "steps=[ddecal]",
@@ -272,7 +256,6 @@ def test_caltype(
             f"ddecal.mode={caltype}",
             "ddecal.solint=2",
             f"ddecal.nchan={nchan}",
-            "numthreads=1",
         ]
     )
 
@@ -323,10 +306,8 @@ def test_caltype(
 
 def test_subtract(skymodel_filename, create_corrupted_data):
     """Test subtraction"""
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin=corrupted.MS",
             "msout=out.MS",
             "steps=[ddecal]",
@@ -338,7 +319,6 @@ def test_subtract(skymodel_filename, create_corrupted_data):
             "ddecal.solint=2",
             "ddecal.nchan=8",
             "ddecal.subtract=true",
-            "numthreads=1",
         ]
     )
 
@@ -371,7 +351,6 @@ def test_invalid_input(skymodel_filename):
     """Assert that exception is thrown when an incompatible value of solint or nchan is given"""
 
     common_args = [
-        "checkparset=1",
         f"msin={MSIN}",
         "msout=out.MS",
         "steps=[ddecal]",
@@ -379,25 +358,10 @@ def test_invalid_input(skymodel_filename):
         f"ddecal.sourcedb={skymodel_filename}",
         "ddecal.mode=diagonal",
         "ddecal.subtract=true",
-        "numthreads=1",
     ]
 
     with pytest.raises(CalledProcessError):
-        check_call(
-            [
-                tcf.DP3EXE,
-                "ddecal.solint=1",
-                "ddecal.nchan=4",
-            ]
-            + common_args
-        )
+        run_dp3(["ddecal.solint=1", "ddecal.nchan=4"] + common_args)
 
     with pytest.raises(CalledProcessError):
-        check_call(
-            [
-                tcf.DP3EXE,
-                "ddecal.solint=2",
-                "ddecal.nchan=1",
-            ]
-            + common_args
-        )
+        run_dp3(["ddecal.solint=2", "ddecal.nchan=1"] + common_args)
