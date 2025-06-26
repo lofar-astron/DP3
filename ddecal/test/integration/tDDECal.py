@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
-from subprocess import STDOUT, CalledProcessError, check_call, check_output
+from subprocess import STDOUT, CalledProcessError, check_output
 
 import numpy as np
 import pytest
@@ -12,8 +12,13 @@ sys.path.append(".")
 
 import casacore.tables
 import testconfig as tcf
-from testconfig import TAQLEXE
-from utils import assert_taql, get_taql_result, run_in_tmp_path, untar
+from utils import (
+    COMMON_DP3_ARGUMENTS,
+    assert_taql,
+    run_dp3,
+    run_in_tmp_path,
+    untar,
+)
 
 """
 Script can be invoked in two ways:
@@ -26,11 +31,6 @@ IDG_RESOURCES = "idg-fits-sources.tbz2"
 MSINTGZ = "tDDECal.in_MS.tgz"
 MSIN = "tDDECal.MS"
 SKYMODEL = f"{MSIN}/sky.txt"
-
-
-def calldp3(parameters):
-    print("DP3 " + " ".join(parameters))
-    check_call([tcf.DP3EXE] + parameters)
 
 
 @pytest.fixture(autouse=True)
@@ -51,10 +51,8 @@ def idgpredict_env():
 
 @pytest.fixture()
 def copy_data_to_model_data():
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=MODEL_DATA",
@@ -66,13 +64,11 @@ def copy_data_to_model_data():
 @pytest.fixture()
 def create_corrupted_visibilities():
     taqlcommand = f"update {MSIN} set WEIGHT_SPECTRUM=1, FLAG=False"
-    check_output([TAQLEXE, "-noph", taqlcommand])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand])
 
     # Use ddecal to create template h5parm
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -97,10 +93,8 @@ def create_corrupted_visibilities():
     h5file.close()
 
     # Predict corrupted visibilities into DATA column
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=DATA",
@@ -115,14 +109,12 @@ def create_corrupted_visibilities():
 def test_modeldata_different_shape(copy_data_to_model_data):
     base_command = [
         tcf.DP3EXE,
-        "checkparset=1",
-        "numthreads=1",
         f"msin={MSIN}",
         "ddecal.modeldatacolumns=[MODEL_DATA]",
         "msout=.",
         "steps=[filter,ddecal]",
         "filter.startchan=3",
-    ]
+    ] + COMMON_DP3_ARGUMENTS
 
     with pytest.raises(CalledProcessError) as e:
         check_output(base_command, stderr=STDOUT)
@@ -149,10 +141,8 @@ def test(
     nchan,
 ):
     # Subtract corrupted visibilities using multiple predict steps
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -166,10 +156,8 @@ def test(
     )
 
     # Calibrate on the original sources, caltype=$caltype
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
@@ -197,7 +185,7 @@ def test(
     else:
         tolerance = 0.015
     taqlcommand_run = f"select norm_residual/norm_data FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA))) as norm_residual from {MSIN})"
-    check_output([TAQLEXE, "-noph", taqlcommand_run])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
     taql_command = f"select FROM (select sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*DATA))) as norm_data, sqrt(abs(gsumsqr(WEIGHT_SPECTRUM*SUBTRACTED_DATA))) as norm_residual from {MSIN}) where norm_residual/norm_data > {tolerance} or isinf(norm_residual/norm_data) or isnan(norm_residual/norm_data)"
     assert_taql(taql_command)
 
@@ -221,10 +209,8 @@ def test_calibration_with_dd_intervals(
     sol_int = 6
     n_timeslots_in_ms = 6
 
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -306,10 +292,8 @@ def test_bug_ast_924(
 
     sol_int = 4
     n_timeslots_in_ms = 6
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -387,10 +371,8 @@ def test_subtract_with_dd_intervals(
     caltype,
 ):
     # This test checks that the subtraction operation works correctly
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DURING_DDECAL",
@@ -408,8 +390,6 @@ def test_subtract_with_dd_intervals(
     )
 
     common_predict_command = [
-        "checkparset=1",
-        "numthreads=1",
         f"msin={MSIN}",
         "msout=.",
         "msout.datacolumn=SUBTRACTED_DURING_PREDICT",
@@ -446,10 +426,10 @@ def test_subtract_with_dd_intervals(
     ]
 
     if caltype == "scalar" or caltype == "diagonal":
-        calldp3(common_predict_command + corrections_amplitude_and_phase)
+        run_dp3(common_predict_command + corrections_amplitude_and_phase)
 
     else:
-        calldp3(common_predict_command + corrections_amplitude_only)
+        run_dp3(common_predict_command + corrections_amplitude_only)
 
     # Quantify the difference between the subtraction in the DDECal step and in the Predict step
     predict_residual = float(
@@ -469,10 +449,8 @@ def test_subtract_with_dd_intervals(
 
 def test_h5parm_predict():
     # make calibration solutions
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -486,10 +464,8 @@ def test_h5parm_predict():
     )
 
     # subtract using multiple predict steps
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
@@ -518,10 +494,8 @@ def test_h5parm_predict():
     )
 
     # subtract using h5parmpredict
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA_H5PARM",
@@ -541,9 +515,8 @@ def test_h5parm_predict():
 def test_oneapplycal_from_buffer():
 
     # Apply ddecal and oneapplycal sequentially
-    calldp3(
+    run_dp3(
         [
-            "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal]",
             f"ddecal.sourcedb={SKYMODEL}",
@@ -551,12 +524,10 @@ def test_oneapplycal_from_buffer():
             "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
             "msout=.",
             "msout.datacolumn=DATA_REF_BUF",
-            "checkparset=1",
         ]
     )
-    calldp3(
+    run_dp3(
         [
-            "numthreads=1",
             f"msin={MSIN}",
             "msin.datacolumn=DATA_REF_BUF",
             "steps=[applycal]",
@@ -566,14 +537,12 @@ def test_oneapplycal_from_buffer():
             "applycal.ampl.correction=amplitude000",
             "msout=.",
             "msout.datacolumn=DATA_REF_BUF",
-            "checkparset=1",
         ]
     )
 
     # DDECal and immediate application
-    calldp3(
+    run_dp3(
         [
-            "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal,applycal]",
             f"ddecal.sourcedb={SKYMODEL}",
@@ -582,7 +551,6 @@ def test_oneapplycal_from_buffer():
             "msout=.",
             "msout.datacolumn=DATA_NEW_BUF",
             "applycal.parmdb=",
-            "checkparset=1",
         ]
     )
 
@@ -593,10 +561,8 @@ def test_oneapplycal_from_buffer():
 
 def test_pre_apply():
     # make calibration solutions
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -607,10 +573,8 @@ def test_pre_apply():
         ]
     )
 
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
@@ -634,10 +598,8 @@ def test_pre_apply():
     )
 
     # Check that preapply runs (output is not tested)
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -653,10 +615,8 @@ def test_pre_apply():
 
 
 def test_check_tec():
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -669,10 +629,8 @@ def test_check_tec():
 
 
 def test_check_tec_and_phase():
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msin.baseline='!CS001HBA0'",
@@ -690,8 +648,6 @@ def test_check_tec_and_phase():
 def test_dd_solution_intervals(solutions_per_direction):
     base_command = [
         tcf.DP3EXE,
-        "checkparset=1",
-        "numthreads=1",
         f"msin={MSIN}",
         "msout=.",
         "steps=[ddecal]",
@@ -701,7 +657,7 @@ def test_dd_solution_intervals(solutions_per_direction):
         "ddecal.h5parm=instrument-tec.h5",
         "ddecal.mode=scalaramplitude",
         "ddecal.solveralgorithm=directioniterative",
-    ]
+    ] + COMMON_DP3_ARGUMENTS
     try:
         check_output(
             (
@@ -736,12 +692,10 @@ def test_modelnextsteps(copy_data_to_model_data):
 
     # Multiply MODEL_DATA by 42
     taqlcommand_run = f"update {MSIN} set MODEL_DATA=DATA*42"
-    check_output([TAQLEXE, "-noph", taqlcommand_run])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
 
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "msout.datacolumn=SUBTRACTED_DATA",
@@ -774,7 +728,7 @@ def test_modelnextsteps(copy_data_to_model_data):
 def test_bda_constraints():
     import h5py  # Don't import h5py when pytest is only collecting tests.
 
-    common = [
+    common_test_arguments = [
         f"msin={MSIN}",
         "msout.overwrite=true",
         "msin.datacolumn=DATA",
@@ -796,7 +750,7 @@ def test_bda_constraints():
         "solve.tolerance=0.005",
     ]
 
-    calldp3(
+    run_dp3(
         [
             "msout=tmp_bda.ms",
             "steps=[avg,solve]",
@@ -806,16 +760,16 @@ def test_bda_constraints():
             "avg.maxinterval=37",
             "solve.h5parm=test_bda.h5parm",
         ]
-        + common
+        + common_test_arguments
     )
 
-    calldp3(
+    run_dp3(
         [
             "msout=tmp_no_bda.ms",
             "steps=[solve]",
             "solve.h5parm=test_no_bda.h5parm",
         ]
-        + common
+        + common_test_arguments
     )
 
     f_bda = h5py.File("test_bda.h5parm", "r")
@@ -851,9 +805,8 @@ def test_station_with_auto_correlation_only(caltype):
     """
 
     # Add a station with an auto-correlation to the MS.
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=StationAdded.MS",
             "msout.uvwcompression=false",
@@ -867,9 +820,8 @@ def test_station_with_auto_correlation_only(caltype):
     # Filter out the non-auto-correlations for the added station and run DDECal.
     # Since the Filter step uses the input MS when parsing the filter, we cannot
     # combine the DP3 call above with this call.
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin=StationAdded.MS",
             "msout=Test.MS",
             "msout.uvwcompression=false",
@@ -896,13 +848,11 @@ def test_uvwflagging():
 
     # Clear flags
     taqlcommand_run = f"UPDATE {MSIN} SET FLAG=FALSE"
-    check_output([TAQLEXE, "-noph", taqlcommand_run])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
 
     # UVW Flagging
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=",
             "steps=[uvwflagger]",
@@ -917,11 +867,11 @@ def test_uvwflagging():
     # Fill DATA column diagonal with valid visibilities of value 4.0, for unflagged data,
     # or corrupted visibilities with value 8.0, for flagged data
     taqlcommand_run = f"UPDATE {MSIN} SET DATA=iif(FLAG, 8.0, 4.0)*RESIZE([1,0,0,1],SHAPE(DATA),1)"
-    check_output([TAQLEXE, "-noph", taqlcommand_run])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
 
     # Clear flags
     taqlcommand_run = f"UPDATE {MSIN} SET FLAG=FALSE"
-    check_output([TAQLEXE, "-noph", taqlcommand_run])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
 
     # Create a sky model
     import casacore.tables  # Don't import casacore.tables when pytest is only collecting tests.
@@ -939,10 +889,8 @@ def test_uvwflagging():
         )
 
     # Calibrate
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal1,ddecal2]",
@@ -999,13 +947,11 @@ def test_minvisratio(copy_data_to_model_data):
     # Set data values, flags and weights. For the second channel,
     # set 25% of the flags by flagging the second correlation.
     taqlcommand_run = f"UPDATE {MSIN} SET DATA=42, MODEL_DATA=42, WEIGHT_SPECTRUM=4, FLAG=FALSE, FLAG[1,1]=TRUE"
-    check_output([TAQLEXE, "-noph", taqlcommand_run])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
 
     # Calibrate
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msout=.",
             # Force writing flags and weights.
@@ -1044,10 +990,8 @@ def test_extra_data_columns():
     """
     Test whether DDECal can reuse model data from extra data columns.
     """
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "msin.extradatacolumns=[DATA]",
             "steps=[ddecal]",
@@ -1059,10 +1003,8 @@ def test_extra_data_columns():
 
 def test_reuse_model_data():
     # Apply ddecal directly and generate reference output.
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
-            "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal]",
             f"ddecal.sourcedb={SKYMODEL}",
@@ -1075,9 +1017,8 @@ def test_reuse_model_data():
     )
 
     # Run ddecal twice where the second ddecal reuses model data.
-    calldp3(
+    run_dp3(
         [
-            "numthreads=1",
             f"msin={MSIN}",
             "steps=[ddecal1,ddecal2]",
             f"ddecal1.sourcedb={SKYMODEL}",
@@ -1102,7 +1043,7 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
 
     # Multiply MODEL_DATA by 42
     taqlcommand_run = f"update {MSIN} set MODEL_DATA=DATA*42"
-    check_output([TAQLEXE, "-noph", taqlcommand_run])
+    check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
 
     # ddecal2 uses the following model data sources:
     # - From the skymodel {SKYMODEL}: Directions 'ra_off' and 'dec_off'.
@@ -1110,9 +1051,8 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
     #   specified in foursources.reg.
     # - From the input MS: The visibilities in the 'MODEL_DATA' column.
     # - From DPBuffer: The 'center' visibilities which ddecal1 added.
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal1,ddecal2]",
@@ -1139,9 +1079,8 @@ def test_h5parm_initial_solutions():
     """Test using initial solutions from H5Parm."""
 
     # Generate H5 with initial solutions
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
@@ -1152,9 +1091,8 @@ def test_h5parm_initial_solutions():
     )
 
     # Reuse those solutions as initial conditions
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
@@ -1174,9 +1112,8 @@ def test_h5parm_initial_solutions_with_dd_intervals():
     """
 
     # Generate H5 with initial solutions
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
@@ -1187,9 +1124,8 @@ def test_h5parm_initial_solutions_with_dd_intervals():
     )
 
     # Reuse those solutions as initial conditions
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin={MSIN}",
             f"msout=",
             f"steps=[ddecal]",
