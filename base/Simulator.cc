@@ -7,9 +7,10 @@
 // $Id$
 
 #include <casacore/casa/Arrays/MatrixMath.h>
-#include <casacore/casa/BasicSL/Constants.h>
 
 #include <cmath>
+
+#include <aocommon/constants.h>
 
 #include "Simulator.h"
 #include "GaussianSource.h"
@@ -437,7 +438,7 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    std::vector<double>& stationPhases) {
   double* shiftdata_re = shift.realdata();
   double* shiftdata_im = shift.imagdata();
-  const double cinv = 2.0 * M_PI / casacore::C::c;
+  constexpr double cinv = 2.0 * M_PI / aocommon::kSpeedOfLight;
 #pragma GCC ivdep
   for (size_t st = 0; st < nStation; ++st) {
     stationPhases[st] = cinv * (uvw(st, 0) * lmn[0] + uvw(st, 1) * lmn[1] +
