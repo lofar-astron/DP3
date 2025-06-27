@@ -23,8 +23,9 @@ using dp3::steps::PhaseShift;
 namespace dp3 {
 namespace base {
 
-std::vector<int> nsetupSplitUVW(unsigned int nant, const std::vector<int>& ant1,
-                                const std::vector<int>& ant2) {
+std::vector<int> SetupUvwSplitting(unsigned int nant,
+                                   const std::vector<int>& ant1,
+                                   const std::vector<int>& ant2) {
   // Get the indices of the baselines needed to split the baseline UVWs into
   // station UVWs. They are in such an order that the UVW of a station is known
   // before used in another baseline to derive the UVW of the other station.
@@ -82,77 +83,100 @@ std::vector<int> nsetupSplitUVW(unsigned int nant, const std::vector<int>& ant1,
   return uvw_bl;
 }
 
-std::vector<int> nsetupSplitUVW(
-    unsigned int nant, const std::vector<int>& antennas1,
-    const std::vector<int>& antennas2,
+std::vector<size_t> GetBaselinesSortedByLength(
+    const std::vector<int>& antennas1, const std::vector<int>& antennas2,
     const std::vector<std::array<double, 3>>& antenna_positions) {
   // sort baselines by length
   std::vector<double> baseline_length_squared(antennas1.size());
-  for (size_t i = 0; i < baseline_length_squared.size(); ++i) {
-    int ant1 = antennas1[i];
-    int ant2 = antennas2[i];
-    double u = antenna_positions[ant2][0] - antenna_positions[ant1][0];
-    double v = antenna_positions[ant2][1] - antenna_positions[ant1][1];
-    double w = antenna_positions[ant2][2] - antenna_positions[ant1][2];
+  for (size_t i = 0; i != baseline_length_squared.size(); ++i) {
+    const int ant1 = antennas1[i];
+    const int ant2 = antennas2[i];
+    const double u = antenna_positions[ant2][0] - antenna_positions[ant1][0];
+    const double v = antenna_positions[ant2][1] - antenna_positions[ant1][1];
+    const double w = antenna_positions[ant2][2] - antenna_positions[ant1][2];
     baseline_length_squared[i] = u * u + v * v + w * w;
   }
 
-  auto compare_by_length = [&baseline_length_squared](size_t bl1, size_t bl2) {
+  const auto compare_by_length = [&baseline_length_squared](size_t bl1,
+                                                            size_t bl2) {
     return baseline_length_squared[bl1] > baseline_length_squared[bl2];
   };
 
   std::vector<size_t> bl_idx_sorted(antennas1.size());
   std::iota(bl_idx_sorted.begin(), bl_idx_sorted.end(), 0);
   std::sort(bl_idx_sorted.begin(), bl_idx_sorted.end(), compare_by_length);
+  return bl_idx_sorted;
+}
 
+std::vector<size_t> GetBaselineSelection(
+    size_t n_antennas, const std::vector<size_t>& sorted_baseline_ids,
+    const std::vector<int>& antennas1, const std::vector<int>& antennas2) {
   // Initialize data structure to keep track of which baselines are selected,
   // to which group an antenna belongs and which antennas are in a group
   std::vector<size_t> bl_selection;
-  std::vector<int> ant_to_group_id_map(nant, -1);
+  constexpr int kUnset = -1;
+  std::vector<int> ant_to_group_id_map(n_antennas, kUnset);
+  // Each element is a group that contains antenna indices.
   std::vector<std::vector<int>> groups;
 
-  for (size_t bl : bl_idx_sorted) {
-    int ant1 = antennas1[bl];
-    int ant2 = antennas2[bl];
-    if (ant_to_group_id_map[ant1] == ant_to_group_id_map[ant2]) {
-      if (ant_to_group_id_map[ant1] == -1) {
-        // both antennas are unkown
+  for (size_t bl : sorted_baseline_ids) {
+    const int ant1 = antennas1[bl];
+    const int ant2 = antennas2[bl];
+    const int antenna1_group = ant_to_group_id_map[ant1];
+    const int antenna2_group = ant_to_group_id_map[ant2];
+    if (antenna1_group == antenna2_group) {
+      if (antenna1_group == kUnset) {
+        // Both antennas are unkown
         // add both to a new group
         ant_to_group_id_map[ant1] = groups.size();
         ant_to_group_id_map[ant2] = groups.size();
         groups.push_back({ant1, ant2});
       } else {
-        // both antennas are known, and in the same group
+        // Both antennas are known, and in the same group:
         // this baseline adds no new information
         continue;
       }
     } else {
-      if (ant_to_group_id_map[ant1] == -1) {
+      if (antenna1_group == kUnset) {
         // ant1 is unknown, add it to the group of ant2
-        ant_to_group_id_map[ant1] = ant_to_group_id_map[ant2];
-        groups[ant_to_group_id_map[ant1]].push_back(ant1);
-      } else if (ant_to_group_id_map[ant2] == -1) {
+        ant_to_group_id_map[ant1] = antenna2_group;
+        groups[antenna2_group].push_back(ant1);
+      } else if (antenna2_group == kUnset) {
         // ant2 is unknown, add it to the group of ant1
-        ant_to_group_id_map[ant2] = ant_to_group_id_map[ant1];
-        groups[ant_to_group_id_map[ant2]].push_back(ant2);
+        ant_to_group_id_map[ant2] = antenna1_group;
+        groups[antenna1_group].push_back(ant2);
       } else {
-        // both antennas are known, but in different groups
+        // Both antennas are known, but in different groups
         // Add the group of ant2 to the group of ant1
-        for (int ant : groups[ant_to_group_id_map[ant2]]) {
-          ant_to_group_id_map[ant] = ant_to_group_id_map[ant1];
+        for (int ant : groups[antenna2_group]) {
+          ant_to_group_id_map[ant] = antenna1_group;
         }
-        groups[ant_to_group_id_map[ant1]].insert(
-            groups[ant_to_group_id_map[ant1]].end(),
-            groups[ant_to_group_id_map[ant2]].begin(),
-            groups[ant_to_group_id_map[ant2]].end());
-        groups[ant_to_group_id_map[ant2]].clear();
+        groups[antenna1_group].insert(
+            groups[antenna1_group].end(),
+            groups[antenna2_group].begin(),  // OLD group of antenna2
+            groups[antenna2_group].end());
+        groups[antenna2_group].clear();
       }
     }
     // Add baseline to selection
     bl_selection.push_back(bl);
     // Exit early if selected baselines already form a single spanning tree
-    if (bl_selection.size() == size_t(nant - 1)) break;
+    if (bl_selection.size() == size_t(n_antennas - 1)) {
+      break;
+    }
   }
+  return bl_selection;
+}
+
+std::vector<int> SetupUvwSplitting(
+    unsigned int nant, const std::vector<int>& antennas1,
+    const std::vector<int>& antennas2,
+    const std::vector<std::array<double, 3>>& antenna_positions) {
+  const std::vector<size_t> sorted_baselines =
+      GetBaselinesSortedByLength(antennas1, antennas2, antenna_positions);
+
+  const std::vector<size_t> bl_selection =
+      GetBaselineSelection(nant, sorted_baselines, antennas1, antennas2);
 
   // Select the entries from vectors antenna1 and antenna2 that correspons to
   // selected baselines
@@ -167,7 +191,7 @@ std::vector<int> nsetupSplitUVW(
 
   // Compute the indices for the selected baselines
   std::vector<int> bl_idx =
-      nsetupSplitUVW(nant, antennas1_bl_selection, antennas2_bl_selection);
+      SetupUvwSplitting(nant, antennas1_bl_selection, antennas2_bl_selection);
 
   // Map the indices in the selection to indices in the original baselines
   std::transform(bl_idx.begin(), bl_idx.end(), bl_idx.begin(),
@@ -178,10 +202,10 @@ std::vector<int> nsetupSplitUVW(
   return bl_idx;
 }
 
-void nsplitUVW(const std::vector<int>& baseline_indices,
-               const std::vector<Baseline>& baselines,
-               const DPBuffer::UvwType& uvw_bl,
-               xt::xtensor<double, 2>& uvw_ant) {
+void SplitUvw(const std::vector<int>& baseline_indices,
+              const std::vector<Baseline>& baselines,
+              const DPBuffer::UvwType& uvw_bl,
+              xt::xtensor<double, 2>& uvw_ant) {
   uvw_ant.fill(0.0);
   for (unsigned int i = 0; i < baseline_indices.size(); ++i) {
     int index = baseline_indices[i];

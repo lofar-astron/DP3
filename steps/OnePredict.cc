@@ -208,8 +208,8 @@ void OnePredict::initializeThreadData() {
   }
 
   uvw_split_index_ =
-      base::nsetupSplitUVW(getInfoOut().nantenna(), getInfoOut().getAnt1(),
-                           getInfoOut().getAnt2(), antenna_pos);
+      base::SetupUvwSplitting(getInfoOut().nantenna(), getInfoOut().getAnt1(),
+                              getInfoOut().getAnt2(), antenna_pos);
 
   if (apply_beam_) {
     telescope_ = base::GetTelescope(getInfoOut().msName(),
@@ -381,7 +381,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t nCr = getInfoOut().ncorr();
   const size_t nThreads = aocommon::ThreadPool::GetInstance().NThreads();
 
-  base::nsplitUVW(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
+  base::SplitUvw(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
 
   double time = buffer->GetTime();
 

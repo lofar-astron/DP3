@@ -343,7 +343,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
     newAnt1[i] = antennaMap[infoSel.getAnt1()[i]];
     newAnt2[i] = antennaMap[infoSel.getAnt2()[i]];
   }
-  itsUVWSplitIndex = base::nsetupSplitUVW(itsNStation, newAnt1, newAnt2);
+  itsUVWSplitIndex = base::SetupUvwSplitting(itsNStation, newAnt1, newAnt2);
 
   // Allocate buffers used to compute the smearing factors.
   itsFactorBuf.resize(
@@ -962,8 +962,8 @@ void Demixer::demix() {
     std::fill(storage.model.begin(), storage.model.end(), 0.0);
 
     for (size_t dr = 0; dr < nDr; ++dr) {
-      base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
-                      itsAvgResults[dr]->get()[ts]->GetUvw(), storage.uvw);
+      base::SplitUvw(itsUVWSplitIndex, itsBaselines,
+                     itsAvgResults[dr]->get()[ts]->GetUvw(), storage.uvw);
 
       base::Simulator simulator(itsPatchList[dr]->Direction(), nSt,
                                 itsBaselines, itsFreqDemix, {}, storage.uvw,
@@ -1050,9 +1050,9 @@ void Demixer::demix() {
 
         // Re-simulate if required.
         if (multiplier != 1 || nCh != nChSubtr) {
-          base::nsplitUVW(itsUVWSplitIndex, itsBaselines,
-                          itsAvgResultSubtr->get()[ts_subtr]->GetUvw(),
-                          storage.uvw);
+          base::SplitUvw(itsUVWSplitIndex, itsBaselines,
+                         itsAvgResultSubtr->get()[ts_subtr]->GetUvw(),
+                         storage.uvw);
 
           if (itsMovingPhaseRef) {
             // Convert phase reference to J2000
