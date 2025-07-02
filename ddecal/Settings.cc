@@ -4,6 +4,7 @@
 #include "Settings.h"
 
 #include <numeric>
+#include <regex>
 #include <sstream>
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -13,6 +14,7 @@
 #include "../base/CalType.h"
 #include "../common/ParameterSet.h"
 #include "../common/StreamUtil.h"
+#include "../common/StringTools.h"
 
 using dp3::base::CalType;
 
@@ -413,6 +415,50 @@ std::vector<size_t> GetSolutionToDirectionVector(
     }
   }
   return result;
+}
+
+std::vector<std::pair<std::string, std::string>> Settings::GetReusedDirections(
+    const std::map<std::string, dp3::base::Direction>& input_directions) const {
+  std::map<std::string, size_t> pattern_match_count;
+  for (const std::string& pattern : reuse_model_data) {
+    pattern_match_count[pattern] = 0;
+  }
+
+  std::vector<std::pair<std::string, std::string>> reused_direction_names;
+
+  for (const auto& [name, dir] : input_directions) {
+    for (const std::string& pattern : reuse_model_data) {
+      // Convert the * wildcards to a regular expression.
+      const std::regex regex_pattern(common::PatternToRegex(pattern));
+
+      if (std::regex_match(name, regex_pattern)) {
+        // Keep track of the number of directions matched to each pattern.
+        pattern_match_count[pattern] += 1;
+
+        // Remove any old prefix from the model data name.
+        std::string name_without_prefix = name;
+        const std::size_t period_position = name_without_prefix.find(".");
+
+        if (period_position != std::string::npos) {
+          name_without_prefix = name_without_prefix.substr(period_position + 1);
+        }
+
+        reused_direction_names.emplace_back(name, name_without_prefix);
+
+        break;
+      }
+    }
+  }
+
+  for (const std::string& pattern : reuse_model_data) {
+    if (pattern_match_count[pattern] == 0) {
+      throw std::runtime_error(
+          "The requested reuse model pattern '" + pattern +
+          "' did not match any model data passed from any previous step.");
+    }
+  }
+
+  return reused_direction_names;
 }
 
 }  // namespace ddecal

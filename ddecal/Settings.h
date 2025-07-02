@@ -4,22 +4,19 @@
 #ifndef DP3_DDECAL_SETTINGS_H_
 #define DP3_DDECAL_SETTINGS_H_
 
-#include "linear_solvers/LLSSolver.h"
-
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
-namespace dp3 {
-namespace base {
-enum class CalType;
-}
-namespace common {
-class ParameterSet;
-}
+#include <dp3/base/Direction.h>
 
-namespace ddecal {
+#include "linear_solvers/LLSSolver.h"
+#include "../base/CalType.h"
+#include "../common/ParameterSet.h"
+
+namespace dp3::ddecal {
 
 enum class SolverAlgorithm {
   kLowRank,
@@ -55,6 +52,17 @@ struct Settings {
    * value for every solution that a direction may have.
    */
   std::vector<double> GetExpandedSmoothnessDdFactors() const;
+
+  /**
+   * Compose a list of reused direction names using the reuse_model_data
+   * patterns and the actual directions.
+   * @param directions The directions provided by the previous step.
+   * @return A list with both full direction names and the corresponding name
+   * but without the step name prefix, if there was any.
+   * @throw std::runtime_error If a pattern has no matching direction.
+   */
+  std::vector<std::pair<std::string, std::string>> GetReusedDirections(
+      const std::map<std::string, dp3::base::Direction>& directions) const;
 
  private:
   /**
@@ -227,7 +235,6 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings);
 std::vector<size_t> GetSolutionToDirectionVector(
     const std::vector<uint32_t>& solutions_per_direction);
 
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal
 
 #endif
