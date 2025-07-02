@@ -9,6 +9,10 @@
 #include <array>
 #include <cassert>
 #include <limits>
+#ifdef __SSE__
+#include <immintrin.h>
+#endif
+
 using dp3::base::BdaBuffer;
 
 namespace {
@@ -51,50 +55,60 @@ void BdaSolverBuffer::AppendAndWeight(
     assert(weighted_row.interval <= time_interval_);
     assert(kNCorrelations == weighted_row.n_correlations);
 
+    std::complex<float>* const row_unweighted_data =
+        unweighted_buffer->GetData(row_index);
+    std::complex<float>* const row_weighted_data =
+        weighted_buffer->GetData(row_index);
+    const float* const row_weights = unweighted_buffer->GetWeights(row_index);
+    const bool* const row_flags = unweighted_buffer->GetFlags(row_index);
+
+    std::vector<std::complex<float>*> row_model_data;
+    row_model_data.reserve(direction_names.size());
+    for (const std::string& name : direction_names) {
+      row_model_data.push_back(weighted_buffer->GetData(row_index, name));
+    }
+
     for (size_t ch = 0; ch < weighted_row.n_channels; ++ch) {
       bool is_flagged = false;
       const size_t index = ch * kNCorrelations;
-      const float* weights_ptr =
-          unweighted_buffer->GetWeights(row_index) + index;
-      const bool* flag_ptr = unweighted_buffer->GetFlags(row_index);
-      if (flag_ptr) flag_ptr += index;
+      std::complex<float>* const data_ptr = row_weighted_data + index;
+      const bool* flag_ptr = row_flags + index;
 
-      const std::array<float, kNCorrelations> w_sqrt{
-          std::sqrt(weights_ptr[0]), std::sqrt(weights_ptr[1]),
-          std::sqrt(weights_ptr[2]), std::sqrt(weights_ptr[3])};
+      // Compute the square roots of the weights for the 4 correlations.
+#ifdef __SSE__
+      // All x86_64 CPUs support this SSE code, which computes the 4 square
+      // roots in one instruction.
+      const __m128 weights_sqrt =
+          _mm_sqrt_ps(_mm_loadu_ps(row_weights + index));
+#else
+      // In case somebody want to build DP3 on ARM, this will work:
+      const std::array<float, kNCorrelations> weights_sqrt{
+          std::sqrt(row_weights[index + 0]), std::sqrt(row_weights[index + 1]),
+          std::sqrt(row_weights[index + 2]), std::sqrt(row_weights[index + 3])};
+#endif
 
-      // Weigh the 2x2 data matrix.
-      std::complex<float>* data_ptr =
-          weighted_buffer->GetData(row_index) + index;
+      // Weight the 2x2 data matrix.
       for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-        is_flagged =
-            is_flagged || !IsFinite(data_ptr[cr]) || (flag_ptr && flag_ptr[cr]);
-        data_ptr[cr] *= w_sqrt[cr];
+        is_flagged = is_flagged || !IsFinite(data_ptr[cr]) || flag_ptr[cr];
+        data_ptr[cr] *= weights_sqrt[cr];
       }
 
       // Weight the model data.
-      for (const std::string& name : direction_names) {
-        std::complex<float>* model_ptr =
-            weighted_buffer->GetData(row_index, name) + index;
+      for (std::complex<float>* model_ptr : row_model_data) {
+        model_ptr += index;
 
         for (size_t cr = 0; cr < kNCorrelations; ++cr) {
           is_flagged = is_flagged || !IsFinite(model_ptr[cr]);
-          model_ptr[cr] *= w_sqrt[cr];
+          model_ptr[cr] *= weights_sqrt[cr];
         }
       }
 
       // If either the data or model data has non-finite values, set both the
       // data and model data to zero.
       if (is_flagged) {
-        for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-          data_ptr[cr] = 0.0;
-        }
-        for (const std::string& name : direction_names) {
-          std::complex<float>* model_ptr =
-              weighted_buffer->GetData(row_index, name) + index;
-          for (size_t cr = 0; cr < kNCorrelations; ++cr) {
-            model_ptr[cr] = 0.0;
-          }
+        std::fill_n(data_ptr, kNCorrelations, 0.0);
+        for (std::complex<float>* model_ptr : row_model_data) {
+          std::fill_n(model_ptr + index, kNCorrelations, 0.0);
         }
       }
     }
@@ -108,20 +122,12 @@ void BdaSolverBuffer::AppendAndWeight(
       data_rows_.PushBack(std::vector<IntervalRow>());
     }
 
-    const BdaBuffer::Row& unweighted_row =
-        unweighted_buffer->GetRows()[row_index];
-    std::vector<const std::complex<float>*> model_data;
-    model_data.reserve(direction_names.size());
-    for (const std::string& name : direction_names) {
-      model_data.push_back(weighted_buffer->GetData(row_index, name));
-    }
+    std::vector<const std::complex<float>*> row_model_const_data(
+        row_model_data.begin(), row_model_data.end());
     data_rows_[queue_index].push_back(
-        {unweighted_row.time, unweighted_row.baseline_nr,
-         unweighted_row.n_channels, unweighted_row.n_correlations,
-         unweighted_buffer->GetData(row_index),
-         weighted_buffer->GetData(row_index),
-         unweighted_buffer->GetFlags(row_index),
-         unweighted_buffer->GetWeights(row_index), std::move(model_data)});
+        {weighted_row.time, weighted_row.baseline_nr, weighted_row.n_channels,
+         weighted_row.n_correlations, row_unweighted_data, row_weighted_data,
+         row_flags, row_weights, std::move(row_model_const_data)});
 
     int current_start_interval =
         RelativeIndex(weighted_row.time - weighted_row.interval / 2);

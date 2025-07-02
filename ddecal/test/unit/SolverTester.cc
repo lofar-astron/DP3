@@ -194,9 +194,11 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
   const size_t buffer_size =
       kNBDATimes * kNBaselines * kNChannels * kNPolarizations / 2;
 
-  // Initialize the data buffers. The solvers only need the data field.
-  const Fields fields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
+  // Initialize the data buffers.
+  const Fields fields = Fields(Fields::Single::kData) |
+                        Fields(Fields::Single::kWeights) |
+                        Fields(Fields::Single::kFlags);
+
   const std::vector<std::string> direction_names = CreateDirectionNames();
 
   auto buffer = std::make_unique<BdaBuffer>(buffer_size, fields);

@@ -28,6 +28,9 @@ const double kTolerance = 1e-6;
 const std::complex<float> kDataIncrement{1.0, 1.0};  // Value increment per row.
 const std::complex<float> kFirstDataValue{1.0, 2.0};
 const std::complex<float> kModelDataDiff{100.0, 100.0};
+const Fields kFields = Fields(Fields::Single::kData) |
+                       Fields(Fields::Single::kWeights) |
+                       Fields(Fields::Single::kFlags);
 
 /**
  * Creates successive BDA buffers.
@@ -43,9 +46,6 @@ std::vector<std::unique_ptr<BdaBuffer>> CreateBdaBuffers(
 
   double time = kFirstTime;
   for (std::size_t i = 0; i < 3; ++i) {
-    const Fields kFields = Fields(Fields::Single::kData) |
-                           Fields(Fields::Single::kWeights) |
-                           Fields(Fields::Single::kFlags);
     auto buffer =
         std::make_unique<BdaBuffer>(kRowsPerBuffer * kNElementsPerRow, kFields);
 
@@ -198,25 +198,6 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
   BOOST_TEST(buffer.GetIntervalRows().empty());
 }
 
-BOOST_AUTO_TEST_CASE(append_and_weight_nullptr_flags) {
-  const std::string kModelDataName = "model_data";
-
-  // Create and fill a BdaBuffer without flags.
-  const Fields kFields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
-  auto bda_buffer = std::make_unique<BdaBuffer>(kNElementsPerRow, kFields);
-  bda_buffer->AddData(kModelDataName);
-  bda_buffer->AddRow(kFirstTime, kInterval, kInterval, 0, kNChannels,
-                     kNCorrelations);
-  std::fill_n(bda_buffer->GetData(), kNElementsPerRow, 1.0);
-  std::fill_n(bda_buffer->GetData(kModelDataName), kNElementsPerRow, 1.0);
-  std::fill_n(bda_buffer->GetWeights(), kNElementsPerRow, 1.0);
-
-  BdaSolverBuffer buffer(0.0, 100.0, kNBaselines);
-  BOOST_CHECK_NO_THROW(
-      buffer.AppendAndWeight(std::move(bda_buffer), {kModelDataName}, false));
-}
-
 BOOST_AUTO_TEST_CASE(one_interval_per_buffer) {
   const float kWeight = 1.0;
   const std::vector<std::string> kDirectionNames = {"direction1"};
@@ -272,8 +253,6 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
   const std::string kModelDataName = "model";
 
   // Create a BDA buffer with successive rows and a single value per row.
-  const Fields kFields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
   auto data_buffer =
       std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
   data_buffer->AddData(kModelDataName);
@@ -323,8 +302,6 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
   const size_t kNRows = 42;
   const size_t kSolutionIntervalFactor = 5;
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
-  const Fields kFields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
   const std::string kModelDataName = "model";
 
   // Create successive BdaBuffers with a single row.
@@ -433,8 +410,6 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const std::vector<int> kAnt2{1};
 
   // Create BDA input buffer with two intervals.
-  const Fields kFields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
   const std::string kModelDataName = "model";
   auto data_buffer =
       std::make_unique<BdaBuffer>(kNRows * kNCorrelations, kFields);
@@ -481,10 +456,6 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
 }
 
 BOOST_AUTO_TEST_CASE(solution_interval_is_complete) {
-  const Fields kFields = Fields(Fields::Single::kData) |
-                         Fields(Fields::Single::kWeights) |
-                         Fields(Fields::Single::kFlags);
-
   const size_t kSolutionIntervalFactor = 4;
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
   double time = kFirstTime;
@@ -573,8 +544,6 @@ BOOST_DATA_TEST_CASE(keep_or_discard_model_data,
                      keep_model_data) {
   const std::string kSolveDirection = {"solve_direction"};
   const std::string kExtraDirection = {"extra_direction"};
-  const Fields kFields =
-      Fields(Fields::Single::kData) | Fields(Fields::Single::kWeights);
   const std::complex<float> kDataValue(42.0, -13.0);
   const std::complex<float> kSolveValue = kDataValue + 1.0f * kDataIncrement;
   const std::complex<float> kExtraValue = kDataValue + 2.0f * kDataIncrement;
