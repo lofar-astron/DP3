@@ -10,7 +10,6 @@
 #include <array>
 #include <iomanip>
 #include <iostream>
-#include <regex>
 #include <utility>
 
 #include <casacore/casa/Quanta/Quantum.h>
@@ -132,52 +131,19 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
 }
 
 void DDECal::initializeModelReuse() {
-  const std::map<std::string, dp3::base::Direction>& directions =
-      getInfoIn().GetDirections();
+  const std::vector<std::pair<std::string, std::string>> reused_directions =
+      itsSettings.GetReusedDirections(getInfoIn().GetDirections());
 
-  std::map<std::string, size_t> pattern_match_count;
-  for (const std::string& pattern : itsSettings.reuse_model_data) {
-    pattern_match_count[pattern] = 0;
-  }
+  for (const auto& [name, name_without_prefix] : reused_directions) {
+    // Keep using the original name with prefix in DPBuffers.
+    itsDirectionNames.emplace_back(name);
+    itsReusedDirectionNames.emplace_back(name);
 
-  for (const auto& [name, dir] : directions) {
-    for (const std::string& pattern : itsSettings.reuse_model_data) {
-      // Convert the * wildcards to a regular expression.
-      const std::regex regex_pattern(common::PatternToRegex(pattern));
+    itsDirections.emplace_back(1, name_without_prefix);
 
-      if (std::regex_match(name, regex_pattern)) {
-        // Keep track of the number of directions matched to each pattern.
-        pattern_match_count[pattern] += 1;
-
-        // Keep using the original name with prefix in DPBuffers.
-        itsDirectionNames.emplace_back(name);
-        itsReusedDirectionNames.emplace_back(name);
-
-        // Remove any old prefix from the model data name.
-        std::string name_without_prefix = name;
-        std::size_t period_position = name_without_prefix.find(".");
-
-        if (period_position != name_without_prefix.npos) {
-          name_without_prefix = name_without_prefix.substr(period_position + 1);
-        }
-
-        itsDirections.emplace_back(1, name_without_prefix);
-
-        // Add a nullptr step for this direction, so there is still an entry in
-        // itsSteps for each direction.
-        itsSteps.emplace_back();
-
-        break;
-      }
-    }
-  }
-
-  for (const std::string& pattern : itsSettings.reuse_model_data) {
-    if (pattern_match_count[pattern] == 0) {
-      throw std::runtime_error(
-          "The requested reuse model pattern '" + pattern +
-          "' did not match any model data passed from any previous step.");
-    }
+    // Add a nullptr step for this direction, so there is still an entry in
+    // itsSteps for each direction.
+    itsSteps.emplace_back();
   }
 }
 
