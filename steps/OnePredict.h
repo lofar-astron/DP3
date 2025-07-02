@@ -169,6 +169,7 @@ class OnePredict : public ModelDataStep {
   Operation operation_;
   std::string output_data_name_;
   bool apply_beam_ = false;
+  std::string coefficients_path_;
   bool use_channel_freq_ = false;
   bool one_beam_per_patch_ = false;
   bool thread_over_baselines_ = false;

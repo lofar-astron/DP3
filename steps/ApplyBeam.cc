@@ -217,7 +217,7 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset,
                                                  std::vector<std::string>())),
       itsMode(everybeam::ParseCorrectionMode(
           parset.getString(prefix + "beammode", "default"))),
-      itsModeAtStart(everybeam::CorrectionMode::kNone),
+      coefficients_path_(parset.getString(prefix + "coefficients_path", "")),
       itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)),
       use_model_data_(parset.getBool(prefix + "usemodeldata", false)) {
   // only read 'invert' parset key if it is a separate step
@@ -318,8 +318,9 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
       MEpoch(MVEpoch(getInfoOut().startTime() / 86400), MEpoch::UTC));
   measure_converter_.set(MDirection::J2000,
                          MDirection::Ref(MDirection::ITRF, measure_frame_));
-  telescope_ = base::GetTelescope(getInfoOut().msName(),
-                                  itsElementResponseModel, itsUseChannelFreq);
+  telescope_ =
+      base::GetTelescope(getInfoOut().msName(), itsElementResponseModel,
+                         itsUseChannelFreq, coefficients_path_);
   telescope_->SetTime(getInfoOut().startTime());
 
   if (!itsSkipStationNames.empty()) {

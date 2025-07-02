@@ -70,3 +70,8 @@ inputs:
     type: boolean
     doc: Parallelize sky model prediction over baselines instead of sources. Will speed up performance in certain cases.
     default: false
+  coefficients_path:
+    type: string
+    default: "\"\""
+    doc: For beam models that require a coefficients file (like that MWA), this field should point to that filename.
+

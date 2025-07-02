@@ -3,45 +3,44 @@
 
 #include "Telescope.h"
 
-// Support both old and new return value types of PhasedArray::GetStation().
-// TODO(AST-1001): Remove support for the old type in 2023.
-namespace {
-[[maybe_unused]] const std::string& GetStationName(
-    const std::shared_ptr<const everybeam::Station>& station) {
-  return station->GetName();
-}
+#include <numeric>
 
-[[maybe_unused]] const std::string& GetStationName(
-    const everybeam::Station& station) {
-  return station.GetName();
-}
-}  // namespace
+#include <EveryBeam/telescope/dish.h>
+#include <EveryBeam/telescope/mwa.h>
+#include <EveryBeam/telescope/phasedarray.h>
 
 namespace dp3 {
 namespace base {
 
+bool IsHomogeneous(const everybeam::telescope::Telescope& telescope) {
+  // It would be better if EveryBeam provides this information ; a dish isn't
+  // necessarily always homogenous (in future implementations).
+  return dynamic_cast<const everybeam::telescope::Dish*>(&telescope) ||
+         dynamic_cast<const everybeam::telescope::MWA*>(&telescope);
+}
+
 std::vector<size_t> SelectStationIndices(
     const everybeam::telescope::Telescope& telescope,
     const std::vector<std::string>& station_names) {
-  if (IsDish(telescope)) {
-    // For a dish telescope, the beam of all stations is assumed to be identical
-    return {0};
+  std::vector<size_t> station_to_msindex;
+  if (IsHomogeneous(telescope)) {
+    // All stations can be assumed to be identical
+    station_to_msindex = {0};
+    return station_to_msindex;
   }
 
-  // If the telescope is not a dish, it is a phased array
   auto phased_array =
       dynamic_cast<const everybeam::telescope::PhasedArray*>(&telescope);
+  assert(phased_array);
 
   // Copy only those stations for which the name matches.
   // Note: the order of the station names in both vectors match,
   // thus avoiding a nested loop.
-  std::vector<size_t> station_to_msindex;
   station_to_msindex.reserve(station_names.size());
   size_t station_idx = 0;
-  for (size_t i = 0; i < phased_array->GetNrStations(); ++i) {
+  for (size_t i = 0; i < telescope.GetNrStations(); ++i) {
     if (station_idx < station_names.size() &&
-        GetStationName(phased_array->GetStation(i)) ==
-            station_names[station_idx]) {
+        phased_array->GetStation(i).GetName() == station_names[station_idx]) {
       station_to_msindex.push_back(i);
       ++station_idx;
     }
