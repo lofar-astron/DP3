@@ -57,7 +57,7 @@ class BdaSolverBuffer {
    * This function takes a buffer with unweighted data and the corresponding
    * weights. It weights these data buffers and stores the result internally.
    * @param buffer A buffer with unweighted data, unweighted model data
-   * for each direction and weights.
+   * for each direction, weights and flags.
    * @param direction_names The names of the model data buffers in 'buffer'.
    * @param keep_unweighted_model_data
    * True: Keep the original unweighted model data. GetDone() will
