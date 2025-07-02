@@ -172,12 +172,13 @@ class ApplyBeam final : public Step {
   std::vector<size_t> itsSkipStationIndices;
   everybeam::CorrectionMode itsMode;
   everybeam::ElementResponseModel itsElementResponseModel;
+  std::string coefficients_path_;
 
   /// If a beam has already been applied before running this step, that beam
   /// needs to undone; hence we register that beam info here:
   ///@{
   casacore::MDirection itsDirectionAtStart;
-  everybeam::CorrectionMode itsModeAtStart;
+  everybeam::CorrectionMode itsModeAtStart = everybeam::CorrectionMode::kNone;
   ///@}
 
   unsigned int itsDebugLevel;

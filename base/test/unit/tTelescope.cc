@@ -30,8 +30,8 @@ BOOST_AUTO_TEST_CASE(read_lofar) {
   const std::string kMsName = "tNDPPP-generic.MS";
   const std::vector<std::string> kAntennaNames = {"CS001HBA0", "CS002HBA0"};
 
-  std::unique_ptr<everybeam::telescope::Telescope> telescope =
-      GetTelescope(kMsName, everybeam::ElementResponseModel::kHamaker, false);
+  std::unique_ptr<everybeam::telescope::Telescope> telescope = GetTelescope(
+      kMsName, everybeam::ElementResponseModel::kHamaker, false, "");
   const std::vector<size_t> station_indices =
       SelectStationIndices(*telescope, kAntennaNames);
   const everybeam::telescope::PhasedArray& phasedarray =
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(read_oskar) {
   const std::vector<std::string> kAntennaNames = {"s0012", "s0013", "s0015"};
 
   std::unique_ptr<everybeam::telescope::Telescope> telescope = GetTelescope(
-      kMsName, everybeam::ElementResponseModel::kOSKARSphericalWave, false);
+      kMsName, everybeam::ElementResponseModel::kOSKARSphericalWave, false, "");
   const std::vector<size_t> station_indices =
       SelectStationIndices(*telescope, kAntennaNames);
   const everybeam::telescope::PhasedArray& phasedarray =

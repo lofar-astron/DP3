@@ -5,8 +5,6 @@
 #define DP3_BASE_TELESCOPE_H_
 
 #include <EveryBeam/load.h>
-#include <EveryBeam/telescope/phasedarray.h>
-#include <EveryBeam/telescope/dish.h>
 
 namespace dp3 {
 namespace base {
@@ -17,25 +15,17 @@ namespace base {
 inline std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
     const std::string& ms_name,
     const everybeam::ElementResponseModel element_response_model,
-    bool use_channel_frequency) {
+    bool use_channel_frequency, const std::string& coefficients_file) {
   everybeam::Options options;
   options.element_response_model = element_response_model;
   options.use_channel_frequency = use_channel_frequency;
+  options.coeff_path = coefficients_file;
   std::unique_ptr<everybeam::telescope::Telescope> telescope =
       everybeam::Load(ms_name, options);
   return telescope;
 }
 
-inline bool IsPhasedArray(const everybeam::telescope::Telescope& telescope) {
-  auto phased_array =
-      dynamic_cast<const everybeam::telescope::PhasedArray*>(&telescope);
-  return phased_array != nullptr;
-}
-
-inline bool IsDish(const everybeam::telescope::Telescope& telescope) {
-  auto dish = dynamic_cast<const everybeam::telescope::Dish*>(&telescope);
-  return dish != nullptr;
-}
+bool IsHomogeneous(const everybeam::telescope::Telescope& telescope);
 
 /**
  * Find stations in a telescope by name and return their indices.

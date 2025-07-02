@@ -97,6 +97,7 @@ void OnePredict::init(const common::ParameterSet& parset,
   output_data_name_ = parset.getString(prefix + "outputmodelname", "");
 
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
+  coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
   beam_evaluation_interval_ = parset.getDouble(prefix + "beam_interval", 0.0);
   thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
@@ -212,15 +213,15 @@ void OnePredict::initializeThreadData() {
                               getInfoOut().getAnt2(), antenna_pos);
 
   if (apply_beam_) {
-    telescope_ = base::GetTelescope(getInfoOut().msName(),
-                                    element_response_model_, use_channel_freq_);
+    telescope_ =
+        base::GetTelescope(getInfoOut().msName(), element_response_model_,
+                           use_channel_freq_, coefficients_path_);
     predict_buffers_ =
         std::make_shared<std::vector<base::PredictBuffer>>(nThreads);
     // TODO:
-    // This should be a check for 'is homogeneous', not 'is dish'. It would
-    // also be better to use EveryBeam's function to get all antenna values
+    // It would be better to use EveryBeam's function to get all antenna values
     // at once, as this would enable this optimization without work here.
-    const bool is_dish_telescope = base::IsDish(*telescope_);
+    const bool is_dish_telescope = base::IsHomogeneous(*telescope_);
     const size_t n_channels = getInfoOut().nchan();
     predict_buffers_->front().Resize(
         1, n_channels, (is_dish_telescope ? 1 : n_stations), !stokes_i_only_);
@@ -641,13 +642,12 @@ void OnePredict::PredictSourceRange(
   if (apply_beam_) {
     base::PredictBuffer& buffer = (*predict_buffers_)[thread_index];
     if (update_beam) {
-      // TODO see earlier comment about 'is homogeneous'.
-      const bool is_dish_telescope = base::IsDish(*telescope_);
+      const bool is_homogeneous = base::IsHomogeneous(*telescope_);
       const size_t n_patches =
           source_list_.empty()
               ? 0
               : source_list_[end - 1].second->Index() + 1 - start_patch;
-      buffer.Resize(n_patches, n_channels, (is_dish_telescope ? 1 : n_stations),
+      buffer.Resize(n_patches, n_channels, (is_homogeneous ? 1 : n_stations),
                     !stokes_i_only_);
     }
     patch_model_data.resize({n_baselines, n_channels, n_buffer_correlations});
