@@ -18,6 +18,8 @@
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 
+#include <aocommon/logger.h>
+
 #include "../common/ParameterSet.h"
 #include "../base/FlagCounter.h"
 
@@ -32,6 +34,10 @@ FlagTransfer::FlagTransfer(const common::ParameterSet& parset,
     : name_(prefix),
       source_ms_path_(parset.getString(prefix + "source_ms")),
       timestep_counter_(0) {
+  aocommon::Logger::Warn
+      << "FlagTransfer deprecation warning: please use the Transfer step with "
+         "'transfer.flags=True' instead!\n";
+
   // Initialise source MeasurementSet and its respective iterator
   ms_ = casacore::MeasurementSet(source_ms_path_,
                                  casacore::TableLock::AutoNoReadLocking);

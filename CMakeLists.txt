@@ -498,6 +498,7 @@ add_library(
   steps/BdaGroupPredict.cc
   steps/Clipper.cc
   steps/Counter.cc
+  steps/Transfer.cc
   steps/Demixer.cc
   steps/DummyStep.cc
   steps/Filter.cc
@@ -809,6 +810,7 @@ if(BUILD_TESTING)
       steps/test/unit/tSplit.cc
       steps/test/unit/tStationAdder.cc
       steps/test/unit/tStepCommon.cc
+      steps/test/unit/tTransfer.cc
       steps/test/unit/tUpsample.cc
       steps/test/unit/tUVWFlagger.cc
       steps/test/unit/tWGridderPredict.cc)

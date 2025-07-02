@@ -1,0 +1,25 @@
+description: |
+  Transfer data and flags from a lower-resolution MeasurementSet (MS). In case there is a mismatch between the input MS and `source_ms`, e.g., in terms of baselines, a filter can be applied. Hence, options of the Filter step are also valid. In that case DP3 doesn't check whether the same stations are present, just that the number of baselines is the same.  
+inputs:
+  type:
+    type: string
+    doc: Case-insensitive step type; must be 'transfer'.
+  source_ms:
+    type: string
+    doc: >-
+      Low resolution MS from which to extract data or flags. This MS must be an averaged version of the main input MS.
+  data:
+    type: bool
+    default: false
+    doc: >-
+      Transfer data from ``source_ms`` to the MeasurementSet specified with ``msin``.
+  flags:
+    type: bool
+    default: false
+    doc: >-
+      Transfer flags from ``source_ms`` to the MeasurementSet specified with ``msin``.
+  datacolumn:
+    type: string
+    default: DATA
+    doc: >-
+      The data column to use, i.e., the name of the column in ``source_ms`` in which the visibilities that are to be transfered are stored.
