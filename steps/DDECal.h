@@ -111,6 +111,14 @@ class DDECal : public Step {
   /// input data buffer.
   void CorrectAndSubtractModels(size_t buffer_index);
 
+  /// Read the Jones matrix for a single time step and a single direction from
+  /// one or two solution tables.
+  xt::xtensor<std::complex<float>, 3> ReadJonesMatrixFromH5Parm(
+      const base::Direction& direction, double timestamp,
+      schaapcommon::h5parm::GainType gain_type,
+      schaapcommon::h5parm::SolTab* first_soltab,
+      schaapcommon::h5parm::SolTab* second_soltab);
+
   ddecal::Settings itsSettings;
 
   /// The input data buffers for the current set of solution intervals.
@@ -188,13 +196,15 @@ class DDECal : public Step {
   std::unique_ptr<schaapcommon::h5parm::H5Parm> itsInitialSolutions;
   std::string itsInitialSolutionsH5ParmName;
   std::vector<std::string> itsInitialSolutionsSolTab;
+  std::vector<schaapcommon::h5parm::SolTab> itsSolutionTables;
+  bool itsInitialSolutionsIsFullJones;
   /// Specifies the InterpolationType, MissingAntennaBehavior, and GainType for
   /// extracting the Jones parameters from itsInitialSolutions.
   /// @{
   schaapcommon::h5parm::JonesParameters::InterpolationType itsInterpolationType;
   schaapcommon::h5parm::JonesParameters::MissingAntennaBehavior
       itsMissingAntennaBehavior;
-  schaapcommon::h5parm::GainType itsGainType;
+  std::vector<schaapcommon::h5parm::GainType> itsGainTypes;
   /// @}
 
   common::NSTimer itsTimer;

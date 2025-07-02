@@ -1075,18 +1075,33 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
     )
 
 
-def test_h5parm_initial_solutions():
+@pytest.mark.parametrize(
+    "mode,soltab,soltab2",
+    [
+        ("fulljones", "amplitude000", "phase000"),
+        ("diagonal", "phase000", ""),
+        ("scalarphase", "phase000", ""),
+        ("tec", "tec000", ""),
+        ("tecandphase", "tec000", "phase000"),
+    ],
+)
+def test_h5parm_initial_solutions(mode, soltab, soltab2):
     """Test using initial solutions from H5Parm."""
+
+    use_approximate_tec = "tec" in mode
+
+    soltabs = f"[{soltab}]" if not soltab2 else f"[{soltab},{soltab2}]"
 
     # Generate H5 with initial solutions
     run_dp3(
         [
             f"msin={MSIN}",
-            f"msout=",
-            f"steps=[ddecal]",
+            "msout=",
+            "steps=[ddecal]",
             f"ddecal.sourcedb={SKYMODEL}",
-            f"ddecal.h5parm=initial_solutions.h5",
-            "ddecal.mode=fulljones",
+            "ddecal.h5parm=initial-solutions.h5",
+            f"ddecal.mode={mode}",
+            "ddecal.approximatetec=True" if use_approximate_tec else "",
         ]
     )
 
@@ -1094,14 +1109,14 @@ def test_h5parm_initial_solutions():
     run_dp3(
         [
             f"msin={MSIN}",
-            f"msout=",
-            f"steps=[ddecal]",
+            "msout=",
+            "steps=[ddecal]",
             f"ddecal.sourcedb={SKYMODEL}",
-            f"ddecal.h5parm=solutions.h5",
-            "ddecal.mode=fulljones",
-            f"ddecal.initialsolutions.h5parm=initial_solutions.h5",
-            f"ddecal.initialsolutions.soltab=[amplitude000,phase000]",
-            f"ddecal.initialsolutions.gaintype=fulljones",
+            "ddecal.h5parm=solutions.h5",
+            f"ddecal.mode={mode}",
+            "ddecal.initialsolutions.h5parm=initial-solutions.h5",
+            f"ddecal.initialsolutions.soltab={soltabs}",
+            "ddecal.approximatetec=True" if use_approximate_tec else "",
         ]
     )
 
@@ -1134,7 +1149,6 @@ def test_h5parm_initial_solutions_with_dd_intervals():
             "ddecal.mode=scalarphase",
             f"ddecal.initialsolutions.h5parm=initial_solutions.h5",
             f"ddecal.initialsolutions.soltab=[phase000]",
-            f"ddecal.initialsolutions.gaintype=scalarphase",
             "ddecal.solutions_per_direction=[1,4,1,1]",
             "ddecal.solint=4",
             "ddecal.solveralgorithm=directioniterative",

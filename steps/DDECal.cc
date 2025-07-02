@@ -96,6 +96,31 @@ void DDECal::initializeInitialSolutionsH5Parm(
   itsInitialSolutions = std::make_unique<schaapcommon::h5parm::H5Parm>(
       itsInitialSolutionsH5ParmName, itsInitialSolutionsSolTab);
 
+  for (const std::string& soltab_name : itsInitialSolutionsSolTab) {
+    itsSolutionTables.push_back(itsInitialSolutions->GetSolTab(soltab_name));
+  }
+
+  // Check if H5Parm stores full-Jones solutions.
+  itsInitialSolutionsIsFullJones = false;
+  if (itsSolutionTables[0].HasAxis("pol") &&
+      itsInitialSolutionsSolTab.size() == 2 &&
+      itsInitialSolutionsSolTab[0].find("amplitude") != std::string::npos &&
+      itsInitialSolutionsSolTab[1].find("phase") != std::string::npos) {
+    itsInitialSolutionsIsFullJones =
+        itsSolutionTables[0].GetAxis("pol").size == 4;
+  }
+
+  if (itsInitialSolutionsIsFullJones) {
+    itsGainTypes.resize(1);
+    itsGainTypes[0] = GainType::kFullJones;
+  } else {
+    itsGainTypes.reserve(itsInitialSolutionsSolTab.size());
+    for (const std::string& soltab_name : itsInitialSolutionsSolTab) {
+      itsGainTypes.push_back(JonesParameters::H5ParmTypeStringToGainType(
+          itsInitialSolutions->GetSolTab(soltab_name).GetType()));
+    }
+  }
+
   const std::string interpolation_type =
       parset.getString(prefix + "initialsolutions.interpolation", "nearest");
   if (interpolation_type == "nearest") {
@@ -106,14 +131,6 @@ void DDECal::initializeInitialSolutionsH5Parm(
     throw std::runtime_error("Unsupported interpolation method: " +
                              interpolation_type);
   }
-
-  std::string gain_type =
-      parset.getString(prefix + "initialsolutions.gaintype", "");
-  if (gain_type.empty()) {
-    gain_type =
-        itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[0]).GetType();
-  }
-  itsGainType = JonesParameters::H5ParmTypeStringToGainType(gain_type);
 
   itsMissingAntennaBehavior =
       JonesParameters::StringToMissingAntennaBehavior(parset.getString(
@@ -412,12 +429,16 @@ void DDECal::show(std::ostream& os) const {
   if (!itsInitialSolutionsH5ParmName.empty()) {
     os << "  initial sols H5Parm: " << itsInitialSolutionsH5ParmName << '\n'
        << "               soltab: ";
-    for (std::string table : itsInitialSolutionsSolTab) {
-      os << table << " ";
+    for (size_t i = 0; i < itsInitialSolutionsSolTab.size(); ++i) {
+      os << itsInitialSolutionsSolTab[i]
+         << (i == itsInitialSolutionsSolTab.size() - 1 ? " " : ", ");
+    }
+    os << '\n' << "                 type: ";
+    for (size_t i = 0; i < itsGainTypes.size(); ++i) {
+      os << JonesParameters::GainTypeToHumanReadableString(itsGainTypes[i])
+         << (i == itsGainTypes.size() - 1 ? " " : ", ");
     }
     os << '\n'
-       << "                 type: "
-       << JonesParameters::GainTypeToHumanReadableString(itsGainType) << '\n'
        << "        interp method: "
        << (itsInterpolationType == JonesParameters::InterpolationType::NEAREST
                ? "nearest"
@@ -506,6 +527,41 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   os << "]" << '\n';
 }
 
+xt::xtensor<std::complex<float>, 3> DDECal::ReadJonesMatrixFromH5Parm(
+    const base::Direction& direction, double timestamp,
+    schaapcommon::h5parm::GainType gain_type,
+    schaapcommon::h5parm::SolTab* first_soltab,
+    schaapcommon::h5parm::SolTab* second_soltab) {
+  // Retrieve initial solutions for the patch that's closest to the
+  // directions in the sourcedb, since the patch names and the number of
+  // patches in the provided skymodel might not be the same as the
+  // directions in the H5Parm.
+  std::vector<double> timestamps = {timestamp};
+  const std::string closest_patch =
+      itsInitialSolutions->GetNearestSource(direction.ra, direction.dec);
+  const hsize_t soltab_direction_index =
+      first_soltab->GetDirIndex(closest_patch);
+  size_t n_parm_values = 0;
+  if (gain_type == GainType::kTec || gain_type == GainType::kClock) {
+    n_parm_values =
+        first_soltab->HasAxis("pol") ? first_soltab->GetAxis("pol").size : 1;
+  }
+  auto jones_parameters =
+      std::make_unique<schaapcommon::h5parm::JonesParameters>(
+          itsChanBlockFreqs, timestamps, getInfoOut().GetUsedAntennaNames(),
+          gain_type, itsInterpolationType, soltab_direction_index, first_soltab,
+          second_soltab, false, n_parm_values, itsMissingAntennaBehavior);
+
+  // Write casacore Cube with Jones parameters to xtensor.
+  const casacore::Cube<std::complex<float>>& jones_matrix =
+      jones_parameters->GetParms();
+  // Ensure that the xtensor has shape: frequency x antenna x polarization.
+  const std::array<size_t, 3> xt_shape = {jones_matrix.shape()[2], jones_matrix.shape()[1], jones_matrix.shape()[0]}; 
+  xt::xtensor<std::complex<float>, 3> jones_tensor = xt::adapt(jones_matrix.tovector(), xt_shape);
+
+  return jones_tensor;
+}
+
 void DDECal::InitializeSolutions(size_t buffer_index) {
   const size_t solution_index = itsFirstSolutionIndex + buffer_index;
   assert(solution_index < itsSols.size());
@@ -526,44 +582,58 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
   } else if (use_initial_solutions) {
     // Initialize solutions with those from an existing H5Parm, stored in memory
     // with H5Cache
-    const std::vector<double> solution_timestamp = {itsAvgTime};
     const std::vector<std::string> used_antenna_names =
         getInfoOut().GetUsedAntennaNames();
-    schaapcommon::h5parm::SolTab first_soltab =
-        itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[0]);
-    schaapcommon::h5parm::SolTab second_soltab;
-    if (itsInitialSolutionsSolTab.size() == 2) {
-      // Only attempt to read a 2nd soltab when it's requested
-      second_soltab =
-          itsInitialSolutions->GetSolTab(itsInitialSolutionsSolTab[1]);
-    }
-    std::vector<std::unique_ptr<schaapcommon::h5parm::JonesParameters>>
-        jones_parameters_per_direction(itsDirections.size());
-    for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
-      // Retrieve initial solutions for the patch that's closest to the
-      // directions in the sourcedb, since the patch names and the number of
-      // patches in the provided skymodel might not be the same as the
-      // directions in the H5Parm.
-      const std::string closest_patch = itsInitialSolutions->GetNearestSource(
-          itsSourceDirections[dir].ra, itsSourceDirections[dir].dec);
-      const hsize_t direction_index = first_soltab.GetDirIndex(closest_patch);
-      jones_parameters_per_direction[dir] =
-          std::make_unique<schaapcommon::h5parm::JonesParameters>(
-              itsChanBlockFreqs, solution_timestamp, used_antenna_names,
-              itsGainType, itsInterpolationType, direction_index, &first_soltab,
-              &second_soltab, false, 0, itsMissingAntennaBehavior);
-    }
 
     const size_t n_directions = itsDirections.size();
     const size_t n_subsolutions = itsSettings.GetNSolutions();
     const size_t n_antennas_used = getInfoOut().antennaUsed().size();
     const size_t n_polarization_parameters_per_solution =
         itsSolver->NSolutionPolarizations();
+    const size_t n_frequencies = itsChanBlockFreqs.size();
     const size_t n_values_per_channel_block =
         n_subsolutions * n_antennas_used *
         n_polarization_parameters_per_solution;
 
-    for (size_t channel_block = 0; channel_block < itsChanBlockFreqs.size();
+    const std::array<size_t, 4> xt_shape = {
+        n_directions, n_frequencies, n_antennas_used,
+        n_polarization_parameters_per_solution};
+    xt::xtensor<std::complex<float>, 4> jones_parameters_per_direction(
+        xt_shape);
+    if (itsInitialSolutionsIsFullJones) {
+      for (size_t direction_index = 0; direction_index < n_directions;
+           ++direction_index) {
+        xt::view(jones_parameters_per_direction, direction_index, xt::all(),
+                 xt::all(), xt::all()) =
+            ReadJonesMatrixFromH5Parm(
+                itsSourceDirections[direction_index], itsAvgTime,
+                itsGainTypes[0], &itsSolutionTables[0], &itsSolutionTables[1]);
+      }
+    } else {
+      const size_t n_soltabs = itsInitialSolutionsSolTab.size();
+      // Load solutions per soltab and multiply to get the full Jones matrix for
+      // each direction.
+      const std::array<size_t, 5> xt_shape = {
+          n_soltabs, n_directions, n_frequencies, n_antennas_used, 
+          n_polarization_parameters_per_solution};
+      xt::xtensor<std::complex<float>, 5> jones_parameters_per_soltab(xt_shape);
+      for (size_t soltab_index = 0; soltab_index < n_soltabs; ++soltab_index) {
+        for (size_t direction_index = 0; direction_index < n_directions;
+             ++direction_index) {
+          xt::view(jones_parameters_per_soltab, soltab_index, direction_index,
+                   xt::all(), xt::all(), xt::all()) =
+              ReadJonesMatrixFromH5Parm(itsSourceDirections[direction_index],
+                                        itsAvgTime, itsGainTypes[soltab_index],
+                                        &itsSolutionTables[soltab_index],
+                                        nullptr);
+        }
+      }
+
+      jones_parameters_per_direction =
+          xt::prod(jones_parameters_per_soltab, {0});
+    }
+
+    for (size_t channel_block = 0; channel_block < n_frequencies;
          ++channel_block) {
       itsSols[solution_index][channel_block].resize(n_values_per_channel_block);
       for (size_t antenna_index = 0; antenna_index < n_antennas_used;
@@ -571,8 +641,9 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
         size_t n_assigned_subsolutions = 0;
         for (size_t direction_index = 0; direction_index < n_directions;
              ++direction_index) {
-          const casacore::Cube<std::complex<float>>& jones_parameters =
-              jones_parameters_per_direction[direction_index]->GetParms();
+          const xt::xtensor<std::complex<float>, 3>& jones_parameters =
+              xt::view(jones_parameters_per_direction, direction_index,
+                       xt::all(), xt::all(), xt::all());
           size_t n_subsolutions_per_direction =
               itsSettings.solutions_per_direction[direction_index];
           for (size_t direction_solution_index = 0;
@@ -590,8 +661,7 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
                       n_polarization_parameters_per_solution +
                   polarization_index;
               itsSols[solution_index][channel_block][flattened_index] =
-                  jones_parameters(polarization_index, antenna_index,
-                                   channel_block);
+                  jones_parameters(channel_block, antenna_index, polarization_index);
             }
           }
           n_assigned_subsolutions += n_subsolutions_per_direction;

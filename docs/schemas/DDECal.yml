@@ -90,10 +90,6 @@ inputs:
     type: enum
     symbols: nearest, linear
     doc: If using H5Parm, the type of interpolation (in time and frequency) to use.
-  initialsolutions&#46;gaintype:
-    type: enum?
-    symbols: gain, tec, clock, rotationangle, rotation, scalarphase, scalaramplitude, rotationmeasure, fulljones
-    doc: If using H5Parm, specifies what type of jones parameters are stored. Will be deduced from soltab if not provided.
   initialsolutions&#46;missingantennabehavior:
     defeault: error
     type: enum
