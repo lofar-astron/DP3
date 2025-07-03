@@ -128,9 +128,9 @@ class PreFlagger : public Step {
     }
 
     /// Set and return the flags.
-    xt::xtensor<int, 3>* process(base::DPBuffer&, unsigned int timeSlot,
-                                 const xt::xtensor<bool, 1>& matchBL,
-                                 common::NSTimer& timer);
+    xt::xtensor<uint8_t, 2>* process(base::DPBuffer&, unsigned int timeSlot,
+                                     const xt::xtensor<bool, 1>& matchBL,
+                                     common::NSTimer& timer);
 
     /// Update the general info.
     /// It is used to adjust the parms if needed.
@@ -266,21 +266,21 @@ class PreFlagger : public Step {
     std::vector<std::string> itsStrElev;  ///< elevation ranges to be flagged
     std::vector<int> itsRpn;              ///< PSet expression in RPN form
     std::vector<PSet::ShPtr> itsPSets;    ///< PSets used in itsRpn
-    xt::xtensor<bool, 2> itsChanFlags;    ///< flags for channels to be flagged
-    // Using 'int' instead of 'bool' in itsFlags works better with XSimd, since
-    // XSimd uses an 'int' representation anyway for boolean operations.
-    xt::xtensor<int, 3> itsFlags;
+    xt::xtensor<bool, 1> itsChanFlags;    ///< flags for channels to be flagged
+    // Using 'uint8_t' instead of 'bool' in itsFlags works better with XSimd,
+    // since XSimd uses an integer representation anyway for boolean operations.
+    xt::xtensor<uint8_t, 2> itsFlags;
     xt::xtensor<bool, 1> itsMatchBL;  ///< true = baseline in buffer matches
   };
 
   /// Set the flags in 'out' where 'in' matches 'mode'.
-  void setFlags(const xt::xtensor<bool, 3>& in, base::DPBuffer::FlagsType& out,
-                bool mode);
+  void setFlags(const xt::xtensor<uint8_t, 2>& in,
+                base::DPBuffer::FlagsType& out, bool mode);
 
   /// Clear the flags in 'out' where 'in' matches 'mode'.
   /// If the corresponding data point of a flag is invalid
   /// (non-finite or zero weight), it is always flagged.
-  void clearFlags(const xt::xtensor<bool, 3>& in,
+  void clearFlags(const xt::xtensor<uint8_t, 2>& in,
                   base::DPBuffer::FlagsType& out, bool mode,
                   const base::DPBuffer::DataType& data,
                   const base::DPBuffer::WeightsType& weights);
