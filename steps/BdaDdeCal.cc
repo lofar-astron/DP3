@@ -52,7 +52,21 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
       std::make_unique<UVWFlagger>(parset, prefix, Step::MsType::kBda);
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
   uvw_flagger_step_->setNextStep(uvw_flagger_result_step_);
+
   InitializePredictSteps(parset, prefix);
+}
+
+void BdaDdeCal::InitializeModelReuse() {
+  const std::vector<std::pair<std::string, std::string>> reused_directions =
+      settings_.GetReusedDirections(getInfoIn().GetDirections());
+
+  for (const auto& [name, name_without_prefix] : reused_directions) {
+    // Keep using the original name with prefix in BdaBuffers.
+    direction_names_.emplace_back(name);
+
+    // For the patches, use the name without prefix
+    patches_.emplace_back(1, name_without_prefix);
+  }
 }
 
 void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
@@ -60,25 +74,20 @@ void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
   std::vector<std::vector<std::string>> directions =
       model::MakeDirectionList(settings_.directions, settings_.source_db);
 
-  if (directions.empty()) {
-    throw std::invalid_argument(
-        "Invalid input parset: direction(s) or sourcedb must be specified");
-  }
-
   const bool bda_group_predict = parset.getBool(prefix + "grouppredict", false);
 
-  for (std::vector<std::string>& source_patterns : directions) {
+  for (const std::vector<std::string>& direction : directions) {
     if (bda_group_predict) {
       steps_.push_back(
-          std::make_shared<BdaGroupPredict>(parset, prefix, source_patterns));
+          std::make_shared<BdaGroupPredict>(parset, prefix, direction));
     } else {
-      steps_.push_back(std::make_shared<Predict>(
-          parset, prefix, source_patterns, Step::MsType::kBda));
+      steps_.push_back(std::make_shared<Predict>(parset, prefix, direction,
+                                                 Step::MsType::kBda));
     }
     result_steps_.push_back(std::make_shared<BDAResultStep>());
     steps_.back()->setNextStep(result_steps_.back());
 
-    direction_names_.push_back(prefix + source_patterns.front());
+    direction_names_.push_back(prefix + direction.front());
   }
 
   patches_.insert(patches_.end(), std::make_move_iterator(directions.begin()),
@@ -87,7 +96,7 @@ void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
 
 common::Fields BdaDdeCal::getRequiredFields() const {
   common::Fields fields = uvw_flagger_step_->getRequiredFields();
-  for (std::shared_ptr<Step> direction_first_step : steps_) {
+  for (std::shared_ptr<ModelDataStep> direction_first_step : steps_) {
     fields |= base::GetChainRequiredFields(direction_first_step);
   }
   if (settings_.subtract) fields |= kDataField;
@@ -97,7 +106,16 @@ common::Fields BdaDdeCal::getRequiredFields() const {
 
 void BdaDdeCal::updateInfo(const DPInfo& _info) {
   Step::updateInfo(_info);
+
+  // Update info for substeps.
   uvw_flagger_step_->updateInfo(_info);
+  for (std::shared_ptr<ModelDataStep>& step : steps_) step->setInfo(_info);
+
+  // Add reused model data directions.
+  InitializeModelReuse();
+
+  // After InitializeModelReuse, direction_names_ is complete.
+  SetSourceDirections();
 
   if (!settings_.only_predict) {
     solver_ = ddecal::CreateSolver(settings_, _info.antennaNames());
@@ -105,12 +123,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
         std::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
   }
 
-  settings_.PrepareSolutionsPerDirection(steps_.size());
-
-  // Update info for substeps
-  for (unsigned int i = 0; i < patches_.size(); i++) {
-    steps_[i]->setInfo(_info);
-  }
+  settings_.PrepareSolutionsPerDirection(direction_names_.size());
 
   // Convert antenna positions from Casacore to STL, if necessary.
   std::vector<std::array<double, 3>> antenna_pos;
@@ -198,13 +211,11 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
       used_antenna_positions.push_back(antenna_pos[ant]);
     }
 
-    const std::vector<base::Direction> source_directions =
-        GetSourceDirections();
     const std::vector<double> channel_block_frequencies =
         GetChannelBlockFrequencies();
     for (ddecal::SolverBase* solver : solver_->ConstraintSolvers()) {
       InitializeSolverConstraints(*solver, settings_, used_antenna_positions,
-                                  used_antenna_names, source_directions,
+                                  used_antenna_names, source_directions_,
                                   channel_block_frequencies);
     }
 
@@ -257,13 +268,36 @@ void BdaDdeCal::DetermineChannelBlocks() {
   }
 }
 
-std::vector<base::Direction> BdaDdeCal::GetSourceDirections() const {
-  std::vector<base::Direction> source_directions;
-  source_directions.reserve(steps_.size());
-  for (const std::shared_ptr<ModelDataStep>& s : steps_) {
-    source_directions.push_back(s->GetFirstDirection());
+void BdaDdeCal::SetSourceDirections() {
+  assert(source_directions_.empty());
+  source_directions_.reserve(direction_names_.size());
+  std::map<std::string, dp3::base::Direction>& directions =
+      GetWritableInfoOut().GetDirections();
+
+  // Process sub-steps by calling their GetFirstDirection() method.
+  for (std::size_t i = 0; i < steps_.size(); ++i) {
+    const base::Direction direction = steps_[i]->GetFirstDirection();
+    if (settings_.keep_model_data) {
+      // Save the directions for next steps.
+      directions[direction_names_[i]] = direction;
+    }
+    source_directions_.push_back(direction);
   }
-  return source_directions;
+
+  // Process reused model data directions, for which there's no sub-step.
+  for (std::size_t i = steps_.size(); i < direction_names_.size(); ++i) {
+    // Look up the direction in directions. Use the phase center as fall back.
+    base::Direction direction = getInfoOut().phaseCenterDirection();
+    const auto search_result = directions.find(direction_names_[i]);
+    if (search_result != directions.end()) {
+      direction = search_result->second;
+      if (!settings_.keep_model_data) {
+        // Remove the consumed directions from the output directions list.
+        directions.erase(search_result);
+      }
+    }
+    source_directions_.push_back(direction);
+  }
 }
 
 std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
@@ -283,6 +317,15 @@ std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
 bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
   timer_.start();
 
+  for (size_t i = steps_.size(); i < direction_names_.size(); ++i) {
+    // Reused model data must exist.
+    if (!buffer->HasData(direction_names_[i])) {
+      throw std::runtime_error("BdaDdeCal '" + settings_.name +
+                               "' did not receive model data named '" +
+                               direction_names_[i] + "'.");
+    }
+  }
+
   if (!uvw_flagger_step_->isDegenerate()) {
     uvw_flagger_step_->process(std::move(buffer));
     std::vector<std::unique_ptr<base::BdaBuffer>> uvw_flagged_buffer =
@@ -294,7 +337,7 @@ bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
   predict_timer_.start();
   for (std::shared_ptr<ModelDataStep>& step : steps_) {
     // Feed metadata-only copies of the BDA buffer to the steps.
-    // The steps will create and fill the data field in *buffer.
+    // The steps will create and fill the data field in the copy.
     step->process(std::make_unique<BdaBuffer>(*buffer, common::Fields()));
   }
   predict_timer_.stop();
@@ -689,7 +732,7 @@ void BdaDdeCal::WriteSolutions() {
       solutions_, constraint_solutions_, getInfoOut().startTime(),
       getInfoOut().lastTime(), getInfoOut().timeInterval(),
       settings_.solution_interval, settings_.solutions_per_direction,
-      settings_.mode, used_antenna_names, GetSourceDirections(), patches_,
+      settings_.mode, used_antenna_names, source_directions_, patches_,
       getInfoOut().chanFreqs(), GetChannelBlockFrequencies(), history);
 
   write_timer_.stop();

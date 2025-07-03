@@ -92,14 +92,16 @@ class BdaDdeCal : public Step {
                            size_t n_channel_blocks) const;
 
  private:
+  void InitializeModelReuse();
+
   void InitializePredictSteps(const common::ParameterSet& parset,
                               const std::string& prefix);
 
   /// Initialize chan_block_start_freqs_.
   void DetermineChannelBlocks();
 
-  /// @return A list with the first direction of each sub-step.
-  std::vector<base::Direction> GetSourceDirections() const;
+  /// Creates the list of directions for each sub-step and reused model data.
+  void SetSourceDirections();
 
   /// @return A list with the center frequency for each channel block.
   std::vector<double> GetChannelBlockFrequencies() const;
@@ -128,19 +130,28 @@ class BdaDdeCal : public Step {
   ddecal::Settings settings_;
   std::unique_ptr<ddecal::SolutionWriter> solution_writer_;
 
-  /// For each direction, the first step of that direction.
+  /** The list of directions for the model data. */
+  std::vector<base::Direction> source_directions_;
+
+  /**
+   * The first step of each sub-step chain.
+   * There's a sub-step chain for each direction that does not reuse model data.
+   */
   std::vector<std::shared_ptr<ModelDataStep>> steps_;
-  /// For each direction, a result step.
+  /** Result step of each sub-step chain. */
   std::vector<std::shared_ptr<BDAResultStep>> result_steps_;
-  /// UVWFlagger step.
+
   std::unique_ptr<UVWFlagger> uvw_flagger_step_;
-  /// Result step for data after UVW-flagging.
   std::shared_ptr<BDAResultStep> uvw_flagger_result_step_;
 
-  /// For each direction, a list of patch names.
+  /** For each direction, a list of patch names. */
   std::vector<std::vector<std::string>> patches_;
 
-  /** For each direction, the name for the model data in BdaBuffer. */
+  /**
+   * For each direction, the name for the model data in BdaBuffer.
+   * First, there's an element for each sub-step chain.
+   * Then, there's an element for each reused model data buffer.
+   */
   std::vector<std::string> direction_names_;
 
   /** Stores the data buffers received from the process() function. */

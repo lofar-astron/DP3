@@ -359,8 +359,8 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       itsChanBlockFreqs.size() * getInfoOut().antennaUsed().size(), 0.0);
 
   itsSourceDirections.reserve(itsSteps.size());
-  const std::map<std::string, dp3::base::Direction>& directions =
-      getInfoOut().GetDirections();
+  std::map<std::string, dp3::base::Direction>& directions =
+      GetWritableInfoOut().GetDirections();
   for (unsigned int i = 0; i < itsSteps.size(); ++i) {
     const std::shared_ptr<ModelDataStep>& step = itsSteps[i];
     base::Direction direction = getInfoOut().phaseCenterDirection();
@@ -371,6 +371,10 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
       auto search_result = directions.find(itsDirectionNames[i]);
       if (search_result != directions.end()) {
         direction = search_result->second;
+        if (!itsSettings.keep_model_data) {
+          // Remove the consumed directions from the output directions list.
+          directions.erase(search_result);
+        }
       }
     }
 
