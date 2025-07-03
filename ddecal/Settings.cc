@@ -60,19 +60,22 @@ SolverDataUse ParseSolverDataUse(const std::string& data_use_string) {
 
 std::string ParseH5Parm(const common::ParameterSet& parset,
                         const std::string& prefix) {
-  const std::string h5parm_key = prefix + "h5parm";
   std::string h5parm;
-  if (parset.isDefined(h5parm_key)) {
-    h5parm = parset.getString(h5parm_key);
-  } else if (parset.isDefined("msin")) {
-    h5parm = parset.getString("msin") + "/instrument.h5";
-    aocommon::Logger::Warn << "Warning! Using " << h5parm
-                           << " as output solution file since " << h5parm_key
-                           << " is not defined. This behavior is deprecated "
-                              "and may be removed in the future.";
-  } else {
-    throw std::runtime_error("Unknown h5parm output file. Please define '" +
-                             h5parm_key + "'.");
+  // In 'onlypredict' mode, DDECal does not write solutions.
+  if (!parset.getBool(prefix + "onlypredict", false)) {
+    const std::string h5parm_key = prefix + "h5parm";
+    if (parset.isDefined(h5parm_key)) {
+      h5parm = parset.getString(h5parm_key);
+    } else if (parset.isDefined("msin")) {
+      h5parm = parset.getString("msin") + "/instrument.h5";
+      aocommon::Logger::Warn << "Warning! Using " << h5parm
+                             << " as output solution file since " << h5parm_key
+                             << " is not defined. This behavior is deprecated "
+                                "and may be removed in the future.";
+    } else {
+      throw std::runtime_error("Unknown h5parm output file. Please define '" +
+                               h5parm_key + "'.");
+    }
   }
   return h5parm;
 }

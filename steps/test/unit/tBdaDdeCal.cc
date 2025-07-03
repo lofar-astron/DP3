@@ -178,8 +178,11 @@ BOOST_DATA_TEST_CASE_F(BdaMsFixture, keep_or_discard_model_data,
   skymodel_file.close();
 
   dp3::common::ParameterSet parset;
-  parset.add("ddecal.h5parm", "test.h5parm");
-  if (only_predict) parset.add("ddecal.onlypredict", "true");
+  if (only_predict) {
+    parset.add("ddecal.onlypredict", "true");
+  } else {
+    parset.add("ddecal.h5parm", "test.h5parm");
+  }
   if (keep_model_data) parset.add("ddecal.keepmodel", "true");
 
   parset.add("ddecal.sourcedb", kSkymodelFileName);

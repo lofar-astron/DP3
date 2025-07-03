@@ -145,7 +145,7 @@ class DDECal : public Step {
   std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>
       itsConstraintSols;
 
-  ddecal::SolutionWriter itsSolutionWriter;
+  std::unique_ptr<ddecal::SolutionWriter> itsSolutionWriter;
 
   /// Number of timeslots to store per solution interval as requested
   /// by the user in the parset.

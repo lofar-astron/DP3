@@ -106,6 +106,7 @@ def test_bdaexpander_ddecal(skymodel_filename):
             "steps=[bdaexpander, ddecal]",
             "ddecal.directions=[[center],[ra_off],[radec_off]]",
             f"ddecal.sourcedb={skymodel_filename}",
+            "ddecal.h5parm=solutions.h5parm",
         ]
     )
 

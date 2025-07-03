@@ -40,8 +40,8 @@ namespace {
 
 dp3::common::ParameterSet ParsetForMode(const std::string& mode) {
   dp3::common::ParameterSet parset;
-  parset.add("msin", "foo");  // msin is a mandatory field for Settings.
   parset.add("mode", mode);
+  parset.add("h5parm", "foo.h5");  // Mandatory DDECal setting.
   return parset;
 }
 
