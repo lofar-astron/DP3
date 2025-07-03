@@ -130,7 +130,7 @@ bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   assert(buffer->GetFlags().size() != 0);
   // Do the PSet steps and combine the result with the current flags.
   // Only count if the flag changes.
-  const xt::xtensor<int, 3>* const flags =
+  const xt::xtensor<uint8_t, 2>* const flags =
       itsPSet.process(*buffer, itsCount, xt::xtensor<bool, 1>(), itsTimer);
   switch (itsMode) {
     case Mode::kSetFlag:
@@ -155,12 +155,15 @@ bool PreFlagger::process(std::unique_ptr<DPBuffer> buffer) {
   return true;
 }
 
-void PreFlagger::setFlags(const xt::xtensor<bool, 3>& in,
+void PreFlagger::setFlags(const xt::xtensor<uint8_t, 2>& in,
                           base::DPBuffer::FlagsType& out, bool mode) {
-  assert(in.shape() == out.shape());
-  for (std::size_t baseline = 0; baseline < in.shape(0); ++baseline) {
-    for (std::size_t channel = 0; channel < in.shape(1); ++channel) {
-      if (in(baseline, channel, 0) == mode && !out(baseline, channel, 0)) {
+  const size_t n_baselines = out.shape(0);
+  const size_t n_channels = out.shape(1);
+  assert(in.shape() == xt::shape({n_baselines, n_channels}));
+
+  for (std::size_t baseline = 0; baseline < n_baselines; ++baseline) {
+    for (std::size_t channel = 0; channel < n_channels; ++channel) {
+      if (in(baseline, channel) == mode && !out(baseline, channel, 0)) {
         // Only 1st corr is counted.
         itsFlagCounter.incrBaseline(baseline);
         itsFlagCounter.incrChannel(channel);
@@ -170,16 +173,19 @@ void PreFlagger::setFlags(const xt::xtensor<bool, 3>& in,
   }
 }
 
-void PreFlagger::clearFlags(const xt::xtensor<bool, 3>& in,
+void PreFlagger::clearFlags(const xt::xtensor<uint8_t, 2>& in,
                             base::DPBuffer::FlagsType& out, bool mode,
                             const base::DPBuffer::DataType& data,
                             const base::DPBuffer::WeightsType& weights) {
-  assert(in.shape() == out.shape());
-  assert(in.shape() == data.shape());
-  assert(in.shape() == weights.shape());
-  for (std::size_t baseline = 0; baseline < in.shape(0); ++baseline) {
-    for (std::size_t channel = 0; channel < in.shape(1); ++channel) {
-      if (in(baseline, channel, 0) == mode) {
+  const size_t n_baselines = out.shape(0);
+  const size_t n_channels = out.shape(1);
+  assert(in.shape() == xt::shape({n_baselines, n_channels}));
+  assert(out.shape() == data.shape());
+  assert(out.shape() == weights.shape());
+
+  for (std::size_t baseline = 0; baseline < n_baselines; ++baseline) {
+    for (std::size_t channel = 0; channel < n_channels; ++channel) {
+      if (in(baseline, channel) == mode) {
         // Flags for invalid data are not cleared.
         auto data_view = xt::view(data, baseline, channel, xt::all());
         auto weights_view = xt::view(weights, baseline, channel, xt::all());
@@ -305,10 +311,9 @@ void PreFlagger::PSet::updateInfo(const DPInfo& info) {
          itsFlagOnPhase || itsFlagOnReal || itsFlagOnImag) &&
        itsPSets.empty());
   // Size the object's buffers (used in process) correctly.
-  const size_t nrcorr = info.ncorr();
   const size_t nrchan = info.nchan();
   const size_t nrbaselines = info.nbaselines();
-  itsFlags.resize({nrbaselines, nrchan, nrcorr});
+  itsFlags.resize({nrbaselines, nrchan});
   itsMatchBL.resize({nrbaselines});
   // Determine the channels to be flagged.
   if (!(itsStrChan.empty() && itsStrFreq.empty())) {
@@ -324,7 +329,6 @@ void PreFlagger::PSet::updateInfo(const DPInfo& info) {
 }
 
 void PreFlagger::PSet::fillChannels(const DPInfo& info) {
-  unsigned int nrcorr = info.ncorr();
   unsigned int nrchan = info.nchan();
   xt::xtensor<int, 1> selChan(std::array<size_t, 1>{nrchan});
   if (itsStrChan.empty()) {
@@ -377,12 +381,12 @@ void PreFlagger::PSet::fillChannels(const DPInfo& info) {
   }
   // Turn the channels into a mask.
   itsChannels.clear();
-  itsChanFlags.resize({nrchan, nrcorr});
+  itsChanFlags.resize({nrchan});
   itsChanFlags.fill(false);
   for (unsigned int channel = 0; channel < nrchan; ++channel) {
     if (selChan[channel]) {
       itsChannels.push_back(channel);
-      xt::view(itsChanFlags, channel, xt::all()).fill(true);
+      itsChanFlags[channel] = true;
     }
   }
 }
@@ -451,7 +455,7 @@ void PreFlagger::PSet::show(std::ostream& os, bool showName) const {
   }
 }
 
-xt::xtensor<int, 3>* PreFlagger::PSet::process(
+xt::xtensor<uint8_t, 2>* PreFlagger::PSet::process(
     DPBuffer& out, unsigned int timeSlot, const xt::xtensor<bool, 1>& matchBL,
     common::NSTimer& timer) {
   // No need to process it if the time mismatches or if only time selection.
@@ -467,7 +471,7 @@ xt::xtensor<int, 3>* PreFlagger::PSet::process(
   }
   // Initialize the flags.
   itsFlags.fill(false);
-  const size_t nr = out.GetFlags().shape(1) * out.GetFlags().shape(2);
+  const size_t n_channels = out.GetFlags().shape(1);
   // Take over the baseline info from the parent. Default is all.
   if (matchBL.size() == 0) {
     itsMatchBL.fill(true);
@@ -497,12 +501,12 @@ xt::xtensor<int, 3>* PreFlagger::PSet::process(
     return &itsFlags;
   }
   // Convert each baseline flag to a flag per correlation/channel.
-  int* flagPtr = itsFlags.data();
+  uint8_t* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < itsMatchBL.size(); ++i) {
     if (itsMatchBL[i]) {
-      std::fill(flagPtr, flagPtr + nr, itsMatchBL[i]);
+      std::fill(flagPtr, flagPtr + n_channels, itsMatchBL[i]);
     }
-    flagPtr += nr;
+    flagPtr += n_channels;
   }
   // Flag on channel if necessary.
   if (!itsChannels.empty()) {
@@ -527,17 +531,17 @@ xt::xtensor<int, 3>* PreFlagger::PSet::process(
   // are reused to AND or OR subexpressions. This can be done harmlessly
   // and saves the creation of too many arrays.
   if (!itsPSets.empty()) {
-    std::stack<xt::xtensor<int, 3>*> results;
+    std::stack<xt::xtensor<uint8_t, 2>*> results;
     for (int oper : itsRpn) {
       if (oper >= 0) {
         results.push(itsPSets[oper]->process(out, timeSlot, itsMatchBL, timer));
       } else if (oper == OpNot) {
-        xt::xtensor<int, 3>* left = results.top();
+        xt::xtensor<uint8_t, 2>* left = results.top();
         *left = !*left;
       } else if (oper == OpOr || oper == OpAnd) {
-        xt::xtensor<int, 3>* right = results.top();
+        xt::xtensor<uint8_t, 2>* right = results.top();
         results.pop();
-        xt::xtensor<int, 3>* left = results.top();
+        xt::xtensor<uint8_t, 2>* left = results.top();
         if (oper == OpOr) {
           *left |= *right;
         } else {
@@ -552,7 +556,7 @@ xt::xtensor<int, 3>* PreFlagger::PSet::process(
       throw std::runtime_error(
           "Something went wrong while evaluating expression: results.size() != "
           "1");
-    xt::xtensor<int, 3>* mflags = results.top();
+    xt::xtensor<uint8_t, 2>* mflags = results.top();
     itsFlags &= *mflags;
   }
   return &itsFlags;
@@ -710,7 +714,7 @@ void PreFlagger::PSet::flagAmpl(const base::DPBuffer::DataType& data) {
 
   const xt::xtensor<float, 3> amplitudes = xt::abs(data);
   const float* valPtr = amplitudes.data();
-  int* flagPtr = itsFlags.data();
+  uint8_t* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -720,10 +724,10 @@ void PreFlagger::PSet::flagAmpl(const base::DPBuffer::DataType& data) {
       }
     }
     if (!flag) {
-      std::fill_n(flagPtr, nrcorr, false);
+      *flagPtr = false;
     }
     valPtr += nrcorr;
-    flagPtr += nrcorr;
+    ++flagPtr;
   }
 }
 
@@ -733,7 +737,7 @@ void PreFlagger::PSet::flagPhase(const base::DPBuffer::DataType& data) {
 
   const xt::xtensor<float, 3> phases = xt::arg(data);
   const float* valPtr = phases.data();
-  int* flagPtr = itsFlags.data();
+  uint8_t* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -743,10 +747,10 @@ void PreFlagger::PSet::flagPhase(const base::DPBuffer::DataType& data) {
       }
     }
     if (!flag) {
-      std::fill_n(flagPtr, nrcorr, false);
+      *flagPtr = false;
     }
     valPtr += nrcorr;
-    flagPtr += nrcorr;
+    ++flagPtr;
   }
 }
 
@@ -755,7 +759,7 @@ void PreFlagger::PSet::flagReal(const base::DPBuffer::DataType& data) {
   const std::size_t nrcorr = data.shape(2);
 
   const std::complex<float>* valPtr = data.data();
-  int* flagPtr = itsFlags.data();
+  uint8_t* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -766,10 +770,10 @@ void PreFlagger::PSet::flagReal(const base::DPBuffer::DataType& data) {
       }
     }
     if (!flag) {
-      std::fill_n(flagPtr, nrcorr, false);
+      *flagPtr = false;
     }
     valPtr += nrcorr;
-    flagPtr += nrcorr;
+    ++flagPtr;
   }
 }
 
@@ -778,7 +782,7 @@ void PreFlagger::PSet::flagImag(const base::DPBuffer::DataType& data) {
   const std::size_t nrcorr = data.shape(2);
 
   const std::complex<float>* valPtr = data.data();
-  int* flagPtr = itsFlags.data();
+  uint8_t* flagPtr = itsFlags.data();
   for (unsigned int i = 0; i < nr; ++i) {
     bool flag = false;
     for (unsigned int j = 0; j < nrcorr; ++j) {
@@ -789,15 +793,24 @@ void PreFlagger::PSet::flagImag(const base::DPBuffer::DataType& data) {
       }
     }
     if (!flag) {
-      std::fill_n(flagPtr, nrcorr, false);
+      *flagPtr = false;
     }
     valPtr += nrcorr;
-    flagPtr += nrcorr;
+    ++flagPtr;
   }
 }
 
 void PreFlagger::PSet::flagChannels() {
-  itsFlags &= xt::broadcast(itsChanFlags, itsFlags.shape());
+  const size_t n_baselines = itsFlags.shape()[0];
+
+  // 4x faster equivalent of:
+  // itsFlags &= xt::broadcast(itsChanFlags, itsFlags.shape())
+  for (size_t i = 0; i < n_baselines; ++i) {
+    auto slice = xt::view(itsFlags, i, xt::all());
+
+    std::transform(itsChanFlags.begin(), itsChanFlags.end(), slice.begin(),
+                   slice.begin(), std::bit_and<uint8_t>{});
+  }
 }
 
 // See http://montcs.bloomu.edu/~bobmon/Information/RPN/infix2rpn.shtml
