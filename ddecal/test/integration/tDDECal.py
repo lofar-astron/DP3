@@ -1034,7 +1034,8 @@ def test_reuse_model_data():
     )
 
     assert_taql(
-        f"select from (select abs(gsumsqr(DATA_REUSE-DATA_REF)) as diff from {MSIN}) where diff>1.e-6"
+        "select from (select abs(gsumsqr(DATA_REUSE - DATA_REF)) as diff "
+        f"from {MSIN}) where diff>1.0e-6"
     )
 
 

@@ -365,3 +365,43 @@ def test_invalid_input(skymodel_filename):
 
     with pytest.raises(CalledProcessError):
         run_dp3(["ddecal.solint=2", "ddecal.nchan=1"] + common_args)
+
+
+def test_reuse_model_data(skymodel_filename):
+    # Apply ddecal directly and generate reference output.
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={skymodel_filename}",
+            "ddecal.h5parm=cal_ref.h5",
+            "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
+            "ddecal.subtract=true",
+            "ddecal.solint=2",
+            "ddecal.nchan=10",
+            "msout=ref.ms",
+        ]
+    )
+
+    # Run ddecal twice where the second ddecal reuses model data.
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "steps=[ddecal1,ddecal2]",
+            f"ddecal1.sourcedb={skymodel_filename}",
+            "ddecal1.directions=[[center,dec_off,ra_off,radec_off]]",
+            "ddecal1.onlypredict=true",
+            "ddecal1.keepmodel=true",
+            "ddecal2.reusemodel=[ddecal1.center]",
+            "ddecal2.h5parm=cal_reuse.h5",
+            "ddecal2.subtract=true",
+            "ddecal2.solint=2",
+            "ddecal2.nchan=10",
+            "msout=reused.ms",
+        ]
+    )
+
+    assert_taql(
+        "select from (select abs(gsumsqr(reused.DATA - ref.DATA)) as diff "
+        "from reused.ms reused, ref.ms ref) where diff>1.0e-6"
+    )
