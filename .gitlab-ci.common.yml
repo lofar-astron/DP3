@@ -170,7 +170,8 @@ linting-2404:
   stage: linting
   extends: [".failable",".needs-base-2404"]
   before_script:
-    - pipx install black~=24.0 isort cmakelang
+    - pipx install black~=24.0 clang-format~=14.0 cmakelang isort
+    - ln -s $(which clang-format) $(which clang-format)-14
   script:
     - ./scripts/run-format.sh
 

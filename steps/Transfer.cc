@@ -96,8 +96,10 @@ void Transfer::ReadSourceMsVisibilities() {
   casacore::Table table = ms_iterator_.table();
   casacore::ArrayColumn<casacore::Complex> data_col(table, source_data_column_);
 
-  const casacore::IPosition casa_shape{data_.shape()[2], data_.shape()[1],
-                                       data_.shape()[0]};
+  const casacore::IPosition casa_shape(
+      {static_cast<ssize_t>(data_.shape()[2]),
+       static_cast<ssize_t>(data_.shape()[1]),
+       static_cast<ssize_t>(data_.shape()[0])});
   casacore::Cube<casacore::Complex> casa_data(casa_shape, data_.data(),
                                               casacore::SHARE);
 
@@ -109,8 +111,10 @@ void Transfer::ReadSourceMsFlags() {
   casacore::ArrayColumn<bool> flag_col(
       table, casacore::MS::columnName(casacore::MS::FLAG));
 
-  const casacore::IPosition casa_shape{flags_.shape()[2], flags_.shape()[1],
-                                       flags_.shape()[0]};
+  const casacore::IPosition casa_shape(
+      {static_cast<ssize_t>(flags_.shape()[2]),
+       static_cast<ssize_t>(flags_.shape()[1]),
+       static_cast<ssize_t>(flags_.shape()[0])});
   casacore::Cube<bool> casa_flags(casa_shape, flags_.data(), casacore::SHARE);
 
   casa_flags = flag_col.getColumn();
