@@ -548,6 +548,7 @@ def test_oneapplycal_from_buffer():
             f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
             "ddecal.storebuffer=True",
+            "ddecal.h5parm=unused_output.h5",
             "msout=.",
             "msout.datacolumn=DATA_NEW_BUF",
             "applycal.parmdb=",
@@ -833,6 +834,7 @@ def test_station_with_auto_correlation_only(caltype):
             f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.solint=2",
             "ddecal.nchan=0",
+            "ddecal.h5parm=solutions.h5",
         ]
     )
 
@@ -966,6 +968,7 @@ def test_minvisratio(copy_data_to_model_data):
             # With a minvisratio of 80%, DDECal should flag the second channel,
             # since only 75% is unflagged.
             "ddecal.minvisratio=0.8",
+            "ddecal.h5parm=solutions.h5",
         ]
     )
 
@@ -996,6 +999,7 @@ def test_extra_data_columns():
             "msin.extradatacolumns=[DATA]",
             "steps=[ddecal]",
             "ddecal.reusemodel=[DATA]",
+            "ddecal.h5parm=solutions.h5",
             "msout=.",
         ]
     )
@@ -1061,7 +1065,6 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
             "ddecal1.directions=center",
             "ddecal1.onlypredict=true",
             "ddecal1.keepmodel=true",
-            "ddecal1.h5parm=ddecal1.h5parm",
             f"ddecal2.sourcedb={SKYMODEL}",
             "ddecal2.directions=[[ra_off],[dec_off]]",
             f"ddecal2.idg.regions={tcf.DDECAL_RESOURCEDIR}/foursources.reg",

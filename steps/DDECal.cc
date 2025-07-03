@@ -62,7 +62,6 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
     : itsSettings(parset, prefix),
       itsAvgTime(0),
       itsSols(),
-      itsSolutionWriter(itsSettings.h5parm_name),
       itsRequestedSolInt(itsSettings.solution_interval),
       itsSolIntCount(1),
       itsFirstSolutionIndex(0),
@@ -72,6 +71,11 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
       itsStatStream() {
   if (!itsSettings.stat_filename.empty()) {
     itsStatStream = std::make_unique<std::ofstream>(itsSettings.stat_filename);
+  }
+
+  if (!itsSettings.h5parm_name.empty()) {
+    itsSolutionWriter =
+        std::make_unique<ddecal::SolutionWriter>(itsSettings.h5parm_name);
   }
 
   // Initialize steps
@@ -315,21 +319,22 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     itsAntennas2[i] = getInfoOut().antennaMap()[getInfoOut().getAnt2()[i]];
   }
 
-  // Fill antenna info in H5Parm, need to convert from casa types to std types
-  // Fill in metadata for all antennas, also those that may be filtered out.
-  std::vector<std::string> antennaNames(getInfoOut().antennaNames().size());
+  // Convert antenna positions from casacore types to std types.
   std::vector<std::array<double, 3>> antennaPos(
       getInfoOut().antennaPos().size());
-  for (unsigned int i = 0; i < getInfoOut().antennaNames().size(); ++i) {
-    antennaNames[i] = getInfoOut().antennaNames()[i];
-    casacore::Quantum<casacore::Vector<double>> pos =
+  for (unsigned int i = 0; i < getInfoOut().antennaPos().size(); ++i) {
+    const casacore::Quantum<casacore::Vector<double>> pos =
         getInfoOut().antennaPos()[i].get("m");
     antennaPos[i][0] = pos.getValue()[0];
     antennaPos[i][1] = pos.getValue()[1];
     antennaPos[i][2] = pos.getValue()[2];
   }
 
-  itsSolutionWriter.AddAntennas(antennaNames, antennaPos);
+  if (itsSolutionWriter) {
+    // Fill antenna info in H5Parm.
+    // Fill in metadata for all antennas, also those that may be filtered out.
+    itsSolutionWriter->AddAntennas(getInfoOut().antennaNames(), antennaPos);
+  }
 
   size_t nSolTimes =
       (getInfoOut().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
@@ -1100,20 +1105,16 @@ void DDECal::doPrepare() {
 void DDECal::WriteSolutions() {
   itsTimerWrite.start();
 
-  // Create antenna info for H5Parm, used antennas only.
-  const std::vector<std::string> used_antenna_names =
-      getInfoOut().GetUsedAntennaNames();
-
   const std::string history = "CREATE by " + DP3Version::AsString() + "\n" +
                               "step " + itsSettings.name + " in parset: \n" +
                               itsSettings.parset_string;
 
-  itsSolutionWriter.Write(
+  itsSolutionWriter->Write(
       itsSols, itsConstraintSols, getInfoOut().startTime(),
       getInfoOut().lastTime(), getInfoOut().timeInterval(), itsRequestedSolInt,
-      itsSettings.solutions_per_direction, itsSettings.mode, used_antenna_names,
-      itsSourceDirections, itsDirections, getInfoOut().chanFreqs(),
-      itsChanBlockFreqs, history);
+      itsSettings.solutions_per_direction, itsSettings.mode,
+      getInfoOut().GetUsedAntennaNames(), itsSourceDirections, itsDirections,
+      getInfoOut().chanFreqs(), itsChanBlockFreqs, history);
 
   itsTimerWrite.stop();
 }
