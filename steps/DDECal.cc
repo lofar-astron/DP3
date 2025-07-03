@@ -556,8 +556,12 @@ xt::xtensor<std::complex<float>, 3> DDECal::ReadJonesMatrixFromH5Parm(
   const casacore::Cube<std::complex<float>>& jones_matrix =
       jones_parameters->GetParms();
   // Ensure that the xtensor has shape: frequency x antenna x polarization.
-  const std::array<size_t, 3> xt_shape = {jones_matrix.shape()[2], jones_matrix.shape()[1], jones_matrix.shape()[0]}; 
-  xt::xtensor<std::complex<float>, 3> jones_tensor = xt::adapt(jones_matrix.tovector(), xt_shape);
+  const std::array<size_t, 3> xt_shape = {
+      static_cast<size_t>(jones_matrix.shape()[2]),
+      static_cast<size_t>(jones_matrix.shape()[1]),
+      static_cast<size_t>(jones_matrix.shape()[0])};
+  xt::xtensor<std::complex<float>, 3> jones_tensor =
+      xt::adapt(jones_matrix.tovector(), xt_shape);
 
   return jones_tensor;
 }
@@ -614,7 +618,7 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
       // Load solutions per soltab and multiply to get the full Jones matrix for
       // each direction.
       const std::array<size_t, 5> xt_shape = {
-          n_soltabs, n_directions, n_frequencies, n_antennas_used, 
+          n_soltabs, n_directions, n_frequencies, n_antennas_used,
           n_polarization_parameters_per_solution};
       xt::xtensor<std::complex<float>, 5> jones_parameters_per_soltab(xt_shape);
       for (size_t soltab_index = 0; soltab_index < n_soltabs; ++soltab_index) {
@@ -661,7 +665,8 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
                       n_polarization_parameters_per_solution +
                   polarization_index;
               itsSols[solution_index][channel_block][flattened_index] =
-                  jones_parameters(channel_block, antenna_index, polarization_index);
+                  jones_parameters(channel_block, antenna_index,
+                                   polarization_index);
             }
           }
           n_assigned_subsolutions += n_subsolutions_per_direction;
