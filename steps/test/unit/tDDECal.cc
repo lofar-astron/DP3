@@ -18,11 +18,15 @@
 #include "../../ResultStep.h"
 #include "../../../base/test/LoggerFixture.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
+
+#include "tDdeCalCommon.h"
 #include "tStepCommon.h"
 
 using dp3::common::test::FixtureDirectory;
 using dp3::steps::DDECal;
+using dp3::steps::MsReader;
 using dp3::steps::test::CreateParameterSet;
+using dp3::steps::test::kTrueFalseRange;
 
 BOOST_AUTO_TEST_SUITE(
     ddecal, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())
@@ -97,6 +101,31 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
       BOOST_CHECK(solution.empty());
     }
   }
+}
+
+struct RegularMsFixture : public FixtureDirectory {
+  RegularMsFixture() : FixtureDirectory() {
+    ExtractResource("tNDPPP-generic.MS.tgz");
+    casacore::MeasurementSet ms("tNDPPP-generic.MS");
+    const dp3::common::ParameterSet kEmptyParset;
+    reader = std::make_shared<MsReader>(ms, kEmptyParset, "");
+  }
+
+  /// Reader for the extracted MS. Tests can make it generate a valid DPInfo
+  /// object for BdaDdeCal or use it in a step chain, for example.
+  std::shared_ptr<MsReader> reader;
+};
+
+BOOST_DATA_TEST_CASE_F(RegularMsFixture, info_directions_no_reuse,
+                       kTrueFalseRange, keep_model_data) {
+  using dp3::steps::test::ddecal::TestInfoDirectionsWithoutReuse;
+  TestInfoDirectionsWithoutReuse<DDECal>(*reader, keep_model_data);
+}
+
+BOOST_DATA_TEST_CASE_F(RegularMsFixture, info_directions_with_reuse,
+                       kTrueFalseRange, keep_model_data) {
+  using dp3::steps::test::ddecal::TestInfoDirectionsWithReuse;
+  TestInfoDirectionsWithReuse<DDECal>(*reader, keep_model_data);
 }
 
 namespace {

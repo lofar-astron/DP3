@@ -4,16 +4,18 @@
 #ifndef DP3_STEPS_TEST_UNIT_TPREDICT_H_
 #define DP3_STEPS_TEST_UNIT_TPREDICT_H_
 
-#include <dp3/base/Direction.h>
-
 #include <string>
+
+#include <dp3/base/Direction.h>
+#include "test_config.h"
 
 namespace dp3 {
 namespace steps {
 namespace test {
 
 /// MS name for the predict tests.
-const std::string kPredictSkymodel = "tNDPPP-generic-skymodel.txt";
+const std::string kPredictSkymodel =
+    DP3_RESOURCE_DIR "/tNDPPP-generic-skymodel.txt";
 const std::string kPredictDirection = "0002.2+3139";
 
 /// Expected first direction when using tNDPPP-generic.MS.
