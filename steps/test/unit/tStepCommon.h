@@ -8,12 +8,17 @@
 
 #include <vector>
 
+#include <boost/test/data/test_case.hpp>
+
 #include "mock/MockInput.h"
 #include "../../../common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {
 namespace test {
+
+/// Data range used in many tests.
+inline const auto kTrueFalseRange = boost::unit_test::data::make({true, false});
 
 /// Connect a series of steps and execute them.
 void Execute(const std::vector<std::shared_ptr<Step>>& steps);

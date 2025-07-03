@@ -7,10 +7,6 @@
 #include <fstream>
 
 #include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
-
-#include "tPredict.h"
-#include "tStepCommon.h"
 
 #include <dp3/common/Fields.h>
 #include "../../../common/ParameterSet.h"
@@ -18,12 +14,15 @@
 #include "../../MSBDAReader.h"
 #include "../../MultiResultStep.h"
 
+#include "tDdeCalCommon.h"
+
 using dp3::base::BdaBuffer;
 using dp3::common::Fields;
 using dp3::common::test::FixtureDirectory;
 using dp3::steps::BdaDdeCal;
 using dp3::steps::BDAResultStep;
 using dp3::steps::MSBDAReader;
+using dp3::steps::test::kTrueFalseRange;
 
 namespace {
 
@@ -139,15 +138,34 @@ BOOST_AUTO_TEST_CASE(get_provided_fields_subtract) {
   BOOST_TEST(bdaddecal->getProvidedFields() == kExpectedFields);
 }
 
-const auto kTrueFalseRange = boost::unit_test::data::make({true, false});
+struct BdaMsFixture : public FixtureDirectory {
+  BdaMsFixture() : FixtureDirectory() {
+    ExtractResource("tNDPPP-bda.MS.tgz");
+    casacore::MeasurementSet ms("tNDPPP-bda.MS");
+    const dp3::common::ParameterSet kEmptyParset;
+    reader = std::make_shared<MSBDAReader>(ms, kEmptyParset, "");
+  }
 
-BOOST_DATA_TEST_CASE_F(FixtureDirectory, keep_or_discard_model_data,
+  /// Reader for the extracted MS. Tests can make it generate a valid DPInfo
+  /// object for BdaDdeCal or use it in a step chain, for example.
+  std::shared_ptr<MSBDAReader> reader;
+};
+
+BOOST_DATA_TEST_CASE_F(BdaMsFixture, info_directions_no_reuse, kTrueFalseRange,
+                       keep_model_data) {
+  using dp3::steps::test::ddecal::TestInfoDirectionsWithoutReuse;
+  TestInfoDirectionsWithoutReuse<BdaDdeCal>(*reader, keep_model_data);
+}
+
+BOOST_DATA_TEST_CASE_F(BdaMsFixture, info_directions_with_reuse,
+                       kTrueFalseRange, keep_model_data) {
+  using dp3::steps::test::ddecal::TestInfoDirectionsWithReuse;
+  TestInfoDirectionsWithReuse<BdaDdeCal>(*reader, keep_model_data);
+}
+
+BOOST_DATA_TEST_CASE_F(BdaMsFixture, keep_or_discard_model_data,
                        kTrueFalseRange* kTrueFalseRange, only_predict,
                        keep_model_data) {
-  ExtractResource("tNDPPP-bda.MS.tgz");
-  casacore::MeasurementSet ms("tNDPPP-bda.MS");
-  const dp3::common::ParameterSet kEmptyParset;
-
   // Generate a skymodel for testing, similar to tBdaDdeCal.py.
   const std::string kSkymodelFileName = "test.skymodel";
   std::ofstream skymodel_file(kSkymodelFileName);
@@ -167,10 +185,6 @@ BOOST_DATA_TEST_CASE_F(FixtureDirectory, keep_or_discard_model_data,
   parset.add("ddecal.sourcedb", kSkymodelFileName);
   parset.add("ddecal.solint", "2");
   parset.add("ddecal.nchan", "42");
-
-  // Using an MsBdaReader as input allows using its DPInfo for configuring
-  // BdaDdeCal. It avoids creating a DPInfo object by hand in this test.
-  auto reader = std::make_shared<MSBDAReader>(ms, kEmptyParset, "reader.");
 
   auto ddecal = std::make_shared<BdaDdeCal>(parset, "ddecal.");
   BOOST_TEST(parset.unusedKeys().empty());
