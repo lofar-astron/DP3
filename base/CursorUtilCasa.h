@@ -22,21 +22,8 @@ cursor<T> casa_cursor(casacore::Array<T> &array) {
 }
 
 template <typename T>
-cursor<T> casa_cursor(casacore::Array<T> &array,
-                      const casacore::IPosition &offset) {
-  return cursor<T>(&(array(offset)), array.ndim(), array.steps().storage());
-}
-
-template <typename T>
 const_cursor<T> casa_const_cursor(const casacore::Array<T> &array) {
   return const_cursor<T>(array.data(), array.ndim(), array.steps().storage());
-}
-
-template <typename T>
-const_cursor<T> casa_const_cursor(const casacore::Array<T> &array,
-                                  const casacore::IPosition &offset) {
-  return const_cursor<T>(&(array(offset)), array.ndim(),
-                         array.steps().storage());
 }
 
 }  // namespace base
