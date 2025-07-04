@@ -1,17 +1,16 @@
 # Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import sys
 from subprocess import check_call, check_output
 
 import pytest
 
 """ Append current directory to system path in order to import testconfig """
-import sys
-
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, run_in_tmp_path, untar
+from utils import assert_taql, run_dp3, run_in_tmp_path, untar
 
 """
 Script can be invoked in two ways:
@@ -59,10 +58,8 @@ def test_input_with_four_sources():
     -model-column foursources_DATA
     """
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -108,10 +105,8 @@ def test_input_with_single_sources(source, offset):
     )
 
     # Predict source: $source offset: $offset using IDG
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",
@@ -127,10 +122,8 @@ def test_input_with_single_sources(source, offset):
 
 def test_result():
     """Test if IDGPredict step will have the same results as DDECal"""
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[idgpredict]",
@@ -146,10 +139,8 @@ def test_multiple_data_sources():
     """Test multiple data sources for DDECal"""
 
     common_args = [
-        "checkparset=1",
         f"msin={MSIN}",
         "msout=.",
-        "numthreads=1",
         "steps=[ddecal]",
         "ddecal.idg.images=[foursources-model.fits]",
         "ddecal.onlypredict=True",
@@ -157,18 +148,16 @@ def test_multiple_data_sources():
     ]
 
     # Create model data column with 3 sources
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"ddecal.idg.regions={tcf.DDECAL_RESOURCEDIR}/threesources.reg",
         ]
         + common_args
     )
 
     # Run DDECal with 3 directions in the MODEL_DATA column and 1 direction using IDG
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"ddecal.idg.regions={tcf.DDECAL_RESOURCEDIR}/onesource.reg",
             "ddecal.modeldatacolumns=[MODEL_DATA]",
         ]
@@ -181,10 +170,8 @@ def test_multiple_data_sources():
 
 
 def test_polynomial_frequency_term_corrections():
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[ddecal]",

@@ -3,7 +3,7 @@
 
 # Append current directory to system path in order to import testconfig
 import sys
-from subprocess import STDOUT, CalledProcessError, check_call, check_output
+from subprocess import check_call
 
 import numpy
 import pytest
@@ -12,7 +12,7 @@ from numpy.random import PCG64, Generator
 """ Append current directory to system path in order to import testconfig """
 sys.path.append(".")
 import testconfig
-from utils import run_in_tmp_path
+from utils import run_dp3, run_in_tmp_path
 
 MSIN = f"{testconfig.BINDIR}/test_data/MWA-single-timeslot.ms"
 SKYMODEL = f"{testconfig.BINDIR}/test_data/sky.txt"
@@ -30,16 +30,10 @@ def skymodel(run_in_tmp_path):
         )
 
 
-def calldp3(parameters):
-    print("DP3 " + " ".join(parameters))
-    check_call([testconfig.DP3EXE] + parameters)
-
-
 def run_with_diagonal_mode(diagonal_mode, true_solutions):
     # Perform the solve
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin=test.ms",
             "msout=",
             "steps=[ddecal]",
@@ -83,9 +77,8 @@ def test_faraday_constraint():
 
     # A filter step is added because the MS has fully flagged antennas, which
     # causes problems. The filter step removes that antenna.
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=test.ms",
             "msout.overwrite=true",
@@ -96,11 +89,10 @@ def test_faraday_constraint():
     taqlcommand_run = (
         f"update test.ms set DATA=1, FLAG=False, WEIGHT_SPECTRUM=1"
     )
-    check_output([testconfig.TAQLEXE, taqlcommand_run])
+    check_call([testconfig.TAQLEXE, taqlcommand_run])
     # Generate a template H5.
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             "msin=test.ms",
             "msout=",
             "steps=[ddecal]",
@@ -123,9 +115,8 @@ def test_faraday_constraint():
         weights[:] = 1.0
 
     # Predict data with the given solutions
-    calldp3(
+    run_dp3(
         [
-            "checkparset=1",
             f"msin=test.ms",
             "msout=",
             "steps=[predict]",
