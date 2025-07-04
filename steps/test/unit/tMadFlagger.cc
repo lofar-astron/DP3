@@ -15,7 +15,6 @@
 #include <string>
 
 #include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Quanta/Quantum.h>
@@ -38,6 +37,7 @@ using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
 using dp3::steps::MadFlagger;
 using dp3::steps::Step;
+using dp3::steps::test::kTrueFalseRange;
 
 BOOST_AUTO_TEST_SUITE(madflagger)
 
@@ -261,28 +261,23 @@ void test2(size_t ntime, size_t nant, size_t nchan, size_t ncorr, bool flag,
   dp3::steps::test::Execute({in, mad_flagger, out});
 }
 
-BOOST_DATA_TEST_CASE(test_madflagger_1,
-                     boost::unit_test::data::make({true, false}), shortbl) {
+BOOST_DATA_TEST_CASE(test_madflagger_1, kTrueFalseRange, shortbl) {
   test1(10, 2, 32, 4, false, 1, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_madflagger_2,
-                     boost::unit_test::data::make({true, false}), shortbl) {
+BOOST_DATA_TEST_CASE(test_madflagger_2, kTrueFalseRange, shortbl) {
   test1(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_madflagger_3,
-                     boost::unit_test::data::make({true, false}), shortbl) {
+BOOST_DATA_TEST_CASE(test_madflagger_3, kTrueFalseRange, shortbl) {
   test1(4, 2, 8, 4, false, 100, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_madflagger_4,
-                     boost::unit_test::data::make({true, false}), shortbl) {
+BOOST_DATA_TEST_CASE(test_madflagger_4, kTrueFalseRange, shortbl) {
   test2(10, 5, 32, 4, true, 1, shortbl);
 }
 
-BOOST_DATA_TEST_CASE(test_madflagger_5,
-                     boost::unit_test::data::make({true, false}), shortbl) {
+BOOST_DATA_TEST_CASE(test_madflagger_5, kTrueFalseRange, shortbl) {
   test2(4, 2, 8, 4, false, 100, shortbl);
 }
 

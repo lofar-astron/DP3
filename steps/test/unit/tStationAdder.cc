@@ -23,8 +23,7 @@
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::steps::StationAdder;
-using dp3::steps::Step;
-using std::vector;
+using dp3::steps::test::kTrueFalseRange;
 
 BOOST_AUTO_TEST_SUITE(stationadder)
 
@@ -44,8 +43,8 @@ class TestInput : public dp3::steps::MockInput {
     GetWritableInfoOut().setTimes(0.0, (ntime - 1) * 5.0, 5.0);
     // Fill the baseline stations; use 4 stations.
     // So they are called 00 01 02 03 10 11 12 13 20, etc.
-    vector<int> ant1(nbl);
-    vector<int> ant2(nbl);
+    std::vector<int> ant1(nbl);
+    std::vector<int> ant2(nbl);
     int st1 = 0;
     int st2 = 0;
     for (std::size_t i = 0; i < nbl; ++i) {
@@ -58,10 +57,10 @@ class TestInput : public dp3::steps::MockInput {
         }
       }
     }
-    vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
-                                 "cs01.s02"};
+    std::vector<std::string> antNames{"rs01.s01", "rs02.s01", "cs01.s01",
+                                      "cs01.s02"};
     // Define their positions (more or less WSRT RT0-3).
-    vector<casacore::MPosition> antPos(4);
+    std::vector<casacore::MPosition> antPos(4);
     casacore::Vector<double> vals(3);
     vals[0] = 3828763;
     vals[1] = 442449;
@@ -87,7 +86,7 @@ class TestInput : public dp3::steps::MockInput {
     antPos[3] = casacore::MPosition(
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
-    vector<double> antDiam(4, 70.0);
+    std::vector<double> antDiam(4, 70.0);
     GetWritableInfoOut().setAntennas(antNames, antDiam, antPos, ant1, ant2);
     // Define the frequencies.
     std::vector<double> chanWidth(nchan, 1000000.0);
@@ -466,8 +465,7 @@ class TestOutput4 : public dp3::steps::test::ThrowStep {
   std::size_t itsNTime, itsNBl, itsNChan;
 };
 
-BOOST_DATA_TEST_CASE(test_add_three_stations,
-                     boost::unit_test::data::make({true, false}), sumauto) {
+BOOST_DATA_TEST_CASE(test_add_three_stations, kTrueFalseRange, sumauto) {
   // Test must be done with with 16 baselines.
   const int kNTime = 10;
   const int kNBl = 16;
