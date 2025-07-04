@@ -7,16 +7,17 @@
 #include <string>
 
 #include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
 
 #include <dp3/base/BdaBuffer.h>
 #include "../../../common/ParameterSet.h"
 #include "mock/MockStep.h"
+#include "tStepCommon.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::steps::BdaAverager;
+using dp3::steps::test::kTrueFalseRange;
 
 namespace {
 const unsigned int kNCorr = 4;
@@ -385,8 +386,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   }
 }
 
-BOOST_DATA_TEST_CASE(time_averaging,
-                     boost::unit_test::data::make({true, false}), use_data) {
+BOOST_DATA_TEST_CASE(time_averaging, kTrueFalseRange, use_data) {
   const std::size_t kFactor = 2;  // Averaging factor for this test.
   const std::size_t kNBaselines = 1;
 
@@ -546,8 +546,7 @@ BOOST_AUTO_TEST_CASE(time_averaging_ignore_weights) {
   CheckRow(*average01, *mock_step->GetBdaBuffers()[0], 0, 0);
 }
 
-BOOST_DATA_TEST_CASE(channel_averaging,
-                     boost::unit_test::data::make({true, false}), use_data) {
+BOOST_DATA_TEST_CASE(channel_averaging, kTrueFalseRange, use_data) {
   const std::size_t kFactor = 3;  // Averaging factor for this test.
   const std::size_t kNBaselines = 1;
   const std::vector<std::size_t> kInputChannelCounts(7, 1);
