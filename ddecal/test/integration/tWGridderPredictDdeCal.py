@@ -1,20 +1,17 @@
 # Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
-from subprocess import check_call, check_output
+import sys
 
 import h5py
 import numpy as np
 import pytest
 
 """ Append current directory to system path in order to import testconfig """
-import sys
-
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, run_in_tmp_path, untar
+from utils import run_dp3, run_in_tmp_path, untar
 
 """
 Script can be invoked in two ways:
@@ -36,10 +33,8 @@ def source_env(run_in_tmp_path):
 
 @pytest.fixture()
 def make_h5parm():
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             "verbosity=quiet",
             f"msin={MSIN}",
             "steps=[ddecal,null]",
@@ -63,10 +58,8 @@ def test_wgridderpredict_with_ddecal():
     - Use DDECal to calibrate each of the directions. Since the model is equal
       to the data buffer, the solutions for every facet should be 1.0.
     """
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[predict,wgridderpredict, ddecal]",
@@ -101,10 +94,8 @@ def test_wgridderpredict_with_ddecal_wildcards():
     - Use DDECal to calibrate each of the directions. Since the model is equal
       to the data buffer, the solutions for every facet should be 1.0.
     """
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[predict,wgridderpredict, ddecal]",
@@ -147,10 +138,8 @@ def test_wgridderpredict_and_applybeam_with_ddecal():
     - Use DDECal to calibrate each of the directions. Since the model is equal
       to the data buffer, the solutions for every facet should be 1.0.
     """
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[predict,wgridderpredict, applybeam, ddecal]",
@@ -197,10 +186,8 @@ def test_wgridderpredict_with_ddecal_h5parmvalues(make_h5parm):
         )
         new_values = values[:]
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[h5parmpredict,wgridderpredict,ddecal]",
@@ -258,10 +245,8 @@ def test_wgridderpredict_and_applycal_with_ddecal(make_h5parm):
             + 1.0e-1 * np.arange(n_antennas).reshape(-1, 1)
         )
 
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
             f"msin={MSIN}",
             "msout=.",
             "steps=[h5parmpredict, wgridderpredict, applycal, ddecal]",
