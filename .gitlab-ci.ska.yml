@@ -7,8 +7,8 @@
     - docker:20.10-dind
 
 default:
-  tags:
-    - ska-default # Use SKAO runners instead of standard gitlab.com runners.
+  tags: # Use SKAO runners instead of standard gitlab.com runners.
+    - ${SKA_DEFAULT_RUNNER}
 
 include:
   - .gitlab-ci.common.yml
