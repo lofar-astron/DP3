@@ -234,7 +234,7 @@ inputs:
   onlypredict:
     default: false
     type: bool
-    doc: Instead of solving, output the predicted visibilities instead. This is useful for testing, although when doing faceted prediction with IDG, it might be fast for certain cases.
+    doc: Instead of solving, output the predicted visibilities instead. This is useful for testing, although when doing faceted prediction with IDG, it might be fast for certain cases. When keepmodel is false, overwrite the main data buffer with the sum of the predicted visibilties for all directions. When keepmodel is true, output the visibilities for each direction in separate data buffers and leave the main data buffer intact.
   applycal&#46;*:
     doc: ApplyCal sub-step, same as in Predict step. One can pass an h5parm with as many directions as set in "directions" and each direction model is corrupted accordingly.
   phasereference:

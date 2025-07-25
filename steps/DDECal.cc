@@ -892,7 +892,7 @@ void DDECal::doSolve() {
     itsInputBuffers[i].resize(original_size);
 
     if (itsSettings.only_predict) {
-      SumModels(i);
+      if (!itsSettings.keep_model_data) SumModels(i);
     } else if (itsSettings.subtract || itsSettings.keep_model_data) {
       CorrectAndSubtractModels(i);
     }
@@ -1251,6 +1251,7 @@ void DDECal::CorrectAndSubtractModels(size_t buffer_index) {
 
 void DDECal::SumModels(size_t buffer_index) {
   assert(buffer_index < itsInputBuffers.size());
+
   std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
       itsInputBuffers[buffer_index];
 
@@ -1262,9 +1263,7 @@ void DDECal::SumModels(size_t buffer_index) {
       } else {
         data_buffer->GetData() += data_buffer->GetData(*name_iterator);
       }
-      if (!itsSettings.keep_model_data) {
-        data_buffer->RemoveData(*name_iterator);
-      }
+      data_buffer->RemoveData(*name_iterator);
     }
   }
 }

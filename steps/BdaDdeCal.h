@@ -67,7 +67,10 @@ class BdaDdeCal : public Step {
   common::Fields getRequiredFields() const override;
 
   common::Fields getProvidedFields() const override {
-    return settings_.subtract ? kDataField : common::Fields();
+    return (settings_.subtract ||
+            (settings_.only_predict && !settings_.keep_model_data))
+               ? kDataField
+               : common::Fields();
   }
 
   bool process(std::unique_ptr<base::BdaBuffer>) override;

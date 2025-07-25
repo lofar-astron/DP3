@@ -44,7 +44,8 @@ class DDECal : public Step {
   }
 
   common::Fields getProvidedFields() const override {
-    return (itsSettings.subtract || itsSettings.only_predict)
+    return (itsSettings.subtract ||
+            (itsSettings.only_predict && !itsSettings.keep_model_data))
                ? kDataField
                : common::Fields();
   }
