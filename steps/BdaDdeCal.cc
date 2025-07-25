@@ -100,7 +100,8 @@ common::Fields BdaDdeCal::getRequiredFields() const {
     fields |= base::GetChainRequiredFields(direction_first_step);
   }
   if (settings_.subtract) fields |= kDataField;
-  if (!settings_.only_predict) fields |= kWeightsField | kFlagsField;
+  if (!settings_.only_predict)
+    fields |= kDataField | kWeightsField | kFlagsField;
   return fields;
 }
 
@@ -392,18 +393,12 @@ bool BdaDdeCal::HasAllDirections(const BdaBuffer& buffer) const {
 }
 
 void BdaDdeCal::SumModels(BdaBuffer& buffer) const {
-  // Copy or move the data for the first direction to the main data buffer.
-  const size_t data_size = buffer.GetNumberOfElements();
-  if (settings_.keep_model_data) {
-    buffer.AddData();  // The main buffer may not exist yet.
-    std::copy_n(buffer.GetData(direction_names_.front()), data_size,
-                buffer.GetData());
-  } else {
-    buffer.MoveData(buffer, direction_names_.front(), "");
-  }
+  // Move the data for the first direction to the main data buffer.
+  buffer.MoveData(buffer, direction_names_.front(), "");
 
   // Add the data for the other directions to the main data buffer.
   std::complex<float> restrict* main_data = buffer.GetData();
+  const size_t data_size = buffer.GetNumberOfElements();
   for (std::size_t d = 1; d < direction_names_.size(); ++d) {
     const std::complex<float> restrict* direction_data =
         buffer.GetData(direction_names_[d]);
@@ -412,9 +407,7 @@ void BdaDdeCal::SumModels(BdaBuffer& buffer) const {
       main_data[j] += direction_data[j];
     }
 
-    if (!settings_.keep_model_data) {
-      buffer.RemoveData(direction_names_[d]);
-    }
+    buffer.RemoveData(direction_names_[d]);
   }
 }
 
@@ -424,7 +417,7 @@ void BdaDdeCal::ProcessCompleteDirections() {
            HasAllDirections(*input_buffers_.front())) {
       std::unique_ptr<BdaBuffer> buffer = std::move(input_buffers_.front());
       input_buffers_.pop_front();
-      SumModels(*buffer);
+      if (!settings_.keep_model_data) SumModels(*buffer);
       getNextStep()->process(std::move(buffer));
     }
   } else {

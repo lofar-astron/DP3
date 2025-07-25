@@ -100,7 +100,8 @@ BOOST_FIXTURE_TEST_CASE(channel_block_mapping_3_channels, BdaDdeCalFixture) {
 BOOST_FIXTURE_TEST_CASE(get_required_fields, BdaDdeCalFixture) {
   using dp3::steps::Step;
   const dp3::common::Fields kExpectedFields =
-      Step::kFlagsField | Step::kWeightsField | Step::kUvwField;
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
+      Step::kUvwField;
   BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
 }
 
@@ -120,7 +121,8 @@ BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {
   auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(parset, "");
 
   const dp3::common::Fields kExpectedFields =
-      Step::kFlagsField | Step::kWeightsField | Step::kUvwField;
+      Step::kDataField | Step::kFlagsField | Step::kWeightsField |
+      Step::kUvwField;
   BOOST_TEST(bdaddecal->getRequiredFields() == kExpectedFields);
 }
 
@@ -197,7 +199,7 @@ BOOST_DATA_TEST_CASE_F(BdaMsFixture, keep_or_discard_model_data,
   dp3::steps::test::Execute({reader, ddecal, output});
 
   std::vector<std::string> expected_data_names;
-  if (only_predict) {
+  if (!(only_predict && keep_model_data)) {
     expected_data_names.push_back("");
   }
   if (keep_model_data) {
@@ -219,6 +221,8 @@ BOOST_DATA_TEST_CASE_F(BdaMsFixture, keep_or_discard_model_data,
       // BdaDdeCal also does not output these fields.
       BOOST_TEST(!buffer->GetFlags());
       BOOST_TEST(!buffer->GetWeights());
+      // When using keepmodel, the same argument holds for data.
+      if (keep_model_data) BOOST_TEST(!buffer->HasData());
     } else {
       // When only predict is disabled, BdaDdeCal should output the flags and
       // weights it received as input.
