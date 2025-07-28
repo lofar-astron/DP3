@@ -216,25 +216,26 @@ class BdaBuffer {
   const std::vector<Row>& GetRows() const { return rows_; }
 
   static constexpr bool TimeIsLess(double x, double y) {
-    return x < (y - kTimeEpsilon);
+    return x < (y - kTimeTolerance);
   }
   static constexpr bool TimeIsLessEqual(double x, double y) {
-    return x < (y + kTimeEpsilon);
+    return x < (y + kTimeTolerance);
   }
   static constexpr bool TimeIsGreaterEqual(double x, double y) {
-    return x > (y - kTimeEpsilon);
+    return x > (y - kTimeTolerance);
   }
   static constexpr bool TimeIsEqual(double x, double y) {
     // Don't use std::fabs, since it is not a constexpr.
-    return ((x > y) ? (x - y) : (y - x)) < kTimeEpsilon;
+    return ((x > y) ? (x - y) : (y - x)) < kTimeTolerance;
   }
 
   bool IsMetadataEqual(const BdaBuffer& other) const;
 
- private:
-  static constexpr double kTimeEpsilon =
-      1.0e-8;  // For comparing measurement timestamps.
+  // Tolerance value for comparing measurement timestamps. It should be larger
+  // than the rounding errors that occur due to BDA averaging and expanding.
+  static constexpr double kTimeTolerance = 2.0e-6;
 
+ private:
   /// Memory pools for the data in the rows. Since std::vector<bool>
   /// does not support pointers to its elements, use aocommon::UVector instead.
   /// @{
