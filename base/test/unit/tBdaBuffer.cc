@@ -69,9 +69,8 @@ const Fields kDataField(Fields::Single::kData);
 const Fields kWeightsField(Fields::Single::kWeights);
 const Fields kFlagsField(Fields::Single::kFlags);
 const Fields kAllFields = kDataField | kWeightsField | kFlagsField;
-const double kTimeEpsilon = 1.0e-8;
-const double kHalfEpsilon = kTimeEpsilon / 2;
-const double kTwoEpsilon = 2.0 * kTimeEpsilon;
+const double kHalfTolerance = BdaBuffer::kTimeTolerance / 2.0;
+const double kTwoTolerance = 2.0 * BdaBuffer::kTimeTolerance;
 
 void AddBasicRow(BdaBuffer& buffer, const std::string& name = "") {
   const std::complex<float> kData[kDataSize]{{1, 1}, {2, 2}, {3, 3},
@@ -612,34 +611,32 @@ BOOST_AUTO_TEST_CASE(clear) {
 }
 
 BOOST_AUTO_TEST_CASE(time_is_less) {
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLess(5., 10.), true);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLess(15., 10.), false);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLess(10. - kTwoEpsilon, 10.), true);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLess(10. - kHalfEpsilon, 10.), false);
+  BOOST_TEST(BdaBuffer::TimeIsLess(5.0, 10.0));
+  BOOST_TEST(!BdaBuffer::TimeIsLess(15.0, 10.0));
+  BOOST_TEST(BdaBuffer::TimeIsLess(10.0 - kTwoTolerance, 10.0));
+  BOOST_TEST(!BdaBuffer::TimeIsLess(10.0 - kHalfTolerance, 10.0));
 }
 
 BOOST_AUTO_TEST_CASE(time_is_less_equal) {
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLessEqual(5., 10.), true);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLessEqual(15., 10.), false);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLessEqual(10. + kTwoEpsilon, 10.), false);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsLessEqual(10. + kHalfEpsilon, 10.), true);
+  BOOST_TEST(BdaBuffer::TimeIsLessEqual(5.0, 10.0));
+  BOOST_TEST(!BdaBuffer::TimeIsLessEqual(15.0, 10.0));
+  BOOST_TEST(!BdaBuffer::TimeIsLessEqual(10.0 + kTwoTolerance, 10.0));
+  BOOST_TEST(BdaBuffer::TimeIsLessEqual(10.0 + kHalfTolerance, 10.0));
 }
 
 BOOST_AUTO_TEST_CASE(time_is_greater_equal) {
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsGreaterEqual(5., 10.), false);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsGreaterEqual(15., 10.), true);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsGreaterEqual(10., 10.), true);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsGreaterEqual(10. - kTwoEpsilon, 10.),
-                    false);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsGreaterEqual(10. - kHalfEpsilon, 10.),
-                    true);
+  BOOST_TEST(!BdaBuffer::TimeIsGreaterEqual(5.0, 10.0));
+  BOOST_TEST(BdaBuffer::TimeIsGreaterEqual(15.0, 10.0));
+  BOOST_TEST(BdaBuffer::TimeIsGreaterEqual(10.0, 10.0));
+  BOOST_TEST(!BdaBuffer::TimeIsGreaterEqual(10.0 - kTwoTolerance, 10.0));
+  BOOST_TEST(BdaBuffer::TimeIsGreaterEqual(10.0 - kHalfTolerance, 10.0));
 }
 
 BOOST_AUTO_TEST_CASE(time_is_equal) {
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsEqual(10., 10.), true);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsEqual(20., 10.), false);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsEqual(10. + kHalfEpsilon, 10.), true);
-  BOOST_CHECK_EQUAL(BdaBuffer::TimeIsEqual(10. - kTwoEpsilon, 10.), false);
+  BOOST_TEST(BdaBuffer::TimeIsEqual(10.0, 10.0));
+  BOOST_TEST(!BdaBuffer::TimeIsEqual(20.0, 10.0));
+  BOOST_TEST(BdaBuffer::TimeIsEqual(10.0 + kHalfTolerance, 10.0));
+  BOOST_TEST(!BdaBuffer::TimeIsEqual(10.0 - kTwoTolerance, 10.0));
 }
 
 BOOST_AUTO_TEST_CASE(metadata_comparison) {

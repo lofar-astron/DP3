@@ -138,8 +138,8 @@ class DDECal : public Step {
   /// SolverBase::NSolutions() * nPolarizations, with nPolarizations changing
   /// fastest.
   std::vector<std::vector<std::vector<casacore::DComplex>>> itsSols;
-  std::vector<size_t> itsNIter,  // Number of iterations taken
-      itsNApproxIter;
+  std::vector<size_t> itsNIter;  // Number of iterations taken
+  std::vector<size_t> itsNApproxIter;
 
   /// For each time, for each constraint, a vector of results (e.g. tec and
   /// phase)

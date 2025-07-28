@@ -4,6 +4,7 @@
 #include "BdaDdeCal.h"
 
 #include <algorithm>
+#include <sstream>
 
 #include <dp3/base/DP3.h>
 
@@ -228,6 +229,8 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     const size_t n_solutions = settings_.GetNSolutions();
     solutions_.reserve(n_solutions);
     constraint_solutions_.reserve(n_solutions);
+    iterations_.reserve(n_solutions);
+    approx_iterations_.reserve(n_solutions);
   }
 
   if (solution_writer_) {
@@ -800,6 +803,14 @@ void BdaDdeCal::showTimings(std::ostream& os, double duration) const {
     base::FlagCounter::showPerc1(os, write_timer_.getElapsed(), total_time);
     os << " of it spent in writing gain solutions to disk\n";
   }
+
+  os << "Iterations taken: [";
+  for (size_t i = 0; i < iterations_.size(); ++i) {
+    if (i > 0) os << ",";
+    os << iterations_[i];
+    if (approx_iterations_[i] != 0) os << '|' << approx_iterations_[i];
+  }
+  os << "]" << '\n';
 }
 
 size_t BdaDdeCal::GetChanBlockIndex(const size_t channel,
@@ -808,8 +819,11 @@ size_t BdaDdeCal::GetChanBlockIndex(const size_t channel,
   // Check that the channel averaging schema is compatible with the channel
   // block division. One channel should be mapped to one single channel block.
   if (n_channels < n_channel_blocks) {
-    throw std::runtime_error(
-        "Number of BDA channels smaller than number of channel blocks");
+    std::stringstream msg;
+    msg << "Number of BDA channels (" << n_channels
+        << ") smaller than number of channel blocks (" << n_channel_blocks
+        << ")";
+    throw std::runtime_error(msg.str());
   }
 
   return std::floor(static_cast<double>(channel) / n_channels *

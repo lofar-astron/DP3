@@ -518,21 +518,21 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
 
   os << "          ";
   os << "Substeps taken:" << '\n';
-  for (auto& step : itsSteps) {
+  for (const std::shared_ptr<ModelDataStep>& step : itsSteps) {
     if (!step) continue;
-    os << "          ";
-    step->showTimings(os, duration);
+
+    std::ostringstream step_stream;
+    step->showTimings(step_stream, duration);
+    const std::string step_string = std::move(step_stream).str();
+    if (!step_string.empty()) os << "          " << step_string;
   }
 
   os << "Iterations taken: [";
-  for (size_t i = 0; i < itsNIter.size() - 1; ++i) {
+  for (size_t i = 0; i < itsNIter.size(); ++i) {
+    if (i > 0) os << ",";
     os << itsNIter[i];
     if (itsNApproxIter[i] != 0) os << '|' << itsNApproxIter[i];
-    os << ",";
   }
-  os << itsNIter[itsNIter.size() - 1];
-  if (itsNApproxIter[itsNIter.size() - 1] != 0)
-    os << '|' << itsNApproxIter[itsNIter.size() - 1];
   os << "]" << '\n';
 }
 
