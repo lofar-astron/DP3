@@ -78,17 +78,24 @@ BdaAverager::BdaAverager(const common::ParameterSet& parset,
 
 BdaAverager::~BdaAverager() = default;
 
-void BdaAverager::set_averaging_params(
-    std::vector<unsigned int> baseline_factors,
-    std::vector<std::vector<double>> freqs,
-    std::vector<std::vector<double>> widths) {
-  if (baseline_factors.empty() || freqs.empty() || widths.empty()) {
+void BdaAverager::SetAveragingParameters(const DPInfo& info) {
+  const auto is_empty_or_contains_empty =
+      [](const std::vector<std::vector<double>>& vector_of_vector) {
+        return vector_of_vector.empty() ||
+               std::any_of(vector_of_vector.begin(), vector_of_vector.end(),
+                           std::mem_fn(&std::vector<double>::empty));
+      };
+
+  if (info.ntimeAvgs().empty() ||
+      is_empty_or_contains_empty(info.BdaChanFreqs()) ||
+      is_empty_or_contains_empty(info.BdaChanWidths())) {
     throw std::invalid_argument(
         "One or more empty arguments while setting bda averaging parameters");
   }
-  baseline_factors_ = std::move(baseline_factors);
-  freqs_ = std::move(freqs);
-  widths_ = std::move(widths);
+
+  baseline_factors_ = info.ntimeAvgs();
+  freqs_ = info.BdaChanFreqs();
+  widths_ = info.BdaChanWidths();
 }
 
 void BdaAverager::updateInfo(const DPInfo& _info) {
@@ -377,6 +384,18 @@ void BdaAverager::SetBdaBuffer(const std::vector<std::string>& data_names) {
   }
 }
 
+float BdaAverager::TotalAveragingFactor() const {
+  float averaged_size = 0.0;
+  const float n_input_channels = getInfoIn().nchan();
+  for (const BaselineBuffer& baseline_buffer : baseline_buffers_) {
+    const float n_output_channels =
+        baseline_buffer.input_channel_indices.size() - 1;
+    const float channel_factor = n_input_channels / n_output_channels;
+    averaged_size += 1.0f / channel_factor / baseline_buffer.time_factor;
+  }
+  return baseline_buffers_.size() / averaged_size;
+}
+
 void BdaAverager::show(std::ostream& os) const {
   os << "BdaAverager " << name_ << '\n';
   os << "  timebase:        " << bl_threshold_time_ << "s\n";
@@ -385,6 +404,7 @@ void BdaAverager::show(std::ostream& os) const {
   os << "  min channels:    " << min_channels_ << "\n";
   os << "  max time factor: " << maxtimefactor_ << '\n';
   os << "  max freq factor: " << maxfreqfactor_ << '\n';
+  os << "  tot avg factor:  " << TotalAveragingFactor() << '\n';
 }
 
 }  // namespace steps

@@ -61,9 +61,20 @@ class BdaAverager : public Step {
 
   MsType outputs() const override { return MsType::kBda; };
 
-  void set_averaging_params(std::vector<unsigned int> baseline_factors,
-                            std::vector<std::vector<double>> freqs,
-                            std::vector<std::vector<double>> widths);
+  /**
+   * Set the averaging scheme for the BdaAverager.
+   * Using this function, a step can internally expand BDA data, process
+   * that data using a regular step, and apply the BdaAverager again.
+   * SetAveragingParameters can then restore the original averaging scheme so
+   * the resulting data is compatible with the original BDA data.
+   * Notes:
+   * - This function must be called before calling updateInfo().
+   * - BdaAverager only supports averaging schemes it would create normally,
+   *   without using SetAveragingParameters. Using an incompatible scheme will
+   *   make updateInfo() throw an exception.
+   * @param info A DPInfo object which contains an existing averaging scheme.
+   */
+  void SetAveragingParameters(const base::DPInfo& info);
 
   /**
    * Public method, which sets a desired output size (number of rows).
@@ -74,6 +85,15 @@ class BdaAverager : public Step {
    */
   void set_next_desired_buffersize(unsigned int buffersize);
 
+  /**
+   * Computes the total averaging factor (defined as the ratio between
+   * non-averaged and averaged visibility counts) for all baselines.
+   * Only works after setting the info, e.g., using setInfo().
+   * @return The averaging factor. A value of 4.2 means 4.2 megabytes of input
+   *         visibilities get averaged into 1 megabyte of output visibilities.
+   */
+  float TotalAveragingFactor() const;
+
  private:
   struct BaselineBuffer {
     BaselineBuffer(std::size_t time_factor, std::size_t n_input_channels,
@@ -83,6 +103,10 @@ class BdaAverager : public Step {
     std::size_t times_added;        ///< Number of added regular intervals.
     const std::size_t time_factor;  ///< Time averaging factor.
     /// Input channel start and end index for each output channel.
+    /// For example, [0, 3, 5] means there are 5 input channels and 2
+    /// averaged output channels.
+    /// The first output channel contains the average of input channels 0, 1, 2.
+    /// The second output channel contains the average of input channels 3, 4.
     std::vector<std::size_t> input_channel_indices;
     double starttime;
     double interval;
@@ -122,13 +146,13 @@ class BdaAverager : public Step {
   std::array<std::size_t, 3> expected_input_shape_;
 
   /// Time averaging factors per baseline (temporarily used to store the
-  /// arguments of set_averaging_params())
+  /// arguments of SetAveragingParameters())
   std::vector<unsigned int> baseline_factors_;
   /// Center frequency per channel per baseline (temporarily used to store the
-  /// arguments of set_averaging_params())
+  /// arguments of SetAveragingParameters())
   std::vector<std::vector<double>> freqs_;
   /// Channel width per channel per baseline (temporarily used to store the
-  /// arguments of set_averaging_params())
+  /// arguments of SetAveragingParameters())
   std::vector<std::vector<double>> widths_;
 
   const bool use_weights_and_flags_;

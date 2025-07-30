@@ -128,9 +128,7 @@ void Predict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
   if (bda_averager_) {
-    bda_averager_->set_averaging_params(getInfoOut().ntimeAvgs(),
-                                        getInfoOut().BdaChanFreqs(),
-                                        getInfoOut().BdaChanWidths());
+    bda_averager_->SetAveragingParameters(getInfoOut());
   }
 }
 

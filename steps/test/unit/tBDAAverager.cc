@@ -295,56 +295,103 @@ BOOST_AUTO_TEST_CASE(required_fields) {
              (Step::kDataField | Step::kUvwField));
 }
 
-BOOST_AUTO_TEST_CASE(set_averaging_params_invalid) {
-  const dp3::common::ParameterSet parset = GetParset();
-  BdaAverager averager(parset, kPrefix);
+struct AveragingParamsFixture {
+  /// Creates a DPInfo object for passing to SetAveragingParameters.
+  static DPInfo AveragingInfo(
+      const std::vector<unsigned int>& time_avg,
+      const std::vector<std::vector<double>>& frequencies,
+      const std::vector<std::vector<double>>& widths) {
+    DPInfo info;
+    // Passing a non-zero reference frequency makes setChannels work
+    // when passing zero channels.
+    const double kDummyReferenceFrequency = 142.0e6;
 
-  std::vector<unsigned int> time_avg{2};
-  std::vector<std::vector<double>> freqs{{0, 15000, 35000}};
-  std::vector<std::vector<double>> widths{{5000, 10000, 10000}};
+    // info.setChannels() uses the number of baselines, so set some dummy
+    // values.
+    const std::vector<std::string> kAntennaNames(1, "");
+    const std::vector<double> kAntennaDiameters(1, 42.0);
+    const std::vector<casacore::MPosition> kAntennaPositions(1);
+    const std::size_t n_baselines = frequencies.size();
+    const std::vector<int> antenna1_2(n_baselines, 0);
+    info.setAntennas(kAntennaNames, kAntennaDiameters, kAntennaPositions,
+                     antenna1_2, antenna1_2);
 
-  BOOST_REQUIRE_THROW(
-      averager.set_averaging_params(std::vector<unsigned int>(), freqs, widths),
-      std::invalid_argument);
-  BOOST_REQUIRE_THROW(averager.set_averaging_params(
-                          time_avg, std::vector<std::vector<double>>(), widths),
-                      std::invalid_argument);
-  BOOST_REQUIRE_THROW(averager.set_averaging_params(
-                          time_avg, freqs, std::vector<std::vector<double>>()),
-                      std::invalid_argument);
+    info.update(std::vector<unsigned int>(time_avg));
+    info.setChannels(std::vector<std::vector<double>>(frequencies),
+                     std::vector<std::vector<double>>(widths),
+                     std::vector<std::vector<double>>(widths),
+                     std::vector<std::vector<double>>(widths),
+                     kDummyReferenceFrequency);
+
+    return info;
+  }
+
+  const std::vector<unsigned int> kTimeFactors{2};
+  const std::vector<std::vector<double>> kFrequencies{{0, 15000, 35000}};
+  const std::vector<std::vector<double>> kWidths{{5000, 10000, 10000}};
+};
+
+BOOST_FIXTURE_TEST_CASE(set_averaging_params_valid, AveragingParamsFixture) {
+  const DPInfo info = AveragingInfo(kTimeFactors, kFrequencies, kWidths);
+  BdaAverager averager(GetParset(), kPrefix);
+  BOOST_CHECK_NO_THROW(averager.SetAveragingParameters(info));
 }
 
-BOOST_AUTO_TEST_CASE(set_averaging_params_unsupported) {
-  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
+BOOST_FIXTURE_TEST_CASE(set_averaging_params_invalid_time,
+                        AveragingParamsFixture) {
+  const std::vector<unsigned int> kEmptyTimeFactors;
+  const DPInfo info = AveragingInfo(kEmptyTimeFactors, kFrequencies, kWidths);
+  BdaAverager averager(GetParset(), kPrefix);
+  BOOST_CHECK_THROW(averager.SetAveragingParameters(info),
+                    std::invalid_argument);
+}
 
-  const dp3::common::ParameterSet parset = GetParset(2.0);
-  BdaAverager averager(parset, "bda_averager.");
+BOOST_FIXTURE_TEST_CASE(set_averaging_params_invalid_channels,
+                        AveragingParamsFixture) {
+  const std::vector<std::vector<double>> kEmptyChannelInfo = {{}};
+  const DPInfo info =
+      AveragingInfo(kTimeFactors, kEmptyChannelInfo, kEmptyChannelInfo);
+  BdaAverager averager(GetParset(), kPrefix);
+  BOOST_CHECK_THROW(averager.SetAveragingParameters(info),
+                    std::invalid_argument);
+}
 
-  std::vector<unsigned int> time_avg{2};
+BOOST_FIXTURE_TEST_CASE(unsupported_averaging_params, AveragingParamsFixture) {
+  const DPInfo info_in = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
+
   // Define an unsupported frequency averaging scheme (2-2-1)
-  std::vector<std::vector<double>> freqs{{5000, 25000, 40000}};
-  std::vector<std::vector<double>> widths{{10000, 10000, 5000}};
+  const std::vector<std::vector<double>> kUnsupportedFrequencies{
+      {5000, 25000, 40000}};
+  const std::vector<std::vector<double>> kUnsupportedWidths{
+      {10000, 10000, 5000}};
+  const DPInfo info_avg =
+      AveragingInfo(kTimeFactors, kUnsupportedFrequencies, kUnsupportedWidths);
 
-  BOOST_REQUIRE_NO_THROW(
-      averager.set_averaging_params(time_avg, freqs, widths));
-  BOOST_REQUIRE_THROW(averager.updateInfo(info), std::runtime_error);
+  BdaAverager averager(GetParset(2.0), kPrefix);
+  averager.SetAveragingParameters(info_avg);
+  BOOST_CHECK_EXCEPTION(
+      averager.updateInfo(info_in), std::runtime_error,
+      [](const std::runtime_error& exception) {
+        return std::string(exception.what()) ==
+               "Frequency averaging specified is not supported";
+      });
 }
 
-BOOST_AUTO_TEST_CASE(set_averaging_params) {
-  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
+BOOST_FIXTURE_TEST_CASE(supported_averaging_params, AveragingParamsFixture) {
+  const DPInfo info_in = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
 
-  const dp3::common::ParameterSet parset = GetParset(2.0);
-  BdaAverager averager(parset, kPrefix);
-
-  std::vector<unsigned int> time_avg{2};
   // Define a supported frequency averaging scheme (1-2-2)
-  std::vector<std::vector<double>> freqs{{0, 15000, 35000}};
-  std::vector<std::vector<double>> widths{{5000, 10000, 10000}};
+  const std::vector<std::vector<double>> kSupportedFrequencies{
+      {0, 15000, 35000}};
+  const std::vector<std::vector<double>> kSupportedWidths{{5000, 10000, 10000}};
+  const DPInfo info_avg =
+      AveragingInfo(kTimeFactors, kSupportedFrequencies, kSupportedWidths);
 
-  BOOST_REQUIRE_NO_THROW(
-      averager.set_averaging_params(time_avg, freqs, widths));
-  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
-  CheckInfo(averager.getInfoOut(), freqs, widths, time_avg);
+  BdaAverager averager(GetParset(2.0), kPrefix);
+  averager.SetAveragingParameters(info_avg);
+  averager.updateInfo(info_in);
+  CheckInfo(averager.getInfoOut(), kSupportedFrequencies, kSupportedWidths,
+            kTimeFactors);
 }
 
 BOOST_AUTO_TEST_CASE(no_averaging) {
@@ -356,8 +403,9 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   // copies data from DPBuffers into BdaBuffers.
   const dp3::common::ParameterSet parset = GetParset();
   BdaAverager averager(parset, kPrefix);
-  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  averager.setInfo(info);
   CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
+  BOOST_TEST(averager.TotalAveragingFactor() == 1.0);
 
   std::vector<std::unique_ptr<DPBuffer>> buffers;
   std::vector<std::unique_ptr<DPBuffer>> expected;
@@ -399,8 +447,9 @@ BOOST_DATA_TEST_CASE(time_averaging, kTrueFalseRange, use_data) {
 
   const dp3::common::ParameterSet parset = GetParset(baseline_length * kFactor);
   BdaAverager averager(parset, kPrefix);
-  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  averager.setInfo(info);
   CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
+  BOOST_TEST(averager.TotalAveragingFactor() == kFactor);
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
@@ -561,8 +610,9 @@ BOOST_DATA_TEST_CASE(channel_averaging, kTrueFalseRange, use_data) {
   const dp3::common::ParameterSet parset =
       GetParset(std::nullopt, baseline_length * kFactor);
   BdaAverager averager(parset, kPrefix);
-  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  averager.setInfo(info);
   CheckInfo(averager.getInfoOut(), {kOutputFreqs}, {kOutputWidths});
+  BOOST_TEST(averager.TotalAveragingFactor() == 7.0f / kFactor);
 
   std::unique_ptr<DPBuffer> buffer = CreateBuffer(
       kStartTime, kInterval, kNBaselines, kInputChannelCounts, 0.0);
@@ -604,8 +654,10 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
   const dp3::common::ParameterSet parset = GetParset(
       baseline_length * kTimeFactor, baseline_length * kChannelFactor);
   BdaAverager averager(parset, kPrefix);
-  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  averager.setInfo(info);
   CheckInfo(averager.getInfoOut(), {kOutputFreqs}, {kOutputWidths});
+  BOOST_TEST(averager.TotalAveragingFactor() ==
+             kTimeFactor * (7.0f / kChannelFactor));
 
   std::unique_ptr<DPBuffer> buffer0 =
       CreateBuffer(kStartTime + 0.0 * kInterval, kInterval, kNBaselines,
@@ -656,14 +708,17 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   const std::size_t kNBaselines = 3;
 
   const DPInfo info = InitInfo(kAnt1_3Bl, kAnt2_3Bl);
-  const double time_threshold =
-      600.0;  // Time averaging factors become 1, 2, 3.
-  const double chan_threshold = 100.0;  // No channel averaging.
+
+  const double kTimeThreshold = 600.0;  // Time averaging factors become 1,2,3.
+  const double kChannelThreshold = 100.0;  // No channel averaging.
+  // 6 input time steps x 3 baselines yield 6 + 3 + 2 output time steps.
+  const float kTotalFactor = (6.0f * 3.0f) / (6 + 3 + 2);
 
   const dp3::common::ParameterSet parset =
-      GetParset(time_threshold, chan_threshold);
+      GetParset(kTimeThreshold, kChannelThreshold);
   BdaAverager averager(parset, kPrefix);
-  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  averager.setInfo(info);
+  BOOST_TEST(averager.TotalAveragingFactor() == kTotalFactor);
 
   // Create input buffers for the averager. For the first baseline, these
   // buffers also equal the expected output data (expected_long_baseline).
@@ -759,13 +814,16 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
 
   const DPInfo info =
       InitInfo(kAnt1_3Bl, kAnt2_3Bl, kInputChannelCounts.size());
-  const double time_threshold = 100.0;  // No averaging, baselines are longer.
-  const double chan_threshold = 600.0;  // Averaging factors become 1, 2, 3.
+  const double kTimeThreshold = 100.0;  // No averaging, baselines are longer.
+  const double kChannelThreshold = 600.0;  // Averaging factors become 1, 2, 3.
+  // 9 input channels x 3 baselines yield 9 + 5 + 3 output channels.
+  const float kTotalFactor = (9.0f * 3.0f) / (9 + 5 + 3);
 
   const dp3::common::ParameterSet parset =
-      GetParset(time_threshold, chan_threshold);
+      GetParset(kTimeThreshold, kChannelThreshold);
   BdaAverager averager(parset, kPrefix);
-  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+  averager.setInfo(info);
+  BOOST_TEST(averager.TotalAveragingFactor() == kTotalFactor);
 
   // Create input buffers and expected output data for the averager.
   // For the first baseline, the expected output data (expected1) is equal to
