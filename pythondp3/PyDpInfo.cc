@@ -31,6 +31,9 @@ void WrapDpInfo(py::module& m) {
              const std::vector<std::array<double, 3>>& positions,
              const std::vector<int>& antenna1_indices,
              const std::vector<int>& antenna2_indices) {
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
+
             std::vector<casacore::MPosition> positions_casa;
             positions_casa.reserve(positions.size());
             for (const std::array<double, 3>& position : positions) {
@@ -85,6 +88,8 @@ Parameters:
           "set_channels",
           [](DPInfo& self, std::vector<double> frequencies,
              std::vector<double> widths) {
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
             self.setChannels(std::move(frequencies), std::move(widths));
           },
           R"(Set (basic) channel properties".

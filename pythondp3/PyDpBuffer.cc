@@ -113,8 +113,12 @@ void WrapDpBuffer(py::module& m) {
                   "n_channels, n_correlations); the input provided contains " +
                   std::to_string(numpy_data.ndim()) + " dimensions.");
             }
+            const std::array<std::size_t, 3> shape =
+                ConvertShape(numpy_data.shape());
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
             DPBuffer& buffer = *self;
-            buffer.GetData().resize(ConvertShape(numpy_data.shape()));
+            buffer.GetData().resize(shape);
             std::copy_n(numpy_data.data(), buffer.GetData().size(),
                         buffer.GetData().data());
           },
@@ -129,7 +133,11 @@ void WrapDpBuffer(py::module& m) {
                   "n_channels, n_correlations); the input provided contains " +
                   std::to_string(numpy_data.ndim()) + " dimensions.");
             }
-            self->GetData(name).resize(ConvertShape(numpy_data.shape()));
+            const std::array<std::size_t, 3> shape =
+                ConvertShape(numpy_data.shape());
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
+            self->GetData(name).resize(shape);
             std::copy_n(numpy_data.data(), self->GetData(name).size(),
                         self->GetData(name).data());
           },
@@ -137,11 +145,19 @@ void WrapDpBuffer(py::module& m) {
           "complex float type.")
       .def(
           "add_data",
-          [](PyDpBuffer& self, std::string name) { self->AddData(name); },
+          [](PyDpBuffer& self, std::string name) {
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
+            self->AddData(name);
+          },
           "Add a new data field in the DPBuffer with the given name.")
       .def(
           "remove_data",
-          [](PyDpBuffer& self, std::string name) { self->RemoveData(name); },
+          [](PyDpBuffer& self, std::string name) {
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
+            self->RemoveData(name);
+          },
           "Remove the data field in the DPBuffer with the given name.")
       .def(
           "set_weights",
@@ -152,8 +168,12 @@ void WrapDpBuffer(py::module& m) {
                   "Provided array should have three dimensions (n_baselines, "
                   "n_channels, n_correlations).");
             }
+            const std::array<std::size_t, 3> shape =
+                ConvertShape(numpy_weights.shape());
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
             DPBuffer& buffer = *self;
-            buffer.GetWeights().resize(ConvertShape(numpy_weights.shape()));
+            buffer.GetWeights().resize(shape);
             std::copy_n(numpy_weights.data(), buffer.GetWeights().size(),
                         buffer.GetWeights().data());
           },
@@ -167,8 +187,12 @@ void WrapDpBuffer(py::module& m) {
                   "Provided array should have three dimensions (n_baselines, "
                   "n_channels, n_correlations).");
             }
+            const std::array<std::size_t, 3> shape =
+                ConvertShape(numpy_flags.shape());
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
             DPBuffer& buffer = *self;
-            buffer.GetFlags().resize(ConvertShape(numpy_flags.shape()));
+            buffer.GetFlags().resize(shape);
             std::copy_n(numpy_flags.data(), buffer.GetFlags().size(),
                         buffer.GetFlags().data());
           },
@@ -186,9 +210,12 @@ void WrapDpBuffer(py::module& m) {
               throw std::runtime_error(
                   "Each baseline should have 3 uvw values.");
             }
+            const std::array<std::size_t, 3> shape{
+                static_cast<std::size_t>(numpy_uvw.shape(0)), 3u};
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
             DPBuffer& buffer = *self;
-            buffer.GetUvw().resize(
-                {static_cast<std::size_t>(numpy_uvw.shape(0)), 3u});
+            buffer.GetUvw().resize(shape);
             std::copy_n(numpy_uvw.data(), buffer.GetUvw().size(),
                         buffer.GetUvw().data());
           },
