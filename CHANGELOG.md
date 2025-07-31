@@ -1,13 +1,44 @@
 # DP3 Changelog
 
+## [6.5 (Upcoming release)] - 2025-??-??
+
+### New features
+
+- Add `ddecal.antenna_averaging_factors` setting for specifying different solutions intervals per antenna.
+- Add `ddecal.antenna_smoothness_factors` setting for specifying smoothness factors per antenna.
+- Support `ddecal.keepmodel` and `ddecal.reusemodel` settings for `ddecal` steps that process BDA data.
+- Add `predict.coefficients_path` setting, e.g., for specifying MWA beam model coefficients.
+- Add `transfer` step for transfering data and flags from low- to high-resolution MSs.
+
+### Improvements
+
+- Remove dependency on C compiler.
+- Support numpy 2.x.
+- Use 50% of memory instead of 10% for wgridder predict buffer.
+- Show number of solver iterations in BDA `ddecal` step.
+- `ddecal.h5parm` is now a mandatory setting. The default `instrument.h5` filename is now deprecated.
+- Improve `preflagger` performance.
+- Remove `ddecal.initialsolutions.gaintype` setting. Always deduce the gain type from the initial solutions.
+- When using `onlypredict=True` and `keepmodel=True` in a `ddecal` step, it no longer overwrites the main data buffer. This improvement allows predicting model data using a regular `ddecal` step and reusing it in a BDA `ddecal` step.
+- Show total/combined averaging factor for all baselines in `bdaaverager` step.
+
+
+### Bug fixes
+
+- Fix and update default `msout.tilenchan` setting. The default value is now 64.
+- Fix updating phase centre when writing BDA MSs.
+- Fix a bug in antenna-uvw calculations causing incorrect data prediction. This bug did not manifest itself for LOFAR observations, it was observed in specific MWA tests.
+- In `ddecal`, avoid printing empty lines with sub step timings.
+
+
 ## [6.4.1] - 2025-05-22
 
 ### New features
-- Add a new rotationconstraint in DDECal for fitting Faraday rotation
-- Support multiple directions in the rotation and rotation-and-diagonal constraints
+- Add a new rotationconstraint in DDECal for fitting Faraday rotation.
+- Support multiple directions in the rotation and rotation-and-diagonal constraints.
 
 ### Improvements
-- Add missing beam keywords to BDA data
+- Add missing beam keywords to BDA data.
 
 
 ## [6.4] - 2025-04-14
