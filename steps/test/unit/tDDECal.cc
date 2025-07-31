@@ -199,6 +199,7 @@ BOOST_FIXTURE_TEST_CASE(keep_model_data_directions, KeepModelDataFixture) {
   CheckOutput({kPrefix + "center", kPrefix + "ra_off", kPrefix + "radec_off"});
 }
 
+#ifdef HAVE_IDG
 BOOST_FIXTURE_TEST_CASE(keep_model_data_idg, KeepModelDataFixture) {
   auto ddecal = std::make_shared<DDECal>(
       CreateParameterSet({{kPrefix + "idg.regions", "../sources.reg"},
@@ -213,6 +214,7 @@ BOOST_FIXTURE_TEST_CASE(keep_model_data_idg, KeepModelDataFixture) {
   CheckOutput(
       {kPrefix + "dir0", kPrefix + "dir1", kPrefix + "dir2", kPrefix + "dir3"});
 }
+#endif
 
 BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
   const dp3::base::Direction kModelDirection(0, 0);

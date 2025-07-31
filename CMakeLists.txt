@@ -907,8 +907,6 @@ if(BUILD_TESTING)
   # ctest can run them in parallel. Unfortunately there is no easy means of
   # retreiving a list of all slow tests.
   set(SLOW_TESTS
-      idgpredict/process
-      idgpredict/process_beam
       solvers/scalar
       solvers/scalar_normaleq
       solvers/diagonal
@@ -926,6 +924,10 @@ if(BUILD_TESTING)
       solvers/iterative_full_jones_dd_intervals
       solvers/hybrid
       solvers/min_iterations)
+
+  if(HAVE_IDG)
+    list(APPEND SLOW_TESTS idgpredict/process idgpredict/process_beam)
+  endif()
 
   if(LIBDIRAC_FOUND AND NOT HAVE_CUDA)
     list(
