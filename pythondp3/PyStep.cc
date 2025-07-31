@@ -21,7 +21,8 @@ namespace pythondp3 {
 PyStep::PyStep() {}
 
 void PyStep::show(std::ostream& os) const {
-  pybind11::gil_scoped_acquire gil;  // Acquire the GIL while in this scope.
+  // Interacting with python runtime, so acquire the GIL
+  pybind11::gil_scoped_acquire gil;
 
   // redirect sys.stdout to os
   pybind11::object sysm = pybind11::module::import("sys");
@@ -50,6 +51,9 @@ void PyStep::finish() {
   // Python steps that can be used as end point of a pipeline
   // like for example the QueueOutput step.
   // Ticket AST-1105 aims to be bring the C++ and Python behaviour more in line.
+  // Interacting with python runtime, so acquire the GIL
+  pybind11::gil_scoped_acquire gil;
+
   pybind11::function finish_override = pybind11::get_override(this, "finish");
   if (finish_override) finish_override();  // Call the Python function.
   if (getNextStep()) getNextStep()->finish();

@@ -71,6 +71,8 @@ PYBIND11_MODULE(pydp3, m) {
         std::vector<char *> argv =
             pylist_to_char_array(argv_list, argv_strings);
         try {
+          // Potentially long running operation, so release the GIL
+          py::gil_scoped_release release;
           dp3::base::Execute(parset_name, static_cast<int>(argv.size()),
                              argv.data());
         } catch (const H5::Exception &err) {
@@ -89,6 +91,8 @@ PYBIND11_MODULE(pydp3, m) {
         std::vector<char *> argv =
             pylist_to_char_array(argv_list, argv_strings);
         try {
+          // Potentially long running operation, so release the GIL
+          py::gil_scoped_release release;
           dp3::base::ExecuteFromCommandLine(static_cast<int>(argv.size()),
                                             argv.data());
         } catch (const H5::Exception &err) {
@@ -172,11 +176,19 @@ PYBIND11_MODULE(pydp3, m) {
       .def(
           "process",
           [](dp3::steps::Step &step, PyDpBuffer &buffer) {
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
             return step.process(buffer.take());
           },
           "process buffer")
-      .def("finish", &Step::finish,
-           "Finish processing (nextstep->finish will be called automatically")
+      .def(
+          "finish",
+          [](dp3::steps::Step &step) {
+            // Potentially long running operation, so release the GIL
+            py::gil_scoped_release release;
+            return step.finish();
+          },
+          "Finish processing (nextstep->finish will be called automatically")
       .def("get_next_step", &Step::getNextStep,
            "Get a reference to the next step")
       .def("set_next_step", &Step::setNextStep,
