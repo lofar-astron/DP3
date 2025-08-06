@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(update_info_wrong) {
 
   IDGPredict predict(parset, "");
 
-  BOOST_CHECK_THROW(predict.setInfo(info), std::invalid_argument);
+  BOOST_CHECK_THROW(predict.updateInfo(info), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(update_info) {
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(update_info) {
 
   IDGPredict predict(parset, "");
 
-  predict.setInfo(info);
+  predict.updateInfo(info);
 
   BOOST_TEST(predict.IsStarted() == true);
   BOOST_TEST(predict.GetBufferSize() > 0u);

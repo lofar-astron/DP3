@@ -52,13 +52,15 @@ def test_make_main_steps(run_in_tmp_path):
 
     first_step = dp3.make_main_steps(parset)
 
-    last_info = first_step.set_info(dp3.DPInfo())
-    assert last_info.n_times == 3
+    first_step.set_info(dp3.DPInfo())
 
     step = first_step
+    last_step = step
     while step is not None:
         step.show()
+        last_step = step
         step = step.get_next_step()
+    assert last_step.info_out.n_times == 3
 
     start_time = time.time()
     while first_step.process(dp3.DPBuffer()):

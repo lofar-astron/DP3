@@ -87,11 +87,6 @@ class Step {
   /// Finish the processing of this step and subsequent steps.
   virtual void finish() = 0;
 
-  /// Set the info of this step and its next step.
-  /// It calls the virtual function updateInfo to do the real work.
-  /// It returns the info of the last step.
-  const base::DPInfo& setInfo(const base::DPInfo&);
-
   /// Get the fields required by the current step.
   virtual dp3::common::Fields getRequiredFields() const = 0;
 
@@ -99,6 +94,14 @@ class Step {
   /// The returned fields thus should not include (required) fields that are
   /// forwarded without modifications.
   virtual dp3::common::Fields getProvidedFields() const = 0;
+
+  /// Set the info of this step and its next step.
+  /// It calls the virtual function updateInfo to do the real work.
+  void setInfo(const base::DPInfo&);
+
+  /// Update the general info (called by setInfo).
+  /// The default implementation copies the info.
+  virtual void updateInfo(const base::DPInfo&);
 
   /// Get access to the info of the input.
   const base::DPInfo& getInfoIn() const { return input_info_; }
@@ -151,10 +154,6 @@ class Step {
  protected:
   /// @return Non-const reference to output info.
   base::DPInfo& GetWritableInfoOut() { return output_info_; }
-
-  /// Update the general info (called by setInfo).
-  /// The default implementation copies the info.
-  virtual void updateInfo(const base::DPInfo&);
 
   /// Add some data to the MeasurementSet written/updated.
   /// The default implementation only calls addToMS from the previous step

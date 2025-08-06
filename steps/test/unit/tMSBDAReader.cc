@@ -39,11 +39,11 @@ BOOST_AUTO_TEST_CASE(constructor) {
   BOOST_TEST((reader.outputs() == dp3::steps::Step::MsType::kBda));
 }
 
-BOOST_AUTO_TEST_CASE(set_info) {
+BOOST_AUTO_TEST_CASE(update_info) {
   casacore::MeasurementSet ms("tNDPPP_bda_tmp.MS");
   MSBDAReader reader(ms, kParset, kPrefix);
 
-  reader.setInfo(DPInfo());
+  reader.updateInfo(DPInfo());
   const double start_time =
       4472025725;  // conversion of start time for tNDPPP_bda_tmp.MS
                    // (2000/08/03 13h22m05.000) into seconds

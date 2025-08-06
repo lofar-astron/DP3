@@ -28,18 +28,19 @@ Step::Step() {
 
 Step::~Step() = default;
 
-const DPInfo& Step::setInfo(const DPInfo& info) {
-  input_info_ = info;
+void Step::setInfo(const DPInfo& info) {
   // Update the info of this step using the given info.
   updateInfo(info);
   // If there is a next step, set its info using the info of this step.
   if (getNextStep()) {
-    return getNextStep()->setInfo(getInfoOut());
+    getNextStep()->setInfo(getInfoOut());
   }
-  return getInfoOut();
 }
 
-void Step::updateInfo(const DPInfo& infoIn) { GetWritableInfoOut() = infoIn; }
+void Step::updateInfo(const DPInfo& info) {
+  input_info_ = info;
+  output_info_ = info;
+}
 
 void Step::addToMS(const std::string& msName) {
   if (previous_step_) previous_step_->addToMS(msName);

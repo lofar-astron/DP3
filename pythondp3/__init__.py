@@ -242,6 +242,11 @@ class StepWrapper:
         return self._step.info_in
 
     @property
+    def info_out(self):
+        "Get a copy of the info object containing metadata of the output"
+        return self._step.info_out
+
+    @property
     def info(self):
         "Get a copy of the info object containing metadata"
         return self._step.info

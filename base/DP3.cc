@@ -319,7 +319,7 @@ void Execute(const std::string& parsetName, int argc, char* argv[]) {
   std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
 
   // Call updateInfo() on all steps
-  DPInfo dpInfo = firstStep->setInfo(DPInfo());
+  firstStep->setInfo(DPInfo());
 
   // Show the steps.
   std::shared_ptr<Step> step = firstStep;

@@ -220,7 +220,7 @@ class TestOutput : public dp3::steps::test::ThrowStep {
 
   void finish() override {}
   void updateInfo(const DPInfo& infoIn) override {
-    GetWritableInfoOut() = infoIn;
+    Step::updateInfo(infoIn);
     BOOST_CHECK_EQUAL(kNChannels, infoIn.origNChan());
     BOOST_CHECK_EQUAL(kNChannels, infoIn.nchan());
     BOOST_CHECK_EQUAL(kNTimes, infoIn.ntime());

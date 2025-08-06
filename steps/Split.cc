@@ -85,7 +85,7 @@ void Split::SetFieldsToWrite(const common::Fields& fields) {
 }
 
 void Split::updateInfo(const DPInfo& infoIn) {
-  GetWritableInfoOut() = infoIn;
+  Step::updateInfo(infoIn);
 
   for (std::shared_ptr<Step>& step : sub_steps_) {
     step->setInfo(infoIn);
