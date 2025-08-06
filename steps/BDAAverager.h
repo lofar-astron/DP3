@@ -88,7 +88,7 @@ class BdaAverager : public Step {
   /**
    * Computes the total averaging factor (defined as the ratio between
    * non-averaged and averaged visibility counts) for all baselines.
-   * Only works after setting the info, e.g., using setInfo().
+   * Only works after setting the info using updateInfo().
    * @return The averaging factor. A value of 4.2 means 4.2 megabytes of input
    *         visibilities get averaged into 1 megabyte of output visibilities.
    */

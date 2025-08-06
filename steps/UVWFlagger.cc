@@ -111,7 +111,7 @@ void UVWFlagger::showTimings(std::ostream& os, double duration) const {
 }
 
 void UVWFlagger::updateInfo(const DPInfo& infoIn) {
-  GetWritableInfoOut() = infoIn;
+  Step::updateInfo(infoIn);
   // Convert the given frequencies to possibly averaged frequencies.
   // Divide it by speed of light to get reciprocal of wavelengths.
   itsRecWavel = infoIn.BdaChanFreqs();

@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(save_ratios_to_json) {
   auto mock_step = std::make_shared<dp3::steps::MockStep>();
 
   Counter counter(parset, "");
-  counter.setInfo(info);
+  counter.updateInfo(info);
 
   counter.setNextStep(mock_step);
 

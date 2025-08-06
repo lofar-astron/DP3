@@ -217,7 +217,7 @@ BOOST_FIXTURE_TEST_CASE(different_bda_intervals, FixtureDirectory) {
   MSBDAWriter writer(msOutName, parset, prefix);
 
   // Execute
-  writer.setInfo(info);
+  writer.updateInfo(info);
 
   // Assert if the correct columns are created
   Table table(msOutName, TableLock::AutoNoReadLocking);

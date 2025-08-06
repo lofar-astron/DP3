@@ -272,7 +272,8 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   initializeThreadData();
 
   if (apply_cal_step_) {
-    GetWritableInfoOut() = apply_cal_step_->setInfo(getInfoOut());
+    apply_cal_step_->setInfo(getInfoOut());
+    GetWritableInfoOut() = result_step_->getInfoOut();
   }
 }
 

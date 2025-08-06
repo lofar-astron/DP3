@@ -82,7 +82,7 @@ def test_info():
         def __init__(self):
             dp3.Step.__init__(self)
 
-        def _update_info(self, info):
+        def update_info(self, info):
             # Modify the info a bit showing that this method is
             # indeed called when set_info() is called.
             # An example of a step that makes actual changes to the info object
@@ -91,7 +91,7 @@ def test_info():
             last_time = info.last_time + 2.0
             time_interval = info.time_interval + 3.0
             info.set_times(first_time, last_time, time_interval)
-            super()._update_info(info)
+            super().update_info(info)
 
     step = TestInfoStep()
 
@@ -102,10 +102,10 @@ def test_info():
     time_interval = 5.0
     info.set_times(first_time, last_time, time_interval)
 
-    # Set info, this will call _update_info()
+    # Set info, this will call update_info()
     step.set_info(info)
 
-    # Assert that info was set and modified by _update_info()
+    # Assert that info was set and modified by update_info()
     # Storing step.info in local variable step_info, because
     # step.info creates a copy
     step_info = step.info

@@ -403,7 +403,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
   // copies data from DPBuffers into BdaBuffers.
   const dp3::common::ParameterSet parset = GetParset();
   BdaAverager averager(parset, kPrefix);
-  averager.setInfo(info);
+  averager.updateInfo(info);
   CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
   BOOST_TEST(averager.TotalAveragingFactor() == 1.0);
 
@@ -447,7 +447,7 @@ BOOST_DATA_TEST_CASE(time_averaging, kTrueFalseRange, use_data) {
 
   const dp3::common::ParameterSet parset = GetParset(baseline_length * kFactor);
   BdaAverager averager(parset, kPrefix);
-  averager.setInfo(info);
+  averager.updateInfo(info);
   CheckInfo(averager.getInfoOut(), {info.chanFreqs()}, {info.chanWidths()});
   BOOST_TEST(averager.TotalAveragingFactor() == kFactor);
 
@@ -610,7 +610,7 @@ BOOST_DATA_TEST_CASE(channel_averaging, kTrueFalseRange, use_data) {
   const dp3::common::ParameterSet parset =
       GetParset(std::nullopt, baseline_length * kFactor);
   BdaAverager averager(parset, kPrefix);
-  averager.setInfo(info);
+  averager.updateInfo(info);
   CheckInfo(averager.getInfoOut(), {kOutputFreqs}, {kOutputWidths});
   BOOST_TEST(averager.TotalAveragingFactor() == 7.0f / kFactor);
 
@@ -654,7 +654,7 @@ BOOST_AUTO_TEST_CASE(mixed_averaging) {
   const dp3::common::ParameterSet parset = GetParset(
       baseline_length * kTimeFactor, baseline_length * kChannelFactor);
   BdaAverager averager(parset, kPrefix);
-  averager.setInfo(info);
+  averager.updateInfo(info);
   CheckInfo(averager.getInfoOut(), {kOutputFreqs}, {kOutputWidths});
   BOOST_TEST(averager.TotalAveragingFactor() ==
              kTimeFactor * (7.0f / kChannelFactor));
@@ -717,7 +717,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_time_averaging) {
   const dp3::common::ParameterSet parset =
       GetParset(kTimeThreshold, kChannelThreshold);
   BdaAverager averager(parset, kPrefix);
-  averager.setInfo(info);
+  averager.updateInfo(info);
   BOOST_TEST(averager.TotalAveragingFactor() == kTotalFactor);
 
   // Create input buffers for the averager. For the first baseline, these
@@ -822,7 +822,7 @@ BOOST_AUTO_TEST_CASE(three_baselines_channel_averaging) {
   const dp3::common::ParameterSet parset =
       GetParset(kTimeThreshold, kChannelThreshold);
   BdaAverager averager(parset, kPrefix);
-  averager.setInfo(info);
+  averager.updateInfo(info);
   BOOST_TEST(averager.TotalAveragingFactor() == kTotalFactor);
 
   // Create input buffers and expected output data for the averager.

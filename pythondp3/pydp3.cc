@@ -33,7 +33,6 @@ class PublicStep : public Step {
  public:
   using Step::GetWritableInfoOut;
   using Step::showTimings;
-  using Step::updateInfo;
 };
 
 namespace {
@@ -142,12 +141,10 @@ PYBIND11_MODULE(pydp3, m) {
              step.show(ss);
              return ss.str();
            })
-      // Step::updateInfo is protected
-      // Prepending by an underscore to indicate that this mehod is not
-      // supposed to be called directly
-      .def("_update_info", &PublicStep::updateInfo, "Handle metadata")
-      .def("set_info", &Step::setInfo, py::return_value_policy::reference,
-           "Set info object. This will call _update_info() for this step and "
+      .def("update_info", &Step::updateInfo, "Handle metadata")
+      .def("_update_info", &Step::updateInfo, "Legacy name of update_info")
+      .def("set_info", &Step::setInfo,
+           "Set info object. This will call update_info() for this step and "
            "all next steps")
       // Step::getInfoIn(), Step::getInfoOut() and Step::getInfo()
       // return const references.
@@ -162,7 +159,7 @@ PYBIND11_MODULE(pydp3, m) {
           "info_out", &Step::getInfoOut, py::return_value_policy::copy,
           "Get a copy of the info object containing metadata of the output")
       // Since a python step needs to be able to adjust its info_out in its
-      // _update_info() override, _info_out returns a modifiable reference.
+      // update_info() override, _info_out returns a modifiable reference.
       .def_property_readonly("_info_out", &PublicStep::GetWritableInfoOut,
                              py::return_value_policy::reference,
                              "Get a modifiable reference to info object "

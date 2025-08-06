@@ -32,10 +32,10 @@ void TestInfoDirectionsWithoutReuse(dp3::steps::Step& reader,
 
   auto bdaddecal = std::make_shared<DdeStep>(parset, "");
   BOOST_TEST(parset.unusedKeys().empty());
-  const dp3::base::DPInfo& info_out = bdaddecal->setInfo(reader.getInfoOut());
+  bdaddecal->updateInfo(reader.getInfoOut());
 
   const std::map<std::string, dp3::base::Direction>& directions =
-      info_out.GetDirections();
+      bdaddecal->getInfoOut().GetDirections();
   if (keep_model_data) {
     BOOST_TEST_REQUIRE(directions.size() == 1);
     BOOST_TEST(directions.begin()->first ==
@@ -76,10 +76,10 @@ void TestInfoDirectionsWithReuse(dp3::steps::Step& reader,
 
     auto bdaddecal = std::make_shared<DdeStep>(parset, "");
     BOOST_TEST(parset.unusedKeys().empty());
-    const dp3::base::DPInfo& info_out = bdaddecal->setInfo(info_in);
+    bdaddecal->updateInfo(info_in);
 
     const std::map<std::string, dp3::base::Direction>& output_directions =
-        info_out.GetDirections();
+        bdaddecal->getInfoOut().GetDirections();
     const std::vector<std::string>& expected_directions =
         keep_model_data ? kAllDirections : kRemainingDirections[i];
 
