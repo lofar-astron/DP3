@@ -497,6 +497,7 @@ add_library(
   steps/BdaExpander.cc
   steps/BdaGroupPredict.cc
   steps/Clipper.cc
+  steps/Combine.cc
   steps/Counter.cc
   steps/Transfer.cc
   steps/Demixer.cc

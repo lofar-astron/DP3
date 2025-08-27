@@ -28,6 +28,7 @@
 #include "../steps/BdaExpander.h"
 #include "../steps/BdaGroupPredict.h"
 #include "../steps/Clipper.h"
+#include "../steps/Combine.h"
 #include "../steps/Counter.h"
 #include "../steps/DDECal.h"
 #include "../steps/BdaDdeCal.h"
@@ -178,6 +179,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::UVWFlagger>(parset, prefix, inputType);
   } else if (type == "clipper") {
     step = std::make_shared<steps::Clipper>(parset, prefix);
+  } else if (type == "combine") {
+    step = std::make_shared<steps::Combine>(parset, prefix);
   } else if (type == "columnreader") {
     step = std::make_shared<steps::MsColumnReader>(parset, prefix);
   } else if (type == "counter" || type == "count") {
