@@ -80,7 +80,7 @@ bool MSUpdater::addColumn(const std::string& colName,
     return false;
   }
 
-  if (itsStManKeys.stManName == "stokes_i") {
+  if (itsStManKeys.storage_manager_name == "stokes_i") {
     casacore::DataManagerCtor stokes_i_constructor =
         DataManager::getCtor("StokesIStMan");
     std::unique_ptr<DataManager> stokes_i_st_man(
@@ -95,8 +95,8 @@ bool MSUpdater::addColumn(const std::string& colName,
     TableDesc td;
     td.addColumn(directColumnDesc, colName);
     itsMS.addColumn(td, *stokes_i_st_man);
-  } else if (itsStManKeys.stManName == "dysco" &&
-             itsStManKeys.dyscoDataBitRate != 0 &&
+  } else if (itsStManKeys.storage_manager_name == "dysco" &&
+             itsStManKeys.dysco_data_bit_rate != 0 &&
              dataType != casacore::TpBool) {
     casacore::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
     casacore::DataManagerCtor dyscoConstructor =
@@ -185,7 +185,7 @@ bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
 
       // If compressing, flagged values need to be set to NaN to decrease the
       // dynamic range
-      if (itsStManKeys.stManName == "dysco") {
+      if (itsStManKeys.storage_manager_name == "dysco") {
         Cube<casacore::Complex> data_copy = data.copy();
         Cube<casacore::Complex>::iterator data_iterator = data_copy.begin();
         for (const bool flag : buffer->GetFlags()) {
@@ -207,7 +207,7 @@ bool MSUpdater::process(std::unique_ptr<DPBuffer> buffer) {
 
       // If compressing, set weights of flagged points to zero to decrease the
       // dynamic range
-      if (itsStManKeys.stManName == "dysco") {
+      if (itsStManKeys.storage_manager_name == "dysco") {
         Cube<float> weights_copy = weights.copy();
         Cube<float>::iterator weights_iterator = weights_copy.begin();
         for (const bool flag : buffer->GetFlags()) {
@@ -351,13 +351,13 @@ void MSUpdater::show(std::ostream& os) const {
     if (GetFieldsToWrite().Weights()) os << " weights";
     os << '\n';
   }
-  if (itsStManKeys.stManName == "dysco") {
+  if (itsStManKeys.storage_manager_name == "dysco") {
     os << "  Compressed:     yes\n"
-       << "  Data bitrate:   " << itsStManKeys.dyscoDataBitRate << '\n'
-       << "  Weight bitrate: " << itsStManKeys.dyscoWeightBitRate << '\n'
-       << "  Dysco mode:     " << itsStManKeys.dyscoNormalization << ' '
-       << itsStManKeys.dyscoDistribution << '('
-       << itsStManKeys.dyscoDistTruncation << ")\n";
+       << "  Data bitrate:   " << itsStManKeys.dysco_data_bit_rate << '\n'
+       << "  Weight bitrate: " << itsStManKeys.dysco_weight_bit_rate << '\n'
+       << "  Dysco mode:     " << itsStManKeys.dysco_normalization << ' '
+       << itsStManKeys.dysco_distribution << '('
+       << itsStManKeys.dysco_dist_truncation << ")\n";
   } else {
     os << "  Compressed:     no\n";
   }

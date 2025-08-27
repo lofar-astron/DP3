@@ -67,7 +67,8 @@ MSBDAWriter::MSBDAWriter(const std::string& out_name,
     : out_name_(out_name),
       parset_(parset),
       prefix_(prefix),
-      overwrite_(parset.getBool(prefix + "overwrite", false)) {}
+      overwrite_(parset.getBool(prefix + "overwrite", false)),
+      st_man_keys_(parset, prefix) {}
 
 void MSBDAWriter::updateInfo(const DPInfo& info_in) {
   if (info_in.ntimeAvgs().size() != info_in.nbaselines()) {
@@ -163,7 +164,15 @@ void MSBDAWriter::show(std::ostream& os) const {
   os << "  ncorrelations:  " << getInfoOut().ncorr() << '\n';
   os << "  nbaselines:     " << getInfoOut().nbaselines() << '\n';
   os << "  DATA column:    DATA" << '\n';
-  os << "  Compressed:     no\n";
+  if (st_man_keys_.storage_manager_name == "sisco") {
+    os << "  Compressed:     yes (Sisco)\n"
+       << "   Predict level: " << st_man_keys_.sisco_predict_level << '\n'
+       << "   Deflate level: " << st_man_keys_.sisco_deflate_level << '\n';
+  } else if (st_man_keys_.storage_manager_name == "stokes_i") {
+    os << "  Compressed:     yes (Stokes I)\n";
+  } else {
+    os << "  Compressed:     no\n";
+  }
 }
 
 void MSBDAWriter::CreateMS() {
@@ -200,7 +209,13 @@ void MSBDAWriter::CreateMainTable() {
   setup.bindColumn(MS::columnName(MS::EXPOSURE), man_std);
   setup.bindColumn(MS::columnName(MS::TIME_CENTROID), man_std);
   setup.bindColumn(MS::columnName(MS::UVW), man_std);
-  setup.bindColumn(MS::columnName(MS::DATA), man_std);
+  if (st_man_keys_.storage_manager_name == "sisco") {
+    std::unique_ptr<casacore::DataManager> sisco_st_man =
+        MakeStMan("SiscoStMan", "SiscoData");
+    setup.bindColumn(MS::columnName(MS::DATA), *sisco_st_man);
+  } else {
+    setup.bindColumn(MS::columnName(MS::DATA), man_std);
+  }
   setup.bindColumn(MS::columnName(MS::WEIGHT_SPECTRUM), man_std);
   setup.bindColumn(MS::columnName(MS::FLAG), man_std);
   setup.bindColumn(MS::columnName(MS::FLAG_CATEGORY), man_std);
