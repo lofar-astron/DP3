@@ -88,6 +88,9 @@ class Transfer final : public Step {
   bool transfer_flags_;
   /// @}
 
+  /// Whether to put the data in a named buffer
+  std::string output_buffer_name_;
+
   /// Remainder of time steps for which to hold data_/flags_
   std::size_t timestep_counter_ = 0;
 

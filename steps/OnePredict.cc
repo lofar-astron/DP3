@@ -319,6 +319,9 @@ void OnePredict::show(std::ostream& os) const {
        << (beam_proximity_limit_ * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
     os << "   beam interval:          " << beam_evaluation_interval_ << '\n';
   }
+  if (!output_data_name_.empty()) {
+    os << "  outputmodelname:         " << output_data_name_ << '\n';
+  }
   os << "  operation:               ";
   switch (operation_) {
     case Operation::kReplace:

@@ -33,7 +33,8 @@ Transfer::Transfer(const common::ParameterSet& parset,
       source_data_column_(parset.getString(
           prefix + "datacolumn", casacore::MS::columnName(casacore::MS::DATA))),
       transfer_data_(parset.getBool(prefix + "data", false)),
-      transfer_flags_(parset.getBool(prefix + "flags", false)) {
+      transfer_flags_(parset.getBool(prefix + "flags", false)),
+      output_buffer_name_(parset.getString(prefix + "outputbuffername", "")) {
   if (!(transfer_data_ || transfer_flags_)) {
     throw std::runtime_error(
         "The type of data (visibilties and/or flags) to be transfered has not "
@@ -168,6 +169,9 @@ void Transfer::show(std::ostream& os) const {
      << "  time avg factor: " << time_averaging_factor_ << '\n'
      << "  source interval: " << time_interval_ << '\n'
      << "  target interval: " << getInfoOut().timeInterval() << '\n';
+  if (!output_buffer_name_.empty()) {
+    os << "  outputbuffername: " << output_buffer_name_ << '\n';
+  }
   filter_step_->show(os);
 }
 
@@ -212,8 +216,12 @@ bool Transfer::process(std::unique_ptr<DPBuffer> buffer) {
 
   const std::vector<double>& target_frequencies = getInfoOut().chanFreqs(0);
 
+  if (!output_buffer_name_.empty()) {
+    buffer->AddData(output_buffer_name_);
+  }
+
   // Fill data if DPBuffer is empty
-  base::DPBuffer::DataType& data = buffer->GetData();
+  base::DPBuffer::DataType& data = buffer->GetData(output_buffer_name_);
   if (data.size() == 0) {
     data.resize({getInfoOut().nbaselines(), getInfoOut().nchan(),
                  getInfoOut().ncorr()});

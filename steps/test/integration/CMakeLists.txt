@@ -8,6 +8,7 @@ add_python_tests(
   tBdaPredict
   tClipper
   tColumnReader
+  tCombine
   tTransfer
   tDemix
   tFilter

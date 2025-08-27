@@ -23,3 +23,8 @@ inputs:
     default: DATA
     doc: >-
       The data column to use, i.e., the name of the column in ``source_ms`` in which the visibilities that are to be transfered are stored.
+  outputbuffername:
+    type: string
+    default: empty
+    doc: >-
+       Whether to store the output in a named data buffer. This buffer can later be used in a Combine step.
