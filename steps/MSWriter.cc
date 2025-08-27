@@ -73,28 +73,21 @@ using dp3::base::FlagCounter;
 namespace dp3 {
 namespace steps {
 namespace {
-std::unique_ptr<DataManager> MakeStMan(const std::string& type_name,
-                                       const std::string& instance_name) {
-  casacore::DataManagerCtor constructor = DataManager::getCtor(type_name);
-  std::unique_ptr<DataManager> st_man(constructor(instance_name, Record()));
-  if (!st_man)
-    throw std::runtime_error(type_name +
-                             " requested, but it is not available in "
-                             "casacore");
-  return st_man;
-}
 
 /// Create an array column description and add to table with given
 /// storage manager (if given).
-void MakeArrayColumn(ColumnDesc desc, const IPosition& ipos, DataManager* dm,
+void MakeArrayColumn(ColumnDesc desc, const IPosition& shape, DataManager* dm,
                      Table& table, bool make_direct_column = false) {
   desc.setOptions(0);
-  desc.setShape(ipos);
-  if (make_direct_column) {
-    desc.setOptions(ColumnDesc::Direct | ColumnDesc::FixedShape);
-  } else {
-    desc.setOptions(ColumnDesc::FixedShape);
+  int options = 0;
+  if (!shape.empty()) {
+    desc.setShape(shape);
+    options |= ColumnDesc::FixedShape;
   }
+  if (make_direct_column) {
+    options |= ColumnDesc::Direct;
+  }
+  desc.setOptions(options);
   if (table.tableDesc().isColumn(desc.name())) {
     table.removeColumn(desc.name());
   }
@@ -281,13 +274,19 @@ void MSWriter::show(std::ostream& os) const {
   os << "  DATA column:    " << data_col_name_ << '\n';
   os << "  FLAG column:    " << flag_col_name_ << '\n';
   os << "  WEIGHT column:  " << weight_col_name_ << '\n';
-  if (st_man_keys_.stManName == "dysco") {
-    os << "  Compressed:     yes\n"
-       << "  Data bitrate:   " << st_man_keys_.dyscoDataBitRate << '\n'
-       << "  Weight bitrate: " << st_man_keys_.dyscoWeightBitRate << '\n'
-       << "  Dysco mode:     " << st_man_keys_.dyscoNormalization << ' '
-       << st_man_keys_.dyscoDistribution << '('
-       << st_man_keys_.dyscoDistTruncation << ")\n";
+  if (st_man_keys_.storage_manager_name == "dysco") {
+    os << "  Compressed:     yes (Dysco)\n"
+       << "   Data bitrate:  " << st_man_keys_.dysco_data_bit_rate << '\n'
+       << "   Weight bitrate:" << st_man_keys_.dysco_weight_bit_rate << '\n'
+       << "   Dysco mode:    " << st_man_keys_.dysco_normalization << ' '
+       << st_man_keys_.dysco_distribution << '('
+       << st_man_keys_.dysco_dist_truncation << ")\n";
+  } else if (st_man_keys_.storage_manager_name == "sisco") {
+    os << "  Compressed:     yes (Sisco)\n"
+       << "   Predict level: " << st_man_keys_.sisco_predict_level << '\n'
+       << "   Deflate level: " << st_man_keys_.sisco_deflate_level << '\n';
+  } else if (st_man_keys_.storage_manager_name == "stokes_i") {
+    os << "  Compressed:     yes (Stokes I)\n";
   } else {
     os << "  Compressed:     no\n";
   }
@@ -431,12 +430,6 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
 
   // Bind all columns according to dminfo.
   newtab.bindCreate(dminfo);
-  casacore::DataManagerCtor dysco_constructor = nullptr;
-  Record dysco_spec;
-  if (st_man_keys_.stManName == "dysco") {
-    dysco_spec = st_man_keys_.GetDyscoSpec();
-    dysco_constructor = DataManager::getCtor("DyscoStMan");
-  }
   ms_ = Table(newtab);
 
   if (antenna_compression_) {
@@ -446,20 +439,20 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     ms_.addColumn(tdesc["ANTENNA2"], "AntennaPairStMan", false);
   }
 
-  if (st_man_keys_.stManName == "dysco" && st_man_keys_.dyscoDataBitRate != 0) {
-    // Add DATA column using Dysco stman.
-    std::unique_ptr<DataManager> dysco_st_man(
-        dysco_constructor("DyscoData", dysco_spec));
-    MakeArrayColumn(tdesc["DATA"], data_shape, dysco_st_man.get(), ms_, true);
-  } else if (st_man_keys_.stManName == "stokes_i") {
-    std::unique_ptr<DataManager> stokes_i_st_man =
-        MakeStMan("StokesIStMan", "StokesIData");
-    MakeArrayColumn(tdesc["DATA"], data_shape, stokes_i_st_man.get(), ms_,
-                    true);
+  const std::string stdman_class_name(
+      st_man_keys_.GetStorageManagerClassName());
+  const bool use_custom_stman = !stdman_class_name.empty();
+  const casacore::DataManagerCtor data_constructor =
+      use_custom_stman ? DataManager::getCtor(stdman_class_name) : nullptr;
+  const bool skip_dysco_for_data =
+      st_man_keys_.storage_manager_name == "dysco" &&
+      st_man_keys_.dysco_data_bit_rate == 0;
+  if (use_custom_stman && !skip_dysco_for_data) {
+    const Record data_man_specification = st_man_keys_.GetSpecification();
+    std::unique_ptr<DataManager> data_manager(
+        data_constructor("DataStMan", data_man_specification));
+    MakeArrayColumn(tdesc["DATA"], data_shape, data_manager.get(), ms_, true);
   } else {
-    if (!st_man_keys_.stManName.empty() && st_man_keys_.stManName != "dysco")
-      throw std::runtime_error("Unknown storage manager specified: " +
-                               st_man_keys_.stManName);
     TiledColumnStMan tsm("TiledData", tile_shape);
     MakeArrayColumn(tdesc["DATA"], data_shape, &tsm, ms_);
   }
@@ -485,11 +478,11 @@ void MSWriter::CreateMs(const std::string& out_name, unsigned int tile_size,
     MakeArrayColumn(tdesc["FLAG"], data_shape, &tsmf, ms_);
   }
 
-  if (st_man_keys_.stManName == "dysco" &&
-      st_man_keys_.dyscoWeightBitRate != 0) {
+  if (st_man_keys_.storage_manager_name == "dysco" &&
+      st_man_keys_.dysco_weight_bit_rate != 0) {
     // Add WEIGHT_SPECTRUM column using Dysco stman.
     std::unique_ptr<DataManager> dysco_st_man(
-        dysco_constructor("DyscoWeightSpectrum", dysco_spec));
+        data_constructor("DyscoWeightSpectrum", st_man_keys_.GetDyscoSpec()));
     ArrayColumnDesc<float> wsdesc("WEIGHT_SPECTRUM", "weight per corr/chan",
                                   data_shape,
                                   ColumnDesc::FixedShape | ColumnDesc::Direct);
@@ -733,7 +726,7 @@ void MSWriter::WriteData(Table& out, DPBuffer& buf) {
 
   // If compressing, flagged values need to be set to NaN, and flagged
   // weights to zero, to decrease the dynamic range
-  if (st_man_keys_.stManName == "dysco") {
+  if (st_man_keys_.storage_manager_name == "dysco") {
     auto data_iterator = buf.GetData().begin();
     auto weights_iterator = buf.GetWeights().begin();
     for (bool flag : buf.GetFlags()) {
@@ -855,6 +848,18 @@ void MSWriter::CreateTask(std::unique_ptr<base::DPBuffer> buffer) {
   const common::NSTimer::StartStop timer(create_task_timer_);
 
   write_queue_.write(std::move(buffer));
+}
+
+std::unique_ptr<DataManager> MakeStMan(const std::string& type_name,
+                                       const std::string& instance_name,
+                                       const Record& record) {
+  casacore::DataManagerCtor constructor = DataManager::getCtor(type_name);
+  std::unique_ptr<DataManager> st_man(constructor(instance_name, record));
+  if (!st_man)
+    throw std::runtime_error("Storage manager " + type_name +
+                             " requested, but it is not available in "
+                             "casacore.");
+  return st_man;
 }
 
 }  // namespace steps

@@ -31,6 +31,10 @@ class ParameterSet;
 namespace steps {
 class InputStep;
 
+std::unique_ptr<casacore::DataManager> MakeStMan(
+    const std::string& type_name, const std::string& instance_name,
+    const casacore::Record& record = casacore::Record());
+
 /// @brief DP3 step writing to an MS
 
 /// This class is a Step creating a new MeasurementSet and writing

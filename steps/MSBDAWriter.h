@@ -8,6 +8,7 @@
 
 #include <casacore/tables/Tables/Table.h>
 
+#include "../base/StManParsetKeys.h"
 #include "../common/ParameterSet.h"
 
 #include "OutputStep.h"
@@ -78,6 +79,7 @@ class MSBDAWriter : public OutputStep {
   const common::ParameterSet parset_;
   const std::string prefix_;
   const bool overwrite_;
+  base::StManParsetKeys st_man_keys_;
 
   std::map<std::size_t, unsigned int> nchanToDescId;
   casacore::Table ms_;
