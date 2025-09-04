@@ -175,9 +175,11 @@ linting-2404:
   script:
     - ./scripts/run-format.sh
 
-test-2204:
+# The tests require Sisco, which again requires a recent version of
+# libdeflate only available since Ubuntu 24.
+test-2404:
   stage: test
-  extends: [".failable",".needs-base-2204"]
+  extends: [".failable",".needs-base-2404"]
   script:
     - source /dp3env/bin/activate
     - export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/python3.10/dist-packages
@@ -198,7 +200,7 @@ test-2204:
 # since collecting code coverage in a Debug build results in low performance.
 # Especially -fprofile-update=atomic makes the tests slow.
 # (A single Debug+coverage job takes longer than the total runtime of
-#  the current test-2204 and coverage-2204 jobs. It may even time out.)
+#  the current test-2404 and coverage-2404 jobs. It may even time out.)
 # The code coverage figures include both unit and integration tests.
 #
 # The coverage target sets METADATA_COMPRESSION_DEFAULT whereas most other
