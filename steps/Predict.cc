@@ -89,26 +89,15 @@ Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
 
 void Predict::Initialize(const common::ParameterSet& parset,
                          const std::string& prefix, MsType input_type) {
-  const unsigned int time_smearing_factor =
-      parset.getUint(prefix + "correcttimesmearing", 1);
-
   // Create the steps that this step manages, in order of how they need to be
   // connected. These are called 'internal' steps here to differentiate them
   // from the other steps outside Predict, but they are not substeps.
   if (input_type == MsType::kBda) {
     internal_steps_.push_back(std::make_shared<BdaExpander>(prefix));
   }
-  if (time_smearing_factor > 1) {
-    internal_steps_.push_back(std::make_shared<Upsample>(
-        prefix + "upsample", time_smearing_factor, true));
-  }
 
   internal_steps_.push_back(predict_step_);
 
-  if (time_smearing_factor > 1) {
-    internal_steps_.push_back(std::make_shared<Averager>(prefix + "averager", 1,
-                                                         time_smearing_factor));
-  }
   if (input_type == MsType::kBda) {
     bda_averager_ = std::make_shared<BdaAverager>(parset, prefix, false);
     internal_steps_.push_back(bda_averager_);

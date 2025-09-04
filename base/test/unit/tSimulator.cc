@@ -27,7 +27,9 @@ const size_t kNChan = 2;
 
 Simulator MakeSimulator(bool correct_freq_smearing, bool stokes_i_only,
                         casacore::Cube<std::complex<double>>& buffer,
-                        xt::xtensor<double, 2>& uvw) {
+                        xt::xtensor<double, 2>& uvw,
+                        bool correct_time_smearing = false,
+                        std::vector<double> scaled_ncp_uvw = {}) {
   std::vector<Baseline> baselines;
   for (size_t st1 = 0; st1 < kNStations - 1; ++st1) {
     for (size_t st2 = st1 + 1; st2 < kNStations; ++st2) {
@@ -48,8 +50,14 @@ Simulator MakeSimulator(bool correct_freq_smearing, bool stokes_i_only,
     uvw(st, 2) = 0;
   }
 
-  return Simulator(kReference, kNStations, baselines, chan_freqs, chan_widths,
-                   uvw, buffer, correct_freq_smearing, stokes_i_only);
+  if (correct_time_smearing) {
+    return Simulator(kReference, kNStations, baselines, chan_freqs, chan_widths,
+                     scaled_ncp_uvw, uvw, buffer, correct_time_smearing,
+                     correct_freq_smearing, stokes_i_only);
+  } else {
+    return Simulator(kReference, kNStations, baselines, chan_freqs, chan_widths,
+                     uvw, buffer, correct_freq_smearing, stokes_i_only);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_pointsource_onlyI) {
@@ -120,6 +128,30 @@ BOOST_AUTO_TEST_CASE(test_pointsource_onlyI_freqsmear) {
 
   BOOST_CHECK_CLOSE(std::abs(buffer(0, 0, kNStations - 1)), 0.759154, 1.0e-3);
   BOOST_CHECK_CLOSE(std::abs(buffer(1, 0, kNStations - 1)), 0.759154, 1.0e-3);
+}
+
+BOOST_AUTO_TEST_CASE(test_pointsource_onlyI_timesmear) {
+  Stokes unit;
+  unit.I = 1.0;
+  unit.Q = 0.0;
+  unit.U = 0.0;
+  unit.V = 0.0;
+
+  auto phasecenter_offset = std::make_shared<PointSource>(kOffsetSource, unit);
+
+  const size_t nbaselines = kNStations * (kNStations - 1) / 2;
+
+  casacore::Cube<std::complex<double>> buffer(1, kNChan, nbaselines);
+  xt::xtensor<double, 2> uvw;  // MakeSimulator initializes 'uvw'.
+
+  std::vector<double> scaled_ncp_uvw = {0.0, 3.0e-1, 0.0};
+
+  Simulator sim = MakeSimulator(false, true, buffer, uvw, true, scaled_ncp_uvw);
+
+  sim.simulate(phasecenter_offset);
+
+  BOOST_CHECK_CLOSE(std::abs(buffer(0, 0, kNStations - 1)), 0.893578, 1.0e-3);
+  BOOST_CHECK_CLOSE(std::abs(buffer(1, 0, kNStations - 1)), 0.891990, 1.0e-3);
 }
 
 BOOST_AUTO_TEST_CASE(radec_to_lmn_conversion_simple) {

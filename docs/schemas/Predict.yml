@@ -55,13 +55,12 @@ inputs:
       relatively expensive, this speeds up processing. A value of 120 seems a good value that improves speed
       considerably, without affecting accuracy.
   correcttimesmearing:
-    type: int
-    default: 1
+    type: boolean
+    default: false
     doc: >-
-      Apply time smearing correction by upsampling the uvw values before
-      predicting and averaging the predicted data afterwards.
-      The value is the upsampling and averaging factor.
-      A value of 0 or 1 disables time smearing.
+      Simulate time smearing based on the integration time, by multiplying the visibility with a sinc function.
+      This is an approximation. The change of u,v,w due to earth rotation over the integration interval is 
+      approximated by a straight line. The axis of rotation is the J2000 pole, so precession is ignored.
   correctfreqsmearing:
     type: boolean
     doc: Simulate frequency smearing based on the channel width, by multiplying the visibility with a sinc function.

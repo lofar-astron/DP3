@@ -121,6 +121,32 @@ class Simulator : public ModelComponentVisitor {
             casacore::Cube<dcomplex>& buffer, bool correctFreqSmearing,
             bool stokesIOnly);
 
+  /**
+   * @brief Construct a new Simulator object
+   *
+   * @param reference Reference direction (phase center)
+   * @param baselines Vector of Baselines
+   * @param freq Channel frequencies (Hz)
+   * @param chanWidths Channel widths (Hz)
+   * @param scaled_ncp_uvw Lenght 3 vector, pointing to the NCP in UVW
+   * coordinates
+   * @param stationUVW Station UVW coordinates. This structure has to remain
+   * valid during the lifetime of the Simulator.
+   * @param buffer Output buffer, should be of shape (nCor, nFreq, nBaselines),
+   * where nCor should be 1 if stokesIOnly is true, else 4
+   * @param correctTimeSmearing Correct for time smearing
+   * @param correctFreqSmearing Correct for frequency smearing
+   * @param stokesIOnly Stokes I only, to avoid a loop over correlations
+   */
+  Simulator(const Direction& reference, size_t nStation,
+            const std::vector<Baseline>& baselines,
+            const std::vector<double>& freq,
+            const std::vector<double>& chanWidths,
+            const std::vector<double>& scaled_ncp_uvw,
+            const xt::xtensor<double, 2>& stationUVW,
+            casacore::Cube<dcomplex>& buffer, bool correctTimeSmearing,
+            bool correctFreqSmearing, bool stokesIOnly);
+
   // Note DuoMatrix is actually two T matrices
   // T: floating point type, ideally float, double, or long double.
   template <typename T>
@@ -164,17 +190,20 @@ class Simulator : public ModelComponentVisitor {
  private:
   Direction itsReference;
   size_t itsNStation, itsNBaseline, itsNChannel;
+  bool itsCorrectTimeSmearing;
   bool itsCorrectFreqSmearing;
   bool itsStokesIOnly;
   std::vector<Baseline> itsBaselines;
   std::vector<double> itsFreq;
   std::vector<double> itsChanWidths;
+  std::vector<double> itsScaledNcpUvw;
   /// Non-owning pointer to UVW values for each station. The user of Simulator
   /// supplies them in the constructor, and ensures they remain valid.
   /// Using a pointer avoids copying the values.
   const xt::xtensor<double, 2>* itsStationUVW;
   casacore::Cube<dcomplex> itsBuffer;
   std::vector<double> itsStationPhases;
+  std::vector<double> itsStationEarthRotation;
   DuoMatrix<double> itsShiftBuffer;
   DuoMatrix<double> itsSpectrumBuffer;
 };

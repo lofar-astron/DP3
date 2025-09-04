@@ -153,7 +153,7 @@ def test_without_and_with_time_smearing(use_time_smearing):
             "average.timestep=3",
             f"predict.sourcedb=timesmearing.skymodel",
             f"msout=ts-{'on' if use_time_smearing else 'off'}.MS",
-            "predict.correcttimesmearing=10" if use_time_smearing else "",
+            f"predict.correcttimesmearing={use_time_smearing}",
         ]
     )
     if not use_time_smearing:
@@ -171,10 +171,10 @@ def test_without_and_with_time_smearing(use_time_smearing):
         # for all channels, when using the longest baseline (ant1=3, ant2=5).
         taql_command = (
             "select from ts-on.MS where ANTENNA1==3 and ANTENNA2==5"
-            " and all(near(abs(DATA[,0]),9.34,5e-4))"
+            " and all(near(abs(DATA[,0]),9.34,6e-3))"
             " and all(near(abs(DATA[,1]),   0,1e-6))"
             " and all(near(abs(DATA[,2]),   0,1e-6))"
-            " and all(near(abs(DATA[,3]),9.34,5e-4))"
+            " and all(near(abs(DATA[,3]),9.34,6e-3))"
         )
         assert_taql(taql_command, 2)
 
@@ -192,7 +192,7 @@ def test_time_smearing_with_msupdate():
             "msout.datacolumn=MODEL_DATA",
             "steps=[predict]",
             f"predict.sourcedb={SKYMODEL}",
-            "predict.correcttimesmearing=2",
+            "predict.correcttimesmearing=True",
         ]
     )
 
