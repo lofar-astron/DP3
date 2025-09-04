@@ -6,7 +6,6 @@ import re
 
 # Append current directory to system path in order to import testconfig
 import sys
-from subprocess import check_call
 
 import pytest
 
@@ -17,6 +16,7 @@ from utils import (
     assert_taql,
     check_output,
     get_taql_result,
+    run_dp3,
     run_in_tmp_path,
     untar,
 )
@@ -30,9 +30,8 @@ def source_env(run_in_tmp_path):
 
 
 def test_chunking():
-    check_call(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "msout=chunktest.ms",
             "msout.chunkduration=18",
@@ -73,9 +72,8 @@ def test_write_thread_enabled():
 
     This requires the output step to be the last step."""
 
-    result = check_output(
+    result = run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "msout=out.MS",
             "steps=[]",
@@ -99,9 +97,8 @@ def test_write_thread_disabled():
     This requires the output step not to be the last step."""
 
     # Use a split so the default msout step won't be created.
-    result = check_output(
+    result = run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[split]",
             "split.steps=[out,average]",
@@ -138,9 +135,8 @@ def get_directory_size(p):
 
 def test_dysco():
     # This just checks if it runs without errors
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=dysco.MS",
@@ -150,9 +146,8 @@ def test_dysco():
 
 
 def test_uvw_compression():
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=out1.MS",
@@ -160,9 +155,8 @@ def test_uvw_compression():
         ]
     )
 
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=out2.MS",
@@ -182,9 +176,8 @@ def test_uvw_compression():
 
 
 def test_scalar_flags():
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=out1.MS",
@@ -192,9 +185,8 @@ def test_scalar_flags():
         ]
     )
 
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=out2.MS",
@@ -211,9 +203,8 @@ def test_scalar_flags():
 
 
 def test_antenna_compression():
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=out1.MS",
@@ -221,9 +212,8 @@ def test_antenna_compression():
         ]
     )
 
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=out2.MS",
@@ -245,9 +235,8 @@ def test_antenna_compression():
 def test_metadata_decompression():
     # Make sure that we can also decompress a compressed set. This tests reproduces a bug
     # that was only triggered when decompressing the antenna columns on a set that had antenna and uvw compression.
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin={MSIN}",
             "steps=[]",
             "msout=out1.MS",
@@ -257,9 +246,8 @@ def test_metadata_decompression():
         ]
     )
 
-    check_output(
+    run_dp3(
         [
-            tcf.DP3EXE,
             f"msin=out1.MS",
             "steps=[]",
             "msout=out2.MS",
@@ -269,4 +257,35 @@ def test_metadata_decompression():
         ]
     )
     taql_command = "select from out1.MS AS out1, out2.MS AS out2 where not all(out1.ANTENNA1==out2.ANTENNA1) or not all(out1.ANTENNA2==out2.ANTENNA2) or not all(out1.UVW~=out2.UVW)"
+    assert_taql(taql_command)
+
+
+def test_new_sisco_ms():
+    # This just checks if it runs without errors
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "steps=[]",
+            "msout=sisco.MS",
+            "msout.storagemanager=Sisco",
+        ]
+    )
+
+    taql_command = f"select from {MSIN} AS original, sisco.MS AS sisco where not all(original.DATA==sisco.DATA)"
+    assert_taql(taql_command)
+
+
+def test_update_sisco_ms():
+    # This just checks if it runs without errors
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.storagemanager=Sisco",
+            "msout.datacolumn=SISCO_DATA",
+            "steps=[]",
+        ]
+    )
+
+    taql_command = f"select from {MSIN} where not all(DATA==SISCO_DATA)"
     assert_taql(taql_command)

@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-from subprocess import check_call, check_output
+import subprocess
+from subprocess import check_call, check_output, run
 
 import pytest
 from testconfig import DP3EXE, TAQLEXE
@@ -12,7 +13,9 @@ COMMON_DP3_ARGUMENTS = ["checkparset=1", "numthreads=1"]
 
 def assert_taql(command, expected_rows=0):
     result = (
-        check_output([TAQLEXE, "-noph", "-nopa", command]).decode().strip()
+        subprocess.check_output([TAQLEXE, "-noph", "-nopa", command])
+        .decode()
+        .strip()
     )
     assert result == f"select result of {expected_rows} rows"
 
@@ -22,13 +25,15 @@ def untar(source):
         raise IOError(
             f"Not able to find {source} containing test input files."
         )
-    check_call(["tar", "xf", source])
+    subprocess.check_call(["tar", "xf", source])
 
 
 def get_taql_result(command):
     """Get the output of a taql command"""
     result = (
-        check_output([TAQLEXE, "-noph", "-nopr", command]).decode().strip()
+        subprocess.check_output([TAQLEXE, "-noph", "-nopr", command])
+        .decode()
+        .strip()
     )
     return result
 
@@ -52,4 +57,14 @@ def run_dp3(arguments):
     """
     all_arguments = COMMON_DP3_ARGUMENTS + arguments
     print("DP3 " + " ".join(all_arguments))
-    check_call([DP3EXE] + all_arguments)
+    result = run([DP3EXE] + all_arguments, stdout=subprocess.PIPE)
+    if result.returncode != 0:
+        # The output is shortened and not well displayed in an exception, so
+        # the output is explicitly printed:
+        stdout_string = result.stdout.decode("utf-8")
+        print(f"DP3 failed. Output was:\n{stdout_string}")
+        raise subprocess.CalledProcessError(
+            f"DP3 failed. Output was:\n{result.stdout}",
+            cmd="DP3 " + " ".join(all_arguments),
+        )
+    return result.stdout

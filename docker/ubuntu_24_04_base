@@ -4,7 +4,7 @@ FROM ubuntu:24.04
 ENV EVERYBEAM_VERSION=v0.7.0
 ENV IDG_VERSION=1.2.0
 ENV AOFLAGGER_VERSION=v3.4.0
-ENV CASACORE_VERSION=1cfe6199f22574a41de8a0ef9bc1919cf5e11e49
+ENV CASACORE_VERSION=450a5682a2aa927de123e9953157f3610a5a4f3c
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
@@ -62,7 +62,7 @@ RUN mkdir /external && \
   git checkout ${CASACORE_VERSION} && \
   mkdir build && \
   cd build && \
-  cmake .. -DPython3_EXECUTABLE=/dp3env/bin/python3  -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \
+  cmake .. -DPython3_EXECUTABLE=/dp3env/bin/python3 -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data -DBUILD_SISCO=ON && \
   make -j`nproc` && \
   make install -j`nproc` && \
   cd /external && \

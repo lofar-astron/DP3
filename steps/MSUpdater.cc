@@ -80,35 +80,34 @@ bool MSUpdater::addColumn(const std::string& colName,
     return false;
   }
 
-  if (itsStManKeys.storage_manager_name == "stokes_i") {
-    casacore::DataManagerCtor stokes_i_constructor =
-        DataManager::getCtor("StokesIStMan");
-    std::unique_ptr<DataManager> stokes_i_st_man(
-        stokes_i_constructor(colName + "_dm", Record()));
-    if (!stokes_i_st_man)
+  const bool use_sisco = itsStManKeys.storage_manager_name == "sisco" &&
+                         dataType == casacore::TpComplex;
+  const bool use_stokes_i = itsStManKeys.storage_manager_name == "stokes_i";
+  const bool use_dysco = itsStManKeys.storage_manager_name == "dysco" &&
+                         itsStManKeys.dysco_data_bit_rate != 0 &&
+                         dataType != casacore::TpBool;
+  if (use_sisco || use_stokes_i || use_dysco) {
+    if (use_sisco && getInfoOut().origNChan() != getInfoOut().nchan())
       throw std::runtime_error(
-          "Stokes I storage manager requested, but it is not available in "
+          "Sisco can only write the entire bandwidth, subselecting channels is "
+          "not possible");
+    const std::string stdman_class_name(
+        itsStManKeys.GetStorageManagerClassName());
+    const casacore::DataManagerCtor data_constructor =
+        DataManager::getCtor(stdman_class_name);
+    if (!data_constructor)
+      throw std::runtime_error(
+          stdman_class_name +
+          " storage manager requested, but it is not available in "
           "casacore");
     ColumnDesc directColumnDesc(cd);
     directColumnDesc.setOptions(casacore::ColumnDesc::Direct |
                                 casacore::ColumnDesc::FixedShape);
     TableDesc td;
     td.addColumn(directColumnDesc, colName);
-    itsMS.addColumn(td, *stokes_i_st_man);
-  } else if (itsStManKeys.storage_manager_name == "dysco" &&
-             itsStManKeys.dysco_data_bit_rate != 0 &&
-             dataType != casacore::TpBool) {
-    casacore::Record dyscoSpec = itsStManKeys.GetDyscoSpec();
-    casacore::DataManagerCtor dyscoConstructor =
-        DataManager::getCtor("DyscoStMan");
-    std::unique_ptr<DataManager> dyscoStMan(
-        dyscoConstructor(colName + "_dm", dyscoSpec));
-    ColumnDesc directColumnDesc(cd);
-    directColumnDesc.setOptions(casacore::ColumnDesc::Direct |
-                                casacore::ColumnDesc::FixedShape);
-    TableDesc td;
-    td.addColumn(directColumnDesc, colName);
-    itsMS.addColumn(td, *dyscoStMan);
+    std::unique_ptr<DataManager> data_manager(
+        data_constructor(colName + "_dm", itsStManKeys.GetSpecification()));
+    itsMS.addColumn(td, *data_manager);
   } else if (dataType == casacore::TpBool) {
     // Dysco should never be used for the FLAG column. Use the same storage
     // manager used for the FLAG column. To do so, get the data manager info and
@@ -412,20 +411,30 @@ void MSUpdater::putWeights(const RefRows& rowNrs, const Cube<float>& weights) {
   }
 }
 
-void MSUpdater::putData(const RefRows& rowNrs,
+void MSUpdater::putData(const RefRows& row_nrs,
                         const Cube<casacore::Complex>& data) {
   // Only put if rownrs are filled, thus if data were not inserted.
-  if (!rowNrs.rowVector().empty()) {
-    Slicer colSlicer(IPosition(2, 0, getInfoOut().startchan()),
-                     IPosition(2, getInfoOut().ncorr(), getInfoOut().nchan()));
-    ArrayColumn<casacore::Complex> dataCol(itsMS, itsDataColName);
+  if (!row_nrs.rowVector().empty()) {
+    ArrayColumn<casacore::Complex> data_col(itsMS, itsDataColName);
     // Loop over all rows of this subset.
     // (it also avoids StandardStMan putCol with RefRows problem).
-    casacore::Vector<common::rownr_t> rows = rowNrs.convert();
+    casacore::Vector<common::rownr_t> rows = row_nrs.convert();
     casacore::ReadOnlyArrayIterator<casacore::Complex> dataIter(data, 2);
-    for (size_t i = 0; i < rows.size(); ++i) {
-      dataCol.putSlice(rows[i], colSlicer, dataIter.array());
-      dataIter.next();
+    if (getInfoOut().origNChan() == getInfoOut().nchan()) {
+      // If all channels are written, using putSlice() is unnecessary. This is
+      // important for Sisco, which doesn't support putSlice().
+      for (size_t i = 0; i < rows.size(); ++i) {
+        data_col.put(rows[i], dataIter.array());
+        dataIter.next();
+      }
+    } else {
+      Slicer col_slicer(
+          IPosition(2, 0, getInfoOut().startchan()),
+          IPosition(2, getInfoOut().ncorr(), getInfoOut().nchan()));
+      for (size_t i = 0; i < rows.size(); ++i) {
+        data_col.putSlice(rows[i], col_slicer, dataIter.array());
+        dataIter.next();
+      }
     }
   }
 }
