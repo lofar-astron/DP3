@@ -91,8 +91,11 @@ void OnePredict::init(const common::ParameterSet& parset,
                       const std::vector<std::string>& sourcePatterns) {
   name_ = prefix;
   source_db_name_ = parset.getString(prefix + "sourcedb");
+  correct_time_smearing_ =
+      parset.getBool(prefix + "correcttimesmearing", false);
   correct_freq_smearing_ =
       parset.getBool(prefix + "correctfreqsmearing", false);
+
   SetOperation(parset.getString(prefix + "operation", "replace"));
   output_data_name_ = parset.getString(prefix + "outputmodelname", "");
 
@@ -269,6 +272,29 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
     moving_phase_ref_ = true;
   }
 
+  /**
+   * Length of a sidereal day in seconds.
+   */
+  constexpr double kSiderealDay = 86164.0905;
+
+  const double angular_speed = 2 * M_PI * infoIn.timeInterval() / kSiderealDay;
+
+  // Time smearing is computed by rotating the u,v,w coordinates around the
+  // earth axis. The earth axis is assumed here to point to the position
+  // dec=90deg in J2000 coordinates. This ignores precession since the true
+  // position is dec=90deg for the current epoch. A more accurate method, but
+  // probably unnecessary, would be to compute the actual NCP for the current
+  // epoch
+
+  scaled_ncp_uvw_.resize(3);
+  // In base/Simulator.cc this element is assumed to be zero. If it is updated
+  // here to a more accurate value, please update the usage in Simulator as well
+  scaled_ncp_uvw_[0] = 0.0;
+  scaled_ncp_uvw_[1] =
+      angular_speed * std::cos(infoIn.phaseCenterDirection().dec);
+  scaled_ncp_uvw_[2] =
+      angular_speed * std::sin(infoIn.phaseCenterDirection().dec);
+
   initializeThreadData();
 
   if (apply_cal_step_) {
@@ -305,6 +331,8 @@ void OnePredict::show(std::ostream& os) const {
      << any_orientation_is_absolute_ << '\n';
   os << "   all unpolarized:        " << std::boolalpha << stokes_i_only_
      << '\n';
+  os << "   correct time smearing:  " << std::boolalpha
+     << correct_time_smearing_ << '\n';
   os << "   correct freq smearing:  " << std::boolalpha
      << correct_freq_smearing_ << '\n';
   os << "  apply beam:              " << std::boolalpha << apply_beam_ << '\n';
@@ -524,8 +552,9 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
       simulators.emplace_back(
           phase_ref_, nSt, baselines_split[thread_index],
-          getInfoOut().chanFreqs(), getInfoOut().chanWidths(), station_uvw_,
-          simulatedest, correct_freq_smearing_, stokes_i_only_);
+          getInfoOut().chanFreqs(), getInfoOut().chanWidths(), scaled_ncp_uvw_,
+          station_uvw_, simulatedest, correct_time_smearing_,
+          correct_freq_smearing_, stokes_i_only_);
     }
 
     std::vector<std::shared_ptr<const model::Patch>> curPatches(n_threads);
@@ -666,10 +695,10 @@ void OnePredict::PredictSourceRange(
       apply_beam_ ? patch_model_data.data() : model_data.data();
   casacore::Cube<std::complex<double>> casacore_data(shape, simulator_data,
                                                      casacore::SHARE);
-  base::Simulator simulator(phase_ref_, n_stations, baselines_,
-                            getInfoOut().chanFreqs(), getInfoOut().chanWidths(),
-                            station_uvw_, casacore_data, correct_freq_smearing_,
-                            stokes_i_only_);
+  base::Simulator simulator(
+      phase_ref_, n_stations, baselines_, getInfoOut().chanFreqs(),
+      getInfoOut().chanWidths(), scaled_ncp_uvw_, station_uvw_, casacore_data,
+      correct_time_smearing_, correct_freq_smearing_, stokes_i_only_);
 
   const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
   const model::Patch* patch = nullptr;

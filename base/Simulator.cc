@@ -44,9 +44,11 @@ namespace {
 void phases(size_t nStation, size_t nChannel, const double* lmn,
             const xt::xtensor<double, 2>& uvw, const std::vector<double>& freq,
             Simulator::DuoMatrix<double>& shift,
-            std::vector<double>& stationPhases);
+            std::vector<double>& scaled_ncp_uvw,
+            std::vector<double>& stationPhases,
+            std::vector<double>& stationEarthRotation);
 
-float computeSmearterm(double uvw, double halfwidth);
+float sinc(float x);
 
 void spectrum(const PointSource& component, size_t nChannel,
               const std::vector<double>& freq,
@@ -64,22 +66,39 @@ Simulator::Simulator(const Direction& reference, size_t nStation,
       itsNStation(nStation),
       itsNBaseline(baselines.size()),
       itsNChannel(freq.size()),
+      itsCorrectTimeSmearing(false),
       itsCorrectFreqSmearing(correctFreqSmearing),
       itsStokesIOnly(stokesIOnly),
       itsBaselines(baselines),
       itsFreq(freq),
       itsChanWidths(chanWidths),
+      itsScaledNcpUvw(3, 0.0),
       itsStationUVW(&stationUVW),
       itsBuffer(buffer),
       itsShiftBuffer(),
       itsSpectrumBuffer() {
   itsShiftBuffer.resize(itsNChannel, nStation);
   itsStationPhases.resize(nStation);
+  itsStationEarthRotation.resize(nStation);
   if (stokesIOnly) {
     itsSpectrumBuffer.resize(1, itsNChannel);
   } else {
     itsSpectrumBuffer.resize(4, itsNChannel);
   }
+}
+
+Simulator::Simulator(const Direction& reference, size_t nStation,
+                     const std::vector<Baseline>& baselines,
+                     const std::vector<double>& freq,
+                     const std::vector<double>& chanWidths,
+                     const std::vector<double>& scaled_ncp_uvw,
+                     const xt::xtensor<double, 2>& stationUVW,
+                     casacore::Cube<dcomplex>& buffer, bool correctTimeSmearing,
+                     bool correctFreqSmearing, bool stokesIOnly)
+    : Simulator(reference, nStation, baselines, freq, chanWidths, stationUVW,
+                buffer, correctFreqSmearing, stokesIOnly) {
+  itsScaledNcpUvw = scaled_ncp_uvw;
+  itsCorrectTimeSmearing = correctTimeSmearing;
 }
 
 void Simulator::simulate(
@@ -94,7 +113,7 @@ void Simulator::visit(const PointSource& component) {
 
   // Compute station phase shifts.
   phases(itsNStation, itsNChannel, lmn, *itsStationUVW, itsFreq, itsShiftBuffer,
-         itsStationPhases);
+         itsScaledNcpUvw, itsStationPhases, itsStationEarthRotation);
 
   // Compute component spectrum.
   spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer, itsStokesIOnly);
@@ -156,12 +175,26 @@ void Simulator::visit(const PointSource& component) {
       const double* y_c = itsSpectrumBuffer.imagdata();
 
       // Precompute smearing factors if needed
+      if (itsCorrectTimeSmearing) {
+#pragma GCC ivdep
+        for (size_t ch = 0; ch < itsNChannel; ++ch) {
+          // Smearing is the sinc of half the phase change over the integration
+          // interval
+          smear_terms[ch] = sinc(
+              0.5 * (itsStationEarthRotation[q] - itsStationEarthRotation[p]) *
+              itsFreq[ch]);
+        }
+      } else {
+        std::fill(smear_terms.begin(), smear_terms.end(), 1.0);
+      }
       if (itsCorrectFreqSmearing) {
 #pragma GCC ivdep
         for (size_t ch = 0; ch < itsNChannel; ++ch) {
-          smear_terms[ch] =
-              computeSmearterm(itsStationPhases[q] - itsStationPhases[p],
-                               itsChanWidths[ch] * 0.5);
+          // Smearing is the sinc of half the phase change over the integration
+          // interval
+          smear_terms[ch] *=
+              sinc(0.5 * (itsStationPhases[q] - itsStationPhases[p]) *
+                   itsChanWidths[ch]);
         }
       }
 
@@ -181,7 +214,7 @@ void Simulator::visit(const PointSource& component) {
           ++x_q;
           ++y_q;
         }  // Channels.
-        if (itsCorrectFreqSmearing) {
+        if (itsCorrectTimeSmearing || itsCorrectFreqSmearing) {
 #pragma GCC ivdep
           for (size_t ch = 0; ch < itsNChannel; ++ch) {
             *buffer++ += dcomplex(smear_terms[ch] * temp_prod_real_I[ch],
@@ -255,7 +288,7 @@ void Simulator::visit(const GaussianSource& component) {
 
   // Compute station phase shifts.
   phases(itsNStation, itsNChannel, lmn, *itsStationUVW, itsFreq, itsShiftBuffer,
-         itsStationPhases);
+         itsScaledNcpUvw, itsStationPhases, itsStationEarthRotation);
 
   // Compute component spectrum.
   spectrum(component, itsNChannel, itsFreq, itsSpectrumBuffer, itsStokesIOnly);
@@ -350,12 +383,24 @@ void Simulator::visit(const GaussianSource& component) {
         smear_terms[ch] = exp(lambda2);
       }
       // Precompute smearing factors if needed and modify amplitudes
+      if (itsCorrectTimeSmearing) {
+#pragma GCC ivdep
+        for (size_t ch = 0; ch < itsNChannel; ++ch) {
+          // Smearing is the sinc of half the phase change over the integration
+          // interval
+          smear_terms[ch] *= sinc(
+              0.5 * (itsStationEarthRotation[q] - itsStationEarthRotation[p]) *
+              itsFreq[ch]);
+        }
+      }
       if (itsCorrectFreqSmearing) {
 #pragma GCC ivdep
         for (size_t ch = 0; ch < itsNChannel; ++ch) {
+          // Smearing is the sinc of half the phase change over the integration
+          // interval
           smear_terms[ch] *=
-              computeSmearterm(itsStationPhases[q] - itsStationPhases[p],
-                               itsChanWidths[ch] * 0.5);
+              sinc(0.5 * (itsStationPhases[q] - itsStationPhases[p]) *
+                   itsChanWidths[ch]);
         }
       }
 
@@ -424,10 +469,8 @@ void Simulator::visit(const GaussianSource& component) {
 
 namespace {
 
-inline float computeSmearterm(double uvw, double halfwidth) {
-  float smearterm = uvw * halfwidth;
-  return (smearterm == 0.0f) ? 1.0f
-                             : std::fabs(std::sin(smearterm) / smearterm);
+inline float sinc(float x) {
+  return ((x == 0.0f) ? 1.0f : std::fabs(std::sin(x) / x));
 }
 
 // Compute station phase shifts.
@@ -435,7 +478,9 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    const xt::xtensor<double, 2>& uvw,
                    const std::vector<double>& freq,
                    Simulator::DuoMatrix<double>& shift,
-                   std::vector<double>& stationPhases) {
+                   std::vector<double>& scaled_ncp_uvw,
+                   std::vector<double>& stationPhases,
+                   std::vector<double>& stationEarthRotation) {
   double* shiftdata_re = shift.realdata();
   double* shiftdata_im = shift.imagdata();
   constexpr double cinv = 2.0 * M_PI / aocommon::kSpeedOfLight;
@@ -443,6 +488,19 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
   for (size_t st = 0; st < nStation; ++st) {
     stationPhases[st] = cinv * (uvw(st, 0) * lmn[0] + uvw(st, 1) * lmn[1] +
                                 uvw(st, 2) * (lmn[2] - 1.0));
+    // See https://wsclean.readthedocs.io/en/latest/time_frequency_smearing.html
+    // for an explanation of the equation implemented below
+    // Note that scaled_ncp_uvw[0] is currently always zero, so these terms have
+    // been commented out. When the initialization of scaled_ncp_uvw[0] is
+    // changed to some non-zero value, these terms need to be uncommented
+    stationEarthRotation[st] =
+        cinv * (lmn[0] * (uvw(st, 1) * scaled_ncp_uvw[2] -
+                          uvw(st, 2) * scaled_ncp_uvw[1]) +
+                lmn[1] * (/* uvw(st,2) * scaled_ncp_uvw[0] */ -uvw(st, 0) *
+                          scaled_ncp_uvw[2]) +
+                (lmn[2] - 1.0) *
+                    (uvw(st, 0) *
+                     scaled_ncp_uvw[1] /* - uvw(st,1) * scaled_ncp_uvw[0] */));
   }
 
   std::vector<double> phase_terms(nChannel);

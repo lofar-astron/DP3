@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(get_required_fields_only_predict) {
 BOOST_AUTO_TEST_CASE(get_required_fields_correct_time_smearing) {
   using dp3::steps::Step;
   dp3::common::ParameterSet parset = CreateMinimalParameterSet();
-  parset.add("correcttimesmearing", "10");
+  parset.add("correcttimesmearing", "True");
   auto bdaddecal = std::make_shared<dp3::steps::BdaDdeCal>(parset, "");
 
   const dp3::common::Fields kExpectedFields =
