@@ -31,6 +31,7 @@
 #include "../steps/Combine.h"
 #include "../steps/Counter.h"
 #include "../steps/DDECal.h"
+#include "../steps/DynSpec.h"
 #include "../steps/BdaDdeCal.h"
 #include "../steps/Demixer.h"
 #include "../steps/Filter.h"
@@ -233,6 +234,8 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     } else if (inputType == Step::MsType::kBda) {
       step = std::make_shared<steps::BdaDdeCal>(parset, prefix);
     }
+  } else if (type == "dynspec") {
+    step = std::make_shared<steps::DynSpec>(parset, prefix);
   } else if (type == "null") {
     step = std::make_shared<steps::NullStep>();
   } else if (type == "wscleanwriter") {

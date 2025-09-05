@@ -45,7 +45,7 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 # Create a Python virtual environment with necessary modules for Casacore and
 # DP3 tests. The Ubuntu python3-* packages are not always recent enough.
 RUN python3 -m venv /dp3env \
-  && /dp3env/bin/pip install h5py numpy pytest
+  && /dp3env/bin/pip install h5py numpy pytest astropy
 # Install WSRT Measures (extra casacore data, for integration tests)
 # Note: The file on the server is updated daily. When warnings regarding leap
 # seconds appear, ignore them or regenerate the docker image.
