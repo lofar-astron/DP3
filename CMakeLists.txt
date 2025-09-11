@@ -514,7 +514,6 @@ add_library(
   steps/Transfer.cc
   steps/Demixer.cc
   steps/DummyStep.cc
-  steps/DynSpec.cc
   steps/Filter.cc
   steps/FlagTransfer.cc
   steps/GainCal.cc
@@ -801,7 +800,6 @@ if(BUILD_TESTING)
       steps/test/unit/tDDECal.cc
       steps/test/unit/tDemixer.cc
       steps/test/unit/tDummyStep.cc
-      steps/test/unit/tDynSpec.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tFlagTransfer.cc
       steps/test/unit/tGainCal.cc
