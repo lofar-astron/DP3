@@ -42,7 +42,14 @@ class Transfer final : public Step {
     return filter_step_->getRequiredFields();
   }
 
-  common::Fields getProvidedFields() const final { return kDataField; }
+  common::Fields getProvidedFields() const final {
+    common::Fields provided_fields{};
+    provided_fields |= (transfer_data_ && output_buffer_name_.empty())
+                           ? kDataField
+                           : common::Fields();
+    provided_fields |= transfer_flags_ ? kFlagsField : common::Fields();
+    return provided_fields;
+  }
 
   bool process(std::unique_ptr<base::DPBuffer> buffer) final;
 
