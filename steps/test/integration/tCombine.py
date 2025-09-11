@@ -10,7 +10,7 @@ import pytest
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, get_taql_result, run_in_tmp_path, untar
+from utils import assert_taql, get_taql_result, run_dp3, run_in_tmp_path, untar
 
 """
 Integration tests for the Combine step.
@@ -91,3 +91,33 @@ def test_add():
         f"select from {MSIN} where sum(abs(DATA - 2 * PREDICTED_DATA)) > 1e-10"
     )
     assert_taql(taql_command, 0)
+
+
+def test_combine_with_transfer():
+    """
+    Test whether the the combination [transfer, combine] works.
+    """
+    run_dp3(
+        [
+            tcf.DP3EXE,
+            "checkparset=1",
+            f"msin={MSIN}",
+            "msout=avg.ms",
+            "steps=[averager]",
+            "averager.timestep=2",
+            "averager.freqstep=4",
+        ]
+    )
+
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[transfer,combine]",
+            "transfer.data=True",
+            "transfer.source_ms=avg.ms",
+            f"transfer.outputbuffername={BUFFERNAME}",
+            "combine.operation=subtract",
+            f"combine.buffername={BUFFERNAME}",
+        ]
+    )
