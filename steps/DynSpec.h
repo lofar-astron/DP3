@@ -16,21 +16,17 @@
 
 #include "../model/Patch.h"
 
-#include "H5ParmPredict.h"
-#include "PhaseShift.h"
-#include "MsColumnReader.h"
 #include "ResultStep.h"
 
 namespace dp3::steps {
 
 /// @brief DP3 step class that creates visibility averaged dynamic spectra.
-/// TODO: (1) apply calibration and beam corrections in the direction of the
-/// sources of interest. (2) Select polarizations to output, e.g., only I or
-/// instrumental polarizations.
+/// TODO: (1) Output the weights for each pixel in the spectrum. (2) Select
+/// polarizations to output, e.g., only I or instrumental polarizations.
 class DynSpec : public Step {
  public:
-  /// Type for the dynamic spectra, with axes direction x time x frequency x
-  /// (4) Stokes parameters. The FITS format enforces a column-major layout,
+  /// Type for the dynamic spectra, with axes time x frequency x (4) Stokes
+  /// parameters x direction. The FITS format enforces a column-major layout,
   /// hence, we adopt it here as well.
   using DynamicSpectrumTensor =
       xt::xtensor<float, 4, xt::layout_type::column_major>;
@@ -78,8 +74,16 @@ class DynSpec : public Step {
   bool subtract_with_h5parmpredict_{false};
   bool subtract_model_column_{false};
 
-  /// The name of the model column with the predicted source to subtract, if
-  /// provided.
+  /// Whether calibration solutions are corrected for.
+  /// This adds an ApplyCal substep for each source direction.
+  bool apply_calibration_solutions_{false};
+
+  /// Apply beam corrections in the direction of each source are applied.
+  /// This adds an ApplyBeam substep for each source direction.
+  bool apply_beam_correction_{false};
+  bool apply_beam_reweighted_{false};
+
+  /// The name of the model column with the foreground, if provided.
   std::string model_column_;
 
   /// Holds the visibility-averaged spectra for each direction of interest in
@@ -89,7 +93,7 @@ class DynSpec : public Step {
   /// Internal steps to predict the sources in the field, shift to the target
   /// direction and capture the results.
   /// {
-  std::vector<std::shared_ptr<PhaseShift>> phase_shifts_;
+  std::vector<std::shared_ptr<Step>> first_substeps_;
   std::vector<std::shared_ptr<ResultStep>> results_;
   std::shared_ptr<Step> model_step_;
   std::shared_ptr<ResultStep> model_result_;

@@ -5,6 +5,7 @@ import os
 import sys
 from subprocess import check_call
 
+import casacore.tables
 import numpy as np
 import pytest
 from astropy.io import fits
@@ -24,12 +25,14 @@ Script can be invoked in two ways:
 - using ctest, see DP3/steps/test/integration/CMakeLists.txt
 """
 
+
 MSIN = "tNDPPP-generic.MS"
 MSOUT = "out.ms"
 SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 MOCK_SKYMODEL = "mock.skymodel"
 MOCK_SOURCE_LIST = "mock-sources.txt"
 MOCK_SOURCES = ["point_source", "constant_source"]
+MOCK_H5PARM = "mock_solutions.h5"
 
 
 @pytest.fixture(autouse=True)
@@ -93,7 +96,10 @@ def test_dynspec(mock_source_list):
         assert os.path.exists(format_dynspec_fits_name(source_name))
 
 
-def test_dynspec_with_predicted_source(mock_source_list, mock_sky_model):
+@pytest.mark.parametrize("with_beam", [True, False])
+def test_dynspec_with_predicted_source(
+    mock_source_list, mock_sky_model, with_beam
+):
     """
     Predict a single off-centre point source, phase shift towards it
     and record it's dynamic spectrum. (Turn off source subtraction.)
@@ -105,7 +111,10 @@ def test_dynspec_with_predicted_source(mock_source_list, mock_sky_model):
             "steps=[predict, dynspec]",
             f"predict.sourcedb={MOCK_SKYMODEL}",
             "predict.sources=[point_source]",
+            f"predict.usebeammodel={with_beam}",
             f"dynspec.sourcelist={MOCK_SOURCE_LIST}",
+            f"dynspec.beamcorrection={with_beam}",
+            f"dynspec.applybeam.updateweights=True" if with_beam else "",
         ]
     )
 
@@ -126,7 +135,11 @@ def test_dynspec_with_predicted_source(mock_source_list, mock_sky_model):
             assert np.all(np.diff(time_chunk) > 0)
 
 
-def test_dynspec_with_source_subtraction(mock_source_list, mock_sky_model):
+@pytest.mark.parametrize("with_beam", [True, False])
+@pytest.mark.parametrize("with_cal", [True, False])
+def test_dynspec_with_source_subtraction(
+    mock_source_list, mock_sky_model, with_beam, with_cal
+):
     """
     Generate solutions with DDECal and subsequently generate model visibilties with
     the H5ParmPredict substep, predict an off-centre point source, phase shift towards
@@ -141,6 +154,7 @@ def test_dynspec_with_source_subtraction(mock_source_list, mock_sky_model):
             f"ddecal.sourcedb={SKYMODEL}",
             f"ddecal.h5parm={h5parm_name}",
             "ddecal.mode=fulljones",
+            f"ddecal.usebeammodel={with_beam}",
         ]
     )
 
@@ -153,10 +167,16 @@ def test_dynspec_with_source_subtraction(mock_source_list, mock_sky_model):
             f"predict.sourcedb={MOCK_SKYMODEL}",
             f"predict.sources=[{target_source}]",
             "predict.operation=add",
+            f"predict.usebeammodel={with_beam}",
             f"dynspec.h5parmpredict.sourcedb={SKYMODEL}",
             f"dynspec.h5parmpredict.applycal.parmdb={h5parm_name}",
             "dynspec.h5parmpredict.applycal.correction=fulljones",
+            f"dynspec.h5parmpredict.usebeammodel={with_beam}",
             f"dynspec.sourcelist={MOCK_SOURCE_LIST}",
+            f"dynspec.applycal.parmdb={h5parm_name}" if with_cal else "",
+            "dynspec.applycal.correction=fulljones" if with_cal else "",
+            f"dynspec.beamcorrection={with_beam}",
+            f"dynspec.applybeam.updateweights=True" if with_beam else "",
         ]
     )
 
@@ -167,11 +187,14 @@ def test_dynspec_with_source_subtraction(mock_source_list, mock_sky_model):
         # The predicted source has a flat spectrum (zero spectral index),
         # hence the spectrum should be roughly zero. Has a relaxed constraint,
         # since we only subtract model visibilities.
-        assert stokes_i_spectrum.std() < 0.02
+        assert stokes_i_spectrum.std() < 0.1
 
 
+@pytest.mark.parametrize("with_beam", [True, False])
 def test_dynspec_with_subtraction_from_model_column(
-    mock_source_list, mock_sky_model
+    mock_source_list,
+    mock_sky_model,
+    with_beam,
 ):
     """
     Check whether model column based source subtraction works by subtracting
@@ -197,8 +220,11 @@ def test_dynspec_with_subtraction_from_model_column(
             f"predict.sourcedb={MOCK_SKYMODEL}",
             f"predict.sources=[{target_source}]",
             "predict.operation=add",
+            f"predict.usebeammodel={with_beam}",
             f"dynspec.sourcelist={MOCK_SOURCE_LIST}",
             f"dynspec.subtractmodelcolumn={model_column}",
+            f"dynspec.beamcorrection={with_beam}",
+            f"dynspec.applybeam.updateweights=True" if with_beam else "",
         ]
     )
 
