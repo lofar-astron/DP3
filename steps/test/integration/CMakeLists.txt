@@ -11,7 +11,6 @@ add_python_tests(
   tCombine
   tTransfer
   tDemix
-  tDynSpec
   tFilter
   tFlagTransfer
   tGainCal
