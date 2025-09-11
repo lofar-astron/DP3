@@ -605,6 +605,7 @@ void ApplyArrayFactorAndAdd(
 
     const std::complex<double>* left = &beam_values[index_left];
     const std::complex<double>* right = &beam_values[index_right];
+
     // Using pointers ensures that indexing is as fast as possible in the loop
     // below, which is on a performance-critical path.
     const std::complex<double>* data_pointer = &data(bl, 0, 0);

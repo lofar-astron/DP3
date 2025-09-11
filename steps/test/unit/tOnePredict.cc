@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "../../OnePredict.h"
+#include "../../FastPredict.h"
 
 #include <regex>
 
@@ -9,6 +10,7 @@
 #include <boost/test/data/test_case.hpp>
 
 #include <dp3/base/DP3.h>
+#include <dp3/base/PredictRunnerType.h>
 
 #include "../../../common/ParameterSet.h"
 #include "../../ApplyCal.h"
@@ -17,7 +19,6 @@
 #include "tPredict.h"
 #include "H5ParmFixture.h"
 
-using dp3::steps::OnePredict;
 using dp3::steps::Step;
 
 namespace {
@@ -35,13 +36,13 @@ class OnePredictFixture {
   OnePredictFixture() : predict_() {
     dp3::common::ParameterSet parset;
     parset.add("fixture.sourcedb", dp3::steps::test::kPredictSkymodel);
-    predict_ = std::make_shared<OnePredict>(parset, "fixture.",
-                                            std::vector<std::string>());
+    predict_ = std::make_shared<dp3::base::PredictRunnerType>(
+        parset, "fixture.", std::vector<std::string>());
     predict_->setNextStep(std::make_shared<dp3::steps::NullStep>());
     SetInfo(predict_);
   }
 
-  static void SetInfo(std::shared_ptr<dp3::steps::OnePredict> predict) {
+  static void SetInfo(std::shared_ptr<dp3::base::PredictRunnerType> predict) {
     dp3::base::DPInfo info(kNCorr, kNChan);
     info.setTimes(0.5, 9.5, 1.0);
 
@@ -60,7 +61,7 @@ class OnePredictFixture {
   }
 
  protected:
-  std::shared_ptr<dp3::steps::OnePredict> predict_;
+  std::shared_ptr<dp3::base::PredictRunnerType> predict_;
 };
 }  // namespace
 
@@ -90,7 +91,7 @@ BOOST_DATA_TEST_CASE(fields_add_subtract,
   dp3::common::ParameterSet parset;
   parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
   parset.add("operation", operation);
-  const OnePredict predict(parset, "", {});
+  const dp3::base::PredictRunnerType predict(parset, "", {});
   BOOST_TEST(predict.getRequiredFields() ==
              (Step::kDataField | Step::kUvwField));
   BOOST_TEST(predict.getProvidedFields() == Step::kDataField);
@@ -101,7 +102,7 @@ BOOST_FIXTURE_TEST_CASE(fields_applycal, dp3::steps::test::H5ParmFixture) {
   parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
-  const OnePredict predict(parset, "", {});
+  const dp3::base::PredictRunnerType predict(parset, "", {});
 
   // OnePredict uses ApplyCal which has a OneApplyCal sub-step as next step.
   const dp3::steps::ApplyCal apply_cal(parset, "applycal.", true);
@@ -128,7 +129,7 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
   parset.add("operation", operation);
-  const OnePredict predict(parset, "", {});
+  const dp3::base::PredictRunnerType predict(parset, "", {});
 
   // When operation is "add" or "subtract", OnePredict only combines the
   // required fields of its ApplyCal sub-step.
@@ -248,8 +249,8 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
   // Make step chain
   dp3::common::ParameterSet parset;
   parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
-  auto predict =
-      std::make_shared<OnePredict>(parset, "", std::vector<std::string>());
+  auto predict = std::make_shared<dp3::base::PredictRunnerType>(
+      parset, "", std::vector<std::string>());
   auto predict_result = std::make_shared<dp3::steps::ResultStep>();
   predict->setNextStep(predict_result);
   OnePredictFixture::SetInfo(predict);
@@ -264,8 +265,8 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
   // Predict visibilities to an extra data buffer in the output DPBuffer.
   // Make step chain (with extra parset pair)
   parset.add("outputmodelname", output_model_name);
-  predict =
-      std::make_shared<OnePredict>(parset, "", std::vector<std::string>());
+  predict = std::make_shared<dp3::base::PredictRunnerType>(
+      parset, "", std::vector<std::string>());
   predict_result = std::make_shared<dp3::steps::ResultStep>();
   predict->setNextStep(predict_result);
   OnePredictFixture::SetInfo(predict);

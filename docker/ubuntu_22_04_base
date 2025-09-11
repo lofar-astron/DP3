@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 # Needs to be bumped before next DP3 release.
-ENV EVERYBEAM_VERSION=v0.7.0
+ENV EVERYBEAM_VERSION=v0.7.1
 ENV IDG_VERSION=1.2.0
 ENV AOFLAGGER_VERSION=v3.4.0
 ENV CASACORE_VERSION=450a5682a2aa927de123e9953157f3610a5a4f3c
@@ -48,31 +48,31 @@ RUN python3 -m venv /dp3env \
 # Note: The file on the server is updated daily. When warnings regarding leap
 # seconds appear, ignore them or regenerate the docker image.
 RUN mkdir -p /usr/share/casacore/data \
-  && cd /usr/share/casacore/data \
-  && wget -nv https://www.astron.nl/iers/WSRT_Measures.ztar \
-  && tar xfz WSRT_Measures.ztar \
-  && rm WSRT_Measures.ztar
+	&& cd /usr/share/casacore/data \
+	&& wget -nv https://www.astron.nl/iers/WSRT_Measures.ztar \
+	&& tar xfz WSRT_Measures.ztar \
+	&& rm WSRT_Measures.ztar
 # The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
 RUN mkdir /external && \
-  cd /external && \
-  git clone https://github.com/casacore/casacore.git && \
-  cd /external/casacore && \
-  git checkout ${CASACORE_VERSION} && \
-  mkdir build && \
-  cd build && \
-  cmake .. -DPython3_EXECUTABLE=/dp3env/bin/python3 -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \
-  make -j`nproc` && \
-  make install -j`nproc` && \
-  cd /external && \
-  rm -rf /external/casacore
+	cd /external && \
+	git clone https://github.com/casacore/casacore.git && \
+	cd /external/casacore && \
+	git checkout ${CASACORE_VERSION} && \
+	mkdir build && \
+	cd build && \
+	cmake .. -DPython3_EXECUTABLE=/dp3env/bin/python3 -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data && \
+	make -j`nproc` && \
+	make install -j`nproc` && \
+	cd /external && \
+	rm -rf /external/casacore
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib/
 RUN cd /external \
-  && git clone --depth 1 https://github.com/casacore/python-casacore.git \
-  && cd /external/python-casacore \
-  && /dp3env/bin/pip install . \
-  && cd /external \
-  && rm -rf /external/python-casacore \
-  && /dp3env/bin/python3 -c "import casacore.tables ; print('Using casacore from path: ' + casacore.tables.__file__);"
+	&& git clone --depth 1 https://github.com/casacore/python-casacore.git \
+	&& cd /external/python-casacore \
+	&& /dp3env/bin/pip install . \
+	&& cd /external \
+	&& rm -rf /external/python-casacore \
+	&& /dp3env/bin/python3 -c "import casacore.tables ; print('Using casacore from path: ' + casacore.tables.__file__);"
 # Build aoflagger3 (PORTABLE, since the compile node and run node may differ.)
 RUN mkdir /aoflagger && cd /aoflagger \
 	&& git clone https://gitlab.com/aroffringa/aoflagger.git src \

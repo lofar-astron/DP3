@@ -94,6 +94,7 @@ Stokes PointSource::stokes(double freq) const {
     stokes.Q = stokesQU * cos(chi);
     stokes.U = stokesQU * sin(chi);
   }
+
   return stokes;
 }
 

@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 
 # Needs to be bumped before next DP3 release.
-ENV EVERYBEAM_VERSION=v0.7.0
+ENV EVERYBEAM_VERSION=v0.7.1
 ENV AOFLAGGER_VERSION=v3.4.0
 ENV CASACORE_VERSION=1cfe6199f22574a41de8a0ef9bc1919cf5e11e49
 
@@ -47,23 +47,23 @@ ENV CXX /usr/bin/g++-10
 # Note: The file on the ftp site is updated daily. When warnings regarding leap
 # seconds appear, ignore them or regenerate the docker image.
 RUN wget -nv -O /WSRT_Measures.ztar https://www.astron.nl/iers/WSRT_Measures.ztar \
-  && mkdir -p /var/lib/casacore/data \
+	&& mkdir -p /var/lib/casacore/data \
 	&& cd /var/lib/casacore/data \
 	&& tar xfz /WSRT_Measures.ztar \
 	&& rm /WSRT_Measures.ztar
 # The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
 RUN mkdir /external && \
-  cd /external && \
-  git clone https://github.com/casacore/casacore.git && \
-  cd /external/casacore && \
-  git checkout ${CASACORE_VERSION} && \
-  mkdir build && \
-  cd build && \
-  cmake .. -DBUILD_TESTING=OFF -DDATA_DIR=/var/lib/casacore/data && \
-  make -j`nproc` && \
-  make install -j`nproc` && \
-  cd /external && \
-  rm -rf /external/casacore
+	cd /external && \
+	git clone https://github.com/casacore/casacore.git && \
+	cd /external/casacore && \
+	git checkout ${CASACORE_VERSION} && \
+	mkdir build && \
+	cd build && \
+	cmake .. -DBUILD_TESTING=OFF -DDATA_DIR=/var/lib/casacore/data && \
+	make -j`nproc` && \
+	make install -j`nproc` && \
+	cd /external && \
+	rm -rf /external/casacore
 # Build aoflagger3 (PORTABLE, since the compile node and run node may differ.)
 RUN mkdir /aoflagger && cd /aoflagger \
 	&& git clone https://gitlab.com/aroffringa/aoflagger.git src \
