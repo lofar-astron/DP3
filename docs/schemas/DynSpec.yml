@@ -13,16 +13,23 @@ inputs:
       Name of the file containing a list of sources, .e.g., ``sources.skymodel`` (the filename should always end with with ``.skymodel`` or ``.txt``). For each of these sources a dynamic spectrum with axes time, frequency and stokes parameter (I, Q, U, and V) will be created.
 
       The source list needs to be defined using the familar sky-model text format. For example:
-      ```
+
       FORMAT = Name, Ra, Dec
       source_1, 02:00:00, -30.00.00
       source_2, 00:10:00, +30.50.00
-      ```
   subtractmodelcolumn:
-    type: string
+    type: string?
     doc: Name of the MS column with foreground visibilities. These will be subtracted from the data before determining the dynamic spectrum.
   fitsprefix:
-    type: string
+    type: string?
     doc: Filename prefix for the spectra written to disk in the FITS file format. The filename follows the pattern ``<prefix>-<source name>-dynspec.fits``. The source name is read from the file specified by the ``sourcelist`` parameter.
   h5parmpredict&#46;*:
     doc: H5ParmPredict sub-step. Requires at least a sky-model and calibration solutions to subtract predicted foreground sources. This is an alternative to subtraction with ``subtractmodelcolumn``. Note that one of these options can be used!
+  applycal&#46;*:
+    doc: ApplyCal sub-step. For each source provided by ``sourcelist``, calibration solutions (closest to the provided source direction) are applied. Requires at least the calibration solutions (stored as H5Parm) and the type(s) of correction(s). The sub-step will be used if ``dynspec.applycal.parmdb`` is set.
+  beamcorrection:
+    type: boolean?
+    default: True
+    doc: Whether to apply beam corrections in the direction of each of the sources. By default the full beam (element beam and array factor) is applied, with the direction set by the directions provided by ``sourcelist``. More tuning options are available via ``dynspec.applybeam.*``.
+  applybeam&#46;*:
+    doc: ApplyBeam sub-step, to apply the beam in the direction of each source in ``sourcelist``, before measuring the spectrogram. Note that if you're using this sub-step, you might want to set ``updateweights`` to ``True``, to apply proper weighting to each pixel.

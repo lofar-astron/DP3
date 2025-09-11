@@ -17,6 +17,8 @@
 #include <aocommon/logger.h>
 #include <aocommon/polarization.h>
 
+#include <schaapcommon/h5parm/h5parm.h>
+
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include <dp3/base/Direction.h>
@@ -25,6 +27,12 @@
 
 #include "../model/SkyModelCache.h"
 #include "../model/SourceDBUtil.h"
+
+#include "H5ParmPredict.h"
+#include "ApplyBeam.h"
+#include "ApplyCal.h"
+#include "PhaseShift.h"
+#include "MsColumnReader.h"
 
 using aocommon::Logger;
 
@@ -41,14 +49,14 @@ std::string ToString(T t) {
 }
 }  // namespace
 
-namespace dp3 {
-namespace steps {
+namespace dp3::steps {
 
 DynSpec::DynSpec(const common::ParameterSet& parset, const std::string& prefix)
     : name_(prefix),
       source_file_name_(parset.getString(prefix + "sourcelist")),
       fits_prefix_(parset.getString(prefix + "fitsprefix", "")),
-      model_column_(parset.getString(prefix + "subtractmodelcolumn", "")) {
+      model_column_(parset.getString(prefix + "subtractmodelcolumn", "")),
+      apply_beam_correction_(parset.getBool(prefix + "beamcorrection", true)) {
   // Read directions from list of sources.
   model::SourceDBWrapper source_db =
       model::SkyModelCache::GetInstance()
@@ -64,7 +72,8 @@ DynSpec::DynSpec(const common::ParameterSet& parset, const std::string& prefix)
   }
 
   // The dynamic spectra are created by first subtracting the foreground sources
-  // and subsequently shifting the phase centre. Either by subtracting a model
+  // and subsequently shifting the phase centre (and optionally applying
+  // calibration solutions and beam corrections). Either by subtracting a model
   // data column or using H5ParmPredict. The former takes precedent over the
   // latter.
   subtract_model_column_ = !model_column_.empty();
@@ -89,7 +98,15 @@ DynSpec::DynSpec(const common::ParameterSet& parset, const std::string& prefix)
     model_step_->setNextStep(model_result_);
   }
 
-  phase_shifts_.reserve(source_list_.size());
+  std::unique_ptr<schaapcommon::h5parm::H5Parm> calibration_solutions;
+  apply_calibration_solutions_ = parset.isDefined(prefix + "applycal.parmdb");
+  if (apply_calibration_solutions_) {
+    std::string h5parm_name = parset.getString(prefix + "applycal.parmdb");
+    calibration_solutions =
+        std::make_unique<schaapcommon::h5parm::H5Parm>(h5parm_name);
+  }
+
+  first_substeps_.reserve(source_list_.size());
   results_.reserve(source_list_.size());
   for (std::shared_ptr<model::Patch>& source : source_list_) {
     const Direction& source_direction = source->Direction();
@@ -97,10 +114,38 @@ DynSpec::DynSpec(const common::ParameterSet& parset, const std::string& prefix)
                                              ToString(source_direction.dec)};
     auto phase_shift = std::make_shared<PhaseShift>(
         parset, prefix + source->Name() + ".", phase_center);
-    auto result_step = std::make_shared<ResultStep>();
-    phase_shift->setNextStep(result_step);
 
-    phase_shifts_.push_back(phase_shift);
+    std::shared_ptr<ApplyCal> apply_cal;
+    if (apply_calibration_solutions_) {
+      const std::string closest_patch = calibration_solutions->GetNearestSource(
+          source_direction.ra, source_direction.dec);
+      apply_cal = std::make_shared<ApplyCal>(parset, prefix + "applycal.", true,
+                                             closest_patch);
+      phase_shift->setNextStep(apply_cal);
+    }
+
+    std::shared_ptr<ApplyBeam> apply_beam;
+    if (apply_beam_correction_) {
+      apply_beam = std::make_shared<ApplyBeam>(parset, prefix + "applybeam.");
+      apply_beam_reweighted_ =
+          parset.getBool(prefix + "applybeam.updateweights", false);
+      if (apply_calibration_solutions_) {
+        apply_cal->setNextStep(apply_beam);
+      } else {
+        phase_shift->setNextStep(apply_beam);
+      }
+    }
+
+    auto result_step = std::make_shared<ResultStep>();
+    if (apply_beam_correction_) {
+      apply_beam->setNextStep(result_step);
+    } else if (apply_calibration_solutions_) {
+      apply_cal->setNextStep(result_step);
+    } else {
+      phase_shift->setNextStep(result_step);
+    }
+
+    first_substeps_.push_back(phase_shift);
     results_.push_back(result_step);
   }
 }
@@ -112,7 +157,7 @@ void DynSpec::updateInfo(const DPInfo& info_in) {
   if (subtract_sources_) {
     model_step_->setInfo(info_in);
   }
-  for (std::shared_ptr<PhaseShift>& substep : phase_shifts_) {
+  for (std::shared_ptr<Step>& substep : first_substeps_) {
     substep->setInfo(info_in);
   }
 
@@ -135,8 +180,18 @@ void DynSpec::updateInfo(const DPInfo& info_in) {
 
 void DynSpec::show(std::ostream& os) const {
   os << "DynSpec " << name_ << '\n';
-  os << "  subtract sources: " << std::boolalpha << subtract_sources_ << '\n';
+  os << "  subtract sources:         " << std::boolalpha << subtract_sources_
+     << '\n';
   os << "  number of target sources: " << dynamic_spectra_.shape(3) << '\n';
+  os << "  subtract sources: " << std::boolalpha << subtract_sources_ << '\n';
+  os << "  apply cal:                " << std::boolalpha
+     << apply_calibration_solutions_ << '\n';
+  os << "  apply beam:               " << std::boolalpha
+     << apply_beam_correction_ << '\n';
+  if (apply_beam_correction_) {
+    os << "    update weights:       " << std::boolalpha
+       << apply_beam_reweighted_ << '\n';
+  }
 }
 
 void DynSpec::showTimings(std::ostream& os, double duration) const {
@@ -175,29 +230,31 @@ bool DynSpec::process(std::unique_ptr<DPBuffer> buffer) {
     substep_timer_.stop();
   }
 
-  DPBuffer::WeightsType weights = buffer->GetWeights();
-  xt::filtration(weights, xt::isnan(weights)) = 0.0f;
+  const DPBuffer::WeightsType& input_weights = buffer->GetWeights();
 
   // For each source, shift the phase centre and average over all baselines
   // (weighting accordingly), and store the spectra for the current time slot.
   const common::Fields overall_fields =
-      dp3::base::GetChainRequiredFields(phase_shifts_[0]);
-  for (size_t direction_index = 0; direction_index < phase_shifts_.size();
+      dp3::base::GetChainRequiredFields(first_substeps_[0]);
+  for (size_t direction_index = 0; direction_index < first_substeps_.size();
        ++direction_index) {
     substep_timer_.start();
     std::unique_ptr<DPBuffer> substep_buffer =
         std::make_unique<DPBuffer>(*buffer, overall_fields);
-    phase_shifts_[direction_index]->process(std::move(substep_buffer));
+    first_substeps_[direction_index]->process(std::move(substep_buffer));
     std::unique_ptr<DPBuffer> result_buffer = results_[direction_index]->take();
     substep_timer_.stop();
 
     computation_timer_.start();
+    const DPBuffer::WeightsType& weights =
+        apply_beam_correction_ && apply_beam_reweighted_
+            ? result_buffer->GetWeights()
+            : input_weights;
     DPBuffer::DataType weighted_data = weights * result_buffer->GetData();
     xt::filtration(weighted_data, buffer->GetFlags()) =
         std::complex<float>(0.0f, 0.0f);
     xt::filtration(weighted_data, xt::isnan(weighted_data)) =
         std::complex<float>(0.0f, 0.0f);
-
     xt::xtensor<std::complex<float>, 2> baseline_averaged_data =
         xt::mean(weighted_data, {0}) / xt::sum(weights, {0});
 
@@ -266,7 +323,7 @@ void DynSpec::WriteSpectraToDisk() {
 
   const std::string prefix =
       fits_prefix_.empty() ? fits_prefix_ : fits_prefix_ + "-";
-  for (size_t direction_index = 0; direction_index < phase_shifts_.size();
+  for (size_t direction_index = 0; direction_index < first_substeps_.size();
        ++direction_index) {
     std::shared_ptr<model::Patch>& source = source_list_[direction_index];
     const std::string& source_name = source->Name();
@@ -292,5 +349,4 @@ void DynSpec::finish() {
   getNextStep()->finish();
 }
 
-}  // namespace steps
-}  // namespace dp3
+}  // namespace dp3::steps
