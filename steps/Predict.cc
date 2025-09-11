@@ -9,10 +9,10 @@
 #include "Averager.h"
 #include "BDAAverager.h"
 #include "BdaExpander.h"
-#include "OnePredict.h"
 #include "Upsample.h"
 
 #include <dp3/base/BdaBuffer.h>
+#include <dp3/base/PredictRunnerType.h>
 
 #include "../common/ParameterSet.h"
 
@@ -73,8 +73,8 @@ class RestoreMetaDataChangedStep : public Step {
 Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
                  MsType input_type)
     : ms_type_(input_type),
-      predict_step_(std::make_shared<OnePredict>(parset, prefix,
-                                                 std::vector<std::string>())) {
+      predict_step_(std::make_shared<base::PredictRunnerType>(
+          parset, prefix, std::vector<std::string>())) {
   Initialize(parset, prefix, input_type);
 }
 
@@ -82,8 +82,8 @@ Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
                  const std::vector<std::string>& source_patterns,
                  MsType input_type)
     : ms_type_(input_type),
-      predict_step_(
-          std::make_shared<OnePredict>(parset, prefix, source_patterns)) {
+      predict_step_(std::make_shared<base::PredictRunnerType>(
+          parset, prefix, source_patterns)) {
   Initialize(parset, prefix, input_type);
 }
 

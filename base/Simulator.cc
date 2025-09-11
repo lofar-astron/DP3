@@ -9,6 +9,7 @@
 #include <casacore/casa/Arrays/MatrixMath.h>
 
 #include <cmath>
+#include <cstddef>
 
 #include <aocommon/constants.h>
 
@@ -110,7 +111,6 @@ void Simulator::visit(const PointSource& component) {
   // Compute LMN coordinates.
   double lmn[3];
   radec2lmn(itsReference, component.direction(), lmn);
-
   // Compute station phase shifts.
   phases(itsNStation, itsNChannel, lmn, *itsStationUVW, itsFreq, itsShiftBuffer,
          itsScaledNcpUvw, itsStationPhases, itsStationEarthRotation);

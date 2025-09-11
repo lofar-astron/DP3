@@ -5,6 +5,7 @@
 #define DP3_STEPS_PREDICT_H_
 
 #include <dp3/steps/Step.h>
+#include <dp3/base/PredictRunnerType.h>
 
 #include <mutex>
 
@@ -15,7 +16,6 @@ class ParameterSet;
 
 namespace steps {
 class BdaAverager;
-class OnePredict;
 
 /**
  * @brief DP3 step class that predicts visibilities from a source model.
@@ -98,7 +98,7 @@ class Predict : public ModelDataStep {
 
   std::vector<std::shared_ptr<Step>> internal_steps_;
   std::shared_ptr<BdaAverager> bda_averager_;
-  std::shared_ptr<OnePredict> predict_step_;
+  std::shared_ptr<base::PredictRunnerType> predict_step_;
 };
 
 }  // namespace steps

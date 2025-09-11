@@ -48,10 +48,16 @@ class PointSource : public ModelComponent {
 
   void accept(ModelComponentVisitor &visitor) const override;
 
- private:
+  bool hasLogarithmicSI() const { return itsHasLogarithmicSI; }
+
   bool hasSpectralTerms() const;
   bool hasRotationMeasure() const;
 
+  double polarizationAngle() const { return itsPolarizationAngle; }
+  double polarizedFraction() const { return itsPolarizedFraction; }
+  double rotationMeasure() const { return itsRotationMeasure; }
+
+ private:
   Direction itsDirection;
   Stokes itsStokes;
   double itsRefFreq;

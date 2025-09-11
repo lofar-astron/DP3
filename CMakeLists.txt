@@ -135,7 +135,7 @@ if(BUILD_PACKAGES)
   add_subdirectory(CPack)
 endif()
 
-list(APPEND ExternalSubmoduleDirectories aocommon pybind11 schaapcommon)
+list(APPEND ExternalSubmoduleDirectories aocommon pybind11 schaapcommon predict)
 foreach(ExternalSubmodule IN LISTS ExternalSubmoduleDirectories)
   if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExternalSubmodule})
     message(
@@ -334,6 +334,17 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/schaapcommon)
 include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/include)
 include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/external)
 
+option(USE_FAST_PREDICT "Use the FastPredict implementation" OFF)
+
+# Include FastPredict
+if(USE_FAST_PREDICT)
+  add_definitions(-DUSE_FAST_PREDICT)
+
+  set(PREDICT_PORTABLE ${PORTABLE})
+  add_subdirectory(${CMAKE_SOURCE_DIR}/external/predict)
+  include_directories(${CMAKE_SOURCE_DIR}/external/predict/include)
+endif()
+
 # Include pybind11
 set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/pybind11)
@@ -422,7 +433,8 @@ add_library(
   ddecal/gain_solvers/SolverTools.cc
   ddecal/linear_solvers/LLSSolver.cc
   ${DDE_ARMADILLO_FILES})
-target_link_libraries(DDECal xsimd xtensor xtensor-blas)
+target_link_libraries(DDECal xsimd xtensor xtensor-blas
+                      $<$<BOOL:${USE_FAST_PREDICT}>:predict>)
 
 if(BUILD_WITH_CUDA)
   target_link_libraries(DDECal cudawrappers::cu)
@@ -523,6 +535,7 @@ add_library(
   steps/MultiResultStep.cc
   steps/OneApplyCal.cc
   steps/OnePredict.cc
+  $<$<BOOL:${USE_FAST_PREDICT}>:steps/FastPredict.cc>
   steps/PhaseShift.cc
   steps/Predict.cc
   steps/PreFlagger.cc
@@ -539,7 +552,8 @@ add_library(
   steps/NullStokes.cc
   steps/SagecalPredict.cc
   steps/SVPInput.cc)
-target_link_libraries(DP3_OBJ xsimd xtensor xtensor-blas)
+target_link_libraries(DP3_OBJ xsimd xtensor xtensor-blas
+                      $<$<BOOL:${USE_FAST_PREDICT}>:predict>)
 
 add_library(
   ParmDB OBJECT
@@ -704,7 +718,7 @@ if(ENABLE_TRACY_PROFILING)
   FetchContent_Declare(
     tracy
     GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-    GIT_TAG v0.11.1
+    GIT_TAG v0.12.1
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE)
 

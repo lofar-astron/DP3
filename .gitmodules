@@ -10,3 +10,7 @@
 [submodule "external/schaap-packaging"]
 	path = external/schaap-packaging
 	url = https://git.astron.nl/RD/schaap-packaging.git
+[submodule "external/predict"]
+	path = external/predict
+	url = https://git.astron.nl/RD/predict.git
+	branch = extend_to_support_multi_evaluation
