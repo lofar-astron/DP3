@@ -66,7 +66,7 @@ class BdaExpander : public Step {
   void CopyData(const base::BdaBuffer& bda_buffer,
                 const base::BdaBuffer::Row& bda_row,
                 std::unique_ptr<dp3::base::DPBuffer>& buf_out,
-                float time_averaging_factor = 1.0);
+                int time_averaging_factor = 1);
 
   struct RegularBufferElement {
     RegularBufferElement(size_t n_baselines, unsigned int n_corr,

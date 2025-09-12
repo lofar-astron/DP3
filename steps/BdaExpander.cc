@@ -8,6 +8,7 @@
 #include "BdaExpander.h"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -98,19 +99,24 @@ void BdaExpander::showTimings(std::ostream& os, double duration) const {
 bool BdaExpander::process(std::unique_ptr<base::BdaBuffer> bda_buffer) {
   timer_.start();
 
-  std::vector<BdaBuffer::Row> rows = bda_buffer->GetRows();
+  const double interval_out = getInfoOut().timeInterval();
+
+  // This lambda computes the number of output intervals in 'duration'.
+  const auto n_out_intervals = [interval_out](const double duration) {
+    // Adding 'interval_out / 2' before rounding avoids rounding errors.
+    return int((duration + interval_out / 2) / interval_out);
+  };
 
   for (const BdaBuffer::Row& row : bda_buffer->GetRows()) {
     const double current_timeslot_start = row.time - row.interval / 2;
-    unsigned int current_timeslot_index = static_cast<unsigned int>(
-        round((current_timeslot_start - getInfoOut().startTime()) /
-              getInfoOut().timeInterval()));
+    int current_timeslot_index =
+        n_out_intervals(current_timeslot_start - getInfoOut().startTime());
 
     // RB_elements has one map per each time interval (as we expect it DPBuffer)
     // Check if current interval is already in the map RB_elements
     // Check should not happen for averaged data -> these are treated
     // differently
-    if (casacore::near(row.interval, getInfoOut().timeInterval())) {
+    if (casacore::near(row.interval, interval_out)) {
       auto it = RB_elements.find(current_timeslot_index);
       if (it == RB_elements.end()) {
         // create new element if a RegularBufferElement for the
@@ -128,18 +134,17 @@ bool BdaExpander::process(std::unique_ptr<base::BdaBuffer> bda_buffer) {
       rb_element.baseline[row.baseline_nr] = true;
       CopyData(*bda_buffer, row, rb_element.regular_buffer);
     } else {
-      // If time interval is different than original, the data is averaged ->
-      // copy data (deep copy) to multiple DPBuffer if not, change time and
-      // interval and spread across the number of slots allowed
-      double slots_to_fill = row.interval / getInfoOut().timeInterval();
-      for (double i = 0; i < slots_to_fill; i++) {
-        const double timeslot_start =
-            current_timeslot_start + i * getInfoOut().timeInterval();
-        const double timeslot_center =
-            timeslot_start + getInfoOut().timeInterval() / 2;
-        const unsigned int timeslot_index = static_cast<unsigned int>(
-            round((timeslot_start - getInfoOut().startTime()) /
-                  getInfoOut().timeInterval()));
+      // If time interval is different than original, the data is averaged.
+      // Compute the time averaging factor (which should be an integer) and
+      // copy the data to multiple DPBuffers.
+      // Adjust the time and interval in each DPBuffer.
+
+      const int time_averaging_factor = n_out_intervals(row.interval);
+      for (int i = 0; i < time_averaging_factor; ++i) {
+        const double timeslot_start = current_timeslot_start + i * interval_out;
+        const double timeslot_center = timeslot_start + interval_out / 2;
+        const int timeslot_index =
+            n_out_intervals(timeslot_start - getInfoOut().startTime());
 
         auto it = RB_elements.find(timeslot_index);
         if (it == RB_elements.end()) {
@@ -149,12 +154,12 @@ bool BdaExpander::process(std::unique_ptr<base::BdaBuffer> bda_buffer) {
               timeslot_index,
               RegularBufferElement(getInfoOut().nbaselines(),
                                    getInfoOut().ncorr(), getInfoOut().nchan(),
-                                   timeslot_center,
-                                   getInfoOut().timeInterval()));
+                                   timeslot_center, interval_out));
         }
         RegularBufferElement& rb_element = it->second;
         rb_element.baseline[row.baseline_nr] = true;
-        CopyData(*bda_buffer, row, rb_element.regular_buffer, slots_to_fill);
+        CopyData(*bda_buffer, row, rb_element.regular_buffer,
+                 time_averaging_factor);
       }
     }
   }
@@ -193,7 +198,7 @@ void BdaExpander::finish() {
 void BdaExpander::CopyData(const BdaBuffer& bda_buffer,
                            const BdaBuffer::Row& bda_row,
                            std::unique_ptr<DPBuffer>& buf_out,
-                           float time_averaging_factor) {
+                           int time_averaging_factor) {
   DPBuffer::DataType& data = buf_out->GetData();
   DPBuffer::WeightsType& weights = buf_out->GetWeights();
   DPBuffer::FlagsType& flags = buf_out->GetFlags();
@@ -217,15 +222,16 @@ void BdaExpander::CopyData(const BdaBuffer& bda_buffer,
       }
     }
     if (bda_weights) {
-      float channel_averaging_factor =
+      const int channel_averaging_factor =
           std::count(channels_mapping_[current_bl].begin(),
                      channels_mapping_[current_bl].end(),
                      channels_mapping_[current_bl][chan]);
+      const int total_averaging_factor =
+          time_averaging_factor * channel_averaging_factor;
 
       for (unsigned int corr = 0; corr < getInfoOut().ncorr(); ++corr) {
-        weights(current_bl, chan, corr) = bda_weights[offset + corr] /
-                                          time_averaging_factor /
-                                          channel_averaging_factor;
+        weights(current_bl, chan, corr) =
+            bda_weights[offset + corr] / total_averaging_factor;
       }
     }
     if (bda_flags) {
