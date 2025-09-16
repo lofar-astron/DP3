@@ -5,6 +5,7 @@
 #define DDECAL_SOLVE_DATA_H
 
 #include <cstddef>
+#include <numeric>
 #include <vector>
 
 #include <aocommon/matrix2x2.h>
@@ -105,7 +106,8 @@ class SolveData {
      * over all directions.
      */
     uint32_t NSubSolutions() const {
-      return accumulate(n_solutions_.begin(), n_solutions_.end(), uint32_t(0));
+      return std::accumulate(n_solutions_.begin(), n_solutions_.end(),
+                             uint32_t(0));
     }
 
    private:

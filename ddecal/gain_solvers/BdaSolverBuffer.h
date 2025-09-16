@@ -151,7 +151,7 @@ class BdaSolverBuffer {
    * visibilities for which the time centroid is smaller than this value.
    */
   double CurrentIntervalStart() const {
-    return time_start_ - current_interval_ * time_interval_;
+    return time_start_ + current_interval_ * time_interval_;
   }
 
   /**

@@ -260,6 +260,9 @@ SolveData<MatrixType>::SolveData(
         const double interval_duration = buffer.IntervalDuration();
         const double visibility_mid_time =
             row.time - buffer.CurrentIntervalStart();
+        assert(visibility_mid_time > 0 &&
+               visibility_mid_time < interval_duration);
+
         for (size_t dir = 0; dir != n_directions; ++dir) {
           const size_t n_solutions = cb_data.n_solutions_[dir];
           // This value needs to be truncated to n_solutions-1, because the
