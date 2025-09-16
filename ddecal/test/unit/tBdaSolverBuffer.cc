@@ -22,9 +22,9 @@ const size_t kNChannels = 6;
 const size_t kNCorrelations = 4;
 const size_t kNElementsPerRow = kNChannels * kNCorrelations;
 const double kFirstTime = 42.0;
-const size_t kInterval = 2.0;
+const double kInterval = 2.0;
 const size_t kRowsPerBuffer = 5;
-const double kTolerance = 1e-6;
+const double kTolerance = 1.0e-6;
 const std::complex<float> kDataIncrement{1.0, 1.0};  // Value increment per row.
 const std::complex<float> kFirstDataValue{1.0, 2.0};
 const std::complex<float> kModelDataDiff{100.0, 100.0};
@@ -140,10 +140,28 @@ void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
 BOOST_AUTO_TEST_SUITE(bdasolverbuffer)
 
 BOOST_AUTO_TEST_CASE(constructor) {
-  BdaSolverBuffer buffer(0.0, 1.0, 1);
+  BdaSolverBuffer buffer(kFirstTime, kInterval, 1);
   BOOST_CHECK_EQUAL(buffer.BufferCount(), 0u);
   BOOST_CHECK(buffer.GetIntervalRows().empty());
   BOOST_CHECK(buffer.GetDone().empty());
+  BOOST_CHECK_EQUAL(buffer.GetCurrentInterval(), 0);
+  BOOST_CHECK_EQUAL(buffer.CurrentIntervalStart(), kFirstTime);
+  BOOST_CHECK_EQUAL(buffer.IntervalDuration(), kInterval);
+}
+
+BOOST_AUTO_TEST_CASE(current_interval) {
+  // Test using AdvanceInterval() on an empty buffer, and test
+  // GetCurrentInterval() and CurrentIntervalStart().
+  // BOOST_CHECK_CLOSE is not needed, since rounding errors should not happen.
+  BdaSolverBuffer buffer(kFirstTime, kInterval, kNBaselines);
+  BOOST_CHECK_EQUAL(buffer.GetCurrentInterval(), 0);
+  BOOST_CHECK_EQUAL(buffer.CurrentIntervalStart(), kFirstTime);
+  buffer.AdvanceInterval();
+  BOOST_CHECK_EQUAL(buffer.GetCurrentInterval(), 1);
+  BOOST_CHECK_EQUAL(buffer.CurrentIntervalStart(), kFirstTime + kInterval);
+  buffer.AdvanceInterval();
+  BOOST_CHECK_EQUAL(buffer.GetCurrentInterval(), 2);
+  BOOST_CHECK_EQUAL(buffer.CurrentIntervalStart(), kFirstTime + 2 * kInterval);
 }
 
 BOOST_AUTO_TEST_CASE(append_and_weight) {
