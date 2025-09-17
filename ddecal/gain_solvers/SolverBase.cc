@@ -210,15 +210,19 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
   assert(newSolutions.shape(2) == NSubSolutions());
   assert(newSolutions.shape(3) == NSolutionPolarizations());
   avgAbsDiff = 0.0;
-  //  Calculate the norm of the difference between the old and new solutions
   const size_t n_solution_pols = NSolutionPolarizations();
   size_t n = 0;
   const auto new_solutions_view = xt::reshape_view(
       newSolutions,
       {newSolutions.shape(0), newSolutions.shape(1) * newSolutions.shape(2),
        newSolutions.shape(3)});
+  const size_t channel_block_size =
+      newSolutions.shape(1) * newSolutions.shape(2) * newSolutions.shape(3);
+
+  //  Calculate the norm of the difference between the old and new solutions
   for (size_t chBlock = 0; chBlock < n_channel_blocks_; ++chBlock) {
-    for (size_t i = 0; i != solutions[chBlock].size(); i += n_solution_pols) {
+    assert(solutions[chBlock].size() == channel_block_size);
+    for (size_t i = 0; i != channel_block_size; i += n_solution_pols) {
       // A normalized squared difference is calculated between the solutions of
       // this and the previous step:
       //   sqrt { 1/n sum over | (t1 - t0) t0^(-1) |_2 }
@@ -269,8 +273,14 @@ bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
       }
     }
 
-    xt::adapt(solutions[chBlock]) =
-        xt::flatten(xt::view(newSolutions, chBlock));
+    // Previously, this std::copy_n was written using these xtensor primitives:
+    // xt::adapt(solutions[chBlock]) =
+    //    xt::flatten(xt::view(newSolutions, chBlock));
+    // However, a debugging session revealed that XTensor allocated
+    // (temporary?) memory during this operation. Therefore, use std::copy_n
+    // instead, which is much simpler and never allocates memory.
+    std::copy_n(&newSolutions(chBlock, 0, 0, 0), channel_block_size,
+                solutions[chBlock].data());
   }
 
   // The stepsize is taken out, so that a small stepsize won't cause
