@@ -10,14 +10,14 @@
 
 #include <dp3/base/BdaBuffer.h>
 #include "../../../common/ParameterSet.h"
+#include "../../../common/test/unit/tCommon.h"
 #include "mock/MockStep.h"
-#include "tStepCommon.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
+using dp3::common::test::kTrueFalseRange;
 using dp3::steps::BdaAverager;
-using dp3::steps::test::kTrueFalseRange;
 
 namespace {
 const unsigned int kNCorr = 4;

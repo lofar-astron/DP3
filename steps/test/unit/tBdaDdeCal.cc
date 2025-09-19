@@ -10,6 +10,7 @@
 
 #include <dp3/common/Fields.h>
 #include "../../../common/ParameterSet.h"
+#include "../../../common/test/unit/tCommon.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 #include "../../MSBDAReader.h"
 #include "../../MultiResultStep.h"
@@ -19,10 +20,10 @@
 using dp3::base::BdaBuffer;
 using dp3::common::Fields;
 using dp3::common::test::FixtureDirectory;
+using dp3::common::test::kTrueFalseRange;
 using dp3::steps::BdaDdeCal;
 using dp3::steps::BDAResultStep;
 using dp3::steps::MSBDAReader;
-using dp3::steps::test::kTrueFalseRange;
 
 namespace {
 

@@ -18,6 +18,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>

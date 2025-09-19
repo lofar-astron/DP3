@@ -5,8 +5,6 @@
 #include "../../BdaGroupPredict.h"
 #include "../../../common/ParameterSet.h"
 
-#include "mock/MockInput.h"
-
 #include <boost/test/unit_test.hpp>
 
 using dp3::steps::BdaGroupPredict;

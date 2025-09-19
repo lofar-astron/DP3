@@ -12,6 +12,7 @@
 #include <dp3/base/DPInfo.h>
 
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 #include "../../AntennaFlagger.h"
 #include "../../../common/baseline_indices.h"

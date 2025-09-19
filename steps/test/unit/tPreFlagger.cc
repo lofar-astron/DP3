@@ -22,6 +22,7 @@
 #include <xtensor/xview.hpp>
 
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 #include "../../Counter.h"
 #include <dp3/base/DPBuffer.h>
