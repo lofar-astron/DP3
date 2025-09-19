@@ -27,6 +27,7 @@
 
 #include "tPredict.h"
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 
 #include <dp3/base/DPBuffer.h>

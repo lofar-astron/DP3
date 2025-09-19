@@ -13,7 +13,6 @@
 #include "../../../common/ParameterSet.h"
 
 #include "../../../common/test/unit/fixtures/fDirectory.h"
-#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 #include "tStepCommon.h"
 

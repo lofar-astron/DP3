@@ -18,6 +18,7 @@
 #include "../../../common/StringTools.h"
 
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 
 using dp3::base::DPBuffer;

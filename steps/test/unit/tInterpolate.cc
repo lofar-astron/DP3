@@ -6,16 +6,16 @@
 
 #include "../../Interpolate.h"
 
-#include "tStepCommon.h"
-#include "mock/ThrowStep.h"
-#include <dp3/base/DP3.h>
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include <string>
+#include <vector>
 
 #include <boost/test/unit_test.hpp>
 
-#include <string>
-#include <vector>
+#include "tStepCommon.h"
+#include "mock/MockInput.h"
+#include "mock/ThrowStep.h"
+#include "../../../common/ParameterSet.h"
+#include "../../../common/StringTools.h"
 
 using dp3::base::DPInfo;
 using dp3::steps::Step;

@@ -13,6 +13,7 @@
 #include <schaapcommon/h5parm/soltab.h>
 
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 #include "../../ApplyCal.h"
 #include <dp3/base/DPBuffer.h>

@@ -4,11 +4,8 @@
 #include "../../MsColumnReader.h"
 
 #include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
 
 #include "../../../common/ParameterSet.h"
-
-#include "mock/MockInput.h"
 
 using dp3::steps::MsColumnReader;
 using dp3::steps::Step;

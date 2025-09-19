@@ -17,16 +17,16 @@
 #include "../../MultiResultStep.h"
 #include "../../ResultStep.h"
 #include "../../../base/test/LoggerFixture.h"
+#include "../../../common/test/unit/tCommon.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 
 #include "tDdeCalCommon.h"
-#include "tStepCommon.h"
 
 using dp3::common::test::FixtureDirectory;
+using dp3::common::test::kTrueFalseRange;
 using dp3::steps::DDECal;
 using dp3::steps::MsReader;
 using dp3::steps::test::CreateParameterSet;
-using dp3::steps::test::kTrueFalseRange;
 
 BOOST_AUTO_TEST_SUITE(
     ddecal, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())

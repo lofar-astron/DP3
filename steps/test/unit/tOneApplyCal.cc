@@ -7,8 +7,6 @@
 
 #include "../../../common/ParameterSet.h"
 
-#include "mock/MockInput.h"
-
 using dp3::steps::OneApplyCal;
 using dp3::steps::Step;
 

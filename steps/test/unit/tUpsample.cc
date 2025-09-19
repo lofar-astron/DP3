@@ -15,6 +15,7 @@
 #include <boost/test/data/test_case.hpp>
 
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>

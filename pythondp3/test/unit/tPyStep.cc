@@ -14,6 +14,7 @@
 #include <dp3/base/DPInfo.h>
 
 #include "../../../steps/test/unit/tStepCommon.h"
+#include "../../../steps/test/unit/mock/MockInput.h"
 #include "../../../steps/test/unit/mock/ThrowStep.h"
 #include "../../../common/ParameterSet.h"
 

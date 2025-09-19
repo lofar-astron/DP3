@@ -6,19 +6,15 @@
 #ifndef DP3_STEPS_TEST_UNIT_TSTEPCOMMON_H_
 #define DP3_STEPS_TEST_UNIT_TSTEPCOMMON_H_
 
+#include <memory>
 #include <vector>
 
-#include <boost/test/data/test_case.hpp>
-
-#include "mock/MockInput.h"
+#include <dp3/steps/Step.h>
 #include "../../../common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {
 namespace test {
-
-/// Data range used in many tests.
-inline const auto kTrueFalseRange = boost::unit_test::data::make({true, false});
 
 /// Connect a series of steps and execute them.
 void Execute(const std::vector<std::shared_ptr<Step>>& steps);

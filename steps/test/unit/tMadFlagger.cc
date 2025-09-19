@@ -26,18 +26,20 @@
 #include <xtensor/xio.hpp>
 
 #include "tStepCommon.h"
+#include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/DPInfo.h>
 #include "../../../common/ParameterSet.h"
 #include "../../../common/StringTools.h"
+#include "../../../common/test/unit/tCommon.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;
+using dp3::common::test::kTrueFalseRange;
 using dp3::steps::MadFlagger;
 using dp3::steps::Step;
-using dp3::steps::test::kTrueFalseRange;
 
 BOOST_AUTO_TEST_SUITE(madflagger)
 
