@@ -140,7 +140,7 @@ Averaging
 
 Demixing
 ---------------------
-:ref:`Demixing<Demixer>` (or Smart Demixing explained below) is a faster and more flexible way of the old demixing python script to demix and subtract strong sources (A-team). Jones matrices can be estimated for the direction of the subtract-sources, model-sources, and the optional target-source.
+:ref:`Demixing<Demixer>` implements an algorithm to subtract strong sources (A-team). Jones matrices can be estimated for the direction of the subtract-sources, model-sources, and the optional target-source.
   * It is possible to have different averaging for the demix and subtract step.
   * Selected (e.g. shorter) baselines can be demixed (others will be averaged only). By default only the cross-correlations are used.
   * Four different direction types can be given:
