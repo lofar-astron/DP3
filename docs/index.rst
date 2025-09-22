@@ -48,8 +48,7 @@ The following steps are possible:
 
   * :ref:`Demixing` to remove strong sources (A-team) from the data.
 
-    * :ref:`Demixer` to demix in the old way.
-    * :ref:`SmartDemixer` to demix in a new, smarter way.
+    * :ref:`Demixer` to demix bright sources.
 
   * :ref:`Station summation`
 
@@ -152,32 +151,6 @@ Demixing
   * A source model mentioned above is the patch name in the SourceDB (e.g. CasA). At the moment only point and Gaussian sources are supported. The direction used for demixing is the centroid of the sources that belong to the patch. The direction for an extra source (for which no model is used) can be given as a parameter if that is needed.
   * It is important to note that the target source model must NOT be given using the subtract-sources or model-sources. If it has to be used, give it using the `targetsource` parameter.
   * The Jones matrices will be estimated jointly for all directions, so better results are expected if the sources are close to the target. However, joint estimation of the Jones matrices for all directions is slower than estimating the Jones matrices for each direction separately. In the near future an option will be added to estimate the Jones matrices for each direction separately like the old demixing script is doing.
-
-Smart Demixing
----------------------
-:ref:`Smart Demixing <SmartDemixer>` does demixing as above, but in a smarter way using a scheme developed by Reinout van Weeren. For each time chunk (say 2 minutes) it is decided how to demix.
-
-It needs three source models, which are made from a text file using
-`makesourcedb <https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb>`__. Note that for performance it is best to run makesourcedb with parameter `outtype=blob`:
-
-  * A detailed model of the A-team sources used in the solve and subtract steps.
-  * A coarse model of the A-team sources used in the estimate step. If not given, the detailed model will be used.
-  * A model of the target field. Usually the user can create it from the GSM using `gsm.py <https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:gsm.py>`__.
-
-Smart demixing works as follows:
-  * If an A-team source is at about the same position as a source in the target model, the source is removed from the A-team list and its detailed model replaces the source in the target model used in the solve step (not for the estimate step).
-  * Using the coarse A-team model, the visibilities are estimated per baseline for each A-team source. By default the beam model is applied to get the apparent visibilities. The sources and baselines are selected for which the maximum amplitude exceeds a given threshold. A source/station will be solved for if the station appears in at least N of the selected baselines for that source. A detailed source model is used in that step to get as accurate gains as possible.
-  * The visibilities of the target are estimated in a similar way using the target model. The target is included in the solve if its maximum amplitude exceeds a threshold or if the amplitude ratio Target/Ateam exceeds a threshold. The target is also included if it is close to an A-team source and the ratio exceeds another (smaller) threshold. Otherwise, the target is ignored (if close) or deprojected.
-
-A detailed decision tree that the smart demixing algorithm follows is available `here <https://www.astron.nl/lofarwiki/lib/exe/fetch.php?media=engineering:software:tools:demixchart.pdf>`__,
-
-When solving for the complex gains of the selected A-team sources, the detailed A-team model is used to get the correct gains. Note that by default the sources/stations not solved for are still used in the solve step. There Jones matrices will have a small gain value on the diagonal and zeroes for the off-diagonal values.
-
-At the end a log is produced showing how the demixing behaved. It shows:
-  * percentage of converged solves and the average number of iterations used for them.
-  * percentage of times the target was included, deprojected, and ignored.
-  * percentage of times a source/station was solved for (thus matched the threshold/ratio criteria).
-  * average and standard deviation of percentage amplitude subtracted per source per baseline
 
 Phase shifting
 ---------------------
