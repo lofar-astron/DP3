@@ -25,6 +25,7 @@ add_python_tests(
   tReadOnly
   tNullStokes
   tSplit
+  tSVPInput
   tWGridderPredict)
 
 if(LIBDIRAC_FOUND)
