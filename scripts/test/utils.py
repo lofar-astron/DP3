@@ -3,7 +3,7 @@
 
 import os
 import subprocess
-from subprocess import check_call, check_output, run
+from subprocess import Popen, check_call, check_output, run
 
 import pytest
 from testconfig import DP3EXE, TAQLEXE
@@ -68,3 +68,19 @@ def run_dp3(arguments):
             cmd="DP3 " + " ".join(all_arguments),
         )
     return result.stdout
+
+
+def spawn_dp3(arguments):
+    """
+    Run DP3 with the given arguments in the background.
+    Prepend common DP3 test arguments (checkparset=1, numthreads=1).
+    For testing DP3 with multiple threads, add numthreads=<N> to the arguments.
+    """
+    all_arguments = COMMON_DP3_ARGUMENTS + arguments
+    print("DP3 " + " ".join(all_arguments))
+    child = Popen(
+        [DP3EXE] + all_arguments,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    return child

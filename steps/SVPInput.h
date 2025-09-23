@@ -28,6 +28,7 @@ namespace steps {
 class SVPInput : public InputStep {
   class MetaData {
    public:
+    enum Telescope { kLOFAR, kALMA, kAARTFAAC };
     MetaData(){};
     size_t nr_channels_;
     int nr_polarizations_;
@@ -48,6 +49,7 @@ class SVPInput : public InputStep {
     std::string source_name_;
     std::string frame_name_;
     std::string telescope_name_;
+    Telescope telescope_;
 
     std::vector<double> chan_freqs_;
     std::vector<double> chan_widths_;
@@ -80,6 +82,7 @@ class SVPInput : public InputStep {
   std::unique_ptr<base::UVWCalculator> uvw_calculator_;
 
   MetaData metadata_;
+  size_t process_counter_{0};
   void InitializeInfo();
   void CreateInitialSubtables();
   void CreateAntennaTable(double time, base::SubtableWriter& writer);

@@ -50,108 +50,150 @@ bool SVPInput::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
 
   int recv;
   double time_centroid = 0.0, time_duration = 1.0;
-  recv = ReceiveItem<double>(time_centroid);
-  recv = ReceiveItem<double>(time_duration);
-  // Wait till data arrives
-  size_t data_size;
-  recv = ReceiveItem<size_t>(data_size);
-  uint data_bits;
-  recv = ReceiveItem<uint>(data_bits);
+  if (metadata_.telescope_ == MetaData::kALMA) {
+    size_t data_size = 0, flag_size = 0;
+    uint data_bits;
+    recv = ReceiveItem<double>(time_centroid);
+    recv = ReceiveItem<double>(time_duration);
+    recv = ReceiveItem<size_t>(flag_size);
+    recv = ReceiveItem<size_t>(data_size);
+    recv = ReceiveItem<uint>(data_bits);
 
-  if (recv == -1) {
-    aocommon::Logger::Debug
-        << "DP3 SVPInput Error receiving data size, skipping";
-    return false;
-  }
-  assert(data_bits == 16 or data_bits == 32);
-
-  float inv_scale = (float)1.0 / metadata_.scale_factor_;
-
-  if (data_bits == 16) {
-    std::vector<int16_t> recv_buffer(2 * n_bl * n_ch * n_cr);
-    recv = ReceiveBytes(reinterpret_cast<char*>(recv_buffer.data()),
-                        2 * n_bl * n_ch * n_cr * sizeof(int16_t));
     if (recv == -1) {
-      aocommon::Logger::Debug << "DP3 SVPInput Error receiving data buffer";
+      // Stop processing (but dont throw because it can also be
+      // due to end of stream )
+      aocommon::Logger::Debug << "DP3 SVPInput no data received, stopping";
+      return false;
     }
+    assert(data_bits == 16 or data_bits == 32);
 
-    for (size_t bl = 0; bl < n_bl; bl++) {
-      for (size_t ch = 0; ch < n_ch; ch++) {
-        std::complex<float>* data_pointer = &buffer->GetData()(bl, ch, 0);
-
-        size_t recv_index = bl * n_ch * n_cr + ch * n_cr + 0;
-        int16_t recv_r = recv_buffer[2 * recv_index];
-        int16_t recv_i = recv_buffer[2 * recv_index + 1];
-
-        data_pointer[0] = std::complex<float>((float)recv_r * inv_scale,
-                                              (float)recv_i * inv_scale);
-
-        recv_index = bl * n_ch * n_cr + ch * n_cr + 1;
-        recv_r = recv_buffer[2 * recv_index];
-        recv_i = recv_buffer[2 * recv_index + 1];
-
-        data_pointer[1] = std::complex<float>((float)recv_r * inv_scale,
-                                              (float)recv_i * inv_scale);
-
-        if (n_cr == 4) {
-          recv_index = bl * n_ch * n_cr + ch * n_cr + 2;
-          recv_r = recv_buffer[2 * recv_index];
-          recv_i = recv_buffer[2 * recv_index + 1];
-
-          data_pointer[2] = std::complex<float>((float)recv_r * inv_scale,
-                                                (float)recv_i * inv_scale);
-
-          recv_index = bl * n_ch * n_cr + ch * n_cr + 3;
-          recv_r = recv_buffer[2 * recv_index];
-          recv_i = recv_buffer[2 * recv_index + 1];
-
-          data_pointer[3] = std::complex<float>((float)recv_r * inv_scale,
-                                                (float)recv_i * inv_scale);
+    // Receive flags if flag_size > 0
+    std::vector<int32_t> flag_buffer;
+    if (flag_size > 0) {
+      flag_buffer.resize(flag_size);
+      // check flag size is what we expect
+      assert(flag_size >= n_bl * n_ch);
+      recv = ReceiveBytes(reinterpret_cast<char*>(flag_buffer.data()),
+                          flag_size * sizeof(int32_t));
+      if (recv == -1) {
+        throw std::runtime_error("DP3 SVPInput Error receiving flag buffer");
+      }
+      auto flags = buffer->GetFlags();
+      flags.resize({n_bl, n_ch, n_cr});
+      flags.fill(false);
+      for (size_t bl = 0; bl < n_bl; bl++) {
+        for (size_t ch = 0; ch < n_ch; ch++) {
+          size_t recv_index = bl * n_ch + ch;
+          bool flag = (flag_buffer[recv_index] != 0);
+          flags(bl, ch, 0) = flags(bl, ch, 1) = flag;
+          if (n_cr == 4) {
+            flags(bl, ch, 2) = flags(bl, ch, 3) = flag;
+          }
         }
       }
     }
-  } else if (data_bits == 32) {
-    std::vector<int32_t> recv_buffer(2 * n_bl * n_ch * n_cr);
-    recv = ReceiveBytes(reinterpret_cast<char*>(recv_buffer.data()),
-                        2 * n_bl * n_ch * n_cr * sizeof(int32_t));
-    if (recv == -1) {
-      aocommon::Logger::Debug << "DP3 SVPInput Error receiving data buffer";
-    }
 
-    for (size_t bl = 0; bl < n_bl; bl++) {
-      for (size_t ch = 0; ch < n_ch; ch++) {
-        std::complex<float>* data_pointer = &buffer->GetData()(bl, ch, 0);
-        size_t recv_index = bl * n_ch * n_cr + ch * n_cr + 0;
-        int32_t recv_r = recv_buffer[2 * recv_index];
-        int32_t recv_i = recv_buffer[2 * recv_index + 1];
+    float inv_scale = (float)1.0 / metadata_.scale_factor_;
 
-        data_pointer[0] = std::complex<float>((float)recv_r * inv_scale,
-                                              (float)recv_i * inv_scale);
+    if (data_bits == 16) {
+      std::vector<int16_t> recv_buffer(2 * n_bl * n_ch * n_cr);
+      recv = ReceiveBytes(reinterpret_cast<char*>(recv_buffer.data()),
+                          2 * n_bl * n_ch * n_cr * sizeof(int16_t));
+      if (recv == -1) {
+        throw std::runtime_error("DP3 SVPInput Error receiving data buffer");
+      }
 
-        recv_index = bl * n_ch * n_cr + ch * n_cr + 1;
-        recv_r = recv_buffer[2 * recv_index];
-        recv_i = recv_buffer[2 * recv_index + 1];
+      for (size_t bl = 0; bl < n_bl; bl++) {
+        for (size_t ch = 0; ch < n_ch; ch++) {
+          std::complex<float>* data_pointer = &buffer->GetData()(bl, ch, 0);
 
-        data_pointer[1] = std::complex<float>((float)recv_r * inv_scale,
-                                              (float)recv_i * inv_scale);
+          size_t recv_index = bl * n_ch * n_cr + ch * n_cr + 0;
+          int16_t recv_r = recv_buffer[2 * recv_index];
+          int16_t recv_i = recv_buffer[2 * recv_index + 1];
 
-        if (n_cr == 4) {
-          recv_index = bl * n_ch * n_cr + ch * n_cr + 2;
+          data_pointer[0] = std::complex<float>((float)recv_r * inv_scale,
+                                                (float)recv_i * inv_scale);
+
+          recv_index = bl * n_ch * n_cr + ch * n_cr + 1;
           recv_r = recv_buffer[2 * recv_index];
           recv_i = recv_buffer[2 * recv_index + 1];
 
-          data_pointer[2] = std::complex<float>((float)recv_r * inv_scale,
+          data_pointer[1] = std::complex<float>((float)recv_r * inv_scale,
                                                 (float)recv_i * inv_scale);
 
-          recv_index = bl * n_ch * n_cr + ch * n_cr + 3;
+          if (n_cr == 4) {
+            recv_index = bl * n_ch * n_cr + ch * n_cr + 2;
+            recv_r = recv_buffer[2 * recv_index];
+            recv_i = recv_buffer[2 * recv_index + 1];
+
+            data_pointer[2] = std::complex<float>((float)recv_r * inv_scale,
+                                                  (float)recv_i * inv_scale);
+
+            recv_index = bl * n_ch * n_cr + ch * n_cr + 3;
+            recv_r = recv_buffer[2 * recv_index];
+            recv_i = recv_buffer[2 * recv_index + 1];
+
+            data_pointer[3] = std::complex<float>((float)recv_r * inv_scale,
+                                                  (float)recv_i * inv_scale);
+          }
+        }
+      }
+    } else if (data_bits == 32) {
+      std::vector<int32_t> recv_buffer(2 * n_bl * n_ch * n_cr);
+      recv = ReceiveBytes(reinterpret_cast<char*>(recv_buffer.data()),
+                          2 * n_bl * n_ch * n_cr * sizeof(int32_t));
+      if (recv == -1) {
+        throw std::runtime_error("DP3 SVPInput Error receiving data buffer");
+      }
+
+      for (size_t bl = 0; bl < n_bl; bl++) {
+        for (size_t ch = 0; ch < n_ch; ch++) {
+          std::complex<float>* data_pointer = &buffer->GetData()(bl, ch, 0);
+          size_t recv_index = bl * n_ch * n_cr + ch * n_cr + 0;
+          int32_t recv_r = recv_buffer[2 * recv_index];
+          int32_t recv_i = recv_buffer[2 * recv_index + 1];
+
+          data_pointer[0] = std::complex<float>((float)recv_r * inv_scale,
+                                                (float)recv_i * inv_scale);
+
+          recv_index = bl * n_ch * n_cr + ch * n_cr + 1;
           recv_r = recv_buffer[2 * recv_index];
           recv_i = recv_buffer[2 * recv_index + 1];
 
-          data_pointer[3] = std::complex<float>((float)recv_r * inv_scale,
+          data_pointer[1] = std::complex<float>((float)recv_r * inv_scale,
                                                 (float)recv_i * inv_scale);
+
+          if (n_cr == 4) {
+            recv_index = bl * n_ch * n_cr + ch * n_cr + 2;
+            recv_r = recv_buffer[2 * recv_index];
+            recv_i = recv_buffer[2 * recv_index + 1];
+
+            data_pointer[2] = std::complex<float>((float)recv_r * inv_scale,
+                                                  (float)recv_i * inv_scale);
+
+            recv_index = bl * n_ch * n_cr + ch * n_cr + 3;
+            recv_r = recv_buffer[2 * recv_index];
+            recv_i = recv_buffer[2 * recv_index + 1];
+
+            data_pointer[3] = std::complex<float>((float)recv_r * inv_scale,
+                                                  (float)recv_i * inv_scale);
+          }
         }
       }
     }
+  } else if (metadata_.telescope_ == MetaData::kLOFAR) {
+    time_centroid = metadata_.start_time_ +
+                    double(process_counter_) * metadata_.integration_time_;
+    time_duration = metadata_.integration_time_;
+    // LOFAR data: fcomplex: baselines x channels x 2 x 2 (n_cr=4)
+    std::complex<float>* data_pointer = &buffer->GetData()(0, 0, 0);
+    recv = ReceiveBytes(reinterpret_cast<char*>(data_pointer),
+                        2 * n_bl * n_ch * n_cr * sizeof(float));
+    if (recv == -1) {
+      throw std::runtime_error("DP3 SVPInput Error receiving data size");
+    }
+  } else {
+    throw std::runtime_error("DP3 SVPInput unknown telescope");
   }
 
   buffer->SetTime(time_centroid);
@@ -171,6 +213,8 @@ bool SVPInput::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
         uvw_calculator_->getUVW(antenna2[bl], antenna1[bl], time_centroid));
   }
 
+  process_counter_++;
+
   getNextStep()->process(std::move(buffer));
   return true;
 }
@@ -185,8 +229,33 @@ std::string SVPInput::msName() const { return temp_out_ms_; }
 
 void SVPInput::InitializeInfo() {
   // Get (static) metadata
+  // First item should be telescope name, to handle various telescopes
+  // telecope name (length and name)
+  int name_len = 0;
+  int recv = ReceiveItem<int>(name_len);
+  if (name_len != 0) {
+    metadata_.telescope_name_.resize(name_len);
+    recv =
+        ReceiveBytes(reinterpret_cast<char*>(metadata_.telescope_name_.data()),
+                     name_len * sizeof(char));
+    // set telesope type
+    if (metadata_.telescope_name_ == "LOFAR") {
+      metadata_.telescope_ = MetaData::kLOFAR;
+    } else if (metadata_.telescope_name_ == "ALMA") {
+      metadata_.telescope_ = MetaData::kALMA;
+    } else if (metadata_.telescope_name_ == "AARTFAAC") {
+      metadata_.telescope_ = MetaData::kAARTFAAC;
+    } else {
+      throw std::runtime_error("DP3 SVPInput unknown telesope name");
+    }
+  } else {
+    // default
+    metadata_.telescope_name_ = "ALMA";
+    metadata_.telescope_ = MetaData::kALMA;
+  }
+
   // channels
-  int recv = ReceiveItem<size_t>(metadata_.nr_channels_);
+  recv = ReceiveItem<size_t>(metadata_.nr_channels_);
   // antennas
   recv = ReceiveItem<size_t>(metadata_.nr_antennas_);
   // polarizations
@@ -200,7 +269,7 @@ void SVPInput::InitializeInfo() {
   // number of integrations
   recv = ReceiveItem<size_t>(metadata_.nr_times_);
   // source name (length and name)
-  int name_len = 0;
+  name_len = 0;
   recv = ReceiveItem<int>(name_len);
   if (name_len != 0) {
     metadata_.source_name_.resize(name_len);
@@ -225,17 +294,6 @@ void SVPInput::InitializeInfo() {
   } else {
     metadata_.frame_name_ = "J2000";
   }
-  // telecope name (length and name)
-  name_len = 0;
-  recv = ReceiveItem<int>(name_len);
-  if (name_len != 0) {
-    metadata_.telescope_name_.resize(name_len);
-    recv =
-        ReceiveBytes(reinterpret_cast<char*>(metadata_.telescope_name_.data()),
-                     name_len * sizeof(char));
-  } else {
-    metadata_.telescope_name_ = "ALMA";
-  }
 
   // antenna coords
   std::vector<double> ant_pos(metadata_.nr_antennas_ * 3);
@@ -257,7 +315,7 @@ void SVPInput::InitializeInfo() {
                       metadata_.nr_channels_ * sizeof(double));
 
   if (recv == -1) {
-    throw std::runtime_error("DP3 SVPInput did not receive metadata.");
+    throw std::runtime_error("DP3 SVPInput did not receive metadata");
   }
 
   metadata_.antenna_positions_.resize(metadata_.nr_antennas_);
@@ -270,17 +328,35 @@ void SVPInput::InitializeInfo() {
         casacore::Quantum<casacore::Vector<double>>(vals, "m"),
         casacore::MPosition::ITRF);
   }
-  // baselines, exclude auto-corr
-  size_t nbl = metadata_.nr_antennas_ * (metadata_.nr_antennas_ - 1) / 2;
-  // +metadata_.nr_antennas_; for autocorr
-  std::vector<int> ant1(nbl);
-  std::vector<int> ant2(nbl);
+
+  // baselines ordering and inclusion/exclusion of autocorrelations
+  // depend on the telescope
+  size_t n_bl;
+  if (metadata_.telescope_ == MetaData::kALMA) {
+    // exclude auto-corr
+    n_bl = metadata_.nr_antennas_ * (metadata_.nr_antennas_ - 1) / 2;
+  } else {
+    // include auto-corr
+    n_bl = metadata_.nr_antennas_ * (metadata_.nr_antennas_ + 1) / 2;
+  }
+  std::vector<int> ant1(n_bl);
+  std::vector<int> ant2(n_bl);
   std::size_t bl = 0;
-  for (std::size_t st2 = 0; st2 < metadata_.nr_antennas_; st2++) {
-    for (std::size_t st1 = 0; st1 < st2; st1++) {
-      ant1[bl] = st1;
-      ant2[bl] = st2;
-      bl++;
+  if (metadata_.telescope_ == MetaData::kALMA) {
+    for (std::size_t st2 = 0; st2 < metadata_.nr_antennas_; st2++) {
+      for (std::size_t st1 = 0; st1 < st2; st1++) {
+        ant1[bl] = st1;
+        ant2[bl] = st2;
+        bl++;
+      }
+    }
+  } else {
+    for (std::size_t st1 = 0; st1 < metadata_.nr_antennas_; st1++) {
+      for (std::size_t st2 = 0; st2 <= st1; st2++) {
+        ant1[bl] = st1;
+        ant2[bl] = st2;
+        bl++;
+      }
     }
   }
 
@@ -450,7 +526,7 @@ void SVPInput::CreatePolarizationTable(base::SubtableWriter& writer,
 
 void SVPInput::ConnectServer(const char* path) {
   if ((sock_fd_ = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-    throw std::runtime_error("DP3 SVPInput Cannot create unix socket.");
+    throw std::runtime_error("DP3 SVPInput Cannot create unix socket");
   }
 
   struct sockaddr_un saddr;
@@ -461,7 +537,7 @@ void SVPInput::ConnectServer(const char* path) {
   int conn = connect(sock_fd_, (struct sockaddr*)&saddr, ssize);
   if (conn == -1) {
     close(sock_fd_);
-    throw std::runtime_error("DP3 SVPInput Cannot connect unix socket.");
+    throw std::runtime_error("DP3 SVPInput Cannot connect unix socket");
   }
 }
 
