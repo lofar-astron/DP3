@@ -6,6 +6,7 @@
 
 #include "../common/ParameterSet.h"
 
+#include <sstream>
 #include <string>
 
 #include <casacore/casa/Containers/Record.h>
@@ -108,6 +109,28 @@ struct StManParsetKeys {
     return dyscoSpec;
   }
 };
+
+inline std::string GetCompressionString(const StManParsetKeys& st_man_keys) {
+  std::ostringstream str;
+  if (st_man_keys.storage_manager_name == "dysco") {
+    str << "  Compressed:     yes (Dysco)\n"
+        << "   Data bitrate:  " << st_man_keys.dysco_data_bit_rate << '\n'
+        << "   Weight bitrate:" << st_man_keys.dysco_weight_bit_rate << '\n'
+        << "   Dysco mode:    " << st_man_keys.dysco_normalization << ' '
+        << st_man_keys.dysco_distribution << '('
+        << st_man_keys.dysco_dist_truncation << ")\n";
+  } else if (st_man_keys.storage_manager_name == "sisco") {
+    str << "  Compressed:     yes (Sisco)\n"
+        << "   Predict level: " << st_man_keys.sisco_predict_level << '\n'
+        << "   Deflate level: " << st_man_keys.sisco_deflate_level << '\n';
+  } else if (st_man_keys.storage_manager_name == "stokes_i") {
+    str << "  Compressed:     yes (Stokes I)\n";
+  } else {
+    str << "  Compressed:     no\n";
+  }
+  return str.str();
+}
+
 }  // namespace base
 }  // namespace dp3
 #endif
