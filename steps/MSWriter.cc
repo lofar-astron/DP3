@@ -274,22 +274,7 @@ void MSWriter::show(std::ostream& os) const {
   os << "  DATA column:    " << data_col_name_ << '\n';
   os << "  FLAG column:    " << flag_col_name_ << '\n';
   os << "  WEIGHT column:  " << weight_col_name_ << '\n';
-  if (st_man_keys_.storage_manager_name == "dysco") {
-    os << "  Compressed:     yes (Dysco)\n"
-       << "   Data bitrate:  " << st_man_keys_.dysco_data_bit_rate << '\n'
-       << "   Weight bitrate:" << st_man_keys_.dysco_weight_bit_rate << '\n'
-       << "   Dysco mode:    " << st_man_keys_.dysco_normalization << ' '
-       << st_man_keys_.dysco_distribution << '('
-       << st_man_keys_.dysco_dist_truncation << ")\n";
-  } else if (st_man_keys_.storage_manager_name == "sisco") {
-    os << "  Compressed:     yes (Sisco)\n"
-       << "   Predict level: " << st_man_keys_.sisco_predict_level << '\n'
-       << "   Deflate level: " << st_man_keys_.sisco_deflate_level << '\n';
-  } else if (st_man_keys_.storage_manager_name == "stokes_i") {
-    os << "  Compressed:     yes (Stokes I)\n";
-  } else {
-    os << "  Compressed:     no\n";
-  }
+  os << GetCompressionString(st_man_keys_);
   os << "  scalar flags:   " << std::boolalpha << scalar_flags_ << '\n';
   os << "  use thread:     " << std::boolalpha << use_write_thread_ << '\n';
 }

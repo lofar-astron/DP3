@@ -350,16 +350,7 @@ void MSUpdater::show(std::ostream& os) const {
     if (GetFieldsToWrite().Weights()) os << " weights";
     os << '\n';
   }
-  if (itsStManKeys.storage_manager_name == "dysco") {
-    os << "  Compressed:     yes\n"
-       << "  Data bitrate:   " << itsStManKeys.dysco_data_bit_rate << '\n'
-       << "  Weight bitrate: " << itsStManKeys.dysco_weight_bit_rate << '\n'
-       << "  Dysco mode:     " << itsStManKeys.dysco_normalization << ' '
-       << itsStManKeys.dysco_distribution << '('
-       << itsStManKeys.dysco_dist_truncation << ")\n";
-  } else {
-    os << "  Compressed:     no\n";
-  }
+  os << GetCompressionString(itsStManKeys);
   os << '\n';
   os << "  flush:          " << itsNrTimesFlush << '\n';
 }
