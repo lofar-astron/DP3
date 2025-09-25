@@ -30,18 +30,26 @@ void BdaSolverBuffer::AppendAndWeight(
     std::unique_ptr<BdaBuffer> unweighted_buffer,
     const std::vector<std::string>& direction_names,
     bool keep_unweighted_model_data) {
-  const common::Fields bda_fields(common::Fields::Single::kData);
-
+  // Create a weighted_buffer with the main data and the model data for all
+  // directions. Providing the 'data' field to the constructor would also work.
+  // However, the constructor then copies all data buffers and not only those
+  // in 'direction_names', resulting in more memory usage than needed.
   auto weighted_buffer =
-      std::make_unique<BdaBuffer>(*unweighted_buffer, bda_fields);
+      std::make_unique<BdaBuffer>(*unweighted_buffer, common::Fields());
+
+  // Always copy the main data buffer.
+  weighted_buffer->AddData();
+  std::copy_n(unweighted_buffer->GetData(),
+              unweighted_buffer->GetNumberOfElements(),
+              weighted_buffer->GetData());
 
   // Copy or move the model buffer data into weighted_buffer.
   for (const std::string& name : direction_names) {
     if (keep_unweighted_model_data) {
       weighted_buffer->AddData(name);
-      std::copy_n(weighted_buffer->GetData(name),
-                  weighted_buffer->GetNumberOfElements(),
-                  unweighted_buffer->GetData(name));
+      std::copy_n(unweighted_buffer->GetData(name),
+                  unweighted_buffer->GetNumberOfElements(),
+                  weighted_buffer->GetData(name));
     } else {
       weighted_buffer->MoveData(*unweighted_buffer, name, name);
     }
@@ -62,10 +70,19 @@ void BdaSolverBuffer::AppendAndWeight(
     const float* const row_weights = unweighted_buffer->GetWeights(row_index);
     const bool* const row_flags = unweighted_buffer->GetFlags(row_index);
 
-    std::vector<std::complex<float>*> row_model_data;
-    row_model_data.reserve(direction_names.size());
+    std::vector<std::complex<float>*> unweighted_model_data;
+    if (keep_unweighted_model_data) {
+      unweighted_model_data.reserve(direction_names.size());
+      for (const std::string& name : direction_names) {
+        unweighted_model_data.push_back(
+            unweighted_buffer->GetData(row_index, name));
+      }
+    }
+
+    std::vector<std::complex<float>*> weighted_model_data;
+    weighted_model_data.reserve(direction_names.size());
     for (const std::string& name : direction_names) {
-      row_model_data.push_back(weighted_buffer->GetData(row_index, name));
+      weighted_model_data.push_back(weighted_buffer->GetData(row_index, name));
     }
 
     for (size_t ch = 0; ch < weighted_row.n_channels; ++ch) {
@@ -94,7 +111,7 @@ void BdaSolverBuffer::AppendAndWeight(
       }
 
       // Weight the model data.
-      for (std::complex<float>* model_ptr : row_model_data) {
+      for (std::complex<float>* model_ptr : weighted_model_data) {
         model_ptr += index;
 
         for (size_t cr = 0; cr < kNCorrelations; ++cr) {
@@ -107,7 +124,7 @@ void BdaSolverBuffer::AppendAndWeight(
       // data and model data to zero.
       if (is_flagged) {
         std::fill_n(data_ptr, kNCorrelations, 0.0);
-        for (std::complex<float>* model_ptr : row_model_data) {
+        for (std::complex<float>* model_ptr : weighted_model_data) {
           std::fill_n(model_ptr + index, kNCorrelations, 0.0);
         }
       }
@@ -122,12 +139,14 @@ void BdaSolverBuffer::AppendAndWeight(
       data_rows_.PushBack(std::vector<IntervalRow>());
     }
 
-    std::vector<const std::complex<float>*> row_model_const_data(
-        row_model_data.begin(), row_model_data.end());
-    data_rows_[queue_index].push_back(
-        {weighted_row.time, weighted_row.baseline_nr, weighted_row.n_channels,
-         weighted_row.n_correlations, row_unweighted_data, row_weighted_data,
-         row_flags, row_weights, std::move(row_model_const_data)});
+    // Add the row to the correct solution interval.
+    std::vector<const std::complex<float>*> weighted_model_const_data(
+        weighted_model_data.begin(), weighted_model_data.end());
+    data_rows_[queue_index].emplace_back(
+        weighted_row.time, weighted_row.baseline_nr, weighted_row.n_channels,
+        weighted_row.n_correlations, row_unweighted_data, row_weighted_data,
+        row_flags, row_weights, std::move(unweighted_model_data),
+        std::move(weighted_model_const_data));
 
     int current_start_interval =
         RelativeIndex(weighted_row.time - weighted_row.interval / 2);
@@ -196,6 +215,7 @@ void BdaSolverBuffer::SubtractCorrectedModel(
 
   for (const IntervalRow& row : data_rows_[0]) {
     // Map each (averaged) channel to a channel block.
+    assert(!row.unweighted_model_data.empty());
     assert(chan_freqs[row.baseline_nr].size() == row.n_channels);
     std::vector<size_t> channel_blocks;
     channel_blocks.reserve(row.n_channels);
@@ -207,7 +227,7 @@ void BdaSolverBuffer::SubtractCorrectedModel(
       channel_blocks.push_back(block);
     }
 
-    const size_t n_directions = row.model_data.size();
+    const size_t n_directions = row.unweighted_model_data.size();
     const size_t ant1_index = antennas1[row.baseline_nr] * n_directions;
     const size_t ant2_index = antennas2[row.baseline_nr] * n_directions;
 
@@ -215,52 +235,44 @@ void BdaSolverBuffer::SubtractCorrectedModel(
       const size_t sol1_index = ant1_index + dir;
       const size_t sol2_index = ant2_index + dir;
 
-      std::complex<float>* unweighted_data = row.unweighted_data;
-      const std::complex<float>* model_data = row.model_data[dir];
+      std::complex<float>* unweighted_data_ptr = row.unweighted_data;
+      std::complex<float>* model_data_ptr = row.unweighted_model_data[dir];
       for (size_t ch = 0; ch < row.n_channels; ++ch) {
         const std::vector<std::complex<double>>& sol_block =
             solutions[channel_blocks[ch]];
         assert((sol1_index + 1) * n_polarizations <= sol_block.size());
         assert((sol2_index + 1) * n_polarizations <= sol_block.size());
 
+        aocommon::MC2x2 model_data(model_data_ptr);
         switch (n_polarizations) {
           case 4: {
             const aocommon::MC2x2 sol1(&sol_block[sol1_index * 4]);
             const aocommon::MC2x2 sol2(&sol_block[sol2_index * 4]);
-            const aocommon::MC2x2 solved =
-                sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
-            const aocommon::MC2x2 result =
-                aocommon::MC2x2(unweighted_data) - solved;
-            result.AssignTo(unweighted_data);
+            model_data = (sol1 * model_data) * sol2.HermTranspose();
             break;
           }
           case 2: {
-            const aocommon::MC2x2 sol1(sol_block[sol1_index * 2], 0.0, 0.0,
-                                       sol_block[sol1_index * 2 + 1]);
-            const aocommon::MC2x2 sol2(sol_block[sol2_index * 2], 0.0, 0.0,
-                                       sol_block[sol2_index * 2 + 1]);
-            const aocommon::MC2x2 solved =
-                sol1.Multiply(aocommon::MC2x2(model_data)).MultiplyHerm(sol2);
-            const aocommon::MC2x2 result =
-                aocommon::MC2x2(unweighted_data) - solved;
-            result.AssignTo(unweighted_data);
+            const aocommon::MC2x2Diag sol1(&sol_block[sol1_index * 2]);
+            const aocommon::MC2x2Diag sol2(&sol_block[sol2_index * 2]);
+            model_data = (sol1 * model_data) * sol2.HermTranspose();
             break;
           }
           case 1: {
             const std::complex<double> sol_factor =
                 sol_block[sol1_index] * std::conj(sol_block[sol2_index]);
-            const aocommon::MC2x2 result =
-                aocommon::MC2x2(unweighted_data) -
-                aocommon::MC2x2(model_data) * sol_factor;
-            result.AssignTo(unweighted_data);
+            model_data = model_data * sol_factor;
             break;
           }
           default:
             assert(false);
         }
 
-        unweighted_data += kNCorrelations;
-        model_data += kNCorrelations;
+        const aocommon::MC2x2 result =
+            aocommon::MC2x2(unweighted_data_ptr) - model_data;
+        result.AssignTo(unweighted_data_ptr);
+
+        unweighted_data_ptr += kNCorrelations;
+        model_data_ptr += kNCorrelations;
       }
     }
   }

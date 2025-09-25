@@ -424,12 +424,14 @@ void BdaDdeCal::ProcessCompleteDirections() {
       getNextStep()->process(std::move(buffer));
     }
   } else {
+    const bool keep_unweighted_model_data =
+        settings_.keep_model_data || settings_.subtract;
     while (!input_buffers_.empty() &&
            HasAllDirections(*input_buffers_.front())) {
       // Send the input buffer to solver_buffer_.
       solver_buffer_->AppendAndWeight(std::move(input_buffers_.front()),
                                       direction_names_,
-                                      settings_.keep_model_data);
+                                      keep_unweighted_model_data);
       input_buffers_.pop_front();
     }
 

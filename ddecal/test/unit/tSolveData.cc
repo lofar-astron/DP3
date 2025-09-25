@@ -362,7 +362,8 @@ BOOST_AUTO_TEST_CASE(bda) {
       const std::complex<float>* const data_ptr =
           solver_buffer.GetIntervalRows()[row_index].weighted_data + offset;
       const std::complex<float>* const model_data_ptr =
-          solver_buffer.GetIntervalRows()[row_index].model_data[0] + offset;
+          solver_buffer.GetIntervalRows()[row_index].weighted_model_data[0] +
+          offset;
       for (size_t p = 0; p < kNPolarizations; ++p) {
         BOOST_TEST(data.Get(p) == data_ptr[p]);
         BOOST_TEST(model_data.Get(p) == model_data_ptr[p]);
