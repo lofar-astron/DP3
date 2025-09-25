@@ -12,8 +12,11 @@
 
 #include <dp3/base/BdaBuffer.h>
 
+#include "../../../common/test/unit/tCommon.h"
+
 using dp3::base::BdaBuffer;
 using dp3::common::Fields;
+using dp3::common::test::kTrueFalseRange;
 using dp3::ddecal::BdaSolverBuffer;
 
 namespace {
@@ -116,7 +119,8 @@ void CheckRowMetaData(const BdaBuffer::Row& bda_row,
 /**
  * Compares a data row and the first model row against a reference row.
  */
-void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
+void CheckRow(const BdaSolverBuffer& solver_buffer,
+              bool has_unweighted_model_data, size_t row_index,
               const BdaBuffer::Row& reference_row,
               const std::complex<float>* reference_row_data) {
   // Get the row from the solver buffer.
@@ -124,20 +128,101 @@ void CheckRow(const BdaSolverBuffer& solver_buffer, size_t row_index,
       solver_buffer.GetIntervalRows();
   BOOST_REQUIRE_LT(row_index, rows.size());
   const BdaSolverBuffer::IntervalRow& row = rows[row_index];
+  BOOST_REQUIRE(row.unweighted_data);
+  if (has_unweighted_model_data) {
+    BOOST_REQUIRE(!row.unweighted_model_data.empty());
+    BOOST_REQUIRE(row.unweighted_model_data.front());
+  } else {
+    BOOST_CHECK(row.unweighted_model_data.empty());
+  }
   BOOST_REQUIRE(row.weighted_data);
-  BOOST_REQUIRE(!row.model_data.empty());
-  BOOST_REQUIRE(row.model_data.front());
+  BOOST_REQUIRE(!row.weighted_model_data.empty());
+  BOOST_REQUIRE(row.weighted_model_data.front());
 
   // Compare the solver buffer row against the original row.
   CheckRowMetaData(reference_row, row);
   // Checking the value for the first correlation only should suffice.
+  // Since the weights are 1 in the test, weighted data equals unweighted data.
+  CheckComplex(*row.unweighted_data, *reference_row_data);
+  if (has_unweighted_model_data) {
+    CheckComplex(*row.unweighted_model_data.front(),
+                 *reference_row_data + kModelDataDiff);
+  }
   CheckComplex(*row.weighted_data, *reference_row_data);
-  CheckComplex(*row.model_data.front(), *reference_row_data + kModelDataDiff);
+  CheckComplex(*row.weighted_model_data.front(),
+               *reference_row_data + kModelDataDiff);
 }
 
 }  // namespace
 
 BOOST_AUTO_TEST_SUITE(bdasolverbuffer)
+
+BOOST_AUTO_TEST_CASE(intervalrow) {
+  // Test the IntervalRow constructor.
+  std::complex<float> unweighted_data;
+  const std::complex<float> weighted_data;
+  const bool flag = false;
+  const float weight = 42.0f;
+  const std::size_t kNModelPointers = 42;
+  std::complex<float> unweighted_model_data;
+  std::complex<float> weighted_model_data;
+
+  std::vector<std::complex<float>*> unweighted_model_ptrs(
+      kNModelPointers, &unweighted_model_data);
+  std::vector<const std::complex<float>*> weighted_model_ptrs(
+      kNModelPointers, &weighted_model_data);
+  // Check if the vectors are moved (and not copied) using their iterators,
+  // which should remain equal after moving.
+  const std::vector<std::complex<float>*>::iterator unweighted_model_iterator =
+      unweighted_model_ptrs.begin();
+  const std::vector<const std::complex<float>*>::iterator
+      weighted_model_iterator = weighted_model_ptrs.begin();
+
+  BdaSolverBuffer::IntervalRow row(
+      kFirstTime, kNBaselines, kNChannels, kNCorrelations, &unweighted_data,
+      &weighted_data, &flag, &weight, std::move(unweighted_model_ptrs),
+      std::move(weighted_model_ptrs));
+  BOOST_CHECK_EQUAL(row.time, kFirstTime);
+  BOOST_CHECK_EQUAL(row.baseline_nr, kNBaselines);
+  BOOST_CHECK_EQUAL(row.n_channels, kNChannels);
+  BOOST_CHECK_EQUAL(row.n_correlations, kNCorrelations);
+  BOOST_CHECK_EQUAL(row.unweighted_data, &unweighted_data);
+  BOOST_CHECK_EQUAL(row.weighted_data, &weighted_data);
+  BOOST_CHECK_EQUAL(row.flags, &flag);
+  BOOST_CHECK_EQUAL(row.weights, &weight);
+  BOOST_CHECK_EQUAL(row.unweighted_model_data.size(), kNModelPointers);
+  BOOST_CHECK_EQUAL(row.unweighted_model_data[0], &unweighted_model_data);
+  BOOST_CHECK_EQUAL(row.weighted_model_data.size(), kNModelPointers);
+  BOOST_CHECK_EQUAL(row.weighted_model_data[0], &weighted_model_data);
+
+  // Test that the original vectors were moved and not copied.
+  BOOST_CHECK(unweighted_model_ptrs.begin() != unweighted_model_iterator);
+  BOOST_CHECK(row.unweighted_model_data.begin() == unweighted_model_iterator);
+  BOOST_CHECK(weighted_model_ptrs.begin() != weighted_model_iterator);
+  BOOST_CHECK(row.weighted_model_data.begin() == weighted_model_iterator);
+
+  // Test the move constructor of IntervalRow.
+  const BdaSolverBuffer::IntervalRow moved(std::move(row));
+  BOOST_CHECK_EQUAL(moved.time, kFirstTime);
+  BOOST_CHECK_EQUAL(moved.baseline_nr, kNBaselines);
+  BOOST_CHECK_EQUAL(moved.n_channels, kNChannels);
+  BOOST_CHECK_EQUAL(moved.n_correlations, kNCorrelations);
+  BOOST_CHECK_EQUAL(moved.unweighted_data, &unweighted_data);
+  BOOST_CHECK_EQUAL(moved.weighted_data, &weighted_data);
+  BOOST_CHECK_EQUAL(moved.flags, &flag);
+  BOOST_CHECK_EQUAL(moved.weights, &weight);
+  BOOST_CHECK_EQUAL(moved.unweighted_model_data.size(), kNModelPointers);
+  BOOST_CHECK_EQUAL(moved.unweighted_model_data[0], &unweighted_model_data);
+  BOOST_CHECK_EQUAL(moved.weighted_model_data.size(), kNModelPointers);
+  BOOST_CHECK_EQUAL(moved.weighted_model_data[0], &weighted_model_data);
+
+  // Test that the vector members were moved and not copied.
+  // (When members are const, a default move constructor will copy them.)
+  BOOST_CHECK(row.unweighted_model_data.begin() != unweighted_model_iterator);
+  BOOST_CHECK(moved.unweighted_model_data.begin() == unweighted_model_iterator);
+  BOOST_CHECK(row.weighted_model_data.begin() != weighted_model_iterator);
+  BOOST_CHECK(moved.weighted_model_data.begin() == weighted_model_iterator);
+}
 
 BOOST_AUTO_TEST_CASE(constructor) {
   BdaSolverBuffer buffer(kFirstTime, kInterval, 1);
@@ -168,6 +253,7 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
   const float kWeight = 0.8;
   const float kWeightSqrt = std::sqrt(kWeight);
   const std::vector<std::string> kDirectionNames = {"Sun42", "Moon"};
+  const bool kKeepUnweightedModelData = true;
 
   std::vector<std::unique_ptr<BdaBuffer>> data =
       CreateBdaBuffers(kDirectionNames, kWeight);
@@ -177,7 +263,8 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
   BdaSolverBuffer buffer(0.0, 100.0, kNBaselines);
   for (size_t i = 0; i < data.size(); ++i) {
     data_ptr.push_back(data[i].get());
-    buffer.AppendAndWeight(std::move(data[i]), kDirectionNames, false);
+    buffer.AppendAndWeight(std::move(data[i]), kDirectionNames,
+                           kKeepUnweightedModelData);
   }
 
   const size_t n_rows = data.size() * kRowsPerBuffer;
@@ -186,10 +273,15 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
   for (size_t row_index = 0; row_index < n_rows; ++row_index) {
     const BdaSolverBuffer::IntervalRow& solver_row =
         buffer.GetIntervalRows()[row_index];
+    BOOST_REQUIRE(solver_row.unweighted_data);
+    BOOST_REQUIRE_EQUAL(solver_row.unweighted_model_data.size(), 2);
+    BOOST_REQUIRE(solver_row.unweighted_model_data[0]);
+    BOOST_REQUIRE(solver_row.unweighted_model_data[1]);
+
     BOOST_REQUIRE(solver_row.weighted_data);
-    BOOST_REQUIRE_EQUAL(solver_row.model_data.size(), 2);
-    BOOST_REQUIRE(solver_row.model_data[0]);
-    BOOST_REQUIRE(solver_row.model_data[1]);
+    BOOST_REQUIRE_EQUAL(solver_row.weighted_model_data.size(), 2);
+    BOOST_REQUIRE(solver_row.weighted_model_data[0]);
+    BOOST_REQUIRE(solver_row.weighted_model_data[1]);
 
     const size_t data_buffer_index = row_index / kRowsPerBuffer;
     const size_t data_row_index = row_index % kRowsPerBuffer;
@@ -200,15 +292,29 @@ BOOST_AUTO_TEST_CASE(append_and_weight) {
 
     for (size_t i = 0; i < original_row.GetDataSize(); ++i) {
       const std::complex<float> inc = float(row_index) * kDataIncrement;
+
+      const std::complex<float> unweighted_data_value = kFirstDataValue + inc;
+      const std::complex<float> unweighted_model_value1 =
+          unweighted_data_value + 1.0f * kModelDataDiff;
+      const std::complex<float> unweighted_model_value2 =
+          unweighted_data_value + 2.0f * kModelDataDiff;
+
       const std::complex<float> weighted_data_value =
-          (kFirstDataValue + inc) * kWeightSqrt;
+          unweighted_data_value * kWeightSqrt;
       const std::complex<float> weighted_model_value1 =
-          (kFirstDataValue + 1.0f * kModelDataDiff + inc) * kWeightSqrt;
+          unweighted_model_value1 * kWeightSqrt;
       const std::complex<float> weighted_model_value2 =
-          (kFirstDataValue + 2.0f * kModelDataDiff + inc) * kWeightSqrt;
+          unweighted_model_value2 * kWeightSqrt;
+
+      CheckComplex(solver_row.unweighted_data[i], unweighted_data_value);
+      CheckComplex(solver_row.unweighted_model_data[0][i],
+                   unweighted_model_value1);
+      CheckComplex(solver_row.unweighted_model_data[1][i],
+                   unweighted_model_value2);
+
       CheckComplex(solver_row.weighted_data[i], weighted_data_value);
-      CheckComplex(solver_row.model_data[0][i], weighted_model_value1);
-      CheckComplex(solver_row.model_data[1][i], weighted_model_value2);
+      CheckComplex(solver_row.weighted_model_data[0][i], weighted_model_value1);
+      CheckComplex(solver_row.weighted_model_data[1][i], weighted_model_value2);
     }
   }
 
@@ -264,7 +370,8 @@ BOOST_AUTO_TEST_CASE(one_interval_per_buffer) {
   BOOST_CHECK(buffer.GetIntervalRows().empty());
 }
 
-BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
+BOOST_DATA_TEST_CASE(buffer_with_multiple_intervals, kTrueFalseRange,
+                     keep_unweighted_model_data) {
   const size_t kNRows = 42;
   const size_t kSolutionIntervalFactor = 5;
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
@@ -294,13 +401,13 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
   BdaSolverBuffer solver_buffer(kFirstTime - kInterval / 2, kSolutionInterval,
                                 1);
   solver_buffer.AppendAndWeight(std::move(data_buffer), {kModelDataName},
-                                false);
+                                keep_unweighted_model_data);
   BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), 1u);
 
   size_t row_index = 0;
   for (size_t row = 0; row < kNRows; ++row) {
-    CheckRow(solver_buffer, row_index, data_ref.GetRows()[row],
-             data_ref.GetData(row));
+    CheckRow(solver_buffer, keep_unweighted_model_data, row_index,
+             data_ref.GetRows()[row], data_ref.GetData(row));
 
     ++row_index;
     if (row_index == kSolutionIntervalFactor) {
@@ -316,7 +423,8 @@ BOOST_AUTO_TEST_CASE(buffer_with_multiple_intervals) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
+BOOST_DATA_TEST_CASE(multiple_buffers_per_interval, kTrueFalseRange,
+                     keep_unweighted_model_data) {
   const size_t kNRows = 42;
   const size_t kSolutionIntervalFactor = 5;
   const double kSolutionInterval = kInterval * kSolutionIntervalFactor;
@@ -345,7 +453,7 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
                 data_buffer->GetData(kModelDataName));
 
     solver_buffer.AppendAndWeight(std::move(data_buffer), {kModelDataName},
-                                  false);
+                                  keep_unweighted_model_data);
     BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), row + 1);
 
     time += kInterval;
@@ -355,7 +463,8 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
 
   size_t row_index = 0;
   for (size_t row = 0; row < kNRows; ++row) {
-    CheckRow(solver_buffer, row_index, data_buffers[row]->GetRows().front(),
+    CheckRow(solver_buffer, keep_unweighted_model_data, row_index,
+             data_buffers[row]->GetRows().front(),
              data_buffers[row]->GetData(0));
 
     ++row_index;
@@ -377,11 +486,14 @@ BOOST_AUTO_TEST_CASE(multiple_buffers_per_interval) {
   BOOST_CHECK(solver_buffer.GetIntervalRows().empty());
   BOOST_CHECK_EQUAL(solver_buffer.BufferCount(), 0u);
 
-  // Test that GetDone() returns all original data buffers.
+  // Test that GetDone() returns all original data buffers and that the model
+  // presence corresponds to keep_unweighted_model_data.
   const std::vector<std::unique_ptr<BdaBuffer>> done = solver_buffer.GetDone();
   BOOST_REQUIRE_EQUAL(done.size(), data_buffers.size());
   for (size_t i = 0; i < data_buffers.size(); ++i) {
     BOOST_CHECK_EQUAL(done[i].get(), data_buffers[i]);
+    BOOST_CHECK_EQUAL(done[i]->HasData(kModelDataName),
+                      keep_unweighted_model_data);
   }
 }
 
@@ -393,7 +505,9 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const size_t kNRows = 4;
   const aocommon::MC2x2F kDataValue({10, 20}, {11, 21}, {12, 22}, {13, 23});
   const aocommon::MC2x2F kModelValue({1, 10}, {2, 20}, {3, 30}, {4, 40});
-  const std::array<float, kNCorrelations> kWeight{1, 1, 1, 1};
+  // Using weights other than 1 allows verifying that solutions are applied
+  // to the unweighted model and not to the weighted model.
+  const std::array<float, kNCorrelations> kWeight{0.8, 1.1, 1.2, 0.9};
   const std::vector<std::vector<std::complex<double>>> kSolutions{
       {{1, 2}, {2, 2}, {3, 4}, {4, 4}, {5, 2}, {6, 2}, {7, 1}, {8, 1}}};
 
@@ -444,8 +558,9 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
 
   BdaSolverBuffer solver_buffer(kFirstTime - kInterval / 2, kInterval,
                                 kNBaselines);
+  const bool kKeepUnweightedModelData = true;
   solver_buffer.AppendAndWeight(std::move(data_buffer), {kModelDataName},
-                                false);
+                                kKeepUnweightedModelData);
 
   solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 4, kAnt1, kAnt2,
                                        kChanFreqs);

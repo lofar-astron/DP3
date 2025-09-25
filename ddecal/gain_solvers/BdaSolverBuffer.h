@@ -32,7 +32,8 @@ class BdaSolverBuffer {
     const std::complex<float>* weighted_data;
     const bool* flags;
     const float* weights;
-    std::vector<const std::complex<float>*> model_data;
+    std::vector<std::complex<float>*> unweighted_model_data;
+    std::vector<const std::complex<float>*> weighted_model_data;
   };
 
   /**

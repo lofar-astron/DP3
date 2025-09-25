@@ -278,7 +278,7 @@ SolveData<MatrixType>::SolveData(
           const size_t solution_index =
               index_offset + solution_start_indices[dir];
           const std::complex<float>* model_data_ptr =
-              row.model_data[dir] + channel_start * row.n_correlations;
+              row.weighted_model_data[dir] + channel_start * row.n_correlations;
           for (size_t i = 0; i != channel_block_size; ++i) {
             cb_data.solution_map_(dir, vis_index + i) = solution_index;
             cb_data.model_data_(dir, vis_index + i) =
