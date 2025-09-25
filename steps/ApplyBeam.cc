@@ -117,54 +117,59 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
   const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
-  for (size_t ch = 0; ch < n_channels; ++ch) {
-    switch (mode) {
-      case everybeam::CorrectionMode::kFull:
-      case everybeam::CorrectionMode::kElement:
-        // Fill beam_values for channel ch
-        for (size_t st = 0; st < n_stations; ++st) {
-          if (std::find(skip_station_indices.begin(),
-                        skip_station_indices.end(),
-                        st) != skip_station_indices.end()) {
+  switch (mode) {
+    case everybeam::CorrectionMode::kFull:
+    case everybeam::CorrectionMode::kElement:
+      // Fill beam_values for channel ch
+      for (size_t st = 0; st < n_stations; ++st) {
+        if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
+                      st) != skip_station_indices.end()) {
+          for (size_t ch = 0; ch < n_channels; ++ch)
             beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
-          } else {
-            beam_values[n_channels * st + ch] = point_response->Response(
-                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
-            if (invert) {
+        } else {
+          point_response->Response(&beam_values[n_channels * st], mode,
+                                   station_indices[st], info.chanFreqs(),
+                                   srcdir, mutex);
+          if (invert) {
+            for (size_t ch = 0; ch < n_channels; ++ch) {
               // Terminate if the matrix is not invertible.
-              [[maybe_unused]] bool status =
+              [[maybe_unused]] const bool status =
                   beam_values[n_channels * st + ch].Invert();
               assert(status);
             }
           }
         }
-        break;
-      case everybeam::CorrectionMode::kArrayFactor: {
-        aocommon::MC2x2 af_tmp;
-        for (size_t st = 0; st < n_stations; ++st) {
-          if (std::find(skip_station_indices.begin(),
-                        skip_station_indices.end(),
-                        st) != skip_station_indices.end()) {
+      }
+      break;
+    case everybeam::CorrectionMode::kArrayFactor: {
+      for (size_t st = 0; st < n_stations; ++st) {
+        if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
+                      st) != skip_station_indices.end()) {
+          for (size_t ch = 0; ch < n_channels; ++ch)
             beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
-          } else {
-            af_tmp = point_response->Response(
-                mode, station_indices[st], info.chanFreqs()[ch], srcdir, mutex);
+        } else {
+          point_response->Response(&beam_values[n_channels * st], mode,
+                                   station_indices[st], info.chanFreqs(),
+                                   srcdir, mutex);
 
+          for (size_t ch = 0; ch < n_channels; ++ch) {
             if (invert) {
-              af_tmp = aocommon::MC2x2(1.0 / af_tmp.Get(0), 0.0, 0.0,
-                                       1.0 / af_tmp.Get(3));
+              const aocommon::MC2x2 af_tmp = beam_values[n_channels * st + ch];
+              beam_values[n_channels * st + ch] = aocommon::MC2x2(
+                  1.0 / af_tmp.Get(0), 0.0, 0.0, 1.0 / af_tmp.Get(3));
             }
-            beam_values[n_channels * st + ch] = af_tmp;
           }
         }
-        break;
       }
-      case everybeam::CorrectionMode::kNone:  // this should not happen
-        for (size_t st = 0; st < n_stations; ++st) {
+      break;
+    }
+    case everybeam::CorrectionMode::kNone:  // this should not happen
+      for (size_t st = 0; st < n_stations; ++st) {
+        for (size_t ch = 0; ch < n_channels; ++ch) {
           beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
         }
-        break;
-    }
+      }
+      break;
   }
   return n_stations;
 }
