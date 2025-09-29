@@ -440,9 +440,7 @@ void BdaDdeCal::ProcessCompleteDirections() {
       solver_buffer_->AdvanceInterval();
     }
 
-    for (std::unique_ptr<BdaBuffer>& done_buffer : solver_buffer_->GetDone()) {
-      getNextStep()->process(std::move(done_buffer));
-    }
+    ProcessDone();
   }
 }
 
@@ -586,11 +584,11 @@ void BdaDdeCal::SolveCurrentInterval() {
   iterations_.push_back(result.iterations);
   approx_iterations_.push_back(result.constraint_iterations);
 
-  if (settings_.subtract) {
-    solver_buffer_->SubtractCorrectedModel(
-        solutions_.back(), chan_block_start_freqs_,
-        solver_->NSolutionPolarizations(), antennas1_, antennas2_,
-        getInfoOut().BdaChanFreqs());
+  if (settings_.subtract || settings_.keep_model_data) {
+    solver_buffer_->ApplySolutions(solutions_.back(), chan_block_start_freqs_,
+                                   solver_->NSolutionPolarizations(),
+                                   antennas1_, antennas2_,
+                                   getInfoOut().BdaChanFreqs());
   }
 
   // Check for nonconvergence and flag if desired. Unconverged solutions are
@@ -703,13 +701,37 @@ void BdaDdeCal::finish() {
       SolveCurrentInterval();
       solver_buffer_->AdvanceInterval();
     }
-    for (std::unique_ptr<BdaBuffer>& done_buffer : solver_buffer_->GetDone()) {
-      getNextStep()->process(std::move(done_buffer));
-    }
+    ProcessDone();
     if (solution_writer_) WriteSolutions();
   }
 
   getNextStep()->finish();
+}
+
+void BdaDdeCal::ProcessDone() {
+  for (std::unique_ptr<BdaBuffer>& done_buffer : solver_buffer_->GetDone()) {
+    if (settings_.subtract) {
+      // Subtract model data for all directions from the main data.
+      // SolveCurrentInterval() already applied the solutions to the model data.
+      std::complex<float> restrict* main_data = done_buffer->GetData();
+      const std::size_t data_size = done_buffer->GetNumberOfElements();
+
+      for (const std::string& direction_name : direction_names_) {
+        const std::complex<float> restrict* model_data =
+            done_buffer->GetData(direction_name);
+
+        for (std::size_t i = 0; i < data_size; ++i) {
+          main_data[i] -= model_data[i];
+        }
+      }
+    }
+    if (!settings_.keep_model_data) {
+      for (const std::string& direction_name : direction_names_) {
+        done_buffer->RemoveData(direction_name);
+      }
+    }
+    getNextStep()->process(std::move(done_buffer));
+  }
 }
 
 void BdaDdeCal::WriteSolutions() {

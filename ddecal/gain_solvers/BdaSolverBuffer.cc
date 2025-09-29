@@ -203,17 +203,14 @@ void BdaSolverBuffer::AdvanceInterval() {
   }
 }
 
-void BdaSolverBuffer::SubtractCorrectedModel(
+void BdaSolverBuffer::ApplySolutions(
     const std::vector<std::vector<std::complex<double>>>& solutions,
     const std::vector<double>& chan_block_start_freqs, size_t n_polarizations,
     const std::vector<int>& antennas1, const std::vector<int>& antennas2,
     const std::vector<std::vector<double>>& chan_freqs) {
-  // data_ and data_rows_ still hold the original unweighted input data, since
-  // the Solver doesn't change those. Here we apply the solutions to all the
-  // model data directions and subtract them from the unweighted input data.
   assert(!data_rows_.Empty());
 
-  for (const IntervalRow& row : data_rows_[0]) {
+  for (IntervalRow& row : data_rows_[0]) {
     // Map each (averaged) channel to a channel block.
     assert(!row.unweighted_model_data.empty());
     assert(chan_freqs[row.baseline_nr].size() == row.n_channels);
@@ -235,7 +232,6 @@ void BdaSolverBuffer::SubtractCorrectedModel(
       const size_t sol1_index = ant1_index + dir;
       const size_t sol2_index = ant2_index + dir;
 
-      std::complex<float>* unweighted_data_ptr = row.unweighted_data;
       std::complex<float>* model_data_ptr = row.unweighted_model_data[dir];
       for (size_t ch = 0; ch < row.n_channels; ++ch) {
         const std::vector<std::complex<double>>& sol_block =
@@ -266,12 +262,7 @@ void BdaSolverBuffer::SubtractCorrectedModel(
           default:
             assert(false);
         }
-
-        const aocommon::MC2x2 result =
-            aocommon::MC2x2(unweighted_data_ptr) - model_data;
-        result.AssignTo(unweighted_data_ptr);
-
-        unweighted_data_ptr += kNCorrelations;
+        model_data.AssignTo(model_data_ptr);
         model_data_ptr += kNCorrelations;
       }
     }

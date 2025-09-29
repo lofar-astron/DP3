@@ -497,10 +497,10 @@ BOOST_DATA_TEST_CASE(multiple_buffers_per_interval, kTrueFalseRange,
   }
 }
 
-BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
-  // Test full jones subtraction on the first row,
-  // test diagonal subtraction on the second row,
-  // test scalar subtraction on the third row,
+BOOST_AUTO_TEST_CASE(apply_solutions) {
+  // Test full jones application on the first row,
+  // test diagonal application on the second row,
+  // test scalar application on the third row,
   // and test that the fourth row remains intact.
   const size_t kNRows = 4;
   const aocommon::MC2x2F kDataValue({10, 20}, {11, 21}, {12, 22}, {13, 23});
@@ -515,7 +515,6 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   const aocommon::MC2x2F kSolution2(kSolutions.front().data() + kNCorrelations);
   const aocommon::MC2x2F kSolvedFullJones =
       kSolution1.Multiply(kModelValue).MultiplyHerm(kSolution2);
-  const aocommon::MC2x2F kFullJonesResult(kDataValue - kSolvedFullJones);
 
   const aocommon::MC2x2F kDiagonalSolution1(
       std::complex<float>(kSolutions.front()[0]), 0.0f, 0.0f,
@@ -525,16 +524,13 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
       std::complex<float>(kSolutions.front()[3]));
   const aocommon::MC2x2F kSolvedDiagonal =
       kDiagonalSolution1.Multiply(kModelValue).MultiplyHerm(kDiagonalSolution2);
-  const aocommon::MC2x2F kDiagonalResult(kDataValue - kSolvedDiagonal);
 
   const std::complex<float> kScalarFactor =
       std::complex<float>(kSolutions.front()[0]) *
       std::conj(std::complex<float>(kSolutions.front()[1]));
-  const std::array<std::complex<float>, kNCorrelations> kScalarResult{
-      kDataValue.Get(0) - kScalarFactor * kModelValue.Get(0),
-      kDataValue.Get(1) - kScalarFactor * kModelValue.Get(1),
-      kDataValue.Get(2) - kScalarFactor * kModelValue.Get(2),
-      kDataValue.Get(3) - kScalarFactor * kModelValue.Get(3)};
+  const std::array<std::complex<float>, kNCorrelations> kSolvedScalar{
+      kScalarFactor * kModelValue.Get(0), kScalarFactor * kModelValue.Get(1),
+      kScalarFactor * kModelValue.Get(2), kScalarFactor * kModelValue.Get(3)};
 
   const std::vector<double> kStartFreqs{100, 200};
   const std::vector<std::vector<double>> kChanFreqs{{150}};
@@ -562,29 +558,37 @@ BOOST_AUTO_TEST_CASE(subtractcorrectedmodel) {
   solver_buffer.AppendAndWeight(std::move(data_buffer), {kModelDataName},
                                 kKeepUnweightedModelData);
 
-  solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 4, kAnt1, kAnt2,
-                                       kChanFreqs);
+  solver_buffer.ApplySolutions(kSolutions, kStartFreqs, 4, kAnt1, kAnt2,
+                               kChanFreqs);
   solver_buffer.AdvanceInterval();
-  solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 2, kAnt1, kAnt2,
-                                       kChanFreqs);
+  solver_buffer.ApplySolutions(kSolutions, kStartFreqs, 2, kAnt1, kAnt2,
+                               kChanFreqs);
   solver_buffer.AdvanceInterval();
-  solver_buffer.SubtractCorrectedModel(kSolutions, kStartFreqs, 1, kAnt1, kAnt2,
-                                       kChanFreqs);
+  solver_buffer.ApplySolutions(kSolutions, kStartFreqs, 1, kAnt1, kAnt2,
+                               kChanFreqs);
   solver_buffer.AdvanceInterval();
   solver_buffer.AdvanceInterval();
 
-  std::vector<std::unique_ptr<BdaBuffer>> data_out = solver_buffer.GetDone();
-  BOOST_REQUIRE_EQUAL(data_out.size(), 1u);
-  BOOST_REQUIRE_EQUAL(data_out.front()->GetRows().size(), kNRows);
-  const std::complex<float>* data_fulljones = data_out.front()->GetData(0);
-  const std::complex<float>* data_diagonal = data_out.front()->GetData(1);
-  const std::complex<float>* data_scalar = data_out.front()->GetData(2);
-  const std::complex<float>* data_uncorrected = data_out.front()->GetData(3);
+  const std::vector<std::unique_ptr<BdaBuffer>> done = solver_buffer.GetDone();
+  BOOST_REQUIRE_EQUAL(done.size(), 1u);
+  const BdaBuffer& done_buffer = *done.front();
+  BOOST_REQUIRE_EQUAL(done_buffer.GetRows().size(), kNRows);
+  BOOST_REQUIRE_EQUAL(done_buffer.GetDataNames().size(), 2u);
+  BOOST_REQUIRE_EQUAL(done_buffer.GetDataNames()[0], "");
+  BOOST_REQUIRE_EQUAL(done_buffer.GetDataNames()[1], kModelDataName);
+  const std::complex<float>* model_fulljones =
+      done_buffer.GetData(0, kModelDataName);
+  const std::complex<float>* model_diagonal =
+      done_buffer.GetData(1, kModelDataName);
+  const std::complex<float>* model_scalar =
+      done_buffer.GetData(2, kModelDataName);
+  const std::complex<float>* model_uncorrected =
+      done_buffer.GetData(3, kModelDataName);
   for (size_t c = 0; c < kNCorrelations; ++c) {
-    CheckComplex(data_fulljones[c], kFullJonesResult.Get(c));
-    CheckComplex(data_diagonal[c], kDiagonalResult.Get(c));
-    CheckComplex(data_scalar[c], kScalarResult[c]);
-    BOOST_CHECK_EQUAL(data_uncorrected[c], kDataValue.Get(c));
+    CheckComplex(model_fulljones[c], kSolvedFullJones.Get(c));
+    CheckComplex(model_diagonal[c], kSolvedDiagonal.Get(c));
+    CheckComplex(model_scalar[c], kSolvedScalar[c]);
+    BOOST_CHECK_EQUAL(model_uncorrected[c], kModelValue.Get(c));
   }
 }
 

@@ -29,23 +29,35 @@ namespace steps {
  * step, some optional steps may run. Finally, each series ends with a
  * BDAResultStep, which will contain the predicted visibilities for a direction.
  *
- * Workflow for each iteration:
+ * Workflow for BdaDdeCal:
  * 1. BdaDdeCal receives a BdaBuffer using its process() function. This buffer
  *    must contain visibilities and weights.
+ *    It may also contain predicted model data from earlier BdaDdeCal steps.
+ *    Those earlier steps should have applied the solutions to the model data.
  * 2. BdaDdeCal forwards a metadata-only copy of the BdaBuffer to the Predict
  *    steps for all directions.
- * 3.1. In only-predict mode, BdaDdeCal sums the predicted visibilities and
+ * 3. BdaDdeCal adds the predicted visiblities to its main input BdaBuffer.
+ * 4.1. In only-predict mode, BdaDdeCal sums the predicted visibilities and
  *      sends them in a BdaBuffer to the next step. Processing is complete.
- * 3.2. Otherwise, BdaDdeCal appends the received visibilities and weights and
- *      the predictions from the BDAResultSteps into a BdaSolverBuffer.
- * 4. When the BdaSolverBuffer has a complete solution interval, BdaDdeCal
- *    runs the solver on this interval.
- * 5. When subtracting is enabled, the solver applies the solutions to the
- *    predicted visibilities for each direction.
- * 6. When the BdaSolverBuffer has a complete BdaBuffer:
- * 6.1. If subtracting is enabled, BdaDdeCal subtracts the predicted
- *      visibilities for all directions from the input data.
- * 6.2. BdaDdeCal passes the input data buffer to its next step.
+ * 4.2. Otherwise, BdaDdeCal appends its main input BdaBuffer to a
+ *      BdaSolverBuffer.
+ * 5. BdaSolverBuffer weights all input and model visibilities.
+ * 6. When the BdaSolverBuffer has a complete solution interval, BdaDdeCal
+ *    runs the solver on this interval. The solver uses the weighted data.
+ * 7. If needed, the BdaSolverBuffer applies the solutions to the unweighted
+ *    model data in the current solution interval.
+ * 8. When the BdaSolverBuffer has a complete BdaBuffer:
+ * 8.1. If subtracting is enabled, BdaDdeCal subtracts the model data (with
+ *      the solutions applied) for all directions from the input data.
+ * 8.2. If keeping model data is disabled, BdaDdeCal removes the model data
+ *      for all directions from the BdaBuffer.
+ * 8.3. BdaDdeCal passes the BdaBuffer to its next step. If keeping model data
+ *      is enabled, this BdaBuffer includes the unweighted model data with
+ *      the solutions applied.
+ *
+ * If both subtracting and keeping model data are disabled, the unweighted
+ * model data is not needed anymore after weighting it. The BdaSolverBuffer
+ * therefore only stores the weighted model data in that case, saving memory.
  *
  * The BdaBuffer structure/metadata remains equal for all BdaBuffers that are
  * involved in one iteration.
@@ -126,6 +138,10 @@ class BdaDdeCal : public Step {
   void SolveCurrentInterval();
 
   void InitializeCurrentSolutions();
+
+  /// Extract the done buffers from the BdaSolverBuffer, subtract or delete
+  /// model data if needed, and forward the buffers to the next step.
+  void ProcessDone();
 
   void WriteSolutions();
 
