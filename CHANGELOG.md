@@ -1,6 +1,14 @@
 # DP3 Changelog
 
-## [6.5 (Upcoming release)] - 2025-??-??
+## [(Upcoming release)] - 202?-??-??
+
+### New features
+
+### Improvements
+
+### Bug fixes
+
+## [6.5] - 2025-10-01
 
 ### New features
 
@@ -8,7 +16,12 @@
 - Add `ddecal.antenna_smoothness_factors` setting for specifying smoothness factors per antenna.
 - Support `ddecal.keepmodel` and `ddecal.reusemodel` settings for `ddecal` steps that process BDA data.
 - Add `predict.coefficients_path` setting, e.g., for specifying MWA beam model coefficients.
+- Add `predict.outputbuffername` setting, for selecting named data buffers.
 - Add `transfer` step for transfering data and flags from low- to high-resolution MSs.
+- Add `combine` step for adding or subtracting named data buffers.
+- Support new simulated signal compression (Sisco) in CasaCore.
+- Use new fast `predict` step instead of the normal `predict` step when USE_FAST_PREDICT is passed to CMake.
+- Support streaming cobalt (LOFAR) data in addition to ALMA data.
 
 ### Improvements
 
@@ -21,7 +34,8 @@
 - Remove `ddecal.initialsolutions.gaintype` setting. Always deduce the gain type from the initial solutions.
 - When using `onlypredict=True` and `keepmodel=True` in a `ddecal` step, it no longer overwrites the main data buffer. This improvement allows predicting model data using a regular `ddecal` step and reusing it in a BDA `ddecal` step.
 - Show total/combined averaging factor for all baselines in `bdaaverager` step.
-
+- In the `predict` step, replace the upsampling method for time-smearing correction by an approximation using the sinc function.
+- Require EveryBeam 0.7.4, since DP3 now uses the new multi-frequency interface of EveryBeam.
 
 ### Bug fixes
 
@@ -29,6 +43,8 @@
 - Fix updating phase centre when writing BDA MSs.
 - Fix a bug in antenna-uvw calculations causing incorrect data prediction. This bug did not manifest itself for LOFAR observations, it was observed in specific MWA tests.
 - In `ddecal`, avoid printing empty lines with sub step timings.
+- In the BDA implementation of `ddecal`, fix using multiple solutions per direction.
+- In `bdaexpander`, avoid floating point rounding errors for the averaging factor.
 
 
 ## [6.4.1] - 2025-05-22
