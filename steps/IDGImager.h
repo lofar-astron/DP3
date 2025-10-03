@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef DP3_STEPS_IDGIMAGER_H_
-#define DP3_STEPS_IMAGERSTEP_H_
+#define DP3_STEPS_IDGIMAGER_H_
 
 #ifdef HAVE_IDG
 #include <idg-api.h>

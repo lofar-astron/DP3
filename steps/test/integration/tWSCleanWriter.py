@@ -32,12 +32,14 @@ SECS_IN_DAY = 86400
 # Reordered files C struct packing information
 
 # struct MetaHeaderBuffer {
-#   double startTime;
-#   uint64_t selectedRowCount;
-#   uint32_t filenameLength;
+#  double start_time;
+#  uint64_t selected_row_count;
+#  uint32_t filename_length;
+#  uint32_t data_desc_id;
+#  bool has_single_data_desc_id;
 # };
-_meta_header_fmt = "=dQL"
-_meta_header_binary_size = 20
+_meta_header_fmt = "=dQLL?"
+_meta_header_binary_size = 25
 
 # struct MetaRecordBuffer {
 #   double u;
@@ -52,13 +54,11 @@ _meta_record_fmt = "=ddddHHH"
 _meta_record_binary_size = 38
 
 # struct PartHeaderBuffer {
-#   uint64_t channelCount;
-#   uint64_t channelStart;
-#   uint32_t dataDescId;
-#   bool hasModel;
+#  uint64_t max_channel_count;
+#  bool has_model;
 # };
-_part_header_fmt = "=QQL?"
-_part_header_binary_size = 21
+_part_header_fmt = "=Q?"
+_part_header_binary_size = 9
 
 _float_bin_size = 4
 _complex_float_bin_size = 2 * 4
@@ -82,7 +82,7 @@ def assert_reorder_ms_meta_file(ms_filename, ms_table):
     the metadata information and assert against the actual reordered
     output created from DP3
     """
-    reorder_metaname = f"{ms_filename}-spw0-parted-meta.tmp"
+    reorder_metaname = f"{ms_filename}-meta-0000.tmp"
 
     assert os.path.exists(reorder_metaname)
 
@@ -101,6 +101,8 @@ def assert_reorder_ms_meta_file(ms_filename, ms_table):
             start_time_actual,
             nr_rows_actual,
             filename_length_actual,
+            data_desc_id,
+            has_data_desc_id,
         ) = struct.unpack_from(_meta_header_fmt, data_raw)
 
         data_raw = f.read(filename_length_actual)
@@ -311,7 +313,7 @@ def assert_reorder_ms_data_files(
 
     for pol in pols:
         # Data array
-        data_file_name = f"{ms_filename}-part0000-{pol}-b0.tmp"
+        data_file_name = f"{ms_filename}-part0000-{pol}.tmp"
         assert os.path.exists(data_file_name)
 
         pol_data = _extract_pol(data_transposed, pol, corr_type)
@@ -319,13 +321,11 @@ def assert_reorder_ms_data_files(
         with open(data_file_name, "rb") as f:
             data_raw = f.read(_part_header_binary_size)
 
-            (nr_chan_actual, chan_start, ddi, has_model) = struct.unpack_from(
+            (nr_chan_actual, has_model) = struct.unpack_from(
                 _part_header_fmt, data_raw
             )
 
             assert nr_chan_actual == nr_chan
-            assert chan_start == 0
-            assert ddi == 0
             assert has_model == False
 
             for row in range(nr_rows):
@@ -338,7 +338,7 @@ def assert_reorder_ms_data_files(
                             vis_actual, pol_data[row][chan][pol_idx]
                         )
 
-        weights_file_name = f"{ms_filename}-part0000-{pol}-b0-w.tmp"
+        weights_file_name = f"{ms_filename}-part0000-{pol}-w.tmp"
         assert os.path.exists(weights_file_name)
         weights_data = _extract_weights(
             weight_transposed, flags_transposed, pol, corr_type
@@ -546,9 +546,9 @@ def test_reorder_tmp_dir():
         ]
     )
 
-    assert os.path.exists(f"./{tmp_dir}/{MSIN}-spw0-parted-meta.tmp")
-    assert os.path.exists(f"./{tmp_dir}/{MSIN}-part0000-I-b0.tmp")
-    assert os.path.exists(f"./{tmp_dir}/{MSIN}-part0000-I-b0-w.tmp")
+    assert os.path.exists(f"./{tmp_dir}/{MSIN}-meta-0000.tmp")
+    assert os.path.exists(f"./{tmp_dir}/{MSIN}-part0000-I.tmp")
+    assert os.path.exists(f"./{tmp_dir}/{MSIN}-part0000-I-w.tmp")
 
 
 def test_reorder_circular_pol_to_stokes():
@@ -727,13 +727,13 @@ def test_reorder_split_channel():
         ]
     )
 
-    assert os.path.exists(f"./{MSIN}-spw0-parted-meta.tmp")
-    assert os.path.exists(f"./{MSIN}-part0000-I-b0.tmp")
-    assert os.path.exists(f"./{MSIN}-part0000-I-b0-w.tmp")
-    assert os.path.exists(f"./{MSIN}-part0001-I-b0.tmp")
-    assert os.path.exists(f"./{MSIN}-part0001-I-b0-w.tmp")
-    assert not os.path.exists(f"./{MSIN}-part0002-I-b0.tmp")
-    assert not os.path.exists(f"./{MSIN}-part0002-I-b0-w.tmp")
+    assert os.path.exists(f"./{MSIN}-meta-0000.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-w.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I-w.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0002-I.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0002-I-w.tmp")
 
 
 def test_reorder_split_channel_uneven():
@@ -751,15 +751,15 @@ def test_reorder_split_channel_uneven():
         ]
     )
 
-    assert os.path.exists(f"./{MSIN}-spw0-parted-meta.tmp")
-    assert os.path.exists(f"./{MSIN}-part0000-I-b0.tmp")
-    assert os.path.exists(f"./{MSIN}-part0000-I-b0-w.tmp")
-    assert os.path.exists(f"./{MSIN}-part0001-I-b0.tmp")
-    assert os.path.exists(f"./{MSIN}-part0001-I-b0-w.tmp")
-    assert os.path.exists(f"./{MSIN}-part0002-I-b0.tmp")
-    assert os.path.exists(f"./{MSIN}-part0002-I-b0-w.tmp")
-    assert not os.path.exists(f"./{MSIN}-part0003-I-b0.tmp")
-    assert not os.path.exists(f"./{MSIN}-part0003-I-b0-w.tmp")
+    assert os.path.exists(f"./{MSIN}-meta-0000.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-w.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I.tmp")
+    assert os.path.exists(f"./{MSIN}-part0001-I-w.tmp")
+    assert os.path.exists(f"./{MSIN}-part0002-I.tmp")
+    assert os.path.exists(f"./{MSIN}-part0002-I-w.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0003-I.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0003-I-w.tmp")
 
 
 def test_reorder_split_channel_nchan_per_file_larger_than_nchan():
@@ -777,8 +777,8 @@ def test_reorder_split_channel_nchan_per_file_larger_than_nchan():
         ]
     )
 
-    assert os.path.exists(f"./{MSIN}-spw0-parted-meta.tmp")
-    assert os.path.exists(f"./{MSIN}-part0000-I-b0.tmp")
-    assert os.path.exists(f"./{MSIN}-part0000-I-b0-w.tmp")
-    assert not os.path.exists(f"./{MSIN}-part0001-I-b0.tmp")
-    assert not os.path.exists(f"./{MSIN}-part0001-I-b0-w.tmp")
+    assert os.path.exists(f"./{MSIN}-meta-0000.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I.tmp")
+    assert os.path.exists(f"./{MSIN}-part0000-I-w.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0001-I.tmp")
+    assert not os.path.exists(f"./{MSIN}-part0001-I-w.tmp")
