@@ -9,8 +9,8 @@
 #include <algorithm>
 
 #include <schaapcommon/reordering/msselection.h>
-#include <schaapcommon/reordering/reorderedhandle.h>
-#include <schaapcommon/reordering/reorderedfilewriter.h>
+#include <schaapcommon/reordering/handledata.h>
+#include <schaapcommon/reordering/filewriter.h>
 
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
@@ -22,7 +22,7 @@ using aocommon::Logger;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::base::FlagCounter;
-using schaapcommon::reordering::ReorderedFileWriter;
+using schaapcommon::reordering::FileWriter;
 
 namespace dp3 {
 
@@ -58,26 +58,48 @@ WSCleanWriter::WSCleanWriter(const common::ParameterSet& parset,
 
 WSCleanWriter::~WSCleanWriter() = default;
 
+aocommon::BandData WSCleanWriter::GetBand(size_t start_channel,
+                                          size_t end_channel) const {
+  std::vector<aocommon::ChannelInfo> channels;
+  for (size_t ch = start_channel; ch != end_channel; ++ch)
+    channels.emplace_back(getInfoOut().chanFreqs()[ch], 0.0);
+  return aocommon::BandData(channels, channels[0].Frequency());
+}
+
 void WSCleanWriter::StartReorder() {
   data_desc_id_ = getInfoOut().spectralWindow();
 
   std::vector<schaapcommon::reordering::ChannelRange> channel_ranges;
 
+  std::vector<aocommon::MultiBandData> bands_per_part;
   const size_t start_channel = getInfoOut().startchan();
   const size_t end_channel = getInfoOut().startchan() + getInfoOut().nchan();
   if (channels_per_file_ == 0) {
     channel_ranges.push_back({data_desc_id_, start_channel, end_channel});
+
+    aocommon::MultiBandData& bands = bands_per_part.emplace_back();
+    bands.SetBand(data_desc_id_, GetBand(start_channel, end_channel));
   } else {
+    // TODO when the nr of channels are not integer divisable, the output
+    // channels can have widely different nr of channels, which is not good for
+    // image quality. The best would be to use WSClean's code for dividing the
+    // channels.
     size_t part_start_channel = start_channel;
     for (; part_start_channel + channels_per_file_ < end_channel;
          part_start_channel += channels_per_file_) {
-      channel_ranges.push_back({data_desc_id_, part_start_channel,
-                                part_start_channel + channels_per_file_});
+      const size_t part_end_channel = part_start_channel + channels_per_file_;
+      channel_ranges.push_back(
+          {data_desc_id_, part_start_channel, part_end_channel});
+      aocommon::MultiBandData& bands = bands_per_part.emplace_back();
+      bands.SetBand(data_desc_id_,
+                    GetBand(part_start_channel, part_end_channel));
     }
 
     if (part_start_channel < end_channel) {
       channel_ranges.push_back(
           {data_desc_id_, part_start_channel, end_channel});
+      aocommon::MultiBandData& bands = bands_per_part.emplace_back();
+      bands.SetBand(data_desc_id_, GetBand(part_start_channel, end_channel));
     }
   }
 
@@ -85,20 +107,25 @@ void WSCleanWriter::StartReorder() {
                << " files\n";
 
   schaapcommon::reordering::MSSelection selection;
-  aocommon::MultiBandData bands;
 
-  schaapcommon::reordering::ReorderedHandleData data(
+  handle_data_ = std::make_unique<schaapcommon::reordering::HandleData>(
       out_name_, getInfoOut().dataColumnName(), "MODEL_DATA",
       schaapcommon::reordering::StorageManagerType::Default,
-      temporary_directory_, channel_ranges, false, false, pols_out_, selection,
-      bands, getInfoOut().antennaNames().size(), true,
-      [](schaapcommon::reordering::ReorderedHandleData) {});
+      temporary_directory_,
+      schaapcommon::reordering::MakeRegularChannelMap(channel_ranges), false,
+      false, pols_out_, selection, bands_per_part,
+      getInfoOut().antennaNames().size(), true,
+      [](schaapcommon::reordering::HandleData) {});
 
+  std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
+  std::tie(handle_data_->metadata_indices_, data_desc_ids) =
+      schaapcommon::reordering::MakeMetaFilesMap(handle_data_->channels_);
   std::map<size_t, std::set<aocommon::PolarizationEnum>> pol_per_data_desc_id{
       {data_desc_id_, getInfoOut().polarizations()}};
 
-  writer_ = std::make_unique<ReorderedFileWriter>(
-      data, pol_per_data_desc_id, getInfoOut().startTime() / 86400);
+  writer_ = std::make_unique<FileWriter>(*handle_data_, pol_per_data_desc_id,
+                                         data_desc_ids,
+                                         getInfoOut().startTime() / 86400);
 }
 
 bool WSCleanWriter::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {

@@ -31,6 +31,7 @@
 #include "../model/SkyModelCache.h"
 
 #include <casacore/casa/Arrays/Cube.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -162,11 +163,11 @@ void SagecalPredict::BeamDataSingle::update_metadata(
   if (!ms.keywordSet().isDefined("LOFAR_ANTENNA_FIELD"))
     throw std::runtime_error("subtable LOFAR_ANTENNA_FIELD is missing");
   casacore::Table antfield(ms.keywordSet().asTable("LOFAR_ANTENNA_FIELD"));
-  casacore::ROArrayColumn<double> position(antfield, "POSITION");
-  casacore::ROArrayColumn<double> offset(antfield, "ELEMENT_OFFSET");
-  casacore::ROArrayColumn<double> coord(antfield, "COORDINATE_AXES");
-  casacore::ROArrayColumn<bool> eflag(antfield, "ELEMENT_FLAG");
-  casacore::ROArrayColumn<double> tileoffset(antfield, "TILE_ELEMENT_OFFSET");
+  casacore::ArrayColumn<double> position(antfield, "POSITION");
+  casacore::ArrayColumn<double> offset(antfield, "ELEMENT_OFFSET");
+  casacore::ArrayColumn<double> coord(antfield, "COORDINATE_AXES");
+  casacore::ArrayColumn<bool> eflag(antfield, "ELEMENT_FLAG");
+  casacore::ArrayColumn<double> tileoffset(antfield, "TILE_ELEMENT_OFFSET");
   casacore::Table _field(ms.keywordSet().asTable("FIELD"));
   // check if TILE_ELEMENT_OFFSET has any rows, if no rows present,
   //      we know this is LBA

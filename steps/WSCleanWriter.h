@@ -7,11 +7,12 @@
 
 #include "OutputStep.h"
 
+#include <aocommon/banddata.h>
 #include <aocommon/logger.h>
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 
-#include <schaapcommon/reordering/reorderedfilewriter.h>
+#include <schaapcommon/reordering/filewriter.h>
 
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"
@@ -50,6 +51,7 @@ class WSCleanWriter : public OutputStep {
   void StartReorder();
   void ReorderBuffer(dp3::base::DPBuffer& buffer);
   void FinishReorder();
+  aocommon::BandData GetBand(size_t start_channel, size_t end_channel) const;
 
   std::string name_;
   common::ParameterSet parset_;
@@ -61,7 +63,8 @@ class WSCleanWriter : public OutputStep {
 
   uint32_t data_desc_id_;
 
-  std::unique_ptr<schaapcommon::reordering::ReorderedFileWriter> writer_;
+  std::unique_ptr<schaapcommon::reordering::FileWriter> writer_;
+  std::unique_ptr<schaapcommon::reordering::HandleData> handle_data_;
 
   common::NSTimer timer_;
   common::NSTimer writer_timer_;
