@@ -121,7 +121,7 @@ class ParameterSet {
 
   /// Adds the Key-Values pairs in the argument list.
   /// It ignores arguments not having the Key=Value syntax.
-  void adoptArgv(int nr, char const* const argv[]);
+  void adoptArguments(const std::vector<std::string>& arguments);
   /// @}
 
   /// \name Saving the collection
@@ -401,8 +401,9 @@ inline void ParameterSet::adoptCollection(const ParameterSet& theCollection,
   itsSet->adoptCollection(*theCollection.itsSet, thePrefix);
 }
 
-inline void ParameterSet::adoptArgv(int nr, const char* const argv[]) {
-  itsSet->adoptArgv(nr, argv);
+inline void ParameterSet::adoptArguments(
+    const std::vector<std::string>& arguments) {
+  itsSet->adoptArguments(arguments);
 }
 
 inline void ParameterSet::writeFile(const std::string& theFilename,

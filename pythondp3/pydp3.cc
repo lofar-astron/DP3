@@ -36,19 +36,13 @@ class PublicStep : public Step {
 };
 
 namespace {
-/// Helper function to convert a py::list to a std::vector<char*>.
-/// @param argv_strings Storage space for the strings in the list.
-///        This function returns pointers to elements in this list.
-std::vector<char *> pylist_to_char_array(
-    py::list argv_list, std::vector<std::string> &argv_strings) {
-  std::vector<char *> argv;
-
-  for (auto &arg : argv_list) {
-    argv_strings.push_back(arg.cast<std::string>());
-    argv.push_back(argv_strings.back().data());
+/// Helper function to convert a py::list to a std::vector<std::string>.
+std::vector<std::string> pylist_to_string_vector(const py::list &argv_list) {
+  std::vector<std::string> result;
+  for (const auto &arg : argv_list) {
+    result.push_back(arg.cast<std::string>());
   }
-
-  return argv;
+  return result;
 }
 }  // namespace
 
@@ -66,14 +60,12 @@ PYBIND11_MODULE(pydp3, m) {
   m.def(
       "execute",
       [](const std::string parset_name, py::list argv_list) {
-        std::vector<std::string> argv_strings;
-        std::vector<char *> argv =
-            pylist_to_char_array(argv_list, argv_strings);
+        std::vector<std::string> argv_strings =
+            pylist_to_string_vector(argv_list);
         try {
           // Potentially long running operation, so release the GIL
           py::gil_scoped_release release;
-          dp3::base::Execute(parset_name, static_cast<int>(argv.size()),
-                             argv.data());
+          dp3::base::Execute(parset_name, argv_strings);
         } catch (const H5::Exception &err) {
           // Since H5::Exception is not derived from std::exception, rethrow
           // as std::exception. pybind then translates it into RuntimeError.
@@ -86,14 +78,12 @@ PYBIND11_MODULE(pydp3, m) {
   m.def(
       "execute_from_command_line",
       [](py::list argv_list) {
-        std::vector<std::string> argv_strings;
-        std::vector<char *> argv =
-            pylist_to_char_array(argv_list, argv_strings);
+        std::vector<std::string> argv_strings =
+            pylist_to_string_vector(argv_list);
         try {
           // Potentially long running operation, so release the GIL
           py::gil_scoped_release release;
-          dp3::base::ExecuteFromCommandLine(static_cast<int>(argv.size()),
-                                            argv.data());
+          dp3::base::ExecuteFromCommandLine(argv_strings);
         } catch (const H5::Exception &err) {
           // Since H5::Exception is not derived from std::exception, rethrow
           // as std::exception. pybind then translates it into RuntimeError.
