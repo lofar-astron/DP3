@@ -26,6 +26,9 @@ MSIN = "tDDECal.MS"
 
 @pytest.fixture(autouse=True)
 def source_env(run_in_tmp_path):
+    if tcf.HAVE_IDG != "TRUE":
+        pytest.skip(reason="IDG is not available")
+
     untar(f"{tcf.RESOURCEDIR}/{MSINTGZ}")
     untar(f"{tcf.DDECAL_RESOURCEDIR}/{REF_SOLUTIONS}")
 

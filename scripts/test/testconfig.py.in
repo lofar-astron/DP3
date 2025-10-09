@@ -1,4 +1,4 @@
-# Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+# Copyright (C) 2025 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 SRCDIR = "@CMAKE_CURRENT_SOURCE_DIR@"
@@ -11,3 +11,4 @@ SHOWSOURCEDBEXE = "@CMAKE_BINARY_DIR@/showsourcedb"
 TAQLEXE = "@TAQL_EXECUTABLE@"
 PYTHONDIR = "@CMAKE_BINARY_DIR@/pythondp3/"
 PYTHONMOCKDIR = "@CMAKE_SOURCE_DIR@/pythondp3/test/unit/mock"
+HAVE_IDG = "@HAVE_IDG@"

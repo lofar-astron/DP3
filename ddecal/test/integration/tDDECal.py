@@ -1046,6 +1046,9 @@ def test_reuse_model_data():
 def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
     """Test DDECal with all model data source types enabled"""
 
+    if tcf.HAVE_IDG != "TRUE":
+        pytest.skip(reason="IDG is not available")
+
     # Multiply MODEL_DATA by 42
     taqlcommand_run = f"update {MSIN} set MODEL_DATA=DATA*42"
     check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])

@@ -24,6 +24,9 @@ MSIN = "tNDPPP-generic.MS"
 
 @pytest.fixture(autouse=True)
 def source_env(run_in_tmp_path):
+    if tcf.HAVE_IDG != "TRUE":
+        pytest.skip(reason="IDG is not available")
+
     untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
     get_taql_result(f"UPDATE {MSIN} SET DATA=1")
 
