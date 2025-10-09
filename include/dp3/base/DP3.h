@@ -13,12 +13,15 @@ namespace base {
 void ShowUsage();
 
 /// Command-line interface
+void ExecuteFromCommandLine(const std::vector<std::string>& arguments);
+
+/// Command-line interface
 void ExecuteFromCommandLine(int argc, char* argv[]);
 
 /// Execute the steps defined in the parset file.
 /// Possible parameters given at the command line are taken into account.
-void Execute(const std::string& parsetName, int argc = 0,
-             char* argv[] = nullptr);
+void Execute(const std::string& parsetName,
+             const std::vector<std::string>& arguments = {});
 
 /// Create a step
 /// @param type Type of the step.

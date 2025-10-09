@@ -277,7 +277,8 @@ dp3::common::Fields SetChainProvidedFields(std::shared_ptr<Step> first_step,
   return provided_fields;
 }
 
-void Execute(const std::string& parsetName, int argc, char* argv[]) {
+void Execute(const std::string& parsetName,
+             const std::vector<std::string>& arguments) {
   casacore::Timer timer;
   common::NSTimer nstimer;
   nstimer.start();
@@ -286,7 +287,7 @@ void Execute(const std::string& parsetName, int argc, char* argv[]) {
     parset.adoptFile(parsetName);
   }
   // Adopt possible parameters given at the command line.
-  parset.adoptArgv(argc, argv);  ///< works fine if argc==0 and argv==0
+  parset.adoptArguments(arguments);
 
   // Immediately initialize logger such that output will follow requested
   // verbosity
@@ -425,12 +426,13 @@ void ShowUsage() {
          "Documentation is at: https://dp3.readthedocs.io\n";
 }
 
-void ExecuteFromCommandLine(int argc, char* argv[]) {
+void ExecuteFromCommandLine(const std::vector<std::string>& arguments) {
   check_openblas_multithreading();
+  const size_t argc = arguments.size();
 
   // Get the name of the parset file.
   if (argc > 1) {
-    string param = argv[1];
+    string param = arguments[1];
     if (param == "--help" || param == "-help" || param == "-h" ||
         param == "--usage" || param == "-usage") {
       ShowUsage();
@@ -442,9 +444,9 @@ void ExecuteFromCommandLine(int argc, char* argv[]) {
   }
 
   std::string parsetName;
-  if (argc > 1 && std::string(argv[1]).find('=') == std::string::npos) {
+  if (argc > 1 && arguments[1].find('=') == std::string::npos) {
     // First argument is parset name (except if it's a key-value pair)
-    parsetName = argv[1];
+    parsetName = arguments[1];
   } else if (argc == 1) {
     // No arguments given: try to load [N]DPPP.parset
     if (std::filesystem::exists("DP3.parset")) {
@@ -460,7 +462,15 @@ void ExecuteFromCommandLine(int argc, char* argv[]) {
   }
 
   // Execute the parset file.
-  Execute(parsetName, argc, argv);
+  Execute(parsetName, arguments);
+}
+
+void ExecuteFromCommandLine(int argc, char* argv[]) {
+  std::vector<std::string> arguments;
+  for (int i = 0; i < argc; ++i) {
+    arguments.push_back(std::string(argv[i]));
+  }
+  ExecuteFromCommandLine(arguments);
 }
 
 std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {

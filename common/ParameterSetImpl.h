@@ -102,7 +102,7 @@ class ParameterSetImpl : public KVMap {
 
   /// Adds the Key-Values pairs in the argument list.
   /// It ignores arguments not having the Key=Value syntax.
-  void adoptArgv(int nr, char const* const argv[]);
+  void adoptArguments(const std::vector<std::string>& arguments);
   /// @}
 
   /// \name Saving the collection

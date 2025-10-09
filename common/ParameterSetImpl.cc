@@ -176,11 +176,11 @@ void ParameterSetImpl::adoptCollection(const ParameterSetImpl& theCollection,
   }
 }
 
-void ParameterSetImpl::adoptArgv(int nr, char const* const argv[]) {
+void ParameterSetImpl::adoptArguments(
+    const std::vector<std::string>& arguments) {
   // Thread-safety.
   std::lock_guard<std::mutex> locker(itsMutex);
-  for (int i = 0; i < nr; ++i) {
-    std::string arg(argv[i]);
+  for (const std::string& arg : arguments) {
     // Only add arguments containing an =-sign.
     std::string::size_type eqs = arg.find('=');
     if (eqs != std::string::npos) {
