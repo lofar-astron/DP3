@@ -8,6 +8,13 @@
 
 ### Bug fixes
 
+## [6.5.1] - 2025-10-09
+
+### Bug fixes
+
+- Fixed compilation and updated package for BDA support.
+- Fixed argument handling in Python API for `execute` and `execute_from_command_line`
+
 ## [6.5] - 2025-10-01
 
 ### New features
