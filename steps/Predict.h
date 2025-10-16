@@ -5,7 +5,6 @@
 #define DP3_STEPS_PREDICT_H_
 
 #include <dp3/steps/Step.h>
-#include <dp3/base/PredictRunnerType.h>
 
 #include <mutex>
 
@@ -91,14 +90,17 @@ class Predict : public ModelDataStep {
    * Parses parset arguments and sets up first_step_ and last_step_.
    */
   void Initialize(const common::ParameterSet& parset, const std::string& prefix,
+                  const std::vector<std::string>& source_patterns,
                   MsType input_type);
 
   /// Input and output measurement set type: Regular (default) or Bda
   const MsType ms_type_;
 
+  bool use_fast_predict_{false};
+
   std::vector<std::shared_ptr<Step>> internal_steps_;
   std::shared_ptr<BdaAverager> bda_averager_;
-  std::shared_ptr<base::PredictRunnerType> predict_step_;
+  std::shared_ptr<ModelDataStep> predict_step_;
 };
 
 }  // namespace steps

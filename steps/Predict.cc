@@ -10,9 +10,10 @@
 #include "BDAAverager.h"
 #include "BdaExpander.h"
 #include "Upsample.h"
+#include "OnePredict.h"
+#include "FastPredict.h"
 
 #include <dp3/base/BdaBuffer.h>
-#include <dp3/base/PredictRunnerType.h>
 
 #include "../common/ParameterSet.h"
 
@@ -72,29 +73,40 @@ class RestoreMetaDataChangedStep : public Step {
 
 Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
                  MsType input_type)
-    : ms_type_(input_type),
-      predict_step_(std::make_shared<base::PredictRunnerType>(
-          parset, prefix, std::vector<std::string>())) {
-  Initialize(parset, prefix, input_type);
+    : ms_type_(input_type) {
+  Initialize(parset, prefix, std::vector<std::string>(), input_type);
 }
 
 Predict::Predict(const common::ParameterSet& parset, const std::string& prefix,
                  const std::vector<std::string>& source_patterns,
                  MsType input_type)
-    : ms_type_(input_type),
-      predict_step_(std::make_shared<base::PredictRunnerType>(
-          parset, prefix, source_patterns)) {
-  Initialize(parset, prefix, input_type);
+    : ms_type_(input_type) {
+  Initialize(parset, prefix, source_patterns, input_type);
 }
 
 void Predict::Initialize(const common::ParameterSet& parset,
-                         const std::string& prefix, MsType input_type) {
+                         const std::string& prefix,
+                         const std::vector<std::string>& source_patterns,
+                         MsType input_type) {
   // Create the steps that this step manages, in order of how they need to be
   // connected. These are called 'internal' steps here to differentiate them
   // from the other steps outside Predict, but they are not substeps.
   if (input_type == MsType::kBda) {
     internal_steps_.push_back(std::make_shared<BdaExpander>(prefix));
   }
+
+#ifdef USE_FAST_PREDICT
+  use_fast_predict_ = parset.getBool(prefix + "usefastpredict", false);
+  if (use_fast_predict_) {
+    predict_step_ =
+        std::make_shared<FastPredict>(parset, prefix, source_patterns);
+  } else {
+    predict_step_ =
+        std::make_shared<OnePredict>(parset, prefix, source_patterns);
+  }
+#else
+  predict_step_ = std::make_shared<OnePredict>(parset, prefix, source_patterns);
+#endif  // USE_FAST_PREDICT
 
   internal_steps_.push_back(predict_step_);
 
@@ -130,11 +142,29 @@ void Predict::setNextStep(std::shared_ptr<Step> next_step) {
 }
 
 void Predict::SetOperation(const std::string& operation) {
-  predict_step_->SetOperation(operation);
+#ifdef USE_FAST_PREDICT
+  if (use_fast_predict_) {
+    std::dynamic_pointer_cast<FastPredict>(predict_step_)
+        ->SetOperation(operation);
+  } else {
+    std::dynamic_pointer_cast<OnePredict>(predict_step_)
+        ->SetOperation(operation);
+  }
+#else
+  std::dynamic_pointer_cast<OnePredict>(predict_step_)->SetOperation(operation);
+#endif  // USE_FAST_PREDICT
 }
 
 void Predict::SetThreadData(std::mutex* mutex) {
-  predict_step_->SetThreadData(mutex);
+#ifdef USE_FAST_PREDICT
+  if (use_fast_predict_) {
+    std::dynamic_pointer_cast<FastPredict>(predict_step_)->SetThreadData(mutex);
+  } else {
+    std::dynamic_pointer_cast<OnePredict>(predict_step_)->SetThreadData(mutex);
+  }
+#else
+  std::dynamic_pointer_cast<OnePredict>(predict_step_)->SetThreadData(mutex);
+#endif  // USE_FAST_PREDICT
 }
 
 void Predict::show(std::ostream& os) const { os << "Predict" << '\n'; }

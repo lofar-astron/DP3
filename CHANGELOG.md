@@ -4,6 +4,8 @@
 
 ### New features
 
+- Add `predict.usefastpredict` setting to enable the new fast predict at runtime, deprecating the `USE_FAST_PREDICT` CMake option.
+
 ### Improvements
 
 ### Bug fixes
