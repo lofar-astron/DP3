@@ -9,7 +9,6 @@
 #include <schaapcommon/facets/facet.h>
 #include <xtensor/xcomplex.hpp>
 
-#include <dp3/base/PredictRunnerType.h>
 #include <dp3/base/DPBuffer.h>
 
 #include "../../../base/test/LoggerFixture.h"
@@ -17,10 +16,12 @@
 #include "../../../steps/InputStep.h"
 #include "../../../steps/WGridderPredict.h"
 #include "../../../steps/MultiResultStep.h"
+#include "../../../steps/OnePredict.h"
 
 using dp3::base::DPBuffer;
 using dp3::steps::InputStep;
 using dp3::steps::MultiResultStep;
+using dp3::steps::OnePredict;
 using dp3::steps::WGridderPredict;
 using schaapcommon::facets::Facet;
 
@@ -228,8 +229,7 @@ BOOST_AUTO_TEST_CASE(process) {
 
   dp3::common::ParameterSet one_predict_parset = parset;
   one_predict_parset.add("sourcedb", "sources.skymodel");
-  dp3::base::PredictRunnerType one_predict(one_predict_parset, "",
-                                           std::vector<std::string>());
+  OnePredict one_predict(one_predict_parset, "", std::vector<std::string>());
   WGridderPredict wgridder_predict(parset, "");
 
   wgridder_predict.SetBufferSize(kNTimeSteps);

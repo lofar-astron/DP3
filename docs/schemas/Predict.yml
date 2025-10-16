@@ -4,6 +4,10 @@ inputs:
   type:
     type: string
     doc: Case-insensitive step type; must be 'predict'.
+  usefastpredict:
+    type: boolean
+    default: false
+    doc: Make use of the accelerated `predict library <https://git.astron.nl/RD/predict>`__. This is an **experimental** drop-in replacement for the current implementation in DP3, please use at your own risk!
   sourcedb:
     type: string
     doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb). When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.  The sourcedb format is described at https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb . In DP3 v5.3 a change was introduced to fix the projection of Gaussian sources. For backward compatibility, also the old behavior is still supported, using the key ``OrientationIsAbsolute`` in the sky model. To make sure you use the new (and most correct) behavior, add ``OrientationIsAbsolute=true`` to your sky models.
