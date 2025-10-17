@@ -11,7 +11,7 @@ import pytest
 sys.path.append(".")
 
 import testconfig as tcf
-from utils import assert_taql, run_in_tmp_path, untar
+from utils import assert_taql, get_taql_result, run_in_tmp_path, untar
 
 """
 Replacement for tPredict.sh using pytest.
@@ -54,7 +54,20 @@ def make_h5parm():
         weights.attrs["AXES"] = np.void(b"none")
 
 
-def test_with_beam_subtract():
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_with_beam_subtract(use_fast_predict):
     check_call(
         [
             tcf.DP3EXE,
@@ -65,6 +78,7 @@ def test_with_beam_subtract():
             f"predict.sourcedb={SKYMODEL}",
             "predict.usebeammodel=true",
             "predict.operation=subtract",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
 
@@ -73,7 +87,20 @@ def test_with_beam_subtract():
     assert_taql(taql_command)
 
 
-def test_without_beam_add():
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_without_beam_add(use_fast_predict):
     check_call(
         [
             tcf.DP3EXE,
@@ -84,6 +111,7 @@ def test_without_beam_add():
             f"predict.sourcedb={SKYMODEL}",
             "predict.usebeammodel=false",
             "predict.operation=add",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
 
@@ -92,7 +120,20 @@ def test_without_beam_add():
     assert_taql(taql_command)
 
 
-def test_with_applycal(make_h5parm):
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_with_applycal(make_h5parm, use_fast_predict):
     check_call(
         [
             tcf.DP3EXE,
@@ -104,6 +145,7 @@ def test_with_applycal(make_h5parm):
             "predict.applycal.parmdb=test.h5",
             "predict.applycal.correction=soltab000",
             "predict.operation=subtract",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
     # Compare the MODEL_DATA column of the output MS with the original data minus the BBS reference output.
@@ -112,7 +154,20 @@ def test_with_applycal(make_h5parm):
 
 
 @pytest.mark.parametrize("use_beam", [False, True])
-def test_without_and_with_beam(use_beam):
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_without_and_with_beam(use_beam, use_fast_predict):
     predict_column = "PREDICT_beam" if use_beam else "PREDICT_nobeam"
 
     check_call(
@@ -124,6 +179,7 @@ def test_without_and_with_beam(use_beam):
             "steps=[predict]",
             f"predict.sourcedb={SKYMODEL}",
             f"predict.usebeammodel={'true' if use_beam else 'false'}",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
     taql_command = f"select from {MSIN} t1, {MSPREDICT} t2 where not all(near(t1.MODEL_DATA,t2.{predict_column},5e-2) || (isnan(t1.MODEL_DATA) && isnan(t2.{predict_column})))"
@@ -145,6 +201,8 @@ def test_without_and_with_time_smearing(use_time_smearing):
             f"center, POINT, 01:37:41.299, +{33 + dec_offset}.09.35.132, 10, , , , ,\n"
         )
 
+    # TODO: introduce predict.usefastpredict=True when smearing corrections have
+    # been fully properly implemented in the accelerated predict library!
     check_call(
         [
             tcf.DP3EXE,
@@ -154,6 +212,7 @@ def test_without_and_with_time_smearing(use_time_smearing):
             f"predict.sourcedb=timesmearing.skymodel",
             f"msout=ts-{'on' if use_time_smearing else 'off'}.MS",
             f"predict.correcttimesmearing={use_time_smearing}",
+            "predict.usefastpredict=False",
         ]
     )
     if not use_time_smearing:
@@ -179,7 +238,20 @@ def test_without_and_with_time_smearing(use_time_smearing):
         assert_taql(taql_command, 2)
 
 
-def test_time_smearing_with_msupdate():
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_time_smearing_with_msupdate(use_fast_predict):
     """
     Test that DP3 can update an MS after running a Predict step that does
     time smearing, which internally changes the meta data.
@@ -193,12 +265,26 @@ def test_time_smearing_with_msupdate():
             "steps=[predict]",
             f"predict.sourcedb={SKYMODEL}",
             "predict.correcttimesmearing=True",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
 
 
 @pytest.mark.parametrize("use_beam", [False, True])
-def test_without_and_with_beam_parallelbaseline(use_beam):
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_without_and_with_beam_parallelbaseline(use_beam, use_fast_predict):
     predict_column = "PREDICT_beam" if use_beam else "PREDICT_nobeam"
 
     check_call(
@@ -211,7 +297,48 @@ def test_without_and_with_beam_parallelbaseline(use_beam):
             f"predict.sourcedb={SKYMODEL}",
             f"predict.usebeammodel={'true' if use_beam else 'false'}",
             "predict.parallelbaselines=true",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
     taql_command = f"select from {MSIN} t1, {MSPREDICT} t2 where not all(near(t1.MODEL_DATA,t2.{predict_column},5e-2) || (isnan(t1.MODEL_DATA) && isnan(t2.{predict_column})))"
     assert_taql(taql_command)
+
+
+@pytest.mark.skipif(
+    tcf.USE_FAST_PREDICT != "ON", reason="FastPredict is not available"
+)
+def test_compare_onepredict_with_fastpredict():
+    """
+    Test ensuring that OnePredict and FastPredict yield the same model visibilities.
+    """
+    # Predict model data with OnePredict.
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=ONE_PREDICT_MODEL_DATA",
+            "steps=[predict]",
+            f"predict.sourcedb={SKYMODEL}",
+            f"predict.usefastpredict=False",
+        ]
+    )
+
+    # Predict model data with FastPredict.
+    check_call(
+        [
+            tcf.DP3EXE,
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=FAST_PREDICT_MODEL_DATA",
+            "steps=[predict]",
+            f"predict.sourcedb={SKYMODEL}",
+            f"predict.usefastpredict=True",
+        ]
+    )
+
+    # Compare the two predicted MODEL_DATA columns.
+    taql_command = f"select gnfalse(near(ms.ONE_PREDICT_MODEL_DATA, ms.FAST_PREDICT_MODEL_DATA, 1e-3)) from tNDPPP-generic.MS ms"
+    false_count = int(get_taql_result(taql_command))
+
+    assert false_count == 0

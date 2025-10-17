@@ -800,6 +800,7 @@ if(BUILD_TESTING)
       steps/test/unit/tDDECal.cc
       steps/test/unit/tDemixer.cc
       steps/test/unit/tDummyStep.cc
+      steps/test/unit/tFastPredict.cc
       steps/test/unit/tFilter.cc
       steps/test/unit/tFlagTransfer.cc
       steps/test/unit/tGainCal.cc
