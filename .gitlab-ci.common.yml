@@ -203,15 +203,15 @@ test-2404:
 #  the current test-2404 and coverage-2404 jobs. It may even time out.)
 # The code coverage figures include both unit and integration tests.
 #
-# The coverage target sets METADATA_COMPRESSION_DEFAULT whereas most other
-# targets don't do this. This way, both settings are tested.
+# The coverage target sets METADATA_COMPRESSION_DEFAULT and USE_FAST_PREDICT whereas
+# most other targets don't do this. This way, both settings are tested.
 coverage-2404:
   stage: test
   extends: [".failable",".needs-base-2404"]
   script:
     - source /dp3env/bin/activate
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True -DUSE_FAST_PREDICT=On ..
     - ninja -j4
     - ctest --output-on-failure --no-tests=error -j$(nproc)
     # Collect coverage in text, xml and json formats.
