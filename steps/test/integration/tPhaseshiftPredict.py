@@ -41,6 +41,19 @@ testdata = [
     "source_type,major_axis,minor_axis,orientation,offset_ra_hour,offset_dec_degree",
     testdata,
 )
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
 def test_phaseshift_predict(
     source_type,
     major_axis,
@@ -48,6 +61,7 @@ def test_phaseshift_predict(
     orientation,
     offset_ra_hour,
     offset_dec_degree,
+    use_fast_predict,
 ):
     """
     - Phaseshift MS to the position of a source
@@ -88,11 +102,13 @@ dummysource, {source_type}, {source_position_ra}, {source_position_dec}, {major_
             "predict.type=predict",
             "predict.operation=replace",
             "predict.sourcedb=test.skymodel",
+            f"predict.usefastpredict={use_fast_predict}",
             "shiftback.type=phaseshift",
             "shiftback.phasecenter=[]",
             "subtract.type=predict",
             "subtract.sourcedb=test.skymodel",
             "subtract.operation=subtract",
+            f"subtract.usefastpredict={use_fast_predict}",
         ]
     )
 
