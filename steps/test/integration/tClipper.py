@@ -65,11 +65,25 @@ test_clipper_data = [
     "time_step, frequency_step, n_expected_flags, n_expected_unflags",
     test_clipper_data,
 )
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
 def test_clipper(
     time_step,
     frequency_step,
     n_expected_flags,
     n_expected_unflags,
+    use_fast_predict,
     create_model_data,
 ):
     taql_command = f"UPDATE {MSOUT} set FLAG=false"
@@ -89,6 +103,7 @@ def test_clipper(
             f"clipper.amplmax={TEST_MAX_AMPLITUDE}",
             f"clipper.timestep={time_step}",
             f"clipper.freqstep={frequency_step}",
+            f"clipper.usefastpredict={use_fast_predict}",
         ]
     )
     assert_taql(taql_command, n_expected_flags)
@@ -102,6 +117,7 @@ def test_clipper(
             "steps=[predict]",
             "predict.sourcedb=clipper.skymodel",
             "predict.usebeammodel=true",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
 

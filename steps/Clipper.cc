@@ -26,8 +26,20 @@ Clipper::Clipper(const common::ParameterSet& parset, const std::string& prefix)
       flag_all_correlations_(
           parset.getBool(prefix + "flagallcorrelations", true)),
       max_amplitude_(parset.getFloat(prefix + "amplmax", 0.0)) {
+#ifdef USE_FAST_PREDICT
+  const bool use_fast_predict =
+      parset.getBool(prefix + "usefastpredict", false);
+  if (use_fast_predict) {
+    SetPredict(std::make_shared<FastPredict>(parset, prefix,
+                                             std::vector<std::string>()));
+  } else {
+    SetPredict(std::make_shared<OnePredict>(parset, prefix,
+                                            std::vector<std::string>()));
+  }
+#else
   SetPredict(
       std::make_shared<OnePredict>(parset, prefix, std::vector<std::string>()));
+#endif  // USE_FAST_PREDICT
 }
 
 void Clipper::SetPredict(std::shared_ptr<Step> substep) {
