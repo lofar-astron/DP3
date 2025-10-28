@@ -96,7 +96,7 @@ void Predict::Initialize(const common::ParameterSet& parset,
   }
 
 #ifdef USE_FAST_PREDICT
-  use_fast_predict_ = parset.getBool(prefix + "usefastpredict", false);
+  use_fast_predict_ = parset.getBool(prefix + "usefastpredict", true);
   if (use_fast_predict_) {
     predict_step_ =
         std::make_shared<FastPredict>(parset, prefix, source_patterns);
