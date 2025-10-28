@@ -27,8 +27,7 @@ Clipper::Clipper(const common::ParameterSet& parset, const std::string& prefix)
           parset.getBool(prefix + "flagallcorrelations", true)),
       max_amplitude_(parset.getFloat(prefix + "amplmax", 0.0)) {
 #ifdef USE_FAST_PREDICT
-  const bool use_fast_predict =
-      parset.getBool(prefix + "usefastpredict", false);
+  const bool use_fast_predict = parset.getBool(prefix + "usefastpredict", true);
   if (use_fast_predict) {
     SetPredict(std::make_shared<FastPredict>(parset, prefix,
                                              std::vector<std::string>()));
