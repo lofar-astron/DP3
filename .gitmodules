@@ -13,4 +13,3 @@
 [submodule "external/predict"]
 	path = external/predict
 	url = https://git.astron.nl/RD/predict.git
-	branch = extend_to_support_multi_evaluation

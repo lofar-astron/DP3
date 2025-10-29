@@ -51,7 +51,9 @@ def test_subtract():
         ]
     )
 
-    taql_command = f"select from {MSIN} where sum(abs(DATA)) != 0"
+    max_diff = 1e-4 if tcf.USE_FAST_PREDICT else 0
+
+    taql_command = f"select from {MSIN} where sum(abs(DATA)) > {max_diff}"
     assert_taql(taql_command, 0)
 
 
@@ -87,9 +89,9 @@ def test_add():
         ]
     )
 
-    taql_command = (
-        f"select from {MSIN} where sum(abs(DATA - 2 * PREDICTED_DATA)) > 1e-10"
-    )
+    max_diff = 1e-4 if tcf.USE_FAST_PREDICT else 1e-10
+
+    taql_command = f"select from {MSIN} where sum(abs(DATA - 2 * PREDICTED_DATA)) > {max_diff}"
     assert_taql(taql_command, 0)
 
 

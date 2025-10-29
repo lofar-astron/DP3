@@ -87,6 +87,8 @@ void FastPredict::Init(const common::ParameterSet& parset,
                        const std::vector<std::string>& sourcePatterns) {
   name_ = prefix;
   source_db_name_ = parset.getString(prefix + "sourcedb");
+  correct_time_smearing_ =
+      parset.getBool(prefix + "correcttimesmearing", false);
   correct_freq_smearing_ =
       parset.getBool(prefix + "correctfreqsmearing", false);
   SetOperation(parset.getString(prefix + "operation", "replace"));
@@ -241,6 +243,8 @@ void FastPredict::InitializePlan() {
                                 // be set to one later.
   predict_plan_.compute_stokes_I_only = stokes_i_only_;
   predict_plan_.correct_frequency_smearing = correct_freq_smearing_;
+  // predict_plan_.correct_time_smearing = correct_time_smearing_;
+  // predict_plan_.scaled_ncp_uvw = scaled_ncp_uvw_;
   predict_plan_.apply_beam = apply_beam_;
   predict_plan_.reference = predict::Direction{phase_ref_.ra, phase_ref_.dec};
 
@@ -273,6 +277,29 @@ void FastPredict::updateInfo(const DPInfo& infoIn) {
     // Phase direction (in J2000) is time dependent
     moving_phase_ref_ = true;
   }
+
+  /**
+   * Length of a sidereal day in seconds.
+   */
+  constexpr double kSiderealDay = 86164.0905;
+
+  const double angular_speed = 2 * M_PI * infoIn.timeInterval() / kSiderealDay;
+
+  // Time smearing is computed by rotating the u,v,w coordinates around the
+  // earth axis. The earth axis is assumed here to point to the position
+  // dec=90deg in J2000 coordinates. This ignores precession since the true
+  // position is dec=90deg for the current epoch. A more accurate method, but
+  // probably unnecessary, would be to compute the actual NCP for the current
+  // epoch
+
+  // In base/Simulator.cc this element is assumed to be zero. If it is updated
+  // here to a more accurate value, please update the usage in Simulator as well
+  scaled_ncp_uvw_.resize(3);
+  scaled_ncp_uvw_[0] = 0.0;
+  scaled_ncp_uvw_[1] =
+      angular_speed * std::cos(infoIn.phaseCenterDirection().dec);
+  scaled_ncp_uvw_[2] =
+      angular_speed * std::sin(infoIn.phaseCenterDirection().dec);
 
   InitializePlan();
 
@@ -310,6 +337,8 @@ void FastPredict::show(std::ostream& os) const {
      << any_orientation_is_absolute_ << '\n';
   os << "   all unpolarized:        " << std::boolalpha << stokes_i_only_
      << '\n';
+  os << "   correct time smearing:  " << std::boolalpha
+     << correct_time_smearing_ << '\n';
   os << "   correct freq smearing:  " << std::boolalpha
      << correct_freq_smearing_ << '\n';
   os << "  apply beam:              " << std::boolalpha << apply_beam_ << '\n';
@@ -361,14 +390,9 @@ void FastPredict::showTimings(std::ostream& os, double duration) const {
 void FastPredict::CopyPredictBufferToData(
     base::DPBuffer::DataType& destination,
     const xt::xtensor<double, 4, xt::layout_type::row_major>& buffer) {
-  const size_t nstokes = buffer.shape()[1];
-  const size_t nbaselines = buffer.shape()[2];
+  const size_t nstokes = buffer.shape()[0];
+  const size_t nbaselines = buffer.shape()[1];
   const size_t nchannels = buffer.shape()[3];
-
-  const auto real_part = xt::view(buffer, 0, xt::all(), xt::all(), xt::all());
-  const auto imag_part = xt::view(buffer, 1, xt::all(), xt::all(), xt::all());
-
-  // destination:  n_baselines, n_channels, buffered_correlations
 
   if (stokes_i_only_) {
     const size_t ncorr_out = getInfoOut().ncorr();
@@ -376,13 +400,13 @@ void FastPredict::CopyPredictBufferToData(
       for (size_t ch = 0; ch < nchannels; ++ch) {
         // First correlation (index 0)
         destination(bl, ch, 0) =
-            std::complex<float>(static_cast<float>(real_part(0, bl, ch)),
-                                static_cast<float>(imag_part(0, bl, ch)));
+            std::complex<float>(static_cast<float>(buffer(0, bl, 0, ch)),
+                                static_cast<float>(buffer(0, bl, 1, ch)));
 
         // Last correlation (index ncorr_out - 1)
         destination(bl, ch, ncorr_out - 1) = std::complex<float>(
-            static_cast<float>(real_part(ncorr_out - 1, bl, ch)),
-            static_cast<float>(imag_part(ncorr_out - 1, bl, ch)));
+            static_cast<float>(buffer(ncorr_out - 1, bl, 0, ch)),
+            static_cast<float>(buffer(ncorr_out - 1, bl, 1, ch)));
       }
     }
   } else {
@@ -390,8 +414,8 @@ void FastPredict::CopyPredictBufferToData(
       for (size_t bl = 0; bl < nbaselines; ++bl) {
         for (size_t ch = 0; ch < nchannels; ++ch) {
           destination(bl, ch, stoke) =
-              std::complex<float>(static_cast<float>(real_part(stoke, bl, ch)),
-                                  static_cast<float>(imag_part(stoke, bl, ch)));
+              std::complex<float>(static_cast<float>(buffer(stoke, bl, 0, ch)),
+                                  static_cast<float>(buffer(stoke, bl, 1, ch)));
         }
       }
     }
@@ -467,7 +491,7 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
 
 void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
   xt::xtensor<double, 4, xt::layout_type::row_major> global_data(
-      {2, predict_plan_.nstokes, predict_plan_.nbaselines,
+      {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
        predict_plan_.nchannels});
 
   bool update_beam = false;
@@ -497,7 +521,7 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
   const size_t n_channels = getInfoOut().nchan();
 
   xt::xtensor<double, 4, xt::layout_type::row_major> model_data_new(
-      {2, predict_plan_.nstokes, predict_plan_.nbaselines,
+      {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
        predict_plan_.nchannels});
   model_data_new.fill(0.0);
 
@@ -505,7 +529,7 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
 
   if (predict_plan_.apply_beam) {
     patch_model_data_new.resize(
-        {2, n_buffer_correlations, n_baselines, n_channels});
+        {n_buffer_correlations, n_baselines, 2, n_channels});
     patch_model_data_new.fill(0.0);
   }
 
