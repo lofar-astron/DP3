@@ -138,6 +138,7 @@ class FastPredict : public ModelDataStep {
   /// for the input data in each process() call.
   xt::xtensor<std::complex<float>, 3> input_data_;
   std::string source_db_name_;
+  bool correct_time_smearing_ = false;
   bool correct_freq_smearing_ = false;
   Operation operation_;
   std::string output_data_name_;
@@ -162,6 +163,8 @@ class FastPredict : public ModelDataStep {
   std::shared_ptr<ResultStep> result_step_;   ///< Catches results from ApplyCal
 
   unsigned int debug_level_ = 0;
+
+  std::vector<double> scaled_ncp_uvw_;
 
   std::vector<std::pair<size_t, size_t>> baselines_;
 
