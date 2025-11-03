@@ -243,8 +243,8 @@ void FastPredict::InitializePlan() {
                                 // be set to one later.
   predict_plan_.compute_stokes_I_only = stokes_i_only_;
   predict_plan_.correct_frequency_smearing = correct_freq_smearing_;
-  // predict_plan_.correct_time_smearing = correct_time_smearing_;
-  // predict_plan_.scaled_ncp_uvw = scaled_ncp_uvw_;
+  predict_plan_.correct_time_smearing = correct_time_smearing_;
+  predict_plan_.scaled_ncp_uvw = xt::adapt(scaled_ncp_uvw_);
   predict_plan_.apply_beam = apply_beam_;
   predict_plan_.reference = predict::Direction{phase_ref_.ra, phase_ref_.dec};
 

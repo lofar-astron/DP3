@@ -187,7 +187,20 @@ def test_without_and_with_beam(use_beam, use_fast_predict):
 
 
 @pytest.mark.parametrize("use_time_smearing", [False, True])
-def test_without_and_with_time_smearing(use_time_smearing):
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_without_and_with_time_smearing(use_time_smearing, use_fast_predict):
     sourcedb = "timesmearing.sourcedb"
 
     # Create a point-source model with a declination offset of 2 degrees.
@@ -201,8 +214,6 @@ def test_without_and_with_time_smearing(use_time_smearing):
             f"center, POINT, 01:37:41.299, +{33 + dec_offset}.09.35.132, 10, , , , ,\n"
         )
 
-    # TODO: introduce predict.usefastpredict=True when smearing corrections have
-    # been fully properly implemented in the accelerated predict library!
     check_call(
         [
             tcf.DP3EXE,
@@ -212,7 +223,7 @@ def test_without_and_with_time_smearing(use_time_smearing):
             f"predict.sourcedb=timesmearing.skymodel",
             f"msout=ts-{'on' if use_time_smearing else 'off'}.MS",
             f"predict.correcttimesmearing={use_time_smearing}",
-            "predict.usefastpredict=False",
+            f"predict.usefastpredict={use_fast_predict}",
         ]
     )
     if not use_time_smearing:
