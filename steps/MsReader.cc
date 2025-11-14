@@ -635,10 +635,10 @@ void MsReader::InitializeColumns(const bool allow_missing_data,
     // Read beam keywords of input datacolumn
     ArrayColumn<casacore::Complex> dataCol(ms_, data_column_name);
     if (dataCol.keywordSet().isDefined("LOFAR_APPLIED_BEAM_MODE")) {
-      const everybeam::CorrectionMode mode = everybeam::ParseCorrectionMode(
+      const everybeam::BeamMode mode = everybeam::ParseBeamMode(
           dataCol.keywordSet().asString("LOFAR_APPLIED_BEAM_MODE"));
       GetWritableInfoOut().setBeamCorrectionMode(static_cast<int>(mode));
-      if (mode != everybeam::CorrectionMode::kNone) {
+      if (mode != everybeam::BeamMode::kNone) {
         casacore::String error;
         MeasureHolder mHolder;
         if (!mHolder.fromRecord(

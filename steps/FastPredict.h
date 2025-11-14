@@ -175,7 +175,7 @@ class FastPredict : public ModelDataStep {
   xt::xtensor<double, 2> station_uvw_;
 
   /// The info needed to calculate the station beams.
-  everybeam::CorrectionMode beam_mode_ = everybeam::CorrectionMode::kNone;
+  everybeam::BeamMode beam_mode_ = everybeam::BeamMode::kNone;
   everybeam::ElementResponseModel element_response_model_ =
       everybeam::ElementResponseModel::kDefault;
   casacore::MeasFrame meas_frame_;

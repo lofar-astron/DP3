@@ -18,7 +18,7 @@
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include <EveryBeam/correctionmode.h>
+#include <EveryBeam/beammode.h>
 
 #include "../common/Epsilon.h"
 
@@ -47,7 +47,7 @@ DPInfo::DPInfo(unsigned int n_correlations, unsigned int original_n_channels,
       last_time_(0.0),
       time_interval_(1.0),
       n_times_(1),
-      beam_correction_mode_(static_cast<int>(everybeam::CorrectionMode::kNone)),
+      beam_correction_mode_(static_cast<int>(everybeam::BeamMode::kNone)),
       channel_frequencies_(1),  // Ensure that chanFreqs(), chanWidths(),
       channel_widths_(1),       // resolutions() and effectiveBW()
       resolutions_(1),          // can retrieve a first list.

@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(read_oskar) {
   const std::vector<std::string> kAntennaNames = {"s0012", "s0013", "s0015"};
 
   std::unique_ptr<everybeam::telescope::Telescope> telescope = GetTelescope(
-      kMsName, everybeam::ElementResponseModel::kOSKARSphericalWave, false, "");
+      kMsName, everybeam::ElementResponseModel::kOSKARSphericalWave, true, "");
   const std::vector<size_t> station_indices =
       SelectStationIndices(*telescope, kAntennaNames);
   const everybeam::telescope::PhasedArray& phasedarray =

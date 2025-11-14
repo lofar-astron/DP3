@@ -137,7 +137,7 @@ void FastPredict::Init(const common::ParameterSet& parset,
         parset.getDouble(prefix + "beamproximitylimit", 60.0) *
         (M_PI / (180.0 * 60.0 * 60.0));
 
-    beam_mode_ = everybeam::ParseCorrectionMode(
+    beam_mode_ = everybeam::ParseBeamMode(
         parset.getString(prefix + "beammode", "default"));
 
     std::string element_model =
@@ -173,7 +173,7 @@ void FastPredict::Init(const common::ParameterSet& parset,
 
   // Determine whether any sources are polarized. If not, enable
   // Stokes-I-only mode (note that this mode cannot be used with apply_beam_)
-  if (apply_beam_ && beam_mode_ != everybeam::CorrectionMode::kArrayFactor) {
+  if (apply_beam_ && beam_mode_ != everybeam::BeamMode::kArrayFactor) {
     stokes_i_only_ = false;
   } else {
     stokes_i_only_ = !source_db.CheckPolarized();
@@ -259,7 +259,7 @@ void FastPredict::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
   if (operation_ == Operation::kReplace)
     GetWritableInfoOut().setBeamCorrectionMode(
-        static_cast<int>(everybeam::CorrectionMode::kNone));
+        static_cast<int>(everybeam::BeamMode::kNone));
 
   for (size_t bl = 0; bl != getInfoOut().nbaselines(); ++bl) {
     baselines_.emplace_back(getInfoOut().getAnt1()[bl],

@@ -10,7 +10,7 @@
 #include <iostream>
 #include <limits>
 
-#include <EveryBeam/correctionmode.h>
+#include <EveryBeam/beammode.h>
 
 #include "InputStep.h"
 #include "NullStep.h"
@@ -646,13 +646,13 @@ void MSWriter::UpdateBeam(Table& main_table, const std::string& out_col_name,
   ArrayColumn<casacore::Complex> data_column(main_table, out_col_name);
   bool fields_exist = data_column.keywordSet().isDefined(beam_mode_field_name);
   const std::string mode_str = everybeam::ToString(
-      static_cast<everybeam::CorrectionMode>(info.beamCorrectionMode()));
+      static_cast<everybeam::BeamMode>(info.beamCorrectionMode()));
   // If no beam correction has been applied and the LOFAR beam fields don't
   // exist, we have to do nothing (no fields implies no beam correction).
   // If they do exist, we have to make sure they are set to indicate
   // no beam correction.
   if (fields_exist || info.beamCorrectionMode() !=
-                          static_cast<int>(everybeam::CorrectionMode::kNone)) {
+                          static_cast<int>(everybeam::BeamMode::kNone)) {
     data_column.rwKeywordSet().define(beam_mode_field_name, mode_str);
     Record record;
     MeasureHolder(info.beamCorrectionDir()).toRecord(record);

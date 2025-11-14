@@ -263,11 +263,11 @@ class DPInfo {
   const std::vector<double>& getBaselineLengths() const;
 
   /// Get the beam correction mode.
-  /// @return An integer representation of an everybeam::CorrectionMode value.
+  /// @return An integer representation of an everybeam::BeamMode value.
   int beamCorrectionMode() const { return beam_correction_mode_; }
 
   /// Set the beam correction mode.
-  /// @param mode An integer representation of an everybeam::CorrectionMode
+  /// @param mode An integer representation of an everybeam::BeamMode
   /// value.
   void setBeamCorrectionMode(int mode) { beam_correction_mode_ = mode; }
 

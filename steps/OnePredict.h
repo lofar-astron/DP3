@@ -203,7 +203,7 @@ class OnePredict : public ModelDataStep {
 
   /// The info needed to calculate the station beams.
   std::shared_ptr<std::vector<base::PredictBuffer>> predict_buffers_;
-  everybeam::CorrectionMode beam_mode_ = everybeam::CorrectionMode::kNone;
+  everybeam::BeamMode beam_mode_ = everybeam::BeamMode::kNone;
   everybeam::ElementResponseModel element_response_model_ =
       everybeam::ElementResponseModel::kDefault;
   std::vector<casacore::MeasFrame> meas_frame_;

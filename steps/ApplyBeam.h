@@ -32,7 +32,7 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
                    const everybeam::vector3r_t& srcdir,
                    const everybeam::telescope::Telescope* telescope,
                    aocommon::MC2x2* beam_values, bool invert,
-                   everybeam::CorrectionMode mode, std::mutex* mutex,
+                   everybeam::BeamMode mode, std::mutex* mutex,
                    const std::vector<size_t>& skip_station_indices);
 
 /// Computes the array factor scalar values.
@@ -138,7 +138,7 @@ class ApplyBeam final : public Step {
       aocommon::MC2x2* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range,
-      aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
+      aocommon::Barrier& barrier, bool invert, everybeam::BeamMode mode,
       bool do_update_weights = false, std::mutex* mutex = nullptr,
       const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
@@ -152,7 +152,7 @@ class ApplyBeam final : public Step {
       std::complex<double>* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range,
-      aocommon::Barrier& barrier, bool invert, everybeam::CorrectionMode mode,
+      aocommon::Barrier& barrier, bool invert, everybeam::BeamMode mode,
       std::mutex* mutex = nullptr,
       const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
@@ -170,7 +170,7 @@ class ApplyBeam final : public Step {
   bool itsUseChannelFreq;
   std::vector<std::string> itsSkipStationNames;
   std::vector<size_t> itsSkipStationIndices;
-  everybeam::CorrectionMode itsMode;
+  everybeam::BeamMode itsMode;
   everybeam::ElementResponseModel itsElementResponseModel;
   std::string coefficients_path_;
 
@@ -178,7 +178,7 @@ class ApplyBeam final : public Step {
   /// needs to undone; hence we register that beam info here:
   ///@{
   casacore::MDirection itsDirectionAtStart;
-  everybeam::CorrectionMode itsModeAtStart = everybeam::CorrectionMode::kNone;
+  everybeam::BeamMode itsModeAtStart = everybeam::BeamMode::kNone;
   ///@}
 
   unsigned int itsDebugLevel;
