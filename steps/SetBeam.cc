@@ -22,7 +22,7 @@ SetBeam::SetBeam(const common::ParameterSet& parset, const std::string& prefix)
     : name_(prefix),
       direction_strings_(parset.getStringVector(prefix + "direction",
                                                 std::vector<std::string>())),
-      mode_(everybeam::ParseCorrectionMode(
+      mode_(everybeam::ParseBeamMode(
           parset.getString(prefix + "beammode", "default"))) {}
 
 void SetBeam::updateInfo(const DPInfo& _info) {

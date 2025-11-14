@@ -9,7 +9,7 @@
 
 #include <casacore/measures/Measures/MDirection.h>
 
-#include <EveryBeam/correctionmode.h>
+#include <EveryBeam/beammode.h>
 
 #include <dp3/base/DPBuffer.h>
 #include <dp3/base/Direction.h>
@@ -43,7 +43,7 @@ class SetBeam final : public Step {
   std::string name_;
   std::vector<std::string> direction_strings_;
   casacore::MDirection direction_;
-  everybeam::CorrectionMode mode_;
+  everybeam::BeamMode mode_;
 };
 
 }  // namespace steps
