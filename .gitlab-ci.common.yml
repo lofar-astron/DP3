@@ -36,7 +36,7 @@ include: .gitlab-ci.wheels.yml
 .prepare:
   extends: [".failable",".dind"]
   stage: prepare
-  image: docker:20.10
+  image: docker:29.0
   before_script:
     - apk add git
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
