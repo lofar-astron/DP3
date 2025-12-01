@@ -19,8 +19,10 @@ inputs:
   reusemodel:
     default: "[]"
     type: list
-    doc: |
+    doc: >-
       List of model data names to reuse from previous step(s). The list should contain the model data names as set by a previous step, prefixed with the name of that step. Example: ``[ddecal1.MODEL_DATA, ddecal1.center]``. The list may contain expressions with ``?``, which matches any single character, and ``*``, which matches zero or more characters. For example, ``[*]`` matches all model data names.
+
+      See ``keepmodel`` for additional info.
   maxiter:
     default: 50
     type: int
@@ -204,8 +206,10 @@ inputs:
   keepmodel:
     default: false
     type: bool
-    doc: |
+    doc: >-
       If ``true``, pass the corrected model data to the next step. DDECal stores the model data using its step name plus the (first) direction name. For example, if ``steps=[ddecal1]`` and ``ddecal1.directions=[[center,dec_off],[ra_off]]``, the model data names are ``ddecal1.center`` and ``ddecal1.ra_off``. If ``false``, delete all model data, including the model data from ``reusemodel``.
+
+      Before the model data is passed on to the next step, the model data is corrected with the solutions found in this ddecal step. This means that multiple ddecal solve steps can run in the same DP3 call, from the same predict, to solve for a chain of corrections. All subsequent ddecal steps would require ``reuse`` to be set to ``true``, and all but the last solve should set ``keepmodel`` to true. Each solve will output its own solutions file, which need to be multiplied together when manually correcting the data in subsequent processing, e.g. to form facet solutions for imaging.
   idg&#46;images:
     default: "[]"
     type: list
