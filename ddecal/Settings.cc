@@ -400,6 +400,10 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings) {
   if (settings.smoothness_ref_distance != 0.0)
     output << "  smoothnessrefdistance:" << settings.smoothness_ref_distance
            << '\n';
+  if (!settings.smoothness_dd_factors.empty()) {
+    output << "  smoothness dd factors:" << settings.smoothness_dd_factors
+           << '\n';
+  }
   if (!settings.antenna_smoothness_factors.empty())
     output << "  antenna_smoothness_factors:"
            << settings.antenna_smoothness_factors << '\n';
