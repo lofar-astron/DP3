@@ -217,17 +217,15 @@ endif()
 
 # Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-unset(BOOST_MINIMUM_VERSION)
-set(BOOST_COMPONENTS "date_time;filesystem;program_options;system")
+set(BOOST_COMPONENTS "filesystem;program_options")
 if(BUILD_TESTING)
-  # Boost 1.59 introduced BOOST_TEST. Many tests use this feature.
-  set(BOOST_MINIMUM_VERSION 1.59)
   list(APPEND BOOST_COMPONENTS "unit_test_framework")
 endif()
-find_package(
-  Boost ${BOOST_MINIMUM_VERSION}
-  COMPONENTS ${BOOST_COMPONENTS}
-  REQUIRED)
+# The minimum Boost version is 1.73 since DP3 uses the Boost 'date_time'
+# component, which has been header-only since Boost 1.73.
+# Using "COMPONENTS date_time" should not be used anymore since it no longer
+# works since Boost 1.89.
+find_package(Boost 1.73 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)

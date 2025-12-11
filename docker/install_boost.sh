@@ -11,6 +11,6 @@ set -euo pipefail
 # AOFlagger v3.2.0 always requires the unit test framework. More recent versions
 # no longer have this requirement.
 pushd /build/boost_${BOOST_}
-./bootstrap.sh --with-libraries=date_time,filesystem,math,program_options,system,test
+./bootstrap.sh --with-libraries=filesystem,math,program_options,test
 ./b2 -j${THREADS} cxxflags="-fPIC" link=static,shared install
 popd

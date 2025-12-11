@@ -1,10 +1,10 @@
 FROM ubuntu:22.04
 
 # Needs to be bumped before next DP3 release.
-ENV EVERYBEAM_VERSION=v0.7.4
+ENV EVERYBEAM_VERSION=a324cf1d154ff5b968f9844cf05841850bb27c01
 ENV IDG_VERSION=1.2.0
-ENV AOFLAGGER_VERSION=v3.4.0
-ENV CASACORE_VERSION=450a5682a2aa927de123e9953157f3610a5a4f3c
+ENV AOFLAGGER_VERSION=72af21873f657427c99493a56742074be70d5d11
+ENV CASACORE_VERSION=v3.8.0
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
@@ -18,11 +18,9 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	gfortran \
 	git \
 	libarmadillo-dev \
-	libboost-date-time-dev \
 	libboost-filesystem-dev \
 	libboost-program-options-dev \
 	libboost-python-dev \
-	libboost-system-dev \
 	libboost-test-dev \
 	libcfitsio-dev \
 	libfftw3-dev \

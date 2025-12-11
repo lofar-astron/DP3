@@ -73,11 +73,6 @@ include: .gitlab-ci.wheels.yml
   #    - $DOCKER_FILE
 
 # Create and push the base image to the gitlab registry, if it does not exist.
-prepare-base-2004:
-  extends: .prepare
-  variables:
-    UBUNTU_VERSION: 20
-
 prepare-base-2204:
   extends: .prepare
   variables:
@@ -87,6 +82,16 @@ prepare-base-2404:
   extends: .prepare
   variables:
     UBUNTU_VERSION: 24
+
+# Template for jobs that depend on prepare-base-2204.
+.needs-base-2204:
+  needs: ["prepare-base-2204"]
+  image: $BASE_IMAGE_2204
+
+# Template for jobs that depend on prepare-base-2404.
+.needs-base-2404:
+  needs: ["prepare-base-2404"]
+  image: $BASE_IMAGE_2404
 
 # Template for basic build jobs.
 .build-basic:
@@ -99,25 +104,17 @@ prepare-base-2404:
     - ninja -j4 install
     - DP3
 
-# Build (and run) DP3 on Ubuntu 20, ensuring backward compatiblity.
-# This build does not include IDG, since IDG no longer supports Ubuntu 20.
-# This build also tests building DP3 with the TARGET_CPU option.
-build-2004-no-idg-target-cpu:
-  extends: .build-basic
-  needs: ["prepare-base-2004"]
-  image: $BASE_IMAGE_2004
+# Test DP3 builds and runs without optional dependencies (IDG) installed.
+# Specifically on the Haswell architecture, which also tests setting the
+# TARGET_CPU option.
+build-2404-no-idg-target-cpu:
+  extends: [".needs-base-2404", ".build-basic"]
+  before_script:
+    # Remove IDG, so DP3 can't and won't use it.
+    - rm /usr/include/idg-*.h /usr/lib/libidg-*
+    - rm /usr/lib/cmake/idg-*.cmake /usr/lib/cmake/IDGAPI*.cmake
   variables:
     CMAKE_FLAGS: -DTARGET_CPU=haswell
-
-# Template for jobs that depend on prepare-base-2204.
-.needs-base-2204:
-  needs: ["prepare-base-2204"]
-  image: $BASE_IMAGE_2204
-
-# Template for jobs that depend on prepare-base-2404.
-.needs-base-2404:
-  needs: ["prepare-base-2404"]
-  image: $BASE_IMAGE_2404
 
 # Build (and run) DP3 on Ubuntu 24, ensuring compatibility with new systems.
 # This build also tests building DP3 with the PORTABLE option.
