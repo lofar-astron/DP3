@@ -183,27 +183,12 @@ include_directories(${HDF5_INCLUDE_DIRS})
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
 
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
-  find_package(
-    Python3
-    COMPONENTS Interpreter Development
-    REQUIRED)
-  find_package(Python3 COMPONENTS NumPy)
-else() # Use old, deprecated means of detecting python.
-  find_package(PythonInterp 3 REQUIRED)
-  find_package(PythonLibs 3 REQUIRED)
-  set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
-  set(Python3_VERSION ${PYTHON_VERSION_STRING})
-  set(Python3_VERSION_MAJOR ${PYTHON_VERSION_MAJOR})
-  set(Python3_VERSION_MINOR ${PYTHON_VERSION_MINOR})
-  set(Python3_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS})
-  set(Python3_LIBRARIES ${PYTHON_LIBRARIES})
+find_package(
+  Python3
+  COMPONENTS Interpreter Development
+  REQUIRED)
+find_package(Python3 COMPONENTS NumPy)
 
-  execute_process(
-    COMMAND "${Python3_EXECUTABLE}" "-c" "import numpy; print(True)"
-    OUTPUT_VARIABLE Python3_NumPy_FOUND
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-endif()
 message(STATUS "Using python version ${Python3_VERSION}")
 include_directories(${Python3_INCLUDE_DIRS})
 
