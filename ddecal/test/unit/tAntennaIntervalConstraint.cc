@@ -12,6 +12,7 @@
 
 using dp3::ddecal::AntennaIntervalConstraint;
 using dp3::ddecal::Constraint;
+using dp3::ddecal::ConstraintResult;
 
 BOOST_AUTO_TEST_SUITE(antenna_interval_constraint)
 
@@ -45,7 +46,7 @@ BOOST_AUTO_TEST_CASE(single_direction) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(solutions);
-  std::vector<Constraint::Result> constraint_result =
+  std::vector<ConstraintResult> constraint_result =
       constraint.Apply(onesolution_span, 0.0, nullptr);
   BOOST_CHECK(constraint_result.empty());
 
@@ -107,7 +108,7 @@ BOOST_AUTO_TEST_CASE(multiple_directions) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(solutions);
-  std::vector<Constraint::Result> constraint_result =
+  std::vector<ConstraintResult> constraint_result =
       constraint.Apply(onesolution_span, 0.0, nullptr);
   BOOST_CHECK(constraint_result.empty());
 
@@ -182,7 +183,7 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(solutions);
-  std::vector<Constraint::Result> constraint_result =
+  std::vector<ConstraintResult> constraint_result =
       constraint.Apply(onesolution_span, 0.0, nullptr);
   BOOST_CHECK(constraint_result.empty());
 

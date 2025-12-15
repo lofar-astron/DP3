@@ -475,8 +475,8 @@ void InitializeSolverConstraints(
     // Initialize the constraint with some common metadata.
     constraint->Initialize(
         antenna_positions.size(),
-        std::vector<uint32_t>(settings.solutions_per_direction.begin(),
-                              settings.solutions_per_direction.end()),
+        std::vector<uint32_t>(settings.sub_solutions_per_direction.begin(),
+                              settings.sub_solutions_per_direction.end()),
         frequencies);
 
     // Different constraints need different information. Determine if the

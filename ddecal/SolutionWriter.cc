@@ -81,7 +81,7 @@ void SolutionWriter::AddAntennas(
 void SolutionWriter::Write(
     const std::vector<std::vector<std::vector<std::complex<double>>>>&
         solutions,
-    const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+    const std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>&
         constraint_solutions,
     double start_time, double end_time, double ms_timestep_duration,
     size_t n_interval_timesteps,
@@ -122,7 +122,7 @@ void SolutionWriter::Write(
 void SolutionWriter::WriteDirect(
     const std::vector<std::vector<std::vector<std::complex<double>>>>&
         solutions,
-    const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+    const std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>&
         constraint_solutions,
     const double start_time, const double end_time,
     const double ms_timestep_duration, const double solution_interval,
@@ -248,7 +248,7 @@ void SolutionWriter::WriteSolverResults(
 }
 
 void SolutionWriter::WriteConstraintResults(
-    const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+    const std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>&
         constraint_solutions,
     base::CalType mode, const std::vector<std::string>& used_antenna_names,
     const std::vector<base::Direction>& source_directions,
@@ -266,7 +266,7 @@ void SolutionWriter::WriteConstraintResults(
     for (size_t name_index = 0; name_index < n_names; ++name_index) {
       // Get the result of the constraint solution at first time to get
       // metadata
-      const ddecal::Constraint::Result& first_result =
+      const ddecal::ConstraintResult& first_result =
           constraint_solutions[0][constraint_index][name_index];
 
       std::vector<hsize_t> dims(first_result.dims.size() +

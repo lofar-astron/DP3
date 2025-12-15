@@ -16,6 +16,7 @@
 
 using dp3::ddecal::ApproximateTECConstraint;
 using dp3::ddecal::Constraint;
+using dp3::ddecal::ConstraintResult;
 using dp3::ddecal::TECConstraint;
 
 namespace {
@@ -23,7 +24,7 @@ const double kTecConstant = -8.44797245e9;
 
 const size_t kNAntennas = 10;
 const size_t kNChannels = 142;
-const size_t kNSolutions = 1;
+const size_t kNSubSolutions = 1;
 const size_t kNPolarizations = 1;
 
 const size_t kApproximatingIterations = 4;
@@ -53,7 +54,7 @@ BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
   constraint->Initialize(kNAntennas, {1u}, channel_frequencies);
 
   dp3::ddecal::SolutionTensor onesolution(
-      {kNChannels, kNAntennas, kNSolutions, kNPolarizations});
+      {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
 
   const xt::xtensor<double, 1> tec_values = xt::linspace(0.0, 3.0, kNAntennas);
 
@@ -63,7 +64,7 @@ BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
-  std::vector<Constraint::Result> constraint_result;
+  std::vector<ConstraintResult> constraint_result;
 
   if (approximate_tec) {
     // Do an approximation, which yields no results.
@@ -81,10 +82,10 @@ BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
     constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
     BOOST_REQUIRE_EQUAL(constraint_result.size(), 2);
 
-    const Constraint::Result& tec_result = constraint_result[0];
-    const Constraint::Result& error_result = constraint_result[1];
+    const ConstraintResult& tec_result = constraint_result[0];
+    const ConstraintResult& error_result = constraint_result[1];
 
-    std::vector<size_t> expected_dims = {kNAntennas, kNSolutions, 1};
+    std::vector<size_t> expected_dims = {kNAntennas, kNSubSolutions, 1};
 
     BOOST_CHECK_EQUAL(tec_result.name, "tec");
     BOOST_CHECK_EQUAL(tec_result.axes, "ant,dir,freq");
@@ -124,7 +125,7 @@ BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
   constraint->Initialize(kNAntennas, {1u}, channel_frequencies);
 
   dp3::ddecal::SolutionTensor onesolution(
-      {kNChannels, kNAntennas, kNSolutions, kNPolarizations});
+      {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
 
   const double kScalarPhase0 = 1.23;
   const xt::xtensor<double, 1> tec_values = xt::linspace(0.0, 3.0, kNAntennas);
@@ -139,7 +140,7 @@ BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
-  std::vector<Constraint::Result> constraint_result;
+  std::vector<ConstraintResult> constraint_result;
 
   if (approximate_tec) {
     // Do an approximation, which yields no results.
@@ -157,11 +158,11 @@ BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
     constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
     BOOST_REQUIRE_EQUAL(constraint_result.size(), 3);
 
-    const Constraint::Result& tec_result = constraint_result[0];
-    const Constraint::Result& phase_result = constraint_result[1];
-    const Constraint::Result& error_result = constraint_result[2];
+    const ConstraintResult& tec_result = constraint_result[0];
+    const ConstraintResult& phase_result = constraint_result[1];
+    const ConstraintResult& error_result = constraint_result[2];
 
-    std::vector<size_t> expected_dims = {kNAntennas, kNSolutions, 1};
+    std::vector<size_t> expected_dims = {kNAntennas, kNSubSolutions, 1};
 
     BOOST_CHECK(tec_result.name == "tec");
     BOOST_CHECK_EQUAL(tec_result.axes, "ant,dir,freq");

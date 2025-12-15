@@ -102,14 +102,14 @@ void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
   }
 }
 
-std::vector<Constraint::Result> MakeDiagonalResults(
+std::vector<ConstraintResult> MakeDiagonalResults(
     size_t n_antennas, size_t n_sub_solutions, size_t n_channels,
     CalType diagonal_solution_type) {
   const bool is_scalar = diagonal_solution_type == CalType::kScalar ||
                          diagonal_solution_type == CalType::kScalarAmplitude ||
                          diagonal_solution_type == CalType::kScalarPhase;
   const size_t n_diagonal_parameters = is_scalar ? 1 : 2;
-  Constraint::Result template_result;
+  ConstraintResult template_result;
   template_result.vals.resize(n_antennas * n_sub_solutions * n_channels *
                               n_diagonal_parameters);
   template_result.weights.resize(n_antennas * n_sub_solutions * n_channels *
@@ -126,14 +126,14 @@ std::vector<Constraint::Result> MakeDiagonalResults(
   template_result.dims[1] = n_sub_solutions;
   template_result.dims[2] = n_channels;
 
-  std::vector<Constraint::Result> result;
+  std::vector<ConstraintResult> result;
   const bool has_amplitude =
       diagonal_solution_type == CalType::kDiagonal ||
       diagonal_solution_type == CalType::kDiagonalAmplitude ||
       diagonal_solution_type == CalType::kScalar ||
       diagonal_solution_type == CalType::kScalarAmplitude;
   if (has_amplitude) {
-    Constraint::Result& amplitude_result = result.emplace_back();
+    ConstraintResult& amplitude_result = result.emplace_back();
     amplitude_result = template_result;
     amplitude_result.name = "amplitude";
   }
@@ -143,7 +143,7 @@ std::vector<Constraint::Result> MakeDiagonalResults(
                          diagonal_solution_type == CalType::kScalar ||
                          diagonal_solution_type == CalType::kScalarPhase;
   if (has_phase) {
-    Constraint::Result& phase_result = result.emplace_back();
+    ConstraintResult& phase_result = result.emplace_back();
     // The template is no longer necessary, so use its allocation (by moving)
     phase_result = std::move(template_result);
     phase_result.name = "phase";
@@ -165,7 +165,7 @@ void RotationAndDiagonalConstraint::Initialize(
         "intervals");
   }
 
-  Result& rotation_result = results_.emplace_back();
+  ConstraintResult& rotation_result = results_.emplace_back();
   rotation_result.vals.resize(NAntennas() * NSubSolutions() * NChannelBlocks());
   rotation_result.weights.resize(NAntennas() * NSubSolutions() *
                                  NChannelBlocks());
@@ -176,9 +176,9 @@ void RotationAndDiagonalConstraint::Initialize(
   rotation_result.dims[2] = NChannelBlocks();
   rotation_result.name = "rotation";
 
-  std::vector<Result> diagonal_result = MakeDiagonalResults(
+  std::vector<ConstraintResult> diagonal_result = MakeDiagonalResults(
       NAntennas(), NSubSolutions(), NChannelBlocks(), diagonal_solution_type_);
-  for (Result& result : diagonal_result)
+  for (ConstraintResult& result : diagonal_result)
     results_.emplace_back(std::move(result));
 }
 
@@ -234,7 +234,7 @@ void RotationAndDiagonalConstraint::SetChannelWeights(
   }
 }
 
-std::vector<Constraint::Result> RotationAndDiagonalConstraint::Apply(
+std::vector<ConstraintResult> RotationAndDiagonalConstraint::Apply(
     SolutionSpan& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
   assert(solutions.shape(2) == NSubSolutions());

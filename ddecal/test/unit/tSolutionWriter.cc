@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(solution_time_size) {
     const dp3::base::CalType mode = dp3::base::CalType::kScalar;
 
     // Empty container argument
-    std::vector<std::vector<std::vector<dp3::ddecal::Constraint::Result>>>
+    std::vector<std::vector<std::vector<dp3::ddecal::ConstraintResult>>>
         constraint_solutions;
 
     // Comment in H5 file

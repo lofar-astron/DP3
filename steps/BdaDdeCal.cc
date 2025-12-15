@@ -125,7 +125,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
         std::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
   }
 
-  settings_.PrepareSolutionsPerDirection(direction_names_.size());
+  settings_.PrepareSubSolutionsPerDirection(direction_names_.size());
 
   // Convert antenna positions from Casacore to STL, if necessary.
   std::vector<std::array<double, 3>> antenna_pos;
@@ -222,7 +222,7 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
     }
 
     solver_->Initialize(getInfoOut().antennaUsed().size(),
-                        settings_.solutions_per_direction,
+                        settings_.sub_solutions_per_direction,
                         chan_block_start_freqs_.size() - 1);
 
     // SolveCurrentInterval will add solution intervals to the solutions.
@@ -460,19 +460,19 @@ void BdaDdeCal::SolveCurrentInterval() {
     case ddecal::SolverDataUse::kSingle:
       solve_data = std::make_unique<dp3::ddecal::UniSolveData>(
           *solver_buffer_, n_channel_blocks, n_antennas,
-          settings_.solutions_per_direction, antennas1_, antennas2_,
+          settings_.sub_solutions_per_direction, antennas1_, antennas2_,
           linear_mode);
       break;
     case ddecal::SolverDataUse::kDual:
       solve_data = std::make_unique<dp3::ddecal::DuoSolveData>(
           *solver_buffer_, n_channel_blocks, n_antennas,
-          settings_.solutions_per_direction, antennas1_, antennas2_,
+          settings_.sub_solutions_per_direction, antennas1_, antennas2_,
           linear_mode);
       break;
     case ddecal::SolverDataUse::kFull:
       solve_data = std::make_unique<dp3::ddecal::FullSolveData>(
           *solver_buffer_, n_channel_blocks, n_antennas,
-          settings_.solutions_per_direction, antennas1_, antennas2_,
+          settings_.sub_solutions_per_direction, antennas1_, antennas2_,
           linear_mode);
       break;
   }
@@ -630,8 +630,9 @@ void BdaDdeCal::SolveCurrentInterval() {
   // Store constraint solutions if any constaint has a non-empty result.
   if (std::any_of(
           result.results.begin(), result.results.end(),
-          [](const std::vector<ddecal::Constraint::Result>&
-                 constraint_results) { return !constraint_results.empty(); })) {
+          [](const std::vector<ddecal::ConstraintResult>& constraint_results) {
+            return !constraint_results.empty();
+          })) {
     constraint_solutions_.push_back(std::move(result.results));
   } else {  // Add an empty constraint solution for the solution interval.
     constraint_solutions_.emplace_back();
@@ -751,7 +752,7 @@ void BdaDdeCal::WriteSolutions() {
   solution_writer_->Write(
       solutions_, constraint_solutions_, getInfoOut().startTime(),
       getInfoOut().lastTime(), getInfoOut().timeInterval(),
-      settings_.solution_interval, settings_.solutions_per_direction,
+      settings_.solution_interval, settings_.sub_solutions_per_direction,
       settings_.mode, used_antenna_names, source_directions_, patches_,
       getInfoOut().chanFreqs(), GetChannelBlockFrequencies(), history);
 
@@ -773,7 +774,7 @@ void BdaDdeCal::show(std::ostream& stream) const {
            << "  subtract model:      " << std::boolalpha << settings_.subtract
            << '\n'
            << "  solution interval:   " << solution_interval_duration_ << " s\n"
-           << "  #solutions/direction:" << settings_.solutions_per_direction
+           << "  #solutions/direction:" << settings_.sub_solutions_per_direction
            << '\n'
            << "  #channels/block:     " << nchan << '\n'
            << "  #channel blocks:     " << chan_block_start_freqs_.size() - 1

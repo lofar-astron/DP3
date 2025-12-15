@@ -21,8 +21,8 @@ constexpr size_t kNChannels = 100;
 constexpr double kStartFrequency = 30e6;
 constexpr double kBandwidth = 45e6;
 
-std::vector<Constraint::Result> Constrain(FaradayConstraint& constraint,
-                                          SolutionTensor& solutions_tensor) {
+std::vector<ConstraintResult> Constrain(FaradayConstraint& constraint,
+                                        SolutionTensor& solutions_tensor) {
   const std::vector<uint32_t> solutions_per_directdion(kNSubSolutions, 1);
   std::vector<double> frequencies(kNChannels);
   for (size_t i = 0; i != frequencies.size(); ++i) {
@@ -68,11 +68,11 @@ BOOST_AUTO_TEST_CASE(unity_faraday_only) {
   Fill(solutions_tensor, MC2x2::Unity());
 
   FaradayConstraint constraint(base::CalType::kRotation, {});
-  std::vector<Constraint::Result> result =
+  std::vector<ConstraintResult> result =
       Constrain(constraint, solutions_tensor);
 
   BOOST_REQUIRE_EQUAL(result.size(), 1u);
-  const Constraint::Result& faraday = result[0];
+  const ConstraintResult& faraday = result[0];
   BOOST_CHECK_EQUAL(faraday.name, "rotationmeasure");
   BOOST_CHECK_EQUAL(faraday.axes, "ant,dir");
   BOOST_REQUIRE_EQUAL(faraday.dims.size(), 2u);
@@ -89,12 +89,12 @@ BOOST_AUTO_TEST_CASE(zero_rotation_with_diagonal) {
   Fill(solutions_tensor, MC2x2(diagonal_value, 0.0, 0.0, diagonal_value));
 
   FaradayConstraint constraint(base::CalType::kDiagonal, {});
-  std::vector<Constraint::Result> result =
+  std::vector<ConstraintResult> result =
       Constrain(constraint, solutions_tensor);
 
   BOOST_REQUIRE_EQUAL(result.size(), 3u);
 
-  const Constraint::Result& faraday = result[0];
+  const ConstraintResult& faraday = result[0];
   BOOST_CHECK_EQUAL(faraday.name, "rotationmeasure");
   BOOST_CHECK_EQUAL(faraday.axes, "ant,dir");
   BOOST_REQUIRE_EQUAL(faraday.dims.size(), 2u);
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(zero_rotation_with_diagonal) {
   BOOST_CHECK_EQUAL(faraday.vals.size(), kNAntennas * kNSubSolutions);
   for (double f : faraday.vals) BOOST_CHECK_LT(std::abs(f), 1e-6);
 
-  const Constraint::Result& amplitude = result[1];
+  const ConstraintResult& amplitude = result[1];
   BOOST_CHECK_EQUAL(amplitude.name, "amplitude");
   BOOST_CHECK_EQUAL(amplitude.axes, "ant,dir,freq,pol");
   BOOST_REQUIRE_EQUAL(amplitude.dims.size(), 4u);
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(zero_rotation_with_diagonal) {
   for (double a : amplitude.vals)
     BOOST_CHECK_CLOSE_FRACTION(a, std::abs(diagonal_value), 1e-6);
 
-  const Constraint::Result& phase = result[2];
+  const ConstraintResult& phase = result[2];
   BOOST_CHECK_EQUAL(phase.name, "phase");
   BOOST_CHECK_EQUAL(phase.axes, "ant,dir,freq,pol");
   BOOST_REQUIRE_EQUAL(phase.dims.size(), 4u);
@@ -151,15 +151,15 @@ BOOST_AUTO_TEST_CASE(rotation) {
     }
   }
   FaradayConstraint constraint(base::CalType::kDiagonal, {});
-  std::vector<Constraint::Result> result =
+  std::vector<ConstraintResult> result =
       Constrain(constraint, solutions_tensor);
 
   BOOST_REQUIRE_EQUAL(result.size(), 3u);
-  const Constraint::Result& faraday = result[0];
-  const Constraint::Result& amplitude = result[1];
+  const ConstraintResult& faraday = result[0];
+  const ConstraintResult& amplitude = result[1];
   BOOST_CHECK_EQUAL(amplitude.vals.size(),
                     kNAntennas * kNSubSolutions * kNChannels * 2);
-  const Constraint::Result& phase = result[2];
+  const ConstraintResult& phase = result[2];
   BOOST_CHECK_EQUAL(phase.vals.size(),
                     kNAntennas * kNSubSolutions * kNChannels * 2);
 

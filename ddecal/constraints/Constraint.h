@@ -11,6 +11,8 @@
 
 #include <xtensor/xtensor.hpp>
 
+#include "ConstraintResult.h"
+
 #include "../Solutions.h"
 
 namespace dp3 {
@@ -26,18 +28,7 @@ namespace ddecal {
 class Constraint {
  public:
   typedef std::complex<double> dcomplex;
-  struct Result {
-   public:
-    /// Both vals and weights have the dimensions described in dims and axes.
-    std::vector<double> vals;
-    std::vector<double> weights;
-    /// Comma-separated string with axis names, fastest varying last.
-    std::string axes;
-    std::vector<size_t> dims;
-    std::string name;
-  };
-
-  virtual ~Constraint() {}
+  virtual ~Constraint() = default;
 
   /**
    * Function that initializes the constraint for the next calibration
@@ -77,10 +68,12 @@ class Constraint {
    * @param time Central time of interval.
    * @returns Optionally, a vector with results that should be written to
    * the solution file, instead of the actual solutions. Examples are
-   * Faraday rotation or TEC values.
+   * Faraday rotation or TEC values. The vector is index by value type
+   * (e.g. Faraday rotation and scalar).
    */
-  virtual std::vector<Result> Apply(SolutionSpan& solutions, double time,
-                                    std::ostream* statStream) = 0;
+  virtual std::vector<ConstraintResult> Apply(SolutionSpan& solutions,
+                                              double time,
+                                              std::ostream* statStream) = 0;
 
   /**
    * Perform common constraint initialization. Should be overridden when

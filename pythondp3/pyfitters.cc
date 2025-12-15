@@ -12,6 +12,7 @@
 #include "../ddecal/constraints/TECConstraint.h"
 
 using dp3::ddecal::Constraint;
+using dp3::ddecal::ConstraintResult;
 using dp3::ddecal::SmoothnessConstraint;
 using dp3::ddecal::TECConstraint;
 
@@ -37,23 +38,23 @@ PYBIND11_MODULE(fitters, m) {
   m.doc() = "DP3 spectral fitters";
 
   // Expose the class of the return variable of the fitter functions to Python.
-  py::class_<Constraint::Result>(m, "Result",
-                                 "Constraint result for a single type. "
-                                 "The values are in result.values.")
-      .def_readwrite("values", &Constraint::Result::vals,
+  py::class_<ConstraintResult>(m, "Result",
+                               "Constraint result for a single type. "
+                               "The values are in result.values.")
+      .def_readwrite("values", &ConstraintResult::vals,
                      "Result values as a flat list. .shape defines the shape.")
-      .def_readwrite("weights", &Constraint::Result::weights,
+      .def_readwrite("weights", &ConstraintResult::weights,
                      "Weights for the values as a flat list. "
                      ".shape defines the shape.")
-      .def_readwrite("axes", &Constraint::Result::axes,
+      .def_readwrite("axes", &ConstraintResult::axes,
                      "Comma-separated dimension names.")
-      .def_readwrite("shape", &Constraint::Result::dims,
+      .def_readwrite("shape", &ConstraintResult::dims,
                      "Shape of .values and .weights, as a list with the size "
                      "of each dimension.")
-      .def_readwrite("name", &Constraint::Result::name,
+      .def_readwrite("name", &ConstraintResult::name,
                      "Identifier for the result type.")
       .def("__str__",
-           [](const Constraint::Result& result) {
+           [](const ConstraintResult& result) {
              std::stringstream stream;
              stream << "[Result name:" << result.name + " axes:" << result.axes
                     << " shape:";
@@ -68,7 +69,7 @@ PYBIND11_MODULE(fitters, m) {
              stream << "]";
              return stream.str();
            })
-      .def("__repr__", [](const Constraint::Result& result) {
+      .def("__repr__", [](const ConstraintResult& result) {
         std::stringstream stream;
         stream << "<dp3.fitters.Result name=" << result.name + " axes="
                << result.axes << " values=[";
@@ -110,11 +111,11 @@ PYBIND11_MODULE(fitters, m) {
         aocommon::xt::Span<std::complex<double>, 4> gains_span =
             aocommon::xt::CreateSpan(gains.mutable_data(), shape);
 
-        std::vector<Constraint::Result> results =
+        std::vector<ConstraintResult> results =
             constraint.Apply(gains_span, time, nullptr);
 
         // Remove unused axes from the result.
-        for (Constraint::Result& result : results) {
+        for (ConstraintResult& result : results) {
           assert(result.axes == "ant,dir,freq");
           assert((result.dims == std::vector<size_t>{n_antennas, 1, 1}));
           result.axes = "ant";

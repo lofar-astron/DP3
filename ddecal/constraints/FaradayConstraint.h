@@ -24,8 +24,8 @@ class FaradayConstraint final : public Constraint {
       : diagonal_solution_type_(diagonal_solution_type),
         max_rotation_value_(max_rotation_value) {}
 
-  std::vector<Result> Apply(SolutionSpan& solutions, double time,
-                            std::ostream* stat_stream) final;
+  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
+                                      std::ostream* stat_stream) final;
 
   void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
@@ -40,7 +40,7 @@ class FaradayConstraint final : public Constraint {
   void PerformFit(SolutionSpan& solutions, size_t sub_solution, size_t antenna,
                   std::vector<common::phase_fitting::FitSample>& scratch_space);
 
-  std::vector<Constraint::Result> results_;
+  std::vector<ConstraintResult> results_;
   std::vector<std::vector<double>> sub_solution_weights_;
   std::vector<double> frequencies_;
   common::phase_fitting::SlopeFitRange fit_range_;

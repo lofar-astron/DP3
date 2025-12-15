@@ -16,8 +16,8 @@ class RotationConstraint final : public Constraint {
  public:
   RotationConstraint(){};
 
-  std::vector<Result> Apply(SolutionSpan& solutions, double time,
-                            std::ostream* statStream) override;
+  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
+                                      std::ostream* statStream) override;
 
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,
@@ -45,7 +45,7 @@ class RotationConstraint final : public Constraint {
   }
 
  private:
-  std::vector<Constraint::Result> results_;
+  std::vector<ConstraintResult> results_;
 };
 
 }  // namespace ddecal

@@ -53,7 +53,7 @@ class AntennaIntervalConstraint final : public Constraint {
     return antenna_averaging_factors_;
   }
 
-  std::vector<Constraint::Result> Apply(
+  std::vector<ConstraintResult> Apply(
       SolutionSpan& solutions, [[maybe_unused]] double time,
       [[maybe_unused]] std::ostream* stat_stream) final;
 

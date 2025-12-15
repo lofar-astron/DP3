@@ -14,7 +14,7 @@ void RotationConstraint::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(nAntennas, solutions_per_direction, frequencies);
 
-  Result& result = results_.emplace_back();
+  ConstraintResult& result = results_.emplace_back();
   result.vals.resize(NAntennas() * NSubSolutions() * NChannelBlocks());
   result.axes = "ant,dir,freq";
   result.dims.resize(3);
@@ -32,19 +32,19 @@ void RotationConstraint::Initialize(
 }
 
 void RotationConstraint::SetWeights(const std::vector<double>& weights) {
-  Result& result = results_.front();
+  ConstraintResult& result = results_.front();
   result.weights.clear();
   for (size_t i = 0; i != NSubSolutions(); ++i) {
     result.weights.insert(result.weights.end(), weights.begin(), weights.end());
   }
 }
 
-std::vector<Constraint::Result> RotationConstraint::Apply(
+std::vector<ConstraintResult> RotationConstraint::Apply(
     SolutionSpan& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
   assert(solutions.shape(2) == NSubSolutions());
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
-  Result& result = results_.front();
+  ConstraintResult& result = results_.front();
   for (size_t sub_solution = 0; sub_solution != NSubSolutions();
        ++sub_solution) {
     for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {

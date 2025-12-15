@@ -119,7 +119,8 @@ Settings::Settings(const common::ParameterSet& _parset,
       solution_interval(GetUint("solint", 1)),
       min_vis_ratio(GetDouble("minvisratio", 0.0)),
       n_channels(GetUint("nchan", 1)),
-      solutions_per_direction(GetSizeTVector("solutions_per_direction", {})),
+      sub_solutions_per_direction(
+          GetSizeTVector("solutions_per_direction", {})),
       antenna_averaging_factors(GetStringVector("antenna_averaging_factors")),
       // Constraints
       model_weighted_constraints(GetBool("model_weighted_constraints", false)),
@@ -226,23 +227,24 @@ Settings::Settings(const common::ParameterSet& _parset,
   }
 }
 
-void Settings::PrepareSolutionsPerDirection(size_t n_directions) {
-  if (solutions_per_direction.size() > n_directions) {
+void Settings::PrepareSubSolutionsPerDirection(size_t n_directions) {
+  if (sub_solutions_per_direction.size() > n_directions) {
     throw std::runtime_error(
         "The size of solutions_per_direction should be less or equal "
         "than the number of directions.");
   }
 
   // Pad itsSolutionsPerDirection with 1s
-  solutions_per_direction.resize(n_directions, 1);
+  sub_solutions_per_direction.resize(n_directions, 1);
 
-  if (std::find(solutions_per_direction.begin(), solutions_per_direction.end(),
-                0) != solutions_per_direction.end()) {
+  if (std::find(sub_solutions_per_direction.begin(),
+                sub_solutions_per_direction.end(),
+                0) != sub_solutions_per_direction.end()) {
     throw std::runtime_error(
         "All entries in solutions_per_direction should be > 0.");
   }
 
-  for (size_t val : solutions_per_direction) {
+  for (size_t val : sub_solutions_per_direction) {
     if (solution_interval % val != 0) {
       throw std::runtime_error(
           "Values in solutions_per_direction should be integer divisors "
@@ -253,7 +255,7 @@ void Settings::PrepareSolutionsPerDirection(size_t n_directions) {
   }
 
   const size_t max_n_solutions_per_direction = *std::max_element(
-      solutions_per_direction.begin(), solutions_per_direction.end());
+      sub_solutions_per_direction.begin(), sub_solutions_per_direction.end());
 
   if (max_n_solutions_per_direction > 1) {
     // Since getInfoOut().ntime() might not be set at this stage, throw an error
@@ -284,8 +286,8 @@ void Settings::PrepareSolutionsPerDirection(size_t n_directions) {
 }
 
 size_t Settings::GetNSolutions() const {
-  return std::accumulate(solutions_per_direction.begin(),
-                         solutions_per_direction.end(), 0u);
+  return std::accumulate(sub_solutions_per_direction.begin(),
+                         sub_solutions_per_direction.end(), 0u);
 }
 
 bool Settings::GetBool(const std::string& key, bool default_value) const {
@@ -367,14 +369,14 @@ std::vector<std::string> Settings::ReadModelDataColumns() const {
 }
 
 std::vector<double> Settings::GetExpandedSmoothnessDdFactors() const {
-  const size_t n_directions = solutions_per_direction.size();
+  const size_t n_directions = sub_solutions_per_direction.size();
   if (n_directions == 0 || smoothness_dd_factors.empty()) {
     return smoothness_dd_factors;
   } else {
     std::vector<double> result;
     for (size_t d = 0; d != n_directions; ++d) {
       const double direction_factor = smoothness_dd_factors[d];
-      for (size_t i = 0; i != solutions_per_direction[d]; ++i) {
+      for (size_t i = 0; i != sub_solutions_per_direction[d]; ++i) {
         result.emplace_back(direction_factor);
       }
     }
