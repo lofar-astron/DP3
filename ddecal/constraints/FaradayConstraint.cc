@@ -37,7 +37,7 @@ void FaradayConstraint::Initialize(
     }
   }
 
-  Result& rm_result = results_.emplace_back();
+  ConstraintResult& rm_result = results_.emplace_back();
   rm_result.vals.resize(NAntennas() * NSubSolutions());
   rm_result.axes = "ant,dir";
   rm_result.dims.resize(2);
@@ -45,9 +45,9 @@ void FaradayConstraint::Initialize(
   rm_result.dims[1] = NSubSolutions();
   rm_result.name = "rotationmeasure";
 
-  std::vector<Result> diagonal_result = MakeDiagonalResults(
+  std::vector<ConstraintResult> diagonal_result = MakeDiagonalResults(
       NAntennas(), NSubSolutions(), NChannelBlocks(), diagonal_solution_type_);
-  for (Result& result : diagonal_result)
+  for (ConstraintResult& result : diagonal_result)
     results_.emplace_back(std::move(result));
 }
 
@@ -57,8 +57,8 @@ void FaradayConstraint::SetWeights(const std::vector<double>& weights) {
   for (size_t i = 0; i != NSubSolutions(); ++i) {
     sub_solution_weights_.emplace_back(weights);
   }
-  for (Result& result : results_) result.weights.clear();
-  Result& rm_result = results_.front();
+  for (ConstraintResult& result : results_) result.weights.clear();
+  ConstraintResult& rm_result = results_.front();
   const size_t n_polarizations = GetNPolarizations(diagonal_solution_type_);
   for (size_t antenna = 0; antenna != NAntennas(); ++antenna) {
     const double* antenna_weights = &weights[antenna * NChannelBlocks()];
@@ -85,8 +85,8 @@ void FaradayConstraint::SetWeights(const std::vector<double>& weights) {
 void FaradayConstraint::SetSubSolutionWeights(
     const std::vector<std::vector<double>>& sub_solution_weights) {
   sub_solution_weights_ = sub_solution_weights;
-  for (Result& result : results_) result.weights.clear();
-  Result& rm_result = results_.front();
+  for (ConstraintResult& result : results_) result.weights.clear();
+  ConstraintResult& rm_result = results_.front();
   for (size_t antenna = 0; antenna != NAntennas(); ++antenna) {
     for (const std::vector<double>& weights : sub_solution_weights) {
       const double* antenna_weights = &weights[antenna * NChannelBlocks()];
@@ -102,7 +102,7 @@ void FaradayConstraint::SetSubSolutionWeights(
   }
 }
 
-std::vector<Constraint::Result> FaradayConstraint::Apply(
+std::vector<ConstraintResult> FaradayConstraint::Apply(
     SolutionSpan& solutions, double,
     [[maybe_unused]] std::ostream* statStream) {
   assert(solutions.shape(0) == NChannelBlocks());

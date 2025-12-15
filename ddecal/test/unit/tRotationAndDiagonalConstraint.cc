@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(constrain_diagonal) {
                              1e-8);
 }
 
-std::vector<Constraint::Result> TestApplyConstraint(
+std::vector<ConstraintResult> TestApplyConstraint(
     RotationAndDiagonalConstraint& constraint, bool enable_rotation_reference,
     std::complex<double> a, std::complex<double> b) {
   constraint.Initialize(kNAntennas, std::vector<uint32_t>(kNDirections, 1u),
@@ -100,7 +100,7 @@ std::vector<Constraint::Result> TestApplyConstraint(
     }
   }
 
-  std::vector<Constraint::Result> constraint_result;
+  std::vector<ConstraintResult> constraint_result;
   constraint_result = constraint.Apply(solutions, 0.0, nullptr);
   BOOST_CHECK_GE(constraint_result.size(), 2u);
   BOOST_CHECK_EQUAL(constraint_result[0].name, "rotation");
@@ -127,7 +127,7 @@ std::vector<Constraint::Result> TestApplyConstraint(
   return constraint_result;
 }
 
-void CheckDiagonalAmplitude(const Constraint::Result& result,
+void CheckDiagonalAmplitude(const ConstraintResult& result,
                             std::complex<double> a, std::complex<double> b) {
   BOOST_CHECK_EQUAL(result.name, "amplitude");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq,pol");
@@ -145,8 +145,8 @@ void CheckDiagonalAmplitude(const Constraint::Result& result,
   }
 }
 
-void CheckDiagonalPhase(const Constraint::Result& result,
-                        std::complex<double> a, std::complex<double> b) {
+void CheckDiagonalPhase(const ConstraintResult& result, std::complex<double> a,
+                        std::complex<double> b) {
   BOOST_CHECK_EQUAL(result.name, "phase");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq,pol");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 4u);
@@ -163,7 +163,7 @@ void CheckDiagonalPhase(const Constraint::Result& result,
   }
 }
 
-void CheckScalarAmplitude(const Constraint::Result& result,
+void CheckScalarAmplitude(const ConstraintResult& result,
                           std::complex<double> a) {
   BOOST_CHECK_EQUAL(result.name, "amplitude");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq");
@@ -178,8 +178,7 @@ void CheckScalarAmplitude(const Constraint::Result& result,
   }
 }
 
-void CheckScalarPhase(const Constraint::Result& result,
-                      std::complex<double> a) {
+void CheckScalarPhase(const ConstraintResult& result, std::complex<double> a) {
   BOOST_CHECK_EQUAL(result.name, "phase");
   BOOST_CHECK_EQUAL(result.axes, "ant,dir,freq");
   BOOST_REQUIRE_EQUAL(result.dims.size(), 3u);
@@ -197,7 +196,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_diagonal) {
   RotationAndDiagonalConstraint constraint(CalType::kDiagonal);
   const std::complex<double> kA = std::polar(2.0, 0.3);
   const std::complex<double> kB = std::polar(3.0, -0.2);
-  std::vector<Constraint::Result> results =
+  std::vector<ConstraintResult> results =
       TestApplyConstraint(constraint, false, kA, kB);
   BOOST_REQUIRE_EQUAL(results.size(), 3u);
   CheckDiagonalAmplitude(results[1], kA, kB);
@@ -208,7 +207,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_diagonal_with_reference) {
   RotationAndDiagonalConstraint constraint(CalType::kDiagonal);
   const std::complex<double> kA = std::polar(2.0, 0.3);
   const std::complex<double> kB = std::polar(3.0, -0.2);
-  std::vector<Constraint::Result> results =
+  std::vector<ConstraintResult> results =
       TestApplyConstraint(constraint, true, kA, kB);
   BOOST_REQUIRE_EQUAL(results.size(), 3u);
   CheckDiagonalAmplitude(results[1], kA, kB);
@@ -219,7 +218,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_diagonal_amplitude) {
   RotationAndDiagonalConstraint constraint(CalType::kDiagonalAmplitude);
   const std::complex<double> kA = 2.0;
   const std::complex<double> kB = 3.0;
-  std::vector<Constraint::Result> results =
+  std::vector<ConstraintResult> results =
       TestApplyConstraint(constraint, false, kA, kB);
   BOOST_REQUIRE_EQUAL(results.size(), 2u);
   CheckDiagonalAmplitude(results[1], kA, kB);
@@ -229,7 +228,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_diagonal_phase) {
   RotationAndDiagonalConstraint constraint(CalType::kDiagonalPhase);
   const std::complex<double> kA = std::polar(1.0, 0.3);
   const std::complex<double> kB = std::polar(1.0, -0.2);
-  std::vector<Constraint::Result> results =
+  std::vector<ConstraintResult> results =
       TestApplyConstraint(constraint, false, kA, kB);
   BOOST_REQUIRE_EQUAL(results.size(), 2u);
   CheckDiagonalPhase(results[1], kA, kB);
@@ -238,7 +237,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_diagonal_phase) {
 BOOST_AUTO_TEST_CASE(rotation_and_scalar) {
   RotationAndDiagonalConstraint constraint(CalType::kScalar);
   const std::complex<double> kA = std::polar(2.0, 0.3);
-  std::vector<Constraint::Result> results =
+  std::vector<ConstraintResult> results =
       TestApplyConstraint(constraint, false, kA, kA);
   BOOST_REQUIRE_EQUAL(results.size(), 3u);
   CheckScalarAmplitude(results[1], kA);
@@ -248,7 +247,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_scalar) {
 BOOST_AUTO_TEST_CASE(rotation_and_scalar_amplitude) {
   RotationAndDiagonalConstraint constraint(CalType::kScalarAmplitude);
   const std::complex<double> kA = 2.0;
-  std::vector<Constraint::Result> results =
+  std::vector<ConstraintResult> results =
       TestApplyConstraint(constraint, false, kA, kA);
   BOOST_REQUIRE_EQUAL(results.size(), 2u);
   CheckScalarAmplitude(results[1], kA);
@@ -257,7 +256,7 @@ BOOST_AUTO_TEST_CASE(rotation_and_scalar_amplitude) {
 BOOST_AUTO_TEST_CASE(rotation_and_scalar_phase) {
   RotationAndDiagonalConstraint constraint(CalType::kScalarPhase);
   const std::complex<double> kA = std::polar(1.0, 0.3);
-  std::vector<Constraint::Result> results =
+  std::vector<ConstraintResult> results =
       TestApplyConstraint(constraint, false, kA, kA);
   BOOST_REQUIRE_EQUAL(results.size(), 2u);
   CheckScalarPhase(results[1], kA);

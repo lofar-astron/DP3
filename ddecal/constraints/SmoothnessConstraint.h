@@ -23,8 +23,8 @@ class SmoothnessConstraint final : public Constraint {
   SmoothnessConstraint(double bandwidth_hz, double bandwidth_ref_frequency_hz,
                        double spectral_exponent, bool kernel_truncation);
 
-  std::vector<Constraint::Result> Apply(SolutionSpan& solutions, double time,
-                                        std::ostream* stat_stream) final;
+  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
+                                      std::ostream* stat_stream) final;
 
   /**
    * Set the weights to be used during smoothing.

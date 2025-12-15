@@ -186,7 +186,7 @@ BOOST_DATA_TEST_CASE(tec_constraint,
     // Test a solver with default settings.
     Settings settings(parset, "");
     std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
-    settings.solutions_per_direction = kSolutionsPerDirecton;
+    settings.sub_solutions_per_direction = kSolutionsPerDirecton;
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                                 kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -204,7 +204,7 @@ BOOST_DATA_TEST_CASE(tec_constraint,
     parset.add("approximatetec", "true");
     Settings settings(parset, "");
     std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
-    settings.solutions_per_direction = kSolutionsPerDirecton;
+    settings.sub_solutions_per_direction = kSolutionsPerDirecton;
     InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                                 kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(core_constraint) {
   Settings settings(parset, "");
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
-  settings.solutions_per_direction = kSolutionsPerDirecton;
+  settings.sub_solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -331,7 +331,7 @@ BOOST_AUTO_TEST_CASE(antenna_constraint) {
   Settings settings(parset, "");
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
-  settings.solutions_per_direction = kSolutionsPerDirecton;
+  settings.sub_solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -360,7 +360,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_without_ref_distance) {
   Settings settings(parset, "");
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
-  settings.solutions_per_direction = kSolutionsPerDirecton;
+  settings.sub_solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 
@@ -389,7 +389,7 @@ BOOST_AUTO_TEST_CASE(smoothness_constraint_with_ref_distance) {
   Settings settings(parset, "");
 
   std::unique_ptr<SolverBase> solver = CreateSolver(settings, {});
-  settings.solutions_per_direction = kSolutionsPerDirecton;
+  settings.sub_solutions_per_direction = kSolutionsPerDirecton;
   InitializeSolverConstraints(*solver, settings, kAntennaPositions,
                               kAntennaNames, kSourceDirections, kFrequencies);
 

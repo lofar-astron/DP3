@@ -11,6 +11,7 @@
 #include <boost/test/data/test_case.hpp>
 
 using dp3::ddecal::Constraint;
+using dp3::ddecal::ConstraintResult;
 using dp3::ddecal::RotationAndDiagonalConstraint;
 using dp3::ddecal::RotationConstraint;
 using std::complex;
@@ -54,7 +55,7 @@ BOOST_AUTO_TEST_CASE(rotation) {
       onesolution(0, 0, direction, 2) = std::sin(phi + 0.3 * direction);
       onesolution(0, 0, direction, 3) = std::cos(phi + 0.3 * direction);
     }
-    vector<Constraint::Result> constraint_result =
+    vector<ConstraintResult> constraint_result =
         constraint.Apply(onesolution, 0.0, nullptr);
 
     BOOST_REQUIRE_EQUAL(constraint_result.size(), 1);

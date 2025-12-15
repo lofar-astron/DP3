@@ -44,7 +44,7 @@ void AntennaIntervalConstraint::Initialize(
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
 }
 
-std::vector<Constraint::Result> AntennaIntervalConstraint::Apply(
+std::vector<ConstraintResult> AntennaIntervalConstraint::Apply(
     SolutionSpan& solutions, [[maybe_unused]] double time,
     [[maybe_unused]] std::ostream* stat_stream) {
   const size_t n_channels = solutions.shape(0);
@@ -94,7 +94,7 @@ std::vector<Constraint::Result> AntennaIntervalConstraint::Apply(
       }
     }
   }
-  return std::vector<Constraint::Result>();
+  return std::vector<ConstraintResult>();
 }
 
 }  // namespace dp3::ddecal

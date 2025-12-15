@@ -36,7 +36,7 @@ class AntennaConstraint final : public Constraint {
     return antenna_sets_;
   }
 
-  std::vector<Constraint::Result> Apply(
+  std::vector<ConstraintResult> Apply(
       SolutionSpan& solutions, [[maybe_unused]] double time,
       [[maybe_unused]] std::ostream* stat_stream) override {
     const size_t n_channels = solutions.shape(0);
@@ -75,7 +75,7 @@ class AntennaConstraint final : public Constraint {
         }
       }
     }
-    return std::vector<Constraint::Result>();
+    return std::vector<ConstraintResult>();
   }
 
  private:

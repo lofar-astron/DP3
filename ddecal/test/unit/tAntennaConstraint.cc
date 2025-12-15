@@ -12,6 +12,7 @@
 
 using dp3::ddecal::AntennaConstraint;
 using dp3::ddecal::Constraint;
+using dp3::ddecal::ConstraintResult;
 
 BOOST_AUTO_TEST_SUITE(antennaconstraint)
 
@@ -46,7 +47,7 @@ BOOST_AUTO_TEST_CASE(test_antenna_constraint) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
-  std::vector<Constraint::Result> constraint_result =
+  std::vector<ConstraintResult> constraint_result =
       constraint.Apply(onesolution_span, 0.0, nullptr);
 
   BOOST_CHECK(constraint_result.empty());

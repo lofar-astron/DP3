@@ -44,7 +44,7 @@ void SmoothnessConstraint::SetDdSmoothingFactors(
   dd_smoothing_factors_ = std::move(dd_smoothing_factors);
 }
 
-std::vector<Constraint::Result> SmoothnessConstraint::Apply(
+std::vector<ConstraintResult> SmoothnessConstraint::Apply(
     SolutionSpan& solutions, [[maybe_unused]] double time,
     [[maybe_unused]] std::ostream* stat_stream) {
   assert(NChannelBlocks() == solutions.shape(0));
@@ -96,7 +96,7 @@ std::vector<Constraint::Result> SmoothnessConstraint::Apply(
         }
       });
 
-  return std::vector<Constraint::Result>();
+  return std::vector<ConstraintResult>();
 }
 
 }  // namespace ddecal

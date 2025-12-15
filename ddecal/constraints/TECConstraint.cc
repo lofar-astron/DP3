@@ -85,7 +85,7 @@ void TECConstraintBase::applyReferenceAntenna(SolutionSpan& solutions) const {
   }
 }
 
-std::vector<Constraint::Result> TECConstraint::Apply(
+std::vector<ConstraintResult> TECConstraint::Apply(
     SolutionSpan& solutions, [[maybe_unused]] double time,
     [[maybe_unused]] std::ostream* stat_stream) {
   assert(solutions.shape(0) == NChannelBlocks());
@@ -101,7 +101,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
     nRes = 3;  // TEC, phase and error
   }
 
-  std::vector<Constraint::Result> res(nRes);
+  std::vector<ConstraintResult> res(nRes);
   res[0].vals.resize(NAntennas() * NSubSolutions());
   res[0].weights.resize(NAntennas() * NSubSolutions());
   res[0].axes = "ant,dir,freq";
@@ -127,14 +127,14 @@ std::vector<Constraint::Result> TECConstraint::Apply(
            [&](size_t antenna_and_solution_index, size_t thread) {
              const size_t antenna_index =
                  antenna_and_solution_index / NSubSolutions();
-             const size_t solution_index =
+             const size_t sub_solution_index =
                  antenna_and_solution_index % NSubSolutions();
 
              // Flag channels where calibration yielded inf or nan
              double weight_sum = 0.0;
              for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
                const std::complex<double>& solution =
-                   solutions(ch, antenna_index, solution_index, 0);
+                   solutions(ch, antenna_index, sub_solution_index, 0);
                if (isfinite(solution)) {
                  phase_fitters_[thread].PhaseData()[ch] = std::arg(solution);
                  phase_fitters_[thread].WeightData()[ch] =
@@ -165,7 +165,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
              }
 
              for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-               solutions(ch, antenna_index, solution_index, 0) =
+               solutions(ch, antenna_index, sub_solution_index, 0) =
                    std::polar<double>(1.0,
                                       phase_fitters_[thread].PhaseData()[ch]);
              }
@@ -174,7 +174,7 @@ std::vector<Constraint::Result> TECConstraint::Apply(
   return res;
 }
 
-std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
+std::vector<ConstraintResult> ApproximateTECConstraint::Apply(
     SolutionSpan& solutions, double time, std::ostream* stat_stream) {
   assert(solutions.shape(0) == NChannelBlocks());
   assert(solutions.shape(1) == NAntennas());
@@ -197,7 +197,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
                ++antenna_and_solution_index) {
             const size_t antenna_index =
                 antenna_and_solution_index / NSubSolutions();
-            const size_t solution_index =
+            const size_t sub_solution_index =
                 antenna_and_solution_index % NSubSolutions();
             std::vector<double>& data = thread_data_[thread];
             std::vector<double>& fitted_data = thread_fitted_data_[thread];
@@ -206,7 +206,7 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
             // Flag channels where calibration yielded inf or nan
             for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
               const std::complex<double>& solution =
-                  solutions(ch, antenna_index, solution_index, 0);
+                  solutions(ch, antenna_index, sub_solution_index, 0);
               if (isfinite(solution)) {
                 data[ch] = std::arg(solution);
                 weights[ch] = weights_[antenna_index * NChannelBlocks() + ch];
@@ -223,13 +223,13 @@ std::vector<Constraint::Result> ApproximateTECConstraint::Apply(
                 weights.data(), fitted_data.data(), data.size());
 
             for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-              solutions(ch, antenna_index, solution_index, 0) =
+              solutions(ch, antenna_index, sub_solution_index, 0) =
                   std::polar<double>(1.0, fitted_data[ch]);
             }
           }
         });
 
-    return std::vector<Constraint::Result>();
+    return std::vector<ConstraintResult>();
   }
 }
 

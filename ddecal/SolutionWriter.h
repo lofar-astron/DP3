@@ -4,11 +4,10 @@
 #ifndef DP3_DDECAL_SOLUTIONWRITER_H
 #define DP3_DDECAL_SOLUTIONWRITER_H
 
-#include <dp3/base/Direction.h>
-
-#include "constraints/Constraint.h"
+#include "constraints/ConstraintResult.h"
 
 #include "../base/CalType.h"
+#include <dp3/base/Direction.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
 
@@ -33,7 +32,7 @@ class SolutionWriter {
   void Write(
       const std::vector<std::vector<std::vector<std::complex<double>>>>&
           solutions,
-      const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+      const std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>&
           constraint_solutions,
       double start_time, double end_time, double ms_timestep_duration,
       size_t n_interval_timesteps,
@@ -52,7 +51,7 @@ class SolutionWriter {
   void WriteDirect(
       const std::vector<std::vector<std::vector<std::complex<double>>>>&
           solutions,
-      const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+      const std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>&
           constraint_solutions,
       double start_time, double end_time, double ms_timestep_duration,
       double solution_interval, base::CalType mode,
@@ -73,7 +72,7 @@ class SolutionWriter {
       const std::vector<double>& solution_times);
 
   void WriteConstraintResults(
-      const std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>&
+      const std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>&
           constraint_solutions,
       base::CalType mode, const std::vector<std::string>& used_antenna_names,
       const std::vector<base::Direction>& source_directions,

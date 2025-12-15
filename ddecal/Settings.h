@@ -40,7 +40,7 @@ struct Settings {
    */
   Settings(const common::ParameterSet& parset, const std::string& prefix);
 
-  void PrepareSolutionsPerDirection(size_t n_directions);
+  void PrepareSubSolutionsPerDirection(size_t n_directions);
 
   /**
    * Returns the sum over all elements of @c solutions_per_direction.
@@ -147,11 +147,11 @@ struct Settings {
   const double min_vis_ratio;
   const size_t n_channels;
   /**
-   * For each direction, a number of solutions per solution interval. Before
-   * using this variable, @ref PrepareSolutionsPerDirection() should have
+   * For each direction, a number of sub solutions per solution interval. Before
+   * using this variable, @ref PrepareSubSolutionsPerDirection() should have
    * been called.
    */
-  std::vector<size_t> solutions_per_direction;
+  std::vector<size_t> sub_solutions_per_direction;
   /**
    * List of averaging factors per antenna. If empty, it is ignored. Otherwise,
    * the AntennaIntervalContraint is used.
@@ -233,7 +233,7 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings);
  *         belongs to.
  */
 std::vector<size_t> GetSolutionToDirectionVector(
-    const std::vector<uint32_t>& solutions_per_direction);
+    const std::vector<uint32_t>& sub_solutions_per_direction);
 
 }  // namespace dp3::ddecal
 

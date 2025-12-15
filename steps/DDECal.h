@@ -143,7 +143,7 @@ class DDECal : public Step {
 
   /// For each time, for each constraint, a vector of results (e.g. tec and
   /// phase)
-  std::vector<std::vector<std::vector<ddecal::Constraint::Result>>>
+  std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>
       itsConstraintSols;
 
   std::unique_ptr<ddecal::SolutionWriter> itsSolutionWriter;

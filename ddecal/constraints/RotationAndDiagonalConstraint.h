@@ -19,8 +19,8 @@ class RotationAndDiagonalConstraint final : public Constraint {
  public:
   RotationAndDiagonalConstraint(base::CalType diagonal_solution_type);
 
-  std::vector<Result> Apply(SolutionSpan& solutions, double time,
-                            std::ostream* statStream) override;
+  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
+                                      std::ostream* statStream) override;
 
   void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
@@ -39,7 +39,7 @@ class RotationAndDiagonalConstraint final : public Constraint {
   void SetChannelWeights(std::vector<double>& values, size_t channel,
                          double new_value) const;
 
-  std::vector<Constraint::Result> results_;
+  std::vector<ConstraintResult> results_;
   bool do_rotation_reference_;
   base::CalType diagonal_solution_type_;
 };
@@ -52,11 +52,11 @@ class RotationAndDiagonalConstraint final : public Constraint {
 void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
                        base::CalType mode);
 
-std::vector<Constraint::Result> MakeDiagonalResults(
+std::vector<ConstraintResult> MakeDiagonalResults(
     size_t n_antennas, size_t n_sub_solutions, size_t n_channels,
     base::CalType diagonal_solution_type);
 
-inline void StoreDiagonal(Constraint::Result* results,
+inline void StoreDiagonal(ConstraintResult* results,
                           const std::array<std::complex<double>, 2>& diagonal,
                           size_t channel, size_t antenna, size_t subsolution,
                           size_t n_channels, size_t n_sub_solutions,
