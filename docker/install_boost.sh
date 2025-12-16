@@ -8,9 +8,9 @@
 set -euo pipefail
 
 # Boost is already in the container as leftover from casacore install
-# AOFlagger v3.2.0 always requires the unit test framework. More recent versions
-# no longer have this requirement.
+# AOFlagger v3.4.0 and EveryBeam v0.7.4 still require the date_time and/or system
+# libraries. More recent versions no longer have this requirement.
 pushd /build/boost_${BOOST_}
-./bootstrap.sh --with-libraries=filesystem,math,program_options,test
+./bootstrap.sh --with-libraries=date_time,filesystem,math,program_options,system
 ./b2 -j${THREADS} cxxflags="-fPIC" link=static,shared install
 popd
