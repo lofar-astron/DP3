@@ -24,7 +24,7 @@ const double kTecConstant = -8.44797245e9;
 
 const size_t kNAntennas = 10;
 const size_t kNChannels = 142;
-const size_t kNSubSolutions = 1;
+const size_t kNSubSolutions = 3;
 const size_t kNPolarizations = 1;
 
 const size_t kApproximatingIterations = 4;
@@ -51,16 +51,19 @@ BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
 
   std::vector<double> channel_frequencies(kNChannels);
   xt::adapt(channel_frequencies) = xt::linspace(120.0e6, 150.0e6, kNChannels);
-  constraint->Initialize(kNAntennas, {1u}, channel_frequencies);
+  constraint->Initialize(kNAntennas, {1u, 2u}, channel_frequencies);
 
   dp3::ddecal::SolutionTensor onesolution(
       {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
 
   const xt::xtensor<double, 1> tec_values = xt::linspace(0.0, 3.0, kNAntennas);
 
-  xt::view(onesolution, xt::all(), xt::all(), 0, 0) = xt::exp(
-      std::complex<double>(0, 1.0) * tec_values * kTecConstant /
-      xt::view(xt::adapt(channel_frequencies), xt::all(), xt::newaxis()));
+  for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
+       ++sub_solution) {
+    xt::view(onesolution, xt::all(), xt::all(), sub_solution, 0) = xt::exp(
+        std::complex<double>(0, 1.0) * tec_values * kTecConstant /
+        xt::view(xt::adapt(channel_frequencies), xt::all(), xt::newaxis()));
+  }
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
@@ -92,25 +95,34 @@ BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
     BOOST_CHECK_EQUAL_COLLECTIONS(tec_result.dims.begin(),
                                   tec_result.dims.end(), expected_dims.begin(),
                                   expected_dims.end());
-    BOOST_REQUIRE_EQUAL(tec_result.vals.size(), kNAntennas);
-    BOOST_CHECK_SMALL(tec_result.vals[0], 1.0e-6);
-
+    BOOST_REQUIRE_EQUAL(tec_result.vals.size(), kNAntennas * kNSubSolutions);
     BOOST_CHECK_EQUAL(error_result.name, "error");
     BOOST_CHECK_EQUAL(error_result.axes, "ant,dir,freq");
     BOOST_CHECK_EQUAL_COLLECTIONS(error_result.dims.begin(),
                                   error_result.dims.end(),
                                   expected_dims.begin(), expected_dims.end());
-    BOOST_REQUIRE_EQUAL(error_result.vals.size(), kNAntennas);
-    BOOST_CHECK_SMALL(error_result.vals[0], 1.0e-6);
+    BOOST_REQUIRE_EQUAL(error_result.vals.size(), kNAntennas * kNSubSolutions);
 
-    // Only test that the weights are all equal, the exact value doesn't matter
-    const double weight0 = tec_result.weights[0];
-    BOOST_CHECK_CLOSE(error_result.weights[0], weight0, 1.0e-6);
-    for (size_t ant = 1; ant < kNAntennas; ++ant) {
-      BOOST_CHECK_CLOSE(tec_result.vals[ant], tec_values[ant], 1.0e-3);
-      BOOST_CHECK_SMALL(error_result.vals[ant], 1.0e-6);
-      BOOST_CHECK_CLOSE(error_result.weights[ant], weight0, 1.0e-6);
-      BOOST_CHECK_CLOSE(tec_result.weights[ant], weight0, 1.0e-6);
+    for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
+         ++sub_solution) {
+      const size_t ant0_index = sub_solution;
+      BOOST_CHECK_SMALL(tec_result.vals[ant0_index], 1.0e-6);
+
+      BOOST_CHECK_SMALL(error_result.vals[ant0_index], 1.0e-6);
+
+      // Only test that the weights are all equal, the exact value doesn't
+      // matter
+      const double weight0 = tec_result.weights[ant0_index];
+      BOOST_CHECK_CLOSE(error_result.weights[ant0_index], weight0, 1.0e-6);
+
+      for (size_t ant = 1; ant < kNAntennas; ++ant) {
+        const size_t antenna_index = ant * kNSubSolutions + sub_solution;
+        BOOST_CHECK_CLOSE(tec_result.vals[antenna_index], tec_values[ant],
+                          1.0e-3);
+        BOOST_CHECK_SMALL(error_result.vals[antenna_index], 1.0e-6);
+        BOOST_CHECK_CLOSE(error_result.weights[antenna_index], weight0, 1.0e-6);
+        BOOST_CHECK_CLOSE(tec_result.weights[antenna_index], weight0, 1.0e-6);
+      }
     }
   }
 }
@@ -122,7 +134,7 @@ BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
 
   std::vector<double> channel_frequencies(kNChannels);
   xt::adapt(channel_frequencies) = xt::linspace(120.0e6, 150.0e6, kNChannels);
-  constraint->Initialize(kNAntennas, {1u}, channel_frequencies);
+  constraint->Initialize(kNAntennas, {1u, 2u}, channel_frequencies);
 
   dp3::ddecal::SolutionTensor onesolution(
       {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
@@ -132,11 +144,14 @@ BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
   const xt::xtensor<double, 1> scalar_phases =
       xt::linspace(kScalarPhase0, 10.0, kNAntennas);
 
-  xt::view(onesolution, xt::all(), xt::all(), 0, 0) =
-      xt::exp(std::complex<double>(0, 1.0) *
-              (scalar_phases + (tec_values * kTecConstant /
-                                xt::view(xt::adapt(channel_frequencies),
-                                         xt::all(), xt::newaxis()))));
+  const auto shaped_frequencies =
+      xt::view(xt::adapt(channel_frequencies), xt::all(), xt::newaxis());
+  for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
+       ++sub_solution) {
+    xt::view(onesolution, xt::all(), xt::all(), sub_solution, 0) = xt::exp(
+        std::complex<double>(0, 1.0) *
+        (scalar_phases + (tec_values * kTecConstant / shaped_frequencies)));
+  }
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
@@ -169,38 +184,46 @@ BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
     BOOST_CHECK_EQUAL_COLLECTIONS(tec_result.dims.begin(),
                                   tec_result.dims.end(), expected_dims.begin(),
                                   expected_dims.end());
-    BOOST_CHECK(tec_result.vals.size() == kNAntennas);
+    BOOST_REQUIRE_EQUAL(tec_result.vals.size(), kNAntennas * kNSubSolutions);
     BOOST_CHECK(phase_result.name == "phase");
     BOOST_CHECK_EQUAL(phase_result.axes, "ant,dir,freq");
     BOOST_CHECK_EQUAL_COLLECTIONS(phase_result.dims.begin(),
                                   phase_result.dims.end(),
                                   expected_dims.begin(), expected_dims.end());
-    BOOST_CHECK(phase_result.vals.size() == kNAntennas);
-    BOOST_CHECK_SMALL(tec_result.vals[0], 1.0e-6);
-    // Only test that the weights are all equal, the exact value doesn't matter
-    const double weight0 = tec_result.weights[0];
-    BOOST_CHECK_CLOSE(phase_result.weights[0], weight0, 1.0e-3);
-    BOOST_CHECK_CLOSE(error_result.weights[0], weight0, 1.0e-3);
+    BOOST_REQUIRE_EQUAL(phase_result.vals.size(), kNAntennas * kNSubSolutions);
+    for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
+         ++sub_solution) {
+      const size_t ant0_index = sub_solution;
+      BOOST_CHECK_SMALL(tec_result.vals[ant0_index], 1.0e-6);
+      // Only test that the weights are all equal, the exact value doesn't
+      // matter
+      const double weight0 = tec_result.weights[ant0_index];
+      BOOST_CHECK_CLOSE(phase_result.weights[ant0_index], weight0, 1.0e-3);
+      BOOST_CHECK_CLOSE(error_result.weights[ant0_index], weight0, 1.0e-3);
 
-    BOOST_CHECK_SMALL(phase_result.vals[0], 1.0e-6);
-    BOOST_CHECK_SMALL(error_result.vals[0], 1.0e-6);
+      BOOST_CHECK_SMALL(phase_result.vals[ant0_index], 1.0e-6);
+      BOOST_CHECK_SMALL(error_result.vals[ant0_index], 1.0e-6);
 
-    for (size_t ant = 1; ant < kNAntennas; ++ant) {
-      BOOST_CHECK_CLOSE(tec_result.vals[ant], tec_values[ant], 1.0e-3);
-      // Add a big number of 2pi to make sure that phase_result is positive
-      // Put number between -pi and pi
-      // Use station 0 as phase reference
-      const double result_phase_referenced = scalar_phases[ant] - kScalarPhase0;
-      BOOST_CHECK_SMALL(
-          std::fmod(phase_result.vals[ant] - result_phase_referenced +
-                        100 * M_PI + M_PI,
-                    2.0 * M_PI) -
-              M_PI,
-          1.0e-3);
-      BOOST_CHECK_SMALL(error_result.vals[ant], 1.0e-6);
-      BOOST_CHECK_CLOSE(tec_result.weights[ant], weight0, 1.0e-3);
-      BOOST_CHECK_CLOSE(phase_result.weights[ant], weight0, 1.0e-3);
-      BOOST_CHECK_CLOSE(error_result.weights[ant], weight0, 1.0e-3);
+      for (size_t ant = 1; ant < kNAntennas; ++ant) {
+        const size_t antenna_index = ant * kNSubSolutions + sub_solution;
+        BOOST_CHECK_CLOSE(tec_result.vals[antenna_index], tec_values[ant],
+                          1.0e-3);
+        // Add a big number of 2pi to make sure that phase_result is positive
+        // Put number between -pi and pi
+        // Use station 0 as phase reference
+        const double result_phase_referenced =
+            scalar_phases[ant] - kScalarPhase0;
+        BOOST_CHECK_SMALL(
+            std::fmod(phase_result.vals[antenna_index] -
+                          result_phase_referenced + 100 * M_PI + M_PI,
+                      2.0 * M_PI) -
+                M_PI,
+            1.0e-3);
+        BOOST_CHECK_SMALL(error_result.vals[antenna_index], 1.0e-6);
+        BOOST_CHECK_CLOSE(tec_result.weights[antenna_index], weight0, 1.0e-3);
+        BOOST_CHECK_CLOSE(phase_result.weights[antenna_index], weight0, 1.0e-3);
+        BOOST_CHECK_CLOSE(error_result.weights[antenna_index], weight0, 1.0e-3);
+      }
     }
   }
 }

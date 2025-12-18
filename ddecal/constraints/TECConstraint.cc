@@ -20,13 +20,6 @@ void TECConstraintBase::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
 
-  for (int32_t v : solutions_per_direction) {
-    if (v != 1)
-      throw std::runtime_error(
-          "The TEC constraints do not yet support direction-dependent "
-          "intervals");
-  }
-
   const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
   phase_fitters_.resize(n_threads);
   for (PhaseFitter& fitter : phase_fitters_) fitter.Initialize(frequencies);
