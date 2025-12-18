@@ -7,6 +7,8 @@
 #include <complex>
 #include <vector>
 
+#include "constraints/ConstraintResult.h"
+
 namespace dp3 {
 namespace ddecal {
 
@@ -16,23 +18,31 @@ namespace ddecal {
  */
 class SolutionResampler {
  public:
+  /**
+   * @param solution_interval The number of data timesteps in one solution
+   * (coming from the solint parset key).
+   */
   SolutionResampler(const std::vector<size_t>& n_solutions_per_direction,
-                    size_t n_antennas, size_t n_pol, size_t solution_interval);
+                    size_t n_antennas, size_t solution_interval);
   ~SolutionResampler() = default;
 
   /**
    * @brief Compute the upsampled solutions for dd interval solutions.
    *
    * Dimension of returned vector is [n_times * n_substeps, n_channel_blocks,
-   * n_antenna * n_directions * n_pol]
+   * n_antenna * n_directions * n_pol].
    *
-   * @param solutions Original solutions
-   * @return std::vector<std::vector<std::vector<std::complex<double>>>>
-   * Upsampled solutions
+   * @param solutions Original solutions.
+   * @return Upsampled solutions.
    */
   std::vector<std::vector<std::vector<std::complex<double>>>> Upsample(
       const std::vector<std::vector<std::vector<std::complex<double>>>>&
-          solutions) const;
+          solutions,
+      size_t n_pol) const;
+
+  std::vector<std::vector<std::vector<ConstraintResult>>> Upsample(
+      const std::vector<std::vector<std::vector<ConstraintResult>>>& solutions)
+      const;
 
   /**
    * @brief Get the number of substeps per solution interval.
@@ -50,15 +60,15 @@ class SolutionResampler {
   std::pair<size_t, size_t> MapResampledToOriginal(size_t time_index,
                                                    size_t antenna_index,
                                                    size_t direction_index,
-                                                   size_t pol_index) const;
+                                                   size_t pol_index,
+                                                   size_t n_pol) const;
 
  private:
   const std::vector<size_t> n_solutions_per_direction_;
-  const size_t n_solutions_;
+  const size_t n_sub_solutions_;
   const size_t n_directions_;
 
   const size_t n_antennas_;
-  const size_t n_pol_;
   const size_t solution_interval_;
   size_t n_substeps_;
 };

@@ -22,13 +22,6 @@ void RotationConstraint::Initialize(
   result.dims[1] = NSubSolutions();
   result.dims[2] = NChannelBlocks();
   result.name = "rotation";
-  // This constraint supports dd solution intervals, but the hdf5 writer
-  // code does not yet support it for constraint results.
-  if (NSubSolutions() != NDirections()) {
-    throw std::runtime_error(
-        "The rotation constraint does not support direction-dependent "
-        "intervals");
-  }
 }
 
 void RotationConstraint::SetWeights(const std::vector<double>& weights) {

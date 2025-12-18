@@ -29,6 +29,14 @@ class SolutionWriter {
       const std::vector<std::string>& all_antenna_names,
       const std::vector<std::array<double, 3>>& all_antenna_positions);
 
+  /**
+   * @param solutions has dimensions time, frequency block, and then a
+   * combination of n_antennas * n_sub_solutions * n_pol.
+   * @param constraint_solutions has dimensions time, constraint index,
+   * constraint sub-type index.
+   * @param n_interval_timesteps The number of data timesteps in one solution
+   * (coming from the solint parset key).
+   */
   void Write(
       const std::vector<std::vector<std::vector<std::complex<double>>>>&
           solutions,

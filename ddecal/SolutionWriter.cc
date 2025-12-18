@@ -104,15 +104,23 @@ void SolutionWriter::Write(
   } else {
     const size_t n_antennas = used_antenna_names.size();
     const SolutionResampler resampler(solutions_per_direction, n_antennas,
-                                      GetNPolarizations(mode),
                                       n_interval_timesteps);
     const size_t n_resampled_interval_timesteps =
         n_interval_timesteps / resampler.GetNrSubSteps();
 
     std::vector<std::vector<std::vector<std::complex<double>>>>
-        upsampled_solutions = resampler.Upsample(solutions);
-    WriteDirect(upsampled_solutions, constraint_solutions, start_time, end_time,
-                ms_timestep_duration,
+        upsampled_solutions;
+    std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>
+        upsampled_constraints;
+
+    if (constraint_solutions.empty() || constraint_solutions.front().empty()) {
+      upsampled_solutions =
+          resampler.Upsample(solutions, GetNPolarizations(mode));
+    } else {
+      upsampled_constraints = resampler.Upsample(constraint_solutions);
+    }
+    WriteDirect(upsampled_solutions, upsampled_constraints, start_time,
+                end_time, ms_timestep_duration,
                 ms_timestep_duration * n_resampled_interval_timesteps, mode,
                 used_antenna_names, source_directions, directions, chan_freqs,
                 chan_block_freqs, history);

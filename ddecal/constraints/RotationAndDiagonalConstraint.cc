@@ -156,15 +156,6 @@ void RotationAndDiagonalConstraint::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(nAntennas, solutions_per_direction, frequencies);
 
-  // This constraint supports dd solution intervals, but the hdf5 writer
-  // code does not yet support it for constraint results.
-  if (NSubSolutions() != NDirections()) {
-    throw std::runtime_error(
-        "The rotation-and-diagonal constraint does not support "
-        "direction-dependent "
-        "intervals");
-  }
-
   ConstraintResult& rotation_result = results_.emplace_back();
   rotation_result.vals.resize(NAntennas() * NSubSolutions() * NChannelBlocks());
   rotation_result.weights.resize(NAntennas() * NSubSolutions() *
