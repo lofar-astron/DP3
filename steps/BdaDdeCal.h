@@ -4,15 +4,15 @@
 #ifndef DP3_BDADDECAL_H_
 #define DP3_BDADDECAL_H_
 
-#include <dp3/steps/Step.h>
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "ddecal/Settings.h"
+#include "ddecal/SolutionWriter.h"
+#include "ddecal/gain_solvers/BdaSolverBuffer.h"
+#include "ddecal/gain_solvers/SolverBase.h"
 
-#include "../ddecal/Settings.h"
-#include "../ddecal/SolutionWriter.h"
-#include "../ddecal/gain_solvers/BdaSolverBuffer.h"
-#include "../ddecal/gain_solvers/SolverBase.h"
+#include "steps/Step.h"
 
 #include "BDAResultStep.h"
 #include "UVWFlagger.h"

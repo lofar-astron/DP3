@@ -16,7 +16,7 @@
 #include "Baseline.h"
 #include "ModelComponent.h"
 #include "ModelComponentVisitor.h"
-#include <dp3/base/Direction.h>
+#include "Direction.h"
 
 namespace dp3 {
 namespace base {

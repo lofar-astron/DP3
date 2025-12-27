@@ -5,7 +5,7 @@
 #include "MSWriter.h"
 
 #include "../common/ParameterSet.h"
-#include <dp3/base/BdaBuffer.h>
+#include "base/BdaBuffer.h"
 #include "../base/MS.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>

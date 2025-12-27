@@ -6,7 +6,7 @@
 
 #include "NullStokes.h"
 
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 
 #include "../common/ParameterSet.h"
 

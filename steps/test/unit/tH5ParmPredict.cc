@@ -5,7 +5,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "../../Predict.h"
 #include "../../../common/ParameterSet.h"

@@ -18,7 +18,7 @@
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/uvector.h>
 
-#include <dp3/steps/Step.h>
+#include "steps/Step.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"

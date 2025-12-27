@@ -11,8 +11,8 @@
 #ifndef DP3_STEPS_H5PARM_PREDICT_H_
 #define DP3_STEPS_H5PARM_PREDICT_H_
 
-#include <dp3/base/DP3.h>
-#include <dp3/steps/Step.h>
+#include "base/DP3.h"
+#include "steps/Step.h"
 
 #include "../common/Timer.h"
 

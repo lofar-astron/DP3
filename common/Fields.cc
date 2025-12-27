@@ -1,11 +1,11 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <dp3/common/Fields.h>
-
 #include <string>
 #include <ostream>
 #include <vector>
+
+#include "../common/Fields.h"
 
 namespace dp3 {
 namespace common {

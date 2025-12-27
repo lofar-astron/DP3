@@ -126,7 +126,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     link_libraries(stdc++fs)
   endif()
 endif()
-include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
 # Add CPack directory if user want to generate Debian packages
@@ -657,9 +656,6 @@ target_link_libraries(
   PRIVATE ${DP3_LIBRARIES})
 set_target_properties(LIBDP3 PROPERTIES LIBRARY_OUTPUT_NAME "DP3")
 install(TARGETS LIBDP3)
-# CMake 3.23 has FILE_SETs which are a cleaner solution. But this version
-# is too new to require,
-install(DIRECTORY include DESTINATION include)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_subdirectory(pythondp3)

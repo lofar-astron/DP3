@@ -8,7 +8,7 @@
 #include <idg-api.h>
 #endif
 
-#include <dp3/steps/Step.h>
+#include "steps/Step.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"

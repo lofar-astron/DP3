@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dp3/base/BdaBuffer.h>
+#include "base/BdaBuffer.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/test/unit/tCommon.h"
 #include "mock/MockStep.h"

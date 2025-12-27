@@ -12,7 +12,7 @@
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/TableIter.h>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 
 #include "InputStep.h"
 

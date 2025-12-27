@@ -10,7 +10,7 @@
 
 #include <aocommon/matrix2x2.h>
 
-#include <dp3/base/BdaBuffer.h>
+#include "base/BdaBuffer.h"
 
 #include "../../../common/test/unit/tCommon.h"
 

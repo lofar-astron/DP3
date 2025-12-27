@@ -7,7 +7,7 @@
 #include "constraints/ConstraintResult.h"
 
 #include "../base/CalType.h"
-#include <dp3/base/Direction.h>
+#include "../base/Direction.h"
 
 #include <schaapcommon/h5parm/h5parm.h>
 

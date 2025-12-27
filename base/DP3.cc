@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include <dp3/base/DP3.h>
+#include "DP3.h"
 
 #include <aocommon/checkblas.h>
 #include <aocommon/logger.h>
@@ -12,8 +12,8 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "DPBuffer.h"
+#include "DPInfo.h"
 #include "ProgressMeter.h"
 #include "Version.h"
 
@@ -66,7 +66,7 @@
 
 #include "../pythondp3/PyStep.h"
 
-#include <dp3/common/Fields.h>
+#include "../common/Fields.h"
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
 #include "../steps/AntennaFlagger.h"

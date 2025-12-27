@@ -9,12 +9,11 @@
 #ifndef DP3_STEPS_UVWFLAGGER_H_
 #define DP3_STEPS_UVWFLAGGER_H_
 
-#include <dp3/base/BdaBuffer.h>
-#include <dp3/base/DPBuffer.h>
+#include "base/BdaBuffer.h"
+#include "base/DPBuffer.h"
+#include "base/UVWCalculator.h"
 
 #include "InputStep.h"
-
-#include "../base/UVWCalculator.h"
 
 namespace dp3 {
 namespace common {

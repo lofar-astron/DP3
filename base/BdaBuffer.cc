@@ -1,11 +1,11 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <dp3/base/BdaBuffer.h>
-
 #include <algorithm>
 #include <cassert>
 #include <limits>
+
+#include "../base/BdaBuffer.h"
 
 namespace dp3 {
 namespace base {

@@ -3,7 +3,7 @@
 
 #include <aocommon/py/uniqueptr.h>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 
 namespace dp3 {
 namespace pythondp3 {

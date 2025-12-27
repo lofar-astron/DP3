@@ -10,15 +10,15 @@
 #ifndef LOFAR_PARMDB_SOURCEDBCASA_H
 #define LOFAR_PARMDB_SOURCEDBCASA_H
 
-#include "SourceDB.h"
-#include "PatchInfo.h"
+#include <set>
 
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/casa/version.h>
 
-#include <dp3/common/Types.h>
+#include "SourceDB.h"
+#include "PatchInfo.h"
 
-#include <set>
+#include "../common/Types.h"
 
 namespace dp3 {
 namespace parmdb {

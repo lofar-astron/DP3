@@ -20,8 +20,8 @@
 
 #include "../model/Patch.h"
 
-#include <dp3/base/Direction.h>
-#include <dp3/base/DPBuffer.h>
+#include "Direction.h"
+#include "DPBuffer.h"
 
 namespace dp3 {
 namespace base {

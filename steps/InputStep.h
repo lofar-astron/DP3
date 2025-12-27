@@ -11,7 +11,7 @@
 
 #include <memory>
 
-#include <dp3/steps/Step.h>
+#include "Step.h"
 
 #include "../base/UVWCalculator.h"
 #include "../base/FlagCounter.h"

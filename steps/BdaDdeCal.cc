@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <sstream>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "../common/StreamUtil.h"
 #include "../ddecal/gain_solvers/SolveData.h"

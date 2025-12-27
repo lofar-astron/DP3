@@ -21,7 +21,7 @@
 #include "../parmdb/PatchInfo.h"
 #include "../parmdb/SkymodelToSourceDB.h"
 
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 #include "../base/FlagCounter.h"
 #include "../base/GaussianSource.h"
 #include "../base/PointSource.h"

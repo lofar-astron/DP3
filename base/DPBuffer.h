@@ -18,8 +18,8 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <aocommon/xt/utensor.h>
 
-#include <dp3/common/Fields.h>
-#include <dp3/common/Types.h>
+#include "common/Fields.h"
+#include "common/Types.h"
 
 namespace dp3 {
 namespace base {

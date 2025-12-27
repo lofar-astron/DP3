@@ -5,7 +5,7 @@
 
 #include <xtensor/xio.hpp>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 
 using dp3::base::DPBuffer;
 using dp3::common::Fields;

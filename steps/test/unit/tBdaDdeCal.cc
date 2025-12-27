@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dp3/common/Fields.h>
+#include "../../../common/Fields.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/test/unit/tCommon.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"

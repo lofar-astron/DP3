@@ -8,8 +8,8 @@
 #include <xtensor/xcomplex.hpp>
 #include <xtensor/xrandom.hpp>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
 
 #include "tStepCommon.h"
 #include "mock/MockInput.h"

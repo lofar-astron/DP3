@@ -3,7 +3,7 @@
 //
 // @author Ger van Diepen
 
-#include <dp3/base/DPInfo.h>
+#include "DPInfo.h"
 
 #include <algorithm>
 #include <cmath>

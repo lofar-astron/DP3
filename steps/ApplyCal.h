@@ -14,7 +14,7 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 #include "OneApplyCal.h"
 
 namespace dp3 {

@@ -6,9 +6,9 @@
 
 #include "ScaleData.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/BdaBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/DPBuffer.h"
+#include "base/BdaBuffer.h"
+#include "base/DPInfo.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/ParameterValue.h"

@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 
-#include <dp3/steps/Step.h>
+#include "Step.h"
 
 #include "../antennaflagger/Flagger.h"
 #include "../common/ParameterSet.h"

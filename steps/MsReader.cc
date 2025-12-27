@@ -38,7 +38,7 @@
 
 #include <aocommon/logger.h>
 
-#include <dp3/common/Types.h>
+#include "common/Types.h"
 
 #include "../base/BaselineSelection.h"
 #include "../base/MS.h"

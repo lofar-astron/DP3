@@ -24,7 +24,7 @@
 
 #include <Version.h>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "../model/SourceDBUtil.h"
 

@@ -5,7 +5,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 
 #include "../../../common/ParameterSet.h"
 

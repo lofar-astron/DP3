@@ -3,7 +3,7 @@
 
 #include "MockStep.h"
 
-#include <dp3/base/BdaBuffer.h>
+#include "base/BdaBuffer.h"
 
 #include <boost/test/unit_test.hpp>
 

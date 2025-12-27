@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "../common/ParameterSet.h"
 #include "../common/Timer.h"

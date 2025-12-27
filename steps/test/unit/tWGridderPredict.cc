@@ -9,7 +9,7 @@
 #include <schaapcommon/facets/facet.h>
 #include <xtensor/xcomplex.hpp>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 
 #include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"

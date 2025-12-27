@@ -3,7 +3,7 @@
 
 #include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 #include "../../../steps/InputStep.h"
 #include "../../../steps/IDGPredict.h"
 #include "../../../steps/MultiResultStep.h"

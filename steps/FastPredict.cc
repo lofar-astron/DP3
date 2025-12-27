@@ -16,7 +16,7 @@
 #include "../common/Timer.h"
 #include "../common/StreamUtil.h"
 
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 #include "../base/FlagCounter.h"
 #include "../base/GaussianSource.h"
 #include "../base/PointSource.h"

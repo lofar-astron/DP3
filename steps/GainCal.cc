@@ -19,7 +19,7 @@
 
 #include <Version.h>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>

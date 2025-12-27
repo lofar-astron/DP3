@@ -9,11 +9,11 @@
 #ifndef DP3_STEPS_FILTER_H_
 #define DP3_STEPS_FILTER_H_
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/steps/Step.h>
-#include "../base/BaselineSelection.h"
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "Step.h"
+#include "base/BaselineSelection.h"
+#include "base/DPBuffer.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 namespace steps {

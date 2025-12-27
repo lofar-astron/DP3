@@ -12,8 +12,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/TableIter.h>
-#include <dp3/base/DPBuffer.h>
-#include <dp3/steps/Step.h>
+#include "base/DPBuffer.h"
+#include "steps/Step.h"
 #include "Filter.h"
 #include "ResultStep.h"
 #include "../common/Timer.h"

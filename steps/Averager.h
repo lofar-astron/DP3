@@ -14,8 +14,8 @@
 #include <xtensor/xtensor.hpp>
 #include <aocommon/staticfor.h>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/steps/Step.h>
+#include "base/DPBuffer.h"
+#include "steps/Step.h"
 #include "../common/Timer.h"
 
 namespace dp3 {

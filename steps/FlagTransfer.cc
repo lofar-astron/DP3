@@ -15,8 +15,8 @@
 #include <casacore/casa/Arrays/IPosition.h>
 #include <casacore/casa/Arrays/Cube.h>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
 
 #include <aocommon/logger.h>
 
