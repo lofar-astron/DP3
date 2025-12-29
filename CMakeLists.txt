@@ -568,18 +568,20 @@ add_library(
 set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+#Find libdirac using pkg-config.
 set(LIBDIRAC_PREFIX
     ""
     CACHE FILEPATH "Path to libdirac install root")
 if(NOT "${LIBDIRAC_PREFIX}" STREQUAL "")
-  #Find pkg-config and try to find libdirac (only if -DLIBDIRAC_PREFIX given)
-  find_package(PkgConfig REQUIRED)
-  # Set search path to install directory of libdirac
+  # Set pkg-config search path to install directory of libdirac.
   set(ENV{PKG_CONFIG_PATH} "${LIBDIRAC_PREFIX}/lib/pkgconfig")
+endif()
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
   pkg_search_module(LIBDIRAC libdirac 0.8.4...<0.8.6)
 endif()
 if(LIBDIRAC_FOUND)
-  message(STATUS "Found libdirac: ${LIBDIRAC_INCLUDE_DIRS}")
+  message(STATUS "Found libdirac ${LIBDIRAC_VERSION} in ${LIBDIRAC_PREFIX}")
   include_directories(${LIBDIRAC_INCLUDE_DIRS})
   if(HAVE_CUDA)
     enable_language(CUDA)
