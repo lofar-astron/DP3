@@ -14,6 +14,7 @@ ARG EVERYBEAM_VERSION=0.8.0
 ARG HDF5_VERSION=1.12.2
 ARG FFTW_VERSION=3.3.8
 ARG LUA_VERSION=5.3.6
+ARG SAGECAL_VERSION=0.8.5
 # ARG's must be repeated after each 'FROM'
 ARG PYMAJOR
 ARG PYMINOR
@@ -32,6 +33,9 @@ RUN bash /install_hdf5.sh ${HDF5_VERSION}
 
 COPY docker/install_lua.sh /
 RUN bash /install_lua.sh ${LUA_VERSION}
+
+COPY docker/install_sagecal.sh /
+RUN bash /install_sagecal.sh ${SAGECAL_VERSION}
 
 # Create fake libpython to stop the linker from complaining. The wheel should find the user's libpython at runtime.
 RUN touch /usr/lib64/libpython${PYMAJOR}.${PYMINOR}${PYUNICODE}.so

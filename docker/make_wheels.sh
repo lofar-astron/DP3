@@ -17,7 +17,10 @@ for py_version in ${@:-313 312 311 310 39 38}; do
 
     ## Build docker image from docker-file. The current wheel is created there.
     [ ${py_version:1} -le 7 ] && py_unicode="m" || py_unicode=
-    docker build -t dp3-py${py_version}-$USER -f docker/py_wheel.docker \
+    docker build \
+      -t dp3-py${py_version}-$USER \
+      -f docker/py_wheel.docker \
+      --progress=plain \
       --build-arg PYMAJOR=${py_version:0:1} \
       --build-arg PYMINOR=${py_version:1} \
       --build-arg PYUNICODE=${py_unicode} .
