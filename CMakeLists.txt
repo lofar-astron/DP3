@@ -263,6 +263,52 @@ else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   )
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
+#Find libdirac using pkg-config.
+set(LIBDIRAC_PREFIX
+    ""
+    CACHE FILEPATH "Path to libdirac install root")
+if(NOT "${LIBDIRAC_PREFIX}" STREQUAL "")
+  # Set pkg-config search path to install directory of libdirac.
+  set(ENV{PKG_CONFIG_PATH} "${LIBDIRAC_PREFIX}/lib/pkgconfig")
+endif()
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
+  pkg_search_module(LIBDIRAC libdirac 0.8.4...<0.8.6)
+endif()
+
+# If libdirac is found, use it.
+if(LIBDIRAC_FOUND)
+  message(STATUS "Found libdirac ${LIBDIRAC_VERSION} in ${LIBDIRAC_PREFIX}")
+  include_directories(${LIBDIRAC_INCLUDE_DIRS})
+  if(BUILD_WITH_CUDA)
+    find_package(CUDA QUIET REQUIRED)
+    find_package(NVML REQUIRED)
+    message(STATUS "CUDA_LIBRARIES ............ = ${CUDA_LIBRARIES}")
+    include_directories(${CUDA_INCLUDE_DIRS})
+    # When using libdirac with CUDA support, enable a different preprocessor
+    # def so as not to conflict with CPU only version of libdirac.
+    add_definitions(-DHAVE_LIBDIRAC_CUDA)
+    add_definitions(-DHAVE_CUDA)
+    set(LIBDIRAC_LIBRARIES
+        ${LIBDIRAC_LINK_LIBRARIES}
+        ${CUDA_LIBRARIES}
+        ${CUDA_CUBLAS_LIBRARIES}
+        ${CUDA_CUFFT_LIBRARIES}
+        ${CUDA_cusolver_LIBRARY}
+        ${CUDA_cudadevrt_LIBRARY}
+        ${NVML_LIB_PATH})
+  else()
+    add_definitions(-DHAVE_LIBDIRAC)
+    set(LIBDIRAC_LIBRARIES ${LIBDIRAC_LINK_LIBRARIES})
+  endif()
+else()
+  message(
+    STATUS
+      "Libdirac NOT found; LBFGS solve algorithm not available. Set LIBDIRAC_PREFIX to enable."
+  )
+  set(LIBDIRAC_LIBRARIES "")
+endif()
+
 # === Load internal submodule packages. ===
 
 # Update submodules as needed
@@ -568,35 +614,6 @@ add_library(
 set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-#Find libdirac using pkg-config.
-set(LIBDIRAC_PREFIX
-    ""
-    CACHE FILEPATH "Path to libdirac install root")
-if(NOT "${LIBDIRAC_PREFIX}" STREQUAL "")
-  # Set pkg-config search path to install directory of libdirac.
-  set(ENV{PKG_CONFIG_PATH} "${LIBDIRAC_PREFIX}/lib/pkgconfig")
-endif()
-find_package(PkgConfig)
-if(PkgConfig_FOUND)
-  pkg_search_module(LIBDIRAC libdirac 0.8.4...<0.8.6)
-endif()
-if(LIBDIRAC_FOUND)
-  message(STATUS "Found libdirac ${LIBDIRAC_VERSION} in ${LIBDIRAC_PREFIX}")
-  include_directories(${LIBDIRAC_INCLUDE_DIRS})
-  if(HAVE_CUDA)
-    enable_language(CUDA)
-    find_package(CUDA QUIET REQUIRED)
-    find_package(NVML REQUIRED)
-    message(STATUS "CUDA_LIBRARIES ............ = ${CUDA_LIBRARIES}")
-    include_directories(${CUDA_INCLUDE_DIRS})
-  endif()
-else()
-  message(
-    STATUS
-      "Libdirac NOT found; LBFGS solve algorithm not available. Set LIBDIRAC_PREFIX to enable."
-  )
-endif()
-
 set(DP3_LIBRARIES
     ${AOFLAGGER_LIB}
     ${ARMADILLO_LIBRARIES}
@@ -605,6 +622,7 @@ set(DP3_LIBRARIES
     ${EVERYBEAM_LIB}
     ${HDF5_LIBRARIES}
     ${IDGAPI_LIBRARIES}
+    ${LIBDIRAC_LIBRARIES}
     ${Python3_LIBRARIES}
     schaapcommon
     Threads::Threads
@@ -613,29 +631,6 @@ set(DP3_LIBRARIES
 
 if(BUILD_WITH_CUDA)
   list(APPEND DP3_LIBRARIES CudaSolvers)
-endif()
-
-# If libdirac is found, use it
-if(LIBDIRAC_FOUND)
-  # add link flags
-  set(DP3_LIBRARIES ${DP3_LIBRARIES} ${LIBDIRAC_LINK_LIBRARIES})
-  if(HAVE_CUDA)
-    # if we use libdirac with CUDA support, we enable a different preprocessor def
-    # so as not to conflict with CPU only version of libdirac
-    add_definitions(-DHAVE_LIBDIRAC_CUDA)
-    add_definitions(-DHAVE_CUDA)
-    set(DP3_LIBRARIES
-        ${DP3_LIBRARIES}
-        ${CUDA_LIBRARIES}
-        ${CUDA_CUBLAS_LIBRARIES}
-        ${CUDA_CUFFT_LIBRARIES}
-        ${CUDA_cusolver_LIBRARY}
-        ${CUDA_cudadevrt_LIBRARY}
-        ${NVML_LIB_PATH})
-  else()
-    # add preprocessor def
-    add_definitions(-DHAVE_LIBDIRAC)
-  endif()
 endif()
 
 # Perform the BLAS check from aocommon

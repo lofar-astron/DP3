@@ -104,15 +104,18 @@ prepare-base-2404:
     - ninja -j4 install
     - DP3
 
-# Test DP3 builds and runs without optional dependencies (IDG) installed.
+# Test DP3 builds and runs without optional dependencies (IDG,SAGECal) installed.
 # Specifically on the Haswell architecture, which also tests setting the
 # TARGET_CPU option.
-build-2404-no-idg-target-cpu:
+build-2404-no-extras-target-cpu:
   extends: [".needs-base-2404", ".build-basic"]
   before_script:
     # Remove IDG, so DP3 can't and won't use it.
     - rm /usr/include/idg-*.h /usr/lib/libidg-*
     - rm /usr/lib/cmake/idg-*.cmake /usr/lib/cmake/IDGAPI*.cmake
+    # Remove SAGECal, so DP3 can't and won't use it.
+    - rm /usr/include/Dirac*.h /usr/lib/libdirac*
+    - rm /usr/lib/pkgconfig/libdirac.* /usr/lib/cmake/libdirac.*
   variables:
     CMAKE_FLAGS: -DTARGET_CPU=haswell
 
