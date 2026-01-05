@@ -4,7 +4,7 @@
 #include <vector>
 #include <complex>
 
-#include "../../constraints/RotationAndDiagonalConstraint.h"
+#include "ddecal/constraints/RotationAndDiagonalConstraint.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

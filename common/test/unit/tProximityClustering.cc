@@ -5,7 +5,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../ProximityClustering.h"
+#include "common/ProximityClustering.h"
 
 using dp3::common::ProximityClustering;
 

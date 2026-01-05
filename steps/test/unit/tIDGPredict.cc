@@ -1,12 +1,12 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../../base/test/LoggerFixture.h"
-#include "../../../common/ParameterSet.h"
+#include "base/test/LoggerFixture.h"
+#include "common/ParameterSet.h"
 #include "base/DPBuffer.h"
-#include "../../../steps/InputStep.h"
-#include "../../../steps/IDGPredict.h"
-#include "../../../steps/MultiResultStep.h"
+#include "steps/InputStep.h"
+#include "steps/IDGPredict.h"
+#include "steps/MultiResultStep.h"
 
 #include <schaapcommon/facets/facet.h>
 

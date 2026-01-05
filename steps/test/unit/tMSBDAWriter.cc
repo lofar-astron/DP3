@@ -9,11 +9,11 @@
 #include <boost/test/unit_test.hpp>
 
 #include "base/BdaBuffer.h"
-#include "../../MSBDAWriter.h"
-#include "../../MsReader.h"
-#include "../../../base/test/LoggerFixture.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "steps/MSBDAWriter.h"
+#include "steps/MsReader.h"
+#include "base/test/LoggerFixture.h"
+#include "common/ParameterSet.h"
+#include "common/test/unit/fixtures/fDirectory.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;

@@ -1,7 +1,7 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../Flagger.h"
+#include "antennaflagger/Flagger.h"
 
 #include <aocommon/xt/span.h>
 #include <boost/test/unit_test.hpp>

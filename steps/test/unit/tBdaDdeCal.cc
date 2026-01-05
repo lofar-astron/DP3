@@ -2,18 +2,18 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../BdaDdeCal.h"
+#include "steps/BdaDdeCal.h"
 
 #include <fstream>
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../../common/Fields.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/test/unit/tCommon.h"
-#include "../../../common/test/unit/fixtures/fDirectory.h"
-#include "../../MSBDAReader.h"
-#include "../../MultiResultStep.h"
+#include "common/Fields.h"
+#include "common/ParameterSet.h"
+#include "common/test/unit/tCommon.h"
+#include "common/test/unit/fixtures/fDirectory.h"
+#include "steps/MSBDAReader.h"
+#include "steps/MultiResultStep.h"
 
 #include "tDdeCalCommon.h"
 

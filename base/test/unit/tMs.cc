@@ -1,7 +1,7 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../MS.h"
+#include "base/MS.h"
 
 #include <boost/test/unit_test.hpp>
 

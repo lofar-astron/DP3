@@ -1,8 +1,8 @@
 // Copyright (C) 2024 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../MsReader.h"
-#include "../../MultiMsReader.h"
+#include "steps/MsReader.h"
+#include "steps/MultiMsReader.h"
 
 #include <fstream>
 #include <iostream>
@@ -21,8 +21,8 @@
 #include "base/DP3.h"
 
 #include "mock/MockStep.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "common/ParameterSet.h"
+#include "common/test/unit/fixtures/fDirectory.h"
 
 using casacore::Table;
 

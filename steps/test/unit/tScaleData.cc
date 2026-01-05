@@ -19,12 +19,12 @@
 #include "tStepCommon.h"
 #include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
-#include "../../ScaleData.h"
+#include "steps/ScaleData.h"
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
-#include "../../../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
+#include "common/StreamUtil.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

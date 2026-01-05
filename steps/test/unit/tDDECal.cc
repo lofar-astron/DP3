@@ -1,7 +1,7 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../DDECal.h"
+#include "steps/DDECal.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
@@ -13,12 +13,12 @@
 
 #include "base/DP3.h"
 
-#include "../../MsReader.h"
-#include "../../MultiResultStep.h"
-#include "../../ResultStep.h"
-#include "../../../base/test/LoggerFixture.h"
-#include "../../../common/test/unit/tCommon.h"
-#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "steps/MsReader.h"
+#include "steps/MultiResultStep.h"
+#include "steps/ResultStep.h"
+#include "base/test/LoggerFixture.h"
+#include "common/test/unit/tCommon.h"
+#include "common/test/unit/fixtures/fDirectory.h"
 
 #include "tDdeCalCommon.h"
 

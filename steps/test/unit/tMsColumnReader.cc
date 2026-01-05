@@ -1,11 +1,11 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../MsColumnReader.h"
+#include "steps/MsColumnReader.h"
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 using dp3::steps::MsColumnReader;
 using dp3::steps::Step;

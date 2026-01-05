@@ -4,7 +4,7 @@
 #include <vector>
 #include <complex>
 
-#include "../../constraints/SmoothnessConstraint.h"
+#include "ddecal/constraints/SmoothnessConstraint.h"
 
 #include <aocommon/xt/span.h>
 #include <boost/test/unit_test.hpp>

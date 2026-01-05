@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../StationAdder.h"
+#include "steps/StationAdder.h"
 
 #include <xtensor/xcomplex.hpp>
 #include <xtensor/xio.hpp>
@@ -18,10 +18,10 @@
 #include "tStepCommon.h"
 #include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
-#include "../../../common/StreamUtil.h"
-#include "../../../common/test/unit/tCommon.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
+#include "common/StreamUtil.h"
+#include "common/test/unit/tCommon.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

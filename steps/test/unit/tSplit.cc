@@ -1,17 +1,17 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../Split.h"
+#include "steps/Split.h"
 
 #include <boost/test/unit_test.hpp>
 
 #include "base/DPInfo.h"
 
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
-#include "../../NullStep.h"
-#include "../../PhaseShift.h"
-#include "../../Upsample.h"
+#include "steps/NullStep.h"
+#include "steps/PhaseShift.h"
+#include "steps/Upsample.h"
 
 using dp3::steps::Split;
 using dp3::steps::Step;

@@ -3,17 +3,17 @@
 
 #include "SolverTester.h"
 
-#include "../../gain_solvers/DiagonalLowRankSolver.h"
-#include "../../gain_solvers/DiagonalSolver.h"
-#include "../../gain_solvers/FullJonesSolver.h"
-#include "../../gain_solvers/HybridSolver.h"
-#include "../../gain_solvers/IterativeDiagonalSolver.h"
+#include "ddecal/gain_solvers/DiagonalLowRankSolver.h"
+#include "ddecal/gain_solvers/DiagonalSolver.h"
+#include "ddecal/gain_solvers/FullJonesSolver.h"
+#include "ddecal/gain_solvers/HybridSolver.h"
+#include "ddecal/gain_solvers/IterativeDiagonalSolver.h"
 #if defined(HAVE_CUDA_SOLVER)
-#include "../../gain_solvers/IterativeDiagonalSolverCuda.h"
+#include "ddecal/gain_solvers/IterativeDiagonalSolverCuda.h"
 #endif
-#include "../../gain_solvers/IterativeFullJonesSolver.h"
-#include "../../gain_solvers/IterativeScalarSolver.h"
-#include "../../gain_solvers/ScalarSolver.h"
+#include "ddecal/gain_solvers/IterativeFullJonesSolver.h"
+#include "ddecal/gain_solvers/IterativeScalarSolver.h"
+#include "ddecal/gain_solvers/ScalarSolver.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

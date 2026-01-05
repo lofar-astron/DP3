@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../PhaseShift.h"
+#include "steps/PhaseShift.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -13,8 +13,8 @@
 #include "mock/ThrowStep.h"
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

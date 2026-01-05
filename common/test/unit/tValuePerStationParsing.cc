@@ -3,8 +3,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../ValuePerStationParsing.h"
-#include "../../../base/test/LoggerFixture.h"
+#include "common/ValuePerStationParsing.h"
+#include "base/test/LoggerFixture.h"
 
 using dp3::base::test::LoggerFixture;
 using dp3::common::ParseValuePerStation;

@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../UVWFlagger.h"
+#include "steps/UVWFlagger.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
@@ -22,8 +22,8 @@
 #include "base/BdaBuffer.h"
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;

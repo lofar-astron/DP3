@@ -1,14 +1,14 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../H5ParmPredict.h"
+#include "steps/H5ParmPredict.h"
 
 #include <boost/test/unit_test.hpp>
 
 #include "base/DP3.h"
 
-#include "../../Predict.h"
-#include "../../../common/ParameterSet.h"
+#include "steps/Predict.h"
+#include "common/ParameterSet.h"
 
 #include "H5ParmFixture.h"
 #include "tPredict.h"

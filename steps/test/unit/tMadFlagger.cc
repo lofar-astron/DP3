@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../MadFlagger.h"
+#include "steps/MadFlagger.h"
 
 #include <array>
 #include <complex>
@@ -30,9 +30,9 @@
 #include "mock/ThrowStep.h"
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
-#include "../../../common/test/unit/tCommon.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
+#include "common/test/unit/tCommon.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

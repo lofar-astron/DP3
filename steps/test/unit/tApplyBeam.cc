@@ -1,13 +1,13 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../ApplyBeam.h"
+#include "steps/ApplyBeam.h"
 
 #include <boost/test/unit_test.hpp>
 #include <xtensor/xcomplex.hpp>
 
 #include "mock/ThrowStep.h"
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 using dp3::steps::ApplyBeam;
 using dp3::steps::Step;

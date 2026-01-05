@@ -1,14 +1,14 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../Counter.h"
+#include "steps/Counter.h"
 
 #include <boost/test/unit_test.hpp>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 #include "mock/MockStep.h"
 
 #include <iostream>

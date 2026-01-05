@@ -1,14 +1,14 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../SkymodelToSourceDB.h"
+#include "parmdb/SkymodelToSourceDB.h"
 
-#include "../../SourceDB.h"
-#include "../../../base/test/LoggerFixture.h"
-#include "../../../common/test/unit/fixtures/fDirectory.h"
-#include "../../../common/test/unit/fixtures/fSkymodel.h"
-#include "../../../parmdb/SkymodelToSourceDB.h"
-#include "../../../model/SourceDBUtil.h"
+#include "parmdb/SourceDB.h"
+#include "base/test/LoggerFixture.h"
+#include "common/test/unit/fixtures/fDirectory.h"
+#include "common/test/unit/fixtures/fSkymodel.h"
+#include "parmdb/SkymodelToSourceDB.h"
+#include "model/SourceDBUtil.h"
 
 #include <boost/test/unit_test.hpp>
 

@@ -1,7 +1,7 @@
 // Copyright (C) 2025 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../constraints/AntennaIntervalConstraint.h"
+#include "ddecal/constraints/AntennaIntervalConstraint.h"
 
 #include <complex>
 #include <numeric>

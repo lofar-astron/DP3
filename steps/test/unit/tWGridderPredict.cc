@@ -11,12 +11,12 @@
 
 #include "base/DPBuffer.h"
 
-#include "../../../base/test/LoggerFixture.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../steps/InputStep.h"
-#include "../../../steps/WGridderPredict.h"
-#include "../../../steps/MultiResultStep.h"
-#include "../../../steps/OnePredict.h"
+#include "base/test/LoggerFixture.h"
+#include "common/ParameterSet.h"
+#include "steps/InputStep.h"
+#include "steps/WGridderPredict.h"
+#include "steps/MultiResultStep.h"
+#include "steps/OnePredict.h"
 
 using dp3::base::DPBuffer;
 using dp3::steps::InputStep;

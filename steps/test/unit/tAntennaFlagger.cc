@@ -14,9 +14,9 @@
 #include "tStepCommon.h"
 #include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
-#include "../../AntennaFlagger.h"
-#include "../../../common/baseline_indices.h"
-#include "../../../common/ParameterSet.h"
+#include "steps/AntennaFlagger.h"
+#include "common/baseline_indices.h"
+#include "common/ParameterSet.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

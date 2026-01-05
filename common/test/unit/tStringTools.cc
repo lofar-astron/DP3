@@ -1,4 +1,4 @@
-#include "../../StringTools.h"
+#include "common/StringTools.h"
 
 #include <boost/test/unit_test.hpp>
 

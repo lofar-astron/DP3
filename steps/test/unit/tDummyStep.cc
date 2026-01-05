@@ -3,7 +3,7 @@
 
 // Template file for creating tests for a step.
 
-#include "../../DummyStep.h"
+#include "steps/DummyStep.h"
 
 #include <boost/test/unit_test.hpp>
 

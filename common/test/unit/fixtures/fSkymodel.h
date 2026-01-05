@@ -4,7 +4,7 @@
 #ifndef DP3_COMMON_TEST_UNIT_FIXTURES_FSKYMODEL_H
 #define DP3_COMMON_TEST_UNIT_FIXTURES_FSKYMODEL_H
 
-#include "../../../model/Patch.h"
+#include "model/Patch.h"
 
 #include <array>
 #include <string>

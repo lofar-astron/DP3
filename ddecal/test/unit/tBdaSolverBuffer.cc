@@ -1,7 +1,7 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../gain_solvers/BdaSolverBuffer.h"
+#include "ddecal/gain_solvers/BdaSolverBuffer.h"
 
 #include <array>
 
@@ -12,7 +12,7 @@
 
 #include "base/BdaBuffer.h"
 
-#include "../../../common/test/unit/tCommon.h"
+#include "common/test/unit/tCommon.h"
 
 using dp3::base::BdaBuffer;
 using dp3::common::Fields;
