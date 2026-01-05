@@ -24,9 +24,6 @@
 #include "../parmdb/ParmSet.h"
 #include "../parmdb/Parm.h"
 
-using schaapcommon::h5parm::GainType;
-using schaapcommon::h5parm::JonesParameters;
-
 namespace dp3 {
 namespace steps {
 /// @brief DP3 step class to apply a calibration correction to the data
@@ -119,10 +116,11 @@ class OneApplyCal : public Step {
   std::shared_ptr<parmdb::ParmFacade> itsParmDB;
   std::string specified_correction_;
   size_t n_polarizations_in_sol_tab_ = 0;
-  JonesParameters::MissingAntennaBehavior itsMissingAntennaBehavior;
-  GainType itsCorrectType;
+  schaapcommon::h5parm::JonesParameters::MissingAntennaBehavior
+      itsMissingAntennaBehavior;
+  schaapcommon::h5parm::GainType itsCorrectType;
   bool itsInvert;
-  JonesParameters::InterpolationType itsInterpolationType;
+  schaapcommon::h5parm::JonesParameters::InterpolationType itsInterpolationType;
   unsigned int itsTimeSlotsPerParmUpdate;
   bool itsUpdateWeights;
   bool itsUseModelData;
@@ -135,7 +133,7 @@ class OneApplyCal : public Step {
   /// itsJonesParameters contains the gridded parameters, first for all
   /// parameters (e.g. Gain:0:0 and Gain:1:1), next all antennas, next over freq
   /// * time as returned by ParmDB numparms, antennas, time x frequency
-  std::map<std::string, std::unique_ptr<JonesParameters>>
+  std::map<std::string, std::unique_ptr<schaapcommon::h5parm::JonesParameters>>
       itsJonesParametersPerDirection;
 
   unsigned int itsTimeStep;  ///< time step within current chunk

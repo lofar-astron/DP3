@@ -5,9 +5,12 @@
 
 #include <boost/test/unit_test.hpp>
 
-#ifdef HAVE_LIBDIRAC
+#include "SolverTester.h"
+
 using dp3::ddecal::LBFGSSolver;
 using dp3::ddecal::SolutionTensor;
+using dp3::ddecal::SolveData;
+using dp3::ddecal::test::SolverTester;
 
 BOOST_AUTO_TEST_SUITE(lbfgs_solver)
 
@@ -101,5 +104,216 @@ BOOST_AUTO_TEST_CASE(merge_solutions) {
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
+  dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations, kHistory,
+                                  kMinibatches, 0.0, 0.0,
+                                  dp3::ddecal::LBFGSSolver::kDiagonal);
+  InitializeSolver(solver);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 2u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNAntennas,
+                       std::vector<size_t>(kNDirections, 1), Antennas1(),
+                       Antennas2(), false);
+
+  dp3::ddecal::SolverBase::SolveResult result;
+  for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
+    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+  }
+
+  CheckDiagonalResults(2.0E-2);
+  BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetScalarSolutions(false);
+  dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations, kHistory,
+                                  kMinibatches, 0.0, 0.0,
+                                  dp3::ddecal::LBFGSSolver::kScalar);
+  InitializeSolver(solver);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 1u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNAntennas,
+                       std::vector<size_t>(kNDirections, 1), Antennas1(),
+                       Antennas2(), false);
+
+  dp3::ddecal::SolverBase::SolveResult result;
+  for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
+    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+  }
+
+  CheckScalarResults(1.0E-2);
+  BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
+  // Since we have more unknowns, reduce the minibatch size
+  // to increase the constraints per-minibatch
+  dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations * 2, kHistory,
+                                  kMinibatches / 2, 0.0, 0.0,
+                                  dp3::ddecal::LBFGSSolver::kFull);
+  InitializeSolver(solver);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 4u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNAntennas,
+                       std::vector<size_t>(kNDirections, 1), Antennas1(),
+                       Antennas2(), false);
+
+  // The full jones test uses full matrices as solutions and copies the
+  // diagonals into the solver solutions from the SolverTester fixture. This
+  // way, the test can reuse SetDiagonalSolutions() and CheckDiagonalResults().
+  std::vector<std::vector<std::complex<double>>> solutions(kNChannelBlocks);
+
+  // Initialize unit-matrices as initial values
+  for (auto& solution : solutions) {
+    solution.assign(NSolutions() * kNAntennas * 4, 0.0);
+    for (size_t i = 0; i != NSolutions() * kNAntennas * 4; i += 4) {
+      solution[i] = 1.0;
+      solution[i + 3] = 1.0;
+    }
+  }
+
+  dp3::ddecal::SolverBase::SolveResult result;
+  for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
+    result = solver.Solve(data, solutions, 0.0, nullptr);
+  }
+
+  // Convert full matrices to diagonals
+  std::vector<std::vector<std::complex<double>>>& diagonals =
+      GetSolverSolutions();
+  for (size_t ch_block = 0; ch_block != solutions.size(); ++ch_block) {
+    for (size_t s = 0; s != solutions[ch_block].size() / 4; ++s) {
+      diagonals[ch_block][s * 2] = solutions[ch_block][s * 4];
+      diagonals[ch_block][s * 2 + 1] = solutions[ch_block][s * 4 + 3];
+    }
+  }
+
+  CheckDiagonalResults(2.0e-2);
+  // The solver solves the requested accuracy within the max
+  // iterations so just check if the nr of iterations is <= max+1.
+  BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(bounded_diagonal, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
+  dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations * 2, kHistory,
+                                  kMinibatches / 2, kMinSolution, kMaxSolution,
+                                  dp3::ddecal::LBFGSSolver::kDiagonal);
+  InitializeSolver(solver);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 2u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNAntennas,
+                       std::vector<size_t>(kNDirections, 1), Antennas1(),
+                       Antennas2(), false);
+
+  dp3::ddecal::SolverBase::SolveResult result;
+  for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
+    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+  }
+
+  CheckDiagonalResults(10.0);
+  BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(bounded_scalar, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetScalarSolutions(false);
+  dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations, kHistory,
+                                  kMinibatches, kMinSolution, kMaxSolution,
+                                  dp3::ddecal::LBFGSSolver::kScalar);
+  InitializeSolver(solver);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 1u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNAntennas,
+                       std::vector<size_t>(kNDirections, 1), Antennas1(),
+                       Antennas2(), false);
+
+  dp3::ddecal::SolverBase::SolveResult result;
+  for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
+    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+  }
+
+  CheckScalarResults(10.0);
+  BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
+BOOST_FIXTURE_TEST_CASE(bounded_full_jones, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetDiagonalSolutions(false);
+  // Since we have more unknowns, reduce the minibatch size
+  // to increase the constraints per-minibatch
+  dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations * 2, kHistory,
+                                  kMinibatches / 2, kMinSolution, kMaxSolution,
+                                  dp3::ddecal::LBFGSSolver::kFull);
+  InitializeSolver(solver);
+
+  BOOST_CHECK_EQUAL(solver.NSolutionPolarizations(), 4u);
+  BOOST_REQUIRE_EQUAL(solver.ConstraintSolvers().size(), 1u);
+  BOOST_CHECK_EQUAL(solver.ConstraintSolvers()[0], &solver);
+
+  const dp3::ddecal::BdaSolverBuffer& solver_buffer = FillBDAData();
+  const SolveData data(solver_buffer, kNChannelBlocks, kNAntennas,
+                       std::vector<size_t>(kNDirections, 1), Antennas1(),
+                       Antennas2(), false);
+
+  // The full jones test uses full matrices as solutions and copies the
+  // diagonals into the solver solutions from the SolverTester fixture. This
+  // way, the test can reuse SetDiagonalSolutions() and CheckDiagonalResults().
+  std::vector<std::vector<std::complex<double>>> solutions(kNChannelBlocks);
+
+  // Initialize unit-matrices as initial values
+  for (auto& solution : solutions) {
+    solution.assign(NSolutions() * kNAntennas * 4, 0.0);
+    for (size_t i = 0; i != NSolutions() * kNAntennas * 4; i += 4) {
+      solution[i] = 1.0;
+      solution[i + 3] = 1.0;
+    }
+  }
+
+  dp3::ddecal::SolverBase::SolveResult result;
+  for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
+    result = solver.Solve(data, solutions, 0.0, nullptr);
+  }
+
+  // Convert full matrices to diagonals
+  std::vector<std::vector<std::complex<double>>>& diagonals =
+      GetSolverSolutions();
+  for (size_t ch_block = 0; ch_block != solutions.size(); ++ch_block) {
+    for (size_t s = 0; s != solutions[ch_block].size() / 4; ++s) {
+      diagonals[ch_block][s * 2] = solutions[ch_block][s * 4];
+      diagonals[ch_block][s * 2 + 1] = solutions[ch_block][s * 4 + 3];
+    }
+  }
+
+  CheckDiagonalResults(10.0);
+  // The solver solves the requested accuracy within the max
+  // iterations so just check if the nr of iterations is <= max+1.
+  BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
-#endif  // HAVE_LIBDIRAC

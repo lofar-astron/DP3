@@ -28,6 +28,7 @@ using dp3::common::ParameterSet;
 using dp3::steps::ApplyCal;
 using dp3::steps::Step;
 using schaapcommon::h5parm::H5Parm;
+using schaapcommon::h5parm::JonesParameters;
 using schaapcommon::h5parm::SolTab;
 
 BOOST_AUTO_TEST_SUITE(applycalh5)

@@ -50,7 +50,9 @@
 #include "../steps/PhaseShift.h"
 #include "../steps/Predict.h"
 #include "../steps/PreFlagger.h"
+#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
 #include "../steps/SagecalPredict.h"
+#endif
 #include "../steps/ScaleData.h"
 #include "../steps/SetBeam.h"
 #include "../steps/Split.h"
@@ -218,7 +220,13 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
   } else if (type == "grouppredict") {
     step = std::make_shared<steps::BdaGroupPredict>(parset, prefix);
   } else if (type == "sagecalpredict") {
+#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
     step = std::make_shared<steps::SagecalPredict>(parset, prefix);
+#else
+    throw std::runtime_error(
+        "sagecalpredict step is not available since DP3 was built without "
+        "SAGECal support.");
+#endif
   } else if (type == "h5parmpredict") {
     step = std::make_shared<steps::H5ParmPredict>(parset, prefix);
   } else if (type == "gaincal" || type == "calibrate") {
