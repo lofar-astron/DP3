@@ -9,7 +9,7 @@
 
 #include "Step.h"
 
-#include "../antennaflagger/Flagger.h"
+#include "antennaflagger/Flagger.h"
 #include "common/ParameterSet.h"
 #include "common/Timer.h"
 

@@ -6,7 +6,7 @@
 
 #include "Constraint.h"
 
-#include "../../base/CalType.h"
+#include "base/CalType.h"
 
 #include <vector>
 #include <optional>

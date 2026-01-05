@@ -3,8 +3,8 @@
 
 #include "Constraint.h"
 
-#include "../../base/CalType.h"
-#include "../../common/PhaseLineFitter.h"
+#include "base/CalType.h"
+#include "common/PhaseLineFitter.h"
 
 #include <vector>
 #include <ostream>

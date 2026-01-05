@@ -64,7 +64,7 @@
 #include "steps/FlagTransfer.h"
 #include "steps/Transfer.h"
 
-#include "../pythondp3/PyStep.h"
+#include "pythondp3/PyStep.h"
 
 #include "common/Fields.h"
 #include "common/Timer.h"
