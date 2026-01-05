@@ -9,7 +9,7 @@
 #include <xtensor/xcomplex.hpp>
 #include <xtensor/xview.hpp>
 
-#include "../base/FlagCounter.h"
+#include "base/FlagCounter.h"
 #include "base/DP3.h"
 
 using dp3::base::DPBuffer;

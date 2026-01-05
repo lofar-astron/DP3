@@ -8,8 +8,8 @@
 
 #include <iostream>
 
-#include "../base/UVWCalculator.h"
-#include "../common/ParameterSet.h"
+#include "base/UVWCalculator.h"
+#include "common/ParameterSet.h"
 
 #include <casacore/casa/BasicMath/Math.h>  // nearAbs
 

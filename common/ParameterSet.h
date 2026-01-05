@@ -6,8 +6,8 @@
 #ifndef DP3_COMMON_PARAMETERSET_H_
 #define DP3_COMMON_PARAMETERSET_H_
 
-#include "../blob/BlobIStream.h"
-#include "../blob/BlobOStream.h"
+#include "blob/BlobIStream.h"
+#include "blob/BlobOStream.h"
 
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 #include "ParameterSetImpl.h"

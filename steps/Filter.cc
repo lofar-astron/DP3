@@ -21,8 +21,8 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
 #include "MsReader.h"
 
 using dp3::base::DPBuffer;

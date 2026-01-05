@@ -5,7 +5,7 @@
 #include <cassert>
 #include <limits>
 
-#include "../base/BdaBuffer.h"
+#include "base/BdaBuffer.h"
 
 namespace dp3 {
 namespace base {

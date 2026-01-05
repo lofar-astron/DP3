@@ -12,8 +12,8 @@
 
 #include "base/DP3.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 #include <stddef.h>
 #include <string>

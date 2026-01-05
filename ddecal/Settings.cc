@@ -11,10 +11,10 @@
 
 #include <aocommon/logger.h>
 
-#include "../base/CalType.h"
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
-#include "../common/StringTools.h"
+#include "base/CalType.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
+#include "common/StringTools.h"
 
 using dp3::base::CalType;
 

@@ -13,7 +13,7 @@
 #include <boost/algorithm/string.hpp>
 #include <xtensor/xview.hpp>
 
-#include "../base/FlagCounter.h"
+#include "base/FlagCounter.h"
 
 namespace {
 bool HasBaselineOrder(const dp3::base::DPInfo& info,

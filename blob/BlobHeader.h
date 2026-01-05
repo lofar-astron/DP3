@@ -6,7 +6,7 @@
 #ifndef LOFAR_BLOB_BLOBHEADER_H
 #define LOFAR_BLOB_BLOBHEADER_H
 
-#include "../common/DataConvert.h"
+#include "common/DataConvert.h"
 
 #include <cstring>
 

@@ -8,8 +8,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
-#include "../ddecal/constraints/SmoothnessConstraint.h"
-#include "../ddecal/constraints/TECConstraint.h"
+#include "ddecal/constraints/SmoothnessConstraint.h"
+#include "ddecal/constraints/TECConstraint.h"
 
 using dp3::ddecal::Constraint;
 using dp3::ddecal::ConstraintResult;
@@ -151,8 +151,8 @@ Parameters:
   time: Optional. Time in seconds. The TEC fitter does not use this parameter.
   mode: Optional. Fitting mode: "tec_and_common_scalar" (default) or "tec_only".
 
-Returns: A list of two or three dp3.fitters.Result items. When the mode is 
-        "tec_and_common_scalar", it contains: [TEC, common scalar phase, error], 
+Returns: A list of two or three dp3.fitters.Result items. When the mode is
+        "tec_and_common_scalar", it contains: [TEC, common scalar phase, error],
         and otherwise [TEC, error].)");
 
   m.def(
@@ -197,12 +197,12 @@ Returns: A list of two or three dp3.fitters.Result items. When the mode is
       py::arg("spectral_exponent") = -1.0, py::arg("kernel_truncation") = true,
       R"(Apply a Smoothness fitter to complex gains.
 
-The fitter smooths a series of possibly irregularly gridded values by a given 
-Gaussian kernel. The Gaussian kernel is trimmed off at 3 sigma, and further 
+The fitter smooths a series of possibly irregularly gridded values by a given
+Gaussian kernel. The Gaussian kernel is trimmed off at 3 sigma, and further
 defined by two bandwidth parameters.
 
 Parameters:
-  gains: 2-D (or 1-D) numpy array with complex values of shape 
+  gains: 2-D (or 1-D) numpy array with complex values of shape
           (frequencies, antennas) or (frequencies).
         If the number of antennas is one, it can be provided as a 1-D array.
         The number of frequencies (first dimension) must match the length
@@ -210,9 +210,9 @@ Parameters:
         The Smoothness fitter adjusts the values in this parameter.
   frequencies: Array defining the frequency of each channel, in Hz.
   time: Optional. Time in seconds. The fitter does not use this parameter.
-  bandwidth_hz: Size, in frequency units (Hz), of the Gaussian kernel 
+  bandwidth_hz: Size, in frequency units (Hz), of the Gaussian kernel
                 (smoothing strength) that is used for smoothing. May not be zero.
-  bandwidthRefFrequencyHz: Optional. Kernel size over frequency. May be zero 
+  bandwidthRefFrequencyHz: Optional. Kernel size over frequency. May be zero
                           (default) to have a constant kernel size over frequency.
 
 Returns: None. The actual return is written in-place to the gains argument.)");

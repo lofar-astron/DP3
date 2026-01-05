@@ -19,12 +19,12 @@
 #include "base/DP3.h"
 #include "base/DPBuffer.h"
 
-#include "../base/ModelComponent.h"
-#include "../base/PredictBuffer.h"
-#include "../base/PredictModel.h"
+#include "base/ModelComponent.h"
+#include "base/PredictBuffer.h"
+#include "base/PredictModel.h"
 
-#include "../model/Patch.h"
-#include "../model/SourceDBUtil.h"
+#include "model/Patch.h"
+#include "model/SourceDBUtil.h"
 
 namespace dp3 {
 namespace common {

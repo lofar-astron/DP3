@@ -4,7 +4,7 @@
 #ifndef DPPP_STMANPARSETKEYS_H
 #define DPPP_STMANPARSETKEYS_H
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include <sstream>
 #include <string>

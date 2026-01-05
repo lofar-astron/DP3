@@ -9,8 +9,8 @@
 
 #include "PatchInfo.h"
 
-#include "../blob/BlobIStream.h"
-#include "../blob/BlobOStream.h"
+#include "blob/BlobIStream.h"
+#include "blob/BlobOStream.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
 

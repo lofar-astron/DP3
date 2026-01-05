@@ -16,10 +16,10 @@
 #include "base/DPBuffer.h"
 #include "steps/Step.h"
 
-#include "../base/BaselineSelection.h"
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "base/BaselineSelection.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 namespace dp3::steps {
 

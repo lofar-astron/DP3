@@ -40,9 +40,9 @@
 
 #include "common/Types.h"
 
-#include "../base/BaselineSelection.h"
-#include "../base/MS.h"
-#include "../common/ParameterSet.h"
+#include "base/BaselineSelection.h"
+#include "base/MS.h"
+#include "common/ParameterSet.h"
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;

@@ -16,8 +16,8 @@
 
 #include "InputStep.h"
 
-#include "../base/UVWCalculator.h"
-#include "../base/FlagCounter.h"
+#include "base/UVWCalculator.h"
+#include "base/FlagCounter.h"
 
 namespace dp3 {
 namespace steps {

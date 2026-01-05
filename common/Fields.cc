@@ -5,7 +5,7 @@
 #include <ostream>
 #include <vector>
 
-#include "../common/Fields.h"
+#include "common/Fields.h"
 
 namespace dp3 {
 namespace common {

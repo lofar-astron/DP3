@@ -10,15 +10,15 @@
 #include "steps/Step.h"
 #include "base/DP3.h"
 #include "base/DPBuffer.h"
-#include "../base/ModelComponent.h"
-#include "../base/PredictBuffer.h"
-#include "../common/ParameterSet.h"
-#include "../model/Patch.h"
-#include "../model/SourceDBUtil.h"
+#include "base/ModelComponent.h"
+#include "base/PredictBuffer.h"
+#include "common/ParameterSet.h"
+#include "model/Patch.h"
+#include "model/SourceDBUtil.h"
 #include "ApplyCal.h"
 #include "ResultStep.h"
 
-#include "../base/ComponentInfo.h"
+#include "base/ComponentInfo.h"
 
 #include <Dirac_radio.h>
 // Remove 'complex' def here as we do not need it afterwards

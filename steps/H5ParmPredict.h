@@ -14,7 +14,7 @@
 #include "base/DP3.h"
 #include "steps/Step.h"
 
-#include "../common/Timer.h"
+#include "common/Timer.h"
 
 #include "Predict.h"
 #include "ResultStep.h"

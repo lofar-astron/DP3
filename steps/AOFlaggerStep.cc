@@ -10,9 +10,9 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../common/Memory.h"
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include "common/Memory.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/casa/OS/File.h>

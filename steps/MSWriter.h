@@ -16,8 +16,8 @@
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
-#include "../base/StManParsetKeys.h"
-#include "../common/Timer.h"
+#include "base/StManParsetKeys.h"
+#include "common/Timer.h"
 
 namespace casacore {
 class Table;

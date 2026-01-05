@@ -13,10 +13,10 @@
 #include "SourceDB.h"
 
 #include <fstream>
-#include "../blob/BlobOBufStream.h"
-#include "../blob/BlobIBufStream.h"
-#include "../blob/BlobOStream.h"
-#include "../blob/BlobIStream.h"
+#include "blob/BlobOBufStream.h"
+#include "blob/BlobIBufStream.h"
+#include "blob/BlobOStream.h"
+#include "blob/BlobIStream.h"
 
 namespace dp3 {
 namespace parmdb {

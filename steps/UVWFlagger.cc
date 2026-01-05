@@ -8,8 +8,8 @@
 
 #include "base/DPInfo.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>

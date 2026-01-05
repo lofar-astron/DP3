@@ -16,7 +16,7 @@
 
 #include "base/DPBuffer.h"
 #include "steps/Step.h"
-#include "../common/Timer.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 

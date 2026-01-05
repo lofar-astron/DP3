@@ -12,9 +12,9 @@
 
 #include <schaapcommon/h5parm/h5parm.h>
 
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

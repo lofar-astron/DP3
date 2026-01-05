@@ -18,7 +18,7 @@
 #include "Baseline.h"
 #include "Cursor.h"
 
-#include "../model/Patch.h"
+#include "model/Patch.h"
 
 #include "Direction.h"
 #include "DPBuffer.h"

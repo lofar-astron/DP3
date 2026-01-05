@@ -12,8 +12,8 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/StringTools.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 #include <aocommon/logger.h>
 #include <aocommon/matrix2x2.h>

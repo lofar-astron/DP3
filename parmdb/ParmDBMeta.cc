@@ -5,8 +5,8 @@
 
 #include "ParmDBMeta.h"
 
-#include "../blob/BlobOStream.h"
-#include "../blob/BlobIStream.h"
+#include "blob/BlobOStream.h"
+#include "blob/BlobIStream.h"
 
 namespace dp3 {
 namespace parmdb {

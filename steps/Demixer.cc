@@ -23,24 +23,24 @@
 
 #include "base/DP3.h"
 
-#include "../base/Apply.h"
-#include "../base/CursorUtilCasa.h"
-#include "../base/EstimateMixed.h"
-#include "../base/SubtractMixed.h"
-#include "../base/Simulate.h"
-#include "../base/Simulator.h"
+#include "base/Apply.h"
+#include "base/CursorUtilCasa.h"
+#include "base/EstimateMixed.h"
+#include "base/SubtractMixed.h"
+#include "base/Simulate.h"
+#include "base/Simulator.h"
 
-#include "../model/SkyModelCache.h"
-#include "../model/SourceDBUtil.h"
+#include "model/SkyModelCache.h"
+#include "model/SourceDBUtil.h"
 
-#include "../parmdb/Axis.h"
-#include "../parmdb/SourceDB.h"
-#include "../parmdb/ParmDB.h"
-#include "../parmdb/ParmSet.h"
-#include "../parmdb/ParmCache.h"
-#include "../parmdb/Parm.h"
+#include "parmdb/Axis.h"
+#include "parmdb/SourceDB.h"
+#include "parmdb/ParmDB.h"
+#include "parmdb/ParmSet.h"
+#include "parmdb/ParmCache.h"
+#include "parmdb/Parm.h"
 
-#include "../common/StreamUtil.h"
+#include "common/StreamUtil.h"
 
 #include <aocommon/logger.h>
 

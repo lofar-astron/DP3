@@ -10,7 +10,7 @@
 #include "BlobSTL.h"
 #include "BlobArray.h"
 
-#include "../common/TypeNames.h"
+#include "common/TypeNames.h"
 
 namespace dp3 {
 namespace blob {

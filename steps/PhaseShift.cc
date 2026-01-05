@@ -10,8 +10,8 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 #include <aocommon/dynamicfor.h>
 

@@ -7,7 +7,7 @@
 #include "BlobOStream.h"
 #include "BlobHeader.h"
 
-#include "../common/DataConvert.h"
+#include "common/DataConvert.h"
 
 #include "BlobException.h"
 

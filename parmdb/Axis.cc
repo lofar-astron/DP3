@@ -5,11 +5,11 @@
 
 #include "Axis.h"
 
-#include "../blob/BlobIStream.h"
-#include "../blob/BlobOStream.h"
-#include "../blob/BlobSTL.h"
+#include "blob/BlobIStream.h"
+#include "blob/BlobOStream.h"
+#include "blob/BlobSTL.h"
 
-#include "../common/StreamUtil.h"
+#include "common/StreamUtil.h"
 
 #include <casacore/casa/BasicMath/Math.h>
 

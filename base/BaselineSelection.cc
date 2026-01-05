@@ -23,9 +23,9 @@
 
 #include <aocommon/logger.h>
 
-#include "../common/ParameterSet.h"
-#include "../common/ParameterValue.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/ParameterValue.h"
+#include "common/StreamUtil.h"
 
 using casacore::IPosition;
 using casacore::Matrix;

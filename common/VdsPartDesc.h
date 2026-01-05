@@ -12,8 +12,8 @@
 
 #include "ParameterSet.h"
 
-#include "../blob/BlobOStream.h"
-#include "../blob/BlobIStream.h"
+#include "blob/BlobOStream.h"
+#include "blob/BlobIStream.h"
 
 #include <string>
 #include <vector>

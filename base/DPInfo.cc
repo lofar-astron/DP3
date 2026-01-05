@@ -20,7 +20,7 @@
 
 #include <EveryBeam/beammode.h>
 
-#include "../common/Epsilon.h"
+#include "common/Epsilon.h"
 
 using casacore::MDirection;
 using casacore::MPosition;

@@ -6,8 +6,8 @@
 #ifndef LOFAR_BLOB_BLOBISTREAM_H
 #define LOFAR_BLOB_BLOBISTREAM_H
 
-#include "../common/DataFormat.h"
-#include "../common/DataConvert.h"
+#include "common/DataFormat.h"
+#include "common/DataConvert.h"
 
 #include "BlobIBuffer.h"
 

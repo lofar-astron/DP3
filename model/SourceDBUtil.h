@@ -15,8 +15,8 @@
 #include <variant>
 #include <vector>
 
-#include "../parmdb/SourceDB.h"
-#include "../parmdb/SourceDBSkymodel.h"
+#include "parmdb/SourceDB.h"
+#include "parmdb/SourceDBSkymodel.h"
 
 #include "Patch.h"
 

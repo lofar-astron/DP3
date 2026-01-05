@@ -6,12 +6,12 @@
 
 #include "Step.h"
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 #include "OnePredict.h"
 #include "FastPredict.h"
 #include "PreFlagger.h"
 #include "ResultStep.h"
-#include "../common/Timer.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 namespace steps {

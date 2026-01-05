@@ -9,9 +9,9 @@
 #include "base/BdaBuffer.h"
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
-#include "../base/MS.h"
+#include "base/MS.h"
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/tables/Tables/TableRecord.h>

@@ -23,7 +23,7 @@
 
 #include "base/DPBuffer.h"
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include "InputStep.h"
 #include "MSWriter.h"

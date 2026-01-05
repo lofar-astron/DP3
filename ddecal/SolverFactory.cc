@@ -32,7 +32,7 @@
 #include "constraints/SmoothnessConstraint.h"
 #include "constraints/TECConstraint.h"
 
-#include "../common/ValuePerStationParsing.h"
+#include "common/ValuePerStationParsing.h"
 
 #include <aocommon/logger.h>
 

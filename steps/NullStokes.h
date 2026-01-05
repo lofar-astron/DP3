@@ -10,7 +10,7 @@
 #define DP3_STEPS_NULL_STOKES_H
 
 #include "InputStep.h"
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include "base/DPBuffer.h"
 

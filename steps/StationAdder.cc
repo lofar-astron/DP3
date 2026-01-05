@@ -24,7 +24,7 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../base/FlagCounter.h"
+#include "base/FlagCounter.h"
 
 #include <aocommon/logger.h>
 #include <aocommon/uvector.h>

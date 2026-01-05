@@ -3,8 +3,8 @@
 
 #include "SolutionWriter.h"
 
-#include "../common/StreamUtil.h"
-#include "../common/StringTools.h"
+#include "common/StreamUtil.h"
+#include "common/StringTools.h"
 
 #include <cassert>
 #include <numeric>

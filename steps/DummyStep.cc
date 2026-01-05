@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include "../base/FlagCounter.h"
+#include "base/FlagCounter.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

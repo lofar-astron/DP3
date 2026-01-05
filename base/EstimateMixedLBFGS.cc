@@ -13,7 +13,7 @@
 
 #include <casacore/scimath/Fitting/LSQFit.h>
 
-#include "../common/StreamUtil.h"  ///
+#include "common/StreamUtil.h"  ///
 
 #include <iostream>
 #include <Dirac.h>

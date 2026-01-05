@@ -8,7 +8,7 @@
 
 #include "base/DPInfo.h"
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include <iostream>
 

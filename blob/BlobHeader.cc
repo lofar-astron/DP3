@@ -7,7 +7,7 @@
 
 #include "BlobHeader.h"
 
-#include "../common/DataFormat.h"
+#include "common/DataFormat.h"
 
 #include <cassert>
 

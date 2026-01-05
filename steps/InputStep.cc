@@ -9,8 +9,8 @@
 #include "MsReader.h"
 #include "MSBDAReader.h"
 
-#include "../base/MS.h"
-#include "../common/ParameterSet.h"
+#include "base/MS.h"
+#include "common/ParameterSet.h"
 
 #include <casacore/casa/OS/Path.h>
 #include <casacore/casa/OS/DirectoryIterator.h>

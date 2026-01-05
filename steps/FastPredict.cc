@@ -12,19 +12,19 @@
 #include <xtensor/xview.hpp>
 #include <xtensor/xadapt.hpp>
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
+#include "common/StreamUtil.h"
 
 #include "base/DPInfo.h"
-#include "../base/FlagCounter.h"
-#include "../base/GaussianSource.h"
-#include "../base/PointSource.h"
-#include "../base/Simulate.h"
-#include "../base/Stokes.h"
-#include "../base/Telescope.h"
+#include "base/FlagCounter.h"
+#include "base/GaussianSource.h"
+#include "base/PointSource.h"
+#include "base/Simulate.h"
+#include "base/Stokes.h"
+#include "base/Telescope.h"
 
-#include "../model/SkyModelCache.h"
+#include "model/SkyModelCache.h"
 
 #include <predict/BeamResponse.h>
 #include <predict/GaussianSourceCollection.h>
