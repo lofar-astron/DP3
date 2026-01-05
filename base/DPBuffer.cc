@@ -11,7 +11,7 @@
 #include <casacore/casa/version.h>
 #include <casacore/casa/BasicSL/Complexfwd.h>
 
-#include "../base/DPBuffer.h"
+#include "base/DPBuffer.h"
 
 // Casacore < 3.4 does not support move semantics for casacore::Array
 // and uses reference semantics in the copy constructor.

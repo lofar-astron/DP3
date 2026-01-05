@@ -9,7 +9,7 @@
 #include "ParmCache.h"
 #include "Parm.h"
 
-#include "../common/StringTools.h"
+#include "common/StringTools.h"
 
 #include <casacore/casa/Utilities/Regex.h>
 #include <casacore/casa/Arrays/ArrayMath.h>

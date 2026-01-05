@@ -14,9 +14,9 @@
 
 #include <xtensor/xview.hpp>
 
-#include "../common/ParameterSet.h"
-#include "../common/ParameterValue.h"
-#include "../common/Timer.h"
+#include "common/ParameterSet.h"
+#include "common/ParameterValue.h"
+#include "common/Timer.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

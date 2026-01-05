@@ -22,19 +22,18 @@
 
 #include <schaapcommon/facets/facet.h>
 
-#include <Version.h>
-
 #include "base/DP3.h"
+#include "base/Version.h"
 
-#include "../model/SourceDBUtil.h"
+#include "model/SourceDBUtil.h"
 
-#include "../common/StreamUtil.h"
+#include "common/StreamUtil.h"
 
-#include "../ddecal/SolverFactory.h"
-#include "../ddecal/constraints/SmoothnessConstraint.h"
-#include "../ddecal/gain_solvers/SolveData.h"
-#include "../ddecal/gain_solvers/SolverTools.h"
-#include "../ddecal/linear_solvers/LLSSolver.h"
+#include "ddecal/SolverFactory.h"
+#include "ddecal/constraints/SmoothnessConstraint.h"
+#include "ddecal/gain_solvers/SolveData.h"
+#include "ddecal/gain_solvers/SolverTools.h"
+#include "ddecal/linear_solvers/LLSSolver.h"
 
 #include "IDGPredict.h"
 #include "MsColumnReader.h"

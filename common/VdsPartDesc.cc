@@ -11,7 +11,7 @@
 
 #include <casacore/casa/Quanta/MVTime.h>
 
-#include "../blob/BlobArray.h"
+#include "blob/BlobArray.h"
 
 #include "StreamUtil.h"
 

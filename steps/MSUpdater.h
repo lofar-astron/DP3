@@ -9,9 +9,9 @@
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/tables/Tables/Table.h>
 
-#include "../base/StManParsetKeys.h"
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "base/StManParsetKeys.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 #include "OutputStep.h"
 

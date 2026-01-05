@@ -13,9 +13,9 @@
 #include <casacore/tables/Tables/RefRows.h>
 #include <casacore/casa/Arrays/Slicer.h>
 
-#include "../base/UVWCalculator.h"
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
+#include "base/UVWCalculator.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
 
 #include "MsReader.h"
 #include "ResultStep.h"

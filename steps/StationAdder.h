@@ -14,11 +14,11 @@
 #include "base/DPBuffer.h"
 #include "steps/Step.h"
 
-#include "../base/UVWCalculator.h"
+#include "base/UVWCalculator.h"
 
-#include "../common/ParameterRecord.h"
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "common/ParameterRecord.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 namespace steps {

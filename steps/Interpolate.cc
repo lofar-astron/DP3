@@ -7,9 +7,9 @@
 #include "base/DPInfo.h"
 #include "base/DP3.h"
 
-#include "../common/buffered_lane.h"
-#include "../common/ParameterSet.h"
-#include "../common/StringTools.h"
+#include "common/buffered_lane.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 #include <iostream>
 #include <iomanip>

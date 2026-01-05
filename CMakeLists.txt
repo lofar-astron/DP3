@@ -380,7 +380,7 @@ include_directories(${pybind11_INCLUDE_DIR})
 
 # Add cmake information to headers
 configure_file(base/Version.h.in base/Version.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/base)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.

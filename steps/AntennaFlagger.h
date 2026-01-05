@@ -10,8 +10,8 @@
 #include "Step.h"
 
 #include "../antennaflagger/Flagger.h"
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 namespace steps {

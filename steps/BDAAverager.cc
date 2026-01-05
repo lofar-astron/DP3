@@ -9,8 +9,8 @@
 #include <numeric>
 
 #include "base/BdaBuffer.h"
-#include "../common/Epsilon.h"
-#include "../common/ParameterSet.h"
+#include "common/Epsilon.h"
+#include "common/ParameterSet.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;

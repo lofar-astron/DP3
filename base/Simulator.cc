@@ -16,9 +16,9 @@
 #include "Simulator.h"
 #include "GaussianSource.h"
 #include "PointSource.h"
-#include "../steps/PhaseShift.h"
+#include "steps/PhaseShift.h"
 
-#include "../common/StreamUtil.h"
+#include "common/StreamUtil.h"
 
 namespace dp3 {
 namespace base {

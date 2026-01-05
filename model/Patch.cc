@@ -3,7 +3,7 @@
 
 #include "Patch.h"
 
-#include "../base/ModelComponentVisitor.h"
+#include "base/ModelComponentVisitor.h"
 
 #include <cmath>
 

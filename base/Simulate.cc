@@ -7,7 +7,7 @@
 
 #include "Simulate.h"
 
-#include "../steps/PhaseShift.h"
+#include "steps/PhaseShift.h"
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/Matrix.h>

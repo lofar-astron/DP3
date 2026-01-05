@@ -16,7 +16,7 @@
 #include "steps/Step.h"
 #include "Filter.h"
 #include "ResultStep.h"
-#include "../common/Timer.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 

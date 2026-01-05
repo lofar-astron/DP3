@@ -6,14 +6,14 @@
 
 #include "SourceDBUtil.h"
 
-#include "../base/PointSource.h"
-#include "../base/GaussianSource.h"
+#include "base/PointSource.h"
+#include "base/GaussianSource.h"
 
-#include "../parmdb/SourceDB.h"
-#include "../parmdb/SkymodelToSourceDB.h"
+#include "parmdb/SourceDB.h"
+#include "parmdb/SkymodelToSourceDB.h"
 
-#include "../common/ParameterValue.h"
-#include "../common/ProximityClustering.h"
+#include "common/ParameterValue.h"
+#include "common/ProximityClustering.h"
 
 #include <cassert>
 #include <cmath>

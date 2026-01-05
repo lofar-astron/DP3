@@ -13,10 +13,10 @@
 
 #include "Step.h"
 
-#include "../base/UVWCalculator.h"
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "base/UVWCalculator.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 namespace casacore {
 class MeasurementSet;

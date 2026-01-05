@@ -7,10 +7,10 @@
 #include <complex>
 #include <vector>
 
-#include "../base/DPBuffer.h"
+#include "base/DPBuffer.h"
 
-#include "../common/baseline_indices.h"
-#include "../common/Timer.h"
+#include "common/baseline_indices.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 namespace antennaflagger {

@@ -11,9 +11,9 @@
 #include <vector>
 
 #include "linear_solvers/LLSSolver.h"
-#include "../base/CalType.h"
-#include "../base/Direction.h"
-#include "../common/ParameterSet.h"
+#include "base/CalType.h"
+#include "base/Direction.h"
+#include "common/ParameterSet.h"
 
 namespace dp3::ddecal {
 

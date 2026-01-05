@@ -13,26 +13,26 @@
 
 #include <xtensor/xview.hpp>
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
+#include "common/StreamUtil.h"
 
-#include "../parmdb/ParmDBMeta.h"
-#include "../parmdb/PatchInfo.h"
-#include "../parmdb/SkymodelToSourceDB.h"
+#include "parmdb/ParmDBMeta.h"
+#include "parmdb/PatchInfo.h"
+#include "parmdb/SkymodelToSourceDB.h"
 
 #include "base/DPInfo.h"
-#include "../base/FlagCounter.h"
-#include "../base/GaussianSource.h"
-#include "../base/PointSource.h"
-#include "../base/Simulate.h"
-#include "../base/Simulator.h"
-#include "../base/Stokes.h"
-#include "../base/Telescope.h"
+#include "base/FlagCounter.h"
+#include "base/GaussianSource.h"
+#include "base/PointSource.h"
+#include "base/Simulate.h"
+#include "base/Simulator.h"
+#include "base/Stokes.h"
+#include "base/Telescope.h"
 
-#include "../model/SkyModelCache.h"
+#include "model/SkyModelCache.h"
 
-#include "../parmdb/SourceDB.h"
+#include "parmdb/SourceDB.h"
 
 #include <aocommon/barrier.h>
 #include <aocommon/logger.h>

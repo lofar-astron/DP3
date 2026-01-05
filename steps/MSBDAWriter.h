@@ -8,8 +8,8 @@
 
 #include <casacore/tables/Tables/Table.h>
 
-#include "../base/StManParsetKeys.h"
-#include "../common/ParameterSet.h"
+#include "base/StManParsetKeys.h"
+#include "common/ParameterSet.h"
 
 #include "OutputStep.h"
 

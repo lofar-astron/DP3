@@ -11,7 +11,7 @@
 
 #include "base/DPBuffer.h"
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include <aocommon/lane.h>
 

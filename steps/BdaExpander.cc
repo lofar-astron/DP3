@@ -17,8 +17,8 @@
 
 #include "common/Types.h"
 
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;

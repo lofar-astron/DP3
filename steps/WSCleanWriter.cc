@@ -16,7 +16,7 @@
 #include <aocommon/uvector.h>
 #include <aocommon/multibanddata.h>
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 using aocommon::Logger;
 using dp3::base::DPBuffer;

@@ -10,7 +10,7 @@
 #include "BlobOStream.h"
 #include "BlobIStream.h"
 
-#include "../common/TypeNames.h"
+#include "common/TypeNames.h"
 
 #include <casacore/casa/Arrays/Array.h>
 

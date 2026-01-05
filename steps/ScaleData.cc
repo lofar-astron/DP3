@@ -10,9 +10,9 @@
 #include "base/BdaBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/ParameterValue.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/ParameterValue.h"
+#include "common/StreamUtil.h"
 
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableRecord.h>

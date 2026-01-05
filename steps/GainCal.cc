@@ -17,9 +17,8 @@
 #include <aocommon/xt/span.h>
 #include <xtensor/xadapt.hpp>
 
-#include <Version.h>
-
 #include "base/DP3.h"
+#include "base/Version.h"
 
 #include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>
@@ -27,9 +26,9 @@
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/recursivefor.h>
 
-#include "../model/SourceDBUtil.h"
+#include "model/SourceDBUtil.h"
 
-#include "../parmdb/ParmValue.h"
+#include "parmdb/ParmValue.h"
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"

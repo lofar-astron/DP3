@@ -25,20 +25,20 @@
 
 #include "base/DPInfo.h"
 #include "base/DPBuffer.h"
-#include "../base/FlagCounter.h"
-#include "../base/Simulate.h"
-#include "../base/Simulator.h"
-#include "../base/Stokes.h"
-#include "../base/PointSource.h"
-#include "../base/GaussianSource.h"
-#include "../base/Telescope.h"
-#include "../base/ComponentInfo.h"
+#include "base/FlagCounter.h"
+#include "base/Simulate.h"
+#include "base/Simulator.h"
+#include "base/Stokes.h"
+#include "base/PointSource.h"
+#include "base/GaussianSource.h"
+#include "base/Telescope.h"
+#include "base/ComponentInfo.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
+#include "common/StreamUtil.h"
 
-#include "../model/SkyModelCache.h"
+#include "model/SkyModelCache.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

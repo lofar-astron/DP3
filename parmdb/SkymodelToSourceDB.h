@@ -14,8 +14,8 @@
 #include "SourceDB.h"
 #include "SourceDBSkymodel.h"
 
-#include "../common/StringTools.h"
-#include "../common/StreamUtil.h"
+#include "common/StringTools.h"
+#include "common/StreamUtil.h"
 
 #include <string>
 #include <iostream>

@@ -6,7 +6,7 @@
 
 #include "FlagCounter.h"
 
-#include "../steps/InputStep.h"
+#include "steps/InputStep.h"
 
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/TableDesc.h>
@@ -17,8 +17,8 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 #include <cassert>
 #include <vector>

@@ -22,7 +22,7 @@
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/measures/Measures/MDirection.h>
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {

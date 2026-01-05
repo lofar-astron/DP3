@@ -5,7 +5,7 @@
 #define DP3_STEPS_PYDPSTEP_H_
 
 #include "steps/Step.h"
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 namespace dp3 {
 namespace pythondp3 {

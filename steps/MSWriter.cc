@@ -15,14 +15,13 @@
 #include "InputStep.h"
 #include "NullStep.h"
 
-#include <Version.h>
-
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
-#include "../base/MS.h"
+#include "base/MS.h"
+#include "base/Version.h"
 
-#include "../common/VdsMaker.h"
-#include "../common/ParameterSet.h"
+#include "common/VdsMaker.h"
+#include "common/ParameterSet.h"
 
 #include <casacore/tables/Tables/TableCopy.h>
 #include <casacore/tables/Tables/TableLocker.h>

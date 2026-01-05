@@ -9,8 +9,8 @@
 
 #include "base/DPInfo.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 using dp3::base::DPInfo;
 using dp3::common::operator<<;

@@ -23,12 +23,12 @@
 #define H5Gcreate_vers 2
 #include <H5Cpp.h>
 
-#include "../base/BaselineSelection.h"
-#include "../base/CalType.h"
-#include "../base/GainCalAlgorithm.h"
-#include "../base/PhaseFitter.h"
-#include "../common/ParameterSet.h"
-#include "../parmdb/ParmDB.h"
+#include "base/BaselineSelection.h"
+#include "base/CalType.h"
+#include "base/GainCalAlgorithm.h"
+#include "base/PhaseFitter.h"
+#include "common/ParameterSet.h"
+#include "parmdb/ParmDB.h"
 
 #include "InputStep.h"
 #include "Predict.h"

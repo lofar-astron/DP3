@@ -16,8 +16,8 @@
 #include <schaapcommon/facets/ds9facetfile.h>
 #include <xtensor/xview.hpp>
 
-#include "../base/FlagCounter.h"
-#include "../common/Memory.h"
+#include "base/FlagCounter.h"
+#include "common/Memory.h"
 
 using namespace ducc0;
 

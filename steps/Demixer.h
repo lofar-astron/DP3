@@ -12,13 +12,13 @@
 #include "MultiResultStep.h"
 #include "PhaseShift.h"
 
-#include "../base/Baseline.h"
-#include "../base/FlagCounter.h"
+#include "base/Baseline.h"
+#include "base/FlagCounter.h"
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
-#include "../model/Patch.h"
+#include "model/Patch.h"
 
 namespace dp3 {
 namespace steps {

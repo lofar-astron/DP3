@@ -5,7 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 using dp3::common::ParameterSet;
 using dp3::common::ParameterValue;

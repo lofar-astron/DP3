@@ -9,9 +9,9 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../common/Median.h"
-#include "../common/ParameterSet.h"
-#include "../common/StreamUtil.h"
+#include "common/Median.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Containers/Record.h>

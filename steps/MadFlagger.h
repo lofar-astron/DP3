@@ -12,7 +12,7 @@
 #include "InputStep.h"
 
 #include "base/DPBuffer.h"
-#include "../base/FlagCounter.h"
+#include "base/FlagCounter.h"
 
 namespace dp3 {
 namespace common {

@@ -11,8 +11,8 @@
 #include "InputStep.h"
 
 #include "base/BdaBuffer.h"
-#include "../base/UVWCalculator.h"
-#include "../base/FlagCounter.h"
+#include "base/UVWCalculator.h"
+#include "base/FlagCounter.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 

@@ -19,10 +19,10 @@
 #include "base/DP3.h"
 #include "base/DPBuffer.h"
 
-#include "../base/ModelComponent.h"
-#include "../base/PredictBuffer.h"
+#include "base/ModelComponent.h"
+#include "base/PredictBuffer.h"
 
-#include "../model/Patch.h"
+#include "model/Patch.h"
 
 #include <predict/PredictPlan.h>
 #include <predict/PredictPlanExecCPU.h>

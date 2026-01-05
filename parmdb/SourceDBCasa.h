@@ -18,7 +18,7 @@
 #include "SourceDB.h"
 #include "PatchInfo.h"
 
-#include "../common/Types.h"
+#include "common/Types.h"
 
 namespace dp3 {
 namespace parmdb {

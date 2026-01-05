@@ -14,9 +14,9 @@
 
 #include <schaapcommon/reordering/filewriter.h>
 
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 

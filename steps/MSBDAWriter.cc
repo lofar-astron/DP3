@@ -4,9 +4,9 @@
 #include "MSBDAWriter.h"
 #include "MSWriter.h"
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 #include "base/BdaBuffer.h"
-#include "../base/MS.h"
+#include "base/MS.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/DataMan/IncrementalStMan.h>

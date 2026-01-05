@@ -19,10 +19,10 @@
 #include "Step.h"
 #include "base/DPBuffer.h"
 #include "base/FlagCounter.h"
-#include "../common/Timer.h"
-#include "../parmdb/ParmFacade.h"
-#include "../parmdb/ParmSet.h"
-#include "../parmdb/Parm.h"
+#include "common/Timer.h"
+#include "parmdb/ParmFacade.h"
+#include "parmdb/ParmSet.h"
+#include "parmdb/Parm.h"
 
 namespace dp3 {
 namespace steps {

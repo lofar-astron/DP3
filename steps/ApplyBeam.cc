@@ -4,17 +4,17 @@
 //
 // @author Tammo Jan Dijkema
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-#include "../common/StreamUtil.h"
-#include "../common/StringTools.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
+#include "common/StreamUtil.h"
+#include "common/StringTools.h"
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 // for matrix inversion
 #include "base/DPInfo.h"
-#include "../base/FlagCounter.h"
-#include "../base/Telescope.h"
+#include "base/FlagCounter.h"
+#include "base/Telescope.h"
 
 #include <EveryBeam/telescope/phasedarray.h>
 #include <EveryBeam/pointresponse/pointresponse.h>

@@ -16,9 +16,9 @@
 
 #include "SourceDB.h"
 
-#include "../common/StringTools.h"
-#include "../common/StreamUtil.h"
-#include "../base/Version.h"
+#include "common/StringTools.h"
+#include "common/StreamUtil.h"
+#include "base/Version.h"
 
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Inputs/Input.h>

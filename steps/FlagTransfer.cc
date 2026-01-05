@@ -20,8 +20,8 @@
 
 #include <aocommon/logger.h>
 
-#include "../common/ParameterSet.h"
-#include "../base/FlagCounter.h"
+#include "common/ParameterSet.h"
+#include "base/FlagCounter.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

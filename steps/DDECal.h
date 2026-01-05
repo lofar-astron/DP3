@@ -18,12 +18,12 @@
 #include <schaapcommon/h5parm/h5cache.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
-#include "../ddecal/Settings.h"
-#include "../ddecal/SolutionWriter.h"
-#include "../ddecal/constraints/Constraint.h"
-#include "../ddecal/gain_solvers/SolverBase.h"
+#include "ddecal/Settings.h"
+#include "ddecal/SolutionWriter.h"
+#include "ddecal/constraints/Constraint.h"
+#include "ddecal/gain_solvers/SolverBase.h"
 
 #include "MultiResultStep.h"
 #include "ResultStep.h"

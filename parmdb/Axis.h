@@ -10,7 +10,7 @@
 #ifndef LOFAR_PARMDB_AXIS_H
 #define LOFAR_PARMDB_AXIS_H
 
-#include "../blob/BlobStreamable.h"
+#include "blob/BlobStreamable.h"
 
 #include <memory>
 #include <utility>

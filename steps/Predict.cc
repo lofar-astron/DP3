@@ -15,7 +15,7 @@
 
 #include "base/BdaBuffer.h"
 
-#include "../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;

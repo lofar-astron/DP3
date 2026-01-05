@@ -4,8 +4,8 @@
 #ifndef DP3_BASE_DP3_H_
 #define DP3_BASE_DP3_H_
 
-#include "../common/ParameterSet.h"
-#include "../steps/InputStep.h"
+#include "common/ParameterSet.h"
+#include "steps/InputStep.h"
 
 namespace dp3 {
 namespace base {

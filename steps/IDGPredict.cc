@@ -18,12 +18,12 @@
 #include <schaapcommon/facets/ds9facetfile.h>
 
 #ifdef HAVE_IDG
-#include "../base/IDGConfiguration.h"
+#include "base/IDGConfiguration.h"
 #endif
 
-#include "../base/FlagCounter.h"
-#include "../base/ParsetAterms.h"
-#include "../common/Memory.h"
+#include "base/FlagCounter.h"
+#include "base/ParsetAterms.h"
+#include "common/Memory.h"
 
 using aocommon::FitsReader;
 using aocommon::FitsWriter;

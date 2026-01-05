@@ -8,14 +8,14 @@
 
 #include "base/DP3.h"
 
-#include "../common/StreamUtil.h"
-#include "../ddecal/gain_solvers/SolveData.h"
-#include "../ddecal/SolverFactory.h"
-#include "../model/SourceDBUtil.h"
+#include "common/StreamUtil.h"
+#include "ddecal/gain_solvers/SolveData.h"
+#include "ddecal/SolverFactory.h"
+#include "model/SourceDBUtil.h"
 
 #include "BdaGroupPredict.h"
 #include "Predict.h"
-#include "Version.h"
+#include "base/Version.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;

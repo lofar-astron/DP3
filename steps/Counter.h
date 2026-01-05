@@ -11,8 +11,8 @@
 
 #include "Step.h"
 
-#include "../base/FlagCounter.h"
-#include "../common/ParameterSet.h"
+#include "base/FlagCounter.h"
+#include "common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {
