@@ -5,6 +5,7 @@ ENV EVERYBEAM_VERSION=a324cf1d154ff5b968f9844cf05841850bb27c01
 ENV IDG_VERSION=1.2.0
 ENV AOFLAGGER_VERSION=72af21873f657427c99493a56742074be70d5d11
 ENV CASACORE_VERSION=v3.8.0
+ENV SAGECAL_VERSION=v0.8.5
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
@@ -95,6 +96,14 @@ RUN mkdir /everybeam && cd /everybeam \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
 	&& ninja install \
 	&& cd / && rm -rf everybeam
+# Build libdirac from SAGECal.
+RUN mkdir /sagecal && cd /sagecal \
+  && git clone https://github.com/nlesc-dirac/sagecal.git src \
+	&& ( cd src/ && git checkout $(SAGECAL_VERSION) ) \
+	&& mkdir build && cd build \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DLIB_ONLY=ON ../src \
+	&& ninja install \
+	&& cd / && rm -rf sagecal
 # EveryBeam by default uses the Python virtual environment directory instead
 # of its installation directory for locating its data files.
 ENV EVERYBEAM_DATADIR=/usr/share/everybeam

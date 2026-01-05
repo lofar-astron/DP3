@@ -21,7 +21,7 @@ pushd sagecal-${SAGECAL_VERSION}
 echo "Configuring, building & installing SAGECal ${SAGECAL_VERSION}"
 mkdir build
 cd build
-cmake -DLIB_ONLY=1 ..
+cmake -DLIB_ONLY=ON ..
 make -j${THREADS} install
 
 popd
