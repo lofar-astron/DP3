@@ -455,8 +455,8 @@ add_library(
   ddecal/gain_solvers/IterativeDiagonalSolver.cc
   ddecal/gain_solvers/IterativeFullJonesSolver.cc
   ddecal/gain_solvers/IterativeScalarSolver.cc
+  $<$<BOOL:${LIBDIRAC_FOUND}>:ddecal/gain_solvers/LBFGSSolver.cc>
   ddecal/gain_solvers/ScalarSolver.cc
-  ddecal/gain_solvers/LBFGSSolver.cc
   ddecal/gain_solvers/SolveData.cc
   ddecal/gain_solvers/SolverBase.cc
   ddecal/gain_solvers/SolverTools.cc
@@ -511,7 +511,7 @@ add_library(
   base/DPInfo.cc
   base/DP3.cc
   base/EstimateMixed.cc
-  base/EstimateMixedLBFGS.cc
+  $<$<BOOL:${LIBDIRAC_FOUND}>:base/EstimateMixedLBFGS.cc>
   base/FlagCounter.cc
   base/GainCalAlgorithm.cc
   base/GaussianSource.cc
@@ -532,6 +532,7 @@ add_library(
   pythondp3/PyStep.cc
   steps/AntennaFlagger.cc
   steps/AOFlaggerStep.cc
+  steps/ApplyBeam.cc
   steps/ApplyCal.cc
   steps/Averager.cc
   steps/BDAAverager.cc
@@ -540,9 +541,9 @@ add_library(
   steps/Clipper.cc
   steps/Combine.cc
   steps/Counter.cc
-  steps/Transfer.cc
   steps/Demixer.cc
   steps/DummyStep.cc
+  $<$<BOOL:${USE_FAST_PREDICT}>:steps/FastPredict.cc>
   steps/Filter.cc
   steps/FlagTransfer.cc
   steps/GainCal.cc
@@ -561,25 +562,24 @@ add_library(
   steps/WSCleanWriter.cc
   steps/MultiMsReader.cc
   steps/MultiResultStep.cc
+  steps/NullStokes.cc
   steps/OneApplyCal.cc
   steps/OnePredict.cc
-  $<$<BOOL:${USE_FAST_PREDICT}>:steps/FastPredict.cc>
   steps/PhaseShift.cc
   steps/Predict.cc
   steps/PreFlagger.cc
   steps/ResultStep.cc
+  $<$<BOOL:${LIBDIRAC_FOUND}>:steps/SagecalPredict.cc>
   steps/ScaleData.cc
   steps/SetBeam.cc
   steps/Split.cc
   steps/StationAdder.cc
   steps/Step.cc
+  steps/SVPInput.cc
+  steps/Transfer.cc
   steps/Upsample.cc
   steps/UVWFlagger.cc
-  steps/WGridderPredict.cc
-  steps/ApplyBeam.cc
-  steps/NullStokes.cc
-  steps/SagecalPredict.cc
-  steps/SVPInput.cc)
+  steps/WGridderPredict.cc)
 target_link_libraries(DP3_OBJ xsimd xtensor xtensor-blas
                       $<$<BOOL:${USE_FAST_PREDICT}>:predict>)
 
@@ -743,7 +743,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tBdaSolverBuffer.cc
       ddecal/test/unit/tDiagonalLowRankSolver.cc
       ddecal/test/unit/tFaradayConstraint.cc
-      ddecal/test/unit/tLBFGSSolver.cc
+      $<$<BOOL:${LIBDIRAC_FOUND}>:ddecal/test/unit/tLBFGSSolver.cc>
       ddecal/test/unit/tLinearSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
       ddecal/test/unit/tRotationConstraint.cc
@@ -786,6 +786,7 @@ if(BUILD_TESTING)
       steps/test/unit/tGainCal.cc
       steps/test/unit/tH5ParmPredict.cc
       steps/test/unit/tIDGImager.cc
+      $<$<BOOL:${HAVE_IDG}>:steps/test/unit/tIDGPredict.cc>
       steps/test/unit/tInputStep.cc
       steps/test/unit/tInterpolate.cc
       steps/test/unit/tMadFlagger.cc
@@ -810,9 +811,6 @@ if(BUILD_TESTING)
       steps/test/unit/tUpsample.cc
       steps/test/unit/tUVWFlagger.cc
       steps/test/unit/tWGridderPredict.cc)
-  if(HAVE_IDG)
-    list(APPEND TEST_FILENAMES steps/test/unit/tIDGPredict.cc)
-  endif()
   if(${Python3_NumPy_FOUND})
     list(APPEND TEST_FILENAMES "pythondp3/test/unit/tPyStep.cc")
   else(${Python3_NumPy_FOUND})
@@ -929,12 +927,12 @@ if(BUILD_TESTING)
     list(
       APPEND
       SLOW_TESTS
-      solvers/lbfgs_scalar
-      solvers/lbfgs_diagonal
-      solvers/lbfgs_full_jones
-      solvers/lbfgs_bounded_scalar
-      solvers/lbfgs_bounded_diagonal
-      solvers/lbfgs_bounded_full_jones)
+      lbfgs_solver/scalar
+      lbfgs_solver/diagonal
+      lbfgs_solver/full_jones
+      lbfgs_solver/bounded_scalar
+      lbfgs_solver/bounded_diagonal
+      lbfgs_solver/bounded_full_jones)
   endif()
 
   foreach(TEST ${SLOW_TESTS})

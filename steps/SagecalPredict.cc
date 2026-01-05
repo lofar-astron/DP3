@@ -1,24 +1,31 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <stddef.h>
+#include "SagecalPredict.h"
+
+#include <algorithm>
+#include <new>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <vector>
-#include <iostream>
 
-#include "../common/ParameterSet.h"
-#include "../common/Timer.h"
-#include "../common/StreamUtil.h"
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/Precession.h>
+#include <casacore/measures/Measures/Nutation.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/Table.h>
+#include <casacore/tables/Tables/TableRecord.h>
 
-#include "../parmdb/ParmDBMeta.h"
-#include "../parmdb/PatchInfo.h"
-#include "../parmdb/SkymodelToSourceDB.h"
-#include "../parmdb/SourceDB.h"
+#include <schaapcommon/h5parm/h5parm.h>
+
+#include <aocommon/threadpool.h>
 
 #include <dp3/base/DPInfo.h>
 #include <dp3/base/DPBuffer.h>
+
 #include "../base/FlagCounter.h"
 #include "../base/Simulate.h"
 #include "../base/Simulator.h"
@@ -28,28 +35,19 @@
 #include "../base/Telescope.h"
 #include "../base/ComponentInfo.h"
 
+#include "../common/ParameterSet.h"
+#include "../common/Timer.h"
+#include "../common/StreamUtil.h"
+
 #include "../model/SkyModelCache.h"
-
-#include <casacore/casa/Arrays/Cube.h>
-#include <casacore/tables/Tables/ArrayColumn.h>
-#include <casacore/tables/Tables/Table.h>
-#include <casacore/tables/Tables/TableRecord.h>
-#include <casacore/measures/Measures/MDirection.h>
-#include <casacore/measures/Measures/Precession.h>
-#include <casacore/measures/Measures/Nutation.h>
-#include <casacore/casa/Quanta/Quantum.h>
-
-#include <schaapcommon/h5parm/h5parm.h>
-
-#include <aocommon/threadpool.h>
-
-#include "SagecalPredict.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 using dp3::common::operator<<;
 
+using schaapcommon::h5parm::GainType;
 using schaapcommon::h5parm::H5Parm;
+using schaapcommon::h5parm::JonesParameters;
 using schaapcommon::h5parm::SolTab;
 
 namespace dp3 {
@@ -99,8 +97,6 @@ SagecalPredict::SagecalPredict(const common::ParameterSet& parset,
 }
 
 SagecalPredict::~SagecalPredict() {
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
-
   for (size_t patch_index = 0; patch_index < patch_list_.size();
        ++patch_index) {
     delete[] iodata_.cluster_arr_[patch_index].ll;
@@ -132,11 +128,8 @@ SagecalPredict::~SagecalPredict() {
     delete[] iodata_.cluster_arr_[patch_index].dec;
     delete[] iodata_.cluster_arr_[patch_index].p;
   }
-
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 }
 
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
 void SagecalPredict::BeamDataSingle::update_metadata(
     const DPInfo& _info, const double freq_f0, const size_t n_channels,
     std::vector<double>& freq_channel, const int beam_mode) {
@@ -313,7 +306,6 @@ SagecalPredict::BeamDataSingle::~BeamDataSingle() {
     free_elementcoeffs(ecoeff);
   }
 }
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
 schaapcommon::h5parm::H5Parm& SagecalPredict::H5ParmSingle::OpenFile(
     const std::string& h5_name) {
@@ -534,7 +526,6 @@ void SagecalPredict::init(
 
   source_list_ = makeSourceList(patch_list_);
   any_orientation_is_absolute_ = source_db.CheckAnyOrientationIsAbsolute();
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   const bool apply_beam = parset.getBool(prefix + "usebeammodel", false);
   const bool use_channel_freq = parset.getBool(prefix + "usechannelfreq", true);
   beam_mode_ = DOBEAM_NONE;
@@ -556,7 +547,6 @@ void SagecalPredict::init(
   }
   // Create singleton if apply_beam is set
   beam_data_ = SagecalPredict::BeamDataSingle::get_instance();
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 }
 
 void SagecalPredict::updateFromH5(const double startTime) {
@@ -673,7 +663,6 @@ void SagecalPredict::updateFromH5(const double startTime) {
 
 bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   // Determine the various sizes.
   const size_t nDr = patch_list_.size();
   const size_t nBl = getInfoOut().nbaselines();
@@ -826,7 +815,6 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
 #endif /* HAVE_LIBDIRAC_CUDA */
   writeData(buffer);
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
   timer_.stop();
   getNextStep()->process(std::move(buffer));
@@ -854,7 +842,6 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
     throw std::runtime_error("Casacore error.");
   }
 
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   const size_t n_directions = patch_list_.size();
   const size_t n_channels = _info.nchan();
   const size_t n_stations = _info.nantenna();
@@ -991,9 +978,7 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
       param_offset++;
     }
   }
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   // Update source positions
   for (size_t cl = 0; cl < n_directions; cl++) {
 #pragma GCC ivdep
@@ -1043,7 +1028,6 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
   if (beam_mode_ != DOBEAM_NONE) {
     readAuxData(_info);
   }
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
   // Setup reading the H5 solutions
   if (parm_on_disk_) {
@@ -1132,7 +1116,6 @@ void SagecalPredict::show(std::ostream& os) const {
 #ifdef HAVE_LIBDIRAC_CUDA
   os << "SagecalPredict (GPU) " << name_ << '\n';
 #endif
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   os << "  sourcedb:                " << source_db_name_ << '\n';
   os << "   number of directions:      " << patch_list_.size() << '\n';
   os << "   number of components:   " << source_list_.size() << '\n';
@@ -1177,7 +1160,6 @@ void SagecalPredict::show(std::ostream& os) const {
       break;
   }
   os << '\n';
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
   if (parm_on_disk_) {
     const H5Parm& h5_parm = H5ParmSingle::GetInstance().OpenFile(h5_name_);
     os << "H5 name " << h5_name_ << "\n";
@@ -1199,7 +1181,6 @@ base::Direction SagecalPredict::GetFirstDirection() const {
   return patch_list_.front()->Direction();
 }
 
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
 void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
   const size_t nBl = getInfoOut().nbaselines();
   const size_t nCh = getInfoOut().nchan();
@@ -1305,7 +1286,6 @@ void SagecalPredict::readAuxData(const DPInfo& _info) {
     throw std::runtime_error("Allocating memory failure");
   }
 }
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
 }  // namespace steps
 }  // namespace dp3

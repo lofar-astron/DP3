@@ -20,17 +20,14 @@
 
 #include "../base/ComponentInfo.h"
 
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
 #include <Dirac_radio.h>
 // Remove 'complex' def here as we do not need it afterwards
 #undef complex
-#endif
 
 namespace dp3 {
 namespace steps {
 
 class SagecalPredict : public ModelDataStep {
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   class IOData {
    public:
     IOData(){};
@@ -127,7 +124,6 @@ class SagecalPredict : public ModelDataStep {
     int beam_mode_{DOBEAM_NONE};
     elementcoeff ecoeff;
   };
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 
   // Singleton to open and read H5 file only by one thread
   // But H5Parm itself is assumed thread-safe
@@ -235,9 +231,10 @@ class SagecalPredict : public ModelDataStep {
   bool invert_{false};
   bool parm_on_disk_{false};
   bool use_amp_phase_{false};
-  GainType gain_type_;
-  JonesParameters::InterpolationType interp_type_;
-  JonesParameters::MissingAntennaBehavior missing_ant_behavior_;
+  schaapcommon::h5parm::GainType gain_type_;
+  schaapcommon::h5parm::JonesParameters::InterpolationType interp_type_;
+  schaapcommon::h5parm::JonesParameters::MissingAntennaBehavior
+      missing_ant_behavior_;
   /// Non-owning pointer to a solution table in the H5ParmSingle object.
   schaapcommon::h5parm::SolTab* sol_tab_;
   /// Non-owning pointer to a solution table in the H5ParmSingle object.
@@ -255,7 +252,6 @@ class SagecalPredict : public ModelDataStep {
 
   common::NSTimer timer_;
 
-#if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
   IOData iodata_;
   BeamData runtime_beam_data_;
   BeamDataSingle* beam_data_{nullptr};
@@ -264,7 +260,6 @@ class SagecalPredict : public ModelDataStep {
   void readAuxData(const base::DPInfo&);
   int beam_mode_{DOBEAM_NONE};
   std::vector<int> ignore_list_;
-#endif /* HAVE_LIBDIRAC || HAVE_LIBDIRAC_CUDA */
 };
 
 }  // namespace steps

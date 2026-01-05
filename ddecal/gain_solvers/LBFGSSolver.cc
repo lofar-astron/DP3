@@ -7,12 +7,10 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
 
-#ifdef HAVE_LIBDIRAC
 #include <Dirac.h>
 // Dirac.h incorrectly defines complex, we undefine it below
 // to avoid conflicts with xtensor/xcomplex.hpp
 #undef complex
-#endif /* HAVE_LIBDIRAC */
 
 #include <aocommon/dynamicfor.h>
 #include <xtensor/xadapt.hpp>
@@ -30,7 +28,6 @@ using aocommon::MC2x2Diag;
 namespace dp3 {
 namespace ddecal {
 
-#ifdef HAVE_LIBDIRAC
 namespace {
 
 struct lbfgs_fulljones_data {
@@ -650,6 +647,5 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
     result.iterations = iteration + 1;
   return result;
 }
-#endif /* HAVE_LIBDIRAC */
 }  // namespace ddecal
 }  // namespace dp3

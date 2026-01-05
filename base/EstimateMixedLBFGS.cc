@@ -16,12 +16,10 @@
 #include "../common/StreamUtil.h"  ///
 
 #include <iostream>
-#ifdef HAVE_LIBDIRAC
 #include <Dirac.h>
 // Dirac.h incorrectly defines "complex".
 // -> Undefining it avoids conflicts with std::complex.
 #undef complex
-#endif /* HAVE_LIBDIRAC */
 
 using dp3::common::operator<<;
 
@@ -29,7 +27,6 @@ namespace dp3 {
 namespace base {
 
 namespace {
-#ifdef HAVE_LIBDIRAC
 struct LBFGSData {
   std::size_t n_direction;
   std::size_t n_station;
@@ -452,10 +449,8 @@ void grad_func(double *unknowns, double *grad, int m, void *adata) {
   t->mix.backward(4, t->n_baseline);
   t->baselines -= t->n_baseline;
 }
-#endif /* HAVE_LIBDIRAC */
 }  // Unnamed namespace.
 
-#ifdef HAVE_LIBDIRAC
 bool estimate(std::size_t n_direction, std::size_t n_station,
               std::size_t n_baseline, std::size_t n_channel,
               const_cursor<Baseline> baselines,
@@ -486,7 +481,6 @@ bool estimate(std::size_t n_direction, std::size_t n_station,
   }
   return retval == 0;
 }
-#endif /* HAVE_LIBDIRAC */
 
 }  // namespace base
 }  // namespace dp3

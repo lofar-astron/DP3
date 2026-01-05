@@ -31,6 +31,8 @@
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
+using schaapcommon::h5parm::GainType;
+using schaapcommon::h5parm::JonesParameters;
 
 namespace dp3 {
 namespace steps {
