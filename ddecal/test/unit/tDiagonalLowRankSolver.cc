@@ -1,7 +1,7 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../gain_solvers/DiagonalLowRankSolver.h"
+#include "ddecal/gain_solvers/DiagonalLowRankSolver.h"
 
 #include <vector>
 #include <complex>

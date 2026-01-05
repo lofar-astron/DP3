@@ -3,7 +3,7 @@
 
 #include "SolverTester.h"
 
-#include "../../../ddecal/gain_solvers/SolverBase.h"
+#include "ddecal/gain_solvers/SolverBase.h"
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/threadpool.h>

@@ -1,29 +1,29 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../SolverFactory.h"
+#include "ddecal/SolverFactory.h"
 
-#include "../../Settings.h"
+#include "ddecal/Settings.h"
 
-#include "../../constraints/AntennaConstraint.h"
-#include "../../constraints/AmplitudeOnlyConstraint.h"
-#include "../../constraints/RotationAndDiagonalConstraint.h"
-#include "../../constraints/RotationConstraint.h"
+#include "ddecal/constraints/AntennaConstraint.h"
+#include "ddecal/constraints/AmplitudeOnlyConstraint.h"
+#include "ddecal/constraints/RotationAndDiagonalConstraint.h"
+#include "ddecal/constraints/RotationConstraint.h"
 
 #ifdef ENABLE_SCREENFITTER
-#include "../../constraints/ScreenConstraint.h"
+#include "ddecal/constraints/ScreenConstraint.h"
 #endif
 
-#include "../../constraints/SmoothnessConstraint.h"
-#include "../../constraints/TECConstraint.h"
-#include "../../gain_solvers/DiagonalSolver.h"
-#include "../../gain_solvers/FullJonesSolver.h"
-#include "../../gain_solvers/IterativeDiagonalSolver.h"
-#include "../../gain_solvers/IterativeFullJonesSolver.h"
-#include "../../gain_solvers/IterativeScalarSolver.h"
-#include "../../gain_solvers/ScalarSolver.h"
+#include "ddecal/constraints/SmoothnessConstraint.h"
+#include "ddecal/constraints/TECConstraint.h"
+#include "ddecal/gain_solvers/DiagonalSolver.h"
+#include "ddecal/gain_solvers/FullJonesSolver.h"
+#include "ddecal/gain_solvers/IterativeDiagonalSolver.h"
+#include "ddecal/gain_solvers/IterativeFullJonesSolver.h"
+#include "ddecal/gain_solvers/IterativeScalarSolver.h"
+#include "ddecal/gain_solvers/ScalarSolver.h"
 
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

@@ -6,11 +6,11 @@
 #include <boost/test/unit_test.hpp>
 #include <xtensor/xcomplex.hpp>
 
-#include "../../NullStokes.h"
-#include "../../ResultStep.h"
+#include "steps/NullStokes.h"
+#include "steps/ResultStep.h"
 #include "tStepCommon.h"
 #include "mock/ThrowStep.h"
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 BOOST_AUTO_TEST_SUITE(null_stokes)
 

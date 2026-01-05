@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "base/DPBuffer.h"
-#include "../../../ddecal/gain_solvers/BdaSolverBuffer.h"
-#include "../../../ddecal/gain_solvers/SolverTools.h"
+#include "ddecal/gain_solvers/BdaSolverBuffer.h"
+#include "ddecal/gain_solvers/SolverTools.h"
 
 namespace dp3 {
 namespace ddecal {

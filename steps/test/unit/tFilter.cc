@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../Filter.h"
+#include "steps/Filter.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
@@ -22,8 +22,8 @@
 #include "tStepCommon.h"
 #include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

@@ -2,14 +2,14 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../SourceDBUtil.h"
+#include "model/SourceDBUtil.h"
 
-#include "../../../base/PointSource.h"
-#include "../../../common/test/unit/fixtures/fDirectory.h"
-#include "../../../common/test/unit/fixtures/fSkymodel.h"
-#include "../../../parmdb/SourceDB.h"
+#include "base/PointSource.h"
+#include "common/test/unit/fixtures/fDirectory.h"
+#include "common/test/unit/fixtures/fSkymodel.h"
+#include "parmdb/SourceDB.h"
 
-#include "../../../base/test/LoggerFixture.h"
+#include "base/test/LoggerFixture.h"
 
 #include <boost/test/unit_test.hpp>
 

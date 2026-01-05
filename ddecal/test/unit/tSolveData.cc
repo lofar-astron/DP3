@@ -1,12 +1,12 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../gain_solvers/SolveData.h"
+#include "ddecal/gain_solvers/SolveData.h"
 
 #include "base/BdaBuffer.h"
 #include "base/DPBuffer.h"
-#include "../../gain_solvers/BdaSolverBuffer.h"
-#include "../../gain_solvers/SolverTools.h"
+#include "ddecal/gain_solvers/BdaSolverBuffer.h"
+#include "ddecal/gain_solvers/SolverTools.h"
 
 #include <boost/test/unit_test.hpp>
 

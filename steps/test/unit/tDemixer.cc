@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../Demixer.h"
+#include "steps/Demixer.h"
 
 #include <array>
 #include <cassert>
@@ -33,11 +33,11 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../../../base/test/LoggerFixture.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include "base/test/LoggerFixture.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
-#include "../../Averager.h"
+#include "steps/Averager.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

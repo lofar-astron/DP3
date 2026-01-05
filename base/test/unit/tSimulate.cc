@@ -5,7 +5,7 @@
 /// @brief Unit tests for functions in Simulate.cc.
 /// @author Sebastiaan van der Tol
 
-#include "../../Simulate.h"
+#include "base/Simulate.h"
 
 #include <algorithm>
 #include <array>

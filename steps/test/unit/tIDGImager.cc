@@ -1,7 +1,7 @@
 #include <boost/test/unit_test.hpp>
 #include <steps/IDGImager.h>
 #include <common/ParameterSet.h>
-#include "../../../base/test/LoggerFixture.h"
+#include "base/test/LoggerFixture.h"
 
 BOOST_AUTO_TEST_SUITE(
     IDGImager, *boost::unit_test::fixture<dp3::base::test::LoggerFixture>())

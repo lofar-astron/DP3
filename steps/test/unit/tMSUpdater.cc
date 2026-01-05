@@ -1,18 +1,18 @@
 // Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../MSUpdater.h"
+#include "steps/MSUpdater.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
 #include <casacore/tables/Tables/ArrayColumn.h>
 
-#include "../../MsReader.h"
-#include "../../NullStep.h"
-#include "../../../common/ParameterSet.h"
+#include "steps/MsReader.h"
+#include "steps/NullStep.h"
+#include "common/ParameterSet.h"
 
-#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "common/test/unit/fixtures/fDirectory.h"
 #include "mock/ThrowStep.h"
 #include "tStepCommon.h"
 

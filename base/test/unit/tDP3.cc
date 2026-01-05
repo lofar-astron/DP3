@@ -6,7 +6,7 @@
 
 #include "base/DP3.h"
 
-#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "common/test/unit/fixtures/fDirectory.h"
 
 #include <casacore/tables/Tables.h>
 #include <casacore/tables/Tables/TableIter.h>
@@ -22,9 +22,9 @@
 
 #include "../LoggerFixture.h"
 
-#include "../../../steps/NullStep.h"
-#include "../../../steps/test/unit/mock/MockInput.h"
-#include "../../../steps/test/unit/mock/ThrowStep.h"
+#include "steps/NullStep.h"
+#include "steps/test/unit/mock/MockInput.h"
+#include "steps/test/unit/mock/ThrowStep.h"
 
 using casacore::ArrayColumn;
 using casacore::Complex;

@@ -1,11 +1,11 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../GainCal.h"
+#include "steps/GainCal.h"
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 using dp3::steps::GainCal;
 

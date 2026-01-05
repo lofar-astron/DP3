@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../Upsample.h"
+#include "steps/Upsample.h"
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
@@ -19,9 +19,9 @@
 #include "mock/ThrowStep.h"
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
-#include "../../../base/UVWCalculator.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include "base/UVWCalculator.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

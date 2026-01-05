@@ -3,7 +3,7 @@
 
 #include "fSkymodel.h"
 
-#include "../../../parmdb/SkymodelToSourceDB.h"
+#include "parmdb/SkymodelToSourceDB.h"
 
 #include <boost/test/unit_test.hpp>
 

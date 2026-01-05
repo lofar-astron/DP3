@@ -2,7 +2,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../PyStep.h"
+#include "pythondp3/PyStep.h"
 
 #include <sstream>
 
@@ -13,10 +13,10 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../../../steps/test/unit/tStepCommon.h"
-#include "../../../steps/test/unit/mock/MockInput.h"
-#include "../../../steps/test/unit/mock/ThrowStep.h"
-#include "../../../common/ParameterSet.h"
+#include "steps/test/unit/tStepCommon.h"
+#include "steps/test/unit/mock/MockInput.h"
+#include "steps/test/unit/mock/ThrowStep.h"
+#include "common/ParameterSet.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;

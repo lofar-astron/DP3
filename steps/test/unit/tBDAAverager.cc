@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../BDAAverager.h"
+#include "steps/BDAAverager.h"
 
 #include <optional>
 #include <string>
@@ -9,8 +9,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "base/BdaBuffer.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/test/unit/tCommon.h"
+#include "common/ParameterSet.h"
+#include "common/test/unit/tCommon.h"
 #include "mock/MockStep.h"
 
 using dp3::base::BdaBuffer;

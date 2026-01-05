@@ -1,7 +1,7 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../OnePredict.h"
+#include "steps/OnePredict.h"
 
 #include <regex>
 
@@ -10,9 +10,9 @@
 
 #include "base/DP3.h"
 
-#include "../../../common/ParameterSet.h"
-#include "../../ApplyCal.h"
-#include "../../NullStep.h"
+#include "common/ParameterSet.h"
+#include "steps/ApplyCal.h"
+#include "steps/NullStep.h"
 
 #include "tPredict.h"
 #include "H5ParmFixture.h"

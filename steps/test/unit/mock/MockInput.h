@@ -5,7 +5,8 @@
 #define DP3_STEPS_TEST_UNIT_MOCKINPUT_H_
 
 #include <boost/test/unit_test.hpp>
-#include "../../../InputStep.h"
+
+#include "steps/InputStep.h"
 
 namespace dp3 {
 namespace steps {

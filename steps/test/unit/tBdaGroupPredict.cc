@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "tPredict.h"
-#include "../../BdaGroupPredict.h"
-#include "../../../common/ParameterSet.h"
+#include "steps/BdaGroupPredict.h"
+#include "common/ParameterSet.h"
 
 #include <boost/test/unit_test.hpp>
 

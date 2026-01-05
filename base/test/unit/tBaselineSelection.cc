@@ -10,10 +10,10 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../BaselineSelection.h"
+#include "base/BaselineSelection.h"
 #include "base/DPInfo.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/StreamUtil.h"
 
 using dp3::base::BaselineSelection;
 using dp3::base::DPInfo;

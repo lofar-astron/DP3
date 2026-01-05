@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include "../../Interpolate.h"
+#include "steps/Interpolate.h"
 
 #include <string>
 #include <vector>
@@ -14,8 +14,8 @@
 #include "tStepCommon.h"
 #include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 using dp3::base::DPInfo;
 using dp3::steps::Step;

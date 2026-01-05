@@ -4,8 +4,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "base/BdaBuffer.h"
-#include "../../../common/ParameterSet.h"
-#include "../../BdaExpander.h"
+#include "common/ParameterSet.h"
+#include "steps/BdaExpander.h"
 #include "mock/MockInput.h"
 #include "mock/MockStep.h"
 

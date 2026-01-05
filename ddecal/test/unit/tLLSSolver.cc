@@ -1,7 +1,7 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../linear_solvers/LLSSolver.h"
+#include "ddecal/linear_solvers/LLSSolver.h"
 
 #include <boost/test/unit_test.hpp>
 

@@ -12,8 +12,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "mock/MockInput.h"
-#include "../../PreFlagger.h"
-#include "../../../common/ParameterSet.h"
+#include "steps/PreFlagger.h"
+#include "common/ParameterSet.h"
 
 using dp3::steps::PreFlagger;
 

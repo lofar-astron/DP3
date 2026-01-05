@@ -11,13 +11,13 @@
 #include <boost/test/data/test_case.hpp>
 
 #include "mock/ThrowStep.h"
-#include "../../ScaleData.h"
+#include "steps/ScaleData.h"
 #include "base/DPBuffer.h"
 #include "base/BdaBuffer.h"
 #include "base/DPInfo.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
-#include "../../../common/StreamUtil.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
+#include "common/StreamUtil.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;

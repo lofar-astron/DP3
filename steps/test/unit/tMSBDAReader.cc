@@ -1,14 +1,14 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "../../MSBDAReader.h"
+#include "steps/MSBDAReader.h"
 
 #include <boost/test/unit_test.hpp>
 
 #include "mock/MockStep.h"
 #include "base/DPInfo.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/test/unit/fixtures/fDirectory.h"
+#include "common/ParameterSet.h"
+#include "common/test/unit/fixtures/fDirectory.h"
 
 using dp3::base::DPInfo;
 using dp3::common::ParameterSet;

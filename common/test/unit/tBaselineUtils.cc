@@ -1,4 +1,4 @@
-#include "../../baseline_indices.h"
+#include "common/baseline_indices.h"
 
 #include <boost/test/unit_test.hpp>
 

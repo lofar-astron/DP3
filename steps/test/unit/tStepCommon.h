@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "steps/Step.h"
-#include "../../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 namespace dp3 {
 namespace steps {

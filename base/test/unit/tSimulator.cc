@@ -8,10 +8,10 @@
 #include <boost/test/unit_test.hpp>
 #include <xtensor/xtensor.hpp>
 
-#include "../../Simulator.h"
-#include "../../Stokes.h"
+#include "base/Simulator.h"
+#include "base/Stokes.h"
 #include "base/Direction.h"
-#include "../../PointSource.h"
+#include "base/PointSource.h"
 
 namespace dp3 {
 namespace base {

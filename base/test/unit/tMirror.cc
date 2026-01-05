@@ -7,7 +7,7 @@
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Utilities/LinearSearch.h>
 
-#include "../../../common/StreamUtil.h"
+#include "common/StreamUtil.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

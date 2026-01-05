@@ -12,10 +12,10 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 
-#include "../../AOFlaggerStep.h"
-#include "../../../base/test/LoggerFixture.h"
-#include "../../../common/ParameterSet.h"
-#include "../../../common/StringTools.h"
+#include "steps/AOFlaggerStep.h"
+#include "base/test/LoggerFixture.h"
+#include "common/ParameterSet.h"
+#include "common/StringTools.h"
 
 #include "tStepCommon.h"
 #include "mock/MockInput.h"

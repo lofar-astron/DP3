@@ -3,7 +3,7 @@
 
 #ifdef USE_FAST_PREDICT
 
-#include "../../FastPredict.h"
+#include "steps/FastPredict.h"
 
 #include <regex>
 
@@ -12,9 +12,9 @@
 
 #include "base/DP3.h"
 
-#include "../../../common/ParameterSet.h"
-#include "../../ApplyCal.h"
-#include "../../NullStep.h"
+#include "common/ParameterSet.h"
+#include "steps/ApplyCal.h"
+#include "steps/NullStep.h"
 
 #include "tPredict.h"
 #include "H5ParmFixture.h"
