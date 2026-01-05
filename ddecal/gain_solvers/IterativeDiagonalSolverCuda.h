@@ -11,7 +11,7 @@
 #include "IterativeDiagonalSolver.h"
 #include "SolverBase.h"
 #include "SolveData.h"
-#include "../../common/Timer.h"
+#include "common/Timer.h"
 
 namespace dp3 {
 namespace ddecal {

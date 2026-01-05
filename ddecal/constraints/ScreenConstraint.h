@@ -4,14 +4,14 @@
 #ifndef DP3_DDECAL_SCREEN_CONSTRAINT_H_
 #define DP3_DDECAL_SCREEN_CONSTRAINT_H_
 
-#include "../../base/PhaseFitter.h"
+#include "base/PhaseFitter.h"
 #include "base/Direction.h"
 
 #include "Constraint.h"
 #include "PiercePoint.h"
 #include "KLFitter.h"
 
-#include "../../common/ParameterSet.h"
+#include "common/ParameterSet.h"
 
 #include <cmath>
 #include <complex>

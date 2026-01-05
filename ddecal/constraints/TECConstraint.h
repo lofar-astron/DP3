@@ -9,7 +9,7 @@
 #include "Constraint.h"
 #include "PieceWisePhaseFitter.h"
 
-#include "../../base/PhaseFitter.h"
+#include "base/PhaseFitter.h"
 
 #include <vector>
 #include <ostream>
