@@ -9,7 +9,7 @@
 
 #include "InputStep.h"
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 
 #include "../common/ParameterSet.h"
 

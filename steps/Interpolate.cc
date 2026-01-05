@@ -3,9 +3,9 @@
 
 #include "Interpolate.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
-#include <dp3/base/DP3.h>
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
+#include "base/DP3.h"
 
 #include "../common/buffered_lane.h"
 #include "../common/ParameterSet.h"

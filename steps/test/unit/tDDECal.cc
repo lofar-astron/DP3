@@ -11,7 +11,7 @@
 #include <xtensor/xmath.hpp>
 #include <xtensor/xview.hpp>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "../../MsReader.h"
 #include "../../MultiResultStep.h"

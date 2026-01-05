@@ -16,9 +16,9 @@
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
 
-#include <dp3/steps/Step.h>
-#include <dp3/base/DPBuffer.h>
-#include "../base/FlagCounter.h"
+#include "Step.h"
+#include "base/DPBuffer.h"
+#include "base/FlagCounter.h"
 #include "../common/Timer.h"
 #include "../parmdb/ParmFacade.h"
 #include "../parmdb/ParmSet.h"

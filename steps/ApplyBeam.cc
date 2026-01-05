@@ -12,7 +12,7 @@
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 // for matrix inversion
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 #include "../base/FlagCounter.h"
 #include "../base/Telescope.h"
 

@@ -18,8 +18,8 @@
 
 #include <xtensor/xview.hpp>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
 
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"

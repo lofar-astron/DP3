@@ -18,7 +18,7 @@
 #include <aocommon/xt/utensor.h>
 #include <casacore/tables/TaQL/TableParse.h>
 #include <casacore/tables/Tables/TableCopy.h>
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "mock/MockStep.h"
 #include "../../../common/ParameterSet.h"

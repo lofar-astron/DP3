@@ -6,7 +6,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "mock/MockStep.h"
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 #include "../../../common/ParameterSet.h"
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 

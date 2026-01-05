@@ -7,9 +7,9 @@
 #ifndef DP3_STEPS_SAGECALPREDICT_H_
 #define DP3_STEPS_SAGECALPREDICT_H_
 
-#include <dp3/steps/Step.h>
-#include <dp3/base/DP3.h>
-#include <dp3/base/DPBuffer.h>
+#include "steps/Step.h"
+#include "base/DP3.h"
+#include "base/DPBuffer.h"
 #include "../base/ModelComponent.h"
 #include "../base/PredictBuffer.h"
 #include "../common/ParameterSet.h"

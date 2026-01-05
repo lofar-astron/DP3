@@ -10,10 +10,10 @@
 #ifndef DP3_STEPS_AOFLAGGERSTEP_H_
 #define DP3_STEPS_AOFLAGGERSTEP_H_
 
-#include "../steps/InputStep.h"
+#include "InputStep.h"
 
-#include <dp3/base/DPBuffer.h>
-#include "../base/FlagCounter.h"
+#include "base/DPBuffer.h"
+#include "base/FlagCounter.h"
 
 #include <memory>
 #include <mutex>

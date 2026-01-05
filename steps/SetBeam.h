@@ -11,9 +11,9 @@
 
 #include <EveryBeam/beammode.h>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/Direction.h>
-#include <dp3/steps/Step.h>
+#include "base/DPBuffer.h"
+#include "base/Direction.h"
+#include "steps/Step.h"
 
 #include "../common/ParameterSet.h"
 

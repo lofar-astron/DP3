@@ -12,7 +12,7 @@
 #include <aocommon/staticfor.h>
 #include <xtensor/xtensor.hpp>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 
 namespace dp3 {
 namespace ddecal {

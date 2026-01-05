@@ -11,8 +11,8 @@
 
 #include <H5Cpp.h>
 
-#include <dp3/base/DP3.h>
-#include <dp3/steps/Step.h>
+#include "base/DP3.h"
+#include "steps/Step.h"
 
 #include "PyDpBuffer.h"
 #include "PyStep.h"

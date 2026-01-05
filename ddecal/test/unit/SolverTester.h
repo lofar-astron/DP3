@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 #include "../../../ddecal/gain_solvers/BdaSolverBuffer.h"
 #include "../../../ddecal/gain_solvers/SolverTools.h"
 

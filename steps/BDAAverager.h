@@ -8,7 +8,7 @@
 #ifndef DP3_STEPS_BDAAVERAGER_H_
 #define DP3_STEPS_BDAAVERAGER_H_
 
-#include <dp3/steps/Step.h>
+#include "Step.h"
 #include "../common/Timer.h"
 
 #include <vector>

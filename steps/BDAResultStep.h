@@ -4,8 +4,8 @@
 #ifndef DP3_BDARESULTSTEP_H
 #define DP3_BDARESULTSTEP_H
 
-#include <dp3/steps/Step.h>
-#include <dp3/base/BdaBuffer.h>
+#include "Step.h"
+#include "base/BdaBuffer.h"
 
 #include <cassert>
 #include <vector>

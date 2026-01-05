@@ -30,8 +30,8 @@
 #include "mock/MockInput.h"
 #include "mock/ThrowStep.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
 
 #include "../../../base/test/LoggerFixture.h"
 #include "../../../common/ParameterSet.h"

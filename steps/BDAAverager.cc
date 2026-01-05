@@ -8,7 +8,7 @@
 #include <cmath>
 #include <numeric>
 
-#include <dp3/base/BdaBuffer.h>
+#include "base/BdaBuffer.h"
 #include "../common/Epsilon.h"
 #include "../common/ParameterSet.h"
 

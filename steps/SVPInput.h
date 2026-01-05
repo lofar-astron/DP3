@@ -9,8 +9,8 @@
 
 #include <steps/InputStep.h>
 
-#include <dp3/steps/Step.h>
-#include <dp3/base/DPBuffer.h>
+#include "steps/Step.h"
+#include "base/DPBuffer.h"
 #include <base/SubtableWriter.h>
 #include <casacore/measures/Measures.h>
 #include <casacore/measures/Measures/MEpoch.h>

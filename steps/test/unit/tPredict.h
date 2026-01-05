@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include <dp3/base/Direction.h>
+#include "base/Direction.h"
 #include "test_config.h"
 
 namespace dp3 {

@@ -9,7 +9,7 @@
 
 #include <casacore/casa/Quanta/Quantum.h>
 
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 
 using dp3::base::DPInfo;
 

@@ -21,7 +21,7 @@
 #include <xtensor/xtensor.hpp>
 #include <xtensor/xview.hpp>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "../base/Apply.h"
 #include "../base/CursorUtilCasa.h"

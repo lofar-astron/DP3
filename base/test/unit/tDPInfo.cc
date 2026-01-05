@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include <dp3/base/DPInfo.h>
+#include "base/DPInfo.h"
 #include <boost/test/unit_test.hpp>
 
 using dp3::base::DPInfo;

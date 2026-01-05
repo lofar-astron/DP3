@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-#include <dp3/base/DPBuffer.h>
+#include "base/DPBuffer.h"
 
 namespace dp3::ddecal {
 

@@ -11,7 +11,7 @@
 #include <aocommon/logger.h>
 #include <H5Cpp.h>
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 int main(int argc, char* argv[]) {
   try {

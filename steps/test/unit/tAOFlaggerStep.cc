@@ -8,9 +8,9 @@
 #include <boost/test/unit_test.hpp>
 #include <xtensor/xcomplex.hpp>
 
-#include <dp3/base/DP3.h>
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/DP3.h"
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
 
 #include "../../AOFlaggerStep.h"
 #include "../../../base/test/LoggerFixture.h"

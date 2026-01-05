@@ -10,7 +10,7 @@
 
 #include "../../Simulator.h"
 #include "../../Stokes.h"
-#include <dp3/base/Direction.h>
+#include "base/Direction.h"
 #include "../../PointSource.h"
 
 namespace dp3 {

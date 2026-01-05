@@ -13,8 +13,8 @@
 
 #include <xtensor/xtensor.hpp>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/BdaBuffer.h>
+#include "base/DPBuffer.h"
+#include "base/BdaBuffer.h"
 
 #include <casacore/casa/Arrays/Cube.h>
 

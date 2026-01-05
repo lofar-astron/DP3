@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include <dp3/base/DP3.h>
+#include "base/DP3.h"
 
 #include "../../../common/test/unit/fixtures/fDirectory.h"
 

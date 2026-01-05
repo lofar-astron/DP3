@@ -5,7 +5,7 @@
 
 #include <pybind11/pybind11.h>
 
-#include <dp3/common/Fields.h>
+#include "common/Fields.h"
 
 using dp3::common::Fields;
 

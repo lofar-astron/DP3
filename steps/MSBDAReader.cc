@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <iostream>
 
-#include <dp3/base/BdaBuffer.h>
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/BdaBuffer.h"
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
 #include "../base/MS.h"
 
 #include "../common/ParameterSet.h"

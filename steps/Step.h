@@ -13,12 +13,12 @@
 #include <memory>
 #include <string>
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/BdaBuffer.h>
-#include <dp3/base/DPInfo.h>
-#include <dp3/base/Direction.h>
+#include "base/DPBuffer.h"
+#include "base/BdaBuffer.h"
+#include "base/DPInfo.h"
+#include "base/Direction.h"
 
-#include <dp3/common/Fields.h>
+#include "common/Fields.h"
 
 namespace dp3 {
 namespace steps {

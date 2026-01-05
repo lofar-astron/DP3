@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <dp3/base/BdaBuffer.h>
+#include "base/BdaBuffer.h"
 #include "../../MSBDAWriter.h"
 #include "../../MsReader.h"
 #include "../../../base/test/LoggerFixture.h"

@@ -9,7 +9,7 @@
 
 #include "ModelComponent.h"
 #include "ModelComponentVisitor.h"
-#include <dp3/base/Direction.h>
+#include "Direction.h"
 #include "Stokes.h"
 #include <vector>
 

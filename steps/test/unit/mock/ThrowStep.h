@@ -4,7 +4,7 @@
 #ifndef DP3_STEPS_TEST_UNIT_THROWSTEP_H_
 #define DP3_STEPS_TEST_UNIT_THROWSTEP_H_
 
-#include <dp3/steps/Step.h>
+#include "steps/Step.h"
 
 namespace dp3 {
 namespace steps {

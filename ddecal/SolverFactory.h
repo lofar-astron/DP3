@@ -4,9 +4,8 @@
 #ifndef DP3_SOLVERFACTORY_H
 #define DP3_SOLVERFACTORY_H
 
-#include <dp3/base/Direction.h>
-
 #include "../base/CalType.h"
+#include "../base/Direction.h"
 
 #include <array>
 #include <memory>

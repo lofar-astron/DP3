@@ -4,9 +4,8 @@
 #ifndef DP3_BASE_PATCH_H_
 #define DP3_BASE_PATCH_H_
 
-#include <dp3/base/Direction.h>
-
-#include "../base/ModelComponent.h"
+#include "base/Direction.h"
+#include "base/ModelComponent.h"
 
 #include <memory>
 #include <string>

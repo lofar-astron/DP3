@@ -4,7 +4,7 @@
 //
 // @author Ger van Diepen
 
-#include <dp3/steps/Step.h>
+#include "steps/Step.h"
 
 #include <cassert>
 

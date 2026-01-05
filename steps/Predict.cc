@@ -13,7 +13,7 @@
 #include "OnePredict.h"
 #include "FastPredict.h"
 
-#include <dp3/base/BdaBuffer.h>
+#include "base/BdaBuffer.h"
 
 #include "../common/ParameterSet.h"
 

@@ -16,7 +16,7 @@
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
-#include <dp3/common/Types.h>
+#include "../common/Types.h"
 
 namespace dp3 {
 namespace parmdb {

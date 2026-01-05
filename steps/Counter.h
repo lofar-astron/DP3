@@ -9,7 +9,7 @@
 #ifndef DP3_STEPS_COUNTER_H_
 #define DP3_STEPS_COUNTER_H_
 
-#include <dp3/steps/Step.h>
+#include "Step.h"
 
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"

@@ -10,10 +10,9 @@
 #include <string>
 #include <vector>
 
-#include <dp3/base/Direction.h>
-
 #include "linear_solvers/LLSSolver.h"
 #include "../base/CalType.h"
+#include "../base/Direction.h"
 #include "../common/ParameterSet.h"
 
 namespace dp3::ddecal {

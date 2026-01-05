@@ -15,7 +15,7 @@
 
 #include <casacore/casa/BasicMath/Math.h>
 
-#include <dp3/common/Types.h>
+#include "common/Types.h"
 
 #include "../base/FlagCounter.h"
 #include "../common/ParameterSet.h"

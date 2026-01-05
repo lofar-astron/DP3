@@ -4,14 +4,14 @@
 #ifndef DDECAL_BDA_SOLVER_BUFFER_H
 #define DDECAL_BDA_SOLVER_BUFFER_H
 
-#include <dp3/base/BdaBuffer.h>
-
-#include <aocommon/queue.h>
-
 #include <cmath>
 #include <complex>
 #include <memory>
 #include <vector>
+
+#include <aocommon/queue.h>
+
+#include "base/BdaBuffer.h"
 
 namespace dp3 {
 namespace ddecal {

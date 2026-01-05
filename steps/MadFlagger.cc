@@ -6,8 +6,8 @@
 
 #include "MadFlagger.h"
 
-#include <dp3/base/DPBuffer.h>
-#include <dp3/base/DPInfo.h>
+#include "base/DPBuffer.h"
+#include "base/DPInfo.h"
 
 #include "../common/Median.h"
 #include "../common/ParameterSet.h"

@@ -3,8 +3,8 @@
 
 #include "../../gain_solvers/SolveData.h"
 
-#include <dp3/base/BdaBuffer.h>
-#include <dp3/base/DPBuffer.h>
+#include "base/BdaBuffer.h"
+#include "base/DPBuffer.h"
 #include "../../gain_solvers/BdaSolverBuffer.h"
 #include "../../gain_solvers/SolverTools.h"
 

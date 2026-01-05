@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "ModelComponent.h"
-#include <dp3/base/Direction.h>
 #include "Stokes.h"
+#include "base/Direction.h"
 
 #include <memory>
 
