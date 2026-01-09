@@ -7,76 +7,62 @@
 #ifndef DP3_STEPS_SAGECALPREDICT_H_
 #define DP3_STEPS_SAGECALPREDICT_H_
 
-#include "steps/Step.h"
+#include <Dirac_radio.h>
+// Remove 'complex' def here as we do not need it afterwards
+#undef complex
+
 #include "base/DP3.h"
 #include "base/DPBuffer.h"
+#include "base/ComponentInfo.h"
 #include "base/ModelComponent.h"
 #include "base/PredictBuffer.h"
 #include "common/ParameterSet.h"
 #include "model/Patch.h"
 #include "model/SourceDBUtil.h"
+#include "steps/Step.h"
 #include "ApplyCal.h"
 #include "ResultStep.h"
-
-#include "base/ComponentInfo.h"
-
-#include <Dirac_radio.h>
-// Remove 'complex' def here as we do not need it afterwards
-#undef complex
 
 namespace dp3 {
 namespace steps {
 
 class SagecalPredict : public ModelDataStep {
-  class IOData {
-   public:
-    IOData(){};
-    std::vector<double> data_;
-    std::vector<double> u_;
-    std::vector<double> v_;
-    std::vector<double> w_;
-    std::vector<double> freqs_;
-    std::vector<clus_source_t> cluster_arr_;
-    std::vector<baseline_t> baseline_arr_;
+  struct IOData {
+    std::vector<double> data;
+    std::vector<double> u;
+    std::vector<double> v;
+    std::vector<double> w;
+    std::vector<double> frequencies;
+    std::vector<clus_source_t> cluster_arr;
+    std::vector<baseline_t> baseline_arr;
 
-    size_t n_baselines, n_stations, n_channels;
+    size_t n_baselines;
+    size_t n_stations;
+    size_t n_channels;
     double f0;
     double fdelta;
-
-   private:
   };
 
-  // The following class is unique to each instance of SagecalPredict
+  // The following struct is unique to each instance of SagecalPredict
   // and will be updated during each process() call.
-  class BeamData {
-   public:
-    BeamData() { sources_prec_ = false; }
+  struct BeamData {
     // The following are for beam calculation, but will be updated
     // at each process() call, hence they belong here
-    /* time coord UTC (s), size tileszx1,
-     convert from MJD (s) to JD (days) */
-    std::vector<double> time_utc_;
-    bool sources_prec_;
-    /* LOFAR HBA tile beam pointing center */
-    double b_ra0_;
-    double b_dec0_;
-    /* pointing center of beams (only one) (could be different from phase
-     * center) */
-    double p_ra0_;
-    double p_dec0_;
-
-   private:
+    // time coord UTC (s), convert from MJD (s) to JD (days)
+    std::vector<double> time_utc;
+    bool sources_are_precessed = false;
+    // LOFAR HBA tile beam pointing center
+    double tile_ra;
+    double tile_dec;
+    // pointing center of beams (only one) (can be different from phase center)
+    double reference_ra;
+    double reference_dec;
   };
 
-  // The following class is a singleton.
+  // The following struct is a singleton.
   // Only updated during updateInfo(), and reused (read only) by all
   // SagecalPredict instances.
-  class BeamDataSingle {
-   private:
-    explicit BeamDataSingle() : is_updated_(false) {}
-    std::mutex mutex_;
-    bool is_updated_;
-
+  struct BeamDataSingle {
    public:
     BeamDataSingle(BeamDataSingle const&) = delete;
     BeamDataSingle& operator=(BeamDataSingle const&) = delete;
@@ -92,37 +78,41 @@ class SagecalPredict : public ModelDataStep {
                          std::vector<double>& freq_channel,
                          const int beam_mode);
 
-    size_t n_stations_; /* N */
     /* number of elements in each station, size Nx1 */
-    std::vector<int> n_elem_;
+    std::vector<int> n_elem;
     /* position (ITRF) of stations (m)
      later changed to longitude,latitude,height (rad,rad,m) */
-    std::vector<double> sx_; /* x: size Nx1 */
-    std::vector<double> sy_; /* y: ... */
-    std::vector<double> sz_; /* z: ... */
+    std::vector<double> sx; /* x: size Nx1 */
+    std::vector<double> sy; /* y: ... */
     /* x,y,z coords of elements, projected, converted to ITRF (m) */
-    std::vector<double*> xx_; /* x coord pointer, size Nx1, each *x: x coord of
-                    station, size Nelem[]x1 */
-    std::vector<double*> yy_; /* y ... */
-    std::vector<double*> zz_; /* z ... */
+    std::vector<std::vector<double>> xx;
+    std::vector<std::vector<double>> yy;
+    std::vector<std::vector<double>> zz;
 
-    /* flag to indicate this beam is only a dipole */
-    bool is_dipole_;
+    /* pointers the xx, yy and zz data, since libdirac has double** arguments */
+    std::vector<double*> xx_ptr;
+    std::vector<double*> yy_ptr;
+    std::vector<double*> zz_ptr;
 
     /* beamformer type STAT_NONE, STAT_SINGLE or STAT_TILE */
-    int beamformer_type_;
+    int beamformer_type;
 
     /* LOFAR HBA tile beam pointing center */
-    double b_ra0_;
-    double b_dec0_;
+    double tile_ra;
+    double tile_dec;
 
     /* pointing center of beams (only one) (could be different from phase
      * center) */
-    double p_ra0_;
-    double p_dec0_;
+    double reference_ra;
+    double reference_dec;
 
-    int beam_mode_{DOBEAM_NONE};
+    int beam_mode{DOBEAM_NONE};
     elementcoeff ecoeff;
+
+   private:
+    explicit BeamDataSingle() : is_updated_(false) {}
+    std::mutex mutex_;
+    bool is_updated_;
   };
 
   // Singleton to open and read H5 file only by one thread
@@ -211,6 +201,10 @@ class SagecalPredict : public ModelDataStep {
   void init(const common::ParameterSet&, const std::string& prefix,
             const std::vector<std::string>& source_patterns);
 
+  void LoadData(const dp3::base::DPBuffer& buffer);
+  void WriteData(dp3::base::DPBuffer& buffer) const;
+  void ReadAuxData(const base::DPInfo&);
+
   std::string name_;     ///< The name of the step (or prefix)
   Operation operation_;  ///< Operation to use on the DATA column
 
@@ -255,10 +249,7 @@ class SagecalPredict : public ModelDataStep {
   IOData iodata_;
   BeamData runtime_beam_data_;
   BeamDataSingle* beam_data_{nullptr};
-  void loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer);
-  void writeData(std::unique_ptr<dp3::base::DPBuffer>& buffer);
-  void readAuxData(const base::DPInfo&);
-  int beam_mode_{DOBEAM_NONE};
+  int beam_mode{DOBEAM_NONE};
   std::vector<int> ignore_list_;
 };
 
