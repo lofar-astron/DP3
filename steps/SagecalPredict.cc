@@ -96,58 +96,55 @@ SagecalPredict::SagecalPredict(const common::ParameterSet& parset,
 }
 
 SagecalPredict::~SagecalPredict() {
-  for (size_t patch_index = 0; patch_index < patch_list_.size();
-       ++patch_index) {
-    delete[] iodata_.cluster_arr_[patch_index].ll;
-    delete[] iodata_.cluster_arr_[patch_index].mm;
-    delete[] iodata_.cluster_arr_[patch_index].nn;
-    delete[] iodata_.cluster_arr_[patch_index].sI;
-    delete[] iodata_.cluster_arr_[patch_index].sQ;
-    delete[] iodata_.cluster_arr_[patch_index].sU;
-    delete[] iodata_.cluster_arr_[patch_index].sV;
-    // Extra data
-    for (int ci = 0; ci < iodata_.cluster_arr_[patch_index].N; ci++) {
-      if (iodata_.cluster_arr_[patch_index].stype[ci] == STYPE_GAUSSIAN) {
-        exinfo_gaussian* exg = static_cast<exinfo_gaussian*>(
-            iodata_.cluster_arr_[patch_index].ex[ci]);
-        delete exg;
+  for (clus_source_t& patch : iodata_.cluster_arr) {
+    delete[] patch.ll;
+    delete[] patch.mm;
+    delete[] patch.nn;
+    delete[] patch.sI;
+    delete[] patch.sQ;
+    delete[] patch.sU;
+    delete[] patch.sV;
+    for (int ci = 0; ci < patch.N; ++ci) {
+      if (patch.stype[ci] == STYPE_GAUSSIAN) {
+        delete[] static_cast<exinfo_gaussian*>(patch.ex[ci]);
       }
     }
-    delete[] iodata_.cluster_arr_[patch_index].stype;
-    delete[] iodata_.cluster_arr_[patch_index].ex;
-    delete[] iodata_.cluster_arr_[patch_index].sI0;
-    delete[] iodata_.cluster_arr_[patch_index].sQ0;
-    delete[] iodata_.cluster_arr_[patch_index].sU0;
-    delete[] iodata_.cluster_arr_[patch_index].sV0;
-    delete[] iodata_.cluster_arr_[patch_index].f0;
-    delete[] iodata_.cluster_arr_[patch_index].spec_idx;
-    delete[] iodata_.cluster_arr_[patch_index].spec_idx1;
-    delete[] iodata_.cluster_arr_[patch_index].spec_idx2;
-    delete[] iodata_.cluster_arr_[patch_index].ra;
-    delete[] iodata_.cluster_arr_[patch_index].dec;
-    delete[] iodata_.cluster_arr_[patch_index].p;
+    delete[] patch.stype;
+    delete[] patch.ex;
+    delete[] patch.sI0;
+    delete[] patch.sQ0;
+    delete[] patch.sU0;
+    delete[] patch.sV0;
+    delete[] patch.f0;
+    delete[] patch.spec_idx;
+    delete[] patch.spec_idx1;
+    delete[] patch.spec_idx2;
+    delete[] patch.ra;
+    delete[] patch.dec;
+    delete[] patch.p;
   }
 }
 
 void SagecalPredict::BeamDataSingle::update_metadata(
     const DPInfo& _info, const double freq_f0, const size_t n_channels,
-    std::vector<double>& freq_channel, const int beam_mode) {
+    std::vector<double>& freq_channel, const int _beam_mode) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (is_updated_) {
     return;
   }
-  beam_mode_ = beam_mode;
-  n_stations_ = _info.nantenna();
+  beam_mode = _beam_mode;
+  const size_t n_stations = _info.nantenna();
   casacore::Table ms(_info.msName());
-  is_dipole_ = false;
   try {
-    n_elem_.resize(n_stations_);
-    sx_.resize(n_stations_);
-    sy_.resize(n_stations_);
-    sz_.resize(n_stations_);
-    xx_.resize(n_stations_);
-    yy_.resize(n_stations_);
-    zz_.resize(n_stations_);
+    n_elem.resize(n_stations);
+    sx.resize(n_stations);
+    sy.resize(n_stations);
+    xx.resize(n_stations);
+    yy.resize(n_stations);
+    zz.resize(n_stations);
+    xx_ptr.resize(n_stations);
+    yy_ptr.resize(n_stations);
+    zz_ptr.resize(n_stations);
   } catch (const std::bad_alloc& e) {
     throw std::runtime_error("Allocating memory failure");
   }
@@ -165,26 +162,25 @@ void SagecalPredict::BeamDataSingle::update_metadata(
   //      we know this is LBA
   bool isHBA = tileoffset.hasContent(0);
   /* read positions, also setup memory for element coords */
-  for (size_t ci = 0; ci < n_stations_; ci++) {
+  for (size_t ci = 0; ci < n_stations; ci++) {
     casacore::Array<double> _pos = position(ci);
     double* tx = _pos.data();
-    sz_[ci] = tx[2];
 
     casacore::MPosition stnpos(casacore::MVPosition(tx[0], tx[1], tx[2]),
                                casacore::MPosition::ITRF);
     casacore::Array<double> _radpos = stnpos.getAngle("rad").getValue();
     tx = _radpos.data();
 
-    sx_[ci] = tx[0];
-    sy_[ci] = tx[1];
-    n_elem_[ci] = offset.shape(ci)[1];
+    sx[ci] = tx[0];
+    sy[ci] = tx[1];
+    n_elem[ci] = offset.shape(ci)[1];
   }
 
   if (isHBA) {
-    beamformer_type_ = STAT_TILE;
-    double tempT[3 * HBA_TILE_SIZE];
+    beamformer_type = STAT_TILE;
+    std::vector<double> tempT(3 * HBA_TILE_SIZE);
     /* now read in element offsets, also transform them to local coordinates */
-    for (size_t ci = 0; ci < n_stations_; ci++) {
+    for (size_t ci = 0; ci < n_stations; ci++) {
       casacore::Array<double> _off = offset(ci);
       double* off = _off.data();
       casacore::Array<double> _coord = coord(ci);
@@ -194,45 +190,48 @@ void SagecalPredict::BeamDataSingle::update_metadata(
       casacore::Array<double> _toff = tileoffset(ci);
       double* toff = _toff.data();
 
-      double* tempC = new double[3 * n_elem_[ci]];
-      my_dgemm('T', 'N', n_elem_[ci], 3, 3, 1.0, off, 3, coordmat, 3, 0.0,
-               tempC, n_elem_[ci]);
+      const int n_elements = n_elem[ci];
+
+      std::vector<double> tempC(3 * n_elements);
+      my_dgemm('T', 'N', n_elements, 3, 3, 1.0, off, 3, coordmat, 3, 0.0,
+               tempC.data(), n_elements);
       my_dgemm('T', 'N', HBA_TILE_SIZE, 3, 3, 1.0, toff, 3, coordmat, 3, 0.0,
-               tempT, HBA_TILE_SIZE);
+               tempT.data(), HBA_TILE_SIZE);
 
       /* now inspect the element flag table to see if any of the dipoles are
        * flagged */
-      size_t fcount = 0;
-      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+      size_t flagged_count = 0;
+      for (int cj = 0; cj < n_elements; cj++) {
         if (ef[2 * cj] == 1 || ef[2 * cj + 1] == 1) {
-          fcount++;
+          flagged_count++;
         }
       }
 
-      xx_[ci] = new double[HBA_TILE_SIZE + (n_elem_[ci] - fcount)];
-      yy_[ci] = new double[HBA_TILE_SIZE + (n_elem_[ci] - fcount)];
-      zz_[ci] = new double[HBA_TILE_SIZE + (n_elem_[ci] - fcount)];
-      my_dcopy(HBA_TILE_SIZE, &tempT[0], 1, &(xx_[ci][0]), 1);
-      my_dcopy(HBA_TILE_SIZE, &tempT[HBA_TILE_SIZE], 1, &(yy_[ci][0]), 1);
-      my_dcopy(HBA_TILE_SIZE, &tempT[2 * HBA_TILE_SIZE], 1, &(zz_[ci][0]), 1);
+      xx[ci].resize(HBA_TILE_SIZE + (n_elements - flagged_count));
+      yy[ci].resize(HBA_TILE_SIZE + (n_elements - flagged_count));
+      zz[ci].resize(HBA_TILE_SIZE + (n_elements - flagged_count));
+      xx_ptr[ci] = xx[ci].data();
+      yy_ptr[ci] = yy[ci].data();
+      zz_ptr[ci] = zz[ci].data();
+      my_dcopy(HBA_TILE_SIZE, &tempT[0], 1, xx_ptr[ci], 1);
+      my_dcopy(HBA_TILE_SIZE, &tempT[HBA_TILE_SIZE], 1, yy_ptr[ci], 1);
+      my_dcopy(HBA_TILE_SIZE, &tempT[2 * HBA_TILE_SIZE], 1, zz_ptr[ci], 1);
       /* copy unflagged tile centroids */
-      fcount = 0;
-      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+      size_t unflagged_count = 0;
+      for (int cj = 0; cj < n_elements; cj++) {
         if (!(ef[2 * cj] == 1 || ef[2 * cj + 1] == 1)) {
-          xx_[ci][HBA_TILE_SIZE + fcount] = tempC[cj];
-          yy_[ci][HBA_TILE_SIZE + fcount] = tempC[cj + n_elem_[ci]];
-          zz_[ci][HBA_TILE_SIZE + fcount] = tempC[cj + 2 * n_elem_[ci]];
-          fcount++;
+          xx[ci][HBA_TILE_SIZE + unflagged_count] = tempC[cj];
+          yy[ci][HBA_TILE_SIZE + unflagged_count] = tempC[cj + n_elements];
+          zz[ci][HBA_TILE_SIZE + unflagged_count] = tempC[cj + 2 * n_elements];
+          unflagged_count++;
         }
       }
-      n_elem_[ci] = fcount;
-
-      delete[] tempC;
+      n_elem[ci] = unflagged_count;
     }
   } else { /* LBA */
-    beamformer_type_ = STAT_SINGLE;
+    beamformer_type = STAT_SINGLE;
     /* read in element offsets, also transform them to local coordinates */
-    for (size_t ci = 0; ci < n_stations_; ci++) {
+    for (size_t ci = 0; ci < n_stations; ci++) {
       casacore::Array<double> _off = offset(ci);
       double* off = _off.data();
       casacore::Array<double> _coord = coord(ci);
@@ -240,53 +239,55 @@ void SagecalPredict::BeamDataSingle::update_metadata(
       casacore::Array<bool> _eflag = eflag(ci);
       bool* ef = _eflag.data();
 
-      double* tempC = new double[3 * n_elem_[ci]];
-      my_dgemm('T', 'N', n_elem_[ci], 3, 3, 1.0, off, 3, coordmat, 3, 0.0,
-               tempC, n_elem_[ci]);
+      const int n_elements = n_elem[ci];
+
+      std::vector<double> tempC(3 * n_elements);
+      my_dgemm('T', 'N', n_elements, 3, 3, 1.0, off, 3, coordmat, 3, 0.0,
+               tempC.data(), n_elements);
 
       /* now inspect the element flag table to see if any of the dipoles are
        * flagged */
-      size_t fcount = 0;
-      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+      size_t flagged_count = 0;
+      for (int cj = 0; cj < n_elements; cj++) {
         if (ef[2 * cj] == 1 || ef[2 * cj + 1] == 1) {
-          fcount++;
+          flagged_count++;
         }
       }
 
-      xx_[ci] = new double[(n_elem_[ci] - fcount)];
-      yy_[ci] = new double[(n_elem_[ci] - fcount)];
-      zz_[ci] = new double[(n_elem_[ci] - fcount)];
+      xx[ci].resize(n_elements - flagged_count);
+      yy[ci].resize(n_elements - flagged_count);
+      zz[ci].resize(n_elements - flagged_count);
       /* copy unflagged coords for each dipole */
-      fcount = 0;
-      for (int cj = 0; cj < n_elem_[ci]; cj++) {
+      size_t unflagged_count = 0;
+      for (int cj = 0; cj < n_elements; cj++) {
         if (!(ef[2 * cj] == 1 || ef[2 * cj + 1] == 1)) {
-          xx_[ci][fcount] = tempC[cj];
-          yy_[ci][fcount] = tempC[cj + n_elem_[ci]];
-          zz_[ci][fcount] = tempC[cj + 2 * n_elem_[ci]];
-          fcount++;
+          xx[ci][unflagged_count] = tempC[cj];
+          yy[ci][unflagged_count] = tempC[cj + n_elements];
+          zz[ci][unflagged_count] = tempC[cj + 2 * n_elements];
+          unflagged_count++;
         }
       }
-      n_elem_[ci] = fcount;
-      delete[] tempC;
+      n_elem[ci] = unflagged_count;
     }
   }
   /* read beam pointing direction */
-  casacore::ROArrayColumn<double> point_dir(_field, "REFERENCE_DIR");
-  casacore::Array<double> pdir = point_dir(0);
-  double* pc = pdir.data();
-  p_ra0_ = pc[0];
-  p_dec0_ = pc[1];
+  casacore::ROArrayColumn<double> point_dir_column(_field, "REFERENCE_DIR");
+  const casacore::Array<double>& point_dir_array = point_dir_column(0);
+  const double* point_dir_data = point_dir_array.data();
+  reference_ra = point_dir_data[0];
+  reference_dec = point_dir_data[1];
   /* read tile beam pointing direction */
-  casacore::ROArrayColumn<double> tile_dir(_field, "LOFAR_TILE_BEAM_DIR");
-  casacore::Array<double> tdir = tile_dir(0);
-  double* tc = tdir.data();
-  b_ra0_ = tc[0];
-  b_dec0_ = tc[1];
+  casacore::ROArrayColumn<double> tile_dir_column(_field,
+                                                  "LOFAR_TILE_BEAM_DIR");
+  const casacore::Array<double>& tile_dir_array = tile_dir_column(0);
+  const double* tile_dir_data = tile_dir_array.data();
+  tile_ra = tile_dir_data[0];
+  tile_dec = tile_dir_data[1];
 
-  if (beam_mode_ == DOBEAM_FULL || beam_mode_ == DOBEAM_ELEMENT) {
+  if (beam_mode == DOBEAM_FULL || beam_mode == DOBEAM_ELEMENT) {
     set_elementcoeffs((freq_f0 < 100e6 ? ELEM_LBA : ELEM_HBA), freq_f0,
                       &ecoeff);
-  } else if (beam_mode_ == DOBEAM_FULL_WB || beam_mode_ == DOBEAM_ELEMENT_WB) {
+  } else if (beam_mode == DOBEAM_FULL_WB || beam_mode == DOBEAM_ELEMENT_WB) {
     set_elementcoeffs_wb((freq_f0 < 100e6 ? ELEM_LBA : ELEM_HBA),
                          freq_channel.data(), n_channels, &ecoeff);
   }
@@ -295,13 +296,8 @@ void SagecalPredict::BeamDataSingle::update_metadata(
 }
 
 SagecalPredict::BeamDataSingle::~BeamDataSingle() {
-  for (size_t ci = 0; ci < n_stations_; ci++) {
-    delete[] xx_[ci];
-    delete[] yy_[ci];
-    delete[] zz_[ci];
-  }
-  if (beam_mode_ == DOBEAM_FULL || beam_mode_ == DOBEAM_ELEMENT ||
-      beam_mode_ == DOBEAM_FULL_WB || beam_mode_ == DOBEAM_ELEMENT_WB) {
+  if (beam_mode == DOBEAM_FULL || beam_mode == DOBEAM_ELEMENT ||
+      beam_mode == DOBEAM_FULL_WB || beam_mode == DOBEAM_ELEMENT_WB) {
     free_elementcoeffs(ecoeff);
   }
 }
@@ -527,17 +523,17 @@ void SagecalPredict::init(
   any_orientation_is_absolute_ = source_db.CheckAnyOrientationIsAbsolute();
   const bool apply_beam = parset.getBool(prefix + "usebeammodel", false);
   const bool use_channel_freq = parset.getBool(prefix + "usechannelfreq", true);
-  beam_mode_ = DOBEAM_NONE;
+  beam_mode = DOBEAM_NONE;
   if (apply_beam) {
     const std::string& beam_mode_string =
         parset.getString(prefix + "beammode", "full");
     if (beam_mode_string == "full" || beam_mode_string == "default") {
-      beam_mode_ = use_channel_freq ? DOBEAM_FULL_WB : DOBEAM_FULL;
+      beam_mode = use_channel_freq ? DOBEAM_FULL_WB : DOBEAM_FULL;
     } else if (beam_mode_string == "arrayfactor" ||
                beam_mode_string == "array_factor") {
-      beam_mode_ = use_channel_freq ? DOBEAM_ARRAY_WB : DOBEAM_ARRAY;
+      beam_mode = use_channel_freq ? DOBEAM_ARRAY_WB : DOBEAM_ARRAY;
     } else if (beam_mode_string == "element") {
-      beam_mode_ = use_channel_freq ? DOBEAM_ELEMENT_WB : DOBEAM_ELEMENT;
+      beam_mode = use_channel_freq ? DOBEAM_ELEMENT_WB : DOBEAM_ELEMENT;
     }
   }
   if (parm_on_disk_) {
@@ -664,11 +660,11 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
   // Determine the various sizes.
   const size_t nDr = patch_list_.size();
-  const size_t nBl = getInfoOut().nbaselines();
-  const size_t nCh = getInfoOut().nchan();
-  const size_t nCr = getInfoOut().ncorr();
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
+  const size_t n_correlations = getInfoOut().ncorr();
 
-  buffer->GetData().resize({nBl, nCh, nCr});
+  buffer->GetData().resize({n_baselines, n_channels, n_correlations});
 
   if (parm_on_disk_ && (buffer->GetTime() > time_last_)) {
     timestep_ = 0;
@@ -677,46 +673,46 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   } else {
     timestep_++;
   }
-  loadData(buffer);
+  LoadData(*buffer);
 
   // update time
-  if (beam_mode_ != DOBEAM_NONE) {
-    runtime_beam_data_.time_utc_[0] = (buffer->GetTime() / 86400.0 + 2400000.5);
-    // precess source positions
-    if (!runtime_beam_data_.sources_prec_) {
+  if (beam_mode != DOBEAM_NONE) {
+    runtime_beam_data_.time_utc[0] = (buffer->GetTime() / 86400.0 + 2400000.5);
+    // Precess source positions (See https://en.wikipedia.org/wiki/Precession)
+    if (!runtime_beam_data_.sources_are_precessed) {
       casacore::Precession prec(casacore::Precession::IAU2000);
       casacore::RotMatrix rotat_prec(
-          prec(runtime_beam_data_.time_utc_[0] - 2400000.5));
+          prec(runtime_beam_data_.time_utc[0] - 2400000.5));
       casacore::Nutation nut(casacore::Nutation::IAU2000);
       casacore::RotMatrix rotat_nut(
-          nut(runtime_beam_data_.time_utc_[0] - 2400000.5));
+          nut(runtime_beam_data_.time_utc[0] - 2400000.5));
 
       casacore::RotMatrix rotat = rotat_prec * rotat_nut;
       rotat.transpose();
       for (size_t cl = 0; cl < nDr; cl++) {
 #pragma GCC ivdep
-        for (int ci = 0; ci < iodata_.cluster_arr_[cl].N; ci++) {
+        for (int ci = 0; ci < iodata_.cluster_arr[cl].N; ci++) {
           casacore::MVDirection pos(
-              casacore::Quantity(iodata_.cluster_arr_[cl].ra[ci], "rad"),
-              casacore::Quantity(iodata_.cluster_arr_[cl].dec[ci], "rad"));
+              casacore::Quantity(iodata_.cluster_arr[cl].ra[ci], "rad"),
+              casacore::Quantity(iodata_.cluster_arr[cl].dec[ci], "rad"));
           casacore::MVDirection newdir = rotat * pos;
-          iodata_.cluster_arr_[cl].ra[ci] = newdir.get()[0];
-          iodata_.cluster_arr_[cl].dec[ci] = newdir.get()[1];
+          iodata_.cluster_arr[cl].ra[ci] = newdir.get()[0];
+          iodata_.cluster_arr[cl].dec[ci] = newdir.get()[1];
         }
       }
       casacore::MVDirection pos(
-          casacore::Quantity(runtime_beam_data_.p_ra0_, "rad"),
-          casacore::Quantity(runtime_beam_data_.p_dec0_, "rad"));
+          casacore::Quantity(runtime_beam_data_.reference_ra, "rad"),
+          casacore::Quantity(runtime_beam_data_.reference_dec, "rad"));
       casacore::MVDirection newdir = rotat * pos;
-      runtime_beam_data_.p_ra0_ = newdir.get()[0];
-      runtime_beam_data_.p_dec0_ = newdir.get()[1];
+      runtime_beam_data_.reference_ra = newdir.get()[0];
+      runtime_beam_data_.reference_dec = newdir.get()[1];
       casacore::MVDirection pos_tile(
-          casacore::Quantity(runtime_beam_data_.b_ra0_, "rad"),
-          casacore::Quantity(runtime_beam_data_.b_dec0_, "rad"));
+          casacore::Quantity(runtime_beam_data_.tile_ra, "rad"),
+          casacore::Quantity(runtime_beam_data_.tile_dec, "rad"));
       casacore::MVDirection newdir_tile = rotat * pos_tile;
-      runtime_beam_data_.b_ra0_ = newdir_tile.get()[0];
-      runtime_beam_data_.b_dec0_ = newdir_tile.get()[1];
-      runtime_beam_data_.sources_prec_ = true;
+      runtime_beam_data_.tile_ra = newdir_tile.get()[0];
+      runtime_beam_data_.tile_dec = newdir_tile.get()[1];
+      runtime_beam_data_.sources_are_precessed = true;
     }
   }
 
@@ -731,89 +727,90 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
 #ifdef HAVE_LIBDIRAC /* mutually exclusive with HAVE_LIBDIRAC_CUDA */
   if (!parm_on_disk_) {
-    if (beam_mode_ == DOBEAM_NONE) {
+    if (beam_mode == DOBEAM_NONE) {
       predict_visibilities_multifreq(
-          iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-          iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
-          tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
-          nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
+          iodata_.u.data(), iodata_.v.data(), iodata_.w.data(),
+          iodata_.data.data(), iodata_.n_stations, iodata_.n_baselines,
+          tile_size, iodata_.baseline_arr.data(), iodata_.cluster_arr.data(),
+          nDr, iodata_.frequencies.data(), iodata_.n_channels, iodata_.fdelta,
           time_smear_factor, phase_ref_.dec, n_threads, operation);
     } else {
       predict_visibilities_multifreq_withbeam(
-          iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-          iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
-          tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
-          nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
-          time_smear_factor, phase_ref_.dec, beam_data_->beamformer_type_,
-          runtime_beam_data_.b_ra0_, runtime_beam_data_.b_dec0_,
-          runtime_beam_data_.p_ra0_, runtime_beam_data_.p_dec0_, iodata_.f0,
-          beam_data_->sx_.data(), beam_data_->sy_.data(),
-          runtime_beam_data_.time_utc_.data(), beam_data_->n_elem_.data(),
-          beam_data_->xx_.data(), beam_data_->yy_.data(),
-          beam_data_->zz_.data(), &beam_data_->ecoeff, beam_mode_, n_threads,
+          iodata_.u.data(), iodata_.v.data(), iodata_.w.data(),
+          iodata_.data.data(), iodata_.n_stations, iodata_.n_baselines,
+          tile_size, iodata_.baseline_arr.data(), iodata_.cluster_arr.data(),
+          nDr, iodata_.frequencies.data(), iodata_.n_channels, iodata_.fdelta,
+          time_smear_factor, phase_ref_.dec, beam_data_->beamformer_type,
+          runtime_beam_data_.tile_ra, runtime_beam_data_.tile_dec,
+          runtime_beam_data_.reference_ra, runtime_beam_data_.reference_dec,
+          iodata_.f0, beam_data_->sx.data(), beam_data_->sy.data(),
+          runtime_beam_data_.time_utc.data(), beam_data_->n_elem.data(),
+          beam_data_->xx_ptr.data(), beam_data_->yy_ptr.data(),
+          beam_data_->zz_ptr.data(), &beam_data_->ecoeff, beam_mode, n_threads,
           operation);
     }
   } else {
-    if (beam_mode_ == DOBEAM_NONE) {
+    if (beam_mode == DOBEAM_NONE) {
       predict_visibilities_multifreq_withsol(
-          iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-          &params_[timestep_ * 8 * nDr * nCh * getInfoOut().nantenna()],
-          iodata_.data_.data(), ignore_list_.data(), iodata_.n_stations,
-          iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
-          iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
+          iodata_.u.data(), iodata_.v.data(), iodata_.w.data(),
+          &params_[timestep_ * 8 * nDr * n_channels * getInfoOut().nantenna()],
+          iodata_.data.data(), ignore_list_.data(), iodata_.n_stations,
+          iodata_.n_baselines, tile_size, iodata_.baseline_arr.data(),
+          iodata_.cluster_arr.data(), nDr, iodata_.frequencies.data(),
           iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
           n_threads, operation, -1, 0.0, false);
 
     } else {
       predict_visibilities_multifreq_withsol_withbeam(
-          iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-          &params_[timestep_ * 8 * nDr * nCh * getInfoOut().nantenna()],
-          iodata_.data_.data(), ignore_list_.data(), iodata_.n_stations,
-          iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
-          iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
+          iodata_.u.data(), iodata_.v.data(), iodata_.w.data(),
+          &params_[timestep_ * 8 * nDr * n_channels * getInfoOut().nantenna()],
+          iodata_.data.data(), ignore_list_.data(), iodata_.n_stations,
+          iodata_.n_baselines, tile_size, iodata_.baseline_arr.data(),
+          iodata_.cluster_arr.data(), nDr, iodata_.frequencies.data(),
           iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
-          beam_data_->beamformer_type_, runtime_beam_data_.b_ra0_,
-          runtime_beam_data_.b_dec0_, runtime_beam_data_.p_ra0_,
-          runtime_beam_data_.p_dec0_, iodata_.f0, beam_data_->sx_.data(),
-          beam_data_->sy_.data(), runtime_beam_data_.time_utc_.data(),
-          beam_data_->n_elem_.data(), beam_data_->xx_.data(),
-          beam_data_->yy_.data(), beam_data_->zz_.data(), &beam_data_->ecoeff,
-          beam_mode_, n_threads, operation, -1, 0.0, false);
+          beam_data_->beamformer_type, runtime_beam_data_.tile_ra,
+          runtime_beam_data_.tile_dec, runtime_beam_data_.reference_ra,
+          runtime_beam_data_.reference_dec, iodata_.f0, beam_data_->sx.data(),
+          beam_data_->sy.data(), runtime_beam_data_.time_utc.data(),
+          beam_data_->n_elem.data(), beam_data_->xx_ptr.data(),
+          beam_data_->yy_ptr.data(), beam_data_->zz_ptr.data(),
+          &beam_data_->ecoeff, beam_mode, n_threads, operation, -1, 0.0, false);
     }
   }
 #endif                    /* HAVE_LIBDIRAC */
 #ifdef HAVE_LIBDIRAC_CUDA /* mutually exclusive with HAVE_LIBDIRAC */
   if (!parm_on_disk_) {
     predict_visibilities_multifreq_withbeam_gpu(
-        iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-        iodata_.data_.data(), iodata_.n_stations, iodata_.n_baselines,
-        tile_size, iodata_.baseline_arr_.data(), iodata_.cluster_arr_.data(),
-        nDr, iodata_.freqs_.data(), iodata_.n_channels, iodata_.fdelta,
-        time_smear_factor, phase_ref_.dec, beam_data_->beamformer_type_,
-        runtime_beam_data_.b_ra0_, runtime_beam_data_.b_dec0_,
-        runtime_beam_data_.p_ra0_, runtime_beam_data_.p_dec0_, iodata_.f0,
-        beam_data_->sx_.data(), beam_data_->sy_.data(),
-        runtime_beam_data_.time_utc_.data(), beam_data_->n_elem_.data(),
-        beam_data_->xx_.data(), beam_data_->yy_.data(), beam_data_->zz_.data(),
-        &beam_data_->ecoeff, beam_mode_, n_threads, operation);
+        iodata_.u.data(), iodata_.v.data(), iodata_.w.data(),
+        iodata_.data.data(), iodata_.n_stations, iodata_.n_baselines, tile_size,
+        iodata_.baseline_arr.data(), iodata_.cluster_arr.data(), nDr,
+        iodata_.frequencies.data(), iodata_.n_channels, iodata_.fdelta,
+        time_smear_factor, phase_ref_.dec, beam_data_->beamformer_type,
+        runtime_beam_data_.tile_ra, runtime_beam_data_.tile_dec,
+        runtime_beam_data_.reference_ra, runtime_beam_data_.reference_dec,
+        iodata_.f0, beam_data_->sx_.data(), beam_data_->sy_.data(),
+        runtime_beam_data_.time_utc.data(), beam_data_->n_elem_.data(),
+        beam_data_->xx_ptr.data(), beam_data_->yy_ptr.data(),
+        beam_data_->zz_ptr.data(), &beam_data_->ecoeff, beam_mode, n_threads,
+        operation);
   } else {
     predict_visibilities_withsol_withbeam_gpu(
-        iodata_.u_.data(), iodata_.v_.data(), iodata_.w_.data(),
-        &params_[timestep_ * 8 * nDr * nCh * getInfoOut().nantenna()],
-        iodata_.data_.data(), ignore_list_.data(), iodata_.n_stations,
-        iodata_.n_baselines, tile_size, iodata_.baseline_arr_.data(),
-        iodata_.cluster_arr_.data(), nDr, iodata_.freqs_.data(),
+        iodata_.u.data(), iodata_.v.data(), iodata_.w.data(),
+        &params_[timestep_ * 8 * nDr * n_channels * getInfoOut().nantenna()],
+        iodata_.data.data(), ignore_list_.data(), iodata_.n_stations,
+        iodata_.n_baselines, tile_size, iodata_.baseline_arr.data(),
+        iodata_.cluster_arr.data(), nDr, iodata_.frequencies.data(),
         iodata_.n_channels, iodata_.fdelta, time_smear_factor, phase_ref_.dec,
-        beam_data_->beamformer_type_, runtime_beam_data_.b_ra0_,
-        runtime_beam_data_.b_dec0_, runtime_beam_data_.p_ra0_,
-        runtime_beam_data_.p_dec0_, iodata_.f0, beam_data_->sx_.data(),
-        beam_data_->sy_.data(), runtime_beam_data_.time_utc_.data(),
-        beam_data_->n_elem_.data(), beam_data_->xx_.data(),
-        beam_data_->yy_.data(), beam_data_->zz_.data(), &beam_data_->ecoeff,
-        beam_mode_, n_threads, operation, -1, 0.0, false);
+        beam_data_->beamformer_type, runtime_beam_data_.tile_ra,
+        runtime_beam_data_.tile_dec, runtime_beam_data_.reference_ra,
+        runtime_beam_data_.reference_dec, iodata_.f0, beam_data_->sx_.data(),
+        beam_data_->sy_.data(), runtime_beam_data_.time_utc.data(),
+        beam_data_->n_elem_.data(), beam_data_->xx_ptr.data(),
+        beam_data_->yy_ptr.data(), beam_data_->zz_ptr.data(),
+        &beam_data_->ecoeff, beam_mode, n_threads, operation, -1, 0.0, false);
   }
 #endif /* HAVE_LIBDIRAC_CUDA */
-  writeData(buffer);
+  WriteData(*buffer);
 
   timer_.stop();
   getNextStep()->process(std::move(buffer));
@@ -856,13 +853,13 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
   }
 
   try {
-    iodata_.cluster_arr_.resize(n_directions);
-    iodata_.baseline_arr_.resize(n_baselines);
-    iodata_.data_.resize(n_baselines * n_correlations * n_channels * 2);
-    iodata_.u_.resize(n_baselines);
-    iodata_.v_.resize(n_baselines);
-    iodata_.w_.resize(n_baselines);
-    iodata_.freqs_.resize(n_channels);
+    iodata_.cluster_arr.resize(n_directions);
+    iodata_.baseline_arr.resize(n_baselines);
+    iodata_.data.resize(n_baselines * n_correlations * n_channels * 2);
+    iodata_.u.resize(n_baselines);
+    iodata_.v.resize(n_baselines);
+    iodata_.w.resize(n_baselines);
+    iodata_.frequencies.resize(n_channels);
     iodata_.n_baselines = n_baselines;
     iodata_.n_stations = n_stations;
     iodata_.n_channels = n_channels;
@@ -879,33 +876,33 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
           return item.second == patch_list_[patch_index];
         });
 
-    iodata_.cluster_arr_[patch_index].id = patch_index;
-    iodata_.cluster_arr_[patch_index].nchunk = 1;
-    iodata_.cluster_arr_[patch_index].N = n_sources;
+    iodata_.cluster_arr[patch_index].id = patch_index;
+    iodata_.cluster_arr[patch_index].nchunk = 1;
+    iodata_.cluster_arr[patch_index].N = n_sources;
     try {
-      iodata_.cluster_arr_[patch_index].ll = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].mm = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].nn = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].sI = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].sQ = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].sU = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].sV = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].stype = new unsigned char[n_sources];
+      iodata_.cluster_arr[patch_index].ll = new double[n_sources];
+      iodata_.cluster_arr[patch_index].mm = new double[n_sources];
+      iodata_.cluster_arr[patch_index].nn = new double[n_sources];
+      iodata_.cluster_arr[patch_index].sI = new double[n_sources];
+      iodata_.cluster_arr[patch_index].sQ = new double[n_sources];
+      iodata_.cluster_arr[patch_index].sU = new double[n_sources];
+      iodata_.cluster_arr[patch_index].sV = new double[n_sources];
+      iodata_.cluster_arr[patch_index].stype = new unsigned char[n_sources];
       // Extra data (stored as a generic pointer)
-      iodata_.cluster_arr_[patch_index].ex = new void*[n_sources];
-      iodata_.cluster_arr_[patch_index].sI0 = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].sQ0 = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].sU0 = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].sV0 = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].f0 = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].spec_idx = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].spec_idx1 = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].spec_idx2 = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].ra = new double[n_sources];
-      iodata_.cluster_arr_[patch_index].dec = new double[n_sources];
+      iodata_.cluster_arr[patch_index].ex = new void*[n_sources];
+      iodata_.cluster_arr[patch_index].sI0 = new double[n_sources];
+      iodata_.cluster_arr[patch_index].sQ0 = new double[n_sources];
+      iodata_.cluster_arr[patch_index].sU0 = new double[n_sources];
+      iodata_.cluster_arr[patch_index].sV0 = new double[n_sources];
+      iodata_.cluster_arr[patch_index].f0 = new double[n_sources];
+      iodata_.cluster_arr[patch_index].spec_idx = new double[n_sources];
+      iodata_.cluster_arr[patch_index].spec_idx1 = new double[n_sources];
+      iodata_.cluster_arr[patch_index].spec_idx2 = new double[n_sources];
+      iodata_.cluster_arr[patch_index].ra = new double[n_sources];
+      iodata_.cluster_arr[patch_index].dec = new double[n_sources];
 
-      iodata_.cluster_arr_[patch_index].p =
-          new int[iodata_.cluster_arr_[patch_index].nchunk];
+      iodata_.cluster_arr[patch_index].p =
+          new int[iodata_.cluster_arr[patch_index].nchunk];
     } catch (const std::bad_alloc& e) {
       throw std::runtime_error("Allocating memory failure");
     }
@@ -918,39 +915,39 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
         auto source = source_list_[scan_index].first;
         component_info.inspect(source);
         // Insert this source
-        iodata_.cluster_arr_[patch_index].ra[src_index] = component_info.ra_;
-        iodata_.cluster_arr_[patch_index].dec[src_index] = component_info.dec_;
-        iodata_.cluster_arr_[patch_index].sI[src_index] = component_info.sI_;
-        iodata_.cluster_arr_[patch_index].sQ[src_index] = component_info.sQ_;
-        iodata_.cluster_arr_[patch_index].sU[src_index] = component_info.sU_;
-        iodata_.cluster_arr_[patch_index].sV[src_index] = component_info.sV_;
-        iodata_.cluster_arr_[patch_index].sI0[src_index] = component_info.sI_;
-        iodata_.cluster_arr_[patch_index].sQ0[src_index] = component_info.sQ_;
-        iodata_.cluster_arr_[patch_index].sU0[src_index] = component_info.sU_;
-        iodata_.cluster_arr_[patch_index].sV0[src_index] = component_info.sV_;
-        iodata_.cluster_arr_[patch_index].stype[src_index] =
+        iodata_.cluster_arr[patch_index].ra[src_index] = component_info.ra_;
+        iodata_.cluster_arr[patch_index].dec[src_index] = component_info.dec_;
+        iodata_.cluster_arr[patch_index].sI[src_index] = component_info.sI_;
+        iodata_.cluster_arr[patch_index].sQ[src_index] = component_info.sQ_;
+        iodata_.cluster_arr[patch_index].sU[src_index] = component_info.sU_;
+        iodata_.cluster_arr[patch_index].sV[src_index] = component_info.sV_;
+        iodata_.cluster_arr[patch_index].sI0[src_index] = component_info.sI_;
+        iodata_.cluster_arr[patch_index].sQ0[src_index] = component_info.sQ_;
+        iodata_.cluster_arr[patch_index].sU0[src_index] = component_info.sU_;
+        iodata_.cluster_arr[patch_index].sV0[src_index] = component_info.sV_;
+        iodata_.cluster_arr[patch_index].stype[src_index] =
             (component_info.source_type_ == dp3::base::ComponentInfo::kPoint
                  ? STYPE_POINT
                  : STYPE_GAUSSIAN);
 
-        iodata_.cluster_arr_[patch_index].spec_idx[src_index] =
+        iodata_.cluster_arr[patch_index].spec_idx[src_index] =
             component_info.spectrum_[0];
-        iodata_.cluster_arr_[patch_index].spec_idx1[src_index] =
+        iodata_.cluster_arr[patch_index].spec_idx1[src_index] =
             component_info.spectrum_[1] / log(10.0);
-        iodata_.cluster_arr_[patch_index].spec_idx2[src_index] =
+        iodata_.cluster_arr[patch_index].spec_idx2[src_index] =
             component_info.spectrum_[2] / (log(10.0) * log(10.0));
-        iodata_.cluster_arr_[patch_index].f0[src_index] = component_info.f0_;
-        if (iodata_.cluster_arr_[patch_index].stype[src_index] ==
+        iodata_.cluster_arr[patch_index].f0[src_index] = component_info.f0_;
+        if (iodata_.cluster_arr[patch_index].stype[src_index] ==
             STYPE_GAUSSIAN) {
           exinfo_gaussian* exg = new exinfo_gaussian;
           // The following will be updated later
           exg->eX = component_info.g_major_;
           exg->eY = component_info.g_minor_;
           exg->eP = component_info.g_pa_;
-          iodata_.cluster_arr_[patch_index].ex[src_index] =
+          iodata_.cluster_arr[patch_index].ex[src_index] =
               static_cast<void*>(exg);
         } else {
-          iodata_.cluster_arr_[patch_index].ex[src_index] = nullptr;
+          iodata_.cluster_arr[patch_index].ex[src_index] = nullptr;
         }
         src_index++;
       }
@@ -962,7 +959,7 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
   iodata_.f0 = 0.0;
   iodata_.fdelta = 0.0;
   for (size_t ch = 0; ch < n_channels; ch++) {
-    iodata_.freqs_[ch] = freqs[ch];
+    iodata_.frequencies[ch] = freqs[ch];
     iodata_.f0 += freqs[ch];
     iodata_.fdelta += widths[ch];
   }
@@ -970,9 +967,9 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
 
   int param_offset = 0;
   for (size_t patch_index = 0; patch_index < n_directions; ++patch_index) {
-    for (int chunk = 0; chunk < iodata_.cluster_arr_[patch_index].nchunk;
+    for (int chunk = 0; chunk < iodata_.cluster_arr[patch_index].nchunk;
          chunk++) {
-      iodata_.cluster_arr_[patch_index].p[chunk] =
+      iodata_.cluster_arr[patch_index].p[chunk] =
           8 * param_offset * iodata_.n_stations;
       param_offset++;
     }
@@ -981,36 +978,36 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
   // Update source positions
   for (size_t cl = 0; cl < n_directions; cl++) {
 #pragma GCC ivdep
-    for (int ci = 0; ci < iodata_.cluster_arr_[cl].N; ci++) {
-      const double c_dec = cos(iodata_.cluster_arr_[cl].dec[ci]);
-      const double s_dec = sin(iodata_.cluster_arr_[cl].dec[ci]);
+    for (int ci = 0; ci < iodata_.cluster_arr[cl].N; ci++) {
+      const double c_dec = cos(iodata_.cluster_arr[cl].dec[ci]);
+      const double s_dec = sin(iodata_.cluster_arr[cl].dec[ci]);
       const double c_dec0 = cos(phase_ref_.dec);
       const double s_dec0 = sin(phase_ref_.dec);
       const double c_radiff =
-          cos(iodata_.cluster_arr_[cl].ra[ci] - phase_ref_.ra);
+          cos(iodata_.cluster_arr[cl].ra[ci] - phase_ref_.ra);
       const double s_radiff =
-          sin(iodata_.cluster_arr_[cl].ra[ci] - phase_ref_.ra);
-      iodata_.cluster_arr_[cl].ll[ci] = c_dec * s_radiff;
-      iodata_.cluster_arr_[cl].mm[ci] =
+          sin(iodata_.cluster_arr[cl].ra[ci] - phase_ref_.ra);
+      iodata_.cluster_arr[cl].ll[ci] = c_dec * s_radiff;
+      iodata_.cluster_arr[cl].mm[ci] =
           s_dec * c_dec0 - c_dec * s_dec0 * c_radiff;
-      iodata_.cluster_arr_[cl].nn[ci] =
+      iodata_.cluster_arr[cl].nn[ci] =
           s_dec * s_dec0 + c_dec * c_dec0 * c_radiff - 1.0;
-      if (iodata_.cluster_arr_[cl].stype[ci] == STYPE_GAUSSIAN) {
+      if (iodata_.cluster_arr[cl].stype[ci] == STYPE_GAUSSIAN) {
         exinfo_gaussian* exg =
-            static_cast<exinfo_gaussian*>(iodata_.cluster_arr_[cl].ex[ci]);
+            static_cast<exinfo_gaussian*>(iodata_.cluster_arr[cl].ex[ci]);
         exg->eX /= (2.0 * (sqrt(2.0 * log(2.0))));
         exg->eY /= (2.0 * (sqrt(2.0 * log(2.0))));
         exg->eP += M_PI_2;
         if (any_orientation_is_absolute_) {
-          const double phi = acos(iodata_.cluster_arr_[cl].nn[ci] + 1.0);
-          const double xi = atan2(-iodata_.cluster_arr_[cl].ll[ci],
-                                  iodata_.cluster_arr_[cl].mm[ci]);
+          const double phi = acos(iodata_.cluster_arr[cl].nn[ci] + 1.0);
+          const double xi = atan2(-iodata_.cluster_arr[cl].ll[ci],
+                                  iodata_.cluster_arr[cl].mm[ci]);
           /* negate angles */
           exg->cxi = cos(xi);
           exg->sxi = sin(-xi);
           exg->cphi = cos(phi);
           exg->sphi = sin(-phi);
-          if (iodata_.cluster_arr_[cl].nn[ci] + 1.0 < PROJ_CUT) {
+          if (iodata_.cluster_arr[cl].nn[ci] + 1.0 < PROJ_CUT) {
             /* only then consider projection */
             exg->use_projection = 1;
           } else {
@@ -1024,8 +1021,8 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
   }
 
   // If beam calculation is enabled
-  if (beam_mode_ != DOBEAM_NONE) {
-    readAuxData(_info);
+  if (beam_mode != DOBEAM_NONE) {
+    ReadAuxData(_info);
   }
 
   // Setup reading the H5 solutions
@@ -1120,7 +1117,7 @@ void SagecalPredict::show(std::ostream& os) const {
   os << "   number of components:   " << source_list_.size() << '\n';
   os << "   correct freq smearing:  " << std::boolalpha << true << '\n';
   os << "  apply beam:              ";
-  switch (beam_mode_) {
+  switch (beam_mode) {
     case DOBEAM_NONE:
       os << std::boolalpha << false << '\n';
       break;
@@ -1180,50 +1177,49 @@ base::Direction SagecalPredict::GetFirstDirection() const {
   return patch_list_.front()->Direction();
 }
 
-void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
-  const size_t nBl = getInfoOut().nbaselines();
-  const size_t nCh = getInfoOut().nchan();
-  [[maybe_unused]] const size_t nCr = getInfoOut().ncorr();
+void SagecalPredict::LoadData(const dp3::base::DPBuffer& buffer) {
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
 
-  assert(iodata_.n_baselines >= nBl);
+  assert(iodata_.n_baselines >= n_baselines);
   assert(iodata_.n_stations == getInfoOut().nantenna());
-  assert(iodata_.n_channels == nCh);
-  assert(4 == nCr);
+  assert(iodata_.n_channels == n_channels);
+  assert(4 == getInfoOut().ncorr());
 
-  const DPBuffer::UvwType& uvw = buffer->GetUvw();
+  const DPBuffer::UvwType& uvw = buffer.GetUvw();
   size_t row0 = 0;
   // load data, skipping autocorrelations
-  for (size_t bl = 0; bl < nBl; bl++) {
+  for (size_t bl = 0; bl < n_baselines; bl++) {
     uint ant1 = getInfoOut().getAnt1()[bl];
     uint ant2 = getInfoOut().getAnt2()[bl];
     if (ant1 != ant2) {
-      // shape nBl x 3
-      iodata_.u_[row0] = uvw(bl, 0);
-      iodata_.v_[row0] = uvw(bl, 1);
-      iodata_.w_[row0] = uvw(bl, 2);
+      // shape n_baselines x 3
+      iodata_.u[row0] = uvw(bl, 0);
+      iodata_.v[row0] = uvw(bl, 1);
+      iodata_.w[row0] = uvw(bl, 2);
 
-      iodata_.baseline_arr_[row0].sta1 = ant1;
-      iodata_.baseline_arr_[row0].sta2 = ant2;
-      iodata_.baseline_arr_[row0].flag = 0;
+      iodata_.baseline_arr[row0].sta1 = ant1;
+      iodata_.baseline_arr[row0].sta2 = ant2;
+      iodata_.baseline_arr[row0].flag = 0;
 
 #pragma GCC ivdep
-      for (uint ch = 0; ch < nCh; ch++) {
-        const std::complex<float>* data_pointer = &buffer->GetData()(bl, ch, 0);
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 0] =
+      for (uint ch = 0; ch < n_channels; ch++) {
+        const std::complex<float>* data_pointer = &buffer.GetData()(bl, ch, 0);
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 0] =
             data_pointer[0].real();
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 1] =
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 1] =
             data_pointer[0].imag();
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 2] =
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 2] =
             data_pointer[1].real();
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 3] =
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 3] =
             data_pointer[1].imag();
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 4] =
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 4] =
             data_pointer[2].real();
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 5] =
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 5] =
             data_pointer[2].imag();
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 6] =
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 6] =
             data_pointer[3].real();
-        iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 7] =
+        iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 7] =
             data_pointer[3].imag();
       }
       row0++;
@@ -1232,55 +1228,55 @@ void SagecalPredict::loadData(std::unique_ptr<dp3::base::DPBuffer>& buffer) {
 
   /* rescale u,v,w by 1/c */
   const double inv_c = 1.0 / casacore::C::c;
-  my_dscal(iodata_.n_baselines, inv_c, iodata_.u_.data());
-  my_dscal(iodata_.n_baselines, inv_c, iodata_.v_.data());
-  my_dscal(iodata_.n_baselines, inv_c, iodata_.w_.data());
+  my_dscal(iodata_.n_baselines, inv_c, iodata_.u.data());
+  my_dscal(iodata_.n_baselines, inv_c, iodata_.v.data());
+  my_dscal(iodata_.n_baselines, inv_c, iodata_.w.data());
 }
 
-void SagecalPredict::writeData(std::unique_ptr<DPBuffer>& buffer) {
-  const size_t nBl = getInfoOut().nbaselines();
-  const size_t nCh = getInfoOut().nchan();
+void SagecalPredict::WriteData(DPBuffer& buffer) const {
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
 
-  assert(iodata_.n_baselines >= nBl);
-  assert(iodata_.n_channels == nCh);
+  assert(iodata_.n_baselines >= n_baselines);
+  assert(iodata_.n_channels == n_channels);
 
-  DPBuffer::DataType& data = buffer->GetData();
+  DPBuffer::DataType& data = buffer.GetData();
   size_t row0 = 0;
   // load data, skipping autocorrelations
-  for (size_t bl = 0; bl < nBl; bl++) {
+  for (size_t bl = 0; bl < n_baselines; bl++) {
     uint ant1 = getInfoOut().getAnt1()[bl];
     uint ant2 = getInfoOut().getAnt2()[bl];
     if (ant1 != ant2) {
 #pragma GCC ivdep
-      for (uint ch = 0; ch < nCh; ch++) {
+      for (uint ch = 0; ch < n_channels; ch++) {
         data(bl, ch, 0) = std::complex<float>(
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 0],
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 1]);
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 0],
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 1]);
         data(bl, ch, 1) = std::complex<float>(
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 2],
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 3]);
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 2],
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 3]);
         data(bl, ch, 2) = std::complex<float>(
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 4],
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 5]);
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 4],
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 5]);
         data(bl, ch, 3) = std::complex<float>(
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 6],
-            iodata_.data_[iodata_.n_baselines * 8 * ch + row0 * 8 + 7]);
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 6],
+            iodata_.data[iodata_.n_baselines * 8 * ch + row0 * 8 + 7]);
       }
       row0++;
     }
   }
 }
 
-void SagecalPredict::readAuxData(const DPInfo& _info) {
+void SagecalPredict::ReadAuxData(const DPInfo& _info) {
   beam_data_->update_metadata(_info, iodata_.f0, iodata_.n_channels,
-                              iodata_.freqs_, beam_mode_);
-  runtime_beam_data_.p_ra0_ = beam_data_->p_ra0_;
-  runtime_beam_data_.p_dec0_ = beam_data_->p_dec0_;
-  runtime_beam_data_.b_ra0_ = beam_data_->b_ra0_;
-  runtime_beam_data_.b_dec0_ = beam_data_->b_dec0_;
+                              iodata_.frequencies, beam_mode);
+  runtime_beam_data_.reference_ra = beam_data_->reference_ra;
+  runtime_beam_data_.reference_dec = beam_data_->reference_dec;
+  runtime_beam_data_.tile_ra = beam_data_->tile_ra;
+  runtime_beam_data_.tile_dec = beam_data_->tile_dec;
   const size_t tile_size = 1;
   try {
-    runtime_beam_data_.time_utc_.resize(tile_size);
+    runtime_beam_data_.time_utc.resize(tile_size);
   } catch (const std::bad_alloc& e) {
     throw std::runtime_error("Allocating memory failure");
   }
