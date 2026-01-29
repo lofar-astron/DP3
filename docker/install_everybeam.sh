@@ -23,15 +23,14 @@ git clone --branch v${EVERYBEAM_VERSION} --depth 1 \
 echo "Configuring, building & installing EveryBeam ${EVERYBEAM_VERSION}"
 pushd EveryBeam
 
-# Ensure EveryBeam does not use python.
-sed -i '/find_package(PythonInterp .*)/d' CMakeLists.txt
-sed -i '/pybind11/d' CMakeLists.txt
-
 mkdir build
 cd build
+# Ensure EveryBeam does not use python.
+CMAKE_FLAGS="-DBUILD_WITH_PYTHON=OFF"
 # On CentOS 7, the default OpenBLAS version is the serial version, which is
 # incompatible with DP3. -> Use the version with *p*threads support.
-cmake -DBLAS_LIBRARIES=/usr/lib64/libopenblasp.so ..
+CMAKE_FLAGS+=" -DBLAS_LIBRARIES=/usr/lib64/libopenblasp.so"
+cmake ${CMAKE_FLAGS} ..
 make -j${THREADS} install
 popd
 

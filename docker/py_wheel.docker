@@ -46,14 +46,13 @@ RUN bash /install_everybeam.sh ${EVERYBEAM_VERSION}
 
 # AOFlagger uses FFTW, HDF5, LUA.
 COPY docker/install_aoflagger.sh /
-RUN bash /install_aoflagger.sh ${AOFLAGGER_VERSION} ${PYMAJOR}.${PYMINOR}
+RUN bash /install_aoflagger.sh ${AOFLAGGER_VERSION}
 
 ADD . /dp3
 WORKDIR /dp3
 
 # Ensure DP3 uses the correct Python version.
 RUN sed -i -z "s=\(find_package(\n *Python3\)=\1 ${PYMAJOR}.${PYMINOR} EXACT=" CMakeLists.txt
-RUN sed -i "s=find_package(PythonInterp 3 REQUIRED)=find_package(PythonInterp ${PYMAJOR}.${PYMINOR} EXACT REQUIRED)=" CMakeLists.txt
 
 # Wheels should not actually link to libpython, since they find the user's python at runtime.
 # So prevent DP3 to even find libpython (which is not even included in the anylinux images)

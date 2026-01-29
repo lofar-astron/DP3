@@ -1,10 +1,8 @@
 # Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# FindHDF5 uses NATIVE_COMMAND in separate_arguments, which requires CMake 3.9.
-# The RESULTS_VARIABLE argument of execute_process() requires CMake 3.10.
-# 'add_compile_definitions' in FetchXTensor.cmake requires CMake 3.12.
-cmake_minimum_required(VERSION 3.12)
+# The bundled pybind11 and ADDITIONAL_CLEAN_FILES require CMake 3.15.
+cmake_minimum_required(VERSION 3.15)
 
 # CMake >= 3.19 gives warnings when these policies are not 'NEW'.
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19")
@@ -625,7 +623,7 @@ set(DP3_LIBRARIES
     ${Python3_LIBRARIES}
     schaapcommon
     Threads::Threads
-    pybind11::embed
+    pybind11::pybind11
     ${Boost_LIBRARIES})
 
 if(BUILD_WITH_CUDA)
@@ -844,24 +842,22 @@ if(BUILD_TESTING)
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tNDPPP.in_MS.tgz
     COMMAND ${EXTRACT_CMD} ${DP3_RESOURCE_DIR}/tOSKAR.in_MS.tgz)
 
-  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15")
-    # Removes the extracted resources. When a resource is updated the version
-    # in the build directory is stale and needs updating. Adding the generated
-    # resources to the clean target makes it possible to remove them with
-    # `ninja clean`.
-    # The command needs a ;-list so use a helper variable to improve readability.
-    set(extract_test_resources_directories
-        ${CMAKE_BINARY_DIR}/sources-model.fits
-        ${CMAKE_BINARY_DIR}/sources.reg
-        ${CMAKE_BINARY_DIR}/tApplyCal_tmp.parmdb
-        ${CMAKE_BINARY_DIR}/tDDECal.MS
-        ${CMAKE_BINARY_DIR}/tNDPPP-generic.MS
-        ${CMAKE_BINARY_DIR}/tNDPPP_tmp.MS
-        ${CMAKE_BINARY_DIR}/tOSKAR.in_MS)
-    set_target_properties(
-      extract_test_resources PROPERTIES ADDITIONAL_CLEAN_FILES
-                                        "${extract_test_resources_directories}")
-  endif()
+  # Removes the extracted resources. When a resource is updated the version
+  # in the build directory is stale and needs updating. Adding the generated
+  # resources to the clean target makes it possible to remove them with
+  # `ninja clean`.
+  # The command needs a ;-list so use a helper variable to improve readability.
+  set(extract_test_resources_directories
+      ${CMAKE_BINARY_DIR}/sources-model.fits
+      ${CMAKE_BINARY_DIR}/sources.reg
+      ${CMAKE_BINARY_DIR}/tApplyCal_tmp.parmdb
+      ${CMAKE_BINARY_DIR}/tDDECal.MS
+      ${CMAKE_BINARY_DIR}/tNDPPP-generic.MS
+      ${CMAKE_BINARY_DIR}/tNDPPP_tmp.MS
+      ${CMAKE_BINARY_DIR}/tOSKAR.in_MS)
+  set_target_properties(
+    extract_test_resources PROPERTIES ADDITIONAL_CLEAN_FILES
+                                      "${extract_test_resources_directories}")
 
   add_test(NAME extract_resources
            COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target
@@ -985,13 +981,10 @@ if(BUILD_TESTING)
     # ${CMAKE_CURRENT_BINARY_DIR}: It allows using 'source/tApplyBeam.sh' instead
     # of '../../../../DP3/steps/test/integration/tApplyBeam.sh. (Using 'RESULT',
     # fatal errors won't occur on systems without symlink support.)
-    if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14")
-      file(
-        CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_BINARY_DIR}/source
-        RESULT DUMMY_RESULT
-        SYMBOLIC)
-    endif()
+    file(
+      CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/source
+      RESULT DUMMY_RESULT
+      SYMBOLIC)
 
     set(LABELS "python")
     if(${CMAKE_CURRENT_SOURCE_DIR} MATCHES "test/unit")
