@@ -8,12 +8,6 @@
 set -euo pipefail
 
 AOFLAGGER_VERSION=$1
-PYTHON_VERSION=$2
-
-if [ -z "$PYTHON_VERSION" ]; then
-  echo "Usage: $0 <aoflagger version> <python version>"
-  exit 1
-fi
 
 echo "Installing development libraries with yum"
 yum -y install libpng-devel zlib-devel
@@ -30,11 +24,8 @@ tar -xjf aoflagger-v${AOFLAGGER_VERSION}.bz2
 
 pushd aoflagger-v${AOFLAGGER_VERSION}
 
-# Wheels should not actually link to libpython (see py310_wheel.docker).
+# Wheels should not actually link to libpython (see py_wheel.docker).
 sed -i '/^ *\${Python_LIBRARIES/d' CMakeLists.txt
-
-# Ensure AOFlagger uses the correct python version and finds it before pybind11 does.
-sed -i "s=# Include aocommon/pybind11 headers=find_package(PythonInterp ${PYTHON_VERSION} EXACT REQUIRED)=" CMakeLists.txt
 
 echo "Configuring, building & installing AOFlagger ${AOFLAGGER_VERSION}"
 mkdir build
