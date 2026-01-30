@@ -16,7 +16,6 @@
 #include "base/FlagCounter.h"
 #include "base/Telescope.h"
 
-#include <EveryBeam/telescope/phasedarray.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
 
 #include <casacore/casa/Arrays/Array.h>

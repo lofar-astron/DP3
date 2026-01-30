@@ -38,7 +38,6 @@
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
-#include <EveryBeam/telescope/phasedarray.h>
 
 #include <aocommon/logger.h>
 
