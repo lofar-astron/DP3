@@ -14,7 +14,6 @@
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
-#include <EveryBeam/telescope/phasedarray.h>
 
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
