@@ -186,10 +186,7 @@ bool BdaExpander::process(std::unique_ptr<base::BdaBuffer> bda_buffer) {
 }
 
 void BdaExpander::finish() {
-  // Check that internal buffer is empty
-  if (!RB_elements.size() == 0) {
-    RB_elements.clear();
-  }
+  RB_elements.clear();
 
   // Let the next steps finish.
   getNextStep()->finish();

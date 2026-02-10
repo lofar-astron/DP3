@@ -260,8 +260,10 @@ SolveData<MatrixType>::SolveData(
         const double interval_duration = buffer.IntervalDuration();
         const double visibility_mid_time =
             row.time - buffer.CurrentIntervalStart();
-        assert(visibility_mid_time > 0 &&
-               visibility_mid_time < interval_duration);
+
+        // Small rounding errors may cause visibility_mid_time to be slightly
+        // larger than interval_duration, so don't assert that.
+        assert(visibility_mid_time >= 0.0);
 
         for (size_t dir = 0; dir != n_directions; ++dir) {
           const size_t n_solutions = cb_data.n_solutions_[dir];

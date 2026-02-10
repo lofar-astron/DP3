@@ -174,7 +174,10 @@ bool Predict::process(std::unique_ptr<base::DPBuffer> buffer) {
 }
 
 bool Predict::process(std::unique_ptr<BdaBuffer> bda_buffer) {
-  bda_averager_->set_next_desired_buffersize(bda_buffer->GetNumberOfElements());
+  // Because the model buffers, after expansion and re-averaging, need to be of
+  // the exact same form and ordering as the original data buffers, this size of
+  // the buffer is communicated here.
+  bda_averager_->PushBufferSizeRequest(bda_buffer->GetNumberOfElements());
   return getNextStep()->process(std::move(bda_buffer));
 }
 

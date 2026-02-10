@@ -1028,7 +1028,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize) {
   // The output sizes must be multiples of kNCorr * kNChan (4 * 5 = 20).
   std::vector<unsigned int> output_sizes{80, 20, 100};
   for (unsigned int output_size : output_sizes) {
-    averager.set_next_desired_buffersize(output_size);
+    averager.PushBufferSizeRequest(output_size);
   }
 
   for (int i = 0; i < kNInputBuffers; i++) {
@@ -1072,7 +1072,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize_smaller_than_output) {
   // The output sizes must be multiples of kNCorr * kNChan (4 * 5 = 20).
   std::vector<unsigned int> output_sizes{20, 40};
   for (unsigned int output_size : output_sizes) {
-    averager.set_next_desired_buffersize(output_size);
+    averager.PushBufferSizeRequest(output_size);
   }
 
   for (int i = 0; i < kNInputBuffers; i++) {
@@ -1116,7 +1116,7 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
   std::vector<unsigned int> output_sizes{1000};
 
   for (unsigned int output_size : output_sizes) {
-    averager.set_next_desired_buffersize(output_size);
+    averager.PushBufferSizeRequest(output_size);
   }
 
   for (int i = 0; i < kNInputBuffers; i++) {
