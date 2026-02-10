@@ -126,7 +126,7 @@ void BdaAverager::updateInfo(const DPInfo& _info) {
 
   // Sum the relative number of channels of each baseline, for
   // determining the BDA output buffer size.
-  float relative_channels = 0.0;
+  float relative_channel_sum = 0.0;
 
   // Track the maximum number of channels, as that should always fit.
   std::size_t max_channels = 0;
@@ -168,7 +168,7 @@ void BdaAverager::updateInfo(const DPInfo& _info) {
     baseline_factors.emplace_back(factor_time);
     baseline_buffers_.emplace_back(factor_time, _info.nchan(), nchan,
                                    _info.ncorr());
-    relative_channels += float(nchan) / float(factor_time);
+    relative_channel_sum += float(nchan) / float(factor_time);
     max_channels = std::max(max_channels, nchan);
 
     // Calculate the center frequency and width of the averaged channels.
@@ -202,10 +202,10 @@ void BdaAverager::updateInfo(const DPInfo& _info) {
     widths_.clear();
   }
 
-  std::size_t bda_channels = std::ceil(relative_channels);
-  bda_channels = std::max(bda_channels, max_channels);
+  const size_t relative_channel_ceil = std::ceil(relative_channel_sum);
+  const size_t bda_channel_sum = std::max(relative_channel_ceil, max_channels);
 
-  bda_pool_size_ = _info.ncorr() * bda_channels;
+  bda_pool_size_ = _info.ncorr() * bda_channel_sum;
 
   GetWritableInfoOut().update(std::move(baseline_factors));
   GetWritableInfoOut().setChannels(std::move(freqs), std::move(widths));
@@ -215,15 +215,14 @@ bool BdaAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   common::NSTimer::StartStop sstime(timer_);
 
   if (!bda_buffer_) {
-    const std::vector<std::string> data_names = buffer->GetDataNames();
-
-    if (baseline_buffers_.front().data.empty() && !data_names.empty()) {
+    data_names_ = buffer->GetDataNames();
+    if (baseline_buffers_.front().data.empty() && !data_names_.empty()) {
       // In the first process() call, add data buffers to the baseline buffers.
       const std::complex<float> kZeroData(0.0f, 0.0f);
       for (BaselineBuffer& bb : baseline_buffers_) {
         const std::size_t data_size = bb.weights.size();
-        for (const std::string& name : data_names) {
-          // Use emplace_hint, since data_names is sorted.
+        for (const std::string& name : data_names_) {
+          // Use emplace_hint, since data_names_ is sorted.
           bb.data.emplace_hint(
               bb.data.end(), name,
               std::vector<std::complex<float>>(data_size, kZeroData));
@@ -231,8 +230,10 @@ bool BdaAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
       }
     }
 
-    SetBdaBuffer(data_names);
+    InitializeBdaBuffer(data_names_);
   }
+
+  assert(data_names_ == buffer->GetDataNames());
 
   const DPBuffer::UvwType& uvw = buffer->GetUvw();
   const std::size_t n_correlations = getInfoOut().ncorr();
@@ -303,7 +304,10 @@ bool BdaAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
   // with detecting that there's no space left.
   if (0 == bda_buffer_->GetRemainingCapacity()) {
     getNextStep()->process(std::move(bda_buffer_));
-    SetBdaBuffer(buffer->GetDataNames());
+    // A new BDA buffer can not be initialized yet here, because if a specific
+    // size is to be requested, it might not yet be available yet. Therefore,
+    // just reset the buffer so it gets initialized on the next process() call.
+    bda_buffer_.reset();
   }
 
   return true;
@@ -312,6 +316,9 @@ bool BdaAverager::process(std::unique_ptr<base::DPBuffer> buffer) {
 void BdaAverager::finish() {
   for (std::size_t b = 0; b < baseline_buffers_.size(); ++b) {
     if (baseline_buffers_[b].times_added > 0) {
+      if (!bda_buffer_) {
+        InitializeBdaBuffer(data_names_);
+      }
       AddBaseline(b);
     }
   }
@@ -349,9 +356,8 @@ void BdaAverager::AddBaseline(std::size_t baseline_nr) {
   }
 
   if (bda_buffer_->GetRemainingCapacity() < n_channels * getInfoOut().ncorr()) {
-    const std::vector<std::string> data_names = bda_buffer_->GetDataNames();
     getNextStep()->process(std::move(bda_buffer_));
-    SetBdaBuffer(data_names);
+    InitializeBdaBuffer(data_names_);
   }
 
   const size_t row = bda_buffer_->GetRows().size();
@@ -366,19 +372,18 @@ void BdaAverager::AddBaseline(std::size_t baseline_nr) {
   bb.Clear();  // Prepare baseline for a next iteration.
 }
 
-void BdaAverager::set_next_desired_buffersize(unsigned int buffer_size) {
-  fixed_size_bda_buffers_.push(
-      std::make_unique<BdaBuffer>(buffer_size, getProvidedFields()));
+void BdaAverager::PushBufferSizeRequest(size_t buffer_size) {
+  size_requests_.push(buffer_size);
 }
 
-void BdaAverager::SetBdaBuffer(const std::vector<std::string>& data_names) {
-  if (fixed_size_bda_buffers_.empty()) {
-    bda_buffer_ =
-        std::make_unique<BdaBuffer>(bda_pool_size_, getProvidedFields());
-  } else {
-    bda_buffer_ = std::move(fixed_size_bda_buffers_.front());
-    fixed_size_bda_buffers_.pop();
+void BdaAverager::InitializeBdaBuffer(
+    const std::vector<std::string>& data_names) {
+  size_t pool_size = bda_pool_size_;
+  if (!size_requests_.empty()) {
+    pool_size = size_requests_.front();
+    size_requests_.pop();
   }
+  bda_buffer_ = std::make_unique<BdaBuffer>(pool_size, getProvidedFields());
   for (const std::string& name : data_names) {
     bda_buffer_->AddData(name);
   }

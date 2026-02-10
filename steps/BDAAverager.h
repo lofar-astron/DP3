@@ -77,13 +77,12 @@ class BdaAverager : public Step {
   void SetAveragingParameters(const base::DPInfo& info);
 
   /**
-   * Public method, which sets a desired output size (number of rows).
-   * @param buffersize Number of rows in the output buffer: these should be
-   * given in the order one wishes to see in the output. If the BdaAverager is
-   * ready to output a BdaBuffer but no size is available, the default value
-   * will be used.
+   * Pushes a request for an output size (number of elements). The sizes are
+   * used one by one until the request buffer is empty. When it is empty, a
+   * default size is used. This can be used to make output buffers of the
+   * same shape and ordering as another averaging step.
    */
-  void set_next_desired_buffersize(unsigned int buffersize);
+  void PushBufferSizeRequest(size_t buffersize);
 
   /**
    * Computes the total averaging factor (defined as the ratio between
@@ -118,7 +117,7 @@ class BdaAverager : public Step {
 
   void AddBaseline(std::size_t baseline_nr);
 
-  void SetBdaBuffer(const std::vector<std::string>& data_names);
+  void InitializeBdaBuffer(const std::vector<std::string>& data_names);
 
   common::NSTimer timer_;
 
@@ -157,7 +156,8 @@ class BdaAverager : public Step {
 
   const bool use_weights_and_flags_;
 
-  std::queue<std::unique_ptr<base::BdaBuffer>> fixed_size_bda_buffers_;
+  std::queue<size_t> size_requests_;
+  std::vector<std::string> data_names_;
 };
 
 }  // namespace steps
