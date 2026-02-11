@@ -13,22 +13,6 @@ using dp3::base::DPBuffer;
 namespace dp3 {
 namespace steps {
 
-MockStep::MockStep() : bda_buffers_(), regular_buffers_(), finish_count_(0) {}
-
-MockStep::~MockStep() {}
-
-bool MockStep::process(std::unique_ptr<DPBuffer> buffer) {
-  regular_buffers_.push_back(std::move(buffer));
-  return true;
-}
-
-bool MockStep::process(std::unique_ptr<BdaBuffer> buffer) {
-  bda_buffers_.push_back(std::move(buffer));
-  return true;
-}
-
-void MockStep::ClearBdaBuffers() { bda_buffers_.clear(); }
-
 std::size_t MockStep::TotalRowCount() const {
   std::size_t count = 0;
   for (const std::unique_ptr<BdaBuffer>& buffer : bda_buffers_) {

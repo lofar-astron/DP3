@@ -1134,4 +1134,59 @@ BOOST_AUTO_TEST_CASE(force_buffersize_bigger_than_output) {
                       200u);
 }
 
+// Test a corner case where a BdaBuffer is exactly full at the end of
+// BdaAverager::process(). The averager should then not allocate a new BdaBuffer
+// immediately but allow a call to PushBufferSizeRequest before that allocation.
+// MR 1555 fixed this issue.
+BOOST_AUTO_TEST_CASE(force_buffersize_full_buffer) {
+  const int kNInputBuffers = 5;
+  const int kNBaselines = 1;
+
+  // Use a BdaAverager with averaging factors of 1, which only converts
+  // the input buffers into BdaBuffers without averaging.
+  const DPInfo info = InitInfo(kAnt1_1Bl, kAnt2_1Bl);
+  const dp3::common::ParameterSet parset;
+  BdaAverager averager(parset, kPrefix);
+  BOOST_REQUIRE_NO_THROW(averager.updateInfo(info));
+
+  auto mock_step = std::make_shared<dp3::steps::MockStep>();
+  averager.setNextStep(mock_step);
+
+  std::vector<std::unique_ptr<DPBuffer>> input_buffers;
+  for (int i = 0; i < kNInputBuffers; i++) {
+    input_buffers.push_back(CreateBuffer(kStartTime + i * kInterval, kInterval,
+                                         kNBaselines, kChannelCounts, 0.0));
+  }
+
+  const size_t input_size = input_buffers.front()->GetData().size();
+  // In this test, each BdaBuffer should contain two input DPBuffers.
+  // By default, the BdaAverager outputs one BdaBuffer for each DPBuffer,
+  // when averaging is disabled. See the no_averaging test.
+  const size_t output_size = input_size * 2;
+
+  for (int i = 0; i < kNInputBuffers; i++) {
+    if (i % 2 == 0) {
+      // For even buffers, set the next buffersize, and check there's no output.
+      averager.PushBufferSizeRequest(output_size);
+      averager.process(std::move(input_buffers[i]));
+      BOOST_CHECK(mock_step->GetBdaBuffers().empty());
+    } else {
+      // For odd buffers, process the second buffer and check that the
+      // output has a buffer with the correct size.
+      averager.process(std::move(input_buffers[i]));
+      BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1);
+      BOOST_CHECK_EQUAL(mock_step->GetBdaBuffers()[0]->GetNumberOfElements(),
+                        output_size);
+      mock_step->ClearBdaBuffers();
+    }
+  }
+
+  // Since kNInputBuffers is odd, the finish call should output a BdaBuffer
+  // with input_size elements.
+  Finish(averager, *mock_step);
+  BOOST_REQUIRE_EQUAL(mock_step->GetBdaBuffers().size(), 1);
+  BOOST_CHECK_EQUAL(mock_step->GetBdaBuffers()[0]->GetNumberOfElements(),
+                    input_size);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
