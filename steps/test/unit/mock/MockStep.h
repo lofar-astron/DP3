@@ -14,23 +14,29 @@ namespace steps {
 
 class MockStep : public test::ThrowStep {
  public:
-  MockStep();
+  MockStep() : bda_buffers_(), regular_buffers_(), finish_count_(0) {}
 
-  ~MockStep() override;
+  ~MockStep() override {}
 
   /**
    * Mocked process() function for regular buffers.
-   * If no check_buffer function was set, the unit test fails.
-   * Otherwise, this function forwards the buffer to the check_buffer function.
+   * Adds the regular buffer to an internal list. Use GetRegularBuffers for
+   * accessing them.
    */
-  bool process(std::unique_ptr<base::DPBuffer>) override;
+  bool process(std::unique_ptr<base::DPBuffer> buffer) override {
+    regular_buffers_.push_back(std::move(buffer));
+    return true;
+  }
 
   /**
    * Mocked process() function for bda buffers.
-   * Adds the bda buffer to an internal list. Use getBdaBuffers for
+   * Adds the bda buffer to an internal list. Use GetBdaBuffers for
    * accessing them.
    */
-  bool process(std::unique_ptr<base::BdaBuffer>) override;
+  bool process(std::unique_ptr<base::BdaBuffer> buffer) override {
+    bda_buffers_.push_back(std::move(buffer));
+    return true;
+  }
 
   /**
    * Mocked finish() function, which counts the number of calls.
@@ -47,7 +53,7 @@ class MockStep : public test::ThrowStep {
     return regular_buffers_;
   }
 
-  void ClearBdaBuffers();
+  void ClearBdaBuffers() { bda_buffers_.clear(); }
 
   std::size_t FinishCount() const { return finish_count_; };
 
