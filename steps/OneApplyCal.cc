@@ -52,6 +52,10 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       itsSolSetName(parset.isDefined(prefix + "solset")
                         ? parset.getString(prefix + "solset")
                         : parset.getString(defaultPrefix + "solset", "")),
+      itsTimeSlotsPerParmUpdate(
+          parset.isDefined(prefix + "timeslotsperparmupdate")
+              ? parset.getInt(prefix + "timeslotsperparmupdate")
+              : parset.getInt(defaultPrefix + "timeslotsperparmupdate", 200)),
       itsUpdateWeights(
           parset.isDefined(prefix + "updateweights")
               ? parset.getBool(prefix + "updateweights")
@@ -62,6 +66,10 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       itsNCorr(0),
       itsLastTime(-1),
       itsUseAP(false) {
+  if (itsTimeSlotsPerParmUpdate == 0) {
+    throw std::runtime_error("timeslotsperparmupdate must be > 0");
+  }
+
   const std::string directionStr =
       (parset.isDefined(prefix + "direction")
            ? parset.getString(prefix + "direction")
@@ -91,10 +99,6 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
                      : parset.getBool(defaultPrefix + "invert", true));
   }
 
-  itsTimeSlotsPerParmUpdate =
-      parset.isDefined(prefix + "timeslotsperparmupdate")
-          ? parset.getInt(prefix + "timeslotsperparmupdate")
-          : parset.getInt(defaultPrefix + "timeslotsperparmupdate", 200);
   if (itsUseH5Parm) {
     const std::string interpolationStr =
         (parset.isDefined(prefix + "interpolation")
@@ -392,7 +396,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
   itsTimer.start();
 
   /*
-   * If this correction does not used model data, i.e. itsUseModelData
+   * If this correction does not use model data, i.e. itsUseModelData
    * is false, then the correction is applied to the main buffer,
    * which does not have a name.
    * Buffer data is accessed like this: buffer->GetData()
@@ -539,25 +543,28 @@ void OneApplyCal::CorrectionLoop(DPBuffer& buffer,
 
 std::vector<double> OneApplyCal::CalculateBufferTimes(double buffer_start_time,
                                                       bool use_end) {
-  itsLastTime = buffer_start_time - 0.5 * getInfoOut().timeInterval() +
-                itsTimeSlotsPerParmUpdate * getInfoOut().timeInterval();
+  const double interval = getInfoOut().timeInterval();
+
+  const double first_time = buffer_start_time - 0.5 * interval;
+  itsLastTime = first_time + itsTimeSlotsPerParmUpdate * interval;
   size_t n_times = itsTimeSlotsPerParmUpdate;
   // If calculated time is past the last timestep in the ms,
   // move it back.
-  const double lastMSTime = getInfoOut().startTime() +
-                            getInfoOut().ntime() * getInfoOut().timeInterval();
-  if (itsLastTime > lastMSTime &&
-      !casacore::nearAbs(itsLastTime, lastMSTime, 1.e-3)) {
-    itsLastTime = lastMSTime;
-    n_times = getInfoOut().ntime() % itsTimeSlotsPerParmUpdate;
+  const double last_ms_time = getInfoOut().lastTime() + 0.5 * interval;
+  if (itsLastTime > last_ms_time) {
+    itsLastTime = last_ms_time;
+
+    const size_t n_remaining_time_slots =
+        std::round((itsLastTime - first_time) / interval);
+    n_times = std::clamp<size_t>(n_times, 1, n_remaining_time_slots);
   }
   std::vector<double> times;
   times.reserve(n_times);
   for (size_t t = 0; t < n_times; ++t) {
     // TODO(AST-1078) for investigating the 0.5 offset.
-    double time = use_end ? t + 0.5 : t;
+    const double time = use_end ? t + 0.5 : t;
     // buffer_start_time is the mid point of the first timestep in the buffer
-    times.emplace_back(buffer_start_time + time * getInfoOut().timeInterval());
+    times.emplace_back(buffer_start_time + time * interval);
   }
   return times;
 }
