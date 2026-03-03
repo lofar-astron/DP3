@@ -8,6 +8,7 @@
 #include "ApplyBeam.h"
 
 #include <algorithm>
+#include <barrier>
 #include <cassert>
 #include <iostream>
 
@@ -34,7 +35,6 @@
 
 #include "parmdb/SourceDB.h"
 
-#include <aocommon/barrier.h>
 #include <aocommon/logger.h>
 #include <aocommon/recursivefor.h>
 #include <aocommon/staticfor.h>
@@ -559,7 +559,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
     std::vector<std::shared_ptr<const model::Patch>> curPatches(n_threads);
 
-    aocommon::Barrier barrier(n_threads);
+    std::barrier barrier(n_threads);
     // We need to create local threads here because we need to
     // sync only those using the barrier
     aocommon::RecursiveFor::NestedRun(0, n_threads, [&](size_t thread_index) {
@@ -828,7 +828,7 @@ void OnePredict::addBeamToDataRange(
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
     size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
     const std::pair<size_t, size_t>& baseline_range,
-    const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
+    const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
     bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
   MDirection dir(MVDirection(patch.Direction().ra, patch.Direction().dec),

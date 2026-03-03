@@ -454,7 +454,7 @@ void ApplyBeam::ApplyBaselineBasedBeam(
     const everybeam::telescope::Telescope* telescope,
     aocommon::MC2x2* beam_values,
     const std::pair<size_t, size_t>& baseline_range,
-    const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
+    const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
     bool invert, everybeam::BeamMode mode, bool do_update_weights,
     std::mutex* mutex, const std::vector<size_t>& skip_station_indices) {
   // Get the beam values for each station.
@@ -529,7 +529,7 @@ void ApplyBeam::ApplyBaselineBasedBeam(
     }
   }
 
-  barrier.wait();
+  barrier.arrive_and_wait();
   for (size_t ch = 0; ch < n_channels; ++ch) {
     // Apply beam for channel ch on the baselines handled by this thread
     // For mode=ARRAY_FACTOR, too much work is done here because we know
@@ -553,7 +553,7 @@ void ApplyBeam::ApplyBaselineBasedBeam(
     }
   }
 
-  barrier.wait();
+  barrier.arrive_and_wait();
 }
 
 size_t ComputeArrayFactor(const DPInfo& info, double time,
@@ -629,7 +629,7 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
     const everybeam::telescope::Telescope* telescope,
     std::complex<double>* beam_values,
     const std::pair<size_t, size_t>& baseline_range,
-    const std::pair<size_t, size_t>& station_range, aocommon::Barrier& barrier,
+    const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
     bool invert, everybeam::BeamMode mode, std::mutex* mutex,
     const std::vector<size_t>& skip_station_indices) {
   assert(mode == everybeam::BeamMode::kArrayFactor);
@@ -669,7 +669,7 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
       }
     }
   }
-  barrier.wait();
+  barrier.arrive_and_wait();
   for (size_t ch = 0; ch < n_channels; ++ch) {
     // Apply beam for channel ch on the baselines handled by this thread
     for (size_t bl = baseline_range.first; bl < baseline_range.second; ++bl) {
@@ -685,7 +685,7 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
       // TODO: update weights?
     }
   }
-  barrier.wait();
+  barrier.arrive_and_wait();
 }
 
 }  // namespace steps
