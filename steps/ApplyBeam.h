@@ -13,10 +13,11 @@
 
 #include "base/DPBuffer.h"
 
+#include <barrier>
+
 #include <EveryBeam/telescope/telescope.h>
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/barrier.h>
 #include <aocommon/xt/utensor.h>
 
 #include <casacore/casa/Arrays/Cube.h>
@@ -137,9 +138,9 @@ class ApplyBeam final : public Step {
       const everybeam::telescope::Telescope* telescope,
       aocommon::MC2x2* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
-      const std::pair<size_t, size_t>& station_range,
-      aocommon::Barrier& barrier, bool invert, everybeam::BeamMode mode,
-      bool do_update_weights = false, std::mutex* mutex = nullptr,
+      const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
+      bool invert, everybeam::BeamMode mode, bool do_update_weights = false,
+      std::mutex* mutex = nullptr,
       const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
   /**
@@ -151,9 +152,8 @@ class ApplyBeam final : public Step {
       const everybeam::telescope::Telescope* telescope,
       std::complex<double>* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
-      const std::pair<size_t, size_t>& station_range,
-      aocommon::Barrier& barrier, bool invert, everybeam::BeamMode mode,
-      std::mutex* mutex = nullptr,
+      const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
+      bool invert, everybeam::BeamMode mode, std::mutex* mutex = nullptr,
       const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
 
  private:
