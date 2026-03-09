@@ -22,8 +22,15 @@ ARG PYUNICODE
 
 ENV THREADS=4
 
+# Since Boost is already in the container, keep using GCC 10 here.
 COPY docker/install_boost.sh /
 RUN bash /install_boost.sh
+
+# Install and use GCC 11 from this point on.
+# DP3 requires GCC 11 since it uses std::barrier.
+RUN yum install -y devtoolset-11-gcc-c++ devtoolset-11-gcc-gfortran
+ENV PATH=/opt/rh/devtoolset-11/root/usr/bin:$PATH
+ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-11/root/usr/lib64:$LD_LIBRARY_PATH
 
 COPY docker/install_fftw.sh /
 RUN bash /install_fftw.sh ${FFTW_VERSION}
