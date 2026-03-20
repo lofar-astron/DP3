@@ -36,6 +36,10 @@ CalType StringToCalType(const std::string& modestr) {
     return CalType::kRotation;
   else if (modestr == "faradayrotation")
     return CalType::kFaradayRotation;
+  else if (modestr == "leakage")
+    return CalType::kLeakage;
+  else if (modestr == "leakageamplitude")
+    return CalType::kLeakageAmplitude;
   throw std::runtime_error("Unknown mode: " + modestr);
 }
 
@@ -67,6 +71,10 @@ std::string ToString(CalType caltype) {
       return "rotation+diagonal";
     case CalType::kFaradayRotation:
       return "faraday";
+    case CalType::kLeakage:
+      return "leakage";
+    case CalType::kLeakageAmplitude:
+      return "leakageamplitude";
     default:
       throw std::runtime_error("Unknown caltype: " +
                                std::to_string(static_cast<int>(caltype)));

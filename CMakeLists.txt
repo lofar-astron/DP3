@@ -440,6 +440,7 @@ add_library(
   ddecal/SolverFactory.cc
   ddecal/constraints/AntennaIntervalConstraint.cc
   ddecal/constraints/FaradayConstraint.cc
+  ddecal/constraints/PolarizationLeakageConstraint.cc
   ddecal/constraints/RotationAndDiagonalConstraint.cc
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
@@ -740,6 +741,7 @@ if(BUILD_TESTING)
       $<$<BOOL:${LIBDIRAC_FOUND}>:ddecal/test/unit/tLBFGSSolver.cc>
       ddecal/test/unit/tLinearSolvers.cc
       ddecal/test/unit/tLLSSolver.cc
+      ddecal/test/unit/tPolarizationLeakageConstraint.cc
       ddecal/test/unit/tRotationConstraint.cc
       ddecal/test/unit/tRotationAndDiagonalConstraint.cc
       ddecal/test/unit/tSmoothnessConstraint.cc
