@@ -62,7 +62,7 @@ inputs:
   mode:
     default: diagonal
     type: string
-    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation, rotation+diagonal and faradayrotation.
+    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation, rotation+diagonal, faradayrotation, leakage and leakageamplitude.
   tolerance:
     default: 1e-5
     type: double

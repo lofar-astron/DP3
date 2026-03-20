@@ -24,6 +24,7 @@
 #include "constraints/AntennaConstraint.h"
 #include "constraints/AntennaIntervalConstraint.h"
 #include "constraints/FaradayConstraint.h"
+#include "constraints/PolarizationLeakageConstraint.h"
 #include "constraints/RotationConstraint.h"
 #include "constraints/RotationAndDiagonalConstraint.h"
 #ifdef ENABLE_SCREENFITTER
@@ -244,6 +245,13 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       solver.AddConstraint(std::make_unique<FaradayConstraint>(
           settings.faraday_diagonal_mode, settings.faraday_limit));
       break;
+    case base::CalType::kLeakage:
+      solver.AddConstraint(std::make_unique<PolarizationLeakageConstraint>());
+      break;
+    case base::CalType::kLeakageAmplitude:
+      solver.AddConstraint(std::make_unique<AmplitudeOnlyConstraint>());
+      solver.AddConstraint(std::make_unique<PolarizationLeakageConstraint>());
+      break;
   }
 }
 
@@ -287,6 +295,8 @@ std::unique_ptr<SolverBase> CreateSolver(
     case base::CalType::kRotationAndDiagonal:
     case base::CalType::kRotation:
     case base::CalType::kFaradayRotation:
+    case base::CalType::kLeakage:
+    case base::CalType::kLeakageAmplitude:
       solver = CreateFullJonesSolver(algorithm, settings);
       solver->SetPhaseOnly(false);
       break;

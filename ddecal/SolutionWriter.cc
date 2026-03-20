@@ -184,7 +184,8 @@ void SolutionWriter::WriteSolverResults(
       mode == CalType::kDiagonalAmplitude) {
     polarizations = {"XX", "YY"};
     n_pol = 2;
-  } else if (mode == CalType::kFullJones) {
+  } else if (mode == CalType::kFullJones || mode == CalType::kLeakage ||
+             mode == CalType::kLeakageAmplitude) {
     polarizations = {"XX", "XY", "YX", "YY"};
     n_pol = 4;
   } else {
@@ -216,7 +217,7 @@ void SolutionWriter::WriteSolverResults(
   int n_soltabs = 1;
   // For [scalar]complexgain, store two soltabs: phase and amplitude.
   if (mode == CalType::kScalar || mode == CalType::kDiagonal ||
-      mode == CalType::kFullJones) {
+      mode == CalType::kFullJones || mode == CalType::kLeakage) {
     n_soltabs = 2;
   }
   for (int soltab_index = 0; soltab_index < n_soltabs; ++soltab_index) {
@@ -225,6 +226,7 @@ void SolutionWriter::WriteSolverResults(
       case CalType::kScalar:
       case CalType::kDiagonal:
       case CalType::kFullJones:
+      case CalType::kLeakage:
         store_phase = soltab_index == 0;
         break;
       case CalType::kScalarPhase:
@@ -233,9 +235,15 @@ void SolutionWriter::WriteSolverResults(
         break;
       case CalType::kScalarAmplitude:
       case CalType::kDiagonalAmplitude:
+      case CalType::kLeakageAmplitude:
         store_phase = false;
         break;
-      default:
+      case CalType::kTec:
+      case CalType::kTecAndPhase:
+      case CalType::kTecScreen:
+      case CalType::kRotation:
+      case CalType::kRotationAndDiagonal:
+      case CalType::kFaradayRotation:
         throw std::runtime_error("Constraint should have produced output");
     }
 

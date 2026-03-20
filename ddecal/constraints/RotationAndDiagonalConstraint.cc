@@ -97,6 +97,8 @@ void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
     case CalType::kTec:
     case CalType::kTecAndPhase:
     case CalType::kTecScreen:
+    case CalType::kLeakage:
+    case CalType::kLeakageAmplitude:
       assert(false);
       break;
   }
