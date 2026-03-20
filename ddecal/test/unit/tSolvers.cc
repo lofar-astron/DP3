@@ -15,6 +15,8 @@
 #include "ddecal/gain_solvers/IterativeScalarSolver.h"
 #include "ddecal/gain_solvers/ScalarSolver.h"
 
+#include "ddecal/constraints/PolarizationLeakageConstraint.h"
+
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
@@ -45,7 +47,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
 
-  CheckDiagonalResults(2.0E-2);
+  CheckDualResults(2.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
 }
 
@@ -94,7 +96,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_low_rank_solver, SolverTester,
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
 
-  CheckDiagonalResults(1.0E-3);
+  CheckDualResults(1.0E-3);
   BOOST_CHECK_EQUAL(result.iterations, kSolveIterations + 1);
 }
 
@@ -121,7 +123,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_low_rank_full_step_solver, SolverTester,
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
 
-  CheckDiagonalResults(1.0E-3);
+  CheckDualResults(1.0E-3);
   BOOST_CHECK_EQUAL(result.iterations, kSolveIterations + 1);
 }
 
@@ -252,7 +254,7 @@ inline void TestIterativeDiagonal(SolverTester& solver_tester,
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, solver_tester.GetSolverSolutions(), 0.0, nullptr);
 
-  solver_tester.CheckDiagonalResults(1.0E-2);
+  solver_tester.CheckDualResults(1.0E-2);
   // The iterative solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
   BOOST_CHECK_LE(result.iterations, SolverTester::kMaxIterations + 1);
@@ -292,7 +294,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_dd_intervals, SolverTester,
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
 
-  CheckDiagonalResults(1.0e-2);
+  CheckDualResults(1.0e-2);
 }
 
 BOOST_FIXTURE_TEST_CASE(iterative_duo_diagonal_dd_intervals, SolverTester,
@@ -309,7 +311,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_duo_diagonal_dd_intervals, SolverTester,
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
 
-  CheckDiagonalResults(1.0e-2);
+  CheckDualResults(1.0e-2);
 }
 
 BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
@@ -355,7 +357,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
     }
   }
 
-  CheckDiagonalResults(2.0e-2);
+  CheckDualResults(2.0e-2);
   // The solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
@@ -403,7 +405,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones, SolverTester,
     }
   }
 
-  CheckDiagonalResults(2.0e-2);
+  CheckDualResults(2.0e-2);
   // The solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
@@ -447,7 +449,49 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones_dd_intervals, SolverTester,
     }
   }
 
-  CheckDiagonalResults(1.0e-2);
+  CheckDualResults(1.0e-2);
+}
+
+BOOST_FIXTURE_TEST_CASE(polarization_leakage, SolverTester,
+                        *boost::unit_test::label("slow")) {
+  SetLeakageSolutions(true);
+  dp3::ddecal::IterativeFullJonesSolver solver;
+  std::unique_ptr<dp3::ddecal::PolarizationLeakageConstraint> constraint =
+      std::make_unique<dp3::ddecal::PolarizationLeakageConstraint>();
+  constraint->Initialize(kNAntennas, NSolutionsPerDirection32(), kFrequencies);
+  solver.AddConstraint(std::move(constraint));
+  InitializeSolver(solver);
+
+  const std::vector<dp3::base::DPBuffer> data_buffers =
+      FillDdIntervalData(true);
+  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
+                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
+                       Antennas2());
+
+  std::vector<std::vector<std::complex<double>>> solutions(kNChannelBlocks);
+
+  // Initialize unit-matrices as initial values
+  for (auto& solution : solutions) {
+    solution.assign(NSolutions() * kNAntennas * 4, 0.0);
+    for (size_t i = 0; i != NSolutions() * kNAntennas * 4; i += 4) {
+      solution[i] = 1.0;
+      solution[i + 3] = 1.0;
+    }
+  }
+
+  dp3::ddecal::SolverBase::SolveResult result =
+      solver.Solve(data, solutions, 0.0, nullptr);
+
+  // Convert full matrices to diagonals
+  std::vector<std::vector<std::complex<double>>>& dual = GetSolverSolutions();
+  for (size_t ch_block = 0; ch_block != solutions.size(); ++ch_block) {
+    for (size_t s = 0; s != solutions[ch_block].size() / 4; ++s) {
+      dual[ch_block][s * 2] = solutions[ch_block][s * 4 + 1];
+      dual[ch_block][s * 2 + 1] = solutions[ch_block][s * 4 + 2];
+    }
+  }
+
+  CheckDualResults(1.0e-2);
 }
 
 BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,

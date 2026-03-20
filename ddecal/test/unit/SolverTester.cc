@@ -17,9 +17,7 @@ using aocommon::MC2x2;
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
 
-namespace dp3 {
-namespace ddecal {
-namespace test {
+namespace dp3::ddecal::test {
 
 namespace {
 
@@ -93,7 +91,8 @@ std::vector<std::string> SolverTester::CreateDirectionNames() {
   return keys;
 }
 
-std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
+std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData(
+    bool leakage_only) {
   std::uniform_real_distribution<float> uniform_data(-1.0, 1.0);
   std::mt19937 mt(0);
 
@@ -156,15 +155,36 @@ std::vector<dp3::base::DPBuffer> SolverTester::FillDdIntervalData() {
             const size_t solution_index = solution_indices[d][timestep];
             const MC2x2 val(&unweighted_buffers.back()->GetData(name)(
                 baseline_index, ch, 0));
-            MC2x2 left(
-                input_solutions_[(a1 * n_solutions_ + solution_index) * 2 + 0],
-                0.0, 0.0,
-                input_solutions_[(a1 * n_solutions_ + solution_index) * 2 + 1]);
-            const MC2x2 right(
-                input_solutions_[(a2 * n_solutions_ + solution_index) * 2 + 0],
-                0.0, 0.0,
-                input_solutions_[(a2 * n_solutions_ + solution_index) * 2 + 1]);
-            perturbed_model += left * val.MultiplyHerm(right);
+            if (leakage_only) {
+              MC2x2 left(
+                  1.0,
+                  input_solutions_[(a1 * n_solutions_ + solution_index) * 2 +
+                                   0],
+                  input_solutions_[(a1 * n_solutions_ + solution_index) * 2 +
+                                   1],
+                  1.0);
+              const MC2x2 right(
+                  1.0,
+                  input_solutions_[(a2 * n_solutions_ + solution_index) * 2 +
+                                   0],
+                  input_solutions_[(a2 * n_solutions_ + solution_index) * 2 +
+                                   1],
+                  1.0);
+              perturbed_model += left * val.MultiplyHerm(right);
+            } else {
+              const aocommon::MC2x2Diag left(
+                  input_solutions_[(a1 * n_solutions_ + solution_index) * 2 +
+                                   0],
+                  input_solutions_[(a1 * n_solutions_ + solution_index) * 2 +
+                                   1]);
+              const MC2x2 right(
+                  input_solutions_[(a2 * n_solutions_ + solution_index) * 2 +
+                                   0],
+                  0.0, 0.0,
+                  input_solutions_[(a2 * n_solutions_ + solution_index) * 2 +
+                                   1]);
+              perturbed_model += left * val.MultiplyHerm(right);
+            }
           }
           for (size_t p = 0; p != 4; ++p) {
             time_data(baseline_index, ch, p) = perturbed_model.Get(p);
@@ -301,6 +321,12 @@ void SolverTester::InitializeNSolutions(bool use_dd_intervals) {
   }
 }
 
+void SolverTester::SetUnitSolverSolutions(size_t solutions_per_matrix) {
+  for (std::vector<std::complex<double>>& vec : solver_solutions_) {
+    vec.assign(n_solutions_ * kNAntennas * solutions_per_matrix, 1.0);
+  }
+}
+
 void SolverTester::SetScalarSolutions(bool use_dd_intervals) {
   InitializeNSolutions(use_dd_intervals);
   input_solutions_.resize(kNAntennas * n_solutions_ * 2);
@@ -314,11 +340,8 @@ void SolverTester::SetScalarSolutions(bool use_dd_intervals) {
       input_solutions_[index + 1] = input_solutions_[index];
     }
   }
-
   // Initialize unit-matrices as initial solver solution values.
-  for (auto& vec : solver_solutions_) {
-    vec.assign(n_solutions_ * kNAntennas, 1.0);
-  }
+  SetUnitSolverSolutions(1);
 }
 
 void SolverTester::SetDiagonalSolutions(bool use_dd_intervals) {
@@ -335,11 +358,24 @@ void SolverTester::SetDiagonalSolutions(bool use_dd_intervals) {
       }
     }
   }
+  SetUnitSolverSolutions(2);
+}
 
-  // Initialize unit-matrices as initial solver solution values.
-  for (auto& vec : solver_solutions_) {
-    vec.assign(n_solutions_ * kNAntennas * 2, 1.0);
+void SolverTester::SetLeakageSolutions(bool use_dd_intervals) {
+  InitializeNSolutions(use_dd_intervals);
+  input_solutions_.resize(kNAntennas * n_solutions_ * 2);
+  std::mt19937 mt;
+  std::uniform_real_distribution<float> uniform_sols(0.0, 0.5);
+  for (size_t ant = 0; ant != kNAntennas; ++ant) {
+    for (size_t pol = 0; pol != 2; ++pol) {
+      for (size_t s = 0; s != n_solutions_; ++s) {
+        const size_t index = (ant * n_solutions_ + s) * 2 + pol;
+        input_solutions_[index] = {uniform_sols(mt), uniform_sols(mt)};
+        if (s != 0) input_solutions_[index] *= 0.5f;
+      }
+    }
   }
+  SetUnitSolverSolutions(2);
 }
 
 void SolverTester::CheckScalarResults(double tolerance) {
@@ -369,7 +405,7 @@ void SolverTester::CheckScalarResults(double tolerance) {
   }
 }
 
-void SolverTester::CheckDiagonalResults(double tolerance) {
+void SolverTester::CheckDualResults(double tolerance) {
   for (size_t ch = 0; ch != kNChannelBlocks; ++ch) {
     for (size_t ant = 0; ant != kNAntennas; ++ant) {
       for (size_t s = 0; s != n_solutions_; ++s) {
@@ -401,6 +437,4 @@ void SolverTester::CheckDiagonalResults(double tolerance) {
   }
 }
 
-}  // namespace test
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal::test
