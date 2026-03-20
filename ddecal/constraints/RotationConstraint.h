@@ -9,17 +9,16 @@
 #include <vector>
 #include <ostream>
 
-namespace dp3 {
-namespace ddecal {
+namespace dp3::ddecal {
 
 class RotationConstraint final : public Constraint {
  public:
-  RotationConstraint(){};
+  RotationConstraint() = default;
 
   std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
-                                      std::ostream* statStream) override;
+                                      std::ostream* stat_stream) override;
 
-  void Initialize(size_t nAntennas,
+  void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
                   const std::vector<double>& frequencies) override;
 
@@ -48,7 +47,6 @@ class RotationConstraint final : public Constraint {
   std::vector<ConstraintResult> results_;
 };
 
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal
 
 #endif

@@ -6,8 +6,7 @@
 #include <cassert>
 #include <cmath>
 
-namespace dp3 {
-namespace ddecal {
+namespace dp3::ddecal {
 
 void RotationConstraint::Initialize(
     size_t nAntennas, const std::vector<uint32_t>& solutions_per_direction,
@@ -34,7 +33,7 @@ void RotationConstraint::SetWeights(const std::vector<double>& weights) {
 
 std::vector<ConstraintResult> RotationConstraint::Apply(
     SolutionSpan& solutions, double,
-    [[maybe_unused]] std::ostream* statStream) {
+    [[maybe_unused]] std::ostream* stat_stream) {
   assert(solutions.shape(2) == NSubSolutions());
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
   ConstraintResult& result = results_.front();
@@ -58,5 +57,4 @@ std::vector<ConstraintResult> RotationConstraint::Apply(
   return results_;
 }
 
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal
