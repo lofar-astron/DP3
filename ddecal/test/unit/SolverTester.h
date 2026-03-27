@@ -30,7 +30,7 @@ class SolverTester {
   /**
    * Creates regular data with direction-dependent solution intervals.
    */
-  std::vector<base::DPBuffer> FillDdIntervalData();
+  std::vector<base::DPBuffer> FillDdIntervalData(bool leakage_only = false);
 
   /**
    * Creates BDA data, for testing BDA solvers.
@@ -55,6 +55,7 @@ class SolverTester {
    */
   void SetScalarSolutions(bool use_dd_intervals);
   void SetDiagonalSolutions(bool use_dd_intervals);
+  void SetLeakageSolutions(bool use_dd_intervals);
   /** @} */
 
   /**
@@ -73,7 +74,8 @@ class SolverTester {
    * @param tolerance Tolerance value for BOOST_CHECK_CLOSE.
    */
   void CheckScalarResults(double tolerance);
-  void CheckDiagonalResults(double tolerance);
+  void CheckDualResults(double tolerance);
+  void CheckPolarizationLeakageResults(double tolerance);
 
   /**
    * @return The first antennas for the generated baselines.
@@ -91,6 +93,11 @@ class SolverTester {
     return n_solutions_per_direction_;
   }
 
+  std::vector<uint32_t> NSolutionsPerDirection32() const {
+    return std::vector<uint32_t>(n_solutions_per_direction_.begin(),
+                                 n_solutions_per_direction_.end());
+  }
+
   static std::vector<std::string> CreateDirectionNames();
 
   static constexpr size_t kNPolarizations = 4;
@@ -98,6 +105,8 @@ class SolverTester {
   static constexpr size_t kNDirections = 3;
   static constexpr size_t kNChannels = 16;
   static constexpr size_t kNChannelBlocks = 4;
+  static const inline std::vector<double> kFrequencies{150e6, 160e6, 170e6,
+                                                       180e6};
   static constexpr size_t kNRegularTimes = 50;
   // Use more times with BDA so the number of visibilities is similar to the
   // regular data.
@@ -127,6 +136,7 @@ class SolverTester {
  private:
   void InitializeSolverSettings(dp3::ddecal::SolverBase& solver) const;
   void InitializeNSolutions(bool use_dd_intervals);
+  void SetUnitSolverSolutions(size_t solutions_per_matrix);
 
   std::vector<int> antennas1_;
   std::vector<int> antennas2_;

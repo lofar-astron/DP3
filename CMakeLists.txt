@@ -911,6 +911,7 @@ if(BUILD_TESTING)
       solvers/iterative_full_jones
       solvers/iterative_full_jones_dd_intervals
       solvers/hybrid
+      solvers/polarization_leakage
       solvers/min_iterations)
 
   if(HAVE_IDG)

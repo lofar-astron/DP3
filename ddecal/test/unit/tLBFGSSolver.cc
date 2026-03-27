@@ -126,7 +126,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
     result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
   }
 
-  CheckDiagonalResults(2.0E-2);
+  CheckDualResults(2.0E-2);
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
 }
 
@@ -204,7 +204,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
     }
   }
 
-  CheckDiagonalResults(2.0e-2);
+  CheckDualResults(2.0e-2);
   // The solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
@@ -232,7 +232,7 @@ BOOST_FIXTURE_TEST_CASE(bounded_diagonal, SolverTester,
     result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
   }
 
-  CheckDiagonalResults(10.0);
+  CheckDualResults(10.0);
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
 }
 
@@ -310,7 +310,7 @@ BOOST_FIXTURE_TEST_CASE(bounded_full_jones, SolverTester,
     }
   }
 
-  CheckDiagonalResults(10.0);
+  CheckDualResults(10.0);
   // The solver solves the requested accuracy within the max
   // iterations so just check if the nr of iterations is <= max+1.
   BOOST_CHECK_LE(result.iterations, kMaxIterations + 1);
