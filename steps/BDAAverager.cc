@@ -403,9 +403,9 @@ float BdaAverager::TotalAveragingFactor() const {
 
 void BdaAverager::show(std::ostream& os) const {
   os << "BdaAverager " << name_ << '\n';
-  os << "  timebase:        " << bl_threshold_time_ << "s\n";
+  os << "  timebase:        " << bl_threshold_time_ << "m\n";
   os << "  max interval:    " << max_interval_ << "s\n";
-  os << "  frequencybase:   " << bl_threshold_channel_ << '\n';
+  os << "  frequencybase:   " << bl_threshold_channel_ << "m\n";
   os << "  min channels:    " << min_channels_ << "\n";
   os << "  max time factor: " << maxtimefactor_ << '\n';
   os << "  max freq factor: " << maxfreqfactor_ << '\n';
