@@ -17,6 +17,18 @@
 namespace dp3 {
 
 namespace steps {
+
+/**
+ * This function and the other Make*Zero functions set a Stokes value to
+ * zero.
+ * @param visibilities The linear polarized visibilities; should point to
+ * an array of 4 values that are modified in place.
+ */
+void MakeStokesIZero(std::complex<float>* visibilities);
+void MakeStokesQZero(std::complex<float>* visibilities);
+void MakeStokesUZero(std::complex<float>* visibilities);
+void MakeStokesVZero(std::complex<float>* visibilities);
+
 /// @brief DP3 step for polarisation modification
 
 /// This class is a Step class that optionally sets
@@ -52,8 +64,10 @@ class NullStokes : public Step {
  private:
   std::string name_;
   common::NSTimer timer_;
+  bool modify_i_;
   bool modify_q_;
   bool modify_u_;
+  bool modify_v_;
 };
 
 }  // namespace steps
