@@ -1,21 +1,27 @@
 description: >-
   Modifies the visibilities of the input measurement set such that one or more Stokes parameters are set to zero.
 inputs:
-  step_name:
-    type: string
-    doc: unique name for the step.
-    default: nullstokes
   type:
     type: string
     doc: Case-insensitive step type; must be 'nullstokes'.
     default: nullstokes
-  Uzero:
+  modify_i:
+    type: boolean
+    doc: >-
+      Set Stokes I to zero.
+    default: false
+  modify_q:
+    type: boolean
+    doc: >-
+      Set Stokes Q to zero.
+    default: false
+  modify_u:
     type: boolean
     doc: >-
       Set Stokes U to zero.
     default: false
-  Qzero:
+  modify_v:
     type: boolean
     doc: >-
-      Set Stokes Q to zero.
+      Set Stokes V to zero.
     default: false

@@ -261,7 +261,6 @@ def test_metadata_decompression():
 
 
 def test_new_sisco_ms():
-    # This just checks if it runs without errors
     run_dp3(
         [
             f"msin={MSIN}",
@@ -276,7 +275,6 @@ def test_new_sisco_ms():
 
 
 def test_update_sisco_ms():
-    # This just checks if it runs without errors
     run_dp3(
         [
             f"msin={MSIN}",
@@ -288,4 +286,33 @@ def test_update_sisco_ms():
     )
 
     taql_command = f"select from {MSIN} where not all(DATA==SISCO_DATA)"
+    assert_taql(taql_command)
+
+
+def test_stokes_i_ms():
+    # Make a column for which QUV are set to zero
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=STOKES_I_DATA",
+            "steps=[nullstokes]",
+            "nullstokes.modify_q=true",
+            "nullstokes.modify_u=true",
+            "nullstokes.modify_v=true",
+        ]
+    )
+
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msin.datacolumn=STOKES_I_DATA",
+            "msout=.",
+            "msout.storagemanager=stokes_i",
+            "msout.datacolumn=COMPRESSED_STOKES_I_DATA",
+            "steps=[]",
+        ]
+    )
+
+    taql_command = f"select from {MSIN} where not all(COMPRESSED_STOKES_I_DATA==STOKES_I_DATA)"
     assert_taql(taql_command)

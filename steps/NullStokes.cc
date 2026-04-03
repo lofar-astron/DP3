@@ -18,16 +18,48 @@ using dp3::base::DPInfo;
 namespace dp3 {
 namespace steps {
 
+void MakeStokesIZero(std::complex<float>* visibilities) {
+  std::complex<float>& xx = visibilities[0];
+  std::complex<float>& yy = visibilities[3];
+  xx = (xx - yy) * 0.5f;
+  yy = -xx;
+}
+
+void MakeStokesQZero(std::complex<float>* visibilities) {
+  std::complex<float>& xx = visibilities[0];
+  std::complex<float>& yy = visibilities[3];
+  xx = (xx + yy) * 0.5f;
+  yy = xx;
+}
+
+void MakeStokesUZero(std::complex<float>* visibilities) {
+  std::complex<float>& xy = visibilities[1];
+  std::complex<float>& yx = visibilities[2];
+  xy = (xy - yx) * 0.5f;
+  yx = -xy;
+}
+
+void MakeStokesVZero(std::complex<float>* visibilities) {
+  std::complex<float>& xy = visibilities[1];
+  std::complex<float>& yx = visibilities[2];
+  xy = (xy + yx) * 0.5f;
+  yx = xy;
+}
+
 NullStokes::NullStokes(const common::ParameterSet& parset,
                        const std::string& prefix)
     : name_(prefix),
+      modify_i_(parset.getBool(prefix + "modify_i", false)),
       modify_q_(parset.getBool(prefix + "modify_q", false)),
-      modify_u_(parset.getBool(prefix + "modify_u", false)) {}
+      modify_u_(parset.getBool(prefix + "modify_u", false)),
+      modify_v_(parset.getBool(prefix + "modify_v", false)) {}
 
 void NullStokes::show(std::ostream& os) const {
   os << "NullStokes " << name_ << '\n'
-     << std::boolalpha << "modify_q " << modify_q_ << '\n'
-     << "modify_u " << modify_u_ << '\n';
+     << std::boolalpha << "modify_i " << modify_i_ << '\n'
+     << "modify_q " << modify_q_ << '\n'
+     << "modify_u " << modify_u_ << '\n'
+     << "modify_v " << modify_v_ << '\n';
 }
 
 void NullStokes::showTimings(std::ostream& os, double duration) const {
@@ -46,18 +78,17 @@ bool NullStokes::process(std::unique_ptr<DPBuffer> buffer) {
   // unchanged. See e.g. eq. (4.28) and §4.5–4.7.2 of
   // https://link.springer.com/book/10.1007/978-3-319-44431-4
   for (std::size_t i = 0; i < buffer->GetData().size(); i += 4) {
-    std::complex<float>& xx = visibilities[i];
-    std::complex<float>& xy = visibilities[i + 1];
-    std::complex<float>& yx = visibilities[i + 2];
-    std::complex<float>& yy = visibilities[i + 3];
-    // Zero out appropriate Stokes parameter(s)
+    if (modify_i_) {
+      MakeStokesIZero(&visibilities[i]);
+    }
     if (modify_q_) {
-      xx = (xx + yy) / 2.0f;
-      yy = xx;
+      MakeStokesQZero(&visibilities[i]);
     }
     if (modify_u_) {
-      xy = (xy - yx) / 2.0f;
-      yx = -xy;
+      MakeStokesUZero(&visibilities[i]);
+    }
+    if (modify_v_) {
+      MakeStokesVZero(&visibilities[i]);
     }
   }
   timer_.stop();

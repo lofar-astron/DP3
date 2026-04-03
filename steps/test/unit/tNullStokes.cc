@@ -4,7 +4,10 @@
 #include <cstddef>
 
 #include <boost/test/unit_test.hpp>
+
 #include <xtensor/xcomplex.hpp>
+
+#include <aocommon/polarization.h>
 
 #include "steps/NullStokes.h"
 #include "steps/ResultStep.h"
@@ -21,7 +24,6 @@ constexpr double kTime{4.87128e+09};
 constexpr double kExposure{10.0139};
 constexpr double kWeightStepSize{0.7};
 constexpr double kUvwStepSize{0.1};
-}  // namespace
 
 bool TestNullStokes(std::size_t n_baselines, std::size_t n_channels,
                     std::size_t n_correlations, bool modify_q, bool modify_u) {
@@ -100,6 +102,23 @@ bool TestNullStokes(std::size_t n_baselines, std::size_t n_channels,
   return true;
 }
 
+template <typename Function>
+void TestZeroingFunction(const float* stokes_in, const float* stokes_expected,
+                         Function f) {
+  std::complex<float> linear[4];
+  std::complex<float> expected[4];
+
+  aocommon::Polarization::StokesToLinear(stokes_in, linear);
+  f(linear);
+  aocommon::Polarization::StokesToLinear(stokes_expected, expected);
+  for (size_t p = 0; p != 4; ++p) {
+    BOOST_CHECK_CLOSE_FRACTION(linear[p].real(), expected[p].real(), 1.0e-6);
+    BOOST_CHECK_CLOSE_FRACTION(linear[p].imag(), expected[p].imag(), 1.0e-6);
+  }
+}
+
+}  // namespace
+
 // Perform a very small/minimal run of the ArrayBeam step and compare against
 // expected result to help catch any regressions
 BOOST_AUTO_TEST_CASE(test_basic_nullstokes) {
@@ -107,6 +126,30 @@ BOOST_AUTO_TEST_CASE(test_basic_nullstokes) {
   BOOST_CHECK(TestNullStokes(28, 8, 4, true, true));
   BOOST_CHECK(TestNullStokes(28, 8, 4, true, false));
   BOOST_CHECK(TestNullStokes(28, 8, 4, false, true));
+}
+
+BOOST_AUTO_TEST_CASE(make_stokes_i_zero) {
+  const float input[4] = {1.0, 2.0, 3.0, 4.0};
+  const float expected[4] = {0.0, 2.0, 3.0, 4.0};
+  TestZeroingFunction(input, expected, dp3::steps::MakeStokesIZero);
+}
+
+BOOST_AUTO_TEST_CASE(make_stokes_q_zero) {
+  const float input[4] = {1.0, 2.0, 3.0, 4.0};
+  const float expected[4] = {1.0, 0.0, 3.0, 4.0};
+  TestZeroingFunction(input, expected, dp3::steps::MakeStokesQZero);
+}
+
+BOOST_AUTO_TEST_CASE(make_stokes_u_zero) {
+  const float input[4] = {1.0, 2.0, 3.0, 4.0};
+  const float expected[4] = {1.0, 2.0, 0.0, 4.0};
+  TestZeroingFunction(input, expected, dp3::steps::MakeStokesUZero);
+}
+
+BOOST_AUTO_TEST_CASE(make_stokes_v_zero) {
+  const float input[4] = {1.0, 2.0, 3.0, 4.0};
+  const float expected[4] = {1.0, 2.0, 3.0, 0.0};
+  TestZeroingFunction(input, expected, dp3::steps::MakeStokesVZero);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
