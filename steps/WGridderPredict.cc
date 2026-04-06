@@ -264,6 +264,24 @@ void WGridderPredict::flush() {
   const std::array<size_t, 3> data_size = {
       getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
 
+  // Concatenate uvw data from the dpbuffers into one uvw buffer
+  const size_t n_timesteps = buffers_.size();
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
+  uvw_ = xt::xtensor<double, 3>::from_shape(
+      xt::xtensor<double, 3>::shape_type{n_timesteps, n_baselines, 3});
+  for (size_t t = 0; t < n_timesteps; t++) {
+    // wgridder expects an image that is transposed compared to fits images
+    // that wsclean produces. To avoid an actual transpose of the images, the
+    // u and v coordinates are swapped and the signs are changed.
+    xt::view(uvw_, t, xt::all(), 0) =
+        -xt::view(buffers_[t]->GetUvw(), xt::all(), 1);
+    xt::view(uvw_, t, xt::all(), 1) =
+        -xt::view(buffers_[t]->GetUvw(), xt::all(), 0);
+    xt::view(uvw_, t, xt::all(), 2) =
+        xt::view(buffers_[t]->GetUvw(), xt::all(), 2);
+  }
+
   if (sum_facets_) {
     destinations.clear();
     for (size_t i = 0; i < buffers_.size(); i++) {
@@ -285,6 +303,7 @@ void WGridderPredict::flush() {
     }
     Predict(dir, destinations);
   }
+  uvw_ = {};
   for (size_t i = 0; i < buffers_.size(); i++) {
     getNextStep()->process(std::move(buffers_[i]));
   }
@@ -317,21 +336,6 @@ void WGridderPredict::Predict(
   const size_t n_baselines = getInfoOut().nbaselines();
   const size_t n_channels = getInfoOut().nchan();
 
-  // Concatenate uvw data from the dpbuffers into one uvw buffer
-  xt::xtensor<double, 3> uvw{
-      xt::xtensor<double, 3>::shape_type{n_timesteps, n_baselines, 3}};
-  for (size_t t = 0; t < n_timesteps; t++) {
-    // wgridder expects an image that is transposed compared to fits images
-    // that wsclean produces. To avoid an actual transpose of the images, the
-    // u and v coordinates are swapped and the signs are changed.
-    xt::view(uvw, t, xt::all(), 0) =
-        -xt::view(buffers_[t]->GetUvw(), xt::all(), 1);
-    xt::view(uvw, t, xt::all(), 1) =
-        -xt::view(buffers_[t]->GetUvw(), xt::all(), 0);
-    xt::view(uvw, t, xt::all(), 2) =
-        xt::view(buffers_[t]->GetUvw(), xt::all(), 2);
-  }
-
   // The visibilities predicted by wgridder are for a single polarization.
   // Unlike the visibilities in DPBuffer there is no correlations axis here.
   // The tranformation to full polarization data happens when the predicted
@@ -359,7 +363,7 @@ void WGridderPredict::Predict(
   size_t verbosity = 0;
 
   // View on uvw data in cmav type, as needed by wgridder
-  cmav<double, 2> uvw_view(uvw.data(), {n_timesteps * n_baselines, 3});
+  cmav<double, 2> uvw_view(uvw_.data(), {n_timesteps * n_baselines, 3});
 
   bool decreasing_freq =
       (n_channels > 1) && (frequency_data[1] < frequency_data[0]);

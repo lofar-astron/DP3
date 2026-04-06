@@ -126,6 +126,8 @@ class WGridderPredict : public ModelDataStep {
   std::vector<std::string> direction_labels_;
   bool save_facets_;
   bool sum_facets_;
+
+  xt::xtensor<double, 3> uvw_;
 };
 
 }  // namespace steps
