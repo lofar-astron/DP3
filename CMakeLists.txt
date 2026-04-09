@@ -665,7 +665,14 @@ set(SOURCEDB_LIBRARIES Blob Common ParmDB ${CASACORE_LIBRARIES}
                        ${Boost_LIBRARIES})
 
 add_executable(DP3 base/Main.cc)
-target_link_libraries(DP3 LIBDP3 ${HDF5_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(
+  DP3
+  LIBDP3
+  ${HDF5_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${AOFLAGGER_LIB}
+  ${EVERYBEAM_LIB}
+  ${IDGAPI_LIBRARIES})
 
 add_executable(showsourcedb parmdb/showsourcedb.cc)
 target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
