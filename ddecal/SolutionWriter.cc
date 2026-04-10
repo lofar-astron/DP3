@@ -113,10 +113,13 @@ void SolutionWriter::Write(
     std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>
         upsampled_constraints;
 
-    if (constraint_solutions.empty() || constraint_solutions.front().empty()) {
-      upsampled_solutions =
-          resampler.Upsample(solutions, GetNPolarizations(mode));
-    } else {
+    // This upsampling is technically not necessary when there are constraint
+    // solutions, but WriteDirect() currently uses the solutions unconditionally
+    // in its call to GetSolutionTimes().
+    upsampled_solutions =
+        resampler.Upsample(solutions, GetNPolarizations(mode));
+    if (!constraint_solutions.empty() &&
+        !constraint_solutions.front().empty()) {
       upsampled_constraints = resampler.Upsample(constraint_solutions);
     }
     WriteDirect(upsampled_solutions, upsampled_constraints, start_time,

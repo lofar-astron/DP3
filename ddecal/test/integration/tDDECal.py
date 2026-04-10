@@ -4,6 +4,7 @@
 import sys
 from subprocess import STDOUT, CalledProcessError, check_output
 
+import h5py
 import numpy as np
 import pytest
 
@@ -80,8 +81,6 @@ def create_corrupted_visibilities():
     )
 
     # Modify h5 file for multiple solution intervals
-    import h5py  # Don't import h5py when pytest is only collecting tests.
-
     h5file = h5py.File("instrumentcorrupted.h5", "r+")
     sol = h5file["sol000/amplitude000/val"]
     sol[:4, ..., 0, :] = np.sqrt(5)
@@ -226,8 +225,6 @@ def test_calibration_with_dd_intervals(
     )
 
     # Verify that he values in instrument.h5 are close to the values in instrumentcorrupted.h5
-    import h5py  # Don't import h5py when pytest is only collecting tests.
-
     ddecal_solutions = h5py.File("instrument.h5", "r")
     reference_solutions = h5py.File("instrumentcorrupted.h5", "r")
 
@@ -272,7 +269,7 @@ def test_calibration_with_dd_intervals(
                 assert (abs(values_ddecal - values_reference) < 1.2).all()
 
 
-@pytest.mark.xfail(reason="Will be fixed in AST-924")
+@pytest.mark.skip(reason="Will be fixed in AST-924")
 @pytest.mark.parametrize(
     "solutions_per_direction",
     [[1, 1, 1], [1, 2, 4], [2, 2, 2], [4, 4, 4]],
@@ -309,8 +306,6 @@ def test_bug_ast_924(
     )
 
     # Verify that he values in instrument.h5 are close to the values in instrumentcorrupted.h5
-    import h5py  # Don't import h5py when pytest is only collecting tests.
-
     ddecal_solutions = h5py.File("instrument.h5", "r")
     reference_solutions = h5py.File("instrumentcorrupted.h5", "r")
 
@@ -350,7 +345,7 @@ def test_bug_ast_924(
                 assert (abs(values_ddecal - values_reference) < 1.2).all()
 
 
-@pytest.mark.xfail(reason="Will be implemented in AST-920")
+@pytest.mark.skip(reason="Will be implemented in AST-920")
 @pytest.mark.parametrize(
     "solutions_per_direction", [[1, 1, 1], [1, 3, 6], [3, 3, 3], [6, 6, 6]]
 )
@@ -689,8 +684,6 @@ def test_dd_solution_intervals(solutions_per_direction):
 
 
 def test_modelnextsteps(copy_data_to_model_data):
-    import h5py  # Don't import h5py when pytest is only collecting tests.
-
     # Multiply MODEL_DATA by 42
     taqlcommand_run = f"update {MSIN} set MODEL_DATA=DATA*42"
     check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
@@ -727,8 +720,6 @@ def test_modelnextsteps(copy_data_to_model_data):
 
 
 def test_bda_constraints():
-    import h5py  # Don't import h5py when pytest is only collecting tests.
-
     common_test_arguments = [
         f"msin={MSIN}",
         "msout.overwrite=true",
@@ -876,8 +867,6 @@ def test_uvwflagging():
     check_output([tcf.TAQLEXE, "-noph", taqlcommand_run])
 
     # Create a sky model
-    import casacore.tables  # Don't import casacore.tables when pytest is only collecting tests.
-
     t_field = casacore.tables.table(f"{MSIN}::FIELD")
     ra, dec = t_field[0]["PHASE_DIR"][0]
     with open("skymodel.txt", "w") as sky_model_file:
@@ -912,8 +901,6 @@ def test_uvwflagging():
     )
 
     # Check solutions
-    import h5py  # Don't import h5py when pytest is only collecting tests.
-
     with h5py.File("instrument1.h5", "r") as h5file:
         sol = h5file["sol000/amplitude000/val"]
         # Because of the flags some antennas will have no solution, indicated by a NaN.
@@ -1161,3 +1148,51 @@ def test_h5parm_initial_solutions_with_dd_intervals():
             "ddecal.solveralgorithm=directioniterative",
         ]
     )
+
+
+def test_tec_with_dd_intervals():
+    """
+    Tests the resampling of constraint results when DD intervals are used. This
+    only tests the shape of the outputs, not whether the solvers produce good
+    values.
+    """
+
+    # Generate H5 with initial solutions
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            f"msout=",
+            f"steps=[ddecal]",
+            f"ddecal.sourcedb={SKYMODEL}",
+            f"ddecal.h5parm=solutions.h5",
+            f"ddecal.mode=tec",
+            f"ddecal.solint=2",
+            f"ddecal.solveralgorithm=directioniterative",
+            f"ddecal.solutions_per_direction=[2,1]",
+        ]
+    )
+
+    with h5py.File("solutions.h5") as sol_file:
+        # The measurement set has 6 timesteps. These are subdivided into intervals
+        # of 2 timesteps by DDECal, but because solutions_per_direction is used,
+        # each interval gets 2 timesteps, hence there should be 6 timesteps in total:
+        n_times = 6
+        n_antennas = 8
+        n_directions = 4
+        n_channels = 1
+        assert sol_file["sol000/tec000/val"].shape == (
+            n_times,
+            n_antennas,
+            n_directions,
+            n_channels,
+        )
+        assert sol_file["sol000/tec000/weight"].shape == (
+            n_times,
+            n_antennas,
+            n_directions,
+            n_channels,
+        )
+        assert sol_file["sol000/tec000/time"].shape == (n_times,)
+        assert sol_file["sol000/tec000/freq"].shape == (n_channels,)
+        assert sol_file["sol000/tec000/ant"].shape == (n_antennas,)
+        assert sol_file["sol000/tec000/dir"].shape == (n_directions,)
