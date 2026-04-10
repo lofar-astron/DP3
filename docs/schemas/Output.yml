@@ -114,3 +114,8 @@ inputs:
     type: int
     doc: >-
       Deflate compression level for Sisco. Number between 1 (fastest but least compressing) and 12 (slowest but strongest compression). See the `https://github.com/ebiggers/libdeflate?tab=readme-ov-file#compression-levels <compression levels section>`_ of the libdeflate manual for more info.
+  msout&#46;storagemanager&#46;sisco_mode:
+    default: "full"
+    type: string
+    doc: >-
+      Options: "full", "diagonal" or "stokes_i". In "full" mode, all 4 correlations are compressed and stored separately. When set to "stokes_i", only Stokes I values are stored. This requires that XX=YY and XY=YX=0 for all data. This speeds up the compression significantly (about 3x) and saves a bit of space. In "diagonal" mode, the diagonal (XX and YY) values are stored separately. This requires XY=YX=0.

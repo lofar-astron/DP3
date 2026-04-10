@@ -118,7 +118,7 @@ def assert_reorder_ms_meta_file(ms_filename, ms_table):
 
         for row in range(nr_rows_actual):
             data_raw = f.read(_meta_record_binary_size)
-            (u, v, w, time, antenna1, antenna2, fieldid) = struct.unpack_from(
+            u, v, w, time, antenna1, antenna2, fieldid = struct.unpack_from(
                 _meta_record_fmt, data_raw
             )
 
@@ -321,7 +321,7 @@ def assert_reorder_ms_data_files(
         with open(data_file_name, "rb") as f:
             data_raw = f.read(_part_header_binary_size)
 
-            (nr_chan_actual, has_model) = struct.unpack_from(
+            nr_chan_actual, has_model = struct.unpack_from(
                 _part_header_fmt, data_raw
             )
 
@@ -332,7 +332,7 @@ def assert_reorder_ms_data_files(
                 for chan in range(nr_chan):
                     for pol_idx in range(npol_per_file):
                         data_raw = f.read(_complex_float_bin_size)
-                        (real, imag) = struct.unpack_from("ff", data_raw)
+                        real, imag = struct.unpack_from("ff", data_raw)
                         vis_actual = real + 1j * imag
                         assert_almost_equal(
                             vis_actual, pol_data[row][chan][pol_idx]

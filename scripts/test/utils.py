@@ -49,7 +49,7 @@ def run_in_tmp_path(tmp_path):
     os.chdir(tmp_path)
 
 
-def run_dp3(arguments):
+def run_dp3(arguments, must_fail=False):
     """
     Run DP3 with the given arguments.
     Prepend common DP3 test arguments (checkparset=1, numthreads=1).
@@ -58,7 +58,9 @@ def run_dp3(arguments):
     all_arguments = COMMON_DP3_ARGUMENTS + arguments
     print("DP3 " + " ".join(all_arguments))
     result = run([DP3EXE] + all_arguments, stdout=subprocess.PIPE)
-    if result.returncode != 0:
+    if must_fail:
+        assert result.returncode != 0
+    elif result.returncode != 0:
         # The output is shortened and not well displayed in an exception, so
         # the output is explicitly printed:
         stdout_string = result.stdout.decode("utf-8")

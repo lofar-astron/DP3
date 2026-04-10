@@ -289,7 +289,8 @@ def test_update_sisco_ms():
     assert_taql(taql_command)
 
 
-def test_stokes_i_ms():
+@pytest.fixture
+def stokes_i_data_fixture():
     # Make a column for which QUV are set to zero
     run_dp3(
         [
@@ -303,6 +304,90 @@ def test_stokes_i_ms():
         ]
     )
 
+
+@pytest.fixture
+def diagonal_data_fixture():
+    # Make a column for which UV are set to zero
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.datacolumn=DIAGONAL_DATA",
+            "steps=[nullstokes]",
+            "nullstokes.modify_u=true",
+            "nullstokes.modify_v=true",
+        ]
+    )
+
+
+def test_update_sisco_stokes_i(stokes_i_data_fixture):
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msin.datacolumn=STOKES_I_DATA",
+            "msout=.",
+            "msout.storagemanager=Sisco",
+            "msout.storagemanager.sisco_mode=stokes_i",
+            "msout.datacolumn=SISCO_I_DATA",
+            "steps=[]",
+        ]
+    )
+
+    taql_command = (
+        f"select from {MSIN} where not all(STOKES_I_DATA==SISCO_I_DATA)"
+    )
+    assert_taql(taql_command)
+
+
+def test_update_sisco_stokes_i_failure():
+    # This call should fail because there are non-zero QUV values in the MS.
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.storagemanager=Sisco",
+            "msout.storagemanager.sisco_mode=stokes_i",
+            "msout.datacolumn=SISCO_DATA",
+            "steps=[]",
+        ],
+        must_fail=True,
+    )
+
+
+def test_update_sisco_diagonal(diagonal_data_fixture):
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msin.datacolumn=DIAGONAL_DATA",
+            "msout=.",
+            "msout.storagemanager=Sisco",
+            "msout.storagemanager.sisco_mode=diagonal",
+            "msout.datacolumn=SISCO_DIAGONAL_DATA",
+            "steps=[]",
+        ]
+    )
+
+    taql_command = (
+        f"select from {MSIN} where not all(DIAGONAL_DATA==SISCO_DIAGONAL_DATA)"
+    )
+    assert_taql(taql_command)
+
+
+def test_update_sisco_diagonal_failure():
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "msout.storagemanager=Sisco",
+            "msout.storagemanager.sisco_mode=diagonal",
+            "msout.datacolumn=SISCO_DATA",
+            "steps=[]",
+        ],
+        must_fail=True,
+    )
+
+
+def test_stokes_i_ms(stokes_i_data_fixture):
     run_dp3(
         [
             f"msin={MSIN}",

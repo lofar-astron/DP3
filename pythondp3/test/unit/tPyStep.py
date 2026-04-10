@@ -7,6 +7,7 @@ Script can be invoked in two ways:
   using `pytest source/tPyStep.py` (extended with pytest options of your choice)
 - using ctest, see DP3/pythondp3/test/integration/CMakeLists.txt
 """
+
 import os
 import sys
 

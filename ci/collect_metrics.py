@@ -1,6 +1,7 @@
 # Retrieved from https://gitlab.com/ska-telescope/ci-metrics-utilities/
 
 """Script to collect and parse CI metrics."""
+
 import json
 import logging
 import os
