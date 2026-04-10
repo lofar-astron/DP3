@@ -351,7 +351,6 @@ void MSUpdater::show(std::ostream& os) const {
     os << '\n';
   }
   os << GetCompressionString(itsStManKeys);
-  os << '\n';
   os << "  flush:          " << itsNrTimesFlush << '\n';
 }
 

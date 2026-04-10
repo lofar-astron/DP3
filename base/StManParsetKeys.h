@@ -15,6 +15,34 @@
 
 namespace dp3 {
 namespace base {
+
+enum class SiscoMode { Full, Diagonal, StokesI };
+
+inline SiscoMode GetSiscoMode(const std::string& mode_str) {
+  const std::string lowercase_str = boost::to_lower_copy(mode_str);
+  if (lowercase_str == "" || lowercase_str == "full")
+    return SiscoMode::Full;
+  else if (lowercase_str == "diagonal")
+    return SiscoMode::Diagonal;
+  else if (lowercase_str == "stokes_i")
+    return SiscoMode::StokesI;
+  else
+    throw std::runtime_error("Invalid mode specified for Sisco: " + mode_str);
+}
+
+inline std::string ToString(SiscoMode mode) {
+  switch (mode) {
+    case SiscoMode::Full:
+      return "full";
+    case SiscoMode::Diagonal:
+      return "diagonal";
+    case SiscoMode::StokesI:
+      return "stokes_i";
+  }
+  assert(false);
+  return {};
+}
+
 struct StManParsetKeys {
   std::string storage_manager_name;
   /// Bits per data float, or 0 if data column is not compressed
@@ -35,6 +63,8 @@ struct StManParsetKeys {
   /// for using linear prediction using 2 previous values, 2 for using quadratic
   /// prediction using 3 previous values.
   int sisco_predict_level;
+  /// Will store just one value when set to @c true.
+  SiscoMode sisco_mode;
 
   explicit StManParsetKeys(const common::ParameterSet& parset,
                            const std::string& prefix) {
@@ -58,6 +88,8 @@ struct StManParsetKeys {
           parset.getInt(prefix + "storagemanager.deflate_level", 9);
       sisco_predict_level =
           parset.getInt(prefix + "storagemanager.predict_level", 2);
+      sisco_mode = GetSiscoMode(
+          parset.getString(prefix + "storagemanager.sisco_mode", ""));
     }
   }
 
@@ -88,6 +120,8 @@ struct StManParsetKeys {
     casacore::Record result;
     result.define("deflate_level", sisco_deflate_level);
     result.define("predict_level", sisco_predict_level);
+    result.define("stokes_i", sisco_mode == SiscoMode::StokesI);
+    result.define("diagonal", sisco_mode == SiscoMode::Diagonal);
     return result;
   }
 
@@ -122,7 +156,8 @@ inline std::string GetCompressionString(const StManParsetKeys& st_man_keys) {
   } else if (st_man_keys.storage_manager_name == "sisco") {
     str << "  Compressed:     yes (Sisco)\n"
         << "   Predict level: " << st_man_keys.sisco_predict_level << '\n'
-        << "   Deflate level: " << st_man_keys.sisco_deflate_level << '\n';
+        << "   Deflate level: " << st_man_keys.sisco_deflate_level << '\n'
+        << "   Sisco mode:    " << ToString(st_man_keys.sisco_mode) << '\n';
   } else if (st_man_keys.storage_manager_name == "stokes_i") {
     str << "  Compressed:     yes (Stokes I)\n";
   } else {
