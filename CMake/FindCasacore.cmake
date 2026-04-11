@@ -2,8 +2,8 @@
 # Usage:
 #   find_package(Casacore [REQUIRED] [COMPONENTS components...])
 # Valid components are:
-#   casa, coordinates, derivedmscal, fits, images, lattices, meas,
-#   measures, mirlib, ms, msfits, python, scimath, scimath_f, tables
+#   casa, coordinates, derivedmscal, fits, images, lattices, meas, measures,
+#   mirlib, ms, msfits, python3, scimath, scimath_f, tables
 #
 # Note that most components are dependent on other (more basic) components.
 # In that case, it suffices to specify the "top-level" components; dependent
@@ -113,13 +113,11 @@ endmacro(casacore_find_library _name)
 #   Usage: casacore_find_package(name [REQUIRED])
 #
 macro(casacore_find_package _name)
-  if("${ARGN}" MATCHES "^REQUIRED$" AND
-      Casacore_FIND_REQUIRED AND
-      NOT CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL)
-    find_package(${_name} REQUIRED)
-  else()
-    find_package(${_name})
+  set(_arg_list ${ARGN})
+  if(NOT Casacore_FIND_REQUIRED OR CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL)
+    list(REMOVE_ITEM _arg_list "REQUIRED")
   endif()
+  find_package(${_name} ${_arg_list})
   if(${_name}_FOUND)
     list(APPEND CASACORE_INCLUDE_DIRS ${${_name}_INCLUDE_DIRS})
     list(APPEND CASACORE_LIBRARIES ${${_name}_LIBRARIES})
@@ -139,7 +137,7 @@ set(Casacore_components
   mirlib
   ms
   msfits
-  python
+  python3
   scimath
   scimath_f
   tables
@@ -157,7 +155,7 @@ set(Casacore_measures_DEPENDENCIES      tables casa)
 set(Casacore_mirlib_DEPENDENCIES)
 set(Casacore_ms_DEPENDENCIES            measures scimath tables casa)
 set(Casacore_msfits_DEPENDENCIES        ms fits measures tables casa)
-set(Casacore_python_DEPENDENCIES        casa)
+set(Casacore_python3_DEPENDENCIES       casa)
 set(Casacore_scimath_DEPENDENCIES       scimath_f casa)
 set(Casacore_scimath_f_DEPENDENCIES)
 set(Casacore_tables_DEPENDENCIES        casa)
@@ -211,13 +209,7 @@ else(NOT CASACORE_INCLUDE_DIR)
   foreach(_comp ${_find_components})
     casacore_find_library(casa_${_comp})
     if(${_comp} STREQUAL casa)
-      # Use 'find_package' directly for HDF5, since 'casacore_find_package'
-      # does not support the extra 'COMPONENTS CXX' arguments.
-      find_package(HDF5 COMPONENTS CXX)
-      if (HDF5_FOUND)
-        list(APPEND CASACORE_INCLUDE_DIRS ${HDF5_INCLUDE_DIRS})
-        list(APPEND CASACORE_LIBRARIES ${HDF5_LIBRARIES})
-      endif(HDF5_FOUND)
+      casacore_find_package(HDF5 COMPONENTS CXX)
       casacore_find_library(m)
       list(APPEND CASACORE_LIBRARIES ${CMAKE_DL_LIBS})
     elseif(${_comp} STREQUAL coordinates)
