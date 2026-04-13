@@ -5,7 +5,7 @@
 
 #include "BdaSolverBuffer.h"
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <cassert>
 

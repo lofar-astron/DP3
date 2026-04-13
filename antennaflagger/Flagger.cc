@@ -7,11 +7,11 @@
 #include <iostream>
 #include <set>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xindex_view.hpp>
-#include <xtensor/xmasked_view.hpp>
-#include <xtensor/xsort.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/misc/xsort.hpp>
+#include <xtensor/views/xindex_view.hpp>
+#include <xtensor/views/xview.hpp>
+#include <xtensor/views/xmasked_view.hpp>
 
 // See Flagger.h for algorithm details.
 #include "Flagger.h"

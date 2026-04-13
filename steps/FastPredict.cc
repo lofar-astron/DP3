@@ -9,8 +9,8 @@
 #include <iostream>
 
 #include <stdexcept>
-#include <xtensor/xview.hpp>
-#include <xtensor/xadapt.hpp>
+#include <xtensor/views/xview.hpp>
+#include <xtensor/containers/xadapt.hpp>
 
 #include "common/ParameterSet.h"
 #include "common/Timer.h"

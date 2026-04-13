@@ -6,7 +6,7 @@
 // @author Ger van Diepen
 
 #include <boost/test/unit_test.hpp>
-#include <xtensor/xcomplex.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 
 #include "base/DP3.h"
 #include "base/DPBuffer.h"

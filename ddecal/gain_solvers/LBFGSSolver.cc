@@ -13,11 +13,11 @@
 #undef complex
 
 #include <aocommon/dynamicfor.h>
-#include <xtensor/xadapt.hpp>
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xlayout.hpp>
-#include <xtensor/xvectorize.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xadapt.hpp>
+#include <xtensor/core/xlayout.hpp>
+#include <xtensor/core/xvectorize.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <algorithm>
 #include <iostream>

@@ -12,9 +12,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <xtensor/xio.hpp>
-#include <xtensor/xstrided_view.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/views/xstrided_view.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"

@@ -14,7 +14,7 @@
 
 #include <casacore/casa/Quanta/Quantum.h>
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <aocommon/logger.h>
 #include <aocommon/matrix2x2.h>

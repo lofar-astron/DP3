@@ -21,7 +21,7 @@
 
 #include <aocommon/dynamicfor.h>
 
-#include <xtensor/xcomplex.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 
 #include <algorithm>
 #include <cassert>

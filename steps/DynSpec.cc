@@ -9,10 +9,10 @@
 #include <string>
 #include <complex>
 
-#include <xtensor/xview.hpp>
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xlayout.hpp>
-#include <xtensor/xindex_view.hpp>
+#include <xtensor/core/xlayout.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/views/xindex_view.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <aocommon/logger.h>
 #include <aocommon/polarization.h>

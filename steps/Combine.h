@@ -6,7 +6,7 @@
 
 #include "Step.h"
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "common/ParameterSet.h"
 #include "common/Timer.h"

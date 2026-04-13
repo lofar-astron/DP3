@@ -5,7 +5,7 @@
 
 #include "Transfer.h"
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/TableColumn.h>

@@ -5,9 +5,9 @@
 
 #include <aocommon/dynamicfor.h>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xnoalias.hpp>
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/core/xnoalias.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 #include <xtensor-blas/xlinalg.hpp>
 
 using aocommon::MC2x2F;

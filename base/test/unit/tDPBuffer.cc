@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <xtensor/xio.hpp>
+#include <xtensor/io/xio.hpp>
 
 #include "base/DPBuffer.h"
 

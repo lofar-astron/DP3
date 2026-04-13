@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <boost/test/unit_test.hpp>
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "base/Simulator.h"
 #include "base/Stokes.h"

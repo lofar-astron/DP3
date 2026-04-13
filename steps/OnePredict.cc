@@ -12,7 +12,7 @@
 #include <cassert>
 #include <iostream>
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "common/ParameterSet.h"
 #include "common/Timer.h"

@@ -14,7 +14,7 @@
 #include <ducc0/wgridder/wgridder.h>
 #include <ducc0/fft/fftnd_impl.h>
 #include <schaapcommon/facets/ds9facetfile.h>
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "base/FlagCounter.h"
 #include "common/Memory.h"

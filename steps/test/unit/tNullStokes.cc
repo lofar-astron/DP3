@@ -5,7 +5,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <xtensor/xcomplex.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 
 #include <aocommon/polarization.h>
 

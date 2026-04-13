@@ -10,7 +10,7 @@
 
 #include <schaapcommon/facets/facet.h>
 
-#include <xtensor/xcomplex.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

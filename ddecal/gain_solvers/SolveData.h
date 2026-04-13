@@ -10,7 +10,7 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/staticfor.h>
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "base/DPBuffer.h"
 

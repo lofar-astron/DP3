@@ -11,7 +11,7 @@
 
 #include "InputStep.h"
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "base/DPBuffer.h"
 #include "base/BdaBuffer.h"

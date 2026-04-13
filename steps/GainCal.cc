@@ -15,7 +15,7 @@
 #include <sstream>
 
 #include <aocommon/xt/span.h>
-#include <xtensor/xadapt.hpp>
+#include <xtensor/containers/xadapt.hpp>
 
 #include "base/DP3.h"
 #include "base/Version.h"

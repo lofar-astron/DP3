@@ -11,7 +11,7 @@
 
 #include <casacore/casa/Arrays/Cube.h>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "Baseline.h"
 #include "ModelComponent.h"

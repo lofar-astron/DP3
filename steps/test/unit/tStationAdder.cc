@@ -6,9 +6,9 @@
 
 #include "steps/StationAdder.h"
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xio.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>

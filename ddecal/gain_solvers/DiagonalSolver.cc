@@ -10,7 +10,7 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/recursivefor.h>
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "../linear_solvers/LLSSolver.h"
 

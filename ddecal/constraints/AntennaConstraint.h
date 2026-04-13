@@ -9,9 +9,9 @@
 #include <set>
 #include <vector>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xmasked_view.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/views/xmasked_view.hpp>
+#include <xtensor/views/xview.hpp>
 
 namespace dp3 {
 namespace ddecal {
