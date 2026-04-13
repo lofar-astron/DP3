@@ -11,7 +11,7 @@
 
 #include <atomic>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"

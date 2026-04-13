@@ -16,7 +16,7 @@
 #include <casacore/tables/TaQL/RecordGram.h>
 #include <casacore/casa/Containers/Record.h>
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"

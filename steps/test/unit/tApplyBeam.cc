@@ -4,7 +4,7 @@
 #include "steps/ApplyBeam.h"
 
 #include <boost/test/unit_test.hpp>
-#include <xtensor/xcomplex.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 
 #include "mock/ThrowStep.h"
 #include "common/ParameterSet.h"

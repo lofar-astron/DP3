@@ -20,10 +20,10 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayLogical.h>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xmath.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xio.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/core/xmath.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/io/xio.hpp>
 
 #include "tPredict.h"
 #include "tStepCommon.h"

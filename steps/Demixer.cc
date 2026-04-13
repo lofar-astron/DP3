@@ -18,8 +18,8 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/scimath/Mathematics/MatrixMathLA.h>
 
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "base/DP3.h"
 

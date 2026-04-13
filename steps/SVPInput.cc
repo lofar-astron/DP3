@@ -16,8 +16,8 @@
 #include <sys/ioctl.h>
 #include <sys/un.h>
 
-#include <xtensor/xadapt.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xadapt.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <aocommon/logger.h>
 

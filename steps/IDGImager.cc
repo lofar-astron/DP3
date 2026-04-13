@@ -10,12 +10,12 @@
 #include <idg-api.h>
 #endif
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xindex_view.hpp>
-#include <xtensor/xio.hpp>
-#include <xtensor/xmath.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/core/xmath.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/views/xindex_view.hpp>
+#include <xtensor/views/xview.hpp>
 #include <aocommon/staticfor.h>
 #include <aocommon/fits/fitswriter.h>
 #include <casacore/casa/BasicSL/Constants.h>

@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 using dp3::ddecal::AntennaConstraint;
 using dp3::ddecal::Constraint;

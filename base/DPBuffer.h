@@ -13,7 +13,7 @@
 #include <map>
 #include <vector>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <aocommon/xt/utensor.h>

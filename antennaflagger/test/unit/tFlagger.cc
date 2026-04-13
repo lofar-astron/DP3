@@ -6,11 +6,11 @@
 #include <aocommon/xt/span.h>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xio.hpp>
-#include <xtensor/xrandom.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/generators/xrandom.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "common/baseline_indices.h"
 

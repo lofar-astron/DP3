@@ -9,8 +9,8 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xtensor.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/containers/xtensor.hpp>
 #include <xtensor-blas/xlinalg.hpp>
 
 BOOST_AUTO_TEST_SUITE(diagonal_low_rank_solver)

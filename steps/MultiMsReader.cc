@@ -22,7 +22,7 @@
 #include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/OS/Conversion.h>
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "common/ParameterSet.h"
 #include "common/StreamUtil.h"

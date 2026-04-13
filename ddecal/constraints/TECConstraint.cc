@@ -6,8 +6,8 @@
 #include <aocommon/dynamicfor.h>
 #include <aocommon/staticfor.h>
 
-#include <xtensor/xmath.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/core/xmath.hpp>
+#include <xtensor/views/xview.hpp>
 
 namespace dp3 {
 namespace ddecal {

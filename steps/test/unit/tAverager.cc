@@ -11,10 +11,10 @@
 #include <casacore/casa/BasicMath/Math.h>
 #include <casacore/casa/Quanta/Quantum.h>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xmath.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/core/xmath.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <boost/test/unit_test.hpp>
 

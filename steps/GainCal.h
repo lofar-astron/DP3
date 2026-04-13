@@ -12,7 +12,7 @@
 #include <complex>
 #include <vector>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include <schaapcommon/h5parm/h5parm.h>
 

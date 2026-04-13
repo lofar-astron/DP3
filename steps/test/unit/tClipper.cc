@@ -9,8 +9,8 @@
 #include <fstream>
 
 #include <boost/test/unit_test.hpp>
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "common/ParameterSet.h"
 #include "steps/ResultStep.h"

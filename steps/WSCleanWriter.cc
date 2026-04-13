@@ -108,12 +108,14 @@ void WSCleanWriter::StartReorder() {
 
   schaapcommon::reordering::MSSelection selection;
 
+  constexpr bool kSortInTime = false;
+  constexpr bool kFrequencyBda = false;
   handle_data_ = std::make_unique<schaapcommon::reordering::HandleData>(
       out_name_, getInfoOut().dataColumnName(), "MODEL_DATA",
       schaapcommon::reordering::StorageManagerType::Default,
       temporary_directory_,
       schaapcommon::reordering::MakeRegularChannelMap(channel_ranges), false,
-      false, pols_out_, selection, bands_per_part,
+      false, pols_out_, selection, kSortInTime, bands_per_part, kFrequencyBda,
       getInfoOut().antennaNames().size(), true,
       [](schaapcommon::reordering::HandleData) {});
 

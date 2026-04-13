@@ -4,9 +4,9 @@
 #include <boost/test/unit_test.hpp>
 
 #include <random>
-#include <xtensor/xview.hpp>
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xrandom.hpp>
+#include <xtensor/views/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/generators/xrandom.hpp>
 
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"

@@ -11,7 +11,7 @@
 
 #include <memory>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include <aocommon/xt/span.h>
 

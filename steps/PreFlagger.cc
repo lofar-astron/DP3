@@ -28,10 +28,10 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xmath.hpp>
-#include <xtensor/xoperation.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/core/xmath.hpp>
+#include <xtensor/core/xoperation.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"

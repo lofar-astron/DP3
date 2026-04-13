@@ -6,13 +6,14 @@
 #include <cassert>
 
 #include <xsimd/xsimd.hpp>
+#include <xsimd/types/xsimd_batch_constant.hpp>
 
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xmasked_view.hpp>
-#include <xtensor/xmath.hpp>
-#include <xtensor/xoperation.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/core/xmath.hpp>
+#include <xtensor/core/xoperation.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/views/xmasked_view.hpp>
+#include <xtensor/views/xview.hpp>
 
 using dp3::base::DPBuffer;
 
@@ -50,9 +51,9 @@ void Weigh(const DPBuffer::DataType& in, DPBuffer::DataType& out,
   assert(in.shape() == out.shape() && in.shape() == weights.shape());
 
   constexpr auto kLowMask =
-      xsimd::make_batch_constant<BatchMask, DuplicateLow>();
+      xsimd::make_batch_constant<unsigned int, DuplicateLow>();
   constexpr auto kHighMask =
-      xsimd::make_batch_constant<BatchMask, DuplicateHigh>();
+      xsimd::make_batch_constant<unsigned int, DuplicateHigh>();
 
   // Process two 'data' batches and one 'weights' batch in each iteration.
   size_t i = 0;

@@ -17,9 +17,9 @@
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/measures/Measures/MPosition.h>
 
-#include <xtensor/xio.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "tStepCommon.h"
 #include "mock/MockInput.h"

@@ -11,7 +11,7 @@
 
 #include <aocommon/xt/span.h>
 #include <boost/algorithm/string.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "base/FlagCounter.h"
 

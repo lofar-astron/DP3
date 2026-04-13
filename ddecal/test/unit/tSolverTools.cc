@@ -8,7 +8,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-#include <xtensor/xcomplex.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 
 using dp3::base::DPBuffer;
 using dp3::ddecal::AssignAndWeight;

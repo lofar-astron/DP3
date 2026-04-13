@@ -12,7 +12,7 @@
 
 #include <xsimd/xsimd.hpp>
 
-#include <xtensor/xview.hpp>
+#include <xtensor/views/xview.hpp>
 
 namespace {
 template <typename T>

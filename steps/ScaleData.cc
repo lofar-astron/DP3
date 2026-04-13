@@ -23,8 +23,9 @@
 #include <casacore/casa/BasicMath/Functors.h>
 #include <casacore/casa/Utilities/Regex.h>
 
-#include <xtensor/xadapt.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xadapt.hpp>
+
+#include <xtensor/views/xview.hpp>
 
 #include <cassert>
 #include <iostream>

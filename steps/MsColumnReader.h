@@ -11,7 +11,7 @@
 
 #include <casacore/tables/Tables/Table.h>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "steps/Step.h"
 

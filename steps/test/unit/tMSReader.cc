@@ -11,9 +11,9 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
-#include <xtensor/xcomplex.hpp>
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <aocommon/xt/utensor.h>
 #include <casacore/tables/TaQL/TableParse.h>

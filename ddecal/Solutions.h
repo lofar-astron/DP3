@@ -5,7 +5,7 @@
 #define DP3_DDECAL_SOLUTIONS_H_
 
 #include <aocommon/xt/span.h>
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 namespace dp3 {
 namespace ddecal {

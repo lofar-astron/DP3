@@ -9,8 +9,8 @@
 #include <iostream>
 #include <tuple>
 
-#include <xtensor/xadapt.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xadapt.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>

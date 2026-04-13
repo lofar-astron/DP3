@@ -12,9 +12,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <xtensor/xtensor.hpp>
-#include <xtensor/xio.hpp>
-#include <xtensor/xview.hpp>
+#include <xtensor/containers/xtensor.hpp>
+#include <xtensor/io/xio.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "tStepCommon.h"
 #include "mock/MockInput.h"

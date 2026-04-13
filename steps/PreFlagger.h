@@ -11,7 +11,7 @@
 
 #include <casacore/measures/Measures/MDirection.h>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "base/DPBuffer.h"
 #include "steps/Step.h"
