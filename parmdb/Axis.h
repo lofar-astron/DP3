@@ -12,6 +12,7 @@
 
 #include "blob/BlobStreamable.h"
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
