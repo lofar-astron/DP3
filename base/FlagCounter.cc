@@ -120,14 +120,6 @@ void FlagCounter::showStation(std::ostream& os, int64_t ntimes) const {
     }
   }
 
-  // Determine nr of antennae used.
-  int nrused = 0;
-  for (size_t i = 0; i < nrAnt; ++i) {
-    if (nUsedAnt[i] > 0) {
-      nrused++;
-    }
-  }
-
   // Calculate the flag ratios per antenna.
   for (size_t ant = 0; ant != nrAnt; ++ant) {
     if (nUsedAnt[ant] > 0) {

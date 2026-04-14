@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <xtensor/xtensor.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"

@@ -46,7 +46,6 @@ namespace dp3::ddecal {
 void Weigh(const DPBuffer::DataType& in, DPBuffer::DataType& out,
            const DPBuffer::WeightsType& weights) {
   using Batch = xsimd::batch<float>;
-  using BatchMask = xsimd::batch<unsigned int>;
 
   assert(in.shape() == out.shape() && in.shape() == weights.shape());
 
