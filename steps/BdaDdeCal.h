@@ -164,7 +164,7 @@ class BdaDdeCal : public Step {
   std::shared_ptr<BDAResultStep> uvw_flagger_result_step_;
 
   /** For each direction, a list of patch names. */
-  std::vector<std::vector<std::string>> patches_;
+  std::vector<std::vector<std::string>> patches_per_direction_;
 
   /**
    * For each direction, the name for the model data in BdaBuffer.

@@ -44,8 +44,8 @@ class DDECal : public Step {
   }
 
   common::Fields getProvidedFields() const override {
-    return (itsSettings.subtract ||
-            (itsSettings.only_predict && !itsSettings.keep_model_data))
+    return (settings_.subtract ||
+            (settings_.only_predict && !settings_.keep_model_data))
                ? kDataField
                : common::Fields();
   }
@@ -120,101 +120,101 @@ class DDECal : public Step {
       schaapcommon::h5parm::SolTab* first_soltab,
       schaapcommon::h5parm::SolTab* second_soltab);
 
-  ddecal::Settings itsSettings;
+  ddecal::Settings settings_;
 
   /// The input data buffers for the current set of solution intervals.
   /// Maximum dimensions: itsSolIntCount x itsRequestedSolInt
-  std::vector<std::vector<std::unique_ptr<base::DPBuffer>>> itsInputBuffers;
+  std::vector<std::vector<std::unique_ptr<base::DPBuffer>>> input_buffers_;
   /// Original flags of the input buffers for the current solution interval.
   /// This member is only used if itsUVWFlagger is active.
   /// Dimensions: ( solution_interval x step_within_interval x baseline x
   /// channel x correlation )
-  xt::xtensor<bool, 5> itsOriginalFlags;
+  xt::xtensor<bool, 5> original_flags_;
 
   /// The time of the current buffer (in case of solint, average time)
-  double itsAvgTime;
+  double average_time_;
 
   /// For each time, for each channel block, a vector of size nAntennas *
   /// SolverBase::NSolutions() * nPolarizations, with nPolarizations changing
   /// fastest.
-  std::vector<std::vector<std::vector<casacore::DComplex>>> itsSols;
-  std::vector<size_t> itsNIter;  // Number of iterations taken
-  std::vector<size_t> itsNApproxIter;
+  std::vector<std::vector<std::vector<casacore::DComplex>>> solutions_;
+  std::vector<size_t> n_iterations_;  // Number of iterations taken
+  std::vector<size_t> n_approximating_iterations_;
 
   /// For each time, for each constraint, a vector of results (e.g. tec and
   /// phase)
   std::vector<std::vector<std::vector<ddecal::ConstraintResult>>>
-      itsConstraintSols;
+      constraint_solutions_;
 
-  std::unique_ptr<ddecal::SolutionWriter> itsSolutionWriter;
+  std::unique_ptr<ddecal::SolutionWriter> solution_writer_;
 
   /// Number of timeslots to store per solution interval as requested
   /// by the user in the parset.
-  size_t itsRequestedSolInt;
-  size_t itsSolIntCount;  ///< Number of solution intervals to buffer
+  size_t requested_solution_interval_;
+  size_t n_solution_intervals_;  ///< Number of solution intervals to buffer
   /// Index of the first solution in the current solution interval set.
-  size_t itsFirstSolutionIndex;
-  size_t itsNChan;
+  size_t first_solution_index_;
+  size_t n_channels_;
   /// For each channel block, the nr of unflagged vis and the total nr of vis.
-  std::vector<std::pair<size_t, size_t>> itsVisInInterval;
+  std::vector<std::pair<size_t, size_t>> visibilities_in_interval_;
   /// For each channel block, the index in the channels at which this channel
   /// block starts.
-  std::vector<size_t> itsChanBlockStart;
-  std::vector<double> itsChanBlockFreqs;
+  std::vector<size_t> channel_block_start_;
+  std::vector<double> channel_block_frequencies_;
   /// For each direction, a vector of patches.
-  std::vector<std::vector<std::string>> itsDirections;
+  std::vector<std::vector<std::string>> patches_per_direction_;
   /// For each direction, the name for the model data in DPBuffer.
-  std::vector<std::string> itsDirectionNames;
+  std::vector<std::string> direction_names_;
   /// Expanded version of reusemodel patterns.
-  std::vector<std::string> itsReusedDirectionNames;
+  std::vector<std::string> reused_direction_names_;
   /// Maps direction indices to the cluster central direction.
-  std::vector<base::Direction> itsSourceDirections;
+  std::vector<base::Direction> source_directions_;
 
   /// First antenna for each baseline. Contains used antennas only.
-  std::vector<int> itsAntennas1;
+  std::vector<int> antennas1_;
   /// Second antenna for each baseline. Contains used antennas only.
-  std::vector<int> itsAntennas2;
-  std::vector<double> itsWeightsPerAntenna;
+  std::vector<int> antennas2_;
+  std::vector<double> weights_per_antenna_;
 
-  UVWFlagger itsUVWFlagStep;
+  UVWFlagger uvw_flag_step_;
   /// Result step for data after UV-flagging
-  std::shared_ptr<ResultStep> itsDataResultStep;
+  std::shared_ptr<ResultStep> data_result_step_;
   /// For each direction, the first step in the chain that computes the model.
   /// When reusing model data, the step for that direction is empty/null.
-  std::vector<std::shared_ptr<ModelDataStep>> itsSteps;
+  std::vector<std::shared_ptr<ModelDataStep>> steps_;
   /// For each direction, the required fields of the step chain.
-  std::vector<common::Fields> itsRequiredFields;
+  std::vector<common::Fields> required_fields_;
   /// For each directions, a multiresultstep with all times.
   /// When reusing model data, the result step for that direction is empty/null.
-  std::vector<std::shared_ptr<MultiResultStep>> itsResultSteps;
+  std::vector<std::shared_ptr<MultiResultStep>> result_steps_;
 
   /// Store the solution for later steps of processing in DPBuffer. Note: only
   /// works for 1 direction.
-  bool itsStoreSolutionInBuffer;
+  bool store_solution_in_buffer_;
 
   /// Stores the H5Parm file and loads all solutions into memory when the user
   /// requests the solver to use initial solutions.
-  std::unique_ptr<schaapcommon::h5parm::H5Parm> itsInitialSolutions;
-  std::string itsInitialSolutionsH5ParmName;
-  std::vector<std::string> itsInitialSolutionsSolTab;
-  std::vector<schaapcommon::h5parm::SolTab> itsSolutionTables;
-  bool itsInitialSolutionsIsFullJones;
+  std::unique_ptr<schaapcommon::h5parm::H5Parm> initial_solutions_;
+  std::string initial_solutions_h5_parm_name;
+  std::vector<std::string> initial_solutions_table_;
+  std::vector<schaapcommon::h5parm::SolTab> solution_tables_;
+  bool initial_solutions_are_full_jones_;
   /// Specifies the InterpolationType, MissingAntennaBehavior, and GainType for
   /// extracting the Jones parameters from itsInitialSolutions.
   /// @{
-  schaapcommon::h5parm::JonesParameters::InterpolationType itsInterpolationType;
+  schaapcommon::h5parm::JonesParameters::InterpolationType interpolation_type_;
   schaapcommon::h5parm::JonesParameters::MissingAntennaBehavior
-      itsMissingAntennaBehavior;
-  std::vector<schaapcommon::h5parm::GainType> itsGainTypes;
+      missing_antenna_behavior_;
+  std::vector<schaapcommon::h5parm::GainType> gain_types_;
   /// @}
 
-  common::NSTimer itsTimer;
-  common::NSTimer itsTimerPredict;
-  common::NSTimer itsTimerSolve;
-  common::NSTimer itsTimerWrite;
-  std::mutex itsMeasuresMutex;
-  std::unique_ptr<ddecal::SolverBase> itsSolver;
-  std::unique_ptr<std::ofstream> itsStatStream;
+  common::NSTimer timer_;
+  common::NSTimer predict_timer_;
+  common::NSTimer solve_timer_;
+  common::NSTimer write_timer_;
+  std::mutex measures_mutex_;
+  std::unique_ptr<ddecal::SolverBase> solver_;
+  std::unique_ptr<std::ofstream> statistics_stream_;
 };
 
 }  // namespace steps
