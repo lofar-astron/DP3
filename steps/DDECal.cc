@@ -59,23 +59,24 @@ namespace dp3 {
 namespace steps {
 
 DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
-    : itsSettings(parset, prefix),
-      itsAvgTime(0),
-      itsSols(),
-      itsRequestedSolInt(itsSettings.solution_interval),
-      itsSolIntCount(1),
-      itsFirstSolutionIndex(0),
-      itsNChan(itsSettings.n_channels),
-      itsUVWFlagStep(parset, prefix, Step::MsType::kRegular),
-      itsStoreSolutionInBuffer(parset.getBool(prefix + "storebuffer", false)),
-      itsStatStream() {
-  if (!itsSettings.stat_filename.empty()) {
-    itsStatStream = std::make_unique<std::ofstream>(itsSettings.stat_filename);
+    : settings_(parset, prefix),
+      average_time_(0),
+      solutions_(),
+      requested_solution_interval_(settings_.solution_interval),
+      n_solution_intervals_(1),
+      first_solution_index_(0),
+      n_channels_(settings_.n_channels),
+      uvw_flag_step_(parset, prefix, Step::MsType::kRegular),
+      store_solution_in_buffer_(parset.getBool(prefix + "storebuffer", false)),
+      statistics_stream_() {
+  if (!settings_.stat_filename.empty()) {
+    statistics_stream_ =
+        std::make_unique<std::ofstream>(settings_.stat_filename);
   }
 
-  if (!itsSettings.h5parm_name.empty()) {
-    itsSolutionWriter =
-        std::make_unique<ddecal::SolutionWriter>(itsSettings.h5parm_name);
+  if (!settings_.h5parm_name.empty()) {
+    solution_writer_ =
+        std::make_unique<ddecal::SolutionWriter>(settings_.h5parm_name);
   }
 
   // Initialize steps
@@ -87,84 +88,84 @@ DDECal::DDECal(const common::ParameterSet& parset, const std::string& prefix)
 
 void DDECal::initializeInitialSolutionsH5Parm(
     const common::ParameterSet& parset, const std::string& prefix) {
-  itsInitialSolutionsH5ParmName =
+  initial_solutions_h5_parm_name =
       parset.getString(prefix + "initialsolutions.h5parm", "");
-  if (itsInitialSolutionsH5ParmName.empty()) {
+  if (initial_solutions_h5_parm_name.empty()) {
     return;
   }
 
   const std::vector<std::string> default_solution_tables = {"amplitude000",
                                                             "phase000"};
-  itsInitialSolutionsSolTab = parset.getStringVector(
+  initial_solutions_table_ = parset.getStringVector(
       prefix + "initialsolutions.soltab", default_solution_tables);
-  itsInitialSolutions = std::make_unique<schaapcommon::h5parm::H5Parm>(
-      itsInitialSolutionsH5ParmName, itsInitialSolutionsSolTab);
+  initial_solutions_ = std::make_unique<schaapcommon::h5parm::H5Parm>(
+      initial_solutions_h5_parm_name, initial_solutions_table_);
 
-  for (const std::string& soltab_name : itsInitialSolutionsSolTab) {
-    itsSolutionTables.push_back(itsInitialSolutions->GetSolTab(soltab_name));
+  for (const std::string& soltab_name : initial_solutions_table_) {
+    solution_tables_.push_back(initial_solutions_->GetSolTab(soltab_name));
   }
 
   // Check if H5Parm stores full-Jones solutions.
-  itsInitialSolutionsIsFullJones = false;
-  if (itsSolutionTables[0].HasAxis("pol") &&
-      itsInitialSolutionsSolTab.size() == 2 &&
-      itsInitialSolutionsSolTab[0].find("amplitude") != std::string::npos &&
-      itsInitialSolutionsSolTab[1].find("phase") != std::string::npos) {
-    itsInitialSolutionsIsFullJones =
-        itsSolutionTables[0].GetAxis("pol").size == 4;
+  initial_solutions_are_full_jones_ = false;
+  if (solution_tables_[0].HasAxis("pol") &&
+      initial_solutions_table_.size() == 2 &&
+      initial_solutions_table_[0].find("amplitude") != std::string::npos &&
+      initial_solutions_table_[1].find("phase") != std::string::npos) {
+    initial_solutions_are_full_jones_ =
+        solution_tables_[0].GetAxis("pol").size == 4;
   }
 
-  if (itsInitialSolutionsIsFullJones) {
-    itsGainTypes.resize(1);
-    itsGainTypes[0] = GainType::kFullJones;
+  if (initial_solutions_are_full_jones_) {
+    gain_types_.resize(1);
+    gain_types_[0] = GainType::kFullJones;
   } else {
-    itsGainTypes.reserve(itsInitialSolutionsSolTab.size());
-    for (const std::string& soltab_name : itsInitialSolutionsSolTab) {
-      itsGainTypes.push_back(JonesParameters::H5ParmTypeStringToGainType(
-          itsInitialSolutions->GetSolTab(soltab_name).GetType()));
+    gain_types_.reserve(initial_solutions_table_.size());
+    for (const std::string& soltab_name : initial_solutions_table_) {
+      gain_types_.push_back(JonesParameters::H5ParmTypeStringToGainType(
+          initial_solutions_->GetSolTab(soltab_name).GetType()));
     }
   }
 
   const std::string interpolation_type =
       parset.getString(prefix + "initialsolutions.interpolation", "nearest");
   if (interpolation_type == "nearest") {
-    itsInterpolationType = JonesParameters::InterpolationType::NEAREST;
+    interpolation_type_ = JonesParameters::InterpolationType::NEAREST;
   } else if (interpolation_type == "linear") {
-    itsInterpolationType = JonesParameters::InterpolationType::LINEAR;
+    interpolation_type_ = JonesParameters::InterpolationType::LINEAR;
   } else {
     throw std::runtime_error("Unsupported interpolation method: " +
                              interpolation_type);
   }
 
-  itsMissingAntennaBehavior =
+  missing_antenna_behavior_ =
       JonesParameters::StringToMissingAntennaBehavior(parset.getString(
           prefix + "initialsolutions.missingantennabehavior", "error"));
 }
 
 void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
                                      const std::string& prefix) {
-  for (const std::string& col : itsSettings.model_data_columns) {
-    itsDirections.emplace_back(1, col);
-    itsDirectionNames.emplace_back(prefix + col);
-    itsSteps.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
-    setModelNextSteps(*itsSteps.back(), col, parset, prefix);
+  for (const std::string& col : settings_.model_data_columns) {
+    patches_per_direction_.emplace_back(1, col);
+    direction_names_.emplace_back(prefix + col);
+    steps_.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
+    setModelNextSteps(*steps_.back(), col, parset, prefix);
   }
 }
 
 void DDECal::initializeModelReuse() {
   const std::vector<std::pair<std::string, std::string>> reused_directions =
-      itsSettings.GetReusedDirections(getInfoIn().GetDirections());
+      settings_.GetReusedDirections(getInfoIn().GetDirections());
 
   for (const auto& [name, name_without_prefix] : reused_directions) {
     // Keep using the original name with prefix in DPBuffers.
-    itsDirectionNames.emplace_back(name);
-    itsReusedDirectionNames.emplace_back(name);
+    direction_names_.emplace_back(name);
+    reused_direction_names_.emplace_back(name);
 
-    itsDirections.emplace_back(1, name_without_prefix);
+    patches_per_direction_.emplace_back(1, name_without_prefix);
 
     // Add a nullptr step for this direction, so there is still an entry in
     // itsSteps for each direction.
-    itsSteps.emplace_back();
+    steps_.emplace_back();
   }
 }
 
@@ -174,39 +175,39 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
   // names of directions and pass that to idgpredict. It will then read it
   // itself instead of DDECal having to do everything. It is better to do it all
   // in IDGPredict, so we can also make it
-  if (itsSettings.idg_region_filename.empty() &&
-      itsSettings.idg_image_filenames.empty()) {
+  if (settings_.idg_region_filename.empty() &&
+      settings_.idg_image_filenames.empty()) {
     return;
   }
 
   const std::vector<FitsReader> readers =
-      IDGPredict::GetReaders(itsSettings.idg_image_filenames);
+      IDGPredict::GetReaders(settings_.idg_image_filenames);
   std::vector<Facet> facets =
-      IDGPredict::GetFacets(itsSettings.idg_region_filename, readers.front());
+      IDGPredict::GetFacets(settings_.idg_region_filename, readers.front());
 
   for (size_t i = 0; i < facets.size(); ++i) {
     std::string facet_dir_label = facets[i].DirectionLabel();
     std::string dir_name =
         facet_dir_label.empty() ? ("dir" + std::to_string(i)) : facet_dir_label;
 
-    itsDirections.emplace_back(1, dir_name);
-    itsDirectionNames.emplace_back(prefix + dir_name);
+    patches_per_direction_.emplace_back(1, dir_name);
+    direction_names_.emplace_back(prefix + dir_name);
 
-    itsSteps.push_back(std::make_shared<IDGPredict>(
+    steps_.push_back(std::make_shared<IDGPredict>(
         parset, prefix, readers, std::vector<Facet>{facets[i]}));
-    setModelNextSteps(*itsSteps.back(), facet_dir_label, parset, prefix);
+    setModelNextSteps(*steps_.back(), facet_dir_label, parset, prefix);
   }
 }
 
 void DDECal::initializePredictSteps(const common::ParameterSet& parset,
                                     const std::string& prefix) {
   std::vector<std::vector<std::string>> directions =
-      model::MakeDirectionList(itsSettings.directions, itsSettings.source_db);
+      model::MakeDirectionList(settings_.directions, settings_.source_db);
 
   for (std::vector<std::string>& direction : directions) {
-    if (itsSettings.use_sagecal_predict) {
+    if (settings_.use_sagecal_predict) {
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
-      itsSteps.push_back(
+      steps_.push_back(
           std::make_shared<SagecalPredict>(parset, prefix, direction));
 #else
       throw std::runtime_error(
@@ -215,11 +216,11 @@ void DDECal::initializePredictSteps(const common::ParameterSet& parset,
           "SAGECal support.");
 #endif
     } else {
-      itsSteps.push_back(std::make_shared<Predict>(parset, prefix, direction));
+      steps_.push_back(std::make_shared<Predict>(parset, prefix, direction));
     }
-    setModelNextSteps(*itsSteps.back(), direction.front(), parset, prefix);
-    itsDirectionNames.push_back(prefix + direction.front());
-    itsDirections.push_back(std::move(direction));
+    setModelNextSteps(*steps_.back(), direction.front(), parset, prefix);
+    direction_names_.push_back(prefix + direction.front());
+    patches_per_direction_.push_back(std::move(direction));
   }
 }
 
@@ -244,38 +245,39 @@ void DDECal::setModelNextSteps(Step& step, const std::string& direction,
 void DDECal::updateInfo(const DPInfo& infoIn) {
   Step::updateInfo(infoIn);
 
-  itsSolver = ddecal::CreateSolver(itsSettings, infoIn.antennaNames());
+  solver_ = ddecal::CreateSolver(settings_, infoIn.antennaNames());
 
   initializeModelReuse();
 
-  if (itsDirections.size() == 0) {
+  if (patches_per_direction_.size() == 0) {
     throw std::runtime_error(
         "DDECal initialized with 0 directions: something is wrong with your "
         "parset or your sourcedb");
   }
 
-  itsSettings.PrepareSubSolutionsPerDirection(itsDirections.size());
+  settings_.PrepareSubSolutionsPerDirection(patches_per_direction_.size());
 
-  itsUVWFlagStep.updateInfo(infoIn);
+  uvw_flag_step_.updateInfo(infoIn);
 
-  if (itsRequestedSolInt == 0) {
-    itsRequestedSolInt = getInfoOut().ntime();
+  if (requested_solution_interval_ == 0) {
+    requested_solution_interval_ = getInfoOut().ntime();
   }
 
   // Update info for substeps and set other required parameters
-  for (std::shared_ptr<ModelDataStep>& step : itsSteps) {
+  for (std::shared_ptr<ModelDataStep>& step : steps_) {
     if (!step) continue;
 
     step->setInfo(infoIn);
 
     if (auto s = std::dynamic_pointer_cast<Predict>(step)) {
-      s->SetThreadData(&itsMeasuresMutex);
+      s->SetThreadData(&measures_mutex_);
     } else if (auto s = std::dynamic_pointer_cast<IDGPredict>(step)) {
-      itsSolIntCount =
-          std::max(itsSolIntCount,
-                   s->GetBufferSize() / itsSteps.size() / itsRequestedSolInt);
+      n_solution_intervals_ =
+          std::max(n_solution_intervals_, s->GetBufferSize() / steps_.size() /
+                                              requested_solution_interval_);
       // We increment by one so the IDGPredict will not flush in its process
-      s->SetBufferSize(itsRequestedSolInt * itsSolIntCount + 1);
+      s->SetBufferSize(requested_solution_interval_ * n_solution_intervals_ +
+                       1);
     } else if (std::dynamic_pointer_cast<MsColumnReader>(step)) {
       // Step is valid. There's nothing to set.
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
@@ -287,48 +289,48 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     }
   }
 
-  if (!itsUVWFlagStep.isDegenerate()) {
-    itsDataResultStep = std::make_shared<ResultStep>();
-    itsUVWFlagStep.setNextStep(itsDataResultStep);
+  if (!uvw_flag_step_.isDegenerate()) {
+    data_result_step_ = std::make_shared<ResultStep>();
+    uvw_flag_step_.setNextStep(data_result_step_);
   }
-  if (!itsUVWFlagStep.isDegenerate() || itsSettings.min_vis_ratio > 0.0) {
+  if (!uvw_flag_step_.isDegenerate() || settings_.min_vis_ratio > 0.0) {
     // The UVWFlagger and/or flagChannelBlock() may modify the flags.
     // Create a buffer for storing the original flags.
-    itsOriginalFlags.resize({itsSolIntCount, itsRequestedSolInt,
-                             infoIn.nbaselines(), infoIn.nchan(),
-                             infoIn.ncorr()});
+    original_flags_.resize({n_solution_intervals_, requested_solution_interval_,
+                            infoIn.nbaselines(), infoIn.nchan(),
+                            infoIn.ncorr()});
   }
 
   // For each sub step chain, add a resultstep and get required fields.
-  itsRequiredFields.resize(itsSteps.size());
-  itsResultSteps.resize(itsSteps.size());
-  for (size_t dir = 0; dir < itsSteps.size(); ++dir) {
-    if (!itsSteps[dir]) continue;
+  required_fields_.resize(steps_.size());
+  result_steps_.resize(steps_.size());
+  for (size_t dir = 0; dir < steps_.size(); ++dir) {
+    if (!steps_[dir]) continue;
 
-    itsRequiredFields[dir] = base::GetChainRequiredFields(itsSteps[dir]);
+    required_fields_[dir] = base::GetChainRequiredFields(steps_[dir]);
 
-    itsResultSteps[dir] =
-        std::make_shared<MultiResultStep>(itsRequestedSolInt * itsSolIntCount);
+    result_steps_[dir] = std::make_shared<MultiResultStep>(
+        requested_solution_interval_ * n_solution_intervals_);
 
     // Add the resultstep to the end of the model next steps
-    std::shared_ptr<Step> step = itsSteps[dir];
+    std::shared_ptr<Step> step = steps_[dir];
     while (step->getNextStep()) {
       step = step->getNextStep();
     }
-    step->setNextStep(itsResultSteps[dir]);
+    step->setNextStep(result_steps_[dir]);
   }
 
-  if (itsNChan == 0 || itsNChan > getInfoOut().nchan()) {
-    itsNChan = getInfoOut().nchan();
+  if (n_channels_ == 0 || n_channels_ > getInfoOut().nchan()) {
+    n_channels_ = getInfoOut().nchan();
   }
 
   // Create lists with used antenna indices, similarly to
   // DPInfo::RemoveUnusedAntennas.
-  itsAntennas1.resize(getInfoOut().getAnt1().size());
-  itsAntennas2.resize(getInfoOut().getAnt2().size());
-  for (size_t i = 0; i < itsAntennas1.size(); ++i) {
-    itsAntennas1[i] = getInfoOut().antennaMap()[getInfoOut().getAnt1()[i]];
-    itsAntennas2[i] = getInfoOut().antennaMap()[getInfoOut().getAnt2()[i]];
+  antennas1_.resize(getInfoOut().getAnt1().size());
+  antennas2_.resize(getInfoOut().getAnt2().size());
+  for (size_t i = 0; i < antennas1_.size(); ++i) {
+    antennas1_[i] = getInfoOut().antennaMap()[getInfoOut().getAnt1()[i]];
+    antennas2_[i] = getInfoOut().antennaMap()[getInfoOut().getAnt2()[i]];
   }
 
   // Convert antenna positions from casacore types to std types.
@@ -342,69 +344,71 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     antennaPos[i][2] = pos.getValue()[2];
   }
 
-  if (itsSolutionWriter) {
+  if (solution_writer_) {
     // Fill antenna info in H5Parm.
     // Fill in metadata for all antennas, also those that may be filtered out.
-    itsSolutionWriter->AddAntennas(getInfoOut().antennaNames(), antennaPos);
+    solution_writer_->AddAntennas(getInfoOut().antennaNames(), antennaPos);
   }
 
-  size_t nSolTimes =
-      (getInfoOut().ntime() + itsRequestedSolInt - 1) / itsRequestedSolInt;
-  size_t nChannelBlocks = getInfoOut().nchan() / itsNChan;
-  itsSols.resize(nSolTimes);
-  itsNIter.resize(nSolTimes);
-  itsNApproxIter.resize(nSolTimes);
-  itsConstraintSols.resize(nSolTimes);
-  itsVisInInterval.assign(nChannelBlocks, std::pair<size_t, size_t>(0, 0));
+  size_t nSolTimes = (getInfoOut().ntime() + requested_solution_interval_ - 1) /
+                     requested_solution_interval_;
+  size_t nChannelBlocks = getInfoOut().nchan() / n_channels_;
+  solutions_.resize(nSolTimes);
+  n_iterations_.resize(nSolTimes);
+  n_approximating_iterations_.resize(nSolTimes);
+  constraint_solutions_.resize(nSolTimes);
+  visibilities_in_interval_.assign(nChannelBlocks,
+                                   std::pair<size_t, size_t>(0, 0));
 
-  itsChanBlockStart.resize(nChannelBlocks + 1);
-  itsChanBlockFreqs.resize(nChannelBlocks);
-  itsChanBlockStart.front() = 0;
+  channel_block_start_.resize(nChannelBlocks + 1);
+  channel_block_frequencies_.resize(nChannelBlocks);
+  channel_block_start_.front() = 0;
   for (size_t chBlock = 0; chBlock != nChannelBlocks; ++chBlock) {
-    itsChanBlockStart[chBlock + 1] =
+    channel_block_start_[chBlock + 1] =
         (chBlock + 1) * getInfoOut().nchan() / nChannelBlocks;
     const size_t blockSize =
-        itsChanBlockStart[chBlock + 1] - itsChanBlockStart[chBlock];
+        channel_block_start_[chBlock + 1] - channel_block_start_[chBlock];
     const double* freqStart =
-        getInfoOut().chanFreqs().data() + itsChanBlockStart[chBlock];
+        getInfoOut().chanFreqs().data() + channel_block_start_[chBlock];
     const double meanFreq =
         std::accumulate(freqStart, freqStart + blockSize, 0.0) / blockSize;
-    itsChanBlockFreqs[chBlock] = meanFreq;
+    channel_block_frequencies_[chBlock] = meanFreq;
   }
 
-  itsWeightsPerAntenna.assign(
-      itsChanBlockFreqs.size() * getInfoOut().antennaUsed().size(), 0.0);
+  weights_per_antenna_.assign(
+      channel_block_frequencies_.size() * getInfoOut().antennaUsed().size(),
+      0.0);
 
-  itsSourceDirections.reserve(itsSteps.size());
+  source_directions_.reserve(steps_.size());
   std::map<std::string, dp3::base::Direction>& directions =
       GetWritableInfoOut().GetDirections();
-  for (unsigned int i = 0; i < itsSteps.size(); ++i) {
-    const std::shared_ptr<ModelDataStep>& step = itsSteps[i];
+  for (unsigned int i = 0; i < steps_.size(); ++i) {
+    const std::shared_ptr<ModelDataStep>& step = steps_[i];
     base::Direction direction = getInfoOut().phaseCenterDirection();
 
     if (step) {
       direction = step->GetFirstDirection();
     } else {
-      auto search_result = directions.find(itsDirectionNames[i]);
+      auto search_result = directions.find(direction_names_[i]);
       if (search_result != directions.end()) {
         direction = search_result->second;
-        if (!itsSettings.keep_model_data) {
+        if (!settings_.keep_model_data) {
           // Remove the consumed directions from the output directions list.
           directions.erase(search_result);
         }
       }
     }
 
-    itsSourceDirections.push_back(direction);
+    source_directions_.push_back(direction);
   }
 
   // Save directions of model data for next steps.
-  if (itsSettings.keep_model_data) {
-    assert(itsSourceDirections.size() == itsDirectionNames.size());
+  if (settings_.keep_model_data) {
+    assert(source_directions_.size() == direction_names_.size());
 
-    for (size_t i = 0; i < itsDirectionNames.size(); ++i) {
-      GetWritableInfoOut().GetDirections()[itsDirectionNames[i]] =
-          itsSourceDirections[i];
+    for (size_t i = 0; i < direction_names_.size(); ++i) {
+      GetWritableInfoOut().GetDirections()[direction_names_[i]] =
+          source_directions_[i];
     }
   }
 
@@ -417,120 +421,121 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
     used_antenna_positions.push_back(antennaPos[ant]);
   }
 
-  for (ddecal::SolverBase* solver : itsSolver->ConstraintSolvers()) {
-    InitializeSolverConstraints(*solver, itsSettings, used_antenna_positions,
-                                used_antenna_names, itsSourceDirections,
-                                itsChanBlockFreqs);
+  for (ddecal::SolverBase* solver : solver_->ConstraintSolvers()) {
+    InitializeSolverConstraints(*solver, settings_, used_antenna_positions,
+                                used_antenna_names, source_directions_,
+                                channel_block_frequencies_);
   }
 
   size_t nSt = getInfoOut().antennaUsed().size();
   // Give renumbered antennas to solver
-  itsSolver->Initialize(nSt, itsSettings.sub_solutions_per_direction,
-                        nChannelBlocks);
+  solver_->Initialize(nSt, settings_.sub_solutions_per_direction,
+                      nChannelBlocks);
 
   for (size_t i = 0; i < nSolTimes; ++i) {
-    itsSols[i].resize(nChannelBlocks);
+    solutions_[i].resize(nChannelBlocks);
   }
 }
 
 void DDECal::show(std::ostream& os) const {
-  os << "DDECal " << itsSettings.name << '\n'
-     << "  mode (constraints):  " << ToString(itsSettings.mode) << '\n'
+  os << "DDECal " << settings_.name << '\n'
+     << "  mode (constraints):  " << ToString(settings_.mode) << '\n'
      << "  algorithm:           "
-     << ddecal::ToString(itsSettings.solver_algorithm) << '\n'
-     << "  H5Parm:              " << itsSettings.h5parm_name << '\n'
-     << "  write sol to buffer: " << std::boolalpha << itsStoreSolutionInBuffer
+     << ddecal::ToString(settings_.solver_algorithm) << '\n'
+     << "  H5Parm:              " << settings_.h5parm_name << '\n'
+     << "  write sol to buffer: " << std::boolalpha << store_solution_in_buffer_
      << '\n'
-     << "  solution interval:   " << itsRequestedSolInt << '\n'
-     << "  nchan:               " << itsNChan << '\n'
-     << "  direction count:     " << itsDirections.size() << '\n'
-     << "  directions:          " << itsDirections << '\n'
-     << "  sols per direction:  " << itsSettings.sub_solutions_per_direction
+     << "  solution interval:   " << requested_solution_interval_ << '\n'
+     << "  nchan:               " << n_channels_ << '\n'
+     << "  direction count:     " << patches_per_direction_.size() << '\n'
+     << "  directions:          " << patches_per_direction_ << '\n'
+     << "  sols per direction:  " << settings_.sub_solutions_per_direction
      << '\n';
-  if (!itsInitialSolutionsH5ParmName.empty()) {
-    os << "  initial sols H5Parm: " << itsInitialSolutionsH5ParmName << '\n'
+  if (!initial_solutions_h5_parm_name.empty()) {
+    os << "  initial sols H5Parm: " << initial_solutions_h5_parm_name << '\n'
        << "               soltab: ";
-    for (size_t i = 0; i < itsInitialSolutionsSolTab.size(); ++i) {
-      os << itsInitialSolutionsSolTab[i]
-         << (i == itsInitialSolutionsSolTab.size() - 1 ? " " : ", ");
+    for (size_t i = 0; i < initial_solutions_table_.size(); ++i) {
+      os << initial_solutions_table_[i]
+         << (i == initial_solutions_table_.size() - 1 ? " " : ", ");
     }
     os << '\n' << "                 type: ";
-    for (size_t i = 0; i < itsGainTypes.size(); ++i) {
-      os << JonesParameters::GainTypeToHumanReadableString(itsGainTypes[i])
-         << (i == itsGainTypes.size() - 1 ? " " : ", ");
+    for (size_t i = 0; i < gain_types_.size(); ++i) {
+      os << JonesParameters::GainTypeToHumanReadableString(gain_types_[i])
+         << (i == gain_types_.size() - 1 ? " " : ", ");
     }
     os << '\n'
        << "        interp method: "
-       << (itsInterpolationType == JonesParameters::InterpolationType::NEAREST
+       << (interpolation_type_ == JonesParameters::InterpolationType::NEAREST
                ? "nearest"
                : "linear")
        << '\n'
        << "          missing ant: "
        << JonesParameters::MissingAntennaBehaviorToString(
-              itsMissingAntennaBehavior)
+              missing_antenna_behavior_)
        << '\n';
   }
-  if (itsSettings.min_vis_ratio != 0.0) {
-    os << "  min visib. ratio:    " << itsSettings.min_vis_ratio << '\n';
+  if (settings_.min_vis_ratio != 0.0) {
+    os << "  min visib. ratio:    " << settings_.min_vis_ratio << '\n';
   }
-  os << "  tolerance:           " << itsSolver->GetAccuracy() << '\n'
-     << "  max iter:            " << itsSolver->GetMaxIterations() << '\n'
+  os << "  tolerance:           " << solver_->GetAccuracy() << '\n'
+     << "  max iter:            " << solver_->GetMaxIterations() << '\n'
      << "  flag unconverged:    " << std::boolalpha
-     << itsSettings.flag_unconverged << '\n'
+     << settings_.flag_unconverged << '\n'
      << "     diverged only:    " << std::boolalpha
-     << itsSettings.flag_diverged_only << '\n'
+     << settings_.flag_diverged_only << '\n'
      << "  propagate solutions: " << std::boolalpha
-     << itsSettings.propagate_solutions << '\n'
+     << settings_.propagate_solutions << '\n'
      << "       converged only: " << std::boolalpha
-     << itsSettings.propagate_converged_only << '\n'
+     << settings_.propagate_converged_only << '\n'
      << "  detect stalling:     " << std::boolalpha
-     << itsSolver->GetDetectStalling() << '\n'
-     << "  step size:           " << itsSolver->GetStepSize() << '\n';
-  ShowConstraintSettings(os, itsSettings);
-  os << "  approximate fitter:  " << itsSettings.approximate_tec << '\n'
-     << "  only predict:        " << itsSettings.only_predict << '\n'
-     << "  subtract model:      " << itsSettings.subtract << '\n'
-     << "  keep model:          " << itsSettings.keep_model_data << '\n';
-  for (size_t i = 0; i < itsSteps.size(); ++i) {
-    std::shared_ptr<Step> step = itsSteps[i];
+     << solver_->GetDetectStalling() << '\n'
+     << "  step size:           " << solver_->GetStepSize() << '\n';
+  ShowConstraintSettings(os, settings_);
+  os << "  approximate fitter:  " << settings_.approximate_tec << '\n'
+     << "  only predict:        " << settings_.only_predict << '\n'
+     << "  subtract model:      " << settings_.subtract << '\n'
+     << "  keep model:          " << settings_.keep_model_data << '\n';
+  for (size_t i = 0; i < steps_.size(); ++i) {
+    std::shared_ptr<Step> step = steps_[i];
     if (step) {
-      os << "Model steps for direction " << itsDirections[i][0] << '\n';
+      os << "Model steps for direction " << patches_per_direction_[i][0]
+         << '\n';
       do {
         step->show(os);
         step = step->getNextStep();
       } while (step);
     } else {
-      os << "Direction " << itsDirections[i][0] << " reuses data from "
-         << itsDirectionNames[i];
+      os << "Direction " << patches_per_direction_[i][0] << " reuses data from "
+         << direction_names_[i];
     }
     os << '\n';
   }
-  itsUVWFlagStep.show(os);
+  uvw_flag_step_.show(os);
 }
 
 void DDECal::showTimings(std::ostream& os, double duration) const {
-  double totaltime = itsTimer.getElapsed();
+  double totaltime = timer_.getElapsed();
   os << "  ";
-  FlagCounter::showPerc1(os, itsTimer.getElapsed(), duration);
-  os << " DDECal " << itsSettings.name << '\n';
+  FlagCounter::showPerc1(os, timer_.getElapsed(), duration);
+  os << " DDECal " << settings_.name << '\n';
 
   os << "          ";
-  FlagCounter::showPerc1(os, itsTimerPredict.getElapsed(), totaltime);
+  FlagCounter::showPerc1(os, predict_timer_.getElapsed(), totaltime);
   os << " of it spent in predict" << '\n';
 
   os << "          ";
-  FlagCounter::showPerc1(os, itsTimerSolve.getElapsed(), totaltime);
+  FlagCounter::showPerc1(os, solve_timer_.getElapsed(), totaltime);
   os << " of it spent in estimating gains and computing residuals" << '\n';
 
-  itsSolver->GetTimings(os, itsTimerSolve.getElapsed());
+  solver_->GetTimings(os, solve_timer_.getElapsed());
 
   os << "          ";
-  FlagCounter::showPerc1(os, itsTimerWrite.getElapsed(), totaltime);
+  FlagCounter::showPerc1(os, write_timer_.getElapsed(), totaltime);
   os << " of it spent in writing gain solutions to disk" << '\n';
 
   os << "          ";
   os << "Substeps taken:" << '\n';
-  for (const std::shared_ptr<ModelDataStep>& step : itsSteps) {
+  for (const std::shared_ptr<ModelDataStep>& step : steps_) {
     if (!step) continue;
 
     std::ostringstream step_stream;
@@ -540,10 +545,11 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   }
 
   os << "Iterations taken: [";
-  for (size_t i = 0; i < itsNIter.size(); ++i) {
+  for (size_t i = 0; i < n_iterations_.size(); ++i) {
     if (i > 0) os << ",";
-    os << itsNIter[i];
-    if (itsNApproxIter[i] != 0) os << '|' << itsNApproxIter[i];
+    os << n_iterations_[i];
+    if (n_approximating_iterations_[i] != 0)
+      os << '|' << n_approximating_iterations_[i];
   }
   os << "]" << '\n';
 }
@@ -559,7 +565,7 @@ xt::xtensor<std::complex<float>, 3> DDECal::ReadJonesMatrixFromH5Parm(
   // directions in the H5Parm.
   std::vector<double> timestamps = {timestamp};
   const std::string closest_patch =
-      itsInitialSolutions->GetNearestSource(direction.ra, direction.dec);
+      initial_solutions_->GetNearestSource(direction.ra, direction.dec);
   const hsize_t soltab_direction_index =
       first_soltab->GetDirIndex(closest_patch);
   size_t n_parm_values = 0;
@@ -569,9 +575,10 @@ xt::xtensor<std::complex<float>, 3> DDECal::ReadJonesMatrixFromH5Parm(
   }
   auto jones_parameters =
       std::make_unique<schaapcommon::h5parm::JonesParameters>(
-          itsChanBlockFreqs, timestamps, getInfoOut().GetUsedAntennaNames(),
-          gain_type, itsInterpolationType, soltab_direction_index, first_soltab,
-          second_soltab, false, n_parm_values, itsMissingAntennaBehavior);
+          channel_block_frequencies_, timestamps,
+          getInfoOut().GetUsedAntennaNames(), gain_type, interpolation_type_,
+          soltab_direction_index, first_soltab, second_soltab, false,
+          n_parm_values, missing_antenna_behavior_);
 
   // Write casacore Cube with Jones parameters to xtensor.
   const casacore::Cube<std::complex<float>>& jones_matrix =
@@ -588,34 +595,34 @@ xt::xtensor<std::complex<float>, 3> DDECal::ReadJonesMatrixFromH5Parm(
 }
 
 void DDECal::InitializeSolutions(size_t buffer_index) {
-  const size_t solution_index = itsFirstSolutionIndex + buffer_index;
-  assert(solution_index < itsSols.size());
+  const size_t solution_index = first_solution_index_ + buffer_index;
+  assert(solution_index < solutions_.size());
 
   bool propagate_solutions =
-      solution_index > 0 && itsSettings.propagate_solutions;
+      solution_index > 0 && settings_.propagate_solutions;
   if (propagate_solutions &&
-      itsNIter[solution_index - 1] > itsSolver->GetMaxIterations() &&
-      itsSettings.propagate_converged_only) {
+      n_iterations_[solution_index - 1] > solver_->GetMaxIterations() &&
+      settings_.propagate_converged_only) {
     propagate_solutions = false;
   }
 
-  bool use_initial_solutions = !itsInitialSolutionsH5ParmName.empty();
+  bool use_initial_solutions = !initial_solutions_h5_parm_name.empty();
 
   if (propagate_solutions) {
     // Initialize solutions with those of the previous step.
-    itsSols[solution_index] = itsSols[solution_index - 1];
+    solutions_[solution_index] = solutions_[solution_index - 1];
   } else if (use_initial_solutions) {
     // Initialize solutions with those from an existing H5Parm, stored in memory
     // with H5Cache
     const std::vector<std::string> used_antenna_names =
         getInfoOut().GetUsedAntennaNames();
 
-    const size_t n_directions = itsDirections.size();
-    const size_t n_subsolutions = itsSettings.GetNSolutions();
+    const size_t n_directions = patches_per_direction_.size();
+    const size_t n_subsolutions = settings_.GetNSolutions();
     const size_t n_antennas_used = getInfoOut().antennaUsed().size();
     const size_t n_polarization_parameters_per_solution =
-        itsSolver->NSolutionPolarizations();
-    const size_t n_frequencies = itsChanBlockFreqs.size();
+        solver_->NSolutionPolarizations();
+    const size_t n_frequencies = channel_block_frequencies_.size();
     const size_t n_values_per_channel_block =
         n_subsolutions * n_antennas_used *
         n_polarization_parameters_per_solution;
@@ -625,17 +632,17 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
         n_polarization_parameters_per_solution};
     xt::xtensor<std::complex<float>, 4> jones_parameters_per_direction(
         xt_shape);
-    if (itsInitialSolutionsIsFullJones) {
+    if (initial_solutions_are_full_jones_) {
       for (size_t direction_index = 0; direction_index < n_directions;
            ++direction_index) {
         xt::view(jones_parameters_per_direction, direction_index, xt::all(),
                  xt::all(), xt::all()) =
             ReadJonesMatrixFromH5Parm(
-                itsSourceDirections[direction_index], itsAvgTime,
-                itsGainTypes[0], &itsSolutionTables[0], &itsSolutionTables[1]);
+                source_directions_[direction_index], average_time_,
+                gain_types_[0], &solution_tables_[0], &solution_tables_[1]);
       }
     } else {
-      const size_t n_soltabs = itsInitialSolutionsSolTab.size();
+      const size_t n_soltabs = initial_solutions_table_.size();
       // Load solutions per soltab and multiply to get the full Jones matrix for
       // each direction.
       const std::array<size_t, 5> xt_shape = {
@@ -647,10 +654,10 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
              ++direction_index) {
           xt::view(jones_parameters_per_soltab, soltab_index, direction_index,
                    xt::all(), xt::all(), xt::all()) =
-              ReadJonesMatrixFromH5Parm(itsSourceDirections[direction_index],
-                                        itsAvgTime, itsGainTypes[soltab_index],
-                                        &itsSolutionTables[soltab_index],
-                                        nullptr);
+              ReadJonesMatrixFromH5Parm(
+                  source_directions_[direction_index], average_time_,
+                  gain_types_[soltab_index], &solution_tables_[soltab_index],
+                  nullptr);
         }
       }
 
@@ -660,7 +667,8 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
 
     for (size_t channel_block = 0; channel_block < n_frequencies;
          ++channel_block) {
-      itsSols[solution_index][channel_block].resize(n_values_per_channel_block);
+      solutions_[solution_index][channel_block].resize(
+          n_values_per_channel_block);
       for (size_t antenna_index = 0; antenna_index < n_antennas_used;
            ++antenna_index) {
         size_t n_assigned_subsolutions = 0;
@@ -670,7 +678,7 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
               xt::view(jones_parameters_per_direction, direction_index,
                        xt::all(), xt::all(), xt::all());
           size_t n_subsolutions_per_direction =
-              itsSettings.sub_solutions_per_direction[direction_index];
+              settings_.sub_solutions_per_direction[direction_index];
           for (size_t direction_solution_index = 0;
                direction_solution_index < n_subsolutions_per_direction;
                ++direction_solution_index) {
@@ -685,7 +693,7 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
                   direction_dependent_solution_index *
                       n_polarization_parameters_per_solution +
                   polarization_index;
-              itsSols[solution_index][channel_block][flattened_index] =
+              solutions_[solution_index][channel_block][flattened_index] =
                   jones_parameters(channel_block, antenna_index,
                                    polarization_index);
             }
@@ -695,15 +703,15 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
       }
     }
   } else {
-    const size_t n_solutions = itsSettings.GetNSolutions();
+    const size_t n_solutions = settings_.GetNSolutions();
     const size_t n_solution_values = n_solutions *
                                      getInfoOut().antennaUsed().size() *
-                                     itsSolver->NSolutionPolarizations();
+                                     solver_->NSolutionPolarizations();
 
-    if (itsSolver->NSolutionPolarizations() == 4) {
+    if (solver_->NSolutionPolarizations() == 4) {
       // Initialize solutions with unity matrix [1 0 ; 0 1].
       for (std::vector<casacore::DComplex>& solution_vector :
-           itsSols[solution_index]) {
+           solutions_[solution_index]) {
         solution_vector.resize(n_solution_values);
         for (size_t i = 0; i < n_solution_values; i += 4) {
           solution_vector[i + 0] = 1.0;
@@ -715,7 +723,7 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
     } else {
       // Initialize solutions with 1.
       for (std::vector<casacore::DComplex>& solution_vector :
-           itsSols[solution_index]) {
+           solutions_[solution_index]) {
         solution_vector.assign(n_solution_values, 1.0);
       }
     }
@@ -724,76 +732,75 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
 
 void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
   const size_t nBl = getInfoOut().nbaselines();
-  const size_t nChanBlocks = itsChanBlockFreqs.size();
-  const size_t channel_begin = itsChanBlockStart[cbIndex];
-  const size_t channel_end = itsChanBlockStart[cbIndex + 1];
+  const size_t nChanBlocks = channel_block_frequencies_.size();
+  const size_t channel_begin = channel_block_start_[cbIndex];
+  const size_t channel_end = channel_block_start_[cbIndex + 1];
   // Set the antenna-based weights to zero
   for (size_t bl = 0; bl < nBl; ++bl) {
     size_t ant1 = getInfoOut().antennaMap()[getInfoOut().getAnt1()[bl]];
     size_t ant2 = getInfoOut().antennaMap()[getInfoOut().getAnt2()[bl]];
-    itsWeightsPerAntenna[ant1 * nChanBlocks + cbIndex] = 0.0;
-    itsWeightsPerAntenna[ant2 * nChanBlocks + cbIndex] = 0.0;
+    weights_per_antenna_[ant1 * nChanBlocks + cbIndex] = 0.0;
+    weights_per_antenna_[ant2 * nChanBlocks + cbIndex] = 0.0;
   }
   // Set the visibility flags to true. SolverTools::AssignAndWeight will write
   // zeroes to the weighted data if it is flagged.
-  for (std::unique_ptr<DPBuffer>& buffer : itsInputBuffers[bufferIndex]) {
+  for (std::unique_ptr<DPBuffer>& buffer : input_buffers_[bufferIndex]) {
     xt::view(buffer->GetFlags(), xt::all(),
              xt::range(channel_begin, channel_end), xt::all()) = true;
   }
 }
 
 void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
-  for (size_t cb = 0; cb != itsChanBlockFreqs.size(); ++cb) {
-    double fraction =
-        double(itsVisInInterval[cb].first) / itsVisInInterval[cb].second;
-    if (fraction < itsSettings.min_vis_ratio) flagChannelBlock(cb, bufferIndex);
+  for (size_t cb = 0; cb != channel_block_frequencies_.size(); ++cb) {
+    double fraction = double(visibilities_in_interval_[cb].first) /
+                      visibilities_in_interval_[cb].second;
+    if (fraction < settings_.min_vis_ratio) flagChannelBlock(cb, bufferIndex);
   }
 }
 
 void DDECal::doSolve() {
-  for (size_t dir = 0; dir < itsDirections.size(); ++dir) {
+  for (size_t dir = 0; dir < patches_per_direction_.size(); ++dir) {
     // For directions that reuse model data, the model data of the various
     // time steps should already be in the input buffers.
-    if (!itsSteps[dir]) continue;
+    if (!steps_[dir]) continue;
 
     // For directions that do not, the model data has been computed in the
     // substeps now and is waiting in the tailing MultiResultStep of each
     // substep chain. Move the model data from there to the input buffers.
-    if (auto s = dynamic_cast<IDGPredict*>(itsSteps[dir].get())) {
-      itsTimerPredict.start();
+    if (auto s = dynamic_cast<IDGPredict*>(steps_[dir].get())) {
+      predict_timer_.start();
       s->flush();
-      itsTimerPredict.stop();
+      predict_timer_.stop();
     }
-    for (size_t i = 0; i < itsResultSteps[dir]->size(); ++i) {
+    for (size_t i = 0; i < result_steps_[dir]->size(); ++i) {
       // In the MultiResultStep, DPBuffers are stored flattened (1D vector) as
       // compared to the target shape of the input buffers (vector of vectors):
-      const size_t sol_int = i / itsRequestedSolInt;
-      const size_t timestep = i % itsRequestedSolInt;
-      itsInputBuffers[sol_int][timestep]->MoveData(
-          *itsResultSteps[dir]->get()[i], "", itsDirectionNames[dir]);
+      const size_t sol_int = i / requested_solution_interval_;
+      const size_t timestep = i % requested_solution_interval_;
+      input_buffers_[sol_int][timestep]->MoveData(*result_steps_[dir]->get()[i],
+                                                  "", direction_names_[dir]);
     }
   }
 
-  std::vector<ddecal::SolverBase*> solvers = itsSolver->ConstraintSolvers();
-  const size_t n_channel_blocks = itsChanBlockFreqs.size();
+  std::vector<ddecal::SolverBase*> solvers = solver_->ConstraintSolvers();
+  const size_t n_channel_blocks = channel_block_frequencies_.size();
   const size_t n_antennas = getInfoOut().antennaUsed().size();
 
   // DDECal requires the unweighted model model when the model is subtracted
   // after calibration. Since the model data can be large, memory allocation
   // for this optional feature is done conditionally.
-  const bool keep_model_data = itsSettings.only_predict ||
-                               itsSettings.subtract ||
-                               itsSettings.keep_model_data;
+  const bool keep_model_data =
+      settings_.only_predict || settings_.subtract || settings_.keep_model_data;
 
-  for (size_t i = 0; i < itsInputBuffers.size(); ++i) {
-    const size_t solution_index = itsFirstSolutionIndex + i;
+  for (size_t i = 0; i < input_buffers_.size(); ++i) {
+    const size_t solution_index = first_solution_index_ + i;
 
     // Keep the original size of itsInputBuffers[i] in case it is temporaryly
     // padded with empty buffers.
-    const size_t original_size = itsInputBuffers[i].size();
+    const size_t original_size = input_buffers_[i].size();
 
     // To learn how this condition could be met see AST-1589.
-    if (solution_index >= itsSols.size()) {
+    if (solution_index >= solutions_.size()) {
       throw std::runtime_error(
           "The number of computed time slots is smaller than "
           "the actual number of time intervals. Most likely, "
@@ -801,15 +808,15 @@ void DDECal::doSolve() {
     }
 
     ddecal::SolverBase::SolveResult solveResult;
-    if (!itsSettings.only_predict) {
-      if (itsSettings.min_vis_ratio > 0.0) {
+    if (!settings_.only_predict) {
+      if (settings_.min_vis_ratio > 0.0) {
         checkMinimumVisibilities(i);
       }
 
       for (ddecal::SolverBase* solver : solvers) {
         for (const std::unique_ptr<ddecal::Constraint>& constraint :
              solver->GetConstraints()) {
-          constraint->SetWeights(itsWeightsPerAntenna);
+          constraint->SetWeights(weights_per_antenna_);
         }
       }
 
@@ -822,104 +829,105 @@ void DDECal::doSolve() {
       // completed, so they are not passed to the next steps.
       // The padding buffers are filled with the data of the first buffer, but
       // they have all the data invalidated by setting all the flags to true.
-      while (itsInputBuffers[i].size() < itsRequestedSolInt) {
+      while (input_buffers_[i].size() < requested_solution_interval_) {
         std::unique_ptr<DPBuffer> padding_buffer = std::make_unique<DPBuffer>();
         const common::Fields fields =
             kDataField | kFlagsField | kWeightsField | kUvwField;
-        padding_buffer->Copy(*itsInputBuffers[i][0], fields, true);
+        padding_buffer->Copy(*input_buffers_[i][0], fields, true);
         padding_buffer->GetFlags().fill(true);
-        itsInputBuffers[i].push_back(std::move(padding_buffer));
+        input_buffers_[i].push_back(std::move(padding_buffer));
       }
 
       // The last solution interval can be smaller.
-      std::vector<base::DPBuffer> weighted_buffers(itsInputBuffers[i].size());
+      std::vector<base::DPBuffer> weighted_buffers(input_buffers_[i].size());
 
       const bool linear_mode =
-          itsSettings.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
-      ddecal::AssignAndWeight(itsInputBuffers[i], itsDirectionNames,
+          settings_.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
+      ddecal::AssignAndWeight(input_buffers_[i], direction_names_,
                               weighted_buffers, keep_model_data, linear_mode);
 
       InitializeSolutions(i);
 
-      itsTimerSolve.start();
+      solve_timer_.start();
 
-      switch (itsSettings.solver_data_use) {
+      switch (settings_.solver_data_use) {
         case ddecal::SolverDataUse::kSingle: {
           const ddecal::UniSolveData solve_data(
-              weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-              itsSettings.sub_solutions_per_direction, itsAntennas1,
-              itsAntennas2);
+              weighted_buffers, direction_names_, n_channel_blocks, n_antennas,
+              settings_.sub_solutions_per_direction, antennas1_, antennas2_);
           weighted_buffers.clear();
-          if (itsSettings.model_weighted_constraints) {
-            itsSolver->SetDdConstraintWeights(solve_data.GetSolutionWeights());
+          if (settings_.model_weighted_constraints) {
+            solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
           aocommon::Logger::Debug << "Running DDECal single-visibility solver "
                                      "for current calibration interval.\n";
 
-          solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
-                                         itsAvgTime / itsRequestedSolInt,
-                                         itsStatStream.get());
+          solveResult =
+              solver_->Solve(solve_data, solutions_[solution_index],
+                             average_time_ / requested_solution_interval_,
+                             statistics_stream_.get());
         } break;
         case ddecal::SolverDataUse::kDual: {
           const ddecal::DuoSolveData solve_data(
-              weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-              itsSettings.sub_solutions_per_direction, itsAntennas1,
-              itsAntennas2);
+              weighted_buffers, direction_names_, n_channel_blocks, n_antennas,
+              settings_.sub_solutions_per_direction, antennas1_, antennas2_);
           weighted_buffers.clear();
-          if (itsSettings.model_weighted_constraints) {
-            itsSolver->SetDdConstraintWeights(solve_data.GetSolutionWeights());
+          if (settings_.model_weighted_constraints) {
+            solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
 
           aocommon::Logger::Debug << "Running DDECal dual-visibility solver "
                                      "for current calibration interval.\n";
 
-          solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
-                                         itsAvgTime / itsRequestedSolInt,
-                                         itsStatStream.get());
+          solveResult =
+              solver_->Solve(solve_data, solutions_[solution_index],
+                             average_time_ / requested_solution_interval_,
+                             statistics_stream_.get());
         } break;
         case ddecal::SolverDataUse::kFull: {
           const ddecal::FullSolveData solve_data(
-              weighted_buffers, itsDirectionNames, n_channel_blocks, n_antennas,
-              itsSettings.sub_solutions_per_direction, itsAntennas1,
-              itsAntennas2);
+              weighted_buffers, direction_names_, n_channel_blocks, n_antennas,
+              settings_.sub_solutions_per_direction, antennas1_, antennas2_);
           weighted_buffers.clear();
-          if (itsSettings.model_weighted_constraints) {
-            itsSolver->SetDdConstraintWeights(solve_data.GetSolutionWeights());
+          if (settings_.model_weighted_constraints) {
+            solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
 
           aocommon::Logger::Debug
               << "Running DDECal solver for current calibration interval.\n";
 
-          solveResult = itsSolver->Solve(solve_data, itsSols[solution_index],
-                                         itsAvgTime / itsRequestedSolInt,
-                                         itsStatStream.get());
+          solveResult =
+              solver_->Solve(solve_data, solutions_[solution_index],
+                             average_time_ / requested_solution_interval_,
+                             statistics_stream_.get());
         } break;
       }
 
-      itsTimerSolve.stop();
+      solve_timer_.stop();
 
-      itsNIter[solution_index] = solveResult.iterations;
-      itsNApproxIter[solution_index] = solveResult.constraint_iterations;
+      n_iterations_[solution_index] = solveResult.iterations;
+      n_approximating_iterations_[solution_index] =
+          solveResult.constraint_iterations;
     }
 
     // Restoring itsInputBuffers[i] to its original size to remove any padding
     // that may have been added.
-    itsInputBuffers[i].resize(original_size);
+    input_buffers_[i].resize(original_size);
 
-    if (itsSettings.only_predict) {
-      if (!itsSettings.keep_model_data) SumModels(i);
-    } else if (itsSettings.subtract || itsSettings.keep_model_data) {
+    if (settings_.only_predict) {
+      if (!settings_.keep_model_data) SumModels(i);
+    } else if (settings_.subtract || settings_.keep_model_data) {
       CorrectAndSubtractModels(i);
     }
 
     // Check for nonconvergence and flag if desired. Unconverged solutions are
     // identified by the number of iterations being one more than the max
     // allowed number
-    if (solveResult.iterations > itsSolver->GetMaxIterations() &&
-        itsSettings.flag_unconverged) {
+    if (solveResult.iterations > solver_->GetMaxIterations() &&
+        settings_.flag_unconverged) {
       for (auto& constraint_results : solveResult.results) {
         for (auto& result : constraint_results) {
-          if (itsSettings.flag_diverged_only) {
+          if (settings_.flag_diverged_only) {
             // Set weights with negative values (indicating unconverged
             // solutions that diverged) to zero (all other unconverged
             // solutions remain unflagged)
@@ -954,42 +962,42 @@ void DDECal::doSolve() {
       }
     }
     if (someConstraintHasResult) {
-      itsConstraintSols[solution_index] = solveResult.results;
+      constraint_solutions_[solution_index] = solveResult.results;
     }
 
     // Store calibration solution for later calibration application steps.
-    if (itsStoreSolutionInBuffer) {
-      itsInputBuffers[i].front()->SetSolution(itsSols[solution_index]);
+    if (store_solution_in_buffer_) {
+      input_buffers_[i].front()->SetSolution(solutions_[solution_index]);
     }
   }
 
-  itsTimer.stop();
+  timer_.stop();
 
-  for (size_t sol_int = 0; sol_int < itsInputBuffers.size(); ++sol_int) {
-    for (size_t timestep = 0; timestep < itsInputBuffers[sol_int].size();
+  for (size_t sol_int = 0; sol_int < input_buffers_.size(); ++sol_int) {
+    for (size_t timestep = 0; timestep < input_buffers_[sol_int].size();
          ++timestep) {
-      if (itsOriginalFlags.size() > 0) {
+      if (original_flags_.size() > 0) {
         // Restore original flags, if the UVWFlagger or flagChannelBlock ran.
-        itsInputBuffers[sol_int][timestep]->GetFlags() =
-            xt::view(itsOriginalFlags, sol_int, timestep, xt::all(), xt::all(),
+        input_buffers_[sol_int][timestep]->GetFlags() =
+            xt::view(original_flags_, sol_int, timestep, xt::all(), xt::all(),
                      xt::all());
       }
       // Push data (possibly changed) to next step
-      getNextStep()->process(std::move(itsInputBuffers[sol_int][timestep]));
+      getNextStep()->process(std::move(input_buffers_[sol_int][timestep]));
     }
   }
 
-  itsTimer.start();
+  timer_.start();
 }
 
 bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
-  itsTimer.start();
+  timer_.start();
 
   // Check that all extra input data is there.
   // TODO(AST-1241): Handle these dependencies using Fields.
-  for (const std::string& name : itsReusedDirectionNames) {
+  for (const std::string& name : reused_direction_names_) {
     if (!bufin->HasData(name)) {
-      throw std::runtime_error("DDECal '" + itsSettings.name +
+      throw std::runtime_error("DDECal '" + settings_.name +
                                "' did not receive model data named '" + name +
                                "'.");
     }
@@ -997,32 +1005,32 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
   }
 
   // Create a new solution interval if needed
-  if (itsInputBuffers.empty() ||
-      itsInputBuffers.back().size() == itsRequestedSolInt) {
-    itsInputBuffers.emplace_back();
+  if (input_buffers_.empty() ||
+      input_buffers_.back().size() == requested_solution_interval_) {
+    input_buffers_.emplace_back();
   }
 
-  itsInputBuffers.back().push_back(std::move(bufin));
+  input_buffers_.back().push_back(std::move(bufin));
   doPrepare();
 
-  if (itsInputBuffers.size() == itsSolIntCount &&
-      itsInputBuffers.back().size() == itsRequestedSolInt) {
+  if (input_buffers_.size() == n_solution_intervals_ &&
+      input_buffers_.back().size() == requested_solution_interval_) {
     doSolve();
 
     // Clean up, prepare for next iteration
-    itsFirstSolutionIndex += itsInputBuffers.size();
-    itsAvgTime = 0;
-    itsVisInInterval.assign(itsVisInInterval.size(),
-                            std::pair<size_t, size_t>(0, 0));
-    itsWeightsPerAntenna.assign(itsWeightsPerAntenna.size(), 0.0);
+    first_solution_index_ += input_buffers_.size();
+    average_time_ = 0;
+    visibilities_in_interval_.assign(visibilities_in_interval_.size(),
+                                     std::pair<size_t, size_t>(0, 0));
+    weights_per_antenna_.assign(weights_per_antenna_.size(), 0.0);
 
-    for (std::shared_ptr<MultiResultStep>& result_step : itsResultSteps) {
+    for (std::shared_ptr<MultiResultStep>& result_step : result_steps_) {
       if (result_step) result_step->clear();
     }
-    itsInputBuffers.clear();
+    input_buffers_.clear();
   }
 
-  itsTimer.stop();
+  timer_.stop();
 
   return false;
 }
@@ -1031,48 +1039,48 @@ void DDECal::doPrepare() {
   // When UVW flagging is enabled, this input buffer is passed through the
   // UVWFlagger by moving it to itsUVWFlagStep and then extracting it again
   // from itsDataResultStep. itsInputBuffers then holds the updated buffer.
-  std::unique_ptr<DPBuffer>& input_buffer = itsInputBuffers.back().back();
+  std::unique_ptr<DPBuffer>& input_buffer = input_buffers_.back().back();
 
-  if (itsOriginalFlags.size() > 0) {
+  if (original_flags_.size() > 0) {
     // Save the original flags, so DDECal can restore any flags changed by the
     // UVWFlagger/flagChannelBlock before passing the buffer to the next step.
-    const size_t solution_interval_index = itsInputBuffers.size() - 1;
-    const size_t step_in_solution_interval = itsInputBuffers.back().size() - 1;
-    xt::view(itsOriginalFlags, solution_interval_index,
+    const size_t solution_interval_index = input_buffers_.size() - 1;
+    const size_t step_in_solution_interval = input_buffers_.back().size() - 1;
+    xt::view(original_flags_, solution_interval_index,
              step_in_solution_interval, xt::all(), xt::all(), xt::all()) =
         input_buffer->GetFlags();
   }
 
-  if (!itsUVWFlagStep.isDegenerate()) {
-    itsUVWFlagStep.process(std::move(input_buffer));
-    input_buffer = itsDataResultStep->take();
+  if (!uvw_flag_step_.isDegenerate()) {
+    uvw_flag_step_.process(std::move(input_buffer));
+    input_buffer = data_result_step_->take();
   }
 
-  itsTimerPredict.start();
+  predict_timer_.start();
   aocommon::Logger::Debug
       << "Acquiring one timestep of model data for DDECal.\n";
   // Enclose the recursive_for
   {
     aocommon::RecursiveFor recursive_for;
-    recursive_for.Run(0, itsSteps.size(), [&](size_t direction) {
-      if (itsSteps[direction]) {  // When reusing model data, there is no step.
+    recursive_for.Run(0, steps_.size(), [&](size_t direction) {
+      if (steps_[direction]) {  // When reusing model data, there is no step.
         // Don't process column readers yet; they need to be run serially (see
         // further below)
         const bool is_column_reader =
-            dynamic_cast<MsColumnReader*>(itsSteps[direction].get());
+            dynamic_cast<MsColumnReader*>(steps_[direction].get());
         if (!is_column_reader)
-          itsSteps[direction]->process(std::make_unique<DPBuffer>(
-              *input_buffer, itsRequiredFields[direction]));
+          steps_[direction]->process(std::make_unique<DPBuffer>(
+              *input_buffer, required_fields_[direction]));
       }
     });
   }
   // Call column readers serially, since CasaCore does not support reading
   // multiple columns in parallel.
-  for (size_t direction = 0; direction != itsSteps.size(); ++direction) {
-    if (itsSteps[direction] &&
-        dynamic_cast<MsColumnReader*>(itsSteps[direction].get())) {
-      itsSteps[direction]->process(std::make_unique<DPBuffer>(
-          *input_buffer, itsRequiredFields[direction]));
+  for (size_t direction = 0; direction != steps_.size(); ++direction) {
+    if (steps_[direction] &&
+        dynamic_cast<MsColumnReader*>(steps_[direction].get())) {
+      steps_[direction]->process(std::make_unique<DPBuffer>(
+          *input_buffer, required_fields_[direction]));
     }
   }
 
@@ -1081,70 +1089,71 @@ void DDECal::doPrepare() {
   const size_t nCh = getInfoOut().nchan();
   const size_t nCr = 4;
 
-  size_t nchanblocks = itsChanBlockFreqs.size();
+  size_t nchanblocks = channel_block_frequencies_.size();
 
   for (size_t bl = 0; bl < nBl; ++bl) {
     size_t chanblock = 0;
     size_t ant1 = getInfoOut().antennaMap()[getInfoOut().getAnt1()[bl]];
     size_t ant2 = getInfoOut().antennaMap()[getInfoOut().getAnt2()[bl]];
     for (size_t ch = 0; ch < nCh; ++ch) {
-      if (ch == itsChanBlockStart[chanblock + 1]) {
+      if (ch == channel_block_start_[chanblock + 1]) {
         chanblock++;
       }
       for (size_t cr = 0; cr < nCr; ++cr) {
         // Add this weight to both involved antennas
         const double weight = input_buffer->GetWeights()(bl, ch, cr) *
                               !input_buffer->GetFlags()(bl, ch, cr);
-        itsWeightsPerAntenna[ant1 * nchanblocks + chanblock] += weight;
-        itsWeightsPerAntenna[ant2 * nchanblocks + chanblock] += weight;
+        weights_per_antenna_[ant1 * nchanblocks + chanblock] += weight;
+        weights_per_antenna_[ant2 * nchanblocks + chanblock] += weight;
 
-        itsVisInInterval[chanblock].first +=
-            (weight > 0);                      // unflagged nr of vis
-        itsVisInInterval[chanblock].second++;  // total nr of vis
+        visibilities_in_interval_[chanblock].first +=
+            (weight > 0);                               // unflagged nr of vis
+        visibilities_in_interval_[chanblock].second++;  // total nr of vis
       }
     }
   }
 
   const double weightFactor =
       1. / (nCh * (getInfoOut().antennaUsed().size() - 1) * nCr *
-            itsRequestedSolInt);
-  for (double& weight : itsWeightsPerAntenna) {
+            requested_solution_interval_);
+  for (double& weight : weights_per_antenna_) {
     weight *= weightFactor;
   }
 
-  itsTimerPredict.stop();
+  predict_timer_.stop();
 
-  itsAvgTime += itsAvgTime + input_buffer->GetTime();
+  average_time_ += average_time_ + input_buffer->GetTime();
 }
 
 void DDECal::WriteSolutions() {
-  itsTimerWrite.start();
+  write_timer_.start();
 
   const std::string history = "CREATE by " + DP3Version::AsString() + "\n" +
-                              "step " + itsSettings.name + " in parset: \n" +
-                              itsSettings.parset_string;
+                              "step " + settings_.name + " in parset: \n" +
+                              settings_.parset_string;
 
-  itsSolutionWriter->Write(
-      itsSols, itsConstraintSols, getInfoOut().startTime(),
-      getInfoOut().lastTime(), getInfoOut().timeInterval(), itsRequestedSolInt,
-      itsSettings.sub_solutions_per_direction, itsSettings.mode,
-      getInfoOut().GetUsedAntennaNames(), itsSourceDirections, itsDirections,
-      getInfoOut().chanFreqs(), itsChanBlockFreqs, history);
+  solution_writer_->Write(
+      solutions_, constraint_solutions_, getInfoOut().startTime(),
+      getInfoOut().lastTime(), getInfoOut().timeInterval(),
+      requested_solution_interval_, settings_.sub_solutions_per_direction,
+      settings_.mode, getInfoOut().GetUsedAntennaNames(), source_directions_,
+      patches_per_direction_, getInfoOut().chanFreqs(),
+      channel_block_frequencies_, history);
 
-  itsTimerWrite.stop();
+  write_timer_.stop();
 }
 
 void DDECal::finish() {
-  itsTimer.start();
+  timer_.start();
 
-  if (!itsInputBuffers.empty()) {
+  if (!input_buffers_.empty()) {
     doSolve();
   }
 
-  if (!itsSettings.only_predict) WriteSolutions();
+  if (!settings_.only_predict) WriteSolutions();
 
-  itsInputBuffers.clear();
-  itsTimer.stop();
+  input_buffers_.clear();
+  timer_.stop();
 
   // Let the next steps finish.
   getNextStep()->finish();
@@ -1182,7 +1191,7 @@ void DDECal::ApplySolution(
     const std::vector<std::complex<double>>& solutions) const {
   const size_t antenna1 = getInfoOut().getAnt1()[baseline];
   const size_t antenna2 = getInfoOut().getAnt2()[baseline];
-  const size_t n_directions = itsDirectionNames.size();
+  const size_t n_directions = direction_names_.size();
 
   aocommon::MC2x2 sum_over_directions = aocommon::MC2x2::Zero();
 
@@ -1191,17 +1200,17 @@ void DDECal::ApplySolution(
     const size_t solution_index2 = antenna2 * n_directions + direction;
 
     std::complex<float>* model_data =
-        &buffer.GetData(itsDirectionNames[direction])(baseline, channel, 0);
+        &buffer.GetData(direction_names_[direction])(baseline, channel, 0);
 
     aocommon::MC2x2 corrected_model_data;
-    if (itsSolver->NSolutionPolarizations() == 4) {
+    if (solver_->NSolutionPolarizations() == 4) {
       corrected_model_data = ApplyFullJonesSolution(
           solutions, solution_index1, solution_index2, model_data);
-    } else if (itsSolver->NSolutionPolarizations() == 2) {
+    } else if (solver_->NSolutionPolarizations() == 2) {
       corrected_model_data = ApplyDiagonalSolution(solutions, solution_index1,
                                                    solution_index2, model_data);
     } else {
-      assert(itsSolver->NSolutionPolarizations() == 1);
+      assert(solver_->NSolutionPolarizations() == 1);
       corrected_model_data = ApplyScalarSolution(solutions, solution_index1,
                                                  solution_index2, model_data);
     }
@@ -1210,12 +1219,12 @@ void DDECal::ApplySolution(
     // is probably more expensive than adding 8 aligned doubles.
     sum_over_directions += corrected_model_data;
 
-    if (itsSettings.keep_model_data) {
+    if (settings_.keep_model_data) {
       corrected_model_data.AssignTo(model_data);
     }
   }
 
-  if (itsSettings.subtract) {
+  if (settings_.subtract) {
     for (size_t correlation = 0; correlation < 4; ++correlation) {
       buffer.GetData()(baseline, channel, correlation) -=
           sum_over_directions.Get(correlation);
@@ -1228,36 +1237,36 @@ void DDECal::CorrectAndSubtractModels(size_t buffer_index) {
   // interval. Here we apply the solutions to all the model data directions and
   // subtract them from the data if the "subtract" setting is true.
 
-  const size_t n_solutions = itsSettings.GetNSolutions();
-  if (n_solutions != itsSettings.sub_solutions_per_direction.size()) {
+  const size_t n_solutions = settings_.GetNSolutions();
+  if (n_solutions != settings_.sub_solutions_per_direction.size()) {
     throw std::runtime_error(
         "Model correction is not implemented for DDECal with direction "
         "dependent solution intervals");
   }
 
-  const size_t solution_index = itsFirstSolutionIndex + buffer_index;
-  assert(solution_index < itsSols.size());
+  const size_t solution_index = first_solution_index_ + buffer_index;
+  assert(solution_index < solutions_.size());
   std::vector<std::vector<std::complex<double>>>& solutions =
-      itsSols[solution_index];
+      solutions_[solution_index];
 
-  assert(buffer_index < itsInputBuffers.size());
+  assert(buffer_index < input_buffers_.size());
   std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
-      itsInputBuffers[buffer_index];
+      input_buffers_[buffer_index];
 
   for (std::unique_ptr<DPBuffer>& data_buffer : solution_interval) {
     for (size_t bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
       size_t chanblock = 0;
 
       for (size_t ch = 0; ch < getInfoOut().nchan(); ++ch) {
-        if (ch == itsChanBlockStart[chanblock + 1]) {
+        if (ch == channel_block_start_[chanblock + 1]) {
           chanblock++;
         }
 
         ApplySolution(*data_buffer, bl, ch, solutions[chanblock]);
       }
     }
-    if (!itsSettings.keep_model_data) {
-      for (const std::string& name : itsDirectionNames) {
+    if (!settings_.keep_model_data) {
+      for (const std::string& name : direction_names_) {
         data_buffer->RemoveData(name);
       }
     }
@@ -1265,15 +1274,15 @@ void DDECal::CorrectAndSubtractModels(size_t buffer_index) {
 }
 
 void DDECal::SumModels(size_t buffer_index) {
-  assert(buffer_index < itsInputBuffers.size());
+  assert(buffer_index < input_buffers_.size());
 
   std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
-      itsInputBuffers[buffer_index];
+      input_buffers_[buffer_index];
 
   for (std::unique_ptr<DPBuffer>& data_buffer : solution_interval) {
-    for (auto name_iterator = itsDirectionNames.begin();
-         name_iterator != itsDirectionNames.end(); ++name_iterator) {
-      if (itsDirectionNames.begin() == name_iterator) {
+    for (auto name_iterator = direction_names_.begin();
+         name_iterator != direction_names_.end(); ++name_iterator) {
+      if (direction_names_.begin() == name_iterator) {
         data_buffer->GetData().assign(data_buffer->GetData(*name_iterator));
       } else {
         data_buffer->GetData() += data_buffer->GetData(*name_iterator);

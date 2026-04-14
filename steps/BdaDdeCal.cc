@@ -33,7 +33,7 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
       solution_writer_(),
       steps_(),
       result_steps_(),
-      patches_(),
+      patches_per_direction_(),
       input_buffers_(),
       solver_buffer_(),
       solver_(),
@@ -66,7 +66,7 @@ void BdaDdeCal::InitializeModelReuse() {
     direction_names_.emplace_back(name);
 
     // For the patches, use the name without prefix
-    patches_.emplace_back(1, name_without_prefix);
+    patches_per_direction_.emplace_back(1, name_without_prefix);
   }
 }
 
@@ -91,8 +91,9 @@ void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
     direction_names_.push_back(prefix + direction.front());
   }
 
-  patches_.insert(patches_.end(), std::make_move_iterator(directions.begin()),
-                  std::make_move_iterator(directions.end()));
+  patches_per_direction_.insert(patches_per_direction_.end(),
+                                std::make_move_iterator(directions.begin()),
+                                std::make_move_iterator(directions.end()));
 }
 
 common::Fields BdaDdeCal::getRequiredFields() const {
@@ -753,8 +754,9 @@ void BdaDdeCal::WriteSolutions() {
       solutions_, constraint_solutions_, getInfoOut().startTime(),
       getInfoOut().lastTime(), getInfoOut().timeInterval(),
       settings_.solution_interval, settings_.sub_solutions_per_direction,
-      settings_.mode, used_antenna_names, source_directions_, patches_,
-      getInfoOut().chanFreqs(), GetChannelBlockFrequencies(), history);
+      settings_.mode, used_antenna_names, source_directions_,
+      patches_per_direction_, getInfoOut().chanFreqs(),
+      GetChannelBlockFrequencies(), history);
 
   write_timer_.stop();
   timer_.stop();
@@ -763,7 +765,7 @@ void BdaDdeCal::WriteSolutions() {
 void BdaDdeCal::show(std::ostream& stream) const {
   stream << "BdaDdeCal " << settings_.name << '\n'
          << "  mode (constraints):  " << ToString(settings_.mode) << '\n'
-         << "  directions:          " << patches_ << '\n';
+         << "  directions:          " << patches_per_direction_ << '\n';
   if (solver_) {
     const size_t nchan = settings_.n_channels == 0
                              ? size_t(getInfoOut().nchan())
@@ -796,7 +798,8 @@ void BdaDdeCal::show(std::ostream& stream) const {
   }
 
   for (size_t dir = 0; dir < steps_.size(); ++dir) {
-    stream << "Model steps for direction " << patches_[dir] << '\n';
+    stream << "Model steps for direction " << patches_per_direction_[dir]
+           << '\n';
     for (std::shared_ptr<Step> step = steps_[dir]; step;
          step = step->getNextStep()) {
       step->show(stream);
