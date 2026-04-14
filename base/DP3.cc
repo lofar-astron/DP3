@@ -488,8 +488,12 @@ std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
   std::shared_ptr<InputStep> input_step;
   if (parset.isDefined("msin") or parset.isDefined("msin.name")) {
     input_step = InputStep::CreateReader(parset);
-  } else {
+  } else if (parset.isDefined("stream.socket")) {
     input_step = std::make_shared<steps::SVPInput>(parset, "stream.");
+  } else {
+    throw std::runtime_error(
+        "A parset should have either a 'msin' or a 'stream' keyword for data "
+        "input");
   }
   std::shared_ptr<Step> last_step = input_step;
 
