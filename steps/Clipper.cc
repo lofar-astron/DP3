@@ -8,9 +8,6 @@
 #include <xtensor/misc/xcomplex.hpp>
 #include <xtensor/views/xview.hpp>
 
-#include <xtensor/xio.hpp>
-#include <iostream>
-
 #include "base/FlagCounter.h"
 #include "base/DP3.h"
 
