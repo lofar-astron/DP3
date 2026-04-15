@@ -5,9 +5,11 @@
 #include "NullStep.h"
 #include "MsColumnReader.h"
 
-#include <iostream>
 #include <xtensor/misc/xcomplex.hpp>
 #include <xtensor/views/xview.hpp>
+
+#include <xtensor/xio.hpp>
+#include <iostream>
 
 #include "base/FlagCounter.h"
 #include "base/DP3.h"
@@ -26,6 +28,8 @@ Clipper::Clipper(const common::ParameterSet& parset, const std::string& prefix)
       flag_all_correlations_(
           parset.getBool(prefix + "flagallcorrelations", true)),
       max_amplitude_(parset.getFloat(prefix + "amplmax", 0.0)) {
+  filter_step_ = std::make_shared<Filter>(parset, prefix);
+
 #ifdef USE_FAST_PREDICT
   const bool use_fast_predict = parset.getBool(prefix + "usefastpredict", true);
   if (use_fast_predict) {
@@ -44,13 +48,16 @@ Clipper::Clipper(const common::ParameterSet& parset, const std::string& prefix)
 void Clipper::SetPredict(std::shared_ptr<Step> substep) {
   predict_step_ = substep;
   result_step_ = std::make_shared<ResultStep>();
+
+  filter_step_->setNextStep(predict_step_);
   predict_step_->setNextStep(result_step_);
 }
 
 void Clipper::updateInfo(const DPInfo& info_in) {
   Step::updateInfo(info_in);
+
   // Create a metadata copy for the internal Predict step.
-  DPInfo predict_info = info_in;
+  DPInfo substep_info = info_in;
 
   if (max_amplitude_ == 0.0) {
     std::string antennaSet(info_in.antennaSet());
@@ -73,9 +80,10 @@ void Clipper::updateInfo(const DPInfo& info_in) {
     predict_frequencies[channel] = input_frequencies[channel * frequency_step_];
     predict_widths[channel] = input_widths[channel * frequency_step_];
   }
-  predict_info.setChannels(std::move(predict_frequencies),
+  substep_info.setChannels(std::move(predict_frequencies),
                            std::move(predict_widths));
-  predict_step_->setInfo(predict_info);
+
+  filter_step_->setInfo(substep_info);
 }
 
 void Clipper::show(std::ostream& os) const {
@@ -86,6 +94,7 @@ void Clipper::show(std::ostream& os) const {
   os << "  flag all correlations: " << std::boolalpha << flag_all_correlations_
      << '\n';
 
+  filter_step_->show(os);
   predict_step_->show(os);
 }
 
@@ -100,16 +109,28 @@ bool Clipper::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (counter_ % time_step_ == 0) {
     // Copy the buffer, and reduce the number of channels in the buffer
-    common::Fields predict_fields = predict_step_->getRequiredFields();
+    common::Fields overall_fields =
+        dp3::base::GetChainRequiredFields(filter_step_);
     std::unique_ptr<DPBuffer> substep_buffer =
-        std::make_unique<DPBuffer>(*buffer, predict_fields);
-    predict_step_->process(std::move(substep_buffer));
+        std::make_unique<DPBuffer>(*buffer, overall_fields);
+    filter_step_->process(std::move(substep_buffer));
     std::unique_ptr<DPBuffer> result_buffer = result_step_->take();
+
+    // Calculate the indices corresponding to the filtered baselines, and only
+    // set the corresponding flags when the amplitude exceeds max_amplitude_.
+    std::vector<common::rownr_t> filtered_row_numbers =
+        result_buffer->GetRowNumbers().tovector();
+    const common::rownr_t first_row_number = buffer->GetRowNumbers()[0];
+    for (common::rownr_t& row_number : filtered_row_numbers) {
+      row_number -= first_row_number;
+    }
 
     // After the prediction, flag the predicted values that exceed
     // max_amplitude_. Copy each resulting flag to the buffer
     // frequency_step_ times.
     last_flags_.resize(buffer->GetFlags().shape());
+    last_flags_.fill(false);
+
     const size_t n_channels_in = getInfoOut().nchan();
     const size_t n_channels_out =
         (n_channels_in + frequency_step_ - 1) / frequency_step_;
@@ -120,18 +141,26 @@ bool Clipper::process(std::unique_ptr<DPBuffer> buffer) {
       xt::xtensor<bool, 2> result_flags =
           xt::view(xt::abs(result_buffer->GetData()) > max_amplitude_,
                    xt::all(), channel, xt::all());
+
       // flag all correlations corresponding to a single baseline if
       // a single correlation for this baseline exceeds amplmax_
       if (flag_all_correlations_) {
         xt::xarray<int> baseline_flag_count = xt::sum(result_flags, 1);
-        auto selected_baselines =
-            xt::flatten_indices(xt::argwhere(baseline_flag_count));
-        auto correlations_to_flag =
-            xt::view(result_flags, xt::keep(selected_baselines), xt::all());
-        correlations_to_flag = true;
+
+        if (xt::any(baseline_flag_count)) {
+          auto selected_baselines =
+              xt::flatten_indices(xt::argwhere(baseline_flag_count));
+          auto correlations_to_flag =
+              xt::view(result_flags, xt::keep(selected_baselines), xt::all());
+
+          correlations_to_flag = true;
+        }
       }
       for (size_t i = start; i < stop; i++) {
-        xt::view(last_flags_, xt::all(), i, xt::all()) = result_flags;
+        auto target_correlations =
+            xt::view(last_flags_, xt::keep(filtered_row_numbers), i, xt::all());
+
+        target_correlations = xt::view(result_flags, xt::all(), xt::all());
       }
     }
     counter_ = 0;

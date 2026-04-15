@@ -31,3 +31,8 @@ inputs:
     doc: >-
       Perform the visibility prediction only once every `frequency_step` channels.
       The next `frequency_step - 1` channels will use these visibilities until the next prediction.
+  baseline:
+    type: string
+    default: "\"\""
+    doc: >-
+      Perform baseline selection using a filter-substep. Refer to :ref:`Filter` for additional information.

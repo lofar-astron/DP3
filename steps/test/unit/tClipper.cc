@@ -107,6 +107,11 @@ void TestClipper(size_t time_step, size_t frequency_step,
   buffer->GetFlags().resize(data_shape);
   buffer->GetFlags().fill(false);
 
+  // The filter sub-step requires that the row numbers are set. This normally
+  // happens inside an Input step.
+  const casacore::Vector<dp3::common::rownr_t> row_numbers(kNBaselines, 0);
+  buffer->SetRowNumbers(row_numbers);
+
   auto clipper_step = std::make_shared<Clipper>(parset, "");
   auto result_step = std::make_shared<dp3::steps::ResultStep>();
   auto mock_predict = std::make_shared<MockPredict>(frequency_step);

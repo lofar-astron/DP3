@@ -5,6 +5,7 @@
 ### New features
 
 - Add `predict.usefastpredict` setting to enable the new fast predict at runtime. It remains an experimental option, hence, it is only available when `USE_FAST_PREDICT` is passed to CMake.
+- Add a filter-substep to the clipper step to enable baseline selection.
 
 ### Improvements
 
