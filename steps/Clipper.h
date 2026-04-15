@@ -10,6 +10,7 @@
 #include "OnePredict.h"
 #include "FastPredict.h"
 #include "PreFlagger.h"
+#include "Filter.h"
 #include "ResultStep.h"
 #include "common/Timer.h"
 
@@ -27,7 +28,8 @@ class Clipper : public Step {
   Clipper(const common::ParameterSet&, const std::string& prefix);
 
   common::Fields getRequiredFields() const override {
-    return kFlagsField | predict_step_->getRequiredFields();
+    return kFlagsField | filter_step_->getRequiredFields() |
+           predict_step_->getRequiredFields();
   }
 
   common::Fields getProvidedFields() const override { return kFlagsField; }
@@ -58,6 +60,7 @@ class Clipper : public Step {
   size_t frequency_step_;
   bool flag_all_correlations_;
   float max_amplitude_;
+  std::shared_ptr<Step> filter_step_;
   std::shared_ptr<Step> predict_step_;
   std::shared_ptr<ResultStep> result_step_;
   std::unique_ptr<dp3::base::DPBuffer> predict_buffer_;
