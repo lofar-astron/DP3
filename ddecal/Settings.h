@@ -164,6 +164,7 @@ struct Settings {
   const double smoothness_constraint;
   const double smoothness_ref_frequency;
   const double smoothness_ref_distance;
+  const std::string smoothness_ref_antenna;
   const double smoothness_spectral_exponent;
   bool smoothness_kernel_truncation;
   /**

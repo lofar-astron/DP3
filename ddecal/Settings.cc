@@ -129,6 +129,9 @@ Settings::Settings(const common::ParameterSet& _parset,
       smoothness_constraint(GetDouble("smoothnessconstraint", 0.0)),
       smoothness_ref_frequency(GetDouble("smoothnessreffrequency", 0.0)),
       smoothness_ref_distance(GetDouble("smoothnessrefdistance", 0.0)),
+      smoothness_ref_antenna(smoothness_ref_distance == 0.0
+                                 ? std::string()
+                                 : GetString("smoothnessrefantenna", "")),
       smoothness_spectral_exponent(
           GetDouble("smoothnessspectralexponent", -1.0)),
       smoothness_kernel_truncation(
@@ -399,9 +402,12 @@ void ShowConstraintSettings(std::ostream& output, const Settings& settings) {
   if (settings.smoothness_ref_frequency != 0.0)
     output << "  smoothnessreffrequency:" << settings.smoothness_ref_frequency
            << '\n';
-  if (settings.smoothness_ref_distance != 0.0)
+  if (settings.smoothness_ref_distance != 0.0) {
     output << "  smoothnessrefdistance:" << settings.smoothness_ref_distance
            << '\n';
+    output << "  smoothnessrefantenna:" << settings.smoothness_ref_antenna
+           << '\n';
+  }
   if (!settings.smoothness_dd_factors.empty()) {
     output << "  smoothness dd factors:" << settings.smoothness_dd_factors
            << '\n';

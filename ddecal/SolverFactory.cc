@@ -402,8 +402,23 @@ void InitializeScreenConstraint(
 
 void InitializeSmoothnessConstraint(
     SmoothnessConstraint& constraint, double ref_distance,
+    const std::string& ref_antenna,
     const std::vector<std::array<double, 3>>& antenna_positions,
     const std::vector<double>& dd_factors,
+    const std::vector<std::string>& antenna_factors,
+    const std::vector<std::string>& antenna_names) {
+  std::vector<double> factor_values = CalculateAntennaSmoothnessFactors(
+      ref_distance, ref_antenna, antenna_positions, antenna_factors,
+      antenna_names);
+  constraint.SetAntennaFactors(std::move(factor_values));
+  constraint.SetDdSmoothingFactors(dd_factors);
+}
+
+}  // namespace
+
+std::vector<double> CalculateAntennaSmoothnessFactors(
+    double ref_distance, const std::string& ref_antenna,
+    const std::vector<std::array<double, 3>>& antenna_positions,
     const std::vector<std::string>& antenna_factors,
     const std::vector<std::string>& antenna_names) {
   std::vector<double> prepared_antenna_factors;
@@ -412,41 +427,59 @@ void InitializeSmoothnessConstraint(
     // made independent of the distance
     prepared_antenna_factors.assign(antenna_positions.size(), 1.0);
   } else {
+    size_t ref_antenna_index = 0;
+    if (!ref_antenna.empty()) {
+      std::vector<std::string>::const_iterator iter =
+          std::find(antenna_names.begin(), antenna_names.end(), ref_antenna);
+      if (iter == antenna_names.end()) {
+        throw std::runtime_error(
+            "Unknown reference antenna specified in smoothness constraint: " +
+            ref_antenna);
+      }
+      ref_antenna_index = iter - antenna_names.begin();
+    }
     // Make a list of factors such that more distant antennas apply a
     // smaller smoothing kernel.
     prepared_antenna_factors.reserve(antenna_positions.size());
-    for (size_t i = 1; i != antenna_positions.size(); ++i) {
-      const double dx = antenna_positions[0][0] - antenna_positions[i][0];
-      const double dy = antenna_positions[0][1] - antenna_positions[i][1];
-      const double dz = antenna_positions[0][2] - antenna_positions[i][2];
-      const double factor =
-          ref_distance / std::sqrt(dx * dx + dy * dy + dz * dz);
-      prepared_antenna_factors.push_back(factor);
-      // For antenna 0, the distance of antenna 1 is used:
-      if (i == 1) prepared_antenna_factors.push_back(factor);
+    double max_factor = 0.0;
+    for (size_t i = 0; i != antenna_positions.size(); ++i) {
+      if (i == ref_antenna_index) {
+        prepared_antenna_factors.push_back(0.0);
+      } else {
+        const double dx =
+            antenna_positions[ref_antenna_index][0] - antenna_positions[i][0];
+        const double dy =
+            antenna_positions[ref_antenna_index][1] - antenna_positions[i][1];
+        const double dz =
+            antenna_positions[ref_antenna_index][2] - antenna_positions[i][2];
+        // Smaller distance means larger value and thus more smoothing
+        const double factor =
+            ref_distance / std::sqrt(dx * dx + dy * dy + dz * dz);
+        max_factor = std::max(factor, max_factor);
+        prepared_antenna_factors.push_back(factor);
+      }
     }
+    // For the reference antenna, the maximum factor (largest smoothing) is
+    // used:
+    prepared_antenna_factors[ref_antenna_index] = max_factor;
   }
+
   if (!antenna_factors.empty()) {
     std::vector<double> parsed_values(antenna_names.size(), 1.0);
     common::ParseValuePerStation<double>(parsed_values, antenna_factors,
                                          antenna_names);
-    // Antenna factors have been specified. However, the antenna constraint
-    // expects these inverted (higher factors cause less smoothing), so invert
-    // them.
     for (size_t i = 0; i != parsed_values.size(); ++i) {
-      if (parsed_values[i] == 0.0) {
+      if (parsed_values[i] < 0.0) {
         throw std::runtime_error(
             "Invalid antenna smoothing factor specified: one of the values is "
-            "zero");
+            "negative");
       }
-      prepared_antenna_factors[i] /= parsed_values[i];
+      // Larger antenna factor values indicate more smoothing
+      prepared_antenna_factors[i] *= parsed_values[i];
     }
   }
-  constraint.SetAntennaFactors(std::move(prepared_antenna_factors));
-  constraint.SetDdSmoothingFactors(dd_factors);
+  return prepared_antenna_factors;
 }
-
-}  // namespace
 
 std::unique_ptr<SolverBase> CreateSolver(
     const Settings& settings, const std::vector<std::string>& station_names) {
@@ -519,7 +552,8 @@ void InitializeSolverConstraints(
     if (smoothness_constraint) {
       InitializeSmoothnessConstraint(
           *smoothness_constraint, settings.smoothness_ref_distance,
-          antenna_positions, settings.GetExpandedSmoothnessDdFactors(),
+          settings.smoothness_ref_antenna, antenna_positions,
+          settings.GetExpandedSmoothnessDdFactors(),
           settings.antenna_smoothness_factors, antenna_names);
     }
   }

@@ -88,7 +88,7 @@ std::vector<ConstraintResult> SmoothnessConstraint::Apply(
 
           fit_data_[thread].smoother.Smooth(
               fit_data_[thread].data.data(), fit_data_[thread].weight.data(),
-              antenna_factors_[ant_index] * dd_factor);
+              dd_factor / antenna_factors_[ant_index]);
 
           for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
             solutions_view(ch, smoothing_index) = fit_data_[thread].data[ch];

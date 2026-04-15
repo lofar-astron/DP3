@@ -163,12 +163,17 @@ inputs:
     default: -1.0
     type: double
     doc: >-
-      The exponent term that scales the kernel size in relation to the frequency. See smoothnessreffrequency: smoothnessspectralexponent only has an effect when smoothnessreffrequency is set to a nonzero value. A value of -1 assumes a TEC 1/nu relationship..
+      The exponent term that scales the kernel size in relation to the frequency. See smoothnessreffrequency: smoothnessspectralexponent only has an effect when smoothnessreffrequency is set to a nonzero value. A value of -1 assumes a TEC 1/nu relationship.
   smoothnessrefdistance:
     default: 0.0
     type: double
     doc: >-
-      An optional reference distance (in meters) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary, such that antennas (stations for LOFAR) closer to antenna 0 will be smoothed stronger, i.e. with a larger kernel size..
+      An optional reference distance (in meters) for the smoothness constraint. When unequal to 0, the size of the smoothing kernel will vary, such that antennas (stations for LOFAR) closer to the reference antenna (default 0, but can be set with smoothnessrefantenna) will be smoothed stronger, i.e. with a larger kernel size.
+  smoothnessrefantenna:
+    default: "\"\""
+    type: string
+    doc: >-
+      An optional reference antenna name for calculating the distances when the smoothnessrefdistance is used for the smoothness constraint, or empty to use the first antenna.
   smoothness_dd_factors:
     default: empty
     type: list

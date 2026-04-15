@@ -65,7 +65,7 @@ class SmoothnessConstraint final : public Constraint {
    * Sets an extra (cummulative) smoothing factor for directions (and dd
    * solution intervals). @note that these factors have opposite meaning
    * of those for @ref SetAntennaFactors().
-   * @param dd_smoothing_factors should be of size NSolutions(), i.e.
+   * @param dd_smoothing_factors should be of size NSubSolutions(), i.e.
    * it should have a factor for each direction and the possible
    * subsolutions per direction. The otherwise specified smoothing kernel size
    * is multiplied with these factors, which means that higher values will cause

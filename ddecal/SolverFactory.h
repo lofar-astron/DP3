@@ -12,12 +12,13 @@
 #include <string>
 #include <vector>
 
-namespace dp3 {
-namespace common {
-class ParameterSet;
-}
+namespace dp3::ddecal {
 
-namespace ddecal {
+std::vector<double> CalculateAntennaSmoothnessFactors(
+    double ref_distance, const std::string& ref_antenna,
+    const std::vector<std::array<double, 3>>& antenna_positions,
+    const std::vector<std::string>& antenna_factors,
+    const std::vector<std::string>& antenna_names);
 
 class Settings;
 class SolverBase;
@@ -46,7 +47,6 @@ void InitializeSolverConstraints(
     const std::vector<base::Direction>& source_positions,
     const std::vector<double>& frequencies);
 
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal
 
 #endif  // DP3_SOLVERFACTORY_H
