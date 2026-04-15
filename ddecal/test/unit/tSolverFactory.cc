@@ -455,4 +455,60 @@ BOOST_AUTO_TEST_CASE(solver_settings_custom) {
   BOOST_CHECK_EQUAL(solver->GetDetectStalling(), false);
 }
 
+BOOST_AUTO_TEST_CASE(calculate_antenna_smoothness_factors) {
+  using dp3::ddecal::CalculateAntennaSmoothnessFactors;
+
+  constexpr double kRefDistance = 10.0;
+  const std::vector<std::array<double, 3>> kPositions{
+      {9.0, 0.0, 0.0},
+      {0.0, 12.0, 0.0},
+      {0.0, 0.0, 5.0},
+  };
+  // Distance from antenna B. The distance of "B to itself" is replaced by
+  // the smallest other distance.
+  const std::array<double, 3> kDistanceToRef{15, 13, 13};
+  const std::vector<std::string> kNames{"Antenna A", "Antenna B", "Antenna C"};
+  const std::string kRefAntenna = kNames[1];
+  const std::string kInvalidName = "Not an antenna name";
+
+  // Test without anything set: should return unit factors
+  std::vector<double> result =
+      CalculateAntennaSmoothnessFactors(0.0, "", kPositions, {}, kNames);
+  BOOST_REQUIRE_EQUAL(result.size(), 3);
+  BOOST_CHECK_CLOSE_FRACTION(result[0], 1.0, 1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[1], 1.0, 1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[2], 1.0, 1e-8);
+
+  result = CalculateAntennaSmoothnessFactors(kRefDistance, kRefAntenna,
+                                             kPositions, {}, kNames);
+  BOOST_REQUIRE_EQUAL(result.size(), 3);
+  BOOST_CHECK_CLOSE_FRACTION(result[0], kRefDistance / kDistanceToRef[0], 1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[1], kRefDistance / kDistanceToRef[1], 1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[2], kRefDistance / kDistanceToRef[2], 1e-8);
+
+  std::vector<std::string> kAntennaFactors{"[Antenna A,Antenna C]:10",
+                                           "[Antenna B]:0.5"};
+  result = CalculateAntennaSmoothnessFactors(0.0, kInvalidName, kPositions,
+                                             kAntennaFactors, kNames);
+  BOOST_REQUIRE_EQUAL(result.size(), 3);
+  BOOST_CHECK_CLOSE_FRACTION(result[0], 10.0, 1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[1], 0.5, 1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[2], 10.0, 1e-8);
+
+  result = CalculateAntennaSmoothnessFactors(
+      kRefDistance, kRefAntenna, kPositions, kAntennaFactors, kNames);
+  BOOST_REQUIRE_EQUAL(result.size(), 3);
+  BOOST_CHECK_CLOSE_FRACTION(result[0], 10.0 * kRefDistance / kDistanceToRef[0],
+                             1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[1], 0.5 * kRefDistance / kDistanceToRef[1],
+                             1e-8);
+  BOOST_CHECK_CLOSE_FRACTION(result[2], 10.0 * kRefDistance / kDistanceToRef[2],
+                             1e-8);
+
+  BOOST_CHECK_THROW(
+      CalculateAntennaSmoothnessFactors(kRefDistance, kInvalidName, kPositions,
+                                        kAntennaFactors, kNames),
+      std::runtime_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
