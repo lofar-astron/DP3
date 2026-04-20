@@ -16,10 +16,6 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include <casacore/tables/Tables/TableIter.h>
-#include <casacore/tables/Tables/RefRows.h>
-#include <casacore/casa/Arrays/Slicer.h>
-
 #include <map>
 
 namespace dp3 {

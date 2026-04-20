@@ -267,7 +267,6 @@ void WGridderPredict::flush() {
   // Concatenate uvw data from the dpbuffers into one uvw buffer
   const size_t n_timesteps = buffers_.size();
   const size_t n_baselines = getInfoOut().nbaselines();
-  const size_t n_channels = getInfoOut().nchan();
   uvw_ = xt::xtensor<double, 3>::from_shape(
       xt::xtensor<double, 3>::shape_type{n_timesteps, n_baselines, 3});
   for (size_t t = 0; t < n_timesteps; t++) {
