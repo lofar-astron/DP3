@@ -956,17 +956,6 @@ if(BUILD_TESTING)
     endif()
   endforeach()
 
-  execute_process(
-    COMMAND python3 -m pytest
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    OUTPUT_VARIABLE PYTEST_OUTPUT)
-  if(NOT ${PYTEST_OUTPUT} MATCHES "no tests ran")
-    message(
-      FATAL_ERROR
-        "Could not run pytest.\n"
-        "Please install pytest or disable testing using -DBUILD_TESTING=Off")
-  endif()
-
   # Adds python tests using a separate ctest test for each python test.
   # The python tests should thus support parallel runs, e.g., each test function
   # should use its own directory.
