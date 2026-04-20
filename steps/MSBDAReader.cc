@@ -13,38 +13,26 @@
 
 #include "common/ParameterSet.h"
 
-#include <casacore/casa/OS/HostInfo.h>
-#include <casacore/tables/Tables/TableRecord.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Quanta/MVTime.h>
+
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
-#include <casacore/tables/TaQL/ExprNode.h>
-#include <casacore/tables/TaQL/RecordGram.h>
+#include <casacore/tables/TaQL/TableParse.h>
+
 #include <casacore/measures/Measures/MeasTable.h>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include <casacore/ms/MSSel/MSSelection.h>
-#include <casacore/ms/MSSel/MSAntennaParse.h>
-#include <casacore/ms/MSSel/MSSelectionErrorHandler.h>
-#include <casacore/casa/version.h>
-#include <casacore/tables/TaQL/TableParse.h>
-
-#include <casacore/casa/Containers/Record.h>
-#include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Quanta/MVTime.h>
-#include <casacore/casa/OS/Conversion.h>
-
-#include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
 
 #include <aocommon/logger.h>
 
 using casacore::ArrayColumn;
 using casacore::ArrayMeasColumn;
-using casacore::Complex;
-using casacore::Cube;
 using casacore::IPosition;
 using casacore::MDirection;
 using casacore::MeasTable;
@@ -56,9 +44,6 @@ using casacore::RefRows;
 using casacore::ScalarColumn;
 using casacore::ScalarMeasColumn;
 using casacore::Table;
-using casacore::TableColumn;
-using casacore::TableDesc;
-using casacore::TableLock;
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPBuffer;
@@ -66,8 +51,7 @@ using dp3::base::DPInfo;
 
 using std::vector;
 
-namespace dp3 {
-namespace steps {
+namespace dp3::steps {
 
 MSBDAReader::MSBDAReader(const casacore::MeasurementSet& ms,
                          const common::ParameterSet& parset,
@@ -133,14 +117,14 @@ bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
   ScalarColumn<int> ant1_col(ms_, MS::columnName(MS::ANTENNA1));
   ScalarColumn<int> ant2_col(ms_, MS::columnName(MS::ANTENNA2));
   ArrayColumn<float> weights_col(ms_, weight_column_name_);
-  ArrayColumn<casacore::Complex> data_col(ms_, data_column_name_);
+  ArrayColumn<std::complex<float>> data_col(ms_, data_column_name_);
   ArrayColumn<double> uvw_col(ms_, MS::columnName(MS::UVW));
   ScalarColumn<double> time_col(ms_, MS::columnName(MS::TIME));
   ScalarColumn<double> interval_col(ms_, MS::columnName(MS::INTERVAL));
   ScalarColumn<double> exposure_col(ms_, MS::columnName(MS::EXPOSURE));
   ScalarColumn<int> data_desc_id_col(ms_, MS::columnName(MS::DATA_DESC_ID));
 
-  // Cache the data that will be add to the buffer
+  // Cache the data that will be added to the buffer
   RefRows cell_range{
       nread_, std::min(ms_.nrow() - 1,
                        common::rownr_t(nread_ + getInfoOut().nbaselines()))};
@@ -172,8 +156,8 @@ bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
       data = data_col.get(nread_).tovector();
       data_ptr = data.data();
     }
-    Cube<float> weights = weights_col.get(nread_);
-    Cube<double> uvw = uvw_col.get(nread_);
+    casacore::Array<float> weights = weights_col.get(nread_);
+    casacore::Array<double> uvw = uvw_col.get(nread_);
 
     [[maybe_unused]] const bool success = buffer->AddRow(
         ms_time, interval[i], exposure[i], bl_to_id_[ant12],
@@ -206,7 +190,8 @@ void MSBDAReader::updateInfo(const DPInfo&) {
 
   unsigned int nbl = factors.nrow();
   unsigned int ncorr =
-      ArrayColumn<Complex>(ms_, MS::columnName(MS::DATA)).shape(0)[0];
+      ArrayColumn<std::complex<float>>(ms_, MS::columnName(MS::DATA))
+          .shape(0)[0];
 
   // Required columns to read
   ScalarColumn<int> factor_col(factors, base::DP3MS::kFactor);
@@ -355,5 +340,4 @@ void MSBDAReader::showTimings(std::ostream& os, double duration) const {
   os << " MSBDAReader" << '\n';
 }
 
-}  // namespace steps
-}  // namespace dp3
+}  // namespace dp3::steps
