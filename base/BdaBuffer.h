@@ -145,19 +145,10 @@ class BdaBuffer {
    */
   bool AddRow(double time, double interval, double exposure,
               std::size_t baseline_nr, std::size_t n_channels,
-              std::size_t n_correlations,
+              std::size_t n_correlations, common::rownr_t row_nr,
               const std::complex<float>* data = nullptr,
               const bool* flags = nullptr, const float* weights = nullptr,
               const double* uvw = nullptr);
-
-  /**
-   * Update the row numbers of the rows in this buffer.
-   * Does nothing if the buffer is empty.
-   * @param base_rownr The row number for the first row in this buffer.
-   *        The following rows get base_rownr + 1, base_rownr + 2, etc. as
-   *        their row number.
-   */
-  void SetBaseRowNr(common::rownr_t base_rownr);
 
   /**
    * Removes all rows from the buffer.

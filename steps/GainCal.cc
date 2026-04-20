@@ -145,8 +145,8 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
     itsApplyBeamToModelColumn =
         parset.getBool(prefix + "applybeamtomodelcolumn", false);
 
-    auto column_reader_step =
-        std::make_shared<MsColumnReader>(parset, prefix, itsModelColumnName);
+    auto column_reader_step = std::make_shared<MsColumnReader>(
+        parset, prefix, MsType::kRegular, itsModelColumnName);
     if (itsApplyBeamToModelColumn) {
       auto apply_beam_step = std::make_shared<ApplyBeam>(parset, prefix, true);
       column_reader_step->setNextStep(apply_beam_step);

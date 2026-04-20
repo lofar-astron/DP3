@@ -362,8 +362,10 @@ void BdaAverager::AddBaseline(std::size_t baseline_nr) {
 
   const size_t row = bda_buffer_->GetRows().size();
   bda_buffer_->AddRow(bb.starttime + bb.interval / 2, bb.interval, bb.exposure,
-                      baseline_nr, n_channels, getInfoOut().ncorr(), nullptr,
-                      nullptr, bb.weights.data(), bb.uvw);
+                      baseline_nr, n_channels, getInfoOut().ncorr(),
+                      row_counter_, nullptr, nullptr, bb.weights.data(),
+                      bb.uvw);
+  ++row_counter_;
   for (const auto& [data_name, data_vector] : bb.data) {
     std::copy(data_vector.begin(), data_vector.end(),
               bda_buffer_->GetData(row, data_name));

@@ -185,7 +185,7 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
   } else if (type == "combine") {
     step = std::make_shared<steps::Combine>(parset, prefix);
   } else if (type == "columnreader") {
-    step = std::make_shared<steps::MsColumnReader>(parset, prefix);
+    step = std::make_shared<steps::MsColumnReader>(parset, prefix, inputType);
   } else if (type == "counter" || type == "count") {
     step = std::make_shared<steps::Counter>(parset, prefix);
   } else if (type == "phaseshifter" || type == "phaseshift") {
