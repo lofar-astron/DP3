@@ -128,8 +128,8 @@ class Step {
 
   /// Set the next step.
   virtual void setNextStep(Step::ShPtr nextStep) {
-    next_step_ = nextStep;
-    nextStep->setPrevStep(this);
+    next_step_ = std::move(nextStep);
+    next_step_->setPrevStep(this);
   }
 
   /// Get the next step.

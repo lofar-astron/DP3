@@ -86,7 +86,8 @@ void MSBDAWriter::updateInfo(const DPInfo& info_in) {
 }
 
 bool MSBDAWriter::process(std::unique_ptr<BdaBuffer> buffer) {
-  buffer->SetBaseRowNr(ms_.nrow());
+  assert(buffer->GetRows().empty() ||
+         buffer->GetRows().front().row_nr == ms_.nrow());
 
   const std::vector<BdaBuffer::Row>& rows = buffer->GetRows();
 

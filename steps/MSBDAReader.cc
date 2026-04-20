@@ -175,11 +175,10 @@ bool MSBDAReader::process(std::unique_ptr<BdaBuffer>) {
     Cube<float> weights = weights_col.get(nread_);
     Cube<double> uvw = uvw_col.get(nread_);
 
-    const bool success = buffer->AddRow(
+    [[maybe_unused]] const bool success = buffer->AddRow(
         ms_time, interval[i], exposure[i], bl_to_id_[ant12],
-        desc_id_to_nchan_[data_desc_id[i]], getInfoOut().ncorr(), data_ptr,
-        nullptr, weights.tovector().data(), uvw.tovector().data());
-    (void)success;
+        desc_id_to_nchan_[data_desc_id[i]], getInfoOut().ncorr(), nread_,
+        data_ptr, nullptr, weights.tovector().data(), uvw.tovector().data());
     assert(success);  // The buffer should always be large enough.
 
     last_ms_time_ = ms_time;

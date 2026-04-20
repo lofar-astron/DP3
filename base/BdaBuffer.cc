@@ -101,7 +101,7 @@ void BdaBuffer::Clear() {
 
 bool BdaBuffer::AddRow(double time, double interval, double exposure,
                        std::size_t baseline_nr, std::size_t n_channels,
-                       std::size_t n_correlations,
+                       std::size_t n_correlations, common::rownr_t row_nr,
                        const std::complex<float>* const data,
                        const bool* const flags, const float* const weights,
                        const double* const uvw) {
@@ -150,17 +150,9 @@ bool BdaBuffer::AddRow(double time, double interval, double exposure,
     }
   }
 
-  const common::rownr_t row_nr = rows_.empty() ? 0 : rows_.back().row_nr + 1;
   rows_.emplace_back(time, interval, exposure, row_nr, baseline_nr, n_channels,
                      n_correlations, offset, uvw);
   return true;
-}
-
-void BdaBuffer::SetBaseRowNr(common::rownr_t row_nr) {
-  for (Row& row : rows_) {
-    row.row_nr = row_nr;
-    ++row_nr;
-  }
 }
 
 const std::complex<float>* BdaBuffer::GetData(const std::string& name) const {

@@ -9,6 +9,7 @@
 #ifndef DP3_STEPS_MSCOLUMNREADER_H_
 #define DP3_STEPS_MSCOLUMNREADER_H_
 
+#include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/Table.h>
 
 #include <xtensor/containers/xtensor.hpp>
@@ -20,9 +21,10 @@
 namespace dp3 {
 namespace steps {
 
-class MsColumnReader : public ModelDataStep {
+class MsColumnReader final : public ModelDataStep {
  public:
   MsColumnReader(const common::ParameterSet&, const std::string& prefix,
+                 MsType input_ms_type,
                  const std::string& column = "MODEL_DATA");
 
   common::Fields getRequiredFields() const override { return common::Fields(); }
@@ -32,6 +34,8 @@ class MsColumnReader : public ModelDataStep {
   /// Reads the given column for the measurementset for the rows of the input
   /// buffer and change its data.
   bool process(std::unique_ptr<base::DPBuffer> buffer) override;
+
+  bool process(std::unique_ptr<base::BdaBuffer> buffer) override;
 
   /// Update the general info.
   void updateInfo(const base::DPInfo&) override;
@@ -44,10 +48,15 @@ class MsColumnReader : public ModelDataStep {
 
   base::Direction GetFirstDirection() const override;
 
+  bool accepts(MsType dt) const override { return dt == input_ms_type_; }
+
  private:
-  casacore::Table table_;    ///< Input table to read the column from
+  casacore::Table table_;  ///< Input table to read the column from
+  casacore::ArrayColumn<std::complex<float>> model_column_;
+  casacore::Array<std::complex<float>> row_buffer_;
   std::string name_;         ///< The name of the step (or prefix)
   std::string column_name_;  ///< Name of the column to use from the MS
+  MsType input_ms_type_;
 };
 
 }  // namespace steps

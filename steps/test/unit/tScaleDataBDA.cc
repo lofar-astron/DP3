@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(test_processing_for_bda_buffer) {
       data.emplace_back(10.0 * bl + i + 1, -10.0 * bl - i - 1);
       expected_data.push_back(data.back() * scale);
     }
-    bda_buffer->AddRow(ntime, 5., 5., bl, nchan, ncorr,
+    bda_buffer->AddRow(ntime, 5., 5., bl, nchan, ncorr, bl,
                        data.data() + bl * nchan * ncorr);
   }
 

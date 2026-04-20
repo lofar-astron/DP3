@@ -88,8 +88,8 @@ DynSpec::DynSpec(const common::ParameterSet& parset, const std::string& prefix)
 
   if (subtract_sources_) {
     if (subtract_model_column_) {
-      model_step_ =
-          std::make_shared<MsColumnReader>(parset, prefix, model_column_);
+      model_step_ = std::make_shared<MsColumnReader>(
+          parset, prefix, MsType::kRegular, model_column_);
     } else {
       model_step_ =
           std::make_shared<H5ParmPredict>(parset, prefix + "h5parmpredict.");

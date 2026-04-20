@@ -6,16 +6,19 @@
 #include <algorithm>
 #include <sstream>
 
+#include "BdaGroupPredict.h"
+#include "MsColumnReader.h"
+#include "Predict.h"
+
 #include "base/DP3.h"
+#include "base/Version.h"
 
 #include "common/StreamUtil.h"
+
 #include "ddecal/gain_solvers/SolveData.h"
 #include "ddecal/SolverFactory.h"
-#include "model/SourceDBUtil.h"
 
-#include "BdaGroupPredict.h"
-#include "Predict.h"
-#include "base/Version.h"
+#include "model/SourceDBUtil.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;
@@ -24,8 +27,28 @@ using dp3::ddecal::SolveData;
 using dp3::steps::BdaGroupPredict;
 using dp3::common::operator<<;
 
-namespace dp3 {
-namespace steps {
+namespace dp3::steps {
+namespace {
+
+void InitializeModelStepChain(Step& step, const std::string& direction,
+                              const common::ParameterSet& parset,
+                              const std::string& prefix) {
+  std::string step_names_key = prefix + "modelnextsteps." + direction;
+  if (!parset.isDefined(step_names_key)) {
+    step_names_key = prefix + "modelnextsteps";  // Fall back setting.
+  }
+
+  if (parset.isDefined(step_names_key)) {
+    Step::ShPtr first_step = base::MakeStepsFromParset(
+        parset, "", step_names_key, "", false, steps::Step::MsType::kBda);
+
+    if (first_step) {
+      step.setNextStep(std::move(first_step));
+    }
+  }
+}
+
+}  // namespace
 
 BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
                      const std::string& prefix)
@@ -54,6 +77,7 @@ BdaDdeCal::BdaDdeCal(const common::ParameterSet& parset,
   uvw_flagger_result_step_ = std::make_shared<BDAResultStep>();
   uvw_flagger_step_->setNextStep(uvw_flagger_result_step_);
 
+  InitializeColumnReaders(parset, prefix);
   InitializePredictSteps(parset, prefix);
 }
 
@@ -67,6 +91,20 @@ void BdaDdeCal::InitializeModelReuse() {
 
     // For the patches, use the name without prefix
     patches_per_direction_.emplace_back(1, name_without_prefix);
+  }
+}
+
+void BdaDdeCal::InitializeColumnReaders(const common::ParameterSet& parset,
+                                        const std::string& prefix) {
+  for (const std::string& col : settings_.model_data_columns) {
+    patches_per_direction_.emplace_back(1, col);
+    direction_names_.emplace_back(prefix + col);
+    steps_.push_back(
+        std::make_shared<MsColumnReader>(parset, prefix, MsType::kBda, col));
+    InitializeModelStepChain(*steps_.back(), col, parset, prefix);
+
+    result_steps_.push_back(std::make_shared<BDAResultStep>());
+    steps_.back()->setNextStep(result_steps_.back());
   }
 }
 
@@ -118,6 +156,10 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
   InitializeModelReuse();
 
   // After InitializeModelReuse, direction_names_ is complete.
+  if (direction_names_.empty()) {
+    throw std::runtime_error(
+        "Invalid DDECal configuration: no directions specified");
+  }
   SetSourceDirections();
 
   if (!settings_.only_predict) {
@@ -858,5 +900,4 @@ size_t BdaDdeCal::GetChanBlockIndex(const size_t channel,
                     n_channel_blocks);
 }
 
-}  // namespace steps
-}  // namespace dp3
+}  // namespace dp3::steps

@@ -147,7 +147,8 @@ void DDECal::initializeColumnReaders(const common::ParameterSet& parset,
   for (const std::string& col : settings_.model_data_columns) {
     patches_per_direction_.emplace_back(1, col);
     direction_names_.emplace_back(prefix + col);
-    steps_.push_back(std::make_shared<MsColumnReader>(parset, prefix, col));
+    steps_.push_back(std::make_shared<MsColumnReader>(parset, prefix,
+                                                      MsType::kRegular, col));
     setModelNextSteps(*steps_.back(), col, parset, prefix);
   }
 }

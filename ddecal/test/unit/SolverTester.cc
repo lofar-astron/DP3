@@ -240,7 +240,7 @@ const BdaSolverBuffer& SolverTester::FillBDAData() {
         BOOST_REQUIRE(buffer->AddRow(
             time, n_averaged_times * kBdaUnitTimeInterval,
             n_averaged_times * kBdaUnitTimeInterval, bl, n_averaged_channels,
-            kNPolarizations, nullptr, nullptr, weights.data()));
+            kNPolarizations, row, nullptr, nullptr, weights.data()));
 
         // Generate model data for all directions.
         for (const std::string& name : direction_names) {

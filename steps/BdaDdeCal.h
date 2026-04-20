@@ -109,6 +109,9 @@ class BdaDdeCal : public Step {
  private:
   void InitializeModelReuse();
 
+  void InitializeColumnReaders(const common::ParameterSet& parset,
+                               const std::string& prefix);
+
   void InitializePredictSteps(const common::ParameterSet& parset,
                               const std::string& prefix);
 

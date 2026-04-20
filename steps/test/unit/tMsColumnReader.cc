@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(column_reader)
 
 BOOST_AUTO_TEST_CASE(fields) {
   dp3::common::ParameterSet parset;
-  const MsColumnReader column_reader(parset, "");
+  const MsColumnReader column_reader(parset, "", Step::MsType::kRegular);
   BOOST_TEST(column_reader.getRequiredFields() == dp3::common::Fields());
   BOOST_TEST(column_reader.getProvidedFields() == Step::kDataField);
 }

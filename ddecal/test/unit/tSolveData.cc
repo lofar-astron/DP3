@@ -51,18 +51,18 @@ void FillBdaBuffer(BdaBuffer& buffer, size_t avg_channels, size_t all_channels,
     // Add averaged rows for baselines 0 (cross-correlation 0 x 1)
     BOOST_REQUIRE(buffer.AddRow(row_time + unit_interval, unit_interval * 2.0,
                                 unit_interval * 2.0, 0, avg_channels,
-                                kNPolarizations));
+                                kNPolarizations, time_index * 3));
 
     // Add averaged rows for baselines 2 (auto-correlation 0 x 0)
     BOOST_REQUIRE(buffer.AddRow(row_time + unit_interval, unit_interval * 2.0,
                                 unit_interval * 2.0, 2, avg_channels,
-                                kNPolarizations));
+                                kNPolarizations, time_index * 3 + 1));
 
     // Add non-averaged rows for baseline 1 (cross-correlation 0 x 2)
     for (int j = 0; j < 2; ++j) {
       BOOST_REQUIRE(buffer.AddRow(row_time + (0.5 + j) * unit_interval,
                                   unit_interval, unit_interval, 1, all_channels,
-                                  kNPolarizations));
+                                  kNPolarizations, time_index * 3 + 2));
     }
   }
 

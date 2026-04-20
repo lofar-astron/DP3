@@ -158,6 +158,7 @@ class BdaAverager : public Step {
 
   std::queue<size_t> size_requests_;
   std::vector<std::string> data_names_;
+  common::rownr_t row_counter_ = 0;
 };
 
 }  // namespace steps
