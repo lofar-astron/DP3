@@ -211,6 +211,8 @@ find_package(Boost 1.73 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
+find_package(GSL REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 
 # === Load astron packages ===
 
@@ -445,6 +447,7 @@ add_library(
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TECConstraint.cc
+  ddecal/constraints/TecOffsetDelayFitting.cc
   ddecal/gain_solvers/BdaSolverBuffer.cc
   ddecal/gain_solvers/DiagonalLowRankSolver.cc
   ddecal/gain_solvers/DiagonalSolver.cc
@@ -619,6 +622,8 @@ set(DP3_LIBRARIES
     ${CASACORE_LIBRARIES}
     ${CFITSIO_LIBRARY}
     ${EVERYBEAM_LIB}
+    GSL::gsl
+    GSL::gslcblas
     ${HDF5_LIBRARIES}
     ${IDGAPI_LIBRARIES}
     ${LIBDIRAC_LIBRARIES}
@@ -762,6 +767,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolverTools.cc
       ddecal/test/unit/tSolutionWriter.cc
       ddecal/test/unit/tTECConstraint.cc
+      ddecal/test/unit/tTecOffsetDelayFitting.cc
       model/test/unit/tSourceDBUtil.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
       parmdb/test/unit/tSourceDB.cc
