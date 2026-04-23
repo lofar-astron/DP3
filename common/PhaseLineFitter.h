@@ -172,7 +172,7 @@ inline double FitSlope(const std::vector<FitSample>& data,
  *
  * While searching for the right unwrapping, the function minimizes the
  * sum of absolute values instead of least squares. This is slightly
- * more stable. It does a brute for search of all possible wraps.
+ * more stable. It does a brute force search of all possible wraps.
  * Once the right unwrapping is found, the values are unwrapped and
  * a least-squares fit of a line to the data is performed.
  *
