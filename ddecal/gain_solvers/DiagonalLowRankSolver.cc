@@ -89,8 +89,6 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
   SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
                                  NSolutionPolarizations()});
 
-  SolveResult result;
-
   // Visibility vector v_residual[cb][vis] of size NChannelBlocks() x
   // n_visibilities
   std::vector<std::vector<MC2x2F>> v_residual(NChannelBlocks());
@@ -122,7 +120,7 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
     Step(solutions, next_solutions);
 
     bool constraints_satisfied = ApplyConstraints(
-        iteration, time, has_previously_converged, result, next_solutions);
+        iteration, time, has_previously_converged, next_solutions);
 
     double avg_squared_diff;
     bool has_converged =
@@ -135,11 +133,7 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
   } while (!ReachedStoppingCriterion(iteration, has_converged,
                                      constraints_satisfied, step_magnitudes));
 
-  if (has_converged && constraints_satisfied)
-    result.iterations = iteration;
-  else
-    result.iterations = iteration + 1;
-  return result;
+  return MakeResult(iteration, has_converged, constraints_satisfied);
 }
 
 void DiagonalLowRankSolver::CalculateNormPerDirection(

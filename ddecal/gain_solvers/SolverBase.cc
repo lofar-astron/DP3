@@ -165,21 +165,16 @@ void SolverBase::PrepareConstraints() {
 
 bool SolverBase::ApplyConstraints(size_t iteration, double time,
                                   bool has_previously_converged,
-                                  SolveResult& result,
                                   SolutionTensor& next_solutions) const {
   SolutionSpan next_solutions_span = aocommon::xt::CreateSpan(next_solutions);
-  return ApplyConstraints(iteration, time, has_previously_converged, result,
+  return ApplyConstraints(iteration, time, has_previously_converged,
                           next_solutions_span);
 }
 
 bool SolverBase::ApplyConstraints(size_t iteration, double time,
                                   bool has_previously_converged,
-                                  SolveResult& result,
                                   SolutionSpan& next_solutions) const {
   bool constraints_satisfied = true;
-
-  result.results.resize(constraints_.size());
-  auto result_iterator = result.results.begin();
 
   for (const std::unique_ptr<Constraint>& c : constraints_) {
     // PrepareIteration() might change Satisfied(), and since we always want
@@ -188,17 +183,33 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
     constraints_satisfied = c->Satisfied() && constraints_satisfied;
     c->PrepareIteration(has_previously_converged, iteration,
                         iteration + 1 >= GetMaxIterations());
-    c->Apply(next_solutions,
-             time);  // TODO move this outside the iteration loop
-    *result_iterator = c->GetResult();
-    ++result_iterator;
+    c->Apply(next_solutions, time);
   }
+
+  return constraints_satisfied;
+}
+
+SolverBase::SolveResult SolverBase::MakeResult(
+    size_t iteration, bool has_converged, bool constraints_satisfied) const {
+  SolveResult result;
+  // When we have not converged yet, we set the nr of iterations to the max+1,
+  // so that non-converged iterations can be distinguished from converged ones.
+  if (has_converged && constraints_satisfied)
+    result.iterations = iteration;
+  else
+    result.iterations = iteration + 1;
 
   // If still not satisfied, at least iteration+1 constrained iterations
   // were required.
   if (!constraints_satisfied) result.constraint_iterations = iteration + 1;
 
-  return constraints_satisfied;
+  // Collect the constraint results
+  result.results.reserve(constraints_.size());
+  for (const std::unique_ptr<Constraint>& c : constraints_) {
+    result.results.push_back(c->GetResult());
+  }
+
+  return result;
 }
 
 bool SolverBase::AssignSolutions(std::vector<std::vector<DComplex>>& solutions,
