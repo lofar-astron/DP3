@@ -24,17 +24,18 @@ class FaradayConstraint final : public Constraint {
       : diagonal_solution_type_(diagonal_solution_type),
         max_rotation_value_(max_rotation_value) {}
 
-  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
-                                      std::ostream* stat_stream) final;
+  void Apply(SolutionSpan& solutions, double time) override;
 
   void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
-                  const std::vector<double>& frequencies) final;
+                  const std::vector<double>& frequencies) override;
 
-  void SetWeights(const std::vector<double>& weights) final;
+  void SetWeights(const std::vector<double>& weights) override;
 
   void SetSubSolutionWeights(
-      const std::vector<std::vector<double>>& sub_solution_weights) final;
+      const std::vector<std::vector<double>>& sub_solution_weights) override;
+
+  std::vector<ConstraintResult> GetResult() const override { return results_; }
 
  private:
   void PerformFit(SolutionSpan& solutions, size_t sub_solution, size_t antenna,

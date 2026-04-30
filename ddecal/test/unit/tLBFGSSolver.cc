@@ -123,7 +123,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
 
   dp3::ddecal::SolverBase::SolveResult result;
   for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
-    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+    result = solver.Solve(data, GetSolverSolutions(), 0.0);
   }
 
   CheckDualResults(2.0E-2);
@@ -149,7 +149,7 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
 
   dp3::ddecal::SolverBase::SolveResult result;
   for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
-    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+    result = solver.Solve(data, GetSolverSolutions(), 0.0);
   }
 
   CheckScalarResults(1.0E-2);
@@ -191,7 +191,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
 
   dp3::ddecal::SolverBase::SolveResult result;
   for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
-    result = solver.Solve(data, solutions, 0.0, nullptr);
+    result = solver.Solve(data, solutions, 0.0);
   }
 
   // Convert full matrices to diagonals
@@ -229,7 +229,7 @@ BOOST_FIXTURE_TEST_CASE(bounded_diagonal, SolverTester,
 
   dp3::ddecal::SolverBase::SolveResult result;
   for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
-    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+    result = solver.Solve(data, GetSolverSolutions(), 0.0);
   }
 
   CheckDualResults(10.0);
@@ -255,7 +255,7 @@ BOOST_FIXTURE_TEST_CASE(bounded_scalar, SolverTester,
 
   dp3::ddecal::SolverBase::SolveResult result;
   for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
-    result = solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+    result = solver.Solve(data, GetSolverSolutions(), 0.0);
   }
 
   CheckScalarResults(10.0);
@@ -297,7 +297,7 @@ BOOST_FIXTURE_TEST_CASE(bounded_full_jones, SolverTester,
 
   dp3::ddecal::SolverBase::SolveResult result;
   for (size_t n_epoch = 0; n_epoch < kEpochs; n_epoch++) {
-    result = solver.Solve(data, solutions, 0.0, nullptr);
+    result = solver.Solve(data, solutions, 0.0);
   }
 
   // Convert full matrices to diagonals

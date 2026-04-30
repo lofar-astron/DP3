@@ -47,15 +47,13 @@ class AntennaIntervalConstraint final : public Constraint {
 
   void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
-                  const std::vector<double>& frequencies) final;
+                  const std::vector<double>& frequencies) override;
 
   const std::vector<size_t>& GetIntervalsPerAntenna() const {
     return antenna_averaging_factors_;
   }
 
-  std::vector<ConstraintResult> Apply(
-      SolutionSpan& solutions, [[maybe_unused]] double time,
-      [[maybe_unused]] std::ostream* stat_stream) final;
+  void Apply(SolutionSpan& solutions, double time) override;
 
  private:
   std::vector<size_t> antenna_averaging_factors_;

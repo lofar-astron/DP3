@@ -602,7 +602,7 @@ void BdaDdeCal::SolveCurrentInterval() {
             std::get<UniPtr>(solve_data)->GetSolutionWeights());
       }
       result = solver_->Solve(*std::get<UniPtr>(solve_data), solutions_.back(),
-                              current_center, nullptr);
+                              current_center);
       break;
     case ddecal::SolverDataUse::kDual:
       if (settings_.model_weighted_constraints) {
@@ -610,7 +610,7 @@ void BdaDdeCal::SolveCurrentInterval() {
             std::get<DuoPtr>(solve_data)->GetSolutionWeights());
       }
       result = solver_->Solve(*std::get<DuoPtr>(solve_data), solutions_.back(),
-                              current_center, nullptr);
+                              current_center);
       break;
     case ddecal::SolverDataUse::kFull:
       if (settings_.model_weighted_constraints) {
@@ -618,7 +618,7 @@ void BdaDdeCal::SolveCurrentInterval() {
             std::get<FullPtr>(solve_data)->GetSolutionWeights());
       }
       result = solver_->Solve(*std::get<FullPtr>(solve_data), solutions_.back(),
-                              current_center, nullptr);
+                              current_center);
       break;
   }
 

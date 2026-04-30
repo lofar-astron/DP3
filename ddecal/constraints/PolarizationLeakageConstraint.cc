@@ -2,9 +2,8 @@
 
 namespace dp3::ddecal {
 
-std::vector<ConstraintResult> PolarizationLeakageConstraint::Apply(
-    SolutionSpan& solutions, double,
-    [[maybe_unused]] std::ostream* stat_stream) {
+void PolarizationLeakageConstraint::Apply(SolutionSpan& solutions,
+                                          double time) {
   assert(solutions.shape(2) == NSubSolutions());
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
   for (size_t ch = 0; ch < NChannelBlocks(); ++ch) {
@@ -17,8 +16,6 @@ std::vector<ConstraintResult> PolarizationLeakageConstraint::Apply(
       }
     }
   }
-
-  return std::vector<ConstraintResult>();
 }
 
 }  // namespace dp3::ddecal

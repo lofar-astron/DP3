@@ -31,9 +31,7 @@ void RotationConstraint::SetWeights(const std::vector<double>& weights) {
   }
 }
 
-std::vector<ConstraintResult> RotationConstraint::Apply(
-    SolutionSpan& solutions, double,
-    [[maybe_unused]] std::ostream* stat_stream) {
+void RotationConstraint::Apply(SolutionSpan& solutions, double time) {
   assert(solutions.shape(2) == NSubSolutions());
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
   ConstraintResult& result = results_.front();
@@ -53,8 +51,6 @@ std::vector<ConstraintResult> RotationConstraint::Apply(
       }
     }
   }
-
-  return results_;
 }
 
 }  // namespace dp3::ddecal

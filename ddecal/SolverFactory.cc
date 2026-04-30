@@ -31,7 +31,7 @@
 #include "constraints/ScreenConstraint.h"
 #endif
 #include "constraints/SmoothnessConstraint.h"
-#include "constraints/TECConstraint.h"
+#include "constraints/TecConstraint.h"
 
 #include "common/ValuePerStationParsing.h"
 
@@ -205,9 +205,9 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase: {
       const auto tec_mode = (settings.mode == base::CalType::kTec)
-                                ? TECConstraint::Mode::kTecOnly
-                                : TECConstraint::Mode::kTecAndCommonScalar;
-      std::unique_ptr<TECConstraint> constraint;
+                                ? TecConstraint::Mode::kTecOnly
+                                : TecConstraint::Mode::kTecAndCommonScalar;
+      std::unique_ptr<TecConstraint> constraint;
 
       if (settings.approximate_tec) {
         auto approxConstraint =
@@ -217,7 +217,7 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
         approxConstraint->SetFittingChunkSize(settings.approx_chunk_size);
         constraint = std::move(approxConstraint);
       } else {
-        constraint = std::make_unique<TECConstraint>(tec_mode);
+        constraint = std::make_unique<TecConstraint>(tec_mode);
       }
       constraint->setDoPhaseReference(settings.phase_reference);
       solver.AddConstraint(std::move(constraint));

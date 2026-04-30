@@ -1,7 +1,7 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "TECConstraint.h"
+#include "TecConstraint.h"
 
 #include <aocommon/dynamicfor.h>
 #include <aocommon/staticfor.h>
@@ -12,10 +12,16 @@
 namespace dp3 {
 namespace ddecal {
 
-TECConstraintBase::TECConstraintBase(Mode mode)
-    : mode_(mode), do_phase_reference_(true), phase_fitters_() {}
+TecConstraint::TecConstraint(Mode mode)
+    : mode_(mode),
+      do_phase_reference_(true),
+      phase_fitters_(),
+      results_(mode_ == Mode::kTecOnly
+                   ? 2
+                   : 3)  // TEC and error, or TEC, phase and error
+{}
 
-void TECConstraintBase::Initialize(
+void TecConstraint::Initialize(
     size_t n_antennas, const std::vector<uint32_t>& solutions_per_direction,
     const std::vector<double>& frequencies) {
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
@@ -26,9 +32,24 @@ void TECConstraintBase::Initialize(
 
   weights_.assign(NChannelBlocks() * NAntennas(), 1.0);
   initializeChild();
+
+  results_[0].vals.resize(NAntennas() * NSubSolutions());
+  results_[0].weights.resize(NAntennas() * NSubSolutions());
+  results_[0].axes = "ant,dir,freq";
+  results_[0].name = "tec";
+  results_[0].dims.resize(3);
+  results_[0].dims[0] = NAntennas();
+  results_[0].dims[1] = NSubSolutions();
+  results_[0].dims[2] = 1;
+  if (mode_ == Mode::kTecAndCommonScalar) {
+    results_[1] = results_[0];
+    results_[1].name = "phase";
+  }
+  results_.back() = results_[0];
+  results_.back().name = "error";
 }
 
-void TECConstraintBase::SetWeights(const std::vector<double>& weights) {
+void TecConstraint::SetWeights(const std::vector<double>& weights) {
   weights_ = weights;
 }
 
@@ -52,7 +73,7 @@ void ApproximateTECConstraint::initializeChild() {
     pw_fitters_[i].SetChunkSize(fitting_chunk_size_);
 }
 
-void TECConstraintBase::applyReferenceAntenna(SolutionSpan& solutions) const {
+void TecConstraint::applyReferenceAntenna(SolutionSpan& solutions) const {
   // Choose reference antenna that has at least 20% channels unflagged
   size_t ref_antenna = 0;
   for (; ref_antenna != NAntennas(); ++ref_antenna) {
@@ -78,37 +99,12 @@ void TECConstraintBase::applyReferenceAntenna(SolutionSpan& solutions) const {
   }
 }
 
-std::vector<ConstraintResult> TECConstraint::Apply(
-    SolutionSpan& solutions, [[maybe_unused]] double time,
-    [[maybe_unused]] std::ostream* stat_stream) {
+void TecConstraint::Apply(SolutionSpan& solutions, double time) {
   assert(solutions.shape(0) == NChannelBlocks());
   assert(solutions.shape(1) == NAntennas());
   assert(solutions.shape(2) == NSubSolutions());
   assert(solutions.shape(3) ==
          1);  // single polarization (phase only) solutions
-
-  size_t nRes = 3;
-  if (mode_ == Mode::kTecOnly) {
-    nRes = 2;  // TEC and error
-  } else {
-    nRes = 3;  // TEC, phase and error
-  }
-
-  std::vector<ConstraintResult> res(nRes);
-  res[0].vals.resize(NAntennas() * NSubSolutions());
-  res[0].weights.resize(NAntennas() * NSubSolutions());
-  res[0].axes = "ant,dir,freq";
-  res[0].name = "tec";
-  res[0].dims.resize(3);
-  res[0].dims[0] = NAntennas();
-  res[0].dims[1] = NSubSolutions();
-  res[0].dims[2] = 1;
-  if (mode_ == Mode::kTecAndCommonScalar) {
-    res[1] = res[0];
-    res[1].name = "phase";
-  }
-  res.back() = res[0];
-  res.back().name = "error";
 
   // Divide out the reference antenna
   if (do_phase_reference_) applyReferenceAntenna(solutions);
@@ -116,59 +112,56 @@ std::vector<ConstraintResult> TECConstraint::Apply(
   // Use a DynamicFor, since the ternarySearch functions in PhaseFitter.cc run
   // a variable number of iterations.
   aocommon::DynamicFor<size_t> loop;
-  loop.Run(0, NAntennas() * NSubSolutions(),
-           [&](size_t antenna_and_solution_index, size_t thread) {
-             const size_t antenna_index =
-                 antenna_and_solution_index / NSubSolutions();
-             const size_t sub_solution_index =
-                 antenna_and_solution_index % NSubSolutions();
+  loop.Run(
+      0, NAntennas() * NSubSolutions(),
+      [&](size_t antenna_and_solution_index, size_t thread) {
+        const size_t antenna_index =
+            antenna_and_solution_index / NSubSolutions();
+        const size_t sub_solution_index =
+            antenna_and_solution_index % NSubSolutions();
 
-             // Flag channels where calibration yielded inf or nan
-             double weight_sum = 0.0;
-             for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-               const std::complex<double>& solution =
-                   solutions(ch, antenna_index, sub_solution_index, 0);
-               if (isfinite(solution)) {
-                 phase_fitters_[thread].PhaseData()[ch] = std::arg(solution);
-                 phase_fitters_[thread].WeightData()[ch] =
-                     weights_[antenna_index * NChannelBlocks() + ch];
-                 weight_sum += weights_[antenna_index * NChannelBlocks() + ch];
-               } else {
-                 phase_fitters_[thread].PhaseData()[ch] = 0.0;
-                 phase_fitters_[thread].WeightData()[ch] = 0.0;
-               }
-             }
+        // Flag channels where calibration yielded inf or nan
+        double weight_sum = 0.0;
+        for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+          const std::complex<double>& solution =
+              solutions(ch, antenna_index, sub_solution_index, 0);
+          if (isfinite(solution)) {
+            phase_fitters_[thread].PhaseData()[ch] = std::arg(solution);
+            phase_fitters_[thread].WeightData()[ch] =
+                weights_[antenna_index * NChannelBlocks() + ch];
+            weight_sum += weights_[antenna_index * NChannelBlocks() + ch];
+          } else {
+            phase_fitters_[thread].PhaseData()[ch] = 0.0;
+            phase_fitters_[thread].WeightData()[ch] = 0.0;
+          }
+        }
 
-             double alpha;
-             double beta = 0.0;
-             if (mode_ == Mode::kTecOnly) {
-               res.back().vals[antenna_and_solution_index] =
-                   phase_fitters_[thread].FitDataToTEC1Model(alpha);
-             } else {
-               res.back().vals[antenna_and_solution_index] =
-                   phase_fitters_[thread].FitDataToTEC2Model(alpha, beta);
-             }
-             res.back().weights[antenna_and_solution_index] = weight_sum;
+        double alpha;
+        double beta = 0.0;
+        if (mode_ == Mode::kTecOnly) {
+          results_.back().vals[antenna_and_solution_index] =
+              phase_fitters_[thread].FitDataToTEC1Model(alpha);
+        } else {
+          results_.back().vals[antenna_and_solution_index] =
+              phase_fitters_[thread].FitDataToTEC2Model(alpha, beta);
+        }
+        results_.back().weights[antenna_and_solution_index] = weight_sum;
 
-             res[0].vals[antenna_and_solution_index] = alpha / -8.44797245e9;
-             res[0].weights[antenna_and_solution_index] = weight_sum;
-             if (mode_ == Mode::kTecAndCommonScalar) {
-               res[1].vals[antenna_and_solution_index] = beta;
-               res[1].weights[antenna_and_solution_index] = weight_sum;
-             }
+        results_[0].vals[antenna_and_solution_index] = alpha / -8.44797245e9;
+        results_[0].weights[antenna_and_solution_index] = weight_sum;
+        if (mode_ == Mode::kTecAndCommonScalar) {
+          results_[1].vals[antenna_and_solution_index] = beta;
+          results_[1].weights[antenna_and_solution_index] = weight_sum;
+        }
 
-             for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-               solutions(ch, antenna_index, sub_solution_index, 0) =
-                   std::polar<double>(1.0,
-                                      phase_fitters_[thread].PhaseData()[ch]);
-             }
-           });
-
-  return res;
+        for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
+          solutions(ch, antenna_index, sub_solution_index, 0) =
+              std::polar<double>(1.0, phase_fitters_[thread].PhaseData()[ch]);
+        }
+      });
 }
 
-std::vector<ConstraintResult> ApproximateTECConstraint::Apply(
-    SolutionSpan& solutions, double time, std::ostream* stat_stream) {
+void ApproximateTECConstraint::Apply(SolutionSpan& solutions, double time) {
   assert(solutions.shape(0) == NChannelBlocks());
   assert(solutions.shape(1) == NAntennas());
   assert(solutions.shape(2) == NSubSolutions());
@@ -176,7 +169,7 @@ std::vector<ConstraintResult> ApproximateTECConstraint::Apply(
          1);  // single polarization (phase only) solutions
 
   if (finished_approximate_stage_) {
-    return TECConstraint::Apply(solutions, time, stat_stream);
+    TecConstraint::Apply(solutions, time);
   } else {
     if (do_phase_reference_) applyReferenceAntenna(solutions);
 
@@ -221,8 +214,6 @@ std::vector<ConstraintResult> ApproximateTECConstraint::Apply(
             }
           }
         });
-
-    return std::vector<ConstraintResult>();
   }
 }
 

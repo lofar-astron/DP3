@@ -46,9 +46,8 @@ BOOST_AUTO_TEST_CASE(single_direction) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(solutions);
-  std::vector<ConstraintResult> constraint_result =
-      constraint.Apply(onesolution_span, 0.0, nullptr);
-  BOOST_CHECK(constraint_result.empty());
+  constraint.Apply(onesolution_span, 0.0);
+  BOOST_CHECK(constraint.GetResult().empty());
 
   for (size_t channel = 0; channel != kNChannels; ++channel) {
     const size_t channel_start =
@@ -108,9 +107,8 @@ BOOST_AUTO_TEST_CASE(multiple_directions) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(solutions);
-  std::vector<ConstraintResult> constraint_result =
-      constraint.Apply(onesolution_span, 0.0, nullptr);
-  BOOST_CHECK(constraint_result.empty());
+  constraint.Apply(onesolution_span, 0.0);
+  BOOST_CHECK(constraint.GetResult().empty());
 
   for (size_t channel = 0; channel != kNChannels; ++channel) {
     const size_t channel_start =
@@ -183,9 +181,8 @@ BOOST_AUTO_TEST_CASE(no_averaging) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(solutions);
-  std::vector<ConstraintResult> constraint_result =
-      constraint.Apply(onesolution_span, 0.0, nullptr);
-  BOOST_CHECK(constraint_result.empty());
+  constraint.Apply(onesolution_span, 0.0);
+  BOOST_CHECK(constraint.GetResult().empty());
 
   double value = 0.0;
   for (size_t channel = 0; channel != kNChannels; ++channel) {

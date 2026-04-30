@@ -17,7 +17,7 @@ namespace ddecal {
 
 FullJonesSolver::SolveResult FullJonesSolver::Solve(
     const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
-    double time, std::ostream* stat_stream) {
+    double time) {
   // This algorithm is basically the same as the scalar algorithm,
   // but visibility values are extended to 2x2 matrices and concatenated
   // in the matrix equations as block matrices. One difference is that
@@ -103,23 +103,14 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
 
     Step(solutions, next_solutions);
 
-    if (stat_stream) {
-      (*stat_stream) << iteration << '\t';
-    }
-
-    constraints_satisfied =
-        ApplyConstraints(iteration, time, has_previously_converged, result,
-                         next_solutions, stat_stream);
+    constraints_satisfied = ApplyConstraints(
+        iteration, time, has_previously_converged, result, next_solutions);
 
     double avg_squared_diff;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
                         avg_squared_diff, step_magnitudes);
 
-    if (stat_stream) {
-      (*stat_stream) << step_magnitudes.back() << '\t' << avg_squared_diff
-                     << '\n';
-    }
     iteration++;
 
     has_previously_converged = has_converged || has_previously_converged;

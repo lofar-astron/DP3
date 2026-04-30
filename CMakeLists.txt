@@ -446,7 +446,7 @@ add_library(
   ddecal/constraints/RotationAndDiagonalConstraint.cc
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
-  ddecal/constraints/TECConstraint.cc
+  ddecal/constraints/TecConstraint.cc
   ddecal/constraints/TecOffsetDelayFitting.cc
   ddecal/gain_solvers/BdaSolverBuffer.cc
   ddecal/gain_solvers/DiagonalLowRankSolver.cc
@@ -766,7 +766,7 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolvers.cc
       ddecal/test/unit/tSolverTools.cc
       ddecal/test/unit/tSolutionWriter.cc
-      ddecal/test/unit/tTECConstraint.cc
+      ddecal/test/unit/tTecConstraint.cc
       ddecal/test/unit/tTecOffsetDelayFitting.cc
       model/test/unit/tSourceDBUtil.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc

@@ -74,7 +74,7 @@ float DominantEigenPairNear(const xt::xtensor<std::complex<float>, 2>& matrix,
 
 DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
     const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
-    double time, std::ostream* stat_stream) {
+    double time) {
   PrepareConstraints();
 
   const bool subtract_immediately = GetStepSize() > 0.99;
@@ -121,9 +121,8 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
 
     Step(solutions, next_solutions);
 
-    bool constraints_satisfied =
-        ApplyConstraints(iteration, time, has_previously_converged, result,
-                         next_solutions, stat_stream);
+    bool constraints_satisfied = ApplyConstraints(
+        iteration, time, has_previously_converged, result, next_solutions);
 
     double avg_squared_diff;
     bool has_converged =

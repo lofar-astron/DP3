@@ -15,8 +15,8 @@ class DiagonalSolver final : public SolverBase {
   DiagonalSolver() : SolverBase() {}
 
   SolveResult Solve(const FullSolveData& data,
-                    std::vector<std::vector<DComplex>>& solutions, double time,
-                    std::ostream* stat_stream) override;
+                    std::vector<std::vector<DComplex>>& solutions,
+                    double time) override;
 
   size_t NSolutionPolarizations() const override { return 2; }
 

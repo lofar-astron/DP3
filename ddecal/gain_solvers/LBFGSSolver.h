@@ -48,8 +48,8 @@ class LBFGSSolver final : public SolverBase {
                              const xt::xtensor<double, 1>& d_storage);
 
   SolveResult Solve(const FullSolveData& data,
-                    std::vector<std::vector<DComplex>>& solutions, double time,
-                    std::ostream* stat_stream) override;
+                    std::vector<std::vector<DComplex>>& solutions,
+                    double time) override;
 
   size_t NSolutionPolarizations() const override {
     switch (mode_) {

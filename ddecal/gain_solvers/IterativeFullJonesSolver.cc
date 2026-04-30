@@ -16,7 +16,7 @@ namespace ddecal {
 
 IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
     const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
-    double time, std::ostream* stat_stream) {
+    double time) {
   PrepareConstraints();
 
   SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
@@ -59,9 +59,8 @@ IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
 
     Step(solutions, next_solutions);
 
-    constraints_satisfied =
-        ApplyConstraints(iteration, time, has_previously_converged, result,
-                         next_solutions, stat_stream);
+    constraints_satisfied = ApplyConstraints(
+        iteration, time, has_previously_converged, result, next_solutions);
 
     double avg_squared_diff;
     has_converged =

@@ -32,7 +32,8 @@ std::vector<ConstraintResult> Constrain(FaradayConstraint& constraint,
   constraint.SetWeights(std::vector<double>(kNAntennas * kNChannels, 1.0));
   dp3::ddecal::SolutionSpan solutions =
       aocommon::xt::CreateSpan(solutions_tensor);
-  return constraint.Apply(solutions, 0.0, nullptr);
+  constraint.Apply(solutions, 0.0);
+  return constraint.GetResult();
 }
 
 void Fill(SolutionTensor& solutions_tensor, const MC2x2 value) {

@@ -66,14 +66,20 @@ class Constraint {
    * Using a span instead of a real tensor as argument type avoids the need
    * for copying data in Python bindings.
    * @param time Central time of interval.
-   * @returns Optionally, a vector with results that should be written to
-   * the solution file, instead of the actual solutions. Examples are
-   * Faraday rotation or TEC values. The vector is index by value type
+   */
+  virtual void Apply(SolutionSpan& solutions, double time) = 0;
+
+  /**
+   * Obtain results that are to be written to the solution file, instead of
+   * the actual solutions. Not all constraints use these; some constraints
+   * modify the solutions and the solutions are the result.
+   * Example of constraint the do produce results are the Faraday and
+   * TEC constraints.
+   * @returns Optionally, a vector with the last results.
+   * The vector is index by value type
    * (e.g. Faraday rotation and scalar).
    */
-  virtual std::vector<ConstraintResult> Apply(SolutionSpan& solutions,
-                                              double time,
-                                              std::ostream* statStream) = 0;
+  virtual std::vector<ConstraintResult> GetResult() const { return {}; }
 
   /**
    * Perform common constraint initialization. Should be overridden when

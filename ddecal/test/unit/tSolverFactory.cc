@@ -15,7 +15,7 @@
 #endif
 
 #include "ddecal/constraints/SmoothnessConstraint.h"
-#include "ddecal/constraints/TECConstraint.h"
+#include "ddecal/constraints/TecConstraint.h"
 #include "ddecal/gain_solvers/DiagonalSolver.h"
 #include "ddecal/gain_solvers/FullJonesSolver.h"
 #include "ddecal/gain_solvers/IterativeDiagonalSolver.h"
@@ -191,7 +191,7 @@ BOOST_DATA_TEST_CASE(tec_constraint,
                                 kAntennaNames, kSourceDirections, kFrequencies);
 
     const Constraint& constraint =
-        CheckConstraintType<dp3::ddecal::TECConstraint>(*solver);
+        CheckConstraintType<dp3::ddecal::TecConstraint>(*solver);
     BOOST_CHECK(!dynamic_cast<dp3::ddecal::ApproximateTECConstraint*>(
         solver->GetConstraints()[0].get()));
     BOOST_CHECK_EQUAL(constraint.NAntennas(), kAntennaNames.size());

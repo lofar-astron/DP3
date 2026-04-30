@@ -100,8 +100,9 @@ std::vector<ConstraintResult> TestApplyConstraint(
     }
   }
 
-  std::vector<ConstraintResult> constraint_result;
-  constraint_result = constraint.Apply(solutions, 0.0, nullptr);
+  constraint.Apply(solutions, 0.0);
+  const std::vector<ConstraintResult> constraint_result =
+      constraint.GetResult();
   BOOST_CHECK_GE(constraint_result.size(), 2u);
   BOOST_CHECK_EQUAL(constraint_result[0].name, "rotation");
   BOOST_CHECK_EQUAL(constraint_result[0].axes, "ant,dir,freq");

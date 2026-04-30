@@ -166,18 +166,16 @@ void SolverBase::PrepareConstraints() {
 bool SolverBase::ApplyConstraints(size_t iteration, double time,
                                   bool has_previously_converged,
                                   SolveResult& result,
-                                  SolutionTensor& next_solutions,
-                                  std::ostream* stat_stream) const {
+                                  SolutionTensor& next_solutions) const {
   SolutionSpan next_solutions_span = aocommon::xt::CreateSpan(next_solutions);
   return ApplyConstraints(iteration, time, has_previously_converged, result,
-                          next_solutions_span, stat_stream);
+                          next_solutions_span);
 }
 
 bool SolverBase::ApplyConstraints(size_t iteration, double time,
                                   bool has_previously_converged,
                                   SolveResult& result,
-                                  SolutionSpan& next_solutions,
-                                  std::ostream* stat_stream) const {
+                                  SolutionSpan& next_solutions) const {
   bool constraints_satisfied = true;
 
   result.results.resize(constraints_.size());
@@ -190,7 +188,9 @@ bool SolverBase::ApplyConstraints(size_t iteration, double time,
     constraints_satisfied = c->Satisfied() && constraints_satisfied;
     c->PrepareIteration(has_previously_converged, iteration,
                         iteration + 1 >= GetMaxIterations());
-    *result_iterator = c->Apply(next_solutions, time, stat_stream);
+    c->Apply(next_solutions,
+             time);  // TODO move this outside the iteration loop
+    *result_iterator = c->GetResult();
     ++result_iterator;
   }
 

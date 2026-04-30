@@ -227,9 +227,8 @@ void RotationAndDiagonalConstraint::SetChannelWeights(
   }
 }
 
-std::vector<ConstraintResult> RotationAndDiagonalConstraint::Apply(
-    SolutionSpan& solutions, double,
-    [[maybe_unused]] std::ostream* statStream) {
+void RotationAndDiagonalConstraint::Apply(SolutionSpan& solutions,
+                                          double time) {
   assert(solutions.shape(2) == NSubSolutions());
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions.
 
@@ -331,8 +330,6 @@ std::vector<ConstraintResult> RotationAndDiagonalConstraint::Apply(
       }
     }
   }
-
-  return results_;
 }
 
 }  // namespace ddecal

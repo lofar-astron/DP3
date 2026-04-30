@@ -1,7 +1,7 @@
 // Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "ddecal/constraints/TECConstraint.h"
+#include "ddecal/constraints/TecConstraint.h"
 
 #include <vector>
 #include <cmath>
@@ -17,7 +17,7 @@
 using dp3::ddecal::ApproximateTECConstraint;
 using dp3::ddecal::Constraint;
 using dp3::ddecal::ConstraintResult;
-using dp3::ddecal::TECConstraint;
+using dp3::ddecal::TecConstraint;
 
 namespace {
 const double kTecConstant = -8.44797245e9;
@@ -29,25 +29,25 @@ const size_t kNPolarizations = 1;
 
 const size_t kApproximatingIterations = 4;
 
-std::unique_ptr<TECConstraint> CreateConstraint(TECConstraint::Mode mode,
+std::unique_ptr<TecConstraint> CreateConstraint(TecConstraint::Mode mode,
                                                 bool approximate_tec) {
   if (approximate_tec) {
     auto constraint = std::make_unique<ApproximateTECConstraint>(mode);
     constraint->SetMaxApproximatingIterations(kApproximatingIterations);
     return constraint;
   } else {
-    return std::make_unique<TECConstraint>(mode);
+    return std::make_unique<TecConstraint>(mode);
   }
 }
 
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(tecconstraint)
+BOOST_AUTO_TEST_SUITE(tec_constraint)
 
 BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
                      approximate_tec) {
-  std::unique_ptr<TECConstraint> constraint =
-      CreateConstraint(TECConstraint::Mode::kTecOnly, approximate_tec);
+  std::unique_ptr<TecConstraint> constraint =
+      CreateConstraint(TecConstraint::Mode::kTecOnly, approximate_tec);
 
   std::vector<double> channel_frequencies(kNChannels);
   xt::adapt(channel_frequencies) = xt::linspace(120.0e6, 150.0e6, kNChannels);
@@ -67,22 +67,23 @@ BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
-  std::vector<ConstraintResult> constraint_result;
 
   if (approximate_tec) {
     // Do an approximation, which yields no results.
     constraint->PrepareIteration(false, 0, false);
-    constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
-    BOOST_CHECK(constraint_result.empty());
+    constraint->Apply(onesolution_span, 0.0);
+    BOOST_CHECK(constraint->GetResult().empty());
 
     // Tell the constraint the final iteration is next.
     constraint->PrepareIteration(false, 0, true);
-    constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
-    BOOST_CHECK_EQUAL(constraint_result.size(), 2);
+    constraint->Apply(onesolution_span, 0.0);
+    BOOST_CHECK_EQUAL(constraint->GetResult().size(), 2);
 
     // TODO: Verify the result for ApproximateTECConstraint.
   } else {
-    constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
+    constraint->Apply(onesolution_span, 0.0);
+    const std::vector<ConstraintResult> constraint_result =
+        constraint->GetResult();
     BOOST_REQUIRE_EQUAL(constraint_result.size(), 2);
 
     const ConstraintResult& tec_result = constraint_result[0];
@@ -129,8 +130,8 @@ BOOST_DATA_TEST_CASE(tec_only, boost::unit_test::data::make({false, true}),
 
 BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
                      approximate_tec) {
-  std::unique_ptr<TECConstraint> constraint = CreateConstraint(
-      TECConstraint::Mode::kTecAndCommonScalar, approximate_tec);
+  std::unique_ptr<TecConstraint> constraint = CreateConstraint(
+      TecConstraint::Mode::kTecAndCommonScalar, approximate_tec);
 
   std::vector<double> channel_frequencies(kNChannels);
   xt::adapt(channel_frequencies) = xt::linspace(120.0e6, 150.0e6, kNChannels);
@@ -155,22 +156,23 @@ BOOST_DATA_TEST_CASE(tec_and_phase, boost::unit_test::data::make({false, true}),
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
-  std::vector<ConstraintResult> constraint_result;
 
   if (approximate_tec) {
     // Do an approximation, which yields no results.
     constraint->PrepareIteration(false, 0, false);
-    constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
-    BOOST_CHECK(constraint_result.empty());
+    constraint->Apply(onesolution_span, 0.0);
+    BOOST_CHECK(constraint->GetResult().empty());
 
     // Tell the constraint the final iteration is next.
     constraint->PrepareIteration(false, 0, true);
-    constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
-    BOOST_CHECK_EQUAL(constraint_result.size(), 3);
+    constraint->Apply(onesolution_span, 0.0);
+    BOOST_CHECK_EQUAL(constraint->GetResult().size(), 3);
 
     // TODO: Verify the result for ApproximateTECConstraint.
   } else {
-    constraint_result = constraint->Apply(onesolution_span, 0.0, nullptr);
+    constraint->Apply(onesolution_span, 0.0);
+    const std::vector<ConstraintResult> constraint_result =
+        constraint->GetResult();
     BOOST_REQUIRE_EQUAL(constraint_result.size(), 3);
 
     const ConstraintResult& tec_result = constraint_result[0];

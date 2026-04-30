@@ -58,7 +58,7 @@ void TestConstraint(dp3::ddecal::SolutionTensor& input_solutions,
 
   dp3::ddecal::SolutionSpan solutions_span =
       aocommon::xt::CreateSpan(input_solutions);
-  constraint.Apply(solutions_span, solution_time, nullptr);
+  constraint.Apply(solutions_span, solution_time);
 
   auto input_iterator = input_solutions.begin();
   for (const std::complex<double>& reference : reference_solutions) {

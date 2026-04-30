@@ -17,7 +17,7 @@
 namespace dp3 {
 namespace ddecal {
 
-class TECConstraintBase : public Constraint {
+class TecConstraint : public Constraint {
  public:
   enum class Mode {
     /** Solve for both a (differential) TEC and an XX/YY-common scalar */
@@ -26,7 +26,7 @@ class TECConstraintBase : public Constraint {
     kTecOnly
   };
 
-  TECConstraintBase(Mode mode);
+  TecConstraint(Mode mode);
 
   void Initialize(size_t nAntennas,
                   const std::vector<uint32_t>& solutions_per_direction,
@@ -40,6 +40,10 @@ class TECConstraintBase : public Constraint {
     do_phase_reference_ = doPhaseReference;
   }
 
+  void Apply(SolutionSpan& solutions, double time) override;
+
+  std::vector<ConstraintResult> GetResult() const override { return results_; };
+
  protected:
   virtual void initializeChild() {}
 
@@ -49,26 +53,19 @@ class TECConstraintBase : public Constraint {
   bool do_phase_reference_;
   std::vector<PhaseFitter> phase_fitters_;
   std::vector<double> weights_;
+  std::vector<ConstraintResult> results_;
 };
 
-class TECConstraint : public TECConstraintBase {
- public:
-  TECConstraint(Mode mode) : TECConstraintBase(mode) {}
-
-  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
-                                      std::ostream* stat_stream) override;
-};
-
-class ApproximateTECConstraint : public TECConstraint {
+class ApproximateTECConstraint final : public TecConstraint {
  public:
   ApproximateTECConstraint(Mode mode)
-      : TECConstraint(mode),
+      : TecConstraint(mode),
         finished_approximate_stage_(false),
         fitting_chunk_size_(0),
         max_approx_iters_(50) {}
 
-  virtual void PrepareIteration(bool has_reached_precision, size_t iteration,
-                                bool final_iter) final override {
+  void PrepareIteration(bool has_reached_precision, size_t iteration,
+                        bool final_iter) override {
     finished_approximate_stage_ =
         has_reached_precision || final_iter || iteration >= max_approx_iters_;
     for (size_t thread = 0; thread != phase_fitters_.size(); ++thread) {
@@ -79,12 +76,9 @@ class ApproximateTECConstraint : public TECConstraint {
     }
   }
 
-  virtual bool Satisfied() const final override {
-    return finished_approximate_stage_;
-  }
+  bool Satisfied() const override { return finished_approximate_stage_; }
 
-  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
-                                      std::ostream* stat_stream) final override;
+  void Apply(SolutionSpan& solutions, double time) override;
 
   void SetFittingChunkSize(size_t fitting_chunk_size) {
     fitting_chunk_size_ = fitting_chunk_size;
@@ -94,8 +88,13 @@ class ApproximateTECConstraint : public TECConstraint {
     max_approx_iters_ = max_approx_iters;
   }
 
+  std::vector<ConstraintResult> GetResult() const override {
+    return finished_approximate_stage_ ? results_
+                                       : std::vector<ConstraintResult>();
+  };
+
  protected:
-  virtual void initializeChild() final override;
+  void initializeChild() override;
 
  private:
   bool finished_approximate_stage_;

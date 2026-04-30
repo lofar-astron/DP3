@@ -19,8 +19,7 @@ class RotationAndDiagonalConstraint final : public Constraint {
  public:
   RotationAndDiagonalConstraint(base::CalType diagonal_solution_type);
 
-  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
-                                      std::ostream* statStream) override;
+  void Apply(SolutionSpan& solutions, double time) override;
 
   void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
@@ -29,6 +28,8 @@ class RotationAndDiagonalConstraint final : public Constraint {
   void SetWeights(const std::vector<double>& weights) override;
 
   void SetDoRotationReference(bool do_rotation_reference);
+
+  std::vector<ConstraintResult> GetResult() const override { return results_; }
 
  private:
   void FitRotationAndDiagonal(
