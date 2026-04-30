@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(close_unwrap_and_fit) {
     const double result_a = UnwrapAndFit(data, slope + 0.01);
     const double result_b = UnwrapAndFit(data, slope - 0.01);
     constexpr double kSlopeTolerance = 1.0e-4;
-    if (std::fabs(slope) < kSlopeTolerance) {
+    if (std::abs(slope) < kSlopeTolerance) {
       BOOST_CHECK_LT(std::abs(result_a), kSlopeTolerance);
       BOOST_CHECK_LT(std::abs(result_b), kSlopeTolerance);
     } else {
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(noiseless_fit) {
     const std::vector<FitSample> data = MakeSimpleData(slope);
     const double result = FitSlope(data);
     constexpr double kSlopeTolerance = 1.0e-4;
-    if (std::fabs(slope) < kSlopeTolerance)
+    if (std::abs(slope) < kSlopeTolerance)
       BOOST_CHECK_LT(std::abs(result), kSlopeTolerance);
     else
       BOOST_CHECK_CLOSE_FRACTION(result, slope, kSlopeTolerance);
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(noisy_fit) {
     AddNoise(data, 0.1);
     const double result = FitSlope(data);
     constexpr double kSlopeTolerance = 5.0e-2;
-    if (std::fabs(slope) < 1e-4)
+    if (std::abs(slope) < 1e-4)
       BOOST_CHECK_LT(std::abs(result), kSlopeTolerance);
     else
       BOOST_CHECK_CLOSE_FRACTION(result, slope, kSlopeTolerance);
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(weighted_noisy_fit) {
     // these results should be more accurate than the results from the
     // 'noisy_fit' test.
     constexpr double kSlopeTolerance = 1.0e-4;
-    if (std::fabs(slope) < kSlopeTolerance)
+    if (std::abs(slope) < kSlopeTolerance)
       BOOST_CHECK_LT(std::abs(result), kSlopeTolerance);
     else
       BOOST_CHECK_CLOSE_FRACTION(result, slope, kSlopeTolerance);
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(faraday_function) {
     AddNoise(data, 0.1);
     const double result = FitSlope(data, range_limited);
     constexpr double kSlopeTolerance = 0.05;
-    if (std::fabs(faraday_depth) < 1e-4)
+    if (std::abs(faraday_depth) < 1e-4)
       BOOST_CHECK_LT(std::abs(result), kSlopeTolerance);
     else
       BOOST_CHECK_CLOSE_FRACTION(result, faraday_depth, kSlopeTolerance);
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(tec_function) {
 
     const double result = FitSlope(data, range);
     constexpr double kSlopeTolerance = 0.05;
-    if (std::fabs(slope) < kSlopeTolerance)
+    if (std::abs(slope) < kSlopeTolerance)
       BOOST_CHECK_LT(std::abs(result), kSlopeTolerance);
     else
       BOOST_CHECK_CLOSE_FRACTION(result, slope, kSlopeTolerance);

@@ -297,8 +297,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
         getInfoOut().beamCorrectionDir().getValue().getValue()[1];
     const double ra2 = itsDirection.getValue().getValue()[0];
     const double dec2 = itsDirection.getValue().getValue()[1];
-    const double raDist = std::fabs(ra1 - ra2);
-    const double decDist = std::fabs(dec1 - dec2);
+    const double raDist = std::abs(ra1 - ra2);
+    const double decDist = std::abs(dec1 - dec2);
     if (raDist > 1e-9 || decDist > 1e-9) {
       std::ostringstream str;
       str << "applybeam step with invert=false has incorrect direction: input "

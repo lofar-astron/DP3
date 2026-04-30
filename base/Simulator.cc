@@ -470,7 +470,7 @@ void Simulator::visit(const GaussianSource& component) {
 namespace {
 
 inline float sinc(float x) {
-  return ((x == 0.0f) ? 1.0f : std::fabs(std::sin(x) / x));
+  return ((x == 0.0f) ? 1.0f : std::abs(std::sin(x) / x));
 }
 
 // Compute station phase shifts.
