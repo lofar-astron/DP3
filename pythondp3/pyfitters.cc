@@ -9,12 +9,12 @@
 #include <pybind11/stl.h>
 
 #include "ddecal/constraints/SmoothnessConstraint.h"
-#include "ddecal/constraints/TECConstraint.h"
+#include "ddecal/constraints/TecConstraint.h"
 
 using dp3::ddecal::Constraint;
 using dp3::ddecal::ConstraintResult;
 using dp3::ddecal::SmoothnessConstraint;
-using dp3::ddecal::TECConstraint;
+using dp3::ddecal::TecConstraint;
 
 namespace py = pybind11;
 
@@ -23,11 +23,11 @@ namespace pythondp3 {
 
 namespace {
 // pybind11 cannot convert string arguments to enums.
-TECConstraint::Mode TecModeFromString(const std::string& mode) {
+TecConstraint::Mode TecModeFromString(const std::string& mode) {
   if (mode == "tec_and_common_scalar") {
-    return TECConstraint::Mode::kTecAndCommonScalar;
+    return TecConstraint::Mode::kTecAndCommonScalar;
   } else if (mode == "tec_only") {
-    return TECConstraint::Mode::kTecOnly;
+    return TecConstraint::Mode::kTecOnly;
   } else {
     throw std::invalid_argument("Invalid TEC mode: " + mode);
   }
@@ -100,7 +100,7 @@ PYBIND11_MODULE(fitters, m) {
         const std::size_t kNSolutions = 1;
         const std::vector<uint32_t> kNSolutionsPerDirection = {1};
 
-        TECConstraint constraint(TecModeFromString(mode));
+        TecConstraint constraint(TecModeFromString(mode));
         constraint.Initialize(n_antennas, kNSolutionsPerDirection, frequencies);
         // With a single antenna, the result is always zero if phase referencing
         // is enabled: That single antenna is then used as reference.
@@ -111,8 +111,8 @@ PYBIND11_MODULE(fitters, m) {
         aocommon::xt::Span<std::complex<double>, 4> gains_span =
             aocommon::xt::CreateSpan(gains.mutable_data(), shape);
 
-        std::vector<ConstraintResult> results =
-            constraint.Apply(gains_span, time, nullptr);
+        constraint.Apply(gains_span, time);
+        std::vector<ConstraintResult> results = constraint.GetResult();
 
         // Remove unused axes from the result.
         for (ConstraintResult& result : results) {
@@ -190,7 +190,7 @@ Returns: A list of two or three dp3.fitters.Result items. When the mode is
         aocommon::xt::Span<std::complex<double>, 4> gains_span =
             aocommon::xt::CreateSpan(gains.mutable_data(), shape);
 
-        constraint.Apply(gains_span, time, nullptr);
+        constraint.Apply(gains_span, time);
       },
       py::arg("gains"), py::arg("frequencies"), py::arg("time") = 0.0,
       py::arg("bandwidth_hz"), py::arg("bandwidth_ref_frequency_hz") = 0.0,

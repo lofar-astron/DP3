@@ -45,7 +45,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
                        Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckDualResults(2.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
@@ -68,7 +68,7 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
                        Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckScalarResults(1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
@@ -94,7 +94,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_low_rank_solver, SolverTester,
                        Antennas2(), true);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckDualResults(1.0E-3);
   BOOST_CHECK_EQUAL(result.iterations, kSolveIterations + 1);
@@ -121,7 +121,7 @@ BOOST_FIXTURE_TEST_CASE(diagonal_low_rank_full_step_solver, SolverTester,
                        Antennas2(), true);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckDualResults(1.0E-3);
   BOOST_CHECK_EQUAL(result.iterations, kSolveIterations + 1);
@@ -144,7 +144,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar, SolverTester,
                        Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckScalarResults(1.0E-2);
   // The iterative solver solves the requested accuracy within the max
@@ -164,7 +164,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_dd_intervals, SolverTester,
                        Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckScalarResults(1.0e-3);
 }
@@ -181,7 +181,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_uni_scalar_dd_intervals, SolverTester,
       NSolutionsPerDirection(), Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckScalarResults(1.0e-3);
 }
@@ -198,7 +198,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_duo_scalar_dd_intervals, SolverTester,
       NSolutionsPerDirection(), Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckScalarResults(1.0e-3);
 }
@@ -229,7 +229,7 @@ BOOST_FIXTURE_TEST_CASE(hybrid, SolverTester,
                        Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckScalarResults(1.0E-2);
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
@@ -252,7 +252,7 @@ inline void TestIterativeDiagonal(SolverTester& solver_tester,
       solver_tester.Antennas1(), solver_tester.Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, solver_tester.GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, solver_tester.GetSolverSolutions(), 0.0);
 
   solver_tester.CheckDualResults(1.0E-2);
   // The iterative solver solves the requested accuracy within the max
@@ -292,7 +292,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_dd_intervals, SolverTester,
                        Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckDualResults(1.0e-2);
 }
@@ -309,7 +309,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_duo_diagonal_dd_intervals, SolverTester,
       NSolutionsPerDirection(), Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckDualResults(1.0e-2);
 }
@@ -345,7 +345,7 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
   }
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, solutions, 0.0, nullptr);
+      solver.Solve(data, solutions, 0.0);
 
   // Convert full matrices to diagonals
   std::vector<std::vector<std::complex<double>>>& diagonals =
@@ -393,7 +393,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones, SolverTester,
   }
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, solutions, 0.0, nullptr);
+      solver.Solve(data, solutions, 0.0);
 
   // Convert full matrices to diagonals
   std::vector<std::vector<std::complex<double>>>& diagonals =
@@ -437,7 +437,7 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones_dd_intervals, SolverTester,
   }
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, solutions, 0.0, nullptr);
+      solver.Solve(data, solutions, 0.0);
 
   // Convert full matrices to diagonals
   std::vector<std::vector<std::complex<double>>>& diagonals =
@@ -480,7 +480,7 @@ BOOST_FIXTURE_TEST_CASE(polarization_leakage, SolverTester,
   }
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, solutions, 0.0, nullptr);
+      solver.Solve(data, solutions, 0.0);
 
   // Convert full matrices to diagonals
   std::vector<std::vector<std::complex<double>>>& dual = GetSolverSolutions();
@@ -511,7 +511,7 @@ BOOST_FIXTURE_TEST_CASE(scalar_normaleq, SolverTester,
                        Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
 
   CheckScalarResults(1.0e-2);
   BOOST_CHECK_EQUAL(result.iterations, kMaxIterations + 1);
@@ -532,7 +532,7 @@ BOOST_FIXTURE_TEST_CASE(min_iterations, SolverTester,
                        Antennas2(), false);
 
   dp3::ddecal::SolverBase::SolveResult result =
-      solver.Solve(data, GetSolverSolutions(), 0.0, nullptr);
+      solver.Solve(data, GetSolverSolutions(), 0.0);
   BOOST_CHECK_EQUAL(result.iterations, 10U);
 }
 

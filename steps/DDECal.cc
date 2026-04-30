@@ -865,8 +865,7 @@ void DDECal::doSolve() {
 
           solveResult =
               solver_->Solve(solve_data, solutions_[solution_index],
-                             average_time_ / requested_solution_interval_,
-                             statistics_stream_.get());
+                             average_time_ / requested_solution_interval_);
         } break;
         case ddecal::SolverDataUse::kDual: {
           const ddecal::DuoSolveData solve_data(
@@ -882,8 +881,7 @@ void DDECal::doSolve() {
 
           solveResult =
               solver_->Solve(solve_data, solutions_[solution_index],
-                             average_time_ / requested_solution_interval_,
-                             statistics_stream_.get());
+                             average_time_ / requested_solution_interval_);
         } break;
         case ddecal::SolverDataUse::kFull: {
           const ddecal::FullSolveData solve_data(
@@ -899,8 +897,7 @@ void DDECal::doSolve() {
 
           solveResult =
               solver_->Solve(solve_data, solutions_[solution_index],
-                             average_time_ / requested_solution_interval_,
-                             statistics_stream_.get());
+                             average_time_ / requested_solution_interval_);
         } break;
       }
 

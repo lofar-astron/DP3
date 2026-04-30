@@ -17,8 +17,8 @@ namespace ddecal {
 class IterativeFullJonesSolver final : public SolverBase {
  public:
   SolveResult Solve(const FullSolveData& data,
-                    std::vector<std::vector<DComplex>>& solutions, double time,
-                    std::ostream* stat_stream) override;
+                    std::vector<std::vector<DComplex>>& solutions,
+                    double time) override;
 
   size_t NSolutionPolarizations() const override { return 4; }
 

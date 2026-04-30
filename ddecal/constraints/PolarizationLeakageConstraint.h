@@ -16,8 +16,7 @@ class PolarizationLeakageConstraint final : public Constraint {
  public:
   PolarizationLeakageConstraint() = default;
 
-  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
-                                      std::ostream* stat_stream) override;
+  void Apply(SolutionSpan& solutions, double time) override;
 };
 
 }  // namespace dp3::ddecal

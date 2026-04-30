@@ -23,8 +23,7 @@ void HybridSolver::AddSolver(std::unique_ptr<SolverBase> solver) {
 
 HybridSolver::SolveResult HybridSolver::Solve(
     const FullSolveData& solve_data,
-    std::vector<std::vector<DComplex>>& solutions, double time,
-    std::ostream* stat_stream) {
+    std::vector<std::vector<DComplex>>& solutions, double time) {
   assert(!solvers_.empty());
   size_t available_iterations = SolverBase::GetMaxIterations();
   SolveResult result;
@@ -33,7 +32,7 @@ HybridSolver::SolveResult HybridSolver::Solve(
        solvers_) {
     solver_info.first->SetMaxIterations(solver_info.second);
     is_converged = RunSolver(*solver_info.first, available_iterations, result,
-                             solve_data, solutions, time, stat_stream);
+                             solve_data, solutions, time);
     if (is_converged && StopOnConvergence()) return result;
   }
   if (!is_converged) result.iterations = SolverBase::GetMaxIterations() + 1;
@@ -44,12 +43,11 @@ bool HybridSolver::RunSolver(SolverBase& solver, size_t& available_iterations,
                              SolveResult& result,
                              const FullSolveData& solve_data,
                              std::vector<std::vector<DComplex>>& solutions,
-                             double time, std::ostream* stat_stream) {
+                             double time) {
   if (solver.GetMaxIterations() > available_iterations)
     solver.SetMaxIterations(available_iterations);
   aocommon::Logger::Debug << "Starting next hybrid solver stage.\n";
-  SolveResult nextResult =
-      solver.Solve(solve_data, solutions, time, stat_stream);
+  SolveResult nextResult = solver.Solve(solve_data, solutions, time);
   result.iterations += nextResult.iterations;
   result.constraint_iterations += nextResult.constraint_iterations;
   result.results = std::move(nextResult.results);

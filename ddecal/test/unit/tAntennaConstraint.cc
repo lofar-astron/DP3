@@ -47,10 +47,9 @@ BOOST_AUTO_TEST_CASE(test_antenna_constraint) {
 
   dp3::ddecal::SolutionSpan onesolution_span =
       aocommon::xt::CreateSpan(onesolution);
-  std::vector<ConstraintResult> constraint_result =
-      constraint.Apply(onesolution_span, 0.0, nullptr);
+  constraint.Apply(onesolution_span, 0.0);
 
-  BOOST_CHECK(constraint_result.empty());
+  BOOST_CHECK(constraint.GetResult().empty());
 
   // Since only one antenna in the antenna group is nonzero, the mean is the
   // reciprocal of the one value (for each channel, for each polarization)

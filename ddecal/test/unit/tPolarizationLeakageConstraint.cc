@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(apply_constraint) {
   }
 
   constexpr double kTime = 42.0;
-  constraint.Apply(solutions, kTime, nullptr);
+  constraint.Apply(solutions, kTime);
 
   counter = 1;
   for (size_t ch = 0; ch < kNChannels; ++ch) {

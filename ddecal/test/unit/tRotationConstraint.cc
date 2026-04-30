@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(rotation_changes_input) {
   onesolution(0, 0, 0, 2) = 3.0;
   onesolution(0, 0, 0, 3) = 4.0;
 
-  constraint.Apply(onesolution, 0.0, nullptr);
+  constraint.Apply(onesolution, 0.0);
 
   BOOST_CHECK_CLOSE(std::real(onesolution(0, 0, 0, 0)), 0.980581, 1.0e-3);
   BOOST_CHECK_CLOSE(std::real(onesolution(0, 0, 0, 1)), -0.196116, 1.0e-3);
@@ -55,8 +55,8 @@ BOOST_AUTO_TEST_CASE(rotation) {
       onesolution(0, 0, direction, 2) = std::sin(phi + 0.3 * direction);
       onesolution(0, 0, direction, 3) = std::cos(phi + 0.3 * direction);
     }
-    vector<ConstraintResult> constraint_result =
-        constraint.Apply(onesolution, 0.0, nullptr);
+    constraint.Apply(onesolution, 0.0);
+    vector<ConstraintResult> constraint_result = constraint.GetResult();
 
     BOOST_REQUIRE_EQUAL(constraint_result.size(), 1);
     BOOST_CHECK_EQUAL(constraint_result[0].axes, "ant,dir,freq");

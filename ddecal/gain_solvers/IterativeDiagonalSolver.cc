@@ -36,8 +36,7 @@ void AddNormToDenominator(float* denominator,
 template <typename VisMatrix>
 SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
     const SolveData<VisMatrix>& data,
-    std::vector<std::vector<DComplex>>& solutions, double time,
-    std::ostream* stat_stream) {
+    std::vector<std::vector<DComplex>>& solutions, double time) {
   PrepareConstraints();
 
   SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
@@ -81,9 +80,8 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
 
     Step(solutions, next_solutions);
 
-    constraints_satisfied =
-        ApplyConstraints(iteration, time, has_previously_converged, result,
-                         next_solutions, stat_stream);
+    constraints_satisfied = ApplyConstraints(
+        iteration, time, has_previously_converged, result, next_solutions);
 
     double avg_squared_diff;
     has_converged =

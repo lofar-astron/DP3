@@ -523,7 +523,7 @@ void LBFGSSolver::MergeSolutions(SolutionTensor& next_solutions,
 
 LBFGSSolver::SolveResult LBFGSSolver::Solve(
     const FullSolveData& data, std::vector<std::vector<DComplex>>& solutions,
-    double time, std::ostream* stat_stream) {
+    double time) {
   assert(solutions.size() == NChannelBlocks());
 
   std::vector<persistent_data_t> persistent_data(NChannelBlocks());
@@ -607,23 +607,14 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
         assert(false);
     }
 
-    if (stat_stream) {
-      (*stat_stream) << iteration << '\t';
-    }
-
-    constraints_satisfied =
-        ApplyConstraints(iteration, time, has_previously_converged, result,
-                         next_solutions, stat_stream);
+    constraints_satisfied = ApplyConstraints(
+        iteration, time, has_previously_converged, result, next_solutions);
 
     double avg_squared_diff;
     has_converged =
         AssignSolutions(solutions, next_solutions, !constraints_satisfied,
                         avg_squared_diff, step_magnitudes);
 
-    if (stat_stream) {
-      (*stat_stream) << step_magnitudes.back() << '\t' << avg_squared_diff
-                     << '\n';
-    }
     iteration++;
 
     has_previously_converged = has_converged || has_previously_converged;

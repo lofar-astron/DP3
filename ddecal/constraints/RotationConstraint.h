@@ -15,14 +15,15 @@ class RotationConstraint final : public Constraint {
  public:
   RotationConstraint() = default;
 
-  std::vector<ConstraintResult> Apply(SolutionSpan& solutions, double time,
-                                      std::ostream* stat_stream) override;
+  void Apply(SolutionSpan& solutions, double time) override;
 
   void Initialize(size_t n_antennas,
                   const std::vector<uint32_t>& solutions_per_direction,
                   const std::vector<double>& frequencies) override;
 
   void SetWeights(const std::vector<double>& weights) override;
+
+  std::vector<ConstraintResult> GetResult() const override { return results_; }
 
   /* Compute the rotation from a 2x2 full jones solution */
   static double FitRotation(const std::complex<double>* data) {

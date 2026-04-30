@@ -18,8 +18,8 @@ class IterativeScalarSolver final : public SolverBase {
  public:
   using ChannelBlockData = typename SolveData<VisMatrix>::ChannelBlockData;
   SolveResult Solve(const SolveData<VisMatrix>& data,
-                    std::vector<std::vector<DComplex>>& solutions, double time,
-                    std::ostream* stat_stream) override;
+                    std::vector<std::vector<DComplex>>& solutions,
+                    double time) override;
 
   size_t NSolutionPolarizations() const override { return 1; }
 

@@ -102,9 +102,7 @@ void FaradayConstraint::SetSubSolutionWeights(
   }
 }
 
-std::vector<ConstraintResult> FaradayConstraint::Apply(
-    SolutionSpan& solutions, double,
-    [[maybe_unused]] std::ostream* statStream) {
+void FaradayConstraint::Apply(SolutionSpan& solutions, double time) {
   assert(solutions.shape(0) == NChannelBlocks());
   assert(solutions.shape(1) == NAntennas());
   assert(solutions.shape(2) == NDirections());
@@ -120,7 +118,6 @@ std::vector<ConstraintResult> FaradayConstraint::Apply(
       PerformFit(solutions, sub_solution, antenna, scratch_space);
     }
   });
-  return results_;
 }
 
 void FaradayConstraint::PerformFit(SolutionSpan& solutions, size_t sub_solution,

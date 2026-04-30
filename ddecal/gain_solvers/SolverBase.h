@@ -201,11 +201,10 @@ class SolverBase {
    * @param solutions The per-channel and per-antenna solutions.
    * solutions[ch] is a pointer for channelblock ch to antenna x directions x
    * pol solutions.
-   * @param statStream Optional pointer to a stream for displaying statistics.
    */
   virtual SolveResult Solve(const FullSolveData& data,
                             std::vector<std::vector<DComplex>>& solutions,
-                            double time, std::ostream* statStream) {
+                            double time) {
     throw std::logic_error(
         "Full-visibility solver called for a solver that does not "
         "support full-visibility solving");
@@ -213,7 +212,7 @@ class SolverBase {
 
   virtual SolveResult Solve(const DuoSolveData& data,
                             std::vector<std::vector<DComplex>>& solutions,
-                            double time, std::ostream* statStream) {
+                            double time) {
     throw std::logic_error(
         "Duo-visibility (xx/yy) solver called for a solver that does not "
         "support duo-visibility solving");
@@ -221,7 +220,7 @@ class SolverBase {
 
   virtual SolveResult Solve(const UniSolveData& data,
                             std::vector<std::vector<DComplex>>& solutions,
-                            double time, std::ostream* statStream) {
+                            double time) {
     throw std::logic_error(
         "Single-visibility (xx/yy) solver called for a solver that does not "
         "support single-visibility solving");
@@ -250,12 +249,10 @@ class SolverBase {
 
   bool ApplyConstraints(size_t iteration, double time,
                         bool has_previously_converged, SolveResult& result,
-                        SolutionTensor& next_solutions,
-                        std::ostream* stat_stream) const;
+                        SolutionTensor& next_solutions) const;
   bool ApplyConstraints(size_t iteration, double time,
                         bool has_previously_converged, SolveResult& result,
-                        SolutionSpan& next_solutions,
-                        std::ostream* stat_stream) const;
+                        SolutionSpan& next_solutions) const;
   /**
    * Assign the solutions in nextSolutions to the solutions.
    * @returns whether the solutions have converged. Appends the current step

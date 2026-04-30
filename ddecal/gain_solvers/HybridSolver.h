@@ -73,14 +73,13 @@ class HybridSolver final : public SolverBase {
   /** @} */
 
   SolveResult Solve(const FullSolveData& solve_data,
-                    std::vector<std::vector<DComplex>>& solutions, double time,
-                    std::ostream* stat_stream) override;
+                    std::vector<std::vector<DComplex>>& solutions,
+                    double time) override;
 
  private:
   bool RunSolver(SolverBase& solver, size_t& available_iterations,
                  SolveResult& result, const FullSolveData& solve_data,
-                 std::vector<std::vector<DComplex>>& solutions, double time,
-                 std::ostream* stat_stream);
+                 std::vector<std::vector<DComplex>>& solutions, double time);
 
   // List of solvers with their maximum number of iterations
   std::vector<std::pair<std::unique_ptr<SolverBase>, size_t>> solvers_;
