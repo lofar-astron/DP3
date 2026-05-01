@@ -47,9 +47,9 @@ BOOST_AUTO_TEST_CASE(dominant_eigen_pair_3x3_real) {
   xt::xtensor<std::complex<float>, 1> eigen_vector;
   const float eigen_value = dp3::ddecal::DominantEigenPair(m, eigen_vector, 20);
   eigen_vector = eigen_vector * std::sqrt(eigen_value);
-  BOOST_CHECK_CLOSE_FRACTION(std::fabs(eigen_vector[0]), 1.0f, 1e-6f);
-  BOOST_CHECK_CLOSE_FRACTION(std::fabs(eigen_vector[1]), 2.0f, 1e-6f);
-  BOOST_CHECK_CLOSE_FRACTION(std::fabs(eigen_vector[2]), 3.0f, 1e-6f);
+  BOOST_CHECK_CLOSE_FRACTION(std::abs(eigen_vector[0]), 1.0f, 1e-6f);
+  BOOST_CHECK_CLOSE_FRACTION(std::abs(eigen_vector[1]), 2.0f, 1e-6f);
+  BOOST_CHECK_CLOSE_FRACTION(std::abs(eigen_vector[2]), 3.0f, 1e-6f);
 }
 
 BOOST_AUTO_TEST_CASE(dominant_eigen_pair_3x3_complex) {
@@ -60,12 +60,9 @@ BOOST_AUTO_TEST_CASE(dominant_eigen_pair_3x3_complex) {
   xt::xtensor<std::complex<float>, 1> eigen_vector;
   const float eigen_value = dp3::ddecal::DominantEigenPair(m, eigen_vector, 20);
   eigen_vector = eigen_vector * std::sqrt(eigen_value);
-  BOOST_CHECK_CLOSE_FRACTION(std::fabs(eigen_vector[0]), std::fabs(t[0]),
-                             1e-6f);
-  BOOST_CHECK_CLOSE_FRACTION(std::fabs(eigen_vector[1]), std::fabs(t[1]),
-                             1e-6f);
-  BOOST_CHECK_CLOSE_FRACTION(std::fabs(eigen_vector[2]), std::fabs(t[2]),
-                             1e-6f);
+  BOOST_CHECK_CLOSE_FRACTION(std::abs(eigen_vector[0]), std::abs(t[0]), 1e-6f);
+  BOOST_CHECK_CLOSE_FRACTION(std::abs(eigen_vector[1]), std::abs(t[1]), 1e-6f);
+  BOOST_CHECK_CLOSE_FRACTION(std::abs(eigen_vector[2]), std::abs(t[2]), 1e-6f);
 }
 
 BOOST_AUTO_TEST_CASE(dominant_eigen_pair_large_complex) {
@@ -82,7 +79,7 @@ BOOST_AUTO_TEST_CASE(dominant_eigen_pair_large_complex) {
   const float eigen_value = dp3::ddecal::DominantEigenPair(m, eigen_vector, 20);
   eigen_vector = eigen_vector * std::sqrt(eigen_value);
   for (size_t i = 0; i != n; ++i) {
-    BOOST_CHECK_CLOSE_FRACTION(std::fabs(eigen_vector[i]), std::fabs(t[i]),
+    BOOST_CHECK_CLOSE_FRACTION(std::abs(eigen_vector[i]), std::abs(t[i]),
                                1e-6f);
   }
   eigen_vector *= t[0] / eigen_vector[0];

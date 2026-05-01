@@ -497,7 +497,7 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
   bool update_beam = false;
   double beam_evaluation_time = time;
   if (apply_beam_) {
-    const double time_since_beam_update = std::fabs(time - previous_beam_time_);
+    const double time_since_beam_update = std::abs(time - previous_beam_time_);
     update_beam = time_since_beam_update >= beam_evaluation_interval_;
     if (update_beam) {
       beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;

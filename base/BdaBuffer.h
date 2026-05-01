@@ -216,7 +216,7 @@ class BdaBuffer {
     return x > (y - kTimeTolerance);
   }
   static constexpr bool TimeIsEqual(double x, double y) {
-    // Don't use std::fabs, since it is not a constexpr.
+    // Don't use std::abs, since it is not a constexpr.
     return ((x > y) ? (x - y) : (y - x)) < kTimeTolerance;
   }
 

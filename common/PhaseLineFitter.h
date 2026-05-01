@@ -35,7 +35,7 @@ inline double SlopeModelCost(const std::vector<FitSample>& data, double slope) {
   double weight_sum = 0.0;
   for (const FitSample& sample : data) {
     const double y_model = slope * sample.x;
-    double sample_cost = std::fmod(std::fabs(y_model - sample.y), 2.0 * M_PI);
+    double sample_cost = std::fmod(std::abs(y_model - sample.y), 2.0 * M_PI);
     if (sample_cost > M_PI) sample_cost = 2.0 * M_PI - sample_cost;
     sample_cost *= sample.weight;
     cost += sample_cost;

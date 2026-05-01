@@ -22,7 +22,7 @@ PrettyUnits::PrettyUnits(double value, const char *unit, unsigned precision) {
     prefix = " ";
   else
     for (value *= 1e24, prefix = prefixes;
-         fabs(value) >= 999.5 && prefix[1] != '\0'; prefix++)
+         std::abs(value) >= 999.5 && prefix[1] != '\0'; prefix++)
       value /= 1000.0;
 
   std::stringstream stream;

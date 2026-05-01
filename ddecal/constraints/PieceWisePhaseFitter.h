@@ -212,7 +212,7 @@ class PieceWisePhaseFitter {
       double curSum = 0.0;
       for (size_t j = 0; j != ni; ++j) {
         double dist = data[i + j] - fittedData[i + j];
-        curSum += fabs(dist) * weights[i + j];
+        curSum += std::abs(dist) * weights[i + j];
       }
       if (curSum > largest) {
         largest = curSum;
@@ -386,7 +386,7 @@ class PieceWisePhaseFitter {
     double maxDev = 0.0;
     size_t index = 0;
     for (size_t i = 0; i != data.size(); ++i) {
-      double deviation = std::fabs(data[i] - (a + b * frequencies[i]));
+      double deviation = std::abs(data[i] - (a + b * frequencies[i]));
       if (deviation >= maxDev) {
         maxDev = deviation;
         index = i;
