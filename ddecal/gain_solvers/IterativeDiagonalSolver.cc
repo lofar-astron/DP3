@@ -42,8 +42,6 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
   SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
                                  NSolutionPolarizations()});
 
-  SolveResult result;
-
   // Visibility vector v_residual[cb][vis] of size NChannelBlocks() x
   // n_visibilities
   std::vector<std::vector<VisMatrix>> v_residual(NChannelBlocks());
@@ -81,7 +79,7 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
     Step(solutions, next_solutions);
 
     constraints_satisfied = ApplyConstraints(
-        iteration, time, has_previously_converged, result, next_solutions);
+        iteration, time, has_previously_converged, next_solutions);
 
     double avg_squared_diff;
     has_converged =
@@ -94,13 +92,7 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
   } while (!ReachedStoppingCriterion(iteration, has_converged,
                                      constraints_satisfied, step_magnitudes));
 
-  // When we have not converged yet, we set the nr of iterations to the max+1,
-  // so that non-converged iterations can be distinguished from converged ones.
-  if (has_converged && constraints_satisfied)
-    result.iterations = iteration;
-  else
-    result.iterations = iteration + 1;
-  return result;
+  return MakeResult(iteration, has_converged, constraints_satisfied);
 }
 
 template <typename VisMatrix>

@@ -530,8 +530,6 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
 
   PrepareConstraints();
 
-  SolveResult result;
-
   SolverMode mode(GetMode());
 
   SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
@@ -608,7 +606,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
     }
 
     constraints_satisfied = ApplyConstraints(
-        iteration, time, has_previously_converged, result, next_solutions);
+        iteration, time, has_previously_converged, next_solutions);
 
     double avg_squared_diff;
     has_converged =
@@ -630,13 +628,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
     }
   }
 
-  // When we have not converged yet, we set the nr of iterations to the max+1,
-  // so that non-converged solves can be distinguished from converged ones.
-  if (has_converged && constraints_satisfied)
-    result.iterations = iteration;
-  else
-    result.iterations = iteration + 1;
-  return result;
+  return MakeResult(iteration, has_converged, constraints_satisfied);
 }
 }  // namespace ddecal
 }  // namespace dp3

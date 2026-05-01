@@ -248,11 +248,15 @@ class SolverBase {
   void PrepareConstraints();
 
   bool ApplyConstraints(size_t iteration, double time,
-                        bool has_previously_converged, SolveResult& result,
+                        bool has_previously_converged,
                         SolutionTensor& next_solutions) const;
   bool ApplyConstraints(size_t iteration, double time,
-                        bool has_previously_converged, SolveResult& result,
+                        bool has_previously_converged,
                         SolutionSpan& next_solutions) const;
+
+  SolveResult MakeResult(size_t iteration, bool has_converged,
+                         bool constraints_satisfied) const;
+
   /**
    * Assign the solutions in nextSolutions to the solutions.
    * @returns whether the solutions have converged. Appends the current step

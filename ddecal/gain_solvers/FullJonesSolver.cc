@@ -51,7 +51,6 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   assert(solutions.size() == NChannelBlocks());
 
   PrepareConstraints();
-  SolveResult result;
 
   SolutionTensor next_solutions({NChannelBlocks(), NAntennas(), NSubSolutions(),
                                  NSolutionPolarizations()});
@@ -104,7 +103,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
     Step(solutions, next_solutions);
 
     constraints_satisfied = ApplyConstraints(
-        iteration, time, has_previously_converged, result, next_solutions);
+        iteration, time, has_previously_converged, next_solutions);
 
     double avg_squared_diff;
     has_converged =
@@ -118,13 +117,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   } while (!ReachedStoppingCriterion(iteration, has_converged,
                                      constraints_satisfied, step_magnitudes));
 
-  // When we have not converged yet, we set the nr of iterations to the max+1,
-  // so that non-converged solves can be distinguished from converged ones.
-  if (has_converged && constraints_satisfied)
-    result.iterations = iteration;
-  else
-    result.iterations = iteration + 1;
-  return result;
+  return MakeResult(iteration, has_converged, constraints_satisfied);
 }
 
 void FullJonesSolver::PerformIteration(
