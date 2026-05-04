@@ -610,7 +610,27 @@ def test_pre_apply():
     )
 
 
-def test_check_tec():
+def check_soltab_shapes(h5file, name, n_antennas=8):
+    assert name in h5file["sol000"]
+    path = f"sol000/{name}"
+    assert "val" in h5file[path]
+
+    n_times = h5file[path + "/time"].shape[0]
+    assert n_times == 6
+    assert n_antennas == h5file[path + "/ant"].shape[0]
+    n_directions = h5file[path + "/dir"].shape[0]
+    assert n_directions == 3
+    n_frequencies = h5file[path + "/freq"].shape[0]
+    assert n_frequencies == 1
+
+    shape = h5file[path + "/val"].shape
+    assert shape[0] == n_times
+    assert shape[1] == n_antennas
+    assert shape[2] == n_directions
+    assert shape[3] == n_frequencies
+
+
+def test_tec():
     run_dp3(
         [
             f"msin={MSIN}",
@@ -622,9 +642,12 @@ def test_check_tec():
             "ddecal.mode=tec",
         ]
     )
+    with h5py.File("instrument-tec.h5") as f:
+        check_soltab_shapes(f, "error000")
+        check_soltab_shapes(f, "tec000")
 
 
-def test_check_tec_and_phase():
+def test_tec_phase():
     run_dp3(
         [
             f"msin={MSIN}",
@@ -633,9 +656,52 @@ def test_check_tec_and_phase():
             "steps=[ddecal]",
             f"ddecal.sourcedb={SKYMODEL}",
             "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
-            "ddecal.h5parm=instrument-tecandphase.h5 ddecal.mode=tecandphase",
+            "ddecal.h5parm=instrument-tecandphase.h5",
+            "ddecal.mode=tec+phase",
         ]
     )
+    with h5py.File("instrument-tecandphase.h5") as f:
+        n_antennas = 7
+        check_soltab_shapes(f, "error000", n_antennas=n_antennas)
+        check_soltab_shapes(f, "phase000", n_antennas=n_antennas)
+        check_soltab_shapes(f, "tec000", n_antennas=n_antennas)
+
+
+def test_tec_delay():
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={SKYMODEL}",
+            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal.h5parm=instrument-tec-delay.h5",
+            "ddecal.max_tec_delay_wraps=1",
+            "ddecal.mode=tec+delay",
+        ]
+    )
+    with h5py.File("instrument-tec-delay.h5") as f:
+        check_soltab_shapes(f, "tec000")
+        check_soltab_shapes(f, "delay000")
+
+
+def test_tec_phase_delay():
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "steps=[ddecal]",
+            f"ddecal.sourcedb={SKYMODEL}",
+            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal.h5parm=instrument-tec-phase-delay.h5",
+            "ddecal.max_tec_delay_wraps=1",
+            "ddecal.mode=tec+phase+delay",
+        ]
+    )
+    with h5py.File("instrument-tec-phase-delay.h5") as f:
+        check_soltab_shapes(f, "tec000")
+        check_soltab_shapes(f, "phase000")
+        check_soltab_shapes(f, "delay000")
 
 
 @pytest.mark.parametrize(
@@ -1076,7 +1142,7 @@ def test_all_model_sources(idgpredict_env, copy_data_to_model_data):
         ("diagonal", "phase000", ""),
         ("scalarphase", "phase000", ""),
         ("tec", "tec000", ""),
-        ("tecandphase", "tec000", "phase000"),
+        ("tec+phase", "tec000", "phase000"),
     ],
 )
 def test_h5parm_initial_solutions(mode, soltab, soltab2):

@@ -570,7 +570,7 @@ xt::xtensor<std::complex<float>, 3> DDECal::ReadJonesMatrixFromH5Parm(
   const hsize_t soltab_direction_index =
       first_soltab->GetDirIndex(closest_patch);
   size_t n_parm_values = 0;
-  if (gain_type == GainType::kTec || gain_type == GainType::kClock) {
+  if (gain_type == GainType::kTec || gain_type == GainType::kDelay) {
     n_parm_values =
         first_soltab->HasAxis("pol") ? first_soltab->GetAxis("pol").size : 1;
   }

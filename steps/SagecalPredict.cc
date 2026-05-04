@@ -1073,7 +1073,7 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
         parm_expressions_.push_back("TEC:0");
         parm_expressions_.push_back("TEC:1");
       }
-    } else if (gain_type_ == GainType::kClock) {
+    } else if (gain_type_ == GainType::kDelay) {
       if (nPol("Clock") == 1) {
         parm_expressions_.push_back("Clock");
       } else {

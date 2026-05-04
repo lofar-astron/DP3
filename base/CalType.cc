@@ -5,8 +5,7 @@
 
 #include <stdexcept>
 
-namespace dp3 {
-namespace base {
+namespace dp3::base {
 
 CalType StringToCalType(const std::string& modestr) {
   if (modestr == "diagonal" || modestr == "complexgain")
@@ -22,10 +21,15 @@ CalType StringToCalType(const std::string& modestr) {
     return CalType::kScalarAmplitude;
   else if (modestr == "scalarphase")
     return CalType::kScalarPhase;
-  else if (modestr == "tecandphase")
-    return CalType::kTecAndPhase;
   else if (modestr == "tec")
     return CalType::kTec;
+  else if (modestr == "tec+delay")
+    return CalType::kTecAndDelay;
+  // tecandphase is the old name, and is still supported for compatibility
+  else if (modestr == "tec+phase" || modestr == "tecandphase")
+    return CalType::kTecAndPhase;
+  else if (modestr == "tec+phase+delay")
+    return CalType::kTecPhaseAndDelay;
   else if (modestr == "tecscreen")
     return CalType::kTecScreen;
   else if (modestr == "fulljones")
@@ -59,10 +63,14 @@ std::string ToString(CalType caltype) {
       return "diagonalamplitude";
     case CalType::kScalarAmplitude:
       return "scalaramplitude";
-    case CalType::kTecAndPhase:
-      return "tecandphase";
     case CalType::kTec:
       return "tec";
+    case CalType::kTecAndDelay:
+      return "tec+delay";
+    case CalType::kTecAndPhase:
+      return "tec+phase";
+    case CalType::kTecPhaseAndDelay:
+      return "tec+phase+delay";
     case CalType::kTecScreen:
       return "tecscreen";
     case CalType::kRotation:
@@ -81,5 +89,4 @@ std::string ToString(CalType caltype) {
   }
 }
 
-}  // namespace base
-}  // namespace dp3
+}  // namespace dp3::base

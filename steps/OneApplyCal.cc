@@ -310,7 +310,7 @@ void OneApplyCal::updateInfo(const DPInfo& infoIn) {
         itsParmExprs.push_back("TEC:0");
         itsParmExprs.push_back("TEC:1");
       }
-    } else if (itsCorrectType == GainType::kClock) {
+    } else if (itsCorrectType == GainType::kDelay) {
       if (nPol("Clock") == 1) {
         itsParmExprs.push_back("Clock");
       } else {

@@ -191,6 +191,7 @@ struct Settings {
   const bool rotation_reference;
   const base::CalType rotation_diagonal_mode;
   const base::CalType faraday_diagonal_mode;
+  const size_t max_tec_delay_wraps;
   std::optional<double> faraday_limit;
   // LBFGS robust parameter (aka degrees of freedom)
   const double lbfgs_robust_nu;

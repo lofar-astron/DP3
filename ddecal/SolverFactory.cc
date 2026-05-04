@@ -32,6 +32,7 @@
 #endif
 #include "constraints/SmoothnessConstraint.h"
 #include "constraints/TecConstraint.h"
+#include "constraints/TecOffsetDelayConstraint.h"
 
 #include "common/ValuePerStationParsing.h"
 
@@ -204,9 +205,10 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
       break;
     case base::CalType::kTec:
     case base::CalType::kTecAndPhase: {
-      const auto tec_mode = (settings.mode == base::CalType::kTec)
-                                ? TecConstraint::Mode::kTecOnly
-                                : TecConstraint::Mode::kTecAndCommonScalar;
+      const TecConstraint::Mode tec_mode =
+          (settings.mode == base::CalType::kTec)
+              ? TecConstraint::Mode::kTecOnly
+              : TecConstraint::Mode::kTecAndCommonScalar;
       std::unique_ptr<TecConstraint> constraint;
 
       if (settings.approximate_tec) {
@@ -220,6 +222,17 @@ void AddConstraints(SolverBase& solver, const Settings& settings,
         constraint = std::make_unique<TecConstraint>(tec_mode);
       }
       constraint->setDoPhaseReference(settings.phase_reference);
+      solver.AddConstraint(std::move(constraint));
+      break;
+    }
+    case base::CalType::kTecAndDelay:
+    case base::CalType::kTecPhaseAndDelay: {
+      const bool with_offset =
+          settings.mode == base::CalType::kTecPhaseAndDelay;
+      std::unique_ptr<TecOffsetDelayConstraint> constraint =
+          std::make_unique<TecOffsetDelayConstraint>(
+              with_offset, settings.max_tec_delay_wraps,
+              settings.phase_reference);
       solver.AddConstraint(std::move(constraint));
       break;
     }
@@ -278,7 +291,9 @@ std::unique_ptr<SolverBase> CreateSolver(
       break;
     case base::CalType::kScalarPhase:
     case base::CalType::kTec:
+    case base::CalType::kTecAndDelay:
     case base::CalType::kTecAndPhase:
+    case base::CalType::kTecPhaseAndDelay:
       solver = CreateScalarSolver(algorithm, settings);
       solver->SetPhaseOnly(true);
       break;

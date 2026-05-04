@@ -62,7 +62,7 @@ inputs:
   mode:
     default: diagonal
     type: string
-    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tecandphase, rotation, rotation+diagonal, faradayrotation, leakage and leakageamplitude.
+    doc: Solve type. Options are scalar, scalarphase, scalaramplitude, diagonal, diagonalphase, diagonalamplitude, fulljones, tec, tec+delay, tec+phase, tec+phase+delay, rotation, rotation+diagonal, faradayrotation, leakage and leakageamplitude.
   tolerance:
     default: 1e-5
     type: double
@@ -108,7 +108,7 @@ inputs:
   approximatetec:
     default: false
     type: bool
-    doc: Uses an approximation stage in which the phases are constrained with the piece-wise fitter, to solve local minima problems. Only effective when ``mode=tec`` or ``mode=tecandphase``.
+    doc: Uses an approximation stage in which the phases are constrained with the piece-wise fitter, to solve local minima problems. Only effective when ``mode=tec`` or ``mode=tec+phase``.
   maxapproxiter:
     default: maxiter/2
     type: int
@@ -249,7 +249,7 @@ inputs:
   phasereference:
     default: true
     type: bool
-    doc: Use phase referencing. This setting is only effective when ``mode=tec`` or ``mode=tecandphase``.
+    doc: Use phase referencing. This setting is only effective when ``mode=tec``, ``mode=tec+delay``, ``mode=tec+phase`` or ``mode=tec+phase+delay``.
   rotationreference:
     default: false
     type: bool

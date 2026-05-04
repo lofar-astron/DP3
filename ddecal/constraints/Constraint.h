@@ -15,8 +15,7 @@
 
 #include "../Solutions.h"
 
-namespace dp3 {
-namespace ddecal {
+namespace dp3::ddecal {
 
 /**
  * \brief This class is the base class for classes that implement a constraint
@@ -137,6 +136,12 @@ class Constraint {
     return std::isfinite(value.real()) && std::isfinite(value.imag());
   }
 
+  /**
+   * Pick a suitable reference antenna that is >20% unflagged, and
+   * references the phases and amplitudes of all solutions to this antenna.
+   */
+  void ApplyReferenceAntenna(SolutionSpan& solutions);
+
  private:
   size_t n_antennas_ = 0;
   size_t n_channel_blocks_ = 0;
@@ -144,7 +149,6 @@ class Constraint {
   std::vector<uint32_t> solutions_per_direction_;
 };
 
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal
 
 #endif

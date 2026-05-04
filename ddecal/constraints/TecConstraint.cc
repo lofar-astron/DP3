@@ -7,10 +7,8 @@
 #include <aocommon/staticfor.h>
 
 #include <xtensor/core/xmath.hpp>
-#include <xtensor/views/xview.hpp>
 
-namespace dp3 {
-namespace ddecal {
+namespace dp3::ddecal {
 
 TecConstraint::TecConstraint(Mode mode)
     : mode_(mode),
@@ -73,32 +71,6 @@ void ApproximateTECConstraint::initializeChild() {
     pw_fitters_[i].SetChunkSize(fitting_chunk_size_);
 }
 
-void TecConstraint::applyReferenceAntenna(SolutionSpan& solutions) const {
-  // Choose reference antenna that has at least 20% channels unflagged
-  size_t ref_antenna = 0;
-  for (; ref_antenna != NAntennas(); ++ref_antenna) {
-    // Only check flagged state for first direction
-    const size_t n_unflagged_channels = xt::sum(
-        xt::isfinite(xt::view(solutions, xt::all(), ref_antenna, 0, 0)))();
-    if (n_unflagged_channels > 0.2 * NChannelBlocks())
-      // Choose this refAntenna;
-      break;
-  }
-  // All antennas are flagged, use first one (will lead to NaNs for this solint)
-  if (ref_antenna == NAntennas()) ref_antenna = 0;
-
-  for (size_t ch = 0; ch != NChannelBlocks(); ++ch) {
-    auto reference_view = xt::view(solutions, ch, ref_antenna, xt::all(), 0);
-    for (size_t antenna_index = 0; antenna_index != NAntennas();
-         ++antenna_index) {
-      if (antenna_index != ref_antenna) {
-        xt::view(solutions, ch, antenna_index, xt::all(), 0) /= reference_view;
-      }
-    }
-    reference_view.fill(1.0);
-  }
-}
-
 void TecConstraint::Apply(SolutionSpan& solutions, double time) {
   assert(solutions.shape(0) == NChannelBlocks());
   assert(solutions.shape(1) == NAntennas());
@@ -107,7 +79,7 @@ void TecConstraint::Apply(SolutionSpan& solutions, double time) {
          1);  // single polarization (phase only) solutions
 
   // Divide out the reference antenna
-  if (do_phase_reference_) applyReferenceAntenna(solutions);
+  if (do_phase_reference_) ApplyReferenceAntenna(solutions);
 
   // Use a DynamicFor, since the ternarySearch functions in PhaseFitter.cc run
   // a variable number of iterations.
@@ -171,7 +143,7 @@ void ApproximateTECConstraint::Apply(SolutionSpan& solutions, double time) {
   if (finished_approximate_stage_) {
     TecConstraint::Apply(solutions, time);
   } else {
-    if (do_phase_reference_) applyReferenceAntenna(solutions);
+    if (do_phase_reference_) ApplyReferenceAntenna(solutions);
 
     // Use a StaticFor, since PieceWisePhaseFitter.cc has no dynamic code.
     aocommon::StaticFor<size_t> loop;
@@ -217,5 +189,4 @@ void ApproximateTECConstraint::Apply(SolutionSpan& solutions, double time) {
   }
 }
 
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal
