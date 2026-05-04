@@ -1207,7 +1207,7 @@ void GainCal::writeSolutionsParmDB(double startTime) {
       } else if (diagonalMode(itsMode) && (pol == 1 || pol == 2)) {
         continue;
       }
-      int realimmax = 2;  // For tecandphase, this functions as dummy between
+      int realimmax = 2;  // For tec+phase, this functions as dummy between
                           // tec and commonscalarphase
       if (itsMode == CalType::kDiagonalPhase ||
           itsMode == CalType::kScalarPhase ||

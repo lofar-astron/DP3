@@ -95,7 +95,9 @@ void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
     case CalType::kRotationAndDiagonal:
     case CalType::kFaradayRotation:
     case CalType::kTec:
+    case CalType::kTecAndDelay:
     case CalType::kTecAndPhase:
+    case CalType::kTecPhaseAndDelay:
     case CalType::kTecScreen:
     case CalType::kLeakage:
     case CalType::kLeakageAmplitude:

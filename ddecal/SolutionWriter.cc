@@ -242,7 +242,9 @@ void SolutionWriter::WriteSolverResults(
         store_phase = false;
         break;
       case CalType::kTec:
+      case CalType::kTecAndDelay:
       case CalType::kTecAndPhase:
+      case CalType::kTecPhaseAndDelay:
       case CalType::kTecScreen:
       case CalType::kRotation:
       case CalType::kRotationAndDiagonal:

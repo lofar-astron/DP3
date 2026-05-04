@@ -176,6 +176,10 @@ Settings::Settings(const common::ParameterSet& _parset,
               ? dp3::base::StringToCalType(boost::to_lower_copy(
                     GetString("faradaydiagonalmode", "rotation")))
               : CalType::kDiagonal),
+      max_tec_delay_wraps(
+          (mode == CalType::kTecAndDelay || mode == CalType::kTecPhaseAndDelay)
+              ? GetUint("max_tec_delay_wraps", 5)
+              : 0),
       faraday_limit((mode == CalType::kFaradayRotation)
                         ? GetOptionalDouble("faradaylimit", 0.0)
                         : std::optional<double>()),

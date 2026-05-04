@@ -14,8 +14,7 @@
 #include <vector>
 #include <ostream>
 
-namespace dp3 {
-namespace ddecal {
+namespace dp3::ddecal {
 
 class TecConstraint : public Constraint {
  public:
@@ -33,7 +32,7 @@ class TecConstraint : public Constraint {
                   const std::vector<double>& frequencies) override;
 
   /** Propagate weights to the phase fitters */
-  virtual void SetWeights(const std::vector<double>& weights) final override;
+  void SetWeights(const std::vector<double>& weights) final override;
 
   /** Setter for doPhaseReference */
   void setDoPhaseReference(bool doPhaseReference) {
@@ -46,8 +45,6 @@ class TecConstraint : public Constraint {
 
  protected:
   virtual void initializeChild() {}
-
-  void applyReferenceAntenna(SolutionSpan& solutions) const;
 
   Mode mode_;
   bool do_phase_reference_;
@@ -105,7 +102,6 @@ class ApproximateTECConstraint final : public TecConstraint {
   size_t fitting_chunk_size_, max_approx_iters_;
 };
 
-}  // namespace ddecal
-}  // namespace dp3
+}  // namespace dp3::ddecal
 
 #endif

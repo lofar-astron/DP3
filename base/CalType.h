@@ -6,8 +6,7 @@
 
 #include <string>
 
-namespace dp3 {
-namespace base {
+namespace dp3::base {
 
 enum class CalType {
   kScalar,
@@ -17,8 +16,10 @@ enum class CalType {
   kDiagonalAmplitude,
   kDiagonalPhase,
   kFullJones,
-  kTecAndPhase,
   kTec,
+  kTecAndDelay,
+  kTecAndPhase,
+  kTecPhaseAndDelay,
   kTecScreen,
   kRotationAndDiagonal,
   kRotation,
@@ -49,15 +50,16 @@ constexpr size_t GetNPolarizations(CalType cal_type) {
     case CalType::kScalar:
     case CalType::kScalarAmplitude:
     case CalType::kScalarPhase:
-    case CalType::kTecAndPhase:
     case CalType::kTec:
+    case CalType::kTecAndDelay:
+    case CalType::kTecAndPhase:
+    case CalType::kTecPhaseAndDelay:
     case CalType::kTecScreen:
       return 1;
   }
   return 0;
 }
 
-}  // namespace base
-}  // namespace dp3
+}  // namespace dp3::base
 
 #endif  // DP3_CALTYPE_H

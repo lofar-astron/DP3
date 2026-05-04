@@ -79,13 +79,13 @@ BOOST_AUTO_TEST_SUITE(solverfactory)
 BOOST_DATA_TEST_CASE(scalar_type,
                      boost::unit_test::data::make({"scalar", "scalaramplitude",
                                                    "scalarphase", "tec",
-                                                   "tecandphase"}),
+                                                   "tec+phase"}),
                      mode) {
 #else
 BOOST_DATA_TEST_CASE(scalar_type,
                      boost::unit_test::data::make({"scalar", "scalaramplitude",
                                                    "scalarphase", "tec",
-                                                   "tecandphase", "tecscreen"}),
+                                                   "tec+phase", "tecscreen"}),
                      mode) {
 #endif
   dp3::common::ParameterSet parset = ParsetForMode(mode);
@@ -133,15 +133,14 @@ BOOST_DATA_TEST_CASE(
 
 #ifndef ENABLE_SCREENFITTER
 BOOST_DATA_TEST_CASE(phase_only,
-                     boost::unit_test::data::make({"scalarphase",
-                                                   "diagonalphase", "tec",
-                                                   "tecandphase"}),
+                     boost::unit_test::data::make(
+                         {"scalarphase", "diagonalphase", "tec", "tec+phase"}),
                      mode) {
 #else
 BOOST_DATA_TEST_CASE(phase_only,
                      boost::unit_test::data::make({"scalarphase",
                                                    "diagonalphase", "tec",
-                                                   "tecandphase", "tecscreen"}),
+                                                   "tec+phase", "tecscreen"}),
                      mode) {
 #endif
   dp3::common::ParameterSet parset = ParsetForMode(mode);
@@ -170,8 +169,7 @@ BOOST_DATA_TEST_CASE(amplitude_constraint,
 }
 
 BOOST_DATA_TEST_CASE(tec_constraint,
-                     boost::unit_test::data::make({"tec", "tecandphase"}),
-                     mode) {
+                     boost::unit_test::data::make({"tec", "tec+phase"}), mode) {
   // For this test, only the size of these vectors matters.
   const std::vector<std::array<double, 3>> kAntennaPositions(5);
   const std::vector<std::string> kAntennaNames(kAntennaPositions.size());

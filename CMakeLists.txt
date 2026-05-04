@@ -441,12 +441,14 @@ add_library(
   ddecal/SolutionWriter.cc
   ddecal/SolverFactory.cc
   ddecal/constraints/AntennaIntervalConstraint.cc
+  ddecal/constraints/Constraint.cc
   ddecal/constraints/FaradayConstraint.cc
   ddecal/constraints/PolarizationLeakageConstraint.cc
   ddecal/constraints/RotationAndDiagonalConstraint.cc
   ddecal/constraints/RotationConstraint.cc
   ddecal/constraints/SmoothnessConstraint.cc
   ddecal/constraints/TecConstraint.cc
+  ddecal/constraints/TecOffsetDelayConstraint.cc
   ddecal/constraints/TecOffsetDelayFitting.cc
   ddecal/gain_solvers/BdaSolverBuffer.cc
   ddecal/gain_solvers/DiagonalLowRankSolver.cc

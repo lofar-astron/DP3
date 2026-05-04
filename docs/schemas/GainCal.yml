@@ -9,7 +9,7 @@ inputs:
     type: string
     default: diagonal
     doc: >-
-      The type of calibration that needs to be performed. Options are `scalar`, `scalarphase`, `scalaramplitude`, `diagonal`, `diagonalphase`, `diagonalamplitude`, `fulljones`, 'tec' and 'tecandphase'.
+      The type of calibration that needs to be performed. Options are `scalar`, `scalarphase`, `scalaramplitude`, `diagonal`, `diagonalphase`, `diagonalamplitude`, `fulljones`, 'tec' and 'tec+phase'.
   parmdb:
     type: string
     doc: >-
@@ -41,7 +41,7 @@ inputs:
     default: 0
     type: int
     doc: >-
-      Number of channels on which a solution is assumed to be constant (same as CellSize.Freq in BBS). 0 means all channels. When caltype = 'tec' or 'tecandphase', the default is 1, meaning that a TEC will be fitted through a phase for each channel.
+      Number of channels on which a solution is assumed to be constant (same as CellSize.Freq in BBS). 0 means all channels. When caltype = 'tec' or 'tec+phase', the default is 1, meaning that a TEC will be fitted through a phase for each channel.
   usemodelcolumn:
     default: false
     type: bool
