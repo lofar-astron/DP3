@@ -292,6 +292,15 @@ inputs:
       rotation values. For some sets the default is sufficiently fast, but for
       some observations (e.g. LOFAR LBA with many channels) this may be too slow,
       and a faradaylimit of for example 5.0 can make the fitter considerably faster.
+  max_tec_delay_wraps:
+    default: 5
+    type: int
+    doc: >-
+      The maximum number of wraps that can be expected and is searched for. This option is
+      only used when mode equals ``mode=tec+delay`` or ``mode=tec+phase+delay``. Because
+      a grid with TEC and delay dimensions is searched, and this variable modifies the search
+      in both directions, high values can make the solver very slow. On the other hand, if
+      the value is too low, the right value will not be found.
   grouppredict:
     default: false
     type: bool
