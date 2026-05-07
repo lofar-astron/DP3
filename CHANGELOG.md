@@ -1,15 +1,47 @@
 # DP3 Changelog
 
-## [(Upcoming release)] - 202?-??-??
+## [6.6] - 2026-05-07
+
+This is the last version of DP3 that supports certain file formats:
+
+- Casacore and Blob "sourcedb" sky model support will be removed in the next version. The next version will only support the csv-like text format. 
+- Casacore and Blob "parmdb" solution sets will be removed in the next version. The next version will only support the "H5Parm" format that makes
+use of HDF5.
+
+List of major changes in this release:
 
 ### New features
 
-- Add `predict.usefastpredict` setting to enable the new fast predict at runtime. It remains an experimental option, hence, it is only available when `USE_FAST_PREDICT` is passed to CMake.
+- Add a polarization leakage solver to DDECal.
+- Add TEC+delay and TEC+phase+delay solver options to DDECal.
 - Add a filter-substep to the clipper step to enable baseline selection.
+- Add `predict.usefastpredict` and `clipper.usefastpredict` settings to enable the new fast predict at runtime. They remain experimental options, hence, it is only available when `USE_FAST_PREDICT=ON` is passed to CMake.
+- Support reading of BDA model data columns in DDECal.
+- Allow setting the ref antenna for the distance smoothing.
+- Add options to enable Sisco compression with Stokes I and diagonal values.
+- Add a step to make time-frequency FITS files from the data.
+- Allow nulling of all Stokes parameters.
 
 ### Improvements
 
+- Support EveryBeam 0.8.x.
+- Show smoothness DD factors in the output.
+- Support Boost 1.89. Require at least Boost 1.73.
+- Drop Ubuntu 20 support, since Boost is not recent enough in Ubuntu 20.
+- Make h5parm constraints work with direction-dependent intervals.
+- Automatically enable LBFGS solver if libdirac is installed in a standard path.
+- Use GCC-11 and enable LBFGS solver in binary wheels.
+- Several improvements to support gcc 16.
+- Improve various error messages.
+- Remove dependency on the `fits` module of Casacore.
+- Stop forwarding deprecated DPPP command to DP3.
+- Remove extra code for deprecated cmake versions.
+
 ### Bug fixes
+
+- Fix h5parm writing for various constraint solves when DD intervals are enabled.
+- Fix applycal processing a buffer past the end.
+- Fix BDA pool size bug causing DP3 to crash on some BDA data.
 
 ## [6.5.1] - 2025-10-09
 
