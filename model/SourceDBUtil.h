@@ -10,9 +10,9 @@
 #ifndef DP3_BASE_SOURCEDBUTIL_H_
 #define DP3_BASE_SOURCEDBUTIL_H_
 
+#include <optional>
 #include <string>
 #include <string_view>
-#include <variant>
 #include <vector>
 
 #include "parmdb/SourceDB.h"
@@ -33,10 +33,6 @@ inline bool HasSkymodelExtension(const std::string &source_db_name) {
           std::equal(kTxtExtension.rbegin(), kTxtExtension.rend(),
                      source_db_name.rbegin()));
 }
-
-std::vector<std::shared_ptr<Patch>> makePatches(
-    parmdb::SourceDB &sourceDB, const std::vector<std::string> &patchNames,
-    unsigned int nModel);
 
 std::vector<std::shared_ptr<Patch>> MakePatches(
     const parmdb::SourceDBSkymodel &source_db,
@@ -62,9 +58,6 @@ std::vector<std::shared_ptr<Patch>> clusterProximateSources(
     const std::vector<std::shared_ptr<Patch>> &patchList,
     double proximityLimit);
 
-std::vector<std::string> makePatchList(parmdb::SourceDB &sourceDB,
-                                       std::vector<std::string> patterns);
-
 std::vector<std::string> MakePatchList(
     const parmdb::SourceDBSkymodel &source_db,
     const std::vector<std::string> &patterns);
@@ -81,16 +74,8 @@ std::vector<std::vector<std::string>> MakeDirectionList(
     const std::vector<std::string> &packed_directions,
     const std::string &source_db_filename);
 
-bool checkPolarized(parmdb::SourceDB &sourceDB,
-                    const std::vector<std::string> &patchNames,
-                    unsigned int nModel);
-
 bool CheckPolarized(const parmdb::SourceDBSkymodel &source_db,
                     const std::vector<std::string> &patch_names);
-
-/// Check whether any source in a sourcedb has absolute orientation
-bool CheckAnyOrientationIsAbsolute(const parmdb::SourceDBSkymodel &source_db,
-                                   const std::vector<std::string> &patch_names);
 
 /// Check whether any source in a skymodel-sourcedb has absolute orientation
 bool CheckAnyOrientationIsAbsolute(const parmdb::SourceDBSkymodel &source_db,
@@ -138,18 +123,11 @@ class SourceDBWrapper {
 
  private:
   std::vector<std::string> patch_names_;
-  std::variant<std::monostate, parmdb::SourceDB, parmdb::SourceDBSkymodel>
-      source_db_;
+  std::optional<parmdb::SourceDBSkymodel> source_db_;
 
-  template <class T>
-  T &Get() {
-    return std::get<T>(source_db_);
-  }
+  parmdb::SourceDBSkymodel &Get() { return *source_db_; }
 
-  template <class T>
-  bool HoldsAlternative() const {
-    return std::holds_alternative<T>(source_db_);
-  }
+  bool HasValue() const { return source_db_.has_value(); }
 };
 
 }  // namespace model

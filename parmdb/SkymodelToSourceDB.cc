@@ -10,19 +10,24 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <aocommon/logger.h>
+
+#include <casacore/casa/Arrays/IPosition.h>
+#include <casacore/casa/Quanta/MVAngle.h>
+#include <casacore/casa/Utilities/Regex.h>
+
 using dp3::parmdb::ParmDBMeta;
 using dp3::parmdb::ParmMap;
 using dp3::parmdb::ParmValue;
 using dp3::parmdb::ParmValueSet;
 using dp3::parmdb::PatchSumInfo;
-using dp3::parmdb::SourceDB;
 using dp3::parmdb::SourceInfo;
 
 using casacore::IPosition;
 
-#include <aocommon/logger.h>
-
 using aocommon::Logger;
+
+namespace {
 
 // Define the sequence nrs of the various fields.
 enum FieldNr {
@@ -66,10 +71,6 @@ enum FieldNr {
   // Nr of fields.
   NrFields
 };
-
-namespace dp3 {
-namespace parmdb {
-namespace skymodel_to_source_db {
 
 std::vector<std::string> fillKnown() {
   // The order in which the names are pushed must match exactly with the
@@ -536,76 +537,6 @@ void checkRefType(const std::string& refType) {
   }
 }
 
-// Get the search cone or box values.
-SearchInfo GetSearchInfo(const std::string& center, const std::string& radius,
-                         const std::string& width) {
-  SearchInfo searchInfo;
-  if (center.empty()) {
-    searchInfo.search = false;
-  } else {
-    searchInfo.search = true;
-    std::vector<std::string> pos;
-    boost::algorithm::split(pos, center, boost::is_any_of(","));
-    if (pos.size() != 2)
-      throw std::runtime_error("center not specified as ra,dec");
-    searchInfo.ra = string2pos(pos, 0, -1, -1, -1, -1, true);
-    searchInfo.dec = string2pos(pos, 1, -1, -1, -1, -1, false);
-    searchInfo.sinDec = sin(searchInfo.dec);
-    searchInfo.cosDec = cos(searchInfo.dec);
-    if (radius.empty() == width.empty())
-      throw std::runtime_error(
-          "radius OR width must be given if center is given (not both)");
-    if (radius.empty()) {
-      double raw, decw;
-      searchInfo.asCone = false;
-      pos.clear();
-      boost::algorithm::split(pos, width, boost::is_any_of(","));
-      if (pos.size() != 1 && pos.size() != 2)
-        throw std::runtime_error("width should be specified as 1 or 2 values");
-      raw = string2pos(pos, 0, -1, -1, -1, -1, true);
-      if (pos.size() > 1) {
-        decw = string2pos(pos, 1, -1, -1, -1, -1, false);
-      } else {
-        decw = raw;
-      }
-      searchInfo.raStart = searchInfo.ra - raw / 2;
-      searchInfo.raEnd = searchInfo.ra + raw / 2;
-      searchInfo.decStart = searchInfo.dec - decw / 2;
-      searchInfo.decEnd = searchInfo.dec + decw / 2;
-    } else {
-      searchInfo.asCone = true;
-      pos[0] = radius;
-      searchInfo.cosRadius = cos(string2pos(pos, 0, -1, -1, -1, -1, false));
-    }
-  }
-  return searchInfo;
-}
-
-bool matchSearchInfo(double ra, double dec, const SearchInfo& si) {
-  if (!si.search) {
-    return true;
-  }
-  bool match = false;
-  if (si.asCone) {
-    match = (si.cosRadius <=
-             si.sinDec * sin(dec) + si.cosDec * cos(dec) * cos(si.ra - ra));
-  } else {
-    // Ra can be around 0 or 360 degrees, so make sure all cases are handled.
-    ra -= 2.0 * M_PI;
-    for (int i = 0; i < 4; ++i) {
-      if (ra >= si.raStart && ra <= si.raEnd) {
-        match = true;
-        break;
-      }
-      ra += 2.0 * M_PI;
-    }
-    if (match) {
-      match = (dec >= si.decStart && dec <= si.decEnd);
-    }
-  }
-  return match;
-}
-
 void addValue(ParmMap& fieldValues, const std::string& name, double value) {
   fieldValues.define(name, ParmValueSet(ParmValue(value)));
 }
@@ -747,8 +678,7 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
              const SdbFormat& sdbf, const std::string& prefix,
              const std::string& suffix, bool check, int& nrpatch, int& nrsource,
              int& nrpatchfnd, int& nrsourcefnd,
-             std::map<std::string, PatchSumInfo>& patchSumInfo,
-             const SearchInfo& searchInfo) {
+             std::map<std::string, PatchSumInfo>& patchSumInfo) {
   // Hold the values.
   ParmMap fieldValues;
   std::vector<std::string> values;
@@ -895,31 +825,27 @@ void process(const std::string& line, dp3::parmdb::SourceDBBase& pdb,
   if (srcName.empty()) {
     if (patch.empty())
       throw std::runtime_error("Source and/or patch name must be filled in");
-    if (matchSearchInfo(ra, dec, searchInfo)) {
-      unsigned int patchId = pdb.addPatch(patch, cat, fluxI, ra, dec, check);
-      nrpatchfnd++;
-      // Create an entry to collect the ra/dec/flux of the sources in the patch.
-      patchSumInfo.insert(make_pair(patch, PatchSumInfo(patchId)));
-    }
+    unsigned int patchId = pdb.addPatch(patch, cat, fluxI, ra, dec, check);
+    nrpatchfnd++;
+    // Create an entry to collect the ra/dec/flux of the sources in the patch.
+    patchSumInfo.insert(make_pair(patch, PatchSumInfo(patchId)));
     nrpatch++;
   } else {
-    if (matchSearchInfo(ra, dec, searchInfo)) {
-      if (patch.empty()) {
-        // Patch name is source name plus possible prefix and suffix.
-        pdb.addSource(srcInfo, prefix + srcInfo.getName() + suffix, cat, fluxI,
-                      fieldValues, ra, dec, check);
-      } else {
-        pdb.addSource(srcInfo, patch, fieldValues, ra, dec, check);
-        // Add ra/dec/flux to patch sum info.
-        std::map<std::string, PatchSumInfo>::iterator iter =
-            patchSumInfo.find(patch);
-        if (iter == patchSumInfo.end())
-          throw std::runtime_error("Patch name " + patch +
-                                   " not defined before source using it");
-        iter->second.add(ra, dec, fluxI);
-      }
-      nrsourcefnd++;
+    if (patch.empty()) {
+      // Patch name is source name plus possible prefix and suffix.
+      pdb.addSource(srcInfo, prefix + srcInfo.getName() + suffix, cat, fluxI,
+                    fieldValues, ra, dec, check);
+    } else {
+      pdb.addSource(srcInfo, patch, fieldValues, ra, dec, check);
+      // Add ra/dec/flux to patch sum info.
+      std::map<std::string, PatchSumInfo>::iterator iter =
+          patchSumInfo.find(patch);
+      if (iter == patchSumInfo.end())
+        throw std::runtime_error("Patch name " + patch +
+                                 " not defined before source using it");
+      iter->second.add(ra, dec, fluxI);
     }
+    nrsourcefnd++;
     nrsource++;
   }
 }
@@ -928,8 +854,7 @@ static void ParseSkyModel(dp3::parmdb::SourceDBBase& pdb, std::istream& input,
                           const SdbFormat& sdbf, const std::string& prefix,
                           const std::string& suffix, bool check, int& nrpatch,
                           int& nrsource, int& nrpatchfnd, int& nrsourcefnd,
-                          std::map<std::string, PatchSumInfo>& patchSumInfo,
-                          const SearchInfo& searchInfo) {
+                          std::map<std::string, PatchSumInfo>& patchSumInfo) {
   casacore::Regex regexf("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=.*");
   std::string line;
   // Read first line.
@@ -955,62 +880,16 @@ static void ParseSkyModel(dp3::parmdb::SourceDBBase& pdb, std::istream& input,
     }
     if (!skip) {
       process(line, pdb, sdbf, prefix, suffix, check, nrpatch, nrsource,
-              nrpatchfnd, nrsourcefnd, patchSumInfo, searchInfo);
+              nrpatchfnd, nrsourcefnd, patchSumInfo);
     }
     // Read next line
     getInLine(input, line);
   }
 }
 
-SourceDB MakeSourceDb(const std::string& in, const std::string& out,
-                      const std::string& outType, const std::string& format,
-                      const std::string& prefix, const std::string& suffix,
-                      bool append, bool average, bool check,
-                      const SearchInfo& search_info) {
-  SdbFormat sdbf = getFormat(format);
-  // Create/open the sourcedb and lock it for write.
-  ParmDBMeta ptm(outType, out);
-  SourceDB pdb(ptm, false, !append);
-  pdb.lock(true);
-  int nrpatch = 0;
-  int nrsource = 0;
-  int nrpatchfnd = 0;
-  int nrsourcefnd = 0;
-  std::map<std::string, PatchSumInfo> patchSumInfo;
-  if (!in.empty()) {
-    std::ifstream infile(in.c_str());
-    if (!infile)
-      throw std::runtime_error("File " + in + " could not be opened");
+}  // namespace
 
-    ParseSkyModel(pdb, infile, sdbf, prefix, suffix, check, nrpatch, nrsource,
-                  nrpatchfnd, nrsourcefnd, patchSumInfo, search_info);
-  }
-  // Write the calculated ra/dec/flux of the patches.
-  if (average) {
-    for (std::map<std::string, PatchSumInfo>::const_iterator iter =
-             patchSumInfo.begin();
-         iter != patchSumInfo.end(); ++iter) {
-      const PatchSumInfo& info = iter->second;
-      if (info.getFlux() != 0) {
-        pdb.updatePatch(info.getPatchId(), info.getFlux(), info.getRa(),
-                        info.getDec());
-      }
-    }
-  }
-  Logger::Info << "Wrote " << nrpatchfnd << " patches (out of " << nrpatch
-               << ") and " << nrsourcefnd << " sources (out of " << nrsource
-               << ") into " << pdb.getParmDBMeta().getTableName() << '\n';
-  casacore::Vector<std::string> dp(pdb.findDuplicatePatches());
-  if (dp.size() > 0) {
-    Logger::Warn << "Duplicate patches: " << dp << '\n';
-  }
-  casacore::Vector<std::string> ds(pdb.findDuplicateSources());
-  if (ds.size() > 0) {
-    Logger::Warn << "Duplicate sources: " << ds << '\n';
-  }
-
-  return pdb;
-}
+namespace dp3::parmdb::skymodel_to_source_db {
 
 SourceDBSkymodel MakeSourceDBSkymodel(const std::string& filename,
                                       const std::string& format) {
@@ -1032,7 +911,7 @@ SourceDBSkymodel MakeSourceDBSkymodel(const std::string& filename,
 
   ParseSkyModel(source_db, file, sdb_format, /*prefix*/ "", /*suffix*/ "",
                 /*check*/ false, nrpatch, nrsource, nrpatchfnd, nrsourcefnd,
-                patchSumInfo, GetSearchInfo("", "", ""));
+                patchSumInfo);
 
   // Write the calculated ra/dec/flux of the patches.
   for (const auto& patch : patchSumInfo) {
@@ -1048,18 +927,16 @@ SourceDBSkymodel MakeSourceDBSkymodel(const std::string& filename,
 
 // Read the format from the file.
 // It should be contained in a line like # format = .
-std::string ReadFormat(std::string file, const std::string& cat_file) {
+std::string ReadFormat(const std::string& file, const std::string& cat_file) {
   // Use catalog itself if needed.
-  if (file.empty()) {
-    file = cat_file;
-  }
-  if (file.empty()) {
+  const std::string& input = file.empty() ? cat_file : file;
+  if (input.empty()) {
     return std::string();
   }
   // Read file until format line is found or until non-comment is found.
-  std::ifstream infile(file.c_str());
+  std::ifstream infile(input.c_str());
   if (!infile)
-    throw std::runtime_error("File " + file +
+    throw std::runtime_error("File " + input +
                              " containing format string could not be opened");
   std::string line;
   getInLine(infile, line);
@@ -1096,6 +973,5 @@ std::string ReadFormat(std::string file, const std::string& cat_file) {
   Logger::Warn << "No format string found; using default format\n";
   return "Name,Type,Ra,Dec,I,Q,U,V,MajorAxis,MinorAxis,Orientation";
 }
-}  // namespace skymodel_to_source_db
-}  // namespace parmdb
-}  // namespace dp3
+
+}  // namespace dp3::parmdb::skymodel_to_source_db
