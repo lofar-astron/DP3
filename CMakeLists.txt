@@ -609,8 +609,6 @@ add_library(
   parmdb/SkymodelToSourceDB.cc
   parmdb/SourceData.cc
   parmdb/SourceDB.cc
-  parmdb/SourceDBBlob.cc
-  parmdb/SourceDBCasa.cc
   parmdb/SourceDBSkymodel.cc
   parmdb/SourceInfo.cc)
 
@@ -681,13 +679,10 @@ target_link_libraries(
   ${EVERYBEAM_LIB}
   ${IDGAPI_LIBRARIES})
 
-add_executable(showsourcedb parmdb/showsourcedb.cc)
-target_link_libraries(showsourcedb ${SOURCEDB_LIBRARIES})
-
 add_executable(msoverview base/msoverview.cc base/MS.cc)
 target_link_libraries(msoverview ${CASACORE_LIBRARIES} ${Boost_LIBRARIES})
 
-install(TARGETS DP3 showsourcedb msoverview DESTINATION bin)
+install(TARGETS DP3 msoverview DESTINATION bin)
 
 # Install a script that warns users that DP3 is the new name of the executable
 install(
@@ -772,7 +767,6 @@ if(BUILD_TESTING)
       ddecal/test/unit/tTecOffsetDelayFitting.cc
       model/test/unit/tSourceDBUtil.cc
       parmdb/test/unit/tSkymodelToSourceDB.cc
-      parmdb/test/unit/tSourceDB.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
       steps/test/unit/mock/ThrowStep.cc
@@ -1063,9 +1057,8 @@ if(BUILD_TESTING)
 
   # Add python unit and integration tests.
   # The CMakeLists.txt files in these directories call add_python_tests.
-  foreach(PYTHON_TEST_DIR
-          ddecal/test/integration parmdb/test/integration pythondp3/test/unit
-          pythondp3/test/integration steps/test/integration)
+  foreach(PYTHON_TEST_DIR ddecal/test/integration pythondp3/test/unit
+                          pythondp3/test/integration steps/test/integration)
     add_subdirectory(${PYTHON_TEST_DIR})
   endforeach()
 endif() # BUILD_TESTING

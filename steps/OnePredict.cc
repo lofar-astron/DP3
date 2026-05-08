@@ -20,7 +20,6 @@
 
 #include "parmdb/ParmDBMeta.h"
 #include "parmdb/PatchInfo.h"
-#include "parmdb/SkymodelToSourceDB.h"
 
 #include "base/DPInfo.h"
 #include "base/FlagCounter.h"

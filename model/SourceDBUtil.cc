@@ -93,51 +93,6 @@ static PointSource::Ptr MakePointSource(const SourceData& src) {
   return source;
 }
 
-std::vector<std::shared_ptr<Patch>> makePatches(
-    parmdb::SourceDB& sourceDB, const std::vector<std::string>& patchNames,
-    unsigned int nModel) {
-  // Create a component list for each patch name.
-  std::vector<std::vector<std::shared_ptr<ModelComponent>>> componentsList(
-      nModel);
-
-  // Loop over all sources.
-  sourceDB.lock();
-  sourceDB.rewind();
-  SourceData src;
-  while (!sourceDB.atEnd()) {
-    sourceDB.getNextSource(src);
-    // Use the source if its patch matches a patch name.
-    for (unsigned int i = 0; i < nModel; ++i) {
-      if (src.getPatchName() == patchNames[i]) {
-        componentsList[i].push_back(MakePointSource(src));
-        break;
-      }
-    }
-  }
-  sourceDB.unlock();
-
-  std::vector<std::shared_ptr<Patch>> patchList;
-  patchList.reserve(componentsList.size());
-  for (unsigned int i = 0; i < componentsList.size(); ++i) {
-    if (componentsList[i].empty())
-      throw std::runtime_error("No sources found for patch " + patchNames[i]);
-    auto ppatch = std::make_shared<Patch>(
-        patchNames[i], componentsList[i].begin(), componentsList[i].end());
-    std::vector<parmdb::PatchInfo> patchInfo(
-        sourceDB.getPatchInfo(-1, patchNames[i]));
-    if (patchInfo.size() != 1)
-      throw std::runtime_error("Patch \"" + patchNames[i] +
-                               "\" defined more than once in SourceDB");
-    // Set the direction and apparent flux of the patch.
-    const Direction patchDirection(patchInfo[0].getRa(), patchInfo[0].getDec());
-    ppatch->SetDirection(patchDirection);
-    ppatch->SetBrightness(patchInfo[0].apparentBrightness());
-    ///    ppatch->computeDirection();
-    patchList.push_back(std::move(ppatch));
-  }
-  return patchList;
-}
-
 std::vector<std::shared_ptr<Patch>> MakePatches(
     const parmdb::SourceDBSkymodel& source_db,
     const std::vector<std::string>& patch_names) {
@@ -271,28 +226,6 @@ std::vector<std::shared_ptr<Patch>> clusterProximateSources(
   return clusteredPatchList;
 }
 
-std::vector<std::string> makePatchList(parmdb::SourceDB& sourceDB,
-                                       std::vector<std::string> patterns) {
-  if (patterns.empty()) {
-    patterns.push_back("*");
-  }
-
-  std::set<std::string> patches;
-  std::vector<std::string>::iterator it = patterns.begin();
-  while (it != patterns.end()) {
-    if (!it->empty() && (*it)[0] == '@') {
-      patches.insert(*it);
-      it = patterns.erase(it);
-    } else {
-      std::vector<std::string> match(sourceDB.getPatches(-1, *it));
-      patches.insert(match.begin(), match.end());
-      ++it;
-    }
-  }
-
-  return std::vector<std::string>(patches.begin(), patches.end());
-}
-
 std::vector<std::string> MakePatchList(
     const parmdb::SourceDBSkymodel& source_db,
     const std::vector<std::string>& patterns) {
@@ -337,34 +270,6 @@ std::vector<std::vector<std::string>> MakeDirectionList(
   return directions;
 }
 
-bool checkPolarized(parmdb::SourceDB& sourceDB,
-                    const std::vector<std::string>& patchNames,
-                    unsigned int nModel) {
-  bool polarized = false;
-
-  // Loop over all sources.
-  const std::lock_guard<parmdb::SourceDB> lock{sourceDB};
-  sourceDB.rewind();
-  SourceData src;
-  while (!sourceDB.atEnd()) {
-    sourceDB.getNextSource(src);
-    // Use the source if its patch matches a patch name.
-    for (unsigned int i = 0; i < nModel; ++i) {
-      if (src.getPatchName() == patchNames[i]) {
-        // Determine whether source is unpolarized.
-        if (src.getV() != 0.0 || src.getQ() != 0.0 || src.getU() != 0.0) {
-          polarized = true;
-          break;
-        }
-      }
-    }
-    if (polarized) {
-      break;
-    }
-  }
-  return polarized;
-}
-
 bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
                     const std::vector<std::string>& patch_names) {
   for (const auto& source : source_db.GetSources()) {
@@ -374,27 +279,6 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
         if (source.getV() != 0.0 || source.getQ() != 0.0 ||
             source.getU() != 0.0)
           return true;
-  }
-  return false;
-}
-
-bool CheckAnyOrientationIsAbsolute(parmdb::SourceDB& source_db,
-                                   const std::vector<std::string>& patch_names,
-                                   unsigned int n_model) {
-  // Loop over all sources.
-  const std::lock_guard<parmdb::SourceDB> lock{source_db};
-  source_db.rewind();
-  SourceData src;
-  while (!source_db.atEnd()) {
-    source_db.getNextSource(src);
-    // Use the source if its patch matches a patch name.
-    for (unsigned int i = 0; i < n_model; ++i) {
-      if (src.getPatchName() == patch_names[i]) {
-        if (src.getInfo().getPositionAngleIsAbsolute()) {
-          return true;
-        }
-      }
-    }
   }
   return false;
 }
@@ -419,17 +303,14 @@ SourceDBWrapper::SourceDBWrapper(const std::string& source_db_name) {
         source_db_name,
         parmdb::skymodel_to_source_db::ReadFormat("", source_db_name));
   } else {
-    source_db_ =
-        parmdb::SourceDB(parmdb::ParmDBMeta("", source_db_name), true, false);
+    throw std::runtime_error(
+        "Extension of sky-model file '" + source_db_name +
+        " is unknown -- format not supported. Should be .txt or .skymodel.");
   }
 }
 
 std::vector<std::shared_ptr<Patch>> SourceDBWrapper::MakePatchList() {
-  if (HoldsAlternative<parmdb::SourceDBSkymodel>())
-    return MakePatches(Get<parmdb::SourceDBSkymodel>(), patch_names_);
-
-  return makePatches(Get<parmdb::SourceDB>(), patch_names_,
-                     patch_names_.size());
+  return MakePatches(Get(), patch_names_);
 }
 
 void SetPatchIndices(std::vector<std::shared_ptr<Patch>>& patch_list) {
@@ -438,20 +319,11 @@ void SetPatchIndices(std::vector<std::shared_ptr<Patch>>& patch_list) {
 }
 
 bool SourceDBWrapper::CheckPolarized() {
-  if (HoldsAlternative<parmdb::SourceDBSkymodel>())
-    return model::CheckPolarized(Get<parmdb::SourceDBSkymodel>(), patch_names_);
-
-  return checkPolarized(Get<parmdb::SourceDB>(), patch_names_,
-                        patch_names_.size());
+  return model::CheckPolarized(Get(), patch_names_);
 }
 
 bool SourceDBWrapper::CheckAnyOrientationIsAbsolute() {
-  if (HoldsAlternative<parmdb::SourceDBSkymodel>())
-    return model::CheckAnyOrientationIsAbsolute(Get<parmdb::SourceDBSkymodel>(),
-                                                patch_names_);
-
-  return model::CheckAnyOrientationIsAbsolute(
-      Get<parmdb::SourceDB>(), patch_names_, patch_names_.size());
+  return model::CheckAnyOrientationIsAbsolute(Get(), patch_names_);
 }
 
 SourceDBWrapper& SourceDBWrapper::Filter(const std::vector<std::string>& filter,
@@ -462,11 +334,7 @@ SourceDBWrapper& SourceDBWrapper::Filter(const std::vector<std::string>& filter,
 
   switch (filter_mode) {
     case FilterMode::kPattern:
-      if (HoldsAlternative<parmdb::SourceDBSkymodel>())
-        patch_names_ =
-            model::MakePatchList(Get<parmdb::SourceDBSkymodel>(), filter);
-      else
-        patch_names_ = makePatchList(Get<parmdb::SourceDB>(), filter);
+      patch_names_ = model::MakePatchList(Get(), filter);
       break;
     case FilterMode::kValue:
       patch_names_ = filter;

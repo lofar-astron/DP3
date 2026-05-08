@@ -27,12 +27,6 @@ class FixtureSkymodel {
     /// This argument must contain an non-empty string.
     std::string skymodel_name;
 
-    /// The name of the sourcedb file.
-    ///
-    /// When this name is not-empty the fixture will create a sourceDB based
-    /// on the contents of the skymodel file.
-    std::string source_db_name = "";
-
     /// The contents of the skymodel file to be written to the disc.
     std::string skymodel_contents =
         R"(FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'

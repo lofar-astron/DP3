@@ -18,15 +18,6 @@ FixtureSkymodel::FixtureSkymodel(const FixtureSkymodel::Arguments& arguments) {
     std::ofstream file(arguments.skymodel_name);
     file << arguments.skymodel_contents;
   }
-
-  if (!arguments.source_db_name.empty()) {
-    dp3::parmdb::skymodel_to_source_db::MakeSourceDb(
-        arguments.skymodel_name, arguments.source_db_name, std::string(),
-        dp3::parmdb::skymodel_to_source_db::ReadFormat("",
-                                                       arguments.skymodel_name),
-        "", "", false, true, false,
-        dp3::parmdb::skymodel_to_source_db::GetSearchInfo("", "", ""));
-  }
 }
 
 namespace test_source_db {
