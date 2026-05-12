@@ -774,6 +774,10 @@ void MsReader::ReadArrayInformation() {
   const MDirection phase_center = *(phase_column(0).data());
   const MDirection delay_center = *(delay_column(0).data());
 
+  const casacore::String field_name =
+      ScalarColumn<casacore::String>(field_table, "NAME")(0);
+  GetWritableInfoOut().SetFieldName(field_name);
+
   MDirection tile_beam_direction;
   try {
     tile_beam_direction = everybeam::ReadTileBeamDirection(ms_);
@@ -789,12 +793,19 @@ void MsReader::ReadArrayInformation() {
       ms_.keywordSet().asTable(base::DP3MS::kObservationTable));
   const casacore::String telescope_name =
       ScalarColumn<casacore::String>(observation_table, "TELESCOPE_NAME")(0);
+
   MPosition array_position;
   if (observation_table.nrow() == 0 ||
       !MeasTable::Observatory(array_position, telescope_name)) {
     // If not found, use the position of the middle antenna.
     array_position = antenna_positions[antenna_positions.size() / 2];
   }
+
+  GetWritableInfoOut().SetTelescopeName(telescope_name);
+
+  const casacore::String observer =
+      ScalarColumn<casacore::String>(observation_table, "OBSERVER")(0);
+  GetWritableInfoOut().SetObserver(observer);
 
   GetWritableInfoOut().setArrayInformation(array_position, phase_center,
                                            delay_center, tile_beam_direction);

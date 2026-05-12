@@ -141,6 +141,18 @@ class DPInfo {
   const std::string& flagColumnName() const { return flag_column_name_; }
   const std::string& weightColumnName() const { return weight_column_name_; }
   const std::string& antennaSet() const { return antenna_set_; }
+
+  void SetTelescopeName(const std::string& telescope_name) {
+    telescope_name_ = telescope_name;
+  }
+  const std::string& GetTelescopeName() const { return telescope_name_; }
+
+  void SetObserver(const std::string& observer) { observer_ = observer; }
+  const std::string& GetObserver() const { return observer_; }
+
+  void SetFieldName(const std::string& field_name) { field_name_ = field_name; }
+  const std::string& GetFieldName() const { return field_name_; }
+
   unsigned int ncorr() const { return n_correlations_; }
   /**
    * Number of channels after channel selection and averaging. This is
@@ -307,6 +319,9 @@ class DPInfo {
   std::string flag_column_name_;
   std::string weight_column_name_;
   std::string antenna_set_;
+  std::string telescope_name_;
+  std::string observer_;
+  std::string field_name_;
   unsigned int n_correlations_;
   unsigned int start_channel_;
   unsigned int original_n_channels_;

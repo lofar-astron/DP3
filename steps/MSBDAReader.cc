@@ -277,6 +277,10 @@ void MSBDAReader::updateInfo(const DPInfo&) {
   const MDirection phase_center = *(col_phase_dir(0).data());
   const MDirection delay_center = *(col_delay_dir(0).data());
 
+  ScalarColumn<casacore::String> col_field_name(
+      field, MS_Field::columnName(MS_Field::NAME));
+  GetWritableInfoOut().SetFieldName(col_field_name(0));
+
   MDirection tile_beam_dir;
   try {
     tile_beam_dir = everybeam::ReadTileBeamDirection(ms_);
@@ -298,6 +302,12 @@ void MSBDAReader::updateInfo(const DPInfo&) {
     // If not found, use the position of the middle antenna.
     array_pos = antPos[antPos.size() / 2];
   }
+
+  GetWritableInfoOut().SetTelescopeName(col_telescope_name(0));
+
+  const ScalarColumn<casacore::String> col_observer(
+      observation, MS_Obs::columnName(MS_Obs::OBSERVER));
+  GetWritableInfoOut().SetObserver(col_observer(0));
 
   GetWritableInfoOut().setArrayInformation(array_pos, phase_center,
                                            delay_center, tile_beam_dir);

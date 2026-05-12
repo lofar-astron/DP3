@@ -60,6 +60,9 @@ BOOST_AUTO_TEST_CASE(update_info) {
   BOOST_TEST(info.startchan() == 0U);
   BOOST_TEST(info.startTime() == start_time);
   BOOST_TEST(info.timeInterval() == 30U);
+  BOOST_TEST(info.GetTelescopeName() == "WSRT");
+  BOOST_TEST(info.GetObserver() == "ReadDZB v3.0 (2000/07/11 12:34)");
+  BOOST_TEST(info.GetFieldName() == "3C343.1");
 }
 
 BOOST_AUTO_TEST_CASE(process, *boost::unit_test::tolerance(0.0001) *

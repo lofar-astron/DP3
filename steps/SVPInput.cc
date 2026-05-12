@@ -25,6 +25,10 @@ using aocommon::Logger;
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
 
+namespace {
+const std::string kUnknownObserver = "Unknown";
+}  // namespace
+
 namespace dp3 {
 namespace steps {
 SVPInput::SVPInput([[maybe_unused]] const common::ParameterSet& parset,
@@ -394,6 +398,10 @@ void SVPInput::InitializeInfo() {
                                    phase_direction_, phase_direction_,
                                    phase_direction_);
 
+  dataset_info.SetTelescopeName(metadata_.telescope_name_);
+  dataset_info.SetObserver(kUnknownObserver);
+  dataset_info.SetFieldName(metadata_.source_name_);
+
   uvw_calculator_ = std::make_unique<base::UVWCalculator>(
       phase_direction_, metadata_.antenna_positions_[0],
       metadata_.antenna_positions_);
@@ -506,7 +514,7 @@ void SVPInput::CreateObservationTable(double startTime, double endTime,
   observation.telescope_name = metadata_.telescope_name_;
   observation.start_time = startTime;
   observation.end_time = endTime;
-  observation.observer = "Unknown";
+  observation.observer = kUnknownObserver;
   observation.schedule_type = metadata_.telescope_name_;
   ;
   observation.project = "Unknown";
