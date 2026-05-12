@@ -319,6 +319,22 @@ BOOST_FIXTURE_TEST_CASE(expect_four_polarizations, FixtureCopyAndUpdatePol) {
                     std::runtime_error);
 }
 
+BOOST_FIXTURE_TEST_CASE(observation_info, FixtureDirectory) {
+  const casacore::MeasurementSet ms(kInputMs,
+                                    casacore::TableLock::AutoNoReadLocking);
+
+  ParameterSet parset;
+  parset.add("msin", kInputMs);
+  MsReader reader(ms, parset, "msin.");
+
+  reader.updateInfo(dp3::base::DPInfo());
+
+  const dp3::base::DPInfo& info = reader.getInfoOut();
+  BOOST_TEST(info.GetTelescopeName() == "WSRT");
+  BOOST_TEST(info.GetObserver() == "ReadDZB v3.0 (2000/07/11 12:34)");
+  BOOST_TEST(info.GetFieldName() == "3C343.1");
+}
+
 BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(0.0001) *
                      boost::unit_test::tolerance(0.0001f))
 BOOST_DATA_TEST_CASE_F(FixtureSplitChannelCopyExtraData, process_multiple_ms,

@@ -127,6 +127,21 @@ BOOST_AUTO_TEST_CASE(set_array_info) {
   BOOST_TEST(info.tileBeamDir().getValue() == kTimeBeamDirection.getValue());
 }
 
+BOOST_AUTO_TEST_CASE(set_observation_info) {
+  const casacore::String kTelescopeName("LOFAR");
+  const casacore::String kObserver("Henk");
+  const casacore::String kFieldName("M87");
+
+  DPInfo info;
+  info.SetTelescopeName(kTelescopeName);
+  info.SetObserver(kObserver);
+  info.SetFieldName(kFieldName);
+
+  BOOST_TEST(info.GetTelescopeName() == kTelescopeName);
+  BOOST_TEST(info.GetObserver() == kObserver);
+  BOOST_TEST(info.GetFieldName() == kFieldName);
+}
+
 BOOST_AUTO_TEST_CASE(set_channels) {
   const std::vector<double> kFreqs{10.0, 20.0};
   const std::vector<double> kWidths{5.0, 6.0};
