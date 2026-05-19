@@ -5,18 +5,14 @@
 
 #include "Axis.h"
 
-#include "blob/BlobIStream.h"
-#include "blob/BlobOStream.h"
-#include "blob/BlobSTL.h"
-
-#include "common/StreamUtil.h"
+#include <cassert>
 
 #include <casacore/casa/BasicMath/Math.h>
 
+#include "common/StreamUtil.h"
+
 namespace dp3 {
 namespace parmdb {
-
-using dp3::blob::operator<<;
 
 // Initialize static.
 unsigned int Axis::theirId = 0;
@@ -428,20 +424,6 @@ Axis::ShPtr RegularAxis::compress(size_t factor) const {
   return std::make_shared<OrderedAxis>(centers, widths);
 }
 
-void RegularAxis::write(blob::BlobOStream& bos) const {
-  bos << itsStart << itsWidth << itsCount;
-}
-
-void RegularAxis::read(blob::BlobIStream& bis) {
-  bis >> itsStart >> itsWidth >> itsCount;
-  setup(itsStart, itsWidth, itsCount);
-}
-
-const std::string& RegularAxis::classType() const {
-  static std::string type("RegularAxis");
-  return type;
-}
-
 OrderedAxis::OrderedAxis() { setup(-1e30, 2e30, 1); }
 
 OrderedAxis::OrderedAxis(const std::vector<double>& starts,
@@ -481,20 +463,6 @@ Axis::ShPtr OrderedAxis::compress(size_t factor) const {
     widths[i] = upper(end) - lower(start);
   }
   return std::make_shared<OrderedAxis>(centers, widths);
-}
-
-const std::string& OrderedAxis::classType() const {
-  static std::string type("OrderedAxis");
-  return type;
-}
-
-void OrderedAxis::write(blob::BlobOStream& bos) const {
-  bos << itsCenter << itsWidth;
-}
-
-void OrderedAxis::read(blob::BlobIStream& bis) {
-  bis >> itsCenter >> itsWidth;
-  setup(itsCenter, itsWidth, false);
 }
 
 }  // namespace parmdb
