@@ -17,8 +17,8 @@
 #include "base/ModelComponent.h"
 #include "base/PredictBuffer.h"
 #include "common/ParameterSet.h"
-#include "model/Patch.h"
-#include "model/SourceDBUtil.h"
+#include "sky_model/SkyModelFunctions.h"
+#include "sky_model/Patch.h"
 #include "steps/Step.h"
 #include "ApplyCal.h"
 #include "ResultStep.h"
@@ -211,10 +211,10 @@ class SagecalPredict : public ModelDataStep {
   std::string h5_name_;  ///< HDF5 parameter file
   std::vector<std::string>
       directions_list_;  ///< list of directions (one or more patches)
-  std::vector<std::shared_ptr<model::Patch>> patch_list_;
+  std::vector<std::shared_ptr<sky_model::Patch>> patch_list_;
   std::string source_db_name_;
   std::vector<std::pair<std::shared_ptr<base::ModelComponent>,
-                        std::shared_ptr<model::Patch>>>
+                        std::shared_ptr<sky_model::Patch>>>
       source_list_;
   bool any_orientation_is_absolute_{false};  ///< Any of the Gaussian sources
                                              ///< has absolute orientation

@@ -36,7 +36,7 @@ class FastPredictFixture {
  public:
   FastPredictFixture() : predict_() {
     dp3::common::ParameterSet parset;
-    parset.add("fixture.sourcedb", dp3::steps::test::kPredictSkymodel);
+    parset.add("fixture.sourcedb", dp3::steps::test::kPredictSkyModel);
     predict_ = std::make_shared<FastPredict>(parset, "fixture.",
                                              std::vector<std::string>());
     predict_->setNextStep(std::make_shared<dp3::steps::NullStep>());
@@ -90,7 +90,7 @@ BOOST_DATA_TEST_CASE(fields_add_subtract,
                      boost::unit_test::data::make({"add", "subtract"}),
                      operation) {
   dp3::common::ParameterSet parset;
-  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
   parset.add("operation", operation);
   parset.add("usefastpredict", "True");
   const FastPredict predict(parset, "", {});
@@ -101,7 +101,7 @@ BOOST_DATA_TEST_CASE(fields_add_subtract,
 
 BOOST_FIXTURE_TEST_CASE(fields_applycal, dp3::steps::test::H5ParmFixture) {
   dp3::common::ParameterSet parset;
-  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
   parset.add("usefastpredict", "True");
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
@@ -128,7 +128,7 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
                        boost::unit_test::data::make({"add", "subtract"}),
                        operation) {
   dp3::common::ParameterSet parset;
-  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
   parset.add("usefastpredict", "True");
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
   // Predict visibilities to main data buffer, replacing the input visibilities.
   // Make step chain
   dp3::common::ParameterSet parset;
-  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
   parset.add("usefastpredict", "True");
   auto predict =
       std::make_shared<FastPredict>(parset, "", std::vector<std::string>());

@@ -17,7 +17,7 @@
 #include "ProgressMeter.h"
 #include "base/Version.h"
 
-#include "model/SkyModelCache.h"
+#include "sky_model/SkyModelCache.h"
 
 #include "steps/AntennaFlagger.h"
 #include "steps/AOFlaggerStep.h"
@@ -363,7 +363,7 @@ void Execute(const std::string& parsetName,
   }
 
   // All steps should have finished reading the sky model, so clear the cache
-  model::SkyModelCache::GetInstance().Clear();
+  sky_model::SkyModelCache::GetInstance().Clear();
 
   // Process until the end.
   unsigned int ntodo = firstStep->getInfoOut().ntime();

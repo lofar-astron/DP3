@@ -1,16 +1,9 @@
-// SourceDBUtil.cc: Helper functions to extract patch and source information
-// from a SourceDB.
-//
-// Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
-// SPDX-License-Identifier: GPL-3.0-or-later
-
-#include "SourceDBUtil.h"
+#include "ReadSkyModel.h"
+#include "SkyModelFunctions.h"
+#include "SkyModelSelection.h"
 
 #include "base/PointSource.h"
 #include "base/GaussianSource.h"
-
-#include "parmdb/SourceDB.h"
-#include "parmdb/SkymodelToSourceDB.h"
 
 #include "common/ParameterValue.h"
 #include "common/ProximityClustering.h"
@@ -22,18 +15,18 @@
 #include <set>
 #include <vector>
 
-namespace dp3 {
-namespace model {
+namespace dp3::sky_model {
 
 using base::Direction;
 using base::GaussianSource;
 using base::ModelComponent;
 using base::PointSource;
 using base::Stokes;
-using parmdb::SourceData;
-using parmdb::SourceInfo;
 
-static PointSource::Ptr MakePointSource(const SourceData& src) {
+using sky_model::Source;
+using sky_model::SourceInfo;
+
+static PointSource::Ptr MakePointSource(const Source& src) {
   // Fetch direction.
   if (src.getInfo().getRefType() != "J2000")
     throw std::runtime_error("Reference type should be J2000");
@@ -94,7 +87,7 @@ static PointSource::Ptr MakePointSource(const SourceData& src) {
 }
 
 std::vector<std::shared_ptr<Patch>> MakePatches(
-    const parmdb::SourceDBSkymodel& source_db,
+    const sky_model::SkyModel& source_db,
     const std::vector<std::string>& patch_names) {
   // Create a component list for each patch name.
   std::vector<std::vector<std::shared_ptr<ModelComponent>>> componentsList(
@@ -118,7 +111,7 @@ std::vector<std::shared_ptr<Patch>> MakePatches(
     auto ppatch = std::make_shared<Patch>(
         patch_names[i], componentsList[i].begin(), componentsList[i].end());
 
-    const parmdb::PatchInfo& info = source_db.GetPatch(patch_names[i]);
+    const sky_model::PatchInfo& info = source_db.GetPatch(patch_names[i]);
     // Set the direction and apparent flux of the patch.
     const Direction patchDirection(info.getRa(), info.getDec());
     ppatch->SetDirection(patchDirection);
@@ -227,9 +220,9 @@ std::vector<std::shared_ptr<Patch>> clusterProximateSources(
 }
 
 std::vector<std::string> MakePatchList(
-    const parmdb::SourceDBSkymodel& source_db,
+    const sky_model::SkyModel& source_db,
     const std::vector<std::string>& patterns) {
-  if (patterns.empty()) return source_db.FindPatches("*");
+  if (patterns.empty()) return source_db.GetPatchNames();
 
   std::set<std::string> patches;
   for (const auto& pattern : patterns) {
@@ -247,16 +240,15 @@ std::vector<std::string> MakePatchList(
 
 std::vector<std::vector<std::string>> MakeDirectionList(
     const std::vector<std::string>& packed_directions,
-    const std::string& source_db_filename) {
+    const std::string& sky_model_filename) {
   std::vector<std::vector<std::string>> directions;
 
-  if (packed_directions.empty() && !source_db_filename.empty()) {
-    // Use all patches from the SourceDB if the user did not give directions.
-    SourceDBWrapper source_db(source_db_filename);
-    source_db.Filter(std::vector<std::string>{},
-                     SourceDBWrapper::FilterMode::kPattern);
+  if (packed_directions.empty() && !sky_model_filename.empty()) {
+    // Use all patches from the skymodel if the user did not give directions.
+    SkyModelSelection sky_model(ReadSkyModel(sky_model_filename));
+    sky_model.SelectAllPatches();
     const std::vector<std::shared_ptr<Patch>> patches =
-        std::move(source_db).MakePatchList();
+        std::move(sky_model).MakePatchList();
 
     for (const auto& patch : patches) {
       directions.emplace_back(1, patch->Name());
@@ -270,7 +262,7 @@ std::vector<std::vector<std::string>> MakeDirectionList(
   return directions;
 }
 
-bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
+bool CheckPolarized(const sky_model::SkyModel& source_db,
                     const std::vector<std::string>& patch_names) {
   for (const auto& source : source_db.GetSources()) {
     const std::string& source_patch_name = source.getPatchName();
@@ -284,7 +276,7 @@ bool CheckPolarized(const parmdb::SourceDBSkymodel& source_db,
 }
 
 bool CheckAnyOrientationIsAbsolute(
-    const parmdb::SourceDBSkymodel& source_db,
+    const sky_model::SkyModel& source_db,
     const std::vector<std::string>& patch_names) {
   for (const auto& source : source_db.GetSources()) {
     const std::string& source_patch_name = source.getPatchName();
@@ -297,51 +289,9 @@ bool CheckAnyOrientationIsAbsolute(
   return false;
 }
 
-SourceDBWrapper::SourceDBWrapper(const std::string& source_db_name) {
-  if (HasSkymodelExtension(source_db_name)) {
-    source_db_ = parmdb::skymodel_to_source_db::MakeSourceDBSkymodel(
-        source_db_name,
-        parmdb::skymodel_to_source_db::ReadFormat("", source_db_name));
-  } else {
-    throw std::runtime_error(
-        "Extension of sky-model file '" + source_db_name +
-        " is unknown -- format not supported. Should be .txt or .skymodel.");
-  }
-}
-
-std::vector<std::shared_ptr<Patch>> SourceDBWrapper::MakePatchList() {
-  return MakePatches(Get(), patch_names_);
-}
-
 void SetPatchIndices(std::vector<std::shared_ptr<Patch>>& patch_list) {
   for (size_t index = 0; index != patch_list.size(); ++index)
     patch_list[index]->SetIndex(index);
 }
 
-bool SourceDBWrapper::CheckPolarized() {
-  return model::CheckPolarized(Get(), patch_names_);
-}
-
-bool SourceDBWrapper::CheckAnyOrientationIsAbsolute() {
-  return model::CheckAnyOrientationIsAbsolute(Get(), patch_names_);
-}
-
-SourceDBWrapper& SourceDBWrapper::Filter(const std::vector<std::string>& filter,
-                                         FilterMode filter_mode) {
-  if (std::find(filter.cbegin(), filter.cend(), "") != filter.end()) {
-    throw std::runtime_error("Empty source pattern not allowed");
-  }
-
-  switch (filter_mode) {
-    case FilterMode::kPattern:
-      patch_names_ = model::MakePatchList(Get(), filter);
-      break;
-    case FilterMode::kValue:
-      patch_names_ = filter;
-      break;
-  }
-  return *this;
-}
-
-}  // namespace model
-}  // namespace dp3
+}  // namespace dp3::sky_model

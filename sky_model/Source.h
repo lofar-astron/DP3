@@ -14,26 +14,19 @@
 
 #include <iosfwd>
 
-namespace dp3 {
-namespace blob {
-class BlobIStream;
-class BlobOStream;
-}  // namespace blob
+namespace dp3::parmdb {
+class ParmValue;
+}
 
-namespace parmdb {
+namespace dp3::sky_model {
 
-class ParmMap;
-
-/// @ingroup ParmDB
-/// @{
-
-/// @brief Class holding a  data of a source.
-class SourceData {
+/// @brief Class holding data of a source.
+class Source {
  public:
-  SourceData();
+  Source();
 
-  SourceData(const SourceInfo&, const std::string& patchName, double ra,
-             double dec);
+  Source(const SourceInfo&, const std::string& patchName, double ra,
+         double dec);
 
   /// Get the various source parameters.
   const SourceInfo& getInfo() const { return itsInfo; }
@@ -82,17 +75,8 @@ class SourceData {
   }
   ///@}
 
-  /// Set the parameters from a ParmMap object.
-  void setParms(const ParmMap& defaultParameters);
-
-  /// Get the parameters as a ParmMap object.
-  void getParms(ParmMap& parms) const;
-
-  /// Write the source data into a blob stream.
-  void writeSource(blob::BlobOStream&) const;
-
-  /// Read the source data from a blob stream.
-  void readSource(blob::BlobIStream&);
+  void setParms(
+      const std::map<std::string, parmdb::ParmValue>& defaultParameters);
 
   /// Print the source data.
   void print(std::ostream&) const;
@@ -101,12 +85,8 @@ class SourceData {
   /// Set a parameter.
   /// If defined, its value is taken from the map.
   /// Otherwise the default value is used.
-  void setParm(const ParmMap& parms, const std::string& name, double defValue,
-               double& value);
-
-  /// Add a parm to the ParmMap.
-  void makeParm(ParmMap& parms, const std::string& name, double value,
-                bool pertRel = true) const;
+  void setParm(const std::map<std::string, parmdb::ParmValue>& parms,
+               const std::string& name, double defValue, double& value);
 
   SourceInfo itsInfo;
   string itsPatchName;
@@ -125,14 +105,11 @@ class SourceData {
   std::vector<double> itsSpTerms;
 };
 
-/// Output a source to a skymodel text file.
+/// Output a source to a sky_model text file.
 ///
-/// The output format is used for @code showsourcedb mode=skymodel @endcode
-void toSkymodel(std::ostream& output, const SourceData& source);
+/// The output format is used for @code showsourcedb mode=sky_model @endcode
+void toSkyModel(std::ostream& output, const Source& source);
 
-/// @}
-
-}  // namespace parmdb
-}  // namespace dp3
+}  // namespace dp3::sky_model
 
 #endif

@@ -15,8 +15,7 @@
 
 #include <casacore/casa/Arrays/Array.h>
 
-namespace dp3 {
-namespace parmdb {
+namespace dp3::sky_model {
 
 SourceInfo::SourceInfo(const std::string& name, Type type,
                        const std::string& refType, bool useLogarithmicSI,
@@ -78,53 +77,4 @@ void SourceInfo::setShapeletScale(double scaleI, double scaleQ, double scaleU,
   itsShapeletScaleV = scaleV;
 }
 
-void SourceInfo::write(blob::BlobOStream& bos) const {
-  int16_t version = 3;
-
-  bos << version << itsName << int16_t(itsType) << itsRefType
-      << itsHasLogarithmicSI << itsNSpTerms << itsSpTermsRefFreq
-      << itsUseRotMeas << itsPositionAngleIsAbsolute;
-  if (itsType == SHAPELET) {
-    bos << itsShapeletScaleI << itsShapeletScaleQ << itsShapeletScaleU
-        << itsShapeletScaleV << itsShapeletCoeffI << itsShapeletCoeffQ
-        << itsShapeletCoeffU << itsShapeletCoeffV;
-  }
-}
-
-void SourceInfo::read(blob::BlobIStream& bis) {
-  int16_t version, type;
-  bis >> version >> itsName >> type >> itsRefType;
-  if (version < 1 || version > 3)
-    throw std::runtime_error("Version of sourcedb must be <= 3");
-  if (version >= 2) {
-    bis >> itsHasLogarithmicSI;
-  } else {
-    itsHasLogarithmicSI = true;
-  }
-  bis >> itsNSpTerms >> itsSpTermsRefFreq >> itsUseRotMeas;
-  if (version >= 3) {
-    bis >> itsPositionAngleIsAbsolute;
-  } else {
-    itsPositionAngleIsAbsolute = false;
-  }
-  // Convert to enum.
-  itsType = Type(type);
-  if (itsType == SHAPELET) {
-    bis >> itsShapeletScaleI >> itsShapeletScaleQ >> itsShapeletScaleU >>
-        itsShapeletScaleV >> itsShapeletCoeffI >> itsShapeletCoeffQ >>
-        itsShapeletCoeffU >> itsShapeletCoeffV;
-  } else {
-    itsShapeletScaleI = 0;
-    itsShapeletScaleQ = 0;
-    itsShapeletScaleU = 0;
-    itsShapeletScaleV = 0;
-    itsShapeletCoeffI.resize();
-    itsShapeletCoeffQ.resize();
-    itsShapeletCoeffU.resize();
-    itsShapeletCoeffV.resize();
-  }
-}
-
-void toSkymodel(std::ostream& output, const SourceInfo& source);
-}  // namespace parmdb
-}  // namespace dp3
+}  // namespace dp3::sky_model

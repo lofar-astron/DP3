@@ -18,7 +18,7 @@
 #include "common/ParameterSet.h"
 #include "common/Timer.h"
 
-#include "model/Patch.h"
+#include "sky_model/Patch.h"
 
 namespace dp3 {
 namespace steps {
@@ -186,7 +186,7 @@ class Demixer : public Step {
   /// this Array thus provides a 3D cube of demixing weights.
   std::vector<aocommon::xt::UTensor<std::complex<double>, 5>> itsFactorsSubtr;
 
-  std::vector<std::shared_ptr<model::Patch>> itsPatchList;
+  std::vector<std::shared_ptr<sky_model::Patch>> itsPatchList;
   base::Direction itsPhaseRef;
   std::vector<base::Baseline> itsBaselines;
   std::vector<int> itsUVWSplitIndex;

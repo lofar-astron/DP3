@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-namespace dp3::model {
+namespace dp3::sky_model {
 
 void Patch::ComputeDirection() {
   if (components_.empty()) {
@@ -30,4 +30,4 @@ void Patch::ComputeDirection() {
   }
 }
 
-}  // namespace dp3::model
+}  // namespace dp3::sky_model

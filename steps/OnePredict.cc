@@ -19,7 +19,9 @@
 #include "common/StreamUtil.h"
 
 #include "parmdb/ParmDBMeta.h"
-#include "parmdb/PatchInfo.h"
+
+#include "sky_model/PatchInfo.h"
+#include "sky_model/SkyModelCache.h"
 
 #include "base/DPInfo.h"
 #include "base/FlagCounter.h"
@@ -29,10 +31,6 @@
 #include "base/Simulator.h"
 #include "base/Stokes.h"
 #include "base/Telescope.h"
-
-#include "model/SkyModelCache.h"
-
-#include "parmdb/SourceDB.h"
 
 #include <aocommon/logger.h>
 #include <aocommon/recursivefor.h>
@@ -113,10 +111,9 @@ void OnePredict::init(const common::ParameterSet& parset,
   aocommon::Logger::Debug << "Loading " << source_db_name_
                           << " in predict step for direction " << direction_str_
                           << ".\n";
-  model::SourceDBWrapper source_db =
-      model::SkyModelCache::GetInstance().GetSkyModel(source_db_name_);
-  source_db.Filter(sourcePatterns,
-                   model::SourceDBWrapper::FilterMode::kPattern);
+  sky_model::SkyModelSelection source_db =
+      sky_model::SkyModelCache::GetInstance().GetMatchedSkyModel(
+          source_db_name_, sourcePatterns);
   try {
     patch_list_ = source_db.MakePatchList();
     if (patch_list_.empty()) {
@@ -556,7 +553,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
           correct_freq_smearing_, stokes_i_only_);
     }
 
-    std::vector<std::shared_ptr<const model::Patch>> curPatches(n_threads);
+    std::vector<std::shared_ptr<const sky_model::Patch>> curPatches(n_threads);
 
     std::barrier barrier(n_threads);
     // We need to create local threads here because we need to
@@ -565,7 +562,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
       const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
       // Predict the source model and apply beam when an entire patch is
       // done
-      const model::Patch* curPatch = curPatches[thread_index].get();
+      const sky_model::Patch* curPatch = curPatches[thread_index].get();
 
       for (size_t source_index = 0; source_index < source_list_.size();
            ++source_index) {
@@ -700,7 +697,7 @@ void OnePredict::PredictSourceRange(
       correct_time_smearing_, correct_freq_smearing_, stokes_i_only_);
 
   const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
-  const model::Patch* patch = nullptr;
+  const sky_model::Patch* patch = nullptr;
 
   for (size_t source_index = start; source_index != end; ++source_index) {
     // Predict the source model and apply beam when an entire patch is
@@ -785,7 +782,7 @@ everybeam::vector3r_t OnePredict::dir2Itrf(const MDirection& dir,
 }
 
 void OnePredict::addBeamToData(
-    const model::Patch& patch, size_t buffer_index,
+    const sky_model::Patch& patch, size_t buffer_index,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
     bool update_beam, size_t thread,
     aocommon::xt::UTensor<std::complex<double>, 3>& data, bool stokesIOnly) {
@@ -823,7 +820,7 @@ void OnePredict::addBeamToData(
 }
 
 void OnePredict::addBeamToDataRange(
-    const model::Patch& patch,
+    const sky_model::Patch& patch,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
     size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
     const std::pair<size_t, size_t>& baseline_range,

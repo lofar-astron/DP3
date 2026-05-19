@@ -26,7 +26,7 @@
 #include <aocommon/matrix2x2diag.h>
 #include <aocommon/recursivefor.h>
 
-#include "model/SourceDBUtil.h"
+#include "sky_model/SkyModelFunctions.h"
 
 #include "parmdb/ParmValue.h"
 

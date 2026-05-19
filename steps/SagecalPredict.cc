@@ -38,7 +38,7 @@
 #include "common/Timer.h"
 #include "common/StreamUtil.h"
 
-#include "model/SkyModelCache.h"
+#include "sky_model/SkyModelCache.h"
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -500,13 +500,12 @@ void SagecalPredict::init(
 
   patch_list_.clear();
 
-  model::SourceDBWrapper source_db =
-      model::SkyModelCache::GetInstance().GetSkyModel(source_db_name_);
-  source_db.Filter(source_patterns,
-                   model::SourceDBWrapper::FilterMode::kPattern);
+  sky_model::SkyModelSelection sky_model =
+      sky_model::SkyModelCache::GetInstance().GetMatchedSkyModel(
+          source_db_name_, source_patterns);
 
   try {
-    patch_list_ = source_db.MakePatchList();
+    patch_list_ = sky_model.MakePatchList();
     if (patch_list_.empty()) {
       std::stringstream ss;
       ss << source_patterns;
@@ -520,7 +519,7 @@ void SagecalPredict::init(
   }
 
   source_list_ = makeSourceList(patch_list_);
-  any_orientation_is_absolute_ = source_db.CheckAnyOrientationIsAbsolute();
+  any_orientation_is_absolute_ = sky_model.CheckAnyOrientationIsAbsolute();
   const bool apply_beam = parset.getBool(prefix + "usebeammodel", false);
   const bool use_channel_freq = parset.getBool(prefix + "usechannelfreq", true);
   beam_mode = DOBEAM_NONE;
@@ -872,7 +871,7 @@ void SagecalPredict::updateInfo(const DPInfo& _info) {
     size_t n_sources = std::count_if(
         source_list_.begin(), source_list_.end(),
         [&](const std::pair<std::shared_ptr<base::ModelComponent>,
-                            std::shared_ptr<model::Patch>>& item) {
+                            std::shared_ptr<sky_model::Patch>>& item) {
           return item.second == patch_list_[patch_index];
         });
 

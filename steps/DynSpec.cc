@@ -22,11 +22,10 @@
 #include "base/DPBuffer.h"
 #include "base/DPInfo.h"
 #include "base/Direction.h"
+#include "base/FlagCounter.h"
 
-#include "../base/FlagCounter.h"
-
-#include "../model/SkyModelCache.h"
-#include "../model/SourceDBUtil.h"
+#include "sky_model/SkyModelCache.h"
+#include "sky_model/SkyModelFunctions.h"
 
 #include "H5ParmPredict.h"
 #include "ApplyBeam.h"
@@ -58,11 +57,9 @@ DynSpec::DynSpec(const common::ParameterSet& parset, const std::string& prefix)
       model_column_(parset.getString(prefix + "subtractmodelcolumn", "")),
       apply_beam_correction_(parset.getBool(prefix + "beamcorrection", true)) {
   // Read directions from list of sources.
-  model::SourceDBWrapper source_db =
-      model::SkyModelCache::GetInstance()
-          .GetSkyModel(source_file_name_)
-          .Filter(std::vector<std::string>(),
-                  model::SourceDBWrapper::FilterMode::kPattern);
+  sky_model::SkyModelSelection source_db(
+      sky_model::SkyModelCache::GetInstance().GetSkyModel(source_file_name_));
+  source_db.SelectAllPatches();
   source_list_ = source_db.MakePatchList();
   if (source_list_.empty()) {
     // TODO: should we add a Patch at the MSs phase centre instead?
@@ -108,7 +105,7 @@ DynSpec::DynSpec(const common::ParameterSet& parset, const std::string& prefix)
 
   first_substeps_.reserve(source_list_.size());
   results_.reserve(source_list_.size());
-  for (std::shared_ptr<model::Patch>& source : source_list_) {
+  for (std::shared_ptr<sky_model::Patch>& source : source_list_) {
     const Direction& source_direction = source->Direction();
     std::vector<std::string> phase_center = {ToString(source_direction.ra),
                                              ToString(source_direction.dec)};
@@ -325,7 +322,7 @@ void DynSpec::WriteSpectraToDisk() {
       fits_prefix_.empty() ? fits_prefix_ : fits_prefix_ + "-";
   for (size_t direction_index = 0; direction_index < first_substeps_.size();
        ++direction_index) {
-    std::shared_ptr<model::Patch>& source = source_list_[direction_index];
+    std::shared_ptr<sky_model::Patch>& source = source_list_[direction_index];
     const std::string& source_name = source->Name();
     dynspec_writer.SetObjectName(source_name);
     dynspec_writer.SetObjectCoordinates(source->Direction().ra,

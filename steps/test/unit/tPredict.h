@@ -14,7 +14,7 @@ namespace steps {
 namespace test {
 
 /// MS name for the predict tests.
-const std::string kPredictSkymodel =
+const std::string kPredictSkyModel =
     DP3_RESOURCE_DIR "/tNDPPP-generic-skymodel.txt";
 const std::string kPredictDirection = "0002.2+3139";
 
