@@ -6,9 +6,6 @@
 #ifndef DP3_COMMON_PARAMETERSET_H_
 #define DP3_COMMON_PARAMETERSET_H_
 
-#include "blob/BlobIStream.h"
-#include "blob/BlobOStream.h"
-
 // Never #include <config.h> or #include <lofar_config.h> in a header file!
 #include "ParameterSetImpl.h"
 #include "KVpair.h"
@@ -351,12 +348,6 @@ class ParameterSet {
 
   std::shared_ptr<ParameterSetImpl> itsSet;
 };
-
-/// Write/read a ParameterSet into/from a blob.
-/// @{
-blob::BlobOStream& operator<<(blob::BlobOStream&, const ParameterSet&);
-blob::BlobIStream& operator>>(blob::BlobIStream&, ParameterSet&);
-/// @}
 
 //
 // ---------- inline functions ----------

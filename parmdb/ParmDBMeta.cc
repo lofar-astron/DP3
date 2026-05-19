@@ -5,15 +5,12 @@
 
 #include "ParmDBMeta.h"
 
-#include "blob/BlobOStream.h"
-#include "blob/BlobIStream.h"
-
 namespace dp3 {
 namespace parmdb {
 
 using dp3::blob::BlobIStream;
 
-ParmDBMeta::ParmDBMeta() {}
+ParmDBMeta::ParmDBMeta() = default;
 
 ParmDBMeta::ParmDBMeta(const std::string& type, const std::string& tableName)
     : itsType(type), itsTableName(tableName) {}
@@ -26,18 +23,6 @@ void ParmDBMeta::setSQLMeta(const std::string& dbName,
   itsUserName = userName;
   itsDBPwd = dbPwd;
   itsHostName = hostName;
-}
-
-blob::BlobOStream& operator<<(blob::BlobOStream& bos, const ParmDBMeta& pdm) {
-  bos << pdm.itsType << pdm.itsTableName << pdm.itsDBName << pdm.itsUserName
-      << pdm.itsDBPwd << pdm.itsHostName;
-  return bos;
-}
-
-blob::BlobIStream& operator>>(blob::BlobIStream& bis, ParmDBMeta& pdm) {
-  bis >> pdm.itsType >> pdm.itsTableName >> pdm.itsDBName >> pdm.itsUserName >>
-      pdm.itsDBPwd >> pdm.itsHostName;
-  return bis;
 }
 
 }  // namespace parmdb

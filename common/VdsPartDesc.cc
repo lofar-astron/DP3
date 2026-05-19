@@ -11,8 +11,6 @@
 
 #include <casacore/casa/Quanta/MVTime.h>
 
-#include "blob/BlobArray.h"
-
 #include "StreamUtil.h"
 
 using namespace std;
@@ -150,24 +148,6 @@ void VdsPartDesc::addBand(int nchan, const vector<double>& startFreq,
     itsStartFreqs.push_back(startFreq[i]);
     itsEndFreqs.push_back(endFreq[i]);
   }
-}
-
-blob::BlobOStream& VdsPartDesc::toBlob(blob::BlobOStream& bs) const {
-  bs.putStart("VdsPartDesc", 1);
-  bs << itsName << itsFileName << itsFileSys << itsCDescName << itsStartTime
-     << itsEndTime << itsStepTime << itsStartTimes << itsEndTimes << itsNChan
-     << itsStartFreqs << itsEndFreqs << itsParms;
-  bs.putEnd();
-  return bs;
-}
-
-blob::BlobIStream& VdsPartDesc::fromBlob(blob::BlobIStream& bs) {
-  bs.getStart("VdsPartDesc");
-  bs >> itsName >> itsFileName >> itsFileSys >> itsCDescName >> itsStartTime >>
-      itsEndTime >> itsStepTime >> itsStartTimes >> itsEndTimes >> itsNChan >>
-      itsStartFreqs >> itsEndFreqs >> itsParms;
-  bs.getEnd();
-  return bs;
 }
 
 }  // namespace common

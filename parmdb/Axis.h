@@ -10,8 +10,6 @@
 #ifndef LOFAR_PARMDB_AXIS_H
 #define LOFAR_PARMDB_AXIS_H
 
-#include "blob/BlobStreamable.h"
-
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -26,15 +24,14 @@ namespace parmdb {
 /// @{
 
 /// @brief Abstract base class for a cell centered axis.
-class Axis : public blob::BlobStreamable {
+class Axis {
  public:
   /// Define a shared_ptr for this class.
   typedef std::shared_ptr<Axis> ShPtr;
 
   /// The constructor sets the unique id.
   Axis();
-
-  ~Axis() override {}
+  virtual ~Axis() {}
 
   /// Clone the object.
   virtual Axis::ShPtr clone() const = 0;
@@ -127,15 +124,6 @@ class Axis : public blob::BlobStreamable {
   Axis::ShPtr combine(const Axis& that, int& s1, int& e1, int& s2,
                       int& e2) const;
 
-  /// Return the type of \c *this as a string.
-  const std::string& classType() const override = 0;
-
-  /// Write the contents of \c *this into the blob output stream \a bos.
-  void write(blob::BlobOStream& bos) const override = 0;
-
-  /// Read the contents from the blob input stream \a bis into \c *this.
-  void read(blob::BlobIStream& bis) override = 0;
-
   /// Make an Axis object from the intervals defined by the low/upp values.
   /// If all intervals have the same width, a RegularAxis object is made.
   /// Otherwise an OrderedAxis object.
@@ -189,15 +177,6 @@ class RegularAxis : public Axis {
   Axis::ShPtr doSubset(size_t start, size_t end) const override;
   Axis::ShPtr compress(size_t factor) const override;
 
-  /// Write the contents of \c *this into the blob output stream \a bos.
-  void write(blob::BlobOStream& bos) const override;
-
-  /// Read the contents from the blob input stream \a bis into \c *this.
-  void read(blob::BlobIStream& bis) override;
-
-  /// Return the type of \c *this as a string.
-  const std::string& classType() const override;
-
  private:
   double itsStart;
   double itsWidth;
@@ -226,15 +205,6 @@ class OrderedAxis : public Axis {
 
   Axis::ShPtr doSubset(size_t start, size_t end) const override;
   Axis::ShPtr compress(size_t factor) const override;
-
-  /// Write the contents of \c *this into the blob output stream \a bos.
-  void write(blob::BlobOStream& bos) const override;
-
-  /// Read the contents from the blob input stream \a bis into \c *this.
-  void read(blob::BlobIStream& bis) override;
-
-  /// Return the type of \c *this as a string.
-  const std::string& classType() const override;
 };
 
 /// @}

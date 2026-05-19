@@ -402,16 +402,6 @@ if("${isSystemDir}" STREQUAL "-1")
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
 endif("${isSystemDir}" STREQUAL "-1")
 
-add_library(
-  Blob OBJECT
-  blob/BlobAipsIO.cc
-  blob/BlobArray.cc
-  blob/BlobHeader.cc
-  blob/BlobIBufStream.cc
-  blob/BlobIStream.cc
-  blob/BlobOBufStream.cc
-  blob/BlobOStream.cc)
-
 # 'Common' files are included in all executables and libraries.
 add_library(
   Common OBJECT
@@ -602,7 +592,6 @@ add_library(
   parmdb/Parm.cc
   parmdb/ParmCache.cc
   parmdb/ParmDB.cc
-  parmdb/ParmDBBlob.cc
   parmdb/ParmDBCasa.cc
   parmdb/ParmDBLocker.cc
   parmdb/ParmDBMeta.cc
@@ -613,7 +602,7 @@ add_library(
   parmdb/ParmValue.cc)
 
 # dp3_testdyndp3 requires using position independent code.
-set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB
+set_property(TARGET Common DDECal DP3_OBJ ParmDB
              PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(DP3_LIBRARIES
@@ -654,7 +643,7 @@ target_link_libraries(Casacore INTERFACE ${CASACORE_LIBRARIES})
 add_library(LIBDP3 SHARED)
 target_link_libraries(
   LIBDP3
-  PUBLIC Blob Common DDECal DP3_OBJ ParmDB
+  PUBLIC Common DDECal DP3_OBJ ParmDB
   # The public headers of LIBDP3 include casacore and aocommon headers
   # These targets should therefore be linked as INTERFACE
   INTERFACE Casacore Aocommon
@@ -666,8 +655,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_subdirectory(pythondp3)
 endif()
 
-set(SOURCEDB_LIBRARIES Blob Common ParmDB ${CASACORE_LIBRARIES}
-                       ${Boost_LIBRARIES})
+set(SOURCEDB_LIBRARIES Common ParmDB ${CASACORE_LIBRARIES} ${Boost_LIBRARIES})
 
 add_executable(DP3 base/Main.cc)
 target_link_libraries(

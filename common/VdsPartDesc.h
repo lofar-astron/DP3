@@ -12,9 +12,6 @@
 
 #include "ParameterSet.h"
 
-#include "blob/BlobOStream.h"
-#include "blob/BlobIStream.h"
-
 #include <string>
 #include <vector>
 #include <iosfwd>
@@ -101,12 +98,6 @@ class VdsPartDesc {
   const std::vector<double>& getEndFreqs() const { return itsEndFreqs; }
   /// @}
 
-  /// Put/get the object to/from a blob.
-  /// @{
-  blob::BlobOStream& toBlob(blob::BlobOStream&) const;
-  blob::BlobIStream& fromBlob(blob::BlobIStream&);
-  /// @}
-
  private:
   std::string itsName;       ///< full name of the VDS desc
   std::string itsFileName;   ///< full name of the VDS (data set name)
@@ -122,17 +113,6 @@ class VdsPartDesc {
   std::vector<double> itsEndFreqs;    ///< end freq of each channel
   ParameterSet itsParms;              ///< extra parameters
 };
-
-/// Put/get the object to/from a blob.
-/// @{
-inline blob::BlobOStream& operator<<(blob::BlobOStream& bs,
-                                     const VdsPartDesc& vpd) {
-  return vpd.toBlob(bs);
-}
-inline blob::BlobIStream& operator>>(blob::BlobIStream& bs, VdsPartDesc& vpd) {
-  return vpd.fromBlob(bs);
-}
-/// @}
 
 }  // namespace common
 }  // namespace dp3

@@ -67,30 +67,5 @@ std::ostream& operator<<(std::ostream& stream, const ParameterSet& set) {
   return stream;
 }
 
-blob::BlobOStream& operator<<(blob::BlobOStream& stream,
-                              const ParameterSet& set) {
-  stream.putStart("ParameterSet", 1);
-  stream << static_cast<std::uint32_t>(set.size());
-  for (const std::pair<const std::string, ParameterValue>& entry : set) {
-    stream << entry.first << entry.second.get();
-  }
-  stream.putEnd();
-  return stream;
-}
-
-blob::BlobIStream& operator>>(blob::BlobIStream& stream, ParameterSet& set) {
-  stream.getStart("ParameterSet");
-  set.clear();
-  std::uint32_t size;
-  stream >> size;
-  std::string k, v;
-  for (std::uint32_t i = 0; i < size; ++i) {
-    stream >> k >> v;
-    set.add(k, v);
-  }
-  stream.getEnd();
-  return stream;
-}
-
 }  // namespace common
 }  // namespace dp3

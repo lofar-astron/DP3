@@ -9,10 +9,6 @@
 
 #include "SourceInfo.h"
 
-#include "blob/BlobIStream.h"
-#include "blob/BlobOStream.h"
-#include "blob/BlobArray.h"
-
 #include <casacore/casa/Arrays/Array.h>
 
 namespace dp3::sky_model {
