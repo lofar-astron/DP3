@@ -18,7 +18,7 @@
 #include "ddecal/gain_solvers/SolveData.h"
 #include "ddecal/SolverFactory.h"
 
-#include "model/SourceDBUtil.h"
+#include "sky_model/SkyModelFunctions.h"
 
 using dp3::base::BdaBuffer;
 using dp3::base::DPInfo;
@@ -111,7 +111,7 @@ void BdaDdeCal::InitializeColumnReaders(const common::ParameterSet& parset,
 void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
                                        const std::string& prefix) {
   std::vector<std::vector<std::string>> directions =
-      model::MakeDirectionList(settings_.directions, settings_.source_db);
+      sky_model::MakeDirectionList(settings_.directions, settings_.source_db);
 
   const bool bda_group_predict = parset.getBool(prefix + "grouppredict", false);
 

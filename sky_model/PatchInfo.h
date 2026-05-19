@@ -7,29 +7,18 @@
 /// @brief Info about a patch
 /// @author Ger van Diepen (diepen AT astron nl)
 
-#ifndef LOFAR_PARMDB_PATCHINFO_H
-#define LOFAR_PARMDB_PATCHINFO_H
+#ifndef DP3_SKY_MODEL_PATCHINFO_H
+#define DP3_SKY_MODEL_PATCHINFO_H
 
 #include <cmath>
 #include <string>
 
-namespace dp3 {
-
-namespace blob {
-class BlobOStream;
-class BlobIStream;
-}  // namespace blob
-
-namespace parmdb {
-
-/// @ingroup ParmDB
-/// @{
+namespace dp3::sky_model {
 
 /// @brief Info about a patch
 class PatchInfo {
  public:
-  /// Default constructor.
-  PatchInfo() {}
+  PatchInfo() = default;
 
   /// Create from patch name, category, ra, dec, and apparent brightness (Jy).
   /// Ra and dec must be in radians in J2000.
@@ -69,32 +58,21 @@ class PatchInfo {
 
  private:
   std::string itsName;
-  double itsRa{0.0};
-  double itsDec{0.0};
-  int itsCategory{0};
-  double itsAppBrightness{0.0};
+  double itsRa = 0.0;
+  double itsDec = 0.0;
+  int itsCategory = 0;
+  double itsAppBrightness = 0.0;
 };
 
 /// Show the contents of a PatchInfo object.
 std::ostream& operator<<(std::ostream& os, const PatchInfo& info);
-
-/// Write the contents of a PatchInfo object into a blob.
-blob::BlobOStream operator<<(blob::BlobOStream& os, const PatchInfo& info);
-
-/// Read the contents of a PatchInfo object from a blob.
-blob::BlobIStream operator>>(blob::BlobIStream& os, PatchInfo& info);
 
 /// @brief Info about a patch direction
 class PatchSumInfo {
  public:
   /// Create from patch name, category, ra, dec, and apparent brightness (Jy).
   /// Ra and dec must be in radians in J2000.
-  explicit PatchSumInfo(unsigned int patchId)
-      : itsSumX(0),
-        itsSumY(0),
-        itsSumZ(0),
-        itsSumFlux(0),
-        itsPatchId(patchId) {}
+  explicit PatchSumInfo(unsigned int patchId) : itsPatchId(patchId) {}
 
   /// Add a source direction to determine the average patch direction.
   void add(double ra, double dec, double flux);
@@ -112,21 +90,16 @@ class PatchSumInfo {
   unsigned int getPatchId() const { return itsPatchId; }
 
  private:
-  double itsSumX;
-  double itsSumY;
-  double itsSumZ;
-  double itsSumFlux;
-  unsigned int itsPatchId;
+  double itsSumX = 0.0;
+  double itsSumY = 0.0;
+  double itsSumZ = 0.0;
+  double itsSumFlux = 0.0;
+  unsigned int itsPatchId = 0;
 };
 
-/// Output a patch to a skymodel text file.
-///
-/// The output format is used for @code showsourcedb mode=skymodel @endcode
-void toSkymodel(std::ostream& output, const PatchInfo& patch);
+/// Output a patch to a sky_model text file.
+void toSkyModel(std::ostream& output, const PatchInfo& patch);
 
-/// @}
-
-}  // namespace parmdb
-}  // namespace dp3
+}  // namespace dp3::sky_model
 
 #endif

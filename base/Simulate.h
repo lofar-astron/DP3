@@ -18,7 +18,7 @@
 #include "Baseline.h"
 #include "Cursor.h"
 
-#include "model/Patch.h"
+#include "sky_model/Patch.h"
 
 #include "Direction.h"
 #include "DPBuffer.h"
@@ -110,8 +110,8 @@ void rotateUVW(const Direction& from, const Direction& to, size_t nUVW,
 /// A cursor for a 3-D buffer of shape (\p nBaseline, \p nChannel, 4) into which
 /// the simulated visibilities will be written.
 void simulate(const Direction& reference,
-              const std::shared_ptr<const model::Patch>& patch, size_t nStation,
-              size_t nBaseline, size_t nChannel,
+              const std::shared_ptr<const sky_model::Patch>& patch,
+              size_t nStation, size_t nBaseline, size_t nChannel,
               const_cursor<Baseline> baselines, const_cursor<double> freq,
               const_cursor<double> uvw, cursor<std::complex<double>> buffer);
 

@@ -25,7 +25,7 @@
 #include "base/DP3.h"
 #include "base/Version.h"
 
-#include "model/SourceDBUtil.h"
+#include "sky_model/SkyModelFunctions.h"
 
 #include "common/StreamUtil.h"
 
@@ -203,7 +203,7 @@ void DDECal::initializeIDG(const common::ParameterSet& parset,
 void DDECal::initializePredictSteps(const common::ParameterSet& parset,
                                     const std::string& prefix) {
   std::vector<std::vector<std::string>> directions =
-      model::MakeDirectionList(settings_.directions, settings_.source_db);
+      sky_model::MakeDirectionList(settings_.directions, settings_.source_db);
 
   for (std::vector<std::string>& direction : directions) {
     if (settings_.use_sagecal_predict) {

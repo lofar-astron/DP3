@@ -14,7 +14,7 @@
 #include "common/Timer.h"
 #include "common/DynSpecFitsWriter.h"
 
-#include "model/Patch.h"
+#include "sky_model/Patch.h"
 
 #include "ResultStep.h"
 
@@ -71,7 +71,7 @@ class DynSpec : public Step {
   std::string model_column_;
 
   /// Patches read from source_list_.
-  std::vector<std::shared_ptr<model::Patch>> source_list_;
+  std::vector<std::shared_ptr<sky_model::Patch>> source_list_;
 
   /// Whether to run H5ParmPredict to subtract sources before measuring the
   /// spectrum.

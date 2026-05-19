@@ -30,11 +30,10 @@
 #include "base/Simulate.h"
 #include "base/Simulator.h"
 
-#include "model/SkyModelCache.h"
-#include "model/SourceDBUtil.h"
+#include "sky_model/SkyModelCache.h"
+#include "sky_model/SkyModelFunctions.h"
 
 #include "parmdb/Axis.h"
-#include "parmdb/SourceDB.h"
 #include "parmdb/ParmDB.h"
 #include "parmdb/ParmSet.h"
 #include "parmdb/ParmCache.h"
@@ -215,11 +214,10 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
           "Currently no extrasources can "
           "be given if the targetsource is given");
   }
-  model::SkyModelCache& cache = model::SkyModelCache::GetInstance();
-  itsPatchList =
-      cache.GetSkyModel(itsSkyName)
-          .Filter(patchNames, model::SourceDBWrapper::FilterMode::kValue)
-          .MakePatchList();
+  sky_model::SkyModelCache& cache = sky_model::SkyModelCache::GetInstance();
+  sky_model::SkyModelSelection model =
+      cache.GetSkyModelPatches(itsSkyName, patchNames);
+  itsPatchList = model.MakePatchList();
   assert(itsPatchList.size() == itsNModel);
 
   // Size buffers.
@@ -448,7 +446,7 @@ void Demixer::updateInfo(const DPInfo& infoIn) {
 
 void Demixer::show(std::ostream& os) const {
   os << "Demixer " << itsName << '\n';
-  os << "  skymodel:           " << itsSkyName << '\n';
+  os << "  sky_model:           " << itsSkyName << '\n';
   os << "  instrumentmodel:    " << itsInstrumentName << '\n';
   os << "  default gain:       " << itsDefaultGain << '\n';
   os << "  max iterations:     " << itsMaxIter << '\n';

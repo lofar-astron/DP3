@@ -30,7 +30,7 @@ namespace {
 dp3::common::ParameterSet CreateMinimalParameterSet() {
   dp3::common::ParameterSet parset;
   parset.add("directions", "[[" + dp3::steps::test::kPredictDirection + "]]");
-  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
   parset.add("h5parm", "test.h5");
   return parset;
 }
@@ -170,15 +170,15 @@ BOOST_DATA_TEST_CASE_F(BdaMsFixture, keep_or_discard_model_data,
                        kTrueFalseRange* kTrueFalseRange, only_predict,
                        keep_model_data) {
   // Generate a skymodel for testing, similar to tBdaDdeCal.py.
-  const std::string kSkymodelFileName = "test.skymodel";
-  std::ofstream skymodel_file(kSkymodelFileName);
-  skymodel_file
+  const std::string kSkyModelFileName = "test.skymodel";
+  std::ofstream sky_model_file(kSkyModelFileName);
+  sky_model_file
       << "FORMAT = Name, Type, Ra, Dec, I, MajorAxis, MinorAxis, "
          "PositionAngle, ReferenceFrequency='134e6', SpectralIndex='[0.0]'\n"
       << "center, POINT, 16:38:28.205000, +63.44.34.314000, 1, , , , , \n"
       << "ra_off, POINT, 16:58:28.205000, +63.44.34.314000, 1, , , , , \n"
       << "radec_off, POINT, 16:38:28.205000, +65.44.34.314000, 1, , , , , \n";
-  skymodel_file.close();
+  sky_model_file.close();
 
   dp3::common::ParameterSet parset;
   if (only_predict) {
@@ -188,7 +188,7 @@ BOOST_DATA_TEST_CASE_F(BdaMsFixture, keep_or_discard_model_data,
   }
   if (keep_model_data) parset.add("ddecal.keepmodel", "true");
 
-  parset.add("ddecal.sourcedb", kSkymodelFileName);
+  parset.add("ddecal.sourcedb", kSkyModelFileName);
   parset.add("ddecal.solint", "2");
   parset.add("ddecal.nchan", "42");
 

@@ -90,7 +90,7 @@ void TestClipper(size_t time_step, size_t frequency_step,
   parset.add("freqstep", std::to_string(frequency_step));
   parset.add("amplmax", std::to_string(kMaxAmplitude));
   parset.add("flagallcorrelations", std::to_string(all_correlations));
-  parset.add("sourcedb", dp3::steps::test::kPredictSkymodel);
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
 
   dp3::base::DPInfo info(kNCorrelations, kNChannels);
   info.setTimes(0.0, 2.0, 1.0);

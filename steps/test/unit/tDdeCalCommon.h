@@ -14,7 +14,7 @@ namespace {
 dp3::common::ParameterSet DdeParameterSet() {
   return CreateParameterSet(
       {{"directions", "[[" + dp3::steps::test::kPredictDirection + "]]"},
-       {"sourcedb", dp3::steps::test::kPredictSkymodel},
+       {"sourcedb", dp3::steps::test::kPredictSkyModel},
        {"h5parm", "test.h5"},
        {"solint", "2"},
        {"nchan", "42"}});

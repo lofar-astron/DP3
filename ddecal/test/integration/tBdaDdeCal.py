@@ -32,7 +32,7 @@ def source_env(run_in_tmp_path):
 
 
 @pytest.fixture()
-def skymodel_filename():
+def sky_model_filename():
     """Create a skymodel file for tests and return its filename."""
     filename = "test.skymodel"
     with open(filename, "w") as f:
@@ -108,7 +108,7 @@ def create_corrupted_data_from_regular():
     check_call([tcf.TAQLEXE, "update corrupted.MS set WEIGHT_SPECTRUM=1"])
 
 
-def test_only_predict(skymodel_filename):
+def test_only_predict(sky_model_filename):
     """Test that the right patches are summed with predict_only"""
 
     common_args = [
@@ -118,7 +118,7 @@ def test_only_predict(skymodel_filename):
 
     predict_args = [
         "steps=[predict]",
-        f"predict.sourcedb={skymodel_filename}",
+        f"predict.sourcedb={sky_model_filename}",
     ]
 
     run_dp3(
@@ -127,7 +127,7 @@ def test_only_predict(skymodel_filename):
             "steps=[ddecal]",
             "ddecal.onlypredict=true",
             "ddecal.directions=[[center, dec_off],[ra_off],[radec_off]]",
-            f"ddecal.sourcedb={skymodel_filename}",
+            f"ddecal.sourcedb={sky_model_filename}",
         ]
         + common_args
     )
@@ -179,7 +179,7 @@ def test_only_predict(skymodel_filename):
     assert_taql(taql_check_weights)
 
 
-def test_uvwflagger(skymodel_filename, create_corrupted_data_from_regular):
+def test_uvwflagger(sky_model_filename, create_corrupted_data_from_regular):
     """Test that uvwflagger settings lead to the right amount of NaNs in the solution file"""
 
     run_dp3(
@@ -189,7 +189,7 @@ def test_uvwflagger(skymodel_filename, create_corrupted_data_from_regular):
             "steps=[ddecal]",
             "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
-            f"ddecal.sourcedb={skymodel_filename}",
+            f"ddecal.sourcedb={sky_model_filename}",
             "ddecal.mode=scalar",
             "ddecal.solint=2",
             "ddecal.nchan=10",
@@ -239,7 +239,7 @@ def test_uvwflagger(skymodel_filename, create_corrupted_data_from_regular):
     ],
 )
 def test_caltype(
-    skymodel_filename, create_corrupted_data_from_regular, caltype_nchan
+    sky_model_filename, create_corrupted_data_from_regular, caltype_nchan
 ):
     """Test calibration for different calibration types"""
     caltype = caltype_nchan[:-1]
@@ -252,7 +252,7 @@ def test_caltype(
             "msout=out.MS",
             "steps=[ddecal]",
             "ddecal.h5parm=solutions.h5",
-            f"ddecal.sourcedb={skymodel_filename}",
+            f"ddecal.sourcedb={sky_model_filename}",
             f"ddecal.mode={caltype}",
             "ddecal.solint=2",
             f"ddecal.nchan={nchan}",
@@ -304,7 +304,7 @@ def test_caltype(
         assert phase.attrs["AXES"] == b"time,ant,dir,freq"
 
 
-def test_subtract(skymodel_filename, create_corrupted_data):
+def test_subtract(sky_model_filename, create_corrupted_data):
     """Test subtraction"""
     run_dp3(
         [
@@ -314,7 +314,7 @@ def test_subtract(skymodel_filename, create_corrupted_data):
             # Use explicit directions in this test.
             "ddecal.directions=[[center], [ra_off], [radec_off]]",
             "ddecal.h5parm=solutions.h5",
-            f"ddecal.sourcedb={skymodel_filename}",
+            f"ddecal.sourcedb={sky_model_filename}",
             "ddecal.mode=diagonal",
             "ddecal.solint=2",
             "ddecal.nchan=8",
@@ -347,7 +347,7 @@ def test_subtract(skymodel_filename, create_corrupted_data):
     assert_taql(taql_check_weights)
 
 
-def test_invalid_input(skymodel_filename):
+def test_invalid_input(sky_model_filename):
     """Assert that exception is thrown when an incompatible value of solint or nchan is given"""
 
     common_args = [
@@ -355,7 +355,7 @@ def test_invalid_input(skymodel_filename):
         "msout=out.MS",
         "steps=[ddecal]",
         "ddecal.h5parm=solutions.h5",
-        f"ddecal.sourcedb={skymodel_filename}",
+        f"ddecal.sourcedb={sky_model_filename}",
         "ddecal.mode=diagonal",
         "ddecal.subtract=true",
     ]
@@ -367,13 +367,13 @@ def test_invalid_input(skymodel_filename):
         run_dp3(["ddecal.solint=2", "ddecal.nchan=1"] + common_args)
 
 
-def test_reuse_model_data(skymodel_filename):
+def test_reuse_model_data(sky_model_filename):
     # Apply ddecal directly and generate reference output.
     run_dp3(
         [
             f"msin={MSIN}",
             "steps=[ddecal]",
-            f"ddecal.sourcedb={skymodel_filename}",
+            f"ddecal.sourcedb={sky_model_filename}",
             "ddecal.h5parm=cal_ref.h5",
             "ddecal.directions=[[center,dec_off,ra_off,radec_off]]",
             "ddecal.subtract=true",
@@ -388,7 +388,7 @@ def test_reuse_model_data(skymodel_filename):
         [
             f"msin={MSIN}",
             "steps=[ddecal1,ddecal2]",
-            f"ddecal1.sourcedb={skymodel_filename}",
+            f"ddecal1.sourcedb={sky_model_filename}",
             "ddecal1.directions=[[center,dec_off,ra_off,radec_off]]",
             "ddecal1.onlypredict=true",
             "ddecal1.keepmodel=true",

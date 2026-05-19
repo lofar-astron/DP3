@@ -3,39 +3,35 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "SourceData.h"
-#include "ParmMap.h"
+#include "Source.h"
 
-#include "blob/BlobIStream.h"
-#include "blob/BlobOStream.h"
+#include "../parmdb/ParmMap.h"
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Quanta/MVAngle.h>
 
 #include <iostream>
 
-using namespace casacore;
-using namespace std;
+using casacore::MVAngle;
+using dp3::parmdb::ParmMap;
 
-namespace dp3 {
-namespace parmdb {
+namespace dp3::sky_model {
 
-SourceData::SourceData() : itsInfo(string(), SourceInfo::POINT) {}
+Source::Source() : itsInfo(string(), SourceInfo::POINT) {}
 
-SourceData::SourceData(const SourceInfo& info, const std::string& patchName,
-                       double ra, double dec)
+Source::Source(const SourceInfo& info, const std::string& patchName, double ra,
+               double dec)
     : itsInfo(info), itsPatchName(patchName), itsRa(ra), itsDec(dec) {}
 
-void SourceData::setParm(const ParmMap& parms, const std::string& name,
-                         double defValue, double& value) {
+void Source::setParm(const std::map<std::string, parmdb::ParmValue>& parms,
+                     const std::string& name, double defValue, double& value) {
   // Try to find the parameter with its name and suffixed with source name.
-  ParmMap::const_iterator iter = parms.find(name);
+  auto iter = parms.find(name);
   if (iter == parms.end()) {
     iter = parms.find(name + ':' + itsInfo.getName());
   }
   if (iter != parms.end()) {
-    const casacore::Array<double>& arr =
-        iter->second.getFirstParmValue().getValues();
+    const casacore::Array<double>& arr = iter->second.getValues();
     if (arr.size() != 1)
       throw std::runtime_error("Error: value " + name + " of source " +
                                itsInfo.getName() + " has multiple values");
@@ -45,7 +41,7 @@ void SourceData::setParm(const ParmMap& parms, const std::string& name,
   }
 }
 
-void SourceData::setParms(const ParmMap& parms) {
+void Source::setParms(const std::map<std::string, parmdb::ParmValue>& parms) {
   setParm(parms, "Ra", itsRa, itsRa);
   setParm(parms, "Dec", itsDec, itsDec);
   setParm(parms, "I", 0, itsI);
@@ -60,84 +56,13 @@ void SourceData::setParms(const ParmMap& parms) {
   setParm(parms, "RotationMeasure", 0, itsRM);
   itsSpTerms.resize(itsInfo.getNSpectralTerms());
   for (unsigned int i = 0; i < itsSpTerms.size(); ++i) {
-    ostringstream ostr;
+    std::ostringstream ostr;
     ostr << "SpectralIndex:" << i;
     setParm(parms, ostr.str(), 0, itsSpTerms[i]);
   }
 }
 
-void SourceData::makeParm(ParmMap& parms, const std::string& name, double value,
-                          bool pertRel) const {
-  ParmValueSet pvs(ParmValue(value), ParmValue::Scalar, 1e-6, pertRel);
-  parms.define(name, pvs);
-}
-
-void SourceData::getParms(ParmMap& parms) const {
-  makeParm(parms, "Ra", itsRa, true);
-  makeParm(parms, "Dec", itsDec, true);
-  makeParm(parms, "I", itsI);
-  makeParm(parms, "Q", itsQ);
-  makeParm(parms, "U", itsU);
-  makeParm(parms, "V", itsV);
-  if (itsInfo.getType() == SourceInfo::GAUSSIAN) {
-    makeParm(parms, "MajorAxis", itsMajorAxis);
-    makeParm(parms, "MinorAxis", itsMinorAxis);
-    makeParm(parms, "Orientation", itsOrientation);
-  }
-  if (itsInfo.getUseRotationMeasure()) {
-    makeParm(parms, "PolarizationAngle", itsPolAngle);
-    makeParm(parms, "PolarizedFraction", itsPolFrac);
-    makeParm(parms, "RotationMeasure", itsRM);
-  }
-  for (unsigned int i = 0; i < itsSpTerms.size(); ++i) {
-    ostringstream ostr;
-    ostr << "SpectralIndex:" << i;
-    makeParm(parms, ostr.str(), itsSpTerms[i]);
-  }
-}
-
-void SourceData::writeSource(blob::BlobOStream& bos) const {
-  bos.putStart("source", 1);
-  itsInfo.write(bos);
-  bos << itsPatchName << itsRa << itsDec << itsI << itsQ << itsU << itsV;
-  if (itsInfo.getType() == SourceInfo::GAUSSIAN) {
-    bos << itsMajorAxis << itsMinorAxis << itsOrientation;
-  }
-  if (itsInfo.getUseRotationMeasure()) {
-    bos << itsPolAngle << itsPolFrac << itsRM;
-  }
-  if (itsInfo.getNSpectralTerms() > 0) {
-    bos.put(itsSpTerms);
-  }
-  bos.putEnd();
-}
-
-void SourceData::readSource(blob::BlobIStream& bis) {
-  int version = bis.getStart("source");
-  if (version != 1) {
-    throw std::domain_error("Unsupported source version");
-  }
-  itsInfo.read(bis);
-  bis >> itsPatchName >> itsRa >> itsDec >> itsI >> itsQ >> itsU >> itsV;
-  if (itsInfo.getType() == SourceInfo::GAUSSIAN) {
-    bis >> itsMajorAxis >> itsMinorAxis >> itsOrientation;
-  } else {
-    itsMajorAxis = itsMinorAxis = itsOrientation = 0;
-  }
-  if (itsInfo.getUseRotationMeasure()) {
-    bis >> itsPolAngle >> itsPolFrac >> itsRM;
-  } else {
-    itsPolAngle = itsPolFrac = itsRM = 0;
-  }
-  if (itsInfo.getNSpectralTerms() > 0) {
-    bis.get(itsSpTerms);
-  } else {
-    itsSpTerms.clear();
-  }
-  bis.getEnd();
-}
-
-void SourceData::print(ostream& os) const {
+void Source::print(std::ostream& os) const {
   os << "  ";
   MVAngle(itsRa).print(os, MVAngle::Format(MVAngle::TIME, 9));
   os << ' ';
@@ -145,25 +70,25 @@ void SourceData::print(ostream& os) const {
   os << ' ' << itsInfo.getRefType();
   os << "  " << itsInfo.getName() << ' ' << itsInfo.getType();
   os << "  iquv=(" << itsI << ',' << itsQ << ',' << itsU << ',' << itsV << ')';
-  os << endl;
+  os << '\n';
   if (itsInfo.getType() == SourceInfo::GAUSSIAN) {
     os << "    major=" << itsMajorAxis << " arcsec  minor=" << itsMinorAxis
        << " arcsec  orientation=" << itsOrientation << " deg";
     if (itsInfo.getPositionAngleIsAbsolute()) {
-      os << " (absolute)" << endl;
+      os << " (absolute)" << '\n';
     } else {
-      os << " (w.r.t. North at phase center)" << endl;
+      os << " (w.r.t. North at phase center)" << '\n';
     }
   }
   if (itsInfo.getNSpectralTerms() > 0) {
-    os << "    nspinx=" << itsInfo.getNSpectralTerms() << " logSI=" << boolalpha
-       << itsInfo.getHasLogarithmicSI()
+    os << "    nspinx=" << itsInfo.getNSpectralTerms()
+       << " logSI=" << std::boolalpha << itsInfo.getHasLogarithmicSI()
        << " reffreq=" << itsInfo.getSpectralTermsRefFreq() / 1e6 << " MHz"
-       << endl;
+       << '\n';
   }
   if (itsInfo.getUseRotationMeasure()) {
     os << "    polangle=" << itsPolAngle << "  polfrac=" << itsPolFrac
-       << "  rm=" << itsRM << endl;
+       << "  rm=" << itsRM << '\n';
   }
   if (itsInfo.getType() == SourceInfo::SHAPELET) {
     os << "    shapelet I " << itsInfo.getShapeletScaleI()
@@ -175,7 +100,7 @@ void SourceData::print(ostream& os) const {
   }
 }
 
-static ostream& operator<<(std::ostream& output, SourceInfo::Type type) {
+static std::ostream& operator<<(std::ostream& output, SourceInfo::Type type) {
   switch (type) {
     case SourceInfo::POINT:
       return output << "POINT";
@@ -186,7 +111,7 @@ static ostream& operator<<(std::ostream& output, SourceInfo::Type type) {
   }
 }
 
-void toSkymodel(std::ostream& output, const SourceData& source) {
+void toSkyModel(std::ostream& output, const Source& source) {
   const SourceInfo& info = source.getInfo();
   output << info.getName() << ", " << info.getType() << ", "
          << source.getPatchName() << ", ";
@@ -210,5 +135,4 @@ void toSkymodel(std::ostream& output, const SourceData& source) {
   output << "\n";
 }
 
-}  // namespace parmdb
-}  // namespace dp3
+}  // namespace dp3::sky_model

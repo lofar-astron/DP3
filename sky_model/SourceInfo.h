@@ -3,29 +3,14 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// @file
-/// @brief Info about a source
-/// @author Ger van Diepen (diepen AT astron nl)
-
 #ifndef LOFAR_PARMDB_SOURCEINFO_H
 #define LOFAR_PARMDB_SOURCEINFO_H
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/measures/Measures/MDirection.h>
 
-namespace dp3 {
+namespace dp3::sky_model {
 
-namespace blob {
-class BlobIStream;
-class BlobOStream;
-}  // namespace blob
-
-namespace parmdb {
-
-/// @ingroup ParmDB
-/// @{
-
-/// @brief Info about a source
 class SourceInfo {
  public:
   /// Define the source types.
@@ -111,12 +96,6 @@ class SourceInfo {
                         double scaleV);
   ///@}
 
-  /// Write into a blob.
-  void write(dp3::blob::BlobOStream&) const;
-
-  /// Read from a blob.
-  void read(dp3::blob::BlobIStream&);
-
  private:
   string itsName;            ///< source name
   Type itsType;              ///< source type
@@ -140,9 +119,6 @@ class SourceInfo {
   casacore::Array<double> itsShapeletCoeffV;
 };
 
-/// @}
-
-}  // namespace parmdb
-}  // namespace dp3
+}  // namespace dp3::sky_model
 
 #endif

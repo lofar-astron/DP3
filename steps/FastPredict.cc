@@ -24,18 +24,17 @@
 #include "base/Stokes.h"
 #include "base/Telescope.h"
 
-#include "model/SkyModelCache.h"
+#include "sky_model/SkyModelCache.h"
 
 #include <predict/BeamResponse.h>
 #include <predict/GaussianSourceCollection.h>
+#include <predict/PointSource.h>
 #include <predict/PointSourceCollection.h>
+#include <predict/Predict.h>
 #include <predict/PredictPlan.h>
 #include <predict/PredictPlanExecCPU.h>
-#include <predict/PointSource.h>
-#include <predict/Predict.h>
 #include <predict/Spectrum.h>
 
-#include <aocommon/barrier.h>
 #include <aocommon/logger.h>
 #include <aocommon/recursivefor.h>
 #include <aocommon/staticfor.h>
@@ -47,8 +46,6 @@
 #include <casacore/measures/Measures/MeasConvert.h>
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/tables/Tables/RefRows.h>
-
-#include <predict/PredictPlan.h>
 
 #include <algorithm>
 #include <cstddef>

@@ -530,8 +530,14 @@ add_library(
   base/SubtractMixed.cc
   base/Telescope.cc
   base/UVWCalculator.cc
-  model/Patch.cc
-  model/SourceDBUtil.cc
+  sky_model/Patch.cc
+  sky_model/PatchInfo.cc
+  sky_model/ReadSkyModel.cc
+  sky_model/SkyModel.cc
+  sky_model/SkyModelFunctions.cc
+  sky_model/SkyModelSelection.cc
+  sky_model/Source.cc
+  sky_model/SourceInfo.cc
   pythondp3/PyStep.cc
   steps/AntennaFlagger.cc
   steps/AOFlaggerStep.cc
@@ -604,13 +610,7 @@ add_library(
   parmdb/ParmFacadeLocal.cc
   parmdb/ParmFacadeRep.cc
   parmdb/ParmSet.cc
-  parmdb/ParmValue.cc
-  parmdb/PatchInfo.cc
-  parmdb/SkymodelToSourceDB.cc
-  parmdb/SourceData.cc
-  parmdb/SourceDB.cc
-  parmdb/SourceDBSkymodel.cc
-  parmdb/SourceInfo.cc)
+  parmdb/ParmValue.cc)
 
 # dp3_testdyndp3 requires using position independent code.
 set_property(TARGET Blob Common DDECal DP3_OBJ ParmDB
@@ -732,7 +732,7 @@ if(BUILD_TESTING)
       base/test/unit/tSubtableWriter.cc
       base/test/unit/tTelescope.cc
       base/test/unit/tUvwCalculator.cc
-      common/test/unit/fixtures/fSkymodel.cc
+      common/test/unit/fixtures/fSkyModel.cc
       common/test/unit/tBaselineUtils.cc
       common/test/unit/tFields.cc
       common/test/unit/tMedian.cc
@@ -765,8 +765,9 @@ if(BUILD_TESTING)
       ddecal/test/unit/tSolutionWriter.cc
       ddecal/test/unit/tTecConstraint.cc
       ddecal/test/unit/tTecOffsetDelayFitting.cc
-      model/test/unit/tSourceDBUtil.cc
-      parmdb/test/unit/tSkymodelToSourceDB.cc
+      sky_model/test/unit/tReadSkyModel.cc
+      sky_model/test/unit/tSkyModelSelection.cc
+      sky_model/test/unit/tSkyModelFunctions.cc
       steps/test/unit/mock/MockInput.cc
       steps/test/unit/mock/MockStep.cc
       steps/test/unit/mock/ThrowStep.cc

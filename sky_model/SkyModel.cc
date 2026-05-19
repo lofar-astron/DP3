@@ -1,27 +1,25 @@
 // Copyright (C) 2021 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "SourceDBSkymodel.h"
+#include "SkyModel.h"
 
 #include <casacore/casa/Utilities/Regex.h>
 
-namespace dp3 {
-namespace parmdb {
+namespace dp3::sky_model {
 
 static void ValidateUniqueName(const std::string& source_name,
-                               const std::vector<SourceData>& sourcees) {
-  if (std::any_of(sourcees.begin(), sourcees.end(),
-                  [&](const SourceData& source) {
-                    return source.getInfo().getName() == source_name;
-                  }))
+                               const std::vector<Source>& sourcees) {
+  if (std::any_of(sourcees.begin(), sourcees.end(), [&](const Source& source) {
+        return source.getInfo().getName() == source_name;
+      }))
     throw std::runtime_error("Source " + source_name + " already exists");
 }
 
-void SourceDBSkymodel::addSource(const SourceInfo& source_info,
-                                 const std::string& patch_name, int cat_type,
-                                 double apparent_brightness,
-                                 const ParmMap& default_parameters, double ra,
-                                 double dec, bool check) {
+void SkyModel::addSource(
+    const SourceInfo& source_info, const std::string& patch_name, int cat_type,
+    double apparent_brightness,
+    const std::map<std::string, parmdb::ParmValue>& default_parameters,
+    double ra, double dec, bool check) {
   if (check) {
     ValidateUniqueName(source_info.getName(), sources_);
     ValidatePatchName(patch_name);
@@ -31,31 +29,31 @@ void SourceDBSkymodel::addSource(const SourceInfo& source_info,
   addSource(source_info, patch_name, default_parameters, ra, dec, false);
 }
 
-void SourceDBSkymodel::ValidatePatchName(const std::string& patch_name) const {
+void SkyModel::ValidatePatchName(const std::string& patch_name) const {
   if (patches_lut_.find(patch_name) != patches_lut_.end())
     throw std::runtime_error("Patch " + patch_name + " already exists");
 }
 
-unsigned SourceDBSkymodel::GetPatchRowId(const std::string& patch_name) const {
+unsigned SkyModel::GetPatchRowId(const std::string& patch_name) const {
   auto iter = patches_lut_.find(patch_name);
   if (iter == patches_lut_.end())
     throw std::runtime_error("Patch " + patch_name + " does not exist");
   return iter->second;
 }
 
-static SourceData MakeSource(const SourceInfo& source_info,
-                             const std::string& patch_name,
-                             const ParmMap& default_parameters, double ra,
-                             double dec) {
-  SourceData result{source_info, patch_name, ra, dec};
+static Source MakeSource(
+    const SourceInfo& source_info, const std::string& patch_name,
+    const std::map<std::string, parmdb::ParmValue>& default_parameters,
+    double ra, double dec) {
+  Source result{source_info, patch_name, ra, dec};
   result.setParms(default_parameters);
   return result;
 }
 
-void SourceDBSkymodel::addSource(const SourceInfo& source_info,
-                                 const std::string& patch_name,
-                                 const ParmMap& default_parameters, double ra,
-                                 double dec, bool check) {
+void SkyModel::addSource(
+    const SourceInfo& source_info, const std::string& patch_name,
+    const std::map<std::string, parmdb::ParmValue>& default_parameters,
+    double ra, double dec, bool check) {
   if (check) {
     ValidateUniqueName(source_info.getName(), sources_);
   }
@@ -63,14 +61,13 @@ void SourceDBSkymodel::addSource(const SourceInfo& source_info,
       MakeSource(source_info, patch_name, default_parameters, ra, dec));
 }
 
-const PatchInfo& SourceDBSkymodel::GetPatch(
-    const std::string& patch_name) const {
+const PatchInfo& SkyModel::GetPatch(const std::string& patch_name) const {
   return patches_[GetPatchRowId(patch_name)];
 }
 
-unsigned SourceDBSkymodel::addPatch(const std::string& patch_name, int cat_type,
-                                    double apparent_brightness, double ra,
-                                    double dec, bool check) {
+unsigned SkyModel::addPatch(const std::string& patch_name, int cat_type,
+                            double apparent_brightness, double ra, double dec,
+                            bool check) {
   if (check) {
     ValidatePatchName(patch_name);
   }
@@ -80,9 +77,8 @@ unsigned SourceDBSkymodel::addPatch(const std::string& patch_name, int cat_type,
   return patch_id;
 }
 
-void SourceDBSkymodel::updatePatch(unsigned patch_id,
-                                   double apparent_brightness, double ra,
-                                   double dec) {
+void SkyModel::updatePatch(unsigned patch_id, double apparent_brightness,
+                           double ra, double dec) {
   assert(patch_id < patches_.size() && "Patch index out of bounds.");
   PatchInfo& info = patches_[patch_id];
 
@@ -100,11 +96,15 @@ std::vector<std::string> KeyToVector(
   return result;
 }
 
-std::vector<std::string> SourceDBSkymodel::FindPatches(
+std::vector<std::string> SkyModel::GetPatchNames() const {
+  return KeyToVector(patches_lut_);
+}
+
+std::vector<std::string> SkyModel::FindPatches(
     const std::string& pattern) const {
   assert(!pattern.empty() && "The pattern should contain data.");
   if (pattern == "*") {
-    return KeyToVector(patches_lut_);
+    return GetPatchNames();
   }
 
   const casacore::Regex regex{casacore::Regex::fromPattern(pattern)};
@@ -119,5 +119,4 @@ std::vector<std::string> SourceDBSkymodel::FindPatches(
   return result;
 }
 
-}  // namespace parmdb
-}  // namespace dp3
+}  // namespace dp3::sky_model

@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace dp3::model {
+namespace dp3::sky_model {
 
 /// \brief A set of sources for which direction dependent effects are assumed to
 /// be equal.
@@ -64,6 +64,6 @@ class Patch {
   std::vector<std::shared_ptr<base::ModelComponent>> components_;
 };
 
-}  // namespace dp3::model
+}  // namespace dp3::sky_model
 
 #endif
