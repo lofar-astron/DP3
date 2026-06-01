@@ -591,7 +591,6 @@ xt::xtensor<std::complex<float>, 3> DDECal::ReadJonesMatrixFromH5Parm(
       static_cast<size_t>(jones_matrix.shape()[0])};
   xt::xtensor<std::complex<float>, 3> jones_tensor =
       xt::adapt(jones_matrix.tovector(), xt_shape);
-
   return jones_tensor;
 }
 
