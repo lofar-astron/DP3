@@ -642,12 +642,16 @@ void DDECal::InitializeSolutions(size_t buffer_index) {
                 gain_types_[0], &solution_tables_[0], &solution_tables_[1]);
       }
     } else {
-      const size_t n_soltabs = initial_solutions_table_.size();
       // Load solutions per soltab and multiply to get the full Jones matrix for
       // each direction.
-      const std::array<size_t, 5> xt_shape = {
-          n_soltabs, n_directions, n_frequencies, n_antennas_used,
-          n_polarization_parameters_per_solution};
+      const size_t n_soltabs = initial_solutions_table_.size();
+      // The schaapcommon h5parm functionality always converts the data to two
+      // polarizations. TODO it would be nicer if it wouldn't do this
+      // unconditionally.
+      const size_t kNPolarizationsInH5Parm = 2;
+      const std::array<size_t, 5> xt_shape = {n_soltabs, n_directions,
+                                              n_frequencies, n_antennas_used,
+                                              kNPolarizationsInH5Parm};
       xt::xtensor<std::complex<float>, 5> jones_parameters_per_soltab(xt_shape);
       for (size_t soltab_index = 0; soltab_index < n_soltabs; ++soltab_index) {
         for (size_t direction_index = 0; direction_index < n_directions;
