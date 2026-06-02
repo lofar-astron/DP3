@@ -154,7 +154,9 @@ Settings::Settings(const common::ParameterSet& _parset,
       approximate_tec((mode == CalType::kTec || mode == CalType::kTecAndPhase)
                           ? GetBool("approximatetec", false)
                           : false),
-      phase_reference((mode == CalType::kTec || mode == CalType::kTecAndPhase)
+      phase_reference((mode == CalType::kTec || mode == CalType::kTecAndPhase ||
+                       mode == CalType::kTecAndDelay ||
+                       mode == CalType::kTecPhaseAndDelay)
                           ? GetBool("phasereference", true)
                           : false),
       approx_tolerance(approximate_tec
