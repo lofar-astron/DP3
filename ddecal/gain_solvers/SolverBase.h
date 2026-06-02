@@ -12,7 +12,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include <aocommon/recursivefor.h>
+#include <schaapcommon/threading/recursivefor.h>
 
 #include "../constraints/Constraint.h"
 #include "../linear_solvers/LLSSolver.h"
@@ -318,7 +318,7 @@ class SolverBase {
    * no nested parallelization can be done, don't create a RecursiveFor. See
    * also @ref NSubThreads().
    */
-  std::unique_ptr<aocommon::RecursiveFor> MakeOptionalRecursiveFor() const;
+  std::unique_ptr<schaapcommon::RecursiveFor> MakeOptionalRecursiveFor() const;
 
   /**
    * Create an LLSSolver with the given matrix dimensions.

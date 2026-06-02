@@ -415,16 +415,17 @@ void SolverBase::SetLLSSolverType(const LLSSolverType solver_type) {
 
 size_t SolverBase::NSubThreads() const {
   return std::max<size_t>(
-      1u, aocommon::ThreadPool::GetInstance().NThreads() / NChannelBlocks());
+      1u,
+      schaapcommon::ThreadPool::GetInstance().NThreads() / NChannelBlocks());
 }
 
-std::unique_ptr<aocommon::RecursiveFor> SolverBase::MakeOptionalRecursiveFor()
-    const {
+std::unique_ptr<schaapcommon::RecursiveFor>
+SolverBase::MakeOptionalRecursiveFor() const {
   // A std::optional would be more descriptive, but is not possible because
   // RecursiveFor is not moveable.
-  std::unique_ptr<aocommon::RecursiveFor> recursive_for;
+  std::unique_ptr<schaapcommon::RecursiveFor> recursive_for;
   if (NSubThreads() > 1)
-    recursive_for = std::make_unique<aocommon::RecursiveFor>();
+    recursive_for = std::make_unique<schaapcommon::RecursiveFor>();
   return recursive_for;
 }
 

@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/staticfor.h>
+#include <schaapcommon/threading/staticfor.h>
 #include <xtensor/containers/xtensor.hpp>
 
 #include "base/DPBuffer.h"
@@ -209,7 +209,7 @@ void DiagonalAddOrSubtractDirection(
   using DComplex = std::complex<double>;
   using Complex = std::complex<float>;
   const size_t n_visibilities = cb_data.NVisibilities();
-  aocommon::RunConstrainedStaticFor<size_t>(
+  schaapcommon::RunConstrainedStaticFor<size_t>(
       0, n_visibilities, max_threads,
       [&](size_t start_vis_index, size_t end_vis_index) {
         for (size_t vis_index = start_vis_index; vis_index != end_vis_index;

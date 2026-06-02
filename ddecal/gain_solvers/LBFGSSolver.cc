@@ -12,7 +12,8 @@
 // to avoid conflicts with xtensor/xcomplex.hpp
 #undef complex
 
-#include <aocommon/dynamicfor.h>
+#include <schaapcommon/threading/dynamicfor.h>
+
 #include <xtensor/containers/xadapt.hpp>
 #include <xtensor/core/xlayout.hpp>
 #include <xtensor/core/xvectorize.hpp>
@@ -566,7 +567,7 @@ LBFGSSolver::SolveResult LBFGSSolver::Solve(
   step_magnitudes.reserve(GetMaxIterations());
 
   do {
-    aocommon::DynamicFor<size_t> loop;
+    schaapcommon::DynamicFor<size_t> loop;
     switch (mode) {
       case LBFGSSolver::kFull:
         MakeSolutionsFinite4Pol(solutions);

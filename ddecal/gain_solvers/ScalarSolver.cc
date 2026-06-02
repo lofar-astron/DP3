@@ -6,7 +6,8 @@
 #include <ostream>
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/recursivefor.h>
+
+#include <schaapcommon/threading/recursivefor.h>
 
 #include <xtensor/views/xview.hpp>
 
@@ -40,7 +41,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
   double avg_squared_diff = 1.0E4;
 
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   // Max 8 threads are used in the outer loop, to limit the required memory.
   // TODO this could be smarter; e.g. check required vs available memory.
   const size_t n_outer_threads = std::min<size_t>(8, n_threads);
@@ -53,7 +54,7 @@ ScalarSolver::SolveResult ScalarSolver::Solve(
 
   // A RecursiveFor is started to allow nested parallelization over antennas
   // in PerformIteration.
-  aocommon::RecursiveFor recursive_for;
+  schaapcommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite1Pol(solutions);
 
@@ -152,7 +153,7 @@ void ScalarSolver::PerformIteration(
   const size_t n = NSubSolutions();
   const size_t nrhs = 1;
 
-  aocommon::RecursiveFor::NestedRun(0, NAntennas(), [&](size_t ant) {
+  schaapcommon::RecursiveFor::NestedRun(0, NAntennas(), [&](size_t ant) {
     const size_t m = cb_data.NAntennaVisibilities(ant) * 4;
     // TODO it would be nice to have a solver resize function to avoid too many
     // reallocations

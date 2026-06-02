@@ -505,7 +505,7 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
     }
   }
 
-  const size_t num_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t num_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
 
   predict_plan_exec_ =
       std::make_unique<predict::PredictPlanExecCPU>(predict_plan_, num_threads);

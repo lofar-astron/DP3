@@ -3,8 +3,8 @@
 
 #include "TecConstraint.h"
 
-#include <aocommon/dynamicfor.h>
-#include <aocommon/staticfor.h>
+#include <schaapcommon/threading/dynamicfor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 #include <xtensor/core/xmath.hpp>
 
@@ -24,7 +24,7 @@ void TecConstraint::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
 
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   phase_fitters_.resize(n_threads);
   for (PhaseFitter& fitter : phase_fitters_) fitter.Initialize(frequencies);
 
@@ -52,7 +52,7 @@ void TecConstraint::SetWeights(const std::vector<double>& weights) {
 }
 
 void ApproximateTECConstraint::initializeChild() {
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   pw_fitters_.resize(n_threads);
   thread_data_.resize(pw_fitters_.size());
   thread_fitted_data_.resize(pw_fitters_.size());
@@ -83,7 +83,7 @@ void TecConstraint::Apply(SolutionSpan& solutions, double time) {
 
   // Use a DynamicFor, since the ternarySearch functions in PhaseFitter.cc run
   // a variable number of iterations.
-  aocommon::DynamicFor<size_t> loop;
+  schaapcommon::DynamicFor<size_t> loop;
   loop.Run(
       0, NAntennas() * NSubSolutions(),
       [&](size_t antenna_and_solution_index, size_t thread) {
@@ -146,7 +146,7 @@ void ApproximateTECConstraint::Apply(SolutionSpan& solutions, double time) {
     if (do_phase_reference_) ApplyReferenceAntenna(solutions);
 
     // Use a StaticFor, since PieceWisePhaseFitter.cc has no dynamic code.
-    aocommon::StaticFor<size_t> loop;
+    schaapcommon::StaticFor<size_t> loop;
     loop.Run(
         0, NAntennas() * NSubSolutions(),
         [&](size_t antenna_and_solution_index, size_t end_index,

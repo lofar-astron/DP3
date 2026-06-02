@@ -264,7 +264,7 @@ void Averager::average() {
   assert(data_in.data() != data_out.data());
   assert(weights_in.data() != weights_out.data());
 
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, n_bl, [&](size_t bl_begin, size_t bl_end) {
     for (unsigned int bl = bl_begin; bl < bl_end; ++bl) {
       for (unsigned int corr = 0; corr < n_corr; ++corr) {

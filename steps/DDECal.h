@@ -13,10 +13,9 @@
 #include <string>
 #include <vector>
 
-#include <aocommon/recursivefor.h>
-
 #include <schaapcommon/h5parm/h5cache.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
+#include <schaapcommon/threading/recursivefor.h>
 
 #include "common/ParameterSet.h"
 

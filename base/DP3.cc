@@ -8,7 +8,8 @@
 
 #include <aocommon/checkblas.h>
 #include <aocommon/logger.h>
-#include <aocommon/threadpool.h>
+
+#include <schaapcommon/threading/threadpool.h>
 
 #include <boost/algorithm/string.hpp>
 
@@ -326,7 +327,7 @@ void Execute(const std::string& parsetName,
 
   size_t n_threads = parset.getInt("numthreads", 0);
   if (n_threads == 0) n_threads = aocommon::system::ProcessorCount();
-  aocommon::ThreadPool::GetInstance().SetNThreads(n_threads);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(n_threads);
   Step::SetThreadingIsInitialized();
   aocommon::Logger::Debug << "DP3 started with " << n_threads << " threads.\n";
 
@@ -602,10 +603,12 @@ std::shared_ptr<Step> MakeStepsFromParset(const common::ParameterSet& parset,
   return firstStep;
 }
 
-size_t GetNThreads() { return aocommon::ThreadPool::GetInstance().NThreads(); }
+size_t GetNThreads() {
+  return schaapcommon::ThreadPool::GetInstance().NThreads();
+}
 
 void SetNThreads(size_t n_threads) {
-  aocommon::ThreadPool::GetInstance().SetNThreads(n_threads);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(n_threads);
   Step::SetThreadingIsInitialized();
 }
 

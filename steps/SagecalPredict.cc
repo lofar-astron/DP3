@@ -21,7 +21,7 @@
 
 #include <schaapcommon/h5parm/h5parm.h>
 
-#include <aocommon/threadpool.h>
+#include <schaapcommon/threading/threadpool.h>
 
 #include "base/DPInfo.h"
 #include "base/DPBuffer.h"
@@ -723,7 +723,7 @@ bool SagecalPredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
   const int tile_size = 1;
   const double time_smear_factor = 1.0;
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
 #ifdef HAVE_LIBDIRAC /* mutually exclusive with HAVE_LIBDIRAC_CUDA */
   if (!parm_on_disk_) {
     if (beam_mode == DOBEAM_NONE) {

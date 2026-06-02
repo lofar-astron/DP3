@@ -12,7 +12,7 @@
 
 #include "base/DPBuffer.h"
 
-#include <aocommon/staticfor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 #include <casacore/casa/Arrays/Matrix.h>
 

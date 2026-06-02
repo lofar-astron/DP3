@@ -9,7 +9,8 @@
 #include <cassert>
 
 #include <aocommon/system.h>
-#include <aocommon/threadpool.h>
+
+#include <schaapcommon/threading/threadpool.h>
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -20,7 +21,7 @@ namespace steps {
 
 Step::Step() {
   if (!threading_is_initialized_) {
-    aocommon::ThreadPool::GetInstance().SetNThreads(
+    schaapcommon::ThreadPool::GetInstance().SetNThreads(
         aocommon::system::ProcessorCount());
     threading_is_initialized_ = true;
   }

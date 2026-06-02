@@ -3,7 +3,7 @@
 #include <cassert>
 #include <random>
 
-#include <aocommon/dynamicfor.h>
+#include <schaapcommon/threading/dynamicfor.h>
 
 #include <xtensor/containers/xtensor.hpp>
 #include <xtensor/core/xnoalias.hpp>
@@ -106,11 +106,11 @@ DiagonalLowRankSolver::SolveResult DiagonalLowRankSolver::Solve(
   bool has_converged = false;
   bool has_previously_converged = false;
   bool constraints_satisfied = false;
-  aocommon::RecursiveFor recursive_for;
+  schaapcommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite2Pol(solutions);
 
-    aocommon::DynamicFor<size_t> loop;
+    schaapcommon::DynamicFor<size_t> loop;
     loop.Run(0, NChannelBlocks(), [&](size_t ch_block) {
       PerformIteration(ch_block, data.ChannelBlock(ch_block),
                        v_residual[ch_block], solutions[ch_block],

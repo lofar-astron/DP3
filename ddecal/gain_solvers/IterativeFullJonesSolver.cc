@@ -7,7 +7,8 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/staticfor.h>
+
+#include <schaapcommon/threading/staticfor.h>
 
 using aocommon::MC2x2F;
 
@@ -41,12 +42,12 @@ IterativeFullJonesSolver::SolveResult IterativeFullJonesSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  std::unique_ptr<aocommon::RecursiveFor> recursive_for =
+  std::unique_ptr<schaapcommon::RecursiveFor> recursive_for =
       MakeOptionalRecursiveFor();
   do {
     MakeSolutionsFinite4Pol(solutions);
 
-    aocommon::RunStaticFor<size_t>(
+    schaapcommon::RunStaticFor<size_t>(
         0, NChannelBlocks(), [&](size_t ch_block, size_t end_index) {
           for (; ch_block < end_index; ++ch_block) {
             PerformIteration(ch_block, data.ChannelBlock(ch_block),
@@ -120,7 +121,7 @@ void IterativeFullJonesSolver::SolveDirection(
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
 
   std::mutex mutex;
-  aocommon::RunConstrainedStaticFor<size_t>(
+  schaapcommon::RunConstrainedStaticFor<size_t>(
       0u, n_visibilities, NSubThreads(),
       [&](size_t start_vis_index, size_t end_vis_index) {
         std::vector<MC2x2F> local_numerator(NAntennas() * n_dir_solutions,
@@ -195,7 +196,7 @@ void IterativeFullJonesSolver::AddOrSubtractDirection(
     const std::vector<DComplex>& solutions) {
   constexpr size_t n_solution_polarizations = 4;
   const size_t n_visibilities = cb_data.NVisibilities();
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.ConstrainedRun(
       0, n_visibilities, NSubThreads(),
       [&](size_t start_vis_index, size_t end_vis_index) {

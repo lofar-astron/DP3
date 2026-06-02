@@ -20,11 +20,12 @@
 #include "base/DP3.h"
 #include "base/Version.h"
 
-#include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/recursivefor.h>
+
+#include <schaapcommon/threading/dynamicfor.h>
+#include <schaapcommon/threading/recursivefor.h>
 
 #include "sky_model/SkyModelFunctions.h"
 
@@ -288,7 +289,7 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   itsChunkStartTime = getInfoOut().startTime();
 
   if (itsDebugLevel > 0) {
-    if (aocommon::ThreadPool::GetInstance().NThreads() != 1)
+    if (schaapcommon::ThreadPool::GetInstance().NThreads() != 1)
       throw std::runtime_error("nthreads should be 1 in debug mode");
     assert(itsTimeSlotsPerParmUpdate >= getInfoOut().ntime());
     itsAllSolutions.resize(
@@ -554,7 +555,7 @@ void GainCal::fillMatrices(const DPBuffer::DataType& model,
   const size_t n_correlations = getInfoOut().ncorr();
   assert(n_correlations == 4 || n_correlations == 2 || n_correlations == 1);
 
-  aocommon::DynamicFor<size_t> loop;
+  schaapcommon::DynamicFor<size_t> loop;
   loop.Run(0, n_channels, [&](size_t ch) {
     constexpr size_t kNumDimensions = 6;
     dp3::base::GainCalAlgorithm& algorithm = algorithms_[ch / itsNChan];
@@ -638,7 +639,7 @@ void GainCal::calibrate() {
 
   for (; iter < itsMaxIter; ++iter) {
     bool allConverged = true;
-    aocommon::RecursiveFor recursive_for;
+    schaapcommon::RecursiveFor recursive_for;
     recursive_for.Run(0, itsNFreqCells, [&](size_t freqCell) {
       // Do another step when stalled and not all converged
       if (converged[freqCell] != GainCalAlgorithm::CONVERGED) {

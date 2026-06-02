@@ -8,7 +8,8 @@
 #include <ostream>
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/recursivefor.h>
+
+#include <schaapcommon/threading/recursivefor.h>
 
 #include <xtensor/views/xview.hpp>
 
@@ -42,7 +43,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
   double avg_squared_diff = 1.0E4;
 
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   // Max 8 threads are used in the outer loop, to limit the required memory.
   // TODO this could be smarter; e.g. check required vs available memory.
   const size_t n_outer_threads = std::min<size_t>(8, n_threads);
@@ -55,7 +56,7 @@ DiagonalSolver::SolveResult DiagonalSolver::Solve(
 
   // A RecursiveFor is started to allow nested parallelization over antennas
   // in PerformIteration.
-  aocommon::RecursiveFor recursive_for;
+  schaapcommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite2Pol(solutions);
 
@@ -162,7 +163,7 @@ void DiagonalSolver::PerformIteration(
   const size_t n = NSubSolutions();
   const size_t nrhs = 1;
 
-  aocommon::RecursiveFor::NestedRun(0, NAntennas() * 2, [&](size_t i) {
+  schaapcommon::RecursiveFor::NestedRun(0, NAntennas() * 2, [&](size_t i) {
     const size_t ant = i / 2;
     const size_t pol = i % 2;
     const size_t m = cb_data.NAntennaVisibilities(ant) * 2;

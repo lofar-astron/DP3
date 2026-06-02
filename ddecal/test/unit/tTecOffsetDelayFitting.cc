@@ -221,7 +221,8 @@ BOOST_AUTO_TEST_CASE(fit_with_noise) {
  * Test set to make sure the interface supports using a MultiArray.
  */
 BOOST_AUTO_TEST_CASE(demonstrate_multiarray) {
-  aocommon::MultiArray<double, double, double> data(50, false);
+  aocommon::MultiArray<double, double, double> data(
+      50, aocommon::kSkipInitialization);
   for (size_t i = 0; i != data.Size(); ++i) data.Get<0>()[i] = i + 1;
   std::fill_n(data.Get<2>(), data.Size(), 1.0);
   const TecOffsetDelayValues true_values{.a = 0.3, .b = -1.8, .c = -0.08};

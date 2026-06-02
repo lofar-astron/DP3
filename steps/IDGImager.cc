@@ -16,8 +16,8 @@
 #include <xtensor/misc/xcomplex.hpp>
 #include <xtensor/views/xindex_view.hpp>
 #include <xtensor/views/xview.hpp>
-#include <aocommon/staticfor.h>
 #include <aocommon/fits/fitswriter.h>
+#include <schaapcommon/threading/staticfor.h>
 #include <casacore/casa/BasicSL/Constants.h>
 
 #include <base/FlagCounter.h>
@@ -160,7 +160,7 @@ void IDGImager::CopyVisibilitiesToBuffer(
     const std::vector<int>& antenna2, const DPBuffer::UvwType& uvw,
     const DPBuffer::WeightsType& weights,
     const DPBuffer::DataType& visibilities) {
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, visibilities.shape(0), [&](size_t start, size_t end, size_t) {
     for (size_t vis_idx = start; vis_idx < end; vis_idx++) {
       if (antenna1[vis_idx] != antenna2[vis_idx]) {
@@ -258,7 +258,6 @@ void IDGImager::ApplyWeights(const xt::xtensor<float, 2>& weight_map,
   const size_t n_baselines = visibilities.shape(0);
   const size_t n_channels = visibilities.shape(1);
   const size_t n_correlations = visibilities.shape(2);
-  aocommon::StaticFor<size_t> loop;
 
   for (size_t bl = 0; bl < n_baselines; bl++) {
     for (size_t chan = 0; chan < n_channels; ++chan) {

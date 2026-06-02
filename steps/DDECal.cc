@@ -1062,7 +1062,7 @@ void DDECal::doPrepare() {
       << "Acquiring one timestep of model data for DDECal.\n";
   // Enclose the recursive_for
   {
-    aocommon::RecursiveFor recursive_for;
+    schaapcommon::RecursiveFor recursive_for;
     recursive_for.Run(0, steps_.size(), [&](size_t direction) {
       if (steps_[direction]) {  // When reusing model data, there is no step.
         // Don't process column readers yet; they need to be run serially (see
