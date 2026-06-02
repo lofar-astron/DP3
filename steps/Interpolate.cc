@@ -15,7 +15,7 @@
 #include <iomanip>
 #include <thread>
 
-#include <aocommon/threadpool.h>
+#include <schaapcommon/threading/threadpool.h>
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -135,9 +135,10 @@ void Interpolate::interpolateTimestep(size_t index) {
   const size_t num_per_baseline = num_pol * num_channels;
   const size_t num_baselines = data_shape[0];
 
-  lane_.resize(aocommon::ThreadPool::GetInstance().NThreads() * BUFFER_SIZE);
+  lane_.resize(schaapcommon::ThreadPool::GetInstance().NThreads() *
+               BUFFER_SIZE);
   common::lane_write_buffer<Sample> buflane(&lane_, BUFFER_SIZE);
-  aocommon::ThreadPool::GetInstance().StartParallelExecution(
+  schaapcommon::ThreadPool::GetInstance().StartParallelExecution(
       [&](size_t) { interpolationThread(); });
 
   for (size_t bl = 0; bl < num_baselines; ++bl) {
@@ -153,7 +154,7 @@ void Interpolate::interpolateTimestep(size_t index) {
   }
   buflane.write_end();
 
-  aocommon::ThreadPool::GetInstance().FinishParallelExecution();
+  schaapcommon::ThreadPool::GetInstance().FinishParallelExecution();
 }
 
 void Interpolate::interpolationThread() {

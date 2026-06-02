@@ -18,7 +18,8 @@
 #include <aocommon/logger.h>
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/staticfor.h>
+
+#include <schaapcommon/threading/staticfor.h>
 
 #include <casacore/casa/Arrays/ArrayMath.h>
 
@@ -516,7 +517,7 @@ void OneApplyCal::CorrectionLoop(DPBuffer& buffer,
   const size_t n_chan = buffer.GetData(direction_name).shape(1);
   const size_t n_solution_corr = gains.shape()[0];
 
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, n_bl, [&](size_t start_baseline, size_t end_baseline) {
     for (size_t bl = start_baseline; bl < end_baseline; ++bl) {
       const unsigned int ant_a = getInfoOut().getAnt1()[bl];

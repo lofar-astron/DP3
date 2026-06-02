@@ -3,7 +3,7 @@
 
 #include "SmoothnessConstraint.h"
 
-#include <aocommon/staticfor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 namespace dp3 {
 namespace ddecal {
@@ -23,7 +23,8 @@ void SmoothnessConstraint::Initialize(
     const std::vector<double>& frequencies) {
   Constraint::Initialize(n_antennas, solutions_per_direction, frequencies);
   frequencies_ = frequencies;
-  for (size_t i = 0; i != aocommon::ThreadPool::GetInstance().NThreads(); ++i) {
+  for (size_t i = 0; i != schaapcommon::ThreadPool::GetInstance().NThreads();
+       ++i) {
     fit_data_.emplace_back(frequencies_, kernel_type_, bandwidth_,
                            bandwidth_ref_frequency_, spectral_exponent_,
                            kernel_truncation_);
@@ -56,7 +57,7 @@ void SmoothnessConstraint::Apply(SolutionSpan& solutions, double time) {
   auto solutions_view =
       xt::reshape_view(solutions, {NChannelBlocks(), n_smoothed});
 
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(
       0, n_smoothed, [&](size_t begin_index, size_t end_index, size_t thread) {
         for (size_t smoothing_index = begin_index; smoothing_index < end_index;

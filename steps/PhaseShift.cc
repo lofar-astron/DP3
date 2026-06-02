@@ -13,7 +13,7 @@
 #include "common/ParameterSet.h"
 #include "common/StreamUtil.h"
 
-#include <aocommon/dynamicfor.h>
+#include <schaapcommon/threading/dynamicfor.h>
 
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/Quanta/Quantum.h>
@@ -110,7 +110,7 @@ bool PhaseShift::process(std::unique_ptr<base::DPBuffer> buffer) {
   // the machine must be reset for each new time, thus each new call
   // to process.
 
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, nbl, [&](size_t begin, size_t end) {
     for (unsigned int bl = begin; bl != end; ++bl) {
       std::complex<float>* __restrict__ data = &buffer->GetData()(bl, 0, 0);

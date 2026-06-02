@@ -264,7 +264,7 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
   info.setChannels(std::vector<double>(kNChannels, 42.0e6),
                    std::vector<double>(kNChannels, 1.0e6));
   info.GetDirections()[kModelName] = kModelDirection;
-  aocommon::ThreadPool::GetInstance().SetNThreads(1);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(1);
 
   auto ddecal = std::make_shared<DDECal>(
       CreateParameterSet({{"keepmodel", "true"},

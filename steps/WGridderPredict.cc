@@ -6,14 +6,17 @@
 #include <aocommon/banddata.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/logger.h>
-#include <aocommon/threadpool.h>
-
 #include <aocommon/uvector.h>
 #include <aocommon/xt/utensor.h>
+
+#include <schaapcommon/facets/ds9facetfile.h>
+#include <schaapcommon/threading/threadpool.h>
+
 #include <casacore/tables/Tables/TableRecord.h>
+
 #include <ducc0/wgridder/wgridder.h>
 #include <ducc0/fft/fftnd_impl.h>
-#include <schaapcommon/facets/ds9facetfile.h>
+
 #include <xtensor/views/xview.hpp>
 
 #include "base/FlagCounter.h"
@@ -357,7 +360,7 @@ void WGridderPredict::Predict(
   constexpr double sigma_max = 2.0;
   size_t width = images_[direction].Width();
   size_t height = images_[direction].Height();
-  size_t nthreads = aocommon::ThreadPool::GetInstance().NThreads();
+  size_t nthreads = schaapcommon::ThreadPool::GetInstance().NThreads();
   double epsilon = 1.0e-4;
   size_t verbosity = 0;
 

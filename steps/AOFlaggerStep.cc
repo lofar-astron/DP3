@@ -17,8 +17,9 @@
 #include <casacore/casa/OS/HostInfo.h>
 #include <casacore/casa/OS/File.h>
 
-#include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>
+
+#include <schaapcommon/threading/dynamicfor.h>
 
 #include <aoflagger.h>
 
@@ -108,7 +109,7 @@ void AOFlaggerStep::updateInfo(const DPInfo& infoIn) {
 
   // Determine how much buffer space is needed per time slot.
   // The flagger needs 3 extra work buffers (data+flags) per thread.
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   double timeSize = (sizeof(casacore::Complex) + sizeof(bool)) *
                     (infoIn.nbaselines() + 3 * n_threads) * infoIn.nchan() *
                     infoIn.ncorr();
@@ -294,7 +295,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
     aoflagger::QualityStatistics qstats;
     aoflagger::Strategy strategy;
   };
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   std::vector<ThreadData> threadData(n_threads);
   // Create thread-private objects.
   for (size_t t = 0; t != n_threads; ++t) {
@@ -308,7 +309,7 @@ void AOFlaggerStep::flag(unsigned int rightOverlap) {
 
   // Use a dynamic for, since the strategy may handle different baselines
   // differently.
-  aocommon::DynamicFor<size_t> loop;
+  schaapcommon::DynamicFor<size_t> loop;
   loop.Run(0, n_baselines, [&](size_t ib, size_t thread) {
     // Do autocorrelations only if told so.
     if (ant1[ib] != ant2[ib] || flag_auto_correlations_) {

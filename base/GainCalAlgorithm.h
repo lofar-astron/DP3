@@ -12,7 +12,7 @@
 #include <casacore/casa/Arrays/Cube.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 
-#include <aocommon/recursivefor.h>
+#include <schaapcommon/threading/recursivefor.h>
 
 namespace dp3 {
 
@@ -41,7 +41,7 @@ class GainCalAlgorithm {
 
   /// Perform an iteration of gaincal. Returns CONVERGED, NOTCONVERGED
   /// or STALLED
-  Status doStep(unsigned int iter, aocommon::RecursiveFor& recursive_for);
+  Status doStep(unsigned int iter, schaapcommon::RecursiveFor& recursive_for);
 
   /// Returns the solution. The return matrix has a length of maxAntennas,
   /// which is zero for antennas for which no solution was computed.
@@ -78,7 +78,7 @@ class GainCalAlgorithm {
   }
 
   void doStep_polarized();
-  void doStep_unpolarized(aocommon::RecursiveFor& recursive_for);
+  void doStep_unpolarized(schaapcommon::RecursiveFor& recursive_for);
 
   double getAverageUnflaggedSolution();
 

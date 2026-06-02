@@ -12,7 +12,7 @@
 #include <memory>
 
 #include <xtensor/containers/xtensor.hpp>
-#include <aocommon/staticfor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 #include "base/DPBuffer.h"
 #include "steps/Step.h"

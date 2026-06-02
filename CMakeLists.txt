@@ -357,7 +357,7 @@ include(${CMAKE_SOURCE_DIR}/external/aocommon/CMake/FetchXTensor.cmake)
 include_directories(${CMAKE_SOURCE_DIR}/external/aocommon/include/)
 
 # Include schaapcommon, which should happen after including XTensor.
-set(SCHAAPCOMMON_MODULES facets h5parm ducc0 reordering)
+set(SCHAAPCOMMON_MODULES facets h5parm ducc0 reordering threading)
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/schaapcommon)
 include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/include)
 include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/external)
@@ -618,6 +618,7 @@ set(DP3_LIBRARIES
     ${LIBDIRAC_LIBRARIES}
     ${Python3_LIBRARIES}
     schaapcommon
+    schaapthreading
     Threads::Threads
     pybind11::pybind11
     ${Boost_LIBRARIES})

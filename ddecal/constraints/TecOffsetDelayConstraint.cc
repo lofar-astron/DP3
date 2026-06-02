@@ -1,7 +1,7 @@
 #include "TecOffsetDelayConstraint.h"
 
-#include <aocommon/dynamicfor.h>
-#include <aocommon/staticfor.h>
+#include <schaapcommon/threading/dynamicfor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 #include <xtensor/core/xmath.hpp>
 #include <xtensor/views/xview.hpp>
@@ -34,7 +34,7 @@ void TecOffsetDelayConstraint::Initialize(
     relative_frequencies_[i] = frequencies[i] / reference_frequency_;
   }
 
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   thread_data_.resize(n_threads);
   for (ThreadData& local_data : thread_data_) {
     local_data.data.resize(NChannelBlocks());
@@ -73,7 +73,7 @@ void TecOffsetDelayConstraint::Apply(SolutionSpan& solutions, double time) {
 
   // Use a DynamicFor, since the ternarySearch functions in PhaseFitter.cc run
   // a variable number of iterations.
-  aocommon::DynamicFor<size_t> loop;
+  schaapcommon::DynamicFor<size_t> loop;
   loop.Run(0, NAntennas() * NSubSolutions(),
            [&](size_t antenna_and_solution_index, size_t thread) {
              const size_t antenna_index =

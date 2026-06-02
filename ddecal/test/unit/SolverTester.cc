@@ -3,15 +3,16 @@
 
 #include "SolverTester.h"
 
-#include "ddecal/gain_solvers/SolverBase.h"
+#include <random>
+#include <utility>
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/threadpool.h>
+
+#include <schaapcommon/threading/threadpool.h>
 
 #include <boost/test/unit_test.hpp>
 
-#include <random>
-#include <utility>
+#include "ddecal/gain_solvers/SolverBase.h"
 
 using aocommon::MC2x2;
 using dp3::base::BdaBuffer;
@@ -80,7 +81,7 @@ SolverTester::SolverTester()
 
   // Use 4 threads in the solver tests. This value corresponds to the
   // PROCESSORS setting in CMakeLists.txt for the solver tests.
-  aocommon::ThreadPool::GetInstance().SetNThreads(4);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(4);
 }
 
 std::vector<std::string> SolverTester::CreateDirectionNames() {

@@ -8,9 +8,10 @@
 
 #include <iomanip>
 
-#include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>
 #include <aocommon/xt/utensor.h>
+
+#include <schaapcommon/threading/dynamicfor.h>
 
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/Quanta/MVAngle.h>
@@ -177,7 +178,7 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
   itsFilter->setNextStep(itsFilterResult);
   // Default nr of time chunks is maximum number of threads.
   if (itsNTimeChunk == 0) {
-    itsNTimeChunk = aocommon::ThreadPool::GetInstance().NThreads();
+    itsNTimeChunk = schaapcommon::ThreadPool::GetInstance().NThreads();
   }
   // Check that time windows fit integrally.
   // This check will be done later when using time/freq resolution
@@ -699,7 +700,7 @@ void Demixer::addFactors(std::unique_ptr<DPBuffer> newBuf) {
   // source direction. By combining them you get the shift from one
   // source direction to another.
   int dirnr = 0;  // direction pair number
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   for (unsigned int dir0 = 0; dir0 < itsNDir - 1; ++dir0) {
     const xt::xtensor<std::complex<double>, 2>& phasors0 =
         itsPhaseShifts[dir0]->getPhasors();
@@ -761,7 +762,7 @@ void Demixer::makeFactors(
   bufOut.fill(std::complex<double>(1.0, 0.0));
   // Fill the factors for each combination of different directions.
   unsigned int dirnr = 0;  // direction pair number of the input buffer
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   for (unsigned int dir0 = 0; dir0 < itsNDir - 1; ++dir0) {
     for (unsigned int dir1 = dir0 + 1; dir1 < itsNDir; ++dir1) {
       // Average factors by summing channels.
@@ -912,7 +913,7 @@ void initThreadPrivateStorage(ThreadPrivateStorage& storage, size_t nDirection,
 }  // end unnamed namespace
 
 void Demixer::demix() {
-  const size_t nThread = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t nThread = schaapcommon::ThreadPool::GetInstance().NThreads();
   const size_t nTime = itsAvgResults[0]->size();
   const size_t nTimeSubtr = itsAvgResultSubtr->size();
   const size_t multiplier = itsNTimeAvg / itsNTimeAvgSubtr;
@@ -941,7 +942,7 @@ void Demixer::demix() {
 
   base::const_cursor<base::Baseline> cr_baseline(&(itsBaselines[0]));
 
-  aocommon::DynamicFor<size_t> loop;
+  schaapcommon::DynamicFor<size_t> loop;
   loop.Run(0, nTime, [&](size_t ts, size_t thread) {
     ThreadPrivateStorage& storage = threadStorage[thread];
 

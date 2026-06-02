@@ -4,17 +4,15 @@
 //
 // @author Tammo Jan Dijkema
 
-#include "common/ParameterSet.h"
-#include "common/Timer.h"
-#include "common/StreamUtil.h"
-#include "common/StringTools.h"
-
 #include "ApplyBeam.h"
-#include "ApplyCal.h"
-// for matrix inversion
-#include "base/DPInfo.h"
-#include "base/FlagCounter.h"
-#include "base/Telescope.h"
+
+#include <cassert>
+#include <ostream>
+#include <stddef.h>
+#include <string>
+#include <sstream>
+#include <utility>
+#include <vector>
 
 #include <EveryBeam/pointresponse/pointresponse.h>
 
@@ -27,16 +25,18 @@
 #include <casacore/measures/Measures/MeasConvert.h>
 
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/threadpool.h>
 #include <aocommon/logger.h>
 
-#include <cassert>
-#include <ostream>
-#include <stddef.h>
-#include <string>
-#include <sstream>
-#include <utility>
-#include <vector>
+#include <schaapcommon/threading/threadpool.h>
+
+#include "ApplyCal.h"
+#include "base/DPInfo.h"
+#include "base/FlagCounter.h"
+#include "base/Telescope.h"
+#include "common/ParameterSet.h"
+#include "common/Timer.h"
+#include "common/StreamUtil.h"
+#include "common/StringTools.h"
 
 using casacore::MDirection;
 using casacore::MEpoch;

@@ -6,7 +6,8 @@
 #include <ostream>
 
 #include <aocommon/matrix2x2.h>
-#include <aocommon/recursivefor.h>
+
+#include <schaapcommon/threading/recursivefor.h>
 
 #include <xtensor/views/xview.hpp>
 
@@ -66,7 +67,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  const size_t n_threads = aocommon::ThreadPool::GetInstance().NThreads();
+  const size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
   // Max 8 threads are used in the outer loop, to limit the required memory.
   // TODO this could be smarter; e.g. check required vs available memory.
   const size_t n_outer_threads = std::min<size_t>(8, n_threads);
@@ -79,7 +80,7 @@ FullJonesSolver::SolveResult FullJonesSolver::Solve(
 
   // A RecursiveFor is started to allow nested parallelization over antennas
   // in PerformIteration.
-  aocommon::RecursiveFor recursive_for;
+  schaapcommon::RecursiveFor recursive_for;
   do {
     MakeSolutionsFinite4Pol(solutions);
 
@@ -213,7 +214,7 @@ void FullJonesSolver::PerformIteration(
   const size_t n = NSubSolutions() * 2;
   const size_t n_rhs = 2;
 
-  aocommon::RecursiveFor::NestedRun(0, NAntennas(), [&](size_t ant) {
+  schaapcommon::RecursiveFor::NestedRun(0, NAntennas(), [&](size_t ant) {
     const size_t m = cb_data.NAntennaVisibilities(ant) * 2;
     // TODO it would be nice to have a solver resize function to avoid too many
     // reallocations

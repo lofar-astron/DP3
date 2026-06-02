@@ -4,7 +4,8 @@
 #include <cmath>
 
 #include <aocommon/constants.h>
-#include <aocommon/staticfor.h>
+
+#include <schaapcommon/threading/staticfor.h>
 
 #include "RotationAndDiagonalConstraint.h"
 #include "RotationConstraint.h"
@@ -109,7 +110,7 @@ void FaradayConstraint::Apply(SolutionSpan& solutions, double time) {
   assert(solutions.shape(3) == 4);  // 2x2 full jones solutions
   assert(sub_solution_weights_.size() == NSubSolutions());
   const size_t n_fits = NAntennas() * NSubSolutions();
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, n_fits, [&](size_t begin_index, size_t end_index, size_t thread) {
     std::vector<FitSample> scratch_space;
     for (size_t i = begin_index; i != end_index; ++i) {

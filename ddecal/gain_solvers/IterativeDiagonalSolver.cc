@@ -7,8 +7,9 @@
 
 #include <aocommon/matrix2x2.h>
 #include <aocommon/matrix2x2diag.h>
-#include <aocommon/recursivefor.h>
-#include <aocommon/staticfor.h>
+
+#include <schaapcommon/threading/recursivefor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 using aocommon::MC2x2F;
 using aocommon::MC2x2FDiag;
@@ -61,12 +62,12 @@ SolverBase::SolveResult IterativeDiagonalSolver<VisMatrix>::Solve(
   std::vector<double> step_magnitudes;
   step_magnitudes.reserve(GetMaxIterations());
 
-  std::unique_ptr<aocommon::RecursiveFor> recursive_for =
+  std::unique_ptr<schaapcommon::RecursiveFor> recursive_for =
       MakeOptionalRecursiveFor();
   do {
     MakeSolutionsFinite2Pol(solutions);
 
-    aocommon::RunStaticFor<size_t>(
+    schaapcommon::RunStaticFor<size_t>(
         0, NChannelBlocks(), [&](size_t start_block, size_t end_block) {
           for (size_t ch_block = start_block; ch_block < end_block;
                ++ch_block) {
@@ -146,7 +147,7 @@ void IterativeDiagonalSolver<VisMatrix>::SolveDirection(
   const uint32_t solution_index0 = cb_data.SolutionIndex(direction, 0);
 
   std::mutex mutex;
-  aocommon::RunConstrainedStaticFor<size_t>(
+  schaapcommon::RunConstrainedStaticFor<size_t>(
       0u, n_visibilities, NSubThreads(),
       [&](size_t start_vis_index, size_t end_vis_index) {
         std::vector<MC2x2FDiag> local_numerator(NAntennas() * n_dir_solutions,

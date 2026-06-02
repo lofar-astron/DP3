@@ -181,7 +181,7 @@ double GainCalAlgorithm::getAverageUnflaggedSolution() {
 }
 
 GainCalAlgorithm::Status GainCalAlgorithm::doStep(
-    unsigned int iter, aocommon::RecursiveFor& recursive_for) {
+    unsigned int iter, schaapcommon::RecursiveFor& recursive_for) {
   _gxx = _gx;
   _gx = _g;
 
@@ -343,7 +343,7 @@ void GainCalAlgorithm::doStep_polarized() {
 }
 
 void GainCalAlgorithm::doStep_unpolarized(
-    aocommon::RecursiveFor& recursive_for) {
+    schaapcommon::RecursiveFor& recursive_for) {
   _gold = _g;
 
   for (size_t ant = 0; ant != _nUn; ++ant) {
