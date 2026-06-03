@@ -115,11 +115,21 @@ bool Clipper::process(std::unique_ptr<DPBuffer> buffer) {
 
     // Calculate the indices corresponding to the filtered baselines, and only
     // set the corresponding flags when the amplitude exceeds max_amplitude_.
-    std::vector<common::rownr_t> filtered_row_numbers =
-        result_buffer->GetRowNumbers().tovector();
-    const common::rownr_t first_row_number = buffer->GetRowNumbers()[0];
-    for (common::rownr_t& row_number : filtered_row_numbers) {
-      row_number -= first_row_number;
+    const casacore::Vector<common::rownr_t>& filtered_row_numbers =
+        result_buffer->GetRowNumbers();
+    const casacore::Vector<common::rownr_t>& buffer_row_numbers =
+        buffer->GetRowNumbers();
+
+    std::vector<size_t> filtered_to_original_row_indices;
+    filtered_to_original_row_indices.reserve(filtered_row_numbers.size());
+
+    size_t buffer_index = 0;
+    for (const common::rownr_t& filter_row : filtered_row_numbers) {
+      while (buffer_row_numbers[buffer_index] < filter_row) {
+        ++buffer_index;
+      }
+
+      filtered_to_original_row_indices.push_back(buffer_index++);
     }
 
     // After the prediction, flag the predicted values that exceed
@@ -155,7 +165,8 @@ bool Clipper::process(std::unique_ptr<DPBuffer> buffer) {
       }
       for (size_t i = start; i < stop; i++) {
         auto target_correlations =
-            xt::view(last_flags_, xt::keep(filtered_row_numbers), i, xt::all());
+            xt::view(last_flags_, xt::keep(filtered_to_original_row_indices), i,
+                     xt::all());
 
         target_correlations = xt::view(result_flags, xt::all(), xt::all());
       }
