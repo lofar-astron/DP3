@@ -308,6 +308,34 @@ else()
   set(LIBDIRAC_LIBRARIES "")
 endif()
 
+# Find the WSClean library and include directory
+find_library(WSCLEAN_LIBRARIES NAMES wsclean)
+if(WSCLEAN_LIBRARIES)
+  find_path(WSCLEAN_INCLUDE_DIRS NAMES wsclean/wsclean.h)
+  if(NOT WSCLEAN_INCLUDE_DIRS)
+    message(
+      WARNING "Found WSClean library, but could NOT find the include directory."
+    )
+  endif()
+else()
+  message(
+    WARNING
+      "WSClean libary NOT found. The ImageStep step will not be available.")
+
+  set(WSCLEAN_LIBRARIES "")
+endif()
+if(WSCLEAN_LIBRARIES AND WSCLEAN_INCLUDE_DIRS)
+  # TODO: display and verify version info. Ideally ensure that WSClean is findable through pkg-config.
+  message(STATUS "Found WSClean.")
+  message(STATUS "  WSClean include dir: ${WSCLEAN_INCLUDE_DIRS}")
+  message(STATUS "  WSClean lib: ${WSCLEAN_LIBRARIES}")
+
+  include_directories(${WSCLEAN_INCLUDE_DIRS})
+
+  set(HAVE_WSCLEAN TRUE)
+  add_definitions(-DHAVE_WSCLEAN)
+endif()
+
 # === Load internal submodule packages. ===
 
 # Update submodules as needed
@@ -537,6 +565,7 @@ add_library(
   steps/BDAAverager.cc
   steps/BdaExpander.cc
   steps/BdaGroupPredict.cc
+  $<$<BOOL:${HAVE_WSCLEAN}>:steps/ImageStep.cc>
   steps/Clipper.cc
   steps/Combine.cc
   steps/Counter.cc
@@ -616,6 +645,7 @@ set(DP3_LIBRARIES
     ${HDF5_LIBRARIES}
     ${IDGAPI_LIBRARIES}
     ${LIBDIRAC_LIBRARIES}
+    ${WSCLEAN_LIBRARIES}
     ${Python3_LIBRARIES}
     schaapcommon
     schaapthreading
@@ -771,6 +801,7 @@ if(BUILD_TESTING)
       steps/test/unit/tBdaExpander.cc
       steps/test/unit/tBdaGroupPredict.cc
       steps/test/unit/tBDAResultStep.cc
+      $<$<BOOL:${HAVE_WSCLEAN}>:steps/test/unit/tImageStep.cc>
       steps/test/unit/tClipper.cc
       steps/test/unit/tCounter.cc
       steps/test/unit/tDDECal.cc

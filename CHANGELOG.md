@@ -1,5 +1,16 @@
 # DP3 Changelog
 
+## [(Upcoming release)] - 202?-??-??
+
+### New features
+
+- Add a cadence imaging step that uses WSClean its in-memory interface.
+
+### Improvements
+
+### Bug fixes
+
+
 ## [6.6] - 2026-05-07
 
 This is the last version of DP3 that supports certain file formats:
