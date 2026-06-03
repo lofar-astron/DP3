@@ -33,7 +33,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 option(METADATA_COMPRESSION_DEFAULT "Let Dp3 compress meta-data by default"
-       FALSE)
+       TRUE)
 if(METADATA_COMPRESSION_DEFAULT)
   add_definitions("-DMETADATA_COMPRESSION_DEFAULT=true")
 else()
