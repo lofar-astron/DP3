@@ -226,3 +226,48 @@ def test_clipper_with_filter(use_fast_predict, create_model_data):
     )
     taql_command = f"select from {remote_ms} where any(FLAG)"
     assert_taql(taql_command, 1)
+
+
+@pytest.mark.parametrize(
+    "use_fast_predict",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                tcf.USE_FAST_PREDICT != "ON",
+                reason="FastPredict is not available",
+            ),
+        ),
+    ],
+)
+def test_clipper_with_filter_and_discontinuous_row_numbers(
+    use_fast_predict, create_model_data
+):
+    """
+    Check whether the filter sub-step's filtered indices are within
+    bounds of the target buffer and thus doesn't SIGABRT.
+    """
+    taql_command = f"UPDATE {CLIPPER_MS} set FLAG=false"
+    get_taql_result(taql_command)
+    taql_command = f"select from {CLIPPER_MS} where any(FLAG)"
+    assert_taql(taql_command, 0)
+
+    ms_out = "out.ms"
+    run_dp3(
+        [
+            f"msin={CLIPPER_MS}",
+            "msin.baseline='!CS002HBA1'",
+            f"msout={ms_out}",
+            "steps=[clipper]",
+            "clipper.baseline='!RS106HBA'",
+            f"clipper.sourcedb={CLIPPER_SKYMODEL}",
+            (
+                f"clipper.usefastpredict={use_fast_predict}"
+                if use_fast_predict
+                else ""
+            ),
+            "clipper.timestep=1",
+            "clipper.freqstep=1",
+        ]
+    )
