@@ -104,7 +104,7 @@ prepare-base-2404:
     - ninja -j4 install
     - DP3
 
-# Test DP3 builds and runs without optional dependencies (IDG,SAGECal) installed.
+# Test DP3 builds and runs without optional dependencies (IDG,SAGECal,WSClean) installed.
 # Specifically on the Haswell architecture, which also tests setting the
 # TARGET_CPU option.
 build-2404-no-extras-target-cpu:
@@ -116,6 +116,8 @@ build-2404-no-extras-target-cpu:
     # Remove SAGECal, so DP3 can't and won't use it.
     - rm /usr/include/Dirac*.h /usr/lib/libdirac*
     - rm /usr/lib/pkgconfig/libdirac.* /usr/lib/cmake/libdirac.*
+    # Remove WSClean, so DP3 can't and won't use it.
+    - rm -r /usr/include/wsclean/*.h /usr/lib/libwsclean.*
   variables:
     CMAKE_FLAGS: -DTARGET_CPU=haswell
 

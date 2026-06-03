@@ -29,6 +29,9 @@
 #include "steps/BdaDdeCal.h"
 #include "steps/BdaExpander.h"
 #include "steps/BdaGroupPredict.h"
+#ifdef HAVE_WSCLEAN
+#include "steps/ImageStep.h"
+#endif
 #include "steps/Clipper.h"
 #include "steps/Combine.h"
 #include "steps/Counter.h"
@@ -181,6 +184,14 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
     step = std::make_shared<steps::AntennaFlagger>(parset, prefix);
   } else if (type == "uvwflagger" || type == "uvwflag") {
     step = std::make_shared<steps::UVWFlagger>(parset, prefix, inputType);
+  } else if (type == "image") {
+#ifdef HAVE_WSCLEAN
+    step = std::make_shared<steps::ImageStep>(parset, prefix);
+#else
+    throw std::runtime_error(
+        "The image step is not available since DP3 was built without "
+        "WSClean support.");
+#endif
   } else if (type == "clipper") {
     step = std::make_shared<steps::Clipper>(parset, prefix);
   } else if (type == "combine") {

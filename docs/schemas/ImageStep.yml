@@ -1,0 +1,20 @@
+description: >-
+  Create a series of images at the specified cadence using WSClean its in-memory interface.
+inputs:
+  type:
+    default: image
+    type: string
+    doc: Case-insensitive step type; must be 'image'.
+  cadence:
+    type: float
+    doc: >-
+      The imaging cadence (in seconds), i.e., how often an image is created. The cadence should be larger than the time resolution of the input data. The number of time slots that are images together is calculated as `round(cadence / time resolution)`.
+  fitsprefix:
+    default: "\"\""
+    type: string
+    doc: >-
+      Prefix used for naming the images produced by WSClean. Thus, each new set of images is formatted as ``<fitsprefix>-<image index>-image.fits``, where the image index refers to the nth time interval (starting from 0) that's been written to disk. If this option is unset, the step expects ``-name`` to be set in ``options``, which means that multiple time slots will overwrite each other.
+  options:
+    type: string
+    doc: >-
+      WSClean command-line arguments, e.g. ``-scale 1arcmin -size 1024 1024 -niter 1000 -mgain 0.8 -auto-threshold 3``. For additional information about these (cleaning) options, refer to the `WSClean documentation <https://wsclean.readthedocs.io/en/latest/basic_cleaning.html>`__.

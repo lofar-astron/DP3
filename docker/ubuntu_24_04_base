@@ -6,6 +6,7 @@ ENV IDG_VERSION=1.2.0
 ENV AOFLAGGER_VERSION=72af21873f657427c99493a56742074be70d5d11
 ENV CASACORE_VERSION=cdd18c1f9ab724a42164f7ac56fb507d3a81e074
 ENV SAGECAL_VERSION=v0.8.5
+ENV WSCLEAN_VERSION=41b14e41a809a60f59e3213655e6c3314a8ea7df
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
@@ -106,6 +107,14 @@ RUN mkdir /sagecal && cd /sagecal \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DLIB_ONLY=ON ../src \
 	&& ninja install \
 	&& cd / && rm -rf sagecal
+# Build WSClean (PORTABLE, since the compile node and run node may differ.)
+RUN mkdir /wsclean && cd /wsclean \
+  && git clone https://gitlab.com/aroffringa/wsclean.git src \
+	&& ( cd src/ && git checkout $(WSCLEAN_VERSION) ) \
+	&& mkdir build && cd build \
+	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
+	&& ninja install \
+	&& cd / && rm -rf wsclean
 # EveryBeam by default uses the Python virtual environment directory instead
 # of its installation directory for locating its data files.
 ENV EVERYBEAM_DATADIR=/usr/share/everybeam
