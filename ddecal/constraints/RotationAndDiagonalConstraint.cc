@@ -109,10 +109,8 @@ void ConstrainDiagonal(std::array<std::complex<double>, 2>& diagonal,
 std::vector<ConstraintResult> MakeDiagonalResults(
     size_t n_antennas, size_t n_sub_solutions, size_t n_channels,
     CalType diagonal_solution_type) {
-  const bool is_scalar = diagonal_solution_type == CalType::kScalar ||
-                         diagonal_solution_type == CalType::kScalarAmplitude ||
-                         diagonal_solution_type == CalType::kScalarPhase;
-  const size_t n_diagonal_parameters = is_scalar ? 1 : 2;
+  const size_t n_diagonal_parameters =
+      GetNPolarizations(diagonal_solution_type);
   ConstraintResult template_result;
   template_result.vals.resize(n_antennas * n_sub_solutions * n_channels *
                               n_diagonal_parameters);
@@ -162,8 +160,8 @@ void RotationAndDiagonalConstraint::Initialize(
 
   ConstraintResult& rotation_result = results_.emplace_back();
   rotation_result.vals.resize(NAntennas() * NSubSolutions() * NChannelBlocks());
-  rotation_result.weights.resize(NAntennas() * NSubSolutions() *
-                                 NChannelBlocks());
+  rotation_result.weights.assign(
+      NAntennas() * NSubSolutions() * NChannelBlocks(), 1.0);
   rotation_result.axes = "ant,dir,freq";
   rotation_result.dims.resize(3);
   rotation_result.dims[0] = NAntennas();
@@ -179,23 +177,37 @@ void RotationAndDiagonalConstraint::Initialize(
 
 void RotationAndDiagonalConstraint::SetWeights(
     const std::vector<double>& weights) {
-  // weights is nAntennas * nChannelBlocks
-  results_[0].weights = weights;  // TODO should be nInterval times
-
-  // Duplicate weights for one or two polarizations
-  const size_t n_polarizations = GetNPolarizations(diagonal_solution_type_);
-  results_[1].weights.resize(weights.size() * n_polarizations);
-  size_t index_in_weights = 0;
-  for (double weight : weights) {
-    for (size_t p = 0; p != n_polarizations; ++p) {
-      results_[1].weights[index_in_weights + p] =
-          weight;  // TODO directions / intervals!
-    }
-    index_in_weights += n_polarizations;
+  assert(weights.size() == NAntennas() * NChannelBlocks());
+  // weights is n_antennas * n_channel_blocks, so it needs to be broadcasted
+  // over n_sub_solutions.
+  for (size_t i = 0; i != NSubSolutions(); ++i) {
+    std::copy_n(weights.data(), weights.size(),
+                &results_[0].weights[NAntennas() * NChannelBlocks() * i]);
   }
 
-  if (results_.size() > 2)
-    results_[2].weights = results_[1].weights;  // TODO directions / intervals!
+  // Duplicate weights for one or two polarizations and broadcast these over the
+  // sub solutions.
+  const size_t n_polarizations = GetNPolarizations(diagonal_solution_type_);
+  results_[1].weights.resize(NAntennas() * NSubSolutions() * NChannelBlocks() *
+                             n_polarizations);
+  size_t total_index = 0;
+  for (size_t antenna = 0; antenna != NAntennas(); ++antenna) {
+    for (size_t sub_solution = 0; sub_solution != NSubSolutions();
+         ++sub_solution) {
+      size_t input_index = antenna * NChannelBlocks();
+      for (size_t channel_block = 0; channel_block != NChannelBlocks();
+           ++channel_block) {
+        for (size_t p = 0; p != n_polarizations; ++p) {
+          results_[1].weights[total_index + p] = weights[input_index];
+        }
+        total_index += n_polarizations;
+        ++input_index;
+      }
+    }
+  }
+
+  // If solving amplitude + phase, there's another result structure:
+  if (results_.size() > 2) results_[2].weights = results_[1].weights;
 }
 
 void RotationAndDiagonalConstraint::SetDoRotationReference(
@@ -271,9 +283,18 @@ void RotationAndDiagonalConstraint::Apply(SolutionSpan& solutions,
       bool diverged = false;
       for (size_t ant = 0; ant != NAntennas(); ++ant) {
         std::complex<double>* data = &solutions(ch, ant, sub_solution, 0);
+        const size_t index =
+            ((ant * NSubSolutions()) + sub_solution) * NChannelBlocks() + ch;
 
-        // Skip this antenna if has no valid data.
+        // Skip and flag this antenna if it has no valid data.
         if (!dataIsValid(data, 4)) {
+          results_[0].weights[index] = -1.0;
+          for (size_t i = 1; i != results_.size(); ++i) {
+            size_t n_pol = GetNPolarizations(diagonal_solution_type_);
+            for (size_t pol = 0; pol != n_pol; ++pol) {
+              results_[i].weights[index * n_pol + pol] = -1.0;
+            }
+          }
           continue;
         }
 
@@ -304,8 +325,6 @@ void RotationAndDiagonalConstraint::Apply(SolutionSpan& solutions,
           }
         }
 
-        const size_t index =
-            ((ant * NSubSolutions()) + sub_solution) * NChannelBlocks() + ch;
         results_[0].vals[index] = angle;
         StoreDiagonal(&results_[1], diagonal, ch, ant, sub_solution,
                       NChannelBlocks(), NSubSolutions(),
