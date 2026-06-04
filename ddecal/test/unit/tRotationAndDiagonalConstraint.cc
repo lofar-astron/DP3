@@ -9,6 +9,8 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
+#include <xtensor/views/xview.hpp>
+
 namespace dp3::ddecal {
 
 using base::CalType;
@@ -261,6 +263,69 @@ BOOST_AUTO_TEST_CASE(rotation_and_scalar_phase) {
       TestApplyConstraint(constraint, false, kA, kA);
   BOOST_REQUIRE_EQUAL(results.size(), 2u);
   CheckScalarPhase(results[1], kA);
+}
+
+BOOST_AUTO_TEST_CASE(flag_weights) {
+  RotationAndDiagonalConstraint constraint(CalType::kDiagonal);
+  constraint.Initialize(kNAntennas, std::vector<uint32_t>(kNDirections, 1u),
+                        {42e6, 43e6});
+  const double kNormalWeight = 31.0;
+  constraint.SetWeights(
+      std::vector<double>(kNAntennas * kNChannels, kNormalWeight));
+
+  dp3::ddecal::SolutionTensor solutions_tensor(
+      {kNChannels, kNAntennas, kNDirections, 4});
+  dp3::ddecal::SolutionSpan solutions =
+      aocommon::xt::CreateSpan(solutions_tensor);
+
+  const xt::xtensor<std::complex<double>, 1> values{1.0, 0.0, 0.0, 1.0};
+  xt::view(solutions, xt::all(), xt::all(), xt::all(), xt::all()) = values;
+
+  // Set solutions for one antenna to NaNs
+  const size_t kMissingAntenna = 2;
+  constexpr std::complex<double> kBadSolution(
+      std::numeric_limits<double>::quiet_NaN(),
+      std::numeric_limits<double>::quiet_NaN());
+  xt::view(solutions, xt::all(), kMissingAntenna, xt::all(), xt::all()) =
+      kBadSolution;
+
+  constraint.Apply(solutions, 0.0);
+  const std::vector<ConstraintResult> constraint_result =
+      constraint.GetResult();
+  BOOST_REQUIRE_EQUAL(constraint_result.size(), 3u);
+  BOOST_REQUIRE_EQUAL(constraint_result[0].dims.size(), 3u);
+  BOOST_REQUIRE_EQUAL(constraint_result[0].weights.size(),
+                      kNAntennas * kNDirections * kNChannels);
+
+  std::vector<double>::const_iterator rotation_iterator =
+      constraint_result[0].weights.begin();
+  std::vector<double>::const_iterator amplitude_iterator =
+      constraint_result[1].weights.begin();
+  std::vector<double>::const_iterator phase_iterator =
+      constraint_result[2].weights.begin();
+  for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
+    for (size_t direction = 0; direction != kNDirections; ++direction) {
+      for (size_t channel = 0; channel != kNChannels; ++channel) {
+        const double rotation_weight = *rotation_iterator;
+        ++rotation_iterator;
+        const double amplitude_a_weight = *amplitude_iterator;
+        ++amplitude_iterator;
+        const double amplitude_b_weight = *amplitude_iterator;
+        ++amplitude_iterator;
+        const double phase_a_weight = *phase_iterator;
+        ++phase_iterator;
+        const double phase_b_weight = *phase_iterator;
+        ++phase_iterator;
+        const double expected_weight =
+            (antenna == kMissingAntenna) ? -1.0 : kNormalWeight;
+        BOOST_CHECK_EQUAL(rotation_weight, expected_weight);
+        BOOST_CHECK_EQUAL(amplitude_a_weight, expected_weight);
+        BOOST_CHECK_EQUAL(amplitude_b_weight, expected_weight);
+        BOOST_CHECK_EQUAL(phase_a_weight, expected_weight);
+        BOOST_CHECK_EQUAL(phase_b_weight, expected_weight);
+      }
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
