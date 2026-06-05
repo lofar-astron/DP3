@@ -454,6 +454,7 @@ add_library(
   DDECal OBJECT
   steps/BdaDdeCal.cc
   steps/DDECal.cc
+  ddecal/InitialSolutions.cc
   ddecal/Settings.cc
   ddecal/SolutionResampler.cc
   ddecal/SolutionWriter.cc
