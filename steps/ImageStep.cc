@@ -3,7 +3,6 @@
 
 #include "ImageStep.h"
 
-#include <format>
 #include <ios>
 #include <iostream>
 #include <stdexcept>
@@ -190,7 +189,7 @@ void ImageStep::AddCurrentBufferToInMemoryMs(
 }
 
 std::string ImageStep::FormatImageNamePrefix() const {
-  return std::format("{}-{}", fits_prefix_, image_counter_);
+  return fits_prefix_ + "-" + std::to_string(image_counter_);
 }
 
 }  // namespace dp3::steps
