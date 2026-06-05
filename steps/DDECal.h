@@ -13,12 +13,13 @@
 #include <string>
 #include <vector>
 
-#include <schaapcommon/h5parm/h5cache.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
+#include <schaapcommon/h5parm/soltab.h>
 #include <schaapcommon/threading/recursivefor.h>
 
 #include "common/ParameterSet.h"
 
+#include "ddecal/InitialSolutions.h"
 #include "ddecal/Settings.h"
 #include "ddecal/SolutionWriter.h"
 #include "ddecal/constraints/Constraint.h"
@@ -71,8 +72,6 @@ class DDECal : public Step {
   void initializeColumnReaders(const common::ParameterSet&,
                                const std::string& prefix);
   void initializeModelReuse();
-  void initializeInitialSolutionsH5Parm(const common::ParameterSet& parset,
-                                        const std::string& prefix);
   void initializeIDG(const common::ParameterSet& parset,
                      const std::string& prefix);
   void initializePredictSteps(const common::ParameterSet& parset,
@@ -146,6 +145,7 @@ class DDECal : public Step {
       constraint_solutions_;
 
   std::unique_ptr<ddecal::SolutionWriter> solution_writer_;
+  ddecal::InitialSolutions initial_solutions_;
 
   /// Number of timeslots to store per solution interval as requested
   /// by the user in the parset.
@@ -190,22 +190,6 @@ class DDECal : public Step {
   /// Store the solution for later steps of processing in DPBuffer. Note: only
   /// works for 1 direction.
   bool store_solution_in_buffer_;
-
-  /// Stores the H5Parm file and loads all solutions into memory when the user
-  /// requests the solver to use initial solutions.
-  std::unique_ptr<schaapcommon::h5parm::H5Parm> initial_solutions_;
-  std::string initial_solutions_h5_parm_name;
-  std::vector<std::string> initial_solutions_table_;
-  std::vector<schaapcommon::h5parm::SolTab> solution_tables_;
-  bool initial_solutions_are_full_jones_;
-  /// Specifies the InterpolationType, MissingAntennaBehavior, and GainType for
-  /// extracting the Jones parameters from itsInitialSolutions.
-  /// @{
-  schaapcommon::h5parm::JonesParameters::InterpolationType interpolation_type_;
-  schaapcommon::h5parm::JonesParameters::MissingAntennaBehavior
-      missing_antenna_behavior_;
-  std::vector<schaapcommon::h5parm::GainType> gain_types_;
-  /// @}
 
   common::NSTimer timer_;
   common::NSTimer predict_timer_;
