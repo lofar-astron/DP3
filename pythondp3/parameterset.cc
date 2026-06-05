@@ -2,6 +2,8 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <sstream>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
