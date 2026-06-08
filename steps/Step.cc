@@ -27,7 +27,32 @@ Step::Step() {
   }
 }
 
-Step::~Step() = default;
+Step::~Step() {
+  // If the step has a previous step, that previous step's next step pointer
+  // should point to this step, which means there is still a valid pointer
+  // to this step and this destructor can't be called.
+  assert(!previous_step_);
+
+  // If the step has a next step, update that next step.
+  if (next_step_) {
+    assert(next_step_->previous_step_ == this);
+    next_step_->previous_step_ = nullptr;
+  }
+}
+
+void Step::setNextStep(std::shared_ptr<Step> next_step) {
+  // Update any existing next step, so it can be safely destroyed, without
+  // triggering any assertion in the Step destructor.
+  if (next_step_) {
+    assert(next_step_->previous_step_ == this);
+    next_step_->previous_step_ = nullptr;
+  }
+
+  next_step_ = std::move(next_step);
+  if (next_step_) {
+    next_step_->previous_step_ = this;
+  }
+}
 
 void Step::setInfo(const DPInfo& info) {
   // Update the info of this step using the given info.

@@ -350,12 +350,10 @@ void Execute(const std::string& parsetName,
 
   // Show the steps.
   std::shared_ptr<Step> step = firstStep;
-  std::shared_ptr<Step> lastStep;
   while (step) {
     std::ostringstream os;
     step->show(os);
     aocommon::Logger::Info << os.str();
-    lastStep = step;
     step = step->getNextStep();
   }
   if (checkparset >= 0) {

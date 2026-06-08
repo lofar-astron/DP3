@@ -22,11 +22,13 @@ namespace dp3 {
 namespace steps {
 
 /// @brief DP3 step class to Split visibilities from a source model
-class Split : public OutputStep {
+class Split final : public OutputStep {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
   Split(const common::ParameterSet&, const std::string& prefix);
+
+  ~Split() override;
 
   common::Fields getRequiredFields() const override;
 

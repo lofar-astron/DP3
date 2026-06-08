@@ -138,7 +138,7 @@ base::Direction Predict::GetFirstDirection() const {
 }
 
 void Predict::setNextStep(std::shared_ptr<Step> next_step) {
-  internal_steps_.back()->setNextStep(next_step);
+  internal_steps_.back()->setNextStep(std::move(next_step));
 }
 
 void Predict::SetOperation(const std::string& operation) {

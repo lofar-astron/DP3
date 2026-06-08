@@ -1352,6 +1352,12 @@ BOOST_AUTO_TEST_CASE(test_required_fields) {
   Fields overall_fields = dp3::base::GetChainRequiredFields(mock_input);
   BOOST_TEST(overall_fields == kFlagsUvwFields);
 
+  // Avoid (temporary) circles in the step chain.
+  for (dp3::steps::Step* step = step_read_write.get(); step != nullptr;
+       step = step->getPrevStep()) {
+    step->setNextStep(nullptr);
+  }
+
   // [step_read_write - step_read - step_write]
   // needs data, flags, uvw
   mock_input->setNextStep(step_read_write);
