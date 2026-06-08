@@ -121,19 +121,16 @@ class Step {
   virtual void showTimings(std::ostream&, double duration) const;
 
   /// Set the previous step.
-  void setPrevStep(Step* prevStep) { previous_step_ = prevStep; }
+  void setPrevStep(Step* prev_step) { previous_step_ = prev_step; }
 
   /// Get the previous step.
   Step* getPrevStep() const { return previous_step_; }
 
   /// Set the next step.
-  virtual void setNextStep(Step::ShPtr nextStep) {
-    next_step_ = std::move(nextStep);
-    next_step_->setPrevStep(this);
-  }
+  virtual void setNextStep(std::shared_ptr<Step> next_step);
 
   /// Get the next step.
-  const Step::ShPtr& getNextStep() const { return next_step_; }
+  const std::shared_ptr<Step>& getNextStep() const { return next_step_; }
 
   /// Return which datatype this step outputs.
   virtual MsType outputs() const { return MsType::kRegular; }

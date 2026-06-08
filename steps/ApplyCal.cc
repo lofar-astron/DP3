@@ -78,7 +78,7 @@ ApplyCal::ApplyCal(const common::ParameterSet& parset,
 }
 
 void ApplyCal::setNextStep(std::shared_ptr<Step> nextStep) {
-  apply_cals_.back()->setNextStep(nextStep);
+  apply_cals_.back()->setNextStep(std::move(nextStep));
 }
 
 void ApplyCal::show(std::ostream& os) const {

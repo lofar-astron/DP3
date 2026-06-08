@@ -28,17 +28,17 @@ BOOST_FIXTURE_TEST_CASE(fields, dp3::steps::test::H5ParmFixture) {
 
   // H5ParmPredict creates Predict steps which have internal OnePredict
   // sub-steps as next step.
-  const dp3::steps::Predict predict(parset, "",
-                                    {dp3::steps::test::kPredictDirection});
-
+  const std::vector<std::string> source_patterns = {
+      dp3::steps::test::kPredictDirection};
+  auto predict =
+      std::make_shared<dp3::steps::Predict>(parset, "", source_patterns);
   const dp3::common::Fields predict_required =
-      dp3::base::GetChainRequiredFields(
-          std::make_shared<dp3::steps::Predict>(predict));
+      dp3::base::GetChainRequiredFields(predict);
 
   // TODO(AST-1033) Determine Predict provided fields using generic DP3
   // functions.
   const dp3::common::Fields predict_provided =
-      predict.getNextStep()->getProvidedFields();
+      predict->getNextStep()->getProvidedFields();
   BOOST_TEST(h5predict.getRequiredFields() == predict_required);
   BOOST_TEST(h5predict.getProvidedFields() == predict_provided);
 }

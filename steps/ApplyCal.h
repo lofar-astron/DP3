@@ -60,7 +60,7 @@ class ApplyCal : public Step {
 
   /// Set the next step. It squeezes in the actual OneApplyCal steps
   /// between this ApplyCal step and the next step.
-  void setNextStep(Step::ShPtr nextStep) override;
+  void setNextStep(std::shared_ptr<Step> nextStep) override;
 
   /// Show the step. When ApplyCal is a step in the main chain, this does
   /// nothing; the nextStep mechanism in DPRun will call show on the actual

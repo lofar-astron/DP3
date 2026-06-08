@@ -6,6 +6,7 @@
 
 #include "Split.h"
 
+#include <cassert>
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -66,6 +67,15 @@ Split::Split(const common::ParameterSet& parset, const std::string& prefix)
       first_step->setPrevStep(this);
       sub_steps_.push_back(std::move(first_step));
     }
+  }
+}
+
+Split::~Split() {
+  // Remove the previous step from the first sub steps, so those Steps can be
+  // safely destroyed, without triggering any assertion in the Step destructor.
+  for (std::shared_ptr<Step>& first_step : sub_steps_) {
+    assert(first_step->getPrevStep() == this);
+    first_step->setPrevStep(nullptr);
   }
 }
 

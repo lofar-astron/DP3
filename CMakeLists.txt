@@ -835,6 +835,7 @@ if(BUILD_TESTING)
       steps/test/unit/tScaleDataBDA.cc
       steps/test/unit/tSplit.cc
       steps/test/unit/tStationAdder.cc
+      steps/test/unit/tStep.cc
       steps/test/unit/tStepCommon.cc
       steps/test/unit/tTransfer.cc
       steps/test/unit/tUpsample.cc
