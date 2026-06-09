@@ -697,7 +697,8 @@ target_link_libraries(
   ${Boost_LIBRARIES}
   ${AOFLAGGER_LIB}
   ${EVERYBEAM_LIB}
-  ${IDGAPI_LIBRARIES})
+  ${IDGAPI_LIBRARIES}
+  ${WSCLEAN_LIBRARIES})
 
 add_executable(msoverview base/msoverview.cc base/MS.cc)
 target_link_libraries(msoverview ${CASACORE_LIBRARIES} ${Boost_LIBRARIES})
