@@ -387,12 +387,18 @@ void OnePredict::CopyPredictBufferToData(
     base::DPBuffer::DataType& destination,
     const aocommon::xt::UTensor<std::complex<double>, 3>& buffer) {
   if (stokes_i_only_) {
-    // Add the predicted model to the first and last correlation.
-    const size_t n_correlations = getInfoOut().ncorr();
-    auto dest_view = xt::view(destination, xt::all(), xt::all(),
-                              xt::keep(0, n_correlations - 1));
-    // Without explicit casts, XTensor does not know what to do.
-    dest_view = xt::cast<std::complex<float>>(buffer);
+    // Copy the predicted model to the first and last correlation.
+    // Set the other correlations to zero.
+    assert(getInfoOut().ncorr() == 4);
+    const size_t n_elements = getInfoOut().nchan() * getInfoOut().nbaselines();
+    std::complex<float>* destination_ptr = destination.data();
+    const std::complex<double>* buffer_ptr = buffer.data();
+    for (size_t i = 0; i < n_elements; ++i) {
+      destination_ptr[4 * i + 0] = buffer_ptr[i];
+      destination_ptr[4 * i + 1] = std::complex<float>(0.0, 0.0);
+      destination_ptr[4 * i + 2] = std::complex<float>(0.0, 0.0);
+      destination_ptr[4 * i + 3] = buffer_ptr[i];
+    }
   } else {
     // Without explicit casts, XTensor does not know what to do.
     destination = xt::cast<std::complex<float>>(buffer);
@@ -463,7 +469,6 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
   DPBuffer::DataType& data = buffer->GetData(output_data_name_);
   data.resize({nBl, nCh, nCr});
-  data.fill(std::complex<float>(0.0, 0.0));
 
   const size_t actual_nCr = (stokes_i_only_ ? 1 : nCr);
   if (thread_over_baselines_) {
