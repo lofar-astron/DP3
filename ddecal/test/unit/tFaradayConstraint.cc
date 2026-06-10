@@ -57,6 +57,92 @@ void ApplyFaradayRotation(SolutionTensor& solutions_tensor, size_t antenna,
     m.AssignTo(&solutions_tensor(channel, antenna, sub_solution, 0));
   }
 }
+
+/**
+ * Check if two values with pi-ambiguity are close. Note that this is
+ * purposely not 2*pi, because Faraday values have a pi-ambiguity, not
+ * 2*pi like phase values have.
+ */
+void CheckPiWrappedPhase(double result, double expected) {
+  const double wrapped_result = std::fmod(result + 2.0 * M_PI, M_PI);
+  double wrapped_expected = std::fmod(expected + 2.0 * M_PI, M_PI);
+  // Bring expected to the same wrap as the wrapped result
+  if (wrapped_expected - wrapped_result < -0.5 * M_PI)
+    wrapped_expected += M_PI;
+  else if (wrapped_expected - wrapped_result > 0.5 * M_PI)
+    wrapped_expected -= M_PI;
+  BOOST_CHECK_CLOSE_FRACTION(wrapped_result, wrapped_expected, 1.0e-3);
+}
+
+void CheckDiagonal(const std::vector<ConstraintResult>& result,
+                   std::complex<double> diagonal_value_x,
+                   std::complex<double> diagonal_value_y) {
+  const ConstraintResult& amplitude = result[1];
+  BOOST_CHECK_EQUAL(amplitude.vals.size(),
+                    kNAntennas * kNSubSolutions * kNChannels * 2);
+  const ConstraintResult& phase = result[2];
+  BOOST_CHECK_EQUAL(phase.vals.size(),
+                    kNAntennas * kNSubSolutions * kNChannels * 2);
+
+  const double kExpectedPhaseX = std::arg(diagonal_value_x);
+  const double kExpectedPhaseY = std::arg(diagonal_value_y);
+  for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
+    for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
+         ++sub_solution) {
+      const size_t index =
+          (antenna * kNSubSolutions + sub_solution) * kNChannels * 2;
+      const double* amplitude_ptr = &amplitude.vals[index];
+      const double* phase_ptr = &phase.vals[index];
+      for (size_t i = 0; i != kNChannels; ++i) {
+        const double* amplitudes = &amplitude_ptr[i * 2];
+        const double* phases = &phase_ptr[i * 2];
+        BOOST_CHECK_CLOSE_FRACTION(amplitudes[0], std::abs(diagonal_value_x),
+                                   1.0e-3);
+        CheckPiWrappedPhase(phases[0], kExpectedPhaseX);
+        BOOST_CHECK_CLOSE_FRACTION(amplitudes[1], std::abs(diagonal_value_y),
+                                   1.0e-3);
+        CheckPiWrappedPhase(phases[1], kExpectedPhaseY);
+      }
+    }
+  }
+}
+
+void CheckFaraday(const std::vector<ConstraintResult>& result,
+                  double antenna_rotation_step,
+                  double sub_solution_rotation_step) {
+  BOOST_REQUIRE_EQUAL(result.size(), 3u);
+  const ConstraintResult& faraday = result[0];
+  for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
+    for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
+         ++sub_solution) {
+      const double rotation_value = antenna * antenna_rotation_step +
+                                    sub_solution * sub_solution_rotation_step;
+      const double result_value =
+          faraday.vals[antenna * kNSubSolutions + sub_solution];
+      BOOST_CHECK_CLOSE_FRACTION(rotation_value, result_value, 1.0e-3);
+    }
+  }
+}
+
+dp3::ddecal::SolutionTensor MakeSolutions(
+    double antenna_rotation_step, double sub_solution_rotation_step,
+    std::complex<double> diagonal_value_x,
+    std::complex<double> diagonal_value_y) {
+  dp3::ddecal::SolutionTensor solutions_tensor(
+      {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
+  Fill(solutions_tensor, MC2x2(diagonal_value_x, 0.0, 0.0, diagonal_value_y));
+  for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
+    for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
+         ++sub_solution) {
+      const double rotation_value = antenna * antenna_rotation_step +
+                                    sub_solution * sub_solution_rotation_step;
+      ApplyFaradayRotation(solutions_tensor, antenna, sub_solution,
+                           rotation_value);
+    }
+  }
+  return solutions_tensor;
+}
+
 }  // namespace
 
 using base::CalType;
@@ -135,62 +221,19 @@ BOOST_AUTO_TEST_CASE(zero_rotation_with_diagonal) {
 }
 
 BOOST_AUTO_TEST_CASE(rotation) {
-  dp3::ddecal::SolutionTensor solutions_tensor(
-      {kNChannels, kNAntennas, kNSubSolutions, kNPolarizations});
-  const std::complex<double> diagonal_value_x(3.0, 4.0);
-  const std::complex<double> diagonal_value_y(7.0, -2.0);
+  constexpr std::complex<double> diagonal_value_x(3.0, 4.0);
+  constexpr std::complex<double> diagonal_value_y(7.0, -2.0);
   constexpr double antenna_rotation_step = 0.1;
   constexpr double sub_solution_rotation_step = 0.07;
-  Fill(solutions_tensor, MC2x2(diagonal_value_x, 0.0, 0.0, diagonal_value_y));
-  for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
-    for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
-         ++sub_solution) {
-      const double rotation_value = antenna * antenna_rotation_step +
-                                    sub_solution * sub_solution_rotation_step;
-      ApplyFaradayRotation(solutions_tensor, antenna, sub_solution,
-                           rotation_value);
-    }
-  }
+  dp3::ddecal::SolutionTensor solutions_tensor =
+      MakeSolutions(antenna_rotation_step, sub_solution_rotation_step,
+                    diagonal_value_x, diagonal_value_y);
   FaradayConstraint constraint(base::CalType::kDiagonal, {});
   std::vector<ConstraintResult> result =
       Constrain(constraint, solutions_tensor);
 
-  BOOST_REQUIRE_EQUAL(result.size(), 3u);
-  const ConstraintResult& faraday = result[0];
-  const ConstraintResult& amplitude = result[1];
-  BOOST_CHECK_EQUAL(amplitude.vals.size(),
-                    kNAntennas * kNSubSolutions * kNChannels * 2);
-  const ConstraintResult& phase = result[2];
-  BOOST_CHECK_EQUAL(phase.vals.size(),
-                    kNAntennas * kNSubSolutions * kNChannels * 2);
-
-  const double kExpectedPhaseX = std::arg(diagonal_value_x);
-  const double kExpectedPhaseY = std::arg(diagonal_value_y);
-  for (size_t antenna = 0; antenna != kNAntennas; ++antenna) {
-    for (size_t sub_solution = 0; sub_solution != kNSubSolutions;
-         ++sub_solution) {
-      const double rotation_value = antenna * antenna_rotation_step +
-                                    sub_solution * sub_solution_rotation_step;
-      const double result_value =
-          faraday.vals[antenna * kNSubSolutions + sub_solution];
-      BOOST_CHECK_CLOSE_FRACTION(rotation_value, result_value, 1.0e-3);
-
-      const size_t index =
-          (antenna * kNSubSolutions + sub_solution) * kNChannels * 2;
-      const double* amplitude_ptr = &amplitude.vals[index];
-      const double* phase_ptr = &phase.vals[index];
-      for (size_t i = 0; i != kNChannels; ++i) {
-        const double* amplitudes = &amplitude_ptr[i * 2];
-        const double* phases = &phase_ptr[i * 2];
-        BOOST_CHECK_CLOSE_FRACTION(amplitudes[0], std::abs(diagonal_value_x),
-                                   1.0e-3);
-        BOOST_CHECK_CLOSE_FRACTION(phases[0], kExpectedPhaseX, 1.0e-3);
-        BOOST_CHECK_CLOSE_FRACTION(amplitudes[1], std::abs(diagonal_value_y),
-                                   1.0e-3);
-        BOOST_CHECK_CLOSE_FRACTION(phases[1], kExpectedPhaseY, 1.0e-3);
-      }
-    }
-  }
+  CheckFaraday(result, antenna_rotation_step, sub_solution_rotation_step);
+  CheckDiagonal(result, diagonal_value_x, diagonal_value_y);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

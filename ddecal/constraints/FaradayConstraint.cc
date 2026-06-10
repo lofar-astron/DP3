@@ -166,9 +166,8 @@ void FaradayConstraint::PerformFit(SolutionSpan& solutions, size_t sub_solution,
     // X = D(0,0) cos(angle) + D(1,0) -sin(angle)
     // and thus
     // Y = D(0,1) sin(angle) + D(1,1) cos(angle)
-    const double derotate = angle;
-    const double sin_angle = std::sin(derotate);
-    const double cos_angle = std::cos(derotate);
+    const double sin_angle = std::sin(angle);
+    const double cos_angle = std::cos(angle);
     std::array<std::complex<double>, 2> diagonal{
         data[0] * cos_angle - data[1] * sin_angle,
         data[2] * sin_angle + data[3] * cos_angle};

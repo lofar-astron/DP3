@@ -51,7 +51,7 @@ class Constraint {
   /**
    * Whether the constraint has been satisfied. The calibration process will
    * continue at least as long as Satisfied()=false, and performs at least one
-   * more iteration after Satisfied()=true. Together with SetPrecisionReached(),
+   * more iteration after Satisfied()=true. Together with PrepareIteration(),
    * this can make the algorithm change the constraining method based on amount
    * of convergence.
    */
