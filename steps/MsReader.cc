@@ -269,10 +269,33 @@ bool MsReader::process(std::unique_ptr<DPBuffer> buffer) {
                                                  getInfoOut().dataColumnName());
           casacore::Cube<casacore::Complex> casa_data(
               casa_shape, buffer->GetData().data(), casacore::SHARE);
-          if (use_all_channels_) {
-            dataCol.getColumn(casa_data);
-          } else {
-            dataCol.getColumn(column_slicer_, casa_data);
+          try {
+            if (use_all_channels_) {
+              dataCol.getColumn(casa_data);
+            } else {
+              dataCol.getColumn(column_slicer_, casa_data);
+            }
+          } catch (std::exception& exception) {
+            const size_t actual_n_baselines = dataCol.nrow();
+            if (actual_n_baselines != shape[0]) {
+              size_t start_row = buffer->GetRowNumbers().empty()
+                                     ? 0
+                                     : *buffer->GetRowNumbers().cbegin();
+              size_t end_row = buffer->GetRowNumbers().empty()
+                                   ? 0
+                                   : *(buffer->GetRowNumbers().cend() - 1);
+              throw std::runtime_error(
+                  "This measurement set is not regular; Inconsistent number of "
+                  "baselines in time block covering rows " +
+                  std::to_string(start_row) + " - " + std::to_string(end_row) +
+                  ": expecting " + std::to_string(shape[0]) +
+                  " baselines, but ms has " +
+                  std::to_string(actual_n_baselines) +
+                  " baselines. DP3 currently does not support irregular "
+                  "measurement sets.");
+            } else {
+              throw;
+            }
           }
         }
         if (getFieldsToRead().Flags()) {
