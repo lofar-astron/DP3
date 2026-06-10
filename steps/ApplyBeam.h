@@ -29,20 +29,21 @@ namespace dp3 {
 namespace steps {
 
 /// Computes full 2x2 Jones beam matrices using EveryBeam.
-size_t ComputeBeam(const base::DPInfo& info, double time,
+size_t ComputeBeam(const base::DPInfo& info,
+                   everybeam::pointresponse::PointResponse& point_response,
                    const everybeam::vector3r_t& srcdir,
-                   const everybeam::telescope::Telescope* telescope,
                    aocommon::MC2x2* beam_values, bool invert,
                    everybeam::BeamMode mode, std::mutex* mutex,
+                   const std::vector<size_t>& station_indices,
                    const std::vector<size_t>& skip_station_indices);
 
 /// Computes the array factor scalar values.
-size_t ComputeArrayFactor(const base::DPInfo& info, double time,
-                          const everybeam::vector3r_t& srcdir,
-                          const everybeam::telescope::Telescope* telescope,
-                          std::complex<double>* beam_values, bool invert,
-                          std::mutex* mutex,
-                          const std::vector<size_t>& skip_station_indices);
+size_t ComputeArrayFactor(
+    const base::DPInfo& info,
+    everybeam::pointresponse::PointResponse& point_response,
+    const everybeam::vector3r_t& srcdir, std::complex<double>* beam_values,
+    bool invert, std::mutex* mutex, const std::vector<size_t>& station_indices,
+    const std::vector<size_t>& skip_station_indices);
 
 /**
  * Corrects the values in @p data with the precomputed full Jones beam
@@ -133,9 +134,10 @@ class ApplyBeam final : public Step {
    * barrier.
    */
   static void ApplyBaselineBasedBeam(
-      const base::DPInfo& info, double time, std::complex<double>* data0,
-      float* weight0, const everybeam::vector3r_t& srcdir,
-      const everybeam::telescope::Telescope* telescope,
+      const base::DPInfo& info, std::complex<double>* data0, float* weight0,
+      const everybeam::vector3r_t& srcdir,
+      const std::vector<size_t>& station_indices,
+      everybeam::pointresponse::PointResponse& point_response,
       aocommon::MC2x2* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
@@ -147,9 +149,10 @@ class ApplyBeam final : public Step {
    * Like @ref ApplyBaselineBasedBeam(), but for array factor only.
    */
   static void ApplyBaselineBasedArrayFactor(
-      const base::DPInfo& info, double time, std::complex<double>* data0,
+      const base::DPInfo& info, std::complex<double>* data0,
       const everybeam::vector3r_t& srcdir,
-      const everybeam::telescope::Telescope* telescope,
+      const std::vector<size_t>& station_indices,
+      everybeam::pointresponse::PointResponse& point_response,
       std::complex<double>* beam_values,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
@@ -186,6 +189,7 @@ class ApplyBeam final : public Step {
   /// The info needed to calculate the station beams.
   ///@{
   std::unique_ptr<everybeam::telescope::Telescope> telescope_;
+  std::vector<size_t> station_indices_;
   casacore::MeasFrame measure_frame_;
   casacore::MDirection::Convert measure_converter_;
   std::vector<aocommon::MC2x2> beam_values_;

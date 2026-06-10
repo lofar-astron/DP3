@@ -13,6 +13,8 @@
 
 #include <xtensor/containers/xtensor.hpp>
 
+#include <EveryBeam/pointresponse/pointresponse.h>
+
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
 #include "ResultStep.h"
@@ -132,26 +134,33 @@ class OnePredict : public ModelDataStep {
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
 
+  /// @param point_response Point response for computing beam responses. It is
+  /// null if the beam response should not be updated.
   void addBeamToData(const sky_model::Patch& patch, size_t buffer_index,
                      aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-                     double time, bool update_beam, size_t thread,
+                     everybeam::pointresponse::PointResponse* point_response,
+                     size_t thread,
                      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      bool stokesIOnly);
 
   void addBeamToDataRange(
       const sky_model::Patch& patch,
-      aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
-      size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data0,
+      aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+      everybeam::pointresponse::PointResponse& point_response, size_t thread,
+      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
       const std::pair<size_t, size_t>& baseline_range,
       const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
       bool stokesIOnly);
 
   void PredictWithSourceParallelization(base::DPBuffer::DataType& destination,
                                         double time);
+
+  /// @param point_response Point response for computing beam responses. It is
+  /// null if the beam response should not be updated.
   void PredictSourceRange(
       aocommon::xt::UTensor<std::complex<double>, 3>& result, size_t start,
-      size_t end, size_t thread_index, std::mutex& mutex, double time,
-      bool update_beam);
+      size_t end, size_t thread_index, std::mutex& mutex,
+      everybeam::pointresponse::PointResponse* point_response);
 
   /// Assigns @p buffer to @p destination. If @c stokes_i_only_ is set,
   /// only the first and last correlations (e.g. XX and YY) are copied.
@@ -209,6 +218,7 @@ class OnePredict : public ModelDataStep {
   std::vector<casacore::MeasFrame> meas_frame_;
   std::vector<casacore::MDirection::Convert> meas_convertors_;
   std::shared_ptr<everybeam::telescope::Telescope> telescope_;
+  std::vector<size_t> station_indices_;
 
   std::string direction_str_;  ///< Definition of patches, to pass to applycal
   std::vector<std::shared_ptr<sky_model::Patch>> patch_list_;

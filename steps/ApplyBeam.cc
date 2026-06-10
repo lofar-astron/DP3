@@ -93,11 +93,12 @@ void ApplyBeamToData(const DPInfo& info, const size_t n_stations, T* data0,
 namespace dp3 {
 namespace steps {
 
-size_t ComputeBeam(const base::DPInfo& info, double time,
+size_t ComputeBeam(const base::DPInfo& info,
+                   everybeam::pointresponse::PointResponse& point_response,
                    const everybeam::vector3r_t& srcdir,
-                   const everybeam::telescope::Telescope* telescope,
                    aocommon::MC2x2* beam_values, bool invert,
                    everybeam::BeamMode mode, std::mutex* mutex,
+                   const std::vector<size_t>& station_indices,
                    const std::vector<size_t>& skip_station_indices) {
   /*
     Compute the beam values for each station in a specific direction
@@ -107,12 +108,6 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
     was computed for.
   */
   const size_t n_channels = info.chanFreqs().size();
-
-  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope->GetPointResponse(time);
-
-  const std::vector<size_t> station_indices =
-      dp3::base::SelectStationIndices(*telescope, info.antennaNames());
   const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
@@ -126,9 +121,9 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
           for (size_t ch = 0; ch < n_channels; ++ch)
             beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
         } else {
-          point_response->Response(&beam_values[n_channels * st], mode,
-                                   station_indices[st], info.chanFreqs(),
-                                   srcdir, mutex);
+          point_response.Response(&beam_values[n_channels * st], mode,
+                                  station_indices[st], info.chanFreqs(), srcdir,
+                                  mutex);
           if (invert) {
             for (size_t ch = 0; ch < n_channels; ++ch) {
               // Terminate if the matrix is not invertible.
@@ -147,9 +142,9 @@ size_t ComputeBeam(const base::DPInfo& info, double time,
           for (size_t ch = 0; ch < n_channels; ++ch)
             beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
         } else {
-          point_response->Response(&beam_values[n_channels * st], mode,
-                                   station_indices[st], info.chanFreqs(),
-                                   srcdir, mutex);
+          point_response.Response(&beam_values[n_channels * st], mode,
+                                  station_indices[st], info.chanFreqs(), srcdir,
+                                  mutex);
 
           for (size_t ch = 0; ch < n_channels; ++ch) {
             if (invert) {
@@ -326,6 +321,8 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
       base::GetTelescope(getInfoOut().msName(), itsElementResponseModel,
                          itsUseChannelFreq, coefficients_path_);
   telescope_->SetTime(getInfoOut().startTime());
+  station_indices_ =
+      base::SelectStationIndices(*telescope_, getInfoOut().antennaNames());
 
   if (!itsSkipStationNames.empty()) {
     // Needs loop over itsSkipStationNames because SelectStationIndices
@@ -375,6 +372,8 @@ bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
   const double time = buffer->GetTime();
   telescope_->SetTime(time);
   measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope_->GetPointResponse(time);
 
   for (const auto& [direction_name, direction] : directions) {
     std::complex<float>* data = buffer->GetData(direction_name).data();
@@ -384,10 +383,9 @@ bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
     everybeam::vector3r_t direction_itrf =
         dir2Itrf(direction_j2000, measure_converter_);
 
-    const size_t n_stations =
-        ComputeBeam(getInfoOut(), time, direction_itrf, telescope_.get(),
-                    beam_values_.data(), itsInvert, itsMode, nullptr,
-                    itsSkipStationIndices);
+    const size_t n_stations = ComputeBeam(
+        getInfoOut(), *point_response, direction_itrf, beam_values_.data(),
+        itsInvert, itsMode, nullptr, station_indices_, itsSkipStationIndices);
     ApplyBeamToData(getInfoOut(), n_stations, data, nullptr,
                     beam_values_.data(), false);
   }
@@ -408,6 +406,8 @@ bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
   measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
 
   telescope_->SetTime(time);
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
+      telescope_->GetPointResponse(time);
 
   if (undoInputBeam) {
     // A beam was previously applied to this MS, and a different direction
@@ -417,8 +417,8 @@ bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
     const everybeam::vector3r_t srcdir =
         dir2Itrf(itsDirectionAtStart, measure_converter_);
     const size_t n_stations = ComputeBeam(
-        getInfoOut(), time, srcdir, telescope_.get(), beam_values_.data(),
-        false, itsModeAtStart, nullptr, itsSkipStationIndices);
+        getInfoOut(), *point_response, srcdir, beam_values_.data(), false,
+        itsModeAtStart, nullptr, station_indices_, itsSkipStationIndices);
     ApplyBeamToData(getInfoOut(), n_stations, data, weight, beam_values_.data(),
                     itsUpdateWeights);
   }
@@ -426,8 +426,8 @@ bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
   const everybeam::vector3r_t srcdir =
       dir2Itrf(itsDirection, measure_converter_);
   const size_t n_stations = ComputeBeam(
-      getInfoOut(), time, srcdir, telescope_.get(), beam_values_.data(),
-      itsInvert, itsMode, nullptr, itsSkipStationIndices);
+      getInfoOut(), *point_response, srcdir, beam_values_.data(), itsInvert,
+      itsMode, nullptr, station_indices_, itsSkipStationIndices);
   ApplyBeamToData(getInfoOut(), n_stations, data, weight, beam_values_.data(),
                   itsUpdateWeights);
 
@@ -449,9 +449,10 @@ void ApplyBeam::finish() {
 }
 
 void ApplyBeam::ApplyBaselineBasedBeam(
-    const DPInfo& info, double time, std::complex<double>* data0,
-    float* weight0, const everybeam::vector3r_t& srcdir,
-    const everybeam::telescope::Telescope* telescope,
+    const DPInfo& info, std::complex<double>* data0, float* weight0,
+    const everybeam::vector3r_t& srcdir,
+    const std::vector<size_t>& station_indices,
+    everybeam::pointresponse::PointResponse& point_response,
     aocommon::MC2x2* beam_values,
     const std::pair<size_t, size_t>& baseline_range,
     const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
@@ -459,12 +460,6 @@ void ApplyBeam::ApplyBaselineBasedBeam(
     std::mutex* mutex, const std::vector<size_t>& skip_station_indices) {
   // Get the beam values for each station.
   const size_t n_channels = info.chanFreqs().size();
-
-  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope->GetPointResponse(time);
-
-  const std::vector<size_t> station_indices =
-      base::SelectStationIndices(*telescope, info.antennaNames());
   const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
@@ -484,8 +479,8 @@ void ApplyBeam::ApplyBaselineBasedBeam(
               beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
             } else {
               beam_values[n_channels * st + ch] =
-                  point_response->Response(mode, station_indices[st],
-                                           info.chanFreqs()[ch], srcdir, mutex);
+                  point_response.Response(mode, station_indices[st],
+                                          info.chanFreqs()[ch], srcdir, mutex);
               if (invert) {
                 // Terminate if the matrix is not invertible.
                 [[maybe_unused]] bool status =
@@ -507,8 +502,8 @@ void ApplyBeam::ApplyBaselineBasedBeam(
               beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
             } else {
               af_tmp =
-                  point_response->Response(mode, station_indices[st],
-                                           info.chanFreqs()[ch], srcdir, mutex);
+                  point_response.Response(mode, station_indices[st],
+                                          info.chanFreqs()[ch], srcdir, mutex);
 
               if (invert) {
                 af_tmp = aocommon::MC2x2(1.0 / af_tmp.Get(0), 0.0, 0.0,
@@ -556,19 +551,12 @@ void ApplyBeam::ApplyBaselineBasedBeam(
   barrier.arrive_and_wait();
 }
 
-size_t ComputeArrayFactor(const DPInfo& info, double time,
-                          const everybeam::vector3r_t& srcdir,
-                          const everybeam::telescope::Telescope* telescope,
-                          std::complex<double>* beam_values, bool invert,
-                          std::mutex* mutex,
-                          const std::vector<size_t>& skip_station_indices) {
+size_t ComputeArrayFactor(
+    const DPInfo& info, everybeam::pointresponse::PointResponse& point_response,
+    const everybeam::vector3r_t& srcdir, std::complex<double>* beam_values,
+    bool invert, std::mutex* mutex, const std::vector<size_t>& station_indices,
+    const std::vector<size_t>& skip_station_indices) {
   const size_t n_channels = info.chanFreqs().size();
-
-  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope->GetPointResponse(time);
-
-  const std::vector<size_t> station_indices =
-      base::SelectStationIndices(*telescope, info.antennaNames());
   const size_t n_stations = station_indices.size();
 
   for (size_t ch = 0; ch < n_channels; ++ch) {
@@ -580,9 +568,9 @@ size_t ComputeArrayFactor(const DPInfo& info, double time,
         value = 1.0;
       } else {
         value = point_response
-                    ->Response(everybeam::BeamMode::kArrayFactor,
-                               station_indices[st], info.chanFreqs()[ch],
-                               srcdir, mutex)
+                    .Response(everybeam::BeamMode::kArrayFactor,
+                              station_indices[st], info.chanFreqs()[ch], srcdir,
+                              mutex)
                     .Get(0);
         if (invert) {
           value = 1.0 / value;
@@ -624,9 +612,10 @@ void ApplyArrayFactorAndAdd(
 }
 
 void ApplyBeam::ApplyBaselineBasedArrayFactor(
-    const DPInfo& info, double time, std::complex<double>* data0,
+    const DPInfo& info, std::complex<double>* data0,
     const everybeam::vector3r_t& srcdir,
-    const everybeam::telescope::Telescope* telescope,
+    const std::vector<size_t>& station_indices,
+    everybeam::pointresponse::PointResponse& point_response,
     std::complex<double>* beam_values,
     const std::pair<size_t, size_t>& baseline_range,
     const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
@@ -635,12 +624,6 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
   assert(mode == everybeam::BeamMode::kArrayFactor);
   // Get the beam values for each station.
   const size_t n_channels = info.chanFreqs().size();
-
-  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope->GetPointResponse(time);
-
-  const std::vector<size_t> station_indices =
-      base::SelectStationIndices(*telescope, info.antennaNames());
   const size_t n_stations = station_indices.size();
 
   // Apply the beam values of both stations to the ApplyBeamed data.
@@ -657,9 +640,9 @@ void ApplyBeam::ApplyBaselineBasedArrayFactor(
           // only for stations used by this thread
           beam_values[n_channels * st + ch] =
               point_response
-                  ->Response(everybeam::BeamMode::kArrayFactor,
-                             station_indices[st], info.chanFreqs()[ch], srcdir,
-                             mutex)
+                  .Response(everybeam::BeamMode::kArrayFactor,
+                            station_indices[st], info.chanFreqs()[ch], srcdir,
+                            mutex)
                   .Get(0);
           if (invert) {
             beam_values[n_channels * st + ch] =

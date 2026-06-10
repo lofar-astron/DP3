@@ -214,6 +214,9 @@ void OnePredict::initializeThreadData() {
     telescope_ =
         base::GetTelescope(getInfoOut().msName(), element_response_model_,
                            use_channel_freq_, coefficients_path_);
+    station_indices_ =
+        base::SelectStationIndices(*telescope_, getInfoOut().antennaNames());
+
     predict_buffers_ =
         std::make_shared<std::vector<base::PredictBuffer>>(nThreads);
     // TODO:
@@ -475,6 +478,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     std::unique_ptr<PredictModel> model_buffer = std::make_unique<PredictModel>(
         nThreads, stokes_i_only_ ? 1 : getInfoOut().ncorr(), nCh, nBl,
         apply_beam_);
+    std::unique_ptr<everybeam::pointresponse::PointResponse> point_response;
 
     // Reduce the number of threads if there are not enough baselines.
     n_threads = std::min(n_threads, nBl);
@@ -489,6 +493,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     baselines_split.resize(n_threads);
     if (apply_beam_) {
       station_range.resize(n_threads);
+      point_response = telescope_->GetPointResponse(time);
     }
 
     // Index of the first baseline for the current thread. The loop below
@@ -587,9 +592,10 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
               // Apply the beam and add PatchModel to Model
               addBeamToDataRange(
-                  *curPatch, model_buffer->GetModel(thread_index), time,
-                  thread_index, patch_model, baseline_range[thread_index],
-                  station_range[thread_index], barrier, stokes_i_only_);
+                  *curPatch, model_buffer->GetModel(thread_index),
+                  *point_response, thread_index, patch_model,
+                  baseline_range[thread_index], station_range[thread_index],
+                  barrier, stokes_i_only_);
               // Initialize patchmodel to zero for the next patch
               sim_buffer[thread_index].fill(std::complex<double>(0.0, 0.0));
             }
@@ -609,10 +615,11 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
                                baseline_range[thread_index].second),
                      xt::all(), xt::all()) = sim_buffer[thread_index];
 
-            addBeamToDataRange(
-                *curPatch, model_buffer->GetModel(thread_index), time,
-                thread_index, patch_model, baseline_range[thread_index],
-                station_range[thread_index], barrier, stokes_i_only_);
+            addBeamToDataRange(*curPatch, model_buffer->GetModel(thread_index),
+                               *point_response, thread_index, patch_model,
+                               baseline_range[thread_index],
+                               station_range[thread_index], barrier,
+                               stokes_i_only_);
           }
           if (!apply_beam_) {
             aocommon::xt::UTensor<std::complex<double>, 3>& model =
@@ -660,8 +667,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
 
 void OnePredict::PredictSourceRange(
     aocommon::xt::UTensor<std::complex<double>, 3>& result, size_t start,
-    size_t end, size_t thread_index, std::mutex& mutex, double time,
-    bool update_beam) {
+    size_t end, size_t thread_index, std::mutex& mutex,
+    everybeam::pointresponse::PointResponse* point_response) {
   const size_t n_stations = getInfoOut().nantenna();
   const size_t n_baselines = getInfoOut().nbaselines();
   const size_t n_channels = getInfoOut().nchan();
@@ -676,7 +683,7 @@ void OnePredict::PredictSourceRange(
   const size_t start_patch = source_list_[start].second->Index();
   if (apply_beam_) {
     base::PredictBuffer& buffer = (*predict_buffers_)[thread_index];
-    if (update_beam) {
+    if (point_response) {
       const bool is_homogeneous = base::IsHomogeneous(*telescope_);
       const size_t n_patches =
           source_list_.empty()
@@ -712,8 +719,8 @@ void OnePredict::PredictSourceRange(
         patch != source_list_[source_index].second.get() && patch != nullptr;
     if (apply_beam_ && patch_is_finished) {
       // Apply the beam and add PatchModel to Model
-      addBeamToData(*patch, patch->Index() - start_patch, model_data, time,
-                    update_beam, thread_index, patch_model_data,
+      addBeamToData(*patch, patch->Index() - start_patch, model_data,
+                    point_response, thread_index, patch_model_data,
                     stokes_i_only_);
       // Initialize patchmodel to zero for the next patch
       patch_model_data.fill(std::complex<double>(0.0, 0.0));
@@ -728,8 +735,9 @@ void OnePredict::PredictSourceRange(
   if (apply_beam_ && patch != nullptr) {
     // Apply beam to the last patch
     const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
-    addBeamToData(*patch, patch->Index() - start_patch, model_data, time,
-                  update_beam, thread_index, patch_model_data, stokes_i_only_);
+    addBeamToData(*patch, patch->Index() - start_patch, model_data,
+                  point_response, thread_index, patch_model_data,
+                  stokes_i_only_);
   }
 
   // Add this thread's data to the global buffer
@@ -750,6 +758,7 @@ void OnePredict::PredictWithSourceParallelization(
 
   bool update_beam = false;
   double beam_evaluation_time = time;
+  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response;
   if (apply_beam_) {
     const double time_since_beam_update = std::abs(time - previous_beam_time_);
     update_beam = time_since_beam_update >= beam_evaluation_interval_;
@@ -757,6 +766,7 @@ void OnePredict::PredictWithSourceParallelization(
       beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
       previous_beam_time_ = time;
       telescope_->SetTime(beam_evaluation_time);
+      point_response = telescope_->GetPointResponse(beam_evaluation_time);
     }
   }
 
@@ -770,7 +780,7 @@ void OnePredict::PredictWithSourceParallelization(
   loop.Run(0, source_list_.size(),
            [&](size_t start, size_t end, size_t thread_index) {
              PredictSourceRange(global_data, start, end, thread_index, mutex,
-                                beam_evaluation_time, update_beam);
+                                point_response.get());
            });
 
   CopyPredictBufferToData(destination, global_data);
@@ -789,8 +799,8 @@ everybeam::vector3r_t OnePredict::dir2Itrf(const MDirection& dir,
 
 void OnePredict::addBeamToData(
     const sky_model::Patch& patch, size_t buffer_index,
-    aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
-    bool update_beam, size_t thread,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+    everybeam::pointresponse::PointResponse* point_response, size_t thread,
     aocommon::xt::UTensor<std::complex<double>, 3>& data, bool stokesIOnly) {
   // Apply beam for a patch, add result to Model
   base::PredictBuffer& buffer = (*predict_buffers_)[thread];
@@ -798,27 +808,27 @@ void OnePredict::addBeamToData(
   const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
   if (stokesIOnly) {
     std::complex<double>* values = buffer.GetScalarBeamValues(buffer_index);
-    if (update_beam) {
+    if (point_response) {
       const MDirection dir(
           MVDirection(patch.Direction().ra, patch.Direction().dec),
           MDirection::J2000);
       const everybeam::vector3r_t srcdir =
           dir2Itrf(dir, meas_convertors_[thread]);
-      ComputeArrayFactor(getInfoOut(), time, srcdir, telescope_.get(), values,
-                         false, &mutex_, {});
+      ComputeArrayFactor(getInfoOut(), *point_response, srcdir, values, false,
+                         &mutex_, station_indices_, {});
     }
     ApplyArrayFactorAndAdd(getInfoOut(), buffer.NStations(), data, model_data,
                            values);
   } else {
     aocommon::MC2x2* values = buffer.GetFullBeamValues(buffer_index);
-    if (update_beam) {
+    if (point_response) {
       const MDirection dir(
           MVDirection(patch.Direction().ra, patch.Direction().dec),
           MDirection::J2000);
       const everybeam::vector3r_t srcdir =
           dir2Itrf(dir, meas_convertors_[thread]);
-      ComputeBeam(getInfoOut(), time, srcdir, telescope_.get(), values, false,
-                  beam_mode_, &mutex_, {});
+      ComputeBeam(getInfoOut(), *point_response, srcdir, values, false,
+                  beam_mode_, &mutex_, station_indices_, {});
     }
     ApplyBeamToDataAndAdd(getInfoOut(), buffer.NStations(), data, model_data,
                           values);
@@ -827,8 +837,9 @@ void OnePredict::addBeamToData(
 
 void OnePredict::addBeamToDataRange(
     const sky_model::Patch& patch,
-    aocommon::xt::UTensor<std::complex<double>, 3>& model_data, double time,
-    size_t thread, aocommon::xt::UTensor<std::complex<double>, 3>& data,
+    aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
+    everybeam::pointresponse::PointResponse& point_response, size_t thread,
+    aocommon::xt::UTensor<std::complex<double>, 3>& data,
     const std::pair<size_t, size_t>& baseline_range,
     const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
     bool stokesIOnly) {
@@ -842,16 +853,16 @@ void OnePredict::addBeamToDataRange(
   if (stokesIOnly) {
     const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     ApplyBeam::ApplyBaselineBasedArrayFactor(
-        getInfoOut(), time, data.data(), srcdir, telescope_.get(),
+        getInfoOut(), data.data(), srcdir, station_indices_, point_response,
         buffer.GetScalarBeamValues(0), baseline_range, station_range, barrier,
         false, beam_mode_, &mutex_);
   } else {
     const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
     float* weights = nullptr;
     ApplyBeam::ApplyBaselineBasedBeam(
-        getInfoOut(), time, data.data(), weights, srcdir, telescope_.get(),
-        buffer.GetFullBeamValues(0), baseline_range, station_range, barrier,
-        false, beam_mode_, false, &mutex_);
+        getInfoOut(), data.data(), weights, srcdir, station_indices_,
+        point_response, buffer.GetFullBeamValues(0), baseline_range,
+        station_range, barrier, false, beam_mode_, false, &mutex_);
   }
 
   // Add temporary buffer to Model
