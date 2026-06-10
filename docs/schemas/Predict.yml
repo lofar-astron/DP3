@@ -77,4 +77,8 @@ inputs:
     type: string
     default: "\"\""
     doc: For beam models that require a coefficients file (like that MWA), this field should point to that filename.
-
+  use_local_frame:
+    type: boolean
+    doc: >-
+      If true, assume that the model is given in azimuth and elevation coordinates instead of right ascension and declination.
+      This can not be combined with beam correction as of yet. This mode is experimental.

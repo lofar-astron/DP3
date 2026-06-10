@@ -168,6 +168,8 @@ class OnePredict : public ModelDataStep {
       base::DPBuffer::DataType& destination,
       const aocommon::xt::UTensor<std::complex<double>, 3>& buffer);
 
+  void SetPhaseCentreWithoutFrame(const casacore::MDirection& direction);
+
   std::string name_;
   /// Stores the input data if the operation is add or subtract.
   /// Using a member instead of a local variable avoids allocating memory
@@ -176,7 +178,7 @@ class OnePredict : public ModelDataStep {
   std::string source_db_name_;
   bool correct_time_smearing_ = false;
   bool correct_freq_smearing_ = false;
-  Operation operation_;
+  Operation operation_ = Operation::kReplace;
   std::string output_data_name_;
   bool apply_beam_ = false;
   std::string coefficients_path_;
@@ -194,6 +196,7 @@ class OnePredict : public ModelDataStep {
                                               ///< has absolute orientation
   base::Direction phase_ref_;
   bool moving_phase_ref_ = false;
+  bool use_local_frame_ = false;
 
   std::shared_ptr<ApplyCal> apply_cal_step_;  ///< Optional ApplyCal sub step
   std::shared_ptr<ResultStep> result_step_;   ///< Catches results from ApplyCal
@@ -226,6 +229,12 @@ class OnePredict : public ModelDataStep {
   std::vector<std::pair<std::shared_ptr<base::ModelComponent>,
                         std::shared_ptr<sky_model::Patch>>>
       source_list_;
+  /**
+   * This variable is used when a local reference frame is used. This is
+   * necessary because in that case the directions of the components are
+   * overwritten.
+   */
+  std::vector<base::Direction> source_j2000_positions_;
 
   common::NSTimer timer_;
 
@@ -248,7 +257,7 @@ class OnePredict : public ModelDataStep {
    */
   std::atomic<int64_t> apply_beam_time_ = 0;
 
-  std::mutex* measures_mutex_;
+  std::mutex* measures_mutex_ = nullptr;
   std::mutex mutex_;
 };
 

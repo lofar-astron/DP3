@@ -71,8 +71,7 @@ namespace steps {
 
 OnePredict::OnePredict(const common::ParameterSet& parset,
                        const std::string& prefix,
-                       const std::vector<std::string>& source_patterns)
-    : measures_mutex_(nullptr) {
+                       const std::vector<std::string>& source_patterns) {
   if (!source_patterns.empty()) {
     init(parset, prefix, source_patterns);
   } else {
@@ -96,11 +95,18 @@ void OnePredict::init(const common::ParameterSet& parset,
   output_data_name_ = parset.getString(prefix + "outputmodelname", "");
 
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
+  use_local_frame_ = parset.getBool(prefix + "use_local_frame", false);
   coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
   beam_evaluation_interval_ = parset.getDouble(prefix + "beam_interval", 0.0);
   thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
   patch_list_.clear();
+
+  if (use_local_frame_ && apply_beam_) {
+    throw std::runtime_error(
+        "As of yet, the use of local frame can't be combined with beam "
+        "application");
+  }
 
   // Save directions specifications to pass to applycal
   std::stringstream ss;
@@ -233,18 +239,27 @@ void OnePredict::initializeThreadData() {
   meas_convertors_.resize(nThreads);
   meas_frame_.resize(nThreads);
 
-  for (size_t thread = 0; thread < nThreads; ++thread) {
-    const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
-    if (need_meas_converters) {
+  const bool need_meas_converters =
+      moving_phase_ref_ || apply_beam_ || use_local_frame_;
+  if (need_meas_converters) {
+    for (size_t thread = 0; thread < nThreads; ++thread) {
       // Prepare measures converters
       meas_frame_[thread].set(getInfoOut().arrayPosCopy());
       meas_frame_[thread].set(
           MEpoch(MVEpoch(getInfoOut().startTime() / 86400), MEpoch::UTC));
-      meas_convertors_[thread].set(
-          MDirection::J2000,
-          MDirection::Ref(MDirection::ITRF, meas_frame_[thread]));
+      const auto frame =
+          use_local_frame_ ? MDirection::AZELGEO : MDirection::ITRF;
+      meas_convertors_[thread].set(MDirection::J2000,
+                                   MDirection::Ref(frame, meas_frame_[thread]));
     }
   }
+}
+
+void OnePredict::SetPhaseCentreWithoutFrame(const MDirection& direction) {
+  // Get pointing without the frame
+  const Quantum<casacore::Vector<double>> angles = direction.getAngle();
+  phase_ref_ =
+      base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
 }
 
 void OnePredict::updateInfo(const DPInfo& infoIn) {
@@ -258,16 +273,29 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
                             getInfoOut().getAnt2()[bl]);
   }
 
-  try {
-    MDirection dirJ2000(
-        MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-    Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
-    moving_phase_ref_ = false;
-    phase_ref_ =
-        base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
-  } catch (casacore::AipsError&) {
-    // Phase direction (in J2000) is time dependent
-    moving_phase_ref_ = true;
+  // Set the phase reference in the right frame: azel or j2000
+  moving_phase_ref_ = false;
+  if (use_local_frame_) {
+    std::string phase_center_frame = infoIn.phaseCenter().toString();
+    const size_t space_position = phase_center_frame.rfind(" ") + 1;
+    if (space_position != std::string::npos) {
+      phase_center_frame = phase_center_frame.substr(space_position);
+    }
+    if (phase_center_frame != "AZELGEO") {
+      throw std::runtime_error(
+          "Local frame was requested, but the frame of the phase centre was " +
+          phase_center_frame + " instead of AZELGEO");
+    }
+    SetPhaseCentreWithoutFrame(infoIn.phaseCenter());
+  } else {
+    try {
+      const MDirection dirJ2000(
+          MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
+      SetPhaseCentreWithoutFrame(dirJ2000);
+    } catch (casacore::AipsError&) {
+      // Phase direction (in J2000) is time dependent
+      moving_phase_ref_ = true;
+    }
   }
 
   /**
@@ -298,6 +326,15 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   if (apply_cal_step_) {
     apply_cal_step_->setInfo(getInfoOut());
     GetWritableInfoOut() = result_step_->getInfoOut();
+  }
+
+  if (use_local_frame_) {
+    source_j2000_positions_.reserve(source_list_.size());
+    for (const std::pair<std::shared_ptr<base::ModelComponent>,
+                         std::shared_ptr<sky_model::Patch>>& source :
+         source_list_) {
+      source_j2000_positions_.emplace_back(source.first->direction());
+    }
   }
 }
 
@@ -423,7 +460,8 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   double time = buffer->GetTime();
 
   size_t n_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
-  const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
+  const bool need_meas_converters =
+      moving_phase_ref_ || apply_beam_ || use_local_frame_;
   if (need_meas_converters) {
     // Because multiple predict steps might be predicting simultaneously, and
     // Casacore is not thread safe, this needs synchronization.
@@ -443,6 +481,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   if (moving_phase_ref_) {
+    assert(!use_local_frame_);
     // Convert phase reference to J2000
     MDirection dirJ2000(MDirection::Convert(
         getInfoOut().phaseCenter(),
@@ -598,6 +637,23 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
                   barrier, stokes_i_only_);
               // Initialize patchmodel to zero for the next patch
               sim_buffer[thread_index].fill(std::complex<double>(0.0, 0.0));
+            }
+            if (use_local_frame_) {
+              // Convert the ra,dec coordinates to az,el
+              const std::shared_ptr<base::ModelComponent>& curComp =
+                  source_list_[source_index].first;
+              base::PointSource* curPt =
+                  static_cast<base::PointSource*>(curComp.get());
+              const base::Direction& direction =
+                  source_j2000_positions_[source_index];
+              const MDirection posJ2000(
+                  MVDirection(direction.ra, direction.dec), MDirection::J2000);
+              const MDirection dirAzelGeo =
+                  meas_convertors_[thread_index](posJ2000);
+              const base::Direction posAzelGeo(
+                  dirAzelGeo.getAngle().getBaseValue()[0],
+                  dirAzelGeo.getAngle().getBaseValue()[1]);
+              curPt->setDirection(posAzelGeo);
             }
             // Depending on apply_beam_, the following call will add to either
             // the Model or the PatchModel of the predict buffer
