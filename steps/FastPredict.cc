@@ -36,8 +36,9 @@
 #include <predict/Spectrum.h>
 
 #include <aocommon/logger.h>
-#include <aocommon/recursivefor.h>
-#include <aocommon/staticfor.h>
+
+#include <schaapcommon/threading/recursivefor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -106,10 +107,9 @@ void FastPredict::Init(const common::ParameterSet& parset,
   aocommon::Logger::Debug << "Loading " << source_db_name_
                           << " in predict step for direction " << direction_str_
                           << ".\n";
-  model::SourceDBWrapper source_db =
-      model::SkyModelCache::GetInstance().GetSkyModel(source_db_name_);
-  source_db.Filter(sourcePatterns,
-                   model::SourceDBWrapper::FilterMode::kPattern);
+  sky_model::SkyModelSelection source_db =
+      sky_model::SkyModelCache::GetInstance().GetMatchedSkyModel(
+          source_db_name_, sourcePatterns);
   try {
     patch_list_ = source_db.MakePatchList();
     if (patch_list_.empty()) {
@@ -386,7 +386,7 @@ void FastPredict::showTimings(std::ostream& os, double duration) const {
 
 void FastPredict::CopyPredictBufferToData(
     base::DPBuffer::DataType& destination,
-    const xt::xtensor<double, 4, xt::layout_type::row_major>& buffer) {
+    const xt::xtensor<float, 4, xt::layout_type::row_major>& buffer) {
   const size_t nstokes = buffer.shape()[0];
   const size_t nbaselines = buffer.shape()[1];
   const size_t nchannels = buffer.shape()[3];
@@ -487,7 +487,7 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
 }
 
 void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
-  xt::xtensor<double, 4, xt::layout_type::row_major> global_data(
+  xt::xtensor<float, 4, xt::layout_type::row_major> global_data(
       {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
        predict_plan_.nchannels});
 
@@ -517,12 +517,12 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
   const size_t n_baselines = getInfoOut().nbaselines();
   const size_t n_channels = getInfoOut().nchan();
 
-  xt::xtensor<double, 4, xt::layout_type::row_major> model_data_new(
+  xt::xtensor<float, 4, xt::layout_type::row_major> model_data_new(
       {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
        predict_plan_.nchannels});
   model_data_new.fill(0.0);
 
-  xt::xtensor<double, 4, xt::layout_type::row_major> patch_model_data_new;
+  xt::xtensor<float, 4, xt::layout_type::row_major> patch_model_data_new;
 
   if (predict_plan_.apply_beam) {
     patch_model_data_new.resize(
@@ -530,12 +530,12 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
     patch_model_data_new.fill(0.0);
   }
 
-  xt::xtensor<double, 4, xt::layout_type::row_major>& simulator_data_new =
+  xt::xtensor<float, 4, xt::layout_type::row_major>& simulator_data_new =
       predict_plan_.apply_beam ? patch_model_data_new : model_data_new;
   predict::PointSourceCollection point_sources;
   predict::GaussianSourceCollection gaussian_sources;
 
-  const model::Patch* patch = nullptr;
+  const sky_model::Patch* patch = nullptr;
   const size_t num_sources = source_list_.size();
 
   for (size_t source_index = 0; source_index != num_sources; ++source_index) {
