@@ -22,7 +22,8 @@
 #include "base/ModelComponent.h"
 #include "base/PredictBuffer.h"
 
-#include "model/Patch.h"
+#include "sky_model/Patch.h"
+#include "sky_model/SkyModelFunctions.h"
 
 #include <predict/PredictPlan.h>
 #include <predict/PredictPlanExecCPU.h>
@@ -186,10 +187,10 @@ class FastPredict : public ModelDataStep {
   std::unique_ptr<predict::PredictPlanExecCPU> predict_plan_exec_;
 
   std::string direction_str_;  ///< Definition of patches, to pass to applycal
-  std::vector<std::shared_ptr<model::Patch>> patch_list_;
+  std::vector<std::shared_ptr<sky_model::Patch>> patch_list_;
 
   std::vector<std::pair<std::shared_ptr<base::ModelComponent>,
-                        std::shared_ptr<model::Patch>>>
+                        std::shared_ptr<sky_model::Patch>>>
       source_list_;
 
   common::NSTimer timer_;
