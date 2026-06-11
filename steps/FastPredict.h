@@ -131,7 +131,7 @@ class FastPredict : public ModelDataStep {
 
   void CopyPredictBufferToData(
       base::DPBuffer::DataType& destination,
-      const xt::xtensor<double, 4, xt::layout_type::row_major>& buffer);
+      const xt::xtensor<float, 4, xt::layout_type::row_major>& buffer) const;
 
   std::string name_;
   /// Stores the input data if the operation is add or subtract.

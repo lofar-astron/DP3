@@ -127,7 +127,7 @@ build-2404-portable:
   extends: [".needs-base-2404", ".build-basic"]
   variables:
     # Enable tests and thereby check if they also compile on new systems.
-    CMAKE_FLAGS: -DBUILD_TESTING=On -DPORTABLE=On
+    CMAKE_FLAGS: -DBUILD_TESTING=On -DPORTABLE=On -DUSE_FAST_PREDICT=On
 
 build-doc-2404:
   stage: build
@@ -207,14 +207,13 @@ test-2404:
 #
 # The coverage target sets METADATA_COMPRESSION_DEFAULT and USE_FAST_PREDICT whereas
 # most other targets don't do this. This way, both settings are tested.
-# Note: TODO fast predict has been temporarily turned off because it fails to compile
 coverage-2404:
   stage: test
   extends: [".failable",".needs-base-2404"]
   script:
     - source /dp3env/bin/activate
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True -DUSE_FAST_PREDICT=Off ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True -DUSE_FAST_PREDICT=On ..
     - ninja -j4
     - ctest --output-on-failure --no-tests=error -j$(nproc)
     # Collect coverage in text, xml and json formats.
