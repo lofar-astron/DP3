@@ -1,12 +1,18 @@
-#include <aartfaacreader/AntennaConfig.h>
-#include <base/RcuMode.h>
-#include <casacore/measures/Measures/MPosition.h>
+#include "aartfaac/AntennaConfig.h"
+
+#include <array>
 #include <filesystem>
 #include <fstream>
-#include <array>
+
 #include <boost/filesystem.hpp>  // for the unique_path generation
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
+
+#include <casacore/measures/Measures/MPosition.h>
+
+#include "base/RcuMode.h"
+
+using dp3::aartfaac::AntennaConfig;
 
 namespace {
 bool ComparePositions(const casacore::MPosition &left,
@@ -158,47 +164,47 @@ const int kLastLbaMode = 4;
 const int kFirstHbaMode = 5;
 const int kLastHbaMode = 7;
 }  // namespace
+
 BOOST_AUTO_TEST_SUITE(aartfaacantennaconfig)
 
 BOOST_FIXTURE_TEST_CASE(constructor_and_parsing, AntennaConfigFixture) {
-  BOOST_REQUIRE_NO_THROW(
-      dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str()));
+  BOOST_REQUIRE_NO_THROW(AntennaConfig antennaConfig(path.c_str()));
 };
 
 BOOST_FIXTURE_TEST_CASE(get_lba_positions, AntennaConfigFixture) {
-  dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str());
+  AntennaConfig antennaConfig(path.c_str());
 
   std::vector<casacore::MPosition> positions = antennaConfig.GetLBAPositions();
   TestArrayPositions(positions, kLbaShifts, kLbaReference);
 }
 
 BOOST_FIXTURE_TEST_CASE(get_hba_positions, AntennaConfigFixture) {
-  dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str());
+  AntennaConfig antennaConfig(path.c_str());
 
   std::vector<casacore::MPosition> positions = antennaConfig.GetHBAPositions();
   TestArrayPositions(positions, kHbaShifts, kHbaReference);
 }
 BOOST_FIXTURE_TEST_CASE(get_lba_axes, AntennaConfigFixture) {
-  dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str());
+  AntennaConfig antennaConfig(path.c_str());
 
   std::array<double, kAxesDimension> lba_axes = antennaConfig.GetLBAAxes();
   TestAxes(lba_axes, kLbaAxes);
 }
 BOOST_FIXTURE_TEST_CASE(get_hba0_axes, AntennaConfigFixture) {
-  dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str());
+  AntennaConfig antennaConfig(path.c_str());
 
   std::array<double, kAxesDimension> hba0_axes = antennaConfig.GetHBA0Axes();
   TestAxes(hba0_axes, kHba0Axes);
 }
 BOOST_FIXTURE_TEST_CASE(get_hba1_axes, AntennaConfigFixture) {
-  dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str());
+  AntennaConfig antennaConfig(path.c_str());
 
   std::array<double, kAxesDimension> hba1_axes = antennaConfig.GetHBA1Axes();
   TestAxes(hba1_axes, kHba1Axes);
 }
 
 BOOST_FIXTURE_TEST_CASE(get_axes_from_mode, AntennaConfigFixture) {
-  dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str());
+  AntennaConfig antennaConfig(path.c_str());
 
   for (int i = kFirstLbaMode; i <= kLastLbaMode; i++) {
     TestAxes(antennaConfig.GetAxesFromMode(dp3::base::RcuMode::FromNumber(i)),
@@ -214,7 +220,7 @@ BOOST_FIXTURE_TEST_CASE(get_axes_from_mode, AntennaConfigFixture) {
       std::runtime_error);
 }
 BOOST_FIXTURE_TEST_CASE(get_array_from_mode, AntennaConfigFixture) {
-  dp3::aartfaacreader::AntennaConfig antennaConfig(path.c_str());
+  AntennaConfig antennaConfig(path.c_str());
 
   for (int i = kFirstLbaMode; i <= kLastLbaMode; i++) {
     TestArrayPositions(

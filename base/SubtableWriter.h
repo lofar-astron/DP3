@@ -92,10 +92,10 @@ class SubtableWriter {
     int flag_window_size;
   };
 
-  SubtableWriter(){};
+  SubtableWriter() = default;
   SubtableWriter(std::string path, const int nr_channels = 1);
 
-  ~SubtableWriter(){};
+  ~SubtableWriter() = default;
   void WriteBandInfo(const std::string &name,
                      const std::vector<ChannelInfo> &channels,
                      double reference_frequency, double total_bandwidth,
