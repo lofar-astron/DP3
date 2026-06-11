@@ -386,7 +386,7 @@ void FastPredict::showTimings(std::ostream& os, double duration) const {
 
 void FastPredict::CopyPredictBufferToData(
     base::DPBuffer::DataType& destination,
-    const xt::xtensor<float, 4, xt::layout_type::row_major>& buffer) {
+    const xt::xtensor<float, 4, xt::layout_type::row_major>& buffer) const {
   const size_t nstokes = buffer.shape()[0];
   const size_t nbaselines = buffer.shape()[1];
   const size_t nchannels = buffer.shape()[3];
