@@ -7,10 +7,12 @@
 
 /// This code was taken from
 /// https://git.astron.nl/RD/aartfaac-tools/-/raw/master/lib/aartfaac2ms/antennaconfig.h?ref_type=heads
+/// which again was based on
+/// https://github.com/aroffringa/aartfaac2ms
 /// and adapted to fit into the DP3 codebase.
 
-#ifndef AARTFAACREADER_ANTENNACONFIG_H_
-#define AARTFAACREADER_ANTENNACONFIG_H_
+#ifndef DP3_AARTFAAC_ANTENNACONFIG_H_
+#define DP3_AARTFAAC_ANTENNACONFIG_H_
 
 #include <algorithm>
 #include <array>
@@ -27,7 +29,8 @@
 #include <base/RcuMode.h>
 #include <casacore/measures/Measures/MPosition.h>
 
-namespace {
+namespace dp3::aartfaac {
+namespace details {
 
 // trim from start (in place)
 void LTrim(std::string &s) {
@@ -48,9 +51,7 @@ void Trim(std::string &s) {
   LTrim(s);
   RTrim(s);
 }
-}  // namespace
-
-namespace dp3::aartfaacreader {
+}  // namespace details
 
 class AntennaConfig {
  public:
@@ -167,7 +168,7 @@ class AntennaConfig {
           line_.clear();
           return false;
         }
-        Trim(line_);
+        details::Trim(line_);
       } while (line_.empty() || line_[0] == '#');
       line_position_ = 0;
     }
@@ -183,7 +184,7 @@ class AntennaConfig {
       while (line_position_ < line_.size() &&
              (line_[line_position_] == ' ' || line_[line_position_] == '\t'))
         ++line_position_;
-      Trim(token_);
+      details::Trim(token_);
       if (token_.empty())
         return Next();
       else
@@ -262,6 +263,6 @@ class AntennaConfig {
   size_t line_position_;
   std::string token_;
 };
-}  // namespace dp3::aartfaacreader
+}  // namespace dp3::aartfaac
 
-#endif  // AARTFAACREADER_ANTENNACONFIG_H_
+#endif  // AARTFAAC_ANTENNACONFIG_H_

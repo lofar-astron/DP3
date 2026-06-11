@@ -30,7 +30,7 @@ using casacore::RefRows;
 namespace dp3 {
 namespace steps {
 
-InputStep::~InputStep() {}
+InputStep::~InputStep() = default;
 
 std::string InputStep::msName() const { return std::string(); }
 
@@ -53,9 +53,10 @@ std::unique_ptr<InputStep> InputStep::CreateReader(
       parset.getStringVector("msin.name", std::vector<std::string>());
   if (inNames.empty()) {
     inNames = parset.getStringVector("msin");
+    if (inNames.empty())
+      throw std::runtime_error("No input MeasurementSets given");
   }
-  if (inNames.empty())
-    throw std::runtime_error("No input MeasurementSets given");
+
   // Find all file names matching a possibly wildcarded input name.
   // This is only possible if a single name is given.
   if (inNames.size() == 1) {
