@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "base/DPInfo.h"
+
 #include <boost/test/unit_test.hpp>
+
+#include <EveryBeam/load.h>
 
 using dp3::base::DPInfo;
 
@@ -373,6 +376,30 @@ BOOST_AUTO_TEST_CASE(channels_are_regular) {
                      std::vector<std::vector<double>>(kIrregularWidthsBDA));
     BOOST_TEST(!info.channelsAreRegular());
   }
+}
+
+BOOST_AUTO_TEST_CASE(telescope) {
+  DPInfo info;
+  BOOST_TEST(!info.HasTelescope());
+
+  // Check setting a telescope.
+  const std::string kMsName = "tNDPPP-generic.MS";
+  const everybeam::Options kOptions;
+  std::shared_ptr<everybeam::telescope::Telescope> telescope =
+      everybeam::Load(kMsName, kOptions);
+
+  info.SetTelescope(telescope);
+  BOOST_TEST(info.HasTelescope());
+  BOOST_TEST(&info.GetTelescope() == telescope.get());
+
+  // Check that a copy of DPInfo shares the same telescope.
+  const DPInfo info_copy(info);
+  BOOST_TEST(info_copy.HasTelescope());
+  BOOST_TEST(&info_copy.GetTelescope() == telescope.get());
+
+  // Check removing the telescope.
+  info.SetTelescope(nullptr);
+  BOOST_TEST(!info.HasTelescope());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
