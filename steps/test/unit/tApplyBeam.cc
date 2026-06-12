@@ -8,6 +8,7 @@
 
 #include "mock/ThrowStep.h"
 #include "common/ParameterSet.h"
+#include "steps/ResultStep.h"
 
 using dp3::steps::ApplyBeam;
 using dp3::steps::Step;
@@ -22,7 +23,8 @@ const double kExposure{10.0139};
 // Create and populate a buffer with the bare minimum values required to run
 // ApplyBeam successfully
 std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
-    xt::xtensor<std::complex<float>, 3>& data, xt::xtensor<float, 3>& weights) {
+    const xt::xtensor<std::complex<float>, 3>& data,
+    const xt::xtensor<float, 3>& weights) {
   std::unique_ptr<dp3::base::DPBuffer> buffer =
       std::make_unique<dp3::base::DPBuffer>(kTime, kExposure);
 
@@ -71,34 +73,10 @@ dp3::base::DPInfo MakeInfo() {
   return info;
 }
 
-// Test step for end of "pipeline"; Terminate and run tests against expected
-// data
-class TestOutput : public dp3::steps::test::ThrowStep {
- public:
-  TestOutput(xt::xtensor<std::complex<float>, 3>& expected_data,
-             xt::xtensor<float, 3>& expected_weights)
-      : expected_data_(expected_data), expected_weights_(expected_weights) {}
-
-  bool process(std::unique_ptr<dp3::base::DPBuffer> buffer) override {
-    BOOST_CHECK(xt::allclose(buffer->GetData(), expected_data_));
-    BOOST_TEST(buffer->GetWeights() == expected_weights_,
-               boost::test_tools::per_element());
-
-    BOOST_CHECK(buffer->GetTime() == kTime);
-    BOOST_CHECK(buffer->GetExposure() == kExposure);
-    return true;
-  }
-  void finish() override {}
-
- private:
-  xt::xtensor<std::complex<float>, 3> expected_data_;
-  xt::xtensor<float, 3> expected_weights_;
-};
-
 // Perform a very small/minimal run of the ArrayBeam step and compare against
 // expected result to help catch any regressions
 BOOST_AUTO_TEST_CASE(test_step_basic) {
-  xt::xtensor<std::complex<float>, 3> test_data = {
+  const xt::xtensor<std::complex<float>, 3> kTestData = {
       {{{0.000105909, -6.15896e-06},
         {-5.75999e-05, -0.000169081},
         {6.09389e-05, -0.000144006},
@@ -123,14 +101,14 @@ BOOST_AUTO_TEST_CASE(test_step_basic) {
         {-0.00012894, -0.000180018},
         {0.000106929, -2.96774e-05},
         {0.000101331, -1.57673e-05}}}};
-  xt::xtensor<float, 3> test_weights = {
+  const xt::xtensor<float, 3> kTestWeights = {
       {{7.429210e+08, 1.792340e+09, 5.485560e+08, 1.411610e+09},
        {4.384190e+08, 5.486580e+08, 5.480330e+08, 4.262130e+08}},
       {{1.745190e+09, 8.292680e+08, 1.791950e+09, 1.608370e+09},
        {4.232110e+08, 4.369040e+08, 6.651330e+08, 1.709300e+09}},
       {{9.355210e+08, 1.963980e+09, 6.532890e+08, 5.810230e+08},
        {5.264440e+08, 1.566430e+09, 1.715470e+09, 1.069660e+09}}};
-  xt::xtensor<std::complex<float>, 3> expected_data = {
+  const xt::xtensor<std::complex<float>, 3> kExpectedData = {
       {{{886.133, -2354.56},
         {771.412, -602.496},
         {-367.09, -843.605},
@@ -155,7 +133,7 @@ BOOST_AUTO_TEST_CASE(test_step_basic) {
         {-0.00012894, -0.000180018},
         {0.000106929, -2.96774e-05},
         {0.000101331, -1.57673e-05}}}};
-  xt::xtensor<float, 3> expected_weights = {
+  const xt::xtensor<float, 3> kExpectedWeights = {
       {{7.42921e+08, 1.79234e+09, 5.48556e+08, 1.41161e+09},
        {4.38419e+08, 5.48658e+08, 5.48033e+08, 4.26213e+08}},
       {{1.74519e+09, 8.29268e+08, 1.79195e+09, 1.60837e+09},
@@ -165,13 +143,20 @@ BOOST_AUTO_TEST_CASE(test_step_basic) {
 
   auto apply_beam =
       std::make_unique<ApplyBeam>(dp3::common::ParameterSet(), "", false);
-  auto test_output_step =
-      std::make_shared<TestOutput>(expected_data, expected_weights);
-  apply_beam->setNextStep(test_output_step);
+  auto result = std::make_shared<dp3::steps::ResultStep>();
+  apply_beam->setNextStep(result);
   apply_beam->updateInfo(MakeInfo());
 
-  auto buffer = CreateBuffer(test_data, test_weights);
+  auto buffer = CreateBuffer(kTestData, kTestWeights);
   apply_beam->process(std::move(buffer));
+
+  std::unique_ptr<dp3::base::DPBuffer> result_buffer = result->take();
+  BOOST_TEST_REQUIRE(result_buffer);
+  BOOST_TEST(result_buffer->GetTime() == kTime);
+  BOOST_TEST(result_buffer->GetExposure() == kExposure);
+  BOOST_TEST(xt::allclose(result_buffer->GetData(), kExpectedData));
+  BOOST_TEST(result_buffer->GetWeights() == kExpectedWeights,
+             boost::test_tools::per_element());
 }
 
 BOOST_AUTO_TEST_CASE(fields_defaults) {
