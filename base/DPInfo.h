@@ -19,6 +19,8 @@
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Containers/Record.h>
 
+#include <EveryBeam/telescope/telescope.h>
+
 #include "Direction.h"
 
 namespace dp3 {
@@ -305,6 +307,22 @@ class DPInfo {
     return extra_directions_;
   }
 
+  void SetTelescope(
+      std::shared_ptr<everybeam::telescope::Telescope> telescope) {
+    telescope_ = std::move(telescope);
+  }
+
+  /// @return Telescope reference. Only valid if HasTelescope() returns true.
+  /// The returned reference is non-const since DP3 still uses
+  /// Telescope::SetTime(), which will no longer be needed in the next
+  /// EveryBeam release (probably 0.8.3).
+  /// When DP3 requires that release, the SetTime calls can be removed and the
+  /// returned reference can be made const.
+  everybeam::telescope::Telescope& GetTelescope() const { return *telescope_; }
+
+  /// @return Whether a telescope has been set.
+  bool HasTelescope() const { return telescope_ != nullptr; }
+
  private:
   /// Set which antennae are actually used.
   void setAntUsed();
@@ -369,6 +387,12 @@ class DPInfo {
   /// For each antenna, the auto correlation index.
   mutable std::vector<int> auto_correlation_indices_;
   std::set<aocommon::PolarizationEnum> polarizations_;
+
+  /// Telescope for beam response computation. Steps that compute beam responses
+  /// may use this telescope if HasTelescope() returns true, or set a new
+  /// telescope using SetTelescope().
+  /// The shared pointer allows reusing the same telescope in different steps.
+  std::shared_ptr<everybeam::telescope::Telescope> telescope_;
 };
 
 }  // namespace base
