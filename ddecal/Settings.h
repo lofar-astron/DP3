@@ -18,6 +18,7 @@
 namespace dp3::ddecal {
 
 enum class SolverAlgorithm {
+  kAntennaSolve,
   kLowRank,
   kDirectionSolve,
   kDirectionIterative,
