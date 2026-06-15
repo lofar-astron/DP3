@@ -177,6 +177,9 @@ find_package(
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
 
+find_package(GSL REQUIRED)
+include_directories(${GSL_INCLUDE_DIRS})
+
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
 
@@ -470,6 +473,7 @@ add_library(
   ddecal/constraints/TecOffsetDelayConstraint.cc
   ddecal/constraints/TecOffsetDelayFitting.cc
   ddecal/gain_solvers/BdaSolverBuffer.cc
+  ddecal/gain_solvers/DiagonalAntennaSolver.cc
   ddecal/gain_solvers/DiagonalLowRankSolver.cc
   ddecal/gain_solvers/DiagonalSolver.cc
   ddecal/gain_solvers/FullJonesSolver.cc
@@ -640,6 +644,7 @@ set(DP3_LIBRARIES
     ${ARMADILLO_LIBRARIES}
     ${CASACORE_LIBRARIES}
     ${CFITSIO_LIBRARY}
+    ${GSL_LIBRARY}
     ${EVERYBEAM_LIB}
     GSL::gsl
     GSL::gslcblas

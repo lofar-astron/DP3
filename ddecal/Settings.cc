@@ -30,7 +30,9 @@ std::string CreateParsetString(const dp3::common::ParameterSet& parset) {
 
 SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
   const std::string lowercase = boost::to_lower_copy(str);
-  if (lowercase == "lowrank")
+  if (lowercase == "antennasolve")
+    return SolverAlgorithm::kAntennaSolve;
+  else if (lowercase == "lowrank")
     return SolverAlgorithm::kLowRank;
   else if (lowercase == "directionsolve")
     return SolverAlgorithm::kDirectionSolve;
@@ -41,7 +43,8 @@ SolverAlgorithm ParseSolverAlgorithm(const std::string& str) {
   else if (lowercase == "lbfgs")
     return SolverAlgorithm::kLBFGS;
   else
-    throw std::runtime_error("Unknown solver algorithm specified: " + str);
+    throw std::runtime_error(
+        std::string("Unknown solver algorithm specified: ") + str);
 }
 
 SolverDataUse ParseSolverDataUse(const std::string& data_use_string) {
@@ -84,6 +87,8 @@ std::string ParseH5Parm(const common::ParameterSet& parset,
 
 std::string ToString(SolverAlgorithm algorithm) {
   switch (algorithm) {
+    case SolverAlgorithm::kAntennaSolve:
+      return "antennasolve";
     case SolverAlgorithm::kLowRank:
       return "lowrank";
     case SolverAlgorithm::kDirectionSolve:
