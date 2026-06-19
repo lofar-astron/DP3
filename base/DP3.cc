@@ -195,7 +195,7 @@ std::shared_ptr<Step> MakeSingleStep(const std::string& type,
   } else if (type == "clipper") {
     step = std::make_shared<steps::Clipper>(parset, prefix);
   } else if (type == "combine") {
-    step = std::make_shared<steps::Combine>(parset, prefix);
+    step = std::make_shared<steps::Combine>(parset, prefix, inputType);
   } else if (type == "columnreader") {
     step = std::make_shared<steps::MsColumnReader>(parset, prefix, inputType);
   } else if (type == "counter" || type == "count") {

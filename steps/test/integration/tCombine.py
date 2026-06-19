@@ -21,14 +21,18 @@ Script can be invoked in two ways:
 - using ctest, see DP3/steps/test/integration/CMakeLists.txt
 """
 
-MSIN = "tNDPPP-generic.MS"  # This MS has 8 freq channels and 6 time steps
+MSIN_REGULAR = (
+    "tNDPPP-generic.MS"  # This MS has 8 freq channels and 6 time steps
+)
+MSIN_BDA = "tNDPPP-bda.MS"
 BUFFERNAME = "test_buffer"
 SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 
 
 @pytest.fixture(autouse=True)
 def source_env(run_in_tmp_path):
-    untar(f"{tcf.RESOURCEDIR}/{MSIN}.tgz")
+    untar(f"{tcf.RESOURCEDIR}/{MSIN_REGULAR}.tgz")
+    untar(f"{tcf.RESOURCEDIR}/{MSIN_BDA}.tgz")
 
 
 def test_subtract():
@@ -40,7 +44,7 @@ def test_subtract():
         [
             tcf.DP3EXE,
             "checkparset=1",
-            f"msin={MSIN}",
+            f"msin={MSIN_REGULAR}",
             "msout=.",
             "steps=[predict,predict2,combine]",
             f"predict.sourcedb={SKYMODEL}",
@@ -53,7 +57,9 @@ def test_subtract():
 
     max_diff = 1e-4 if tcf.USE_FAST_PREDICT else 0
 
-    taql_command = f"select from {MSIN} where sum(abs(DATA)) > {max_diff}"
+    taql_command = (
+        f"select from {MSIN_REGULAR} where sum(abs(DATA)) > {max_diff}"
+    )
     assert_taql(taql_command, 0)
 
 
@@ -66,7 +72,7 @@ def test_add():
         [
             tcf.DP3EXE,
             "checkparset=1",
-            f"msin={MSIN}",
+            f"msin={MSIN_REGULAR}",
             "msout=.",
             "msout.datacolumn=PREDICTED_DATA",
             "steps=[predict]",
@@ -78,7 +84,7 @@ def test_add():
         [
             tcf.DP3EXE,
             "checkparset=1",
-            f"msin={MSIN}",
+            f"msin={MSIN_REGULAR}",
             "msout=.",
             "steps=[predict,predict2,combine]",
             f"predict.sourcedb={SKYMODEL}",
@@ -91,7 +97,44 @@ def test_add():
 
     max_diff = 1e-4 if tcf.USE_FAST_PREDICT else 1e-10
 
-    taql_command = f"select from {MSIN} where sum(abs(DATA - 2 * PREDICTED_DATA)) > {max_diff}"
+    taql_command = f"select from {MSIN_REGULAR} where sum(abs(DATA - 2 * PREDICTED_DATA)) > {max_diff}"
+    assert_taql(taql_command, 0)
+
+
+def test_bda_add():
+    """
+    Test whether predicting data and then subtracting the same data from a
+    named buffer yields zero.
+    """
+    run_dp3(  # Predict into temporary ms
+        [
+            "checkparset=1",
+            f"msin={MSIN_BDA}",
+            "msout=reference.ms",
+            "msout.overwrite=True",
+            "steps=[predict]",
+            f"predict.sourcedb={SKYMODEL}",
+        ]
+    )
+
+    run_dp3(  # Predict into buffer and named buffer, add them
+        [
+            "checkparset=1",
+            f"msin={MSIN_BDA}",
+            "msout=result.ms",
+            "msout.overwrite=True",
+            "steps=[predict,predict2,combine]",
+            f"predict.sourcedb={SKYMODEL}",
+            f"predict2.outputmodelname={BUFFERNAME}",
+            f"predict2.sourcedb={SKYMODEL}",
+            "combine.operation=add",
+            f"combine.buffername={BUFFERNAME}",
+        ]
+    )
+
+    max_diff = 1e-4 if tcf.USE_FAST_PREDICT else 1e-10
+
+    taql_command = f"select from reference.ms as ref, result.ms as result where sum(abs(result.DATA - 2 * ref.DATA)) > {max_diff}"
     assert_taql(taql_command, 0)
 
 
@@ -103,7 +146,7 @@ def test_combine_with_transfer():
         [
             tcf.DP3EXE,
             "checkparset=1",
-            f"msin={MSIN}",
+            f"msin={MSIN_REGULAR}",
             "msout=avg.ms",
             "steps=[averager]",
             "averager.timestep=2",
@@ -113,7 +156,7 @@ def test_combine_with_transfer():
 
     run_dp3(
         [
-            f"msin={MSIN}",
+            f"msin={MSIN_REGULAR}",
             "msout=.",
             "steps=[transfer,combine]",
             "transfer.data=True",
