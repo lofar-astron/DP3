@@ -19,7 +19,9 @@ class Combine final : public Step {
  public:
   /// Construct the object.
   /// Parameters are obtained from the parset using the given prefix.
-  Combine(const common::ParameterSet&, const std::string& prefix);
+  /// @p ms_type specifies if BDA or regular data is combined.
+  Combine(const common::ParameterSet&, const std::string& prefix,
+          MsType ms_type);
 
   /// getRequiredFields should return all fields that process() reads.
   /// This implementation is merely an example.
@@ -29,10 +31,8 @@ class Combine final : public Step {
   /// This implementation is merely an example.
   common::Fields getProvidedFields() const final { return kDataField; }
 
-  /// Process the data.
   bool process(std::unique_ptr<base::DPBuffer>) final;
 
-  /// TODO: Process BDA data.
   bool process(std::unique_ptr<base::BdaBuffer>) final;
 
   /// Finish the processing of this step and subsequent steps.
@@ -50,6 +50,12 @@ class Combine final : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const final;
 
+  bool accepts(MsType data_type) const override {
+    return data_type == ms_type_;
+  }
+
+  MsType outputs() const override { return ms_type_; }
+
  private:
   enum class Operation { kAdd, kSubtract };
 
@@ -57,6 +63,7 @@ class Combine final : public Step {
   common::NSTimer timer_;
   std::string buffer_name_;  //< Buffer that will be added or subtracted
   Operation operation_;      //< Add or subtract
+  MsType ms_type_;           //< BDA or regular data
 };
 
 }  // namespace dp3::steps
