@@ -1,0 +1,116 @@
+# This docker container is not used in CI, but is added for debugging.
+# It can be used to analyse building everything together on a local machine.
+
+FROM ubuntu:26.04
+
+RUN export DEBIAN_FRONTEND="noninteractive" && \
+	apt-get update && \
+	apt-get install -y \
+	bison \
+	build-essential \
+	cmake \
+	doxygen \
+	flex \
+	g++ \
+	gfortran \
+	git \
+	libblas-dev \
+	libboost-filesystem-dev \
+	libboost-program-options-dev \
+	libboost-python-dev \
+	libboost-test-dev \
+	libcfitsio-dev \
+	libdeflate-dev \
+	libfftw3-dev \
+	libgsl-dev \
+	libgtkmm-4.0-dev \
+	libhdf5-serial-dev \
+	liblapack-dev \
+	liblua5.3-dev \
+	libpng-dev \
+	libpython3-dev \
+	pkg-config \
+	pybind11-dev \
+	python3-astropy \
+	python3-dev \
+	python3-h5py \
+	python3-numpy \
+	python3-pip \
+	python3-pytest \
+	wcslib-dev \
+	wget \
+	&& \
+	rm -rf /var/lib/apt/lists/*
+
+# Install WSRT Measures (extra casacore data, for integration tests)
+# Note: The file on the server is updated daily. When warnings regarding leap
+# seconds appear, ignore them or regenerate the docker image.
+RUN mkdir -p /usr/share/casacore/data \
+	&& cd /usr/share/casacore/data \
+	&& wget -nv https://www.astron.nl/iers/WSRT_Measures.ztar \
+	&& tar xfz WSRT_Measures.ztar \
+	&& rm WSRT_Measures.ztar
+# The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
+RUN mkdir /external && \
+  cd /external && \
+  git clone https://github.com/casacore/casacore.git && \
+  cd /external/casacore && \
+  mkdir build && \
+  cd build && \
+  cmake .. -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data -DBUILD_SISCO=ON && \
+  make -j`nproc` && \
+  make install -j`nproc` && \
+  cd /external && \
+  rm -rf /external/casacore
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib/
+RUN cd /external \
+	&& git clone --depth 1 https://github.com/casacore/python-casacore.git \
+	&& cd /external/python-casacore \
+	&& pip install . --break-system-packages \
+	&& cd /external \
+	&& rm -rf /external/python-casacore \
+	&& python3 -c "import casacore.tables ; print('Using casacore from path: ' + casacore.tables.__file__);"
+# Build aoflagger3 (PORTABLE, since the compile node and run node may differ.)
+RUN mkdir /aoflagger && cd /aoflagger \
+	&& git clone https://gitlab.com/aroffringa/aoflagger.git src \
+	&& mkdir build && cd build \
+	&& cmake  -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
+	&& make -j`nproc` install \
+	&& cd / && rm -rf aoflagger
+# Build IDG (PORTABLE, since the compile node and run node may differ.)
+RUN mkdir /idg && cd /idg \
+	&& git clone https://git.astron.nl/RD/idg.git src \
+	&& mkdir build && cd build \
+	&& cmake -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
+	&& make -j`nproc` install \
+	&& cd / && rm -rf idg
+# Build EveryBeam (PORTABLE, since the compile node and run node may differ.)
+RUN mkdir /everybeam && cd /everybeam \
+	&& git clone https://git.astron.nl/RD/EveryBeam.git src \
+	&& mkdir build && cd build \
+	&& cmake -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
+	&& make -j`nproc` install \
+	&& cd / && rm -rf everybeam
+# Build libdirac from SAGECal.
+RUN mkdir /sagecal && cd /sagecal \
+  && git clone https://github.com/nlesc-dirac/sagecal.git src \
+	&& mkdir build && cd build \
+	&& cmake -DCMAKE_INSTALL_PREFIX=/usr -DLIB_ONLY=ON ../src \
+	&& make -j`nproc` install \
+	&& cd / && rm -rf sagecal
+# Build WSClean (PORTABLE, since the compile node and run node may differ.)
+RUN mkdir /wsclean && cd /wsclean \
+  && git clone https://gitlab.com/aroffringa/wsclean.git src \
+	&& mkdir build && cd build \
+	&& cmake -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
+	&& make -j`nproc` install \
+	&& cd / && rm -rf wsclean
+# EveryBeam by default uses the Python virtual environment directory instead
+# of its installation directory for locating its data files.
+ENV EVERYBEAM_DATADIR=/usr/share/everybeam
+
+ADD . /src
+RUN mkdir /build && cd /build && \
+  cmake -DBUILD_TESTING=On -DPORTABLE=True /src .. && \
+  make -j`nproc` && \
+  ctest --no-tests=error
