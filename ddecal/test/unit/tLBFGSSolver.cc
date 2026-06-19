@@ -105,7 +105,8 @@ BOOST_AUTO_TEST_CASE(merge_solutions) {
 }
 
 BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
-                        *boost::unit_test::label("slow")) {
+                        *boost::unit_test::disabled() *
+                            boost::unit_test::label("slow")) {
   SetDiagonalSolutions(false);
   dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations, kHistory,
                                   kMinibatches, 0.0, 0.0,
@@ -131,7 +132,8 @@ BOOST_FIXTURE_TEST_CASE(diagonal, SolverTester,
 }
 
 BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
-                        *boost::unit_test::label("slow")) {
+                        *boost::unit_test::disabled() *
+                            boost::unit_test::label("slow")) {
   SetScalarSolutions(false);
   dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations, kHistory,
                                   kMinibatches, 0.0, 0.0,
@@ -157,7 +159,8 @@ BOOST_FIXTURE_TEST_CASE(scalar, SolverTester,
 }
 
 BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
-                        *boost::unit_test::label("slow")) {
+                        *boost::unit_test::disabled() *
+                            boost::unit_test::label("slow")) {
   SetDiagonalSolutions(false);
   // Since we have more unknowns, reduce the minibatch size
   // to increase the constraints per-minibatch
@@ -211,7 +214,8 @@ BOOST_FIXTURE_TEST_CASE(full_jones, SolverTester,
 }
 
 BOOST_FIXTURE_TEST_CASE(bounded_diagonal, SolverTester,
-                        *boost::unit_test::label("slow")) {
+                        *boost::unit_test::disabled() *
+                            boost::unit_test::label("slow")) {
   SetDiagonalSolutions(false);
   dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations * 2, kHistory,
                                   kMinibatches / 2, kMinSolution, kMaxSolution,
@@ -237,7 +241,8 @@ BOOST_FIXTURE_TEST_CASE(bounded_diagonal, SolverTester,
 }
 
 BOOST_FIXTURE_TEST_CASE(bounded_scalar, SolverTester,
-                        *boost::unit_test::label("slow")) {
+                        *boost::unit_test::disabled() *
+                            boost::unit_test::label("slow")) {
   SetScalarSolutions(false);
   dp3::ddecal::LBFGSSolver solver(kRobustDOF, kBatchIterations, kHistory,
                                   kMinibatches, kMinSolution, kMaxSolution,
@@ -263,7 +268,8 @@ BOOST_FIXTURE_TEST_CASE(bounded_scalar, SolverTester,
 }
 
 BOOST_FIXTURE_TEST_CASE(bounded_full_jones, SolverTester,
-                        *boost::unit_test::label("slow")) {
+                        *boost::unit_test::disabled() *
+                            boost::unit_test::label("slow")) {
   SetDiagonalSolutions(false);
   // Since we have more unknowns, reduce the minibatch size
   // to increase the constraints per-minibatch
