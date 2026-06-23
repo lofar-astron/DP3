@@ -16,6 +16,7 @@
 
 #include "tPredict.h"
 #include "H5ParmFixture.h"
+#include "steps/test/unit/mock/MockTelescope.h"
 
 using dp3::steps::ApplyCal;
 using dp3::steps::OnePredict;
@@ -25,11 +26,14 @@ namespace {
 
 // Constants copy pasted from steps/test/unit/tIDGPredict.cc
 constexpr unsigned int kNCorr = 4;
-constexpr unsigned int kNChan = 5;
-const std::vector<std::size_t> kChannelCounts(kNChan, 1);
-constexpr double kStartTime = 0.0;
+constexpr double kTime = 0.0;
 constexpr double kInterval = 1.0;
 constexpr std::size_t kNBaselines = 3;
+const std::vector<double> kChannelFrequencies = {
+    1.1e7, 1.2e7, 1.3e7, 1.4e7, 1.5e7,
+};
+constexpr double kChannelWidth = 1.0e6;
+const std::size_t kNChan = kChannelFrequencies.size();
 
 class OnePredictFixture {
  public:
@@ -39,25 +43,26 @@ class OnePredictFixture {
     predict_ = std::make_shared<OnePredict>(parset, "fixture.",
                                             std::vector<std::string>());
     predict_->setNextStep(std::make_shared<dp3::steps::NullStep>());
-    SetInfo(predict_);
+    predict_->updateInfo(MakeInfo());
   }
 
-  static void SetInfo(std::shared_ptr<OnePredict> predict) {
+  static dp3::base::DPInfo MakeInfo() {
     dp3::base::DPInfo info(kNCorr, kNChan);
     info.setTimes(0.5, 9.5, 1.0);
 
     const std::vector<int> kAnt1{0, 0, 1};
     const std::vector<int> kAnt2{1, 2, 2};
-    const std::vector<std::string> kAntNames{"ant0", "ant1", "ant2"};
+    // For the reusebeammodel test, the antenna names should be real names
+    // from the MS used in the test.
+    const std::vector<std::string> kAntNames{"CS001HBA0", "CS002HBA0",
+                                             "CS002HBA1"};
     const std::vector<double> kAntDiam(3, 1.0);
     const std::vector<casacore::MPosition> kAntPos(3);
     info.setAntennas(kAntNames, kAntDiam, kAntPos, kAnt1, kAnt2);
 
-    std::vector<double> chan_freqs(kNChan, 10.0e6);
-    std::vector<double> chan_widths(kNChan, 3.0e6);
-
-    info.setChannels(std::move(chan_freqs), std::move(chan_widths));
-    predict->setInfo(info);
+    info.setChannels(std::vector<double>(kChannelFrequencies),
+                     std::vector<double>(kNChan, kChannelWidth));
+    return info;
   }
 
  protected:
@@ -144,57 +149,32 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
 
 /**
  * Create a buffer with artificial data values.
- * @param time Start time for the buffer.
- * @param interval Interval duration for the buffer.
- * @param n_baselines Number of baselines in the buffer.
- * @param base_value Base value for the data values, for distinguishing buffers.
- *        For distinguishing baselines, this function adds baseline_nr * 100.0.
- *        When the buffer represents averaged data, the base_value should be
- *        the total of the base values of the original buffers.
- *        This function divides the base_value by the supplied weight so the
- *        caller does not have to do that division.
- * @param channel_counts List for generating channel data.
- *        For input buffers, this list should contain a 1 for each channel.
- *        When generating expected output data, this list should contain the
- *        number of averaged input buffers for each output buffer.
- * @param weight Weight value for the data values in the buffer.
- *
- * @note The function has been copied from @ref steps/test/unit/tIDGPredict.cc.
+ * @note This function was originally copied from @ref
+ * steps/test/unit/tIDGPredict.cc.
  */
-static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
-    const double time, const double interval, std::size_t n_baselines,
-    const std::vector<std::size_t>& channel_counts, const float base_value,
-    const float weight = 1.0) {
-  const std::array<std::size_t, 3> kShape{n_baselines, channel_counts.size(),
-                                          kNCorr};
+static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer() {
+  const std::array<std::size_t, 3> kShape{kNBaselines, kNChan, kNCorr};
 
-  auto buffer = std::make_unique<dp3::base::DPBuffer>(time, interval);
+  auto buffer = std::make_unique<dp3::base::DPBuffer>(kTime, kInterval);
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
-  buffer->GetUvw().resize({n_baselines, 3});
+  buffer->GetUvw().resize({kNBaselines, 3});
 
   buffer->GetFlags().fill(false);
-  buffer->GetWeights().fill(weight);
+  buffer->GetWeights().fill(1.0);
 
-  for (std::size_t baseline = 0; baseline < n_baselines; ++baseline) {
+  for (std::size_t baseline = 0; baseline < kNBaselines; ++baseline) {
     // Base value for this baseline.
-    const float baseline_value = (baseline * 100.0) + (base_value / weight);
+    const float baseline_value = baseline * 100.0;
 
-    std::size_t channel = 0;
     float channel_value = baseline_value;  // Base value for a group of channels
-    for (std::size_t channel_count : channel_counts) {
-      // For each channel, increase channel_value by 10.0.
-      // When channel_count == 1, 'value' should equal channel_value.
-      // When channel_count > 1, 'value' should be the average for multiple
-      // channels.
-      const float value = channel_value + 5.0 * (channel_count - 1);
+    for (std::size_t channel = 0; channel < kNChan; ++channel) {
       for (unsigned int corr = 0; corr < kNCorr; ++corr) {
-        buffer->GetData()(baseline, channel, corr) = value + corr;
-        buffer->GetWeights()(baseline, channel, corr) *= channel_count;
+        buffer->GetData()(baseline, channel, corr) = channel_value + corr;
       }
-      ++channel;
-      channel_value += channel_count * 10.0;
+      // For each channel, increase channel_value by 10.0.
+      channel_value += 10.0;
     }
     buffer->GetUvw()(baseline, 0) = baseline_value + 0.0;
     buffer->GetUvw()(baseline, 1) = baseline_value + 1.0;
@@ -208,8 +188,7 @@ BOOST_FIXTURE_TEST_CASE(showTimings, OnePredictFixture) {
   dp3::common::NSTimer timer;
   {
     const dp3::common::NSTimer::StartStop scoped_timer(timer);
-    predict_->process(CreateBuffer(kStartTime * kInterval, kInterval,
-                                   kNBaselines, kChannelCounts, 0.));
+    predict_->process(CreateBuffer());
   }
 
   std::stringstream sstr;
@@ -239,8 +218,7 @@ BOOST_FIXTURE_TEST_CASE(showTimings, OnePredictFixture) {
 }
 
 BOOST_AUTO_TEST_CASE(outputmodelname) {
-  std::unique_ptr<dp3::base::DPBuffer> input_buffer = CreateBuffer(
-      kStartTime * kInterval, kInterval, kNBaselines, kChannelCounts, 0.);
+  std::unique_ptr<dp3::base::DPBuffer> input_buffer = CreateBuffer();
   std::string output_model_name = "a_model_name";
 
   // Predict visibilities to main data buffer, replacing the input visibilities.
@@ -251,7 +229,7 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
       std::make_shared<OnePredict>(parset, "", std::vector<std::string>());
   auto predict_result = std::make_shared<dp3::steps::ResultStep>();
   predict->setNextStep(predict_result);
-  OnePredictFixture::SetInfo(predict);
+  predict->updateInfo(OnePredictFixture::MakeInfo());
 
   // Process and verify
   predict->process(std::make_unique<dp3::base::DPBuffer>(*input_buffer));
@@ -267,7 +245,7 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
       std::make_shared<OnePredict>(parset, "", std::vector<std::string>());
   predict_result = std::make_shared<dp3::steps::ResultStep>();
   predict->setNextStep(predict_result);
-  OnePredictFixture::SetInfo(predict);
+  predict->updateInfo(OnePredictFixture::MakeInfo());
 
   // Process and verify
   predict->process(std::make_unique<dp3::base::DPBuffer>(*input_buffer));
@@ -281,6 +259,44 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
   // Verify fields differ from the 'fields_defaults' test
   BOOST_TEST(predict->getRequiredFields() == Step::kUvwField);
   BOOST_TEST(predict->getProvidedFields() == dp3::common::Fields());
+}
+
+BOOST_AUTO_TEST_CASE(reusebeammodel) {
+  const everybeam::vector3r_t kExpectedDirection{
+      0.46738011434338467, -0.71981911052266068, 0.5132409539804188};
+
+  dp3::common::ParameterSet parset;
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
+  // Only use the first source in this test, which disables computing sources
+  // in parallel. It also allows using MockTelescope / MockPointResponse, which
+  // expect one MockPointResponse::Response call for each frequency.
+  parset.add("sources", "[0002.2+3139]");
+  parset.add("usebeammodel", "true");
+  parset.add("reusebeammodel", "true");
+  parset.add("elementmodel", "something_invalid");
+  parset.add("usechannelfreq", "also_invalid");
+  parset.add("coefficients_path", "/invalid/path");
+
+  OnePredict predict(parset, "", {});
+  const std::vector<std::string> kExpectedUnusedKeys = {
+      "coefficients_path", "elementmodel", "usechannelfreq"};
+  const std::vector<std::string> unused_keys = parset.unusedKeys();
+  BOOST_CHECK_EQUAL_COLLECTIONS(unused_keys.begin(), unused_keys.end(),
+                                kExpectedUnusedKeys.begin(),
+                                kExpectedUnusedKeys.end());
+
+  predict.setNextStep(std::make_shared<dp3::steps::NullStep>());
+
+  dp3::base::DPInfo info = OnePredictFixture::MakeInfo();
+  info.SetTelescope(std::make_shared<dp3::test::MockTelescope>(
+      kChannelFrequencies, kExpectedDirection));
+  predict.updateInfo(info);
+  BOOST_CHECK(predict.getInfoOut().HasTelescope());
+  BOOST_CHECK(&predict.getInfoOut().GetTelescope() == &info.GetTelescope());
+
+  // OnePredict::process should call MockPointResponse::Response for each
+  // frequency in kChannelFrequencies.
+  predict.process(CreateBuffer());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

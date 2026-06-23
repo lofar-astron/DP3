@@ -8,6 +8,8 @@
 
 ### Improvements
 
+- Require EveryBeam >= 0.8.2. (Since DP3 now uses Telescope::IsHomogeneous.)
+
 ### Bug fixes
 
 
@@ -15,7 +17,7 @@
 
 This is the last version of DP3 that supports certain file formats:
 
-- Casacore and Blob "sourcedb" sky model support will be removed in the next version. The next version will only support the csv-like text format. 
+- Casacore and Blob "sourcedb" sky model support will be removed in the next version. The next version will only support the csv-like text format.
 - Casacore and Blob "parmdb" solution sets will be removed in the next version. The next version will only support the "H5Parm" format that makes
 use of HDF5.
 

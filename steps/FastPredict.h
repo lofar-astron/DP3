@@ -181,7 +181,6 @@ class FastPredict : public ModelDataStep {
       everybeam::ElementResponseModel::kDefault;
   casacore::MeasFrame meas_frame_;
   casacore::MDirection::Convert meas_converter_;
-  std::shared_ptr<everybeam::telescope::Telescope> telescope_;
   predict::PredictPlan predict_plan_;
   predict::Predict predict_;
   std::unique_ptr<predict::PredictPlanExecCPU> predict_plan_exec_;

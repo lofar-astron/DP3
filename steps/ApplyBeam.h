@@ -15,8 +15,6 @@
 
 #include <barrier>
 
-#include <EveryBeam/telescope/telescope.h>
-
 #include <aocommon/matrix2x2.h>
 #include <aocommon/xt/utensor.h>
 
@@ -188,7 +186,7 @@ class ApplyBeam final : public Step {
 
   /// The info needed to calculate the station beams.
   ///@{
-  std::unique_ptr<everybeam::telescope::Telescope> telescope_;
+  bool reuse_telescope_;
   std::vector<size_t> station_indices_;
   casacore::MeasFrame measure_frame_;
   casacore::MDirection::Convert measure_converter_;

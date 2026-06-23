@@ -3,7 +3,9 @@
 
 #include "Telescope.h"
 
+#include <concepts>
 #include <numeric>
+#include <type_traits>
 
 #include <EveryBeam/telescope/dish.h>
 #include <EveryBeam/telescope/mwa.h>
@@ -12,18 +14,11 @@
 namespace dp3 {
 namespace base {
 
-bool IsHomogeneous(const everybeam::telescope::Telescope& telescope) {
-  // It would be better if EveryBeam provides this information ; a dish isn't
-  // necessarily always homogenous (in future implementations).
-  return dynamic_cast<const everybeam::telescope::Dish*>(&telescope) ||
-         dynamic_cast<const everybeam::telescope::MWA*>(&telescope);
-}
-
 std::vector<size_t> SelectStationIndices(
     const everybeam::telescope::Telescope& telescope,
     const std::vector<std::string>& station_names) {
   std::vector<size_t> station_to_msindex;
-  if (IsHomogeneous(telescope)) {
+  if (telescope.IsHomogeneous()) {
     // All stations can be assumed to be identical
     station_to_msindex = {0};
     return station_to_msindex;
