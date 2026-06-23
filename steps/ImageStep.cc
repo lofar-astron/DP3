@@ -7,6 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 
 #include <xtensor/containers/xadapt.hpp>
 #include <xtensor/views/xview.hpp>
@@ -189,7 +190,14 @@ void ImageStep::AddCurrentBufferToInMemoryMs(
 }
 
 std::string ImageStep::FormatImageNamePrefix() const {
-  return fits_prefix_ + "-" + std::to_string(image_counter_);
+  std::ostringstream counter;
+
+  // 5 digits are used, to be able to image 8 hour with 1 second chunks
+  // (which would give 28800 images) without breaking the ordering of
+  // the files.
+  counter << std::setw(5) << std::setfill('0') << image_counter_;
+
+  return fits_prefix_ + "-" + counter.str();
 }
 
 }  // namespace dp3::steps
