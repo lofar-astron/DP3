@@ -212,9 +212,11 @@ void FastPredict::InitializePlan() {
                               getInfoOut().getAnt2(), antenna_pos);
 
   if (apply_beam_) {
-    telescope_ =
-        base::GetTelescope(getInfoOut().msName(), element_response_model_,
-                           use_channel_freq_, coefficients_path_);
+    if (!getInfoOut().HasTelescope()) {
+      GetWritableInfoOut().SetTelescope(
+          base::GetTelescope(getInfoOut().msName(), element_response_model_,
+                             use_channel_freq_, coefficients_path_));
+    }
   }
 
   // Create the Measure ITRF conversion info given the array position.
@@ -499,9 +501,9 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
     if (update_beam) {
       beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
       previous_beam_time_ = time;
-      telescope_->SetTime(beam_evaluation_time);
-
-      if (base::IsHomogeneous(*telescope_)) predict_plan_.nstations = 1;
+      everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
+      telescope.SetTime(beam_evaluation_time);
+      if (telescope.IsHomogeneous()) predict_plan_.nstations = 1;
     }
   }
 
@@ -602,8 +604,8 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
     const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
     if (predict_plan_.apply_beam) {
       constexpr size_t field_id = 0;
-      predict::BeamResponsePlan beam_response_plan{telescope_.get(), time,
-                                                   field_id, beam_mode_, false};
+      predict::BeamResponsePlan beam_response_plan{
+          &getInfoOut().GetTelescope(), time, field_id, beam_mode_, false};
 
       beam_response_plan.SetFrequencies(predict_plan_.frequencies);
       beam_response_plan.SetBaselines(predict_plan_.baselines);

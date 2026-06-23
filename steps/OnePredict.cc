@@ -96,7 +96,6 @@ void OnePredict::init(const common::ParameterSet& parset,
 
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
   use_local_frame_ = parset.getBool(prefix + "use_local_frame", false);
-  coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
   beam_evaluation_interval_ = parset.getDouble(prefix + "beam_interval", 0.0);
   thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
@@ -132,7 +131,15 @@ void OnePredict::init(const common::ParameterSet& parset,
   }
 
   if (apply_beam_) {
-    use_channel_freq_ = parset.getBool(prefix + "usechannelfreq", true);
+    reuse_telescope_ = parset.getBool(prefix + "reusebeammodel", false);
+    if (!reuse_telescope_) {
+      coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
+      use_channel_freq_ = parset.getBool(prefix + "usechannelfreq", true);
+      const std::string element_model =
+          parset.getString(prefix + "elementmodel", "default");
+      element_response_model_ =
+          everybeam::ElementResponseModelFromString(element_model);
+    }
     one_beam_per_patch_ = parset.getBool(prefix + "onebeamperpatch", false);
     beam_proximity_limit_ =
         parset.getDouble(prefix + "beamproximitylimit", 60.0) *
@@ -140,11 +147,6 @@ void OnePredict::init(const common::ParameterSet& parset,
 
     beam_mode_ = everybeam::ParseBeamMode(
         parset.getString(prefix + "beammode", "default"));
-
-    std::string element_model =
-        parset.getString(prefix + "elementmodel", "default");
-    element_response_model_ =
-        everybeam::ElementResponseModelFromString(element_model);
 
     // By default, a source model has each direction in one patch. Therefore,
     // if one-beam-per-patch is requested, we don't have to do anything.
@@ -217,18 +219,25 @@ void OnePredict::initializeThreadData() {
                               getInfoOut().getAnt2(), antenna_pos);
 
   if (apply_beam_) {
-    telescope_ =
-        base::GetTelescope(getInfoOut().msName(), element_response_model_,
-                           use_channel_freq_, coefficients_path_);
+    if (!reuse_telescope_) {
+      GetWritableInfoOut().SetTelescope(
+          base::GetTelescope(getInfoOut().msName(), element_response_model_,
+                             use_channel_freq_, coefficients_path_));
+    } else if (!getInfoOut().HasTelescope()) {
+      throw std::runtime_error("reusebeammodel is true in " + name_ +
+                               " but no beam model was found.");
+    }
+    const everybeam::telescope::Telescope& telescope =
+        getInfoOut().GetTelescope();
     station_indices_ =
-        base::SelectStationIndices(*telescope_, getInfoOut().antennaNames());
+        base::SelectStationIndices(telescope, getInfoOut().antennaNames());
 
     predict_buffers_ =
         std::make_shared<std::vector<base::PredictBuffer>>(nThreads);
     // TODO:
     // It would be better to use EveryBeam's function to get all antenna values
     // at once, as this would enable this optimization without work here.
-    const bool is_dish_telescope = base::IsHomogeneous(*telescope_);
+    const bool is_dish_telescope = telescope.IsHomogeneous();
     const size_t n_channels = getInfoOut().nchan();
     predict_buffers_->front().Resize(
         1, n_channels, (is_dish_telescope ? 1 : n_stations), !stokes_i_only_);
@@ -374,8 +383,14 @@ void OnePredict::show(std::ostream& os) const {
   if (apply_beam_) {
     os << "   mode:                   " << everybeam::ToString(beam_mode_);
     os << '\n';
-    os << "   use channelfreq:        " << std::boolalpha << use_channel_freq_
+    os << "   reuse beam model:       " << std::boolalpha << reuse_telescope_
        << '\n';
+    if (!reuse_telescope_) {
+      os << "   use channelfreq:        " << std::boolalpha << use_channel_freq_
+         << '\n';
+      os << "   element response model: " << element_response_model_ << '\n';
+      os << "   coefficients path:      " << coefficients_path_ << '\n';
+    }
     os << "   one beam per patch:     " << std::boolalpha << one_beam_per_patch_
        << '\n';
     os << "   beam proximity limit:   "
@@ -532,7 +547,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     baselines_split.resize(n_threads);
     if (apply_beam_) {
       station_range.resize(n_threads);
-      point_response = telescope_->GetPointResponse(time);
+      point_response = getInfoOut().GetTelescope().GetPointResponse(time);
     }
 
     // Index of the first baseline for the current thread. The loop below
@@ -740,7 +755,7 @@ void OnePredict::PredictSourceRange(
   if (apply_beam_) {
     base::PredictBuffer& buffer = (*predict_buffers_)[thread_index];
     if (point_response) {
-      const bool is_homogeneous = base::IsHomogeneous(*telescope_);
+      const bool is_homogeneous = getInfoOut().GetTelescope().IsHomogeneous();
       const size_t n_patches =
           source_list_.empty()
               ? 0
@@ -821,8 +836,9 @@ void OnePredict::PredictWithSourceParallelization(
     if (update_beam) {
       beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
       previous_beam_time_ = time;
-      telescope_->SetTime(beam_evaluation_time);
-      point_response = telescope_->GetPointResponse(beam_evaluation_time);
+      everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
+      telescope.SetTime(beam_evaluation_time);
+      point_response = telescope.GetPointResponse(beam_evaluation_time);
     }
   }
 

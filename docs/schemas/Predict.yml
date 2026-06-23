@@ -17,12 +17,16 @@ inputs:
     doc: Patches to use in the predict step of the calibration.
   usebeammodel:
     default: false
-    type: bool
+    type: boolean
     doc: Use the beam model in the predict part of the calibration.
+  reusebeammodel:
+    default: false
+    type: boolean
+    doc: Same as in `ApplyBeam <ApplyBeam.html>`__ step.
   elementmodel:
     default: default
     type: enum
-    symbols: hamaker, lobes, oskarsphericalwave, oskardipole (or any other model EveryBeam supports) 
+    symbols: hamaker, lobes, oskarsphericalwave, oskardipole (or any other model EveryBeam supports)
     doc: >-
       Specifies which beam model to use. The default value of "default" means that the model
       is inferred from the MS. For a LOFAR MS the default is hamaker, and for an OSKAR MS the default is oskardipole.
@@ -33,7 +37,7 @@ inputs:
   outputmodelname:
     default: "\"\""
     type: string
-    doc: Name for writing the predicted visibilities in the output DPBuffer. If empty (default), write the output in the main/default visibility buffer, thereby replacing the input visibilities. Otherwise, write the output to an extra (model) data buffer in the output DPBuffer with the given name. 
+    doc: Name for writing the predicted visibilities in the output DPBuffer. If empty (default), write the output in the main/default visibility buffer, thereby replacing the input visibilities. Otherwise, write the output to an extra (model) data buffer in the output DPBuffer with the given name.
   applycal&#46;*:
     doc: Set of options for applycal to apply to this predict. For this applycal-substep, .invert is off by default, so the predicted visibilities will be corrupted with the parmdb.
   beamproximitylimit:
@@ -63,7 +67,7 @@ inputs:
     default: false
     doc: >-
       Simulate time smearing based on the integration time, by multiplying the visibility with a sinc function.
-      This is an approximation. The change of u,v,w due to earth rotation over the integration interval is 
+      This is an approximation. The change of u,v,w due to earth rotation over the integration interval is
       approximated by a straight line. The axis of rotation is the J2000 pole, so precession is ignored.
   correctfreqsmearing:
     type: boolean
@@ -76,9 +80,10 @@ inputs:
   coefficients_path:
     type: string
     default: "\"\""
-    doc: For beam models that require a coefficients file (like that MWA), this field should point to that filename.
+    doc: For beam models that require a coefficients file (like that MWA), this field should point to that filename.usechannelfreq
   use_local_frame:
     type: boolean
+    default: false
     doc: >-
       If true, assume that the model is given in azimuth and elevation coordinates instead of right ascension and declination.
       This can not be combined with beam correction as of yet. This mode is experimental.

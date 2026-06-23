@@ -181,6 +181,7 @@ class OnePredict : public ModelDataStep {
   Operation operation_ = Operation::kReplace;
   std::string output_data_name_;
   bool apply_beam_ = false;
+  bool reuse_telescope_ = false;
   std::string coefficients_path_;
   bool use_channel_freq_ = false;
   bool one_beam_per_patch_ = false;
@@ -220,7 +221,6 @@ class OnePredict : public ModelDataStep {
       everybeam::ElementResponseModel::kDefault;
   std::vector<casacore::MeasFrame> meas_frame_;
   std::vector<casacore::MDirection::Convert> meas_convertors_;
-  std::shared_ptr<everybeam::telescope::Telescope> telescope_;
   std::vector<size_t> station_indices_;
 
   std::string direction_str_;  ///< Definition of patches, to pass to applycal

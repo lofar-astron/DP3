@@ -69,7 +69,7 @@ inputs:
   elementmodel:
     default: default
     type: enum
-    symbols: hamaker, lobes, oskarsphericalwave, oskardipole (or any other model EveryBeam supports) 
+    symbols: hamaker, lobes, oskarsphericalwave, oskardipole (or any other model EveryBeam supports)
     doc: >-
       Specifies which beam model to use. The default value of "default" means that the model
       is inferred from the MS. For a LOFAR MS the default is hamaker, and for an OSKAR MS the default is oskardipole.
@@ -92,3 +92,9 @@ inputs:
     default: "\"\""
     doc: >-
       Specifies the path of coefficients that might be needed to calculate the beam. This field is passed to EveryBeam. Not all telescope beams require coefficient files, and for example for the LOFAR beam model this field can be left empty.
+  reusebeammodel:
+    type: boolean
+    default: false
+    doc: >-
+       If true, reuse an existing beam model from an earlier step.
+       If false, create a new beam model using the 'elementmodel', 'usechannelfreq' and 'coefficients_path' settings.

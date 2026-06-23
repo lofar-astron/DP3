@@ -211,13 +211,12 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset,
       itsUpdateWeights(parset.getBool(prefix + "updateweights", false)),
       itsDirectionStr(parset.getStringVector(prefix + "direction",
                                              std::vector<std::string>())),
-      itsUseChannelFreq(parset.getBool(prefix + "usechannelfreq", true)),
       itsSkipStationNames(parset.getStringVector(prefix + "skipstations",
                                                  std::vector<std::string>())),
       itsMode(everybeam::ParseBeamMode(
           parset.getString(prefix + "beammode", "default"))),
-      coefficients_path_(parset.getString(prefix + "coefficients_path", "")),
       itsDebugLevel(parset.getInt(prefix + "debuglevel", 0)),
+      reuse_telescope_(parset.getBool(prefix + "reusebeammodel", false)),
       use_model_data_(parset.getBool(prefix + "usemodeldata", false)) {
   // only read 'invert' parset key if it is a separate step
   // if applybeam is called from gaincal/predict, the invert key should always
@@ -228,10 +227,14 @@ ApplyBeam::ApplyBeam(const common::ParameterSet& parset,
     itsInvert = parset.getBool(prefix + "invert", true);
   }
 
-  std::string element_model =
-      parset.getString(prefix + "elementmodel", "default");
-  itsElementResponseModel =
-      everybeam::ElementResponseModelFromString(element_model);
+  if (!reuse_telescope_) {
+    itsUseChannelFreq = parset.getBool(prefix + "usechannelfreq", true);
+    const std::string element_model =
+        parset.getString(prefix + "elementmodel", "default");
+    itsElementResponseModel =
+        everybeam::ElementResponseModelFromString(element_model);
+    coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
+  }
 }
 
 void ApplyBeam::updateInfo(const DPInfo& infoIn) {
@@ -317,12 +320,18 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
       MEpoch(MVEpoch(getInfoOut().startTime() / 86400), MEpoch::UTC));
   measure_converter_.set(MDirection::J2000,
                          MDirection::Ref(MDirection::ITRF, measure_frame_));
-  telescope_ =
-      base::GetTelescope(getInfoOut().msName(), itsElementResponseModel,
-                         itsUseChannelFreq, coefficients_path_);
-  telescope_->SetTime(getInfoOut().startTime());
+  if (!reuse_telescope_) {
+    GetWritableInfoOut().SetTelescope(
+        base::GetTelescope(getInfoOut().msName(), itsElementResponseModel,
+                           itsUseChannelFreq, coefficients_path_));
+  } else if (!getInfoOut().HasTelescope()) {
+    throw std::runtime_error("reusebeammodel is true in " + itsName +
+                             " but no beam model was found.");
+  }
+  everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
+  telescope.SetTime(getInfoOut().startTime());
   station_indices_ =
-      base::SelectStationIndices(*telescope_, getInfoOut().antennaNames());
+      base::SelectStationIndices(telescope, getInfoOut().antennaNames());
 
   if (!itsSkipStationNames.empty()) {
     // Needs loop over itsSkipStationNames because SelectStationIndices
@@ -330,7 +339,7 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
     // assumes (because there is only one way to order a vector of length one.
     for (std::string& skipStationName : itsSkipStationNames) {
       std::vector<size_t> station_indices = base::SelectStationIndices(
-          *telescope_, std::vector<std::string>{skipStationName});
+          telescope, std::vector<std::string>{skipStationName});
       itsSkipStationIndices.emplace_back(std::move(station_indices[0]));
     }
   }
@@ -339,8 +348,13 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
 void ApplyBeam::show(std::ostream& os) const {
   os << "ApplyBeam " << itsName << '\n'
      << "  mode:              " << everybeam::ToString(itsMode) << '\n'
-     << "  use channelfreq:   " << std::boolalpha << itsUseChannelFreq << '\n'
-     << "  direction:         " << itsDirectionStr << '\n'
+     << "  reuse beam model:  " << std::boolalpha << reuse_telescope_ << '\n';
+  if (!reuse_telescope_) {
+    os << "  use channelfreq:   " << std::boolalpha << itsUseChannelFreq << '\n'
+       << "  element model:     " << itsElementResponseModel << '\n'
+       << "  coefficients path: " << coefficients_path_ << '\n';
+  }
+  os << "  direction:         " << itsDirectionStr << '\n'
      << "  invert:            " << std::boolalpha << itsInvert << '\n'
      << "  update weights:    " << std::boolalpha << itsUpdateWeights << '\n';
   if (!itsSkipStationNames.empty()) {
@@ -369,11 +383,14 @@ bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
 
   const std::map<std::string, dp3::base::Direction>& directions =
       getInfoOut().GetDirections();
+
   const double time = buffer->GetTime();
-  telescope_->SetTime(time);
   measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
+
+  everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
+  telescope.SetTime(time);
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope_->GetPointResponse(time);
+      telescope.GetPointResponse(time);
 
   for (const auto& [direction_name, direction] : directions) {
     std::complex<float>* data = buffer->GetData(direction_name).data();
@@ -405,9 +422,10 @@ bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
       itsInvert && itsModeAtStart != everybeam::BeamMode::kNone;
   measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
 
-  telescope_->SetTime(time);
+  everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
+  telescope.SetTime(time);
   std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope_->GetPointResponse(time);
+      telescope.GetPointResponse(time);
 
   if (undoInputBeam) {
     // A beam was previously applied to this MS, and a different direction

@@ -25,8 +25,6 @@ inline std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
   return telescope;
 }
 
-bool IsHomogeneous(const everybeam::telescope::Telescope& telescope);
-
 /**
  * Find stations in a telescope by name and return their indices.
  * @param telescope The telescope, which contains antennae / stations.

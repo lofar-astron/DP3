@@ -1,14 +1,17 @@
-// Copyright (C) 2022 ASTRON (Netherlands Institute for Radio Astronomy)
+// Copyright (C) 2026 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "steps/ApplyBeam.h"
 
 #include <boost/test/unit_test.hpp>
+#include <EveryBeam/load.h>
 #include <xtensor/misc/xcomplex.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include "mock/ThrowStep.h"
 #include "common/ParameterSet.h"
 #include "steps/ResultStep.h"
+#include "steps/test/unit/mock/MockTelescope.h"
 
 using dp3::steps::ApplyBeam;
 using dp3::steps::Step;
@@ -18,6 +21,7 @@ BOOST_AUTO_TEST_SUITE(apply_beam)
 namespace {
 const double kTime{4.87128e+09};
 const double kExposure{10.0139};
+const std::vector<double> kFrequencies{1.34288e+08, 1.34312e+08};
 }  // namespace
 
 // Create and populate a buffer with the bare minimum values required to run
@@ -42,15 +46,15 @@ std::unique_ptr<dp3::base::DPBuffer> CreateBuffer(
 dp3::base::DPInfo MakeInfo() {
   dp3::base::DPInfo info(4, 8, "HBA_DUAL_INNER");
   info.setMsName("tNDPPP-generic.MS");
-  info.setChannels({1.34288e+08, 1.34312e+08}, {24414.1, 24414.1},
+  info.setChannels(std::vector<double>(kFrequencies), {24414.1, 24414.1},
                    {24414.1, 24414.1}, {24414.1, 24414.1}, 1.34375e+08, 0);
 
   info.setTimes(3.0, 3.0, 5.0);
 
-  std::vector<int> antenna_1{0};
-  std::vector<int> antenna_2{0};
+  const std::vector<int> antenna_1{0};
+  const std::vector<int> antenna_2{0};
 
-  std::vector<std::string> antenna_names{"CS001HBA0", "CS002HBA0"};
+  const std::vector<std::string> antenna_names{"CS001HBA0", "CS002HBA0"};
 
   std::vector<casacore::MPosition> antenna_position(2);
   casacore::Vector<double> vals(3);
@@ -67,7 +71,7 @@ dp3::base::DPInfo MakeInfo() {
       casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
 
-  std::vector<double> antenna_diameter(2.0, 70.0);
+  const std::vector<double> antenna_diameter(2.0, 70.0);
   info.setAntennas(antenna_names, antenna_diameter, antenna_position, antenna_1,
                    antenna_2);
   return info;
@@ -157,6 +161,65 @@ BOOST_AUTO_TEST_CASE(test_step_basic) {
   BOOST_TEST(xt::allclose(result_buffer->GetData(), kExpectedData));
   BOOST_TEST(result_buffer->GetWeights() == kExpectedWeights,
              boost::test_tools::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(reusebeammodel) {
+  const std::array<size_t, 3> shape = {3, 2, 4};
+
+  const xt::xtensor<std::complex<float>, 3> kTestData(
+      shape, std::complex<float>(1.0, 1.0));
+  const xt::xtensor<float, 3> kWeights(shape, 1.0f);
+
+  // The expected data is 0.25 for the first baseline, since
+  // MockPointResponse returns a beam value of 2.0 and the input data is 1.0.
+  // The other two baselines are unchanged. Since MakeInfo() only creates a
+  // single baseline, ApplyBeam should not touch the extra data in the buffer.
+  xt::xtensor<std::complex<float>, 3> expected_data = kTestData;
+  xt::view(expected_data, 0, xt::all(), xt::all()) =
+      std::complex<float>(0.25, 0.25);
+
+  // Expected direction for MockPointResponse::Response() calls.
+  const everybeam::vector3r_t kExpectedDirection{
+      -0.0011852071523323795, 0.00053077365480819693, 0.99999915678131113};
+
+  dp3::common::ParameterSet parset;
+  parset.add("reusebeammodel", "true");
+  parset.add("elementmodel", "something_invalid");
+  parset.add("usechannelfreq", "also_invalid");
+  parset.add("coefficients_path", "/invalid/path");
+
+  ApplyBeam apply_beam(parset, "");
+  const std::vector<std::string> kExpectedUnusedKeys = {
+      "coefficients_path", "elementmodel", "usechannelfreq"};
+  const std::vector<std::string> unused_keys = parset.unusedKeys();
+  BOOST_CHECK_EQUAL_COLLECTIONS(unused_keys.begin(), unused_keys.end(),
+                                kExpectedUnusedKeys.begin(),
+                                kExpectedUnusedKeys.end());
+
+  auto result = std::make_shared<dp3::steps::ResultStep>();
+  apply_beam.setNextStep(result);
+
+  dp3::base::DPInfo info = MakeInfo();
+  info.SetTelescope(std::make_shared<dp3::test::MockTelescope>(
+      kFrequencies, kExpectedDirection));
+  apply_beam.updateInfo(info);
+  BOOST_CHECK(apply_beam.getInfoOut().HasTelescope());
+  BOOST_CHECK(&apply_beam.getInfoOut().GetTelescope() == &info.GetTelescope());
+
+  apply_beam.process(CreateBuffer(kTestData, kWeights));
+  std::unique_ptr<dp3::base::DPBuffer> result_buffer = result->take();
+  BOOST_TEST_REQUIRE(result_buffer);
+  BOOST_TEST(result_buffer->GetData() == expected_data,
+             boost::test_tools::per_element());
+  BOOST_TEST(result_buffer->GetWeights() == kWeights,
+             boost::test_tools::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(reusebeammodel_no_telescope) {
+  dp3::common::ParameterSet parset;
+  parset.add("reusebeammodel", "true");
+  ApplyBeam apply_beam(parset, "");
+  BOOST_CHECK_THROW(apply_beam.updateInfo(MakeInfo()), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(fields_defaults) {
