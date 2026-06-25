@@ -71,7 +71,7 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
     throw std::runtime_error("timeslotsperparmupdate must be > 0");
   }
 
-  const std::string directionStr =
+  direction_name_ =
       (parset.isDefined(prefix + "direction")
            ? parset.getString(prefix + "direction")
            : parset.getString(defaultPrefix + "direction", predictDirection));
@@ -84,7 +84,7 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
     }
     CheckParmDB();
 
-    if (!directionStr.empty()) {
+    if (!direction_name_.empty()) {
       throw std::runtime_error(
           "When using applycal with modeldata, applycal.direction "
           "must be empty because the directions are read from "
@@ -167,16 +167,17 @@ OneApplyCal::OneApplyCal(const common::ParameterSet& parset,
       n_polarizations_in_sol_tab_ = nPol(solution_tables_[0]);
 
       itsDirection = 0;
-      if (!itsUseModelData && directionStr.empty()) {
+      if (!itsUseModelData && direction_name_.empty()) {
         if (solution_tables_[0].HasAxis("dir") &&
             solution_tables_[0].GetAxis("dir").size != 1)
           throw std::runtime_error(
               "If the soltab contains multiple directions, the direction to "
               "be applied in applycal should be specified");
         // If there is only one direction, silently assume it is the right one
-      } else if (!directionStr.empty() && solution_tables_[0].HasAxis("dir") &&
+      } else if (!direction_name_.empty() &&
+                 solution_tables_[0].HasAxis("dir") &&
                  solution_tables_[0].GetAxis("dir").size > 1) {
-        itsDirection = solution_tables_[0].GetDirIndex(directionStr);
+        itsDirection = solution_tables_[0].GetDirIndex(direction_name_);
       }
     }
   } else {
@@ -441,12 +442,28 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
                      (t + 0.5) * getInfoOut().timeInterval();
         }
 
+        const bool is_direction_present =
+            buffer->GetSolution().find(direction_name_) !=
+            buffer->GetSolution().end();
+
+        std::string solution_name;
+        if (is_direction_present) {
+          solution_name = direction_name_;
+        } else if (!is_direction_present && buffer->GetSolution().size() == 1) {
+          solution_name = buffer->GetSolutionDirectionNames().front();
+        } else {
+          throw std::runtime_error(
+              "OneApplyCal only supports applying the solutions from one"
+              " direction when using the buffer");
+        }
+
+        const std::vector<std::vector<std::complex<double>>>& solutions =
+            buffer->GetSolution(solution_name);
         // Validate that the data is in the correct shape
         const size_t n_chan = buffer->GetData().shape(1);
-        const size_t n_corrs = buffer->GetSolution()[0].size() /
-                               getInfoOut().antennaNames().size();
-        if (buffer->GetSolution().size() != n_chan ||
-            (n_corrs != 2 && n_corrs != 4)) {
+        const size_t n_corrs =
+            solutions.front().size() / getInfoOut().antennaNames().size();
+        if (solutions.size() != n_chan || (n_corrs != 2 && n_corrs != 4)) {
           throw std::runtime_error(
               "The solution is not in the correct shape. Was the solution "
               "computed on different data than it is being applied on?");
@@ -454,7 +471,7 @@ bool OneApplyCal::process(std::unique_ptr<DPBuffer> buffer) {
 
         itsJonesParametersPerDirection[""] = std::make_unique<JonesParameters>(
             getInfoOut().chanFreqs(), times, getInfoOut().antennaNames(),
-            gain_type, buffer->GetSolution(), itsInvert);
+            gain_type, solutions, itsInvert);
       }
       itsTimeStep = 0;
     } else {

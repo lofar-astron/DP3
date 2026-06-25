@@ -183,3 +183,32 @@ def test_extra_data():
     with pytest.raises(RuntimeError) as e:
         pybuffer.get_data("model_data")
     assert "Buffer has no data named 'model_data'" in str(e.value)
+
+
+def test_set_buffer_get_buffer_roundtrip():
+    n_directions = 3
+    directions = ["a", "b", "c"]
+    n_antennas = 12
+    n_channels = 111
+    solution_data = np.random.random(
+        (n_directions, n_channels, n_antennas, n_channels)
+    ) + 1.0j * np.random.random(
+        (n_directions, n_channels, n_antennas, n_channels)
+    )
+    solution_per_directions = {
+        direction_name: solution_per_direction
+        for (direction_name, solution_per_direction) in zip(
+            directions, solution_data
+        )
+    }
+    pybuffer = dp3.DPBuffer()
+    pybuffer.set_solution(solution_per_directions)
+
+    output_solution = pybuffer.get_solution()
+    for (
+        solution_name,
+        solution_per_direction,
+    ) in solution_per_directions.items():
+        np.testing.assert_array_equal(
+            solution_per_direction, output_solution[solution_name]
+        )

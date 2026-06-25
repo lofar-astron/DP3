@@ -144,6 +144,7 @@ class OneApplyCal : public Step {
   hsize_t itsDirection;
   common::NSTimer itsTimer;
   std::vector<std::string> solution_table_names_;
+  std::string direction_name_;
 
   // This variable keeps the H5 contents in memory, reading
   // the H5 file only once in the constructor. These solutions

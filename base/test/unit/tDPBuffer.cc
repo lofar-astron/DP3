@@ -3,7 +3,12 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <random>
+
 #include <xtensor/io/xio.hpp>
+#include <xtensor/views/xview.hpp>
+#include <xtensor/generators/xrandom.hpp>
+#include <xtensor/misc/xcomplex.hpp>
 
 #include "base/DPBuffer.h"
 
@@ -412,6 +417,35 @@ BOOST_AUTO_TEST_CASE(take_weights) {
   xt::xtensor<std::complex<float>, 3> result = buffer.TakeWeights();
   BOOST_CHECK(buffer.GetWeights().size() == 0);
   BOOST_CHECK_EQUAL(result, expected);
+}
+
+BOOST_AUTO_TEST_CASE(set_get_solutions) {
+  DPBuffer buffer = CreateFilledBuffer();
+  using SolutionType =
+      std::map<std::string, xt::xtensor<std::complex<double>, 3>>;
+  constexpr size_t kNAntennas = 8;
+  constexpr size_t kNChannels = 15;
+  constexpr size_t kNPolarizations = 2;
+  std::mt19937 random_generator(42);
+  std::array<size_t, 3> solution_shape = {kNChannels, kNAntennas,
+                                          kNPolarizations};
+  const std::string kDirectionName{"a"};
+  xt::xtensor<std::complex<double>, 3> solution_per_direction =
+      xt::empty<std::complex<double>>(solution_shape);
+
+  xt::real(solution_per_direction) =
+      xt::random::rand<double>(solution_shape, -1, 1);
+  xt::imag(solution_per_direction) =
+      xt::random::rand<double>(solution_shape, -1, 1);
+  SolutionType solutions = {{kDirectionName, solution_per_direction}};
+  buffer.SetSolution(solutions);
+  std::vector<std::string> direction_names = buffer.GetSolutionDirectionNames();
+  BOOST_CHECK_EQUAL(direction_names.size(), 1);
+  BOOST_CHECK_EQUAL(direction_names.front(), kDirectionName);
+  SolutionType output_solutions = buffer.GetSolution();
+  for (const std::string& direction_name : direction_names) {
+    BOOST_CHECK_EQUAL(output_solutions[direction_name], solution_per_direction);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

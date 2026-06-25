@@ -764,7 +764,11 @@ void DDECal::doSolve() {
 
     // Store calibration solution for later calibration application steps.
     if (store_solution_in_buffer_) {
-      input_buffers_[i].front()->SetSolution(solutions_[solution_index]);
+      const size_t n_antennas = getInfoOut().antennaUsed().size();
+      const size_t n_polarizations = solver_->NSolutionPolarizations();
+      input_buffers_[i].front()->SetSolution(solutions_[solution_index],
+                                             n_antennas, n_polarizations,
+                                             direction_names_);
     }
   }
 
