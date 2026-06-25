@@ -10,6 +10,7 @@
 #include <xtensor/io/xio.hpp>
 #include <xtensor/core/xmath.hpp>
 #include <xtensor/views/xview.hpp>
+#include <xtensor/containers/xtensor.hpp>
 
 #include "base/DP3.h"
 
@@ -82,10 +83,10 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
 
   BOOST_REQUIRE(out->get().size() == kNTimes);
   for (size_t i = 0; i < kNTimes; ++i) {
-    const std::vector<std::vector<std::complex<double>>>& solution =
-        out->get()[i]->GetSolution();
-
     if (i % solution_interval == 0) {
+      const std::vector<std::vector<std::complex<double>>> solution =
+          out->get()[i]->GetSolution("center");
+
       // Only the first buffer in each solution interval has solutions.
       // Check that the solutions have the expected shape.
       // test_oneapplycal_from_buffer in tDDECal.py checks if the solution
@@ -98,7 +99,7 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
       }
     } else {
       // Other buffers should not have solutions.
-      BOOST_CHECK(solution.empty());
+      BOOST_CHECK(out->get()[i]->GetSolution().empty());
     }
   }
 }
@@ -313,11 +314,22 @@ BOOST_FIXTURE_TEST_CASE(model_data_is_corrected, FixtureDirectory) {
 
   // Check the gains in the solutions.
   const std::vector<std::vector<std::complex<double>>>& solution =
-      buffer->GetSolution();
+      buffer->GetSolution(kModelName);
   BOOST_REQUIRE_EQUAL(solution.size(), 1);
   BOOST_REQUIRE_EQUAL(solution.front().size(), kNStations);
   for (size_t i = 0; i < kNStations; ++i) {
     BOOST_CHECK_CLOSE(solution.front()[i], kExpectedSolution[i], 1.0e-3);
+  }
+
+  const std::map<std::string, xt::xtensor<std::complex<double>, 3>>&
+      solutions_tensor = buffer->GetSolution();
+  for (const auto& [solution_key, solution_tensor] : solutions_tensor) {
+    BOOST_REQUIRE_EQUAL(solution_tensor.shape(0), 1);
+    BOOST_REQUIRE_EQUAL(solution_tensor.shape(1), kNStations);
+    for (size_t i = 0; i < kNStations; ++i) {
+      BOOST_CHECK_CLOSE(solution_tensor.unchecked(0, i, 0),
+                        kExpectedSolution[i], 1.0e-3);
+    }
   }
 }
 

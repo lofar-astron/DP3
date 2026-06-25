@@ -14,6 +14,7 @@
 #include <vector>
 
 #include <xtensor/containers/xtensor.hpp>
+#include <xtensor/views/xview.hpp>
 
 #include <casacore/casa/Arrays/Vector.h>
 #include <aocommon/xt/utensor.h>
@@ -96,8 +97,9 @@ class DPBuffer {
   using WeightsType = xt::xtensor<float, 3>;
   using FlagsType = xt::xtensor<bool, 3>;
   using UvwType = xt::xtensor<double, 2>;
-  /// For every channel, contains n_antennas x n_polarizations solutions.
-  using SolutionType = std::vector<std::vector<std::complex<double>>>;
+  /// For every direction, channel, antenna, polarization solutions.
+  using SolutionType =
+      std::map<std::string, xt::xtensor<std::complex<double>, 3>>;
 
   /// Construct object with empty arrays.
   explicit DPBuffer(double time = 0.0, double exposure = 0.0);
@@ -270,7 +272,22 @@ class DPBuffer {
   UvwType& GetUvw() { return uvw_; }
 
   void SetSolution(const SolutionType& solution) { solution_ = solution; }
+  void SetSolution(
+      const std::vector<std::vector<std::complex<double>>>& solution,
+      size_t n_antennas, size_t n_polarizations,
+      std::vector<std::string>& direction_ids);
+
   const SolutionType& GetSolution() const { return solution_; }
+  /// Return the solution in a compatible format for schaapcommon
+  const std::vector<std::vector<std::complex<double>>> GetSolution(
+      const std::string& direction_name) const;
+
+  const std::vector<std::string> GetSolutionDirectionNames() const {
+    std::vector<std::string> direction_names;
+    direction_names.reserve(solution_.size());
+    for (const auto& pair : solution_) direction_names.emplace_back(pair.first);
+    return direction_names;
+  }
 
  private:
   double time_;
@@ -289,7 +306,7 @@ class DPBuffer {
   /// UVW coordinates (n_baselines x 3)
   UvwType uvw_;
 
-  /// Solutions (for every channel, n_antennas x n_polarizations)
+  /// Solutions (for every direction, channel, n_antennas, n_polarizations)
   SolutionType solution_;
 };
 

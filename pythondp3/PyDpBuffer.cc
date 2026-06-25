@@ -31,6 +31,43 @@ void RegisterSpan(py::module& m, const char* name) {
       });
 }
 
+template <typename T, size_t dimensions>
+inline std::vector<py::ssize_t> XTShapeToPyShape(
+    const typename xt::xtensor<T, dimensions>::shape_type& shape) {
+  std::vector<py::ssize_t> py_shape(shape.size());
+  std::transform(shape.begin(), shape.end(), py_shape.begin(),
+                 [](size_t dimension_size) {
+                   return static_cast<py::ssize_t>(dimension_size);
+                 });
+  return py_shape;
+}
+
+template <typename T, size_t dimensions>
+inline std::vector<py::ssize_t> XTStridesToPyStrides(
+    const typename xt::xtensor<T, dimensions>::strides_type& strides) {
+  std::vector<py::ssize_t> py_strides(strides.size());
+  std::transform(
+      strides.begin(), strides.end(), py_strides.begin(),
+      [](size_t dimension_stride) {
+        return static_cast<py::ssize_t>(dimension_stride * sizeof(T));
+      });
+  return py_strides;
+}
+
+template <typename T, size_t dimensions>
+py::array_t<T> XArrayToPyArray(const xt::xtensor<T, dimensions>& source,
+                               py::handle base_obj) {
+  std::vector<py::ssize_t> strides =
+      XTStridesToPyStrides<T, dimensions>(source.strides());
+  std::vector<py::ssize_t> shape =
+      XTShapeToPyShape<T, dimensions>(source.shape());
+
+  py::array_t<T> out(shape, strides, source.data(), base_obj);
+
+  out.attr("setflags")(false);
+  return out;
+}
+
 /// Converts py::array_t::shape() into a shape suitable for DPBuffer.
 std::array<std::size_t, 3> ConvertShape(const pybind11::ssize_t* shape) {
   return {static_cast<std::size_t>(shape[0]),
@@ -219,7 +256,77 @@ void WrapDpBuffer(py::module& m) {
             std::copy_n(numpy_uvw.data(), buffer.GetUvw().size(),
                         buffer.GetUvw().data());
           },
-          "Set buffer uvw from a 2-D numpy array of double type.");
+          "Set buffer uvw from a 2-D numpy array of double type.")
+      .def(
+          "get_solution",
+          [](PyDpBuffer& self) {
+            py::dict solution_per_directions;
+            for (auto& [direction_name, direction_solutions] :
+                 self->GetSolution()) {
+              solution_per_directions[py::str(direction_name)] = std::move(
+                  XArrayToPyArray(direction_solutions, py::cast(&self)));
+              ;
+            }
+
+            return solution_per_directions;
+          },
+          "Get gain solutions from the buffer.\n"
+          "\n"
+          "Returns\n"
+          "-------\n"
+          "solutions : dict[str, numpy.ndarray]\n"
+          "    Mapping from direction name to complex-valued gain solutions.\n"
+          "    Each value is a numpy.ndarray with dtype complex128 and shape\n"
+          "    (n_channels, n_antennas, n_polarizations).\n",
+          py::return_value_policy::reference_internal)
+      .def(
+          "set_solution",
+          [](PyDpBuffer& self, const py::dict& solution_per_direction) {
+            DPBuffer::SolutionType solutions;
+
+            for (auto& [py_direction_name, py_solution_per_directions] :
+                 solution_per_direction) {
+              const std::string direction_name =
+                  py::cast<std::string>(py_direction_name);
+
+              py::array_t<std::complex<double>,
+                          py::array::c_style | py::array::forcecast>
+                  solution_per_direction =
+                      py::cast<py::array>(py_solution_per_directions);
+
+              constexpr ssize_t kExpectedDimensions = 3;
+              if (solution_per_direction.ndim() != kExpectedDimensions) {
+                throw std::runtime_error(
+                    "Each solution array must have shape "
+                    "(n_channels, n_antennas, n_polarizations).");
+              }
+
+              const size_t n_channels =
+                  static_cast<size_t>(solution_per_direction.shape(0));
+              const size_t n_antennas =
+                  static_cast<size_t>(solution_per_direction.shape(1));
+              const size_t n_polarizations =
+                  static_cast<size_t>(solution_per_direction.shape(2));
+
+              xt::xtensor<std::complex<double>, 3> solution(
+                  {n_channels, n_antennas, n_polarizations});
+              std::copy_n(solution_per_direction.data(), solution.size(),
+                          solution.data());
+
+              solutions.emplace(direction_name, std::move(solution));
+            }
+
+            self->SetSolution(solutions);
+          },
+          "Set gain solutions in the buffer.\n"
+          "\n"
+          "Parameters\n"
+          "----------\n"
+          "solutions : dict[str, numpy.ndarray]\n"
+          "    Mapping from direction name to gain solutions.\n"
+          "    Each value must be a complex-valued numpy.ndarray with dtype\n"
+          "    complex128 and shape (n_channels, n_antennas, "
+          "n_polarizations).\n");
 }
 
 }  // namespace pythondp3

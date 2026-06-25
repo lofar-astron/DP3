@@ -11,6 +11,8 @@
 #include <casacore/casa/version.h>
 #include <casacore/casa/BasicSL/Complexfwd.h>
 
+#include <xtensor/containers/xadapt.hpp>
+
 #include "base/DPBuffer.h"
 
 // Casacore < 3.4 does not support move semantics for casacore::Array
@@ -153,5 +155,54 @@ void DPBuffer::MoveData(DPBuffer& source, const std::string& source_name,
   }
 }
 
+void DPBuffer::SetSolution(
+    const std::vector<std::vector<std::complex<double>>>& solution,
+    size_t n_antennas, size_t n_polarizations,
+    std::vector<std::string>& direction_names) {
+  const size_t n_directions = direction_names.size();
+  const size_t n_channels = solution.size();
+
+  for (size_t direction_index = 0U; direction_index < n_directions;
+       ++direction_index) {
+    const std::string direction_name = direction_names[direction_index];
+    solution_[direction_name] = xt::empty<std::complex<double>>(
+        {n_channels, n_antennas, n_polarizations});
+  }
+
+  for (size_t channel_index = 0U; channel_index < n_channels; ++channel_index) {
+    const auto& solution_per_channel = xt::adapt(
+        solution[channel_index], {n_antennas, n_directions, n_polarizations});
+    for (size_t direction_index = 0U; direction_index < n_directions;
+         ++direction_index) {
+      const std::string direction_name = direction_names[direction_index];
+
+      xt::view(solution_[direction_name], channel_index, xt::all(), xt::all()) =
+          xt::view(solution_per_channel, xt::all(), direction_index, xt::all());
+    }
+  }
+}
+const std::vector<std::vector<std::complex<double>>> DPBuffer::GetSolution(
+    const std::string& direction_name) const {
+  if (auto direction_it = solution_.find(direction_name);
+      direction_it == solution_.end()) {
+    throw std::runtime_error("direction " + direction_name +
+                             " not found in DPBuffer");
+  }
+  const size_t n_channels = solution_.at(direction_name).shape(0);
+  const size_t n_antennas = solution_.at(direction_name).shape(1);
+  const size_t n_polarizations = solution_.at(direction_name).shape(2);
+
+  std::vector<std::vector<std::complex<double>>> compatible_solutions{
+      n_channels,
+      std::vector<std::complex<double>>(n_antennas * n_polarizations)};
+
+  for (size_t channel_index = 0U; channel_index < n_channels; ++channel_index) {
+    xt::adapt(compatible_solutions[channel_index],
+              {n_antennas, n_polarizations}) =
+        xt::view(solution_.at(direction_name), channel_index, xt::all(),
+                 xt::all());
+  }
+  return compatible_solutions;
+}
 }  // namespace base
 }  // namespace dp3
