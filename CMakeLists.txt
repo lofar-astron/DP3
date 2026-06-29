@@ -177,8 +177,8 @@ find_package(
 add_definitions(${HDF5_DEFINITIONS})
 include_directories(${HDF5_INCLUDE_DIRS})
 
-find_package(GSL REQUIRED)
-include_directories(${GSL_INCLUDE_DIRS})
+find_package(GSL 2.2 REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 
 find_package(CFITSIO REQUIRED)
 include_directories(${CFITSIO_INCLUDE_DIRS})
@@ -214,8 +214,6 @@ find_package(Boost 1.73 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
-find_package(GSL REQUIRED)
-include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 
 # === Load astron packages ===
 
