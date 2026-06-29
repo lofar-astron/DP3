@@ -1,7 +1,6 @@
 .kdev4/
 DP3.kdev4
-build/
-builds/
+build*/
 __pycache__/
 cmakestrap.sh
 *~

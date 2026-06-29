@@ -13,6 +13,7 @@ ARG AOFLAGGER_VERSION=3.4.0
 ARG EVERYBEAM_VERSION=0.8.2
 ARG HDF5_VERSION=1.12.2
 ARG FFTW_VERSION=3.3.8
+ARG GSL_VERSION=2.8
 ARG LUA_VERSION=5.3.6
 ARG SAGECAL_VERSION=0.8.5
 # ARG's must be repeated after each 'FROM'
@@ -31,6 +32,9 @@ RUN bash /install_boost.sh
 RUN yum install -y devtoolset-11-gcc-c++ devtoolset-11-gcc-gfortran
 ENV PATH=/opt/rh/devtoolset-11/root/usr/bin:$PATH
 ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-11/root/usr/lib64:$LD_LIBRARY_PATH
+
+COPY docker/install_gsl.sh /
+RUN bash /install_gsl.sh ${GSL_VERSION}
 
 COPY docker/install_fftw.sh /
 RUN bash /install_fftw.sh ${FFTW_VERSION}
