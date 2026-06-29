@@ -46,11 +46,15 @@ class CMakeBuild(build_ext):
         # Can be set with Conda-Build, for example.
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
 
+        cmake_cxx_flags = ["-Wl,--unresolved-symbols=ignore-all"]
+        if os.environ.get("DP3_RELOCATE_EVERYBEAM_SYMBOLS") == "ON":
+            cmake_cxx_flags.append("-Deverybeam=dp3::everybeam")
+
         # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
         cmake_args = [
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
-            "-DCMAKE_CXX_FLAGS='-Wl,--unresolved-symbols=ignore-all'",
+            f"-DCMAKE_CXX_FLAGS={' '.join(cmake_cxx_flags)}",
             # py310_wheel.docker creates a fake libpython.so so the BLAS check
             # binary fails due to missing python symbols.
             "-DCHECK_BLAS=Off",

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
+#include <memory>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -177,6 +178,13 @@ The start time equals the first time minus half a time interval)")
           "The phase center for the measurements ([ra, dec] in radians)")
 
       /* Other properties */
+      .def("set_telescope", &DPInfo::SetTelescope, py::arg("telescope"),
+           "Set the EveryBeam Telescope for beam response computation.")
+      .def("get_telescope", &DPInfo::GetTelescope,
+           py::return_value_policy::reference_internal,
+           "Get the EveryBeam Telescope.")
+      .def_property_readonly("has_telescope", &DPInfo::HasTelescope,
+                             "Whether an EveryBeam Telescope has been set.")
       .def_property("ms_name", &DPInfo::msName, &DPInfo::setMsName,
                     "The name of the measurement set")
       .def_property("polarizations", &DPInfo::polarizations,

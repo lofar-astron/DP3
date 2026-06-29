@@ -1,6 +1,8 @@
 # Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import sys as _sys
+
 import numpy as np
 
 from . import parameterset, pydp3
@@ -73,6 +75,9 @@ from .pydp3 import (
     get_n_threads,
     set_n_threads,
 )
+
+everybeam = pydp3.everybeam
+_sys.modules[__name__ + ".everybeam"] = everybeam
 
 
 def entrypoint():

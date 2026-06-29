@@ -27,6 +27,9 @@ mkdir build
 cd build
 # Ensure EveryBeam does not use python.
 CMAKE_FLAGS="-DBUILD_WITH_PYTHON=OFF"
+if [[ "${DP3_RELOCATE_EVERYBEAM_SYMBOLS:-OFF}" == "ON" ]]; then
+  CMAKE_FLAGS+=" -DCMAKE_CXX_FLAGS=-Deverybeam=dp3::everybeam"
+fi
 # On CentOS 7, the default OpenBLAS version is the serial version, which is
 # incompatible with DP3. -> Use the version with *p*threads support.
 CMAKE_FLAGS+=" -DBLAS_LIBRARIES=/usr/lib64/libopenblasp.so"

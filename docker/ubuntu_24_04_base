@@ -102,7 +102,7 @@ RUN mkdir /everybeam && cd /everybeam \
 # Build libdirac from SAGECal.
 RUN mkdir /sagecal && cd /sagecal \
   && git clone https://github.com/nlesc-dirac/sagecal.git src \
-	&& ( cd src/ && git checkout $(SAGECAL_VERSION) ) \
+	&& ( cd src/ && git checkout ${SAGECAL_VERSION} ) \
 	&& mkdir build && cd build \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DLIB_ONLY=ON ../src \
 	&& ninja install \
@@ -110,7 +110,7 @@ RUN mkdir /sagecal && cd /sagecal \
 # Build WSClean (PORTABLE, since the compile node and run node may differ.)
 RUN mkdir /wsclean && cd /wsclean \
   && git clone https://gitlab.com/aroffringa/wsclean.git src \
-	&& ( cd src/ && git checkout $(WSCLEAN_VERSION) ) \
+	&& ( cd src/ && git checkout ${WSCLEAN_VERSION} ) \
 	&& mkdir build && cd build \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DPORTABLE=ON ../src \
 	&& ninja install \

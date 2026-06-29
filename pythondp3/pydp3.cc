@@ -2,10 +2,11 @@
 // Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <memory>
 #include <sstream>
+#include <vector>
 
 #include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
 
@@ -25,9 +26,10 @@ namespace py = pybind11;
 namespace dp3 {
 namespace pythondp3 {
 
-void WrapDpBuffer(py::module &m);  // Defined in PyDpBuffer.cc
-void WrapDpInfo(py::module &m);    // Defined in pydpinfo.cc
-void WrapFields(py::module &m);    // Defined in pyfields.cc
+void WrapDpBuffer(py::module &m);   // Defined in PyDpBuffer.cc
+void WrapDpInfo(py::module &m);     // Defined in pydpinfo.cc
+void WrapEveryBeam(py::module &m);  // Defined in PyEveryBeam.cc
+void WrapFields(py::module &m);     // Defined in pyfields.cc
 
 class PublicStep : public Step {
  public:
@@ -44,11 +46,13 @@ std::vector<std::string> pylist_to_string_vector(const py::list &argv_list) {
   }
   return result;
 }
+
 }  // namespace
 
 PYBIND11_MODULE(pydp3, m) {
   m.doc() = "DP3 Python bindings";
 
+  WrapEveryBeam(m);
   WrapDpBuffer(m);
   WrapDpInfo(m);
   WrapFields(m);
