@@ -22,6 +22,8 @@ ARG PYMINOR
 ARG PYUNICODE
 
 ENV THREADS=4
+# Keep the vendored EveryBeam symbols in DP3 wheels separate from everybeam wheels.
+ENV DP3_RELOCATE_EVERYBEAM_SYMBOLS=ON
 
 # Since Boost is already in the container, keep using GCC 10 here.
 COPY docker/install_boost.sh /

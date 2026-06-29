@@ -5,6 +5,7 @@
 ### New features
 
 - Add a cadence imaging step that uses WSClean its in-memory interface.
+- Add Python bindings for creating and storing EveryBeam telescope objects.
 
 ### Improvements
 

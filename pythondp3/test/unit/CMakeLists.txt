@@ -7,6 +7,7 @@ if("${CMAKE_CXX_FLAGS}" MATCHES "-fsanitize=address")
   message(STATUS "The Python tests do not work with address sanitizer enabled.")
 else()
   add_python_tests(
+    tPyCreateTelescope
     tPyDpBuffer
     tPyDpInfo
     tPyFields

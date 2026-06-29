@@ -5,3 +5,4 @@ __pycache__/
 cmakestrap.sh
 *~
 .vscode
+build-dev/

@@ -99,7 +99,7 @@ RUN mkdir /everybeam && cd /everybeam \
 # Build libdirac from SAGECal.
 RUN mkdir /sagecal && cd /sagecal \
   && git clone https://github.com/nlesc-dirac/sagecal.git src \
-	&& ( cd src/ && git checkout $(SAGECAL_VERSION) ) \
+	&& ( cd src/ && git checkout ${SAGECAL_VERSION} ) \
 	&& mkdir build && cd build \
 	&& cmake -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DLIB_ONLY=ON ../src \
 	&& ninja install \
