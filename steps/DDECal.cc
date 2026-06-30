@@ -653,9 +653,9 @@ void DDECal::doSolve() {
       switch (settings_.solver_data_use) {
         case ddecal::SolverDataUse::kSingle: {
           const ddecal::UniSolveData solve_data(
-              weighted_buffers, direction_names_, n_channel_blocks, n_antennas,
-              settings_.sub_solutions_per_direction, antennas1_, antennas2_);
-          weighted_buffers.clear();
+              std::move(weighted_buffers), direction_names_, n_channel_blocks,
+              n_antennas, settings_.sub_solutions_per_direction, antennas1_,
+              antennas2_);
           if (settings_.model_weighted_constraints) {
             solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
@@ -668,9 +668,9 @@ void DDECal::doSolve() {
         } break;
         case ddecal::SolverDataUse::kDual: {
           const ddecal::DuoSolveData solve_data(
-              weighted_buffers, direction_names_, n_channel_blocks, n_antennas,
-              settings_.sub_solutions_per_direction, antennas1_, antennas2_);
-          weighted_buffers.clear();
+              std::move(weighted_buffers), direction_names_, n_channel_blocks,
+              n_antennas, settings_.sub_solutions_per_direction, antennas1_,
+              antennas2_);
           if (settings_.model_weighted_constraints) {
             solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
@@ -684,9 +684,9 @@ void DDECal::doSolve() {
         } break;
         case ddecal::SolverDataUse::kFull: {
           const ddecal::FullSolveData solve_data(
-              weighted_buffers, direction_names_, n_channel_blocks, n_antennas,
-              settings_.sub_solutions_per_direction, antennas1_, antennas2_);
-          weighted_buffers.clear();
+              std::move(weighted_buffers), direction_names_, n_channel_blocks,
+              n_antennas, settings_.sub_solutions_per_direction, antennas1_,
+              antennas2_);
           if (settings_.model_weighted_constraints) {
             solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
