@@ -84,5 +84,6 @@ def spawn_dp3(arguments):
         [DP3EXE] + all_arguments,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        text=True,
     )
     return child

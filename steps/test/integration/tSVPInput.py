@@ -18,7 +18,7 @@ import subprocess
 
 import numpy as np
 import testconfig as tcf
-from utils import spawn_dp3
+from utils import assert_taql, spawn_dp3
 
 # Define the socket file path
 server_address = "./svpsock"
@@ -100,3 +100,12 @@ def test_running():
 
     # Clean up the connection
     connection.close()
+
+    dp3_process.wait(timeout=None)
+
+    stdout, stderr = dp3_process.communicate()
+    print("DP3 output:\n", stdout)
+    print("DP3 stderr:\n", stderr)
+
+    # Check if the MS is readable
+    assert_taql(f"select from {output_ms}")
