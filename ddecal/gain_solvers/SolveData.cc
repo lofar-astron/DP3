@@ -75,7 +75,7 @@ std::vector<uint32_t> LimitNSolutionsPerDirection(
 
 template <typename MatrixType>
 SolveData<MatrixType>::SolveData(
-    const std::vector<base::DPBuffer>& buffers,
+    std::vector<base::DPBuffer>&& buffers,
     const std::vector<std::string>& direction_names, size_t n_channel_blocks,
     size_t n_antennas, const std::vector<size_t>& n_solutions_per_direction,
     const std::vector<int>& antennas1, const std::vector<int>& antennas2)
@@ -127,9 +127,9 @@ SolveData<MatrixType>::SolveData(
   // Fill all channel blocks with data.
   std::vector<size_t> visibility_indices(n_channel_blocks, 0);
   for (size_t time_index = 0; time_index < n_times; ++time_index) {
-    const base::DPBuffer::DataType& data = buffers[time_index].GetData("");
-    const base::DPBuffer::WeightsType& weights =
-        buffers[time_index].GetWeights();
+    base::DPBuffer& buffer = buffers[time_index];
+    const base::DPBuffer::DataType& data = buffer.GetData("");
+    const base::DPBuffer::WeightsType& weights = buffer.GetWeights();
 
     for (size_t baseline = 0; baseline < n_baselines_in_buffers; ++baseline) {
       const size_t antenna1 = antennas1[baseline];
@@ -160,7 +160,7 @@ SolveData<MatrixType>::SolveData(
 
           for (size_t direction = 0; direction < n_directions; ++direction) {
             const base::DPBuffer::DataType& model_data =
-                buffers[time_index].GetData(direction_names[direction]);
+                buffer.GetData(direction_names[direction]);
             const size_t n_solutions =
                 channel_blocks_.front().n_solutions_[direction];
             // Calculate the absolute index as required for solution_map_
@@ -180,6 +180,8 @@ SolveData<MatrixType>::SolveData(
         }
       }
     }
+    // Reduce memory usage by resetting the input buffer.
+    buffer = base::DPBuffer();
   }
 
   CountAntennaVisibilities();

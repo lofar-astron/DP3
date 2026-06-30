@@ -110,9 +110,10 @@ BOOST_AUTO_TEST_CASE(regular) {
   dp3::ddecal::AssignAndWeight(unweighted_buffers, {kDirectionName},
                                weighted_buffers, false, false);
 
-  const dp3::ddecal::SolveData data(
-      weighted_buffers, {kDirectionName}, kNChannelBlocks, kNAntennas,
-      kNSolutionsPerDirection, kAntennas1, kAntennas2);
+  const dp3::ddecal::SolveData data(std::vector<DPBuffer>(weighted_buffers),
+                                    {kDirectionName}, kNChannelBlocks,
+                                    kNAntennas, kNSolutionsPerDirection,
+                                    kAntennas1, kAntennas2);
   BOOST_TEST_REQUIRE(data.NChannelBlocks() == kNChannelBlocks);
 
   for (size_t ch_block = 0; ch_block < kNChannelBlocks; ++ch_block) {
@@ -202,7 +203,7 @@ BOOST_AUTO_TEST_CASE(regular_with_dd_intervals) {
                                weighted_buffers, false, false);
 
   const dp3::ddecal::SolveData data(
-      weighted_buffers, kDirectionNames, kNChannelBlocks, kNAntennas,
+      std::move(weighted_buffers), kDirectionNames, kNChannelBlocks, kNAntennas,
       kNSolutionsPerDirection, kAntennas1, kAntennas2);
   BOOST_TEST_REQUIRE(data.NChannelBlocks() == kNChannelBlocks);
 

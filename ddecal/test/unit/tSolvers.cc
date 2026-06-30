@@ -158,10 +158,9 @@ BOOST_FIXTURE_TEST_CASE(iterative_scalar_dd_intervals, SolverTester,
   dp3::ddecal::IterativeScalarSolver<aocommon::MC2x2F> solver;
   InitializeSolver(solver);
 
-  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
-  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
-                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
-                       Antennas2());
+  const SolveData data(FillDdIntervalData(), CreateDirectionNames(),
+                       kNChannelBlocks, kNAntennas, NSolutionsPerDirection(),
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0);
@@ -175,9 +174,8 @@ BOOST_FIXTURE_TEST_CASE(iterative_uni_scalar_dd_intervals, SolverTester,
   dp3::ddecal::IterativeScalarSolver<std::complex<float>> solver;
   InitializeSolver(solver);
 
-  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
   const SolveData<std::complex<float>> data(
-      data_buffers, CreateDirectionNames(), kNChannelBlocks, kNAntennas,
+      FillDdIntervalData(), CreateDirectionNames(), kNChannelBlocks, kNAntennas,
       NSolutionsPerDirection(), Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
@@ -192,9 +190,8 @@ BOOST_FIXTURE_TEST_CASE(iterative_duo_scalar_dd_intervals, SolverTester,
   dp3::ddecal::IterativeScalarSolver<aocommon::MC2x2FDiag> solver;
   InitializeSolver(solver);
 
-  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
   const SolveData<aocommon::MC2x2FDiag> data(
-      data_buffers, CreateDirectionNames(), kNChannelBlocks, kNAntennas,
+      FillDdIntervalData(), CreateDirectionNames(), kNChannelBlocks, kNAntennas,
       NSolutionsPerDirection(), Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
@@ -286,10 +283,9 @@ BOOST_FIXTURE_TEST_CASE(iterative_diagonal_dd_intervals, SolverTester,
   dp3::ddecal::IterativeDiagonalSolver<aocommon::MC2x2F> solver;
   InitializeSolver(solver);
 
-  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
-  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
-                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
-                       Antennas2());
+  const SolveData data(FillDdIntervalData(), CreateDirectionNames(),
+                       kNChannelBlocks, kNAntennas, NSolutionsPerDirection(),
+                       Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
       solver.Solve(data, GetSolverSolutions(), 0.0);
@@ -303,9 +299,8 @@ BOOST_FIXTURE_TEST_CASE(iterative_duo_diagonal_dd_intervals, SolverTester,
   dp3::ddecal::IterativeDiagonalSolver<aocommon::MC2x2FDiag> solver;
   InitializeSolver(solver);
 
-  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
   const SolveData<aocommon::MC2x2FDiag> data(
-      data_buffers, CreateDirectionNames(), kNChannelBlocks, kNAntennas,
+      FillDdIntervalData(), CreateDirectionNames(), kNChannelBlocks, kNAntennas,
       NSolutionsPerDirection(), Antennas1(), Antennas2());
 
   dp3::ddecal::SolverBase::SolveResult result =
@@ -417,10 +412,9 @@ BOOST_FIXTURE_TEST_CASE(iterative_full_jones_dd_intervals, SolverTester,
   dp3::ddecal::IterativeFullJonesSolver solver;
   InitializeSolver(solver);
 
-  const std::vector<dp3::base::DPBuffer> data_buffers = FillDdIntervalData();
-  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
-                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
-                       Antennas2());
+  const SolveData data(FillDdIntervalData(), CreateDirectionNames(),
+                       kNChannelBlocks, kNAntennas, NSolutionsPerDirection(),
+                       Antennas1(), Antennas2());
 
   // The full jones test uses full matrices as solutions and copies the
   // diagonals into the solver solutions from the SolverTester fixture. This
@@ -462,11 +456,9 @@ BOOST_FIXTURE_TEST_CASE(polarization_leakage, SolverTester,
   solver.AddConstraint(std::move(constraint));
   InitializeSolver(solver);
 
-  const std::vector<dp3::base::DPBuffer> data_buffers =
-      FillDdIntervalData(true);
-  const SolveData data(data_buffers, CreateDirectionNames(), kNChannelBlocks,
-                       kNAntennas, NSolutionsPerDirection(), Antennas1(),
-                       Antennas2());
+  const SolveData data(FillDdIntervalData(true), CreateDirectionNames(),
+                       kNChannelBlocks, kNAntennas, NSolutionsPerDirection(),
+                       Antennas1(), Antennas2());
 
   std::vector<std::vector<std::complex<double>>> solutions(kNChannelBlocks);
 

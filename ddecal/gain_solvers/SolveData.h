@@ -147,7 +147,7 @@ class SolveData {
    * @param antennas1 For each baseline, the index of the first antenna.
    * @param antennas2 For each baseline, the index of the second antenna.
    */
-  SolveData(const std::vector<base::DPBuffer>& buffers,
+  SolveData(std::vector<base::DPBuffer>&& buffers,
             const std::vector<std::string>& direction_names,
             size_t n_channel_blocks, size_t n_antennas,
             const std::vector<size_t>& n_solutions_per_direction,
