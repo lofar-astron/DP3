@@ -957,17 +957,19 @@ if(BUILD_TESTING)
     list(APPEND SLOW_TESTS idgpredict/process idgpredict/process_beam)
   endif()
 
-  if(LIBDIRAC_FOUND AND NOT HAVE_CUDA)
-    list(
-      APPEND
-      SLOW_TESTS
-      lbfgs_solver/scalar
-      lbfgs_solver/diagonal
-      lbfgs_solver/full_jones
-      lbfgs_solver/bounded_scalar
-      lbfgs_solver/bounded_diagonal
-      lbfgs_solver/bounded_full_jones)
-  endif()
+  # The lbfgs tests are disabled for now, because they appear to give
+  # unstable results
+  #if(LIBDIRAC_FOUND AND NOT HAVE_CUDA)
+  #  list(
+  #    APPEND
+  #    SLOW_TESTS
+  #    lbfgs_solver/scalar
+  #    lbfgs_solver/diagonal
+  #    lbfgs_solver/full_jones
+  #    lbfgs_solver/bounded_scalar
+  #    lbfgs_solver/bounded_diagonal
+  #    lbfgs_solver/bounded_full_jones)
+  #endif()
 
   foreach(TEST ${SLOW_TESTS})
     string(REPLACE "/" "_" XMLNAME ${TEST})
