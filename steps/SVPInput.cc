@@ -194,7 +194,11 @@ bool SVPInput::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
     recv = ReceiveBytes(reinterpret_cast<char*>(data_pointer),
                         2 * n_bl * n_ch * n_cr * sizeof(float));
     if (recv == -1) {
-      throw std::runtime_error("DP3 SVPInput Error receiving data size");
+      if (process_counter_ >= metadata_.nr_times_) {
+        return false;
+      } else {
+        throw std::runtime_error("DP3 SVPInput Error receiving data size");
+      }
     }
   } else {
     throw std::runtime_error("DP3 SVPInput unknown telescope");
@@ -224,9 +228,9 @@ bool SVPInput::process(std::unique_ptr<dp3::base::DPBuffer> buffer) {
 }
 
 void SVPInput::show(std::ostream& os) const {
-  os << "SVPInput " << std::endl;
-  os << "Temporary MS :" << temp_out_ms_ << std::endl;
-  os << "Socket :" << receiver_socket_ << std::endl;
+  os << "SVPInput " << name_ << '\n';
+  os << "  temporary MS:   " << temp_out_ms_ << '\n';
+  os << "  socket:         " << receiver_socket_ << '\n';
 }
 
 std::string SVPInput::msName() const { return temp_out_ms_; }
