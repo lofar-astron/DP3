@@ -9,7 +9,7 @@
 
 ### Improvements
 
-- Require EveryBeam >= 0.8.2. (Since DP3 now uses Telescope::IsHomogeneous.)
+- Require EveryBeam >= 0.8.3 (for compatibility with Everybeam Python bindings).
 
 ### Bug fixes
 
