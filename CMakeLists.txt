@@ -220,15 +220,15 @@ find_package(Threads REQUIRED)
 find_package(AOFlagger 3.1 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
-# We could use find_package(EveryBeam 0.8.2 REQUIRED), however conditions below
+# We could use find_package(EveryBeam 0.8.3 REQUIRED), however conditions below
 # make it somewhat more explicit
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
-  if(${EVERYBEAM_VERSION} VERSION_LESS "0.8.2" OR ${EVERYBEAM_VERSION}
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.8.3" OR ${EVERYBEAM_VERSION}
                                                   VERSION_GREATER_EQUAL "0.9.0")
     message(
       FATAL_ERROR
-        "DP3 needs EveryBeam version >= 0.8.2 and < 0.9.0 - but found version ${EVERYBEAM_VERSION}"
+        "DP3 needs EveryBeam version >= 0.8.3 and < 0.9.0 - but found version ${EVERYBEAM_VERSION}"
     )
   endif()
   include_directories(${EVERYBEAM_INCLUDE_DIR})

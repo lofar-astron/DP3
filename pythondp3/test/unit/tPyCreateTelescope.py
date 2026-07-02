@@ -41,13 +41,24 @@ def test_everybeam_namespace_is_exported():
     assert everybeam.Options is dp3.pydp3.everybeam.Options
     assert everybeam.StationNode is dp3.pydp3.everybeam.StationNode
     assert everybeam.Telescope is dp3.pydp3.everybeam.Telescope
+    assert everybeam.TelescopeType is dp3.pydp3.everybeam.TelescopeType
     assert not hasattr(dp3, "create_telescope")
     assert not hasattr(dp3, "Options")
 
     docstring = everybeam.create_telescope.__doc__
+    assert "telescope_type" in docstring
     assert "options" in docstring
     assert "station_tree" in docstring
     assert "preapplied_beam_mode" in docstring
+
+
+def test_telescope_type_values_are_exported():
+    everybeam = dp3.everybeam
+
+    assert everybeam.TelescopeType.AARTFAAC.name == "AARTFAAC"
+    assert everybeam.TelescopeType.LOFAR.name == "LOFAR"
+    assert everybeam.TelescopeType.OSKAR.name == "OSKAR"
+    assert everybeam.TelescopeType.SKA_MID.name == "SKA_MID"
 
 
 def test_create_telescope_uses_dp3_everybeam_types():
@@ -60,7 +71,10 @@ def test_create_telescope_uses_dp3_everybeam_types():
     station_tree = everybeam.StationNode()
 
     telescope = everybeam.create_telescope(
-        options, station_tree, delay_directions=[[0.0, 0.0]]
+        everybeam.TelescopeType.OSKAR,
+        options,
+        station_tree,
+        delay_directions=[[0.0, 0.0]],
     )
 
     assert isinstance(telescope, everybeam.Telescope)
@@ -95,10 +109,25 @@ def test_create_telescope_accepts_station_tree():
     station_tree.add_child_node(child, [1.0, 2.0, 3.0])
 
     telescope = everybeam.create_telescope(
-        options, station_tree, delay_directions=[[0.0, 0.0]]
+        everybeam.TelescopeType.OSKAR,
+        options,
+        station_tree,
+        delay_directions=[[0.0, 0.0]],
     )
 
     assert isinstance(telescope, everybeam.Telescope)
+
+
+def test_create_telescope_requires_telescope_type():
+    everybeam = dp3.everybeam
+
+    options = everybeam.Options()
+    station_tree = everybeam.StationNode()
+
+    with pytest.raises(TypeError):
+        everybeam.create_telescope(
+            options, station_tree, delay_directions=[[0.0, 0.0]]
+        )
 
 
 def test_create_telescope_isolated_from_everybeam_python_module():
@@ -119,7 +148,10 @@ import dp3
 options = dp3.everybeam.Options()
 options.element_response_model = dp3.everybeam.ElementResponseModel.oskar_dipole
 telescope = dp3.everybeam.create_telescope(
-    options, dp3.everybeam.StationNode(), delay_directions=[[0.0, 0.0]]
+    dp3.everybeam.TelescopeType.OSKAR,
+    options,
+    dp3.everybeam.StationNode(),
+    delay_directions=[[0.0, 0.0]],
 )
 info = dp3.DPInfo()
 info.set_telescope(telescope)

@@ -105,9 +105,7 @@ prepare-base-2404:
     - DP3
 
 # Test DP3 builds and runs without optional dependencies (IDG,SAGECal,WSClean) installed.
-# Specifically on the Haswell architecture, which also tests setting the
-# TARGET_CPU option.
-build-2404-no-extras-target-cpu:
+build-2404-no-extras:
   extends: [".needs-base-2404", ".build-basic"]
   before_script:
     # Remove IDG, so DP3 can't and won't use it.
@@ -119,7 +117,9 @@ build-2404-no-extras-target-cpu:
     # Remove WSClean, so DP3 can't and won't use it.
     - rm -r /usr/include/wsclean/*.h /usr/lib/libwsclean.*
   variables:
-    CMAKE_FLAGS: -DTARGET_CPU=haswell
+    # The base images build EveryBeam with PORTABLE=On. DP3 must use the same
+    # setting to keep aocommon's AVX matrix ABI consistent.
+    CMAKE_FLAGS: -DPORTABLE=On
 
 # Build (and run) DP3 on Ubuntu 24, ensuring compatibility with new systems.
 # This build also tests building DP3 with the PORTABLE option.
@@ -153,7 +153,7 @@ build-package-2204:
     - mkdir dp3_package
     - mkdir build && cd build
     - git fetch --unshallow # We need to unshallow for the tags (setting GIT_DEPTH is not good enough)
-    - cmake -DBUILD_PACKAGES=On ..
+    - cmake -DBUILD_PACKAGES=On -DPORTABLE=On ..
     - make -j4
     - make package
     - mv $(ls -1 *.deb) ../dp3_package/
@@ -186,7 +186,7 @@ test-2404:
     - source /dp3env/bin/activate
     - export PYTHONPATH=${PYTHONPATH}:/usr/local/lib/python3.10/dist-packages
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DPORTABLE=On ..
     - ninja -j4
     - ctest --output-on-failure --no-tests=error -j$(nproc)
   artifacts:
@@ -213,7 +213,7 @@ coverage-2404:
   script:
     - source /dp3env/bin/activate
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True -DUSE_FAST_PREDICT=On ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=On -DPORTABLE=On -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DMETADATA_COMPRESSION_DEFAULT=True -DUSE_FAST_PREDICT=On ..
     - ninja -j4
     - ctest --output-on-failure --no-tests=error -j$(nproc)
     # Collect coverage in text, xml and json formats.
@@ -240,7 +240,7 @@ coverage-2404:
   script:
     - source /dp3env/bin/activate
     - mkdir build && cd build
-    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DPORTABLE=Off -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" ..
+    - cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=On -DPORTABLE=On -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" ..
     - ninja -j4
     # Don't run slow tests. The overhead of the sanitizer causes time outs.
     - ctest --output-on-failure --no-tests=error -j$(nproc) -L unit -LE slow

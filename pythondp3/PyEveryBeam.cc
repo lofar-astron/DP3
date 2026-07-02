@@ -63,6 +63,13 @@ void WrapEveryBeam(py::module& m) {
              everybeam::ElementResponseModel::kOSKARDipoleCos)
       .value("ska_low_feko", everybeam::ElementResponseModel::kSkaLowFeko);
 
+  py::enum_<everybeam::TelescopeType>(everybeam_module, "TelescopeType",
+                                      py::module_local())
+      .value("AARTFAAC", everybeam::TelescopeType::kAARTFAAC)
+      .value("LOFAR", everybeam::TelescopeType::kLofarTelescope)
+      .value("OSKAR", everybeam::TelescopeType::kOSKARTelescope)
+      .value("SKA_MID", everybeam::TelescopeType::kSkaMidTelescope);
+
   py::class_<everybeam::Options>(everybeam_module, "Options",
                                  py::module_local())
       .def(py::init<>())
@@ -132,7 +139,8 @@ void WrapEveryBeam(py::module& m) {
 
   everybeam_module.def(
       "create_telescope",
-      [](const everybeam::Options& options,
+      [](everybeam::TelescopeType telescope_type,
+         const everybeam::Options& options,
          const everybeam::StationNode& station_tree,
          const std::vector<std::array<double, 2>>& delay_directions,
          const std::array<double, 2>& tile_beam_direction,
@@ -142,13 +150,14 @@ void WrapEveryBeam(py::module& m) {
          const std::vector<int>& mwa_delay_factors)
           -> std::shared_ptr<everybeam::telescope::Telescope> {
         return std::shared_ptr<everybeam::telescope::Telescope>(
-            everybeam::CreateTelescope(
-                options, station_tree, delay_directions, tile_beam_direction,
-                preapplied_beam_direction, preapplied_beam_mode, dish_diameters,
-                reference_frequency, mwa_delay_factors));
+            everybeam::CreateTelescope(telescope_type, options, station_tree,
+                                       delay_directions, tile_beam_direction,
+                                       preapplied_beam_direction,
+                                       preapplied_beam_mode, dish_diameters,
+                                       reference_frequency, mwa_delay_factors));
       },
       "Create an EveryBeam Telescope object from specified metadata.",
-      py::arg("options"), py::arg("station_tree"),
+      py::arg("telescope_type"), py::arg("options"), py::arg("station_tree"),
       py::arg("delay_directions") = std::vector<std::array<double, 2>>(),
       py::arg("tile_beam_direction") = std::array<double, 2>{0.0, 0.0},
       py::arg("preapplied_beam_direction") = std::array<double, 2>{0.0, 0.0},
