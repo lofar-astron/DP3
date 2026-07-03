@@ -47,8 +47,8 @@ class CMakeBuild(build_ext):
         cmake_generator = os.environ.get("CMAKE_GENERATOR", "")
 
         cmake_cxx_flags = ["-Wl,--unresolved-symbols=ignore-all"]
-        if os.environ.get("DP3_RELOCATE_EVERYBEAM_SYMBOLS") == "ON":
-            cmake_cxx_flags.append("-Deverybeam=dp3::everybeam")
+        # Keep the vendored EveryBeam symbols in DP3 wheels separate from everybeam wheels.
+        cmake_cxx_flags.append("-Deverybeam=dp3::everybeam")
 
         # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
         cmake_args = [
