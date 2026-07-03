@@ -27,16 +27,6 @@
     - when: manual
       allow_failure: true
 
-build-wheel-38:
-  extends: .build-wheel
-  variables:
-    PYTHON_VERSION: 38
-
-build-wheel-39:
-  extends: .build-wheel
-  variables:
-    PYTHON_VERSION: 39
-
 build-wheel-310:
   extends: .build-wheel
   variables:
@@ -57,6 +47,11 @@ build-wheel-313:
   variables:
     PYTHON_VERSION: 313
 
+build-wheel-314:
+  extends: .build-wheel
+  variables:
+    PYTHON_VERSION: 314
+
 .deploy-wheel:
   stage: publish
   image: python:latest
@@ -69,14 +64,6 @@ build-wheel-313:
       allow_failure: false
     - when: manual
       allow_failure: true
-
-deploy-wheel-38:
-  extends: .deploy-wheel
-  needs: ["build-wheel-38"]
-
-deploy-wheel-39:
-  extends: .deploy-wheel
-  needs: ["build-wheel-39"]
 
 deploy-wheel-310:
   extends: .deploy-wheel
@@ -93,3 +80,7 @@ deploy-wheel-312:
 deploy-wheel-313:
   extends: .deploy-wheel
   needs: ["build-wheel-313"]
+
+deploy-wheel-314:
+  extends: .deploy-wheel
+  needs: ["build-wheel-314"]

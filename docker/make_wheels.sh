@@ -7,17 +7,23 @@
 # The working directory matters since the parent directory should contain the
 # source code. The script should be run with
 # ./make_wheels.sh <python versions>
-# For example, when <python versions> equals 38 310, the script builds wheels
-# for python 3.8 and 3.10.
-# If <python versions> is empty, it becomes: 310 39 38 37 36 .
+# For example, when <python versions> equals 312 314, the script builds wheels
+# for python 3.12 and 3.14.
+# If <python versions> is empty, it becomes: 314 313 312 311 310 .
 
 set -euo pipefail
-for py_version in ${@:-313 312 311 310 39 38}; do
-    pushd ..
+
+if ! DOCKER=$(command -v docker || command -v podman); then
+  echo "docker or podman is required for building the wheels"
+  exit 1
+fi
+
+for py_version in ${@:-314 313 312 311 310}; do
+    pushd $(dirname "$0")/..
 
     ## Build docker image from docker-file. The current wheel is created there.
     [ ${py_version:1} -le 7 ] && py_unicode="m" || py_unicode=
-    docker build \
+    $DOCKER build \
       -t dp3-py${py_version}-$USER \
       -f docker/py_wheel.docker \
       --progress=plain \
@@ -25,11 +31,11 @@ for py_version in ${@:-313 312 311 310 39 38}; do
       --build-arg PYMINOR=${py_version:1} \
       --build-arg PYUNICODE=${py_unicode} .
     ## Create a docker container from that image, and extract the wheel
-    containerid=$(docker create dp3-py${py_version}-$USER)
+    containerid=$($DOCKER create dp3-py${py_version}-$USER)
     echo "Docker container ID is: $containerid"
-    docker cp $containerid:/output/ output-${py_version}  # Copies whole dir
-    docker rm ${containerid}
-    docker image rm dp3-py${py_version}-$USER
+    $DOCKER cp $containerid:/output/ output-${py_version}  # Copies whole dir
+    $DOCKER rm ${containerid}
+    $DOCKER image rm dp3-py${py_version}-$USER
 
     popd
 done

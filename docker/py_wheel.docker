@@ -5,15 +5,14 @@
 ARG PYMAJOR
 ARG PYMINOR
 
-ARG CASACORE_VERSION=3.7.1
+ARG CASACORE_VERSION=3.8.1
 
 FROM quay.io/casacore/casacore:py${PYMAJOR}${PYMINOR}_v${CASACORE_VERSION}
 
-ARG AOFLAGGER_VERSION=3.4.0
+ARG AOFLAGGER_VERSION=3.5.1
 ARG EVERYBEAM_VERSION=0.8.3
 ARG HDF5_VERSION=1.12.2
 ARG FFTW_VERSION=3.3.8
-ARG GSL_VERSION=2.8
 ARG LUA_VERSION=5.3.6
 ARG SAGECAL_VERSION=0.8.5
 # ARG's must be repeated after each 'FROM'
@@ -22,21 +21,9 @@ ARG PYMINOR
 ARG PYUNICODE
 
 ENV THREADS=4
-# Keep the vendored EveryBeam symbols in DP3 wheels separate from everybeam wheels.
-ENV DP3_RELOCATE_EVERYBEAM_SYMBOLS=ON
 
-# Since Boost is already in the container, keep using GCC 10 here.
 COPY docker/install_boost.sh /
 RUN bash /install_boost.sh
-
-# Install and use GCC 11 from this point on.
-# DP3 requires GCC 11 since it uses std::barrier.
-RUN yum install -y devtoolset-11-gcc-c++ devtoolset-11-gcc-gfortran
-ENV PATH=/opt/rh/devtoolset-11/root/usr/bin:$PATH
-ENV LD_LIBRARY_PATH=/opt/rh/devtoolset-11/root/usr/lib64:$LD_LIBRARY_PATH
-
-COPY docker/install_gsl.sh /
-RUN bash /install_gsl.sh ${GSL_VERSION}
 
 COPY docker/install_fftw.sh /
 RUN bash /install_fftw.sh ${FFTW_VERSION}
@@ -83,4 +70,4 @@ RUN pipx install --force 'patchelf<0.17'
 RUN /opt/python/${TARGET}/bin/pip install setuptools
 RUN /opt/python/${TARGET}/bin/python ./setup.py build_ext -j${THREADS}
 RUN /opt/python/${TARGET}/bin/python ./setup.py bdist_wheel -d .
-RUN auditwheel repair --plat manylinux2014_x86_64 -w /output *.whl
+RUN auditwheel repair --plat manylinux_2_28_x86_64 -w /output *.whl
