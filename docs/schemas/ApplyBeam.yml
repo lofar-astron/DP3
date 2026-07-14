@@ -60,12 +60,18 @@ inputs:
       If you want to corrupt the data, set it to ``false``.
   beammode:
     type: enum
-    symbols: array_factor, element, full, default
+    symbols: array_factor, element, full, default, none
     default: default
     doc: >-
-      Beam mode to apply, can be ``array_factor``, ``element``, ``full``, or
-      ``default`` (same as ``full``). The mode ``full`` applies both the element
-      beam and the array factor.
+      Beam mode to apply, can be ``array_factor``, ``element``, ``full``,
+      ``default`` (same as ``full``) or ``none``. The mode ``full`` applies
+      both the element beam and the array factor.
+
+      The mode specifies what beam is corrected for in the output. If the input data
+      has a beam correction applied already, it will be undone first. This means that
+      when specifying ``array_factor`` for data for which the ``element`` beam was
+      already applied, the ``element`` beam will be undone first. Specifying ``none``
+      as output will undo any applied beam corrections.
   elementmodel:
     default: default
     type: enum
