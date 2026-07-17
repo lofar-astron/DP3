@@ -860,9 +860,50 @@ void DDECal::doPrepare() {
   predict_timer_.start();
   aocommon::Logger::Debug
       << "Acquiring one timestep of model data for DDECal.\n";
-  // Enclose the recursive_for
-  {
-    schaapcommon::RecursiveFor recursive_for;
+
+  // TODO: make some parameters configurable.
+  const size_t n_threads =
+      schaapcommon::ThreadPool::GetInstance().NThreads() * 2;
+
+  if (steps_.size() >= n_threads) {
+    n_outer_threads = n_threads;
+    n_inner_threads = 1;
+  } else {
+    n_outer_threads = std::max<size_t>(1, steps_.size() / 2);
+    n_inner_threads = std::max<size_t>(
+        1, std::ceil(static_cast<double>(n_threads) / n_outer_threads));
+  }
+
+  for (const std::shared_ptr<ModelDataStep>& step : steps_) {
+    if (auto* predict = dynamic_cast<Predict*>(step.get());
+        predict && predict->UsesFastPredict()) {
+      predict->SetNumThreads(n_inner_threads);
+
+      if (!use_serial_predict_loop) {
+        use_serial_predict_loop = true;
+      }
+    }
+  }
+  schaapcommon::RecursiveFor recursive_for;
+  if (use_serial_predict_loop) {
+    recursive_for.ConstrainedRun(
+        0, steps_.size(), n_outer_threads,
+        [&](size_t direction_start, size_t direction_end) {
+          for (size_t direction = direction_start; direction < direction_end;
+               ++direction) {
+            if (steps_[direction]) {  // When reusing model data, there is no
+                                      // step.
+              // Don't process column readers yet; they need to be run serially
+              // (see further below)
+              const bool is_column_reader =
+                  dynamic_cast<MsColumnReader*>(steps_[direction].get());
+              if (!is_column_reader)
+                steps_[direction]->process(std::make_unique<DPBuffer>(
+                    *input_buffer, required_fields_[direction]));
+            }
+          }
+        });
+  } else {
     recursive_for.Run(0, steps_.size(), [&](size_t direction) {
       if (steps_[direction]) {  // When reusing model data, there is no step.
         // Don't process column readers yet; they need to be run serially (see

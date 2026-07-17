@@ -84,6 +84,11 @@ class Predict : public ModelDataStep {
    */
   void SetThreadData(std::mutex* mutex);
 
+  /// Forwards inner thread budget to FastPredict when enabled.
+  void SetNumThreads(size_t num_threads);
+
+  bool UsesFastPredict() const { return use_fast_predict_; }
+
  private:
   /**
    * Common part of the constructors.
