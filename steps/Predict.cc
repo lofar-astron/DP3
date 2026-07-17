@@ -96,7 +96,7 @@ void Predict::Initialize(const common::ParameterSet& parset,
   }
 
 #ifdef USE_FAST_PREDICT
-  use_fast_predict_ = parset.getBool(prefix + "usefastpredict", true);
+  use_fast_predict_ = parset.getBool(prefix + "usefastpredict", false);
   if (use_fast_predict_) {
     predict_step_ =
         std::make_shared<FastPredict>(parset, prefix, source_patterns);
@@ -164,6 +164,17 @@ void Predict::SetThreadData(std::mutex* mutex) {
   }
 #else
   std::dynamic_pointer_cast<OnePredict>(predict_step_)->SetThreadData(mutex);
+#endif  // USE_FAST_PREDICT
+}
+
+void Predict::SetNumThreads(size_t num_threads) {
+#ifdef USE_FAST_PREDICT
+  if (use_fast_predict_) {
+    std::dynamic_pointer_cast<FastPredict>(predict_step_)
+        ->SetNumThreads(num_threads);
+  }
+#else
+  (void)num_threads;
 #endif  // USE_FAST_PREDICT
 }
 

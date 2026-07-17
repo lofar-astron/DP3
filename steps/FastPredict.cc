@@ -93,11 +93,22 @@ void FastPredict::Init(const common::ParameterSet& parset,
   output_data_name_ = parset.getString(prefix + "outputmodelname", "");
 
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
-  coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
+  use_local_frame_ = parset.getBool(prefix + "use_local_frame", false);
   beam_evaluation_interval_ = parset.getDouble(prefix + "beam_interval", 0.0);
   thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
   patch_list_.clear();
+
+  if (use_local_frame_) {
+    throw std::runtime_error(
+        "The use of local frame is not yet supported in FastPredict.");
+  }
+
+  if (use_local_frame_ && apply_beam_) {
+    throw std::runtime_error(
+        "As of yet, the use of local frame can't be combined with beam "
+        "application");
+  }
 
   // Save directions specifications to pass to applycal
   std::stringstream ss;
@@ -128,7 +139,16 @@ void FastPredict::Init(const common::ParameterSet& parset,
   }
 
   if (apply_beam_) {
-    use_channel_freq_ = parset.getBool(prefix + "usechannelfreq", true);
+    reuse_telescope_ = parset.getBool(prefix + "reusebeammodel", false);
+    if (!reuse_telescope_) {
+      coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
+      use_channel_freq_ = parset.getBool(prefix + "usechannelfreq", true);
+      const std::string element_model =
+          parset.getString(prefix + "elementmodel", "default");
+      element_response_model_ =
+          everybeam::ElementResponseModelFromString(element_model);
+    }
+
     one_beam_per_patch_ = parset.getBool(prefix + "onebeamperpatch", false);
     beam_proximity_limit_ =
         parset.getDouble(prefix + "beamproximitylimit", 60.0) *
@@ -192,6 +212,23 @@ void FastPredict::SetApplyCal(const common::ParameterSet& parset,
 
 FastPredict::~FastPredict() = default;
 
+void FastPredict::UpdateParallelizationStrategy(size_t num_threads) {
+  if (!predict_plan_exec_) return;
+
+  const size_t max_beams = std::max(point_sources_.unique_beam_ids.size(),
+                                    gaussian_sources_.unique_beam_ids.size());
+  predict_plan_exec_->parallelize_over_beams = (max_beams > num_threads);
+  predict_plan_exec_->parallelize_over_sources =
+      !predict_plan_exec_->parallelize_over_beams;
+}
+
+void FastPredict::SetNumThreads(size_t num_threads) {
+  n_threads_ = num_threads;
+  if (predict_plan_exec_) {
+    predict_plan_exec_->SetNumThreads(static_cast<int>(n_threads_));
+  }
+}
+
 void FastPredict::InitializePlan() {
   const size_t n_stations = getInfoOut().nantenna();
 
@@ -212,11 +249,19 @@ void FastPredict::InitializePlan() {
                               getInfoOut().getAnt2(), antenna_pos);
 
   if (apply_beam_) {
-    if (!getInfoOut().HasTelescope()) {
+    if (!reuse_telescope_) {
       GetWritableInfoOut().SetTelescope(
           base::GetTelescope(getInfoOut().msName(), element_response_model_,
                              use_channel_freq_, coefficients_path_));
+    } else if (!getInfoOut().HasTelescope()) {
+      throw std::runtime_error("reusebeammodel is true in " + name_ +
+                               " but no beam model was found.");
     }
+
+    const everybeam::telescope::Telescope& telescope =
+        getInfoOut().GetTelescope();
+    station_indices_ =
+        base::SelectStationIndices(telescope, getInfoOut().antennaNames());
   }
 
   // Create the Measure ITRF conversion info given the array position.
@@ -252,6 +297,109 @@ void FastPredict::InitializePlan() {
 
   predict_plan_.channel_widths = getInfoOut().chanWidths();
   predict_plan_.baselines = baselines_;
+
+  const size_t available_threads =
+      schaapcommon::ThreadPool::GetInstance().NThreads();
+  const size_t num_threads = (n_threads_ == 0)
+                                 ? available_threads
+                                 : std::min(n_threads_, available_threads);
+  predict_plan_exec_ = std::make_unique<predict::PredictPlanExecCPU>(
+      predict_plan_, schaapcommon::ThreadPool::GetInstance(), num_threads,
+      false);
+
+  assert(predict_plan_exec_);
+  // Initialize the sources
+
+  point_sources_.Clear();
+  gaussian_sources_.Clear();
+
+  const sky_model::Patch* patch = nullptr;
+  const size_t num_sources = source_list_.size();
+
+  for (size_t source_index = 0; source_index != num_sources; ++source_index) {
+    const std::shared_ptr<base::ModelComponent>& source_ptr =
+        source_list_[source_index].first;
+    patch = source_list_[source_index].second.get();
+    assert(patch);
+
+    if (const base::PointSource* point_source =
+            dynamic_cast<base::PointSource*>(source_ptr.get())) {
+      const base::Stokes dp3_stokes = point_source->stokes();
+      const predict::Stokes fast_predict_stokes(dp3_stokes.I, dp3_stokes.Q,
+                                                dp3_stokes.U, dp3_stokes.V);
+      predict::Spectrum spectrum{fast_predict_stokes,
+                                 point_source->referenceFreq(),
+                                 point_source->polarizationAngle(),
+                                 point_source->polarizedFraction(),
+                                 point_source->rotationMeasure(),
+                                 point_source->hasRotationMeasure(),
+                                 point_source->hasLogarithmicSI()};
+
+      spectrum.SetSpectralTerms(point_source->referenceFreq(),
+                                point_source->hasLogarithmicSI(),
+                                point_source->spectrum());
+
+      const size_t patch_index = patch->Index();
+
+      if (const base::GaussianSource* gaussian_source =
+              dynamic_cast<base::GaussianSource*>(source_ptr.get());
+          gaussian_source) {
+        // It's specifically a GaussianSource
+        gaussian_sources_.Add(predict::GaussianSource{
+            predict::Direction{point_source->direction().ra,
+                               point_source->direction().dec},
+            spectrum, gaussian_source->getPositionAngle(),
+            gaussian_source->getPositionAngleIsAbsolute(),
+            gaussian_source->getMinorAxis(), gaussian_source->getMajorAxis(),
+            patch_index});
+        if (predict_plan_.apply_beam) {
+          gaussian_sources_.AddBeamDirection(
+              patch_index, predict::Direction{patch->Direction().ra,
+                                              patch->Direction().dec});
+        }
+      } else {
+        point_sources_.Add(predict::PointSource{
+            predict::Direction{point_source->direction().ra,
+                               point_source->direction().dec},
+            spectrum, patch_index});
+        if (predict_plan_.apply_beam) {
+          point_sources_.AddBeamDirection(
+              patch_index, predict::Direction{patch->Direction().ra,
+                                              patch->Direction().dec});
+        }
+      }
+    }
+  }
+
+  // Determine strategy for all subsequent steps.
+  UpdateParallelizationStrategy(num_threads);
+
+  if (predict_plan_.apply_beam) {
+    point_sources_.UpdateBeams();
+    gaussian_sources_.UpdateBeams();
+    constexpr size_t field_id = 0;
+    if (!beam_response_plan_) {
+      //   beam_response_plan_ = std::make_unique<predict::BeamResponsePlan>(
+      // telescope_.get(), -1, field_id, beam_mode_, false);
+      beam_response_plan_ = std::make_unique<predict::BeamResponsePlan>();
+    }
+
+    beam_response_plan_->SetTelescope(getInfoOut().GetTelescope());
+    beam_response_plan_->SetTime(-1);
+    beam_response_plan_->SetFieldId(field_id);
+    beam_response_plan_->SetBeamMode(beam_mode_);
+    beam_response_plan_->SetInvert(false);
+
+    beam_response_plan_->SetFrequencies(predict_plan_.frequencies);
+    beam_response_plan_->SetBaselines(predict_plan_.baselines);
+  }
+}
+
+void FastPredict::SetPhaseCentreWithoutFrame(const MDirection& direction) {
+  // Get pointing without the frame
+  const Quantum<casacore::Vector<double>> angles = direction.getAngle();
+  phase_ref_ =
+      base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
 }
 
 void FastPredict::updateInfo(const DPInfo& infoIn) {
@@ -265,16 +413,29 @@ void FastPredict::updateInfo(const DPInfo& infoIn) {
                             getInfoOut().getAnt2()[bl]);
   }
 
-  try {
-    MDirection dirJ2000(
-        MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
-    Quantum<casacore::Vector<double>> angles = dirJ2000.getAngle();
-    moving_phase_ref_ = false;
-    phase_ref_ =
-        base::Direction(angles.getBaseValue()[0], angles.getBaseValue()[1]);
-  } catch (casacore::AipsError&) {
-    // Phase direction (in J2000) is time dependent
-    moving_phase_ref_ = true;
+  // Set the phase reference in the right frame: azel or j2000
+  moving_phase_ref_ = false;
+  if (use_local_frame_) {
+    std::string phase_center_frame = infoIn.phaseCenter().toString();
+    const size_t space_position = phase_center_frame.rfind(" ") + 1;
+    if (space_position != std::string::npos) {
+      phase_center_frame = phase_center_frame.substr(space_position);
+    }
+    if (phase_center_frame != "AZELGEO") {
+      throw std::runtime_error(
+          "Local frame was requested, but the frame of the phase centre was " +
+          phase_center_frame + " instead of AZELGEO");
+    }
+    SetPhaseCentreWithoutFrame(infoIn.phaseCenter());
+  } else {
+    try {
+      const MDirection dirJ2000(
+          MDirection::Convert(infoIn.phaseCenter(), MDirection::J2000)());
+      SetPhaseCentreWithoutFrame(dirJ2000);
+    } catch (casacore::AipsError&) {
+      // Phase direction (in J2000) is time dependent
+      moving_phase_ref_ = true;
+    }
   }
 
   /**
@@ -291,9 +452,9 @@ void FastPredict::updateInfo(const DPInfo& infoIn) {
   // probably unnecessary, would be to compute the actual NCP for the current
   // epoch
 
+  scaled_ncp_uvw_.resize(3);
   // In base/Simulator.cc this element is assumed to be zero. If it is updated
   // here to a more accurate value, please update the usage in Simulator as well
-  scaled_ncp_uvw_.resize(3);
   scaled_ncp_uvw_[0] = 0.0;
   scaled_ncp_uvw_[1] =
       angular_speed * std::cos(infoIn.phaseCenterDirection().dec);
@@ -305,6 +466,15 @@ void FastPredict::updateInfo(const DPInfo& infoIn) {
   if (apply_cal_step_) {
     apply_cal_step_->setInfo(getInfoOut());
     GetWritableInfoOut() = result_step_->getInfoOut();
+  }
+
+  if (use_local_frame_) {
+    source_j2000_positions_.reserve(source_list_.size());
+    for (const std::pair<std::shared_ptr<base::ModelComponent>,
+                         std::shared_ptr<sky_model::Patch>>& source :
+         source_list_) {
+      source_j2000_positions_.emplace_back(source.first->direction());
+    }
   }
 }
 
@@ -344,13 +514,22 @@ void FastPredict::show(std::ostream& os) const {
   if (apply_beam_) {
     os << "   mode:                   " << everybeam::ToString(beam_mode_);
     os << '\n';
-    os << "   use channelfreq:        " << std::boolalpha << use_channel_freq_
+    os << "   reuse beam model:       " << std::boolalpha << reuse_telescope_
        << '\n';
+    if (!reuse_telescope_) {
+      os << "   use channelfreq:        " << std::boolalpha << use_channel_freq_
+         << '\n';
+      os << "   element response model: " << element_response_model_ << '\n';
+      os << "   coefficients path:      " << coefficients_path_ << '\n';
+    }
     os << "   one beam per patch:     " << std::boolalpha << one_beam_per_patch_
        << '\n';
     os << "   beam proximity limit:   "
        << (beam_proximity_limit_ * (180.0 * 60.0 * 60.0) / M_PI) << " arcsec\n";
     os << "   beam interval:          " << beam_evaluation_interval_ << '\n';
+  }
+  if (!output_data_name_.empty()) {
+    os << "  outputmodelname:         " << output_data_name_ << '\n';
   }
   os << "  operation:               ";
   switch (operation_) {
@@ -397,15 +576,17 @@ void FastPredict::CopyPredictBufferToData(
     const size_t ncorr_out = getInfoOut().ncorr();
     for (size_t bl = 0; bl < nbaselines; ++bl) {
       for (size_t ch = 0; ch < nchannels; ++ch) {
+        // In stokes-I-only mode the predict buffer contains a single stokes
+        // plane. Duplicate that value to the parallel-hand correlations.
         // First correlation (index 0)
         destination(bl, ch, 0) =
             std::complex<float>(static_cast<float>(buffer(0, bl, 0, ch)),
                                 static_cast<float>(buffer(0, bl, 1, ch)));
 
         // Last correlation (index ncorr_out - 1)
-        destination(bl, ch, ncorr_out - 1) = std::complex<float>(
-            static_cast<float>(buffer(ncorr_out - 1, bl, 0, ch)),
-            static_cast<float>(buffer(ncorr_out - 1, bl, 1, ch)));
+        destination(bl, ch, ncorr_out - 1) =
+            std::complex<float>(static_cast<float>(buffer(0, bl, 0, ch)),
+                                static_cast<float>(buffer(0, bl, 1, ch)));
       }
     }
   } else {
@@ -430,18 +611,20 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t nCr = getInfoOut().ncorr();
 
   base::SplitUvw(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
-  predict_plan_.uvw = station_uvw_;
+  predict_plan_exec_->uvw = station_uvw_;
 
   double time = buffer->GetTime();
 
-  const bool need_meas_converters = moving_phase_ref_ || apply_beam_;
+  const bool need_meas_converters =
+      moving_phase_ref_ || apply_beam_ || use_local_frame_;
   if (need_meas_converters) {
+    meas_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
     meas_converter_(getInfoOut().delayCenter());
     meas_converter_(getInfoOut().tileBeamDir());
-    meas_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
   }
 
   if (moving_phase_ref_) {
+    assert(!use_local_frame_);
     // Convert phase reference to J2000
     MDirection dirJ2000(
         MDirection::Convert(getInfoOut().phaseCenter(),
@@ -477,6 +660,7 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
   } else if (operation_ == Operation::kSubtract) {
     data = input_data_ - data;
   }
+
   if (!output_data_name_.empty()) {
     // Put the input visibilities back to the main buffer when needed.
     buffer->GetData() = std::move(input_data_);
@@ -489,35 +673,14 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
 }
 
 void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
+  const size_t n_baselines = getInfoOut().nbaselines();
+  const size_t n_channels = getInfoOut().nchan();
+  const size_t n_buffer_correlations =
+      stokes_i_only_ ? 1 : getInfoOut().ncorr();
+
   xt::xtensor<float, 4, xt::layout_type::row_major> global_data(
       {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
        predict_plan_.nchannels});
-
-  bool update_beam = false;
-  double beam_evaluation_time = time;
-  if (apply_beam_) {
-    const double time_since_beam_update = std::abs(time - previous_beam_time_);
-    update_beam = time_since_beam_update >= beam_evaluation_interval_;
-    if (update_beam) {
-      beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
-      previous_beam_time_ = time;
-      everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
-      telescope.SetTime(beam_evaluation_time);
-      if (telescope.IsHomogeneous()) predict_plan_.nstations = 1;
-    }
-  }
-
-  const size_t num_threads = schaapcommon::ThreadPool::GetInstance().NThreads();
-
-  predict_plan_exec_ =
-      std::make_unique<predict::PredictPlanExecCPU>(predict_plan_, num_threads);
-
-  assert(predict_plan_exec_);
-
-  const size_t n_buffer_correlations =
-      stokes_i_only_ ? 1 : getInfoOut().ncorr();
-  const size_t n_baselines = getInfoOut().nbaselines();
-  const size_t n_channels = getInfoOut().nchan();
 
   xt::xtensor<float, 4, xt::layout_type::row_major> model_data_new(
       {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
@@ -534,91 +697,41 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
 
   xt::xtensor<float, 4, xt::layout_type::row_major>& simulator_data_new =
       predict_plan_.apply_beam ? patch_model_data_new : model_data_new;
-  predict::PointSourceCollection point_sources;
-  predict::GaussianSourceCollection gaussian_sources;
+  bool update_beam = false;
+  double beam_evaluation_time = time;
+  if (apply_beam_) {
+    const double time_since_beam_update = std::abs(time - previous_beam_time_);
+    update_beam = time_since_beam_update >= beam_evaluation_interval_;
+    if (update_beam) {
+      beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
+      previous_beam_time_ = time;
 
-  const sky_model::Patch* patch = nullptr;
-  const size_t num_sources = source_list_.size();
+      everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
+      telescope.SetTime(beam_evaluation_time);
 
-  for (size_t source_index = 0; source_index != num_sources; ++source_index) {
-    const std::shared_ptr<base::ModelComponent>& source_ptr =
-        source_list_[source_index].first;
-    patch = source_list_[source_index].second.get();
-    assert(patch);
-
-    if (const base::PointSource* point_source =
-            dynamic_cast<base::PointSource*>(source_ptr.get())) {
-      const base::Stokes dp3_stokes = point_source->stokes();
-      const predict::Stokes fast_predict_stokes(dp3_stokes.I, dp3_stokes.Q,
-                                                dp3_stokes.U, dp3_stokes.V);
-      predict::Spectrum spectrum{fast_predict_stokes,
-                                 point_source->referenceFreq(),
-                                 point_source->polarizationAngle(),
-                                 point_source->polarizedFraction(),
-                                 point_source->rotationMeasure(),
-                                 point_source->hasRotationMeasure(),
-                                 point_source->hasLogarithmicSI()};
-
-      spectrum.SetSpectralTerms(point_source->referenceFreq(),
-                                point_source->hasLogarithmicSI(),
-                                point_source->spectrum());
-
-      const size_t patch_index = patch->Index();
-
-      if (const base::GaussianSource* gaussian_source =
-              dynamic_cast<base::GaussianSource*>(source_ptr.get());
-          gaussian_source) {
-        // It's specifically a GaussianSource
-        gaussian_sources.Add(predict::GaussianSource{
-            predict::Direction{point_source->direction().ra,
-                               point_source->direction().dec},
-            spectrum, gaussian_source->getPositionAngle(),
-            gaussian_source->getPositionAngleIsAbsolute(),
-            gaussian_source->getMinorAxis(), gaussian_source->getMajorAxis(),
-            patch_index});
-        if (predict_plan_.apply_beam) {
-          gaussian_sources.AddBeamDirection(
-              patch_index, predict::Direction{patch->Direction().ra,
-                                              patch->Direction().dec});
-        }
-      } else {
-        point_sources.Add(predict::PointSource{
-            predict::Direction{point_source->direction().ra,
-                               point_source->direction().dec},
-            spectrum, patch_index});
-        if (predict_plan_.apply_beam) {
-          point_sources.AddBeamDirection(
-              patch_index, predict::Direction{patch->Direction().ra,
-                                              patch->Direction().dec});
-        }
-      }
+      // FIXME: In case of a homogeneous telescope, nstations should not be set
+      // to one. Only the internal buffer should be sized accordingly.
+      // --> if (telescope.IsHomogeneous()) predict_plan_.nstations = 1;
     }
   }
 
-  if (predict_plan_.apply_beam) {
-    point_sources.UpdateBeams();
-    gaussian_sources.UpdateBeams();
-  }
+  // Propagate beam update state into predict so beam recomputation can be
+  // controlled consistently.
+  predict_plan_exec_->update_beam = update_beam;
 
   {
     const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
     if (predict_plan_.apply_beam) {
-      constexpr size_t field_id = 0;
-      predict::BeamResponsePlan beam_response_plan{
-          &getInfoOut().GetTelescope(), time, field_id, beam_mode_, false};
-
-      beam_response_plan.SetFrequencies(predict_plan_.frequencies);
-      beam_response_plan.SetBaselines(predict_plan_.baselines);
-
-      predict_.runWithStrategy(*predict_plan_exec_, beam_response_plan,
-                               point_sources, gaussian_sources,
+      beam_response_plan_->SetTime(time);
+      predict_.runWithStrategy(*predict_plan_exec_, *beam_response_plan_,
+                               point_sources_, gaussian_sources_,
                                simulator_data_new, meas_converter_,
                                predict::computation_strategy::XSIMD);
     } else {
-      predict_.runWithStrategy(*predict_plan_exec_, point_sources,
+      predict_.runWithStrategy(*predict_plan_exec_, point_sources_,
                                simulator_data_new,
                                predict::computation_strategy::XSIMD);
-      predict_.runWithStrategy(*predict_plan_exec_, gaussian_sources,
+      predict_.runWithStrategy(*predict_plan_exec_, gaussian_sources_,
                                simulator_data_new,
                                predict::computation_strategy::XSIMD);
     }

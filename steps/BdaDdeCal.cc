@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <sstream>
 
+#include <aocommon/logger.h>
+
 #include "BdaGroupPredict.h"
 #include "MsColumnReader.h"
 #include "Predict.h"
@@ -127,6 +129,36 @@ void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
     steps_.back()->setNextStep(result_steps_.back());
 
     direction_names_.push_back(prefix + direction.front());
+  }
+
+  // TODO: make some parameters configurable.
+  const size_t n_threads =
+      schaapcommon::ThreadPool::GetInstance().NThreads() * 2;
+
+  if (steps_.size() >= n_threads) {
+    n_outer_threads = n_threads;
+    n_inner_threads = 1;
+  } else {
+    n_outer_threads = std::max<size_t>(1, steps_.size() / 2);
+    n_inner_threads = std::max<size_t>(
+        1, std::ceil(static_cast<double>(n_threads) / n_outer_threads));
+  }
+
+  use_serial_predict_loop = false;
+
+  aocommon::Logger::Debug << "BdaDdeCal: Using " << n_outer_threads
+                          << " outer threads and " << n_inner_threads
+                          << " inner threads for predict steps.\n";
+
+  for (const std::shared_ptr<ModelDataStep>& step : steps_) {
+    if (auto* predict = dynamic_cast<Predict*>(step.get());
+        predict && predict->UsesFastPredict()) {
+      predict->SetNumThreads(n_inner_threads);
+
+      if (!use_serial_predict_loop) {
+        use_serial_predict_loop = true;
+      }
+    }
   }
 
   patches_per_direction_.insert(patches_per_direction_.end(),
@@ -382,11 +414,29 @@ bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
   }
 
   predict_timer_.start();
-  for (std::shared_ptr<ModelDataStep>& step : steps_) {
-    // Feed metadata-only copies of the BDA buffer to the steps.
-    // The steps will create and fill the data field in the copy.
-    step->process(std::make_unique<BdaBuffer>(*buffer, common::Fields()));
+
+  aocommon::Logger::Debug
+      << "Acquiring one timestep of model data for DDECal.\n";
+
+  if (use_serial_predict_loop) {
+    schaapcommon::RecursiveFor recursive_for;
+    recursive_for.ConstrainedRun(
+        0, steps_.size(), n_outer_threads,
+        [&](size_t direction_start, size_t direction_end) {
+          for (size_t direction = direction_start; direction < direction_end;
+               ++direction) {
+            steps_[direction]->process(
+                std::make_unique<BdaBuffer>(*buffer, common::Fields()));
+          }
+        });
+  } else {
+    for (std::shared_ptr<ModelDataStep>& step : steps_) {
+      // Feed metadata-only copies of the BDA buffer to the steps.
+      // The steps will create and fill the data field in the copy.
+      step->process(std::make_unique<BdaBuffer>(*buffer, common::Fields()));
+    }
   }
+
   predict_timer_.stop();
 
   // Always store the input buffer, since BdaDdeCal should forward the

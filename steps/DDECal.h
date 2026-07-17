@@ -169,6 +169,13 @@ class DDECal : public Step {
   /// Maps direction indices to the cluster central direction.
   std::vector<base::Direction> source_directions_;
 
+  // Number of threads to use for the outer and inner loop of FastPredict.
+  size_t n_outer_threads = 1;
+  size_t n_inner_threads = 1;
+
+  // Use serial loop for predict steps.
+  bool use_serial_predict_loop = false;
+
   /// First antenna for each baseline. Contains used antennas only.
   std::vector<int> antennas1_;
   /// Second antenna for each baseline. Contains used antennas only.

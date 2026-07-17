@@ -199,6 +199,13 @@ class BdaDdeCal : public Step {
    */
   std::vector<double> chan_block_start_freqs_;
 
+  // Number of threads to use for the outer and inner loop of FastPredict.
+  size_t n_outer_threads = 1;
+  size_t n_inner_threads = 1;
+
+  // Use serial loop for predict steps.
+  bool use_serial_predict_loop = false;
+
   /**
    * Antenna lists, which contain the used antenna index for each baseline.
    * @{

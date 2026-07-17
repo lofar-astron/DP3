@@ -95,6 +95,9 @@ class FastPredict : public ModelDataStep {
     // steps/Predict.h interface.
   }
 
+  // Sets the thread budget for nested predict work.
+  void SetNumThreads(size_t num_threads);
+
   /// Process the data.
   /// It keeps the data.
   /// When processed, it invokes the process function of the next step.
@@ -125,6 +128,10 @@ class FastPredict : public ModelDataStep {
   void Init(const common::ParameterSet&, const std::string& prefix,
             const std::vector<std::string>& sourcePatterns);
 
+  // Keep internal parallelization choices in sync with the current thread
+  // budget and source/beam layout.
+  void UpdateParallelizationStrategy(size_t num_threads);
+
   void InitializePlan();
 
   void RunPlan(base::DPBuffer::DataType& destination, double time);
@@ -132,6 +139,8 @@ class FastPredict : public ModelDataStep {
   void CopyPredictBufferToData(
       base::DPBuffer::DataType& destination,
       const xt::xtensor<float, 4, xt::layout_type::row_major>& buffer) const;
+
+  void SetPhaseCentreWithoutFrame(const casacore::MDirection& direction);
 
   std::string name_;
   /// Stores the input data if the operation is add or subtract.
@@ -141,9 +150,10 @@ class FastPredict : public ModelDataStep {
   std::string source_db_name_;
   bool correct_time_smearing_ = false;
   bool correct_freq_smearing_ = false;
-  Operation operation_;
+  Operation operation_ = Operation::kReplace;
   std::string output_data_name_;
   bool apply_beam_ = false;
+  bool reuse_telescope_ = false;
   std::string coefficients_path_;
   bool use_channel_freq_ = false;
   bool one_beam_per_patch_ = false;
@@ -159,6 +169,7 @@ class FastPredict : public ModelDataStep {
                                               ///< has absolute orientation
   base::Direction phase_ref_;
   bool moving_phase_ref_ = false;
+  bool use_local_frame_ = false;
 
   std::shared_ptr<ApplyCal> apply_cal_step_;  ///< Optional ApplyCal sub step
   std::shared_ptr<ResultStep> result_step_;   ///< Catches results from ApplyCal
@@ -181,16 +192,27 @@ class FastPredict : public ModelDataStep {
       everybeam::ElementResponseModel::kDefault;
   casacore::MeasFrame meas_frame_;
   casacore::MDirection::Convert meas_converter_;
+  std::vector<size_t> station_indices_;
+
   predict::PredictPlan predict_plan_;
   predict::Predict predict_;
   std::unique_ptr<predict::PredictPlanExecCPU> predict_plan_exec_;
-
+  std::unique_ptr<predict::BeamResponsePlan> beam_response_plan_;
+  predict::PointSourceCollection point_sources_;
+  predict::GaussianSourceCollection gaussian_sources_;
   std::string direction_str_;  ///< Definition of patches, to pass to applycal
   std::vector<std::shared_ptr<sky_model::Patch>> patch_list_;
 
   std::vector<std::pair<std::shared_ptr<base::ModelComponent>,
                         std::shared_ptr<sky_model::Patch>>>
       source_list_;
+
+  /**
+   * This variable is used when a local reference frame is used. This is
+   * necessary because in that case the directions of the components are
+   * overwritten.
+   */
+  std::vector<base::Direction> source_j2000_positions_;
 
   common::NSTimer timer_;
 
@@ -209,6 +231,7 @@ class FastPredict : public ModelDataStep {
 
   std::mutex* measures_mutex_;
   std::mutex mutex_;
+  size_t n_threads_ = 0;
 };
 
 }  // namespace steps
