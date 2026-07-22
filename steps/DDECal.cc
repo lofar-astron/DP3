@@ -1028,7 +1028,7 @@ aocommon::MC2x2 ApplyScalarSolution(
 }
 }  // namespace
 
-void DDECal::ApplySolution(
+void DDECal::ApplySolutionAndSubtract(
     DPBuffer& buffer, size_t baseline, size_t channel,
     const std::vector<std::complex<double>>& solutions) const {
   const size_t antenna1 = getInfoOut().getAnt1()[baseline];
@@ -1092,27 +1092,35 @@ void DDECal::CorrectAndSubtractModels(size_t buffer_index) {
       solutions_[solution_index];
 
   assert(buffer_index < input_buffers_.size());
-  std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
+  const std::vector<std::unique_ptr<DPBuffer>>& solution_interval =
       input_buffers_[buffer_index];
 
-  for (std::unique_ptr<DPBuffer>& data_buffer : solution_interval) {
-    for (size_t bl = 0; bl < getInfoOut().nbaselines(); ++bl) {
-      size_t chanblock = 0;
+  schaapcommon::StaticFor<size_t> loop;
+  loop.Run(0, solution_interval.size(),
+           [&](size_t time_start, size_t time_end) {
+             for (size_t time = time_start; time < time_end; ++time) {
+               DPBuffer& data_buffer = *solution_interval[time];
+               for (size_t baseline = 0; baseline < getInfoOut().nbaselines();
+                    ++baseline) {
+                 size_t chanblock = 0;
 
-      for (size_t ch = 0; ch < getInfoOut().nchan(); ++ch) {
-        if (ch == channel_block_start_[chanblock + 1]) {
-          chanblock++;
-        }
+                 for (size_t channel = 0; channel < getInfoOut().nchan();
+                      ++channel) {
+                   if (channel == channel_block_start_[chanblock + 1]) {
+                     ++chanblock;
+                   }
 
-        ApplySolution(*data_buffer, bl, ch, solutions[chanblock]);
-      }
-    }
-    if (!settings_.keep_model_data) {
-      for (const std::string& name : direction_names_) {
-        data_buffer->RemoveData(name);
-      }
-    }
-  }
+                   ApplySolutionAndSubtract(data_buffer, baseline, channel,
+                                            solutions[chanblock]);
+                 }
+               }
+               if (!settings_.keep_model_data) {
+                 for (const std::string& name : direction_names_) {
+                   data_buffer.RemoveData(name);
+                 }
+               }
+             }
+           });
 }
 
 void DDECal::SumModels(size_t buffer_index) {
