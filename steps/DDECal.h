@@ -98,8 +98,10 @@ class DDECal : public Step {
   void SumModels(size_t buffer_index);
 
   /// Applies a single solution to all directions.
+  /// If "subtract" is true, subtracts all corrected model data from the main
+  /// input data buffer.
   /// (Helper function for CorrectAndSubtractModels.)
-  void ApplySolution(
+  void ApplySolutionAndSubtract(
       base::DPBuffer& buffer, size_t baseline, size_t channel,
       const std::vector<std::complex<double>>& channel_block_solutions) const;
 
