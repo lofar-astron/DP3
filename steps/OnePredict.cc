@@ -321,14 +321,11 @@ void OnePredict::updateInfo(const DPInfo& infoIn) {
   // probably unnecessary, would be to compute the actual NCP for the current
   // epoch
 
-  scaled_ncp_uvw_.resize(3);
   // In base/Simulator.cc this element is assumed to be zero. If it is updated
   // here to a more accurate value, please update the usage in Simulator as well
-  scaled_ncp_uvw_[0] = 0.0;
-  scaled_ncp_uvw_[1] =
-      angular_speed * std::cos(infoIn.phaseCenterDirection().dec);
-  scaled_ncp_uvw_[2] =
-      angular_speed * std::sin(infoIn.phaseCenterDirection().dec);
+  scaled_ncp_uvw_ = {
+      0.0, angular_speed * std::cos(infoIn.phaseCenterDirection().dec),
+      angular_speed * std::sin(infoIn.phaseCenterDirection().dec)};
 
   initializeThreadData();
 

@@ -29,7 +29,7 @@ Simulator MakeSimulator(bool correct_freq_smearing, bool stokes_i_only,
                         casacore::Cube<std::complex<double>>& buffer,
                         xt::xtensor<double, 2>& uvw,
                         bool correct_time_smearing = false,
-                        std::vector<double> scaled_ncp_uvw = {}) {
+                        std::array<double, 3> scaled_ncp_uvw = {}) {
   std::vector<Baseline> baselines;
   for (size_t st1 = 0; st1 < kNStations - 1; ++st1) {
     for (size_t st2 = st1 + 1; st2 < kNStations; ++st2) {
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(test_pointsource_onlyI_timesmear) {
   casacore::Cube<std::complex<double>> buffer(1, kNChan, nbaselines);
   xt::xtensor<double, 2> uvw;  // MakeSimulator initializes 'uvw'.
 
-  std::vector<double> scaled_ncp_uvw = {0.0, 3.0e-1, 0.0};
+  const std::array<double, 3> scaled_ncp_uvw = {0.0, 3.0e-1, 0.0};
 
   Simulator sim = MakeSimulator(false, true, buffer, uvw, true, scaled_ncp_uvw);
 

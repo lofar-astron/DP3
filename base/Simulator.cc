@@ -45,7 +45,7 @@ namespace {
 void phases(size_t nStation, size_t nChannel, const double* lmn,
             const xt::xtensor<double, 2>& uvw, const std::vector<double>& freq,
             Simulator::DuoMatrix<double>& shift,
-            std::vector<double>& scaled_ncp_uvw,
+            const std::array<double, 3>& scaled_ncp_uvw,
             std::vector<double>& stationPhases,
             std::vector<double>& stationEarthRotation);
 
@@ -73,7 +73,7 @@ Simulator::Simulator(const Direction& reference, size_t nStation,
       itsBaselines(baselines),
       itsFreq(freq),
       itsChanWidths(chanWidths),
-      itsScaledNcpUvw(3, 0.0),
+      itsScaledNcpUvw{0.0, 0.0, 0.0},
       itsStationUVW(&stationUVW),
       itsBuffer(buffer),
       itsShiftBuffer(),
@@ -92,7 +92,7 @@ Simulator::Simulator(const Direction& reference, size_t nStation,
                      const std::vector<Baseline>& baselines,
                      const std::vector<double>& freq,
                      const std::vector<double>& chanWidths,
-                     const std::vector<double>& scaled_ncp_uvw,
+                     const std::array<double, 3>& scaled_ncp_uvw,
                      const xt::xtensor<double, 2>& stationUVW,
                      casacore::Cube<dcomplex>& buffer, bool correctTimeSmearing,
                      bool correctFreqSmearing, bool stokesIOnly)
@@ -470,7 +470,7 @@ void Simulator::visit(const GaussianSource& component) {
 namespace {
 
 inline float sinc(float x) {
-  return ((x == 0.0f) ? 1.0f : std::abs(std::sin(x) / x));
+  return std::abs(x) < 1e-6f ? 1.0f : std::sin(x) / x;
 }
 
 // Compute station phase shifts.
@@ -478,7 +478,7 @@ inline void phases(size_t nStation, size_t nChannel, const double* lmn,
                    const xt::xtensor<double, 2>& uvw,
                    const std::vector<double>& freq,
                    Simulator::DuoMatrix<double>& shift,
-                   std::vector<double>& scaled_ncp_uvw,
+                   const std::array<double, 3>& scaled_ncp_uvw,
                    std::vector<double>& stationPhases,
                    std::vector<double>& stationEarthRotation) {
   double* shiftdata_re = shift.realdata();
