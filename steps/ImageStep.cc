@@ -130,7 +130,6 @@ void ImageStep::InitializeInMemoryMs() {
   in_memory_ms_->field_name = getInfoOut().GetFieldName();
 
   in_memory_ms_->start_time = getInfoOut().startTime();
-  in_memory_ms_->interval = getInfoOut().timeInterval();
 
   const base::Direction& phase_centre = getInfoOut().phaseCenterDirection();
   in_memory_ms_->phase_centre_ra = phase_centre.ra;
@@ -171,6 +170,7 @@ void ImageStep::AddCurrentBufferToInMemoryMs(
     row.antenna1 = antenna1[baseline_index];
     row.antenna2 = antenna2[baseline_index];
     row.time = time;
+    row.interval = getInfoOut().timeInterval();
 
     row.data_desc_id = 0;  // Always zero when not using BDA
     row.field_id = 0;      // Always zero for LOFAR
