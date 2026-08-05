@@ -176,7 +176,7 @@ class FastPredict : public ModelDataStep {
 
   unsigned int debug_level_ = 0;
 
-  std::vector<double> scaled_ncp_uvw_;
+  std::array<double, 3> scaled_ncp_uvw_;
 
   std::vector<std::pair<size_t, size_t>> baselines_;
 
