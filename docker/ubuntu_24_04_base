@@ -5,7 +5,7 @@ ENV IDG_VERSION=1.2.0
 ENV AOFLAGGER_VERSION=72af21873f657427c99493a56742074be70d5d11
 ENV CASACORE_VERSION=cdd18c1f9ab724a42164f7ac56fb507d3a81e074
 ENV SAGECAL_VERSION=v0.8.5
-ENV WSCLEAN_VERSION=41b14e41a809a60f59e3213655e6c3314a8ea7df
+ENV WSCLEAN_VERSION=aad644f2569aef6a2b491f5ad9f8cbef87dbf60b
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
 	apt-get update && \
@@ -50,7 +50,8 @@ RUN python3 -m venv /dp3env \
 # seconds appear, ignore them or regenerate the docker image.
 RUN mkdir -p /usr/share/casacore/data \
 	&& cd /usr/share/casacore/data \
-	&& wget -nv https://www.astron.nl/iers/WSRT_Measures.ztar \
+	&& (wget -nv --timeout 5 --tries=3 https://www.astron.nl/iers/WSRT_Measures.ztar \
+        || wget -nv --timeout 5 --tries=3 https://git.astron.nl/cobalt/cobalt/-/jobs/1832331/artifacts/raw/WSRT_Measures.ztar ) \
 	&& tar xfz WSRT_Measures.ztar \
 	&& rm WSRT_Measures.ztar
 # The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
