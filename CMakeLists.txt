@@ -391,7 +391,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/schaapcommon)
 include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/include)
 include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/external)
 
-option(USE_FAST_PREDICT "Use the FastPredict implementation" OFF)
+option(USE_FAST_PREDICT "Use the FastPredict implementation" ON)
 
 # Include FastPredict
 if(USE_FAST_PREDICT)
