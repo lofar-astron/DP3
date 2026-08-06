@@ -266,11 +266,19 @@ bool CheckPolarized(const sky_model::SkyModel& source_db,
                     const std::vector<std::string>& patch_names) {
   for (const auto& source : source_db.GetSources()) {
     const std::string& source_patch_name = source.getPatchName();
-    for (const auto& patch_name : patch_names)
-      if (patch_name == source_patch_name)
-        if (source.getV() != 0.0 || source.getQ() != 0.0 ||
-            source.getU() != 0.0)
-          return true;
+    for (const auto& patch_name : patch_names) {
+      if (patch_name == source_patch_name) {
+        const bool use_rm = source.getInfo().getUseRotationMeasure();
+        if (use_rm) {
+          if (source.getV() != 0.0 || source.getPolarizedFraction() != 0.0)
+            return true;
+        } else {
+          if (source.getV() != 0.0 || source.getQ() != 0.0 ||
+              source.getU() != 0.0)
+            return true;
+        }
+      }
+    }
   }
   return false;
 }
