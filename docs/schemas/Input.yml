@@ -5,6 +5,11 @@ inputs:
     type: string
     doc: >-
       Name of the input MeasurementSets. If a single name is given, it can be a glob-pattern (like L23456_SAP000_SB\*) meaning that all MSs matching the pattern will be used. A glob-pattern can contain \*, ?, [], and {} pattern characters (as used in bash). If multiple MSs are to be used, their data are concatenated in frequency, thus multiple subbands are combined to a single band. In principle all MSs should exist, but if 'missingdata=true' and 'orderms=false', flagged zero data will be inserted for missing MS(s) and their frequency info will be deduced from the other MSs.
+  msin&#46;filetype:
+    type: string
+    default: "ms"
+    doc: >-
+      Type of the input file: "ms" for a casacore measurement set or "aartfaac" for aartfaac correlator file input.
   msin&#46;sort:
     default: false
     type: bool

@@ -11,8 +11,8 @@
 /// https://github.com/aroffringa/aartfaac2ms
 /// and adapted to fit into the DP3 codebase.
 
-#ifndef DP3_AARTFAAC_ANTENNACONFIG_H_
-#define DP3_AARTFAAC_ANTENNACONFIG_H_
+#ifndef DP3_AARTFAAC_ANTENNA_CONFIG_H_
+#define DP3_AARTFAAC_ANTENNA_CONFIG_H_
 
 #include <algorithm>
 #include <array>
@@ -26,8 +26,9 @@
 #include <utility>
 #include <vector>
 
-#include <base/RcuMode.h>
 #include <casacore/measures/Measures/MPosition.h>
+
+#include "base/RcuMode.h"
 
 namespace dp3::aartfaac {
 namespace details {
@@ -265,4 +266,4 @@ class AntennaConfig {
 };
 }  // namespace dp3::aartfaac
 
-#endif  // AARTFAAC_ANTENNACONFIG_H_
+#endif  // AARTFAAC_ANTENNA_CONFIG_H_
