@@ -144,15 +144,6 @@ class OnePredict : public ModelDataStep {
                      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      bool stokesIOnly);
 
-  void addBeamToDataRange(
-      const sky_model::Patch& patch,
-      aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-      everybeam::pointresponse::PointResponse& point_response, size_t thread,
-      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
-      const std::pair<size_t, size_t>& baseline_range,
-      const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
-      bool stokesIOnly);
-
   void PredictWithSourceParallelization(base::DPBuffer::DataType& destination,
                                         double time);
 
@@ -186,7 +177,6 @@ class OnePredict : public ModelDataStep {
   std::string coefficients_path_;
   bool use_channel_freq_ = false;
   bool one_beam_per_patch_ = false;
-  bool thread_over_baselines_ = false;
   /// If two sources are closer together than given by this setting, they
   /// will be grouped into one patch. Value is in arcsec; zero means don't
   /// group.

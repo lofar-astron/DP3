@@ -97,7 +97,6 @@ void OnePredict::init(const common::ParameterSet& parset,
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
   use_local_frame_ = parset.getBool(prefix + "use_local_frame", false);
   beam_evaluation_interval_ = parset.getDouble(prefix + "beam_interval", 0.0);
-  thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
   patch_list_.clear();
 
@@ -460,13 +459,6 @@ void OnePredict::CopyPredictBufferToData(
 bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   timer_.start();
 
-  // Determine the various sizes.
-  const size_t nSt = getInfoOut().nantenna();
-  const size_t nBl = getInfoOut().nbaselines();
-  const size_t nCh = getInfoOut().nchan();
-  const size_t nCr = getInfoOut().ncorr();
-  const size_t nThreads = schaapcommon::ThreadPool::GetInstance().NThreads();
-
   base::SplitUvw(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
 
   double time = buffer->GetTime();
@@ -522,195 +514,12 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
     buffer->AddData(output_data_name_);
   }
   DPBuffer::DataType& data = buffer->GetData(output_data_name_);
+  const size_t nBl = getInfoOut().nbaselines();
+  const size_t nCh = getInfoOut().nchan();
+  const size_t nCr = getInfoOut().ncorr();
   data.resize({nBl, nCh, nCr});
 
-  const size_t actual_nCr = (stokes_i_only_ ? 1 : nCr);
-  if (thread_over_baselines_) {
-    std::unique_ptr<PredictModel> model_buffer = std::make_unique<PredictModel>(
-        nThreads, stokes_i_only_ ? 1 : getInfoOut().ncorr(), nCh, nBl,
-        apply_beam_);
-    std::unique_ptr<everybeam::pointresponse::PointResponse> point_response;
-
-    // Reduce the number of threads if there are not enough baselines.
-    n_threads = std::min(n_threads, nBl);
-
-    // All threads process 'baselines_per_thread' baselines.
-    // The first 'remaining_baselines' threads process an extra baseline.
-    const size_t baselines_per_thread = nBl / n_threads;
-    const size_t remaining_baselines = nBl % n_threads;
-
-    baseline_range.resize(n_threads);
-    sim_buffer.resize(n_threads);
-    baselines_split.resize(n_threads);
-    if (apply_beam_) {
-      station_range.resize(n_threads);
-      point_response = getInfoOut().GetTelescope().GetPointResponse(time);
-    }
-
-    // Index of the first baseline for the current thread. The loop below
-    // updates this variable in each iteration.
-    size_t first_baseline = 0;
-    for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
-      const size_t chunk_size =
-          baselines_per_thread + ((thread_index < remaining_baselines) ? 1 : 0);
-
-      baseline_range[thread_index] =
-          std::make_pair(first_baseline, first_baseline + chunk_size);
-      sim_buffer[thread_index].resize({chunk_size, nCh, actual_nCr});
-
-      baselines_split[thread_index].resize(chunk_size);
-      std::copy_n(std::next(baselines_.cbegin(), first_baseline), chunk_size,
-                  baselines_split[thread_index].begin());
-
-      first_baseline += chunk_size;  // Update for the next loop iteration.
-    }
-    // Verify that all baselines are assigned to threads.
-    assert(first_baseline == nBl);
-
-    // find min,max station indices for this thread
-    if (apply_beam_) {
-      const size_t stations_thread = (nSt + n_threads - 1) / n_threads;
-      for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
-        const size_t station_start = thread_index * stations_thread;
-        const size_t station_end = station_start + stations_thread < nSt
-                                       ? station_start + stations_thread
-                                       : nSt;
-        if (station_start < nSt) {
-          station_range[thread_index] =
-              std::make_pair(station_start, station_end);
-        } else {
-          // fill an invalid station range
-          // so that station_start<nSt for valid range
-          station_range[thread_index] = std::make_pair(nSt + 1, nSt + 1);
-        }
-      }
-    }
-
-    schaapcommon::RecursiveFor::NestedRun(
-        0, n_threads, [&](size_t thread_index) {
-          const std::complex<double> zero(0.0, 0.0);
-          model_buffer->GetModel(thread_index).fill(zero);
-          if (apply_beam_) model_buffer->GetPatchModel(thread_index).fill(zero);
-          sim_buffer[thread_index].fill(zero);
-        });
-
-    // Keep this loop single threaded, I'm not sure if Simulator constructor
-    // is thread safe.
-    for (size_t thread_index = 0; thread_index != n_threads; ++thread_index) {
-      // When applying beam, simulate into patch vector
-      // Create a Casacore view since the Simulator still uses Casacore.
-      xt::xtensor<std::complex<double>, 3>& thread_buffer =
-          sim_buffer[thread_index];
-      const casacore::IPosition shape(3, thread_buffer.shape(2),
-                                      thread_buffer.shape(1),
-                                      thread_buffer.shape(0));
-      casacore::Cube<std::complex<double>> simulatedest(
-          shape, thread_buffer.data(), casacore::SHARE);
-
-      simulators.emplace_back(
-          phase_ref_, nSt, baselines_split[thread_index],
-          getInfoOut().chanFreqs(), getInfoOut().chanWidths(), scaled_ncp_uvw_,
-          station_uvw_, simulatedest, correct_time_smearing_,
-          correct_freq_smearing_, stokes_i_only_);
-    }
-
-    std::vector<std::shared_ptr<const sky_model::Patch>> curPatches(n_threads);
-
-    std::barrier barrier(n_threads);
-    // We need to create local threads here because we need to
-    // sync only those using the barrier
-    schaapcommon::RecursiveFor::NestedRun(
-        0, n_threads, [&](size_t thread_index) {
-          const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
-          // Predict the source model and apply beam when an entire patch is
-          // done
-          const sky_model::Patch* curPatch = curPatches[thread_index].get();
-
-          for (size_t source_index = 0; source_index < source_list_.size();
-               ++source_index) {
-            const bool patchIsFinished =
-                curPatch != source_list_[source_index].second.get() &&
-                curPatch != nullptr;
-
-            if (apply_beam_ && patchIsFinished) {
-              // PatchModel <- SimulBuffer
-              aocommon::xt::UTensor<std::complex<double>, 3>& patch_model =
-                  model_buffer->GetPatchModel(thread_index);
-              xt::view(patch_model,
-                       xt::range(baseline_range[thread_index].first,
-                                 baseline_range[thread_index].second),
-                       xt::all(), xt::all()) = sim_buffer[thread_index];
-
-              // Apply the beam and add PatchModel to Model
-              addBeamToDataRange(
-                  *curPatch, model_buffer->GetModel(thread_index),
-                  *point_response, thread_index, patch_model,
-                  baseline_range[thread_index], station_range[thread_index],
-                  barrier, stokes_i_only_);
-              // Initialize patchmodel to zero for the next patch
-              sim_buffer[thread_index].fill(std::complex<double>(0.0, 0.0));
-            }
-            if (use_local_frame_) {
-              // Convert the ra,dec coordinates to az,el
-              const std::shared_ptr<base::ModelComponent>& curComp =
-                  source_list_[source_index].first;
-              base::PointSource* curPt =
-                  static_cast<base::PointSource*>(curComp.get());
-              const base::Direction& direction =
-                  source_j2000_positions_[source_index];
-              const MDirection posJ2000(
-                  MVDirection(direction.ra, direction.dec), MDirection::J2000);
-              const MDirection dirAzelGeo =
-                  meas_convertors_[thread_index](posJ2000);
-              const base::Direction posAzelGeo(
-                  dirAzelGeo.getAngle().getBaseValue()[0],
-                  dirAzelGeo.getAngle().getBaseValue()[1]);
-              curPt->setDirection(posAzelGeo);
-            }
-            // Depending on apply_beam_, the following call will add to either
-            // the Model or the PatchModel of the predict buffer
-            simulators[thread_index].simulate(source_list_[source_index].first);
-
-            curPatch = source_list_[source_index].second.get();
-          }
-          // catch last source
-          if (apply_beam_ && curPatch != nullptr) {
-            // PatchModel <- SimulBuffer
-            aocommon::xt::UTensor<std::complex<double>, 3>& patch_model =
-                model_buffer->GetPatchModel(thread_index);
-            xt::view(patch_model,
-                     xt::range(baseline_range[thread_index].first,
-                               baseline_range[thread_index].second),
-                     xt::all(), xt::all()) = sim_buffer[thread_index];
-
-            addBeamToDataRange(*curPatch, model_buffer->GetModel(thread_index),
-                               *point_response, thread_index, patch_model,
-                               baseline_range[thread_index],
-                               station_range[thread_index], barrier,
-                               stokes_i_only_);
-          }
-          if (!apply_beam_) {
-            aocommon::xt::UTensor<std::complex<double>, 3>& model =
-                model_buffer->GetModel(thread_index);
-            xt::view(model,
-                     xt::range(baseline_range[thread_index].first,
-                               baseline_range[thread_index].second),
-                     xt::all(), xt::all()) = sim_buffer[thread_index];
-          }
-        });
-
-    // Add all thread model data to one buffer
-    for (size_t thread = 1; thread < n_threads; ++thread) {
-      // Sum thread model data in their own container (doubles) to prevent
-      // rounding errors when writing to the data member of the DPBuffer
-      // (floats).
-      model_buffer->GetModel(0) += model_buffer->GetModel(thread);
-    }
-
-    CopyPredictBufferToData(data, model_buffer->GetModel(0));
-  } else {
-    PredictWithSourceParallelization(data, time);
-  }
+  PredictWithSourceParallelization(data, time);
 
   if (apply_cal_step_) {
     apply_cal_step_->process(std::move(buffer));
@@ -902,40 +711,6 @@ void OnePredict::addBeamToData(
     ApplyBeamToDataAndAdd(getInfoOut(), buffer.NStations(), data, model_data,
                           values);
   }
-}
-
-void OnePredict::addBeamToDataRange(
-    const sky_model::Patch& patch,
-    aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-    everybeam::pointresponse::PointResponse& point_response, size_t thread,
-    aocommon::xt::UTensor<std::complex<double>, 3>& data,
-    const std::pair<size_t, size_t>& baseline_range,
-    const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
-    bool stokesIOnly) {
-  // Apply beam for a patch, add result to Model
-  MDirection dir(MVDirection(patch.Direction().ra, patch.Direction().dec),
-                 MDirection::J2000);
-  const everybeam::vector3r_t srcdir = dir2Itrf(dir, meas_convertors_[thread]);
-
-  // We use a common buffer to calculate beam values
-  base::PredictBuffer& buffer = predict_buffers_->front();
-  if (stokesIOnly) {
-    const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
-    ApplyBeam::ApplyBaselineBasedArrayFactor(
-        getInfoOut(), data.data(), srcdir, station_indices_, point_response,
-        buffer.GetScalarBeamValues(0), baseline_range, station_range, barrier,
-        false, beam_mode_, &mutex_);
-  } else {
-    const common::ScopedMicroSecondAccumulator scoped_time(apply_beam_time_);
-    float* weights = nullptr;
-    ApplyBeam::ApplyBaselineBasedBeam(
-        getInfoOut(), data.data(), weights, srcdir, station_indices_,
-        point_response, buffer.GetFullBeamValues(0), baseline_range,
-        station_range, barrier, false, beam_mode_, false, &mutex_);
-  }
-
-  // Add temporary buffer to Model
-  model_data += data;
 }
 
 void OnePredict::finish() {
