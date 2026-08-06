@@ -20,6 +20,7 @@
 
 #include "sky_model/SkyModelCache.h"
 
+#include "steps/AartfaacReader.h"
 #include "steps/AntennaFlagger.h"
 #include "steps/AOFlaggerStep.h"
 #include "steps/ApplyBeam.h"
@@ -496,7 +497,10 @@ void ExecuteFromCommandLine(int argc, char* argv[]) {
 
 std::shared_ptr<InputStep> MakeMainSteps(const common::ParameterSet& parset) {
   std::shared_ptr<InputStep> input_step;
-  if (parset.isDefined("msin") or parset.isDefined("msin.name")) {
+
+  if (parset.getString("msin.filetype", "ms") == "aartfaac") {
+    input_step = std::make_shared<steps::AartfaacReader>(parset, "msin.");
+  } else if (parset.isDefined("msin") || parset.isDefined("msin.name")) {
     input_step = InputStep::CreateReader(parset);
   } else if (parset.isDefined("stream.socket")) {
     input_step = std::make_shared<steps::SVPInput>(parset, "stream.");

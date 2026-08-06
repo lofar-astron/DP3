@@ -22,6 +22,8 @@
 
 #include "../LoggerFixture.h"
 
+#include "steps/AartfaacReader.h"
+#include "steps/InputStep.h"
 #include "steps/NullStep.h"
 #include "steps/test/unit/mock/MockInput.h"
 #include "steps/test/unit/mock/ThrowStep.h"
@@ -1423,6 +1425,17 @@ BOOST_AUTO_TEST_CASE(test_provided_fields_intermediate_output) {
   BOOST_TEST(dp3::base::SetChainProvidedFields(provides1) == Fields());
   BOOST_TEST(output1->GetFieldsToWrite() == kProvidedFields1);
   BOOST_TEST(output2->GetFieldsToWrite() == kProvidedFields2);
+}
+
+BOOST_AUTO_TEST_CASE(initialize_aartfaac_reader) {
+  common::ParameterSet parset;
+  parset.add("msin.filetype", "aartfaac");
+  parset.add("msin.mode", "1");
+  parset.add("msin.antennafield", "antennaconfig.txt");
+  parset.add("steps", "[null]");
+  std::shared_ptr<steps::InputStep> reader = dp3::base::MakeMainSteps(parset);
+
+  BOOST_TEST(dynamic_cast<steps::AartfaacReader*>(reader.get()) != nullptr);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

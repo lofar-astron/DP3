@@ -560,6 +560,7 @@ add_library(
   sky_model/Source.cc
   sky_model/SourceInfo.cc
   pythondp3/PyStep.cc
+  steps/AartfaacReader.cc
   steps/AntennaFlagger.cc
   steps/AOFlaggerStep.cc
   steps/ApplyBeam.cc
