@@ -26,7 +26,7 @@ namespace {
 
 // Constants copy pasted from steps/test/unit/tIDGPredict.cc
 constexpr unsigned int kNCorr = 4;
-constexpr double kTime = 0.0;
+constexpr double kStartTime = 0.0;
 constexpr double kInterval = 1.0;
 constexpr std::size_t kNBaselines = 3;
 const std::vector<double> kChannelFrequencies = {
@@ -96,6 +96,7 @@ BOOST_DATA_TEST_CASE(fields_add_subtract,
   dp3::common::ParameterSet parset;
   parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
   parset.add("operation", operation);
+  parset.add("usefastpredict", "False");
   const OnePredict predict(parset, "", {});
   BOOST_TEST(predict.getRequiredFields() ==
              (Step::kDataField | Step::kUvwField));
@@ -105,6 +106,7 @@ BOOST_DATA_TEST_CASE(fields_add_subtract,
 BOOST_FIXTURE_TEST_CASE(fields_applycal, dp3::steps::test::H5ParmFixture) {
   dp3::common::ParameterSet parset;
   parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
+  parset.add("usefastpredict", "False");
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
   const OnePredict predict(parset, "", {});
@@ -130,6 +132,7 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
                        operation) {
   dp3::common::ParameterSet parset;
   parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
+  parset.add("usefastpredict", "False");
   parset.add("applycal.parmdb", kParmDb);
   parset.add("applycal.correction", kSoltabName);
   parset.add("operation", operation);
@@ -155,7 +158,7 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
 static std::unique_ptr<dp3::base::DPBuffer> CreateBuffer() {
   const std::array<std::size_t, 3> kShape{kNBaselines, kNChan, kNCorr};
 
-  auto buffer = std::make_unique<dp3::base::DPBuffer>(kTime, kInterval);
+  auto buffer = std::make_unique<dp3::base::DPBuffer>(kStartTime, kInterval);
   buffer->GetData().resize(kShape);
   buffer->GetWeights().resize(kShape);
   buffer->GetFlags().resize(kShape);
@@ -225,6 +228,7 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
   // Make step chain
   dp3::common::ParameterSet parset;
   parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
+  parset.add("usefastpredict", "False");
   auto predict =
       std::make_shared<OnePredict>(parset, "", std::vector<std::string>());
   auto predict_result = std::make_shared<dp3::steps::ResultStep>();

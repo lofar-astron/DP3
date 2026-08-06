@@ -110,15 +110,15 @@ BOOST_FIXTURE_TEST_CASE(fields_applycal, dp3::steps::test::H5ParmFixture) {
   const FastPredict predict(parset, "", {});
 
   // FastPredict uses ApplyCal which has a OneApplyCal sub-step as next step.
-  const dp3::steps::ApplyCal apply_cal(parset, "applycal.", true);
+  const std::shared_ptr<dp3::steps::ApplyCal> apply_cal =
+      std::make_shared<dp3::steps::ApplyCal>(parset, "applycal.", true);
 
   const dp3::common::Fields apply_cal_required =
-      dp3::base::GetChainRequiredFields(
-          std::make_shared<dp3::steps::ApplyCal>(apply_cal));
+      dp3::base::GetChainRequiredFields(apply_cal);
   // TODO(AST-1033) Determine ApplyCal provided fields using generic DP3
   // functions.
   const dp3::common::Fields apply_cal_provided =
-      apply_cal.getNextStep()->getProvidedFields();
+      apply_cal->getNextStep()->getProvidedFields();
   BOOST_TEST(predict.getRequiredFields() ==
              (apply_cal_required | Step::kUvwField));
   BOOST_TEST(predict.getProvidedFields() ==
@@ -139,11 +139,11 @@ BOOST_DATA_TEST_CASE_F(dp3::steps::test::H5ParmFixture,
 
   // When operation is "add" or "subtract", FastPredict only combines the
   // required fields of its ApplyCal sub-step.
-  const dp3::steps::ApplyCal apply_cal(parset, "applycal.", true);
+  const std::shared_ptr<dp3::steps::ApplyCal> apply_cal =
+      std::make_shared<dp3::steps::ApplyCal>(parset, "applycal.", true);
 
   const dp3::common::Fields apply_cal_required =
-      dp3::base::GetChainRequiredFields(
-          std::make_shared<dp3::steps::ApplyCal>(apply_cal));
+      dp3::base::GetChainRequiredFields(apply_cal);
 
   BOOST_TEST(predict.getRequiredFields() ==
              (apply_cal_required | Step::kUvwField));
