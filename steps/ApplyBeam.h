@@ -125,38 +125,6 @@ class ApplyBeam final : public Step {
 
   bool invert() { return itsInvert; }
 
-  /**
-   * Calculate and apply the beam for processing when
-   * parallelizing over baselines. Because the beam is a per-antenna effect,
-   * this requires synchronisation, which is performed with the provided
-   * barrier.
-   */
-  static void ApplyBaselineBasedBeam(
-      const base::DPInfo& info, std::complex<double>* data0, float* weight0,
-      const everybeam::vector3r_t& srcdir,
-      const std::vector<size_t>& station_indices,
-      everybeam::pointresponse::PointResponse& point_response,
-      aocommon::MC2x2* beam_values,
-      const std::pair<size_t, size_t>& baseline_range,
-      const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
-      bool invert, everybeam::BeamMode mode, bool do_update_weights = false,
-      std::mutex* mutex = nullptr,
-      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
-
-  /**
-   * Like @ref ApplyBaselineBasedBeam(), but for array factor only.
-   */
-  static void ApplyBaselineBasedArrayFactor(
-      const base::DPInfo& info, std::complex<double>* data0,
-      const everybeam::vector3r_t& srcdir,
-      const std::vector<size_t>& station_indices,
-      everybeam::pointresponse::PointResponse& point_response,
-      std::complex<double>* beam_values,
-      const std::pair<size_t, size_t>& baseline_range,
-      const std::pair<size_t, size_t>& station_range, std::barrier<>& barrier,
-      bool invert, everybeam::BeamMode mode, std::mutex* mutex = nullptr,
-      const std::vector<size_t>& skip_station_indices = std::vector<size_t>());
-
  private:
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
