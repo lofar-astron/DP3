@@ -89,7 +89,7 @@ class Source {
                const std::string& name, double defValue, double& value);
 
   SourceInfo itsInfo;
-  string itsPatchName;
+  std::string itsPatchName;
   double itsRa;   ///< radians
   double itsDec;  ///< radians
   double itsI;
