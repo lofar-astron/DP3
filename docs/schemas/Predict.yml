@@ -6,8 +6,8 @@ inputs:
     doc: Case-insensitive step type; must be 'predict'.
   usefastpredict:
     type: boolean
-    default: depends on CMake configuration
-    doc: Make use of the accelerated `predict library <https://git.astron.nl/RD/predict>`__. This is an **experimental** drop-in replacement for the current implementation in DP3, please use at your own risk! Note that the option is only available when compiling with ``USE_FAST_PREDICT=ON``. If the aforementioned CMake option is enabled, the default value is set to ``true``.
+    default: true
+    doc: Make use of the accelerated `predict library <https://git.astron.nl/RD/predict>`__. This is a rewrite of the old implementation in DP3 and is a few times faster. This option is only available if DP3 is compiled with fast prediction, but this is the default since August 2026.
   sourcedb:
     type: string
     doc: Path of sourcedb in which a sky model is stored (the output of makesourcedb). When the path ends with ``.skymodel`` or ``.txt`` DP3 expects a skymodel file as used by makesourcedb. This makes it possible to directly use a skymodel file without using makesourcedb to convert the file.  The sourcedb format is described at https://www.astron.nl/lofarwiki/doku.php?id=public:user_software:documentation:makesourcedb . In DP3 v5.3 a change was introduced to fix the projection of Gaussian sources. For backward compatibility, also the old behavior is still supported, using the key ``OrientationIsAbsolute`` in the sky model. To make sure you use the new (and most correct) behavior, add ``OrientationIsAbsolute=true`` to your sky models.
@@ -72,10 +72,6 @@ inputs:
   correctfreqsmearing:
     type: boolean
     doc: Simulate frequency smearing based on the channel width, by multiplying the visibility with a sinc function.
-    default: false
-  parallelbaselines:
-    type: boolean
-    doc: Parallelize sky model prediction over baselines instead of sources. Will speed up performance in certain cases.
     default: false
   coefficients_path:
     type: string
