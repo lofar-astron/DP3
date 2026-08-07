@@ -50,8 +50,7 @@ RUN python3 -m venv /dp3env \
 # seconds appear, ignore them or regenerate the docker image.
 RUN mkdir -p /usr/share/casacore/data \
 	&& cd /usr/share/casacore/data \
-	&& (wget -nv --timeout 5 --tries=3 https://www.astron.nl/iers/WSRT_Measures.ztar \
-        || wget -nv --timeout 5 --tries=3 https://git.astron.nl/cobalt/cobalt/-/jobs/1832331/artifacts/raw/WSRT_Measures.ztar ) \
+	&& wget -nv --timeout 5 --tries=3 https://iers.astron.nl/WSRT_Measures.ztar \
 	&& tar xfz WSRT_Measures.ztar \
 	&& rm WSRT_Measures.ztar
 # The casacore version in Ubuntu is too old to support C++20, so install a more recent one.
