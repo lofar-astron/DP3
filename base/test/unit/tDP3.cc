@@ -518,10 +518,9 @@ void CheckAvg(const std::string& out_ms) {
   Table obsout(table_out.keywordSet().asTable("OBSERVATION"));
   casacore::Vector<double> timeRange(
       ArrayColumn<double>(obsout, "TIME_RANGE").getColumn());
-  BOOST_CHECK(
-      near(timeRange(0), ScalarColumn<double>(table_out, "TIME")(0) - 300));
-  BOOST_CHECK(
-      near(timeRange(1), ScalarColumn<double>(table_out, "TIME")(0) + 295));
+  const double time_out = ScalarColumn<double>(table_out, "TIME")(0);
+  BOOST_CHECK(near(timeRange(0), time_out - 300));
+  BOOST_CHECK(near(timeRange(1), time_out + 300));
 }
 
 // Test averaging in a single step.

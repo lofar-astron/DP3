@@ -140,3 +140,21 @@ def test_full_jones():
             f"applycal.soltab = [amplitude000,phase000]",
         ]
     )
+
+
+def test_averaged():
+    """
+    Test applying solutions after averaging in time, where the averaging
+    factor does not divide the number of time slots evenly.
+    See https://jira.skatelescope.org/browse/SKB-1423
+    """
+    check_call(
+        [
+            tcf.DP3EXE,
+            "numthreads=1",
+            f"msin={MSIN}",
+            "steps=[average,applycal,null]",
+            "average.timestep=5",
+            f"applycal.parmdb={PARMDB}",
+        ]
+    )

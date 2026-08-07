@@ -313,22 +313,26 @@ unsigned int DPInfo::update(unsigned int chanAvg, unsigned int timeAvg) {
   if (timeAvg > n_times_) {
     timeAvg = n_times_;
   }
-  if (n_channels_ % chanAvg != 0)
+
+  if (n_channels_ % chanAvg != 0) {
     throw std::runtime_error(
         "When averaging, nr of channels must divide integrally; "
         "nr of channels = " +
         std::to_string(n_channels_) +
         " averaging factor = " + std::to_string(chanAvg));
+  }
   channel_averaging_factor_ *= chanAvg;
   n_channels_ = (n_channels_ + chanAvg - 1) / chanAvg;
+
+  assert(n_times_ > 0);
   time_averaging_factors_.front() *= timeAvg;
   n_times_ = (n_times_ + timeAvg - 1) / timeAvg;
   // Adjust first_time_ to be the centroid of the first averaged interval.
-  // Subtract 0.5 * old interval; Add 0.5 * new interval. Same for last_time_.
-  const double time_adjustment = 0.5 * (timeAvg - 1) * time_interval_;
-  first_time_ += time_adjustment;
-  last_time_ -= time_adjustment;
+  // Subtract 0.5 * old interval; Add 0.5 * new interval.
+  first_time_ += 0.5 * (timeAvg - 1) * time_interval_;
   time_interval_ *= timeAvg;
+  // Set last_time_ to the centroid of the last averaged interval.
+  last_time_ = first_time_ + (n_times_ - 1) * time_interval_;
 
   std::vector<double> freqs(n_channels_);
   std::vector<double> widths(n_channels_, 0.0);
