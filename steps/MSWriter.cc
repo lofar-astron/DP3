@@ -240,12 +240,12 @@ void MSWriter::FinishMs() {
 
   // Create the VDS file.
   if (!cluster_desc_.empty()) {
-    string vds_name = ms_.tableName() + ".vds";
+    std::string vds_name = ms_.tableName() + ".vds";
     if (!vds_dir_.empty()) {
       if (vds_dir_[vds_dir_.size() - 1] != '/') {
         vds_dir_.append("/");
       }
-      vds_name = vds_dir_ + string(casacore::Path(vds_name).baseName());
+      vds_name = vds_dir_ + std::string(casacore::Path(vds_name).baseName());
     }
     // Create VDS file without detailed time info.
     dp3::common::VdsMaker::create(ms_.tableName(), vds_name, cluster_desc_, "",

@@ -122,8 +122,8 @@ class ParmDBCasa : public ParmDBRep {
   /// Extract the parm values from a table selection with a single parm name.
   ///@{
   // void extractValues (ParmMap& result, const casacore::Table& table);
-  std::pair<string, ParmValueSet> extractDefValue(const casacore::Table& sel,
-                                                  int row);
+  std::pair<std::string, ParmValueSet> extractDefValue(
+      const casacore::Table& sel, int row);
   ///@}
 
   /// Do the actual put of a value.

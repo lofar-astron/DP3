@@ -303,7 +303,7 @@ void testampl(int ntime, int nchan, bool freqaxis, bool timeaxis) {
 }
 
 // Test with missing antenna option
-void testmissingant(int ntime, int nchan, string missingant,
+void testmissingant(int ntime, int nchan, std::string missingant,
                     bool solshadfreqaxis = false,
                     bool solshadtimeaxis = false) {
   TestInput* in = new TestInput(ntime, nchan);

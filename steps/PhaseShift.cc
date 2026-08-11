@@ -165,7 +165,7 @@ MDirection PhaseShift::handleCenter() {
   ///"Up to 3 values can be given in PhaseShift phasecenter");
   casacore::MDirection phaseCenter;
   if (itsCenter.size() == 1) {
-    string str = boost::to_upper_copy(itsCenter[0]);
+    std::string str = boost::to_upper_copy(itsCenter[0]);
     MDirection::Types tp;
     if (!MDirection::getType(tp, str))
       throw std::runtime_error(str +
@@ -184,7 +184,7 @@ MDirection PhaseShift::handleCenter() {
                              " in PhaseShift phasecenter");
   MDirection::Types type = MDirection::J2000;
   if (itsCenter.size() > 2) {
-    string str = boost::to_upper_copy(itsCenter[2]);
+    std::string str = boost::to_upper_copy(itsCenter[2]);
     MDirection::Types tp;
     if (!MDirection::getType(tp, str))
       throw std::runtime_error(str +

@@ -123,8 +123,8 @@ void ParmDBCasa::createTables(const std::string& tableName) {
   tddef.addColumn(ArrayColumnDesc<double>("VALUES"));
 
   SetupNewTable newtab(tableName, td, Table::New);
-  SetupNewTable newnamtab(tableName + string("/NAMES"), tdnam, Table::New);
-  SetupNewTable newdeftab(tableName + string("/DEFAULTVALUES"), tddef,
+  SetupNewTable newnamtab(tableName + std::string("/NAMES"), tdnam, Table::New);
+  SetupNewTable newdeftab(tableName + std::string("/DEFAULTVALUES"), tddef,
                           Table::New);
 
   Table tab(newtab);
@@ -250,13 +250,13 @@ void ParmDBCasa::fillDefMap(ParmMap& defMap) {
   Table& table = itsTables[2];
   TableLocker locker(table, FileLocker::Read);
   for (unsigned int row = 0; row < table.nrow(); ++row) {
-    std::pair<string, ParmValueSet> val = extractDefValue(table, row);
+    std::pair<std::string, ParmValueSet> val = extractDefValue(table, row);
     defMap.define(val.first, val.second);
   }
 }
 
-std::pair<string, ParmValueSet> ParmDBCasa::extractDefValue(const Table& tab,
-                                                            int row) {
+std::pair<std::string, ParmValueSet> ParmDBCasa::extractDefValue(
+    const Table& tab, int row) {
   ScalarColumn<casacore::String> nameCol(tab, "NAME");
   ScalarColumn<int> typeCol(tab, "FUNKLETTYPE");
   ArrayColumn<bool> maskCol(tab, "SOLVABLE");
@@ -377,7 +377,7 @@ void ParmDBCasa::getDefValues(ParmMap& result,
   Table sel = table(table.col("NAME") == regex);
   ScalarColumn<casacore::String> nameCol(sel, "NAME");
   for (unsigned int row = 0; row < sel.nrow(); ++row) {
-    std::pair<string, ParmValueSet> pset(extractDefValue(sel, row));
+    std::pair<std::string, ParmValueSet> pset(extractDefValue(sel, row));
     result.define(pset.first, pset.second);
   }
 }

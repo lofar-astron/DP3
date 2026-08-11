@@ -447,7 +447,7 @@ void test1(int ntime, int nbl, int nchan, int ncorr, int navgtime, int navgchan,
 // Like test 1, but specify target resolution
 void test1resolution(int ntime, int nbl, int nchan, int ncorr,
                      double timeresolution, double freqresolution,
-                     string frequnit, bool flag) {
+                     std::string frequnit, bool flag) {
   auto step1 = std::make_shared<TestInput>(ntime, nbl, nchan, ncorr, flag);
   ParameterSet parset;
   parset.add("freqresolution", std::to_string(freqresolution) + frequnit);

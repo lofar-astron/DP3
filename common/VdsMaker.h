@@ -75,15 +75,15 @@ class VdsMaker {
   /// Find out which file contains the DATA column.
   /// Determine if the DATA are stored in a TSM file of itself.
   /// Determine the cube and tile shape.
-  static void getDataFileInfo(casacore::MS& ms, string& name, bool& regular,
-                              std::vector<int>& tileShape,
+  static void getDataFileInfo(casacore::MS& ms, std::string& name,
+                              bool& regular, std::vector<int>& tileShape,
                               std::vector<int>& cubeShape);
 
   /// Find the file system on which the given file is located.
   /// If the host name is empty, gethostname() will be used.
-  static string findFileSys(const std::string& fileName,
-                            const common::ClusterDesc& cdesc,
-                            const std::string& hostName);
+  static std::string findFileSys(const std::string& fileName,
+                                 const common::ClusterDesc& cdesc,
+                                 const std::string& hostName);
 };
 
 /// @}

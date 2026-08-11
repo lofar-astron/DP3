@@ -312,7 +312,7 @@ Matrix<bool> BaselineSelection::handleBLVector(
 
 void BaselineSelection::handleCorrType(Matrix<bool>& selectBL) const {
   // Process corrtype if given.
-  string corrType = boost::to_lower_copy(itsCorrType);
+  std::string corrType = boost::to_lower_copy(itsCorrType);
   if (corrType != "auto" && corrType != "cross")
     throw std::runtime_error(
         "DP3 corrType " + corrType +

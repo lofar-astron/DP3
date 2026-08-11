@@ -839,7 +839,7 @@ void GainCal::initParmDB() {
   resolution[1] = getInfoOut().timeInterval() * itsSolInt;
   itsParmDB->setDefaultSteps(resolution);
 
-  string parmname = parmName() + "*";
+  std::string parmname = parmName() + "*";
 
   if (!itsParmDB->getNames(parmname).empty()) {
     aocommon::Logger::Warn << "Solutions for " << parmname << " already in "
@@ -1007,8 +1007,9 @@ void GainCal::writeSolutionsH5Parm(double) {
   }
 
   // Put solutions in a contiguous piece of memory
-  string historyString = "CREATE by " + DP3Version::AsString() + "\n" +
-                         "step " + itsName + " in parset: \n" + itsParsetString;
+  std::string historyString = "CREATE by " + DP3Version::AsString() + "\n" +
+                              "step " + itsName + " in parset: \n" +
+                              itsParsetString;
 
   if (itsMode == CalType::kTec || itsMode == CalType::kTecAndPhase) {
     std::vector<double> tecsols(nSolFreqs * antennaUsedNames.size() *
@@ -1218,7 +1219,7 @@ void GainCal::writeSolutionsParmDB(double startTime) {
       }
       for (int realim = 0; realim < realimmax;
            ++realim) {  // For real and imaginary
-        string name = parmName();
+        std::string name = parmName();
 
         if (itsMode != CalType::kScalarPhase &&
             itsMode != CalType::kScalarAmplitude) {

@@ -454,7 +454,7 @@ void ExecuteFromCommandLine(const std::vector<std::string>& arguments) {
 
   // Get the name of the parset file.
   if (argc > 1) {
-    string param = arguments[1];
+    std::string param = arguments[1];
     if (param == "--help" || param == "-help" || param == "-h" ||
         param == "--usage" || param == "-usage") {
       ShowUsage();

@@ -46,7 +46,7 @@ class ParmFacade {
   ~ParmFacade();
 
   /// Get the version info (tree, top, full or other)
-  string version(const std::string& type) const;
+  std::string version(const std::string& type) const;
 
   /// Get the domain range (as startx,endx,starty,endy) of the given
   /// parameters in the table.
