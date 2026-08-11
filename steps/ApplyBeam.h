@@ -131,7 +131,7 @@ class ApplyBeam final : public Step {
   bool ProcessData(std::unique_ptr<base::DPBuffer> buffer);
   bool ProcessModelData(std::unique_ptr<base::DPBuffer> buffer);
 
-  string itsName;
+  std::string itsName;
   bool itsInvert;
   bool itsUpdateWeights;
   std::vector<std::string> itsDirectionStr;

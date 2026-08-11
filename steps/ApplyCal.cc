@@ -58,8 +58,8 @@ ApplyCal::ApplyCal(const common::ParameterSet& parset,
   std::vector<std::string>::const_iterator subStepNameIter;
   for (subStepNameIter = subStepNames.begin();
        subStepNameIter != subStepNames.end(); ++subStepNameIter) {
-    string subStepName = (*subStepNameIter);
-    string subStepPrefix;
+    std::string subStepName = (*subStepNameIter);
+    std::string subStepPrefix;
     if (subStepName.empty()) {
       // No substeps given, use parameters of this step
       subStepPrefix = prefix;

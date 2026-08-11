@@ -17,7 +17,7 @@ using dp3::parmdb::ParmMap;
 
 namespace dp3::sky_model {
 
-Source::Source() : itsInfo(string(), SourceInfo::POINT) {}
+Source::Source() : itsInfo(std::string(), SourceInfo::POINT) {}
 
 Source::Source(const SourceInfo& info, const std::string& patchName, double ra,
                double dec)

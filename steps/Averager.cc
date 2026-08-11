@@ -37,7 +37,8 @@ Averager::Averager(const common::ParameterSet& parset,
       itsNTimes(0),
       itsOriginalTimeInterval(0),
       itsNoAvg(true) {
-  string freqResolutionStr = parset.getString(prefix + "freqresolution", "0");
+  std::string freqResolutionStr =
+      parset.getString(prefix + "freqresolution", "0");
   itsFreqResolution = getFreqHz(freqResolutionStr);
 
   if (itsFreqResolution > 0) {

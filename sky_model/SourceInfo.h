@@ -97,9 +97,9 @@ class SourceInfo {
   ///@}
 
  private:
-  string itsName;            ///< source name
+  std::string itsName;       ///< source name
   Type itsType;              ///< source type
-  string itsRefType;         ///< reference type
+  std::string itsRefType;    ///< reference type
   uint32_t itsNSpTerms;      ///< nr of terms in the spectral index function
   double itsSpTermsRefFreq;  ///< reference frequency (Hz) for spectral index
   bool itsHasLogarithmicSI;  ///< Spectral indices are logarithmic terms (false

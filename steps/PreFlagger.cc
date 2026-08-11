@@ -68,7 +68,8 @@ PreFlagger::PreFlagger(const common::ParameterSet& parset,
       itsPSet(parset, prefix),
       itsCount(0),
       itsFlagCounter(parset, prefix + "count.") {
-  string mode = boost::to_lower_copy(parset.getString(prefix + "mode", "set"));
+  std::string mode =
+      boost::to_lower_copy(parset.getString(prefix + "mode", "set"));
   if (mode == "clear") {
     itsMode = Mode::kClearFlag;
   } else if (mode == "setcomplement" || mode == "setother") {
@@ -822,7 +823,7 @@ std::vector<std::string> PreFlagger::PSet::exprToRpn(
   // Operators & (or &&) | (or ||) and , are used as well as parentheses.
   // The operators must have a value in order of precedence, thus &&
   // has a higher precedence than || (as in C).
-  string expr = boost::to_upper_copy(origExpr);
+  std::string expr = boost::to_upper_copy(origExpr);
   std::stack<int> tokens;
   std::vector<std::string> names;
   unsigned int i = 0;
@@ -1088,8 +1089,8 @@ xt::xtensor<int, 1> PreFlagger::PSet::handleFreqRanges(
         throw std::runtime_error("PreFlagger freqrange '" + *str +
                                  "' should be range using .. or +-");
     }
-    string str1 = str->substr(0, pos);
-    string str2 = str->substr(pos + 2);
+    std::string str1 = str->substr(0, pos);
+    std::string str2 = str->substr(pos + 2);
     casacore::String u1, u2;
     double v1, v2;
     getValue(str1, v1, u1);
