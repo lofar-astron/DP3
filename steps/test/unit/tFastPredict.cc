@@ -261,49 +261,46 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
   BOOST_TEST(predict->getProvidedFields() == dp3::common::Fields());
 }
 
-BOOST_AUTO_TEST_CASE(array_factor_sparse_station_ids) {
+BOOST_AUTO_TEST_CASE(full_beam_sparse_station_ids) {
   const std::vector<predict::Baseline> baselines{{15, 16}};
   const xt::xtensor<double, 1> frequencies = {120.0e6, 121.0e6};
 
-  Buffer4D direction_buffer({1, baselines.size(), 2, frequencies.size()}, 0.0);
-  Buffer4D model_data({1, baselines.size(), 2, frequencies.size()}, 0.0);
+  // For better locality, the baseline and polarization dimensions are reversed
+  // in the ApplyBeamToDataAndAdd method.
+  Buffer4D direction_buffer({baselines.size(), 4, 2, frequencies.size()}, 0.0f);
+  Buffer4D model_data({4, baselines.size(), 2, frequencies.size()}, 0.0f);
 
-  // Use a simple scalar visibility of 1+0i for all channels.
+  // Use a diagonal 2x2 visibility of 1+0i for all channels.
   for (size_t ch = 0; ch < frequencies.size(); ++ch) {
     direction_buffer(0, 0, 0, ch) = 1.0f;
-    direction_buffer(0, 0, 1, ch) = 0.0f;
+    direction_buffer(0, 3, 0, ch) = 1.0f;
   }
 
   // Beam values are produced in compact (unique-station) indexing order.
-  // Keep extra entries so this test stays deterministic if wrong indexing is
-  // used instead of causing out-of-bounds access.
-  std::vector<aocommon::MC2x2F> beam_values(
-      (std::max(baselines.front().first, baselines.front().second) + 1) *
-          frequencies.size(),
-      aocommon::MC2x2F(
-          std::complex<float>(0.0f, 0.0f), std::complex<float>(0.0f, 0.0f),
-          std::complex<float>(0.0f, 0.0f), std::complex<float>(0.0f, 0.0f)));
-
+  xt::xtensor<float, 4> beam_values({2, 4, 2, frequencies.size()}, 0.0f);
   for (size_t ch = 0; ch < frequencies.size(); ++ch) {
-    beam_values[ch] = aocommon::MC2x2F(
-        std::complex<float>(2.0f, 0.0f), std::complex<float>(0.0f, 0.0f),
-        std::complex<float>(0.0f, 0.0f), std::complex<float>(2.0f, 0.0f));
-    beam_values[frequencies.size() + ch] = aocommon::MC2x2F(
-        std::complex<float>(3.0f, 0.0f), std::complex<float>(0.0f, 0.0f),
-        std::complex<float>(0.0f, 0.0f), std::complex<float>(3.0f, 0.0f));
+    beam_values(0, 0, 0, ch) = 2.0f;
+    beam_values(0, 3, 0, ch) = 2.0f;
+    beam_values(1, 0, 0, ch) = 3.0f;
+    beam_values(1, 3, 0, ch) = 3.0f;
   }
 
   predict::BeamResponsePlan beam_plan;
   beam_plan.SetTime(0.0);
   beam_plan.SetFieldId(0);
-  beam_plan.SetBeamMode(everybeam::BeamMode::kArrayFactor);
-
-  beam_plan.ApplyArrayFactorAndAdd(baselines, frequencies, direction_buffer,
-                                   model_data, beam_values);
+  beam_plan.SetBeamMode(everybeam::BeamMode::kFull);
+  beam_plan.ApplyBeamToDataAndAdd(baselines, frequencies, direction_buffer,
+                                  model_data, beam_values);
 
   for (size_t ch = 0; ch < frequencies.size(); ++ch) {
     BOOST_CHECK_CLOSE(model_data(0, 0, 0, ch), 6.0f, 1.0e-6);
+    BOOST_CHECK_SMALL(model_data(1, 0, 0, ch), 1.0e-6f);
+    BOOST_CHECK_SMALL(model_data(2, 0, 0, ch), 1.0e-6f);
+    BOOST_CHECK_CLOSE(model_data(3, 0, 0, ch), 6.0f, 1.0e-6);
     BOOST_CHECK_SMALL(model_data(0, 0, 1, ch), 1.0e-6f);
+    BOOST_CHECK_SMALL(model_data(1, 0, 1, ch), 1.0e-6f);
+    BOOST_CHECK_SMALL(model_data(2, 0, 1, ch), 1.0e-6f);
+    BOOST_CHECK_SMALL(model_data(3, 0, 1, ch), 1.0e-6f);
   }
 }
 

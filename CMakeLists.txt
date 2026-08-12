@@ -210,6 +210,9 @@ endif()
 # component, which has been header-only since Boost 1.73.
 # Using "COMPONENTS date_time" should not be used anymore since it no longer
 # works since Boost 1.89.
+if(POLICY CMP0167) # Use BoostConfig.cmake instead of FindBoost.cmake.
+  cmake_policy(SET CMP0167 NEW) # Using this policy avoids a warning.
+endif()
 find_package(Boost 1.73 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
