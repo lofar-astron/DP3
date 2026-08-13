@@ -17,6 +17,7 @@
 #include "common/ParameterSet.h"
 #include "steps/ApplyCal.h"
 #include "steps/NullStep.h"
+#include "steps/OnePredict.h"
 
 #include "tPredict.h"
 #include "H5ParmFixture.h"
@@ -33,6 +34,77 @@ const std::vector<std::size_t> kChannelCounts(kNChan, 1);
 constexpr double kStartTime = 0.0;
 constexpr double kInterval = 1.0;
 constexpr std::size_t kNBaselines = 3;
+// Realistic MJD-seconds timestamp (~2013) matching tNDPPP-generic.MS,
+// required so EveryBeam beam calculations fall within the IERS table range.
+constexpr double kBeamTestTime = 4.87128e+09;
+
+dp3::common::ParameterSet MakeBeamParset() {
+  dp3::common::ParameterSet parset;
+  parset.add("sourcedb", dp3::steps::test::kPredictSkyModel);
+  parset.add("usebeammodel", "True");
+  parset.add("beammode", "array_factor");
+  parset.add("beam_interval", "120");
+  return parset;
+}
+
+struct BeamConsistencyFixture {
+ public:
+  BeamConsistencyFixture() {
+    const dp3::common::ParameterSet predict_parset = MakeBeamParset();
+
+    one_predict = std::make_shared<dp3::steps::OnePredict>(
+        predict_parset, "", std::vector<std::string>());
+    one_result = std::make_shared<dp3::steps::ResultStep>();
+    one_predict->setNextStep(one_result);
+
+    fast_predict = std::make_shared<FastPredict>(predict_parset, "",
+                                                 std::vector<std::string>());
+    fast_result = std::make_shared<dp3::steps::ResultStep>();
+    fast_predict->setNextStep(fast_result);
+
+    dp3::base::DPInfo info(kNCorr, kNChan, "HBA_DUAL_INNER");
+    info.setMsName("tNDPPP-generic.MS");
+    info.setTimes(kBeamTestTime, kBeamTestTime + 9.0, 1.0);
+    const std::vector<int> ant1{0, 0, 1};
+    const std::vector<int> ant2{1, 2, 2};
+    const std::vector<std::string> ant_names{"CS001HBA0", "CS002HBA0",
+                                             "CS002HBA1"};
+
+    // Real LOFAR HBA ITRF positions are required for EveryBeam to produce a
+    // time-varying array factor. Zero positions give a degenerate result.
+    casacore::Vector<double> vals(3);
+    std::vector<casacore::MPosition> ant_pos(3);
+    vals[0] = 3828763;
+    vals[1] = 442449;
+    vals[2] = 5064923;
+    ant_pos[0] = casacore::MPosition(
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
+        casacore::MPosition::ITRF);
+    vals[0] = 3828746;
+    vals[1] = 442592;
+    vals[2] = 5064924;
+    ant_pos[1] = casacore::MPosition(
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
+        casacore::MPosition::ITRF);
+    vals[0] = 3828827;
+    vals[1] = 442642;
+    vals[2] = 5064875;
+    ant_pos[2] = casacore::MPosition(
+        casacore::Quantum<casacore::Vector<double>>(vals, "m"),
+        casacore::MPosition::ITRF);
+    info.setAntennas(ant_names, std::vector<double>(3, 70.0), ant_pos, ant1,
+                     ant2);
+    info.setChannels(std::vector<double>(kNChan, 120.0e6),
+                     std::vector<double>(kNChan, 3.0e6));
+    one_predict->setInfo(info);
+    fast_predict->setInfo(info);
+  }
+
+  std::shared_ptr<dp3::steps::OnePredict> one_predict;
+  std::shared_ptr<FastPredict> fast_predict;
+  std::shared_ptr<dp3::steps::ResultStep> one_result;
+  std::shared_ptr<dp3::steps::ResultStep> fast_result;
+};
 
 class FastPredictFixture {
  public:
@@ -301,6 +373,26 @@ BOOST_AUTO_TEST_CASE(full_beam_sparse_station_ids) {
     BOOST_CHECK_SMALL(model_data(1, 0, 1, ch), 1.0e-6f);
     BOOST_CHECK_SMALL(model_data(2, 0, 1, ch), 1.0e-6f);
     BOOST_CHECK_SMALL(model_data(3, 0, 1, ch), 1.0e-6f);
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(beam_time_consistency_with_array_factor,
+                        BeamConsistencyFixture) {
+  using BufferPtr = std::unique_ptr<dp3::base::DPBuffer>;
+  BufferPtr input =
+      CreateBuffer(kBeamTestTime, kInterval, kNBaselines, kChannelCounts, 1.0f);
+
+  one_predict->process(std::make_unique<dp3::base::DPBuffer>(*input));
+  fast_predict->process(std::make_unique<dp3::base::DPBuffer>(*input));
+
+  BufferPtr one_output = one_result->take();
+  BufferPtr fast_output = fast_result->take();
+
+  const dp3::base::DPBuffer::DataType& one_data = one_output->GetData();
+  const dp3::base::DPBuffer::DataType& fast_data = fast_output->GetData();
+
+  for (std::size_t i = 0; i < one_data.size(); ++i) {
+    BOOST_CHECK_CLOSE(fast_data.data()[i], one_data.data()[i], 1.0e-4f);
   }
 }
 
