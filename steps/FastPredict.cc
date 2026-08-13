@@ -722,7 +722,7 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
   {
     const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
     if (predict_plan_.apply_beam) {
-      beam_response_plan_->SetTime(time);
+      beam_response_plan_->SetTime(beam_evaluation_time);
       predict_.runWithStrategy(*predict_plan_exec_, *beam_response_plan_,
                                point_sources_, gaussian_sources_,
                                simulator_data_new, meas_converter_,
