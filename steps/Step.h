@@ -12,6 +12,7 @@
 #include <iosfwd>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "base/DPBuffer.h"
 #include "base/BdaBuffer.h"
@@ -120,6 +121,9 @@ class Step {
   /// The default implementation does nothing.
   virtual void showTimings(std::ostream&, double duration) const;
 
+  /// Get the step name.
+  virtual std::string_view getStepName() const = 0;
+
   /// Set the previous step.
   void setPrevStep(Step* prev_step) { previous_step_ = prev_step; }
 
@@ -156,6 +160,10 @@ class Step {
   /// The default implementation only calls addToMS from the previous step
   virtual void addToMS(const std::string& msName);
 
+  void StepProcessingStart();
+
+  void StepProcessingEnd();
+
  private:
   std::shared_ptr<Step> next_step_;
   Step* previous_step_ = nullptr;  /// Normal pointer for back links, prevent
@@ -163,6 +171,9 @@ class Step {
   base::DPInfo input_info_;
   base::DPInfo output_info_;
   inline static bool threading_is_initialized_ = false;
+#ifdef ENABLE_TRACY_PROFILING
+  uint32_t tracy_section_id = 0;
+#endif
 };
 
 /// Common interface for steps that produce model data.

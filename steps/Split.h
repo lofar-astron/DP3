@@ -51,6 +51,8 @@ class Split final : public OutputStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "Split"; }
+
   /// Override setNextStep, since Split should be the last step.
   void setNextStep(std::shared_ptr<Step> step) override;
 

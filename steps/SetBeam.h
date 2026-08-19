@@ -39,6 +39,8 @@ class SetBeam final : public Step {
 
   void show(std::ostream&) const override;
 
+  std::string_view getStepName() const override { return "SetBeam"; }
+
  private:
   std::string name_;
   std::vector<std::string> direction_strings_;

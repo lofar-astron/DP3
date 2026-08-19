@@ -56,6 +56,8 @@ class BdaExpander : public Step {
 
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "BdaExpander"; }
+
   bool accepts(MsType dt) const override { return dt == MsType::kBda; }
 
  private:

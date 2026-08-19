@@ -104,11 +104,13 @@ class ApplyBeam final : public Step {
   }
 
   bool process(std::unique_ptr<base::DPBuffer> buffer) override {
+    StepProcessingStart();
     if (use_model_data_) {
       return ProcessModelData(std::move(buffer));
     } else {
       return ProcessData(std::move(buffer));
     }
+    StepProcessingEnd();
   }
 
   /// Finish the processing of this step and subsequent steps.
@@ -122,6 +124,8 @@ class ApplyBeam final : public Step {
 
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
+
+  std::string_view getStepName() const override { return "ApplyBeam"; }
 
   bool invert() { return itsInvert; }
 

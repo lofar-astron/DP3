@@ -68,6 +68,8 @@ class DDECal : public Step {
 
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "DDECal"; }
+
  private:
   void initializeColumnReaders(const common::ParameterSet&,
                                const std::string& prefix);

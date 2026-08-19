@@ -244,9 +244,12 @@ void WGridderPredict::updateInfo(const dp3::base::DPInfo& info_in) {
 }
 
 bool WGridderPredict::process(std::unique_ptr<base::DPBuffer> buffer) {
+  StepProcessingStart();
   buffers_.emplace_back(std::move(buffer));
   if (buffers_.size() >= buffer_size_) {
     flush();
+  } else {
+    StepProcessingEnd();
   }
   return false;
 }
@@ -306,6 +309,7 @@ void WGridderPredict::flush() {
     Predict(dir, destinations);
   }
   uvw_ = {};
+  StepProcessingEnd();
   for (size_t i = 0; i < buffers_.size(); i++) {
     getNextStep()->process(std::move(buffers_[i]));
   }

@@ -90,6 +90,8 @@ class AOFlaggerStep : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "AOFlagger"; }
+
  private:
   /// Flag all baselines in the time window (using OpenMP to parallellize).
   /// Process the buffers in the next step.

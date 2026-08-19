@@ -48,6 +48,8 @@ class DummyStep : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "DummyStep"; }
+
  private:
   std::string name_;
   common::NSTimer timer_;

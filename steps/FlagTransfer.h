@@ -61,6 +61,8 @@ class FlagTransfer final : public Step {
 
   void showTimings(std::ostream&, double duration) const final;
 
+  std::string_view getStepName() const override { return "FlagTransfer"; }
+
  private:
   /// Read FLAG column from the time step pointed to by ms_iterator_
   void ReadSourceMsFlags();

@@ -37,6 +37,8 @@ class ResultStep : public Step {
   /// It does nothing.
   void show(std::ostream&) const override {}
 
+  std::string_view getStepName() const override { return "Result"; }
+
   /// Get the result.
   /// Does not transfer ownership of the buffer to the caller. If that is
   /// required, use take() instead.

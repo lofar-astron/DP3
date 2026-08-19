@@ -75,6 +75,8 @@ class PhaseShift : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "PhaseShift"; }
+
   /// Fill the Euler rotation matrix for given ra/dec.
   static void fillEulerMatrix(casacore::Matrix<double>& mat,
                               const base::Direction& direction);

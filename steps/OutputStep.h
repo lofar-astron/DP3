@@ -35,6 +35,8 @@ class OutputStep : public Step {
     return fields_to_write_;
   };
 
+  std::string_view getStepName() const override { return "OutputStep"; }
+
  private:
   /**
    * Determines which fields the step should write. Used by derived classes.

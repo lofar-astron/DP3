@@ -783,6 +783,7 @@ void DDECal::doSolve() {
             xt::view(original_flags_, sol_int, timestep, xt::all(), xt::all(),
                      xt::all());
       }
+      StepProcessingEnd();
       // Push data (possibly changed) to next step
       getNextStep()->process(std::move(input_buffers_[sol_int][timestep]));
     }
@@ -792,6 +793,8 @@ void DDECal::doSolve() {
 }
 
 bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
+  StepProcessingStart();
+
   timer_.start();
 
   // Check that all extra input data is there.
@@ -829,6 +832,8 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
       if (result_step) result_step->clear();
     }
     input_buffers_.clear();
+  } else {
+    StepProcessingEnd();
   }
 
   timer_.stop();

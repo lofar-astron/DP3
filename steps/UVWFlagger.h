@@ -83,6 +83,8 @@ class UVWFlagger : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "UVWFlagger"; }
+
   bool accepts(MsType dt) const override { return dt == itsInputType; }
 
   MsType outputs() const override { return itsInputType; }

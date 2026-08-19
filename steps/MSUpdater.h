@@ -52,6 +52,8 @@ class MSUpdater : public OutputStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "MSUpdater"; }
+
   /// Tests if an update of the buffer described in info to the MS msName
   /// is possible. When throwError is true, it will throw an error with a
   /// descriptive string before returning false

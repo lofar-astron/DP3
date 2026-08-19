@@ -66,6 +66,8 @@ class SVPInput : public InputStep {
   void updateInfo(const base::DPInfo&) override{};
   void show(std::ostream&) const override;
 
+  std::string_view getStepName() const override { return "SVPInput"; }
+
   std::string msName() const override;
 
  private:

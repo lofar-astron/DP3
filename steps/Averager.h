@@ -76,6 +76,8 @@ class Averager : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "Averager"; }
+
   /// Get the value in Hertz of a string like "1000 MHz". If unit is
   /// omitted it defaults to Hertz
   static double getFreqHz(const std::string& freqstr);

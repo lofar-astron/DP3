@@ -65,6 +65,8 @@ class Predict : public ModelDataStep {
 
   void show(std::ostream&) const override;
 
+  std::string_view getStepName() const override { return "Predict"; }
+
   /// Ensures that all steps, including internal sub-steps, form a single list.
   void setNextStep(std::shared_ptr<Step> next_step) override;
 

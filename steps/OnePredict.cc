@@ -457,6 +457,7 @@ void OnePredict::CopyPredictBufferToData(
 }
 
 bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
+  StepProcessingStart();
   timer_.start();
 
   base::SplitUvw(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
@@ -537,6 +538,7 @@ bool OnePredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   timer_.stop();
+  StepProcessingEnd();
 
   getNextStep()->process(std::move(buffer));
   return false;

@@ -130,6 +130,8 @@ class MsReader : public InputStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "MsReader"; }
+
   /// Read the UVW at the given row numbers into the buffer.
   void getUVW(const casacore::RefRows& rowNrs, double time, base::DPBuffer&);
 

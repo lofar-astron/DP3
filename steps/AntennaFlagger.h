@@ -31,6 +31,7 @@ class AntennaFlagger final : public Step {
   void show(std::ostream& ostream) const override;
   bool process(std::unique_ptr<base::DPBuffer> buffer) override;
   void showTimings(std::ostream& ostream, double duration) const override;
+  std::string_view getStepName() const override { return "AntennaFlagger"; }
 
  private:
   std::string name_;

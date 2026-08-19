@@ -49,6 +49,8 @@ class Counter : public Step {
   /// Show the step parameters.
   void show(std::ostream&) const override;
 
+  std::string_view getStepName() const override { return "Counter"; }
+
   /// Show the flag counts.
   void showCounts(std::ostream&) const override;
 

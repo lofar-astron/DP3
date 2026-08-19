@@ -157,6 +157,7 @@ std::string MSWriter::InsertNumberInFilename(const std::string& name,
 }
 
 bool MSWriter::process(std::unique_ptr<DPBuffer> buffer) {
+  StepProcessingStart();
   if (chunk_start_time_ == 0.0) chunk_start_time_ = buffer->GetTime();
 
   if (chunk_duration_ != 0.0 &&
@@ -171,8 +172,10 @@ bool MSWriter::process(std::unique_ptr<DPBuffer> buffer) {
 
   if (use_write_thread_) {
     CreateTask(std::move(buffer));
+    StepProcessingEnd();
   } else {
     ProcessBuffer(*buffer);
+    StepProcessingEnd();
     getNextStep()->process(std::move(buffer));
   }
 

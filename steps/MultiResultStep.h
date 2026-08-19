@@ -35,6 +35,8 @@ class MultiResultStep : public Step {
   /// It does nothing.
   void show(std::ostream&) const override{};
 
+  std::string_view getStepName() const override { return "MultiResultStep"; }
+
   /// Get the result.
   const std::vector<std::unique_ptr<base::DPBuffer>>& get() const {
     return buffers_;

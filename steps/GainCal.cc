@@ -379,6 +379,7 @@ void GainCal::showTimings(std::ostream& os, double duration) const {
 }
 
 bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
+  StepProcessingStart();
   itsTimer.start();
 
   if (!itsModelDataName.empty()) {
@@ -479,6 +480,7 @@ bool GainCal::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   itsTimer.stop();
+  StepProcessingEnd();
 
   if (!itsUseH5Parm && (itsStepInParmUpdate == itsTimeSlotsPerParmUpdate)) {
     writeSolutionsParmDB(itsChunkStartTime);

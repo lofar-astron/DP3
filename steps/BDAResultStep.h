@@ -43,6 +43,8 @@ class BDAResultStep : public Step {
   /// Does nothing.
   void show(std::ostream&) const override {}
 
+  std::string_view getStepName() const override { return "BDAResultStep"; }
+
   /// Extracts all stored buffers from the result step.
   std::vector<std::unique_ptr<base::BdaBuffer>> Extract() {
     std::vector<std::unique_ptr<base::BdaBuffer>> result;

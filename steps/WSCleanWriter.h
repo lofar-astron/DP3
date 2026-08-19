@@ -47,6 +47,8 @@ class WSCleanWriter : public OutputStep {
 
   void showTimings(std::ostream& os, double duration) const override;
 
+  std::string_view getStepName() const override { return "WSCleanWriter"; }
+
  private:
   void StartReorder();
   void ReorderBuffer(dp3::base::DPBuffer& buffer);

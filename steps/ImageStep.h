@@ -53,6 +53,8 @@ class ImageStep final : public Step {
 
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "ImageStep"; }
+
  private:
   /// Initialize an single in-memory MeasurementSet and set the required meta
   /// data.

@@ -128,6 +128,8 @@ class MSBDAReader : public InputStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "MSBDAReader"; }
+
   /// Get the name of the MS.
   std::string msName() const override;
 

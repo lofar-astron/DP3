@@ -115,6 +115,8 @@ class FastPredict : public ModelDataStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "FastPredict"; }
+
   /// Prepare the sources
   void setSources(const std::vector<std::string>& sourcePatterns);
 

@@ -89,6 +89,8 @@ class MadFlagger : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "MadFlagger"; }
+
   /// Flag for the entry at the given index.
   /// Use the given time entries for the medians.
   /// Process the result in the next step.

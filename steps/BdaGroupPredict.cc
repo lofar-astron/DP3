@@ -236,6 +236,7 @@ void BdaGroupPredict::showTimings(std::ostream& os, double duration) const {
 }
 
 bool BdaGroupPredict::process(std::unique_ptr<base::BdaBuffer> buffer) {
+  StepProcessingStart();
   timer_.start();
 
   buffers_.push({std::move(buffer), 0});
@@ -256,6 +257,7 @@ bool BdaGroupPredict::process(std::unique_ptr<base::BdaBuffer> buffer) {
   }
 
   timer_.stop();
+  StepProcessingEnd();
   while (!buffers_.empty() && buffers_.front().buffer->GetRows().size() ==
                                   buffers_.front().nr_rows_filled) {
     getNextStep()->process(std::move(buffers_.front().buffer));

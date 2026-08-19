@@ -93,6 +93,8 @@ class BdaDdeCal : public Step {
 
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "BdaDdeCal"; }
+
   void updateInfo(const base::DPInfo&) override;
 
   bool accepts(MsType dt) const override { return dt == MsType::kBda; }
