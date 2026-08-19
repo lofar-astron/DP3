@@ -61,6 +61,8 @@ class Transfer final : public Step {
 
   void showTimings(std::ostream&, double duration) const final;
 
+  std::string_view getStepName() const override { return "Transfer"; }
+
  private:
   /// Read the DATA column from the time step pointed to by ms_iterator_
   void ReadSourceMsVisibilities();

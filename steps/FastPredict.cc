@@ -603,6 +603,7 @@ void FastPredict::CopyPredictBufferToData(
 }
 
 bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
+  StepProcessingStart();
   timer_.start();
 
   // Determine the various sizes.
@@ -667,6 +668,7 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
   }
 
   timer_.stop();
+  StepProcessingEnd();
 
   getNextStep()->process(std::move(buffer));
   return false;

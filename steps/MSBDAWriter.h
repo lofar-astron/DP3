@@ -37,6 +37,8 @@ class MSBDAWriter : public OutputStep {
 
   void show(std::ostream&) const override;
 
+  std::string_view getStepName() const override { return "MSBDAWriter"; }
+
  private:
   /// Create the MS by cloning all subtables from the input MS.
   /// All output columns in the main table are using normal storage managers.

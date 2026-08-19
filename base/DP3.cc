@@ -12,6 +12,8 @@
 #include <schaapcommon/threading/threadpool.h>
 
 #include <boost/algorithm/string.hpp>
+#include <cstdint>
+#include <iostream>
 
 #include "DPBuffer.h"
 #include "DPInfo.h"
@@ -82,6 +84,10 @@
 #include <casacore/casa/OS/Timer.h>
 #include <casacore/casa/OS/DynLib.h>
 #include <casacore/casa/Utilities/Regex.h>
+
+#ifdef ENABLE_TRACY_PROFILING
+#include <tracy/Tracy.hpp>
+#endif
 
 using dp3::steps::InputStep;
 using dp3::steps::MSBDAWriter;
@@ -313,6 +319,14 @@ void Execute(const std::string& parsetName,
   // Adopt possible parameters given at the command line.
   parset.adoptArguments(arguments);
 
+  // Wait for user input before starting.
+  // Useful when connecting Tracy
+  bool pauseBeforeStart = parset.getBool("pause_before_start", false);
+  if (pauseBeforeStart) {
+    aocommon::Logger::Info << "Press enter to start pipeline...\n";
+    std::cin.get();
+  }
+
   // Immediately initialize logger such that output will follow requested
   // verbosity
   if (parset.isDefined("verbosity")) {
@@ -343,11 +357,22 @@ void Execute(const std::string& parsetName,
   Step::SetThreadingIsInitialized();
   aocommon::Logger::Debug << "DP3 started with " << n_threads << " threads.\n";
 
+#ifdef ENABLE_TRACY_PROFILING
+  const uint32_t tidCreateSteps = TracySectionEnter("Creating steps");
+#endif
   // Create the steps, link them together
   std::shared_ptr<InputStep> firstStep = MakeMainSteps(parset);
 
+#ifdef ENABLE_TRACY_PROFILING
+  TracySectionLeave(tidCreateSteps);
+  const uint32_t tidUpdateInfo = TracySectionEnter("Updating DPInfo");
+#endif
+
   // Call updateInfo() on all steps
   firstStep->setInfo(DPInfo());
+#ifdef ENABLE_TRACY_PROFILING
+  TracySectionLeave(tidUpdateInfo);
+#endif
 
   // Show the steps.
   std::shared_ptr<Step> step = firstStep;
@@ -376,26 +401,56 @@ void Execute(const std::string& parsetName,
   // All steps should have finished reading the sky model, so clear the cache
   sky_model::SkyModelCache::GetInstance().Clear();
 
+#ifdef ENABLE_TRACY_PROFILING
+  const uint32_t tidProcess = TracySectionEnter("Processing");
+#endif
   // Process until the end.
   unsigned int ntodo = firstStep->getInfoOut().ntime();
   aocommon::Logger::Info << "Processing " << ntodo << " time slots ...\n";
+  double ndone = 0;
   if (showProgress) {
-    double ndone = 0;
     ProgressMeter progress(ndone, ntodo, "DP3", "Time slots processed", "", "",
                            true, 1);
     if (ntodo > 0) progress.update(ndone, true);
-    while (firstStep->process(std::make_unique<DPBuffer>())) {
+    uint32_t tidTimeStep;
+    bool hasMore;
+    do {
+#ifdef ENABLE_TRACY_PROFILING
+      tidTimeStep =
+          TracySectionEnter("Timestep %d", static_cast<uint32_t>(ndone));
+#endif
+      hasMore = firstStep->process(std::make_unique<DPBuffer>());
+#ifdef ENABLE_TRACY_PROFILING
+      TracySectionLeave(tidTimeStep);
+#endif
       ++ndone;
-      if (ntodo > 0) progress.update(ndone, true);
-    }
+      if (ntodo > 0 && hasMore) progress.update(ndone, true);
+    } while (hasMore);
   } else {
-    while (firstStep->process(std::make_unique<DPBuffer>())) {
-      // do nothing
-    }
+    uint32_t tidTimeStep;
+    bool hasMore;
+    do {
+#ifdef ENABLE_TRACY_PROFILING
+      tidTimeStep =
+          TracySectionEnter("Timestep %d", static_cast<uint32_t>(ndone));
+#endif
+      hasMore = firstStep->process(std::make_unique<DPBuffer>());
+#ifdef ENABLE_TRACY_PROFILING
+      TracySectionLeave(tidTimeStep);
+#endif
+      ++ndone;
+    } while (hasMore);
   }
+#ifdef ENABLE_TRACY_PROFILING
+  TracySectionLeave(tidProcess);
+  const uint32_t tidEndProcessing = TracySectionEnter("Finish processing");
+#endif
   // Finish the processing.
   aocommon::Logger::Info << "Finishing processing ...\n";
   firstStep->finish();
+#ifdef ENABLE_TRACY_PROFILING
+  TracySectionLeave(tidEndProcessing);
+#endif
 
   // Show the counts where needed.
   if (showcounts) {

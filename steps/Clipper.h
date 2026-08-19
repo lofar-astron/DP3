@@ -49,6 +49,8 @@ class Clipper : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "Clipper"; }
+
   /// Set the Predict substep and connect it to a ResultStep.
   void SetPredict(std::shared_ptr<Step> substep);
 

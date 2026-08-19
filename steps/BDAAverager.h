@@ -55,6 +55,8 @@ class BdaAverager : public Step {
 
   void show(std::ostream&) const override;
 
+  std::string_view getStepName() const override { return "BDAAverager"; }
+
   void updateInfo(const base::DPInfo&) override;
 
   bool accepts(MsType t) const override { return t == MsType::kRegular; }

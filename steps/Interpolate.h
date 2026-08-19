@@ -48,6 +48,8 @@ class Interpolate : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "Interpolate"; }
+
  private:
   void interpolateTimestep(size_t index);
   void interpolateSample(size_t timestep, size_t baseline, size_t channel,

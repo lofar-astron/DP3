@@ -167,6 +167,7 @@ MsReader::MsReader(const casacore::MeasurementSet& ms,
 std::string MsReader::msName() const { return ms_.tableName(); }
 
 bool MsReader::process(std::unique_ptr<DPBuffer> buffer) {
+  StepProcessingStart();
   const std::array<std::size_t, 3> shape{
       getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
 
@@ -360,6 +361,8 @@ bool MsReader::process(std::unique_ptr<DPBuffer> buffer) {
   if (getFieldsToRead().Uvw())
     getUVW(buffer->GetRowNumbers(), buffer->GetTime(), *buffer);
   if (getFieldsToRead().Weights()) GetWeights(buffer->GetRowNumbers(), *buffer);
+
+  StepProcessingEnd();
 
   getNextStep()->process(std::move(buffer));
   // Do not add to previous time, because it introduces round-off errors.

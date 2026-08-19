@@ -38,6 +38,8 @@ class IDGImager : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "IDGImager"; }
+
   size_t GetImageSize() { return grid_size_; }
 
  private:

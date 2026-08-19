@@ -64,6 +64,8 @@ class BdaGroupPredict : public ModelDataStep {
 
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "BdaGroupPredict"; }
+
   bool accepts(MsType dt) const override { return dt == MsType::kBda; }
 
   MsType outputs() const override { return MsType::kBda; }

@@ -730,13 +730,15 @@ if(ENABLE_TRACY_PROFILING)
   FetchContent_Declare(
     tracy
     GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-    GIT_TAG v0.13.1
+    GIT_TAG v0.14.0
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE)
 
   FetchContent_MakeAvailable(tracy)
   target_link_libraries(DP3_OBJ TracyClient)
 
+  target_compile_definitions(DP3_OBJ PRIVATE ENABLE_TRACY_PROFILING)
+  target_compile_definitions(DDECal PRIVATE ENABLE_TRACY_PROFILING)
 endif(ENABLE_TRACY_PROFILING)
 
 if(BUILD_TESTING)

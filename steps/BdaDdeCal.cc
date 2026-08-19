@@ -394,6 +394,7 @@ std::vector<double> BdaDdeCal::GetChannelBlockFrequencies() const {
 }
 
 bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
+  StepProcessingStart();
   timer_.start();
 
   for (size_t i = steps_.size(); i < direction_names_.size(); ++i) {
@@ -449,6 +450,7 @@ bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
   ExtractResults();
 
   timer_.stop();
+  StepProcessingEnd();
   ProcessCompleteDirections();
 
   return true;

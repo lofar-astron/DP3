@@ -92,6 +92,8 @@ class PreFlagger : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "PreFlagger"; }
+
  private:
   /// This internal class represents a single set of ANDed selections.
   /// PSets can be logically combined by the PreFlagger class.

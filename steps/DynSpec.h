@@ -49,6 +49,8 @@ class DynSpec : public Step {
 
   void showTimings(std::ostream&, double duration) const final;
 
+  std::string_view getStepName() const override { return "DynSpec"; }
+
  private:
   /// Convert instrumental polarizations to Stokes parameters.
   xt::xtensor<float, 2> ComputeAbsoluteStokesParameters(

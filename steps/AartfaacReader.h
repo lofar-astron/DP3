@@ -43,6 +43,7 @@ class AartfaacReader : public InputStep {
   void updateInfo(const base::DPInfo&) override;
   /// Show the step parameters.
   void show(std::ostream&) const override;
+  std::string_view getStepName() const override { return "AartfaacReader"; }
 
   std::string msName() const override;
 

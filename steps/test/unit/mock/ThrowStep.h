@@ -22,6 +22,7 @@ class ThrowStep : public Step {
   void updateInfo(const base::DPInfo&) override;
   void finish() override;
   void show(std::ostream&) const override;
+  std::string_view getStepName() const override { return "TestStep"; }
 };
 }  // namespace test
 }  // namespace steps

@@ -72,6 +72,8 @@ class ApplyCal : public Step {
   /// OneApplyCals.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "ApplyCal"; }
+
   /// Invert a 2x2 matrix in place
   template <typename NumType>
   static void invert(std::complex<NumType>* v);

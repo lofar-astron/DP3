@@ -50,6 +50,8 @@ class Combine final : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const final;
 
+  std::string_view getStepName() const override { return "Combine"; }
+
   bool accepts(MsType data_type) const override {
     return data_type == ms_type_;
   }

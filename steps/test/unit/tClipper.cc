@@ -39,6 +39,7 @@ class MockPredict : public Step {
 
   void finish() { getNextStep()->finish(); }
   void show(std::ostream& os) const {}
+  std::string_view getStepName() const override { return "MockPredict"; }
   dp3::common::Fields getProvidedFields() const override { return kDataField; }
 
   bool process(std::unique_ptr<dp3::base::DPBuffer> buffer) override {

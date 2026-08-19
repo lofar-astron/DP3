@@ -78,6 +78,8 @@ class StationAdder : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "StationAdder"; }
+
   /// Return the indices of the stations in antenna_names matching
   /// the pattern list.
   /// The patterns are processed from left to right. A pattern can start

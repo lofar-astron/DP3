@@ -69,6 +69,8 @@ class GainCal final : public Step {
 
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "GainCal"; }
+
   /// Make a soltab with the given type
   static std::vector<schaapcommon::h5parm::SolTab> makeSolTab(
       schaapcommon::h5parm::H5Parm& h5parm, base::CalType caltype,

@@ -100,6 +100,7 @@ void PhaseShift::showTimings(std::ostream& os, double duration) const {
 }
 
 bool PhaseShift::process(std::unique_ptr<base::DPBuffer> buffer) {
+  StepProcessingStart();
   itsTimer.start();
 
   int ncorr = buffer->GetData().shape(2);
@@ -141,6 +142,7 @@ bool PhaseShift::process(std::unique_ptr<base::DPBuffer> buffer) {
     }
   });
   itsTimer.stop();
+  StepProcessingEnd();
   getNextStep()->process(std::move(buffer));
   return true;
 }

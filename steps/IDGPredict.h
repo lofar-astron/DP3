@@ -55,6 +55,8 @@ class IDGPredict : public ModelDataStep {
 
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "IDGPredict"; }
+
   /// Process the data in all internal buffers using IDG, and send the results
   /// to the next step using its process() function.
   void flush();

@@ -80,6 +80,8 @@ class MSWriter : public OutputStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "MSWriter"; }
+
   /// Write the parset info into the HISTORY table of the MS.
   static void WriteHistory(casacore::Table& ms,
                            const common::ParameterSet& parset);

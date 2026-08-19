@@ -516,6 +516,7 @@ void Demixer::showTimings(std::ostream& os, double duration) const {
 }
 
 bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
+  StepProcessingStart();
   itsTimer.start();
   // Update the count.
   itsNTimeIn++;
@@ -566,6 +567,8 @@ bool Demixer::process(std::unique_ptr<DPBuffer> buffer) {
   // slots have been collected.
   if (itsNTimeOut >= itsNTimeChunk) {
     handleDemix();
+  } else {
+    StepProcessingEnd();
   }
   itsTimer.stop();
   return true;
@@ -641,6 +644,9 @@ void Demixer::handleDemix() {
   for (size_t i = 0; i < itsAvgResults.size(); ++i) {
     itsAvgResults[i]->clear();
   }
+
+  StepProcessingEnd();
+
   // Let the next step process the data.
   for (unsigned int i = 0; i < itsNTimeOutSubtr; ++i) {
     itsTimer.stop();

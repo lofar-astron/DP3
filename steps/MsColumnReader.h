@@ -46,6 +46,8 @@ class MsColumnReader final : public ModelDataStep {
 
   void showTimings(std::ostream& os, double duration) const override;
 
+  std::string_view getStepName() const override { return "MsColumnReader"; }
+
   base::Direction GetFirstDirection() const override;
 
   bool accepts(MsType dt) const override { return dt == input_ms_type_; }

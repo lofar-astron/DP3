@@ -7,10 +7,15 @@
 #include "steps/Step.h"
 
 #include <cassert>
+#include <string_view>
 
 #include <aocommon/system.h>
 
 #include <schaapcommon/threading/threadpool.h>
+
+#ifdef ENABLE_TRACY_PROFILING
+#include <tracy/Tracy.hpp>
+#endif
 
 using dp3::base::DPBuffer;
 using dp3::base::DPInfo;
@@ -75,6 +80,18 @@ void Step::addToMS(const std::string& msName) {
 void Step::showCounts(std::ostream&) const {}
 
 void Step::showTimings(std::ostream&, double) const {}
+
+void Step::StepProcessingStart() {
+#ifdef ENABLE_TRACY_PROFILING
+  tracy_section_id = TracySectionEnter("%s", getStepName().begin());
+#endif
+}
+
+void Step::StepProcessingEnd() {
+#ifdef ENABLE_TRACY_PROFILING
+  TracySectionLeave(tracy_section_id);
+#endif
+}
 
 }  // namespace steps
 }  // namespace dp3

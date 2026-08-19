@@ -64,6 +64,8 @@ class Demixer : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "Demixer"; }
+
   /// We use addToMS() to update HISTORY table
   void addToMS(const std::string& msName) override;
 

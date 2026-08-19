@@ -11,6 +11,8 @@
 // Remove 'complex' def here as we do not need it afterwards
 #undef complex
 
+#include <string_view>
+
 #include "base/DP3.h"
 #include "base/DPBuffer.h"
 #include "base/ComponentInfo.h"
@@ -180,6 +182,8 @@ class SagecalPredict : public ModelDataStep {
   void show(std::ostream&) const override;
 
   void showTimings(std::ostream& os, double duration) const override;
+
+  std::string_view getStepName() const override { return "SagecalPredict"; }
 
   base::Direction GetFirstDirection() const override;
 

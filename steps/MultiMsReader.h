@@ -72,6 +72,8 @@ class MultiMsReader final : public InputStep {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "MultiMsReader"; }
+
   /// Set which fields must be read.
   void setFieldsToRead(const dp3::common::Fields& fields) override;
 

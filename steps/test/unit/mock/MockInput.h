@@ -21,6 +21,7 @@ class MockInput : public InputStep {
 
   void finish() override;
   void show(std::ostream&) const override;
+  std::string_view getStepName() const override { return "MockInput"; }
 };
 }  // namespace steps
 }  // namespace dp3

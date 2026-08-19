@@ -61,6 +61,8 @@ class Upsample : public Step {
   /// Show the step parameters.
   void show(std::ostream&) const override;
 
+  std::string_view getStepName() const override { return "Upsample"; }
+
  private:
   /// Update the time and exposure of a buffer and if `update_uvw_` is set also
   /// the uvw. Used internally by process function to populate each of

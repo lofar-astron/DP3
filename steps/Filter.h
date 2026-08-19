@@ -123,6 +123,8 @@ class Filter final : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "Filter"; }
+
   /// If needed, remove the deleted stations from the subtables
   /// and renumber the remaining stations.
   void addToMS(const std::string& msName) override;

@@ -20,6 +20,8 @@ class PyStep final : public steps::Step {
 
   void show(std::ostream& os) const override;
 
+  std::string_view getStepName() const override { return "PyStep"; }
+
   common::Fields getRequiredFields() const override;
   common::Fields getProvidedFields() const override;
 

@@ -65,6 +65,10 @@ class RestoreMetaDataChangedStep : public Step {
 
   void show(std::ostream& os) const override {}
 
+  std::string_view getStepName() const override {
+    return "RestoreMetadataChanged";
+  };
+
  private:
   /// Non-owning pointer to the Predict step that contains this step, which
   /// is the first step in the step chain created by Predict.

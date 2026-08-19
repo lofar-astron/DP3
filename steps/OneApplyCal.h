@@ -68,6 +68,8 @@ class OneApplyCal : public Step {
   /// Show the timings.
   void showTimings(std::ostream&, double duration) const override;
 
+  std::string_view getStepName() const override { return "OneApplyCal"; }
+
   bool invert() { return itsInvert; }
 
  private:

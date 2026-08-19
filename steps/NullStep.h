@@ -36,6 +36,8 @@ class NullStep : public OutputStep {
   /// It does nothing.
   void show(std::ostream&) const override {}
 
+  std::string_view getStepName() const override { return "NullStep"; }
+
   /// Accept BDA and regular data.
   bool accepts(MsType t) const override {
     return t == MsType::kRegular || t == MsType::kBda;
