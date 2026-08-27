@@ -231,6 +231,7 @@ bool MsReader::process(std::unique_ptr<DPBuffer> buffer) {
     if ((next_time_ > getInfoOut().lastTime() &&
          !casacore::near(next_time_, getInfoOut().lastTime())) ||
         next_time_ == 0.0) {
+      StepProcessingEnd();
       return false;
     }
 
