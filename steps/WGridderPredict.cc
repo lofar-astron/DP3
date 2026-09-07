@@ -15,6 +15,7 @@
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <ducc0/wgridder/wgridder.h>
+#include <ducc0/wgridder/wgridder_impl.h>
 #include <ducc0/fft/fftnd_impl.h>
 
 #include <xtensor/views/xview.hpp>
@@ -421,11 +422,17 @@ void WGridderPredict::Predict(
     // image and uvw and frequency data. The order of x and y, and l and m are
     // reversed here, to avoid transposing the image as explained in the comment
     // where the uvw data is concatenated.
-    dirty2ms<float, float>(uvw_view, frequencies_ascending, model_image,
-                           weights, mask, pixel_size_y_, pixel_size_x_, epsilon,
-                           true, nthreads, visibilities_ascending_frequency,
-                           verbosity, true, false, sigma_min, sigma_max,
-                           m_shift, l_shift);
+    constexpr bool kDoWgridding = true;
+    constexpr bool kFlipU = false;
+    constexpr bool kFlipV = true;
+    constexpr bool kFlipW = false;
+    constexpr bool kDivideByN = false;
+    constexpr bool kAllowNShift = true;
+    dirty2ms<float, float>(
+        uvw_view, frequencies_ascending, model_image, weights, mask,
+        pixel_size_x_, pixel_size_y_, epsilon, kDoWgridding, nthreads,
+        visibilities_ascending_frequency, verbosity, kFlipU, kFlipV, kFlipW,
+        kDivideByN, sigma_min, sigma_max, m_shift, l_shift, kAllowNShift);
 
     // Add the predicted visibilities to the destination buffers
     for (size_t t = 0; t < n_timesteps; ++t) {

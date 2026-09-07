@@ -125,8 +125,10 @@ void WSCleanWriter::StartReorder() {
   std::map<size_t, std::set<aocommon::PolarizationEnum>> pol_per_data_desc_id{
       {data_desc_id_, getInfoOut().polarizations()}};
 
+  aocommon::OptionalNumber<float> constant_interval(
+      getInfoOut().timeInterval());
   writer_ = std::make_unique<FileWriter>(*handle_data_, pol_per_data_desc_id,
-                                         data_desc_ids,
+                                         data_desc_ids, constant_interval,
                                          getInfoOut().startTime() / 86400);
 }
 
@@ -163,7 +165,7 @@ void WSCleanWriter::ReorderBuffer(dp3::base::DPBuffer& buffer) {
 
     writer_->WriteMetaRow(buff_uvw(bl, 0), buff_uvw(bl, 1), buff_uvw(bl, 2),
                           buffer.GetTime(), data_desc_id_, antenna1_list[bl],
-                          antenna2_list[bl], 0);
+                          antenna2_list[bl], 0, getInfoIn().timeInterval());
 
     writer_->WriteDataRow(data_ptr, nullptr, weight_ptr, flag_ptr,
                           data_desc_id_);
