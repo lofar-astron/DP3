@@ -37,9 +37,11 @@ SECS_IN_DAY = 86400
 #  uint32_t filename_length;
 #  uint32_t data_desc_id;
 #  bool has_single_data_desc_id;
+#  float constant_interval;
+#  bool has_constant_interval;
 # };
-_meta_header_fmt = "=dQLL?"
-_meta_header_binary_size = 25
+_meta_header_fmt = "=dQLL?f?"
+_meta_header_binary_size = 30
 
 # struct MetaRecordBuffer {
 #   double u;
@@ -103,6 +105,8 @@ def assert_reorder_ms_meta_file(ms_filename, ms_table):
             filename_length_actual,
             data_desc_id,
             has_data_desc_id,
+            constant_interval,
+            has_constant_interval,
         ) = struct.unpack_from(_meta_header_fmt, data_raw)
 
         data_raw = f.read(filename_length_actual)
