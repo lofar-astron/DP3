@@ -10,7 +10,9 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 
-#include <predict/BeamResponse.h>
+#include <predict/plans/beam/BeamResponsePlan.h>
+#include <predict/plans/beam/BeamResponseSettings.h>
+#include <predict/plans/PredictPlanExec.h>
 
 #include "base/DP3.h"
 
@@ -21,6 +23,7 @@
 
 #include "tPredict.h"
 #include "H5ParmFixture.h"
+#include "steps/test/unit/mock/MockTelescope.h"
 
 using dp3::steps::FastPredict;
 using dp3::steps::Step;
@@ -335,7 +338,9 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
 
 BOOST_AUTO_TEST_CASE(full_beam_sparse_station_ids) {
   const std::vector<predict::Baseline> baselines{{15, 16}};
-  const xt::xtensor<double, 1> frequencies = {120.0e6, 121.0e6};
+  const std::vector<double> kFrequencies{120.0e6, 121.0e6};
+  const xt::xtensor<double, 1> frequencies = xt::adapt(kFrequencies);
+  const everybeam::vector3r_t kDirection{0.0, 1.0, 0.0};
 
   // For better locality, the baseline and polarization dimensions are reversed
   // in the ApplyBeamToDataAndAdd method.
@@ -357,10 +362,15 @@ BOOST_AUTO_TEST_CASE(full_beam_sparse_station_ids) {
     beam_values(1, 3, 0, ch) = 3.0f;
   }
 
-  predict::BeamResponsePlan beam_plan;
-  beam_plan.SetTime(0.0);
-  beam_plan.SetFieldId(0);
-  beam_plan.SetBeamMode(everybeam::BeamMode::kFull);
+  predict::PredictPlanSettings predict_settings;
+  predict_settings.beam_mode = everybeam::BeamMode::kFull;
+  predict_settings.baselines = baselines;
+  predict_settings.frequencies = frequencies;
+
+  dp3::test::MockTelescope telescope(kFrequencies, kDirection);
+  predict::BeamResponseSettings beam_response_settings{&telescope, 0.0, 0,
+                                                       false};
+  predict::BeamResponsePlan beam_plan(predict_settings, beam_response_settings);
   beam_plan.ApplyBeamToDataAndAdd(baselines, frequencies, direction_buffer,
                                   model_data, beam_values);
 
