@@ -25,8 +25,8 @@
 #include "sky_model/Patch.h"
 #include "sky_model/SkyModelFunctions.h"
 
-#include <predict/PredictPlan.h>
-#include <predict/PredictPlanExecCPU.h>
+#include <predict/plans/PredictPlanExec.h>
+#include <predict/plans/PredictPlanSettings.h>
 #include <predict/Predict.h>
 
 namespace dp3 {
@@ -196,10 +196,11 @@ class FastPredict : public ModelDataStep {
   casacore::MDirection::Convert meas_converter_;
   std::vector<size_t> station_indices_;
 
-  predict::PredictPlan predict_plan_;
+  predict::PredictPlanSettings predict_settings_;
   predict::Predict predict_;
-  std::unique_ptr<predict::PredictPlanExecCPU> predict_plan_exec_;
+  std::unique_ptr<predict::PredictPlanExec> predict_plan_exec_;
   std::unique_ptr<predict::BeamResponsePlan> beam_response_plan_;
+  predict::BeamResponseHandler beam_response_handler_;
   predict::PointSourceCollection point_sources_;
   predict::GaussianSourceCollection gaussian_sources_;
   std::string direction_str_;  ///< Definition of patches, to pass to applycal
@@ -234,6 +235,9 @@ class FastPredict : public ModelDataStep {
   std::mutex* measures_mutex_;
   std::mutex mutex_;
   size_t n_threads_ = 0;
+
+  static constexpr size_t N_COMPLEX =
+      2;  ///< Number of complex components (real and imaginary)
 };
 
 }  // namespace steps

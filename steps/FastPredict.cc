@@ -26,13 +26,12 @@
 
 #include "sky_model/SkyModelCache.h"
 
-#include <predict/BeamResponse.h>
-#include <predict/GaussianSourceCollection.h>
-#include <predict/PointSource.h>
-#include <predict/PointSourceCollection.h>
 #include <predict/Predict.h>
-#include <predict/PredictPlan.h>
-#include <predict/PredictPlanExecCPU.h>
+#include <predict/collections/PointSourceCollection.h>
+#include <predict/collections/GaussianSourceCollection.h>
+#include <predict/sources/PointSource.h>
+#include <predict/plans/PredictPlanExecCPU.h>
+#include <predict/plans/beam/BeamResponsePlan.h>
 #include <predict/Spectrum.h>
 
 #include <aocommon/logger.h>
@@ -217,9 +216,10 @@ void FastPredict::UpdateParallelizationStrategy(size_t num_threads) {
 
   const size_t max_beams = std::max(point_sources_.unique_beam_ids.size(),
                                     gaussian_sources_.unique_beam_ids.size());
-  predict_plan_exec_->parallelize_over_beams = (max_beams > num_threads);
-  predict_plan_exec_->parallelize_over_sources =
-      !predict_plan_exec_->parallelize_over_beams;
+  predict_plan_exec_->GetPlan().parallelize_over_beams =
+      (max_beams > num_threads);
+  predict_plan_exec_->GetPlan().parallelize_over_sources =
+      !predict_plan_exec_->GetPlan().parallelize_over_beams;
 }
 
 void FastPredict::SetNumThreads(size_t num_threads) {
@@ -279,25 +279,26 @@ void FastPredict::InitializePlan() {
   // Initialize the predict plan.
   const size_t n_buffer_correlations =
       stokes_i_only_ ? 1 : getInfoOut().ncorr();
-  predict_plan_.nbaselines = getInfoOut().nbaselines();
-  predict_plan_.nchannels = getInfoOut().nchan();
-  predict_plan_.nstokes = n_buffer_correlations;
-  predict_plan_.nstations =
+  predict_settings_.nbaselines = getInfoOut().nbaselines();
+  predict_settings_.nchannels = getInfoOut().nchan();
+  predict_settings_.nstokes = n_buffer_correlations;
+  predict_settings_.nstations =
       getInfoOut().nantenna();  // If telescope is homogeneous this value will
                                 // be set to one later.
-  predict_plan_.compute_stokes_I_only = stokes_i_only_;
-  predict_plan_.correct_frequency_smearing = correct_freq_smearing_;
-  predict_plan_.correct_time_smearing = correct_time_smearing_;
-  predict_plan_.scaled_ncp_uvw = scaled_ncp_uvw_;
-  predict_plan_.apply_beam = apply_beam_;
-  predict_plan_.beam_mode = beam_mode_;
-  predict_plan_.reference = predict::Direction{phase_ref_.ra, phase_ref_.dec};
+  predict_settings_.compute_stokes_I_only = stokes_i_only_;
+  predict_settings_.correct_frequency_smearing = correct_freq_smearing_;
+  predict_settings_.correct_time_smearing = correct_time_smearing_;
+  predict_settings_.scaled_ncp_uvw = scaled_ncp_uvw_;
+  predict_settings_.apply_beam = apply_beam_;
+  predict_settings_.beam_mode = beam_mode_;
+  predict_settings_.reference =
+      predict::Direction{phase_ref_.ra, phase_ref_.dec};
 
   const auto& freqs = getInfoOut().chanFreqs();
-  predict_plan_.frequencies = xt::adapt(freqs);
+  predict_settings_.frequencies = xt::adapt(freqs);
 
-  predict_plan_.channel_widths = getInfoOut().chanWidths();
-  predict_plan_.baselines = baselines_;
+  predict_settings_.channel_widths = getInfoOut().chanWidths();
+  predict_settings_.baselines = baselines_;
 
   const size_t available_threads =
       schaapcommon::ThreadPool::GetInstance().NThreads();
@@ -305,7 +306,7 @@ void FastPredict::InitializePlan() {
                                  ? available_threads
                                  : std::min(n_threads_, available_threads);
   predict_plan_exec_ = std::make_unique<predict::PredictPlanExecCPU>(
-      predict_plan_, schaapcommon::ThreadPool::GetInstance(), num_threads,
+      predict_settings_, schaapcommon::ThreadPool::GetInstance(), num_threads,
       false);
 
   assert(predict_plan_exec_);
@@ -353,7 +354,7 @@ void FastPredict::InitializePlan() {
             gaussian_source->getPositionAngleIsAbsolute(),
             gaussian_source->getMinorAxis(), gaussian_source->getMajorAxis(),
             patch_index});
-        if (predict_plan_.apply_beam) {
+        if (predict_settings_.apply_beam) {
           gaussian_sources_.AddBeamDirection(
               patch_index, predict::Direction{patch->Direction().ra,
                                               patch->Direction().dec});
@@ -363,7 +364,7 @@ void FastPredict::InitializePlan() {
             predict::Direction{point_source->direction().ra,
                                point_source->direction().dec},
             spectrum, patch_index});
-        if (predict_plan_.apply_beam) {
+        if (predict_settings_.apply_beam) {
           point_sources_.AddBeamDirection(
               patch_index, predict::Direction{patch->Direction().ra,
                                               patch->Direction().dec});
@@ -375,24 +376,26 @@ void FastPredict::InitializePlan() {
   // Determine strategy for all subsequent steps.
   UpdateParallelizationStrategy(num_threads);
 
-  if (predict_plan_.apply_beam) {
+  if (predict_settings_.apply_beam) {
     point_sources_.UpdateBeams();
     gaussian_sources_.UpdateBeams();
     constexpr size_t field_id = 0;
     if (!beam_response_plan_) {
-      //   beam_response_plan_ = std::make_unique<predict::BeamResponsePlan>(
-      // telescope_.get(), -1, field_id, beam_mode_, false);
-      beam_response_plan_ = std::make_unique<predict::BeamResponsePlan>();
+      predict::BeamResponseSettings beam_response_settings{
+          &(getInfoOut().GetTelescope()),  // telescope
+          -1,                              // time
+          field_id,                        // field_id
+          false                            // invert
+      };
+      beam_response_plan_ = std::make_unique<predict::BeamResponsePlan>(
+          predict_settings_, beam_response_settings);
     }
 
-    beam_response_plan_->SetTelescope(getInfoOut().GetTelescope());
-    beam_response_plan_->SetTime(-1);
-    beam_response_plan_->SetFieldId(field_id);
-    beam_response_plan_->SetBeamMode(beam_mode_);
-    beam_response_plan_->SetInvert(false);
-
-    beam_response_plan_->SetFrequencies(predict_plan_.frequencies);
-    beam_response_plan_->SetBaselines(predict_plan_.baselines);
+    beam_response_plan_->beam_response.telescope =
+        &(getInfoOut().GetTelescope());
+    beam_response_plan_->beam_response.time = -1;
+    beam_response_plan_->beam_response.field_id = field_id;
+    beam_response_plan_->beam_response.invert = false;
   }
 }
 
@@ -612,7 +615,7 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
   const size_t nCr = getInfoOut().ncorr();
 
   base::SplitUvw(uvw_split_index_, baselines_, buffer->GetUvw(), station_uvw_);
-  predict_plan_exec_->uvw = station_uvw_;
+  predict_plan_exec_->GetPlan().uvw = station_uvw_;
 
   double time = buffer->GetTime();
 
@@ -681,24 +684,24 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
       stokes_i_only_ ? 1 : getInfoOut().ncorr();
 
   xt::xtensor<float, 4, xt::layout_type::row_major> global_data(
-      {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
-       predict_plan_.nchannels});
+      {predict_settings_.nstokes, predict_settings_.nbaselines, N_COMPLEX,
+       predict_settings_.nchannels});
 
   xt::xtensor<float, 4, xt::layout_type::row_major> model_data_new(
-      {predict_plan_.nstokes, predict_plan_.nbaselines, 2,
-       predict_plan_.nchannels});
+      {predict_settings_.nstokes, predict_settings_.nbaselines, N_COMPLEX,
+       predict_settings_.nchannels});
   model_data_new.fill(0.0);
 
   xt::xtensor<float, 4, xt::layout_type::row_major> patch_model_data_new;
 
-  if (predict_plan_.apply_beam) {
+  if (predict_settings_.apply_beam) {
     patch_model_data_new.resize(
-        {n_buffer_correlations, n_baselines, 2, n_channels});
+        {n_buffer_correlations, n_baselines, N_COMPLEX, n_channels});
     patch_model_data_new.fill(0.0);
   }
 
   xt::xtensor<float, 4, xt::layout_type::row_major>& simulator_data_new =
-      predict_plan_.apply_beam ? patch_model_data_new : model_data_new;
+      predict_settings_.apply_beam ? patch_model_data_new : model_data_new;
   bool update_beam = false;
   double beam_evaluation_time = time;
   if (apply_beam_) {
@@ -713,27 +716,27 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
 
       // FIXME: In case of a homogeneous telescope, nstations should not be set
       // to one. Only the internal buffer should be sized accordingly.
-      // --> if (telescope.IsHomogeneous()) predict_plan_.nstations = 1;
+      // --> if (telescope.IsHomogeneous()) predict_settings_.nstations = 1;
     }
   }
 
   // Propagate beam update state into predict so beam recomputation can be
   // controlled consistently.
-  predict_plan_exec_->update_beam = update_beam;
+  predict_plan_exec_->GetPlan().update_beam = update_beam;
 
   {
     const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
-    if (predict_plan_.apply_beam) {
-      beam_response_plan_->SetTime(beam_evaluation_time);
-      predict_.runWithStrategy(*predict_plan_exec_, *beam_response_plan_,
-                               point_sources_, gaussian_sources_,
-                               simulator_data_new, meas_converter_,
-                               predict::computation_strategy::XSIMD);
+    if (predict_settings_.apply_beam) {
+      beam_response_plan_->beam_response.time = beam_evaluation_time;
+      predict_.RunWithStrategy(
+          *predict_plan_exec_, beam_response_handler_, *beam_response_plan_,
+          point_sources_, gaussian_sources_, simulator_data_new,
+          meas_converter_, predict::computation_strategy::XSIMD);
     } else {
-      predict_.runWithStrategy(*predict_plan_exec_, point_sources_,
+      predict_.RunWithStrategy(*predict_plan_exec_, point_sources_,
                                simulator_data_new,
                                predict::computation_strategy::XSIMD);
-      predict_.runWithStrategy(*predict_plan_exec_, gaussian_sources_,
+      predict_.RunWithStrategy(*predict_plan_exec_, gaussian_sources_,
                                simulator_data_new,
                                predict::computation_strategy::XSIMD);
     }
