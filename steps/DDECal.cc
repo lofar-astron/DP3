@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <iostream>
 #include <utility>
+#include <atomic>
 
 #include <casacore/casa/Quanta/Quantum.h>
 
@@ -891,23 +892,24 @@ void DDECal::doPrepare() {
   }
   schaapcommon::RecursiveFor recursive_for;
   if (use_serial_predict_loop) {
-    recursive_for.ConstrainedRun(
-        0, steps_.size(), n_outer_threads,
-        [&](size_t direction_start, size_t direction_end) {
-          for (size_t direction = direction_start; direction < direction_end;
-               ++direction) {
-            if (steps_[direction]) {  // When reusing model data, there is no
-                                      // step.
-              // Don't process column readers yet; they need to be run serially
-              // (see further below)
-              const bool is_column_reader =
-                  dynamic_cast<MsColumnReader*>(steps_[direction].get());
-              if (!is_column_reader)
-                steps_[direction]->process(std::make_unique<DPBuffer>(
-                    *input_buffer, required_fields_[direction]));
-            }
-          }
-        });
+    std::atomic<size_t> next_direction{0};
+    const size_t n_workers = std::min(n_outer_threads, steps_.size());
+    recursive_for.Run(0, n_workers, [&](size_t) {
+      while (true) {
+        const size_t direction =
+            next_direction.fetch_add(1, std::memory_order_relaxed);
+        if (direction >= steps_.size()) break;
+
+        if (steps_[direction]) {
+          const bool is_column_reader =
+              dynamic_cast<MsColumnReader*>(steps_[direction].get());
+
+          if (!is_column_reader)
+            steps_[direction]->process(std::make_unique<DPBuffer>(
+                *input_buffer, required_fields_[direction]));
+        }
+      }
+    });
   } else {
     recursive_for.Run(0, steps_.size(), [&](size_t direction) {
       if (steps_[direction]) {  // When reusing model data, there is no step.
