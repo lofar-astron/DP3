@@ -4,6 +4,7 @@
 #include "BdaDdeCal.h"
 
 #include <algorithm>
+#include <atomic>
 #include <sstream>
 
 #include <aocommon/logger.h>
@@ -148,7 +149,8 @@ void BdaDdeCal::InitializePredictSteps(const common::ParameterSet& parset,
 
   aocommon::Logger::Debug << "BdaDdeCal: Using " << n_outer_threads
                           << " outer threads and " << n_inner_threads
-                          << " inner threads for predict steps.\n";
+                          << " inner threads for " << steps_.size()
+                          << " predict steps.\n";
 
   for (const std::shared_ptr<ModelDataStep>& step : steps_) {
     if (auto* predict = dynamic_cast<Predict*>(step.get());
@@ -421,15 +423,18 @@ bool BdaDdeCal::process(std::unique_ptr<base::BdaBuffer> buffer) {
 
   if (use_serial_predict_loop) {
     schaapcommon::RecursiveFor recursive_for;
-    recursive_for.ConstrainedRun(
-        0, steps_.size(), n_outer_threads,
-        [&](size_t direction_start, size_t direction_end) {
-          for (size_t direction = direction_start; direction < direction_end;
-               ++direction) {
-            steps_[direction]->process(
-                std::make_unique<BdaBuffer>(*buffer, common::Fields()));
-          }
-        });
+    std::atomic<size_t> next_direction{0};
+    const size_t n_workers = std::min(n_outer_threads, steps_.size());
+    recursive_for.Run(0, n_workers, [&](size_t) {
+      while (true) {
+        const size_t direction =
+            next_direction.fetch_add(1, std::memory_order_relaxed);
+        if (direction >= steps_.size()) break;
+
+        steps_[direction]->process(
+            std::make_unique<BdaBuffer>(*buffer, common::Fields()));
+      }
+    });
   } else {
     for (std::shared_ptr<ModelDataStep>& step : steps_) {
       // Feed metadata-only copies of the BDA buffer to the steps.
