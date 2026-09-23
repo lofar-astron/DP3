@@ -292,8 +292,11 @@ BOOST_AUTO_TEST_CASE(reusebeammodel) {
   predict.setNextStep(std::make_shared<dp3::steps::NullStep>());
 
   dp3::base::DPInfo info = OnePredictFixture::MakeInfo();
-  info.SetTelescope(std::make_shared<dp3::test::MockTelescope>(
-      kChannelFrequencies, kExpectedDirection));
+  auto mock_telescope = std::make_unique<dp3::test::MockTelescope>(
+      kChannelFrequencies, kExpectedDirection);
+  auto new_mock_telescope =
+      std::make_shared<everybeam::Telescope>(std::move(mock_telescope));
+  info.SetTelescope(new_mock_telescope);
   predict.updateInfo(info);
   BOOST_CHECK(predict.getInfoOut().HasTelescope());
   BOOST_CHECK(&predict.getInfoOut().GetTelescope() == &info.GetTelescope());

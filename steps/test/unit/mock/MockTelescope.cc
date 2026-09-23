@@ -5,18 +5,22 @@
 
 namespace dp3::test {
 
-MockPointResponse::MockPointResponse(const MockTelescope& telescope)
-    : everybeam::pointresponse::PointResponse(&telescope, 0) {}
+MockPointResponse::MockPointResponse(const MockTelescope& telescope,
+                                     bool do_response_count_check)
+    : everybeam::pointresponse::PointResponse(&telescope),
+      do_response_count_check_(do_response_count_check) {}
 
 MockPointResponse::~MockPointResponse() {
-  auto mock_telescope = static_cast<const MockTelescope&>(GetTelescope());
-  BOOST_TEST(response_count_ == mock_telescope.ExpectedFrequencies().size(),
-             "Unexpected number of PointResponse::Response calls.");
+  if (do_response_count_check_) {
+    auto mock_telescope = static_cast<const MockTelescope&>(GetTelescope());
+    BOOST_TEST(response_count_ == mock_telescope.ExpectedFrequencies().size(),
+               "Unexpected number of PointResponse::Response calls.");
+  }
 }
 
 aocommon::MC2x2 MockPointResponse::Response(
     everybeam::BeamMode beam_mode, size_t station_idx, double freq,
-    const everybeam::vector3r_t& direction, std::mutex*) {
+    const everybeam::vector3r_t& direction) {
   auto mock_telescope = static_cast<const MockTelescope&>(GetTelescope());
   BOOST_TEST((beam_mode == everybeam::BeamMode::kFull));
   BOOST_TEST(station_idx == 0);

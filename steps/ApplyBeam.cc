@@ -13,8 +13,9 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+#include <span>
 
-#include <EveryBeam/pointresponse/pointresponse.h>
+#include <EveryBeam/everybeam.h>
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -54,7 +55,7 @@ namespace {
 // or complex<float>
 template <typename T>
 void ApplyBeamToData(const DPInfo& info, const size_t n_stations, T* data0,
-                     float* weight0, aocommon::MC2x2* beam_values,
+                     float* weight0, aocommon::MC2x2F* beam_values,
                      bool doUpdateWeights) {
   /*
     Applies the beam to each baseline and each frequency of the
@@ -94,10 +95,10 @@ namespace dp3 {
 namespace steps {
 
 size_t ComputeBeam(const base::DPInfo& info,
-                   everybeam::pointresponse::PointResponse& point_response,
+                   const everybeam::TimeCache& time_cache,
                    const everybeam::vector3r_t& srcdir,
-                   aocommon::MC2x2* beam_values, bool invert,
-                   everybeam::BeamMode mode, std::mutex* mutex,
+                   aocommon::MC2x2F* beam_values, bool invert,
+                   everybeam::BeamMode mode,
                    const std::vector<size_t>& station_indices,
                    const std::vector<size_t>& skip_station_indices) {
   /*
@@ -119,11 +120,12 @@ size_t ComputeBeam(const base::DPInfo& info,
         if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
                       st) != skip_station_indices.end()) {
           for (size_t ch = 0; ch < n_channels; ++ch)
-            beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+            beam_values[n_channels * st + ch] = aocommon::MC2x2F::Unity();
         } else {
-          point_response.Response(&beam_values[n_channels * st], mode,
-                                  station_indices[st], info.chanFreqs(), srcdir,
-                                  mutex);
+          everybeam::StationResponse(
+              mode, &beam_values[n_channels * st], info.GetTelescope(),
+              std::span(&time_cache, 1), std::span(&srcdir, 1),
+              info.chanFreqs(), 0, std::span(&station_indices[st], 1));
           if (invert) {
             for (size_t ch = 0; ch < n_channels; ++ch) {
               // Terminate if the matrix is not invertible.
@@ -140,17 +142,18 @@ size_t ComputeBeam(const base::DPInfo& info,
         if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
                       st) != skip_station_indices.end()) {
           for (size_t ch = 0; ch < n_channels; ++ch)
-            beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+            beam_values[n_channels * st + ch] = aocommon::MC2x2F::Unity();
         } else {
-          point_response.Response(&beam_values[n_channels * st], mode,
-                                  station_indices[st], info.chanFreqs(), srcdir,
-                                  mutex);
+          everybeam::StationResponse(
+              mode, &beam_values[n_channels * st], info.GetTelescope(),
+              std::span(&time_cache, 1), std::span(&srcdir, 1),
+              info.chanFreqs(), 0, std::span(&station_indices[st], 1));
 
           for (size_t ch = 0; ch < n_channels; ++ch) {
             if (invert) {
-              const aocommon::MC2x2 af_tmp = beam_values[n_channels * st + ch];
-              beam_values[n_channels * st + ch] = aocommon::MC2x2(
-                  1.0 / af_tmp.Get(0), 0.0, 0.0, 1.0 / af_tmp.Get(3));
+              const aocommon::MC2x2F af_tmp = beam_values[n_channels * st + ch];
+              beam_values[n_channels * st + ch] = aocommon::MC2x2F(
+                  1.0f / af_tmp.Get(0), 0.0f, 0.0f, 1.0f / af_tmp.Get(3));
             }
           }
         }
@@ -160,7 +163,7 @@ size_t ComputeBeam(const base::DPInfo& info,
     case everybeam::BeamMode::kNone:  // this should not happen
       for (size_t st = 0; st < n_stations; ++st) {
         for (size_t ch = 0; ch < n_channels; ++ch) {
-          beam_values[n_channels * st + ch] = aocommon::MC2x2::Unity();
+          beam_values[n_channels * st + ch] = aocommon::MC2x2F::Unity();
         }
       }
       break;
@@ -172,7 +175,7 @@ void ApplyBeamToDataAndAdd(
     const DPInfo& info, size_t n_stations,
     const aocommon::xt::UTensor<std::complex<double>, 3>& data,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-    const aocommon::MC2x2* beam_values) {
+    const aocommon::MC2x2F* beam_values) {
   /*
     Applies the beam to each baseline and each frequency of the
     model patch and sum the contribution to the model data
@@ -321,24 +324,24 @@ void ApplyBeam::updateInfo(const DPInfo& infoIn) {
   measure_converter_.set(MDirection::J2000,
                          MDirection::Ref(MDirection::ITRF, measure_frame_));
   if (!reuse_telescope_) {
-    GetWritableInfoOut().SetTelescope(
-        base::GetTelescope(getInfoOut().msName(), itsElementResponseModel,
-                           itsUseChannelFreq, coefficients_path_));
+    casacore::MeasurementSet ms(getInfoOut().msName());
+    GetWritableInfoOut().SetTelescope(base::GetTelescope(
+        ms, itsElementResponseModel, itsUseChannelFreq, coefficients_path_));
   } else if (!getInfoOut().HasTelescope()) {
     throw std::runtime_error("reusebeammodel is true in " + itsName +
                              " but no beam model was found.");
   }
-  everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
-  telescope.SetTime(getInfoOut().startTime());
+  const everybeam::Telescope& telescope = getInfoOut().GetTelescope();
   station_indices_ =
-      base::SelectStationIndices(telescope, getInfoOut().antennaNames());
+      base::GetStationIndices(telescope, getInfoOut().antennaNames());
 
   if (!itsSkipStationNames.empty()) {
-    // Needs loop over itsSkipStationNames because SelectStationIndices
+    // Needs loop over itsSkipStationNames because GetStationIndices
     // assumes some order. By giving it a length-one vector the order is as it
     // assumes (because there is only one way to order a vector of length one.
     for (std::string& skipStationName : itsSkipStationNames) {
-      std::vector<size_t> station_indices = base::SelectStationIndices(
+      // TODO: This functionality only works with the old EveryBeam interface.
+      std::vector<size_t> station_indices = base::GetStationIndices(
           telescope, std::vector<std::string>{skipStationName});
       itsSkipStationIndices.emplace_back(std::move(station_indices[0]));
     }
@@ -387,10 +390,9 @@ bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
   const double time = buffer->GetTime();
   measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
 
-  everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
-  telescope.SetTime(time);
-  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope.GetPointResponse(time);
+  const everybeam::Telescope& telescope = getInfoOut().GetTelescope();
+  const everybeam::TimeCache time_cache =
+      everybeam::CreateTimeCache(time, telescope);
 
   for (const auto& [direction_name, direction] : directions) {
     std::complex<float>* data = buffer->GetData(direction_name).data();
@@ -401,8 +403,8 @@ bool ApplyBeam::ProcessModelData(std::unique_ptr<base::DPBuffer> buffer) {
         dir2Itrf(direction_j2000, measure_converter_);
 
     const size_t n_stations = ComputeBeam(
-        getInfoOut(), *point_response, direction_itrf, beam_values_.data(),
-        itsInvert, itsMode, nullptr, station_indices_, itsSkipStationIndices);
+        getInfoOut(), time_cache, direction_itrf, beam_values_.data(),
+        itsInvert, itsMode, station_indices_, itsSkipStationIndices);
     ApplyBeamToData(getInfoOut(), n_stations, data, nullptr,
                     beam_values_.data(), false);
   }
@@ -422,10 +424,9 @@ bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
       itsInvert && itsModeAtStart != everybeam::BeamMode::kNone;
   measure_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
 
-  everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
-  telescope.SetTime(time);
-  std::unique_ptr<everybeam::pointresponse::PointResponse> point_response =
-      telescope.GetPointResponse(time);
+  const everybeam::Telescope& telescope = getInfoOut().GetTelescope();
+  const everybeam::TimeCache time_cache =
+      everybeam::CreateTimeCache(time, telescope);
 
   if (undoInputBeam) {
     // A beam was previously applied to this MS, and a different direction
@@ -435,17 +436,17 @@ bool ApplyBeam::ProcessData(std::unique_ptr<base::DPBuffer> buffer) {
     const everybeam::vector3r_t srcdir =
         dir2Itrf(itsDirectionAtStart, measure_converter_);
     const size_t n_stations = ComputeBeam(
-        getInfoOut(), *point_response, srcdir, beam_values_.data(), false,
-        itsModeAtStart, nullptr, station_indices_, itsSkipStationIndices);
+        getInfoOut(), time_cache, srcdir, beam_values_.data(), false,
+        itsModeAtStart, station_indices_, itsSkipStationIndices);
     ApplyBeamToData(getInfoOut(), n_stations, data, weight, beam_values_.data(),
                     itsUpdateWeights);
   }
 
   const everybeam::vector3r_t srcdir =
       dir2Itrf(itsDirection, measure_converter_);
-  const size_t n_stations = ComputeBeam(
-      getInfoOut(), *point_response, srcdir, beam_values_.data(), itsInvert,
-      itsMode, nullptr, station_indices_, itsSkipStationIndices);
+  const size_t n_stations =
+      ComputeBeam(getInfoOut(), time_cache, srcdir, beam_values_.data(),
+                  itsInvert, itsMode, station_indices_, itsSkipStationIndices);
   ApplyBeamToData(getInfoOut(), n_stations, data, weight, beam_values_.data(),
                   itsUpdateWeights);
 
@@ -466,11 +467,12 @@ void ApplyBeam::finish() {
   getNextStep()->finish();
 }
 
-size_t ComputeArrayFactor(
-    const DPInfo& info, everybeam::pointresponse::PointResponse& point_response,
-    const everybeam::vector3r_t& srcdir, std::complex<double>* beam_values,
-    bool invert, std::mutex* mutex, const std::vector<size_t>& station_indices,
-    const std::vector<size_t>& skip_station_indices) {
+size_t ComputeArrayFactor(const DPInfo& info,
+                          const everybeam::TimeCache& time_cache,
+                          const everybeam::vector3r_t& srcdir,
+                          std::complex<double>* beam_values, bool invert,
+                          const std::vector<size_t>& station_indices,
+                          const std::vector<size_t>& skip_station_indices) {
   const size_t n_channels = info.chanFreqs().size();
   const size_t n_stations = station_indices.size();
 
@@ -482,11 +484,14 @@ size_t ComputeArrayFactor(
                     st) != skip_station_indices.end()) {
         value = 1.0;
       } else {
-        value = point_response
-                    .Response(everybeam::BeamMode::kArrayFactor,
-                              station_indices[st], info.chanFreqs()[ch], srcdir,
-                              mutex)
-                    .Get(0);
+        aocommon::MC2x2F af_tmp;
+        everybeam::StationResponse(
+            everybeam::BeamMode::kArrayFactor, &af_tmp, info.GetTelescope(),
+            std::span(&time_cache, 1), std::span(&srcdir, 1),
+            std::span(&info.chanFreqs()[ch], 1), 0,
+            std::span(&station_indices[st], 1));
+        value = af_tmp.Get(0);
+
         if (invert) {
           value = 1.0 / value;
         }

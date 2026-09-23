@@ -5,7 +5,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <EveryBeam/load.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
+#include <EveryBeam/everybeam.h>
 
 using dp3::base::DPInfo;
 
@@ -384,9 +386,10 @@ BOOST_AUTO_TEST_CASE(telescope) {
 
   // Check setting a telescope.
   const std::string kMsName = "tNDPPP-generic.MS";
+  const casacore::MeasurementSet kMs(kMsName);
   const everybeam::Options kOptions;
-  std::shared_ptr<everybeam::telescope::Telescope> telescope =
-      everybeam::Load(kMsName, kOptions);
+  std::shared_ptr<everybeam::Telescope> telescope =
+      everybeam::LoadTelescope(kMs, kOptions);
 
   info.SetTelescope(telescope);
   BOOST_TEST(info.HasTelescope());

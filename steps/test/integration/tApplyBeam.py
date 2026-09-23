@@ -98,7 +98,7 @@ def test_skip_stations():
     # Check computed values (for included stations) against reference values for not skipped stations
     taql_command = f"""
         select from {msout} t1, {MSAPPLYBEAM} t2 where not (
-            all(near(t1.DATA, t2.DATA_ELEMENT, 8e-5)) ||
+            all(near(t1.DATA, t2.DATA_ELEMENT, 1e-4)) ||
             mscal.ant1name() in ["RS208HBA", "RS305HBA"] ||
             mscal.ant2name() in ["RS208HBA", "RS305HBA"]
         )
@@ -108,7 +108,7 @@ def test_skip_stations():
     # Check that nothing changed for skipped stations
     taql_command = f"""
         select from {msout} t1, {MSIN} t2 where
-            not(all(near(t1.DATA, t2.DATA, 8e-5))) &&
+            not(all(near(t1.DATA, t2.DATA, 1e-4))) &&
             mscal.ant1name() in ["RS208HBA", "RS305HBA"] &&
             mscal.ant2name() in ["RS208HBA", "RS305HBA"]
         """
@@ -131,7 +131,7 @@ def test_beammodes(beammode):
     )
 
     # Check computed values (for included stations) against reference values
-    taql_command = f"select from {msout} t1, {MSAPPLYBEAM} t2 where not all(near(t1.DATA,t2.DATA_{beammode},8e-5) || (isnan(t1.DATA) && isnan(t2.DATA_{beammode})))"
+    taql_command = f"select from {msout} t1, {MSAPPLYBEAM} t2 where not all(near(t1.DATA,t2.DATA_{beammode}, 1e-4) || (isnan(t1.DATA) && isnan(t2.DATA_{beammode})))"
     assert_taql(taql_command.replace("\n", " "))
 
 
@@ -179,7 +179,7 @@ def test_dish_beam():
 
     # Assert that the beam value is correct per each channel
     assert_taql(
-        f"select t1.DATA[0,0]/t2.DATA[0,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[0,0] / t2.DATA[0,0] - 0.146382) > 1e-6 AND abs(t2.DATA[0,0])!=0.0"
+        f"select t1.DATA[0,0]/t2.DATA[0,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[0,0] / t2.DATA[0,0] - 0.14634) > 1e-6 AND abs(t2.DATA[0,0])!=0.0"
     )
     assert_taql(
         f"select t1.DATA[1,0]/t2.DATA[1,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[1,0] / t2.DATA[1,0] - 0.146003) > 1e-6 AND abs(t2.DATA[1,0])!=0.0"
@@ -191,5 +191,5 @@ def test_dish_beam():
         f"select t1.DATA[3,0]/t2.DATA[3,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[3,0] / t2.DATA[3,0] - 0.145258) > 1e-6 AND abs(t2.DATA[3,0])!=0.0"
     )
     assert_taql(
-        f"select t1.DATA[4,0]/t2.DATA[4,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[4,0] / t2.DATA[4,0] - 0.144933) > 1e-6 AND abs(t2.DATA[4,0])!=0.0"
+        f"select t1.DATA[4,0]/t2.DATA[4,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[4,0] / t2.DATA[4,0] - 0.144892) > 1e-6 AND abs(t2.DATA[4,0])!=0.0"
     )

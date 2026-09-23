@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "FastPredict.h"
-#include "ApplyBeam.h"
 
 #include <algorithm>
 #include <cassert>
@@ -92,7 +91,7 @@ void FastPredict::Init(const common::ParameterSet& parset,
   output_data_name_ = parset.getString(prefix + "outputmodelname", "");
 
   apply_beam_ = parset.getBool(prefix + "usebeammodel", false);
-  use_local_frame_ = parset.getBool(prefix + "use_local_frame", false);
+  coefficients_path_ = parset.getString(prefix + "coefficients_path", "");
   beam_evaluation_interval_ = parset.getDouble(prefix + "beam_interval", 0.0);
   thread_over_baselines_ = parset.getBool(prefix + "parallelbaselines", false);
   debug_level_ = parset.getInt(prefix + "debuglevel", 0);
@@ -250,18 +249,17 @@ void FastPredict::InitializePlan() {
 
   if (apply_beam_) {
     if (!reuse_telescope_) {
-      GetWritableInfoOut().SetTelescope(
-          base::GetTelescope(getInfoOut().msName(), element_response_model_,
-                             use_channel_freq_, coefficients_path_));
+      casacore::MeasurementSet ms(getInfoOut().msName());
+      GetWritableInfoOut().SetTelescope(base::GetTelescope(
+          ms, element_response_model_, use_channel_freq_, coefficients_path_));
     } else if (!getInfoOut().HasTelescope()) {
       throw std::runtime_error("reusebeammodel is true in " + name_ +
                                " but no beam model was found.");
     }
 
-    const everybeam::telescope::Telescope& telescope =
-        getInfoOut().GetTelescope();
+    const everybeam::Telescope& telescope = getInfoOut().GetTelescope();
     station_indices_ =
-        base::SelectStationIndices(telescope, getInfoOut().antennaNames());
+        base::GetStationIndices(telescope, getInfoOut().antennaNames());
   }
 
   // Create the Measure ITRF conversion info given the array position.
@@ -710,9 +708,6 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
     if (update_beam) {
       beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
       previous_beam_time_ = time;
-
-      everybeam::telescope::Telescope& telescope = getInfoOut().GetTelescope();
-      telescope.SetTime(beam_evaluation_time);
 
       // FIXME: In case of a homogeneous telescope, nstations should not be set
       // to one. Only the internal buffer should be sized accordingly.

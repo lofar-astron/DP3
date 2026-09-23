@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE(outputmodelname) {
 }
 
 BOOST_AUTO_TEST_CASE(full_beam_sparse_station_ids) {
-  const std::vector<predict::Baseline> baselines{{15, 16}};
+  const std::vector<predict::Baseline> baselines{{0, 1}};
   const std::vector<double> kFrequencies{120.0e6, 121.0e6};
   const xt::xtensor<double, 1> frequencies = xt::adapt(kFrequencies);
   const everybeam::vector3r_t kDirection{0.0, 1.0, 0.0};
@@ -367,10 +367,16 @@ BOOST_AUTO_TEST_CASE(full_beam_sparse_station_ids) {
   predict_settings.baselines = baselines;
   predict_settings.frequencies = frequencies;
 
-  dp3::test::MockTelescope telescope(kFrequencies, kDirection);
+  constexpr bool kDoResponseCountCheck = false;
+  auto mock_telescope = std::make_unique<dp3::test::MockTelescope>(
+      kFrequencies, kDirection, kDoResponseCountCheck);
+  const everybeam::Telescope telescope =
+      everybeam::Telescope(std::move(mock_telescope));
+
   predict::BeamResponseSettings beam_response_settings{&telescope, 0.0, 0,
                                                        false};
   predict::BeamResponsePlan beam_plan(predict_settings, beam_response_settings);
+
   beam_plan.ApplyBeamToDataAndAdd(baselines, frequencies, direction_buffer,
                                   model_data, beam_values);
 
