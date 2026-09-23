@@ -16,7 +16,7 @@
 #include <EveryBeam/load.h>
 #include <EveryBeam/options.h>
 #include <EveryBeam/stationnode.h>
-#include <EveryBeam/telescope/telescope.h>
+#include <EveryBeam/telescope.h>
 
 namespace py = pybind11;
 
@@ -133,8 +133,7 @@ void WrapEveryBeam(py::module& m) {
            py::arg("position"), py::arg("is_x_enabled") = true,
            py::arg("is_y_enabled") = true);
 
-  py::class_<everybeam::telescope::Telescope,
-             std::shared_ptr<everybeam::telescope::Telescope>>(
+  py::class_<everybeam::Telescope, std::shared_ptr<everybeam::Telescope>>(
       everybeam_module, "Telescope", py::module_local());
 
   everybeam_module.def(
@@ -148,8 +147,8 @@ void WrapEveryBeam(py::module& m) {
          everybeam::BeamMode preapplied_beam_mode,
          const std::vector<double>& dish_diameters, double reference_frequency,
          const std::vector<int>& mwa_delay_factors)
-          -> std::shared_ptr<everybeam::telescope::Telescope> {
-        return std::shared_ptr<everybeam::telescope::Telescope>(
+          -> std::shared_ptr<everybeam::Telescope> {
+        return std::make_shared<everybeam::Telescope>(
             everybeam::CreateTelescope(telescope_type, options, station_tree,
                                        delay_directions, tile_beam_direction,
                                        preapplied_beam_direction,

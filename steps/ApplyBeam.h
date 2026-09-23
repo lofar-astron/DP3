@@ -15,6 +15,9 @@
 
 #include <barrier>
 
+#include <EveryBeam/everybeam.h>
+#include <EveryBeam/timecache.h>
+
 #include <aocommon/matrix2x2.h>
 #include <aocommon/xt/utensor.h>
 
@@ -28,20 +31,20 @@ namespace steps {
 
 /// Computes full 2x2 Jones beam matrices using EveryBeam.
 size_t ComputeBeam(const base::DPInfo& info,
-                   everybeam::pointresponse::PointResponse& point_response,
+                   const everybeam::TimeCache& time_cache,
                    const everybeam::vector3r_t& srcdir,
-                   aocommon::MC2x2* beam_values, bool invert,
-                   everybeam::BeamMode mode, std::mutex* mutex,
+                   aocommon::MC2x2F* beam_values, bool invert,
+                   everybeam::BeamMode mode,
                    const std::vector<size_t>& station_indices,
                    const std::vector<size_t>& skip_station_indices);
 
 /// Computes the array factor scalar values.
-size_t ComputeArrayFactor(
-    const base::DPInfo& info,
-    everybeam::pointresponse::PointResponse& point_response,
-    const everybeam::vector3r_t& srcdir, std::complex<double>* beam_values,
-    bool invert, std::mutex* mutex, const std::vector<size_t>& station_indices,
-    const std::vector<size_t>& skip_station_indices);
+size_t ComputeArrayFactor(const base::DPInfo& info,
+                          const everybeam::TimeCache& time_cache,
+                          const everybeam::vector3r_t& srcdir,
+                          std::complex<double>* beam_values, bool invert,
+                          const std::vector<size_t>& station_indices,
+                          const std::vector<size_t>& skip_station_indices);
 
 /**
  * Corrects the values in @p data with the precomputed full Jones beam
@@ -57,7 +60,7 @@ void ApplyBeamToDataAndAdd(
     const base::DPInfo& info, size_t n_stations,
     const aocommon::xt::UTensor<std::complex<double>, 3>& data,
     aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-    const aocommon::MC2x2* beam_values);
+    const aocommon::MC2x2F* beam_values);
 
 /**
  * Corrects the values in @p data with the precomputed scalar array
@@ -162,7 +165,7 @@ class ApplyBeam final : public Step {
   std::vector<size_t> station_indices_;
   casacore::MeasFrame measure_frame_;
   casacore::MDirection::Convert measure_converter_;
-  std::vector<aocommon::MC2x2> beam_values_;
+  std::vector<aocommon::MC2x2F> beam_values_;
   std::vector<size_t> ant_to_msindex_;
   bool use_model_data_;
   ///@}

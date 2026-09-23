@@ -4,7 +4,8 @@
 #ifndef DP3_BASE_TELESCOPE_H_
 #define DP3_BASE_TELESCOPE_H_
 
-#include <EveryBeam/load.h>
+#include <EveryBeam/everybeam.h>
+#include <EveryBeam/telescope.h>
 
 namespace dp3 {
 namespace base {
@@ -12,16 +13,16 @@ namespace base {
 /**
  * Retrieve the everybeam telescope from a Measurement Set.
  */
-inline std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
-    const std::string& ms_name,
+inline std::unique_ptr<everybeam::Telescope> GetTelescope(
+    const casacore::MeasurementSet& ms,
     const everybeam::ElementResponseModel element_response_model,
     bool use_channel_frequency, const std::string& coefficients_file) {
   everybeam::Options options;
   options.element_response_model = element_response_model;
   options.use_channel_frequency = use_channel_frequency;
   options.coeff_path = coefficients_file;
-  std::unique_ptr<everybeam::telescope::Telescope> telescope =
-      everybeam::Load(ms_name, options);
+  std::unique_ptr<everybeam::Telescope> telescope =
+      everybeam::LoadTelescope(ms, options);
   return telescope;
 }
 
@@ -33,8 +34,8 @@ inline std::unique_ptr<everybeam::telescope::Telescope> GetTelescope(
  * @return The indices corresponding to the station names. Because of the
  *         ordering restriction, the list always has increasing indices only.
  */
-std::vector<size_t> SelectStationIndices(
-    const everybeam::telescope::Telescope& telescope,
+std::vector<size_t> GetStationIndices(
+    const everybeam::Telescope& telescope,
     const std::vector<std::string>& station_names);
 
 }  // namespace base

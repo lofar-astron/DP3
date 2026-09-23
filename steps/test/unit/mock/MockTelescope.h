@@ -14,7 +14,8 @@ class MockTelescope;
 /// The class returned by MockTelescope::GetPointResponse().
 class MockPointResponse : public everybeam::pointresponse::PointResponse {
  public:
-  MockPointResponse(const MockTelescope& telescope);
+  MockPointResponse(const MockTelescope& telescope,
+                    bool do_response_count_check);
 
   ~MockPointResponse() override;
 
@@ -27,10 +28,11 @@ class MockPointResponse : public everybeam::pointresponse::PointResponse {
 
   /// This overload checks input values and returns a fixed response value.
   aocommon::MC2x2 Response(everybeam::BeamMode beam_mode, size_t station_idx,
-                           double freq, const everybeam::vector3r_t& direction,
-                           std::mutex* mutex = nullptr) override;
+                           double freq,
+                           const everybeam::vector3r_t& direction) override;
 
  private:
+  bool do_response_count_check_ = true;
   std::size_t response_count_ = 0;
 };
 
@@ -46,10 +48,12 @@ class MockTelescope : public everybeam::telescope::Telescope {
    * all calls receive this direction.
    */
   MockTelescope(const std::vector<double>& expected_frequencies,
-                const everybeam::vector3r_t& expected_direction)
-      : everybeam::telescope::Telescope(0, {}),
+                const everybeam::vector3r_t& expected_direction,
+                bool do_response_count_check = true)
+      : everybeam::telescope::Telescope(2, {}),
         expected_frequencies_(expected_frequencies),
-        expected_direction_(expected_direction) {}
+        expected_direction_(expected_direction),
+        do_response_count_check_(do_response_count_check) {}
 
   std::unique_ptr<everybeam::griddedresponse::GriddedResponse>
   GetGriddedResponse(const aocommon::CoordinateSystem&) const override {
@@ -59,10 +63,10 @@ class MockTelescope : public everybeam::telescope::Telescope {
 
   std::unique_ptr<everybeam::pointresponse::PointResponse> GetPointResponse(
       double) const override {
-    return std::make_unique<MockPointResponse>(*this);
+    return std::make_unique<MockPointResponse>(*this, do_response_count_check_);
   }
 
-  // Emulate a homogeneous telescope, so SelectStationIndices() works.
+  // Emulate a homogeneous telescope, so GetStationIndices() works.
   bool IsHomogeneous() const override { return true; }
 
   const std::vector<double>& ExpectedFrequencies() const {
@@ -76,6 +80,8 @@ class MockTelescope : public everybeam::telescope::Telescope {
  private:
   const std::vector<double>& expected_frequencies_;
   const everybeam::vector3r_t& expected_direction_;
+
+  bool do_response_count_check_;
 };
 
 }  // namespace dp3::test

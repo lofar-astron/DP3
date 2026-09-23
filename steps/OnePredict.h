@@ -14,7 +14,7 @@
 
 #include <xtensor/containers/xtensor.hpp>
 
-#include <EveryBeam/pointresponse/pointresponse.h>
+#include <EveryBeam/timecache.h>
 
 #include "ApplyBeam.h"
 #include "ApplyCal.h"
@@ -137,24 +137,23 @@ class OnePredict : public ModelDataStep {
   everybeam::vector3r_t dir2Itrf(const casacore::MDirection& dir,
                                  casacore::MDirection::Convert& measConverter);
 
-  /// @param point_response Point response for computing beam responses. It is
-  /// null if the beam response should not be updated.
+  /// @param time_cache cached time / point response for computing beam
+  /// responses. It is null if the beam response should not be updated.
   void addBeamToData(const sky_model::Patch& patch, size_t buffer_index,
                      aocommon::xt::UTensor<std::complex<double>, 3>& model_data,
-                     everybeam::pointresponse::PointResponse* point_response,
-                     size_t thread,
+                     const everybeam::TimeCache* time_cache, size_t thread,
                      aocommon::xt::UTensor<std::complex<double>, 3>& data0,
                      bool stokesIOnly);
 
   void PredictWithSourceParallelization(base::DPBuffer::DataType& destination,
                                         double time);
 
-  /// @param point_response Point response for computing beam responses. It is
-  /// null if the beam response should not be updated.
+  /// @param time_cache cached time / point response for computing beam
+  /// responses. It is null if the beam response should not be updated.
   void PredictSourceRange(
       aocommon::xt::UTensor<std::complex<double>, 3>& result, size_t start,
       size_t end, size_t thread_index, std::mutex& mutex,
-      everybeam::pointresponse::PointResponse* point_response);
+      const everybeam::TimeCache* time_cache);
 
   /// Assigns @p buffer to @p destination. If @c stokes_i_only_ is set,
   /// only the first and last correlations (e.g. XX and YY) are copied.
@@ -251,7 +250,6 @@ class OnePredict : public ModelDataStep {
   std::atomic<int64_t> apply_beam_time_ = 0;
 
   std::mutex* measures_mutex_ = nullptr;
-  std::mutex mutex_;
 };
 
 }  // namespace steps
