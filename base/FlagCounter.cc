@@ -369,12 +369,12 @@ void FlagCounter::saveStation(int64_t nPoints, const Vector<int64_t>& nused,
                               const Vector<int64_t>& count) const {
   // Create the table.
   TableDesc td;
-  td.addColumn(ScalarColumnDesc<Int>("Station"));
+  td.addColumn(ScalarColumnDesc<int>("Station"));
   td.addColumn(ScalarColumnDesc<String>("Name"));
   td.addColumn(ScalarColumnDesc<float>("Percentage"));
   SetupNewTable newtab(save_filename_ + "stat", td, Table::New);
   Table tab(newtab);
-  ScalarColumn<Int> statCol(tab, "Station");
+  ScalarColumn<int> statCol(tab, "Station");
   ScalarColumn<String> nameCol(tab, "Name");
   ScalarColumn<float> percCol(tab, "Percentage");
   const std::vector<std::string>& antNames = info_->antennaNames();

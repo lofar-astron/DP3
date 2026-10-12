@@ -65,16 +65,15 @@ class MSBDAWriter : public OutputStep {
 
   /// Write all the baselines to the BDA_FACTORS table,
   /// while updating min_factor_time and max_factor_time.
-  void WriteTimeFactorRows(casacore::Int bda_set_id,
-                           unsigned int& min_factor_time,
+  void WriteTimeFactorRows(int bda_set_id, unsigned int& min_factor_time,
                            unsigned int& max_factor_time);
 
   /// Write a row in the BDA_TIME_AXIS table.
-  void WriteTimeAxisRow(casacore::Int bda_set_id, unsigned int min_factor_time,
+  void WriteTimeAxisRow(int bda_set_id, unsigned int min_factor_time,
                         unsigned int max_factor_time);
 
   /// Overwrite the SPECTRAL_WINDOW and DATA_DESCRIPTION tables.
-  void OverwriteSubTables(casacore::Int bda_set_id);
+  void OverwriteSubTables(int bda_set_id);
 
  private:
   const std::string out_name_;

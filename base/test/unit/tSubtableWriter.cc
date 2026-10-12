@@ -86,14 +86,14 @@ BOOST_FIXTURE_TEST_CASE(observation_table, WriterFixture) {
   TestScalarValueFromTable(obs_table, "PROJECT",
                            casacore::String(observation.project));
   TestScalarValueFromTable(obs_table, "RELEASE_DATE",
-                           casacore::Double(observation.release_date));
+                           double(observation.release_date));
   TestScalarValueFromTable(obs_table, "SCHEDULE_TYPE",
                            casacore::String(observation.schedule_type));
 
-  casacore::ArrayColumn<casacore::Double> time_range(obs_table, "TIME_RANGE");
+  casacore::ArrayColumn<double> time_range(obs_table, "TIME_RANGE");
 
   std::vector<double> stored_time_range =
-      GetArrayColumnFromTable<casacore::Double>(obs_table, "TIME_RANGE");
+      GetArrayColumnFromTable<double>(obs_table, "TIME_RANGE");
   BOOST_REQUIRE_EQUAL(stored_time_range.size(), kRangeDimensions);
   BOOST_CHECK_EQUAL(stored_time_range[0], observation.start_time);
   BOOST_CHECK_EQUAL(stored_time_range[1], observation.end_time);
@@ -129,19 +129,18 @@ BOOST_FIXTURE_TEST_CASE(antenna_table, WriterFixture) {
     TestScalarValueFromTable(antenna_table, "NAME",
                              casacore::String(antennas[idx].name), idx);
     TestScalarValueFromTable(antenna_table, "DISH_DIAMETER",
-                             casacore::Double(antennas[idx].diameter), idx);
+                             double(antennas[idx].diameter), idx);
     TestScalarValueFromTable(antenna_table, "FLAG_ROW",
                              casacore::Bool(antennas[idx].flag), idx);
 
-    std::vector<casacore::Double> stored_positions =
-        GetArrayColumnFromTable<casacore::Double>(antenna_table, "POSITION",
-                                                  idx);
+    std::vector<double> stored_positions =
+        GetArrayColumnFromTable<double>(antenna_table, "POSITION", idx);
     BOOST_REQUIRE_EQUAL(stored_positions.size(), kPositionDimensions);
     BOOST_CHECK_EQUAL(stored_positions[0], antennas[idx].x);
     BOOST_CHECK_EQUAL(stored_positions[1], antennas[idx].y);
     BOOST_CHECK_EQUAL(stored_positions[2], antennas[idx].z);
   }
-  casacore::Array<casacore::Double> coordinates_axes;
+  casacore::Array<double> coordinates_axes;
 
   casacore::MSObservation obs_table = ms.observation();
   auto telescope_name =
@@ -182,19 +181,18 @@ BOOST_FIXTURE_TEST_CASE(write_band_info, WriterFixture) {
   TestScalarValueFromTable(window_table, "NUM_CHAN", casacore::Int(kNChannels));
   TestScalarValueFromTable(window_table, "NAME", casacore::String(kBandName));
   TestScalarValueFromTable(window_table, "REF_FREQUENCY",
-                           casacore::Double(kReferenceFrequency));
-  TestScalarValueFromTable(window_table, "TOTAL_BANDWIDTH",
-                           casacore::Double(kBandwidth));
+                           double(kReferenceFrequency));
+  TestScalarValueFromTable(window_table, "TOTAL_BANDWIDTH", double(kBandwidth));
   TestScalarValueFromTable(window_table, "FLAG_ROW", casacore::Bool(kFlag));
 
-  std::vector<casacore::Double> channels_frequencies =
-      GetArrayColumnFromTable<casacore::Double>(window_table, "CHAN_FREQ");
-  std::vector<casacore::Double> channels_width =
-      GetArrayColumnFromTable<casacore::Double>(window_table, "CHAN_WIDTH");
-  std::vector<casacore::Double> channels_effective_bw =
-      GetArrayColumnFromTable<casacore::Double>(window_table, "EFFECTIVE_BW");
-  std::vector<casacore::Double> channels_resolution =
-      GetArrayColumnFromTable<casacore::Double>(window_table, "RESOLUTION");
+  std::vector<double> channels_frequencies =
+      GetArrayColumnFromTable<double>(window_table, "CHAN_FREQ");
+  std::vector<double> channels_width =
+      GetArrayColumnFromTable<double>(window_table, "CHAN_WIDTH");
+  std::vector<double> channels_effective_bw =
+      GetArrayColumnFromTable<double>(window_table, "EFFECTIVE_BW");
+  std::vector<double> channels_resolution =
+      GetArrayColumnFromTable<double>(window_table, "RESOLUTION");
 
   BOOST_REQUIRE_EQUAL(channels_frequencies.size(), kNChannels);
   BOOST_REQUIRE_EQUAL(channels_width.size(), kNChannels);
@@ -244,9 +242,8 @@ BOOST_FIXTURE_TEST_CASE(source, WriterFixture) {
   casacore::Table source_table = ms.source();
   TestScalarValueFromTable(source_table, "SOURCE_ID",
                            casacore::Int(sinfo.source_id));
-  TestScalarValueFromTable(source_table, "TIME", casacore::Double(sinfo.time));
-  TestScalarValueFromTable(source_table, "INTERVAL",
-                           casacore::Double(sinfo.interval));
+  TestScalarValueFromTable(source_table, "TIME", double(sinfo.time));
+  TestScalarValueFromTable(source_table, "INTERVAL", double(sinfo.interval));
   TestScalarValueFromTable(source_table, "SPECTRAL_WINDOW_ID",
                            casacore::Int(sinfo.spectral_window_id));
   TestScalarValueFromTable(source_table, "NUM_LINES",
@@ -255,10 +252,10 @@ BOOST_FIXTURE_TEST_CASE(source, WriterFixture) {
   TestScalarValueFromTable(source_table, "CODE", casacore::String(sinfo.code));
   TestScalarValueFromTable(source_table, "CALIBRATION_GROUP",
                            casacore::Int(sinfo.calibration_group));
-  std::vector<casacore::Double> stored_direction =
-      GetArrayColumnFromTable<casacore::Double>(source_table, "DIRECTION");
-  std::vector<casacore::Double> stored_motion =
-      GetArrayColumnFromTable<casacore::Double>(source_table, "PROPER_MOTION");
+  std::vector<double> stored_direction =
+      GetArrayColumnFromTable<double>(source_table, "DIRECTION");
+  std::vector<double> stored_motion =
+      GetArrayColumnFromTable<double>(source_table, "PROPER_MOTION");
 
   BOOST_REQUIRE_EQUAL(stored_direction.size(), kDirectionDimensions);
   BOOST_REQUIRE_EQUAL(stored_motion.size(), kDirectionDimensions);
@@ -290,7 +287,7 @@ BOOST_FIXTURE_TEST_CASE(field, WriterFixture) {
 
   TestScalarValueFromTable(field_table, "NAME", casacore::String(finfo.name));
   TestScalarValueFromTable(field_table, "CODE", casacore::String(finfo.code));
-  TestScalarValueFromTable(field_table, "TIME", casacore::Double(finfo.time));
+  TestScalarValueFromTable(field_table, "TIME", double(finfo.time));
   TestScalarValueFromTable(field_table, "NUM_POLY",
                            casacore::Int(finfo.num_poly));
   TestScalarValueFromTable(field_table, "SOURCE_ID",
@@ -298,21 +295,21 @@ BOOST_FIXTURE_TEST_CASE(field, WriterFixture) {
   TestScalarValueFromTable(field_table, "FLAG_ROW",
                            casacore::Bool(finfo.flag_row));
 
-  std::vector<casacore::Double> delay_pointing =
-      GetArrayColumnFromTable<casacore::Double>(field_table, "DELAY_DIR");
+  std::vector<double> delay_pointing =
+      GetArrayColumnFromTable<double>(field_table, "DELAY_DIR");
 
   BOOST_REQUIRE_EQUAL(delay_pointing.size(), kDirectionDimensions);
   BOOST_CHECK_EQUAL(delay_pointing[0], finfo.delay_direction_ra);
   BOOST_CHECK_EQUAL(delay_pointing[1], finfo.delay_direction_dec);
 
-  std::vector<casacore::Double> phase_pointing =
-      GetArrayColumnFromTable<casacore::Double>(field_table, "PHASE_DIR");
+  std::vector<double> phase_pointing =
+      GetArrayColumnFromTable<double>(field_table, "PHASE_DIR");
   BOOST_REQUIRE_EQUAL(phase_pointing.size(), kDirectionDimensions);
   BOOST_CHECK_EQUAL(phase_pointing[0], finfo.phase_direction_ra);
   BOOST_CHECK_EQUAL(phase_pointing[1], finfo.phase_direction_dec);
 
-  std::vector<casacore::Double> reference_pointing =
-      GetArrayColumnFromTable<casacore::Double>(field_table, "REFERENCE_DIR");
+  std::vector<double> reference_pointing =
+      GetArrayColumnFromTable<double>(field_table, "REFERENCE_DIR");
   BOOST_REQUIRE_EQUAL(reference_pointing.size(), kDirectionDimensions);
   BOOST_CHECK_EQUAL(reference_pointing[0], finfo.reference_direction_ra);
   BOOST_CHECK_EQUAL(reference_pointing[1], finfo.reference_direction_dec);

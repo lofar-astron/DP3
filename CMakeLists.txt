@@ -165,7 +165,7 @@ if(ENABLE_EXPERIMENTAL_SCREENFITTER)
 endif()
 
 find_package(
-  Casacore 3.7.1
+  Casacore 3.8.2
   COMPONENTS casa ms tables
   REQUIRED)
 include_directories(SYSTEM ${CASACORE_INCLUDE_DIR})

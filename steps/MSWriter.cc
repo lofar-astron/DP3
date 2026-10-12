@@ -543,7 +543,7 @@ void MSWriter::CopySubTables(casacore::Table& original_table) {
   const casacore::TableRecord& keys_in = original_table.keywordSet();
   casacore::TableRecord& keys_out = ms_.rwKeywordSet();
 
-  for (casacore::uInt i = 0; i < keys_in.nfields(); ++i) {
+  for (size_t i = 0; i < keys_in.nfields(); ++i) {
     if (keys_in.type(i) != casacore::TpTable) continue;
 
     const std::string subtable_name = keys_in.name(i);

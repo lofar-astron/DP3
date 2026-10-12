@@ -106,7 +106,7 @@ ParmDB::ParmDB(const ParmDBMeta& ptm, bool forceNew) {
   if (ptm.getType() == "casa") {
     itsRep = new ParmDBCasa(ptm.getTableName(), forceNew);
   } else if (ptm.getType() == "postgres") {
-    //#if defined(HAVE_PGSQL)
+    // #if defined(HAVE_PGSQL)
     throw std::runtime_error("unsupported parmTableType: " + ptm.getType());
   } else {
     throw std::runtime_error("unknown parmTableType: " + ptm.getType());

@@ -248,7 +248,7 @@ void SubtableWriter::WriteAntennas(const std::vector<AntennaInfo> &antennas,
       antenna_table, antenna_table.columnName(MSAntennaEnums::POSITION));
   ScalarColumn<double> dish_diameter_col = ScalarColumn<double>(
       antenna_table, antenna_table.columnName(MSAntennaEnums::DISH_DIAMETER));
-  ScalarColumn<casacore::Bool> flag_row = ScalarColumn<casacore::Bool>(
+  ScalarColumn<bool> flag_row = ScalarColumn<bool>(
       antenna_table, antenna_table.columnName(MSAntennaEnums::FLAG_ROW));
 
   size_t row_index = antenna_table.nrow();
@@ -494,10 +494,10 @@ void SubtableWriter::WriteObservation(const ObservationInfo &observation) {
   if (observation.telescope_name == "AARTFAAC") {
     obs_table.addColumn((ScalarColumnDesc<casacore::String>(
         observation.telescope_name + "_ANTENNA_TYPE")));
-    obs_table.addColumn((ScalarColumnDesc<casacore::Int>(
-        observation.telescope_name + "_RCU_MODE")));
-    obs_table.addColumn((ScalarColumnDesc<casacore::Int>(
-        observation.telescope_name + "_FLAG_WINDOW_SIZE")));
+    obs_table.addColumn(
+        (ScalarColumnDesc<int>(observation.telescope_name + "_RCU_MODE")));
+    obs_table.addColumn((ScalarColumnDesc<int>(observation.telescope_name +
+                                               "_FLAG_WINDOW_SIZE")));
     ScalarColumn<casacore::String> antenna_type_col =
         ScalarColumn<casacore::String>(
             obs_table, observation.telescope_name + "_ANTENNA_TYPE");
