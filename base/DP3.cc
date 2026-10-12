@@ -412,11 +412,10 @@ void Execute(const std::string& parsetName,
     ProgressMeter progress(ndone, ntodo, "DP3", "Time slots processed", "", "",
                            true, 1);
     if (ntodo > 0) progress.update(ndone, true);
-    uint32_t tidTimeStep;
     bool hasMore;
     do {
 #ifdef ENABLE_TRACY_PROFILING
-      tidTimeStep =
+      uint32_t tidTimeStep =
           TracySectionEnter("Timestep %d", static_cast<uint32_t>(ndone));
 #endif
       hasMore = firstStep->process(std::make_unique<DPBuffer>());
@@ -427,11 +426,10 @@ void Execute(const std::string& parsetName,
       if (ntodo > 0 && hasMore) progress.update(ndone, true);
     } while (hasMore);
   } else {
-    uint32_t tidTimeStep;
     bool hasMore;
     do {
 #ifdef ENABLE_TRACY_PROFILING
-      tidTimeStep =
+      uint32_t tidTimeStep =
           TracySectionEnter("Timestep %d", static_cast<uint32_t>(ndone));
 #endif
       hasMore = firstStep->process(std::make_unique<DPBuffer>());

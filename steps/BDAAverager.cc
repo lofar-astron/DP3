@@ -103,6 +103,12 @@ void BdaAverager::updateInfo(const DPInfo& _info) {
       !_info.channelsAreRegular()) {
     throw std::invalid_argument("Invalid info in BDA averager");
   }
+  if (min_channels_ > _info.nchan()) {
+    throw std::invalid_argument("min_channels is set to " +
+                                std::to_string(min_channels_) +
+                                ", but the measurement set contains only " +
+                                std::to_string(_info.nchan()) + " channels");
+  }
   if (!baseline_factors_.empty()) {
     if ((baseline_factors_.size() != _info.nbaselines()) ||
         (freqs_.size() != _info.nbaselines()) ||
