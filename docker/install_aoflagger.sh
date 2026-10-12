@@ -17,14 +17,20 @@ yum -y install libpng-devel python3.11-pybind11-devel zlib-devel
 pushd /tmp
 
 echo "Downloading & unpacking AOFlagger ${AOFLAGGER_VERSION}"
-# Download a custom source tarball, which includes external submodules like
-# aocommon and schaapcommon.
-if [ "${AOFLAGGER_VERSION}" != "3.5.1" ]; then
-  echo $0: Please update the link for downloading AOFlagger ${AOFLAGGER_VERSION}.
-  exit 1
+if [ ${#AOFLAGGER_VERSION} -lt 10 ]; then # Normal version string
+  # Download a custom source tarball, which includes external submodules like
+  # aocommon and schaapcommon.
+  if [ "${AOFLAGGER_VERSION}" != "3.5.1" ]; then
+    echo $0: Please update the link for downloading AOFlagger ${AOFLAGGER_VERSION}.
+    exit 1
+  fi
+  curl -fsSL -o aoflagger-v${AOFLAGGER_VERSION}.bz2 "https://gitlab.com/aroffringa/aoflagger/-/package_files/264635245/download"
+  tar -xjf aoflagger-v${AOFLAGGER_VERSION}.bz2
+  rm aoflagger-v${AOFLAGGER_VERSION}.bz2
+else # The version is a git commit hash. Clone that commit from the repository.
+  git clone https://gitlab.com/aroffringa/aoflagger.git aoflagger-v${AOFLAGGER_VERSION}
+  (cd aoflagger-v${AOFLAGGER_VERSION} && git checkout ${AOFLAGGER_VERSION})
 fi
-curl -fsSL -o aoflagger-v${AOFLAGGER_VERSION}.bz2 "https://gitlab.com/aroffringa/aoflagger/-/package_files/264635245/download"
-tar -xjf aoflagger-v${AOFLAGGER_VERSION}.bz2
 
 pushd aoflagger-v${AOFLAGGER_VERSION}
 
@@ -46,7 +52,6 @@ popd
 # Clean up to limit the size of the Docker image
 echo "Cleaning up unnecessary AOFlagger files"
 rm -r aoflagger-v${AOFLAGGER_VERSION}
-rm aoflagger-v${AOFLAGGER_VERSION}.bz2
 
 popd
 

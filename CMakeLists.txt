@@ -227,6 +227,8 @@ include_directories(${AOFLAGGER_INCLUDE_DIR})
 # make it somewhat more explicit
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
+  # When raising the required EveryBeam version, update EVERYBEAM_VERSION in
+  # docker/ubuntu_*_base and docker/py_wheel_docker as well!
   if(${EVERYBEAM_VERSION} VERSION_LESS "0.9.0"
      OR ${EVERYBEAM_VERSION} VERSION_GREATER_EQUAL "0.10.0")
     message(

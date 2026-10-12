@@ -9,8 +9,8 @@ ARG CASACORE_VERSION=3.8.2
 
 FROM quay.io/casacore/casacore:py${PYMAJOR}${PYMINOR}_v${CASACORE_VERSION}
 
-ARG AOFLAGGER_VERSION=3.5.1
-ARG EVERYBEAM_VERSION=0.8.3
+ARG AOFLAGGER_VERSION=2c22cfee2595473bcf7ecb2e886bea9ba3f62964
+ARG EVERYBEAM_VERSION=0.9.0
 ARG HDF5_VERSION=1.12.2
 ARG FFTW_VERSION=3.3.8
 ARG LUA_VERSION=5.3.6
@@ -60,7 +60,7 @@ RUN sed -i 's=\(COMPONENTS Interpreter\) Development=\1=' CMakeLists.txt
 RUN sed -i '/find_package(PythonLibs 3 REQUIRED)/d' CMakeLists.txt
 
 # Downgrade patchelf due to https://github.com/pypa/manylinux/issues/1421
-RUN pipx install --force 'patchelf<0.17'
+RUN pipx uninstall patchelf && pipx install 'patchelf<0.17'
 
 # Create the wheel and put it to the /output folder
 # Can be run manually to create wheels from within an interactive docker
