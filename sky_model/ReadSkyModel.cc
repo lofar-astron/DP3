@@ -849,7 +849,7 @@ static void ParseSkyModel(dp3::sky_model::SkyModel& pdb, std::istream& input,
                           const std::string& suffix, bool check, int& nrpatch,
                           int& nrsource, int& nrpatchfnd, int& nrsourcefnd,
                           std::map<std::string, PatchSumInfo>& patchSumInfo) {
-  casacore::Regex regexf("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=.*");
+  const casacore::Regex regexf("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=.*");
   std::string line;
   // Read first line.
   getInLine(input, line);
@@ -862,8 +862,7 @@ static void ParseSkyModel(dp3::sky_model::SkyModel& pdb, std::istream& input,
       }
       if (line[i] != ' ' && line[i] != '\t') {
         if (line[i] == 'f' || line[i] == 'F') {
-          casacore::String sline(line);
-          if (sline.matches(regexf)) {
+          if (casacore::RegexMatches(line, regexf)) {
             break;
           }
         }
@@ -955,11 +954,12 @@ std::string ReadFormat(const std::string& file, const std::string& cat_file) {
                              " containing format string could not be opened");
   std::string line;
   getInLine(infile, line);
-  casacore::Regex regex(
+  const casacore::Regex regex(
       "^[ \t]*#[ \t]*\\([ \t]*.*\\)[ \t]*=[ \t]*[fF][oO][rR][mM][aA][tT][ "
       "\t]*$");
-  casacore::Regex regexs1("^[ \t]*#[ \t]*\\([ \t]*");
-  casacore::Regex regexs2("\\)[ \t]*=[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*$");
+  const casacore::Regex regexs1("^[ \t]*#[ \t]*\\([ \t]*");
+  const casacore::Regex regexs2(
+      "\\)[ \t]*=[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*$");
   while (infile) {
     unsigned st = 0;
     st = dp3::common::lskipws(line, st, line.size());  // skip whitespace
@@ -967,22 +967,20 @@ std::string ReadFormat(const std::string& file, const std::string& cat_file) {
       if (line[st] != '#') {
         break;  // data line
       }
-      casacore::String sline(line);
-      if (sline.matches(regex)) {
-        sline.gsub(regexs1, casacore::String());
-        sline.gsub(regexs2, casacore::String());
-        return sline;
+      if (casacore::RegexMatches(line, regex)) {
+        casacore::RegexReplaceAll(line, regexs1, "");
+        casacore::RegexReplaceAll(line, regexs2, "");
+        return line;
       }
     }
     getInLine(infile, line);
   }
   // See if a format line is given as "format=".
-  casacore::Regex regexf("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=.*$");
-  casacore::Regex regexf1("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=[ \t]*");
-  casacore::String sline(line);
-  if (sline.matches(regexf)) {
-    sline.gsub(regexf1, casacore::String());
-    return sline;
+  const casacore::Regex regexf("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=.*$");
+  const casacore::Regex regexf1("^[ \t]*[fF][oO][rR][mM][aA][tT][ \t]*=[ \t]*");
+  if (casacore::RegexMatches(line, regexf)) {
+    RegexReplaceAll(line, regexf1, "");
+    return line;
   }
   // No format line found, so use default.
   Logger::Warn << "No format string found; using default format\n";

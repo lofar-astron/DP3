@@ -98,7 +98,7 @@ void VdsMaker::getCorrInfo(MS& ms, vector<std::string>& corrTypes) {
   MSPolarization mssub(ms.polarization());
   if (mssub.nrow() > 0) {
     ROMSPolarizationColumns mssubc(mssub);
-    Vector<Int> ctvec = mssubc.corrType()(0);
+    Vector<int> ctvec = mssubc.corrType()(0);
     int nrp = ctvec.nelements();
     corrTypes.resize(nrp);
     for (int i = 0; i < nrp; ++i) {
@@ -269,7 +269,7 @@ void VdsMaker::create(const std::string& msName, const std::string& outName,
 
   // Fill in times.
   ROMSMainColumns mscol(ms);
-  uInt nrow = ms.nrow();
+  size_t nrow = ms.nrow();
   if (nrow <= 0) {
     Logger::Info << "MeasurementSet " + absName + " is empty";
   } else {

@@ -262,11 +262,11 @@ Matrix<bool> BaselineSelection::handleBLVector(
     std::vector<std::string> bl = pairs[i].getStringVector();
     if (bl.size() == 1) {
       // Turn the given antenna name pattern into a regex.
-      casacore::Regex regex(casacore::Regex::fromPattern(bl[0]));
+      const casacore::Regex regex(casacore::Regex::fromPattern(bl[0]));
       int nmatch = 0;
       // Loop through all antenna names and set matrix for matching ones.
       for (unsigned int i2 = 0; i2 < antNames.size(); ++i2) {
-        if (casacore::String(antNames[i2]).matches(regex)) {
+        if (casacore::RegexMatches(antNames[i2], regex)) {
           nmatch++;
           // Antenna matches, so set all corresponding flags.
           for (unsigned int j = 0; j < antNames.size(); ++j) {
@@ -285,15 +285,15 @@ Matrix<bool> BaselineSelection::handleBLVector(
             "PreFlagger baseline "
             " should contain 1 or 2 antenna name patterns");
       // Turn the given antenna name pattern into a regex.
-      casacore::Regex regex1(casacore::Regex::fromPattern(bl[0]));
-      casacore::Regex regex2(casacore::Regex::fromPattern(bl[1]));
+      const casacore::Regex regex1(casacore::Regex::fromPattern(bl[0]));
+      const casacore::Regex regex2(casacore::Regex::fromPattern(bl[1]));
       int nmatch = 0;
       // Loop through all antenna names and set matrix for matching ones.
       for (unsigned int i2 = 0; i2 < antNames.size(); ++i2) {
-        if (casacore::String(antNames[i2]).matches(regex2)) {
+        if (casacore::RegexMatches(antNames[i2], regex2)) {
           // Antenna2 matches, now try Antenna1.
           for (unsigned int i1 = 0; i1 < antNames.size(); ++i1) {
-            if (casacore::String(antNames[i1]).matches(regex1)) {
+            if (casacore::RegexMatches(antNames[i1], regex1)) {
               nmatch++;
               sel(i1, i2) = true;
               sel(i2, i1) = true;

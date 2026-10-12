@@ -214,8 +214,7 @@ class PreFlagger : public Step {
 
     /// Get the value and possible unit.
     /// If no unit is given, the argument is left untouched.
-    void getValue(const std::string& str, double& value,
-                  casacore::String& unit);
+    void getValue(const std::string& str, double& value, std::string& unit);
 
     /// Get the frequency in Hz using the value and unit.
     double getFreqHz(double value, const casacore::String& unit);

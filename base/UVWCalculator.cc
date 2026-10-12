@@ -23,14 +23,14 @@ UVWCalculator::UVWCalculator(const MDirection& phaseDir,
                              const vector<MPosition>& stationPositions) {
   // Convert the station positions to a baseline in ITRF.
   int nrant = stationPositions.size();
-  Vector<Double> pos0;
+  Vector<double> pos0;
   for (int i = 0; i < nrant; ++i) {
     // Get antenna positions and convert to ITRF.
     MPosition mpos = MPosition::Convert(stationPositions[i], MPosition::ITRF)();
     if (i == 0) {
       pos0 = mpos.getValue().getVector();
     }
-    Vector<Double> pos = mpos.getValue().getVector();
+    Vector<double> pos = mpos.getValue().getVector();
     MVPosition mvpos((pos[0] - pos0[0]), (pos[1] - pos0[1]),
                      (pos[2] - pos0[2]));
     itsAntMB.push_back(MBaseline(MVBaseline(mvpos), MBaseline::ITRF));
@@ -66,7 +66,7 @@ std::array<double, 3> UVWCalculator::getUVW(unsigned int ant1,
   // If a different time, we have to calculate the UVWs.
   if (time != itsLastTime) {
     itsLastTime = time;
-    Quantum<Double> tm(time, "s");
+    Quantum<double> tm(time, "s");
     itsFrame.resetEpoch(MEpoch(MVEpoch(tm.get("d").getValue()), MEpoch::UTC));
     itsUvwFilled = false;
     // If phase dir is moving, calculate it for this time.

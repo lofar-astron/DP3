@@ -51,7 +51,7 @@ vector<double> ParmFacadeLocal::getRange(
 
 // Get all parameter names in the table.
 vector<std::string> ParmFacadeLocal::getNames(
-    const std::string& parmNamePattern, Bool includeDefaults) const {
+    const std::string& parmNamePattern, bool includeDefaults) const {
   string pp = parmNamePattern;
   if (pp.empty()) {
     pp = "*";
@@ -108,7 +108,7 @@ Record ParmFacadeLocal::getDefValues(const std::string& parmNamePattern) const {
 
 void ParmFacadeLocal::addDefValues(const Record& rec, bool check) {
   itsPDB.lock();
-  for (uInt i = 0; i < rec.nfields(); ++i) {
+  for (size_t i = 0; i < rec.nfields(); ++i) {
     addDefValue(rec.name(i), rec.subRecord(i), check);
   }
   itsPDB.unlock();
@@ -210,7 +210,7 @@ void ParmFacadeLocal::setDefaultSteps(const vector<double>& steps) {
 
 void ParmFacadeLocal::addValues(const Record& rec) {
   itsPDB.lock();
-  for (uInt i = 0; i < rec.nfields(); ++i) {
+  for (size_t i = 0; i < rec.nfields(); ++i) {
     addValue(rec.name(i), rec.subRecord(i));
   }
   itsPDB.unlock();
@@ -248,7 +248,7 @@ void ParmFacadeLocal::addValue(const std::string& parmName, const Record& rec) {
   int type = pvset.getType();
   double pert = pvset.getPerturbation();
   bool pertrel = pvset.getPertRel();
-  Array<Bool> mask = pvset.getSolvableMask();
+  Array<bool> mask = pvset.getSolvableMask();
   IPosition shape = defval.getValues().shape();
   // Get possible new meta values.
   if (!isOldParm) {
@@ -335,7 +335,7 @@ void ParmFacadeLocal::deleteValues(const std::string& parmNamePattern,
 
 Record ParmFacadeLocal::doGetValues(const std::string& parmNamePattern,
                                     const Grid& predictGrid,
-                                    Bool includeDefaults) {
+                                    bool includeDefaults) {
   // Get all matching parm names.
   vector<std::string> names = getNames(parmNamePattern, includeDefaults);
   // The output is returned in a record.
@@ -535,8 +535,8 @@ Axis::ShPtr ParmFacadeLocal::makeAxis(const Vector<double>& centers,
 }
 
 int ParmFacadeLocal::getType(const std::string& str) const {
-  String strc(str);
-  strc.downcase();
+  std::string strc(str);
+  ToLowerCaseInPlace(strc);
   if (strc == "scalar") {
     return ParmValue::Scalar;
   } else if (strc == "polc") {

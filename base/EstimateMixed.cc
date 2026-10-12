@@ -272,7 +272,7 @@ bool estimate(size_t nDirection, size_t nStation, size_t nBaseline,
     baselines -= nBaseline;
 
     // Perform LSQ iteration.
-    casacore::uInt rank;
+    unsigned int rank;
     [[maybe_unused]] bool status = solver.solveLoop(rank, unknowns, true);
     assert(status);
 

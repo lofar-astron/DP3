@@ -92,8 +92,8 @@ void RunMSOverview(int argc, char* argv[]) {
   }
 
   // Remove the extra fields (time, severity) from the output string.
-  casacore::String str(ostr.str());
-  str.gsub(casacore::Regex(".*\tINFO\t[+]?\t"), "");
+  std::string str(ostr.str());
+  casacore::RegexReplaceAll(str, casacore::Regex(".*\tINFO\t[+]?\t"), "");
   Logger::Info << str;
 
   // Test if the MS is regular.

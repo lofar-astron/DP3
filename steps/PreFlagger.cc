@@ -913,9 +913,9 @@ std::vector<std::string> PreFlagger::PSet::exprToRpn(
       }
       hadName = true;
       itsRpn.push_back(names.size());
-      casacore::String setName(origExpr.substr(st, i - st));
+      const std::string setName(origExpr.substr(st, i - st));
       // Check the name is valid (no special characters).
-      if (!setName.matches(casacore::RXidentifier))
+      if (!casacore::RegexMatches(setName, casacore::RXidentifier))
         throw std::runtime_error("Invalid set name " + std::string(setName) +
                                  " used in set expression " + origExpr);
       names.push_back(setName);
@@ -1123,16 +1123,16 @@ xt::xtensor<int, 1> PreFlagger::PSet::handleFreqRanges(
 }
 
 void PreFlagger::PSet::getValue(const std::string& str, double& value,
-                                casacore::String& unit) {
+                                std::string& unit) {
   // See if a unit is given at the end.
-  casacore::String v(str);
+  std::string v(str);
   // Remove possible trailing blanks.
   boost::algorithm::trim_right(v);
-  casacore::Regex regex("[a-zA-Z]+$");
-  std::string::size_type pos = v.index(regex);
-  if (pos != casacore::String::npos) {
-    unit = v.from(pos);
-    v = v.before(pos);
+  const casacore::Regex regex("[a-zA-Z]+$");
+  std::string::size_type pos = RegexIndex(v, regex);
+  if (pos != std::string::npos) {
+    unit = v.substr(pos);
+    v = v.substr(0, pos);
   }
   // Set value and unit.
   value = common::strToDouble(v);

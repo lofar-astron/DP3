@@ -2,8 +2,8 @@ FROM ubuntu:24.04
 
 ENV EVERYBEAM_VERSION=c5057dafbe15dc9e542150de4e7fc12bbc6361d5
 ENV IDG_VERSION=1.2.0
-ENV AOFLAGGER_VERSION=72af21873f657427c99493a56742074be70d5d11
-ENV CASACORE_VERSION=cdd18c1f9ab724a42164f7ac56fb507d3a81e074
+ENV AOFLAGGER_VERSION=811f8e09261f04e97a4802a23635eee125fbf4b7
+ENV CASACORE_VERSION=v3.8.2
 ENV SAGECAL_VERSION=v0.8.5
 ENV WSCLEAN_VERSION=70cfae7101b7fd450433f2994339656eddca1a33
 
@@ -27,7 +27,7 @@ RUN export DEBIAN_FRONTEND="noninteractive" && \
 	libcfitsio-dev \
 	libfftw3-dev \
 	libgsl-dev \
-	libgtkmm-3.0-dev \
+	libgtkmm-4.0-dev \
 	libhdf5-serial-dev \
 	liblua5.3-dev \
 	libpng-dev \

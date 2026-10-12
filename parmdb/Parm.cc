@@ -82,7 +82,7 @@ vector<double> Parm::getErrors(const Grid::Location& where, bool useMask) {
 }
 
 vector<double> Parm::copyValues(const Array<double>& values,
-                                const Array<Bool>& mask, bool useMask) {
+                                const Array<bool>& mask, bool useMask) {
   assert(values.contiguousStorage());
   if (!useMask || mask.size() == 0) {
     return vector<double>(values.cbegin(), values.cend());

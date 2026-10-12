@@ -315,16 +315,16 @@ void Averager::average() {
 }
 
 double Averager::getFreqHz(const std::string& freqstr) {
-  casacore::String unit;
+  std::string unit;
   // See if a unit is given at the end.
-  casacore::String v(freqstr);
+  std::string v(freqstr);
   // Remove possible trailing blanks.
   boost::algorithm::trim_right(v);
-  casacore::Regex regex("[a-zA-Z]+$");
-  casacore::String::size_type pos = v.index(regex);
+  const casacore::Regex regex("[a-zA-Z]+$");
+  std::string::size_type pos = casacore::RegexIndex(v, regex);
   if (pos != casacore::String::npos) {
-    unit = v.from(pos);
-    v = v.before(pos);
+    unit = v.substr(pos);
+    v = v.substr(0, pos);
   }
   // Set value and unit.
 

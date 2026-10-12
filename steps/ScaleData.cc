@@ -127,7 +127,7 @@ void ScaleData::updateInfo(const DPInfo& infoIn) {
   itsStationFactors.reserve(nant);
   for (unsigned int i = 0; i < nant; ++i) {
     for (unsigned int j = 0; j < stationRegex.size(); ++j) {
-      if (casacore::String(infoIn.antennaNames()[i]).matches(stationRegex[j])) {
+      if (casacore::RegexMatches(infoIn.antennaNames()[i], stationRegex[j])) {
         itsStationFactors.push_back(scaleVec[j]);
         // If needed, scale with the nr of dipoles/tiles actually used.
         // Do that if explicitly told so or if default coeffs are used.
