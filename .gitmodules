@@ -1,12 +1,12 @@
 [submodule "external/aocommon"]
 	path = external/aocommon
-	url = https://gitlab.com/aroffringa/aocommon.git
+	url = https://git.astron.nl/mirror/aroffringa/aocommon.git
 [submodule "external/schaapcommon"]
 	path = external/schaapcommon
 	url = https://git.astron.nl/RD/schaapcommon.git
 [submodule "external/pybind11"]
 	path = external/pybind11
-	url = https://github.com/pybind/pybind11.git
+	url = https://git.astron.nl/mirror/pybind/pybind11.git
 [submodule "external/schaap-packaging"]
 	path = external/schaap-packaging
 	url = https://git.astron.nl/RD/schaap-packaging.git
