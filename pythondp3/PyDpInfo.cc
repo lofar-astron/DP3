@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
+#include <array>
 #include <memory>
 
 #include <pybind11/pybind11.h>
@@ -18,6 +19,25 @@ namespace py = pybind11;
 
 namespace dp3 {
 namespace pythondp3 {
+
+namespace {
+
+// Convert a 3-element array of ITRF XYZ coordinates to a casacore::MPosition.
+casacore::MPosition casacore_position(const std::array<double, 3>& position) {
+  casacore::Vector<double> vector(position.size());
+  std::copy_n(position.data(), position.size(), vector.data());
+  casacore::Quantum<casacore::Vector<double>> quantum(vector, "m");
+  return casacore::MPosition(quantum, casacore::MPosition::ITRF);
+}
+
+// Convert a 2-element array of [ra, dec] in radians to a casacore::MDirection.
+casacore::MDirection casacore_direction(const std::array<double, 2>& ra_dec) {
+  const casacore::Quantity ra(ra_dec[0], "rad");
+  const casacore::Quantity dec(ra_dec[1], "rad");
+  return casacore::MDirection(ra, dec, casacore::MDirection::J2000);
+}
+
+}  // namespace
 
 void WrapDpInfo(py::module& m) {
   py::class_<DPInfo>(m, "DPInfo")
@@ -161,6 +181,39 @@ The start time equals the first time minus half a time interval)")
                              "The number of time slots")
 
       /* Array information */
+      .def(
+          "set_array_information",
+          [](DPInfo& self, const std::array<double, 3>& array_position,
+             const std::array<double, 2>& phase_center,
+             const std::array<double, 2>& delay_center,
+             const std::array<double, 2>& tile_beam_direction) {
+            self.setArrayInformation(casacore_position(array_position),
+                                     casacore_direction(phase_center),
+                                     casacore_direction(delay_center),
+                                     casacore_direction(tile_beam_direction));
+          },
+          R"(Set array position and direction information.
+Parameters:
+  array_position: Array position [x, y, z] as ITRF coordinates in meters.
+                Typically set by having casacore look up the value in the
+                Observatories measures table associated with
+                OBSERVATION::TELESCOPE_NAME, falling back to
+                antenna_positions[n_ant / 2] if not found.
+  phase_center: Phase center as [right ascension, declination] in radians,
+                using the J2000 reference frame.
+  delay_center: Delay center as [right ascension, declination] in radians,
+                using the J2000 reference frame.
+  tile_beam_direction: Tile beam direction as [right ascension, declination]
+                       in radians, using the J2000 reference frame.)",
+          py::arg("array_position"), py::arg("phase_center"),
+          py::arg("delay_center"), py::arg("tile_beam_direction"))
+      .def_property_readonly(
+          "array_position",
+          [](DPInfo& self) {
+            const casacore::MVPosition position = self.arrayPos().getValue();
+            return std::array<double, 3>{position(0), position(1), position(2)};
+          },
+          "The array position in ITRF XYZ coordinates in meters (read-only)")
       .def_property(
           "phase_center",
           [](DPInfo& self) {
@@ -169,11 +222,7 @@ The start time equals the first time minus half a time interval)")
                 self.phaseCenter().getValue().get()[1]};
           },
           [](DPInfo& self, const std::array<double, 2>& ra_dec) {
-            const casacore::Quantity ra(ra_dec[0], "rad");
-            const casacore::Quantity dec(ra_dec[1], "rad");
-            const casacore::MDirection direction(ra, dec,
-                                                 casacore::MDirection::J2000);
-            self.setPhaseCenter(direction);
+            self.setPhaseCenter(casacore_direction(ra_dec));
           },
           "The phase center for the measurements ([ra, dec] in radians)")
 
