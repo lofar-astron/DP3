@@ -70,7 +70,7 @@ BOOST_DATA_TEST_CASE(store_solutions_in_buffer,
   auto ddecal = std::make_shared<DDECal>(
       CreateParameterSet({{"directions", "[[center]]"},
                           {"sourcedb", "tDDECal.MS/sky.txt"},
-                          {"h5parm", "tddecal_storebuffer.h5"},
+                          {"h5parm", ""},
                           {"storebuffer", "true"},
                           {"solint", std::to_string(solution_interval)}}),
       "");
