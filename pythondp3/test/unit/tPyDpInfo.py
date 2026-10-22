@@ -170,6 +170,23 @@ def test_phase_center():
         )
 
 
+def test_set_array_information():
+    info = dp3.DPInfo()
+    array_position = [123.0, 456.0, 789.0]
+    phase_center = [0.1, 0.2]
+    info.set_array_information(
+        array_position,
+        phase_center,
+        phase_center,
+        phase_center,
+    )
+
+    for expected, actual in zip(array_position, info.array_position):
+        assert math.isclose(expected, actual, rel_tol=1.0e-9)
+    assert math.isclose(phase_center[0], info.phase_center[0], rel_tol=1.0e-9)
+    assert math.isclose(phase_center[1], info.phase_center[1], rel_tol=1.0e-9)
+
+
 def test_ms_name():
     info = dp3.DPInfo()
     assert info.ms_name == ""
