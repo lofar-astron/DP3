@@ -198,8 +198,8 @@ class DDECal : public Step {
   /// When reusing model data, the result step for that direction is empty/null.
   std::vector<std::shared_ptr<MultiResultStep>> result_steps_;
 
-  /// Store the solution for later steps of processing in DPBuffer. Note: only
-  /// works for 1 direction.
+  /// Store solutions for later steps of processing in the first DPBuffer of
+  /// each solution interval.
   bool store_solution_in_buffer_;
 
   common::NSTimer timer_;

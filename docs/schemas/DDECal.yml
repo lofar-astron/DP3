@@ -41,7 +41,7 @@ inputs:
     doc: stepsize between iterations.
   h5parm:
     type: string
-    doc: Filename of output H5Parm. If empty, defaults to `instrument.h5` within the measurement set. (This default behavior is deprecated. Use this 'h5parm' setting instead.)
+    doc: Filename of output H5Parm. An empty string means no H5Parm is written. If unset, defaults to `instrument.h5` within the measurement set. (This default behavior is deprecated. Use this 'h5parm' setting instead.)
   solint:
     default: 1
     type: int
@@ -341,7 +341,7 @@ inputs:
   storebuffer:
     default: false
     type: bool
-    doc: Setting this to true will store the solution of DDECal into the buffer, allowing the usage of this solution in a later step. For example, a pipeline with  DDECal -> OneApplyCal  would be able to apply solutions to the data without requiring an intermediate format to be stored to disk. Note that it currently only works for single-direction solutions.
+    doc: Setting this to true will store the solved gains in the first output buffer of each solution interval, allowing later steps or Python code to use them without an intermediate H5Parm file. OneApplyCal currently only supports applying one direction from buffer-stored solutions; Python can retrieve solutions for all directions.
   usegpu:
     default: false
     type: bool

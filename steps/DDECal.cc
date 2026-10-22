@@ -999,7 +999,7 @@ void DDECal::finish() {
     doSolve();
   }
 
-  if (!settings_.only_predict) WriteSolutions();
+  if (!settings_.only_predict && solution_writer_) WriteSolutions();
 
   input_buffers_.clear();
   timer_.stop();
