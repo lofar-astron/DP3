@@ -48,6 +48,7 @@ inputs:
       Also, setting it to false is faster.
   updateweights:
     type: boolean?
+    default: false
     doc: >-
       Update the weights column, in a way consistent with
       the weights being inverse proportional to the autocorrelations

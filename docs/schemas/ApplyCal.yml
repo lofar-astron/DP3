@@ -44,6 +44,7 @@ inputs:
     doc: If using H5Parm, the direction of the solution to use.
   updateweights:
     type: boolean?
+    default: false
     doc: >-
       Update the weights column, in a way consistent with
       the weights being inverse proportional to the autocorrelations
