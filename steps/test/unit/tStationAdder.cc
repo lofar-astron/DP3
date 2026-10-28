@@ -163,7 +163,14 @@ class TestOutput : public dp3::steps::test::ThrowStep {
   }
   void addConjData(xt::xtensor<std::complex<float>, 2>& to,
                    const xt::xtensor<std::complex<float>, 3>& from, int bl) {
-    to += xt::conj(xt::view(from, bl, xt::all(), xt::all()));
+    const auto source = xt::view(from, bl, xt::all(), xt::all());
+    for (std::size_t chan = 0; chan < source.shape(0); ++chan) {
+      for (std::size_t corr = 0; corr < source.shape(1); ++corr) {
+        const std::size_t source_corr =
+            source.shape(1) == 4 && (corr == 1 || corr == 2) ? 3 - corr : corr;
+        to(chan, corr) += std::conj(source(chan, source_corr));
+      }
+    }
   }
   bool process(std::unique_ptr<DPBuffer> buffer) override {
     const std::array<std::size_t, 3> shape{itsNBl, itsNChan, itsNCorr};
@@ -304,9 +311,18 @@ class TestOutput2 : public dp3::steps::test::ThrowStep {
                    const xt::xtensor<std::complex<float>, 3>& from,
                    xt::xtensor<float, 2>& to_weights,
                    const xt::xtensor<float, 3>& from_weights, int bl) {
-    auto weights_view = xt::view(from_weights, bl, xt::all(), xt::all());
-    to += xt::conj(xt::view(from, bl, xt::all(), xt::all()) * weights_view);
-    to_weights += weights_view;
+    const auto data_view = xt::view(from, bl, xt::all(), xt::all());
+    const auto weights_view = xt::view(from_weights, bl, xt::all(), xt::all());
+    for (std::size_t chan = 0; chan < data_view.shape(0); ++chan) {
+      for (std::size_t corr = 0; corr < data_view.shape(1); ++corr) {
+        const std::size_t source_corr =
+            data_view.shape(1) == 4 && (corr == 1 || corr == 2) ? 3 - corr
+                                                                : corr;
+        to(chan, corr) += std::conj(data_view(chan, source_corr)) *
+                          weights_view(chan, source_corr);
+        to_weights(chan, corr) += weights_view(chan, source_corr);
+      }
+    }
   }
   bool process(std::unique_ptr<DPBuffer> buffer) override {
     const std::array<std::size_t, 3> data_shape{itsNBl, itsNChan, itsNCorr};
