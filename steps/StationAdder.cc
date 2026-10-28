@@ -128,7 +128,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     MVPosition newPosition;
     // Check if the stations exist and not used for other superstations.
     // Add their ITRF positions.
-    for (unsigned int i = 0; i < parts.size(); ++i) {
+    for (size_t i = 0; i < parts.size(); ++i) {
       int inx = parts[i];
       if (newStations[inx] >= 0)
         throw std::runtime_error("Station " + antennaNames[inx] +
@@ -145,7 +145,7 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
     // Set the diameter of the new station by determining the
     // maximum distance to the center.
     double maxdist = 0;
-    for (unsigned int i = 0; i < parts.size(); ++i) {
+    for (size_t i = 0; i < parts.size(); ++i) {
       int inx = parts[i];
       MVPosition mvdiff =
           newPosition -
@@ -161,12 +161,12 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   // Add the new stations to the info's vectors.
   std::vector<int> ant1(getInfoOut().getAnt1());
   std::vector<int> ant2(getInfoOut().getAnt2());
-  unsigned int nrold = antennaNames.size();
-  unsigned int nrnew = nrold + newNames.size();
+  size_t nrold = antennaNames.size();
+  size_t nrnew = nrold + newNames.size();
   antennaNames.resize(nrnew);
   antennaDiam.resize(nrnew);
   antennaPos.reserve(nrnew);
-  for (unsigned int i = 0; i < newNames.size(); ++i) {
+  for (size_t i = 0; i < newNames.size(); ++i) {
     antennaNames[nrold + i] = newNames[i];
     antennaDiam[nrold + i] = newDiam[i];
     antennaPos.push_back(newPoss[i]);
@@ -184,13 +184,13 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
   // to be added for the new baseline. If rownr<0, the conjugate has to be
   // added (1 is added to rownr, otherwise 0 is ambiguous).
   // Note that a rownr can be the rownr of a new baseline.
-  for (unsigned int j = 0; j < itsParts.size(); ++j) {
+  for (size_t j = 0; j < itsParts.size(); ++j) {
     std::fill(newbl.begin(), newbl.end(), -1);
     std::vector<int> newAnt1;
     std::vector<int> newAnt2;
     // Loop through all baselines and find out if a baseline should
     // be used for a superstation.
-    for (unsigned int i = 0; i < ant1.size(); ++i) {
+    for (size_t i = 0; i < ant1.size(); ++i) {
       bool havea1 = linearSearch1(itsParts[j], ant1[i]) >= 0;
       bool havea2 = linearSearch1(itsParts[j], ant2[i]) >= 0;
       int ant = nrold + j;
@@ -228,10 +228,10 @@ void StationAdder::updateInfo(const DPInfo& infoIn) {
       aocommon::Logger::Warn
           << "StationAdder: no baseline found for superstation\n";
     } else {
-      unsigned int oldsz = ant1.size();
+      size_t oldsz = ant1.size();
       ant1.resize(oldsz + newAnt1.size(), true);
       ant2.resize(oldsz + newAnt1.size(), true);
-      for (unsigned int i = 0; i < newAnt1.size(); ++i) {
+      for (size_t i = 0; i < newAnt1.size(); ++i) {
         ant1[oldsz + i] = newAnt1[i];
         ant2[oldsz + i] = newAnt2[i];
       }
@@ -249,10 +249,10 @@ void StationAdder::show(std::ostream& os) const {
   os << "StationAdder " << itsName << '\n';
   os << "  stations:       " << itsStatRec << '\n';
   // Show the stations used for the new stations.
-  unsigned int nold = getInfoOut().antennaNames().size() - itsParts.size();
-  for (unsigned int i = 0; i < itsParts.size(); ++i) {
+  size_t nold = getInfoOut().antennaNames().size() - itsParts.size();
+  for (size_t i = 0; i < itsParts.size(); ++i) {
     os << "      " << getInfoOut().antennaNames()[nold + i] << ": [";
-    for (unsigned int j = 0; j < itsParts[i].size(); ++j) {
+    for (size_t j = 0; j < itsParts[i].size(); ++j) {
       if (j > 0) os << ", ";
       os << getInfoOut().antennaNames()[itsParts[i][j]];
     }
@@ -282,8 +282,9 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
   const xt::xtensor<float, 3> input_weights = buffer->GetWeights();
   const xt::xtensor<double, 2> input_uvws = buffer->GetUvw();
   // 2. Resize the buffer to the new sizes that were set in our info object
-  const std::array<std::size_t, 3> new_shape{
-      getInfoOut().nbaselines(), getInfoOut().nchan(), getInfoOut().ncorr()};
+  const unsigned n_corr = getInfoOut().ncorr();
+  const std::array<size_t, 3> new_shape{getInfoOut().nbaselines(),
+                                        getInfoOut().nchan(), n_corr};
   buffer->GetData().resize(new_shape);
   buffer->GetFlags().resize(new_shape);
   buffer->GetWeights().resize(new_shape);
@@ -299,19 +300,19 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
   std::copy_n(input_uvws.data(), input_uvws.size(), buffer->GetUvw().data());
 
   // Now calculate the data pointers of the new baselines.
-  unsigned int nrOldBL = input_data.shape()[0];
-  unsigned int nrcc = input_data.shape()[2] * input_data.shape()[1];
+  size_t nrOldBL = input_data.shape()[0];
+  size_t n_corr_times_channels = input_data.shape()[2] * input_data.shape()[1];
   std::complex<float>* dataPtr = buffer->GetData().data() + input_data.size();
   bool* flagPtr = buffer->GetFlags().data() + input_data.size();
   float* wghtPtr = buffer->GetWeights().data() + input_data.size();
   double* uvwPtr = buffer->GetUvw().data() + input_uvws.size();
-  std::vector<unsigned int> npoints(nrcc);
-  std::vector<std::complex<float>> dataFlg(nrcc);
-  std::vector<float> wghtFlg(nrcc);
+  std::vector<size_t> npoints(n_corr_times_channels);
+  std::vector<std::complex<float>> dataFlg(n_corr_times_channels);
+  std::vector<float> wghtFlg(n_corr_times_channels);
   // Loop over all new baselines.
-  for (unsigned int i = 0; i < itsBufRows.size(); ++i) {
+  for (size_t i = 0; i < itsBufRows.size(); ++i) {
     // Clear the data for the new baseline.
-    for (unsigned int k = 0; k < nrcc; ++k) {
+    for (size_t k = 0; k < n_corr_times_channels; ++k) {
       dataPtr[k] = std::complex<float>();
       wghtPtr[k] = 0.;
       npoints[k] = 0;
@@ -319,13 +320,13 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
       wghtFlg[k] = 0.;
     }
 
-    for (unsigned int k = 0; k < 3; ++k) {
+    for (size_t k = 0; k < 3; ++k) {
       uvwPtr[k] = 0.;
     }
     double uvwWghtSum = 0.;
 
     // Sum the baselines forming the new baselines.
-    for (unsigned int j = 0; j < itsBufRows[i].size(); ++j) {
+    for (size_t j = 0; j < itsBufRows[i].size(); ++j) {
       // Get the baseline number to use.
       // A negative one means using the conjugate.
       int blnr = itsBufRows[i][j];
@@ -346,66 +347,88 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
       // Count the flagged points separately, so it can be used
       // if too many points are flagged.
       if (useConj) {
+        // Reversing a baseline requires a Hermitian transpose: conjugate
+        // and swap XY/YX of the source.
+        const auto source_index = [n_corr](size_t k) {
+          const size_t c = k % n_corr;
+          return (n_corr == 4 && (c == 1 || c == 2)) ? k - c + (3 - c) : k;
+        };
         if (itsUseWeight) {
-          for (unsigned int k = 0; k < nrcc; ++k) {
-            if (inFlagPtr[k]) {
-              dataFlg[k] += conj(inDataPtr[k]) * inWghtPtr[k];
-              wghtFlg[k] += inWghtPtr[k];
+          for (size_t corr_channel_dest = 0;
+               corr_channel_dest < n_corr_times_channels; ++corr_channel_dest) {
+            const size_t corr_channel_source = source_index(corr_channel_dest);
+            if (inFlagPtr[corr_channel_source]) {
+              dataFlg[corr_channel_dest] +=
+                  std::conj(inDataPtr[corr_channel_source]) *
+                  inWghtPtr[corr_channel_source];
+              wghtFlg[corr_channel_dest] += inWghtPtr[corr_channel_source];
             } else {
-              npoints[k]++;
-              dataPtr[k] += conj(inDataPtr[k]) * inWghtPtr[k];
-              wghtPtr[k] += inWghtPtr[k];
+              npoints[corr_channel_dest]++;
+              dataPtr[corr_channel_dest] +=
+                  std::conj(inDataPtr[corr_channel_source]) *
+                  inWghtPtr[corr_channel_source];
+              wghtPtr[corr_channel_dest] += inWghtPtr[corr_channel_source];
               for (int ui = 0; ui < 3; ++ui) {
-                uvwPtr[ui] -= inUvwPtr[ui] * inWghtPtr[k];
+                uvwPtr[ui] -= inUvwPtr[ui] * inWghtPtr[corr_channel_source];
               }
-              uvwWghtSum += inWghtPtr[k];
+              uvwWghtSum += inWghtPtr[corr_channel_source];
             }
           }
         } else {
-          for (unsigned int k = 0; k < nrcc; ++k) {
-            if (inFlagPtr[k]) {
-              dataFlg[k] += conj(inDataPtr[k]);
-              wghtFlg[k] += 1.;
+          for (size_t corr_channel_dest = 0;
+               corr_channel_dest < n_corr_times_channels; ++corr_channel_dest) {
+            const size_t corr_channel_source = source_index(corr_channel_dest);
+            if (inFlagPtr[corr_channel_source]) {
+              dataFlg[corr_channel_dest] +=
+                  std::conj(inDataPtr[corr_channel_source]);
+              wghtFlg[corr_channel_dest] += 1.0;
             } else {
-              npoints[k]++;
-              dataPtr[k] += conj(inDataPtr[k]);
-              wghtPtr[k] += 1.;
+              npoints[corr_channel_dest]++;
+              dataPtr[corr_channel_dest] +=
+                  std::conj(inDataPtr[corr_channel_source]);
+              wghtPtr[corr_channel_dest] += 1.0;
               for (int ui = 0; ui < 3; ++ui) {
                 uvwPtr[ui] -= inUvwPtr[ui];
               }
-              uvwWghtSum += 1;
+              uvwWghtSum += 1.0;
             }
           }
         }
       } else {
         if (itsUseWeight) {
-          for (unsigned int k = 0; k < nrcc; ++k) {
-            if (inFlagPtr[k]) {
-              dataFlg[k] += inDataPtr[k] * inWghtPtr[k];
-              wghtFlg[k] += inWghtPtr[k];
+          for (size_t corr_channel_index = 0;
+               corr_channel_index < n_corr_times_channels;
+               ++corr_channel_index) {
+            if (inFlagPtr[corr_channel_index]) {
+              dataFlg[corr_channel_index] +=
+                  inDataPtr[corr_channel_index] * inWghtPtr[corr_channel_index];
+              wghtFlg[corr_channel_index] += inWghtPtr[corr_channel_index];
             } else {
-              npoints[k]++;
-              dataPtr[k] += inDataPtr[k] * inWghtPtr[k];
-              wghtPtr[k] += inWghtPtr[k];
+              npoints[corr_channel_index]++;
+              dataPtr[corr_channel_index] +=
+                  inDataPtr[corr_channel_index] * inWghtPtr[corr_channel_index];
+              wghtPtr[corr_channel_index] += inWghtPtr[corr_channel_index];
               for (int ui = 0; ui < 3; ++ui) {
-                uvwPtr[ui] += inUvwPtr[ui] * inWghtPtr[k];
+                uvwPtr[ui] += inUvwPtr[ui] * inWghtPtr[corr_channel_index];
               }
-              uvwWghtSum += inWghtPtr[k];
+              uvwWghtSum += inWghtPtr[corr_channel_index];
             }
           }
         } else {
-          for (unsigned int k = 0; k < nrcc; ++k) {
-            if (inFlagPtr[k]) {
-              dataFlg[k] += inDataPtr[k];
-              wghtFlg[k] += 1.;
+          for (size_t corr_channel_index = 0;
+               corr_channel_index < n_corr_times_channels;
+               ++corr_channel_index) {
+            if (inFlagPtr[corr_channel_index]) {
+              dataFlg[corr_channel_index] += inDataPtr[corr_channel_index];
+              wghtFlg[corr_channel_index] += 1.0;
             } else {
-              npoints[k]++;
-              dataPtr[k] += inDataPtr[k];
-              wghtPtr[k] += 1.;
+              npoints[corr_channel_index]++;
+              dataPtr[corr_channel_index] += inDataPtr[corr_channel_index];
+              wghtPtr[corr_channel_index] += 1.0;
               for (int ui = 0; ui < 3; ++ui) {
                 uvwPtr[ui] += inUvwPtr[ui];
               }
-              uvwWghtSum += 1;
+              uvwWghtSum += 1.0;
             }
           }
         }
@@ -413,16 +436,18 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
     }
     // Set the resulting flags. Average if needed.
     // Set flag if too few unflagged data points; use flagged data too.
-    for (unsigned int k = 0; k < nrcc; ++k) {
-      if (wghtPtr[k] == 0 || npoints[k] < itsMinNPoint) {
-        flagPtr[k] = true;
-        dataPtr[k] += dataFlg[k];
-        wghtPtr[k] += wghtFlg[k];
+    for (size_t corr_channel_index = 0;
+         corr_channel_index < n_corr_times_channels; ++corr_channel_index) {
+      if (wghtPtr[corr_channel_index] == 0 ||
+          npoints[corr_channel_index] < itsMinNPoint) {
+        flagPtr[corr_channel_index] = true;
+        dataPtr[corr_channel_index] += dataFlg[corr_channel_index];
+        wghtPtr[corr_channel_index] += wghtFlg[corr_channel_index];
       } else {
-        flagPtr[k] = false;
+        flagPtr[corr_channel_index] = false;
       }
       if (itsDoAverage) {
-        dataPtr[k] /= wghtPtr[k];
+        dataPtr[corr_channel_index] /= wghtPtr[corr_channel_index];
       }
     }
 
@@ -432,7 +457,7 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
         uvwPtr[ui] /= uvwWghtSum;
       }
     } else {
-      unsigned int blnr = nrOldBL + i;
+      size_t blnr = nrOldBL + i;
       const std::array<double, 3> uvws =
           itsUVWCalc->getUVW(getInfoOut().getAnt1()[blnr],
                              getInfoOut().getAnt2()[blnr], buffer->GetTime());
@@ -441,9 +466,9 @@ bool StationAdder::process(std::unique_ptr<base::DPBuffer> buffer) {
       uvwPtr[2] = uvws[2];
     }
 
-    dataPtr += nrcc;
-    flagPtr += nrcc;
-    wghtPtr += nrcc;
+    dataPtr += n_corr_times_channels;
+    flagPtr += n_corr_times_channels;
+    wghtPtr += n_corr_times_channels;
     uvwPtr += 3;
   }
   itsTimer.stop();
@@ -480,7 +505,7 @@ void StationAdder::addToMS(const std::string& msName) {
   if (antTab.tableDesc().isColumn("LOFAR_PHASE_REFERENCE")) {
     phrefCol.attach(antTab, "LOFAR_PHASE_REFERENCE");
   }
-  unsigned int origNant = antTab.nrow();
+  size_t origNant = antTab.nrow();
   // Take common info from the first row.
   casacore::String type, mount, stat;
   if (origNant > 0) {
@@ -492,7 +517,7 @@ void StationAdder::addToMS(const std::string& msName) {
   }
   casacore::Vector<double> offset(3, 0.0);
   // Put the data for each new antenna.
-  for (unsigned int i = origNant; i < getInfoOut().antennaNames().size(); ++i) {
+  for (size_t i = origNant; i < getInfoOut().antennaNames().size(); ++i) {
     antTab.addRow();
     nameCol.put(i, getInfoOut().antennaNames()[i]);
     typeCol.put(i, type);
@@ -516,7 +541,7 @@ void StationAdder::addToMS(const std::string& msName) {
   Table feedTab(msName + "/FEED", Table::Update);
   TableRow feedRow(feedTab);
   ScalarColumn<int> antidCol(feedTab, "ANTENNA_ID");
-  for (unsigned int i = origNant; i < getInfoOut().antennaNames().size(); ++i) {
+  for (size_t i = origNant; i < getInfoOut().antennaNames().size(); ++i) {
     size_t rownr = feedTab.nrow();
     feedTab.addRow();
     feedRow.put(rownr, feedRow.get(0));
@@ -529,16 +554,16 @@ void StationAdder::addToMS(const std::string& msName) {
   }
 }
 
-void StationAdder::updateBeamInfo(const std::string& msName,
-                                  unsigned int origNant, Table& antTab) {
+void StationAdder::updateBeamInfo(const std::string& msName, size_t origNant,
+                                  Table& antTab) {
   // Update the LOFAR_ANTENNA_FIELD table.
   // Copy all rows where ANTENNA_ID matches one of the stations used in
   // a superstation.
   Table afTab(msName + "/LOFAR_ANTENNA_FIELD", Table::Update);
   TableRow afRow(afTab);
   ScalarColumn<int> antIdCol(afTab, "ANTENNA_ID");
-  for (unsigned int i = 0; i < afTab.nrow(); ++i) {
-    for (unsigned int j = 0; j < itsParts.size(); ++j) {
+  for (size_t i = 0; i < afTab.nrow(); ++i) {
+    for (size_t j = 0; j < itsParts.size(); ++j) {
       int inx = linearSearch1(itsParts[j], antIdCol(i));
       if (inx >= 0) {
         int rownr = afTab.nrow();
@@ -563,14 +588,14 @@ void StationAdder::updateBeamInfo(const std::string& msName,
   casacore::Vector<int> clockIds(clockCol.getColumn());
   int nextClockId = max(clockIds);
   // Loop over all new antennae.
-  for (unsigned int i = 0; i < itsParts.size(); ++i) {
+  for (size_t i = 0; i < itsParts.size(); ++i) {
     if (itsParts[i].empty()) {
       break;
     }
     // Do all antennae of a new antenna share the same clock?
     // If so, use that clock-id, otherwise make a new one.
     int cid = clockIds[statIds[itsParts[i][0]]];
-    for (unsigned int j = 1; j < itsParts[i].size(); ++j) {
+    for (size_t j = 1; j < itsParts[i].size(); ++j) {
       if (clockIds[statIds[itsParts[i][j]]] != cid) {
         cid = ++nextClockId;
         break;

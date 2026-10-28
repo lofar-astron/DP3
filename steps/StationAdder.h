@@ -92,7 +92,7 @@ class StationAdder : public Step {
 
  private:
   /// Update the beam info subtables.
-  void updateBeamInfo(const std::string& msName, unsigned int origNant,
+  void updateBeamInfo(const std::string& msName, size_t origNant,
                       casacore::Table& antTab);
 
   std::string itsName;
@@ -100,12 +100,12 @@ class StationAdder : public Step {
   std::vector<casacore::Vector<int>>
       itsParts;  ///< the stations in each superstation
   std::vector<std::vector<int>>
-      itsBufRows;             ///< old baseline rows in each new baseline
-  unsigned int itsMinNPoint;  ///< flag data if too few unflagged data
-  bool itsMakeAutoCorr;       ///< also form new auto-correlations?
-  bool itsSumAutoCorr;        ///< sum auto- or cross-correlations?
-  bool itsDoAverage;          ///< average or sum?
-  bool itsUseWeight;          ///< false = use weight 1 per station
+      itsBufRows;        ///< old baseline rows in each new baseline
+  size_t itsMinNPoint;   ///< flag data if too few unflagged data
+  bool itsMakeAutoCorr;  ///< also form new auto-correlations?
+  bool itsSumAutoCorr;   ///< sum auto- or cross-correlations?
+  bool itsDoAverage;     ///< average or sum?
+  bool itsUseWeight;     ///< false = use weight 1 per station
   std::unique_ptr<base::UVWCalculator> itsUVWCalc;
   common::NSTimer itsTimer;
 };
