@@ -117,8 +117,10 @@ size_t ComputeBeam(const base::DPInfo& info,
     case everybeam::BeamMode::kElement:
       // Fill beam_values for channel ch
       for (size_t st = 0; st < n_stations; ++st) {
-        if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
-                      st) != skip_station_indices.end()) {
+        const std::vector<size_t>::const_iterator element =
+            std::find(skip_station_indices.begin(), skip_station_indices.end(),
+                      station_indices[st]);
+        if (element != skip_station_indices.end()) {
           for (size_t ch = 0; ch < n_channels; ++ch)
             beam_values[n_channels * st + ch] = aocommon::MC2x2F::Unity();
         } else {
@@ -139,8 +141,10 @@ size_t ComputeBeam(const base::DPInfo& info,
       break;
     case everybeam::BeamMode::kArrayFactor: {
       for (size_t st = 0; st < n_stations; ++st) {
-        if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
-                      st) != skip_station_indices.end()) {
+        const std::vector<size_t>::const_iterator element =
+            std::find(skip_station_indices.begin(), skip_station_indices.end(),
+                      station_indices[st]);
+        if (element != skip_station_indices.end()) {
           for (size_t ch = 0; ch < n_channels; ++ch)
             beam_values[n_channels * st + ch] = aocommon::MC2x2F::Unity();
         } else {
@@ -480,8 +484,10 @@ size_t ComputeArrayFactor(const DPInfo& info,
     // Fill beam_values for channel ch
     for (size_t st = 0; st < n_stations; ++st) {
       std::complex<double>& value = beam_values[n_channels * st + ch];
-      if (std::find(skip_station_indices.begin(), skip_station_indices.end(),
-                    st) != skip_station_indices.end()) {
+      const std::vector<size_t>::const_iterator element =
+          std::find(skip_station_indices.begin(), skip_station_indices.end(),
+                    station_indices[st]);
+      if (element != skip_station_indices.end()) {
         value = 1.0;
       } else {
         aocommon::MC2x2F af_tmp;
