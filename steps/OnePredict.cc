@@ -632,7 +632,6 @@ void OnePredict::PredictWithSourceParallelization(
 
   bool update_beam = false;
   double beam_evaluation_time = time;
-
   std::unique_ptr<everybeam::TimeCache> time_cache;
   if (apply_beam_) {
     const double time_since_beam_update = std::abs(time - previous_beam_time_);
@@ -641,9 +640,8 @@ void OnePredict::PredictWithSourceParallelization(
       beam_evaluation_time = time + 0.5 * beam_evaluation_interval_;
       previous_beam_time_ = time;
 
-      // TODO: duplicated old logic, but it's confusing cause in this manner
-      // there's only a new PointRespone/TimeCache when there's defintely an
-      // update, else the beam won't be applied?
+      // If the time_cache is not a nullptr, the prediction will re-evaluate the
+      // beams and store those in a buffer.
       time_cache =
           std::make_unique<everybeam::TimeCache>(everybeam::CreateTimeCache(
               beam_evaluation_time, getInfoOut().GetTelescope()));
@@ -652,7 +650,7 @@ void OnePredict::PredictWithSourceParallelization(
 
   std::mutex mutex;
   schaapcommon::StaticFor<size_t> loop;
-  // The way source are split into consecutive subranges
+  // The way sources are split into consecutive subranges
   // is important: it makes sure that a single patch is mostly calculated
   // by a single thread, which limits duplicate beam evaluations.
   // The work per thread needs to be the same for each timestep, because
