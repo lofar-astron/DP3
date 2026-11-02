@@ -256,10 +256,6 @@ void FastPredict::InitializePlan() {
       throw std::runtime_error("reusebeammodel is true in " + name_ +
                                " but no beam model was found.");
     }
-
-    const everybeam::Telescope& telescope = getInfoOut().GetTelescope();
-    station_indices_ =
-        base::GetStationIndices(telescope, getInfoOut().antennaNames());
   }
 
   // Create the Measure ITRF conversion info given the array position.

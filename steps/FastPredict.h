@@ -194,7 +194,6 @@ class FastPredict : public ModelDataStep {
       everybeam::ElementResponseModel::kDefault;
   casacore::MeasFrame meas_frame_;
   casacore::MDirection::Convert meas_converter_;
-  std::vector<size_t> station_indices_;
 
   predict::PredictPlanSettings predict_settings_;
   predict::Predict predict_;
