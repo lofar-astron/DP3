@@ -14,6 +14,7 @@
 
 #include <EveryBeam/load.h>
 #include <EveryBeam/msreadutils.h>
+#include <EveryBeam/coords/itrfdirection.h>
 
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -819,15 +820,27 @@ void MsReader::ReadArrayInformation() {
   const casacore::Table observation_table(
       ms_.keywordSet().asTable(base::DP3MS::kObservationTable));
   const casacore::String telescope_name =
-      ScalarColumn<casacore::String>(observation_table, "TELESCOPE_NAME")(0);
+      observation_table.nrow() == 0
+          ? ""
+          : ScalarColumn<casacore::String>(observation_table,
+                                           "TELESCOPE_NAME")(0);
 
   MPosition array_position;
-  if (observation_table.nrow() == 0 ||
-      !MeasTable::Observatory(array_position, telescope_name)) {
-    // If not found, use the position of the middle antenna.
-    array_position = antenna_positions[antenna_positions.size() / 2];
+  if (telescope_name == "LOFAR") {
+    // MeasTable::Observatory() does not return the right LOFAR position.
+    const std::array<double, 3> kLofarPos =
+        everybeam::coords::ItrfDirection::LofarPosition();
+    const casacore::MVPosition mv_position(kLofarPos[0], kLofarPos[1],
+                                           kLofarPos[2]);
+    array_position =
+        casacore::MPosition(mv_position, casacore::MPosition::ITRF);
+  } else {
+    if (observation_table.nrow() == 0 ||
+        !MeasTable::Observatory(array_position, telescope_name)) {
+      // If not found, use the position of the middle antenna.
+      array_position = antenna_positions[antenna_positions.size() / 2];
+    }
   }
-
   GetWritableInfoOut().SetTelescopeName(telescope_name);
 
   const casacore::String observer =

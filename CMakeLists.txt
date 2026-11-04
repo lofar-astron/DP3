@@ -223,17 +223,17 @@ find_package(Threads REQUIRED)
 find_package(AOFlagger 3.1 REQUIRED)
 include_directories(${AOFLAGGER_INCLUDE_DIR})
 
-# We could use find_package(EveryBeam 0.8.3 REQUIRED), however conditions below
+# We could use find_package(EveryBeam <version> REQUIRED), however conditions below
 # make it somewhat more explicit
 find_package(EveryBeam NO_MODULE)
 if(${EVERYBEAM_FOUND})
   # When raising the required EveryBeam version, update EVERYBEAM_VERSION in
   # docker/ubuntu_*_base and docker/py_wheel_docker as well!
-  if(${EVERYBEAM_VERSION} VERSION_LESS "0.9.0"
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.9.2"
      OR ${EVERYBEAM_VERSION} VERSION_GREATER_EQUAL "0.10.0")
     message(
       FATAL_ERROR
-        "DP3 needs EveryBeam version >= 0.9.0 and < 0.10.0 - but found version ${EVERYBEAM_VERSION}"
+        "DP3 needs EveryBeam version >= 0.9.2 and < 0.10.0 - but found version ${EVERYBEAM_VERSION}"
     )
   endif()
   include_directories(${EVERYBEAM_INCLUDE_DIR})

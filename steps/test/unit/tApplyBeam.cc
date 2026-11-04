@@ -19,8 +19,8 @@ using dp3::steps::Step;
 BOOST_AUTO_TEST_SUITE(apply_beam)
 
 namespace {
-const double kTime{4.87128e+09};
-const double kExposure{10.0139};
+constexpr double kTime = 4.87128e+09;
+constexpr double kExposure = 10.0139;
 const std::vector<double> kFrequencies{1.34288e+08, 1.34312e+08};
 }  // namespace
 
@@ -49,7 +49,7 @@ dp3::base::DPInfo MakeInfo() {
   info.setChannels(std::vector<double>(kFrequencies), {24414.1, 24414.1},
                    {24414.1, 24414.1}, {24414.1, 24414.1}, 1.34375e+08, 0);
 
-  info.setTimes(3.0, 3.0, 5.0);
+  info.setTimes(kTime, kTime, 5.0);
 
   const std::vector<int> antenna_1{0};
   const std::vector<int> antenna_2{0};
@@ -57,10 +57,7 @@ dp3::base::DPInfo MakeInfo() {
   const std::vector<std::string> antenna_names{"CS001HBA0", "CS002HBA0"};
 
   std::vector<casacore::MPosition> antenna_position(2);
-  casacore::Vector<double> vals(3);
-  vals[0] = 3828763;
-  vals[1] = 442449;
-  vals[2] = 5064923;
+  casacore::Vector<double> vals = {3828763, 442449, 5064923};
   antenna_position[0] = casacore::MPosition(
       casacore::Quantum<casacore::Vector<double>>(vals, "m"),
       casacore::MPosition::ITRF);
@@ -81,14 +78,17 @@ dp3::base::DPInfo MakeInfo() {
 // expected result to help catch any regressions
 BOOST_AUTO_TEST_CASE(test_step_basic) {
   const xt::xtensor<std::complex<float>, 3> kTestData = {
+      // Timestep 1, channel 1, antenna 0 x antenna 0
       {{{0.000105909, -6.15896e-06},
         {-5.75999e-05, -0.000169081},
         {6.09389e-05, -0.000144006},
         {7.58708e-05, -0.000118892}},
+       // Timestep 1, channel 2, antenna 0 x antenna 0
        {{5.04177e-05, -0.000176506},
         {0.000159816, 3.01513e-06},
         {8.10528e-05, 9.37562e-05},
         {0.000141897, -7.32e-05}}},
+      // TODO this test needs fixes: the values below here are never used
       {{{0.000170118, 5.01791e-05},
         {6.19825e-05, 3.1506e-05},
         {0.000152869, -8.22876e-05},
@@ -113,14 +113,15 @@ BOOST_AUTO_TEST_CASE(test_step_basic) {
       {{9.355210e+08, 1.963980e+09, 6.532890e+08, 5.810230e+08},
        {5.264440e+08, 1.566430e+09, 1.715470e+09, 1.069660e+09}}};
   const xt::xtensor<std::complex<float>, 3> kExpectedData = {
-      {{{886.133, -2354.56},
-        {771.412, -602.496},
-        {-367.09, -843.605},
-        {883.182, 710.44}},
-       {{2249.85, -563.42},
-        {199.536, 273.074},
-        {926.346, -564.403},
-        {-137.817, -1638.45}}},
+      {{{1026.13, -2426.27},
+        {713.523, 665.668},
+        {-424.88, 424.58},
+        {743.033, 782.287}},
+       {{2305.44, -815.611},
+        {-788.261, -59.5556},
+        {-61.5134, -896.96},
+        {-193.599, -1386.06}}},
+      // Unchanged values:
       {{{0.000170118, 5.01791e-05},
         {6.19825e-05, 3.1506e-05},
         {0.000152869, -8.22876e-05},
@@ -158,6 +159,7 @@ BOOST_AUTO_TEST_CASE(test_step_basic) {
   BOOST_TEST_REQUIRE(result_buffer);
   BOOST_TEST(result_buffer->GetTime() == kTime);
   BOOST_TEST(result_buffer->GetExposure() == kExposure);
+  BOOST_TEST(result_buffer->GetData().size() == kExpectedData.size());
   BOOST_TEST(xt::allclose(result_buffer->GetData(), kExpectedData));
   BOOST_TEST(result_buffer->GetWeights() == kExpectedWeights,
              boost::test_tools::per_element());

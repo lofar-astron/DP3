@@ -179,17 +179,17 @@ def test_dish_beam():
 
     # Assert that the beam value is correct per each channel
     assert_taql(
-        f"select t1.DATA[0,0]/t2.DATA[0,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[0,0] / t2.DATA[0,0] - 0.14634) > 1e-6 AND abs(t2.DATA[0,0])!=0.0"
+        f"select t1.DATA[0,0]/t2.DATA[0,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[0,0] / t2.DATA[0,0] - 0.206143) > 1e-6 AND abs(t2.DATA[0,0])!=0.0"
     )
     assert_taql(
-        f"select t1.DATA[1,0]/t2.DATA[1,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[1,0] / t2.DATA[1,0] - 0.146003) > 1e-6 AND abs(t2.DATA[1,0])!=0.0"
+        f"select t1.DATA[1,0]/t2.DATA[1,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[1,0] / t2.DATA[1,0] - 0.205446)> 1e-6 AND abs(t2.DATA[1,0])!=0.0"
     )
     assert_taql(
-        f"select t1.DATA[2,0]/t2.DATA[2,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[2,0] / t2.DATA[2,0] - 0.145628) > 1e-6 AND abs(t2.DATA[2,0])!=0.0"
+        f"select t1.DATA[2,0]/t2.DATA[2,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[2,0] / t2.DATA[2,0] - 0.20475) > 1e-6 AND abs(t2.DATA[2,0])!=0.0"
     )
     assert_taql(
-        f"select t1.DATA[3,0]/t2.DATA[3,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[3,0] / t2.DATA[3,0] - 0.145258) > 1e-6 AND abs(t2.DATA[3,0])!=0.0"
+        f"select t1.DATA[3,0]/t2.DATA[3,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[3,0] / t2.DATA[3,0] - 0.204055) > 1e-6 AND abs(t2.DATA[3,0])!=0.0"
     )
     assert_taql(
-        f"select t1.DATA[4,0]/t2.DATA[4,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[4,0] / t2.DATA[4,0] - 0.144892) > 1e-6 AND abs(t2.DATA[4,0])!=0.0"
+        f"select t1.DATA[4,0]/t2.DATA[4,0] from {DISH_MSIN} t1, beam_applied.ms t2 where abs(t1.DATA[4,0] / t2.DATA[4,0] - 0.203247) > 1e-6 AND abs(t2.DATA[4,0])!=0.0"
     )
