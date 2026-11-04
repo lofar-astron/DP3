@@ -613,12 +613,13 @@ bool FastPredict::process(std::unique_ptr<DPBuffer> buffer) {
 
   double time = buffer->GetTime();
 
-  const bool need_meas_converters =
-      moving_phase_ref_ || apply_beam_ || use_local_frame_;
-  if (need_meas_converters) {
+  // Convert coordinates every time slot if the phase reference is in a
+  // coordinate frame that is not fixed to J2000. For beam computations,
+  // this computation is done inside EveryBeam at the mid point of the
+  // beam evaluation interval.
+  const bool need_meas_converter_update = moving_phase_ref_ || use_local_frame_;
+  if (need_meas_converter_update) {
     meas_frame_.resetEpoch(MEpoch(MVEpoch(time / 86400), MEpoch::UTC));
-    meas_converter_(getInfoOut().delayCenter());
-    meas_converter_(getInfoOut().tileBeamDir());
   }
 
   if (moving_phase_ref_) {
@@ -718,6 +719,7 @@ void FastPredict::RunPlan(base::DPBuffer::DataType& destination, double time) {
   {
     const common::ScopedMicroSecondAccumulator scoped_time(predict_time_);
     if (predict_settings_.apply_beam) {
+      meas_frame_.resetEpoch(casacore::Quantity(beam_evaluation_time, "s"));
       beam_response_plan_->beam_response.time = beam_evaluation_time;
       predict_.RunWithStrategy(
           *predict_plan_exec_, beam_response_handler_, *beam_response_plan_,

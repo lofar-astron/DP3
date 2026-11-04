@@ -645,6 +645,8 @@ void OnePredict::PredictWithSourceParallelization(
       time_cache =
           std::make_unique<everybeam::TimeCache>(everybeam::CreateTimeCache(
               beam_evaluation_time, getInfoOut().GetTelescope()));
+      for (casacore::MeasFrame& frame : meas_frame_)
+        frame.resetEpoch(casacore::Quantity(beam_evaluation_time, "s"));
     }
   }
 
