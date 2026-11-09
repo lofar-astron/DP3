@@ -233,7 +233,7 @@ class MSWriter : public OutputStep {
   /// buffer large takes more memory while the "slow" I/O will just delay the
   /// final part of the processing. Based on experiments locally and on DAS6 the
   /// selected size seems a nice trade-off.
-  aocommon::Lane<std::unique_ptr<base::DPBuffer>> write_queue_{3};
+  aocommon::OneByOneLane<std::unique_ptr<base::DPBuffer>> write_queue_{3};
 
   /// Creates task for the \ref write_queue_.
   void CreateTask(std::unique_ptr<base::DPBuffer> buffer);
