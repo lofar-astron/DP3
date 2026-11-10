@@ -30,6 +30,12 @@ namespace dp3::ddecal {
 void Weigh(const base::DPBuffer::DataType& in, base::DPBuffer::DataType& out,
            const base::DPBuffer::WeightsType& weights);
 
+void AssignAndWeight(base::DPBuffer& unweighted_buffer,
+                     const std::vector<std::string>& direction_names,
+                     base::DPBuffer& weighted_buffer,
+                     bool keep_unweighted_model_data,
+                     bool linear_weighting_mode);
+
 /**
  * This function takes (unweighted) data and model data, as well as a
  * weights array, weights these and writes the result.

@@ -1,6 +1,7 @@
 # Copyright (C) 2023 ASTRON (Netherlands Institute for Radio Astronomy)
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import sys
 from subprocess import STDOUT, CalledProcessError, check_output
 
@@ -32,6 +33,11 @@ IDG_RESOURCES = "idg-fits-sources.tbz2"
 MSINTGZ = "tDDECal.in_MS.tgz"
 MSIN = "tDDECal.MS"
 SKYMODEL = f"{MSIN}/sky.txt"
+
+requires_aggregation = pytest.mark.skipif(
+    str(tcf.HAVE_CALIBRATION_AGGREGATION).upper() != "ON",
+    reason="calibration aggregation was not built",
+)
 
 
 @pytest.fixture(autouse=True)
@@ -844,6 +850,248 @@ def test_bda_constraints():
     np.testing.assert_allclose(
         phase_bda, phase_no_bda, rtol=0.3, atol=0, equal_nan=True
     )
+
+
+@requires_aggregation
+@pytest.mark.parametrize(
+    "datause, mode",
+    [
+        ("dual", "diagonal"),
+        ("single", "scalarcomplexgain"),
+    ],
+)
+def test_aggregate_matches_unaggregated(datause, mode):
+    common_test_arguments = [
+        f"msin={MSIN}",
+        "msout=",
+        "msin.datacolumn=DATA",
+        "steps=[ddecal]",
+        f"ddecal.mode={mode}",
+        "ddecal.solveralgorithm=directioniterative",
+        f"ddecal.datause={datause}",
+        f"ddecal.sourcedb={SKYMODEL}",
+        "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+        "ddecal.solint=6",
+        "ddecal.nchan=2",
+        "ddecal.maxiter=150",
+    ]
+
+    run_dp3(
+        common_test_arguments
+        + ["ddecal.aggregate=false", "ddecal.h5parm=plain.h5parm"]
+    )
+    run_dp3(
+        common_test_arguments
+        + ["ddecal.aggregate=true", "ddecal.h5parm=agg.h5parm"]
+    )
+
+    with h5py.File("plain.h5parm", "r") as f_plain, h5py.File(
+        "agg.h5parm", "r"
+    ) as f_agg:
+        for key in ("amplitude000/val", "phase000/val"):
+            plain = f_plain[f"sol000/{key}"][...]
+            aggregated = f_agg[f"sol000/{key}"][...]
+            assert np.isfinite(plain).any(), f"{key} is entirely non-finite"
+            np.testing.assert_allclose(
+                aggregated, plain, rtol=1e-2, atol=1e-4, equal_nan=True
+            )
+
+
+@requires_aggregation
+def test_aggregate_keepmodel_writes_original_data():
+    """Aggregated keepmodel output passes the original timesteps on."""
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "msin.datacolumn=DATA",
+            "msout.datacolumn=AGGREGATED_DATA",
+            "steps=[ddecal]",
+            "ddecal.mode=diagonal",
+            "ddecal.solveralgorithm=directioniterative",
+            "ddecal.datause=dual",
+            f"ddecal.sourcedb={SKYMODEL}",
+            "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal.aggregate=true",
+            "ddecal.keepmodel=true",
+            "ddecal.solint=4",
+            "ddecal.nchan=2",
+            "ddecal.h5parm=aggregate_keepmodel.h5",
+        ]
+    )
+
+    assert_taql(
+        "select from (select abs(gsumsqr(DATA-AGGREGATED_DATA)) as diff "
+        f"from {MSIN}) where diff>1.e-6"
+    )
+
+
+@requires_aggregation
+def test_aggregate_chained_increasing_solints():
+    """Adjacent aggregated DDECal steps may accumulate the same samples independently."""
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=",
+            "msin.datacolumn=DATA",
+            "steps=[ddecal1,ddecal2]",
+            "ddecal1.mode=diagonal",
+            "ddecal1.solveralgorithm=directioniterative",
+            "ddecal1.datause=dual",
+            f"ddecal1.sourcedb={SKYMODEL}",
+            "ddecal1.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal1.aggregate=true",
+            "ddecal1.keepmodel=true",
+            "ddecal1.solint=4",
+            "ddecal1.nchan=2",
+            "ddecal1.h5parm=aggregate_chain_first.h5",
+            "ddecal2.mode=diagonal",
+            "ddecal2.solveralgorithm=directioniterative",
+            "ddecal2.datause=dual",
+            "ddecal2.reusemodel=[ddecal1.center,ddecal1.ra_off,ddecal1.radec_off]",
+            "ddecal2.aggregate=true",
+            "ddecal2.solint=6",
+            "ddecal2.nchan=2",
+            "ddecal2.h5parm=aggregate_chain_second.h5",
+        ]
+    )
+
+    with h5py.File("aggregate_chain_first.h5", "r") as first, h5py.File(
+        "aggregate_chain_second.h5", "r"
+    ) as second:
+        assert first["sol000/phase000/val"].shape[0] == 2
+        assert second["sol000/phase000/val"].shape[0] == 1
+
+
+@requires_aggregation
+def test_aggregate_chained_into_non_aggregating_step():
+    """An aggregated step must pass its original timesteps to a plain next step.
+
+    The reduced rows it builds for its own solve are normal-equation factors, not
+    visibilities, and there are n_directions * n_polarizations of them per
+    solution interval instead of one per timestep. Handing those downstream
+    instead of the original timesteps made the next step read absent fields and
+    crashed.
+    """
+    run_dp3(
+        [
+            f"msin={MSIN}",
+            "msout=.",
+            "msin.datacolumn=DATA",
+            "msout.datacolumn=CHAINED_DATA",
+            "steps=[ddecal1,ddecal2]",
+            "ddecal1.mode=diagonal",
+            "ddecal1.solveralgorithm=directioniterative",
+            "ddecal1.datause=dual",
+            f"ddecal1.sourcedb={SKYMODEL}",
+            "ddecal1.directions=[[center,dec_off],[ra_off],[radec_off]]",
+            "ddecal1.aggregate=true",
+            "ddecal1.keepmodel=true",
+            "ddecal1.solint=4",
+            "ddecal1.nchan=2",
+            "ddecal1.h5parm=aggregate_chain_plain_first.h5",
+            "ddecal2.mode=diagonal",
+            "ddecal2.solveralgorithm=directioniterative",
+            "ddecal2.datause=dual",
+            "ddecal2.reusemodel=[ddecal1.center,ddecal1.ra_off,ddecal1.radec_off]",
+            "ddecal2.aggregate=false",
+            "ddecal2.solint=4",
+            "ddecal2.nchan=2",
+            "ddecal2.h5parm=aggregate_chain_plain_second.h5",
+        ]
+    )
+
+    # ddecal1 keeps the visibilities untouched, so the data reaching the writer
+    # has to be the input data rather than a reduced row.
+    assert_taql(
+        "select from (select abs(gsumsqr(DATA-CHAINED_DATA)) as diff "
+        f"from {MSIN}) where diff>1.e-6"
+    )
+
+    with h5py.File("aggregate_chain_plain_first.h5", "r") as first, h5py.File(
+        "aggregate_chain_plain_second.h5", "r"
+    ) as second:
+        assert first["sol000/phase000/val"].shape[0] == 2
+        assert second["sol000/phase000/val"].shape[0] == 2
+
+
+@requires_aggregation
+def test_aggregate_rejects_only_predict():
+    """onlypredict skips the solve, so the accumulated system is never reduced."""
+    with pytest.raises(CalledProcessError) as error:
+        run_dp3(
+            [
+                f"msin={MSIN}",
+                "msout=",
+                "msin.datacolumn=DATA",
+                "steps=[ddecal]",
+                "ddecal.mode=diagonal",
+                "ddecal.solveralgorithm=directioniterative",
+                "ddecal.datause=dual",
+                f"ddecal.sourcedb={SKYMODEL}",
+                "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+                "ddecal.aggregate=true",
+                "ddecal.onlypredict=true",
+                "ddecal.solint=4",
+                "ddecal.nchan=2",
+                "ddecal.h5parm=agg_onlypredict.h5parm",
+            ]
+        )
+    message = (error.value.output or b"").decode() + str(error.value)
+    assert "onlypredict" in message, message
+    assert "never be reduced" in message, message
+
+
+@requires_aggregation
+def test_aggregate_rejects_sub_solutions():
+    """An interval that is split into sub-solutions cannot be aggregated."""
+    with pytest.raises(CalledProcessError) as error:
+        run_dp3(
+            [
+                f"msin={MSIN}",
+                "msout=",
+                "msin.datacolumn=DATA",
+                "steps=[ddecal]",
+                "ddecal.mode=scalarcomplexgain",
+                f"ddecal.sourcedb={SKYMODEL}",
+                "ddecal.directions=[[center,dec_off]]",
+                "ddecal.solint=6",
+                "ddecal.nchan=2",
+                "ddecal.solutions_per_direction=[2]",
+                "ddecal.aggregate=true",
+                "ddecal.h5parm=agg.h5parm",
+            ]
+        )
+    message = (error.value.output or b"").decode() + str(error.value)
+    assert "solutions_per_direction" in message, message
+    assert "cannot be partitioned" in message, message
+
+
+@requires_aggregation
+def test_aggregate_rejects_model_weighted_constraints():
+    """The reduced system cannot supply the model magnitudes constraints weight by."""
+    with pytest.raises(CalledProcessError) as error:
+        run_dp3(
+            [
+                f"msin={MSIN}",
+                "msout=",
+                "msin.datacolumn=DATA",
+                "steps=[ddecal]",
+                "ddecal.mode=diagonal",
+                "ddecal.solveralgorithm=directioniterative",
+                "ddecal.datause=dual",
+                f"ddecal.sourcedb={SKYMODEL}",
+                "ddecal.directions=[[center,dec_off],[ra_off],[radec_off]]",
+                "ddecal.aggregate=true",
+                "ddecal.model_weighted_constraints=true",
+                "ddecal.solint=4",
+                "ddecal.nchan=2",
+                "ddecal.h5parm=agg_mwc.h5parm",
+            ]
+        )
+    message = (error.value.output or b"").decode() + str(error.value)
+    assert "model_weighted_constraints" in message, message
+    assert "Hermitian square root" in message, message
 
 
 @pytest.mark.parametrize(

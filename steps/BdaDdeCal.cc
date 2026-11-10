@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <atomic>
 #include <sstream>
+#include <stdexcept>
 
 #include <aocommon/logger.h>
 
@@ -203,6 +204,16 @@ void BdaDdeCal::updateInfo(const DPInfo& _info) {
   }
 
   settings_.PrepareSubSolutionsPerDirection(direction_names_.size());
+
+  // The aggregation folds samples over a solution interval, which assumes the
+  // fixed-size buffers of the regular DDECal path. BdaDdeCal builds its
+  // BdaSolverBuffer differently, so reject it explicitly rather than silently
+  // ignoring the setting.
+  if (settings_.aggregate) {
+    throw std::runtime_error(
+        "Aggregation is not supported by the BDA DDECal variant. "
+        "Disable aggregation or use regular data.");
+  }
 
   // Convert antenna positions from Casacore to STL, if necessary.
   std::vector<std::array<double, 3>> antenna_pos;

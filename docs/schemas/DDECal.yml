@@ -46,6 +46,16 @@ inputs:
     default: 1
     type: int
     doc: Solution interval in timesteps. If a value of 0 is specified, the solver will use a single solution interval that covers the entire observation. When using BDA, the solint should be bigger than or equal to the maximum averaged time interval.
+  aggregate:
+    default: false
+    type: bool
+    doc: >-
+      Aggregate visibility and model data over each solution interval before solving. This experimental feature can reduce memory use when there are no subsequent calibration steps, or when they do not reuse the predicted model. DP3 must be built with USE_CALIBRATION_AGGREGATION=On to enable it.
+
+      As a rule of thumb, aggregation is more likely to reduce memory use when N_dir x N_pol is less than N_solint.
+
+      Aggregation is not supported with BDA data, more than one solution per direction per solution interval (solutions_per_direction), solveralgorithm=lowrank or lbfgs, subtract=true, onlypredict=true, IDG prediction (idg.regions or idg.images), or model_weighted_constraints=true.
+
   datause:
     default: full
     type: string

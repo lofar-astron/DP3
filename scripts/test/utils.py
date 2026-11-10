@@ -66,8 +66,9 @@ def run_dp3(arguments, must_fail=False):
         stdout_string = result.stdout.decode("utf-8")
         print(f"DP3 failed. Output was:\n{stdout_string}")
         raise subprocess.CalledProcessError(
-            f"DP3 failed. Output was:\n{result.stdout}",
+            result.returncode,
             cmd="DP3 " + " ".join(all_arguments),
+            output=result.stdout,
         )
     return result.stdout
 

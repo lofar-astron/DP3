@@ -21,6 +21,17 @@ BOOST_AUTO_TEST_CASE(solution_direction_map) {
   BOOST_TEST((result == std::vector<size_t>{0, 0, 0, 1, 2, 3, 3}));
 }
 
+BOOST_AUTO_TEST_CASE(aggregation_defaults) {
+  common::ParameterSet parset;
+  parset.add("h5parm", "foo.h5");  // Mandatory setting.
+  const Settings defaults(parset, "");
+  BOOST_TEST(!defaults.aggregate);
+
+  parset.add("aggregate", "true");
+  const Settings overridden(parset, "");
+  BOOST_TEST(overridden.aggregate);
+}
+
 struct InputDirectionsFixture {
   InputDirectionsFixture() {
     // Test prefix removal using names with and without dots.

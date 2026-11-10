@@ -3,6 +3,8 @@
 
 #include "steps/DDECal.h"
 
+#include <cmath>
+
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 

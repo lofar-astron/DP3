@@ -24,6 +24,9 @@
 #include "ddecal/SolutionWriter.h"
 #include "ddecal/constraints/Constraint.h"
 #include "ddecal/gain_solvers/SolverBase.h"
+#ifdef HAVE_CALIBRATION_AGGREGATION
+#include "ddecal/gain_solvers/AggregateSolveData.h"
+#endif
 
 #include "MultiResultStep.h"
 #include "ResultStep.h"
@@ -52,7 +55,7 @@ class DDECal : public Step {
 
   bool process(std::unique_ptr<base::DPBuffer> buffer) override;
 
-  void checkMinimumVisibilities(size_t bufferIndex);
+  std::vector<bool> checkMinimumVisibilities(size_t bufferIndex);
 
   void flagChannelBlock(size_t cbIndex, size_t bufferIndex);
 
@@ -84,6 +87,13 @@ class DDECal : public Step {
                          const std::string& prefix) const;
 
   void doPrepare();
+
+#ifdef HAVE_CALIBRATION_AGGREGATION
+  void FoldInputBuffers();
+  std::vector<base::DPBuffer> FinalizeAggregation(
+      size_t interval, const std::vector<bool>& rejected_channels);
+  void ShowAggregateTimings(std::ostream& os, double total_time) const;
+#endif
 
   /// Initializes solutions for a new solution interval.
   /// Based on progation settings, either copies the previous solution or
@@ -127,6 +137,11 @@ class DDECal : public Step {
   /// The input data buffers for the current set of solution intervals.
   /// Maximum dimensions: itsSolIntCount x itsRequestedSolInt
   std::vector<std::vector<std::unique_ptr<base::DPBuffer>>> input_buffers_;
+#ifdef HAVE_CALIBRATION_AGGREGATION
+  size_t next_aggregate_result_ = 0;
+  std::vector<std::unique_ptr<ddecal::SolveDataAggregator>> aggregators_;
+  base::DPBuffer weighted_aggregate_buffer_;
+#endif
   /// Original flags of the input buffers for the current solution interval.
   /// This member is only used if itsUVWFlagger is active.
   /// Dimensions: ( solution_interval x step_within_interval x baseline x
@@ -204,6 +219,22 @@ class DDECal : public Step {
 
   common::NSTimer timer_;
   common::NSTimer predict_timer_;
+  common::NSTimer aggregation_accumulation_timer_;
+  common::NSTimer aggregation_weighting_timer_;
+  common::NSTimer aggregation_finalization_timer_;
+  /// Wall-clock breakdown of aggregation finalization, in seconds, summed
+  /// over the Finish() calls of all aggregators (see
+  /// SolveDataAggregator::FinishTimings).
+  double aggregation_identity_seconds_ = 0.0;
+  double aggregation_square_root_seconds_ = 0.0;
+  double aggregation_apply_seconds_ = 0.0;
+  double aggregation_check_seconds_ = 0.0;
+  double aggregation_copy_seconds_ = 0.0;
+  /// Shape of the reduced systems, for the timing printout. The aggregators
+  /// are cleared before the timings are shown, so this is captured when
+  /// Finish() runs.
+  size_t aggregation_n_batches_ = 0;
+  size_t aggregation_linear_size_ = 0;
   common::NSTimer solve_timer_;
   common::NSTimer write_timer_;
   std::mutex measures_mutex_;
