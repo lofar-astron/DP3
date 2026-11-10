@@ -32,11 +32,16 @@
 
 #include "ddecal/SolverFactory.h"
 #include "ddecal/constraints/SmoothnessConstraint.h"
+#ifdef HAVE_CALIBRATION_AGGREGATION
+#include "ddecal/gain_solvers/AggregateSolveData.h"
+#endif
 #include "ddecal/gain_solvers/SolveData.h"
 #include "ddecal/gain_solvers/SolverTools.h"
 #include "ddecal/linear_solvers/LLSSolver.h"
 
 #include "IDGPredict.h"
+#include "MSUpdater.h"
+#include "MSWriter.h"
 #include "MsColumnReader.h"
 #include "Predict.h"
 #if defined(HAVE_LIBDIRAC) || defined(HAVE_LIBDIRAC_CUDA)
@@ -202,6 +207,17 @@ void DDECal::updateInfo(const DPInfo& infoIn) {
   }
 
   settings_.PrepareSubSolutionsPerDirection(patches_per_direction_.size());
+
+  if (settings_.aggregate) {
+#ifndef HAVE_CALIBRATION_AGGREGATION
+    throw std::runtime_error(
+        "ddecal.aggregate=true was requested, but this DP3 binary was built "
+        "without calibration aggregation support. Reconfigure with "
+        "-DUSE_CALIBRATION_AGGREGATION=ON, or set "
+        "ddecal.aggregate=false.");
+#endif
+    settings_.CheckAggregationSupported();
+  }
 
   uvw_flag_step_.updateInfo(infoIn);
 
@@ -399,6 +415,8 @@ void DDECal::show(std::ostream& os) const {
      << "  direction count:     " << patches_per_direction_.size() << '\n'
      << "  directions:          " << patches_per_direction_ << '\n'
      << "  sols per direction:  " << settings_.sub_solutions_per_direction
+     << '\n'
+     << "  aggregate:           " << std::boolalpha << settings_.aggregate
      << '\n';
   initial_solutions_.Show(os);
   if (settings_.min_vis_ratio != 0.0) {
@@ -450,6 +468,10 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   FlagCounter::showPerc1(os, predict_timer_.getElapsed(), totaltime);
   os << " of it spent in predict" << '\n';
 
+#ifdef HAVE_CALIBRATION_AGGREGATION
+  ShowAggregateTimings(os, totaltime);
+#endif
+
   os << "          ";
   FlagCounter::showPerc1(os, solve_timer_.getElapsed(), totaltime);
   os << " of it spent in estimating gains and computing residuals" << '\n';
@@ -480,6 +502,49 @@ void DDECal::showTimings(std::ostream& os, double duration) const {
   }
   os << "]" << '\n';
 }
+
+#ifdef HAVE_CALIBRATION_AGGREGATION
+void DDECal::ShowAggregateTimings(std::ostream& os, double total_time) const {
+  if (settings_.aggregate) {
+    // The accumulation runs inside the predict timer, so it is indented under
+    // it. Finalization is a separate part of the step and sits at the same
+    // level as the other entries.
+    os << "              ";
+    FlagCounter::showPerc1(os, aggregation_accumulation_timer_.getElapsed(),
+                           total_time);
+    os << " of it spent in calibration aggregation accumulation" << '\n';
+    os << "                  ";
+    FlagCounter::showPerc1(os, aggregation_weighting_timer_.getElapsed(),
+                           total_time);
+    os << " of it spent in weighting (AssignAndWeight)" << '\n';
+
+    os << "          ";
+    FlagCounter::showPerc1(os, aggregation_finalization_timer_.getElapsed(),
+                           total_time);
+    os << " of it spent in calibration aggregation finalization" << '\n';
+    os << "              ";
+    FlagCounter::showPerc1(os, aggregation_square_root_seconds_, total_time);
+    os << " of it spent in aggregation square root (eigendecomposition)"
+       << '\n';
+    os << "              ";
+    FlagCounter::showPerc1(os, aggregation_apply_seconds_, total_time);
+    os << " of it spent in aggregation apply" << '\n';
+    os << "              ";
+    FlagCounter::showPerc1(
+        os, aggregation_identity_seconds_ + aggregation_check_seconds_,
+        total_time);
+    os << " of it spent in aggregation masking and finite check" << '\n';
+    os << "              ";
+    FlagCounter::showPerc1(os, aggregation_copy_seconds_, total_time);
+    os << " of it spent in aggregation reduced-system copy" << '\n';
+    if (aggregation_n_batches_ != 0) {
+      os << "              aggregation reduced " << aggregation_n_batches_
+         << " system(s) of size " << aggregation_linear_size_ << "x"
+         << aggregation_linear_size_ << '\n';
+    }
+  }
+}
+#endif
 
 void DDECal::InitializeSolutions(size_t buffer_index) {
   const size_t solution_index = first_solution_index_ + buffer_index;
@@ -543,43 +608,57 @@ void DDECal::flagChannelBlock(size_t cbIndex, size_t bufferIndex) {
     weights_per_antenna_[ant1 * nChanBlocks + cbIndex] = 0.0;
     weights_per_antenna_[ant2 * nChanBlocks + cbIndex] = 0.0;
   }
-  // Set the visibility flags to true. SolverTools::AssignAndWeight will write
-  // zeroes to the weighted data if it is flagged.
+  // Set the visibility flags to true for buffered weighting; the streaming
+  // aggregation also masks these channels when finalizing.
   for (std::unique_ptr<DPBuffer>& buffer : input_buffers_[bufferIndex]) {
     xt::view(buffer->GetFlags(), xt::all(),
              xt::range(channel_begin, channel_end), xt::all()) = true;
   }
 }
 
-void DDECal::checkMinimumVisibilities(size_t bufferIndex) {
+std::vector<bool> DDECal::checkMinimumVisibilities(size_t bufferIndex) {
+  std::vector<bool> rejected_channels(getInfoOut().nchan(), false);
   for (size_t cb = 0; cb != channel_block_frequencies_.size(); ++cb) {
     double fraction = double(visibilities_in_interval_[cb].first) /
                       visibilities_in_interval_[cb].second;
-    if (fraction < settings_.min_vis_ratio) flagChannelBlock(cb, bufferIndex);
+    if (fraction < settings_.min_vis_ratio) {
+      flagChannelBlock(cb, bufferIndex);
+      for (size_t channel = channel_block_start_[cb];
+           channel < channel_block_start_[cb + 1]; ++channel) {
+        rejected_channels[channel] = true;
+      }
+    }
   }
+  return rejected_channels;
 }
 
 void DDECal::doSolve() {
-  for (size_t dir = 0; dir < patches_per_direction_.size(); ++dir) {
-    // For directions that reuse model data, the model data of the various
-    // time steps should already be in the input buffers.
-    if (!steps_[dir]) continue;
-
-    // For directions that do not, the model data has been computed in the
-    // substeps now and is waiting in the tailing MultiResultStep of each
-    // substep chain. Move the model data from there to the input buffers.
-    if (auto s = dynamic_cast<IDGPredict*>(steps_[dir].get())) {
-      predict_timer_.start();
-      s->flush();
-      predict_timer_.stop();
-    }
-    for (size_t i = 0; i < result_steps_[dir]->size(); ++i) {
-      // In the MultiResultStep, DPBuffers are stored flattened (1D vector) as
-      // compared to the target shape of the input buffers (vector of vectors):
-      const size_t sol_int = i / requested_solution_interval_;
-      const size_t timestep = i % requested_solution_interval_;
-      input_buffers_[sol_int][timestep]->MoveData(*result_steps_[dir]->get()[i],
-                                                  "", direction_names_[dir]);
+  if (!settings_.aggregate) {
+    // Without aggregation nothing consumed the model results while the
+    // buffers flowed through, so they are still sitting in the result
+    // steps here. With aggregation, FoldInputBuffers() in doPrepare()
+    // already moved them into the input buffers and released them.
+    for (size_t dir = 0; dir < patches_per_direction_.size(); ++dir) {
+      // For directions that reuse model data, the model data of the various
+      // time steps should already be in the input buffers.
+      if (!steps_[dir]) continue;
+      // For directions that do not, the model data has been computed in the
+      // substeps now and is waiting in the tailing MultiResultStep of each
+      // substep chain. Move the model data from there to the input buffers.
+      if (auto s = dynamic_cast<IDGPredict*>(steps_[dir].get())) {
+        predict_timer_.start();
+        s->flush();
+        predict_timer_.stop();
+      }
+      for (size_t i = 0; i < result_steps_[dir]->size(); ++i) {
+        // In the MultiResultStep, DPBuffers are stored flattened (1D vector) as
+        // compared to the target shape of the input buffers (vector of
+        // vectors):
+        const size_t sol_int = i / requested_solution_interval_;
+        const size_t timestep = i % requested_solution_interval_;
+        input_buffers_[sol_int][timestep]->MoveData(
+            *result_steps_[dir]->get()[i], "", direction_names_[dir]);
+      }
     }
   }
 
@@ -610,8 +689,15 @@ void DDECal::doSolve() {
 
     ddecal::SolverBase::SolveResult solveResult;
     if (!settings_.only_predict) {
+#ifdef HAVE_CALIBRATION_AGGREGATION
+      std::vector<bool> rejected_channels;
+#endif
       if (settings_.min_vis_ratio > 0.0) {
+#ifdef HAVE_CALIBRATION_AGGREGATION
+        rejected_channels = checkMinimumVisibilities(i);
+#else
         checkMinimumVisibilities(i);
+#endif
       }
 
       for (ddecal::SolverBase* solver : solvers) {
@@ -639,13 +725,38 @@ void DDECal::doSolve() {
         input_buffers_[i].push_back(std::move(padding_buffer));
       }
 
-      // The last solution interval can be smaller.
-      std::vector<base::DPBuffer> weighted_buffers(input_buffers_[i].size());
-
       const bool linear_mode =
           settings_.solver_algorithm == ddecal::SolverAlgorithm::kLowRank;
-      ddecal::AssignAndWeight(input_buffers_[i], direction_names_,
-                              weighted_buffers, keep_model_data, linear_mode);
+
+      // With aggregation enabled, the weighted model data of the whole interval
+      // is folded into one reduced system per (baseline, frequency) before the
+      // solve. DDECal's per-antenna accumulation of the reduced data reproduces
+      // the unreduced normal equations, so the solver still returns the usual
+      // per-antenna solutions, but the row extent no longer scales with the
+      // solution interval.
+      const bool aggregated = settings_.aggregate;
+      std::vector<base::DPBuffer> weighted_buffers;
+#ifdef HAVE_CALIBRATION_AGGREGATION
+      std::vector<base::DPBuffer> reduced_buffers;
+      if (aggregated) {
+        reduced_buffers = FinalizeAggregation(i, rejected_channels);
+      } else
+#endif
+      {
+        weighted_buffers.resize(input_buffers_[i].size());
+        ddecal::AssignAndWeight(input_buffers_[i], direction_names_,
+                                weighted_buffers, keep_model_data, linear_mode);
+      }
+
+      // Exactly one of the two vectors above was filled, so the solve data can
+      // be built from whichever applies. Settling that here leaves the three
+      // solver_data_use branches below differing only in their type.
+#ifdef HAVE_CALIBRATION_AGGREGATION
+      std::vector<base::DPBuffer>& solve_buffers =
+          aggregated ? reduced_buffers : weighted_buffers;
+#else
+      std::vector<base::DPBuffer>& solve_buffers = weighted_buffers;
+#endif
 
       InitializeSolutions(i);
 
@@ -654,47 +765,48 @@ void DDECal::doSolve() {
       switch (settings_.solver_data_use) {
         case ddecal::SolverDataUse::kSingle: {
           const ddecal::UniSolveData solve_data(
-              std::move(weighted_buffers), direction_names_, n_channel_blocks,
+              std::move(solve_buffers), direction_names_, n_channel_blocks,
               n_antennas, settings_.sub_solutions_per_direction, antennas1_,
               antennas2_);
           if (settings_.model_weighted_constraints) {
             solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
-          aocommon::Logger::Debug << "Running DDECal single-visibility solver "
-                                     "for current calibration interval.\n";
-
+          aocommon::Logger::Debug
+              << "Running DDECal " << (aggregated ? "aggregated " : "")
+              << "single-visibility solver for current calibration "
+                 "interval.\n";
           solveResult =
               solver_->Solve(solve_data, solutions_[solution_index],
                              average_time_ / requested_solution_interval_);
         } break;
         case ddecal::SolverDataUse::kDual: {
           const ddecal::DuoSolveData solve_data(
-              std::move(weighted_buffers), direction_names_, n_channel_blocks,
+              std::move(solve_buffers), direction_names_, n_channel_blocks,
               n_antennas, settings_.sub_solutions_per_direction, antennas1_,
               antennas2_);
           if (settings_.model_weighted_constraints) {
             solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
-
-          aocommon::Logger::Debug << "Running DDECal dual-visibility solver "
-                                     "for current calibration interval.\n";
-
+          aocommon::Logger::Debug
+              << "Running DDECal " << (aggregated ? "aggregated " : "")
+              << "dual-visibility solver for current calibration "
+                 "interval.\n";
           solveResult =
               solver_->Solve(solve_data, solutions_[solution_index],
                              average_time_ / requested_solution_interval_);
         } break;
         case ddecal::SolverDataUse::kFull: {
           const ddecal::FullSolveData solve_data(
-              std::move(weighted_buffers), direction_names_, n_channel_blocks,
+              std::move(solve_buffers), direction_names_, n_channel_blocks,
               n_antennas, settings_.sub_solutions_per_direction, antennas1_,
               antennas2_);
           if (settings_.model_weighted_constraints) {
             solver_->SetDdConstraintWeights(solve_data.GetSolutionWeights());
           }
-
-          aocommon::Logger::Debug
-              << "Running DDECal solver for current calibration interval.\n";
-
+          aocommon::Logger::Debug << "Running DDECal "
+                                  << (aggregated ? "aggregated " : "")
+                                  << "solver for current calibration "
+                                     "interval.\n";
           solveResult =
               solver_->Solve(solve_data, solutions_[solution_index],
                              average_time_ / requested_solution_interval_);
@@ -775,23 +887,99 @@ void DDECal::doSolve() {
 
   timer_.stop();
 
-  for (size_t sol_int = 0; sol_int < input_buffers_.size(); ++sol_int) {
-    for (size_t timestep = 0; timestep < input_buffers_[sol_int].size();
-         ++timestep) {
-      if (original_flags_.size() > 0) {
-        // Restore original flags, if the UVWFlagger or flagChannelBlock ran.
-        input_buffers_[sol_int][timestep]->GetFlags() =
-            xt::view(original_flags_, sol_int, timestep, xt::all(), xt::all(),
-                     xt::all());
+  {
+    for (size_t sol_int = 0; sol_int < input_buffers_.size(); ++sol_int) {
+      for (size_t timestep = 0; timestep < input_buffers_[sol_int].size();
+           ++timestep) {
+        if (original_flags_.size() > 0) {
+          // Restore original flags, if the UVWFlagger or flagChannelBlock ran.
+          input_buffers_[sol_int][timestep]->GetFlags() =
+              xt::view(original_flags_, sol_int, timestep, xt::all(), xt::all(),
+                       xt::all());
+        }
+        // Push data (possibly changed) to next step
+        getNextStep()->process(std::move(input_buffers_[sol_int][timestep]));
       }
-      StepProcessingEnd();
-      // Push data (possibly changed) to next step
-      getNextStep()->process(std::move(input_buffers_[sol_int][timestep]));
     }
   }
 
+  // Close the section that was opened by StepProcessingStart() in process().
+  // This must happen exactly once per input buffer, i.e. after all buffers have
+  // been handed to the next step.
+  StepProcessingEnd();
+
   timer_.start();
 }
+
+#ifdef HAVE_CALIBRATION_AGGREGATION
+std::vector<base::DPBuffer> DDECal::FinalizeAggregation(
+    size_t interval, const std::vector<bool>& rejected_channels) {
+  aggregation_finalization_timer_.start();
+  std::vector<base::DPBuffer> reduced_buffers =
+      aggregators_[interval]->Finish(rejected_channels);
+  aggregation_finalization_timer_.stop();
+
+  const ddecal::SolveDataAggregator::FinishTimings& finish_timings =
+      aggregators_[interval]->last_finish_timings();
+  aggregation_identity_seconds_ += finish_timings.identity;
+  aggregation_square_root_seconds_ += finish_timings.square_root;
+  aggregation_apply_seconds_ += finish_timings.apply;
+  aggregation_check_seconds_ += finish_timings.check;
+  aggregation_copy_seconds_ += finish_timings.copy;
+  // The aggregators are cleared before timings are shown, so capture the
+  // reduced-system shape here.
+  aggregation_n_batches_ = aggregators_[interval]->n_batches();
+  aggregation_linear_size_ = aggregators_[interval]->linear_size();
+
+  aggregators_[interval].reset();
+
+  return reduced_buffers;
+}
+
+void DDECal::FoldInputBuffers() {
+  size_t n_inputs = 0;
+  // Counts how many time steps have to be folded. This assumes that
+  // interval could be more then one timestep which is currently not the case
+  for (const auto& interval : input_buffers_) n_inputs += interval.size();
+  while (next_aggregate_result_ < n_inputs) {
+    const size_t index = next_aggregate_result_;
+
+    for (size_t direction = 0; direction < steps_.size(); ++direction) {
+      if (steps_[direction] && result_steps_[direction]->size() <= index)
+        return;
+    }
+    const size_t interval =
+        index / requested_solution_interval_;  // only one currently
+    const size_t timestep = index % requested_solution_interval_;
+    base::DPBuffer& input = *input_buffers_[interval][timestep];
+    for (size_t direction = 0; direction < steps_.size(); ++direction) {
+      if (!steps_[direction]) continue;
+      std::unique_ptr<DPBuffer>& result =
+          result_steps_[direction]->get()[index];
+      if (!result || result->GetTime() != input.GetTime()) {
+        throw std::runtime_error("DDECal received out-of-order model results.");
+      }
+      input.MoveData(*result, "", direction_names_[direction]);
+      result.reset();
+    }
+    if (aggregators_.size() <= interval) {
+      aggregators_.push_back(std::make_unique<ddecal::SolveDataAggregator>(
+          direction_names_, antennas1_.size(),
+          settings_.sub_solutions_per_direction, settings_.solver_data_use,
+          getInfoOut().nchan()));
+    }
+
+    // Weight and add to the aggregation buffer. The weighting is timed on its
+    // own; the accumulation timer in doPrepare() covers the whole fold.
+    aggregation_weighting_timer_.start();
+    ddecal::AssignAndWeight(input, direction_names_, weighted_aggregate_buffer_,
+                            settings_.keep_model_data, false);
+    aggregation_weighting_timer_.stop();
+    aggregators_[interval]->AddTimeSample(weighted_aggregate_buffer_);
+    ++next_aggregate_result_;
+  }
+}
+#endif
 
 bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
   StepProcessingStart();
@@ -832,6 +1020,10 @@ bool DDECal::process(std::unique_ptr<DPBuffer> bufin) {
     for (std::shared_ptr<MultiResultStep>& result_step : result_steps_) {
       if (result_step) result_step->clear();
     }
+#ifdef HAVE_CALIBRATION_AGGREGATION
+    aggregators_.clear();
+    next_aggregate_result_ = 0;
+#endif
     input_buffers_.clear();
   } else {
     StepProcessingEnd();
@@ -932,6 +1124,14 @@ void DDECal::doPrepare() {
           *input_buffer, required_fields_[direction]));
     }
   }
+
+#ifdef HAVE_CALIBRATION_AGGREGATION
+  if (settings_.aggregate) {
+    aggregation_accumulation_timer_.start();
+    FoldInputBuffers();
+    aggregation_accumulation_timer_.stop();
+  }
+#endif
 
   // Handle weights and flags
   const size_t nBl = getInfoOut().nbaselines();

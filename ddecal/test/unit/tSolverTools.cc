@@ -97,6 +97,20 @@ void CheckTensor(const T& tensor,
 
 BOOST_AUTO_TEST_SUITE(solvertools)
 
+BOOST_AUTO_TEST_CASE(assign_and_weight_one_buffer) {
+  AssignAndWeightFixture<1> fixture;
+  DPBuffer weighted;
+  AssignAndWeight(*fixture.UnweightedBuffers().front(), kDirectionNames,
+                  weighted, true, false);
+  CheckTensor(weighted.GetData(), AssignAndWeightFixture<1>::WeightedValue(0));
+  for (const std::string& name : kDirectionNames) {
+    CheckTensor(weighted.GetData(name),
+                AssignAndWeightFixture<1>::WeightedModelValue(0));
+    CheckTensor(fixture.UnweightedBuffers().front()->GetData(name),
+                kBaseModelDataValue);
+  }
+}
+
 // Ensure that 'data_size' also includes odd numbers, so the loop that
 // processes the remaining values also has coverage.
 BOOST_DATA_TEST_CASE(weigh, boost::unit_test::data::make({0, 1, 2, 4, 32, 35}),

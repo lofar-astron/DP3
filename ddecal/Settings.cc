@@ -127,6 +127,7 @@ Settings::Settings(const common::ParameterSet& _parset,
       sub_solutions_per_direction(
           GetSizeTVector("solutions_per_direction", {})),
       antenna_averaging_factors(GetStringVector("antenna_averaging_factors")),
+      aggregate(GetBool("aggregate", false)),
       // Constraints
       model_weighted_constraints(GetBool("model_weighted_constraints", false)),
       core_constraint(GetDouble("coreconstraint", 0.0)),
@@ -302,6 +303,85 @@ void Settings::PrepareSubSolutionsPerDirection(size_t n_directions) {
 size_t Settings::GetNSolutions() const {
   return std::accumulate(sub_solutions_per_direction.begin(),
                          sub_solutions_per_direction.end(), 0u);
+}
+
+void Settings::CheckAggregationSupported() const {
+  if (!aggregate) return;
+
+  // The aggregation folds every sample of an interval into one system, so the
+  // interval cannot be split into several independent systems. Sub-solutions
+  // would have to be partitioned out of the accumulated Gram matrix, which
+  // changes the objective, so reject rather than silently solve something else.
+  for (size_t n : sub_solutions_per_direction) {
+    if (n != 1) {
+      throw std::runtime_error(
+          "ddecal.aggregate=true requires all entries of "
+          "solutions_per_direction to be 1, but found " +
+          std::to_string(n) +
+          ". Aggregated samples are folded over the whole solution interval "
+          "and cannot be partitioned per sub-solution.");
+    }
+  }
+
+  // The low-rank solver weights the samples linearly instead of with
+  // sqrt(weight); the aggregation reproduces the sqrt(weight) convention used
+  // by ddecal::AssignAndWeight, so the two cannot be combined.
+  if (solver_algorithm == SolverAlgorithm::kLowRank) {
+    throw std::runtime_error(
+        "ddecal.aggregate=true cannot be combined with "
+        "ddecal.solveralgorithm=lowrank, because the low-rank solver uses "
+        "linear rather than square-root sample weighting.");
+  }
+
+  // LBFGS fits a robust cost (sum of log(1 + Norm(res)/robust_nu)) per
+  // original sample. The aggregation only preserves squared-error sums, so
+  // the robust per-sample cost cannot be reproduced from the aggregated system
+  // and the fitted gains would differ (and lose outlier resistance).
+  if (solver_algorithm == SolverAlgorithm::kLBFGS) {
+    throw std::runtime_error(
+        "ddecal.aggregate=true cannot be combined with "
+        "ddecal.solveralgorithm=lbfgs, because LBFGS fits a robust per-sample "
+        "cost that aggregation does not preserve.");
+  }
+
+  // The aggregation accumulates samples as they arrive, which needs the model
+  // data of a buffer before the solution interval is solved. With subtract the
+  // step applies an existing solution instead of solving, so there is nothing
+  // to aggregate towards; with an in-step predict the model data is only
+  // produced while solving, which is too late to accumulate it.
+  if (subtract) {
+    throw std::runtime_error(
+        "ddecal.aggregate=true cannot be combined with ddecal.subtract=true, "
+        "because the aggregation accumulates samples before the solve, while "
+        "subtract applies an existing solution instead of solving.");
+  }
+  if (only_predict) {
+    throw std::runtime_error(
+        "ddecal.aggregate=true cannot be combined with "
+        "ddecal.onlypredict=true, because the aggregation accumulates samples "
+        "before the solve, while onlypredict skips the solve entirely. The "
+        "accumulated system would never be reduced and thrown away.");
+  }
+  if (!idg_region_filename.empty() || !idg_image_filenames.empty()) {
+    throw std::runtime_error(
+        "ddecal.aggregate=true cannot be combined with an in-step predict "
+        "(ddecal.predicttype=dppredict), because the aggregation accumulates "
+        "samples before the solve, while an in-step predict only produces the "
+        "model data during the solve.");
+  }
+
+  // Model-weighted constraints weight each solution by the summed magnitude of
+  // the model visibilities belonging to that antenna. The weights computed from
+  // the reduced data are therefore not the weights the constraints expect,
+  // which would silently change the solutions.
+  if (model_weighted_constraints) {
+    throw std::runtime_error(
+        "ddecal.aggregate=true cannot be combined with "
+        "ddecal.model_weighted_constraints=true, because the constraint "
+        "weights are derived from the model visibilities, and the reduced "
+        "system holds the Hermitian square root of the Gram matrix instead of "
+        "the model.");
+  }
 }
 
 bool Settings::GetBool(const std::string& key, bool default_value) const {

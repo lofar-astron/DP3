@@ -48,6 +48,12 @@ struct Settings {
   size_t GetNSolutions() const;
 
   /**
+   * Throw if `aggregate` is enabled in combination with a setting that the
+   * aggregation does not support. A no-op when `aggregate` is false.
+   */
+  void CheckAggregationSupported() const;
+
+  /**
    * Returns the dd smoothness values, but expanded so that there is a
    * value for every solution that a direction may have.
    */
@@ -157,6 +163,13 @@ struct Settings {
    * the AntennaIntervalContraint is used.
    */
   std::vector<std::string> antenna_averaging_factors;
+
+  /**
+   * Reduce the number of model and visibilities timesamples by
+   * folding the model and visibilities so that the gain solutions
+   * remain the same.
+   */
+  const bool aggregate;
 
   // Constraint settings.
   bool model_weighted_constraints;

@@ -100,7 +100,8 @@ add_compile_options(
   -Wvla
   -Wpointer-arith
   -Wextra
-  -Wno-unused-parameter)
+  -Wno-unused-parameter
+  $<$<CXX_COMPILER_ID:GNU>:-Wno-psabi>)
 if("${CMAKE_CXX_FLAGS}" MATCHES "-fsanitize=undefined")
   message(
     STATUS "Wduplicated-branches and undefined behavior sanitizer conflict.")
@@ -398,6 +399,19 @@ include_directories(${CMAKE_SOURCE_DIR}/external/schaapcommon/external)
 
 option(USE_FAST_PREDICT "Use the FastPredict implementation" ON)
 
+# Memory-reducing calibration aggregation for DDECal.
+#
+# This does NOT enable the feature; it only makes the code available in the
+# binary. The feature itself is controlled per run by the `ddecal.aggregate`
+# parset parameter, which defaults to false.
+#
+option(USE_CALIBRATION_AGGREGATION
+       "Build the memory-reducing DDECal calibration aggregation" OFF)
+if(USE_CALIBRATION_AGGREGATION)
+  include(SkaSdpFuncCalibration)
+  add_definitions(-DHAVE_CALIBRATION_AGGREGATION)
+endif()
+
 # Include FastPredict
 if(USE_FAST_PREDICT)
   add_definitions(-DUSE_FAST_PREDICT)
@@ -461,6 +475,7 @@ add_library(
   steps/BdaDdeCal.cc
   steps/DDECal.cc
   ddecal/InitialSolutions.cc
+  $<$<BOOL:${USE_CALIBRATION_AGGREGATION}>:ddecal/gain_solvers/AggregateSolveData.cc>
   ddecal/Settings.cc
   ddecal/SolutionResampler.cc
   ddecal/SolutionWriter.cc
@@ -493,6 +508,10 @@ add_library(
   ${DDE_ARMADILLO_FILES})
 target_link_libraries(DDECal xsimd xtensor xtensor-blas
                       $<$<BOOL:${USE_FAST_PREDICT}>:predict>)
+
+if(USE_CALIBRATION_AGGREGATION)
+  target_link_libraries(DDECal ska_sdp_func)
+endif()
 
 if(BUILD_WITH_CUDA)
   target_link_libraries(DDECal cudawrappers::cu)
@@ -663,6 +682,10 @@ set(DP3_LIBRARIES
     pybind11::pybind11
     ${Boost_LIBRARIES})
 
+if(USE_CALIBRATION_AGGREGATION)
+  list(APPEND DP3_LIBRARIES ska_sdp_func)
+endif()
+
 if(BUILD_WITH_CUDA)
   list(APPEND DP3_LIBRARIES CudaSolvers)
 endif()
@@ -775,6 +798,7 @@ if(BUILD_TESTING)
       common/test/unit/tTimer.cc
       common/test/unit/tValuePerStationParsing.cc
       ddecal/test/unit/SolverTester.cc
+      $<$<BOOL:${USE_CALIBRATION_AGGREGATION}>:ddecal/test/unit/tAggregateSolveData.cc>
       ddecal/test/unit/tAntennaConstraint.cc
       ddecal/test/unit/tAntennaIntervalConstraint.cc
       ddecal/test/unit/tBdaSolverBuffer.cc
