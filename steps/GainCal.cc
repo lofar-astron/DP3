@@ -162,10 +162,6 @@ GainCal::GainCal(const common::ParameterSet& parset, const std::string& prefix)
 
   itsNIter.resize(4, 0);
 
-  if (itsApplySolution) {
-    itsBuffers.resize(itsSolInt);
-  }
-
   std::string modestr = parset.getString(prefix + "caltype");
   itsMode = base::StringToCalType(modestr);
   unsigned int defaultNChan = 0;
@@ -201,6 +197,11 @@ void GainCal::updateInfo(const DPInfo& infoIn) {
   if (itsSolInt == 0) {
     itsSolInt = getInfoOut().ntime();
   }
+
+  if (itsApplySolution) {
+    itsBuffers.resize(itsSolInt);
+  }
+
   if (itsTimeSlotsPerParmUpdate == 0) {
     itsTimeSlotsPerParmUpdate = getInfoOut().ntime();
   }

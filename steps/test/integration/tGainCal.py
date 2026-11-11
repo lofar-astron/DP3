@@ -24,6 +24,18 @@ MSGAINCAL = "tGainCal.tab"
 MSIN = "tNDPPP-generic.MS"
 SKYMODEL = f"{tcf.RESOURCEDIR}/tNDPPP-generic-skymodel.txt"
 
+# Common arguments for GainCal runs
+DP3_GAINCAL_ARGUMENTS = [
+    tcf.DP3EXE,
+    "checkparset=1",
+    "numthreads=1",
+    f"msin={MSIN}",
+    "msout=.",
+    "steps=[gaincal]",
+    f"gaincal.sourcedb={SKYMODEL}",
+    "gaincal.caltype=diagonal",  # Some tests override this value.
+]
+
 
 @pytest.fixture(autouse=True)
 def source_env(run_in_tmp_path):
@@ -64,14 +76,9 @@ def copy_data_to_model_data():
 def test_caltype_diagonal(create_model_data):
     check_call(
         [
-            tcf.DP3EXE,
-            f"msin={MSIN}",
-            "msout=",
-            "steps=[gaincal]",
-            f"gaincal.sourcedb={SKYMODEL}",
+            *DP3_GAINCAL_ARGUMENTS,
             f"gaincal.parmdb={MSIN}/inst-diagonal",
             "gaincal.usebeammodel=false",
-            "gaincal.caltype=diagonal",
             "gaincal.propagatesolutions=true",
             "gaincal.solint=1",
         ]
@@ -100,14 +107,9 @@ def test_caltype_diagonal(create_model_data):
 
     check_call(
         [
-            tcf.DP3EXE,
-            f"msin={MSIN}",
-            "msout=",
-            "steps=[gaincal]",
-            f"gaincal.sourcedb={SKYMODEL}",
+            *DP3_GAINCAL_ARGUMENTS,
             f"gaincal.parmdb={MSIN}/inst-diagonal-tpp",
             "gaincal.usebeammodel=false",
-            "gaincal.caltype=diagonal",
             "gaincal.solint=4",
             "gaincal.timeslotsperparmupdate=1",
             "gaincal.propagatesolutions=false",
@@ -138,12 +140,8 @@ def test_caltype_diagonal(create_model_data):
 def test_caltype_fulljones(create_model_data):
     check_call(
         [
-            tcf.DP3EXE,
-            f"msin={MSIN}",
-            "msout=.",
+            *DP3_GAINCAL_ARGUMENTS,
             "msout.datacolumn=DPPP_FULLJONES_GAINCAL",
-            "steps=[gaincal]",
-            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-fulljones",
             "gaincal.usebeammodel=false",
             "gaincal.caltype=fulljones",
@@ -178,15 +176,10 @@ def test_caltype_fulljones(create_model_data):
 def test_caltype_diagonal_nchan_2(create_model_data):
     check_call(
         [
-            tcf.DP3EXE,
-            f"msin={MSIN}",
-            "msout=.",
+            *DP3_GAINCAL_ARGUMENTS,
             "msout.datacolumn=DPPP_DIAGONAL_NCHAN_GAINCAL",
-            "steps=[gaincal]",
-            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-diagonal-nchan",
             "gaincal.usebeammodel=false",
-            "gaincal.caltype=diagonal",
             "gaincal.solint=4",
             "gaincal.nchan=2",
             "gaincal.applysolution=true",
@@ -220,12 +213,8 @@ def test_caltype_diagonal_nchan_2(create_model_data):
 def test_output_parameters(caltype):
     check_call(
         [
-            tcf.DP3EXE,
-            f"msin={MSIN}",
-            "msout=.",
+            *DP3_GAINCAL_ARGUMENTS,
             "msout.datacolumn=DPPP_TEC",
-            "steps=[gaincal]",
-            f"gaincal.sourcedb={SKYMODEL}",
             f"gaincal.parmdb={MSIN}/inst-{caltype}",
             f"gaincal.caltype={caltype}",
             "gaincal.solint=2",
@@ -262,14 +251,8 @@ def test_filter():
 def test_debug_output():
     check_call(
         [
-            tcf.DP3EXE,
-            f"msin={MSIN}",
-            "msout=.",
-            "numthreads=1",
-            "steps=[gaincal]",
-            f"gaincal.sourcedb={SKYMODEL}",
+            *DP3_GAINCAL_ARGUMENTS,
             f"gaincal.parmdb={MSIN}/inst-debug",
-            "gaincal.caltype=diagonal",
             "gaincal.debuglevel=1",
         ]
     )
@@ -444,14 +427,7 @@ def test_reuse_modeldata_from_buffer():
     # Run only gaincal to have reference solutions
     check_call(
         [
-            tcf.DP3EXE,
-            "checkparset=1",
-            "numthreads=1",
-            f"msin={MSIN}",
-            "msout=",
-            "steps=[gaincal]",
-            f"gaincal.sourcedb={SKYMODEL}",
-            "gaincal.caltype=diagonal",
+            *DP3_GAINCAL_ARGUMENTS,
             "gaincal.parmdb=solutions_2.h5",
             "gaincal.solint=2",
             "gaincal.nchan=3",
@@ -470,3 +446,16 @@ def test_reuse_modeldata_from_buffer():
         assert np.allclose(
             sol_1[np.isfinite(sol_1)], sol_2[np.isfinite(sol_2)], atol=1.0e-3
         )
+
+
+def test_zero_solint():
+    """Test gaincal with solint=0 and applysolution=true."""
+    check_call(
+        [
+            *DP3_GAINCAL_ARGUMENTS,
+            "gaincal.parmdb=solutions_solint0.h5",
+            "gaincal.solint=0",
+            "gaincal.nchan=3",
+            "gaincal.applysolution=true",
+        ]
+    )
