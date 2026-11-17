@@ -114,9 +114,8 @@ Demixer::Demixer(const common::ParameterSet& parset, const std::string& prefix)
                                               std::vector<double>())),
       itsTimeIndex(0),
       itsNConverged(0) {
-  if (itsSkyName.empty() || itsInstrumentName.empty())
-    throw std::runtime_error(
-        "An empty name is given for the sky and/or instrument model");
+  if (itsSkyName.empty())
+    throw std::runtime_error("An empty name is given for the sky model");
   if (itsIgnoreTarget && !itsTargetSource.empty())
     throw std::runtime_error(
         "Target source name cannot be given if ignoretarget=true");
@@ -613,10 +612,12 @@ void Demixer::finish() {
     handleDemix();
   }
 
-  // Write solutions to disk in ParmDB format.
-  itsTimerDump.start();
-  dumpSolutions();
-  itsTimerDump.stop();
+  // Write solutions to disk in ParmDB format when an output is configured.
+  if (!itsInstrumentName.empty()) {
+    itsTimerDump.start();
+    dumpSolutions();
+    itsTimerDump.stop();
+  }
 
   // Normalize variance ratio over total runs
   itsVarianceRatio /= float(itsTotalDemixRuns);
