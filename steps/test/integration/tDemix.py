@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
+from pathlib import Path
 from subprocess import check_call
 
 import pytest
@@ -71,6 +72,27 @@ def test_without_target(demix_ms):
     # Compare some columns of the output MS with the reference output.
     taql_command = f"select from tDemix_out.MS t1, tDemix_tmp/tDemix_ref1.MS t2 where not all(near(t1.DATA,t2.DATA,1e-3) || (isnan(t1.DATA) && isnan(t2.DATA)))  ||  not all(t1.FLAG = t2.FLAG)  ||  not all(near(t1.WEIGHT_SPECTRUM, t2.WEIGHT_SPECTRUM))  ||  t1.ANTENNA1 != t2.ANTENNA1  ||  t1.ANTENNA2 != t2.ANTENNA2  ||  t1.TIME !~= t2.TIME"
     assert_taql(taql_command)
+
+
+def test_without_instrument_model(demix_ms):
+    args = [
+        arg
+        for arg in common_args
+        if not arg.startswith("demix.instrumentmodel=")
+    ]
+    check_call(
+        [
+            tcf.DP3EXE,
+            "demix.ignoretarget=true",
+            "demix.freqstep=64",
+            "demix.timestep=10",
+            skymodel_arg.format(SKYMODEL),
+            "demix.instrumentmodel=''",
+        ]
+        + args
+    )
+    assert not Path("tDemix_tmp/instrument").exists()
+    assert not Path("instrument").exists()
 
 
 def test_with_target_projected_away(demix_ms):

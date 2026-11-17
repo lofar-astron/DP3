@@ -82,8 +82,9 @@ inputs:
     default: instrument
     type: string
     doc: >-
-      The name of the ParmDB to use. The ParmDB does not need to exist. If it
-      does not exist it will be created.
+      The name of the ParmDB to write the solutions to. The ParmDB does not
+      need to exist; if it does not exist, it will be created. An empty string
+      disables writing the solutions.
   subtractsources:
     default: "[]"
     type: string[]?
