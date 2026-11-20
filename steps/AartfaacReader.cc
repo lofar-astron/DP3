@@ -127,7 +127,7 @@ void AartfaacReader::InitializeInfo() {
 
 void AartfaacReader::ApplyDelayCorrection(DPBuffer& buffer, size_t baseline) {
   for (int ch = 0; ch < metadata_.NrChannels(); ch++) {
-    const float frequency = getInfoIn().chanFreqs()[ch];
+    const float frequency = getInfoOut().chanFreqs()[ch];
     const float w = buffer.GetUvw()(baseline, 2);
     const float angle = -2.0f * M_PI * frequency * w / aocommon::kSpeedOfLight;
     const float delay_sin = sinf(angle);
@@ -170,23 +170,14 @@ void AartfaacReader::CreateInitialSubtables() {
 }
 
 bool AartfaacReader::process(std::unique_ptr<DPBuffer> buffer) {
-  if (getFieldsToRead().Data()) {
-    buffer->GetData().resize({metadata_.NrBaselines(), metadata_.NrChannels(),
-                              metadata_.NrPolarizations()});
-  }
-  if (getFieldsToRead().Flags()) {
-    buffer->GetFlags().resize({metadata_.NrBaselines(), metadata_.NrChannels(),
-                               metadata_.NrPolarizations()});
-  }
+  buffer->GetData().resize({metadata_.NrBaselines(), metadata_.NrChannels(),
+                            metadata_.NrPolarizations()});
+  buffer->GetFlags().resize({metadata_.NrBaselines(), metadata_.NrChannels(),
+                             metadata_.NrPolarizations()});
 
-  if (getFieldsToRead().Weights()) {
-    buffer->GetWeights().resize({metadata_.NrBaselines(),
-                                 metadata_.NrChannels(),
-                                 metadata_.NrPolarizations()});
-  }
-  if (getFieldsToRead().Uvw()) {
-    buffer->GetUvw().resize({metadata_.NrBaselines(), 3});
-  }
+  buffer->GetWeights().resize({metadata_.NrBaselines(), metadata_.NrChannels(),
+                               metadata_.NrPolarizations()});
+  buffer->GetUvw().resize({metadata_.NrBaselines(), 3});
 
   common::NSTimer::StartStop sstime(timer_);
 
@@ -213,8 +204,8 @@ bool AartfaacReader::process(std::unique_ptr<DPBuffer> buffer) {
         std::complex<float>(0.f, 0.f);
 
     // Calculate UVWs apply geometric delay and compute the weights
-    const std::vector<int>& antenna1 = getInfoIn().getAnt1();
-    const std::vector<int>& antenna2 = getInfoIn().getAnt2();
+    const std::vector<int>& antenna1 = getInfoOut().getAnt1();
+    const std::vector<int>& antenna2 = getInfoOut().getAnt2();
     for (size_t i = 0; i < metadata_.NrBaselines(); i++) {
       xt::view(buffer->GetUvw(), i, xt::all()) =
           xt::adapt(uvw_calculator_->getUVW(antenna2[i], antenna1[i],
